@@ -1,0 +1,60 @@
+<!-- Fingerprint Enrollment Page -->
+<div class="enrollment-fingerprint">
+  <h2>Fingerprint Enrollment</h2>
+  <div class="inner-tabs" style="margin-bottom: 1.5rem; display: flex; gap: 0.5rem;">
+    <button class="modern-button" data-nav onclick="location.href='/enrollment/management'">Management</button>
+    <button class="modern-button" data-nav onclick="location.href='/enrollment/card'">Card</button>
+    <button class="modern-button active" data-nav onclick="location.href='/enrollment/fingerprint'">Fingerprint</button>
+  </div>
+  
+  <section class="card">
+    <div class="card-header">
+      <h3>👆 Fingerprint Registration</h3>
+    </div>
+    <div class="card-body">
+      <p>Capture a fingerprint template and assign it to an employee for biometric access.</p>
+      
+      <div class="modern-box">
+        <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+          <button class="modern-button" id="scanFpBtn">👆 Scan Fingerprint</button>
+          <textarea id="fpStatus" class="modern-input" placeholder="No scan yet..." readonly style="flex: 1; min-height: 60px; resize: vertical;"></textarea>
+        </div>
+        
+        <div style="margin-bottom: 1rem;">
+          <label for="fpEmployee" style="display: block; margin-bottom: 0.5rem; font-weight: bold;">Select Employee:</label>
+          <select id="fpEmployee" class="modern-select" data-enhance="c-select" style="width: 100%; max-width: 300px;">
+            <option value="">Loading employees...</option>
+          </select>
+        </div>
+        
+        <!-- Fingerprint Preview -->
+        <div style="margin-bottom: 1rem;">
+          <label style="display: block; margin-bottom: 0.5rem; font-weight: bold;">Fingerprint Preview:</label>
+          <div style="border: 2px dashed #ccc; border-radius: 8px; padding: 1rem; text-align: center; min-height: 200px; display: flex; align-items: center; justify-content: center;">
+            <img id="fingerprintPreview" style="max-width: 100%; max-height: 180px; display: none;" alt="Fingerprint Preview">
+            <span id="fpPreviewPlaceholder" style="color: #999;">Fingerprint image will appear here after scanning</span>
+          </div>
+        </div>
+        
+        <div style="margin-bottom: 1rem;">
+          <button class="modern-button" id="saveFpBtn">💾 Save Fingerprint to Employee</button>
+        </div>
+        
+        <!-- Hidden field to hold template b64 -->
+        <input type="hidden" id="fpTemplate" />
+      </div>
+      
+      <div class="instructions" style="margin-top: 2rem; padding: 1rem; background: rgba(0,123,255,0.1); border-radius: 8px;">
+        <h4>Instructions:</h4>
+        <ol>
+          <li>Click <strong>"Scan Fingerprint"</strong> button</li>
+          <li>Place your finger on the fingerprint scanner when prompted</li>
+          <li>Wait for the scan to complete and template to be captured</li>
+          <li>Select the employee from the dropdown</li>
+          <li>Click <strong>"Save Fingerprint to Employee"</strong></li>
+        </ol>
+        <p><strong>Note:</strong> The system will try to use local SecuGen WebAPI first, then fall back to backend hardware if available.</p>
+      </div>
+    </div>
+  </section>
+</div>

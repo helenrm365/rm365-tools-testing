@@ -1,0 +1,117 @@
+<!-- Sales Imports History Page -->
+<div class="sales-imports-history">
+  <!-- Inner Tabs Navigation -->
+  <div class="inner-tabs" style="margin-bottom: 1.5rem; display: flex; gap: 0.5rem;">
+    <button class="modern-button" data-nav onclick="location.href='/sales-imports/uk-sales'">UK Sales Data</button>
+    <button class="modern-button" data-nav onclick="location.href='/sales-imports/upload'">Upload CSV</button>
+    <button class="modern-button active" data-nav onclick="location.href='/sales-imports/history'">Import History</button>
+  </div>
+
+  <h2>Import History</h2>
+  
+  <section class="card">
+    <div class="card-header">
+      <h3>📋 Import History & Data Management</h3>
+    </div>
+    <div class="card-body">
+      <p>View import history and manage your imported sales data.</p>
+      
+      <div class="history-controls modern-box" style="margin-bottom: 2rem;">
+        <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+          <div>
+            <label class="form-label">Show:</label>
+            <select id="historyLimit" class="modern-select" data-enhance="c-select">
+              <option value="10">Last 10 imports</option>
+              <option value="25">Last 25 imports</option>
+              <option value="50">Last 50 imports</option>
+            </select>
+          </div>
+          <button id="refreshHistoryBtn" class="modern-button">
+            🔄 Refresh
+          </button>
+        </div>
+      </div>
+
+      <div id="importHistoryTable" class="modern-box" style="margin-bottom: 2rem;">
+        <h4>📊 Import History</h4>
+        <div id="historyTableContent">
+          <p class="muted" style="text-align: center; padding: 2rem; color: #999;">Loading import history...</p>
+        </div>
+      </div>
+
+      <div class="orders-section modern-box">
+        <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 1rem;">
+          <h4>📦 Sales Orders</h4>
+          <div style="display: flex; gap: 1rem; align-items: center;">
+            <input type="text" id="ordersSearch" class="modern-input" placeholder="Search orders..." style="width: 200px;">
+            <button id="searchOrdersBtn" class="modern-button">🔍 Search</button>
+          </div>
+        </div>
+        
+        <div id="ordersTable">
+          <p class="muted" style="text-align: center; padding: 2rem; color: #999;">Loading orders...</p>
+        </div>
+        
+        <div style="display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap;">
+          <button id="loadMoreBtn" class="modern-button" style="background: linear-gradient(to bottom right, #007bff, #6610f2);">
+            📄 Load More
+          </button>
+          <button id="exportOrdersBtn" class="modern-button" style="background: linear-gradient(to bottom right, #28a745, #20c997);">
+            📤 Export Orders
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- JavaScript functionality is handled by /js/modules/sales-imports/history.js -->
+
+<style>
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.data-table thead {
+  background: #f8f9fa;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.data-table th {
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: #495057;
+  white-space: nowrap;
+}
+
+.data-table tbody tr {
+  border-bottom: 1px solid #dee2e6;
+  transition: background-color 0.2s;
+}
+
+.data-table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.data-table td {
+  padding: 0.875rem 1rem;
+}
+
+.modern-select {
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+  font-size: 0.95rem;
+}
+
+.modern-input {
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.95rem;
+}
+</style>

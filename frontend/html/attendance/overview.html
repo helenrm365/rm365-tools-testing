@@ -1,0 +1,82 @@
+<!-- Attendance Overview Page -->
+<div class="attendance-overview">
+  <h2>Attendance Overview</h2>
+  <div class="inner-tabs" style="margin-bottom: 1.5rem; display: flex; gap: 0.5rem;">
+    <button class="modern-button active" data-nav onclick="location.href='/attendance/overview'">Overview</button>
+    <button class="modern-button" data-nav onclick="location.href='/attendance/manual'">Manual</button>
+    <button class="modern-button" data-nav onclick="location.href='/attendance/automatic'">Automatic</button>
+    <button class="modern-button" data-nav onclick="location.href='/attendance/logs'">Logs</button>
+  </div>
+  
+  <section class="card">
+    <div class="card-header">
+      <h3>📊 Today's Attendance Summary</h3>
+    </div>
+    <div class="card-body">
+      <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+        <div class="stat-card modern-box" style="text-align: center; padding: 1.5rem;">
+          <div class="stat-number" id="totalEmployees" style="font-size: 2rem; font-weight: bold; color: #007bff;">-</div>
+          <div class="stat-label" style="color: #666; margin-top: 0.5rem;">Total Employees</div>
+        </div>
+        <div class="stat-card modern-box" style="text-align: center; padding: 1.5rem;">
+          <div class="stat-number" id="checkedIn" style="font-size: 2rem; font-weight: bold; color: #28a745;">-</div>
+          <div class="stat-label" style="color: #666; margin-top: 0.5rem;">Checked In</div>
+        </div>
+        <div class="stat-card modern-box" style="text-align: center; padding: 1.5rem;">
+          <div class="stat-number" id="checkedOut" style="font-size: 2rem; font-weight: bold; color: #ffc107;">-</div>
+          <div class="stat-label" style="color: #666; margin-top: 0.5rem;">Checked Out</div>
+        </div>
+        <div class="stat-card modern-box" style="text-align: center; padding: 1.5rem;">
+          <div class="stat-number" id="absentToday" style="font-size: 2rem; font-weight: bold; color: #dc3545;">-</div>
+          <div class="stat-label" style="color: #666; margin-top: 0.5rem;">Absent Today</div>
+        </div>
+      </div>
+
+      <!-- Unified Filter Controls -->
+      <div class="unified-filters modern-box" style="margin-bottom: 2rem; padding: 1rem;">
+        <h4>� Attendance Filters</h4>
+        <div style="display: flex; gap: 1rem; align-items: end; flex-wrap: wrap;">
+          <div>
+            <label class="form-label">From Date:</label>
+            <input type="date" id="fromDate" class="modern-input" style="max-width: 150px;">
+          </div>
+          <div>
+            <label class="form-label">To Date:</label>
+            <input type="date" id="toDate" class="modern-input" style="max-width: 150px;">
+          </div>
+          <div>
+            <label class="form-label">Location:</label>
+            <select id="locationFilter" class="modern-select" data-enhance="c-select" style="max-width: 120px;">
+              <option value="">All Locations</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label">Name Search:</label>
+            <input type="text" id="nameFilter" class="modern-input" placeholder="Search by name..." style="max-width: 200px;">
+          </div>
+          <button id="applyFiltersBtn" class="modern-button">Apply Filters</button>
+          <button id="clearFiltersBtn" class="modern-button" style="background: #6c757d;">Clear All</button>
+        </div>
+      </div>
+
+      <div id="summaryResults" class="modern-box" style="display: none;">
+        <!-- Summary content will be populated by JavaScript -->
+      </div>
+
+      <!-- Weekly Attendance Chart -->
+      <div class="modern-box chart-container" style="margin-top: 2rem;">
+        <h4>📈 Weekly Attendance Chart</h4>
+        <div class="chart-wrapper" style="position: relative; height: 400px; margin-top: 1rem;">
+          <canvas id="attendanceChart" style="width: 100%; height: 100%; display: block;"></canvas>
+        </div>
+      </div>
+
+      <div class="current-status modern-box">
+        <h4>🔄 Current Status</h4>
+        <div id="currentStatusTable">
+          <p class="muted" style="text-align: center; padding: 2rem; color: #999;">Loading current employee status...</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>

@@ -1,0 +1,856 @@
+/* App Shell UI (extracted from styles.css) */
+
+* { font-family: 'Sora', sans-serif; }
+
+html {
+    font-family: var(--font-family);
+    background-color: #ffffff;
+    color: #000000;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+    html.dark-mode {
+        background-color: #1a1a1a;
+        color: #ffffff;
+    }
+
+:root {
+    --search-bg: #f2f2f2;
+    --text-muted: #555;
+    --text-color: #000;
+}
+
+html.dark-mode {
+    --search-bg: #2b2b2b;
+    --text-muted: #aaa;
+    --text-color: #fff;
+}
+
+
+/* === First Launch Popup === */
+#first-launch-popup {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+}
+
+.popup-backdrop {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.popup-content {
+  background-color: var(--popup-bg, #ffffff);
+  color: var(--popup-text, #000000);
+  max-width: 500px;
+  margin: 10% auto;
+  padding: 2rem;
+  border-radius: 8px;
+  font-family: 'Sora', sans-serif;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+}
+
+.popup-content pre {
+  background: rgba(0, 0, 0, 0.05);
+  padding: 1em;
+  border-radius: 6px;
+  overflow-x: auto;
+}
+
+.popup-content button {
+  margin-top: 1rem;
+  padding: 0.5em 1em;
+  cursor: pointer;
+}
+
+/* === Light Mode === */
+body:not(.dark-mode) {
+  --popup-bg: #ffffff;
+  --popup-text: #000000;
+}
+
+/* === Dark Mode === */
+html.dark-mode {
+  --popup-bg: #1a1a1a;
+  --popup-text: #ffffff;
+}
+
+html.dark-mode .popup-content pre {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+
+/* === Sidebar === */
+.sidebar {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 80px;
+    background-color: #ffffff;
+    border-top-right-radius: 20px;
+    border-bottom-right-radius: 20px;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    /* Browser fallbacks for transitions */
+    -webkit-transition: width 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    -moz-transition: width 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    -o-transition: width 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    transition: width 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    z-index: 1000;
+}
+
+    .sidebar:hover {
+        width: 260px !important;
+    }
+
+/* Respect user's motion preferences */
+@media (prefers-reduced-motion: reduce) {
+    .sidebar {
+        transition: none;
+    }
+    .sidebar .label {
+        transition: none;
+    }
+    .sidebar .icon {
+        transition: none;
+    }
+}
+
+html.dark-mode .sidebar {
+    background-color: #1e1e1e;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
+}
+
+
+/* === Top Section === */
+.sidebar-top {
+    padding: 1rem;
+    position: sticky;
+    top: 0;
+    background: inherit;
+    z-index: 2;
+}
+
+.profile {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 1rem;
+}
+
+.logo {
+    font-weight: bold;
+    font-size: 1.6em;
+    color: #000;
+    text-align: center;
+    width: 40px;
+}
+
+html.dark-mode .logo {
+    color: #fff;
+}
+
+.profile-info {
+    opacity: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    transition: opacity 0.4s ease 0.1s;
+    color: #000;
+}
+
+.sidebar:hover .profile-info {
+    opacity: 1;
+}
+
+html.dark-mode .profile-info {
+    color: #fff;
+}
+
+.profile-info h4,
+.profile-info small {
+    margin: 0;
+    font-size: 0.85rem;
+}
+
+
+/* === Search Bar Wrapper === */
+.search-wrapper {
+    position: relative;
+    height: 44px;
+    width: 20px;
+    background-color: var(--search-bg);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    margin: 10px 0;
+    transition: width 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), background-color 0.3s ease;
+    overflow: hidden;
+}
+
+.sidebar:hover .search-wrapper {
+    width: calc(100% - 28px);
+}
+
+.search-icon {
+    flex-shrink: 0;
+    width: 24px;
+    text-align: center;
+    font-size: 16px;
+    color: var(--text-muted);
+    margin-left: -2px;
+}
+
+#searchInput {
+    flex: 1;
+    min-width: 0;
+    max-width: 140px;
+    padding: 8px 0 8px 8px;
+    border: none;
+    background: transparent; /* make it match the search-wrapper */
+    font-size: 0.9rem;
+    color: var(--text-color);
+    opacity: 0;
+    transition: opacity 0.4s ease 0.1s;
+    outline: none;
+    box-shadow: none;
+}
+
+
+.sidebar:hover #searchInput {
+    opacity: 1;
+}
+
+html.dark-mode .search-wrapper {
+    background-color: #333;
+}
+
+html.dark-mode .search-icon {
+    color: #bbb;
+}
+
+html.dark-mode #searchInput {
+    color: #fff;
+}
+
+
+/* === Sidebar Tabs Wrapper === */
+.sidebar-tabs-wrapper {
+    position: relative;
+    flex: 1;
+    overflow-y: hidden;
+}
+
+.sidebar:hover .sidebar-tabs-wrapper {
+    overflow-y: auto;
+}
+
+/* === Sidebar Tabs List === */
+.sidebar-tabs {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    z-index: 2;
+    flex: 1;
+    overflow-y: auto;
+}
+
+    /* === Individual Tab Items === */
+    .sidebar-tabs li {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        height: 48px;
+        padding: 10px 8px;
+        margin: 12px;
+        border-radius: 12px;
+        cursor: pointer;
+        color: inherit;
+        transition: background-color 0.2s ease, color 0.3s ease;
+        position: relative;
+    }
+
+        .sidebar-tabs li:hover {
+            background-color: rgba(0, 0, 0, 0.08);
+        }
+        
+        .sidebar-tabs li.active {
+            background-color: rgba(0, 123, 255, 0.1);
+        }
+        
+        html.dark-mode .sidebar-tabs li:hover {
+            background-color: rgba(255, 255, 255, 0.08);
+        }
+        
+        html.dark-mode .sidebar-tabs li.active {
+            background-color: rgba(0, 123, 255, 0.2);
+        }
+
+
+/* === Icon Styling === */
+.sidebar .icon {
+    width: 40px;
+    min-width: 40px;
+    text-align: center;
+    font-size: 1.4em;
+    z-index: 1;
+    transition: transform 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sidebar-tabs li:hover .icon {
+    transform: scale(1.1);
+}
+
+/* === Sidebar Links === */
+.sidebar-link {
+    display: flex !important;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    text-decoration: none !important;
+    color: inherit;
+    border: none;
+    background: none;
+    font: inherit;
+    cursor: pointer;
+    padding: 0;
+}
+
+.sidebar-link:hover,
+.sidebar-link:focus,
+.sidebar-link:visited {
+    text-decoration: none !important;
+    color: inherit;
+}
+
+/* === Label Styling === */
+.sidebar .label {
+    position: relative;
+    display: inline-block;
+    max-width: 160px;
+    white-space: nowrap;
+    overflow: hidden;
+    /* Browser fallbacks for transitions */
+    -webkit-transition: opacity 0.4s ease 0.1s, -webkit-transform 0.4s ease;
+    -moz-transition: opacity 0.4s ease 0.1s, -moz-transform 0.4s ease;
+    -o-transition: opacity 0.4s ease 0.1s, -o-transform 0.4s ease;
+    transition: opacity 0.4s ease 0.1s, transform 0.4s ease;
+    opacity: 0;
+    color: inherit;
+    z-index: 1;
+    /* Browser fallbacks for transform */
+    -webkit-transform: translateX(-10px);
+    -moz-transform: translateX(-10px);
+    -ms-transform: translateX(-10px);
+    -o-transform: translateX(-10px);
+    transform: translateX(-10px);
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.sidebar:hover .label {
+    opacity: 1 !important;
+    -webkit-transform: translateX(0);
+    -moz-transform: translateX(0);
+    -ms-transform: translateX(0);
+    -o-transform: translateX(0);
+    transform: translateX(0);
+}
+
+/* Removed old label-text scrolling animation - now using simple slide-in effect */
+
+
+/* === Bottom Buttons === */
+.sidebar-bottom {
+    padding: 1rem;
+    background: inherit;
+    position: sticky;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+    .sidebar-bottom button {
+        background: none;
+        border: none;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 8px;
+        font-size: 1rem;
+        cursor: pointer;
+        color: #000;
+        transition: background-color 0.2s ease, transform 0.2s ease;
+        border-radius: 12px;
+        text-decoration: none !important;
+    }
+
+        .sidebar-bottom button:hover,
+        .sidebar-bottom button.active {
+            background-color: rgba(0, 0, 0, 0.08);
+            transform: translateX(2px);
+        }
+
+html.dark-mode .sidebar-bottom button {
+    color: #fff;
+}
+
+    html.dark-mode .sidebar-bottom button:hover {
+        background-color: rgba(255, 255, 255, 0.08);
+    }
+
+.sidebar-bottom .icon {
+    width: 40px;
+    min-width: 40px;
+    text-align: center;
+    font-size: 1.4em;
+    transition: transform 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sidebar-bottom button .label {
+    transition: opacity 0.4s ease 0.1s, transform 0.4s ease;
+    opacity: 0;
+    transform: translateX(-10px);
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.sidebar:hover .sidebar-bottom button .label {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+
+/* === Dark Mode Toggle === */
+.dark-mode-toggle {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 8px;
+}
+
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 34px;
+    height: 20px;
+}
+
+    .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 34px;
+}
+
+    .slider:before {
+        position: absolute;
+        content: "";
+        height: 14px;
+        width: 14px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: .4s;
+        border-radius: 50%;
+    }
+
+input:checked + .slider {
+    background-color: #007bff;
+}
+
+    input:checked + .slider:before {
+        transform: translateX(14px);
+    }
+
+
+/* === Header & Content === */
+.header {
+    padding: 15px 20px;
+    background-color: #f4f4f4;
+    color: #000;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    margin-left: 80px;
+    transition: margin-left 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), background-color 0.3s ease, color 0.3s ease;
+}
+
+html.dark-mode .header {
+    background-color: #2a2a2a;
+    color: #fff;
+}
+
+#content {
+    margin-left: 80px;
+    padding: 20px;
+    background-color: #fff;
+    color: #000;
+    transition: margin-left 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), background-color 0.3s ease, color 0.3s ease;
+}
+
+html.dark-mode #content {
+    background-color: #1a1a1a;
+    color: #fff;
+}
+
+/* === Universal Sidebar Layout === */
+body.has-sidebar {
+    padding-left: 0;
+}
+
+/* Ensure content doesn't go under sidebar on any page */
+.page-content,
+.main-content {
+    margin-left: 80px;
+    transition: margin-left 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), width 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+    
+    .sidebar:hover,
+    .sidebar.mobile-open {
+        transform: translateX(0);
+    }
+    
+    .header,
+    #content,
+    .page-content,
+    .main-content {
+        margin-left: 0;
+    }
+    
+    /* Mobile sidebar toggle button (if needed) */
+    .mobile-sidebar-toggle {
+        display: block;
+        position: fixed;
+        top: 1rem;
+        left: 1rem;
+        z-index: 1001;
+        background: rgba(0, 123, 255, 0.9);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 44px;
+        height: 44px;
+        font-size: 1.2em;
+        cursor: pointer;
+    }
+}
+
+@media (min-width: 769px) {
+    .mobile-sidebar-toggle {
+        display: none;
+    }
+}
+
+
+/* === Tabs === */
+.tab,
+.inner-tab {
+    display: none;
+}
+
+    .tab.active,
+    .inner-tab.active {
+        display: block;
+    }
+
+.top-nav {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 1rem;
+}
+
+    .top-nav button.active {
+        background: #007bff;
+        color: white;
+    }
+
+
+/* === Sidebar Divider Line === */
+.sidebar-divider {
+    height: 1px;
+    width: 60%;
+    margin: 10px 17px;
+    border: none;
+    background-color: rgba(0, 0, 0, 0.1);
+    transition: background-color 0.3s ease, width 0.3s ease;
+}
+
+.sidebar:hover .sidebar-divider {
+    width: 80%;
+}
+
+html.dark-mode .sidebar-divider {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+
+/* === Collapsible Content === */
+.collapsible-heading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    margin-bottom: 8px;
+    transition: color 0.3s ease;
+}
+
+    .collapsible-heading .arrow {
+        font-size: 1.2rem;
+        transition: transform 0.3s ease;
+    }
+
+.collapsible-content.collapsed {
+    display: none;
+}
+
+
+/* === OverlayScrollbars Dark Mode === */
+html.dark-mode .os-scrollbar {
+    background: transparent !important;
+}
+
+html.dark-mode .os-scrollbar-handle {
+    background: rgba(255, 255, 255, 0.1) !important;
+}
+
+    html.dark-mode .os-scrollbar-handle:hover {
+        background: rgba(255, 255, 255, 0.25) !important;
+    }
+
+
+/* === Tab Highlighter === */
+.active-tab-indicator {
+    position: absolute;
+    left: 0;
+    width: calc(100% - 28px); /* 100% minus horizontal margin (14px each side) */
+    height: 66px;
+    background-color: rgba(143, 0, 255, 1); /* match hover color exactly */
+    border-radius: 12px;
+    transition: top 0.5s cubic-bezier(0.3, 1.5, 0.5, 1), opacity 0.4s ease;
+    z-index: 0;
+    pointer-events: none;
+    margin-left: 14px;
+}
+
+#attendanceChart {
+    width: 100%;
+    height: 100%;
+    display: block;
+    opacity: 1;
+    transition: opacity 0.3s ease-in-out;
+    position: relative;
+    z-index: 4000;
+    border-radius: 8px;
+}
+
+/* Chart container styling to match modern-ui theme */
+.chart-container {
+    position: relative;
+    z-index: 4000;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+
+.chart-wrapper {
+    position: relative;
+    z-index: 4001;
+    background: rgba(255, 255, 255, 0.01);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 16px;
+    backdrop-filter: blur(4px);
+    margin-top: 1rem;
+}
+
+.chart-container h4 {
+    color: rgba(255, 255, 255, 0.9);
+    font-family: 'Sora', system-ui, sans-serif;
+    font-weight: 600;
+    margin: 0 0 8px 0;
+    padding: 0;
+}
+
+#attendanceChart.visible {
+  opacity: 1;
+}
+
+html.dark-mode .active-tab-indicator {
+    background-color: rgba(128, 128, 128, 0.25);
+}
+
+.sort-icon {
+  margin-left: 6px;
+  font-size: 0.8rem;
+  opacity: 0.6;
+}
+
+.inner-tab-group {
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.fullscreen-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.loading-message {
+  color: #fff;
+  font-size: 1.2rem;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+.loader {
+  display: flex;
+  gap: 10px;
+}
+
+.loader .dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  opacity: 0;
+  animation: fadeTrail 1s infinite ease-in-out;
+}
+
+.loader .dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.loader .dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes fadeTrail {
+  0% {
+    opacity: 0;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.3);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+#timeoutPopup .popup-content {
+  text-align: center;
+  padding: 2rem;
+}
+
+:root{
+  --os-handle: rgba(0,0,0,.35);
+  --os-handle-hover: rgba(0,0,0,.55);
+  --os-handle-active: rgba(0,0,0,.75);
+}
+
+html.dark-mode{
+  --os-handle: rgba(255,255,255,.35);
+  --os-handle-hover: rgba(255,255,255,.55);
+  --os-handle-active: rgba(255,255,255,.75);
+}
+
+/* Hide the original select if you keep any native ones */
+.select-hidden {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Dark mode vars */
+html.dark-mode {
+  --input-border: rgba(255,255,255,.14);
+  --menu-bg: rgba(22,22,26,.95);
+  --focus: #8fb0ff;
+}
+
+/* === Filter category blocks (Inventory only) === */
+.filter-category {
+  margin: 10px 0 4px;
+  cursor: pointer;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+/* Sub-category arrow: closed = up, expanded = down */
+.filter-category .category-arrow { transition: transform 0.25s ease; transform: rotate(180deg); }
+.filter-category.expanded .category-arrow { transform: rotate(0deg); }
+
+/* Options list animation */
+.filter-options {
+  display: block;
+  margin-left: 4px;
+  padding-left: 8px;
+  border-left: 2px solid rgba(0,0,0,0.08);
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: max-height 0.25s ease, opacity 0.25s ease, transform 0.25s ease;
+}
+/* Show options when category expanded */
+.filter-category.expanded + .filter-options { max-height: 600px; opacity: 1; transform: translateY(0); }
+/* Stack labels vertically */
+.filter-options label { display: block; margin: 6px 0; }
+
+/* Dark mode tweak just for the divider */
+html.dark-mode .filter-options { border-left-color: rgba(255,255,255,0.12); }

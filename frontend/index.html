@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>RM365 App</title>
+
+  <!-- Development backend URL override -->
+  <!-- Backend URL will be automatically detected from config.js -->
+
+  <!-- Early theme: saved or system -->
+  <script>
+    const html = document.documentElement;
+    const stored = localStorage.getItem('darkMode');
+    if (stored === 'dark') html.classList.add('dark-mode');
+    else if (stored === 'light') html.classList.remove('dark-mode');
+    else if (stored === 'dark-mode') html.classList.add('dark-mode');
+  </script>
+
+  <!-- Fonts + libs -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+  <!-- Charts (Attendance overview) - Load early to ensure availability -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+  <script>
+    // Verify Chart.js loads properly
+    window.addEventListener('load', () => {
+      console.log('🎨 Chart.js loaded status:', typeof Chart !== 'undefined');
+      if (typeof Chart !== 'undefined') {
+        console.log('✅ Chart.js version:', Chart.version || 'unknown');
+        console.log('✅ Chart.js defaults available:', !!Chart.defaults);
+      }
+    });
+  </script>
+
+  <!-- Your CSS (order matters) -->
+  <link rel="stylesheet" href="/css/app-shell.css">
+  <link rel="stylesheet" href="/css/modern-ui.css">
+  <link rel="stylesheet" href="/css/inventory-table.css">
+  <link rel="stylesheet" href="/css/enrollment.css">
+  <link rel="stylesheet" href="/css/usermanagement.css">
+
+  <link rel="manifest" href="/manifest.webmanifest">
+
+  <style>
+    /* Ensure loading overlay is properly visible */
+    #loadingOverlay {
+      display: flex !important;
+      position: fixed !important;
+      inset: 0 !important;
+      z-index: 9999 !important;
+      background: rgba(0, 0, 0, 0.9) !important;
+      align-items: center !important;
+      justify-content: center !important;
+      flex-direction: column !important;
+    }
+    
+    #loadingOverlay[hidden] {
+      display: none !important;
+    }
+    
+    /* Hide main content initially until loaded */
+    body > *:not(#loadingOverlay) {
+      opacity: 0;
+      transition: opacity 0.3s ease-in-out;
+    }
+    
+    body.loaded > *:not(#loadingOverlay) {
+      opacity: 1;
+    }
+  </style>
+</head>
+
+<body>
+  <noscript>You need JavaScript enabled to use this app.</noscript>
+
+  <!-- Loading overlay (visible by default, no hidden attribute) -->
+  <div id="loadingOverlay" class="fullscreen-overlay">
+    <div id="loadingMessage" class="loading-message">Initializing RM365...</div>
+    <div class="loader">
+      <div class="dot"></div>
+      <div class="dot"></div>
+      <div class="dot"></div>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <nav id="sidebar" class="sidebar">
+    <div class="sidebar-top">
+      <div class="profile">
+        <span class="icon logo">RM365</span>
+        <div class="profile-info">
+          <h4 id="profileName"></h4>
+          <small id="profileSubtitle"></small>
+        </div>
+      </div>
+
+      <div class="search-wrapper">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="searchInput" placeholder="Search..." disabled />
+      </div>
+    </div>
+
+    <hr class="sidebar-divider">
+
+    <!-- Persistent nav: each item is a real link -->
+    <ul class="sidebar-tabs">
+      <li><a class="sidebar-link" data-nav href="/enrollment"><span class="icon">📝</span><span
+            class="label">Enrollment</span></a></li>
+      <li><a class="sidebar-link" data-nav href="/attendance"><span class="icon">🕒</span><span
+            class="label">Attendance</span></a></li>
+      <li><a class="sidebar-link" data-nav href="/labels"><span class="icon">🏷️</span><span class="label">Labels</span></a></li>
+      <li><a class="sidebar-link" data-nav href="/sales-imports"><span class="icon">📊</span><span class="label">Sales Imports</span></a></li>
+      <li><a class="sidebar-link" data-nav href="/inventory"><span class="icon">📦</span><span
+            class="label">Inventory</span></a></li>
+      <li><a class="sidebar-link" data-nav href="/usermanagement"><span class="icon">👤</span><span class="label">User
+            Management</span></a></li>
+    </ul>
+
+    <hr class="sidebar-divider">
+
+    <div class="sidebar-bottom">
+      <button id="logoutBtn"><span class="icon">🚪</span><span class="label">Logout</span></button>
+      <div class="dark-mode-toggle">
+        <span class="icon">🌙</span>
+        <label class="switch">
+          <input type="checkbox" id="darkModeToggle"><span class="slider round"></span>
+        </label>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Header -->
+  <header class="header">
+    <h1 id="pageTitle">RM365</h1>
+  </header>
+
+  <!-- Main view container. Router swaps content here -->
+  <main id="content">
+    <div id="view"><!-- HTML partials load here --></div>
+  </main>
+
+  <!-- Global config available to modules -->
+  <script>
+    // Backend URL configuration - supports environment variables or defaults
+    window.API = window.API || 
+                        (typeof process !== 'undefined' && process.env?.API) ||
+                        'https://rm365-tools.up.railway.app';
+    
+    window.IS_TAURI = !!(window.__TAURI__ && (window.__TAURI__.invoke || (window.__TAURI__.fs && (window.__TAURI__.fs.readTextFile || window.__TAURI__.fs.exists))));
+    
+    // Debug logging for configuration
+    console.log('[Config] Backend URL:', window.API);
+    console.log('[Config] Frontend Origin:', window.location.origin);
+    console.log('[Config] Cross-origin setup:', window.API !== window.location.origin);
+    
+    // Mark body as loaded once DOM is ready
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => document.body.classList.add('loaded'), 100);
+    });
+  </script>
+
+  <!-- Optional: UI helpers (if you still need them globally) -->
+  <script src="/js/ui/components.js" defer></script>
+
+  <!-- Sidebar animation fallback -->
+  <script src="/js/utils/sidebar-fallback.js" defer></script>
+
+  <!-- Debug utilities for development -->
+  <script type="module" src="/js/debug.js"></script>
+
+  <!-- App router + entrypoint -->
+  <script type="module" src="/js/index.js"></script>
+</body>
+
+</html>

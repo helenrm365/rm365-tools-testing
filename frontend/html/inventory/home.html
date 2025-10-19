@@ -1,0 +1,41 @@
+<!-- Inventory Home Page -->
+<div class="inventory-home">
+  <h2>Inventory Management</h2>
+  <div class="inner-tabs" style="margin-bottom: 1.5rem; display: flex; gap: 0.5rem;">
+    <button class="modern-button" data-nav onclick="location.href='/inventory/management'">Management</button>
+    <button class="modern-button" data-nav onclick="location.href='/inventory/adjustments'">Adjustments</button>
+  </div>
+  
+  <div class="intro-card card">
+    <div class="card-header">
+      <h3>📦 Inventory Management System</h3>
+    </div>
+    <div class="card-body">
+      <p>Manage your inventory with comprehensive item tracking, stock adjustments, and low stock alerts.</p>
+      
+      <h4>Available Features:</h4>
+      <ul>
+        <li><strong>Management:</strong> Add, edit, and organize inventory items</li>
+        <li><strong>Adjustments:</strong> Track stock changes and maintain accurate levels</li>
+      </ul>
+
+      <div class="quick-stats modern-box" style="margin-top: 2rem;">
+        <h4>📊 Inventory Overview</h4>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;">
+          <div style="text-align: center; padding: 1rem;">
+            <div id="totalItems" style="font-size: 1.5rem; font-weight: bold; color: #007bff;">-</div>
+            <div style="color: #666; font-size: 0.9rem;">Total Items</div>
+          </div>
+          <div style="text-align: center; padding: 1rem;">
+            <div id="lowStockItems" style="font-size: 1.5rem; font-weight: bold; color: #dc3545;">-</div>
+            <div style="color: #666; font-size: 0.9rem;">Low Stock Alerts</div>
+          </div>
+          <div style="text-align: center; padding: 1rem;">
+            <div id="recentAdjustments" style="font-size: 1.5rem; font-weight: bold; color: #ffc107;">-</div>
+            <div style="color: #666; font-size: 0.9rem;">Recent Adjustments</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

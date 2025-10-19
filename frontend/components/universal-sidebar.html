@@ -1,0 +1,208 @@
+<!-- Universal Animated Sidebar Component -->
+<!-- This can be included on any page that needs the sidebar -->
+
+<nav id="sidebar" class="sidebar">
+  <div class="sidebar-top">
+    <div class="profile">
+      <span class="icon logo">RM365</span>
+      <div class="profile-info">
+        <h4 id="profileName">User</h4>
+        <small id="profileSubtitle">Dashboard</small>
+      </div>
+    </div>
+
+    <div class="search-wrapper">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" placeholder="Search..." disabled />
+    </div>
+  </div>
+
+  <hr class="sidebar-divider">
+
+  <!-- Persistent nav: each item is a real link -->
+  <ul class="sidebar-tabs">
+    <li><a class="sidebar-link" data-nav href="/enrollment">
+      <span class="icon">📝</span>
+      <span class="label">Enrollment</span>
+    </a></li>
+    <li><a class="sidebar-link" data-nav href="/attendance">
+      <span class="icon">🕒</span>
+      <span class="label">Attendance</span>
+    </a></li>
+    <li><a class="sidebar-link" data-nav href="/labels">
+      <span class="icon">🏷️</span>
+      <span class="label">Labels</span>
+    </a></li>
+    <li><a class="sidebar-link" data-nav href="/sales-imports">
+      <span class="icon">📊</span>
+      <span class="label">Sales Imports</span>
+    </a></li>
+    <li><a class="sidebar-link" data-nav href="/inventory">
+      <span class="icon">📦</span>
+      <span class="label">Inventory</span>
+    </a></li>
+    <li><a class="sidebar-link" data-nav href="/usermanagement">
+      <span class="icon">👤</span>
+      <span class="label">User Management</span>
+    </a></li>
+  </ul>
+
+  <hr class="sidebar-divider">
+
+  <div class="sidebar-bottom">
+    <button id="logoutBtn">
+      <span class="icon">🚪</span>
+      <span class="label">Logout</span>
+    </button>
+    <div class="dark-mode-toggle">
+      <span class="icon">🌙</span>
+      <label class="switch">
+        <input type="checkbox" id="darkModeToggle">
+        <span class="slider round"></span>
+      </label>
+      <span class="label" style="margin-left: 8px;">Dark Mode</span>
+    </div>
+  </div>
+</nav>
+
+<script>
+// Universal sidebar functionality - can be loaded independently
+(function() {
+  'use strict';
+  
+  if (window.sidebarInitialized) return;
+  window.sidebarInitialized = true;
+  
+  function initSidebar() {
+    const toggle = document.getElementById('darkModeToggle');
+    const THEME_KEY = 'darkMode';
+    
+    if (toggle) {
+      const stored = localStorage.getItem(THEME_KEY);
+      const isDark = stored === 'true' || (stored == null && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
+      document.documentElement.classList.toggle('dark-mode', isDark);
+      toggle.checked = isDark;
+      
+      toggle.addEventListener('change', e => {
+        const on = !!e.target.checked;
+        document.documentElement.classList.toggle('dark-mode', on);
+        localStorage.setItem(THEME_KEY, String(on));
+      });
+    }
+    
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+      searchInput.removeAttribute('disabled');
+      searchInput.addEventListener('input', () => {
+        const query = searchInput.value.trim().toLowerCase();
+        document.querySelectorAll('.sidebar .sidebar-link').forEach(link => {
+          const label = link.querySelector('.label')?.textContent?.toLowerCase() || '';
+          const listItem = link.closest('li');
+          if (listItem) {
+            listItem.style.display = label.includes(query) ? 'flex' : 'none';
+          }
+        });
+      });
+    }
+    
+    function highlightActive(pathname = location.pathname) {
+      document.querySelectorAll('.sidebar .sidebar-link').forEach(link => {
+        const listItem = link.closest('li');
+        if (listItem) {
+          listItem.classList.toggle('active', link.getAttribute('href') === pathname);
+        }
+      });
+    }
+    
+    highlightActive();
+    
+    if (window.addEventListener) {
+      window.addEventListener('popstate', () => highlightActive());
+      
+      document.addEventListener('click', (e) => {
+        const link = e.target.closest('a[data-nav]');
+        if (link && link.getAttribute('href')?.startsWith('/')) {
+          setTimeout(() => highlightActive(link.getAttribute('href')), 0);
+        }
+      });
+    }
+    
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', async () => {
+        if (!confirm('Are you sure you want to log out?')) return;
+        
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('user');
+        
+        if (window.navigate) {
+          await window.navigate('/login');
+        } else {
+          window.location.href = '/login';
+        }
+      });
+    }
+    
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const profileName = document.getElementById('profileName');
+      const profileSubtitle = document.getElementById('profileSubtitle');
+      
+      if (profileName && user.name) {
+        profileName.textContent = user.name;
+      }
+      if (profileSubtitle && user.role) {
+        profileSubtitle.textContent = user.role;
+      }
+    } catch (e) {
+      console.warn('[Sidebar] Could not load user profile:', e);
+    }
+    
+    const createMobileToggle = () => {
+      const existingToggle = document.querySelector('.mobile-sidebar-toggle');
+      if (existingToggle) return;
+      
+      const toggle = document.createElement('button');
+      toggle.className = 'mobile-sidebar-toggle';
+      toggle.innerHTML = '☰';
+      toggle.setAttribute('aria-label', 'Toggle Sidebar');
+      
+      toggle.addEventListener('click', () => {
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar) {
+          sidebar.classList.toggle('mobile-open');
+        }
+      });
+      
+      document.body.appendChild(toggle);
+    };
+    
+    if (window.innerWidth <= 768) {
+      createMobileToggle();
+    }
+    
+    window.addEventListener('resize', () => {
+      if (window.innerWidth <= 768) {
+        createMobileToggle();
+      } else {
+        const toggle = document.querySelector('.mobile-sidebar-toggle');
+        if (toggle) {
+          toggle.remove();
+        }
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar) {
+          sidebar.classList.remove('mobile-open');
+        }
+      }
+    });
+    
+    console.log('[Sidebar] Universal sidebar initialized');
+  }
+  
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initSidebar);
+  } else {
+    initSidebar();
+  }
+})();
+</script>

@@ -1,0 +1,754 @@
+/* ===================================
+   CLEAN & MODERN INVENTORY TABLE
+   Simple, readable, and maintainable
+   =================================== */
+
+* { font-family: 'Sora', sans-serif; }
+
+/* === CLEAN THEMING === */
+:root {
+  /* Core colors */
+  --inv-bg: #ffffff;
+  --inv-surface: #f8fafc;
+  --inv-border: #e2e8f0;
+  --inv-text: #1e293b;
+  --inv-text-muted: #64748b;
+  --inv-hover: #f1f5f9;
+  
+  /* Status colors */
+  --inv-success: #10b981;
+  --inv-warning: #f59e0b;
+  --inv-danger: #ef4444;
+  --inv-info: #3b82f6;
+  
+  /* Interactive */
+  --inv-focus: #3b82f6;
+  --inv-focus-ring: rgba(59, 130, 246, 0.2);
+  
+  /* Shadows */
+  --inv-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --inv-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+/* Dark mode */
+html.dark-mode {
+  --inv-bg: #1a1a1a;
+  --inv-surface: #2a2a2a;
+  --inv-border: #404040;
+  --inv-text: #ffffff;
+  --inv-text-muted: #cccccc;
+  --inv-hover: #353535;
+}
+
+/* === CONNECTION STATUS === */
+.connection-status {
+  display: inline-block;
+  font-size: 0.85rem;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.connection-status.connected {
+  background-color: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.connection-status.disconnected {
+  background-color: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.connection-status.unknown {
+  background-color: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fed7aa;
+}
+
+/* === TABLE CONTAINER === */
+#inventoryManagementTableWrapper {
+  background: var(--inv-bg);
+  border: 1px solid var(--inv-border);
+  border-radius: 12px;
+  box-shadow: var(--inv-shadow);
+  overflow: hidden;
+  margin: 1.5rem 0;
+  max-height: 70vh;
+  position: relative;
+  width: 100%;
+  padding: 6px;
+}
+
+#inventoryManagementTableScroller {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  scroll-behavior: smooth;
+  max-height: calc(70vh - 12px);
+  position: relative;
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on mobile */
+  background: var(--inv-bg);
+  border-radius: 0 6px 6px 0; /* Only round top-right and bottom-right */
+}
+
+/* Custom scrollbar to blend with the table */
+#inventoryManagementTableScroller::-webkit-scrollbar {
+  width: 12px;
+  background: var(--inv-surface);
+}
+
+#inventoryManagementTableScroller::-webkit-scrollbar-track {
+  background: var(--inv-surface);
+  border-radius: 0 6px 6px 0; /* Match the scroller's right-side rounding */
+}
+
+#inventoryManagementTableScroller::-webkit-scrollbar-thumb {
+  background: var(--inv-border);
+  border-radius: 0 4px 4px 0; /* Slightly smaller radius for the thumb */
+  border-left: 2px solid var(--inv-surface); /* Small gap from table content */
+}
+
+#inventoryManagementTableScroller::-webkit-scrollbar-thumb:hover {
+  background: var(--inv-text-muted);
+}
+
+/* Firefox scrollbar */
+#inventoryManagementTableScroller {
+  scrollbar-width: thin;
+  scrollbar-color: var(--inv-border) var(--inv-surface);
+}
+
+/* === MAIN TABLE === */
+#inventoryManagementTable {
+  width: 100%;
+  min-width: 1200px;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  table-layout: fixed;
+}
+
+/* === COLUMN WIDTHS === */
+#inventoryManagementTable col.col-1  { width: 8%; }
+#inventoryManagementTable col.col-2  { width: 8%; }
+#inventoryManagementTable col.col-3  { width: 20%; }
+#inventoryManagementTable col.col-4  { width: 10%; }
+#inventoryManagementTable col.col-5  { width: 6%; }
+#inventoryManagementTable col.col-6  { width: 8%; }
+#inventoryManagementTable col.col-7  { width: 8%; }
+#inventoryManagementTable col.col-8  { width: 8%; }
+#inventoryManagementTable col.col-9  { width: 8%; }
+#inventoryManagementTable col.col-10 { width: 6%; }
+#inventoryManagementTable col.col-11 { width: 8%; }
+#inventoryManagementTable col.col-12 { width: 6%; }
+#inventoryManagementTable col.col-13 { width: 7%; }
+#inventoryManagementTable col.col-14 { width: 8%; }
+#inventoryManagementTable col.col-15 { width: 6%; }
+#inventoryManagementTable col.col-16 { width: 6%; }
+
+/* === HEADERS === */
+#inventoryManagementTable thead {
+  background: var(--inv-surface);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+#inventoryManagementTable th {
+  padding: 16px 12px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--inv-text-muted);
+  border-bottom: 2px solid var(--inv-border);
+  border-right: 0.5px solid rgba(0, 0, 0, 0.15);
+  white-space: normal;
+  word-wrap: break-word;
+  hyphens: auto;
+  line-height: 1.3;
+  background: var(--inv-surface);
+  min-height: 50px;
+  vertical-align: top;
+}
+
+/* Header group colors - simplified */
+#inventoryManagementTable th:nth-child(1) { background: linear-gradient(135deg, #f1f5f9, var(--inv-surface)); }
+#inventoryManagementTable th:nth-child(2),
+#inventoryManagementTable th:nth-child(3),
+#inventoryManagementTable th:nth-child(4),
+#inventoryManagementTable th:nth-child(5) { background: linear-gradient(135deg, #dbeafe, var(--inv-surface)); }
+#inventoryManagementTable th:nth-child(6),
+#inventoryManagementTable th:nth-child(7),
+#inventoryManagementTable th:nth-child(8),
+#inventoryManagementTable th:nth-child(9),
+#inventoryManagementTable th:nth-child(10) { background: linear-gradient(135deg, #fef3c7, var(--inv-surface)); }
+#inventoryManagementTable th:nth-child(11),
+#inventoryManagementTable th:nth-child(12) { background: linear-gradient(135deg, #ecfdf5, var(--inv-surface)); }
+#inventoryManagementTable th:nth-child(13) { background: linear-gradient(135deg, #fef2f2, var(--inv-surface)); }
+#inventoryManagementTable th:nth-child(14),
+#inventoryManagementTable th:nth-child(15),
+#inventoryManagementTable th:nth-child(16) { background: linear-gradient(135deg, #f3e8ff, var(--inv-surface)); }
+
+/* Dark mode header colors - much more subtle */
+html.dark-mode #inventoryManagementTable th:nth-child(1) { 
+  background: linear-gradient(135deg, #3a3a3a, var(--inv-surface)); 
+}
+html.dark-mode #inventoryManagementTable th:nth-child(2),
+html.dark-mode #inventoryManagementTable th:nth-child(3),
+html.dark-mode #inventoryManagementTable th:nth-child(4),
+html.dark-mode #inventoryManagementTable th:nth-child(5) { 
+  background: linear-gradient(135deg, #2a3441, var(--inv-surface)); 
+}
+html.dark-mode #inventoryManagementTable th:nth-child(6),
+html.dark-mode #inventoryManagementTable th:nth-child(7),
+html.dark-mode #inventoryManagementTable th:nth-child(8),
+html.dark-mode #inventoryManagementTable th:nth-child(9),
+html.dark-mode #inventoryManagementTable th:nth-child(10) { 
+  background: linear-gradient(135deg, #3d3828, var(--inv-surface)); 
+}
+html.dark-mode #inventoryManagementTable th:nth-child(11),
+html.dark-mode #inventoryManagementTable th:nth-child(12) { 
+  background: linear-gradient(135deg, #2a3d2f, var(--inv-surface)); 
+}
+html.dark-mode #inventoryManagementTable th:nth-child(13) { 
+  background: linear-gradient(135deg, #3d2a2a, var(--inv-surface)); 
+}
+html.dark-mode #inventoryManagementTable th:nth-child(14),
+html.dark-mode #inventoryManagementTable th:nth-child(15),
+html.dark-mode #inventoryManagementTable th:nth-child(16) { 
+  background: linear-gradient(135deg, #352a3d, var(--inv-surface)); 
+}
+
+/* === ROWS === */
+#inventoryManagementTable tbody tr {
+  transition: all 0.2s ease;
+  border-bottom: 1px solid var(--inv-border);
+}
+
+#inventoryManagementTable tbody tr:nth-child(even) {
+  background: var(--inv-surface);
+}
+
+#inventoryManagementTable tbody tr:hover {
+  background: var(--inv-hover);
+  box-shadow: var(--inv-shadow-sm);
+  transform: translateY(-1px);
+}
+
+/* === CELLS === */
+#inventoryManagementTable td {
+  padding: 12px;
+  color: var(--inv-text);
+  vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-right: 0.5px solid rgba(0, 0, 0, 0.15);
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Product name and SKU - allow wrapping */
+#inventoryManagementTable td:nth-child(3),
+#inventoryManagementTable td:nth-child(4) {
+  white-space: normal;
+  line-height: 1.4;
+  max-height: 60px;
+  overflow: hidden;
+}
+
+/* Read-only fields (6M data) - matching individual header colors */
+/* UK 6M DATA - Blue header */
+#inventoryManagementTable td.readonly-field:nth-child(6) {
+  background: rgba(219, 234, 254, 0.95);
+  color: var(--inv-text-muted);
+  font-style: italic;
+  cursor: not-allowed;
+  opacity: 0.9;
+  font-weight: 600;
+}
+
+#inventoryManagementTable td.readonly-field:nth-child(6):hover {
+  background: rgba(219, 234, 254, 0.95);
+}
+
+/* FR 6M DATA - Purple header */
+#inventoryManagementTable td.readonly-field:nth-child(14),
+#inventoryManagementTable td.readonly-field:nth-child(15),
+#inventoryManagementTable td.readonly-field:nth-child(16) {
+  background: rgba(243, 232, 255, 0.95);
+  color: var(--inv-text-muted);
+  font-style: italic;
+  cursor: not-allowed;
+  opacity: 0.9;
+  font-weight: 600;
+}
+
+#inventoryManagementTable td.readonly-field:nth-child(14):hover,
+#inventoryManagementTable td.readonly-field:nth-child(15):hover,
+#inventoryManagementTable td.readonly-field:nth-child(16):hover {
+  background: rgba(243, 232, 255, 0.95);
+}
+
+/* Fallback for any other readonly fields */
+#inventoryManagementTable td.readonly-field {
+  color: var(--inv-text-muted);
+  font-style: italic;
+  cursor: not-allowed;
+  opacity: 0.9;
+  font-weight: 600;
+}
+
+/* Numeric columns - center align */
+#inventoryManagementTable td:nth-child(7),
+#inventoryManagementTable td:nth-child(9),
+#inventoryManagementTable td:nth-child(10),
+#inventoryManagementTable td:nth-child(12),
+#inventoryManagementTable td:nth-child(13),
+#inventoryManagementTable td:nth-child(16) {
+  text-align: center;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Individual column highlighting matching exact header colors */
+/* Column 10: SHELF > 1 YEAR QTY - Yellow */
+#inventoryManagementTable td:nth-child(10) {
+  background: rgba(254, 243, 199, 0.7);
+  font-weight: 700;
+}
+
+/* Column 12: FR TOTAL - Green */  
+#inventoryManagementTable td:nth-child(12) {
+  background: rgba(236, 253, 245, 1.3);
+  font-weight: 700;
+}
+
+/* Column 13: TOTAL STOCK - Red */
+#inventoryManagementTable td:nth-child(13) {
+  background: rgba(254, 242, 242, 1.3);
+  font-weight: 700;
+}
+
+/* Column 5: UK 6M DATA - Blue */
+#inventoryManagementTable td:nth-child(5) {
+  background: rgba(219, 234, 254, 1.2);
+  font-weight: 600;
+}
+
+/* Dark mode individual column highlighting matching exact header colors */
+/* Column 10: SHELF > 1 YEAR QTY - Yellow */
+html.dark-mode #inventoryManagementTable td:nth-child(10) {
+  background: rgba(61, 56, 40, 0.6);
+  font-weight: 700;
+}
+
+/* Column 12: FR TOTAL - Green */
+html.dark-mode #inventoryManagementTable td:nth-child(12) {
+  background: rgba(42, 61, 47, 0.6);
+  font-weight: 700;
+}
+
+/* Column 13: TOTAL STOCK - Red */
+html.dark-mode #inventoryManagementTable td:nth-child(13) {
+  background: rgba(61, 42, 42, 0.6);
+  font-weight: 700;
+}
+
+/* Column 5: UK 6M DATA - Blue */
+html.dark-mode #inventoryManagementTable td:nth-child(5) {
+  background: rgba(42, 52, 65, 0.6);
+  font-weight: 600;
+}
+
+/* Dark mode borders */
+html.dark-mode #inventoryManagementTable th {
+  border-right: 0.5px solid rgba(255, 255, 255, 0.15);
+}
+
+html.dark-mode #inventoryManagementTable td {
+  border-right: 0.5px solid rgba(255, 255, 255, 0.15);
+  border-bottom: 0.5px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Dark mode 6M data highlighting - matching individual header colors */
+/* UK 6M DATA - Blue header */
+html.dark-mode #inventoryManagementTable td.readonly-field:nth-child(6) {
+  background: rgba(42, 52, 65, 0.7);
+  opacity: 0.9;
+}
+
+html.dark-mode #inventoryManagementTable td.readonly-field:nth-child(6):hover {
+  background: rgba(42, 52, 65, 0.7);
+}
+
+/* FR 6M DATA - Purple header */
+html.dark-mode #inventoryManagementTable td.readonly-field:nth-child(14),
+html.dark-mode #inventoryManagementTable td.readonly-field:nth-child(15),
+html.dark-mode #inventoryManagementTable td.readonly-field:nth-child(16) {
+  background: rgba(53, 42, 61, 0.7);
+  opacity: 0.9;
+}
+
+html.dark-mode #inventoryManagementTable td.readonly-field:nth-child(14):hover,
+html.dark-mode #inventoryManagementTable td.readonly-field:nth-child(15):hover,
+html.dark-mode #inventoryManagementTable td.readonly-field:nth-child(16):hover {
+  background: rgba(53, 42, 61, 0.7);
+}
+
+/* === EDITABLE CELLS === */
+#inventoryManagementTable td[contenteditable="true"] {
+  cursor: text;
+  border-radius: 0;
+  transition: all 0.2s ease;
+  position: relative;
+  white-space: normal;
+  line-height: 1.4;
+}
+
+/* Keep numeric/qty/total columns on single line */
+#inventoryManagementTable td[contenteditable="true"]:nth-child(7),
+#inventoryManagementTable td[contenteditable="true"]:nth-child(9),
+#inventoryManagementTable td[contenteditable="true"]:nth-child(10),
+#inventoryManagementTable td[contenteditable="true"]:nth-child(12),
+#inventoryManagementTable td[contenteditable="true"]:nth-child(13),
+#inventoryManagementTable td[contenteditable="true"]:nth-child(16) {
+  white-space: nowrap;
+  line-height: 1.5;
+}
+
+#inventoryManagementTable td[contenteditable="true"]:hover {
+  background: rgba(59, 130, 246, 0.1);
+  outline: 1px solid var(--inv-focus);
+  border-radius: 4px;
+  z-index: 999;
+}
+
+#inventoryManagementTable td[contenteditable="true"]:focus {
+  outline: 2px solid var(--inv-focus);
+  outline-offset: -2px;
+  box-shadow: 0 0 0 3px var(--inv-focus-ring);
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: 4px;
+  z-index: 1000;
+}
+
+/* Dark mode editable cells */
+html.dark-mode #inventoryManagementTable td[contenteditable="true"]:hover {
+  background: rgba(99, 102, 241, 0.2);
+  outline: 1px solid #8b5cf6;
+  border-radius: 4px;
+  z-index: 999;
+}
+
+html.dark-mode #inventoryManagementTable td[contenteditable="true"]:focus {
+  outline: 2px solid #8b5cf6;
+  outline-offset: -2px;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.3);
+  background: rgba(99, 102, 241, 0.2);
+  border-radius: 4px;
+  z-index: 1000;
+}
+
+/* === STATUS STYLING === */
+#inventoryManagementTable td.status-discontinued {
+  background: rgba(107, 114, 128, 0.1) !important;
+  color: #6b7280 !important;
+  font-weight: 600;
+}
+
+#inventoryManagementTable td.status-overstock {
+  background: rgba(239, 68, 68, 0.1) !important;
+  color: #ef4444 !important;
+  font-weight: 600;
+}
+
+#inventoryManagementTable td.status-lowstock {
+  background: rgba(245, 158, 11, 0.1) !important;
+  color: #f59e0b !important;
+  font-weight: 600;
+}
+
+/* Dark mode status styling */
+html.dark-mode #inventoryManagementTable td.status-discontinued {
+  background: rgba(156, 163, 175, 0.2) !important;
+  color: #d1d5db !important;
+  font-weight: 600;
+}
+
+html.dark-mode #inventoryManagementTable td.status-overstock {
+  background: rgba(248, 113, 113, 0.2) !important;
+  color: #fca5a5 !important;
+  font-weight: 600;
+}
+
+html.dark-mode #inventoryManagementTable td.status-lowstock {
+  background: rgba(251, 191, 36, 0.2) !important;
+  color: #fbbf24 !important;
+  font-weight: 600;
+}
+
+/* === COLUMN HIDING === */
+.hide-col-1 .col-1, .hide-col-1 th:nth-child(1), .hide-col-1 td:nth-child(1) { display: none; }
+.hide-col-2 .col-2, .hide-col-2 th:nth-child(2), .hide-col-2 td:nth-child(2) { display: none; }
+.hide-col-3 .col-3, .hide-col-3 th:nth-child(3), .hide-col-3 td:nth-child(3) { display: none; }
+.hide-col-4 .col-4, .hide-col-4 th:nth-child(4), .hide-col-4 td:nth-child(4) { display: none; }
+.hide-col-5 .col-5, .hide-col-5 th:nth-child(5), .hide-col-5 td:nth-child(5) { display: none; }
+.hide-col-6 .col-6, .hide-col-6 th:nth-child(6), .hide-col-6 td:nth-child(6) { display: none; }
+.hide-col-7 .col-7, .hide-col-7 th:nth-child(7), .hide-col-7 td:nth-child(7) { display: none; }
+.hide-col-8 .col-8, .hide-col-8 th:nth-child(8), .hide-col-8 td:nth-child(8) { display: none; }
+.hide-col-9 .col-9, .hide-col-9 th:nth-child(9), .hide-col-9 td:nth-child(9) { display: none; }
+.hide-col-10 .col-10, .hide-col-10 th:nth-child(10), .hide-col-10 td:nth-child(10) { display: none; }
+.hide-col-11 .col-11, .hide-col-11 th:nth-child(11), .hide-col-11 td:nth-child(11) { display: none; }
+.hide-col-12 .col-12, .hide-col-12 th:nth-child(12), .hide-col-12 td:nth-child(12) { display: none; }
+.hide-col-13 .col-13, .hide-col-13 th:nth-child(13), .hide-col-13 td:nth-child(13) { display: none; }
+.hide-col-14 .col-14, .hide-col-14 th:nth-child(14), .hide-col-14 td:nth-child(14) { display: none; }
+.hide-col-15 .col-15, .hide-col-15 th:nth-child(15), .hide-col-15 td:nth-child(15) { display: none; }
+.hide-col-16 .col-16, .hide-col-16 th:nth-child(16), .hide-col-16 td:nth-child(16) { display: none; }
+
+/* Data attribute version */
+[data-col-1="hidden"] .col-1, [data-col-1="hidden"] th:nth-child(1), [data-col-1="hidden"] td:nth-child(1) { display: none !important; }
+[data-col-2="hidden"] .col-2, [data-col-2="hidden"] th:nth-child(2), [data-col-2="hidden"] td:nth-child(2) { display: none !important; }
+[data-col-3="hidden"] .col-3, [data-col-3="hidden"] th:nth-child(3), [data-col-3="hidden"] td:nth-child(3) { display: none !important; }
+[data-col-4="hidden"] .col-4, [data-col-4="hidden"] th:nth-child(4), [data-col-4="hidden"] td:nth-child(4) { display: none !important; }
+[data-col-5="hidden"] .col-5, [data-col-5="hidden"] th:nth-child(5), [data-col-5="hidden"] td:nth-child(5) { display: none !important; }
+[data-col-6="hidden"] .col-6, [data-col-6="hidden"] th:nth-child(6), [data-col-6="hidden"] td:nth-child(6) { display: none !important; }
+[data-col-7="hidden"] .col-7, [data-col-7="hidden"] th:nth-child(7), [data-col-7="hidden"] td:nth-child(7) { display: none !important; }
+[data-col-8="hidden"] .col-8, [data-col-8="hidden"] th:nth-child(8), [data-col-8="hidden"] td:nth-child(8) { display: none !important; }
+[data-col-9="hidden"] .col-9, [data-col-9="hidden"] th:nth-child(9), [data-col-9="hidden"] td:nth-child(9) { display: none !important; }
+[data-col-10="hidden"] .col-10, [data-col-10="hidden"] th:nth-child(10), [data-col-10="hidden"] td:nth-child(10) { display: none !important; }
+[data-col-11="hidden"] .col-11, [data-col-11="hidden"] th:nth-child(11), [data-col-11="hidden"] td:nth-child(11) { display: none !important; }
+[data-col-12="hidden"] .col-12, [data-col-12="hidden"] th:nth-child(12), [data-col-12="hidden"] td:nth-child(12) { display: none !important; }
+[data-col-13="hidden"] .col-13, [data-col-13="hidden"] th:nth-child(13), [data-col-13="hidden"] td:nth-child(13) { display: none !important; }
+[data-col-14="hidden"] .col-14, [data-col-14="hidden"] th:nth-child(14), [data-col-14="hidden"] td:nth-child(14) { display: none !important; }
+[data-col-15="hidden"] .col-15, [data-col-15="hidden"] th:nth-child(15), [data-col-15="hidden"] td:nth-child(15) { display: none !important; }
+[data-col-16="hidden"] .col-16, [data-col-16="hidden"] th:nth-child(16), [data-col-16="hidden"] td:nth-child(16) { display: none !important; }
+
+/* === SCROLLBAR === */
+#inventoryManagementTableScroller::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+#inventoryManagementTableScroller::-webkit-scrollbar-track {
+  background: var(--inv-surface);
+  border-radius: 6px;
+  margin: 2px;
+}
+
+#inventoryManagementTableScroller::-webkit-scrollbar-thumb {
+  background: var(--inv-border);
+  border-radius: 6px;
+  transition: background 0.2s ease;
+  border: 2px solid var(--inv-surface);
+}
+
+#inventoryManagementTableScroller::-webkit-scrollbar-thumb:hover {
+  background: var(--inv-text-muted);
+}
+
+#inventoryManagementTableScroller::-webkit-scrollbar-corner {
+  background: var(--inv-surface);
+}
+
+/* Dark mode scrollbar improvements */
+html.dark-mode #inventoryManagementTableScroller::-webkit-scrollbar-thumb {
+  background: #555555;
+  border: 2px solid var(--inv-surface);
+}
+
+html.dark-mode #inventoryManagementTableScroller::-webkit-scrollbar-thumb:hover {
+  background: #777777;
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 1200px) {
+  #inventoryManagementTable {
+    font-size: 13px;
+    min-width: 1000px;
+  }
+  
+  #inventoryManagementTable th,
+  #inventoryManagementTable td {
+    padding: 10px 8px;
+  }
+}
+
+@media (max-width: 768px) {
+  #inventoryManagementTableWrapper {
+    margin: 1rem 0;
+    border-radius: 8px;
+    max-height: 60vh;
+  }
+  
+  #inventoryManagementTable {
+    font-size: 12px;
+    min-width: 800px;
+  }
+  
+  #inventoryManagementTable th,
+  #inventoryManagementTable td {
+    padding: 8px 6px;
+  }
+}
+
+/* === ANIMATIONS === */
+.table-loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.row-highlight {
+  background: rgba(59, 130, 246, 0.1) !important;
+  border-left: 3px solid var(--inv-focus);
+}
+
+@keyframes fadeInRow {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in-row {
+  animation: fadeInRow 0.3s ease-out;
+}
+
+/* === LEGACY COMPATIBILITY === */
+#inventoryManagementTable.responsive-fit {
+  table-layout: auto;
+}
+
+#inventoryManagementTable.responsive-fit col {
+  width: auto !important;
+}
+
+#inventoryManagementTable[class*="hide-col-"] {
+  table-layout: auto;
+}
+
+#inventoryManagementTable[class*="hide-col-"] col {
+  width: auto !important;
+}
+
+.sku-text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  white-space: normal;
+}
+
+/* === ACCESSIBILITY === */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+#inventoryManagementTable th:focus,
+#inventoryManagementTable td:focus {
+  outline: 2px solid var(--inv-focus);
+  outline-offset: -2px;
+  z-index: 10;
+  position: relative;
+}
+
+/* === PRINT === */
+@media print {
+  #inventoryManagementTableWrapper {
+    box-shadow: none;
+    border: 1px solid #000;
+    border-radius: 0;
+    overflow: visible;
+    max-height: none;
+  }
+  
+  #inventoryManagementTable {
+    font-size: 10px;
+  }
+  
+  #inventoryManagementTable tbody tr:hover {
+    background: transparent !important;
+    transform: none !important;
+    box-shadow: none !important;
+  }
+}
+
+/* === DROPDOWN ENHANCEMENTS === */
+.checkbox-item {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  transition: background-color 0.2s ease;
+}
+
+.checkbox-item:hover {
+  background: var(--inv-hover);
+}
+
+.checkbox-item input[type="checkbox"] {
+  margin: 0;
+  cursor: pointer;
+}
+
+.checkbox-item span {
+  flex: 1;
+  font-size: 14px;
+  color: var(--inv-text);
+}
+
+/* Dark mode dropdown styling */
+html.dark-mode .checkbox-item:hover {
+  background: var(--inv-hover);
+}
+
+html.dark-mode .checkbox-item span {
+  color: var(--inv-text);
+}
+
+/* === IMPROVED HEADER READABILITY === */
+/* Specific styling for quantity headers to ensure they're readable */
+#inventoryManagementTable th:nth-child(7),
+#inventoryManagementTable th:nth-child(9) {
+  font-size: 11px;
+  padding: 12px 8px;
+  text-align: center;
+}
+
+/* Ensure long headers wrap nicely */
+#inventoryManagementTable th {
+  max-width: none;
+  overflow-wrap: break-word;
+}
+
+/* Responsive header adjustments */
+@media (max-width: 1200px) {
+  #inventoryManagementTable th {
+    font-size: 10px;
+    padding: 12px 6px;
+  }
+  
+  #inventoryManagementTable th:nth-child(7),
+  #inventoryManagementTable th:nth-child(9) {
+    font-size: 9px;
+  }
+}

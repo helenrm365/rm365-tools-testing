@@ -1,0 +1,50 @@
+<!-- Manual Clocking Page -->
+<div class="attendance-manual">
+  <h2>Manual Clocking</h2>
+  <div class="inner-tabs" style="margin-bottom: 1.5rem; display: flex; gap: 0.5rem;">
+    <button class="modern-button" data-nav onclick="location.href='/attendance/overview'">Overview</button>
+    <button class="modern-button active" data-nav onclick="location.href='/attendance/manual'">Manual</button>
+    <button class="modern-button" data-nav onclick="location.href='/attendance/automatic'">Automatic</button>
+    <button class="modern-button" data-nav onclick="location.href='/attendance/logs'">Logs</button>
+  </div>
+  
+  <section class="card">
+    <div class="card-header">
+      <h3>👤 Manual Employee Clocking</h3>
+    </div>
+    <div class="card-body">
+      <p>Manually clock employees in or out. Select an employee and click the appropriate action.</p>
+      
+      <div class="manual-controls modern-box" style="margin-bottom: 2rem;">
+        <div style="display: grid; grid-template-columns: 1fr auto; gap: 1rem; align-items: end;">
+          <div>
+            <label class="form-label">Select Employee:</label>
+            <select id="employeeSelect" class="modern-select" data-enhance="c-select" style="width: 100%;">
+              <option value="">Loading employees...</option>
+            </select>
+          </div>
+          <div style="display: flex; gap: 0.5rem;">
+            <button id="clockInBtn" class="modern-button" style="background: linear-gradient(to bottom right, #28a745, #20c997);" disabled>
+              ⏰ Clock In
+            </button>
+            <button id="clockOutBtn" class="modern-button" style="background: linear-gradient(to bottom right, #ffc107, #fd7e14);" disabled>
+              ⏰ Clock Out
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div id="employeeStatus" class="modern-box" style="display: none;">
+        <h4>Employee Status</h4>
+        <div id="statusDetails"></div>
+      </div>
+
+      <div class="recent-activity modern-box">
+        <h4>📋 Recent Manual Clocking Activity</h4>
+        <div id="recentActivityTable">
+          <p class="muted" style="text-align: center; padding: 2rem; color: #999;">No recent activity.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>

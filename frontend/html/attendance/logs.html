@@ -1,0 +1,78 @@
+<!-- Attendance Logs Page -->
+<div class="attendance-logs">
+  <h2>Attendance Logs</h2>
+  <div class="inner-tabs" style="margin-bottom: 1.5rem; display: flex; gap: 0.5rem;">
+    <button class="modern-button" data-nav onclick="location.href='/attendance/overview'">Overview</button>
+    <button class="modern-button" data-nav onclick="location.href='/attendance/manual'">Manual</button>
+    <button class="modern-button" data-nav onclick="location.href='/attendance/automatic'">Automatic</button>
+    <button class="modern-button active" data-nav onclick="location.href='/attendance/logs'">Logs</button>
+  </div>
+  
+  <section class="card">
+    <div class="card-header">
+      <h3>📋 Attendance Logs</h3>
+    </div>
+    <div class="card-body">
+      <!-- Unified Filter Controls -->
+      <div class="modern-box filter-box" style="margin-bottom: 2rem;">
+        <h4>🔍 Filter Logs</h4>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+          <div>
+            <label class="form-label">From Date:</label>
+            <input type="date" id="fromDate" class="modern-input" required>
+          </div>
+          <div>
+            <label class="form-label">To Date:</label>
+            <input type="date" id="toDate" class="modern-input" required>
+          </div>
+          <div>
+            <label class="form-label">Location:</label>
+            <select id="locationFilter" class="modern-select" data-enhance="c-select">
+              <option value="">All Locations</option>
+              <option value="UK">UK</option>
+              <option value="FR">FR</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label">Employee Name:</label>
+            <input type="text" id="nameFilter" class="modern-input" placeholder="Search by name...">
+          </div>
+        </div>
+        <div style="display: flex; gap: 1rem; align-items: center;">
+          <button id="filterBtn" class="modern-button" style="background: linear-gradient(to bottom right, #007bff, #6610f2);">
+            🔍 Apply Filters
+          </button>
+          <button id="clearBtn" class="modern-button" style="background: linear-gradient(to bottom right, #6c757d, #495057);">
+            🗑️ Clear
+          </button>
+        </div>
+      </div>
+
+      <!-- Results Section -->
+      <div id="logsResults" class="modern-box" style="display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <h4>📊 Attendance Logs</h4>
+          <div id="logsStats" style="color: #666; font-size: 0.9em;"></div>
+        </div>
+        <div id="logsTable" style="max-height: 600px; overflow-y: auto;"></div>
+      </div>
+
+      <!-- Export Options -->
+      <div class="export-options modern-box" style="margin-top: 2rem;">
+        <h4>📤 Export Options</h4>
+        <p style="color: #666; margin-bottom: 1rem;">Export attendance data for reporting and analysis.</p>
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+          <button id="exportCsvBtn" class="modern-button" disabled style="background: linear-gradient(to bottom right, #28a745, #20c997);">
+            📄 Export to CSV
+          </button>
+          <button id="exportPdfBtn" class="modern-button" disabled style="background: linear-gradient(to bottom right, #dc3545, #c82333);">
+            📄 Export to PDF
+          </button>
+          <button id="printBtn" class="modern-button" disabled style="background: linear-gradient(to bottom right, #6c757d, #495057);">
+            🖨️ Print Report
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>

@@ -1,0 +1,29 @@
+<!-- Default enrollment landing page -->
+<div class="enrollment-home">
+  <h2>Enrollment</h2>
+  <div class="inner-tabs" style="margin-bottom: 1.5rem; display: flex; gap: 0.5rem;">
+    <button class="modern-button" data-nav onclick="location.href='/enrollment/management'">Management</button>
+    <button class="modern-button" data-nav onclick="location.href='/enrollment/card'">Card</button>
+    <button class="modern-button" data-nav onclick="location.href='/enrollment/fingerprint'">Fingerprint</button>
+  </div>
+  
+  <div class="welcome-box" style="padding: 2rem; background: linear-gradient(135deg, #667eea15, #764ba215); border-radius: 12px;">
+    <h3>Welcome to Enrollment</h3>
+    <p>Manage your employees, cards, and fingerprints from this section.</p>
+    <ul style="margin-top: 1rem; line-height: 1.8;">
+      <li><strong>Management:</strong> Create, edit, and delete employee records</li>
+      <li><strong>Card:</strong> Scan and assign RFID cards to employees</li>
+      <li><strong>Fingerprint:</strong> Register biometric data for secure access</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+  // Auto-redirect to management as the default sub-tab
+  setTimeout(() => {
+    if (window.location.pathname === '/enrollment') {
+      window.history.replaceState({path: '/enrollment/management'}, '', '/enrollment/management');
+      window.location.href = '/enrollment/management';
+    }
+  }, 100);
+</script>

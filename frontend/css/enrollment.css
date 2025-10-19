@@ -1,0 +1,545 @@
+/* Enrollment Module Specific Styles */
+
+.enrollment-home,
+.enrollment-management,
+.enrollment-card,
+.enrollment-fingerprint {
+  padding: 1rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Inner tabs for enrollment sections */
+.inner-tabs .modern-button {
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+}
+
+.inner-tabs .modern-button.active {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border-color: rgba(255,255,255,0.2);
+  box-shadow: 0 4px 8px rgba(102,126,234,0.3);
+}
+
+.inner-tabs .modern-button:hover:not(.active) {
+  border-color: #667eea;
+  background: rgba(102,126,234,0.1);
+}
+
+/* Card container improvements */
+.card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,0.05);
+}
+
+html.dark-mode .card {
+  background: #2a2a2a;
+  border-color: rgba(255,255,255,0.1);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.card-header {
+  padding: 1rem 1.5rem;
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  border-bottom: 1px solid rgba(0,0,0,0.1);
+}
+
+html.dark-mode .card-header {
+  background: linear-gradient(135deg, #333, #2a2a2a);
+  border-bottom-color: rgba(255,255,255,0.1);
+}
+
+.card-header h3 {
+  margin: 0;
+  color: #333;
+  font-weight: 600;
+}
+
+html.dark-mode .card-header h3 {
+  color: #fff;
+}
+
+.card-body {
+  padding: 1.5rem;
+}
+
+/* Modern table improvements */
+.modern-table {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  border: 2px solid #e0e0e0;
+}
+
+html.dark-mode .modern-table {
+  background: #2a2a2a;
+  border-color: #555;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.modern-table th {
+  background: linear-gradient(135deg, #f1f3f4, #e8eaed);
+  font-weight: 600;
+  color: #333;
+  border-bottom: 2px solid #ddd !important;
+}
+
+html.dark-mode .modern-table th {
+  background: linear-gradient(135deg, #404040, #333);
+  color: #fff;
+  border-bottom: 2px solid #555 !important;
+}
+
+.modern-table tbody tr {
+  background: white;
+  border-bottom: 1px solid #eee !important;
+}
+
+html.dark-mode .modern-table tbody tr {
+  background: #2a2a2a;
+  border-bottom: 1px solid #444 !important;
+}
+
+.modern-table tbody tr:hover {
+  background: rgba(102,126,234,0.05);
+}
+
+html.dark-mode .modern-table tbody tr:hover {
+  background: rgba(102,126,234,0.15);
+}
+
+/* Fix table edges and ensure proper rendering */
+.table-wrap {
+  border-radius: 12px;
+  overflow: hidden;
+  background: white;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  border: 2px solid #e0e0e0;
+}
+
+html.dark-mode .table-wrap {
+  background: #2a2a2a;
+  border-color: #555;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+/* Instructions box */
+.instructions {
+  border-left: 4px solid #667eea;
+  background: linear-gradient(135deg, rgba(102,126,234,0.1), rgba(118,75,162,0.05));
+}
+
+html.dark-mode .instructions {
+  background: linear-gradient(135deg, rgba(102,126,234,0.2), rgba(118,75,162,0.1));
+  border-left-color: #764ba2;
+}
+
+.instructions h4 {
+  margin-top: 0;
+  color: #667eea;
+}
+
+html.dark-mode .instructions h4 {
+  color: #a29bfe;
+}
+
+.instructions ol {
+  margin-bottom: 0;
+}
+
+.instructions li {
+  margin-bottom: 0.5rem;
+}
+
+/* Welcome box styling */
+.welcome-box h3 {
+  margin-top: 0;
+  color: #667eea;
+}
+
+html.dark-mode .welcome-box h3 {
+  color: #a29bfe;
+}
+
+/* Fingerprint preview area */
+#fingerprintPreview {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* Status indicators */
+#cardStatus,
+#fpStatus {
+  font-family: 'Fira Code', monospace;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+  .enrollment-home,
+  .enrollment-management,
+  .enrollment-card,
+  .enrollment-fingerprint {
+    padding: 0.5rem;
+  }
+  
+  .inner-tabs {
+    flex-direction: column;
+    gap: 0.25rem !important;
+  }
+  
+  .inner-tabs .modern-button {
+    width: 100%;
+  }
+  
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch !important;
+  }
+  
+  .modern-table {
+    font-size: 0.8rem;
+  }
+  
+  .modern-table th,
+  .modern-table td {
+    padding: 4px 2px !important;
+  }
+  
+  .modern-input {
+    font-size: 0.8rem;
+    padding: 4px 6px;
+  }
+  
+  /* Stack table on very small screens */
+  @media (max-width: 600px) {
+    .table-wrap {
+      overflow-x: auto;
+    }
+    
+    .modern-table {
+      min-width: 700px;
+    }
+  }
+  
+  /* Modal responsive */
+  .modal-content {
+    margin: 1rem;
+    min-width: unset;
+    width: calc(100% - 2rem);
+  }
+}
+
+/* Loading states */
+.loading-indicator {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(102,126,234,0.3);
+  border-top: 2px solid #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 0.5rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Dark mode form input fixes */
+html.dark-mode .modern-input {
+  background-color: #2e2e2e;
+  border: 1px solid #555;
+  color: #fff;
+}
+
+html.dark-mode .modern-input:focus {
+  border-color: #3399ff;
+  box-shadow: 0 0 5px rgba(51,153,255,0.3);
+}
+
+html.dark-mode .modern-input:disabled {
+  background-color: #1a1a1a;
+  border-color: #333;
+  color: #999;
+}
+
+/* Specific styling for employee code input */
+.employee-code-input {
+  background: #f5f5f5 !important;
+}
+
+html.dark-mode .employee-code-input {
+  background-color: #1a1a1a !important;
+  border-color: #333 !important;
+  color: #bbb !important;
+}
+
+html.dark-mode .modern-input option {
+  background-color: #2e2e2e;
+  color: #fff;
+}
+
+/* Modern Modal Styling */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 16px;
+  padding: 2rem;
+  min-width: 400px;
+  max-width: 450px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+html.dark-mode .modal-content {
+  background: #2a2a2a;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+html.dark-mode .modal-header {
+  border-bottom-color: #444;
+}
+
+.modal-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
+  color: #333;
+}
+
+html.dark-mode .modal-title {
+  color: #fff;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #999;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: #333;
+}
+
+html.dark-mode .modal-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.modal-body {
+  margin-bottom: 1.5rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #333;
+}
+
+html.dark-mode .form-label {
+  color: #fff;
+}
+
+.form-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  background: white;
+  color: #333;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Specific adjustment for employee name input */
+#employeeName {
+  max-width: 350px;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+html.dark-mode .form-input {
+  background: #3a3a3a;
+  border-color: #555;
+  color: #fff;
+}
+
+html.dark-mode .form-input:focus {
+  border-color: #764ba2;
+  box-shadow: 0 0 0 3px rgba(118, 75, 162, 0.2);
+}
+
+.modal-footer {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.btn-secondary {
+  background: #f8f9fa;
+  color: #6c757d;
+  border: 2px solid #e9ecef;
+  padding: 10px 24px;
+  border-radius: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background: #e9ecef;
+  border-color: #dee2e6;
+}
+
+html.dark-mode .btn-secondary {
+  background: #404040;
+  color: #ccc;
+  border-color: #555;
+}
+
+html.dark-mode .btn-secondary:hover {
+  background: #4a4a4a;
+  border-color: #666;
+}
+
+/* Disabled state for buttons */
+.modern-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: #ccc !important;
+}
+
+.modern-button:disabled:hover {
+  transform: none;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Additional animations and enhancements */
+.modern-table tbody tr {
+  transition: all 0.2s ease;
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.table-wrap {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Consistent focus styling for all form elements */
+.form-input:focus,
+.modern-input:focus,
+select:focus,
+button:focus,
+input:focus,
+textarea:focus {
+  outline: none;
+  border: 2px solid #667eea !important;
+  box-shadow: 0 4px 8px rgba(102,126,234,0.3) !important;
+  transform: translateY(-1px);
+  transition: all 0.2s ease;
+}
+
+/* Dark mode focus styling */
+html.dark-mode .form-input:focus,
+html.dark-mode .modern-input:focus,
+html.dark-mode select:focus,
+html.dark-mode button:focus,
+html.dark-mode input:focus,
+html.dark-mode textarea:focus {
+  border-color: #3399ff !important;
+  box-shadow: 0 4px 8px rgba(51,153,255,0.3) !important;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+

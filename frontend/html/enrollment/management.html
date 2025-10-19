@@ -1,0 +1,63 @@
+<!-- Employee Management Page -->
+<div class="enrollment-management">
+  <h2>Employee Management</h2>
+  <div class="inner-tabs" style="margin-bottom: 1.5rem; display: flex; gap: 0.5rem;">
+    <button class="modern-button active" data-nav onclick="location.href='/enrollment/management'">Management</button>
+    <button class="modern-button" data-nav onclick="location.href='/enrollment/card'">Card</button>
+    <button class="modern-button" data-nav onclick="location.href='/enrollment/fingerprint'">Fingerprint</button>
+  </div>
+  
+  <section class="card">
+    <div class="card-header">
+      <h3>👥 Employee Database</h3>
+    </div>
+    <div class="card-body">
+      <p>Manage employees here. Create, update, or delete employees; attach card UIDs and fingerprints.</p>
+
+      <div class="toolbar" style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: center;">
+        <button class="modern-button" id="enrCreateBtn">➕ Create Employee</button>
+        <button class="modern-button" id="enrBulkDeleteBtn" style="background: linear-gradient(to bottom right, #e74c3c, #c0392b); color: white;">🗑️ Bulk Delete</button>
+        <!-- Search box will be added by JS -->
+      </div>
+
+      <div id="enrTableWrap" class="table-wrap modern-box">
+        <!-- Your JS will render the table of employees here -->
+        <p class="muted" style="text-align: center; padding: 2rem; color: #999;">Employee list will load here...</p>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- Employee Creation Modal (moved outside enrollment-management container) -->
+<div id="createEmployeeModal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 class="modal-title">➕ Create New Employee</h3>
+      <button class="modal-close" id="closeModal">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label" for="employeeName">Employee Name *</label>
+        <input type="text" id="employeeName" class="form-input" placeholder="Enter full name" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="employeeLocation">Location *</label>
+        <select id="employeeLocation" class="form-input">
+          <option value="UK">United Kingdom (UK)</option>
+          <option value="FR">France (FR)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="employeeStatus">Status</label>
+        <select id="employeeStatus" class="form-input">
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" id="cancelCreate">Cancel</button>
+      <button class="btn-primary" id="confirmCreate">Create Employee</button>
+    </div>
+  </div>
+</div>

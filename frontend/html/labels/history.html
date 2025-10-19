@@ -1,0 +1,43 @@
+<!-- Labels History Page -->
+<div class="labels-history">
+  <h2>Label History</h2>
+  <div class="inner-tabs" style="margin-bottom: 1.5rem; display: flex; gap: 0.5rem;">
+    <button class="modern-button" data-nav onclick="location.href='/labels/generator'">Generator</button>
+    <button class="modern-button active" data-nav onclick="location.href='/labels/history'">History</button>
+  </div>
+  
+  <section class="card">
+    <div class="card-header">
+      <h3>📋 Label Generation History</h3>
+    </div>
+    <div class="card-body">
+      <p>View past label generation runs and download previous batches.</p>
+      
+      <div class="history-controls modern-box" style="margin-bottom: 2rem;">
+        <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+          <div>
+            <label class="form-label">Show Recent:</label>
+            <select id="limitSelect" class="modern-select" data-enhance="c-select">
+              <option value="10">Last 10 runs</option>
+              <option value="25">Last 25 runs</option>
+              <option value="50">Last 50 runs</option>
+              <option value="100">Last 100 runs</option>
+            </select>
+          </div>
+          <button id="refreshHistoryBtn" class="modern-button">
+            🔄 Refresh
+          </button>
+        </div>
+      </div>
+
+      <div id="historyTable" class="modern-box">
+        <p class="muted" style="text-align: center; padding: 2rem; color: #999;">Loading history...</p>
+      </div>
+
+      <div id="historyDetails" class="modern-box" style="display: none; margin-top: 2rem;">
+        <h4>Run Details</h4>
+        <div id="runDetailsContent"></div>
+      </div>
+    </div>
+  </section>
+</div>

@@ -1,0 +1,1537 @@
+
+/* =========================================
+   Modern UI (extracted)
+   Source: styles.css
+   Groups:
+   - Modern Buttons
+   - Modern Inputs & Select
+   - Modern Box (and in-box overlay dropdowns)
+   - Employee Cards
+   - Universal Dropdown System
+   - Custom Select (c-select)
+   - Modern Table Styling
+   NOTE: Ordering preserved to keep behaviour identical.
+   ========================================= */
+
+* { font-family: 'Sora', sans-serif; }
+
+/* === Modern Buttons === */
+.modern-button {
+    padding: 10px 18px;
+    font-size: 0.95rem;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(to bottom right, #f4f4f4, #eaeaea);
+    color: #333;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.modern-button:hover {
+    background: #e0e0e0;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+}
+.modern-button:active {
+    transform: scale(0.98);
+}
+html.dark-mode .modern-button {
+    background: #2e2e2e;
+    color: #fff;
+    box-shadow: 0 2px 4px rgba(255,255,255,0.05);
+}
+html.dark-mode .modern-button:hover {
+    background: #3b3b3b;
+}
+.top-nav .modern-button {
+    margin-bottom: 8px;
+}
+
+/* === Modern Inputs & Select === */
+.modern-input {
+    padding: 10px 12px;
+    font-size: 0.95rem;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    outline: none;
+    transition: all 0.2s ease;
+    margin-right: 10px;
+    margin-bottom: 8px;
+}
+.modern-input:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 5px rgba(0,123,255,0.3);
+}
+html.dark-mode .modern-input {
+    background-color: #2e2e2e;
+    border: 1px solid #555;
+    color: #fff;
+}
+html.dark-mode .modern-input:focus {
+    border-color: #3399ff;
+    box-shadow: 0 0 5px rgba(51,153,255,0.3);
+}
+
+/* Add to modern-ui.css (or another stylesheet loaded after it) */
+#empQuickCreate #enrollName {
+  flex: 0 1 200px;  /* don’t hog all space */
+  min-width: 150px; /* allow smaller min width */
+  max-width: 250px; /* optional: cap its size */
+}
+
+/* === Modern universal box === */
+.modern-box {
+  position: relative;
+  display: block;              /* stack vertically by default */
+  width: 100%;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+  padding: 12px;
+  margin: 16px 0;
+  box-sizing: border-box;
+  isolation: isolate;
+  overflow: visible;
+}
+.modern-box.z-raise { z-index: 4001; overflow: visible;}
+.modern-box:has(.dropdown-container.open) { z-index: 4001; }
+
+/* Header toggle */
+.modern-box .box-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font-weight: 600;
+  font-size: 1.1rem;
+  padding: 8px 6px 4px;
+  cursor: pointer;
+}
+.modern-box .chev {
+  transition: transform .25s ease;
+  font-size: 1rem;
+  opacity: .8;
+}
+
+/* Animated body */
+.modern-box .box-body {
+  height: 0;
+  overflow: clip;              /* stricter than hidden while collapsed */
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: height .28s ease, opacity .2s ease;
+
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  will-change: height;
+  padding: 0 10px;             /* no vertical padding collapsed */
+  min-height: 0;
+
+  contain: layout;             /* keep layout containment always... */
+
+  box-sizing: border-box;
+}
+/* ...but only paint-contain while NOT open */
+.modern-box:not(.open) .box-body {
+  contain: layout paint;       /* block painting outside when collapsed */
+}
+
+.modern-box.open .box-body {
+  opacity: 1;
+  padding: 8px 10px;           /* restore padding when open */
+  overflow: visible;           /* allow overlays (dropdowns) to escape */
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* Hug-to-content variant (outer/inner boxes) */
+.modern-box--hug {
+  display: inline-block;       /* shrink-to-fit */
+  width: auto;
+  max-width: 100%;
+  vertical-align: top;
+  align-self: flex-start;      /* don't stretch in a flex column */
+  transition: width .28s ease; /* animate the BOX width */
+  will-change: width;
+}
+
+.modern-box--hug .box-toggle { width: auto; }
+
+.modern-box--hug .box-body {
+  width: auto;
+  transition: height .28s ease, width .28s ease, opacity .2s ease;
+}
+
+/* Open state visuals */
+.modern-box.open .box-toggle .chev { transform: rotate(180deg); }
+
+/* Overlay dropdowns inside modern boxes */
+.modern-box .dropdown-container { position: relative; }
+.modern-box .dropdown-content {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 220px;
+  max-height: 280px;
+  overflow: auto;
+  background: rgba(20,20,20,.98);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.35);
+  opacity: 0;
+  transform: translateY(-4px);
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity .18s ease, transform .18s ease, visibility 0s linear .18s;
+  z-index: 3004;
+}
+.modern-box .dropdown-container.open .dropdown-content {
+  opacity: 1;
+  transform: none;
+  visibility: visible;
+  pointer-events: auto;
+  transition: opacity .18s ease, transform .18s ease, visibility 0s;
+}
+
+/* Helper rows */
+.modern-box .row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-start;
+  min-width: 0;
+}
+.modern-box .row > .modern-input,
+.modern-box .row > input[type='text'],
+.modern-box .row > input[type='search'],
+.modern-box .row > select,
+.modern-box .row > .input,
+.modern-box .row > .field {
+  flex: 1 1 260px;
+  min-width: 220px;
+}
+.modern-box .row > .modern-button,
+.modern-box .row > button,
+.modern-box .row > .btn {
+  flex: 0 0 auto;
+  width: auto;
+  align-self: flex-start;
+}
+
+/* Optional: in-box subhead/labels */
+.modern-box .section-title,
+.modern-box .field-label {
+  font-size: 1rem;
+  font-weight: 600;
+  opacity: .95;
+  margin: 8px 0 4px;
+}
+
+/* === Employee list cards === */
+.emp-list { display: grid; gap: 8px; }
+.emp-card {
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 12px;
+  padding: 10px;
+  background: #fff;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+html.dark-mode .emp-card { background:#222; border-color:#333; }
+/* Card header row */
+.emp-card-head {
+  display:flex; align-items:center; gap:10px; justify-content:space-between; flex-wrap:wrap;
+}
+.emp-card-main { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.emp-card-main .emp-name { font-weight:600; }
+.emp-meta { opacity:0.8; font-size:0.9rem; }
+/* Edit panel animation: remove transform to avoid new stacking contexts */
+.emp-edit{
+  max-height:0;
+  overflow:hidden;          /* NOTE: later override switches this to visible */
+  opacity:0;
+  transition:max-height .25s ease, opacity .25s ease;
+  border-top:1px dashed rgba(0,0,0,0.1);
+  margin-top:8px;
+  padding-top:8px;
+}
+.emp-card.open .emp-edit{
+  max-height:600px;
+  opacity:1;
+  overflow: visible;
+}
+/* Little utilities */
+.emp-actions { display:flex; gap:8px; align-items:center; }
+.emp-fields { display:grid; gap:8px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+.emp-field { display:flex; flex-direction:column; gap:6px; }
+.emp-field-label { font-size:0.85rem; opacity:0.85; }
+/* Make each card a predictable layer */
+.emp-card{ position:relative; }
+/* optional */
+.emp-card .dropdown-container.open { z-index: 3003; }
+.emp-card .dropdown-content        { z-index: 3004; }
+
+/* === Custom select (c-select) Enhanced === */
+.select-hidden {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.c-select { 
+  position: relative; 
+  display: inline-block; 
+  width: 100%; 
+}
+
+.c-select__button {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 16px;
+  font-size: 0.95rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #374151;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+  font-weight: 500;
+  min-height: 44px;
+  line-height: 1.2;
+}
+
+.c-select__button:hover { 
+  background: #f8fafc;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+  border-color: #cbd5e1;
+}
+
+.c-select__button:active { 
+  transform: translateY(0) scale(0.98); 
+}
+
+.c-select__button:focus-visible { 
+  outline: 2px solid #64748b; 
+  outline-offset: 2px; 
+}
+
+.c-select[aria-expanded='true'] .c-select__button {
+  border-color: #64748b;
+  box-shadow: 0 0 0 2px rgba(100, 116, 139, 0.1), 0 3px 8px rgba(0,0,0,0.12);
+  background: #f1f5f9;
+}
+
+.c-select__label {
+  flex: 1;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.c-select__caret { 
+  opacity: 0.7; 
+  transition: transform 0.2s ease;
+  font-size: 0.8rem;
+  color: #64748b;
+  font-weight: bold;
+}
+
+.c-select[aria-expanded='true'] .c-select__caret { 
+  transform: rotate(180deg);
+  color: #475569;
+}
+
+/* Enhanced dropdown list */
+.c-select__list {
+  position: absolute;
+  z-index: 3600; /* Above backdrop but below page-specific overrides */
+  left: 0;
+  right: 0;
+  margin-top: 6px;
+  background-color: #ffffff;
+  color: #374151;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 6px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  max-height: 280px;
+  overflow: auto;
+  transform-origin: top center;
+  transform: translateY(-6px) scale(0.95);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: all 0.2s ease;
+}
+
+.c-select[aria-expanded='true'] .c-select__list {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* Custom scrollbar */
+.c-select__list {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.c-select__list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.c-select__list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.c-select__list::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.c-select__list::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Enhanced list items */
+.c-select__item { 
+  display: flex;
+  align-items: center;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 400;
+  transition: all 0.15s ease;
+  color: #374151;
+  position: relative;
+  margin: 1px 0;
+  user-select: none;
+}
+
+.c-select__item:hover { 
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+.c-select__item:active {
+  background: #e2e8f0;
+}
+
+.c-select__item[aria-selected='true'] { 
+  background: #f1f5f9;
+  color: #1e293b;
+  font-weight: 500;
+}
+
+.c-select__item[aria-disabled='true'] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.c-select__item[data-active='true'] { 
+  outline: 2px solid #64748b; 
+  outline-offset: -2px; 
+}
+
+/* Remove any blue line indicators */
+.c-select__item::before,
+.c-select__item::after {
+  display: none;
+}
+
+/* Dark mode for c-select */
+html.dark-mode .c-select__button {
+  background: #1e293b;
+  color: #e2e8f0;
+  border-color: #475569;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+html.dark-mode .c-select__button:hover { 
+  background: #334155;
+  border-color: #64748b;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.4);
+}
+
+html.dark-mode .c-select[aria-expanded='true'] .c-select__button {
+  border-color: #64748b;
+  box-shadow: 0 0 0 2px rgba(100, 116, 139, 0.2), 0 3px 8px rgba(0,0,0,0.4);
+  background: #475569;
+}
+
+html.dark-mode .c-select__caret {
+  color: #94a3b8;
+}
+
+html.dark-mode .c-select[aria-expanded='true'] .c-select__caret {
+  color: #cbd5e1;
+}
+
+html.dark-mode .c-select__list {
+  background-color: #1e293b;
+  color: #e2e8f0;
+  border-color: #475569;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+}
+
+html.dark-mode .c-select__item {
+  color: #e2e8f0;
+}
+
+html.dark-mode .c-select__item:hover {
+  background: #374151;
+  color: #f1f5f9;
+}
+
+html.dark-mode .c-select__item:active {
+  background: #475569;
+}
+
+html.dark-mode .c-select__item[aria-selected='true'] {
+  background: #374151;
+  color: #f1f5f9;
+}
+
+html.dark-mode .c-select__item[data-active='true'] { 
+  outline-color: #94a3b8; 
+}
+
+html.dark-mode .c-select__list::-webkit-scrollbar-thumb {
+  background: #64748b;
+}
+
+html.dark-mode .c-select__list::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Attendance overview specific fixes */
+.attendance-overview * {
+  /* Ensure no child elements have higher z-index than dropdown */
+  z-index: auto !important;
+}
+
+.attendance-overview .modern-box {
+  overflow: visible !important; /* Force visibility for dropdowns */
+  contain: none !important; /* Remove any containment that might clip dropdowns */
+}
+
+.attendance-overview .modern-box:has(.c-select[aria-expanded="true"]) {
+  z-index: 9990 !important; /* Raise container when c-select is open */
+  overflow: visible !important;
+}
+
+.attendance-overview .unified-filters {
+  overflow: visible !important; /* Ensure filter container doesn't clip */
+  position: relative !important;
+  z-index: 9990; /* High z-index for the filter container */
+  contain: none !important;
+}
+
+.attendance-overview .c-select {
+  position: relative;
+  z-index: 9995 !important; /* Higher z-index to ensure dropdown overlays properly */
+}
+
+.attendance-overview .c-select[aria-expanded="true"] {
+  z-index: 9998 !important; /* Even higher when open */
+}
+
+.attendance-overview .c-select__list {
+  z-index: 9999 !important; /* Highest for the dropdown list */
+  position: absolute !important; 
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.2) !important;
+  pointer-events: auto !important;
+}
+
+.attendance-overview .c-select__item {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  z-index: 10000 !important;
+}
+
+/* Specifically target elements that might interfere */
+.attendance-overview table,
+.attendance-overview .current-status,
+.attendance-overview .stats-grid,
+.attendance-overview .card,
+.attendance-overview .card-body,
+.attendance-overview canvas {
+  z-index: 1 !important;
+  position: relative;
+}
+
+/* Attendance manual page specific fixes (same as overview) */
+.attendance-manual * {
+  /* Ensure no child elements have higher z-index than dropdown */
+  z-index: auto !important;
+}
+
+.attendance-manual .modern-box {
+  overflow: visible !important; /* Force visibility for dropdowns */
+  contain: none !important; /* Remove any containment that might clip dropdowns */
+}
+
+.attendance-manual .modern-box:has(.c-select[aria-expanded="true"]) {
+  z-index: 9990 !important; /* Raise container when c-select is open */
+  overflow: visible !important;
+}
+
+.attendance-manual .manual-controls {
+  overflow: visible !important; /* Ensure controls container doesn't clip */
+  position: relative !important;
+  z-index: 9990; /* High z-index for the controls container */
+  contain: none !important;
+}
+
+.attendance-manual .c-select {
+  position: relative;
+  z-index: 9995 !important; /* Higher z-index to ensure dropdown overlays properly */
+}
+
+.attendance-manual .c-select[aria-expanded="true"] {
+  z-index: 9998 !important; /* Even higher when open */
+}
+
+.attendance-manual .c-select__list {
+  z-index: 9999 !important; /* Highest for the dropdown list */
+  position: absolute !important; 
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.2) !important;
+  pointer-events: auto !important;
+}
+
+.attendance-manual .c-select__item {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  z-index: 10000 !important;
+}
+
+/* Target elements that might interfere in manual page */
+.attendance-manual table,
+.attendance-manual .recent-activity,
+.attendance-manual .card,
+.attendance-manual .card-body,
+.attendance-manual #recentActivityTable {
+  z-index: 1 !important;
+  position: relative;
+}
+
+.attendance-overview .dropdown-container {
+  z-index: 5000; /* Compatibility for any remaining dropdown-container elements */
+}
+
+.attendance-overview .dropdown-container .dropdown-content {
+  z-index: 5001 !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+}
+
+/* Ensure tables and other content stay below dropdowns */
+.attendance-overview .modern-box {
+  position: relative;
+  z-index: 1;
+}
+
+.attendance-overview table,
+.attendance-overview .current-status,
+.attendance-overview .stats-grid {
+  position: relative;
+  z-index: 1;
+}
+
+/* Dark mode attendance overview fixes */
+html.dark-mode .attendance-overview .c-select__list {
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+}
+
+html.dark-mode .attendance-overview .dropdown-container .dropdown-content {
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+}
+
+/* Clean, simple dropdown without extra animations */
+
+/* === UNIVERSAL DROPDOWN SYSTEM (disabled - using c-select only) === */
+/* 
+.dropdown-container { 
+  position: relative; 
+  display: inline-block; 
+  overflow: visible; 
+  width: 100%;
+}
+
+.modern-dropdown-converted {
+  max-width: 100%;
+}
+*/
+
+/* DISABLED: Second dropdown system - using c-select only 
+.dropdown-toggle{
+  position: relative;
+  z-index: 3002;
+  width: 100%;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 16px;
+  font-size: 0.95rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  background: linear-gradient(to bottom right, #ffffff, #f8fafc);
+  color: #334155;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+  font-weight: 500;
+  min-height: 44px;
+}
+
+.dropdown-toggle:hover { 
+  background: linear-gradient(to bottom right, #f8fafc, #f1f5f9);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+}
+
+.dropdown-toggle:active { 
+  transform: translateY(0) scale(0.98); 
+}
+
+.dropdown-toggle.open {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1), 0 4px 16px rgba(0,0,0,0.12);
+  background: linear-gradient(to bottom right, #eff6ff, #dbeafe);
+}
+
+.dropdown-toggle .arrow { 
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: rotate(0deg);
+  font-size: 0.8rem;
+  color: #64748b;
+  font-weight: bold;
+}
+
+.dropdown-toggle.open .arrow { 
+  transform: rotate(180deg);
+  color: #3b82f6;
+}
+*/
+
+/* Global backdrop for c-select system */
+.dropdown-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.15);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 3000;
+  display: none; /* Start hidden */
+}
+.dropdown-backdrop.show { 
+  opacity: 1; 
+  pointer-events: auto; 
+  display: block; /* Show when active */
+}
+
+#globalDropdownBackdrop {
+  z-index: 3500; /* Ensure it's above most content but below dropdowns */
+}
+
+/* Compatibility styles for existing dropdown-container elements */
+.dropdown-container { 
+  position: relative; 
+  display: inline-block; 
+  width: 100%;
+}
+
+.dropdown-container .dropdown-toggle {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 16px;
+  font-size: 0.95rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #374151;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+  font-weight: 500;
+  min-height: 44px;
+  line-height: 1.2;
+}
+
+.dropdown-container .dropdown-toggle:hover {
+  background: #f8fafc;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+  border-color: #cbd5e1;
+}
+
+.dropdown-container.open .dropdown-toggle {
+  border-color: #64748b;
+  box-shadow: 0 0 0 2px rgba(100, 116, 139, 0.1), 0 3px 8px rgba(0,0,0,0.12);
+  background: #f1f5f9;
+}
+
+.dropdown-container .dropdown-toggle .arrow {
+  opacity: 0.7;
+  transition: transform 0.2s ease;
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.dropdown-container.open .dropdown-toggle .arrow {
+  transform: rotate(180deg);
+  color: #475569;
+}
+
+.dropdown-container .dropdown-content {
+  position: absolute;
+  z-index: 3003;
+  left: 0;
+  right: 0;
+  margin-top: 6px;
+  background-color: #ffffff;
+  color: #374151;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 6px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  max-height: 280px;
+  overflow: auto;
+  transform-origin: top center;
+  transform: translateY(-6px) scale(0.95);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: all 0.2s ease;
+}
+
+.dropdown-container.open .dropdown-content {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.dropdown-container .dropdown-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 400;
+  transition: all 0.15s ease;
+  color: #374151;
+  position: relative;
+  margin: 1px 0;
+  user-select: none;
+}
+
+.dropdown-container .dropdown-item:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+.dropdown-container .dropdown-item:active {
+  background: #e2e8f0;
+}
+
+.dropdown-container .dropdown-item.selected {
+  background: #f1f5f9;
+  color: #1e293b;
+  font-weight: 500;
+}
+
+/* Dark mode for compatibility dropdown-container */
+html.dark-mode .dropdown-container .dropdown-toggle {
+  background: #1e293b;
+  color: #e2e8f0;
+  border-color: #475569;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+html.dark-mode .dropdown-container .dropdown-toggle:hover {
+  background: #334155;
+  border-color: #64748b;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.4);
+}
+
+html.dark-mode .dropdown-container.open .dropdown-toggle {
+  border-color: #64748b;
+  box-shadow: 0 0 0 2px rgba(100, 116, 139, 0.2), 0 3px 8px rgba(0,0,0,0.4);
+  background: #475569;
+}
+
+html.dark-mode .dropdown-container .dropdown-toggle .arrow {
+  color: #94a3b8;
+}
+
+html.dark-mode .dropdown-container.open .dropdown-toggle .arrow {
+  color: #cbd5e1;
+}
+
+html.dark-mode .dropdown-container .dropdown-content {
+  background-color: #1e293b;
+  color: #e2e8f0;
+  border-color: #475569;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+}
+
+html.dark-mode .dropdown-container .dropdown-item {
+  color: #e2e8f0;
+}
+
+html.dark-mode .dropdown-container .dropdown-item:hover {
+  background: #374151;
+  color: #f1f5f9;
+}
+
+html.dark-mode .dropdown-container .dropdown-item:active {
+  background: #475569;
+}
+
+html.dark-mode .dropdown-container .dropdown-item.selected {
+  background: #374151;
+  color: #f1f5f9;
+}
+
+/* DISABLED: Second dropdown system styles - conflicts with c-select
+backdrop
+.dropdown-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.25);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .2s ease;
+  z-index: 3000;
+  display: none;
+}
+.dropdown-backdrop.show { 
+  opacity: 1; 
+  pointer-events: auto; 
+  display: block;
+}
+
+layering
+.dropdown-container.open { z-index: 3003; }
+
+panel
+.dropdown-content {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 8px;
+  background-color: #ffffff;
+  color: #1e293b;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 8px;
+  box-shadow: 
+    0 20px 25px -5px rgba(0, 0, 0, 0.1), 
+    0 10px 10px -5px rgba(0, 0, 0, 0.04),
+    0 0 0 1px rgba(0, 0, 0, 0.05);
+
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-8px) scale(0.95);
+  transform-origin: top center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(8px);
+
+  z-index: 3004;
+  pointer-events: none;
+}
+
+.dropdown-container.open .dropdown-content {
+  max-height: 320px;
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+(rest of conflicting dropdown styles omitted)
+*/
+
+/* === Modern Table Styling === */
+.modern-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+.modern-table th,
+.modern-table td {
+  border: 1px solid #ccc;
+  padding: 8px 12px;
+  text-align: left;
+}
+.modern-table th {
+  background-color: #f4f4f4;
+  font-weight: 600;
+}
+html.dark-mode .modern-table th {
+  background-color: #2a2a2a;
+  color: #fff;
+}
+html.dark-mode .modern-table td {
+  border-color: #555;
+  color: #eee;
+}
+.sort-icon { margin-left: 6px; font-size: 0.8rem; opacity: 0.6; }
+
+/* === Later overrides to preserve behaviour === */
+/* Button sizing override (later in source) */
+.modern-button{
+  padding: 8px 12px;
+  font-size: .95rem;
+  line-height: 1.2;
+  height: auto;
+}
+
+/* Emp edit overflow override (later in source) */
+.emp-edit { overflow: visible; } /* overrides earlier overflow:hidden */
+
+/* Make Employee Code + Card UID shorter in edit panels */
+.emp-edit .fld-code,
+.emp-edit .fld-card {
+  flex: 0 0 auto;   /* don’t force a height in a column flexbox */
+  width: 160px;     /* make them a bit narrower */
+  max-width: 180px; /* optional cap */
+  min-width: 140px; /* optional floor */
+}
+
+.status-badge {
+  display:inline-block;
+  padding:2px 8px;
+  border-radius:999px;
+  font-size:.8rem;
+  font-weight:600;
+}
+.status-badge.active {
+  background:#1f7a1f33;
+  color:#1f7a1f;
+}
+.status-badge.inactive {
+  background:#7a1f1f33;
+  color:#7a1f1f;
+}
+
+/* === Additional Modern UI Styles for New Modules === */
+
+/* Enhanced status badges */
+.status-badge.success {
+    background: rgba(39, 174, 96, 0.1);
+    color: #27ae60;
+    border: 1px solid rgba(39, 174, 96, 0.2);
+}
+
+.status-badge.warning {
+    background: rgba(241, 196, 15, 0.1);
+    color: #f1c40f;
+    border: 1px solid rgba(241, 196, 15, 0.2);
+}
+
+.status-badge.danger {
+    background: rgba(231, 76, 60, 0.1);
+    color: #e74c3c;
+    border: 1px solid rgba(231, 76, 60, 0.2);
+}
+
+.status-badge.info {
+    background: rgba(52, 152, 219, 0.1);
+    color: #3498db;
+    border: 1px solid rgba(52, 152, 219, 0.2);
+}
+
+.status-badge.secondary {
+    background: rgba(149, 165, 166, 0.1);
+    color: #95a5a6;
+    border: 1px solid rgba(149, 165, 166, 0.2);
+}
+
+/* Method badges */
+.method-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 8px;
+    font-size: 0.75em;
+    font-weight: 500;
+    background: rgba(108, 117, 125, 0.1);
+    color: #6c757d;
+    border: 1px solid rgba(108, 117, 125, 0.2);
+}
+
+/* Attendance-specific status badges */
+.status-badge.status-in {
+    background: rgba(39, 174, 96, 0.1);
+    color: #27ae60;
+    border: 1px solid rgba(39, 174, 96, 0.2);
+}
+
+.status-badge.status-out {
+    background: rgba(231, 76, 60, 0.1);
+    color: #e74c3c;
+    border: 1px solid rgba(231, 76, 60, 0.2);
+}
+
+.status-badge.status-unknown {
+    background: rgba(149, 165, 166, 0.1);
+    color: #95a5a6;
+    border: 1px solid rgba(149, 165, 166, 0.2);
+}
+
+.status-badge.status-warning {
+    background: rgba(243, 156, 18, 0.1);
+    color: #f39c12;
+    border: 1px solid rgba(243, 156, 18, 0.2);
+}
+
+.method-badge.manual {
+    background: rgba(52, 152, 219, 0.1);
+    color: #3498db;
+    border: 1px solid rgba(52, 152, 219, 0.2);
+}
+
+.method-badge.card {
+    background: rgba(155, 89, 182, 0.1);
+    color: #9b59b6;
+    border: 1px solid rgba(155, 89, 182, 0.2);
+}
+
+.method-badge.fingerprint {
+    background: rgba(230, 126, 34, 0.1);
+    color: #e67e22;
+    border: 1px solid rgba(230, 126, 34, 0.2);
+}
+
+/* Stats grid */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border: 1px solid rgba(0,0,0,0.05);
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: #7f8c8d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+html.dark-mode .stat-card {
+    background: #2e2e2e;
+    border: 1px solid rgba(255,255,255,0.1);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+html.dark-mode .stat-value {
+    color: #ecf0f1;
+}
+
+html.dark-mode .stat-label {
+    color: #bdc3c7;
+}
+
+/* Button groups */
+.btn-group {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.btn-icon {
+    padding: 6px 8px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-icon.primary {
+    background: rgba(52, 152, 219, 0.1);
+    color: #3498db;
+}
+
+.btn-icon.primary:hover {
+    background: rgba(52, 152, 219, 0.2);
+}
+
+.btn-icon.info {
+    background: rgba(52, 152, 219, 0.1);
+    color: #3498db;
+}
+
+.btn-icon.info:hover {
+    background: rgba(52, 152, 219, 0.2);
+}
+
+.btn-icon.danger {
+    background: rgba(231, 76, 60, 0.1);
+    color: #e74c3c;
+}
+
+.btn-icon.danger:hover {
+    background: rgba(231, 76, 60, 0.2);
+}
+
+/* Pagination */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 2rem 0;
+}
+
+.page-btn {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    background: white;
+    color: #333;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+}
+
+.page-btn:hover {
+    background: #f8f9fa;
+    border-color: #adb5bd;
+}
+
+.page-btn.active {
+    background: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+.page-ellipsis {
+    padding: 8px 4px;
+    color: #6c757d;
+}
+
+html.dark-mode .page-btn {
+    background: #2e2e2e;
+    color: #ecf0f1;
+    border-color: #495057;
+}
+
+html.dark-mode .page-btn:hover {
+    background: #3b3b3b;
+    border-color: #6c757d;
+}
+
+html.dark-mode .page-btn.active {
+    background: #007bff;
+}
+
+/* Reader status indicators */
+.status-box {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    border-radius: 12px;
+    margin-bottom: 1rem;
+}
+
+.status-box.connected {
+    background: rgba(39, 174, 96, 0.1);
+    border: 1px solid rgba(39, 174, 96, 0.2);
+}
+
+.status-box.disconnected {
+    background: rgba(231, 76, 60, 0.1);
+    border: 1px solid rgba(231, 76, 60, 0.2);
+}
+
+.status-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 1rem;
+    flex-shrink: 0;
+}
+
+.status-indicator.connected {
+    background: #27ae60;
+    box-shadow: 0 0 0 3px rgba(39, 174, 96, 0.3);
+}
+
+.status-indicator.disconnected {
+    background: #e74c3c;
+    box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.3);
+}
+
+.status-title {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.status-subtitle {
+    font-size: 0.9rem;
+    opacity: 0.8;
+}
+
+.reader-status {
+    padding: 1rem;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    margin-bottom: 1rem;
+}
+
+.reader-status.enabled {
+    background: rgba(39, 174, 96, 0.05);
+    border-color: rgba(39, 174, 96, 0.2);
+}
+
+.reader-status.disabled {
+    background: rgba(149, 165, 166, 0.05);
+    border-color: rgba(149, 165, 166, 0.2);
+}
+
+/* File upload styling */
+.file-upload-area {
+    border: 2px dashed #ddd;
+    border-radius: 12px;
+    padding: 2rem;
+    text-align: center;
+    background: #f8f9fa;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.file-upload-area:hover {
+    border-color: #007bff;
+    background: rgba(0, 123, 255, 0.05);
+}
+
+.file-upload-area.dragover {
+    border-color: #007bff;
+    background: rgba(0, 123, 255, 0.1);
+}
+
+.upload-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.upload-text {
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+    color: #333;
+}
+
+.upload-subtext {
+    font-size: 0.9rem;
+    color: #666;
+}
+
+html.dark-mode .file-upload-area {
+    background: #2e2e2e;
+    border-color: #495057;
+}
+
+html.dark-mode .file-upload-area:hover {
+    background: rgba(0, 123, 255, 0.1);
+}
+
+html.dark-mode .upload-text {
+    color: #ecf0f1;
+}
+
+html.dark-mode .upload-subtext {
+    color: #adb5bd;
+}
+
+/* Progress indicators */
+.progress-container {
+    margin: 1rem 0;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #007bff, #0056b3);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+    width: 0%;
+}
+
+.progress-text {
+    font-size: 0.9rem;
+    color: #666;
+    margin-top: 0.5rem;
+    text-align: center;
+}
+
+html.dark-mode .progress-bar {
+    background: #495057;
+}
+
+html.dark-mode .progress-text {
+    color: #adb5bd;
+}
+
+/* Form sections */
+.form-section {
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    border: 1px solid #e9ecef;
+    border-radius: 12px;
+    background: white;
+}
+
+.form-section h3 {
+    margin: 0 0 1rem 0;
+    color: #2c3e50;
+    font-size: 1.1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #e9ecef;
+}
+
+html.dark-mode .form-section {
+    background: #2e2e2e;
+    border-color: #495057;
+}
+
+html.dark-mode .form-section h3 {
+    color: #ecf0f1;
+    border-bottom-color: #495057;
+}
+
+/* === Dark Mode for Custom Select (c-select) === */
+html.dark-mode .c-select__button {
+  background: #374151;
+  border-color: #4b5563;
+  color: #f3f4f6;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+html.dark-mode .c-select__button:hover { 
+  background: #4b5563;
+  border-color: #6b7280;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+
+html.dark-mode .c-select[aria-expanded='true'] .c-select__button {
+  border-color: #6b7280;
+  box-shadow: 0 0 0 2px rgba(107, 114, 128, 0.2), 0 2px 8px rgba(0,0,0,0.4);
+  background: #4b5563;
+}
+
+html.dark-mode .c-select__caret {
+  color: #9ca3af;
+}
+
+html.dark-mode .c-select[aria-expanded='true'] .c-select__caret {
+  color: #d1d5db;
+}
+
+html.dark-mode .c-select__list {
+  background-color: #374151;
+  color: #f3f4f6;
+  border-color: #4b5563;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+}
+
+html.dark-mode .c-select__item {
+  color: #f3f4f6;
+}
+
+html.dark-mode .c-select__item:hover { 
+  background: #4b5563;
+  color: #ffffff;
+}
+
+html.dark-mode .c-select__item[aria-selected='true'] { 
+  background: #4b5563;
+  color: #ffffff;
+}
+
+html.dark-mode .c-select__list::-webkit-scrollbar-thumb {
+  background: #6b7280;
+}
+
+html.dark-mode .c-select__list::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* === SCANNER INTERFACE DARK MODE FIX === */
+/* Override inline styles for scanner interface in dark mode */
+html.dark-mode .scanner-interface {
+  background: rgba(255,255,255,0.03) !important;
+  border-color: #475569 !important;
+}
+
+html.dark-mode .scanner-interface h4 {
+  color: #3b82f6 !important;
+}

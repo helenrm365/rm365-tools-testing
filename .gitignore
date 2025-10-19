@@ -1,0 +1,15 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# Env files (secrets)
+.env
+.env.*
+*.env
+**/.env
+
+# Node/web build artifacts (if you add tooling later)
+dist/
+build/
+.cache/

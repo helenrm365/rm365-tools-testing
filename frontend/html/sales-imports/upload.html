@@ -1,0 +1,106 @@
+<!-- Sales Imports Upload Page -->
+<div class="sales-imports-upload">
+  <!-- Inner Tabs Navigation -->
+  <div class="inner-tabs" style="margin-bottom: 1.5rem; display: flex; gap: 0.5rem;">
+    <button class="modern-button" data-nav onclick="location.href='/sales-imports/uk-sales'">UK Sales Data</button>
+    <button class="modern-button active" data-nav onclick="location.href='/sales-imports/upload'">Upload CSV</button>
+    <button class="modern-button" data-nav onclick="location.href='/sales-imports/history'">Import History</button>
+  </div>
+
+  <h2>Sales Data Upload</h2>
+  
+  <section class="card">
+    <div class="card-header">
+      <h3>📤 Upload Sales Data</h3>
+    </div>
+    <div class="card-body">
+      <p>Upload CSV files containing sales order data. Files will be validated before import.</p>
+      
+      <div class="upload-section modern-box" style="margin-bottom: 2rem;">
+        <div class="upload-area" style="
+          border: 2px dashed #007bff; 
+          border-radius: 8px; 
+          padding: 3rem 2rem; 
+          text-align: center; 
+          background: rgba(0,123,255,0.05);
+          cursor: pointer;
+          transition: all 0.3s ease;
+        " id="uploadArea">
+          <div style="font-size: 3rem; margin-bottom: 1rem;">📄</div>
+          <h4>Drop CSV file here or click to browse</h4>
+          <p style="color: #666; margin: 1rem 0;">Supported format: CSV files with sales order data</p>
+          <input type="file" id="fileInput" accept=".csv" style="display: none;">
+          <button class="modern-button" id="browseBtn">
+            📁 Browse Files
+          </button>
+        </div>
+        
+        <div style="margin-top: 1rem; display: flex; gap: 1rem; flex-wrap: wrap;">
+          <button id="downloadTemplateBtn" class="modern-button" style="background: linear-gradient(to bottom right, #6c757d, #495057);">
+            📋 Download Template
+          </button>
+          <button id="validateBtn" class="modern-button" disabled style="background: linear-gradient(to bottom right, #ffc107, #fd7e14);">
+            ✅ Validate File
+          </button>
+          <button id="importBtn" class="modern-button" disabled style="background: linear-gradient(to bottom right, #28a745, #20c997);">
+            📤 Import Data
+          </button>
+        </div>
+      </div>
+
+      <div id="fileDetails" class="modern-box" style="display: none;">
+        <h4>📋 File Details</h4>
+        <div id="fileInfo"></div>
+      </div>
+
+      <div id="validationResults" class="modern-box" style="display: none;">
+        <h4>✅ Validation Results</h4>
+        <div id="validationContent"></div>
+      </div>
+
+      <div id="importResults" class="modern-box" style="display: none;">
+        <h4>📊 Import Results</h4>
+        <div id="importContent"></div>
+      </div>
+
+      <div class="requirements modern-box">
+        <h4>📋 CSV File Requirements</h4>
+        <p style="margin-bottom: 1rem;">
+          The CSV file should have <strong>5 to 7 columns</strong> in the following order (matching UK Sales Data format). 
+          Header names can be anything, but the data must be in this specific order:
+        </p>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+          <div>
+            <h5>Required Columns (in order):</h5>
+            <ol style="margin: 0; padding-left: 1.5rem;">
+              <li><strong>Order Number</strong></li>
+              <li><strong>Created At</strong> (date/timestamp)</li>
+              <li><strong>SKU</strong></li>
+              <li><strong>Name</strong> (product name)</li>
+              <li><strong>Qty</strong> (quantity)</li>
+            </ol>
+          </div>
+          <div>
+            <h5>Optional Columns (in order):</h5>
+            <ol start="6" style="margin: 0; padding-left: 1.5rem;">
+              <li><strong>Price</strong> (defaults to 0.0 if omitted)</li>
+              <li><strong>Status</strong> (defaults to 'pending')</li>
+            </ol>
+          </div>
+        </div>
+        <div style="margin-top: 1rem; padding: 1rem; background: rgba(0, 123, 255, 0.1); border: 1px solid rgba(0, 123, 255, 0.3); border-radius: 4px;">
+          <p style="margin: 0; font-size: 0.9rem;"><strong>Note:</strong> 
+            This matches the UK Sales Data display format. The system will automatically interpret columns based on count:
+          </p>
+          <ul style="margin: 0.5rem 0 0 1.5rem; font-size: 0.9rem;">
+            <li><strong>5 columns:</strong> Order#, Date, SKU, Name, Qty (price=0, status=pending)</li>
+            <li><strong>6 columns:</strong> + Price (status=pending)</li>
+            <li><strong>7 columns:</strong> + Status</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- JavaScript functionality is handled by /js/modules/sales-imports/upload.js -->

@@ -1,0 +1,472 @@
+<!-- UK Sales Data Page -->
+<div class="uk-sales-container">
+  <!-- Inner Tabs Navigation -->
+  <div class="inner-tabs" style="margin-bottom: 1.5rem; display: flex; gap: 0.5rem;">
+    <button class="modern-button active" data-nav onclick="location.href='/sales-imports/uk-sales'">UK Sales Data</button>
+    <button class="modern-button" data-nav onclick="location.href='/sales-imports/upload'">Upload CSV</button>
+    <button class="modern-button" data-nav onclick="location.href='/sales-imports/history'">Import History</button>
+  </div>
+
+  <div class="page-header">
+    <h2>🇬🇧 UK Sales Data</h2>
+    <div class="header-actions">
+      <input 
+        type="text" 
+        id="searchInput" 
+        placeholder="Search orders, SKU, name..." 
+        class="search-input"
+      />
+      <button id="refreshBtn" class="btn btn-secondary">
+        <span>🔄</span> Refresh
+      </button>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-value" id="totalRecords">-</div>
+      <div class="stat-label">Total Records</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="totalQty">-</div>
+      <div class="stat-label">Total Quantity</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="totalValue">-</div>
+      <div class="stat-label">Total Value</div>
+    </div>
+  </div>
+
+  <div class="table-container">
+    <table id="ukSalesTable" class="data-table">
+      <thead>
+        <tr>
+          <th>Order #</th>
+          <th>Created At</th>
+          <th>SKU</th>
+          <th>Name</th>
+          <th>Qty</th>
+          <th>Price</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="salesTableBody">
+        <tr>
+          <td colspan="7" class="loading-row">Loading sales data...</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pagination-controls">
+    <button id="prevBtn" class="btn btn-secondary" disabled>Previous</button>
+    <span id="pageInfo">Page 1</span>
+    <button id="nextBtn" class="btn btn-secondary">Next</button>
+  </div>
+</div>
+
+<style>
+.uk-sales-container {
+  padding: 1.5rem;
+  max-width: 100%;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.page-header h2 {
+  margin: 0;
+  color: var(--text-primary, #333);
+  font-size: 1.75rem;
+}
+
+.header-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.search-input {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 4px;
+  font-size: 0.95rem;
+  min-width: 250px;
+  background-color: var(--input-bg, white);
+  color: var(--text-primary, #333);
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.stat-card {
+  background: var(--card-bg, white);
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  text-align: center;
+  border: 1px solid var(--border-color, transparent);
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: bold;
+  color: var(--accent-color, #007bff);
+  margin-bottom: 0.5rem;
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  color: var(--text-secondary, #666);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.table-container {
+  background: var(--card-bg, white);
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  overflow-x: auto;
+  margin-bottom: 1.5rem;
+  border: 1px solid var(--border-color, transparent);
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.data-table thead {
+  background: var(--table-header-bg, #f8f9fa);
+  border-bottom: 2px solid var(--border-color, #dee2e6);
+}
+
+.data-table th {
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-primary, #495057);
+  white-space: nowrap;
+}
+
+.data-table tbody tr {
+  border-bottom: 1px solid var(--border-color, #dee2e6);
+  transition: background-color 0.2s;
+}
+
+.data-table tbody tr:hover {
+  background-color: var(--table-row-hover, #f8f9fa);
+}
+
+.data-table td {
+  padding: 0.875rem 1rem;
+  color: var(--text-primary, #333);
+}
+
+.data-table code {
+  background: var(--code-bg, #f4f4f4);
+  padding: 0.2rem 0.4rem;
+  border-radius: 3px;
+  font-size: 0.9em;
+  color: var(--code-text, #e83e8c);
+}
+
+.loading-row {
+  text-align: center !important;
+  padding: 2rem !important;
+  color: var(--text-secondary, #666);
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.status-complete {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.status-pending {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.status-processing {
+  background-color: #d1ecf1;
+  color: #0c5460;
+}
+
+.status-canceled {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.pagination-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+}
+
+#pageInfo {
+  font-weight: 500;
+  color: var(--text-primary, #495057);
+}
+
+.btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-secondary {
+  background-color: var(--button-bg, #6c757d);
+  color: white;
+  border: 1px solid var(--border-color, transparent);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: var(--button-hover-bg, #5a6268);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.error-message {
+  background-color: var(--error-bg, #f8d7da);
+  color: var(--error-text, #721c24);
+  padding: 1rem;
+  border-radius: 4px;
+  margin: 1rem 0;
+  border-left: 4px solid var(--error-border, #721c24);
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text-primary: #e4e6eb;
+    --text-secondary: #b0b3b8;
+    --card-bg: #242526;
+    --input-bg: #3a3b3c;
+    --border-color: #3a3b3c;
+    --table-header-bg: #3a3b3c;
+    --table-row-hover: #3a3b3c;
+    --code-bg: #3a3b3c;
+    --code-text: #ff79c6;
+    --accent-color: #58a6ff;
+    --button-bg: #3a3b3c;
+    --button-hover-bg: #4a4b4c;
+    --error-bg: #3a1f1f;
+    --error-text: #ff6b6b;
+    --error-border: #721c24;
+  }
+  
+  .uk-sales-container {
+    color: var(--text-primary);
+  }
+  
+  .data-table td strong {
+    color: var(--text-primary);
+  }
+}
+</style>
+
+<script type="module">
+import { API_BASE_URL, getAuthHeaders } from '/js/config.js';
+
+let currentPage = 1;
+let pageSize = 50;
+let searchTerm = '';
+let totalRecords = 0;
+
+async function loadUKSalesData() {
+  try {
+    const offset = (currentPage - 1) * pageSize;
+    const url = `${API_BASE_URL}/sales-imports/uk-sales?limit=${pageSize}&offset=${offset}&search=${encodeURIComponent(searchTerm)}`;
+    
+    const response = await fetch(url, {
+      headers: getAuthHeaders()
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    
+    if (result.status === 'success') {
+      displaySalesData(result.data);
+      updateStats(result);
+      totalRecords = result.total;
+      updatePaginationControls();
+    } else {
+      showError(result.message || 'Failed to load sales data');
+    }
+  } catch (error) {
+    console.error('Error loading UK sales data:', error);
+    showError('Error loading sales data: ' + error.message);
+  }
+}
+
+function displaySalesData(data) {
+  const tbody = document.getElementById('salesTableBody');
+  
+  if (!data || data.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" class="loading-row">No sales data found</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = data.map(item => {
+    const statusClass = getStatusClass(item.status);
+    const formattedPrice = item.price ? `£${parseFloat(item.price).toFixed(2)}` : '-';
+    const formattedDate = formatDate(item.created_at);
+    
+    return `
+      <tr>
+        <td><strong>${escapeHtml(item.order_number)}</strong></td>
+        <td>${formattedDate}</td>
+        <td><code>${escapeHtml(item.sku)}</code></td>
+        <td>${escapeHtml(item.name)}</td>
+        <td>${item.qty}</td>
+        <td>${formattedPrice}</td>
+        <td><span class="status-badge ${statusClass}">${escapeHtml(item.status || 'N/A')}</span></td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function updateStats(result) {
+  document.getElementById('totalRecords').textContent = result.total.toLocaleString();
+  
+  // Calculate totals from current page data
+  let totalQty = 0;
+  let totalValue = 0;
+  
+  result.data.forEach(item => {
+    totalQty += item.qty || 0;
+    totalValue += (item.qty || 0) * (item.price || 0);
+  });
+  
+  document.getElementById('totalQty').textContent = totalQty.toLocaleString();
+  document.getElementById('totalValue').textContent = `£${totalValue.toFixed(2)}`;
+}
+
+function updatePaginationControls() {
+  const totalPages = Math.ceil(totalRecords / pageSize);
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const pageInfo = document.getElementById('pageInfo');
+  
+  prevBtn.disabled = currentPage === 1;
+  nextBtn.disabled = currentPage >= totalPages || totalRecords === 0;
+  pageInfo.textContent = `Page ${currentPage} of ${totalPages || 1}`;
+}
+
+function getStatusClass(status) {
+  if (!status) return '';
+  const statusLower = status.toLowerCase();
+  if (statusLower.includes('complete')) return 'status-complete';
+  if (statusLower.includes('pending')) return 'status-pending';
+  if (statusLower.includes('processing')) return 'status-processing';
+  if (statusLower.includes('cancel')) return 'status-canceled';
+  return '';
+}
+
+function formatDate(dateString) {
+  if (!dateString) return '-';
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleString('en-GB', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  } catch (e) {
+    return dateString;
+  }
+}
+
+function escapeHtml(text) {
+  if (!text) return '';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+function showError(message) {
+  const tbody = document.getElementById('salesTableBody');
+  tbody.innerHTML = `
+    <tr>
+      <td colspan="7">
+        <div class="error-message">${escapeHtml(message)}</div>
+      </td>
+    </tr>
+  `;
+}
+
+// Event listeners
+document.getElementById('refreshBtn').addEventListener('click', () => {
+  currentPage = 1;
+  loadUKSalesData();
+});
+
+document.getElementById('prevBtn').addEventListener('click', () => {
+  if (currentPage > 1) {
+    currentPage--;
+    loadUKSalesData();
+  }
+});
+
+document.getElementById('nextBtn').addEventListener('click', () => {
+  const totalPages = Math.ceil(totalRecords / pageSize);
+  if (currentPage < totalPages) {
+    currentPage++;
+    loadUKSalesData();
+  }
+});
+
+// Search with debounce
+let searchTimeout;
+document.getElementById('searchInput').addEventListener('input', (e) => {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => {
+    searchTerm = e.target.value;
+    currentPage = 1;
+    loadUKSalesData();
+  }, 300);
+});
+
+// Initial load
+loadUKSalesData();
+</script>

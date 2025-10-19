@@ -1,0 +1,37 @@
+<!-- Sales Imports Home Page -->
+<div class="sales-imports-home">
+  <h2>Sales Data Imports</h2>
+  
+  <!-- Inner Tabs Navigation -->
+  <div class="inner-tabs" style="margin-bottom: 1.5rem; display: flex; gap: 0.5rem;">
+    <button class="modern-button" data-nav onclick="location.href='/sales-imports/uk-sales'">UK Sales Data</button>
+    <button class="modern-button" data-nav onclick="location.href='/sales-imports/upload'">Upload CSV</button>
+    <button class="modern-button" data-nav onclick="location.href='/sales-imports/history'">Import History</button>
+  </div>
+
+  <div class="intro-card card">
+    <div class="card-header">
+      <h3>📊 Sales Data Management</h3>
+    </div>
+    <div class="card-body">
+      <p>Import and manage your sales data with comprehensive tracking, searching, and reporting capabilities.</p>
+      
+      <h4>Available Features:</h4>
+      <ul>
+        <li><strong>UK Sales Data:</strong> View, search, and analyze imported sales records</li>
+        <li><strong>Upload CSV:</strong> Import new sales data from CSV files</li>
+        <li><strong>Import History:</strong> Track your data import history</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Auto-redirect to uk-sales as the default sub-tab
+  setTimeout(() => {
+    if (window.location.pathname === '/sales-imports') {
+      window.history.replaceState({path: '/sales-imports/uk-sales'}, '', '/sales-imports/uk-sales');
+      window.location.href = '/sales-imports/uk-sales';
+    }
+  }, 100);
+</script>

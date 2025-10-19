@@ -1,0 +1,92 @@
+<!-- Inventory Management Page -->
+<div class="inventory-management">
+  <h2>Inventory Management</h2>
+  <div class="inner-tabs" style="margin-bottom: 1.5rem; display: flex; gap: 0.5rem;">
+    <button class="modern-button active" data-nav onclick="location.href='/inventory/management'">Management</button>
+    <button class="modern-button" data-nav onclick="location.href='/inventory/adjustments'">Adjustments</button>
+  </div>
+  
+  <!-- Search and Filter Controls -->
+  <div class="management-controls modern-box" style="margin-bottom: 1rem;">
+    <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+      <div style="flex: 1; max-width: 300px;">
+        <input type="text" id="inventorySearch" class="modern-input" placeholder="Search products, SKU, location..." style="width: 100%;">
+      </div>
+      
+      <!-- Column Filter Dropdown -->
+      <div class="dropdown-container" id="columnDropdown">
+        <button class="dropdown-toggle modern-button" id="columnToggle">
+          Show/Hide Columns <span class="arrow">▼</span>
+        </button>
+        <div class="dropdown-content"></div>
+      </div>
+      
+      <!-- Status Dropdown -->
+      <div class="dropdown-container" id="statusDropdown">
+        <button class="dropdown-toggle modern-button" id="statusToggle">
+          All Status <span class="arrow">▼</span>
+        </button>
+        <div class="dropdown-content"></div>
+      </div>
+      
+
+    </div>
+  </div>
+
+  <!-- Inventory Management Table -->
+  <div id="inventoryManagementTableWrapper">
+    <div id="inventoryManagementTableScroller">
+      <table id="inventoryManagementTable">
+        <colgroup>
+          <col class="col-1">
+          <col class="col-2">
+          <col class="col-3">
+          <col class="col-4">
+          <col class="col-5">
+          <col class="col-6">
+          <col class="col-7">
+          <col class="col-8">
+          <col class="col-9">
+          <col class="col-10">
+          <col class="col-11">
+          <col class="col-12">
+          <col class="col-13">
+          <col class="col-14">
+          <col class="col-15">
+          <col class="col-16">
+        </colgroup>
+        <thead>
+          <tr>
+            <th>Location</th>
+            <th>Date</th>
+            <th>Product Name</th>
+            <th>SKU</th>
+            <th>UK 6M Data</th>
+            <th>Shelf &lt; 1</th>
+            <th>Shelf &lt; 1 Year Qty</th>
+            <th>Shelf &gt; 1</th>
+            <th>Shelf &gt; 1 Year Qty</th>
+            <th>Shelf Total</th>
+            <th>Top Floor Expiry Date</th>
+            <th>Top Floor Total</th>
+            <th>Total Stock</th>
+            <th>Status</th>
+            <th>UK + FR Pre Order</th>
+            <th>FR 6M Data</th>
+          </tr>
+        </thead>
+        <tbody id="inventoryManagementBody">
+          <tr>
+            <td colspan="16" style="text-align: center; padding: 2rem; color: #999;">
+              Loading inventory data...
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- Global Dropdown Backdrop -->
+<div id="globalDropdownBackdrop" class="dropdown-backdrop"></div>

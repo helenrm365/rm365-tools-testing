@@ -1,0 +1,15 @@
+# backend/.dockerignore
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.env.*
+venv/
+.venv/
+.git
+.gitignore
+.DS_Store
+
+# don’t send the frontend to this image
+../frontend

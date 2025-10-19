@@ -1,0 +1,45 @@
+<!-- Login partial for router injection -->
+<div class="login-wrapper" style="max-width: 480px; margin: 4rem auto; padding: 1rem;">
+  <div class="modern-box open" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; box-shadow: 0 6px 20px rgba(0,0,0,0.25);">
+    <button class="box-toggle" type="button" style="pointer-events: none; cursor: default;">
+      <span style="font-size: 1.2rem; font-weight: 600;">Sign In to RM365</span>
+      <span class="chev" style="opacity: 0;">▾</span>
+    </button>
+
+    <div class="box-body" style="height: auto !important; opacity: 1 !important; visibility: visible !important; pointer-events: auto !important; padding: 20px;">
+      <form style="display: flex; flex-direction: column; gap: 12px;">
+        <input
+          id="loginUsername"
+          type="text"
+          class="modern-input"
+          placeholder="Username"
+          autocomplete="username"
+          style="width: 100%; margin: 0;"
+          required
+        />
+
+        <input
+          id="loginPassword"
+          type="password"
+          class="modern-input"
+          placeholder="Password"
+          autocomplete="current-password"
+          style="width: 100%; margin: 0;"
+          required
+        />
+
+        <div style="margin-top: 8px;">
+          <button type="button" id="loginBtn" class="modern-button" style="width: 100%;">
+            Sign In
+          </button>
+        </div>
+
+        <div id="loginStatus" style="min-height: 1.2em; text-align: center; margin-top: 8px; font-size: 0.9rem;"></div>
+      </form>
+    </div>
+  </div>
+  
+  <div style="text-align: center; margin-top: 2rem; opacity: 0.6; font-size: 0.85rem;">
+    <p>RM365 Management System</p>
+  </div>
+</div>

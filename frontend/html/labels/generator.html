@@ -1,0 +1,60 @@
+<!-- Label Generator Page -->
+<div class="labels-generator">
+  <h2>Label Generator</h2>
+  <div class="inner-tabs" style="margin-bottom: 1.5rem; display: flex; gap: 0.5rem;">
+    <button class="modern-button active" data-nav onclick="location.href='/labels/generator'">Generator</button>
+    <button class="modern-button" data-nav onclick="location.href='/labels/history'">History</button>
+  </div>
+  
+  <section class="card">
+    <div class="card-header">
+      <h3>🏷️ Generate Labels</h3>
+    </div>
+    <div class="card-body">
+      <p>Select date range and filter criteria to generate labels from your sales data.</p>
+      
+      <div class="generator-controls modern-box" style="margin-bottom: 2rem;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+          <div>
+            <label class="form-label">Start Date:</label>
+            <input type="date" id="startDate" class="modern-input" required>
+          </div>
+          <div>
+            <label class="form-label">End Date:</label>
+            <input type="date" id="endDate" class="modern-input" required>
+          </div>
+          <div>
+            <label class="form-label">Search (Optional):</label>
+            <input type="text" id="searchTerm" class="modern-input" placeholder="Order, Customer, SKU...">
+          </div>
+          <div>
+            <label class="form-label">Format:</label>
+            <select id="formatSelect" class="modern-select" data-enhance="c-select">
+              <option value="csv">CSV Data</option>
+              <option value="shipping">Shipping Labels</option>
+              <option value="product">Product Labels</option>
+            </select>
+          </div>
+        </div>
+        
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+          <button id="previewBtn" class="modern-button">👁️ Preview Data</button>
+          <button id="generateBtn" class="modern-button" style="background: linear-gradient(to bottom right, #28a745, #20c997);">🏷️ Generate Labels</button>
+          <button id="downloadBtn" class="modern-button" disabled style="background: linear-gradient(to bottom right, #007bff, #6610f2);">⬇️ Download</button>
+        </div>
+      </div>
+
+      <div id="previewSection" class="modern-box" style="display: none;">
+        <h4>📋 Data Preview</h4>
+        <div id="previewStats" style="margin-bottom: 1rem;"></div>
+        <div id="previewTable" style="max-height: 400px; overflow-y: auto;"></div>
+      </div>
+
+      <div id="generatedSection" class="modern-box" style="display: none;">
+        <h4>✅ Labels Generated</h4>
+        <div id="generatedStats" style="margin-bottom: 1rem;"></div>
+        <div id="generatedPreview" style="max-height: 300px; overflow-y: auto; background: #f8f9fa; padding: 1rem; border-radius: 4px; font-family: monospace; white-space: pre-wrap;"></div>
+      </div>
+    </div>
+  </section>
+</div>

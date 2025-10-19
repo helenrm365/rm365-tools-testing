@@ -1,0 +1,107 @@
+<!-- Automatic Clocking Page -->
+<div class="attendance-automatic">
+  <h2>Automatic Clocking</h2>
+  <div class="inner-tabs" style="margin-bottom: 1.5rem; display: flex; gap: 0.5rem;">
+    <button class="modern-button" data-nav onclick="location.href='/attendance/overview'">Overview</button>
+    <button class="modern-button" data-nav onclick="location.href='/attendance/manual'">Manual</button>
+    <button class="modern-button active" data-nav onclick="location.href='/attendance/automatic'">Automatic</button>
+    <button class="modern-button" data-nav onclick="location.href='/attendance/logs'">Logs</button>
+  </div>
+  
+  <section class="card">
+    <div class="card-header">
+      <h3>🔍 Automatic Clocking</h3>
+    </div>
+    <div class="card-body">
+      <p>Use fingerprint scanning or card/FOB tapping for automatic employee identification and clocking.</p>
+      
+      <div class="automatic-scanner modern-box" style="margin-bottom: 2rem;">
+        <div style="text-align: center; padding: 2rem;">
+          <div style="display: flex; justify-content: center; gap: 2rem; margin-bottom: 2rem;">
+            <div class="scanner-method" style="text-align: center;">
+              <div class="scanner-visual" style="
+                width: 100px; 
+                height: 100px; 
+                border: 3px solid #007bff; 
+                border-radius: 50%; 
+                margin: 0 auto 1rem; 
+                display: flex; 
+                align-items: center; 
+                justify-content: center; 
+                font-size: 2.5rem;
+                background: rgba(0,123,255,0.1);
+              ">
+                👆
+              </div>
+              <h5>Fingerprint</h5>
+              <p style="color: #666; font-size: 0.9rem;">Place finger on scanner</p>
+            </div>
+            
+            <div style="display: flex; align-items: center; color: #999; font-size: 1.5rem;">OR</div>
+            
+            <div class="scanner-method" style="text-align: center;">
+              <div class="scanner-visual" style="
+                width: 100px; 
+                height: 100px; 
+                border: 3px solid #28a745; 
+                border-radius: 15px; 
+                margin: 0 auto 1rem; 
+                display: flex; 
+                align-items: center; 
+                justify-content: center; 
+                font-size: 2.5rem;
+                background: rgba(40,167,69,0.1);
+              ">
+                💳
+              </div>
+              <h5>Card/FOB</h5>
+              <p style="color: #666; font-size: 0.9rem;">Tap card or FOB</p>
+            </div>
+          </div>
+          
+          <h4>Ready to Scan</h4>
+          <p style="color: #666; margin-bottom: 2rem;">Either method will automatically clock employees in/out</p>
+          
+          <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+            <button id="scanFingerprintBtn" class="modern-button" style="background: linear-gradient(to bottom right, #007bff, #6610f2);">
+              🔍 Start Scanning
+            </button>
+            <button id="stopScanBtn" class="modern-button" disabled style="background: linear-gradient(to bottom right, #dc3545, #c82333);">
+              ⏹️ Stop
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div id="scanResults" class="modern-box" style="display: none;">
+        <h4>Scan Results</h4>
+        <div id="scanDetails"></div>
+      </div>
+
+      <div class="scanner-status modern-box">
+        <h4>📊 Scanner Status</h4>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+          <div style="text-align: center; padding: 1rem;">
+            <div id="scannerStatus" style="font-size: 1.2rem; font-weight: bold; color: #28a745;">🟢 Connected</div>
+            <div style="color: #666; font-size: 0.9rem;">Scanner Status</div>
+          </div>
+          <div style="text-align: center; padding: 1rem;">
+            <div id="lastScanTime" style="font-size: 1.2rem; font-weight: bold; color: #007bff;">—</div>
+            <div style="color: #666; font-size: 0.9rem;">Last Scan</div>
+          </div>
+          <div style="text-align: center; padding: 1rem;">
+            <div id="totalScansToday" style="font-size: 1.2rem; font-weight: bold; color: #ffc107;">0</div>
+            <div style="color: #666; font-size: 0.9rem;">Scans Today</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="recent-scans modern-box">
+        <h4>📋 Recent Automatic Scans</h4>
+        <div id="recentScansTable">
+          <p class="muted" style="text-align: center; padding: 2rem; color: #999;">No recent scans.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>

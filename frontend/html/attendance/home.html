@@ -1,0 +1,31 @@
+<!-- Default attendance landing page -->
+<div class="attendance-home">
+  <h2>Attendance</h2>
+  <div class="inner-tabs" style="margin-bottom: 1.5rem; display: flex; gap: 0.5rem;">
+    <button class="modern-button" data-nav onclick="location.href='/attendance/overview'">Overview</button>
+    <button class="modern-button" data-nav onclick="location.href='/attendance/manual'">Manual Clocking</button>
+    <button class="modern-button" data-nav onclick="location.href='/attendance/automatic'">Automatic</button>
+    <button class="modern-button" data-nav onclick="location.href='/attendance/logs'">Logs</button>
+  </div>
+  
+  <div class="welcome-box" style="padding: 2rem; background: linear-gradient(135deg, #667eea15, #764ba215); border-radius: 12px;">
+    <h3>Welcome to Attendance</h3>
+    <p>Track and manage employee attendance from this section.</p>
+    <ul style="margin-top: 1rem; line-height: 1.8;">
+      <li><strong>Overview:</strong> View attendance statistics and charts</li>
+      <li><strong>Manual Clocking:</strong> Manually clock employees in/out</li>
+      <li><strong>Automatic:</strong> Use fingerprint scanning for attendance</li>
+      <li><strong>Logs:</strong> View detailed attendance history</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+  // Auto-redirect to overview as the default sub-tab
+  setTimeout(() => {
+    if (window.location.pathname === '/attendance') {
+      window.history.replaceState({path: '/attendance/overview'}, '', '/attendance/overview');
+      window.location.href = '/attendance/overview';
+    }
+  }, 100);
+</script>

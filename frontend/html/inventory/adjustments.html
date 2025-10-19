@@ -1,0 +1,118 @@
+<!-- Inventory Adjustments Page -->
+<div class="inventory-adjustments">
+  <h2>Stock Adjust</h2> <div class="inner-tabs" style="margin-bottom: 1.5rem; display: flex; gap: 0.5rem;">
+    <button class="modern-button" data-nav onclick="location.href='/inventory/management'">Management</button>
+    <button class="modern-button active" data-nav onclick="location.href='/inventory/adjustments'">Adjustments</button>
+  </div>
+  
+  <section class="card">
+    <div class="card-header">
+      <h3>� Scanner-Ready Stock Adjustments</h3>
+    </div>
+    <div class="card-body">
+      <p>Scan barcodes to quickly make stock adjustments. Click anywhere to activate scanner input.</p>
+      
+      <!-- Main Scanner Interface -->
+      <div class="scanner-interface modern-box" style="margin-bottom: 2rem; padding: 2rem; text-align: center; border: 3px dashed #007bff; background: #f8f9fa;">
+        <h4 style="color: #007bff; margin-bottom: 1.5rem;">📱 Ready to Scan</h4>
+        
+        <div style="display: grid; grid-template-columns: 1fr auto 150px auto 150px; gap: 1rem; align-items: center; max-width: 800px; margin: 0 auto;">
+          <!-- Barcode Input -->
+          <div style="position: relative;">
+            <label class="form-label" style="margin-bottom: 0.5rem; display: block; font-weight: bold;">Barcode/SKU:</label>
+            <input type="text" id="barcodeInput" class="modern-input" placeholder="Scan or type barcode..." 
+                   style="font-size: 1.1rem; padding: 12px; border: 2px solid #007bff; text-align: center; font-family: monospace;">
+            <div id="scanStatus" style="margin-top: 0.5rem; font-size: 0.9rem; color: #28a745;"></div>
+          </div>
+          
+          <!-- Quantity -->
+          <div>
+            <label class="form-label" style="margin-bottom: 0.5rem; display: block; font-weight: bold;">Qty:</label>
+            <input type="number" id="quantityInput" class="modern-input" value="1" min="1" 
+                   style="text-align: center; font-size: 1.1rem; width: 80px;">
+          </div>
+          
+          <!-- Reason Dropdown -->
+          <div class="dropdown-container" id="reasonDropdown">
+            <label class="form-label" style="margin-bottom: 0.5rem; display: block; font-weight: bold;">Reason:</label>
+            <button class="dropdown-toggle modern-button" id="reasonToggle" style="width: 100%; font-size: 0.9rem;">
+              Pick/Pack <span class="arrow">▼</span>
+            </button>
+            <div class="dropdown-content">
+              <button class="dropdown-item" data-value="pick_pack" data-type="out">Pick/Pack</button>
+              <button class="dropdown-item" data-value="received" data-type="in">Received</button>
+              <button class="dropdown-item" data-value="damaged" data-type="out">Damaged</button>
+              <button class="dropdown-item" data-value="returned" data-type="in">Returned</button>
+              <button class="dropdown-item" data-value="lost" data-type="out">Lost</button>
+              <button class="dropdown-item" data-value="found" data-type="in">Found</button>
+              <button class="dropdown-item" data-value="correction" data-type="correction">Correction</button>
+            </div>
+          </div>
+          
+          <!-- Field Dropdown -->
+          <div class="dropdown-container" id="fieldDropdown">
+            <label class="form-label" style="margin-bottom: 0.5rem; display: block; font-weight: bold;">Affect:</label>
+            <button class="dropdown-toggle modern-button" id="fieldToggle" style="width: 100%; font-size: 0.9rem;">
+              Shelf &lt; 1 <span class="arrow">▼</span>
+            </button>
+            <div class="dropdown-content">
+              <button class="dropdown-item" data-value="shelf_lt1_qty">Shelf &lt; 1 Year</button>
+              <button class="dropdown-item" data-value="shelf_gt1_qty">Shelf &gt; 1 Year</button>
+              <button class="dropdown-item" data-value="top_floor_total">Top Floor</button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Submit Area -->
+        <div style="margin-top: 2rem; display: flex; gap: 1rem; justify-content: center; align-items: center; flex-wrap: wrap;">
+          <button id="submitBtn" class="modern-button" style="background: linear-gradient(to bottom right, #28a745, #20c997); font-size: 1.1rem; padding: 12px 24px;">
+            ✅ Submit Adjustment
+          </button>
+          <!-- Auto-submit checkbox -->
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <input type="checkbox" id="autoSubmit" checked>
+            <label for="autoSubmit" style="font-size: 0.9rem;">Auto-submit on scan</label>
+          </div>
+          
+          <!-- Auto-sync checkbox -->
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <input type="checkbox" id="autoSync" checked>
+            <label for="autoSync" style="font-size: 0.9rem;">Auto-sync to Zoho</label>
+          </div>
+        </div>
+        
+        <!-- Status Message -->
+        <div id="statusMessage" style="margin-top: 1rem; font-weight: bold; font-size: 1rem;"></div>
+      </div>
+
+      <!-- Sync Controls -->
+      <div class="sync-controls modern-box" style="margin-bottom: 2rem;">
+        <h4>🔄 Zoho Sync Controls</h4>
+        <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; margin-bottom: 1rem;">
+          <button id="syncBtn" class="modern-button" style="background: linear-gradient(to bottom right, #007bff, #0056b3);">
+            🔄 Sync to Zoho
+          </button>
+          <button id="viewPendingBtn" class="modern-button">
+            📋 View Pending
+          </button>
+          <div id="syncStatus" style="margin-left: 1rem; font-weight: bold;"></div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 1rem; font-size: 0.9rem;">
+          <span>Connection Status:</span>
+          <span id="connectionIndicator" class="connection-status" style="padding: 4px 8px; border-radius: 4px; font-weight: bold;">Checking...</span>
+        </div>
+      </div>
+
+      <!-- Recent Adjustments -->
+      <div class="recent-adjustments modern-box">
+        <h4>📋 Recent Adjustments</h4>
+        <div id="recentAdjustmentsTable" style="max-height: 300px; overflow-y: auto;">
+          <p class="muted" style="text-align: center; padding: 1rem; color: #999;">Recent adjustments will appear here...</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- Global Dropdown Backdrop -->
+<div id="globalDropdownBackdrop" class="dropdown-backdrop"></div>
