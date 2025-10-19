@@ -2,7 +2,7 @@
 console.log('🧪 Testing attendance overview APIs without auth...');
 
 // Test the APIs directly without auth
-const API = 'https://rm365-tools.up.railway.app';
+const API = 'https://rm365-tools-testing-production.up.railway.app';
 
 async function testAPI(endpoint, name) {
   try {

@@ -6,7 +6,7 @@ from pathlib import Path
 class Settings(BaseSettings):
     # CORS - Default settings for production (Railway + Cloudflare)
     ALLOW_ORIGINS: List[str] = [
-        "https://rm365-tools.pages.dev",  # Cloudflare Pages main domain
+        "https://rm365-tools-testing.pages.dev",  # Cloudflare Pages main domain
     ]
 
     # Auth/JWT

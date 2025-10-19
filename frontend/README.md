@@ -1,673 +1,1343 @@
-# RM365 Toolbox - Frontend
+# RM365 Toolbox - Frontend# RM365 Toolbox - Frontend
 
-Modern, vanilla JavaScript single-page application (SPA) for the RM365 Toolbox platform. This guide will help you understand, develop, and maintain the frontend application.
 
-## 📋 Table of Contents
 
-- [Overview](#overview)
-- [Architecture](#architecture)
-- [Getting Started](#getting-started)
-- [Project Structure](#project-structure)
-- [Core Concepts](#core-concepts)
-- [Development Guide](#development-guide)
-- [UI Components](#ui-components)
-- [API Integration](#api-integration)
+Modern, vanilla JavaScript single-page application (SPA) for the RM365 Toolbox platform.Modern, vanilla JavaScript single-page application (SPA) for the RM365 Toolbox platform. This guide will help you understand, develop, and maintain the frontend application.
+
+
+
+## 📋 Table of Contents## 📋 Table of Contents
+
+
+
+- [Overview](#overview)- [Overview](#overview)
+
+- [Architecture](#architecture)- [Architecture](#architecture)
+
+- [Project Structure](#project-structure)- [Getting Started](#getting-started)
+
+- [Development Workflow](#development-workflow)- [Project Structure](#project-structure)
+
+- [Configuration](#configuration)- [Core Concepts](#core-concepts)
+
+- [Routing System](#routing-system)- [Development Guide](#development-guide)
+
+- [UI Components](#ui-components)- [UI Components](#ui-components)
+
+- [API Integration](#api-integration)- [API Integration](#api-integration)
+
 - [Styling](#styling)
-- [Common Tasks](#common-tasks)
-- [Deployment](#deployment)
 
-## Overview
+## Overview- [Common Tasks](#common-tasks)
+
+- [Deployment](#deployment)
 
 The frontend is a **vanilla JavaScript** application with no framework dependencies. It's fast, lightweight, and easy to understand.
 
+## Overview
+
 ### Key Features
-- 🎯 **Pure JavaScript**: No React, Vue, or Angular - just modern ES6+
+
+- 🎯 **Pure JavaScript**: No React, Vue, or Angular - just modern ES6+The frontend is a **vanilla JavaScript** application with no framework dependencies. It's fast, lightweight, and easy to understand.
+
 - 🎨 **Modern UI**: Clean design with dark mode support
-- 📱 **Responsive**: Mobile-first, works on all devices
-- 🔐 **Secure**: JWT authentication with role-based access
+
+- 📱 **Responsive**: Mobile-first, works on all devices### Key Features
+
+- 🔐 **Secure**: JWT authentication with role-based access- 🎯 **Pure JavaScript**: No React, Vue, or Angular - just modern ES6+
+
+- ⚡ **Fast**: Minimal dependencies, optimized loading- 🎨 **Modern UI**: Clean design with dark mode support
+
+- 🌐 **SPA**: Single-page app with client-side routing- 📱 **Responsive**: Mobile-first, works on all devices
+
+- 🎭 **PWA**: Progressive Web App capabilities- 🔐 **Secure**: JWT authentication with role-based access
+
 - ⚡ **Fast**: Minimal dependencies, optimized loading
-- 🌐 **SPA**: Single-page app with client-side routing
-- 🎭 **PWA**: Progressive Web App capabilities
 
-### Technology Stack
-- **HTML5**: Semantic markup
+### Technology Stack- 🌐 **SPA**: Single-page app with client-side routing
+
+- **HTML5**: Semantic markup- 🎭 **PWA**: Progressive Web App capabilities
+
 - **CSS3**: Modern styling with Grid, Flexbox, and CSS Variables
-- **JavaScript ES6+**: Modules, async/await, classes
-- **LocalStorage**: Client-side data persistence
-- **Fetch API**: HTTP requests to backend
-- **Service Workers**: Offline support (PWA)
 
-## Architecture
+- **JavaScript ES6+**: Modules, async/await, classes### Technology Stack
+
+- **LocalStorage**: Client-side data persistence- **HTML5**: Semantic markup
+
+- **Fetch API**: HTTP requests to backend- **CSS3**: Modern styling with Grid, Flexbox, and CSS Variables
+
+- **Service Workers**: Offline support (PWA)- **JavaScript ES6+**: Modules, async/await, classes
+
+- **LocalStorage**: Client-side data persistence
+
+## Architecture- **Fetch API**: HTTP requests to backend
+
+- **Service Workers**: Offline support (PWA)
 
 ### Application Flow
 
-```
-┌─────────────────────────────────────────────────┐
-│            index.html (App Shell)               │
-├─────────────────────────────────────────────────┤
-│          js/router.js (SPA Routing)             │
-├─────────────────────────────────────────────────┤
-│   ┌─────────────────┐   ┌──────────────────┐   │
-│   │  UI Components  │   │  Page Modules    │   │
-│   │  (Sidebar, etc) │   │  (Feature logic) │   │
-│   └─────────────────┘   └──────────────────┘   │
-├─────────────────────────────────────────────────┤
-│        services/api/* (Backend API)             │
-├─────────────────────────────────────────────────┤
-│          Backend REST API (FastAPI)             │
-└─────────────────────────────────────────────────┘
+## Architecture
+
 ```
 
-### Module Pattern
+┌─────────────────────────────────────────────────┐### Application Flow
+
+│            index.html (App Shell)               │
+
+├─────────────────────────────────────────────────┤```
+
+│          js/router.js (SPA Routing)             │┌─────────────────────────────────────────────────┐
+
+├─────────────────────────────────────────────────┤│            index.html (App Shell)               │
+
+│   ┌─────────────────┐   ┌──────────────────┐   │├─────────────────────────────────────────────────┤
+
+│   │  UI Components  │   │  Page Modules    │   ││          js/router.js (SPA Routing)             │
+
+│   │  (Sidebar, etc) │   │  (Feature logic) │   │├─────────────────────────────────────────────────┤
+
+│   └─────────────────┘   └──────────────────┘   ││   ┌─────────────────┐   ┌──────────────────┐   │
+
+├─────────────────────────────────────────────────┤│   │  UI Components  │   │  Page Modules    │   │
+
+│        services/api/* (Backend API)             ││   │  (Sidebar, etc) │   │  (Feature logic) │   │
+
+├─────────────────────────────────────────────────┤│   └─────────────────┘   └──────────────────┘   │
+
+│          Backend REST API (FastAPI)             │├─────────────────────────────────────────────────┤
+
+└─────────────────────────────────────────────────┘│        services/api/* (Backend API)             │
+
+```├─────────────────────────────────────────────────┤
+
+│          Backend REST API (FastAPI)             │
+
+### Module Pattern└─────────────────────────────────────────────────┘
+
+```
 
 Each feature follows this structure:
-```
+
+```### Module Pattern
+
 modules/feature-name/
-├── index.js       # Entry point, exports init()
+
+├── index.js       # Entry point, exports init()Each feature follows this structure:
+
+├── feature.js     # Main feature logic```
+
+└── utils.js       # Helper functions (optional)modules/feature-name/
+
+```├── index.js       # Entry point, exports init()
+
 ├── feature.js     # Main feature logic
-└── utils.js       # Helper functions (optional)
-```
 
-## Getting Started
-
-### Prerequisites
-
-- Modern web browser (Chrome, Firefox, Safari, Edge)
-- HTTP server (for local development)
-- Backend API running (see backend README)
-
-### Quick Start
-
-1. **Navigate to Frontend Directory**
-   ```bash
-   cd frontend
-   ```
-
-2. **Serve the Application**
-
-   **Option 1: Python HTTP Server**
-   ```bash
-   python -m http.server 3000
-   ```
-
-   **Option 2: Node.js serve**
-   ```bash
-   npx serve . -p 3000
-   ```
-
-   **Option 3: Live Server (VS Code)**
-   - Install "Live Server" extension
-   - Right-click `index.html` → "Open with Live Server"
-
-3. **Configure Backend URL**
-   
-   Edit `js/config.js`:
-   ```javascript
-   export const config = {
-     API: 'http://localhost:8000',  // Your backend URL
-     DEBUG: true,                   // Enable debug logging
-   };
-   ```
-
-4. **Open in Browser**
-   ```
-   http://localhost:3000
-   ```
-
-5. **Login**
-   - Default credentials should be provided by your team lead
-   - Or create a user through the backend API
-
-## Project Structure
+## Project Structure└── utils.js       # Helper functions (optional)
 
 ```
-frontend/
+
+```
+
+frontend/## Getting Started
+
 ├── index.html                  # Main app shell
-├── manifest.webmanifest        # PWA manifest
+
+├── manifest.webmanifest        # PWA manifest### Prerequisites
+
 │
-├── components/                 # Reusable UI components
-│   └── universal-sidebar.html  # Animated sidebar
-│
+
+├── components/                 # Reusable UI components- Modern web browser (Chrome, Firefox, Safari, Edge)
+
+│   └── universal-sidebar.html  # Animated sidebar- HTTP server (for local development)
+
+│- Backend API running (see backend README)
+
 ├── css/                        # Stylesheets
-│   ├── app-shell.css          # Layout & sidebar
+
+│   ├── app-shell.css          # Layout & sidebar### Quick Start
+
 │   ├── modern-ui.css          # Component styles
-│   ├── connection-status.css  # Online/offline indicator
-│   ├── enrollment.css         # Enrollment-specific
-│   ├── inventory-table.css    # Inventory tables
-│   └── usermanagement.css     # User management
+
+│   ├── connection-status.css  # Online/offline indicator1. **Navigate to Frontend Directory**
+
+│   ├── enrollment.css         # Enrollment-specific   ```bash
+
+│   ├── inventory-table.css    # Inventory tables   cd frontend
+
+│   └── usermanagement.css     # User management   ```
+
 │
-├── html/                       # Page templates
+
+├── html/                       # Page templates2. **Serve the Application**
+
 │   ├── login.html             # Login page
-│   ├── reports.html           # Reports dashboard
-│   │
-│   ├── attendance/            # Attendance module pages
-│   │   ├── automaticClocking.html
-│   │   ├── automaticReader.html
-│   │   ├── logs.html
-│   │   └── overview.html
-│   │
+
+│   ├── reports.html           # Reports dashboard   **Option 1: Python HTTP Server**
+
+│   │   ```bash
+
+│   ├── attendance/            # Attendance module pages   python -m http.server 3000
+
+│   │   ├── automatic.html   ```
+
+│   │   ├── home.html
+
+│   │   ├── logs.html   **Option 2: Node.js serve**
+
+│   │   ├── manual.html   ```bash
+
+│   │   └── overview.html   npx serve . -p 3000
+
+│   │   ```
+
 │   ├── enrollment/            # Enrollment module
-│   │   ├── cardEnrollment.html
-│   │   └── fingerprintEnrollment.html
-│   │
-│   ├── inventory/             # Inventory module
-│   │   ├── adjustments.html
+
+│   │   ├── card.html   **Option 3: Live Server (VS Code)**
+
+│   │   ├── fingerprint.html   - Install "Live Server" extension
+
+│   │   ├── home.html   - Right-click `index.html` → "Open with Live Server"
+
 │   │   └── management.html
-│   │
-│   ├── labels/                # Labels module
-│   │   ├── generator.html
-│   │   └── printHistory.html
-│   │
-│   ├── sales-imports/         # Sales import module
-│   │   ├── history.html
-│   │   └── upload.html
-│   │
-│   └── usermanagement/        # User management
-│       ├── management.html
-│       └── roles.html
-│
+
+│   │3. **Configure Backend URL**
+
+│   ├── inventory/             # Inventory module   
+
+│   │   ├── adjustments.html   Edit `js/config.js`:
+
+│   │   ├── home.html   ```javascript
+
+│   │   └── management.html   export const config = {
+
+│   │     API: 'http://localhost:8000',  // Your backend URL
+
+│   ├── labels/                # Labels module     DEBUG: true,                   // Enable debug logging
+
+│   │   ├── generator.html   };
+
+│   │   ├── history.html   ```
+
+│   │   └── home.html
+
+│   │4. **Open in Browser**
+
+│   ├── sales-imports/         # Sales import module   ```
+
+│   │   ├── history.html   http://localhost:3000
+
+│   │   ├── home.html   ```
+
+│   │   ├── uk-sales.html
+
+│   │   └── upload.html5. **Login**
+
+│   │   - Default credentials should be provided by your team lead
+
+│   └── usermanagement/        # User management   - Or create a user through the backend API
+
+│       └── home.html
+
+│## Project Structure
+
 └── js/                         # JavaScript modules
-    ├── config.js              # Configuration
-    ├── router.js              # SPA routing
-    ├── shell-ui.js            # App shell initialization
-    ├── debug.js               # Debug utilities
-    │
-    ├── modules/               # Feature modules
-    │   ├── attendance/
-    │   │   ├── index.js
-    │   │   ├── automaticClocking.js
-    │   │   ├── automaticReader.js
-    │   │   ├── logs.js
-    │   │   └── overview.js
-    │   │
-    │   ├── auth/
-    │   │   ├── index.js
-    │   │   └── login.js
-    │   │
-    │   ├── enrollment/
-    │   │   ├── index.js
-    │   │   ├── cardEnrollment.js
-    │   │   └── fingerprintEnrollment.js
-    │   │
-    │   ├── inventory/
-    │   │   ├── index.js
-    │   │   ├── adjustments.js
-    │   │   └── management.js
-    │   │
-    │   ├── labels/
-    │   │   ├── index.js
+
+    ├── config.js              # Configuration```
+
+    ├── index.js               # App initializationfrontend/
+
+    ├── router.js              # SPA routing├── index.html                  # Main app shell
+
+    ├── shell-ui.js            # App shell initialization├── manifest.webmanifest        # PWA manifest
+
+    ├── debug.js               # Debug utilities│
+
+    │├── components/                 # Reusable UI components
+
+    ├── modules/               # Feature modules│   └── universal-sidebar.html  # Animated sidebar
+
+    │   ├── attendance/│
+
+    │   │   ├── index.js├── css/                        # Stylesheets
+
+    │   │   ├── automaticClocking.js│   ├── app-shell.css          # Layout & sidebar
+
+    │   │   ├── automaticReader.js│   ├── modern-ui.css          # Component styles
+
+    │   │   ├── logs.js│   ├── connection-status.css  # Online/offline indicator
+
+    │   │   ├── manualClocking.js│   ├── enrollment.css         # Enrollment-specific
+
+    │   │   └── overview.js│   ├── inventory-table.css    # Inventory tables
+
+    │   ││   └── usermanagement.css     # User management
+
+    │   ├── auth/│
+
+    │   │   ├── index.js├── html/                       # Page templates
+
+    │   │   └── login.js│   ├── login.html             # Login page
+
+    │   ││   ├── reports.html           # Reports dashboard
+
+    │   ├── enrollment/│   │
+
+    │   │   ├── index.js│   ├── attendance/            # Attendance module pages
+
+    │   │   ├── card.js│   │   ├── automaticClocking.html
+
+    │   │   ├── fingerprint.js│   │   ├── automaticReader.html
+
+    │   │   └── management.js│   │   ├── logs.html
+
+    │   ││   │   └── overview.html
+
+    │   ├── inventory/│   │
+
+    │   │   ├── index.js│   ├── enrollment/            # Enrollment module
+
+    │   │   ├── adjustments.js│   │   ├── cardEnrollment.html
+
+    │   │   └── management.js│   │   └── fingerprintEnrollment.html
+
+    │   ││   │
+
+    │   ├── labels/│   ├── inventory/             # Inventory module
+
+    │   │   ├── index.js│   │   ├── adjustments.html
+
+    │   │   ├── generator.js│   │   └── management.html
+
+    │   │   ├── labelManagement.js│   │
+
+    │   │   └── printHistory.js│   ├── labels/                # Labels module
+
+    │   ││   │   ├── generator.html
+
+    │   ├── sales-imports/│   │   └── printHistory.html
+
+    │   │   ├── index.js│   │
+
+    │   │   ├── history.js│   ├── sales-imports/         # Sales import module
+
+    │   │   ├── ukSalesData.js│   │   ├── history.html
+
+    │   │   └── upload.js│   │   └── upload.html
+
+    │   ││   │
+
+    │   └── usermanagement/│   └── usermanagement/        # User management
+
+    │       ├── index.js│       ├── management.html
+
+    │       └── management.js│       └── roles.html
+
+    ││
+
+    ├── services/              # Backend integration└── js/                         # JavaScript modules
+
+    │   ├── api/              # API clients    ├── config.js              # Configuration
+
+    │   │   ├── http.js      # HTTP client    ├── router.js              # SPA routing
+
+    │   │   ├── authApi.js    ├── shell-ui.js            # App shell initialization
+
+    │   │   ├── attendanceApi.js    ├── debug.js               # Debug utilities
+
+    │   │   ├── enrollmentApi.js    │
+
+    │   │   ├── labelsApi.js    ├── modules/               # Feature modules
+
+    │   │   ├── rolesApi.js    │   ├── attendance/
+
+    │   │   ├── salesImportsApi.js    │   │   ├── index.js
+
+    │   │   └── usersApi.js    │   │   ├── automaticClocking.js
+
+    │   │    │   │   ├── automaticReader.js
+
+    │   └── state/            # State management    │   │   ├── logs.js
+
+    │       ├── sessionStore.js    │   │   └── overview.js
+
+    │       └── userStore.js    │   │
+
+    │    │   ├── auth/
+
+    ├── ui/                   # UI utilities    │   │   ├── index.js
+
+    │   ├── components.js    # Reusable components    │   │   └── login.js
+
+    │   ├── confirmationModal.js    │   │
+
+    │   ├── dom.js          # DOM helpers    │   ├── enrollment/
+
+    │   ├── modal.js        # Modal dialogs    │   │   ├── index.js
+
+    │   └── toast.js        # Toast notifications    │   │   ├── cardEnrollment.js
+
+    │    │   │   └── fingerprintEnrollment.js
+
+    └── utils/               # Utilities    │   │
+
+        ├── dropdown-system.js    │   ├── inventory/
+
+        ├── formatters.js    │   │   ├── index.js
+
+        ├── sidebar-fallback.js    │   │   ├── adjustments.js
+
+        ├── tabs.js    │   │   └── management.js
+
+        ├── universal-sidebar.js    │   │
+
+        └── validators.js    │   ├── labels/
+
+```    │   │   ├── index.js
+
     │   │   ├── generator.js
-    │   │   └── printHistory.js
+
+## Development Workflow    │   │   └── printHistory.js
+
     │   │
-    │   ├── sales-imports/
+
+### Making Changes    │   ├── sales-imports/
+
     │   │   ├── index.js
-    │   │   ├── history.js
-    │   │   └── upload.js
-    │   │
+
+1. **Edit Your Code**    │   │   ├── history.js
+
+   - Make changes to HTML, CSS, or JavaScript files in the `frontend/` directory    │   │   └── upload.js
+
+   - Test your changes for syntax errors    │   │
+
     │   └── usermanagement/
-    │       ├── index.js
-    │       └── management.js
-    │
-    ├── services/              # Backend API services
-    │   └── api/
+
+2. **Commit Your Changes**    │       ├── index.js
+
+   ```bash    │       └── management.js
+
+   git add .    │
+
+   git commit -m "Description of your changes"    ├── services/              # Backend API services
+
+   ```    │   └── api/
+
     │       ├── http.js        # HTTP client
-    │       ├── attendanceApi.js
-    │       ├── rolesApi.js
-    │       └── usersApi.js
-    │
+
+3. **Push to GitHub**    │       ├── attendanceApi.js
+
+   ```bash    │       ├── rolesApi.js
+
+   git push origin main    │       └── usersApi.js
+
+   ```    │
+
     ├── ui/                    # UI utilities
-    │   ├── components.js      # Reusable components
-    │   └── confirmationModal.js
-    │
-    └── utils/                 # Shared utilities
+
+4. **Cloudflare Pages Auto-Deploys**    │   ├── components.js      # Reusable components
+
+   - Cloudflare Pages detects the push to `main` branch    │   └── confirmationModal.js
+
+   - Automatically deploys the `frontend/` directory    │
+
+   - Deployment takes approximately 1-2 minutes    └── utils/                 # Shared utilities
+
         ├── universal-sidebar.js
-        ├── dropdown-system.js
-        ├── tabs.js
-        └── sidebar-fallback.js
-```
 
-## Core Concepts
+5. **View Your Changes**        ├── dropdown-system.js
 
-### 1. SPA Routing
+   - Frontend URL: `https://rm365-tools-testing.pages.dev`        ├── tabs.js
 
-The router (`js/router.js`) handles navigation without page reloads:
+   - Changes are live immediately after deployment completes        └── sidebar-fallback.js
 
-```javascript
+   - Hard refresh (`Ctrl+F5` or `Cmd+Shift+R`) to see updates```
+
+
+
+### Monitoring Deployment## Core Concepts
+
+
+
+**Cloudflare Pages Dashboard:**### 1. SPA Routing
+
+1. Go to [Cloudflare Pages Dashboard](https://dash.cloudflare.com/)
+
+2. Select your `rm365-tools-testing` projectThe router (`js/router.js`) handles navigation without page reloads:
+
+3. View deployment status and logs
+
+4. Check for successful deployment or errors```javascript
+
 // Navigate to a page
-window.navigate('/attendance/overview');
 
-// Router automatically:
-// 1. Loads HTML from /html/attendance/overview.html
+**Deployment Status:**window.navigate('/attendance/overview');
+
+- ✅ **Success**: Your changes are live
+
+- ❌ **Failed**: Check logs for errors, fix code, and push again// Router automatically:
+
+- 🔄 **Building**: Wait for deployment to complete (usually < 2 minutes)// 1. Loads HTML from /html/attendance/overview.html
+
 // 2. Injects into #app container
-// 3. Initializes the module
-// 4. Updates browser history
-```
 
-**How it works:**
+### Testing Your Changes// 3. Initializes the module
+
+// 4. Updates browser history
+
+1. **After Deployment Completes**```
+
+   - Open `https://rm365-tools-testing.pages.dev`
+
+   - Hard refresh to bypass cache: `Ctrl+F5` (Windows) or `Cmd+Shift+R` (Mac)**How it works:**
+
 - Links with `data-nav` attribute are intercepted
-- URL changes trigger router
-- Module's `init()` function is called
-- Old content is cleaned up
+
+2. **Check Browser Console**- URL changes trigger router
+
+   - Press `F12` to open Developer Tools- Module's `init()` function is called
+
+   - Look for JavaScript errors in the Console tab- Old content is cleaned up
+
+   - Check Network tab for failed API requests
 
 ### 2. Module Initialization
 
-Each page module exports an `init()` function:
+3. **Test Functionality**
 
-```javascript
+   - Navigate through the appEach page module exports an `init()` function:
+
+   - Test the features you changed
+
+   - Verify API integration works correctly```javascript
+
 // modules/myfeature/index.js
-export function init() {
+
+## Configurationexport function init() {
+
   console.log('MyFeature initialized');
-  
+
+### Backend API URL  
+
   // Set up event listeners
-  document.getElementById('myButton').addEventListener('click', handleClick);
+
+The backend API URL is configured in `index.html` and `js/config.js`:  document.getElementById('myButton').addEventListener('click', handleClick);
+
   
-  // Fetch data
-  loadData();
-}
+
+**Default Configuration** (in `index.html`):  // Fetch data
+
+```javascript  loadData();
+
+window.API = 'https://rm365-tools-testing-production.up.railway.app';}
+
+```
 
 function handleClick() {
-  // Handle button click
+
+This is automatically set to the Railway backend URL. No changes needed unless using a different backend.  // Handle button click
+
 }
 
+**Environment Variable Override**:
+
 async function loadData() {
-  // Fetch from API
-}
+
+In Cloudflare Pages dashboard, you can set:  // Fetch from API
+
+```}
+
+API=https://rm365-tools-testing-production.up.railway.app```
+
 ```
 
 ### 3. Authentication
 
+This overrides the default and allows different backends for different environments.
+
 Authentication is handled via JWT tokens:
 
-```javascript
-// Login
-const response = await post('/api/v1/auth/login', { username, password });
-localStorage.setItem('authToken', response.token);
-localStorage.setItem('user', JSON.stringify(response.user));
+### Debug Mode
 
-// Make authenticated requests (automatic in http.js)
-import { get } from './services/api/http.js';
-const data = await get('/api/v1/users');  // Token auto-attached
-```
+```javascript
+
+Enable debug logging by adding `?debug=true` to any URL:// Login
+
+```const response = await post('/api/v1/auth/login', { username, password });
+
+https://rm365-tools-testing.pages.dev/?debug=truelocalStorage.setItem('authToken', response.token);
+
+```localStorage.setItem('user', JSON.stringify(response.user));
+
+
+
+This shows:// Make authenticated requests (automatic in http.js)
+
+- API request/response detailsimport { get } from './services/api/http.js';
+
+- Authentication flowconst data = await get('/api/v1/users');  // Token auto-attached
+
+- Router navigation```
+
+- State changes
 
 ### 4. State Management
 
+## Routing System
+
 State is managed with:
-- **LocalStorage**: Persistent data (auth token, user info, preferences)
+
+### Client-Side Routing- **LocalStorage**: Persistent data (auth token, user info, preferences)
+
 - **Module-level variables**: Page-specific state
-- **DOM as state**: UI reflects current state
 
-```javascript
-// Save preference
-localStorage.setItem('darkMode', 'true');
+The app uses a custom router (`js/router.js`) for SPA navigation:- **DOM as state**: UI reflects current state
 
-// Get preference
-const isDark = localStorage.getItem('darkMode') === 'true';
+
+
+```javascript```javascript
+
+// Route definition// Save preference
+
+const routes = {localStorage.setItem('darkMode', 'true');
+
+  '/attendance/overview': {
+
+    html: 'html/attendance/overview.html',// Get preference
+
+    js: 'js/modules/attendance/overview.js',const isDark = localStorage.getItem('darkMode') === 'true';
+
+    title: 'Attendance Overview'```
+
+  }
+
+};### 5. Event Handling
+
 ```
-
-### 5. Event Handling
 
 Use event delegation for dynamic content:
 
-```javascript
-// Good: Event delegation
-document.addEventListener('click', (e) => {
-  if (e.target.matches('.delete-btn')) {
-    handleDelete(e.target.dataset.id);
-  }
-});
+### Navigation
 
-// Avoid: Direct binding on dynamic elements
-document.querySelectorAll('.delete-btn').forEach(btn => {
-  btn.addEventListener('click', handleDelete);  // Won't work for new buttons
-});
+```javascript
+
+**Programmatic Navigation**:// Good: Event delegation
+
+```javascriptdocument.addEventListener('click', (e) => {
+
+import { router } from './router.js';  if (e.target.matches('.delete-btn')) {
+
+    handleDelete(e.target.dataset.id);
+
+router.navigate('/attendance/overview');  }
+
+```});
+
+
+
+**HTML Links**:// Avoid: Direct binding on dynamic elements
+
+```htmldocument.querySelectorAll('.delete-btn').forEach(btn => {
+
+<a href="#/attendance/overview">Attendance Overview</a>  btn.addEventListener('click', handleDelete);  // Won't work for new buttons
+
+```});
+
 ```
+
+### Adding New Routes
 
 ## Development Guide
 
-### Adding a New Page
-
 1. **Create HTML Template**
-   ```bash
-   # Create file: html/myfeature/mypage.html
-   ```
-   ```html
-   <div class="page-content">
-     <h1>My Page</h1>
-     <div id="content"></div>
-   </div>
+
+   - Add file to `html/module-name/page.html`### Adding a New Page
+
+
+
+2. **Create JavaScript Module**1. **Create HTML Template**
+
+   - Add file to `js/modules/module-name/page.js`   ```bash
+
+   - Export `init()` function   # Create file: html/myfeature/mypage.html
+
    ```
 
-2. **Create Module**
-   ```bash
-   # Create directory and files
-   mkdir -p js/modules/myfeature
-   touch js/modules/myfeature/index.js
-   ```
+3. **Register Route** in `js/router.js`   ```html
 
-   ```javascript
+   ```javascript   <div class="page-content">
+
+   '/module/page': {     <h1>My Page</h1>
+
+     html: 'html/module/page.html',     <div id="content"></div>
+
+     js: 'js/modules/module/page.js',   </div>
+
+     title: 'Page Title'   ```
+
+   }
+
+   ```2. **Create Module**
+
+   ```bash
+
+4. **Commit and Push**   # Create directory and files
+
+   ```bash   mkdir -p js/modules/myfeature
+
+   git add .   touch js/modules/myfeature/index.js
+
+   git commit -m "Add new page route"   ```
+
+   git push origin main
+
+   ```   ```javascript
+
    // js/modules/myfeature/index.js
-   export function init() {
+
+## UI Components   export function init() {
+
      console.log('MyFeature page loaded');
-     loadContent();
+
+### Toast Notifications     loadContent();
+
    }
 
-   async function loadContent() {
+```javascript
+
+import { showToast } from './ui/toast.js';   async function loadContent() {
+
      const container = document.getElementById('content');
-     container.innerHTML = '<p>Hello World!</p>';
-   }
-   ```
+
+showToast('Operation successful!', 'success');     container.innerHTML = '<p>Hello World!</p>';
+
+showToast('An error occurred', 'error');   }
+
+showToast('Warning message', 'warning');   ```
+
+```
 
 3. **Add to Router**
-   
+
+### Modal Dialogs   
+
    Edit `js/router.js` and add your route:
-   ```javascript
-   const routes = {
+
+```javascript   ```javascript
+
+import { showModal, hideModal } from './ui/modal.js';   const routes = {
+
      '/myfeature': {
-       html: '/html/myfeature/mypage.html',
-       module: 'myfeature',
-       title: 'My Feature'
-     }
-   };
-   ```
 
-4. **Add to Sidebar**
-   
+showModal('modal-id', {       html: '/html/myfeature/mypage.html',
+
+  title: 'Confirm Action',       module: 'myfeature',
+
+  content: 'Are you sure?',       title: 'My Feature'
+
+  onConfirm: () => {     }
+
+    // Handle confirmation   };
+
+    hideModal('modal-id');   ```
+
+  }
+
+});4. **Add to Sidebar**
+
+```   
+
    Edit `components/universal-sidebar.html`:
-   ```html
+
+### Confirmation Dialogs   ```html
+
    <li>
-     <a href="/myfeature" class="sidebar-link" data-nav>
-       <span class="icon">🚀</span>
+
+```javascript     <a href="/myfeature" class="sidebar-link" data-nav>
+
+import { showConfirmation } from './ui/confirmationModal.js';       <span class="icon">🚀</span>
+
        <span class="label">My Feature</span>
-     </a>
-   </li>
-   ```
 
-5. **Test**
-   - Open browser
+const confirmed = await showConfirmation({     </a>
+
+  title: 'Delete Item',   </li>
+
+  message: 'Are you sure you want to delete this item?',   ```
+
+  confirmText: 'Delete',
+
+  cancelText: 'Cancel'5. **Test**
+
+});   - Open browser
+
    - Click sidebar link
-   - Verify page loads
 
-### Making API Calls
+if (confirmed) {   - Verify page loads
+
+  // Proceed with deletion
+
+}### Making API Calls
+
+```
 
 Create API service file:
 
+### Loading Indicators
+
 ```javascript
-// js/services/api/myFeatureApi.js
-import { get, post, patch, del } from './http.js';
 
-const API = '/api/v1/myfeature';
+```javascript// js/services/api/myFeatureApi.js
 
-export const getItems = () => get(API);
+// Show loading stateimport { get, post, patch, del } from './http.js';
 
-export const createItem = (data) => post(API, data);
+document.getElementById('btn').disabled = true;
+
+document.getElementById('btn').textContent = 'Loading...';const API = '/api/v1/myfeature';
+
+
+
+// After operationexport const getItems = () => get(API);
+
+document.getElementById('btn').disabled = false;
+
+document.getElementById('btn').textContent = 'Submit';export const createItem = (data) => post(API, data);
+
+```
 
 export const updateItem = (id, data) => patch(`${API}/${id}`, data);
 
+## API Integration
+
 export const deleteItem = (id) => del(`${API}/${id}`);
-```
 
-Use in module:
+### HTTP Client```
 
-```javascript
-// js/modules/myfeature/index.js
+
+
+All API calls go through `services/api/http.js`:Use in module:
+
+
+
+```javascript```javascript
+
+import { apiClient } from './services/api/http.js';// js/modules/myfeature/index.js
+
 import { getItems, createItem } from '../../services/api/myFeatureApi.js';
 
-export function init() {
+// GET request
+
+const users = await apiClient.get('/users');export function init() {
+
   loadItems();
-  setupEventListeners();
-}
 
-async function loadItems() {
-  try {
+// POST request  setupEventListeners();
+
+const newUser = await apiClient.post('/users', {}
+
+  username: 'john',
+
+  email: 'john@example.com'async function loadItems() {
+
+});  try {
+
     const items = await getItems();
-    renderItems(items);
-  } catch (error) {
+
+// PATCH request    renderItems(items);
+
+await apiClient.patch('/users/1', { email: 'newemail@example.com' });  } catch (error) {
+
     console.error('Failed to load items:', error);
-    showError('Failed to load data');
-  }
-}
 
-function setupEventListeners() {
+// DELETE request    showError('Failed to load data');
+
+await apiClient.delete('/users/1');  }
+
+```}
+
+
+
+### API Service Modulesfunction setupEventListeners() {
+
   document.getElementById('createBtn').addEventListener('click', async () => {
-    const name = document.getElementById('nameInput').value;
+
+Use dedicated API service modules for better organization:    const name = document.getElementById('nameInput').value;
+
     await createItem({ name });
-    loadItems();  // Reload
-  });
-}
+
+```javascript    loadItems();  // Reload
+
+// services/api/usersApi.js  });
+
+import { apiClient } from './http.js';}
+
 ```
 
-### Error Handling
+export const usersApi = {
 
-Always handle errors gracefully:
+  getAll: () => apiClient.get('/users'),### Error Handling
 
-```javascript
-async function fetchData() {
-  try {
+  getById: (id) => apiClient.get(`/users/${id}`),
+
+  create: (data) => apiClient.post('/users', data),Always handle errors gracefully:
+
+  update: (id, data) => apiClient.patch(`/users/${id}`, data),
+
+  delete: (id) => apiClient.delete(`/users/${id}`)```javascript
+
+};async function fetchData() {
+
+```  try {
+
     const data = await get('/api/v1/data');
-    return data;
+
+### Authentication    return data;
+
   } catch (error) {
-    console.error('Error fetching data:', error);
+
+**Login**:    console.error('Error fetching data:', error);
+
+```javascript    
+
+import { authApi } from './services/api/authApi.js';    // Show user-friendly message
+
+import { sessionStore } from './services/state/sessionStore.js';    showNotification('Failed to load data. Please try again.', 'error');
+
     
-    // Show user-friendly message
-    showNotification('Failed to load data. Please try again.', 'error');
-    
-    // Return fallback
-    return [];
-  }
-}
+
+const response = await authApi.login(username, password);    // Return fallback
+
+sessionStore.setToken(response.access_token);    return [];
+
+sessionStore.setUser(response.user);  }
+
+```}
+
 ```
+
+**Protected Requests**:
 
 ### Loading States
 
-Show loading indicators:
+The HTTP client automatically includes the JWT token in requests:
 
-```javascript
-async function loadData() {
+```javascriptShow loading indicators:
+
+// Token is automatically added to Authorization header
+
+const data = await apiClient.get('/protected-endpoint');```javascript
+
+```async function loadData() {
+
   const container = document.getElementById('content');
+
+**Logout**:  
+
+```javascript  // Show loading
+
+import { sessionStore } from './services/state/sessionStore.js';  container.innerHTML = '<div class="loading">Loading...</div>';
+
   
-  // Show loading
-  container.innerHTML = '<div class="loading">Loading...</div>';
-  
-  try {
-    const data = await fetchData();
-    container.innerHTML = renderData(data);
+
+sessionStore.clearSession();  try {
+
+router.navigate('/login');    const data = await fetchData();
+
+```    container.innerHTML = renderData(data);
+
   } catch (error) {
-    container.innerHTML = '<div class="error">Failed to load</div>';
+
+## Creating New Features    container.innerHTML = '<div class="error">Failed to load</div>';
+
   }
-}
+
+### Adding a New Module}
+
 ```
 
-## UI Components
+1. **Create HTML Template** (`html/mymodule/mypage.html`)
 
-### Sidebar
+   ```html## UI Components
 
-The universal sidebar is automatically loaded on all pages (except login).
+   <div class="page-container">
+
+     <h1>My Page</h1>### Sidebar
+
+     <div id="content"></div>
+
+   </div>The universal sidebar is automatically loaded on all pages (except login).
+
+   ```
 
 **Features:**
-- Animated expansion on hover
-- Dark mode toggle
-- Search functionality
-- Role-based visibility
 
-**Customization:**
-Edit `components/universal-sidebar.html` to add/remove navigation items.
+2. **Create JavaScript Module** (`js/modules/mymodule/mypage.js`)- Animated expansion on hover
 
-### Confirmation Modal
+   ```javascript- Dark mode toggle
 
-Use for destructive actions:
+   import { apiClient } from '../../services/api/http.js';- Search functionality
 
-```javascript
-import { showConfirmation } from '../ui/confirmationModal.js';
+   import { showToast } from '../../ui/toast.js';- Role-based visibility
 
-async function handleDelete(id) {
-  const confirmed = await showConfirmation({
-    title: 'Delete Item',
+
+
+   export async function init() {**Customization:**
+
+     console.log('My page initialized');Edit `components/universal-sidebar.html` to add/remove navigation items.
+
+     await loadData();
+
+   }### Confirmation Modal
+
+
+
+   async function loadData() {Use for destructive actions:
+
+     try {
+
+       const data = await apiClient.get('/myendpoint');```javascript
+
+       renderData(data);import { showConfirmation } from '../ui/confirmationModal.js';
+
+     } catch (error) {
+
+       showToast('Failed to load data', 'error');async function handleDelete(id) {
+
+     }  const confirmed = await showConfirmation({
+
+   }    title: 'Delete Item',
+
     message: 'Are you sure you want to delete this item?',
-    confirmText: 'Delete',
-    type: 'danger'
-  });
-  
-  if (confirmed) {
-    await deleteItem(id);
-    reloadList();
+
+   function renderData(data) {    confirmText: 'Delete',
+
+     const content = document.getElementById('content');    type: 'danger'
+
+     content.innerHTML = data.map(item =>   });
+
+       `<div>${item.name}</div>`  
+
+     ).join('');  if (confirmed) {
+
+   }    await deleteItem(id);
+
+   ```    reloadList();
+
   }
-}
-```
 
-### Custom Dropdowns
+3. **Add Route** in `js/router.js`}
 
-Enhanced select elements:
+   ```javascript```
 
-```javascript
+   '/mymodule/mypage': {
+
+     html: 'html/mymodule/mypage.html',### Custom Dropdowns
+
+     js: 'js/modules/mymodule/mypage.js',
+
+     title: 'My Page'Enhanced select elements:
+
+   }
+
+   ``````javascript
+
 import { initializeDropdowns } from '../utils/dropdown-system.js';
 
-// Initialize after DOM is ready
-initializeDropdowns();
-```
+4. **Add Navigation** (update sidebar or menu)
 
-```html
-<select class="c-select">
-  <option value="1">Option 1</option>
-  <option value="2">Option 2</option>
-</select>
-```
+   ```html// Initialize after DOM is ready
 
-### Tabs
+   <a href="#/mymodule/mypage">My Page</a>initializeDropdowns();
 
-Dynamic tab system:
+   ``````
+
+
+
+5. **Commit and Push**```html
+
+   ```bash<select class="c-select">
+
+   git add .  <option value="1">Option 1</option>
+
+   git commit -m "Add my new feature"  <option value="2">Option 2</option>
+
+   git push origin main</select>
+
+   ``````
+
+
+
+6. **Wait for Deployment**### Tabs
+
+   - Cloudflare Pages will deploy automatically
+
+   - Check deployment status in Cloudflare dashboardDynamic tab system:
+
+   - View your changes at `https://rm365-tools-testing.pages.dev`
 
 ```javascript
-import { setupTabs } from '../utils/tabs.js';
 
-setupTabs();
+## Stylingimport { setupTabs } from '../utils/tabs.js';
+
+
+
+### CSS OrganizationsetupTabs();
+
 ```
 
-```html
-<div class="tabs">
+- **app-shell.css**: Layout, sidebar, navigation
+
+- **modern-ui.css**: Buttons, forms, cards, general components```html
+
+- **module-specific.css**: Styles specific to a module<div class="tabs">
+
   <button class="tab-btn active" data-tab="tab1">Tab 1</button>
-  <button class="tab-btn" data-tab="tab2">Tab 2</button>
+
+### CSS Variables  <button class="tab-btn" data-tab="tab2">Tab 2</button>
+
 </div>
-
-<div class="tab-content active" id="tab1">Content 1</div>
-<div class="tab-content" id="tab2">Content 2</div>
-```
-
-## API Integration
-
-### HTTP Client
-
-The HTTP client (`services/api/http.js`) handles all requests:
-
-```javascript
-import { get, post, patch, del } from './services/api/http.js';
-
-// GET request
-const users = await get('/api/v1/users');
-
-// POST request
-const newUser = await post('/api/v1/users', {
-  username: 'john',
-  password: 'secret'
-});
-
-// PATCH request
-await patch('/api/v1/users', {
-  username: 'john',
-  new_password: 'newsecret'
-});
-
-// DELETE request
-await del('/api/v1/users?username=john');
-```
-
-**Features:**
-- Automatic token attachment
-- Error handling
-- JSON serialization
-- Base URL configuration
-
-### Handling Responses
-
-```javascript
-try {
-  const response = await get('/api/v1/data');
-  
-  // Response is automatically parsed JSON
-  console.log(response);
-  
-} catch (error) {
-  // Errors include status code and message
-  console.error(`${error.status}: ${error.message}`);
-  
-  if (error.status === 401) {
-    // Unauthorized - redirect to login
-    window.navigate('/login');
-  } else if (error.status === 403) {
-    // Forbidden
-    showError('You don\'t have permission');
-  } else {
-    // Other errors
-    showError('Something went wrong');
-  }
-}
-```
-
-## Styling
-
-### CSS Architecture
-
-1. **app-shell.css**: Layout, sidebar, navigation
-2. **modern-ui.css**: Buttons, forms, tables, cards
-3. **Feature-specific CSS**: Module-specific styles
-
-### CSS Variables
 
 Use CSS variables for theming:
 
-```css
-:root {
-  --primary-color: #007bff;
-  --secondary-color: #6c757d;
-  --bg-color: #ffffff;
-  --text-color: #333333;
-}
+```css<div class="tab-content active" id="tab1">Content 1</div>
 
-.dark-mode {
-  --bg-color: #1a1a1a;
-  --text-color: #ffffff;
-}
+:root {<div class="tab-content" id="tab2">Content 2</div>
+
+  --primary-color: #4F46E5;```
+
+  --secondary-color: #10B981;
+
+  --background: #F9FAFB;## API Integration
+
+  --text-color: #111827;
+
+}### HTTP Client
+
 ```
 
-### Dark Mode
-
-Dark mode is handled automatically by the sidebar. To add dark mode support to your styles:
-
-```css
-/* Light mode (default) */
-.my-component {
-  background: var(--bg-color);
-  color: var(--text-color);
-}
-
-/* Dark mode (automatically applied when .dark-mode on <html>) */
-.dark-mode .my-component {
-  /* Override if needed */
-}
-```
+The HTTP client (`services/api/http.js`) handles all requests:
 
 ### Responsive Design
 
-Use mobile-first approach:
+```javascript
+
+Mobile-first approach:import { get, post, patch, del } from './services/api/http.js';
 
 ```css
-/* Mobile first (default) */
-.container {
-  padding: 10px;
+
+/* Mobile styles (default) */// GET request
+
+.container {const users = await get('/api/v1/users');
+
+  padding: 1rem;
+
+}// POST request
+
+const newUser = await post('/api/v1/users', {
+
+/* Tablet and up */  username: 'john',
+
+@media (min-width: 768px) {  password: 'secret'
+
+  .container {});
+
+    padding: 2rem;
+
+  }// PATCH request
+
+}await patch('/api/v1/users', {
+
+  username: 'john',
+
+/* Desktop */  new_password: 'newsecret'
+
+@media (min-width: 1024px) {});
+
+  .container {
+
+    padding: 3rem;// DELETE request
+
+  }await del('/api/v1/users?username=john');
+
+}```
+
+```
+
+**Features:**
+
+## Troubleshooting- Automatic token attachment
+
+- Error handling
+
+### Deployment Failed- JSON serialization
+
+- Base URL configuration
+
+1. **Check Cloudflare Logs**
+
+   - View build logs in Cloudflare Pages dashboard### Handling Responses
+
+   - Look for error messages
+
+```javascript
+
+2. **Common Issues**try {
+
+   - Syntax errors in JavaScript  const response = await get('/api/v1/data');
+
+   - Missing files or broken paths  
+
+   - Invalid HTML/CSS  // Response is automatically parsed JSON
+
+  console.log(response);
+
+3. **Fix and Redeploy**  
+
+   - Fix the issue in your code} catch (error) {
+
+   - Commit and push again  // Errors include status code and message
+
+   - Cloudflare will automatically retry  console.error(`${error.status}: ${error.message}`);
+
+  
+
+### Changes Not Showing  if (error.status === 401) {
+
+    // Unauthorized - redirect to login
+
+1. **Hard Refresh**    window.navigate('/login');
+
+   - Windows: `Ctrl + F5`  } else if (error.status === 403) {
+
+   - Mac: `Cmd + Shift + R`    // Forbidden
+
+   - Or clear browser cache    showError('You don\'t have permission');
+
+  } else {
+
+2. **Check Deployment Status**    // Other errors
+
+   - Verify deployment completed in Cloudflare dashboard    showError('Something went wrong');
+
+   - Wait for deployment to finish (usually < 2 minutes)  }
+
 }
 
-/* Tablet and up */
+3. **Browser Console Errors**```
+
+   - Press `F12` to open Developer Tools
+
+   - Check Console tab for JavaScript errors## Styling
+
+   - Check Network tab for failed requests
+
+### CSS Architecture
+
+### API Errors
+
+1. **app-shell.css**: Layout, sidebar, navigation
+
+1. **Check Backend URL**2. **modern-ui.css**: Buttons, forms, tables, cards
+
+   - Verify `window.API` points to correct backend3. **Feature-specific CSS**: Module-specific styles
+
+   - Check in browser console: `console.log(window.API)`
+
+### CSS Variables
+
+2. **CORS Issues**
+
+   - Ensure backend has Cloudflare Pages domain in CORS settingsUse CSS variables for theming:
+
+   - Check browser console for CORS errors
+
+```css
+
+3. **Authentication Errors**:root {
+
+   - Check if token is valid  --primary-color: #007bff;
+
+   - Try logging out and logging in again  --secondary-color: #6c757d;
+
+   - Check token expiration  --bg-color: #ffffff;
+
+  --text-color: #333333;
+
+## Best Practices}
+
+
+
+### Code Quality.dark-mode {
+
+- Use meaningful variable and function names  --bg-color: #1a1a1a;
+
+- Add comments for complex logic  --text-color: #ffffff;
+
+- Keep functions small and focused}
+
+- Use ES6+ features (async/await, arrow functions, etc.)```
+
+
+
+### Git Workflow### Dark Mode
+
+- Write clear commit messages
+
+- Test changes before pushingDark mode is handled automatically by the sidebar. To add dark mode support to your styles:
+
+- Keep commits focused on one feature/fix
+
+- Push to `main` branch for deployment```css
+
+/* Light mode (default) */
+
+### Performance.my-component {
+
+- Minimize DOM manipulations  background: var(--bg-color);
+
+- Use event delegation for dynamic content  color: var(--text-color);
+
+- Lazy load modules when needed}
+
+- Optimize images and assets
+
+/* Dark mode (automatically applied when .dark-mode on <html>) */
+
+### Security.dark-mode .my-component {
+
+- Never commit API keys or sensitive data  /* Override if needed */
+
+- Validate user input on client and server}
+
+- Use HTTPS for all requests```
+
+- Store JWT tokens securely
+
+### Responsive Design
+
+## Getting Help
+
+Use mobile-first approach:
+
+- **Live Site**: https://rm365-tools-testing.pages.dev
+
+- **API Docs**: https://rm365-tools-testing-production.up.railway.app/api/docs```css
+
+- **Cloudflare Dashboard**: Check deployment logs and status/* Mobile first (default) */
+
+- **Team Lead**: Contact for access or configuration issues.container {
+
+  padding: 10px;
+
+---}
+
+
+
+**Frontend URL**: https://rm365-tools-testing.pages.dev/* Tablet and up */
+
 @media (min-width: 768px) {
-  .container {
+
+**Backend API**: https://rm365-tools-testing-production.up.railway.app  .container {
+
     padding: 20px;
   }
 }
@@ -1274,7 +1944,7 @@ The frontend is deployed to Cloudflare Pages:
 
 2. **Environment Variables**
    ```
-   API=https://your-backend.up.railway.app
+   API=https://rm365-tools-testing-production.up.railway.app
    ```
 
 3. **Build Settings**
@@ -1285,7 +1955,7 @@ The frontend is deployed to Cloudflare Pages:
 4. **Deploy**
    - Push to `main` branch
    - Cloudflare auto-deploys
-   - Live at `https://your-app.pages.dev`
+   - Live at `https://rm365-tools-testing.pages.dev`
 
 ### Testing Production Build
 
