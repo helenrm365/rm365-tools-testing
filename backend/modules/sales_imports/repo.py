@@ -47,8 +47,10 @@ class SalesImportsRepo:
             logger.warning(f"Duplicate check failed for {region}: {e}")
             return order_numbers
         finally:
-            cursor.close()
-            conn.close()
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
  
     def get_connection(self):
         """Get PostgreSQL connection to Products database"""
@@ -186,8 +188,10 @@ class SalesImportsRepo:
             logger.error(f"Database error in init_tables: {e}")
             raise
         finally:
-            cursor.close()
-            conn.close()
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
  
     def get_uk_sales_data(self, limit: int = 100, offset: int = 0, search: str = "") -> Tuple[List[Dict[str, Any]], int]:
         """Get UK sales data with pagination and search"""
@@ -244,8 +248,10 @@ class SalesImportsRepo:
             logger.error(f"Database error in get_uk_sales_data: {e}")
             raise
         finally:
-            cursor.close()
-            conn.close()
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
  
     def save_uk_sales_data(self, data: Dict[str, Any]) -> int:
         """Save UK sales data to the database"""
@@ -278,22 +284,27 @@ class SalesImportsRepo:
             logger.error(f"Database error in save_uk_sales_data: {e}")
             raise
         finally:
-            cursor.close()
-            conn.close()
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
  
     def bulk_insert_uk_sales_data(self, data_list: List[Dict[str, Any]]) -> int:
         """Bulk insert UK sales data for better performance"""
         # Ensure table exists before attempting to save
         self._ensure_table_exists()
+
+         # Deduplicate by order_number  
+        new_orders = set(self.filter_existing_orders('uk', [i['order_number'] for i in data_list]))
+        filtered = [i for i in data_list if i['order_number'] in new_orders]
+        if not filtered:
+            return 0
        
-        conn = self.get_connection()
+        conn = None
+        cursor = None
+        
         try:
-            # Deduplicate by order_number  
-            new_orders = set(self.filter_existing_orders('uk', [i['order_number'] for i in data_list]))
-            filtered = [i for i in data_list if i['order_number'] in new_orders]
-            if not filtered:
-                return 0
-       
+            conn = self.get_connection()
             cursor = conn.cursor()
             values = [
                 (
@@ -327,21 +338,28 @@ class SalesImportsRepo:
             logger.error(f"Database error in bulk_insert_uk_sales_data: {e}")
             raise
         finally:
-            cursor.close()
-            conn.close()
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
    
     def bulk_insert_fr_sales_data(self, data_list: List[Dict[str, Any]]) -> int:
         """Bulk insert FR sales data for better performance"""
         # Ensure table exists before attempting to save
         self._ensure_table_exists()
-       
-        conn = self.get_connection()
-        try:
-              # Deduplicate by order_number  
-            new_orders = set(self.filter_existing_orders('fr', [i['order_number'] for i in data_list]))
-            filtered = [i for i in data_list if i['order_number'] in new_orders]
-            if not filtered:
+        
+         # Deduplicate by order_number  
+        new_orders = set(self.filter_existing_orders('fr', [i['order_number'] for i in data_list]))
+        filtered = [i for i in data_list if i['order_number'] in new_orders]
+        if not filtered:
                 return 0
+       
+        conn = None
+        cursor = None
+ 
+        try:
+             
+            conn = self.get_connection()
             cursor = conn.cursor()
            
             values = [
@@ -376,21 +394,28 @@ class SalesImportsRepo:
             logger.error(f"Database error in bulk_insert_fr_sales_data: {e}")
             raise
         finally:
-            cursor.close()
-            conn.close()
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
  
     def bulk_insert_nl_sales_data(self, data_list: List[Dict[str, Any]]) -> int:
         """Bulk insert NL sales data for better performance"""
         # Ensure table exists before attempting to save
         self._ensure_table_exists()
-       
-        conn = self.get_connection()
+        
+        # Deduplicate by order_number  
+        new_orders = set(self.filter_existing_orders('nl', [i['order_number'] for i in data_list]))
+        filtered = [i for i in data_list if i['order_number'] in new_orders]
+        if not filtered:
+             return 0
+        
+        conn = None
+        cursor = None
+        
         try:
-              # Deduplicate by order_number  
-            new_orders = set(self.filter_existing_orders('nl', [i['order_number'] for i in data_list]))
-            filtered = [i for i in data_list if i['order_number'] in new_orders]
-            if not filtered:
-                return 0
+            
+            conn = self.get_connection()
             cursor = conn.cursor()
            
             values = [
@@ -425,8 +450,10 @@ class SalesImportsRepo:
             logger.error(f"Database error in bulk_insert_nl_sales_data: {e}")
             raise
         finally:
-            cursor.close()
-            conn.close()
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
  
     def delete_uk_sales_data(self, record_id: int) -> bool:
         """Delete a UK sales data record"""
@@ -446,8 +473,10 @@ class SalesImportsRepo:
             logger.error(f"Database error in delete_uk_sales_data: {e}")
             raise
         finally:
-            cursor.close()
-            conn.close()
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
  
     def get_uk_sales_stats(self) -> Dict[str, Any]:
         """Get statistics for UK sales data"""
@@ -485,8 +514,10 @@ class SalesImportsRepo:
                 'unique_products': 0
             }
         finally:
-            cursor.close()
-            conn.close()
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
  
     def save_import_history(self, history_data: Dict[str, Any]) -> int:
         """Save import history record"""
