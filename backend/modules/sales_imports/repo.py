@@ -4,20 +4,20 @@ from datetime import datetime
 import psycopg2
 import psycopg2.extras
 import logging
-
+ 
 from core.db import get_products_connection
-
+ 
 logger = logging.getLogger(__name__)
-
-
+ 
+ 
 class SalesImportsRepo:
     def __init__(self):
         self._table_checked = False
-
+ 
     def get_connection(self):
         """Get PostgreSQL connection to Products database"""
         return get_products_connection()
-
+ 
     def _ensure_table_exists(self) -> None:
         """Ensure the table exists before querying (only checks once per instance)"""
         if self._table_checked:
@@ -30,9 +30,9 @@ class SalesImportsRepo:
             logger.warning(f"Could not ensure table exists: {e}")
             # Still mark as checked to avoid repeated attempts
             self._table_checked = True
-
+ 
     def init_tables(self) -> None:
-        """Initialize uk_sales_data table in PostgreSQL"""
+        """Initialize sales_data tables (UK, FR, NL) and indexes in PostgreSQL"""
         conn = self.get_connection()
         try:
             cursor = conn.cursor()
@@ -53,27 +53,97 @@ class SalesImportsRepo:
             """)
             
             cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_uk_sales_order_number 
+                CREATE INDEX IF NOT EXISTS idx_uk_sales_order_number
                 ON uk_sales_data(order_number)
             """)
             
             cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_uk_sales_sku 
+                CREATE INDEX IF NOT EXISTS idx_uk_sales_sku
                 ON uk_sales_data(sku)
             """)
             
             cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_uk_sales_created_at 
+                CREATE INDEX IF NOT EXISTS idx_uk_sales_created_at
                 ON uk_sales_data(created_at)
             """)
             
             cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_uk_sales_status 
+                CREATE INDEX IF NOT EXISTS idx_uk_sales_status
                 ON uk_sales_data(status)
+            """)
+ 
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS fr_sales_data (
+                    id SERIAL PRIMARY KEY,
+                    order_number VARCHAR(255) NOT NULL,
+                    created_at TIMESTAMP NOT NULL,
+                    sku VARCHAR(255) NOT NULL,
+                    name TEXT NOT NULL,
+                    qty INTEGER NOT NULL DEFAULT 1,
+                    price NUMERIC(10, 2) NOT NULL DEFAULT 0.0,
+                    status VARCHAR(100),
+                    imported_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+ 
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_fr_sales_order_number
+                ON fr_sales_data(order_number)
+            """)
+            
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_fr_sales_sku
+                ON fr_sales_data(sku)
+            """)
+            
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_fr_sales_created_at
+                ON fr_sales_data(created_at)
+            """)
+            
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_fr_sales_status
+                ON fr_sales_data(status)
+            """)
+ 
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS nl_sales_data (
+                    id SERIAL PRIMARY KEY,
+                    order_number VARCHAR(255) NOT NULL,
+                    created_at TIMESTAMP NOT NULL,
+                    sku VARCHAR(255) NOT NULL,
+                    name TEXT NOT NULL,
+                    qty INTEGER NOT NULL DEFAULT 1,
+                    price NUMERIC(10, 2) NOT NULL DEFAULT 0.0,
+                    status VARCHAR(100),
+                    imported_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+ 
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_nl_sales_order_number
+                ON nl_sales_data(order_number)
+            """)
+            
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_nl_sales_sku
+                ON nl_sales_data(sku)
+            """)
+            
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_nl_sales_created_at
+                ON nl_sales_data(created_at)
+            """)
+            
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_nl_sales_status
+                ON nl_sales_data(status)
             """)
             
             conn.commit()
-            logger.info("UK sales data table initialized successfully")
+            logger.info(" The respective sales data table has initialized successfully")
             
         except psycopg2.Error as e:
             conn.rollback()
@@ -82,7 +152,7 @@ class SalesImportsRepo:
         finally:
             cursor.close()
             conn.close()
-
+ 
     def get_uk_sales_data(self, limit: int = 100, offset: int = 0, search: str = "") -> Tuple[List[Dict[str, Any]], int]:
         """Get UK sales data with pagination and search"""
         # Try to ensure table exists
@@ -101,8 +171,8 @@ class SalesImportsRepo:
             params = []
             if search:
                 search_condition = """
-                    WHERE order_number ILIKE %s 
-                    OR sku ILIKE %s 
+                    WHERE order_number ILIKE %s
+                    OR sku ILIKE %s
                     OR name ILIKE %s
                     OR status ILIKE %s
                 """
@@ -140,7 +210,7 @@ class SalesImportsRepo:
         finally:
             cursor.close()
             conn.close()
-
+ 
     def save_uk_sales_data(self, data: Dict[str, Any]) -> int:
         """Save UK sales data to the database"""
         # Ensure table exists before attempting to save
@@ -150,7 +220,7 @@ class SalesImportsRepo:
         try:
             cursor = conn.cursor()
             cursor.execute("""
-                INSERT INTO uk_sales_data 
+                INSERT INTO uk_sales_data
                 (order_number, created_at, sku, name, qty, price, status)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
@@ -200,7 +270,7 @@ class SalesImportsRepo:
             psycopg2.extras.execute_batch(
                 cursor,
                 """
-                INSERT INTO uk_sales_data 
+                INSERT INTO uk_sales_data
                 (order_number, created_at, sku, name, qty, price, status)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
                 """,
@@ -218,7 +288,95 @@ class SalesImportsRepo:
         finally:
             cursor.close()
             conn.close()
-
+    
+    def bulk_insert_fr_sales_data(self, data_list: List[Dict[str, Any]]) -> int:
+        """Bulk insert FR sales data for better performance"""
+        # Ensure table exists before attempting to save
+        self._ensure_table_exists()
+        
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            
+            values = [
+                (
+                    item['order_number'],
+                    item['created_at'],
+                    item['sku'],
+                    item['name'],
+                    item['qty'],
+                    item['price'],
+                    item.get('status', '')
+                )
+                for item in data_list
+            ]
+            
+            psycopg2.extras.execute_batch(
+                cursor,
+                """
+                INSERT INTO fr_sales_data
+                (order_number, created_at, sku, name, qty, price, status)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                """,
+                values,
+                page_size=100
+            )
+            
+            conn.commit()
+            return len(values)
+            
+        except psycopg2.Error as e:
+            conn.rollback()
+            logger.error(f"Database error in bulk_insert_fr_sales_data: {e}")
+            raise
+        finally:
+            cursor.close()
+            conn.close()
+ 
+    def bulk_insert_nl_sales_data(self, data_list: List[Dict[str, Any]]) -> int:
+        """Bulk insert NL sales data for better performance"""
+        # Ensure table exists before attempting to save
+        self._ensure_table_exists()
+        
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            
+            values = [
+                (
+                    item['order_number'],
+                    item['created_at'],
+                    item['sku'],
+                    item['name'],
+                    item['qty'],
+                    item['price'],
+                    item.get('status', '')
+                )
+                for item in data_list
+            ]
+            
+            psycopg2.extras.execute_batch(
+                cursor,
+                """
+                INSERT INTO nl_sales_data
+                (order_number, created_at, sku, name, qty, price, status)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                """,
+                values,
+                page_size=100
+            )
+            
+            conn.commit()
+            return len(values)
+            
+        except psycopg2.Error as e:
+            conn.rollback()
+            logger.error(f"Database error in bulk_insert_nl_sales_data: {e}")
+            raise
+        finally:
+            cursor.close()
+            conn.close()
+ 
     def delete_uk_sales_data(self, record_id: int) -> bool:
         """Delete a UK sales data record"""
         # Ensure table exists before attempting to delete
@@ -239,7 +397,7 @@ class SalesImportsRepo:
         finally:
             cursor.close()
             conn.close()
-
+ 
     def get_uk_sales_stats(self) -> Dict[str, Any]:
         """Get statistics for UK sales data"""
         # Ensure table exists before attempting to query
@@ -250,7 +408,7 @@ class SalesImportsRepo:
             cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
             
             cursor.execute("""
-                SELECT 
+                SELECT
                     COUNT(*) as total_records,
                     COALESCE(SUM(qty), 0) as total_quantity,
                     COALESCE(SUM(qty * price), 0) as total_value,
@@ -278,13 +436,13 @@ class SalesImportsRepo:
         finally:
             cursor.close()
             conn.close()
-
+ 
     def save_import_history(self, history_data: Dict[str, Any]) -> int:
         """Save import history record"""
         # For now, just log it - we can add a proper history table later
         logger.info(f"Import history: {history_data}")
         return 1  # Return a dummy ID
-
+ 
     def get_import_history(self, limit: int = 20) -> List[Dict[str, Any]]:
         """Get import history - placeholder for now"""
         # This would query an import_history table if it existed
