@@ -124,9 +124,17 @@ def import_csv_to_uk_sales(csv_file_path):
                     
                     # Insert in batches of 100
                     if len(batch) >= 100:
-                        repo.bulk_insert_uk_sales_data(batch)
-                        imported_count += len(batch)
-                        print(f"Imported {imported_count} records...")
+                        
+                        inserted = repo.bulk_insert_uk_sales_data(batch)
+                        skipped = len(batch) - inserted
+
+                        if inserted:
+                            print(f"Imported {inserted} new records this batch.")
+                            imported_count += inserted
+                        if skipped:
+                            print(f"Skipped {skipped} duplicate records this batch.")
+                            error_count += skipped
+                        
                         batch = []
                 
                 except Exception as e:
@@ -136,8 +144,15 @@ def import_csv_to_uk_sales(csv_file_path):
             
             # Insert remaining records
             if batch:
-                repo.bulk_insert_uk_sales_data(batch)
-                imported_count += len(batch)
+                inserted = repo.bulk_insert_uk_sales_data(batch)
+                skipped = len(batch) - inserted
+
+                if inserted:
+                    print(f"Imported {inserted} new records in final batch.")
+                    imported_count += inserted
+                if skipped:
+                    print(f"Skipped {skipped} duplicate records in final batch.")
+                    error_count += skipped
             
             print(f"\n=== Import Complete ===")
             print(f"Successfully imported: {imported_count} records")
