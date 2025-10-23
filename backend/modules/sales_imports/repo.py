@@ -518,7 +518,51 @@ class SalesImportsRepo:
                 cursor.close()
             if conn:
                 conn.close()
- 
+
+    def update_condensed_sales(self,region: str):
+        """Update condensed sales summary for the past 6 months for a given region"""
+        condensed_tables = {
+            'uk': 'uk_condensed_sales',
+            'fr': 'fr_condensed_sales',
+            'nl': 'nl_condensed_sales'
+        }
+        r = region.lower()
+        if r not in region_tables or r not in condensed_tables:
+            raise ValueError(f"Invalid region: {region}.  Must be one of {', '.join(region_tables)}")
+
+        source_table = region_tables[r]
+        target_table = condensed_tables[r]
+
+        conn = None
+        cursor = None
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            cursor.execute(f"TRUNCATE TABLE {target_table}")
+            cursor.execute(f"""
+                INSERT INTO {target_table} (sku, product_name, total_qty, start_date, end_date)
+                SELECT
+                    sku,
+                    MIN(name) AS product_name,
+                    SUM(qty) AS total_qty,
+                    MIN(created_at)::DATE AS start_date,
+                    MAX(created_at)::DATE AS end_date
+                FROM {source_table}
+                WHERE created_at >= CURRENT_DATE - INTERVAL '6 months'
+                GROUP BY sku;
+                """)
+            conn.commit()
+            logger.info(f"{r.upper()} condensed sales updated.")
+        except psycopg2.Error as e:
+            conn.rollback()
+            logger.error(f"Error updating condensed sales for {r.upper()}: {e}")
+            raise
+        finally:
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
+
     def save_import_history(self, history_data: Dict[str, Any]) -> int:
         """Save import history record"""
         # For now, just log it - we can add a proper history table later
