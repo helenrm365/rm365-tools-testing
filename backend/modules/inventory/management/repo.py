@@ -5,7 +5,7 @@ import psycopg2
 import logging
 
 from common.deps import pg_conn
-from core.db import get_inventory_log_connection
+from core.db import get_inventory_log_connection, get_products_connection
 
 logger = logging.getLogger(__name__)
 
@@ -107,6 +107,29 @@ class InventoryManagementRepo:
         finally:
             conn.close()
 
+    def get_condensed_sales(self, region: str) -> Dict[str, int]:
+        """Fetch {sku: total_qty} from condensed sales table for given region."""
+        table_map = {
+            "uk": "uk_condensed_sales",
+            "fr": "fr_condensed_sales",
+            "nl": "nl_condensed_sales"
+        }
+        if region not in table_map:
+            raise ValueError(f"Invalid region: {region}")
+
+        conn = get_products_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(f"""
+                SELECT sku, total_qty
+                FROM {table_map[region]}
+                WHERE sku IS NOT NULL AND sku != ''
+            """)
+            rows = cursor.fetchall()
+            return {sku: int(qty or 0) for sku, qty in rows}
+        finally:
+            conn.close()
+
     def init_tables(self) -> None:
         """Initialize inventory metadata tables"""
         conn = self.get_metadata_connection()
@@ -146,3 +169,52 @@ class InventoryManagementRepo:
             raise
         finally:
             conn.close()
+
+    def update_metadata_with_6m_sales(self) -> int:
+        """
+        Fetch condensed sales from all 3 regions, merge FR+NL,
+        and update inventory_metadata (by item_id) with UK and FR 6M totals.
+        """
+        uk_sales = self.get_condensed_sales("uk")
+        fr_sales = self.get_condensed_sales("fr")
+        nl_sales = self.get_condensed_sales("nl")
+
+        # Merge FR and NL sales
+        combined_fr_sales = {}
+        for sku, qty in fr_sales.items():
+            combined_fr_sales[sku] = qty
+        for sku, qty in nl_sales.items():
+            combined_fr_sales[sku] = combined_fr_sales.get(sku, 0) + qty
+
+        conn = self.get_metadata_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT item_id FROM inventory_metadata")
+            rows = cursor.fetchall()
+
+            updated = 0
+            for (item_id,) in rows:
+                uk_qty = uk_sales.get(item_id, 0)
+                fr_qty = combined_fr_sales.get(item_id, 0)
+
+                cursor.execute("""
+                               UPDATE inventory_metadata
+                               SET uk_6m_data = %s,
+                                   fr_6m_data = %s,
+                                   updated_at = CURRENT_TIMESTAMP
+                               WHERE item_id = %s
+                               """, (str(uk_qty), str(fr_qty), item_id))
+                updated += 1
+
+            conn.commit()
+            logger.info(f"✅ Updated {updated} inventory_metadata records with 6M sales data.")
+            return updated
+
+        except Exception as e:
+            conn.rollback()
+            logger.error(f"❌ Failed to update inventory metadata with 6M sales: {e}")
+            raise
+
+        finally:
+            conn.close()
+
