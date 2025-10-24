@@ -53,6 +53,12 @@ def save_inventory_metadata(body: InventoryMetadataCreateIn, user=Depends(get_cu
         logger.error(f"Error saving metadata: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.post("/update-sales")
+def update_sales_data():
+    service = InventoryManagementService()
+    count = service.update_metadata_with_6m_sales_from_condensed()
+    return {"updated": count}
+
 @router.patch("/metadata/{item_id}")
 def update_inventory_metadata(
     item_id: str, 
