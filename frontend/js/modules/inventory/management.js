@@ -656,6 +656,31 @@ function closeAllDropdowns() {
   getBackdrop().classList.remove('show');
 }
 
+// Sync sales data button handler
+document.getElementById('syncSalesBtn')?.addEventListener('click',async() =>{
+    const btn = document.getElementById('syncSalesBtn');
+    btn.disabled = true;
+    btn.innerText = 'Syncing..';
+    try{
+        const res = await post('/api/v1/inventory/management/sync-sales-data', {
+            dry_run: false // or true if testing
+        });
+        if (res && res.status === 'success'){
+            const updated = res.stats?.updated_records ?? 'unknown';
+            alert(`Sync complete: ${updated} records updated`);
+        } else {
+            const errorDetail = res?.detail || 'No error details returned.'; //
+            alert(`Sync failed: ${errorDetail}`);
+        }
+    } catch(err) {
+        console.error('[Sync Sales Data] Failed:', err)
+        alert('Sync failed:' + err.message);
+    }   finally {
+        btn.disabled = false;
+        btn.innerText = 'Sync Sales Data';
+    }
+});
+
 export function cleanup() {
   console.log('[Inventory Management] Cleaning up');
   
