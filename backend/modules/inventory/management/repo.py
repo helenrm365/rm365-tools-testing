@@ -5,7 +5,7 @@ import psycopg2
 import logging
 
 from common.deps import pg_conn
-from core.db import get_inventory_log_connection
+from core.db import get_inventory_log_connection, get_products_connection
 
 logger = logging.getLogger(__name__)
 
@@ -107,6 +107,29 @@ class InventoryManagementRepo:
         finally:
             conn.close()
 
+    def get_condensed_sales(self, region: str) -> Dict[str, int]:
+        """Fetch {sku: total_qty} from condensed sales table for given region."""
+        table_map = {
+            "uk": "uk_condensed_sales",
+            "fr": "fr_condensed_sales",
+            "nl": "nl_condensed_sales"
+        }
+        if region not in table_map:
+            raise ValueError(f"Invalid region: {region}")
+
+        conn = get_products_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(f"""
+                SELECT sku, total_qty
+                FROM {table_map[region]}
+                WHERE sku IS NOT NULL AND sku != ''
+            """)
+            rows = cursor.fetchall()
+            return {sku: int(qty or 0) for sku, qty in rows}
+        finally:
+            conn.close()
+
     def init_tables(self) -> None:
         """Initialize inventory metadata tables"""
         conn = self.get_metadata_connection()
@@ -146,3 +169,4 @@ class InventoryManagementRepo:
             raise
         finally:
             conn.close()
+

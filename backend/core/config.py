@@ -2,6 +2,8 @@ from pydantic_settings import BaseSettings
 from pydantic import AnyUrl
 from typing import List, Optional
 from pathlib import Path
+from dotenv import load_dotenv
+import os
 
 class Settings(BaseSettings):
     # CORS - Default settings for production (Railway + Cloudflare)
