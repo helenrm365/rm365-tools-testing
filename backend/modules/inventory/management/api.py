@@ -58,7 +58,7 @@ def save_inventory_metadata(body: InventoryMetadataCreateIn, user=Depends(get_cu
 @router.post("/sync-sales-data")
 async def sync_sales_data(
     dry_run: bool = False,
-    current_user: dict = Depends(get_current_user)
+    # current_user: dict = Depends(get_current_user) Testing
 ):
     """Sync 6 months of sales data to inventory_metadata"""
     try:
