@@ -8,6 +8,8 @@ from common.deps import get_current_user
 from common.dto import InventoryItemOut, InventoryMetadataRecord, LiveSyncResult
 from .schemas import InventoryMetadataCreateIn, InventoryMetadataUpdateIn, LiveSyncIn
 from .service import InventoryManagementService
+from .sales_sync import sync_sales_to_inventory_metadata
+from fastapi import HTTPException
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -53,11 +55,18 @@ def save_inventory_metadata(body: InventoryMetadataCreateIn, user=Depends(get_cu
         logger.error(f"Error saving metadata: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/update-sales")
-def update_sales_data():
-    service = InventoryManagementService()
-    count = service.update_metadata_with_6m_sales_from_condensed()
-    return {"updated": count}
+@router.post("/sync-sales-data")
+async def sync_sales_data(
+    dry_run: bool = True,
+    current_user: dict = Depends(get_current_user)
+):
+    """Sync 6 months of sales data to inventory_metadata"""
+    try:
+        stats = sync_sales_to_inventory_metadata(dry_run=dry_run)
+        return {"status": "success", "stats": stats}
+    except Exception as e:
+        logger.error(f"Sync failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.patch("/metadata/{item_id}")
 def update_inventory_metadata(

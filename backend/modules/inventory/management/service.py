@@ -215,67 +215,6 @@ class InventoryManagementService:
             logger.error(f"Error in live inventory sync: {e}")
             raise
 
-    def update_metadata_with_6m_sales(self) -> int:
-        """
-        Match SKUs from Zoho Inventory with condensed sales (UK + FR+NL)
-        and update inventory_metadata with 6 months totals.
-        """
-        try:
-            uk_sales = self.repo.get_condensed_sales("uk")
-            fr_sales = self.repo.get_condensed_sales("fr")
-            nl_sales = self.repo.get_condensed_sales("nl")
-
-            # Merge FR + NL sales
-            combined_fr_sales = {}
-            for sku, qty in fr_sales.items():
-                combined_fr_sales[sku] = qty
-            for sku, qty in nl_sales.items():
-                combined_fr_sales[sku] = combined_fr_sales.get(sku, 0) + qty
-
-            # Get Zoho items
-            zoho_items = self.get_zoho_inventory_items()
-            sku_to_item_id = {item['sku']: item['item_id'] for item in zoho_items if item.get('sku')}
-
-            updated = 0
-            for sku, item_id in sku_to_item_id.items():
-                uk_qty = uk_sales.get(sku, 0)
-                fr_qty = combined_fr_sales.get(sku, 0)
-
-                if uk_qty == 0 and fr_qty == 0:
-                    continue  # Skip if no recent sales
-
-                metadata = {
-                    "item_id": item_id,
-                    "uk_6m_data": str(uk_qty),
-                    "fr_6m_data": str(fr_qty)
-                }
-
-                try:
-                    self.repo.save_inventory_metadata(metadata)
-                    updated += 1
-                except Exception as e:
-                    logger.warning(f"Could not update metadata for SKU {sku}: {e}")
-
-            logger.info(f"✅ Successfully updated {updated} inventory metadata records with 6 months of sales data.")
-            return updated
-
-        except Exception as e:
-            logger.error(f"❌ Failed to update inventory metadata with 6 months sales: {e}")
-            raise
-
-    def update_metadata_with_6m_sales_from_condensed(self) -> int:
-        """
-        Calls the repo method to update inventory_metadata with sales from the past 6 months.
-        Returns the number of rows updated.
-        """
-        try:
-            updated_count = self.repo.update_metadata_with_6m_sales()
-            logger.info(f"✅ Metadata updated with 6M sales for {updated_count} records.")
-            return updated_count
-        except Exception as e:
-            logger.error(f"❌ Error updating metadata with 6M sales: {e}")
-            raise
-
     # Legacy methods for compatibility
     def list_items(self, *, limit: int = 100, search: str = "", low_stock_only: bool = False) -> List[Dict[str, Any]]:
         """Legacy method - returns Zoho items"""
