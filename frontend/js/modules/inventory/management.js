@@ -107,6 +107,9 @@ async function setupInventoryManagement() {
   setupTable();
   setupSearchAndFilters();
   bindGlobalHandlers();
+
+  // Auto sync
+    await initAutoSync();
 }
 
 async function loadInventoryData() {
