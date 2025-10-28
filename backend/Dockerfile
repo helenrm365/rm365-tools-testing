@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpcsclite-dev \
     pcscd \
     pcsc-tools \
+    python3-dev \
     pkg-config \
     libssl-dev\
     curl \
