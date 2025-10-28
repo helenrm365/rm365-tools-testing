@@ -656,30 +656,71 @@ function closeAllDropdowns() {
   getBackdrop().classList.remove('show');
 }
 
-// Sync sales data button handler
-document.getElementById('syncSalesBtn')?.addEventListener('click',async() =>{
-    const btn = document.getElementById('syncSalesBtn');
-    btn.disabled = true;
-    btn.innerText = 'Syncing..';
-    try{
-        const res = await post('/api/v1/inventory/management/sync-sales-data', {
-            dry_run: false // or true if testing
-        });
-        if (res && res.status === 'success'){
-            const updated = res.stats?.updated_records ?? 'unknown';
-            alert(`Sync complete: ${updated} records updated`);
-        } else {
-            const errorDetail = res?.detail || 'No error details returned.'; //
-            alert(`Sync failed: ${errorDetail}`);
-        }
-    } catch(err) {
-        console.error('[Sync Sales Data] Failed:', err)
-        alert('Sync failed:' + err.message);
-    }   finally {
-        btn.disabled = false;
-        btn.innerText = 'Sync Sales Data';
+// State management
+let isSyncing = false;
+
+/**
+* Unified sales sync function
+*/
+async function syncSalesData(showNotification = true) {
+  if (isSyncing) return;
+  const btn = document.getElementById('syncSalesBtn');
+  try {
+    isSyncing = true;
+    if (btn) {
+      btn.disabled = true;
+      btn.innerText = 'Syncing...';
     }
-});
+    const res = await post('/api/v1/inventory/management/sync-sales-data', {
+      dry_run: false
+    });
+    if (res && res.status === 'success') {
+      const updated = res.stats?.updated_records ?? 0;
+      console.log(`[Sync] Success: ${updated} records updated`);
+      if (showNotification) {
+        alert(`✅ Sync complete: ${updated} records updated`);
+      }
+
+      // Refresh table if available
+      if (typeof loadInventoryData === 'function') {
+        await loadInventoryData();
+        setupTable(); // Rebuild table with updated data
+      }
+    } else {
+      throw new Error(res?.detail || 'Sync failed');
+    }
+  } catch (err) {
+    console.error('[Sync] Failed:', err);
+    alert('❌ Sync failed: ' + err.message);
+  } finally {
+    isSyncing = false;
+    if (btn) {
+      btn.disabled = false;
+      btn.innerText = 'Sync Sales Data';
+    }
+  }
+}
+
+/**
+* Auto-sync on page load (but avoid repeat syncs via cooldown)
+*/
+async function initAutoSync() {
+  const lastSync = localStorage.getItem('lastSalesSync');
+  if (lastSync) {
+    const diffMins = (new Date() - new Date(lastSync)) / 60000;
+    if (diffMins < 5) {
+      console.log('[Sync] Skipping sync (recently synced)');
+      return;
+    }
+  }
+
+  console.log('[Sync] Running auto-sync...');
+  await syncSalesData(false); // false = don’t show alert
+  localStorage.setItem('lastSalesSync', new Date().toISOString());
+}
+
+// Attach to button
+document.getElementById('syncSalesBtn')?.addEventListener('click', () => syncSalesData(true));
 
 export function cleanup() {
   console.log('[Inventory Management] Cleaning up');
