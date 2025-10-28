@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpcsclite1 \
     libpcsclite-dev \
     pcscd \
-    pscs-tools \
+    pcsc-tools \
     pkg-config \
     libssl-dev\
     curl \
