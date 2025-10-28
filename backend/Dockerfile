@@ -11,6 +11,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpcsclite1 \
     libpcsclite-dev \
     pcscd \
+    pscs-tools \
+    pkg-config \
+    libssl-dev\
     curl \
  && rm -rf /var/lib/apt/lists/*
 
