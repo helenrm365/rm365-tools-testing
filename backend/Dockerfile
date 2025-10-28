@@ -11,10 +11,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpcsclite1 \
     libpcsclite-dev \
     pcscd \
-    pcsc-tools \
-    python3-dev \
-    pkg-config \
-    libssl-dev\
     curl \
  && rm -rf /var/lib/apt/lists/*
 
