@@ -36,9 +36,13 @@ def get_zoho_items_with_skus() -> Dict[str, str]:
             break
 
         for item in items:
+
             sku = item.get("sku", "").strip()
             item_id = item.get("item_id", "").strip()
+            status = item.get("status", "").lower() if item.get("status") else "unknown"
 
+            if sku == "ME008":
+                logger.info(f"[ZOHO DEBUG] Found ME008 → item_id={item_id}, status={status}")
             if sku and item_id:
                 sku_to_item_id[sku] = item_id
 
@@ -48,6 +52,7 @@ def get_zoho_items_with_skus() -> Dict[str, str]:
         page += 1
 
     logger.info(f"Fetched {len(sku_to_item_id)} items from Zoho")
+    logger.info(f"[CHECK] Final item_id for ME008: {sku_to_item_id.get('ME008')}")
     return sku_to_item_id
 
 
