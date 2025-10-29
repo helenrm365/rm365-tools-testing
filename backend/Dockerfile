@@ -8,12 +8,15 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # System deps (build + runtime for pyscard, psycopg2-binary is prebuilt)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
+    gcc \
+    g++ \
     libpcsclite1 \
     libpcsclite-dev \
     pcscd \
     swig \
+    pkg-config \
     curl \
- && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
 RUN useradd -m appuser
@@ -21,7 +24,8 @@ WORKDIR /app
 
 # Install Python deps
 COPY requirements.txt .
-RUN pip install -r requirements.txt
+RUN pip install --upgrade pip setuptools wheel && \
+    pip install -r requirements.txt
 
 # Copy app code
 COPY . .
