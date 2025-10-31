@@ -105,17 +105,31 @@ def sync_sales_to_inventory_metadata(dry_run: bool = False) -> Dict[str, any]:
         "unmatched_skus": [],
     }
 
+    # Fetch Zoho item map { sku: item_id}
     sku_to_item_id = get_zoho_items_with_skus()
     stats["total_zoho_items"] = len(sku_to_item_id)
 
+    # Fetch raw sales data
     uk_sales, fr_sales, nl_sales = get_regional_sales()
     combined_fr_sales = merge_fr_nl_sales(fr_sales, nl_sales)
+
+    #  Define SKU filter
+    def is_valid_sku(sku: str) -> bool:
+        if sku.endswith(("-SD", "-DP", "-NP", "-MV")):
+            return False
+        return True  # base SKUs and -MD are allowed
+
+    #  Filter SKUs
+    uk_sales = {sku: qty for sku, qty in uk_sales.items() if is_valid_sku(sku)}
+    combined_fr_sales = {sku: qty for sku, qty in combined_fr_sales.items() if is_valid_sku(sku)}
+
+    # Proceed with sync logic as before
+    all_sales_skus = set(uk_sales.keys()) | set(combined_fr_sales.keys())
 
     conn = get_inventory_log_connection()
 
     try:
         cursor = conn.cursor()
-        all_sales_skus = set(uk_sales.keys()) | set(combined_fr_sales.keys())
 
         for sku in all_sales_skus:
             if sku not in sku_to_item_id:
