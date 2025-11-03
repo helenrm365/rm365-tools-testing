@@ -11,6 +11,9 @@ from core.db import (
 from core.security import get_current_user as _get_current_user
 from core.pagination import get_page_params, PageParams  # re-export
 
+from sqlalchemy.orm import sessionmaker, Session
+
+
 # If you adopted the inline Zoho client (recommended)
 try:
     from modules._integrations.zoho.client import (
@@ -110,3 +113,20 @@ def ensure_csv(file: UploadFile):
 # Routers can: params: PageParams = Depends(get_page_params)
 PageParamsDep = PageParams
 GetPageParamsDep = get_page_params
+
+# ---------------------------
+# SQLAlchemy Session (for routers)
+# ---------------------------
+# Factory bound to LABELS_DB_URI (via core.db.get_sqlalchemy_engine)
+SessionLocal = sessionmaker(bind=get_sqlalchemy_engine(), autoflush=False, autocommit=False)
+
+def get_db() -> Generator[Session, None, None]:
+    """
+    FastAPI dependency that yields a SQLAlchemy Session.
+    Used by endpoints that query Postgres (e.g., /inventory/management/to-print).
+    """
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
