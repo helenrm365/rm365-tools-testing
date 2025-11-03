@@ -18,13 +18,32 @@ router = APIRouter()
 def _svc() -> InventoryManagementService:
     return InventoryManagementService()
 
+@router.get("/to-print")
+def labels_to_print(
+    user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Return label rows for active Magento products (discontinued ∈ {No, Temporarily OOS}).
+    Base/MD collapse + Zoho + 6M enrichment handled in repo.
+    """
+    try:
+        zoho_map = get_zoho_items_with_skus_full()  # sku -> (item_id, product_name)
+    except Exception as e:
+        # Friendly error in Swagger if Zoho isn't configured/reachable
+        raise HTTPException(
+            status_code=503,
+            detail=f"Zoho lookup failed (check ZC_* env vars / network): {e}"
+        )
+    repo = LabelsRepo()
+    return repo.get_labels_to_print(db, zoho_map)
 
 @router.get("/health")
 def inventory_management_health():
     return {"status": "Inventory management module ready"}
 
 
-# ---- Zoho Inventory Items  ----
+# ---- Zoho Inventory Items ----
 @router.get("/items", response_model=List[InventoryItemOut])
 def get_inventory_items(user=Depends(get_current_user)):
     """Get inventory items from Zoho Inventory API"""
