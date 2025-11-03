@@ -7,7 +7,7 @@ import logging
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from core.db import get_db_connection
+# from core.db import get_db_connection
 
 logger = logging.getLogger(__name__)
 log = logging.getLogger("labels")
@@ -19,6 +19,7 @@ class LabelsRepo:
 
     def get_sales_data(self, start_date: str, end_date: str, search: str = "") -> List[Dict[str, Any]]:
         """Get sales data for label generation"""
+        from core.db import get_db_connection
         conn = get_db_connection()
         try:
             cursor = conn.cursor()
@@ -60,6 +61,7 @@ class LabelsRepo:
 
     def get_recent_runs(self, limit: int = 10) -> List[Dict[str, Any]]:
         """Get recent label generation runs"""
+        from core.db import get_db_connection
         conn = get_db_connection()
         try:
             cursor = conn.cursor()
@@ -90,6 +92,7 @@ class LabelsRepo:
 
     def save_run_history(self, run_data: Dict[str, Any]) -> None:
         """Save label generation run to history"""
+        from core.db import get_db_connection
         conn = get_db_connection()
         try:
             cursor = conn.cursor()
@@ -115,6 +118,7 @@ class LabelsRepo:
 
     def init_tables(self) -> None:
         """Initialize label-related database tables"""
+        from core.db import get_db_connection
         conn = get_db_connection()
         try:
             cursor = conn.cursor()

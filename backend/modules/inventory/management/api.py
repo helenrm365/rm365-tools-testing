@@ -5,12 +5,11 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from common.deps import get_current_user
+from common.deps import get_current_user, get_db
 from common.dto import InventoryItemOut, InventoryMetadataRecord, LiveSyncResult
 from .schemas import InventoryMetadataCreateIn, InventoryMetadataUpdateIn, LiveSyncIn
 from .service import InventoryManagementService
 
-from core.db import get_db
 from modules.sales_imports.sales_sync import sync_sales_to_inventory_metadata
 
 
