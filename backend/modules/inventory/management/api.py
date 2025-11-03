@@ -24,7 +24,7 @@ def inventory_management_health():
     return {"status": "Inventory management module ready"}
 
 
-# ---- Zoho Inventory Items ----
+# ---- Zoho Inventory Items  ----
 @router.get("/items", response_model=List[InventoryItemOut])
 def get_inventory_items(user=Depends(get_current_user)):
     """Get inventory items from Zoho Inventory API"""
