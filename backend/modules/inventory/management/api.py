@@ -3,13 +3,11 @@ from typing import List
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
 
-from common.deps import get_current_user, get_db
+from common.deps import get_current_user, inventory_conn
 from common.dto import InventoryItemOut, InventoryMetadataRecord, LiveSyncResult
 from .schemas import InventoryMetadataCreateIn, InventoryMetadataUpdateIn, LiveSyncIn
 from .service import InventoryManagementService
-
 from .sales_sync import sync_sales_to_inventory_metadata
 
 
@@ -21,24 +19,22 @@ def _svc() -> InventoryManagementService:
     return InventoryManagementService()
 
 @router.get("/to-print")
-def labels_to_print(
-    user=Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
+def labels_to_print(user=Depends(get_current_user)):
     """
     Return label rows for active Magento products (discontinued ∈ {No, Temporarily OOS}).
     Base/MD collapse + Zoho + 6M enrichment handled in repo.
     """
     try:
-        from .sales_sync import get_zoho_items_with_skus_full
+        from .sales_sync import get_zoho_items_with_skus  # no “_full” version
         from modules.labels.repo import LabelsRepo
 
-        zoho_map = get_zoho_items_with_skus_full()  # sku -> (item_id, product_name)
-        return LabelsRepo().get_labels_to_print(db, zoho_map)
+        zoho_map = get_zoho_items_with_skus()  # sku -> item_id
+        with inventory_conn() as conn:
+            return LabelsRepo().get_labels_to_print_psycopg(conn, zoho_map)
     except Exception as e:
         raise HTTPException(
             status_code=503,
-            detail=f"Zoho lookup failed (check ZC_* env vars / network): {e}"
+            detail=f"Zoho lookup / DB failed: {e}"
         )
 
 @router.get("/health")
