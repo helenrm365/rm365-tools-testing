@@ -1,15 +1,21 @@
 from __future__ import annotations
-from typing import List
 import logging
+from typing import List
 
 from fastapi import APIRouter, Depends, Query, HTTPException
+from sqlalchemy.orm import Session
 
 from common.deps import get_current_user
 from common.dto import InventoryItemOut, InventoryMetadataRecord, LiveSyncResult
 from .schemas import InventoryMetadataCreateIn, InventoryMetadataUpdateIn, LiveSyncIn
 from .service import InventoryManagementService
-from .sales_sync import sync_sales_to_inventory_metadata
-from fastapi import HTTPException
+
+from core.db import get_db
+from modules.labels.repo import LabelsRepo
+from modules.sales_imports.sales_sync import (
+    sync_sales_to_inventory_metadata,
+    get_zoho_items_with_skus_full,
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -18,6 +24,17 @@ router = APIRouter()
 def _svc() -> InventoryManagementService:
     return InventoryManagementService()
 
+
+@router.get("/labels-to-print")
+def labels_to_print_via_inventory(
+    user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    try:
+        zoho_map = get_zoho_items_with_skus_full()
+    except Exception as e:
+        raise HTTPException(503, f"Zoho lookup failed: {e}")
+    return LabelsRepo().get_labels_to_print(db, zoho_map)
 
 @router.get("/health")
 def inventory_management_health():
