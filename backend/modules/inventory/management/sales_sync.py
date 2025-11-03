@@ -67,6 +67,41 @@ def get_zoho_items_with_skus() -> Dict[str, str]:
     logger.info(f"[CHECK] Final item_id for ME008: {sku_to_item_id.get('ME008')}")
     return sku_to_item_id
 
+def get_zoho_items_with_skus_full() -> Dict[str, Tuple[str, str]]:
+    """
+    Return map: { sku: (item_id, product_name) } from Zoho /items (paged).
+    """
+    sku_map: Dict[str, Tuple[str, str]] = {}
+    page = 1
+
+    while True:
+        logger.info(f"[FULL] Fetching Zoho items page {page}...")
+        url = f"{ZOHO_INVENTORY_BASE}/items"
+        headers = zoho_auth_header()
+        params = {"organization_id": ZOHO_ORG_ID, "page": page, "per_page": 200}
+
+        resp = requests.get(url, headers=headers, params=params, timeout=30)
+        resp.raise_for_status()
+        data = resp.json()
+
+        items = data.get("items", [])
+        if not items:
+            break
+
+        for item in items:
+            sku = (item.get("sku") or "").strip()
+            item_id = (item.get("item_id") or "").strip()
+            name = (item.get("name") or "").strip()
+            if sku and item_id:
+                sku_map[sku] = (item_id, name)
+
+        if not data.get("page_context", {}).get("has_more_page", False):
+            break
+        page += 1
+
+    logger.info(f"[FULL] Fetched {len(sku_map)} sku->(item_id,name) from Zoho")
+    return sku_map
+
 
 def get_regional_sales() -> Tuple[Dict[str, int], Dict[str, int], Dict[str, int]]:
     conn = get_products_connection()

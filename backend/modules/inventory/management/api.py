@@ -10,7 +10,7 @@ from common.dto import InventoryItemOut, InventoryMetadataRecord, LiveSyncResult
 from .schemas import InventoryMetadataCreateIn, InventoryMetadataUpdateIn, LiveSyncIn
 from .service import InventoryManagementService
 
-from modules.sales_imports.sales_sync import sync_sales_to_inventory_metadata
+from .sales_sync import sync_sales_to_inventory_metadata
 
 
 logger = logging.getLogger(__name__)
@@ -30,7 +30,7 @@ def labels_to_print(
     Base/MD collapse + Zoho + 6M enrichment handled in repo.
     """
     try:
-        from modules.sales_imports.sales_sync import get_zoho_items_with_skus_full
+        from .sales_sync import get_zoho_items_with_skus_full
         from modules.labels.repo import LabelsRepo
 
         zoho_map = get_zoho_items_with_skus_full()  # sku -> (item_id, product_name)
