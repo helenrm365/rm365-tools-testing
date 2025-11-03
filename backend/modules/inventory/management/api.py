@@ -1,15 +1,18 @@
 from __future__ import annotations
-from typing import List
 import logging
 
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
 
 from common.deps import get_current_user
-from common.dto import InventoryItemOut, InventoryMetadataRecord, LiveSyncResult
-from .schemas import InventoryMetadataCreateIn, InventoryMetadataUpdateIn, LiveSyncIn
-from .service import InventoryManagementService
-from .sales_sync import sync_sales_to_inventory_metadata
-from fastapi import HTTPException
+from core.db import get_db
+
+from modules.labels.repo import LabelsRepo
+from modules.sales_imports.sales_sync import (
+    sync_sales_to_inventory_metadata,
+    get_zoho_items_with_skus_full,
+)
+
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
