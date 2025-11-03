@@ -223,3 +223,5 @@ def sync_sales_to_inventory_metadata(dry_run: bool = False) -> Dict[str, any]:
 
     logger.info(f"✅ Sync complete: {stats['updated_records']} records updated")
     return stats
+
+
