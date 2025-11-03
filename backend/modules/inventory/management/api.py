@@ -1,17 +1,17 @@
 from __future__ import annotations
+from typing import List
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from common.deps import get_current_user
-from core.db import get_db
+from common.dto import InventoryItemOut, InventoryMetadataRecord, LiveSyncResult
+from .schemas import InventoryMetadataCreateIn, InventoryMetadataUpdateIn, LiveSyncIn
+from .service import InventoryManagementService
 
-from modules.labels.repo import LabelsRepo
-from modules.sales_imports.sales_sync import (
-    sync_sales_to_inventory_metadata,
-    get_zoho_items_with_skus_full,
-)
+from core.db import get_db
+from modules.sales_imports.sales_sync import sync_sales_to_inventory_metadata
 
 
 logger = logging.getLogger(__name__)
@@ -31,15 +31,16 @@ def labels_to_print(
     Base/MD collapse + Zoho + 6M enrichment handled in repo.
     """
     try:
+        from modules.sales_imports.sales_sync import get_zoho_items_with_skus_full
+        from modules.labels.repo import LabelsRepo
+
         zoho_map = get_zoho_items_with_skus_full()  # sku -> (item_id, product_name)
+        return LabelsRepo().get_labels_to_print(db, zoho_map)
     except Exception as e:
-        # Friendly error in Swagger if Zoho isn't configured/reachable
         raise HTTPException(
             status_code=503,
             detail=f"Zoho lookup failed (check ZC_* env vars / network): {e}"
         )
-    repo = LabelsRepo()
-    return repo.get_labels_to_print(db, zoho_map)
 
 @router.get("/health")
 def inventory_management_health():

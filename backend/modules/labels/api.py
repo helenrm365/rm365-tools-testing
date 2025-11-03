@@ -9,11 +9,6 @@ from common.deps import get_current_user
 from .schemas import LabelRequest, LabelDataResponse, LabelGenerateResponse, RecentRunsResponse
 from .service import LabelsService
 
-from sqlalchemy.orm import Session
-from core.db import get_db                   # SQLAlchemy session dep
-from modules.labels.repo import LabelsRepo
-from modules.sales_imports.sales_sync import get_zoho_items_with_skus_full
-
 
 router = APIRouter()
 

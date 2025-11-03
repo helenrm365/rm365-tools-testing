@@ -221,8 +221,6 @@ working_modules = [
     ('modules.sales_imports.api', 'router', f'{API}/sales-imports', ['sales-imports']),
     ('modules.inventory.adjustments.api', 'router', f'{API}/inventory/adjustments', ['inventory-adjustments']),
     ('modules.inventory.management.api', 'router', f'{API}/inventory/management', ['inventory-management']),
-    ('modules.labels.api', 'router', f'{API}/labels', ['labels']),
-
 ]
 
 for mod, attr, prefix, tags in working_modules:
