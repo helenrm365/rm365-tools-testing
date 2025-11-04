@@ -217,7 +217,7 @@ working_modules = [
     ('modules.roles.api', 'router', f'{API}/roles', ['roles']),
     ('modules.attendance.api', 'router', f'{API}/attendance', ['attendance']),
     ('modules.enrollment.api', 'router', f'{API}/enrollment', ['enrollment']),
-    # ('modules.labels.api', 'router', f'{API}/labels', ['labels']),
+    ('modules.labels.api', 'router', f'{API}/labels', ['labels']),
     ('modules.sales_imports.api', 'router', f'{API}/sales-imports', ['sales-imports']),
     ('modules.inventory.adjustments.api', 'router', f'{API}/inventory/adjustments', ['inventory-adjustments']),
     ('modules.inventory.management.api', 'router', f'{API}/inventory/management', ['inventory-management']),
