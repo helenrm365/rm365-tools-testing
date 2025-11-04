@@ -8,100 +8,19 @@ import requests
 
 from core.config import settings
 from core.db import get_products_connection, get_inventory_log_connection
-from modules._integrations.zoho.client import zoho_auth_header
+
+# ✅ Import Zoho helpers from client.py
+from modules._integrations.zoho.client import (
+    get_zoho_items_with_skus,
+    _resolve_zoho_item,
+    _base_of,
+   # zoho_auth_header,  # keep this if used elsewhere for requests
+)
 
 logger = logging.getLogger(__name__)
 
 ZOHO_INVENTORY_BASE = "https://www.zohoapis.eu/inventory/v1"
 ZOHO_ORG_ID = settings.ZC_ORG_ID
-
-def _base_of(sku: str) -> str:
-    return (sku or "").split("-")[0].strip()
-
-def _resolve_zoho_item(sku_to_item_id: Dict[str, str], base: str) -> tuple[Optional[str], Optional[str]]:
-    """Try base, then base-MD. Returns (sku_used, item_id)."""
-    md = f"{base}-MD"
-    if base in sku_to_item_id:
-        return base, sku_to_item_id[base]
-    if md in sku_to_item_id:
-        return md, sku_to_item_id[md]
-    return None, None
-
-
-def get_zoho_items_with_skus() -> Dict[str, str]:
-    sku_to_item_id = {}
-    page = 1
-
-    while True:
-        logger.info(f"Fetching Zoho items page {page}...")
-
-        url = f"{ZOHO_INVENTORY_BASE}/items"
-        headers = zoho_auth_header()
-        params = {"organization_id": ZOHO_ORG_ID, "page": page, "per_page": 200}
-
-        resp = requests.get(url, headers=headers, params=params, timeout=30)
-        resp.raise_for_status()
-        data = resp.json()
-
-        items = data.get("items", [])
-        if not items:
-            break
-
-        for item in items:
-
-            sku = item.get("sku", "").strip()
-            item_id = item.get("item_id", "").strip()
-            status = item.get("status", "").lower() if item.get("status") else "unknown"
-
-            if sku == "ME008":
-                logger.info(f"[ZOHO DEBUG] Found ME008 → item_id={item_id}, status={status}")
-            if sku and item_id:
-                sku_to_item_id[sku] = item_id
-
-        if not data.get("page_context", {}).get("has_more_page", False):
-            break
-
-        page += 1
-
-    logger.info(f"Fetched {len(sku_to_item_id)} items from Zoho")
-    logger.info(f"[CHECK] Final item_id for ME008: {sku_to_item_id.get('ME008')}")
-    return sku_to_item_id
-
-def get_zoho_items_with_skus_full() -> Dict[str, Tuple[str, str]]:
-    """
-    Return map: { sku: (item_id, product_name) } from Zoho /items (paged).
-    """
-    sku_map: Dict[str, Tuple[str, str]] = {}
-    page = 1
-
-    while True:
-        logger.info(f"[FULL] Fetching Zoho items page {page}...")
-        url = f"{ZOHO_INVENTORY_BASE}/items"
-        headers = zoho_auth_header()
-        params = {"organization_id": ZOHO_ORG_ID, "page": page, "per_page": 200}
-
-        resp = requests.get(url, headers=headers, params=params, timeout=30)
-        resp.raise_for_status()
-        data = resp.json()
-
-        items = data.get("items", [])
-        if not items:
-            break
-
-        for item in items:
-            sku = (item.get("sku") or "").strip()
-            item_id = (item.get("item_id") or "").strip()
-            name = (item.get("name") or "").strip()
-            if sku and item_id:
-                sku_map[sku] = (item_id, name)
-
-        if not data.get("page_context", {}).get("has_more_page", False):
-            break
-        page += 1
-
-    logger.info(f"[FULL] Fetched {len(sku_map)} sku->(item_id,name) from Zoho")
-    return sku_map
-
 
 def get_regional_sales() -> Tuple[Dict[str, int], Dict[str, int], Dict[str, int]]:
     conn = get_products_connection()
