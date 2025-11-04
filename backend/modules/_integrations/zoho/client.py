@@ -4,6 +4,8 @@ import requests
 from typing import Optional
 from core.config import settings
 
+from modules.inventory.management.sales_sync import get_zoho_items_with_skus
+
 # Config (env-driven). You already have these in core.config.Settings.
 CLIENT_ID: Optional[str] = settings.ZC_CLIENT_ID
 CLIENT_SECRET: Optional[str] = settings.ZC_CLIENT_SECRET
