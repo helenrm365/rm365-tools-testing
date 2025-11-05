@@ -74,8 +74,8 @@ async function loadSalesData() {
         }
         
         const endpoint = currentView === 'condensed'
-            ? `/api/sales-imports/nl-sales/condensed`
-            : `/api/sales-imports/nl-sales`;
+            ? `/api/v1/sales-imports/nl-sales/condensed`
+            : `/api/v1/sales-imports/nl-sales`;
         
         console.log('[NL Sales] Fetching from:', `${endpoint}?${params}`);
         const response = await get(`${endpoint}?${params}`);
@@ -227,11 +227,11 @@ async function handleUpload(event) {
     
     try {
         showToast('Uploading file...', 'info');
-        console.log('[NL Sales] Uploading file to:', '/api/sales-imports/upload?region=nl');
+        console.log('[NL Sales] Uploading file to:', '/api/v1/sales-imports/upload?region=nl');
         
         // Use raw http function for multipart form data
         // Don't set Content-Type header - browser will set it with boundary
-        const response = await http(`/api/sales-imports/upload?region=nl`, {
+        const response = await http(`/api/v1/sales-imports/upload?region=nl`, {
             method: 'POST',
             body: formData,
             headers: {} // Let browser set Content-Type with boundary

@@ -2,10 +2,13 @@
 // Configuration for different environments
 
 export const config = {
-  // Backend API URL - Temporarily using local backend while Railway deploys
+  // Backend API URL - Auto-detects environment
   API: window.API || 
-               (typeof process !== 'undefined' && process.env?.API) ||
-               'http://127.0.0.1:8000', // Local backend connecting to Railway database
+       (typeof process !== 'undefined' && process.env?.API) ||
+       // Production: Use Railway backend
+       (window.location.hostname.includes('pages.dev') || window.location.hostname.includes('cloudflare') 
+         ? 'https://rm365-tools-testing-production.up.railway.app'
+         : 'http://127.0.0.1:8000'), // Local development
   
   // Debug mode
   DEBUG: window.location.hostname === 'localhost' || 
