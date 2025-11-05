@@ -1,117 +1,250 @@
-<!-- Sales Imports History Page -->
-<div class="sales-imports-history">
-  <!-- Inner Tabs Navigation -->
-  <div class="inner-tabs" style="margin-bottom: 1.5rem; display: flex; gap: 0.5rem;">
-    <button class="modern-button" data-nav onclick="location.href='/sales-imports/uk-sales'">UK Sales Data</button>
-    <button class="modern-button" data-nav onclick="location.href='/sales-imports/upload'">Upload CSV</button>
-    <button class="modern-button active" data-nav onclick="location.href='/sales-imports/history'">Import History</button>
-  </div>
-
-  <h2>Import History</h2>
-  
-  <section class="card">
-    <div class="card-header">
-      <h3>📋 Import History & Data Management</h3>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Import History</title>
+</head>
+<body>
+    <div class="page-header">
+        <h1>Import History</h1>
+        <p>View all previous CSV imports and their details</p>
     </div>
-    <div class="card-body">
-      <p>View import history and manage your imported sales data.</p>
-      
-      <div class="history-controls modern-box" style="margin-bottom: 2rem;">
-        <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
-          <div>
-            <label class="form-label">Show:</label>
-            <select id="historyLimit" class="modern-select" data-enhance="c-select">
-              <option value="10">Last 10 imports</option>
-              <option value="25">Last 25 imports</option>
-              <option value="50">Last 50 imports</option>
+
+    <!-- Filters Section -->
+    <div class="filters-section">
+        <div class="filter-group">
+            <label for="regionFilter">Filter by Region:</label>
+            <select id="regionFilter" class="filter-select">
+                <option value="">All Regions</option>
+                <option value="uk">UK</option>
+                <option value="fr">France</option>
+                <option value="nl">Netherlands</option>
             </select>
-          </div>
-          <button id="refreshHistoryBtn" class="modern-button">
-            🔄 Refresh
-          </button>
+            <button id="refreshBtn" class="btn btn-secondary">🔄 Refresh</button>
         </div>
-      </div>
-
-      <div id="importHistoryTable" class="modern-box" style="margin-bottom: 2rem;">
-        <h4>📊 Import History</h4>
-        <div id="historyTableContent">
-          <p class="muted" style="text-align: center; padding: 2rem; color: #999;">Loading import history...</p>
-        </div>
-      </div>
-
-      <div class="orders-section modern-box">
-        <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 1rem;">
-          <h4>📦 Sales Orders</h4>
-          <div style="display: flex; gap: 1rem; align-items: center;">
-            <input type="text" id="ordersSearch" class="modern-input" placeholder="Search orders..." style="width: 200px;">
-            <button id="searchOrdersBtn" class="modern-button">🔍 Search</button>
-          </div>
-        </div>
-        
-        <div id="ordersTable">
-          <p class="muted" style="text-align: center; padding: 2rem; color: #999;">Loading orders...</p>
-        </div>
-        
-        <div style="display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap;">
-          <button id="loadMoreBtn" class="modern-button" style="background: linear-gradient(to bottom right, #007bff, #6610f2);">
-            📄 Load More
-          </button>
-          <button id="exportOrdersBtn" class="modern-button" style="background: linear-gradient(to bottom right, #28a745, #20c997);">
-            📤 Export Orders
-          </button>
-        </div>
-      </div>
     </div>
-  </section>
-</div>
 
-<!-- JavaScript functionality is handled by /js/modules/sales-imports/history.js -->
+    <!-- Import History Table -->
+    <div class="table-container">
+        <table id="historyTable">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Date/Time</th>
+                    <th>Filename</th>
+                    <th>Region</th>
+                    <th>Uploaded By</th>
+                    <th>Email</th>
+                    <th>Total Rows</th>
+                    <th>Imported</th>
+                    <th>Errors</th>
+                    <th>Status</th>
+                    <th>Details</th>
+                </tr>
+            </thead>
+            <tbody id="historyTableBody">
+                <tr>
+                    <td colspan="11" style="text-align: center;">Loading import history...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
 
-<style>
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.95rem;
-}
+    <!-- Pagination -->
+    <div class="pagination-container">
+        <button id="prevPageBtn" class="btn btn-secondary">Previous</button>
+        <span id="pageInfo">Page 1</span>
+        <button id="nextPageBtn" class="btn btn-secondary">Next</button>
+    </div>
 
-.data-table thead {
-  background: #f8f9fa;
-  border-bottom: 2px solid #dee2e6;
-}
+    <style>
+        .page-header {
+            margin-bottom: 2rem;
+        }
 
-.data-table th {
-  padding: 1rem;
-  text-align: left;
-  font-weight: 600;
-  color: #495057;
-  white-space: nowrap;
-}
+        .page-header h1 {
+            margin: 0 0 0.5rem 0;
+            color: #333;
+        }
 
-.data-table tbody tr {
-  border-bottom: 1px solid #dee2e6;
-  transition: background-color 0.2s;
-}
+        .page-header p {
+            margin: 0;
+            color: #666;
+        }
 
-.data-table tbody tr:hover {
-  background-color: #f8f9fa;
-}
+        .filters-section {
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
 
-.data-table td {
-  padding: 0.875rem 1rem;
-}
+        .filter-group {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
 
-.modern-select {
-  padding: 0.5rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background: white;
-  font-size: 0.95rem;
-}
+        .filter-group label {
+            font-weight: 500;
+            color: #333;
+        }
 
-.modern-input {
-  padding: 0.5rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 0.95rem;
-}
-</style>
+        .filter-select {
+            padding: 0.5rem 1rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.95rem;
+            background-color: white;
+            color: #333;
+            cursor: pointer;
+        }
+
+        .filter-select:focus {
+            outline: 2px solid #007bff;
+            border-color: #007bff;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        #historyTable {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        #historyTable th {
+            background-color: #f8f9fa;
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+            border-bottom: 2px solid #dee2e6;
+            white-space: nowrap;
+        }
+
+        #historyTable td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #dee2e6;
+            color: #333;
+        }
+
+        #historyTable tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .status-completed {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-partial {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .region-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        .region-uk {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+
+        .region-fr {
+            background: #f3e5f5;
+            color: #6a1b9a;
+        }
+
+        .region-nl {
+            background: #fff3e0;
+            color: #e65100;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: white;
+            color: #333;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.95rem;
+        }
+
+        .btn:hover {
+            background-color: #f8f9fa;
+            border-color: #007bff;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+            border-color: #6c757d;
+        }
+
+        .btn-secondary:hover {
+            background-color: #5a6268;
+            border-color: #545b62;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pagination-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        #pageInfo {
+            color: #333;
+            font-weight: 500;
+        }
+
+        .error-details-btn {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.85rem;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .error-details-btn:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</body>
+</html>

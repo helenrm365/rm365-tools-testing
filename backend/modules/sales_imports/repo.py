@@ -19,6 +19,7 @@ region_tables = {
 class SalesImportsRepo:
     def __init__(self):
         self._table_checked = False
+        self._sku_aliases_cache = None  # Cache for SKU aliases
  
     def resolve_table(self, region: str) -> str:
         """Resolve the sales data table name based on region"""
@@ -70,10 +71,63 @@ class SalesImportsRepo:
             self._table_checked = True
  
     def init_tables(self) -> None:
-        """Initialize sales_data tables (UK, FR, NL) and indexes in PostgreSQL"""
+        """Initialize sales_data tables (UK, FR, NL), import_history, and indexes in PostgreSQL"""
         conn = self.get_connection()
         try:
             cursor = conn.cursor()
+           
+            # Create import history table
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS sales_import_history (
+                    id SERIAL PRIMARY KEY,
+                    filename VARCHAR(500) NOT NULL,
+                    region VARCHAR(10) NOT NULL,
+                    uploaded_by VARCHAR(255) NOT NULL,
+                    user_email VARCHAR(255),
+                    total_rows INTEGER NOT NULL DEFAULT 0,
+                    imported_rows INTEGER NOT NULL DEFAULT 0,
+                    errors_count INTEGER NOT NULL DEFAULT 0,
+                    status VARCHAR(50) NOT NULL DEFAULT 'pending',
+                    error_details TEXT,
+                    imported_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_import_history_region
+                ON sales_import_history(region)
+            """)
+            
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_import_history_uploaded_by
+                ON sales_import_history(uploaded_by)
+            """)
+            
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_import_history_imported_at
+                ON sales_import_history(imported_at DESC)
+            """)
+            
+            # Create SKU aliases table
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS sku_aliases (
+                    id SERIAL PRIMARY KEY,
+                    alias_sku VARCHAR(255) NOT NULL UNIQUE,
+                    unified_sku VARCHAR(255) NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_sku_aliases_alias
+                ON sku_aliases(alias_sku)
+            """)
+            
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_sku_aliases_unified
+                ON sku_aliases(unified_sku)
+            """)
            
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS uk_sales_data (
@@ -179,6 +233,58 @@ class SalesImportsRepo:
                 CREATE INDEX IF NOT EXISTS idx_nl_sales_status
                 ON nl_sales_data(status)
             """)
+            
+            # Create condensed sales tables for 6-month aggregates
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS uk_condensed_sales (
+                    id SERIAL PRIMARY KEY,
+                    sku VARCHAR(255) NOT NULL,
+                    product_name TEXT,
+                    total_qty INTEGER NOT NULL DEFAULT 0,
+                    start_date DATE,
+                    end_date DATE,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_uk_condensed_sku
+                ON uk_condensed_sales(sku)
+            """)
+            
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS fr_condensed_sales (
+                    id SERIAL PRIMARY KEY,
+                    sku VARCHAR(255) NOT NULL,
+                    product_name TEXT,
+                    total_qty INTEGER NOT NULL DEFAULT 0,
+                    start_date DATE,
+                    end_date DATE,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_fr_condensed_sku
+                ON fr_condensed_sales(sku)
+            """)
+            
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS nl_condensed_sales (
+                    id SERIAL PRIMARY KEY,
+                    sku VARCHAR(255) NOT NULL,
+                    product_name TEXT,
+                    total_qty INTEGER NOT NULL DEFAULT 0,
+                    start_date DATE,
+                    end_date DATE,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_nl_condensed_sku
+                ON nl_condensed_sales(sku)
+            """)
            
             conn.commit()
             logger.info(" The respective sales data table has initialized successfully")
@@ -203,7 +309,7 @@ class SalesImportsRepo:
             cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
            
             base_query = """
-                SELECT id, order_number, created_at, sku, name, qty, price, status
+                SELECT id, order_number, created_at, sku, name, qty, price, status, imported_at, updated_at
                 FROM uk_sales_data
             """
             count_query = "SELECT COUNT(*) as count FROM uk_sales_data"
@@ -238,6 +344,10 @@ class SalesImportsRepo:
                 item = dict(row)
                 if isinstance(item.get('created_at'), datetime):
                     item['created_at'] = item['created_at'].isoformat()
+                if isinstance(item.get('imported_at'), datetime):
+                    item['imported_at'] = item['imported_at'].isoformat()
+                if isinstance(item.get('updated_at'), datetime):
+                    item['updated_at'] = item['updated_at'].isoformat()
                 if item.get('price'):
                     item['price'] = float(item['price'])
                 sales_data.append(item)
@@ -519,6 +629,72 @@ class SalesImportsRepo:
             if conn:
                 conn.close()
 
+    def get_condensed_sales_paginated(self, region: str, limit: int = 100, offset: int = 0, search: str = "") -> Tuple[List[Dict[str, Any]], int]:
+        """Get condensed sales data with pagination and search"""
+        condensed_tables = {
+            'uk': 'uk_condensed_sales',
+            'fr': 'fr_condensed_sales',
+            'nl': 'nl_condensed_sales'
+        }
+        
+        r = region.lower()
+        if r not in condensed_tables:
+            raise ValueError(f"Invalid region: {region}")
+        
+        table = condensed_tables[r]
+        self._ensure_table_exists()
+        
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            
+            # Build search condition
+            search_condition = ""
+            search_params = []
+            if search:
+                search_condition = "WHERE sku ILIKE %s OR product_name ILIKE %s"
+                search_params = [f"%{search}%", f"%{search}%"]
+            
+            # Get total count
+            count_query = f"SELECT COUNT(*) FROM {table} {search_condition}"
+            cursor.execute(count_query, search_params)
+            total = cursor.fetchone()['count']
+            
+            # Get paginated data
+            query = f"""
+                SELECT id, sku, product_name, total_qty, 
+                       start_date, end_date, updated_at
+                FROM {table}
+                {search_condition}
+                ORDER BY total_qty DESC, sku ASC
+                LIMIT %s OFFSET %s
+            """
+            cursor.execute(query, search_params + [limit, offset])
+            rows = cursor.fetchall()
+            
+            # Convert dates to ISO format strings
+            results = []
+            for row in rows:
+                row_dict = dict(row)
+                if row_dict.get('start_date'):
+                    row_dict['start_date'] = row_dict['start_date'].isoformat()
+                if row_dict.get('end_date'):
+                    row_dict['end_date'] = row_dict['end_date'].isoformat()
+                if row_dict.get('updated_at'):
+                    row_dict['updated_at'] = row_dict['updated_at'].isoformat()
+                results.append(row_dict)
+            
+            return results, total
+            
+        except psycopg2.Error as e:
+            logger.error(f"Database error in get_condensed_sales_paginated: {e}")
+            return [], 0
+        finally:
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
+
     def update_condensed_sales(self,region: str):
         """Update condensed sales summary for the past 6 months for a given region"""
         condensed_tables = {
@@ -565,12 +741,321 @@ class SalesImportsRepo:
 
     def save_import_history(self, history_data: Dict[str, Any]) -> int:
         """Save import history record"""
-        # For now, just log it - we can add a proper history table later
-        logger.info(f"Import history: {history_data}")
-        return 1  # Return a dummy ID
+        self._ensure_table_exists()
+        
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO sales_import_history
+                (filename, region, uploaded_by, user_email, total_rows, imported_rows, 
+                 errors_count, status, error_details)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING id
+            """, (
+                history_data.get('filename', ''),
+                history_data.get('region', 'uk'),
+                history_data.get('uploaded_by', 'Unknown'),
+                history_data.get('user_email', ''),
+                history_data.get('total_rows', 0),
+                history_data.get('imported_rows', 0),
+                history_data.get('errors_count', 0),
+                history_data.get('status', 'pending'),
+                str(history_data.get('errors', []))[:1000] if history_data.get('errors') else None
+            ))
+            history_id = cursor.fetchone()[0]
+            conn.commit()
+            logger.info(f"Import history saved: ID={history_id}, file={history_data.get('filename')}")
+            return history_id
+        except psycopg2.Error as e:
+            conn.rollback()
+            logger.error(f"Database error in save_import_history: {e}")
+            return 0  # Return 0 on error but don't fail the import
+        finally:
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
  
-    def get_import_history(self, limit: int = 20) -> List[Dict[str, Any]]:
-        """Get import history - placeholder for now"""
-        # This would query an import_history table if it existed
-        # For now, return empty list
-        return []
+    def get_import_history(self, limit: int = 100, offset: int = 0, region: str = "") -> Tuple[List[Dict[str, Any]], int]:
+        """Get import history with pagination and optional region filter"""
+        self._ensure_table_exists()
+        
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            
+            # Build query with optional region filter
+            where_clause = ""
+            params = []
+            if region and region.lower() in ['uk', 'fr', 'nl']:
+                where_clause = "WHERE region = %s"
+                params.append(region.lower())
+            
+            # Get total count
+            count_query = f"SELECT COUNT(*) FROM sales_import_history {where_clause}"
+            cursor.execute(count_query, params)
+            total = cursor.fetchone()['count']
+            
+            # Get paginated data
+            query = f"""
+                SELECT id, filename, region, uploaded_by, user_email,
+                       total_rows, imported_rows, errors_count, status,
+                       error_details, imported_at
+                FROM sales_import_history
+                {where_clause}
+                ORDER BY imported_at DESC
+                LIMIT %s OFFSET %s
+            """
+            cursor.execute(query, params + [limit, offset])
+            rows = cursor.fetchall()
+            
+            # Convert timestamps to ISO format strings
+            results = []
+            for row in rows:
+                row_dict = dict(row)
+                if row_dict.get('imported_at'):
+                    row_dict['imported_at'] = row_dict['imported_at'].isoformat()
+                results.append(row_dict)
+            
+            return results, total
+            
+        except psycopg2.Error as e:
+            logger.error(f"Database error in get_import_history: {e}")
+            return [], 0
+        finally:
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
+    
+    def get_sku_aliases(self) -> Dict[str, str]:
+        """
+        Get SKU aliases mapping: {alias_sku: unified_sku}
+        Results are cached for the lifetime of the repo instance.
+        """
+        if self._sku_aliases_cache is not None:
+            return self._sku_aliases_cache
+        
+        self._ensure_table_exists()
+        conn = self.get_connection()
+        
+        try:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT alias_sku, unified_sku
+                FROM sku_aliases
+                WHERE alias_sku IS NOT NULL 
+                  AND unified_sku IS NOT NULL
+                  AND alias_sku != ''
+                  AND unified_sku != ''
+            """)
+            
+            aliases = {}
+            for row in cursor.fetchall():
+                alias_sku = row[0].strip()
+                unified_sku = row[1].strip()
+                if alias_sku and unified_sku:
+                    aliases[alias_sku] = unified_sku
+            
+            self._sku_aliases_cache = aliases
+            logger.info(f"Loaded {len(aliases)} SKU aliases from database")
+            return aliases
+            
+        except psycopg2.Error as e:
+            logger.error(f"Database error loading SKU aliases: {e}")
+            self._sku_aliases_cache = {}
+            return {}
+        finally:
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
+    
+    def convert_sku_if_alias(self, sku: str) -> str:
+        """
+        Convert a SKU to its unified version if it's an alias.
+        Returns the unified SKU if found, otherwise returns the original SKU.
+        """
+        if not sku:
+            return sku
+        
+        aliases = self.get_sku_aliases()
+        sku_stripped = sku.strip()
+        
+        if sku_stripped in aliases:
+            unified = aliases[sku_stripped]
+            logger.debug(f"Converting alias SKU '{sku_stripped}' to unified SKU '{unified}'")
+            return unified
+        
+        return sku_stripped
+    
+    def save_sales_data(self, data: Dict[str, Any], region: str = 'uk') -> int:
+        """Save sales data to the specified region table with SKU alias conversion"""
+        self._ensure_table_exists()
+        table = self.resolve_table(region)
+        
+        # Convert SKU if it's an alias
+        original_sku = data.get('sku', '')
+        converted_sku = self.convert_sku_if_alias(original_sku)
+        
+        # Log conversion if SKU changed
+        if original_sku != converted_sku:
+            logger.info(f"SKU conversion: '{original_sku}' → '{converted_sku}' for order {data.get('order_number', 'unknown')}")
+       
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(f"""
+                INSERT INTO {table}
+                (order_number, created_at, sku, name, qty, price, status)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                RETURNING id
+            """, (
+                data['order_number'],
+                data['created_at'],
+                converted_sku,  # Use converted SKU instead of original
+                data['name'],
+                data['qty'],
+                data['price'],
+                data.get('status', '')
+            ))
+            row_id = cursor.fetchone()[0]
+            conn.commit()
+            return row_id
+           
+        except psycopg2.Error as e:
+            conn.rollback()
+            logger.error(f"Database error in save_sales_data: {e}")
+            raise
+        finally:
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
+
+    def get_fr_sales_data(self, limit: int = 100, offset: int = 0, search: str = "") -> Tuple[List[Dict[str, Any]], int]:
+        """Get FR sales data with pagination and search"""
+        self._ensure_table_exists()
+       
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+           
+            base_query = """
+                SELECT id, order_number, created_at, sku, name, qty, price, status, imported_at, updated_at
+                FROM fr_sales_data
+            """
+            count_query = "SELECT COUNT(*) as count FROM fr_sales_data"
+           
+            params = []
+            if search:
+                search_condition = """
+                    WHERE order_number ILIKE %s
+                    OR sku ILIKE %s
+                    OR name ILIKE %s
+                    OR status ILIKE %s
+                """
+                base_query += search_condition
+                count_query += search_condition.replace(" as count", "")
+                search_param = f"%{search}%"
+                params = [search_param, search_param, search_param, search_param]
+           
+            count_cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            count_cursor.execute(count_query, params)
+            count_result = count_cursor.fetchone()
+            total = count_result['count'] if count_result else 0
+            count_cursor.close()
+           
+            base_query += " ORDER BY created_at DESC, id DESC LIMIT %s OFFSET %s"
+            params.extend([limit, offset])
+           
+            cursor.execute(base_query, params)
+            rows = cursor.fetchall()
+           
+            sales_data = []
+            for row in rows:
+                item = dict(row)
+                if isinstance(item.get('created_at'), datetime):
+                    item['created_at'] = item['created_at'].isoformat()
+                if isinstance(item.get('imported_at'), datetime):
+                    item['imported_at'] = item['imported_at'].isoformat()
+                if isinstance(item.get('updated_at'), datetime):
+                    item['updated_at'] = item['updated_at'].isoformat()
+                if item.get('price'):
+                    item['price'] = float(item['price'])
+                sales_data.append(item)
+           
+            return sales_data, total
+           
+        except psycopg2.Error as e:
+            logger.error(f"Database error in get_fr_sales_data: {e}")
+            raise
+        finally:
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
+
+    def get_nl_sales_data(self, limit: int = 100, offset: int = 0, search: str = "") -> Tuple[List[Dict[str, Any]], int]:
+        """Get NL sales data with pagination and search"""
+        self._ensure_table_exists()
+       
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+           
+            base_query = """
+                SELECT id, order_number, created_at, sku, name, qty, price, status, imported_at, updated_at
+                FROM nl_sales_data
+            """
+            count_query = "SELECT COUNT(*) as count FROM nl_sales_data"
+           
+            params = []
+            if search:
+                search_condition = """
+                    WHERE order_number ILIKE %s
+                    OR sku ILIKE %s
+                    OR name ILIKE %s
+                    OR status ILIKE %s
+                """
+                base_query += search_condition
+                count_query += search_condition.replace(" as count", "")
+                search_param = f"%{search}%"
+                params = [search_param, search_param, search_param, search_param]
+           
+            count_cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            count_cursor.execute(count_query, params)
+            count_result = count_cursor.fetchone()
+            total = count_result['count'] if count_result else 0
+            count_cursor.close()
+           
+            base_query += " ORDER BY created_at DESC, id DESC LIMIT %s OFFSET %s"
+            params.extend([limit, offset])
+           
+            cursor.execute(base_query, params)
+            rows = cursor.fetchall()
+           
+            sales_data = []
+            for row in rows:
+                item = dict(row)
+                if isinstance(item.get('created_at'), datetime):
+                    item['created_at'] = item['created_at'].isoformat()
+                if isinstance(item.get('imported_at'), datetime):
+                    item['imported_at'] = item['imported_at'].isoformat()
+                if isinstance(item.get('updated_at'), datetime):
+                    item['updated_at'] = item['updated_at'].isoformat()
+                if item.get('price'):
+                    item['price'] = float(item['price'])
+                sales_data.append(item)
+           
+            return sales_data, total
+           
+        except psycopg2.Error as e:
+            logger.error(f"Database error in get_nl_sales_data: {e}")
+            raise
+        finally:
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()

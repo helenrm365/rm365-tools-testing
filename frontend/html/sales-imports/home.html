@@ -1,37 +1,165 @@
 <!-- Sales Imports Home Page -->
 <div class="sales-imports-home">
-  <h2>Sales Data Imports</h2>
-  
-  <!-- Inner Tabs Navigation -->
+  <h2>Sales Imports</h2>
   <div class="inner-tabs" style="margin-bottom: 1.5rem; display: flex; gap: 0.5rem;">
-    <button class="modern-button" data-nav onclick="location.href='/sales-imports/uk-sales'">UK Sales Data</button>
-    <button class="modern-button" data-nav onclick="location.href='/sales-imports/upload'">Upload CSV</button>
-    <button class="modern-button" data-nav onclick="location.href='/sales-imports/history'">Import History</button>
+    <button class="modern-button" data-nav onclick="location.href='/sales-imports/uk-sales'">🇬🇧 UK Sales</button>
+    <button class="modern-button" data-nav onclick="location.href='/sales-imports/fr-sales'">🇫🇷 FR Sales</button>
+    <button class="modern-button" data-nav onclick="location.href='/sales-imports/nl-sales'">🇳🇱 NL Sales</button>
+    <button class="modern-button" data-nav onclick="location.href='/sales-imports/history'">📋 Import History</button>
   </div>
-
+  
   <div class="intro-card card">
     <div class="card-header">
-      <h3>📊 Sales Data Management</h3>
+      <h3>📊 Sales Data Import System</h3>
     </div>
     <div class="card-body">
-      <p>Import and manage your sales data with comprehensive tracking, searching, and reporting capabilities.</p>
+      <p>Import and manage sales data for different regions with CSV file uploads and comprehensive tracking.</p>
       
       <h4>Available Features:</h4>
       <ul>
-        <li><strong>UK Sales Data:</strong> View, search, and analyze imported sales records</li>
-        <li><strong>Upload CSV:</strong> Import new sales data from CSV files</li>
-        <li><strong>Import History:</strong> Track your data import history</li>
+        <li><strong>UK Sales:</strong> Import and view United Kingdom sales data</li>
+        <li><strong>FR Sales:</strong> Import and view France sales data</li>
+        <li><strong>NL Sales:</strong> Import and view Netherlands sales data</li>
+        <li><strong>Import History:</strong> View all previous imports with detailed logs</li>
       </ul>
+
+      <div class="info-box modern-box" style="margin-top: 2rem; padding: 1.5rem; background: #f8f9fa; border-radius: 8px;">
+        <h4>📋 CSV Format Requirements</h4>
+        <p style="margin: 0.5rem 0;">Each CSV file should contain the following columns:</p>
+        <ul style="margin-top: 0.5rem;">
+          <li>Order Number</li>
+          <li>Created At (date/time)</li>
+          <li>SKU</li>
+          <li>Product Name</li>
+          <li>Quantity</li>
+          <li>Price</li>
+          <li>Status</li>
+        </ul>
+        <p style="margin-top: 1rem; font-style: italic; color: #666;">
+          Each regional page has its own upload form that automatically routes data to the correct table.
+        </p>
+      </div>
     </div>
   </div>
 </div>
 
-<script>
-  // Auto-redirect to uk-sales as the default sub-tab
-  setTimeout(() => {
-    if (window.location.pathname === '/sales-imports') {
-      window.history.replaceState({path: '/sales-imports/uk-sales'}, '', '/sales-imports/uk-sales');
-      window.location.href = '/sales-imports/uk-sales';
-    }
-  }, 100);
-</script>
+<style>
+.sales-imports-home {
+  padding: 1.5rem;
+  max-width: 100%;
+}
+
+.intro-card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.intro-card .card-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.intro-card .card-header h3 {
+  margin: 0;
+  color: #333;
+}
+
+.intro-card .card-body {
+  padding: 1.5rem;
+}
+
+.intro-card ul {
+  margin-top: 1rem;
+  line-height: 1.8;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.upload-section h4 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: var(--text-primary, #333);
+}
+
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.stat-card {
+  background: var(--card-bg, white);
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  text-align: center;
+  border: 1px solid var(--border-color, transparent);
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: bold;
+  color: var(--accent-color, #007bff);
+  margin-bottom: 0.5rem;
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  color: var(--text-secondary, #666);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.table-container {
+  background: var(--card-bg, white);
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  overflow-x: auto;
+  margin-bottom: 1.5rem;
+  border: 1px solid var(--border-color, transparent);
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th {
+  background: var(--header-bg, #f8f9fa);
+  color: var(--text-primary, #333);
+  font-weight: 600;
+  text-align: left;
+  padding: 1rem;
+  border-bottom: 2px solid var(--border-color, #dee2e6);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.data-table td {
+  padding: 0.75rem 1rem;
+  outline: 2px solid #007bff;
+  border-color: #007bff;
+}
+
+.modern-button {
+  padding: 0.5rem 1rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.modern-button:hover {
+  background-color: #f8f9fa;
+  border-color: #007bff;
+}
+</style>

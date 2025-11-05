@@ -19,6 +19,7 @@ def sales_imports_health():
 @router.post("/upload", response_model=ImportResponse)
 async def upload_csv(
     file: UploadFile = File(...),
+    region: str = Query("uk", description="Region: uk, fr, or nl"),
     user=Depends(get_current_user)
 ):
     """Upload and import CSV file with sales data"""
@@ -26,11 +27,21 @@ async def upload_csv(
     if not file.filename.lower().endswith('.csv'):
         raise HTTPException(status_code=400, detail="Only CSV files are allowed")
     
+    # Validate region
+    if region not in ['uk', 'fr', 'nl']:
+        raise HTTPException(status_code=400, detail="Invalid region. Must be 'uk', 'fr', or 'nl'")
+    
     try:
         content = await file.read()
         file_content = content.decode('utf-8')
         
-        result = _svc().import_csv_file(file_content, file.filename)
+        # Extract user info
+        user_info = {
+            'username': getattr(user, 'username', 'Unknown'),
+            'email': getattr(user, 'email', '')
+        }
+        
+        result = _svc().import_csv_file(file_content, file.filename, region, user_info)
         return ImportResponse(**result)
         
     except UnicodeDecodeError:
@@ -113,4 +124,70 @@ def get_uk_sales_data(
 ):
     """Get UK sales data with pagination and search"""
     result = _svc().get_uk_sales_data(limit, offset, search)
+    return UKSalesDataResponse(**result)
+
+@router.get("/fr-sales", response_model=UKSalesDataResponse)
+def get_fr_sales_data(
+    limit: int = Query(100, description="Number of records per page"),
+    offset: int = Query(0, description="Offset for pagination"),
+    search: str = Query("", description="Search term"),
+    user=Depends(get_current_user)
+):
+    """Get FR sales data with pagination and search"""
+    result = _svc().get_fr_sales_data(limit, offset, search)
+    return UKSalesDataResponse(**result)
+
+@router.get("/nl-sales", response_model=UKSalesDataResponse)
+def get_nl_sales_data(
+    limit: int = Query(100, description="Number of records per page"),
+    offset: int = Query(0, description="Offset for pagination"),
+    search: str = Query("", description="Search term"),
+    user=Depends(get_current_user)
+):
+    """Get NL sales data with pagination and search"""
+    result = _svc().get_nl_sales_data(limit, offset, search)
+    return UKSalesDataResponse(**result)
+
+@router.get("/history", response_model=UKSalesDataResponse)
+def get_import_history(
+    limit: int = Query(100, description="Number of records per page"),
+    offset: int = Query(0, description="Offset for pagination"),
+    region: str = Query("", description="Filter by region: uk, fr, nl, or empty for all"),
+    user=Depends(get_current_user)
+):
+    """Get import history with pagination and optional region filter"""
+    result = _svc().get_import_history(limit, offset, region)
+    return UKSalesDataResponse(**result)
+
+@router.get("/uk-sales/condensed", response_model=UKSalesDataResponse)
+def get_uk_condensed_sales(
+    limit: int = Query(100, description="Number of records per page"),
+    offset: int = Query(0, description="Offset for pagination"),
+    search: str = Query("", description="Search term"),
+    user=Depends(get_current_user)
+):
+    """Get UK condensed sales data (6-month aggregates)"""
+    result = _svc().get_condensed_sales('uk', limit, offset, search)
+    return UKSalesDataResponse(**result)
+
+@router.get("/fr-sales/condensed", response_model=UKSalesDataResponse)
+def get_fr_condensed_sales(
+    limit: int = Query(100, description="Number of records per page"),
+    offset: int = Query(0, description="Offset for pagination"),
+    search: str = Query("", description="Search term"),
+    user=Depends(get_current_user)
+):
+    """Get FR condensed sales data (6-month aggregates)"""
+    result = _svc().get_condensed_sales('fr', limit, offset, search)
+    return UKSalesDataResponse(**result)
+
+@router.get("/nl-sales/condensed", response_model=UKSalesDataResponse)
+def get_nl_condensed_sales(
+    limit: int = Query(100, description="Number of records per page"),
+    offset: int = Query(0, description="Offset for pagination"),
+    search: str = Query("", description="Search term"),
+    user=Depends(get_current_user)
+):
+    """Get NL condensed sales data (6-month aggregates)"""
+    result = _svc().get_condensed_sales('nl', limit, offset, search)
     return UKSalesDataResponse(**result)

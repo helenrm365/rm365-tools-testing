@@ -14,7 +14,7 @@ class SalesImportsService:
     def __init__(self, repo: Optional[SalesImportsRepo] = None):
         self.repo = repo or SalesImportsRepo()
 
-    def import_csv_file(self, file_content: str, filename: str) -> Dict[str, Any]:
+    def import_csv_file(self, file_content: str, filename: str, region: str = 'uk', user_info: Dict[str, Any] = None) -> Dict[str, Any]:
         """
         Import sales data from CSV file based on column position.
         Expected column order (matching UK Sales Data display):
@@ -73,7 +73,7 @@ class SalesImportsService:
                     
                     # Clean and validate row data by position
                     processed_row = self._process_uk_sales_row(row, num_columns)
-                    self.repo.save_uk_sales_data(processed_row)
+                    self.repo.save_sales_data(processed_row, region)
                     imported_count += 1
                 except Exception as e:
                     errors.append(f"Row {i}: {str(e)}")
@@ -84,11 +84,23 @@ class SalesImportsService:
             # Save import history
             self.repo.save_import_history({
                 "filename": filename,
+                "region": region,
+                "uploaded_by": user_info.get('username', 'Unknown') if user_info else 'Unknown',
+                "user_email": user_info.get('email', '') if user_info else '',
                 "total_rows": len(data_rows),
                 "imported_rows": imported_count,
                 "errors_count": len(errors),
+                "errors": errors,
                 "status": "completed" if not errors else "partial"
             })
+            
+            # Update condensed sales for this region (6-month aggregate)
+            try:
+                self.repo.update_condensed_sales(region)
+                logger.info(f"Condensed sales updated for region: {region}")
+            except Exception as e:
+                logger.error(f"Failed to update condensed sales for {region}: {e}")
+                # Don't fail the import if condensed update fails
             
             return {
                 "status": "success",
@@ -295,6 +307,85 @@ class SalesImportsService:
             }
         except Exception as e:
             logger.error(f"Error getting UK sales data: {e}")
+            return {
+                "status": "error",
+                "message": str(e),
+                "data": [],
+                "count": 0,
+                "total": 0
+            }
+    def get_fr_sales_data(self, limit: int = 100, offset: int = 0, search: str = "") -> Dict[str, Any]:
+        """Get FR sales data with pagination"""
+        try:
+            data, total = self.repo.get_fr_sales_data(limit, offset, search)
+            return {
+                "status": "success",
+                "data": data,
+                "count": len(data),
+                "total": total
+            }
+        except Exception as e:
+            logger.error(f"Error getting FR sales data: {e}")
+            return {
+                "status": "error",
+                "message": str(e),
+                "data": [],
+                "count": 0,
+                "total": 0
+            }
+
+    def get_nl_sales_data(self, limit: int = 100, offset: int = 0, search: str = "") -> Dict[str, Any]:
+        """Get NL sales data with pagination"""
+        try:
+            data, total = self.repo.get_nl_sales_data(limit, offset, search)
+            return {
+                "status": "success",
+                "data": data,
+                "count": len(data),
+                "total": total
+            }
+        except Exception as e:
+            logger.error(f"Error getting NL sales data: {e}")
+            return {
+                "status": "error",
+                "message": str(e),
+                "data": [],
+                "count": 0,
+                "total": 0
+            }
+
+    def get_import_history(self, limit: int = 100, offset: int = 0, region: str = "") -> Dict[str, Any]:
+        """Get import history with pagination"""
+        try:
+            data, total = self.repo.get_import_history(limit, offset, region)
+            return {
+                "status": "success",
+                "data": data,
+                "count": len(data),
+                "total": total
+            }
+        except Exception as e:
+            logger.error(f"Error getting import history: {e}")
+            return {
+                "status": "error",
+                "message": str(e),
+                "data": [],
+                "count": 0,
+                "total": 0
+            }
+
+    def get_condensed_sales(self, region: str, limit: int = 100, offset: int = 0, search: str = "") -> Dict[str, Any]:
+        """Get condensed sales data with pagination"""
+        try:
+            data, total = self.repo.get_condensed_sales_paginated(region, limit, offset, search)
+            return {
+                "status": "success",
+                "data": data,
+                "count": len(data),
+                "total": total
+            }
+        except Exception as e:
+            logger.error(f"Error getting condensed sales data for {region}: {e}")
             return {
                 "status": "error",
                 "message": str(e),
