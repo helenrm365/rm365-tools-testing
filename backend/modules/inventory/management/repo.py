@@ -33,14 +33,14 @@ class InventoryManagementRepo:
             cursor.execute("""
                 SELECT item_id, location, date, shelf_lt1, shelf_lt1_qty,
                        shelf_gt1, shelf_gt1_qty, top_floor_expiry, top_floor_total,
-                       status, uk_fr_preorder,uk_6m_data,fr_6m_data
+                       status, uk_fr_preorder, uk_6m_data, fr_6m_data
                 FROM inventory_metadata
                 ORDER BY item_id
             """)
             
             columns = ['item_id', 'location', 'date', 'shelf_lt1', 'shelf_lt1_qty',
                       'shelf_gt1', 'shelf_gt1_qty', 'top_floor_expiry', 'top_floor_total',
-                      'status', 'uk_fr_preorder']
+                      'status', 'uk_fr_preorder', 'uk_6m_data', 'fr_6m_data']
             rows = cursor.fetchall()
             
             return [dict(zip(columns, row)) for row in rows]
