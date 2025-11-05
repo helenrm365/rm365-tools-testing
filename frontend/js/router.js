@@ -21,6 +21,8 @@ const routes = {
 
   '/sales-imports':         '/html/sales-imports/home.html',
   '/sales-imports/uk-sales':'/html/sales-imports/uk-sales.html',
+  '/sales-imports/fr-sales':'/html/sales-imports/fr-sales.html',
+  '/sales-imports/nl-sales':'/html/sales-imports/nl-sales.html',
   '/sales-imports/upload':  '/html/sales-imports/upload.html',
   '/sales-imports/history': '/html/sales-imports/history.html',
 
