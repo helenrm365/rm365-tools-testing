@@ -9,6 +9,7 @@ from common.dto import InventoryItemOut, InventoryMetadataRecord, LiveSyncResult
 from .schemas import InventoryMetadataCreateIn, InventoryMetadataUpdateIn, LiveSyncIn
 from .service import InventoryManagementService
 
+from modules.inventory.management.sales_sync import sync_sales_to_inventory_metadata
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

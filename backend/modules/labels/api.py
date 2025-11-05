@@ -11,9 +11,6 @@ from modules.labels.jobs import start_label_job, get_label_job_rows, delete_labe
 from modules.labels.print_csv import stream_csv_labels
 from modules.labels.print_pdf import stream_pdf_labels
 
-# from modules.labels.jobs import start_label_job, get_label_job_rows, delete_label_job
-# from modules.labels.print_pdf import stream_pdf_labels
-# from modules.labels.print_csv import stream_csv_labels
 
 router = APIRouter()
 
