@@ -50,9 +50,10 @@ export async function init() {
 
 async function loadSalesData() {
     try {
+        const offset = (currentPage - 1) * pageSize;
         const params = new URLSearchParams({
-            page: currentPage,
-            page_size: pageSize
+            limit: pageSize,
+            offset: offset
         });
         
         if (currentSearch) {
@@ -71,7 +72,7 @@ async function loadSalesData() {
             displaySalesData(response.data);
         }
         
-        updatePagination(response.pagination);
+        updatePagination(response);
     } catch (error) {
         console.error('[NL Sales] Error loading data:', error);
         showToast('Failed to load NL sales data', 'error');
@@ -132,7 +133,7 @@ function displayCondensedData(data) {
     `).join('');
 }
 
-function updatePagination(pagination) {
+function updatePagination(response) {
     const pageInfo = document.getElementById('pageInfo');
     const prevBtn = document.getElementById('prevPageBtn');
     const nextBtn = document.getElementById('nextPageBtn');
@@ -164,16 +165,20 @@ function updatePagination(pagination) {
         `;
     }
     
+    // Calculate pagination info from response
+    const total = response.total || 0;
+    const totalPages = Math.ceil(total / pageSize);
+    
     if (pageInfo) {
-        pageInfo.textContent = `Page ${pagination.page} of ${pagination.total_pages} (${pagination.total} total)`;
+        pageInfo.textContent = `Page ${currentPage} of ${totalPages} (${total} total)`;
     }
     
     if (prevBtn) {
-        prevBtn.disabled = pagination.page <= 1;
+        prevBtn.disabled = currentPage <= 1;
     }
     
     if (nextBtn) {
-        nextBtn.disabled = pagination.page >= pagination.total_pages;
+        nextBtn.disabled = currentPage >= totalPages;
     }
 }
 

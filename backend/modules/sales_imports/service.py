@@ -299,18 +299,12 @@ class SalesImportsService:
         """Get UK sales data with pagination"""
         try:
             data, total = self.repo.get_uk_sales_data(limit, offset, search)
-            page = (offset // limit) + 1 if limit > 0 else 1
-            total_pages = (total + limit - 1) // limit if limit > 0 else 1
             
             return {
                 "status": "success",
                 "data": data,
-                "pagination": {
-                    "page": page,
-                    "page_size": limit,
-                    "total": total,
-                    "total_pages": total_pages
-                }
+                "count": len(data),
+                "total": total
             }
         except Exception as e:
             logger.error(f"Error getting UK sales data: {e}")
@@ -318,29 +312,19 @@ class SalesImportsService:
                 "status": "error",
                 "message": str(e),
                 "data": [],
-                "pagination": {
-                    "page": 1,
-                    "page_size": limit,
-                    "total": 0,
-                    "total_pages": 0
-                }
+                "count": 0,
+                "total": 0
             }
     def get_fr_sales_data(self, limit: int = 100, offset: int = 0, search: str = "") -> Dict[str, Any]:
         """Get FR sales data with pagination"""
         try:
             data, total = self.repo.get_fr_sales_data(limit, offset, search)
-            page = (offset // limit) + 1 if limit > 0 else 1
-            total_pages = (total + limit - 1) // limit if limit > 0 else 1
             
             return {
                 "status": "success",
                 "data": data,
-                "pagination": {
-                    "page": page,
-                    "page_size": limit,
-                    "total": total,
-                    "total_pages": total_pages
-                }
+                "count": len(data),
+                "total": total
             }
         except Exception as e:
             logger.error(f"Error getting FR sales data: {e}")
@@ -348,30 +332,20 @@ class SalesImportsService:
                 "status": "error",
                 "message": str(e),
                 "data": [],
-                "pagination": {
-                    "page": 1,
-                    "page_size": limit,
-                    "total": 0,
-                    "total_pages": 0
-                }
+                "count": 0,
+                "total": 0
             }
 
     def get_nl_sales_data(self, limit: int = 100, offset: int = 0, search: str = "") -> Dict[str, Any]:
         """Get NL sales data with pagination"""
         try:
             data, total = self.repo.get_nl_sales_data(limit, offset, search)
-            page = (offset // limit) + 1 if limit > 0 else 1
-            total_pages = (total + limit - 1) // limit if limit > 0 else 1
             
             return {
                 "status": "success",
                 "data": data,
-                "pagination": {
-                    "page": page,
-                    "page_size": limit,
-                    "total": total,
-                    "total_pages": total_pages
-                }
+                "count": len(data),
+                "total": total
             }
         except Exception as e:
             logger.error(f"Error getting NL sales data: {e}")
@@ -379,12 +353,8 @@ class SalesImportsService:
                 "status": "error",
                 "message": str(e),
                 "data": [],
-                "pagination": {
-                    "page": 1,
-                    "page_size": limit,
-                    "total": 0,
-                    "total_pages": 0
-                }
+                "count": 0,
+                "total": 0
             }
 
     def get_import_history(self, limit: int = 100, offset: int = 0, region: str = "") -> Dict[str, Any]:
