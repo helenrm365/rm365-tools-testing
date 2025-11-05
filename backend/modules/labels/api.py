@@ -63,7 +63,7 @@ def start_print_job(
     """
     try:
         with inventory_conn() as conn:
-            zoho_map = get_zoho_items_with_skus()
+            zoho_map = get_zoho_items_with_skus_full()
             job_id = start_label_job(conn, zoho_map, payload)
             return {"status": "ok", "job_id": job_id}
     except Exception as e:
