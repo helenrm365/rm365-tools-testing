@@ -92,3 +92,6 @@ def initialize_database():
         print(f"❌ Database connection failed: {e}")
         print("⚠️  Check Railway database configuration and environment variables")
         return False
+
+def inventory_conn():
+    return get_inventory_log_connection()

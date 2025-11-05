@@ -1,105 +1,125 @@
 from __future__ import annotations
-from typing import List
-from datetime import date
+from typing import Any, Dict
+from fastapi import APIRouter, Depends, HTTPException, Path, Body
 
-from fastapi import APIRouter, Depends, Query, HTTPException
-from fastapi.responses import Response
 
-from common.deps import get_current_user
-from .schemas import LabelRequest, LabelDataResponse, LabelGenerateResponse, RecentRunsResponse
-from .service import LabelsService
+from common.deps import get_current_user, inventory_conn
+from modules._integrations.zoho.client import get_zoho_items_with_skus
+from modules.labels.repo import LabelsRepo
+
+from modules.labels.jobs import start_label_job, get_label_job_rows, delete_label_job
+from modules.labels.print_csv import stream_csv_labels
+from modules.labels.print_pdf import stream_pdf_labels
+
 
 router = APIRouter()
 
-def _svc() -> LabelsService:
-    return LabelsService()
 
 @router.get("/health")
 def labels_health():
     return {"status": "Labels module ready"}
 
-@router.get("/data", response_model=LabelDataResponse)
-def get_label_data(
-    start_date: date = Query(..., description="Start date"),
-    end_date: date = Query(..., description="End date"),
-    search: str = Query("", description="Search term"),
-    user=Depends(get_current_user)
-):
-    """Get filtered sales data for label generation"""
-    result = _svc().get_label_data(
-        start_date=start_date.isoformat(),
-        end_date=end_date.isoformat(),
-        search=search
-    )
-    return LabelDataResponse(**result)
+@router.get("/to-print")
+def labels_to_print(user=Depends(get_current_user)):
+    """
+    Return label rows for active Magento products (discontinued ∈ {No, Temporarily OOS}).
+    Base/MD collapse + Zoho + 6M enrichment handled in repo.
+    """
+    try:
+        zoho_map = get_zoho_items_with_skus()
+        with inventory_conn() as conn:
+            return LabelsRepo().get_labels_to_print_psycopg(conn, zoho_map)
+    except Exception as e:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Zoho lookup / DB failed: {e}"
+        )
 
-@router.post("/generate", response_model=LabelGenerateResponse)
-def generate_labels(
-    body: LabelRequest,
-    user=Depends(get_current_user)
+@router.get("/job/{job_id}")
+def get_print_job(
+        job_id: int = Path(..., title="Label print job ID"),
+        user=Depends(get_current_user)
 ):
-    """Generate labels for the specified date range and criteria"""
-    result = _svc().generate_labels(
-        start_date=body.start_date.isoformat(),
-        end_date=body.end_date.isoformat(),
-        search=body.search or ""
-    )
-    
-    if result["status"] == "success":
-        # Save to history
-        _svc().save_run_history({
-            "start_date": body.start_date.isoformat(),
-            "end_date": body.end_date.isoformat(),
-            "search_term": body.search or "",
-            "labels_count": result.get("count", 0),
-            "status": "completed"
-        })
-    
-    return LabelGenerateResponse(**result)
+    """
+    # Fetch all label rows in a given print job ID.
+    """
+    try:
+        with inventory_conn() as conn:
+            rows = get_label_job_rows(conn, job_id)
+            return {"job_id": job_id, "rows": rows}
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to load print job: {e}"
+        )
 
-@router.get("/download")
-def download_labels(
-    start_date: date = Query(..., description="Start date"),
-    end_date: date = Query(..., description="End date"),
-    search: str = Query("", description="Search term"),
-    format: str = Query("csv", description="Format: csv, shipping, product"),
-    user=Depends(get_current_user)
+@router.post("/start-job")
+def start_print_job(
+        payload: Dict[str, Any] = Body(...),
+        user=Depends(get_current_user),
 ):
-    """Download labels as file"""
-    result = _svc().generate_labels(
-        start_date=start_date.isoformat(),
-        end_date=end_date.isoformat(),
-        search=search
-    )
-    
-    if result["status"] != "success":
-        raise HTTPException(status_code=400, detail=result.get("message", "Failed to generate labels"))
-    
-    content = result["content"]
-    filename = f"labels_{start_date}_{end_date}.csv"
-    
-    if format == "shipping":
-        from .generator import generate_shipping_labels
-        data = _svc().get_label_data(start_date.isoformat(), end_date.isoformat(), search)
-        content = generate_shipping_labels(data.get("data", []))
-        filename = f"shipping_labels_{start_date}_{end_date}.txt"
-    elif format == "product":
-        from .generator import generate_product_labels
-        data = _svc().get_label_data(start_date.isoformat(), end_date.isoformat(), search)
-        content = generate_product_labels(data.get("data", []))
-        filename = f"product_labels_{start_date}_{end_date}.txt"
-    
-    return Response(
-        content=content,
-        media_type="application/octet-stream",
-        headers={"Content-Disposition": f"attachment; filename={filename}"}
-    )
+    """
+    # Create a new label print job with optional line_date values.
+    """
+    try:
+        with inventory_conn() as conn:
+            zoho_map = get_zoho_items_with_skus()
+            job_id = start_label_job(conn, zoho_map, payload)
+            return {"status": "ok", "job_id": job_id}
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to start print job: {e}"
+        )
 
-@router.get("/history", response_model=RecentRunsResponse)
-def get_label_history(
-    limit: int = Query(10, description="Number of recent runs to return"),
-    user=Depends(get_current_user)
+@router.delete("/job/{job_id}")
+def delete_print_job(
+        job_id: int = Path(..., title="Label print job ID"),
+        user=Depends(get_current_user)
 ):
-    """Get recent label generation history"""
-    runs = _svc().get_recent_runs(limit)
-    return RecentRunsResponse(runs=runs)
+    """
+    # Delete a print job and all associated rows.
+    """
+    try:
+        with inventory_conn() as conn:
+            delete_label_job(conn, job_id)
+            return {"status": "deleted", "job_id": job_id}
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to delete print job: {e}"
+        )
+
+@router.get("/job/{job_id}/pdf")
+def download_labels_pdf(
+        job_id: int = Path(..., title="Label print job ID"),
+        user=Depends(get_current_user)
+):
+    """
+    # Generate PDF label sheet for a print job.
+    """
+    try:
+        with inventory_conn() as conn:
+            return stream_pdf_labels(conn, job_id)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to generate PDF: {e}"
+        )
+
+@router.get("/job/{job_id}/csv")
+def download_labels_csv(
+        job_id: int = Path(..., title="Label print job ID"),
+        user=Depends(get_current_user)
+):
+    """
+    # Export label data for a print job as CSV.
+    """
+    try:
+        with inventory_conn() as conn:
+            return stream_csv_labels(conn, job_id)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to generate CSV: {e}"
+        )

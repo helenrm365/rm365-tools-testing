@@ -2,14 +2,14 @@ from __future__ import annotations
 from typing import List
 import logging
 
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
-from common.deps import get_current_user
+from common.deps import get_current_user, inventory_conn
 from common.dto import InventoryItemOut, InventoryMetadataRecord, LiveSyncResult
 from .schemas import InventoryMetadataCreateIn, InventoryMetadataUpdateIn, LiveSyncIn
 from .service import InventoryManagementService
-from .sales_sync import sync_sales_to_inventory_metadata
-from fastapi import HTTPException
+
+from modules.inventory.management.sales_sync import sync_sales_to_inventory_metadata
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -17,7 +17,6 @@ router = APIRouter()
 
 def _svc() -> InventoryManagementService:
     return InventoryManagementService()
-
 
 @router.get("/health")
 def inventory_management_health():
