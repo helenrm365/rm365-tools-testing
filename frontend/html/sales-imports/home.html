@@ -2,10 +2,10 @@
 <div class="sales-imports-home">
   <h2>Sales Imports</h2>
   <div class="inner-tabs" style="margin-bottom: 1.5rem; display: flex; gap: 0.5rem;">
-    <button class="modern-button" data-nav onclick="location.href='/sales-imports/uk-sales'">🇬🇧 UK Sales</button>
-    <button class="modern-button" data-nav onclick="location.href='/sales-imports/fr-sales'">🇫🇷 FR Sales</button>
-    <button class="modern-button" data-nav onclick="location.href='/sales-imports/nl-sales'">🇳🇱 NL Sales</button>
-    <button class="modern-button" data-nav onclick="location.href='/sales-imports/history'">📋 Import History</button>
+    <button class="modern-button" data-nav onclick="location.href='/sales-imports/uk-sales'">UK Sales</button>
+    <button class="modern-button" data-nav onclick="location.href='/sales-imports/fr-sales'">FR Sales</button>
+    <button class="modern-button" data-nav onclick="location.href='/sales-imports/nl-sales'">NL Sales</button>
+    <button class="modern-button" data-nav onclick="location.href='/sales-imports/history'">Import History</button>
   </div>
   
   <div class="intro-card card">
@@ -55,9 +55,18 @@
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
+html.dark-mode .intro-card {
+  background: #2e2e2e;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
 .intro-card .card-header {
   padding: 1.5rem;
   border-bottom: 1px solid #e0e0e0;
+}
+
+html.dark-mode .intro-card .card-header {
+  border-bottom: 1px solid #444;
 }
 
 .intro-card .card-header h3 {
@@ -65,8 +74,17 @@
   color: #333;
 }
 
+html.dark-mode .intro-card .card-header h3 {
+  color: #fff;
+}
+
 .intro-card .card-body {
   padding: 1.5rem;
+  color: #333;
+}
+
+html.dark-mode .intro-card .card-body {
+  color: #e0e0e0;
 }
 
 .intro-card ul {
@@ -83,7 +101,11 @@
 .upload-section h4 {
   margin-top: 0;
   margin-bottom: 1rem;
-  color: var(--text-primary, #333);
+  color: #333;
+}
+
+html.dark-mode .upload-section h4 {
+  color: #fff;
 }
 
 .stats-row {
@@ -94,35 +116,55 @@
 }
 
 .stat-card {
-  background: var(--card-bg, white);
+  background: white;
   padding: 1.5rem;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   text-align: center;
-  border: 1px solid var(--border-color, transparent);
+  border: 1px solid transparent;
+}
+
+html.dark-mode .stat-card {
+  background: #2e2e2e;
+  border: 1px solid #444;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
 
 .stat-value {
   font-size: 2rem;
   font-weight: bold;
-  color: var(--accent-color, #007bff);
+  color: #007bff;
   margin-bottom: 0.5rem;
+}
+
+html.dark-mode .stat-value {
+  color: #3399ff;
 }
 
 .stat-label {
   font-size: 0.9rem;
-  color: var(--text-secondary, #666);
+  color: #666;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
+html.dark-mode .stat-label {
+  color: #aaa;
+}
+
 .table-container {
-  background: var(--card-bg, white);
+  background: white;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   overflow-x: auto;
   margin-bottom: 1.5rem;
-  border: 1px solid var(--border-color, transparent);
+  border: 1px solid transparent;
+}
+
+html.dark-mode .table-container {
+  background: #2e2e2e;
+  border: 1px solid #444;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
 
 .data-table {
@@ -131,20 +173,31 @@
 }
 
 .data-table th {
-  background: var(--header-bg, #f8f9fa);
-  color: var(--text-primary, #333);
+  background: #f8f9fa;
+  color: #333;
   font-weight: 600;
   text-align: left;
   padding: 1rem;
-  border-bottom: 2px solid var(--border-color, #dee2e6);
+  border-bottom: 2px solid #dee2e6;
   position: sticky;
   top: 0;
   z-index: 10;
 }
 
+html.dark-mode .data-table th {
+  background: #1e1e1e;
+  color: #fff;
+  border-bottom: 2px solid #444;
+}
+
 .data-table td {
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--border-color, #dee2e6);
+  border-bottom: 1px solid #dee2e6;
+}
+
+html.dark-mode .data-table td {
+  border-bottom: 1px solid #444;
+  color: #e0e0e0;
 }
 </style>
 

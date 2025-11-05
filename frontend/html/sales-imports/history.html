@@ -6,87 +6,109 @@
     <title>Import History</title>
 </head>
 <body>
-    <div class="page-header">
-        <h1>Import History</h1>
-        <p>View all previous CSV imports and their details</p>
-    </div>
+    <div class="sales-page-container">
+        <div class="page-header">
+            <h1>Import History</h1>
+            <p>View all previous CSV imports and their details</p>
+        </div>
 
-    <!-- Navigation Tabs -->
-    <div class="inner-tabs" style="margin-bottom: 1.5rem; display: flex; gap: 0.5rem;">
-        <button class="modern-button" data-nav onclick="location.href='/sales-imports/uk-sales'">🇬🇧 UK Sales</button>
-        <button class="modern-button" data-nav onclick="location.href='/sales-imports/fr-sales'">🇫🇷 FR Sales</button>
-        <button class="modern-button" data-nav onclick="location.href='/sales-imports/nl-sales'">🇳🇱 NL Sales</button>
-        <button class="modern-button active" data-nav onclick="location.href='/sales-imports/history'">📋 Import History</button>
-    </div>
+        <!-- Navigation Tabs -->
+        <div class="inner-tabs" style="margin-bottom: 1.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <button class="modern-button" data-nav onclick="location.href='/sales-imports/uk-sales'">UK Sales</button>
+            <button class="modern-button" data-nav onclick="location.href='/sales-imports/fr-sales'">FR Sales</button>
+            <button class="modern-button" data-nav onclick="location.href='/sales-imports/nl-sales'">NL Sales</button>
+            <button class="modern-button active" data-nav onclick="location.href='/sales-imports/history'">Import History</button>
+        </div>
 
-    <!-- Filters Section -->
-    <div class="filters-section">
-        <div class="filter-group">
-            <label for="regionFilter">Filter by Region:</label>
-            <select id="regionFilter" class="filter-select">
-                <option value="">All Regions</option>
-                <option value="uk">UK</option>
-                <option value="fr">France</option>
-                <option value="nl">Netherlands</option>
-            </select>
-            <button id="refreshBtn" class="btn btn-secondary">🔄 Refresh</button>
+        <!-- Filters Section -->
+        <div class="filters-card">
+            <div class="filter-group">
+                <label for="regionFilter">Filter by Region:</label>
+                <select id="regionFilter" class="modern-input">
+                    <option value="">All Regions</option>
+                    <option value="uk">UK</option>
+                    <option value="fr">France</option>
+                    <option value="nl">Netherlands</option>
+                </select>
+                <button id="refreshBtn" class="modern-button">🔄 Refresh</button>
+            </div>
+        </div>
+
+        <!-- Import History Table -->
+        <div class="table-card">
+            <table id="historyTable" class="data-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Date/Time</th>
+                        <th>Filename</th>
+                        <th>Region</th>
+                        <th>Uploaded By</th>
+                        <th>Email</th>
+                        <th>Total Rows</th>
+                        <th>Imported</th>
+                        <th>Errors</th>
+                        <th>Status</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody id="historyTableBody">
+                    <tr>
+                        <td colspan="11" style="text-align: center; padding: 2rem;">Loading import history...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination-section">
+            <button id="prevPageBtn" class="modern-button">← Previous</button>
+            <span id="pageInfo" class="page-info">Page 1</span>
+            <button id="nextPageBtn" class="modern-button">Next →</button>
         </div>
     </div>
 
-    <!-- Import History Table -->
-    <div class="table-container">
-        <table id="historyTable">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Date/Time</th>
-                    <th>Filename</th>
-                    <th>Region</th>
-                    <th>Uploaded By</th>
-                    <th>Email</th>
-                    <th>Total Rows</th>
-                    <th>Imported</th>
-                    <th>Errors</th>
-                    <th>Status</th>
-                    <th>Details</th>
-                </tr>
-            </thead>
-            <tbody id="historyTableBody">
-                <tr>
-                    <td colspan="11" style="text-align: center;">Loading import history...</td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-
-    <!-- Pagination -->
-    <div class="pagination-container">
-        <button id="prevPageBtn" class="btn btn-secondary">Previous</button>
-        <span id="pageInfo">Page 1</span>
-        <button id="nextPageBtn" class="btn btn-secondary">Next</button>
-    </div>
-
     <style>
+        .sales-page-container {
+            padding: 1.5rem;
+            max-width: 100%;
+        }
+
         .page-header {
-            margin-bottom: 2rem;
+            margin-bottom: 1.5rem;
         }
 
         .page-header h1 {
             margin: 0 0 0.5rem 0;
             color: #333;
+            font-size: 1.8rem;
+        }
+
+        html.dark-mode .page-header h1 {
+            color: #fff;
         }
 
         .page-header p {
             margin: 0;
             color: #666;
+            font-size: 0.95rem;
         }
 
-        .filters-section {
-            margin-bottom: 1.5rem;
-            padding: 1rem;
+        html.dark-mode .page-header p {
+            color: #aaa;
+        }
+
+        .filters-card {
             background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        html.dark-mode .filters-card {
+            background: #2e2e2e;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
         }
 
         .filter-group {
@@ -101,59 +123,83 @@
             color: #333;
         }
 
-        .filter-select {
-            padding: 0.5rem 1rem;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 0.95rem;
-            background-color: white;
-            color: #333;
-            cursor: pointer;
+        html.dark-mode .filter-group label {
+            color: #fff;
         }
 
-        .filter-select:focus {
-            outline: 2px solid #007bff;
-            border-color: #007bff;
+        .filter-group select {
+            min-width: 180px;
         }
 
-        .table-container {
-            overflow-x: auto;
+        .table-card {
             background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            overflow-x: auto;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 1.5rem;
         }
 
-        #historyTable {
+        html.dark-mode .table-card {
+            background: #2e2e2e;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .data-table {
             width: 100%;
             border-collapse: collapse;
+            min-width: 1000px;
         }
 
-        #historyTable th {
-            background-color: #f8f9fa;
+        .data-table thead {
+            background: #f8f9fa;
+        }
+
+        html.dark-mode .data-table thead {
+            background: #1e1e1e;
+        }
+
+        .data-table th {
             padding: 1rem;
             text-align: left;
             font-weight: 600;
             color: #333;
             border-bottom: 2px solid #dee2e6;
             white-space: nowrap;
+            position: sticky;
+            top: 0;
+            z-index: 10;
         }
 
-        #historyTable td {
-            padding: 0.75rem 1rem;
-            border-bottom: 1px solid #dee2e6;
+        html.dark-mode .data-table th {
+            color: #fff;
+            border-bottom: 2px solid #444;
+        }
+
+        .data-table td {
+            padding: 0.875rem 1rem;
             color: #333;
+            border-bottom: 1px solid #f0f0f0;
         }
 
-        #historyTable tbody tr:hover {
-            background-color: #f8f9fa;
+        html.dark-mode .data-table td {
+            color: #e0e0e0;
+            border-bottom: 1px solid #3a3a3a;
+        }
+
+        .data-table tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        html.dark-mode .data-table tbody tr:hover {
+            background: #3a3a3a;
         }
 
         .status-badge {
-            display: inline-block;
             padding: 0.25rem 0.75rem;
             border-radius: 12px;
             font-size: 0.85rem;
             font-weight: 500;
+            display: inline-block;
         }
 
         .status-completed {
@@ -161,9 +207,19 @@
             color: #155724;
         }
 
+        html.dark-mode .status-completed {
+            background: #1e4620;
+            color: #7fdb84;
+        }
+
         .status-partial {
             background: #fff3cd;
             color: #856404;
+        }
+
+        html.dark-mode .status-partial {
+            background: #4d3d00;
+            color: #ffda6a;
         }
 
         .status-error {
@@ -171,87 +227,106 @@
             color: #721c24;
         }
 
+        html.dark-mode .status-error {
+            background: #4d1319;
+            color: #f5868e;
+        }
+
         .region-badge {
-            display: inline-block;
-            padding: 0.25rem 0.75rem;
-            border-radius: 4px;
-            font-size: 0.85rem;
-            font-weight: 500;
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
             text-transform: uppercase;
+            display: inline-block;
         }
 
         .region-uk {
-            background: #e3f2fd;
-            color: #1565c0;
+            background: #cce5ff;
+            color: #004085;
+        }
+
+        html.dark-mode .region-uk {
+            background: #002752;
+            color: #99caff;
         }
 
         .region-fr {
-            background: #f3e5f5;
-            color: #6a1b9a;
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        html.dark-mode .region-fr {
+            background: #0a3840;
+            color: #9fdfea;
         }
 
         .region-nl {
-            background: #fff3e0;
-            color: #e65100;
+            background: #f8d7da;
+            color: #721c24;
         }
 
-        .btn {
-            padding: 0.5rem 1rem;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            background-color: white;
-            color: #333;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-size: 0.95rem;
+        html.dark-mode .region-nl {
+            background: #4d1319;
+            color: #f5868e;
         }
 
-        .btn:hover {
-            background-color: #f8f9fa;
-            border-color: #007bff;
-        }
-
-        .btn-secondary {
-            background-color: #6c757d;
-            color: white;
-            border-color: #6c757d;
-        }
-
-        .btn-secondary:hover {
-            background-color: #5a6268;
-            border-color: #545b62;
-        }
-
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .pagination-container {
+        .pagination-section {
             display: flex;
             justify-content: center;
             align-items: center;
             gap: 1rem;
-            margin-top: 1.5rem;
+            padding: 1rem 0;
         }
 
-        #pageInfo {
-            color: #333;
+        .page-info {
+            padding: 0.5rem 1rem;
+            color: #666;
             font-weight: 500;
         }
 
-        .error-details-btn {
-            padding: 0.25rem 0.5rem;
-            font-size: 0.85rem;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
+        html.dark-mode .page-info {
+            color: #aaa;
         }
 
-        .error-details-btn:hover {
-            background-color: #0056b3;
+        .modern-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .details-button {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.875rem;
+            border-radius: 6px;
+            background: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .details-button:hover {
+            background: #0056b3;
+        }
+
+        html.dark-mode .details-button {
+            background: #0056b3;
+        }
+
+        html.dark-mode .details-button:hover {
+            background: #003d82;
+        }
+
+        @media (max-width: 768px) {
+            .filter-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .filter-group select,
+            .filter-group button {
+                width: 100%;
+            }
         }
     </style>
 </body>
