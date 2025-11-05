@@ -1,5 +1,5 @@
 // js/modules/sales-imports/ukSales.js
-import { http } from '../../services/api/http.js';
+import { http, get } from '../../services/api/http.js';
 import { showToast } from '../../ui/toast.js';
 import { formatDate } from '../../utils/formatters.js';
 
@@ -73,7 +73,7 @@ async function loadSalesData() {
             : `/api/sales-imports/uk-sales`;
         
         console.log('[UK Sales] Fetching from:', `${endpoint}?${params}`);
-        const response = await http.get(`${endpoint}?${params}`);
+        const response = await get(`${endpoint}?${params}`);
         console.log('[UK Sales] Response received:', response);
         
         if (currentView === 'condensed') {
