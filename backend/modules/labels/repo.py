@@ -126,12 +126,36 @@ class LabelsRepo:
         return out
 
     # --- public (psycopg2) ---
-    def get_labels_to_print_psycopg(self, conn, zoho_sku_to_item_id: Dict[str, str]) -> List[Dict[str, Any]]:
+    def get_labels_to_print_psycopg(self, conn, zoho_sku_map) -> List[Dict[str, Any]]:
         """
-        DB-driven: Magento 'discontinued_status' decides inclusion; no suffix re-filtering here.
+        DB-driven: Magento 'discontinued_status' decides inclusion.
+        Accepts either:
+          - {sku: item_id}  (legacy)
+          - {sku: (item_id, name)}  (full)
         """
         magento_skus = self._fetch_allowed_skus_from_magento_psycopg(conn)
-        return self._resolve_to_rows(conn, zoho_sku_to_item_id, magento_skus)
+
+        # Normalize maps
+        if magento_skus and zoho_sku_map:
+            # sku -> item_id
+            sku_to_item_id = {
+                k: (v if isinstance(v, str) else v[0])
+                for k, v in zoho_sku_map.items()
+            }
+            # sku -> name (only for full map)
+            sku_to_name = {
+                k: (v[1] if isinstance(v, tuple) and len(v) > 1 else "")
+                for k, v in zoho_sku_map.items()
+            }
+        else:
+            sku_to_item_id, sku_to_name = {}, {}
+
+        return self._resolve_to_rows(
+            conn,
+            sku_to_item_id,  # existing param
+            magento_skus,
+            zoho_name_lookup=sku_to_name,  # <— NEW: passes names through
+        )
 
     def get_labels_to_print_from_csv_psycopg(
         self,

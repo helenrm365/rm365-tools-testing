@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Path, Body
 
 
 from common.deps import get_current_user, inventory_conn
-from modules._integrations.zoho.client import get_zoho_items_with_skus
+from modules._integrations.zoho.client import get_zoho_items_with_skus, get_zoho_items_with_skus_full
 from modules.labels.repo import LabelsRepo
 
 from modules.labels.jobs import start_label_job, get_label_job_rows, delete_label_job
@@ -26,7 +26,7 @@ def labels_to_print(user=Depends(get_current_user)):
     Base/MD collapse + Zoho + 6M enrichment handled in repo.
     """
     try:
-        zoho_map = get_zoho_items_with_skus()
+        zoho_map = get_zoho_items_with_skus_full()
         with inventory_conn() as conn:
             return LabelsRepo().get_labels_to_print_psycopg(conn, zoho_map)
     except Exception as e:
