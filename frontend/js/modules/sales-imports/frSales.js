@@ -1,6 +1,5 @@
 // js/modules/sales-imports/frSales.js
 import { http } from '../../services/api/http.js';
-import { API_CONFIG } from '../../config.js';
 import { showToast } from '../../ui/toast.js';
 import { formatDate } from '../../utils/formatters.js';
 
@@ -55,8 +54,8 @@ async function loadSalesData() {
         }
         
         const endpoint = currentView === 'condensed' 
-            ? `${API_CONFIG.BASE_URL}/sales-imports/fr-sales/condensed`
-            : `${API_CONFIG.BASE_URL}/sales-imports/fr-sales`;
+            ? `/api/sales-imports/fr-sales/condensed`
+            : `/api/sales-imports/fr-sales`;
         
         const response = await http.get(`${endpoint}?${params}`);
         
@@ -188,7 +187,7 @@ async function handleUpload(event) {
     
     try {
         showToast('Uploading file...', 'info');
-        await http.post(`${API_CONFIG.BASE_URL}/sales-imports/upload?region=fr`, formData, {
+        await http.post(`/api/sales-imports/upload?region=fr`, formData, {
             headers: {
                 'Content-Type': 'multipart/form-data'
             }

@@ -1,6 +1,5 @@
 // js/modules/sales-imports/history.js
 import { http } from '../../services/api/http.js';
-import { API_CONFIG } from '../../config.js';
 import { showToast } from '../../ui/toast.js';
 import { formatDate } from '../../utils/formatters.js';
 
@@ -32,7 +31,7 @@ async function loadHistory() {
             params.append('region', currentRegionFilter);
         }
         
-        const response = await http.get(`${API_CONFIG.BASE_URL}/sales-imports/history?${params}`);
+        const response = await http.get(`/api/sales-imports/history?${params}`);
         displayHistory(response.data);
         updatePagination(response.pagination);
     } catch (error) {
