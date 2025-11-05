@@ -33,7 +33,7 @@ def labels_to_print(user=Depends(get_current_user)):
             status_code=503,
             detail=f"Zoho lookup / DB failed: {e}"
         )
-"""
+'''
 
  @router.post("/start-job")
 def start_print_job(
@@ -61,7 +61,7 @@ def get_print_job(
         user=Depends(get_current_user)
 ):
     """
-   #  Fetch all label rows in a given print job ID.
+    # Fetch all label rows in a given print job ID.
     """
     try:
         with inventory_conn() as conn:
@@ -80,7 +80,7 @@ def delete_print_job(
         user=Depends(get_current_user)
 ):
     """
-   #  Delete a print job and all associated rows.
+    # Delete a print job and all associated rows.
     """
     try:
         with inventory_conn() as conn:
@@ -99,7 +99,7 @@ def download_labels_pdf(
         user=Depends(get_current_user)
 ):
     """
-   # Generate PDF label sheet for a print job.
+    # Generate PDF label sheet for a print job.
     """
     try:
         with inventory_conn() as conn:
@@ -117,7 +117,7 @@ def download_labels_csv(
         user=Depends(get_current_user)
 ):
     """
-   # Export label data for a print job as CSV.
+    # Export label data for a print job as CSV.
     """
     try:
         with inventory_conn() as conn:
@@ -128,4 +128,4 @@ def download_labels_csv(
             detail=f"Failed to generate CSV: {e}"
         )
 
-"""
+'''
