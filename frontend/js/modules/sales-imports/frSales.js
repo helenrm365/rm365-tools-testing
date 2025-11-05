@@ -11,6 +11,14 @@ const pageSize = 50;
 export async function init() {
     console.log('[FR Sales] Initializing FR Sales module');
     
+    // Verify table body exists
+    const tbody = document.getElementById('salesTableBody');
+    if (!tbody) {
+        console.error('[FR Sales] salesTableBody element not found in DOM!');
+    } else {
+        console.log('[FR Sales] salesTableBody element found');
+    }
+    
     // Set up event listeners
     document.getElementById('uploadForm')?.addEventListener('submit', handleUpload);
     document.getElementById('searchBtn')?.addEventListener('click', handleSearch);
@@ -21,7 +29,9 @@ export async function init() {
     document.getElementById('viewCondensedBtn')?.addEventListener('click', () => switchView('condensed'));
     
     // Load initial data
+    console.log('[FR Sales] About to load initial data...');
     await loadSalesData();
+    console.log('[FR Sales] Initial data load complete');
 }
 
 function switchView(view) {
@@ -43,6 +53,9 @@ function switchView(view) {
 }
 
 async function loadSalesData() {
+    console.log('[FR Sales] Loading sales data...');
+    const tbody = document.getElementById('salesTableBody');
+    
     try {
         const offset = (currentPage - 1) * pageSize;
         const params = new URLSearchParams({
@@ -58,7 +71,9 @@ async function loadSalesData() {
             ? `/api/sales-imports/fr-sales/condensed`
             : `/api/sales-imports/fr-sales`;
         
+        console.log('[FR Sales] Fetching from:', `${endpoint}?${params}`);
         const response = await http.get(`${endpoint}?${params}`);
+        console.log('[FR Sales] Response received:', response);
         
         if (currentView === 'condensed') {
             displayCondensedData(response.data);
@@ -70,15 +85,25 @@ async function loadSalesData() {
     } catch (error) {
         console.error('[FR Sales] Error loading data:', error);
         showToast('Failed to load FR sales data', 'error');
+        
+        // Show error in table
+        if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; padding: 2rem; color: red;">Error loading data: ${error.message}</td></tr>`;
+        }
     }
 }
 
 function displaySalesData(data) {
     const tbody = document.getElementById('salesTableBody');
-    if (!tbody) return;
+    if (!tbody) {
+        console.error('[FR Sales] salesTableBody element not found!');
+        return;
+    }
+    
+    console.log('[FR Sales] Displaying sales data, rows:', data?.length || 0);
     
     if (!data || data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="10" style="text-align: center;">No data available</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 2rem;">No data available</td></tr>';
         return;
     }
     
@@ -96,6 +121,8 @@ function displaySalesData(data) {
             <td>${row.updated_at ? formatDate(row.updated_at) : '-'}</td>
         </tr>
     `).join('');
+    
+    console.log('[FR Sales] Table updated successfully');
 }
 
 function displayCondensedData(data) {
@@ -187,24 +214,41 @@ async function handleUpload(event) {
         return;
     }
     
+    console.log('[FR Sales] Starting upload for file:', file.name, 'Size:', file.size, 'bytes');
+    
     const formData = new FormData();
     formData.append('file', file);
     
     try {
         showToast('Uploading file...', 'info');
-        await http.post(`/api/sales-imports/upload?region=fr`, formData, {
-            headers: {
-                'Content-Type': 'multipart/form-data'
-            }
+        console.log('[FR Sales] Uploading file to:', '/api/sales-imports/upload?region=fr');
+        
+        // Use raw http function for multipart form data
+        // Don't set Content-Type header - browser will set it with boundary
+        const response = await http(`/api/sales-imports/upload?region=fr`, {
+            method: 'POST',
+            body: formData,
+            headers: {} // Let browser set Content-Type with boundary
         });
         
-        showToast('FR sales data uploaded successfully', 'success');
+        console.log('[FR Sales] Upload response:', response);
+        
+        if (response.status === 'success') {
+            const message = response.has_errors 
+                ? `Uploaded with ${response.errors?.length || 0} errors. Imported ${response.imported_count} of ${response.total_rows} rows.`
+                : `Successfully uploaded ${response.imported_count} rows to FR sales table.`;
+            showToast(message, response.has_errors ? 'warning' : 'success');
+        } else {
+            showToast(response.message || 'Upload completed with errors', 'error');
+        }
+        
         fileInput.value = '';
         currentPage = 1;
+        console.log('[FR Sales] Reloading table data after upload...');
         await loadSalesData();
     } catch (error) {
         console.error('[FR Sales] Upload error:', error);
-        showToast(error.response?.data?.detail || 'Failed to upload file', 'error');
+        showToast(error.message || 'Failed to upload file', 'error');
     }
 }
 

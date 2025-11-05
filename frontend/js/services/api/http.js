@@ -16,14 +16,18 @@ function authHeader() {
 export async function http(path, { method = 'GET', headers = {}, body, retry = 0 } = {}) {
   const url = `${BASE}${path}`;
   
+  // Check if body is FormData (for file uploads)
+  const isFormData = body instanceof FormData;
+  
   console.log(`[HTTP] ${method} ${url}`, { 
     BASE,
     path,
     fullUrl: url,
     crossOrigin: !SAME_ORIGIN,
     hasAuth: !!getToken(),
+    isFormData,
     headers: { ...authHeader(), ...headers },
-    body: body ? (typeof body === 'string' ? JSON.parse(body) : body) : undefined
+    body: body && !isFormData ? (typeof body === 'string' ? JSON.parse(body) : body) : undefined
   });
 
   try {
@@ -33,7 +37,8 @@ export async function http(path, { method = 'GET', headers = {}, body, retry = 0
       credentials: 'omit', // Don't send cookies for cross-origin
       headers: { 
         'Accept': 'application/json',
-        'Content-Type': method === 'GET' ? undefined : 'application/json',
+        // Don't set Content-Type for FormData - browser will set it with boundary
+        'Content-Type': method === 'GET' || isFormData ? undefined : 'application/json',
         ...authHeader(), 
         ...headers 
       },
