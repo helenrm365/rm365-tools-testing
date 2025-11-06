@@ -200,4 +200,15 @@ html.dark-mode .data-table td {
   color: #e0e0e0;
 }
 </style>
-
+<!-- Universal Footer -->
+<div id="footerPlaceholder"></div>
+<script>
+  if (!document.getElementById('universalFooter')) {
+    fetch('/components/universal-footer.html')
+      .then(response => response.text())
+      .then(html => {
+        document.getElementById('footerPlaceholder').innerHTML = html;
+      })
+      .catch(error => console.error('Error loading footer:', error));
+  }
+</script>

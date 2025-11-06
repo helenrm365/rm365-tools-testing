@@ -1,0 +1,122 @@
+<!-- Universal Footer Component -->
+<footer class="universal-footer">
+  <div class="footer-content">
+    <div class="footer-section">
+      <h4>© 2025 Reliable Medicare Ltd</h4>
+      <p>All rights reserved.</p>
+    </div>
+    
+    <div class="footer-section">
+      <p class="footer-legal">
+        This application and all its contents, including but not limited to software, design, text, graphics, 
+        and data, are the exclusive property of <strong>Reliable Medicare Ltd</strong>. Unauthorized access, 
+        use, reproduction, or distribution of any part of this system is strictly prohibited and may be subject 
+        to legal action.
+      </p>
+    </div>
+    
+    <div class="footer-section">
+      <p class="footer-disclaimer">
+        <strong>Confidential:</strong> This system contains proprietary and confidential information. 
+        Access is restricted to authorized personnel only. All activities are logged and monitored. 
+        By using this system, you agree to comply with all applicable company policies and regulations.
+      </p>
+    </div>
+    
+    <div class="footer-links">
+      <span>Version 1.0</span>
+      <span class="footer-divider">|</span>
+      <span>Reliable Medicare Ltd</span>
+      <span class="footer-divider">|</span>
+      <span>Internal Use Only</span>
+    </div>
+  </div>
+</footer>
+
+<style>
+.universal-footer {
+  background: var(--selection-bar-bg, #f8f9fa);
+  border-top: 2px solid var(--border-color, #e5e7eb);
+  padding: 2rem 1.5rem 1rem;
+  margin-top: 3rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary, #666);
+}
+
+.footer-content {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.footer-section {
+  margin-bottom: 1.5rem;
+}
+
+.footer-section h4 {
+  margin: 0 0 0.5rem 0;
+  color: var(--text-color, #333);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.footer-section p {
+  margin: 0.5rem 0;
+  line-height: 1.6;
+}
+
+.footer-legal, .footer-disclaimer {
+  font-size: 0.8rem;
+  color: var(--text-secondary, #666);
+}
+
+.footer-disclaimer {
+  padding: 0.75rem;
+  background: rgba(255, 152, 0, 0.1);
+  border-left: 3px solid #ff9800;
+  border-radius: 4px;
+}
+
+html.dark-mode .footer-disclaimer {
+  background: rgba(255, 152, 0, 0.15);
+}
+
+.footer-links {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding-top: 1rem;
+  margin-top: 1rem;
+  border-top: 1px solid var(--border-color, #e5e7eb);
+  font-size: 0.8rem;
+}
+
+.footer-divider {
+  color: var(--border-color, #e5e7eb);
+}
+
+html.dark-mode .universal-footer {
+  background: #1a1a1a;
+  border-top-color: #444;
+}
+
+html.dark-mode .footer-section h4 {
+  color: #fff;
+}
+
+html.dark-mode .footer-legal,
+html.dark-mode .footer-disclaimer {
+  color: #aaa;
+}
+
+@media (max-width: 768px) {
+  .universal-footer {
+    padding: 1.5rem 1rem 0.75rem;
+  }
+  
+  .footer-links {
+    font-size: 0.75rem;
+  }
+}
+</style>

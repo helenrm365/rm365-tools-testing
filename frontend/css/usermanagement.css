@@ -230,6 +230,37 @@ html.dark-mode .modern-table .in {
   color: #fff;
 }
 
+/* Tab checkbox styling with CSS variables */
+:root {
+  --tab-bg: #f8f9fa;
+  --primary-color: #007bff;
+  --text-color: #333;
+  --text-secondary: #666;
+}
+
+html.dark-mode {
+  --tab-bg: #2d2d2d;
+  --primary-color: #4a9eff;
+  --text-color: #e0e0e0;
+  --text-secondary: #b0b0b0;
+}
+
+.tab-group {
+  transition: background-color 0.2s;
+}
+
+html.dark-mode .tab-group {
+  border-left-color: var(--primary-color);
+}
+
+html.dark-mode .checkbox-label {
+  color: var(--text-color);
+}
+
+html.dark-mode .subtabs-container .checkbox-label {
+  color: var(--text-secondary);
+}
+
 /* Notification styles */
 .notification {
   cursor: pointer;

@@ -6,23 +6,43 @@ import { getRoles } from '../../services/api/rolesApi.js';
 const TAB_STRUCTURE = {
   'attendance': {
     label: 'Attendance',
-    subtabs: ['automatic', 'manual', 'logs', 'overview']
+    subtabs: [
+      { key: 'automatic', label: 'Automatic' },
+      { key: 'manual', label: 'Manual' },
+      { key: 'logs', label: 'Logs' },
+      { key: 'overview', label: 'Overview' }
+    ]
   },
   'enrollment': {
     label: 'Enrollment',
-    subtabs: ['management', 'card', 'fingerprint']
+    subtabs: [
+      { key: 'management', label: 'Management' },
+      { key: 'card', label: 'Card' },
+      { key: 'fingerprint', label: 'Fingerprint' }
+    ]
   },
   'labels': {
     label: 'Labels',
-    subtabs: ['generator', 'history']
+    subtabs: [
+      { key: 'generator', label: 'Generator' },
+      { key: 'history', label: 'History' }
+    ]
   },
   'sales-imports': {
-    label: 'Sales Imports',
-    subtabs: ['uk-sales', 'fr-sales', 'nl-sales', 'history']
+    label: 'Sales Data',
+    subtabs: [
+      { key: 'uk-sales', label: 'UK Sales' },
+      { key: 'fr-sales', label: 'FR Sales' },
+      { key: 'nl-sales', label: 'NL Sales' },
+      { key: 'history', label: 'History' }
+    ]
   },
   'inventory': {
     label: 'Inventory',
-    subtabs: ['management', 'adjustments']
+    subtabs: [
+      { key: 'management', label: 'Management' },
+      { key: 'adjustments', label: 'Adjustments' }
+    ]
   },
   'usermanagement': {
     label: 'User Management',
@@ -125,16 +145,28 @@ function renderTable() {
 function renderTabCheckboxes(allowedTabs) {
   let html = '';
   for (const [tabKey, tabInfo] of Object.entries(TAB_STRUCTURE)) {
-    const isChecked = allowedTabs.includes(tabKey);
+    // Check if main tab is allowed (for backwards compatibility, check both 'tab' and any 'tab.*' pattern)
+    const mainTabAllowed = allowedTabs.includes(tabKey) || 
+                           allowedTabs.some(t => t.startsWith(tabKey + '.'));
+    
     html += `
-      <div style="margin-bottom: 8px; padding: 4px; border-left: 3px solid #007bff; padding-left: 8px; background: #f8f9fa;">
-        <label class="checkbox-label" style="display: block; font-weight: 500; margin-bottom: 4px;">
-          <input type="checkbox" class="tab-checkbox" value="${tabKey}" ${isChecked ? 'checked' : ''}> 
+      <div class="tab-group" style="margin-bottom: 12px; padding: 8px; border-left: 3px solid var(--primary-color, #007bff); padding-left: 12px; background: var(--tab-bg, #f8f9fa); border-radius: 4px;">
+        <label class="checkbox-label" style="display: flex; align-items: center; font-weight: 500; margin-bottom: ${tabInfo.subtabs.length > 0 ? '8px' : '0'}; color: var(--text-color, #333);">
+          <input type="checkbox" class="tab-checkbox parent-tab" value="${tabKey}" ${mainTabAllowed ? 'checked' : ''} style="margin-right: 6px;"> 
           ${tabInfo.label}
         </label>
         ${tabInfo.subtabs.length > 0 ? `
-          <div style="margin-left: 20px; font-size: 0.9em; color: #666;">
-            ${tabInfo.subtabs.map(sub => `<span style="display: inline-block; margin-right: 8px;">• ${sub}</span>`).join('')}
+          <div class="subtabs-container" style="margin-left: 24px; display: flex; flex-direction: column; gap: 6px;">
+            ${tabInfo.subtabs.map(sub => {
+              const subtabValue = `${tabKey}.${sub.key}`;
+              const isChecked = allowedTabs.includes(subtabValue);
+              return `
+                <label class="checkbox-label" style="display: flex; align-items: center; font-size: 0.9em; color: var(--text-secondary, #666);">
+                  <input type="checkbox" class="tab-checkbox subtab-checkbox" data-parent="${tabKey}" value="${subtabValue}" ${isChecked ? 'checked' : ''} style="margin-right: 6px;">
+                  ${sub.label}
+                </label>
+              `;
+            }).join('')}
           </div>
         ` : ''}
       </div>
@@ -155,30 +187,55 @@ function wireTableEvents() {
     });
   });
 
+  // Handle parent-child tab relationships in table rows
+  $all('.parent-tab').forEach(parentCheckbox => {
+    const tr = parentCheckbox.closest('tr');
+    const tabKey = parentCheckbox.value;
+    const subtabs = tr.querySelectorAll(`.subtab-checkbox[data-parent="${tabKey}"]`);
+    
+    // When parent is checked, check all children
+    parentCheckbox.addEventListener('change', (e) => {
+      if (subtabs.length > 0) {
+        subtabs.forEach(st => st.checked = e.target.checked);
+      }
+      updateRowSelectAllState(tr);
+    });
+    
+    // When any child changes, update parent state
+    subtabs.forEach(subtab => {
+      subtab.addEventListener('change', () => {
+        const allSubtabsChecked = Array.from(subtabs).every(st => st.checked);
+        const someSubtabsChecked = Array.from(subtabs).some(st => st.checked);
+        
+        parentCheckbox.checked = allSubtabsChecked;
+        parentCheckbox.indeterminate = someSubtabsChecked && !allSubtabsChecked;
+        updateRowSelectAllState(tr);
+      });
+    });
+  });
+
   // Update "Select All Tabs" when individual tabs are checked/unchecked
   $all('.tab-checkbox').forEach(tabCheckbox => {
     tabCheckbox.addEventListener('change', (e) => {
       const tr = e.target.closest('tr');
-      const selectAllCheckbox = tr.querySelector('.select-all-tabs-row');
-      const allTabCheckboxes = tr.querySelectorAll('.tab-checkbox');
-      const checkedCount = Array.from(allTabCheckboxes).filter(cb => cb.checked).length;
-      
-      if (selectAllCheckbox) {
-        selectAllCheckbox.checked = checkedCount === allTabCheckboxes.length;
-        selectAllCheckbox.indeterminate = checkedCount > 0 && checkedCount < allTabCheckboxes.length;
-      }
+      updateRowSelectAllState(tr);
     });
     
     // Initialize indeterminate state on load
     const tr = tabCheckbox.closest('tr');
+    updateRowSelectAllState(tr);
+  });
+  
+  function updateRowSelectAllState(tr) {
     const selectAllCheckbox = tr.querySelector('.select-all-tabs-row');
     const allTabCheckboxes = tr.querySelectorAll('.tab-checkbox');
     const checkedCount = Array.from(allTabCheckboxes).filter(cb => cb.checked).length;
     
-    if (selectAllCheckbox && checkedCount > 0 && checkedCount < allTabCheckboxes.length) {
-      selectAllCheckbox.indeterminate = true;
+    if (selectAllCheckbox) {
+      selectAllCheckbox.checked = checkedCount === allTabCheckboxes.length;
+      selectAllCheckbox.indeterminate = checkedCount > 0 && checkedCount < allTabCheckboxes.length;
     }
-  });
+  }
 
   // Handle role dropdown "Add New Role" option
   $all('.role-dropdown').forEach(select => {
@@ -393,14 +450,22 @@ function populateCreateTabsCheckboxes() {
   let html = '';
   for (const [tabKey, tabInfo] of Object.entries(TAB_STRUCTURE)) {
     html += `
-      <div style="margin-bottom: 8px; padding: 4px; border-left: 3px solid #007bff; padding-left: 8px; background: #f8f9fa;">
-        <label class="checkbox-label" style="display: block; font-weight: 500; margin-bottom: 4px;">
-          <input type="checkbox" name="allowed_tabs" value="${tabKey}"> 
+      <div class="tab-group" style="margin-bottom: 12px; padding: 8px; border-left: 3px solid var(--primary-color, #007bff); padding-left: 12px; background: var(--tab-bg, #f8f9fa); border-radius: 4px;">
+        <label class="checkbox-label" style="display: flex; align-items: center; font-weight: 500; margin-bottom: ${tabInfo.subtabs.length > 0 ? '8px' : '0'}; color: var(--text-color, #333);">
+          <input type="checkbox" class="parent-tab-create" name="allowed_tabs" value="${tabKey}" style="margin-right: 6px;"> 
           ${tabInfo.label}
         </label>
         ${tabInfo.subtabs.length > 0 ? `
-          <div style="margin-left: 20px; font-size: 0.9em; color: #666;">
-            ${tabInfo.subtabs.map(sub => `<span style="display: inline-block; margin-right: 8px;">• ${sub}</span>`).join('')}
+          <div class="subtabs-container" style="margin-left: 24px; display: flex; flex-direction: column; gap: 6px;">
+            ${tabInfo.subtabs.map(sub => {
+              const subtabValue = `${tabKey}.${sub.key}`;
+              return `
+                <label class="checkbox-label" style="display: flex; align-items: center; font-size: 0.9em; color: var(--text-secondary, #666);">
+                  <input type="checkbox" class="subtab-checkbox-create" data-parent="${tabKey}" name="allowed_tabs" value="${subtabValue}" style="margin-right: 6px;">
+                  ${sub.label}
+                </label>
+              `;
+            }).join('')}
           </div>
         ` : ''}
       </div>
@@ -427,6 +492,37 @@ function populateCreateTabsCheckboxes() {
         selectAllCheckbox.indeterminate = checkedCount > 0 && checkedCount < allCheckboxes.length;
       });
     });
+    
+    // Handle parent-child relationships in create modal
+    const parentTabs = container.querySelectorAll('.parent-tab-create');
+    parentTabs.forEach(parentCheckbox => {
+      const tabKey = parentCheckbox.value;
+      const subtabs = container.querySelectorAll(`.subtab-checkbox-create[data-parent="${tabKey}"]`);
+      
+      // When parent is checked, check all children
+      parentCheckbox.addEventListener('change', (e) => {
+        subtabs.forEach(st => st.checked = e.target.checked);
+        updateSelectAllState();
+      });
+      
+      // When any child changes, update parent state
+      subtabs.forEach(subtab => {
+        subtab.addEventListener('change', () => {
+          const allSubtabsChecked = Array.from(subtabs).every(st => st.checked);
+          const someSubtabsChecked = Array.from(subtabs).some(st => st.checked);
+          
+          parentCheckbox.checked = allSubtabsChecked;
+          parentCheckbox.indeterminate = someSubtabsChecked && !allSubtabsChecked;
+          updateSelectAllState();
+        });
+      });
+    });
+    
+    function updateSelectAllState() {
+      const checkedCount = Array.from(allCheckboxes).filter(c => c.checked).length;
+      selectAllCheckbox.checked = checkedCount === allCheckboxes.length;
+      selectAllCheckbox.indeterminate = checkedCount > 0 && checkedCount < allCheckboxes.length;
+    }
   }
 }
 

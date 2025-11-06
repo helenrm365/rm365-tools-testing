@@ -87,3 +87,15 @@
   <!-- Notification area -->
   <div id="notificationArea" style="position: fixed; top: 20px; right: 20px; z-index: 10000;"></div>
 </div>
+<!-- Universal Footer -->
+<div id="footerPlaceholder"></div>
+<script>
+  if (!document.getElementById('universalFooter')) {
+    fetch('/components/universal-footer.html')
+      .then(response => response.text())
+      .then(html => {
+        document.getElementById('footerPlaceholder').innerHTML = html;
+      })
+      .catch(error => console.error('Error loading footer:', error));
+  }
+</script>

@@ -95,7 +95,7 @@
   <nav id="sidebar" class="sidebar">
     <div class="sidebar-top">
       <div class="profile">
-        <img src="/assets/RM365_Logo.png" alt="RM365 Logo" class="sidebar-logo" style="width: 50px; height: 50px; object-fit: contain; border-radius: 8px;">
+        <img src="/assets/RM365_Logo.png" alt="RM365 Logo" class="sidebar-logo" id="sidebarLogo">
         <div class="profile-info">
           <h4 id="profileName"></h4>
           <small id="profileSubtitle"></small>
@@ -178,6 +178,17 @@
 
   <!-- App router + entrypoint -->
   <script type="module" src="/js/index.js"></script>
+
+  <!-- Universal Footer -->
+  <div id="universalFooter"></div>
+  <script>
+    fetch('/components/universal-footer.html')
+      .then(response => response.text())
+      .then(html => {
+        document.getElementById('universalFooter').innerHTML = html;
+      })
+      .catch(error => console.error('Error loading footer:', error));
+  </script>
 </body>
 
 </html>
