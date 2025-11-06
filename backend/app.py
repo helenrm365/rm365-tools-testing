@@ -95,39 +95,33 @@ except Exception as e:
 allow_origins = _resolve_allow_origins()
 allow_origin_regex = _resolve_allow_origin_regex()
 
-# Add common development and Cloudflare origins if not specified
-if not allow_origins and not allow_origin_regex:
-    allow_origins = [
-        "http://localhost:3000",
-        "http://localhost:5000", 
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:5000",
-        "https://rm365-tools-testing.pages.dev",
-    ]
-    allow_origin_regex = r"https://.*\.pages\.dev"
-    print("🔧 Using default CORS origins for development")
+# Simplified CORS for Railway + Cloudflare Pages
+# Using wildcard is fine since we use JWT (not cookies) for auth
+if not allow_origins:
+    allow_origins = ["*"]  # Allow all origins
+    print("🌍 CORS: Allowing all origins (using JWT authentication)")
 else:
     # Ensure Cloudflare Pages is always included
-    if allow_origins:
-        cloudflare_origin = "https://rm365-tools-testing.pages.dev"
-        if cloudflare_origin not in allow_origins:
-            allow_origins.append(cloudflare_origin)
-            print(f"✅ Added Cloudflare Pages origin: {cloudflare_origin}")
-    
-    # Ensure regex pattern includes Cloudflare Pages
-    if not allow_origin_regex:
-        allow_origin_regex = r"https://.*\.pages\.dev"
-        print("✅ Added Cloudflare Pages regex pattern")
+    cloudflare_origin = "https://rm365-tools-testing.pages.dev"
+    if cloudflare_origin not in allow_origins:
+        allow_origins.append(cloudflare_origin)
+        print(f"✅ Added Cloudflare Pages origin: {cloudflare_origin}")
+    print(f"🌍 CORS: Using specific origins: {allow_origins}")
+
+# Add regex pattern for Cloudflare preview deployments
+if not allow_origin_regex:
+    allow_origin_regex = r"https://.*\.pages\.dev"
 
 print(f"🌍 CORS Configuration:")
 print(f"   Allow Origins: {allow_origins}")
 print(f"   Allow Origin Regex: {allow_origin_regex}")
+print(f"   Allow Credentials: False (JWT-based auth)")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allow_origins,
     allow_origin_regex=allow_origin_regex,
-    allow_credentials=True,
+    allow_credentials=False,  # Changed to False - we use JWT in headers, not cookies
     allow_methods=['*'],
     allow_headers=['*'],
 )
