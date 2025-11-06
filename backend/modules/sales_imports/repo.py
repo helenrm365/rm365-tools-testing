@@ -20,6 +20,7 @@ class SalesImportsRepo:
     def __init__(self):
         self._table_checked = False
         self._tables_checked = {'uk': False, 'fr': False, 'nl': False}  # Track per-region
+        self._all_tables_initialized = False  # Track if all tables have been checked/created
         self._sku_aliases_cache = None  # Cache for SKU aliases
 
     def resolve_table(self, region: str) -> str:
@@ -146,16 +147,34 @@ class SalesImportsRepo:
     
     def _ensure_region_table_exists(self, region: str) -> None:
         """
-        Mark region as checked without creating tables.
-        Tables should be created via the /initialize endpoint on the home page.
-        This method now just tracks that we've checked this region to avoid repeated warnings.
+        Ensure all sales tables exist. This is called when accessing any region page.
+        Only creates tables once (checks _all_tables_initialized flag).
+        This ensures tables are available even if user doesn't visit the home page first.
         """
         region = region.lower()
         if region not in self._tables_checked:
             raise ValueError(f"Invalid region: {region}")
             
-        # Just mark as checked - tables are created via /initialize endpoint
-        self._tables_checked[region] = True
+        # If we've already initialized all tables, just mark this region as checked
+        if self._all_tables_initialized:
+            self._tables_checked[region] = True
+            return
+            
+        # First time accessing any region - ensure all tables exist
+        try:
+            result = self.ensure_all_tables_exist()
+            self._all_tables_initialized = True
+            # Mark all regions as checked
+            for r in self._tables_checked:
+                self._tables_checked[r] = True
+            
+            if result.get('created_tables'):
+                logger.info(f"Auto-created tables on first access: {result['created_tables']}")
+        except Exception as e:
+            logger.warning(f"Could not ensure tables exist: {e}")
+            # Still mark as checked to avoid repeated attempts
+            self._all_tables_initialized = True
+            self._tables_checked[region] = True
 
     def ensure_all_tables_exist(self) -> Dict[str, Any]:
         """

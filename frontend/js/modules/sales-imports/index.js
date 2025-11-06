@@ -20,8 +20,10 @@ export async function init(path) {
     currentModule = await import('./history.js');
     await currentModule.init();
   } else if (path === '/sales-imports' || path === '/sales-imports/home') {
-    // Home page is static HTML - just initialize tables
-    await initializeTables();
+    // Home page is static HTML - initialize tables in background (non-blocking)
+    initializeTables().catch(err => {
+      console.warn('[Sales Imports] Table initialization failed (non-critical):', err);
+    });
     // No module needed - home.html is just navigation buttons
     currentModule = null;
   }
@@ -37,11 +39,16 @@ async function initializeTables() {
       if (result.created_tables && result.created_tables.length > 0) {
         console.log('[Sales Imports] Created tables:', result.created_tables);
       }
+      if (result.existing_tables && result.existing_tables.length > 0) {
+        console.log('[Sales Imports] Existing tables:', result.existing_tables);
+      }
     } else {
-      console.error('[Sales Imports] Failed to initialize tables:', result.message);
+      console.warn('[Sales Imports] Table initialization returned non-success:', result.message);
     }
   } catch (error) {
-    console.error('[Sales Imports] Error initializing tables:', error);
+    // Log but don't throw - this is a background operation
+    console.warn('[Sales Imports] Could not initialize tables:', error.message);
+    console.warn('[Sales Imports] Tables will be created automatically when accessing region pages');
   }
 }
 
