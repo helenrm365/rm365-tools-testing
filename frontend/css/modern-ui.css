@@ -19,6 +19,8 @@
     --border-color: #e5e7eb;
     --text-color: #333;
     --text-secondary: #666;
+    --header-color: #1a1a1a;
+    --header-accent: #667eea;
 }
 
 html.dark-mode {
@@ -26,9 +28,163 @@ html.dark-mode {
     --border-color: #444;
     --text-color: #fff;
     --text-secondary: #aaa;
+    --header-color: #ffffff;
+    --header-accent: #8b9bef;
 }
 
 * { font-family: 'Sora', sans-serif; }
+
+/* === Modern Scrollbar Styling === */
+/* Webkit browsers (Chrome, Safari, Edge, Opera) */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(102, 126, 234, 0.3);
+    border-radius: 10px;
+    transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(102, 126, 234, 0.5);
+}
+
+::-webkit-scrollbar-thumb:active {
+    background: rgba(102, 126, 234, 0.7);
+}
+
+html.dark-mode ::-webkit-scrollbar-thumb {
+    background: rgba(139, 155, 239, 0.3);
+}
+
+html.dark-mode ::-webkit-scrollbar-thumb:hover {
+    background: rgba(139, 155, 239, 0.5);
+}
+
+html.dark-mode ::-webkit-scrollbar-thumb:active {
+    background: rgba(139, 155, 239, 0.7);
+}
+
+/* Firefox */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(102, 126, 234, 0.3) transparent;
+}
+
+html.dark-mode * {
+    scrollbar-color: rgba(139, 155, 239, 0.3) transparent;
+}
+
+/* === Universal Header Styling === */
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Sora', sans-serif;
+    font-weight: 600;
+    color: var(--header-color);
+    margin: 0 0 1rem 0;
+    line-height: 1.3;
+    letter-spacing: -0.02em;
+}
+
+h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--header-accent), #764ba2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid rgba(102, 126, 234, 0.15);
+}
+
+h2 {
+    font-size: 1.875rem;
+    font-weight: 600;
+    color: var(--header-color);
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+h3 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--header-color);
+    margin-bottom: 1rem;
+}
+
+h4 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-color);
+    margin-bottom: 0.875rem;
+}
+
+h5 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-color);
+    margin-bottom: 0.75rem;
+}
+
+h6 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.875rem;
+}
+
+/* Modal and Card headers get special treatment */
+.modal-title {
+    background: none;
+    -webkit-text-fill-color: var(--header-color);
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.card-header h3,
+.card-header h4 {
+    margin-bottom: 0;
+    color: inherit;
+}
+
+/* Dark mode specific adjustments */
+html.dark-mode h1 {
+    border-bottom-color: rgba(139, 155, 239, 0.2);
+}
+
+html.dark-mode h2 {
+    border-bottom-color: var(--border-color);
+}
+
+/* === Tips/Info Boxes === */
+.tips-box {
+    margin-top: 2rem;
+    background: #f8f9fa;
+    border-left: 4px solid #007bff;
+}
+
+.tips-title {
+    color: #007bff !important;
+}
+
+html.dark-mode .tips-box {
+    background: #2a2a2a;
+    border-left-color: #3399ff;
+}
+
+html.dark-mode .tips-title {
+    color: #3399ff !important;
+}
 
 /* === Modern Buttons === */
 .modern-button {
