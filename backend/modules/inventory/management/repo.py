@@ -167,7 +167,8 @@ class InventoryManagementRepo:
                     sku VARCHAR(255) PRIMARY KEY,
                     product_name TEXT,
                     item_id VARCHAR(255),
-                    discontinued_status VARCHAR(50) DEFAULT 'No',
+                    additional_attributes TEXT,
+                    discontinued_status VARCHAR(50),
                     status VARCHAR(50),
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -288,6 +289,114 @@ class InventoryManagementRepo:
             if conn:
                 conn.rollback()
             logger.error(f"Database error in sync_zoho_to_magento_product_list: {e}")
+            raise
+        finally:
+            conn.close()
+
+    @staticmethod
+    def parse_discontinued_status_from_additional_attributes(additional_attributes: str) -> str:
+        """
+        Parse discontinued_status from additional_attributes field.
+        Example: "discontinued_status=Active,other_field=value" -> "Active"
+        Returns "Active" as default if not found.
+        """
+        if not additional_attributes:
+            return "Active"
+        
+        # Look for discontinued_status= pattern
+        import re
+        match = re.search(r'discontinued_status=([^,]+)', additional_attributes)
+        if match:
+            return match.group(1).strip()
+        
+        return "Active"
+
+    def update_discontinued_status_from_additional_attributes(self) -> Dict[str, int]:
+        """
+        Update discontinued_status column by parsing additional_attributes field.
+        This should be run after importing data that has additional_attributes.
+        """
+        conn = self.get_metadata_connection()
+        try:
+            cursor = conn.cursor()
+            
+            # Fetch all rows with additional_attributes
+            cursor.execute("""
+                SELECT sku, additional_attributes
+                FROM magento_product_list
+                WHERE additional_attributes IS NOT NULL
+            """)
+            rows = cursor.fetchall()
+            
+            stats = {
+                "total_processed": len(rows),
+                "updated": 0
+            }
+            
+            for sku, additional_attributes in rows:
+                discontinued_status = self.parse_discontinued_status_from_additional_attributes(additional_attributes)
+                
+                cursor.execute("""
+                    UPDATE magento_product_list
+                    SET discontinued_status = %s, updated_at = NOW()
+                    WHERE sku = %s AND (discontinued_status IS NULL OR discontinued_status != %s)
+                """, (discontinued_status, sku, discontinued_status))
+                
+                if cursor.rowcount > 0:
+                    stats["updated"] += 1
+            
+            conn.commit()
+            logger.info(f"✅ Updated discontinued_status: {stats['updated']} of {stats['total_processed']} rows")
+            return stats
+            
+        except psycopg2.Error as e:
+            if conn:
+                conn.rollback()
+            logger.error(f"Database error in update_discontinued_status_from_additional_attributes: {e}")
+            raise
+        finally:
+            conn.close()
+
+    def get_magento_products(self, status_filters: str = None) -> List[Dict[str, Any]]:
+        """
+        Get products from magento_product_list, optionally filtered by discontinued_status.
+        
+        Args:
+            status_filters: Comma-separated string like "Active,Temporarily OOS,Pre Order,Samples"
+        
+        Returns:
+            List of product dictionaries with sku, product_name, item_id, discontinued_status, status
+        """
+        conn = self.get_metadata_connection()
+        try:
+            cursor = conn.cursor()
+            
+            if status_filters:
+                # Parse comma-separated filters
+                filters = [f.strip() for f in status_filters.split(',') if f.strip()]
+                placeholders = ','.join(['%s'] * len(filters))
+                
+                cursor.execute(f"""
+                    SELECT sku, product_name, item_id, discontinued_status, status, additional_attributes
+                    FROM magento_product_list
+                    WHERE discontinued_status IN ({placeholders})
+                    ORDER BY sku
+                """, tuple(filters))
+            else:
+                # No filters - return all
+                cursor.execute("""
+                    SELECT sku, product_name, item_id, discontinued_status, status, additional_attributes
+                    FROM magento_product_list
+                    ORDER BY sku
+                """)
+            
+            columns = ['sku', 'product_name', 'item_id', 'discontinued_status', 'status', 'additional_attributes']
+            rows = cursor.fetchall()
+            
+            return [dict(zip(columns, row)) for row in rows]
+            
+        except psycopg2.Error as e:
+            logger.error(f"Database error in get_magento_products: {e}")
             raise
         finally:
             conn.close()

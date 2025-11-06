@@ -271,3 +271,19 @@ class InventoryManagementService:
                 "message": f"Sync failed: {str(e)}",
                 "stats": {}
             }
+
+    def update_discontinued_status_from_additional_attributes(self) -> Dict[str, int]:
+        """
+        Parse discontinued_status from additional_attributes field.
+        Returns stats about the update operation.
+        """
+        return self.repo.update_discontinued_status_from_additional_attributes()
+
+    def get_magento_products(self, status_filters: Optional[str] = None) -> List[Dict[str, Any]]:
+        """
+        Get products from magento_product_list table, optionally filtered by status.
+        
+        Args:
+            status_filters: Comma-separated list like "Active,Temporarily OOS,Pre Order,Samples"
+        """
+        return self.repo.get_magento_products(status_filters)

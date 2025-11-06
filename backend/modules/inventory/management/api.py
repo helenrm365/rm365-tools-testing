@@ -138,4 +138,39 @@ def sync_magento_product_list(user=Depends(get_current_user)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.post("/parse-discontinued-status")
+def parse_discontinued_status(user=Depends(get_current_user)):
+    """
+    Parse discontinued_status from additional_attributes field in magento_product_list.
+    This should be run after importing Magento product data with additional_attributes.
+    """
+    try:
+        result = _svc().update_discontinued_status_from_additional_attributes()
+        return {
+            "status": "success",
+            "message": f"Updated {result['updated']} of {result['total_processed']} products",
+            "stats": result
+        }
+    except Exception as e:
+        logger.error(f"Error parsing discontinued status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/magento-products")
+def get_magento_products(
+    status_filters: str = None,  # Comma-separated list: "Active,Temporarily OOS,Pre Order,Samples"
+    user=Depends(get_current_user)
+):
+    """
+    Get products from magento_product_list, optionally filtered by discontinued_status.
+    If status_filters is None, returns all products.
+    """
+    try:
+        result = _svc().get_magento_products(status_filters)
+        return result
+    except Exception as e:
+        logger.error(f"Error fetching magento products: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 __all__ = ["router"]

@@ -27,14 +27,14 @@ class LabelsRepo:
     # --- psycopg2 queries ---
     def _fetch_allowed_skus_from_magento_psycopg(self, conn) -> List[str]:
         """
-        Magento allow-list: only SKUs with discontinued IN ('No','Temporarily OOS').
+        Magento allow-list: only SKUs with discontinued_status IN ('Active','Temporarily OOS','Pre Order','Samples').
         """
         with conn.cursor() as cur:
             cur.execute(
                 """
                 SELECT sku
                 FROM magento_product_list
-                WHERE discontinued_status IN ('No', 'Temporarily OOS')
+                WHERE discontinued_status IN ('Active', 'Temporarily OOS', 'Pre Order', 'Samples')
                   AND sku IS NOT NULL
                   AND sku <> ''
                 """
@@ -165,6 +165,7 @@ class LabelsRepo:
     ) -> List[Dict[str, Any]]:
         """
         CSV-driven (optional): validate against Magento to exclude discontinued.
+        Only includes Active, Temporarily OOS, Pre Order, and Samples.
         """
         if not csv_skus:
             return []
@@ -174,7 +175,7 @@ class LabelsRepo:
                 SELECT sku
                 FROM magento_product_list
                 WHERE sku = ANY(%s)
-                  AND discontinued_status IN ('No','Temporarily OOS')
+                  AND discontinued_status IN ('Active','Temporarily OOS','Pre Order','Samples')
                 """,
                 (csv_skus,)
             )

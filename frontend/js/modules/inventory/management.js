@@ -6,6 +6,34 @@ const API = config.API;
 console.log('[Inventory Management] Using API:', API);
 console.log('[Inventory Management] Window location:', window.location.href);
 
+// Status filter preferences key
+const STATUS_FILTERS_KEY = 'inventory_status_filters';
+
+// Default status filters (all checked by default)
+const DEFAULT_STATUS_FILTERS = ['Active', 'Temporarily OOS', 'Pre Order', 'Samples'];
+
+// Get saved status filters from localStorage
+function getSavedStatusFilters() {
+  try {
+    const saved = localStorage.getItem(STATUS_FILTERS_KEY);
+    if (saved) {
+      return JSON.parse(saved);
+    }
+  } catch (e) {
+    console.error('[Inventory] Error loading saved filters:', e);
+  }
+  return DEFAULT_STATUS_FILTERS;
+}
+
+// Save status filters to localStorage
+function saveStatusFilters(filters) {
+  try {
+    localStorage.setItem(STATUS_FILTERS_KEY, JSON.stringify(filters));
+  } catch (e) {
+    console.error('[Inventory] Error saving filters:', e);
+  }
+}
+
 // Test backend connectivity
 async function testBackendConnectivity() {
   console.log('[Test] Testing backend connectivity...');
@@ -488,6 +516,37 @@ function setupSearchAndFilters() {
     
     // Add debounced search
     searchInput.addEventListener('input', searchHandler);
+  }
+  
+  // Setup status filter checkboxes
+  setupStatusFilters();
+}
+
+function setupStatusFilters() {
+  // Load saved filters and set checkbox states
+  const savedFilters = getSavedStatusFilters();
+  const checkboxes = document.querySelectorAll('.status-filter-checkbox');
+  
+  checkboxes.forEach(checkbox => {
+    checkbox.checked = savedFilters.includes(checkbox.value);
+  });
+  
+  // Apply filters button
+  const applyBtn = document.getElementById('applyStatusFilters');
+  if (applyBtn) {
+    applyBtn.addEventListener('click', async () => {
+      const selectedFilters = Array.from(checkboxes)
+        .filter(cb => cb.checked)
+        .map(cb => cb.value);
+      
+      // Save preferences
+      saveStatusFilters(selectedFilters);
+      
+      // Reload data with filters
+      await loadInventoryData();
+      
+      console.log('[Inventory] Applied status filters:', selectedFilters);
+    });
   }
 }
 

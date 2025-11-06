@@ -9,6 +9,50 @@
   
   <!-- Search and Filter Controls -->
   <div class="management-controls modern-box" style="margin-bottom: 1rem;">
+    <!-- Discontinued Status Filters -->
+    <div style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #eee;">
+      <label style="font-weight: 600; margin-bottom: 0.5rem; display: block; color: #333;">
+        Product Status Filters:
+      </label>
+      <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; align-items: center;">
+        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+          <input type="checkbox" id="filter_Active" class="status-filter-checkbox" value="Active" checked style="width: 18px; height: 18px;">
+          <span>Active</span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+          <input type="checkbox" id="filter_TemporarilyOOS" class="status-filter-checkbox" value="Temporarily OOS" checked style="width: 18px; height: 18px;">
+          <span>Temporarily OOS</span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+          <input type="checkbox" id="filter_PreOrder" class="status-filter-checkbox" value="Pre Order" checked style="width: 18px; height: 18px;">
+          <span>Pre Order</span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+          <input type="checkbox" id="filter_Samples" class="status-filter-checkbox" value="Samples" checked style="width: 18px; height: 18px;">
+          <span>Samples</span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+          <input type="checkbox" id="filter_DiscontinuedSupplier" class="status-filter-checkbox" value="Discontinued (Supplier)" style="width: 18px; height: 18px;">
+          <span>Discontinued (Supplier)</span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+          <input type="checkbox" id="filter_DiscontinuedRM" class="status-filter-checkbox" value="Discontinued (RM)" style="width: 18px; height: 18px;">
+          <span>Discontinued (RM)</span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+          <input type="checkbox" id="filter_SpecialOffer" class="status-filter-checkbox" value="Special Offer" style="width: 18px; height: 18px;">
+          <span>Special Offer</span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+          <input type="checkbox" id="filter_SpecialItem" class="status-filter-checkbox" value="Special Item" style="width: 18px; height: 18px;">
+          <span>Special Item</span>
+        </label>
+        <button id="applyStatusFilters" class="modern-button" style="margin-left: auto; background: linear-gradient(135deg, #3b82f6, #2563eb); color: white;">
+          Apply Filters
+        </button>
+      </div>
+    </div>
+    
     <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
       <div style="flex: 1; max-width: 300px;">
         <input type="text" id="inventorySearch" class="modern-input" placeholder="Search products, SKU, location..." style="width: 100%;">
