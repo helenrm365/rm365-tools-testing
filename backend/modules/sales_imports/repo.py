@@ -163,6 +163,21 @@ class SalesImportsRepo:
                 CREATE INDEX IF NOT EXISTS idx_uk_sales_status
                 ON uk_sales_data(status)
             """)
+            
+            # Ensure imported_at and updated_at columns exist (migration for existing tables)
+            cursor.execute("""
+                DO $$ 
+                BEGIN 
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                                   WHERE table_name='uk_sales_data' AND column_name='imported_at') THEN
+                        ALTER TABLE uk_sales_data ADD COLUMN imported_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+                    END IF;
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                                   WHERE table_name='uk_sales_data' AND column_name='updated_at') THEN
+                        ALTER TABLE uk_sales_data ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+                    END IF;
+                END $$;
+            """)
  
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS fr_sales_data (
@@ -198,6 +213,21 @@ class SalesImportsRepo:
                 CREATE INDEX IF NOT EXISTS idx_fr_sales_status
                 ON fr_sales_data(status)
             """)
+            
+            # Ensure imported_at and updated_at columns exist (migration for existing tables)
+            cursor.execute("""
+                DO $$ 
+                BEGIN 
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                                   WHERE table_name='fr_sales_data' AND column_name='imported_at') THEN
+                        ALTER TABLE fr_sales_data ADD COLUMN imported_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+                    END IF;
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                                   WHERE table_name='fr_sales_data' AND column_name='updated_at') THEN
+                        ALTER TABLE fr_sales_data ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+                    END IF;
+                END $$;
+            """)
  
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS nl_sales_data (
@@ -232,6 +262,21 @@ class SalesImportsRepo:
             cursor.execute("""
                 CREATE INDEX IF NOT EXISTS idx_nl_sales_status
                 ON nl_sales_data(status)
+            """)
+            
+            # Ensure imported_at and updated_at columns exist (migration for existing tables)
+            cursor.execute("""
+                DO $$ 
+                BEGIN 
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                                   WHERE table_name='nl_sales_data' AND column_name='imported_at') THEN
+                        ALTER TABLE nl_sales_data ADD COLUMN imported_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+                    END IF;
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                                   WHERE table_name='nl_sales_data' AND column_name='updated_at') THEN
+                        ALTER TABLE nl_sales_data ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+                    END IF;
+                END $$;
             """)
             
             # Create condensed sales tables for 6-month aggregates
