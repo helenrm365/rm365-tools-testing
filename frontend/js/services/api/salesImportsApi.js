@@ -255,3 +255,15 @@ export async function getNLCondensedData(limit = 100, offset = 0, search = '') {
   });
   return await get(`${API}/nl/condensed?${params.toString()}`);
 }
+
+// Import History operations
+export async function getImportHistory(limit = 100, offset = 0, region = null) {
+  const params = new URLSearchParams({
+    limit: limit.toString(),
+    offset: offset.toString()
+  });
+  if (region) {
+    params.append('region', region);
+  }
+  return await get(`${API}/history?${params.toString()}`);
+}

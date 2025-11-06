@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, UploadFile, File, Query
 from typing import Dict, Any
 from common.deps import get_current_user
 from .service import SalesImportsService
-from .schemas import InitTablesResponse, SalesDataResponse, SalesImportResponse
+from .schemas import InitTablesResponse, SalesDataResponse, SalesImportResponse, ImportHistoryResponse
 
 router = APIRouter()
 svc = SalesImportsService()
@@ -47,7 +47,8 @@ async def upload_uk_sales_csv(
     """Upload CSV file for UK sales data"""
     content = await file.read()
     csv_content = content.decode('utf-8')
-    result = svc.import_csv("uk", csv_content)
+    username = user.get("username") or user.get("email") or "unknown"
+    result = svc.import_csv("uk", csv_content, file.filename, username)
     return SalesImportResponse(**result)
 
 
@@ -72,7 +73,8 @@ async def upload_fr_sales_csv(
     """Upload CSV file for FR sales data"""
     content = await file.read()
     csv_content = content.decode('utf-8')
-    result = svc.import_csv("fr", csv_content)
+    username = user.get("username") or user.get("email") or "unknown"
+    result = svc.import_csv("fr", csv_content, file.filename, username)
     return SalesImportResponse(**result)
 
 
@@ -97,7 +99,8 @@ async def upload_nl_sales_csv(
     """Upload CSV file for NL sales data"""
     content = await file.read()
     csv_content = content.decode('utf-8')
-    result = svc.import_csv("nl", csv_content)
+    username = user.get("username") or user.get("email") or "unknown"
+    result = svc.import_csv("nl", csv_content, file.filename, username)
     return SalesImportResponse(**result)
 
 
@@ -136,6 +139,19 @@ def get_nl_condensed_data(
     """Get NL condensed sales data (6-month aggregated by SKU)"""
     result = svc.get_condensed_data("nl", limit, offset, search)
     return SalesDataResponse(**result)
+
+
+# Import History endpoint
+@router.get("/history", response_model=ImportHistoryResponse)
+def get_import_history(
+    limit: int = Query(100, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+    region: str = Query(None, description="Filter by region (uk, fr, nl)"),
+    user=Depends(get_current_user)
+):
+    """Get import history with pagination and optional region filter"""
+    result = svc.get_import_history(limit, offset, region)
+    return ImportHistoryResponse(**result)
 
 
 # SKU Aliases management endpoints

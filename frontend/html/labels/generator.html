@@ -11,49 +11,72 @@
       <h3>🏷️ Generate Labels</h3>
     </div>
     <div class="card-body">
-      <p>Select date range and filter criteria to generate labels from your sales data.</p>
+      <p>Select products to generate barcode labels with UK/FR 6-month sales data.</p>
       
-      <div class="generator-controls modern-box" style="margin-bottom: 2rem;">
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+      <!-- Loading Indicator -->
+      <div id="loadingIndicator" style="display: none; text-align: center; padding: 2rem;">
+        <div style="font-size: 2rem;">⏳</div>
+        <p>Loading products...</p>
+      </div>
+
+      <!-- Error Message -->
+      <div id="errorMessage" style="display: none; padding: 1rem; background: #fee; border-left: 4px solid #c00; color: #c00; margin-bottom: 1rem; border-radius: 4px;">
+        Error loading products
+      </div>
+
+      <!-- Controls -->
+      <div class="generator-controls modern-box" style="margin-bottom: 1.5rem;">
+        <div style="display: grid; grid-template-columns: 1fr auto auto; gap: 1rem; align-items: center; margin-bottom: 1rem;">
           <div>
-            <label class="form-label">Start Date:</label>
-            <input type="date" id="startDate" class="modern-input" required>
+            <label class="form-label">Search Products:</label>
+            <input type="text" id="searchInput" class="modern-input" placeholder="Search by SKU, Product Name, or Item ID...">
           </div>
           <div>
-            <label class="form-label">End Date:</label>
-            <input type="date" id="endDate" class="modern-input" required>
+            <label class="form-label">Line Date:</label>
+            <input type="date" id="lineDateInput" class="modern-input">
           </div>
-          <div>
-            <label class="form-label">Search (Optional):</label>
-            <input type="text" id="searchTerm" class="modern-input" placeholder="Order, Customer, SKU...">
-          </div>
-          <div>
-            <label class="form-label">Format:</label>
-            <select id="formatSelect" class="modern-select" data-enhance="c-select">
-              <option value="csv">CSV Data</option>
-              <option value="shipping">Shipping Labels</option>
-              <option value="product">Product Labels</option>
-            </select>
+          <div style="padding-top: 1.5rem;">
+            <button id="refreshBtn" class="modern-button" style="background: #6b7280;">🔄 Refresh</button>
           </div>
         </div>
         
-        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-          <button id="previewBtn" class="modern-button">👁️ Preview Data</button>
-          <button id="generateBtn" class="modern-button" style="background: linear-gradient(to bottom right, #28a745, #20c997);">🏷️ Generate Labels</button>
-          <button id="downloadBtn" class="modern-button" disabled style="background: linear-gradient(to bottom right, #007bff, #6610f2);">⬇️ Download</button>
+        <div style="display: flex; align-items: center; gap: 2rem; padding: 1rem; background: #f8f9fa; border-radius: 6px;">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <input type="checkbox" id="selectAllCheckbox" style="width: 18px; height: 18px; cursor: pointer;">
+            <label for="selectAllCheckbox" style="cursor: pointer; font-weight: 500;">Select All</label>
+          </div>
+          <div style="flex: 1; text-align: center; color: #666;">
+            <span id="selectedProducts">0</span> of <span id="totalProducts">0</span> products selected
+          </div>
+          <button id="generateBtn" class="modern-button" disabled style="background: linear-gradient(to bottom right, #10b981, #059669);">
+            🏷️ Generate Labels
+          </button>
         </div>
       </div>
 
-      <div id="previewSection" class="modern-box" style="display: none;">
-        <h4>📋 Data Preview</h4>
-        <div id="previewStats" style="margin-bottom: 1rem;"></div>
-        <div id="previewTable" style="max-height: 400px; overflow-y: auto;"></div>
-      </div>
-
-      <div id="generatedSection" class="modern-box" style="display: none;">
-        <h4>✅ Labels Generated</h4>
-        <div id="generatedStats" style="margin-bottom: 1rem;"></div>
-        <div id="generatedPreview" style="max-height: 300px; overflow-y: auto; background: #f8f9fa; padding: 1rem; border-radius: 4px; font-family: monospace; white-space: pre-wrap;"></div>
+      <!-- Products Table -->
+      <div class="modern-box" style="overflow-x: auto;">
+        <table class="modern-table" style="width: 100%; border-collapse: collapse;">
+          <thead>
+            <tr style="background: rgba(0,0,0,0.05);">
+              <th style="padding: 12px; text-align: left; width: 50px;">
+                <div style="width: 20px;"></div>
+              </th>
+              <th style="padding: 12px; text-align: left;">SKU</th>
+              <th style="padding: 12px; text-align: left;">Product Name</th>
+              <th style="padding: 12px; text-align: left;">Item ID</th>
+              <th style="padding: 12px; text-align: right;">UK 6M</th>
+              <th style="padding: 12px; text-align: right;">FR 6M</th>
+            </tr>
+          </thead>
+          <tbody id="productsTableBody">
+            <tr>
+              <td colspan="6" style="text-align: center; padding: 2rem; color: #999;">
+                Loading...
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   </section>

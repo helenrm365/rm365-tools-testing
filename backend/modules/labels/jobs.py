@@ -5,22 +5,34 @@ from modules.labels.repo import LabelsRepo
 
 # --- helpers ---------------------------------------------------------------
 
-def _snapshot_rows(conn: PGConn, zoho_map: Dict[str, str]) -> List[Dict[str, Any]]:
+def _snapshot_rows(conn: PGConn, zoho_map: Dict[str, str], item_ids: List[str] = None) -> List[Dict[str, Any]]:
     """
-    Pull current /to-print rows from your repo. Adjust field names if needed.
+    Pull current /to-print rows from your repo, optionally filtered by item_ids.
     Expected keys used below: sku, item_id, product_name, uk_6m_data, fr_6m_data
     """
-    return LabelsRepo().get_labels_to_print_psycopg(conn, zoho_map)
+    all_rows = LabelsRepo().get_labels_to_print_psycopg(conn, zoho_map)
+    
+    # Filter by selected item_ids if provided
+    if item_ids:
+        item_ids_set = set(item_ids)
+        return [r for r in all_rows if r.get("item_id") in item_ids_set]
+    
+    return all_rows
 
 # --- API-facing functions --------------------------------------------------
 
 def start_label_job(conn: PGConn, zoho_map: Dict[str, str], payload: Dict[str, Any]) -> int:
     """
     Create job + bulk insert rows.
-    payload: { 'line_date': 'YYYY-MM-DD' (optional), 'created_by': 'email' (optional) }
+    payload: { 
+        'line_date': 'YYYY-MM-DD' (optional), 
+        'created_by': 'email' (optional),
+        'item_ids': ['id1', 'id2', ...] (optional - if not provided, uses all products)
+    }
     """
     line_date = payload.get("line_date")  # let SQL cast DATE if provided
     created_by = payload.get("created_by")
+    item_ids = payload.get("item_ids")  # list of selected item IDs
 
     with conn.cursor() as cur:
         # 1) insert job
@@ -34,8 +46,8 @@ def start_label_job(conn: PGConn, zoho_map: Dict[str, str], payload: Dict[str, A
         )
         job_id = cur.fetchone()[0]
 
-        # 2) snapshot current rows
-        rows = _snapshot_rows(conn, zoho_map)
+        # 2) snapshot current rows (filtered by item_ids if provided)
+        rows = _snapshot_rows(conn, zoho_map, item_ids)
 
         # 3) bulk insert items (map keys—adjust if your row keys differ)
         to_insert: List[Tuple[Any, ...]] = []

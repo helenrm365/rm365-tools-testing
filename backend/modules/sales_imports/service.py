@@ -99,11 +99,11 @@ class SalesImportsService:
                 "total_count": 0
             }
     
-    def import_csv(self, region: str, csv_content: str) -> Dict[str, Any]:
+    def import_csv(self, region: str, csv_content: str, filename: str = None, username: str = None) -> Dict[str, Any]:
         """Import CSV data for a specific region and refresh condensed data"""
         try:
             table_name = self._get_table_name(region)
-            result = self.repo.import_csv_data(table_name, csv_content)
+            result = self.repo.import_csv_data(table_name, csv_content, filename, username)
             
             if result['success']:
                 # Refresh condensed data after import
@@ -240,4 +240,21 @@ class SalesImportsService:
             return {
                 "status": "error",
                 "message": f"Failed to delete SKU alias: {str(e)}"
+            }
+    
+    def get_import_history(self, limit: int = 100, offset: int = 0, region: str = None) -> Dict[str, Any]:
+        """Get import history with pagination and optional region filter"""
+        try:
+            result = self.repo.get_import_history(limit, offset, region)
+            return {
+                "status": "success",
+                **result
+            }
+        except Exception as e:
+            logger.error(f"Error getting import history: {e}")
+            return {
+                "status": "error",
+                "message": f"Failed to get import history: {str(e)}",
+                "data": [],
+                "total_count": 0
             }

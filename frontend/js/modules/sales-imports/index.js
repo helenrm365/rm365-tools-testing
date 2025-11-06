@@ -25,8 +25,9 @@ export async function init(path) {
       const { initNLSales } = await import('./nl-sales.js');
       await initNLSales();
     } else if (path === '/sales-imports/history') {
-      // Future: Load history page
-      console.log('[Sales Imports] History page - to be implemented');
+      // Load history page
+      const { initImportHistory } = await import('./history.js');
+      await initImportHistory();
     }
   } catch (error) {
     console.error('[Sales Imports] Error initializing module:', error);

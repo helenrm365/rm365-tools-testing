@@ -124,4 +124,18 @@ def get_suppliers(user=Depends(get_current_user)):
     return _svc().get_suppliers()
 
 
+@router.post("/sync-magento-product-list")
+def sync_magento_product_list(user=Depends(get_current_user)):
+    """
+    Sync Zoho inventory items to magento_product_list table.
+    Updates SKU, product name, item_id, and discontinued_status for all products.
+    """
+    try:
+        result = _svc().sync_zoho_to_magento_product_list()
+        return result
+    except Exception as e:
+        logger.error(f"Error syncing magento product list: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 __all__ = ["router"]

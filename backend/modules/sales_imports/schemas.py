@@ -41,3 +41,13 @@ class SalesImportResponse(BaseModel):
     message: str
     rows_imported: Optional[int] = None
     errors: Optional[List[str]] = None
+
+
+class ImportHistoryResponse(BaseModel):
+    """Response for import history"""
+    status: str
+    data: List[Dict[str, Any]]
+    total_count: int
+    limit: Optional[int] = None
+    offset: Optional[int] = None
+    message: Optional[str] = None

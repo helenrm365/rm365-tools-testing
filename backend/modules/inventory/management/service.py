@@ -235,3 +235,39 @@ class InventoryManagementService:
     def get_suppliers(self) -> List[str]:
         """Legacy method - placeholder"""
         return ["Supplier A", "Supplier B", "Supplier C"]
+
+    def sync_zoho_to_magento_product_list(self) -> Dict[str, Any]:
+        """
+        Sync Zoho inventory items to magento_product_list table.
+        Fetches all items from Zoho and updates the magento_product_list table
+        with SKU, name, item_id, and discontinued_status.
+        """
+        try:
+            logger.info("Starting Zoho to magento_product_list sync...")
+            
+            # Fetch all items from Zoho
+            zoho_items = self.get_zoho_inventory_items()
+            
+            if not zoho_items:
+                return {
+                    "status": "error",
+                    "message": "No items fetched from Zoho",
+                    "stats": {}
+                }
+            
+            # Sync to database
+            stats = self.repo.sync_zoho_to_magento_product_list(zoho_items)
+            
+            return {
+                "status": "success",
+                "message": f"Synced {stats['total_items']} items from Zoho",
+                "stats": stats
+            }
+            
+        except Exception as e:
+            logger.error(f"Error syncing Zoho to magento_product_list: {e}")
+            return {
+                "status": "error",
+                "message": f"Sync failed: {str(e)}",
+                "stats": {}
+            }

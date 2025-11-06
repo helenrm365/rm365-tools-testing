@@ -161,11 +161,133 @@ class InventoryManagementRepo:
                 ON inventory_metadata (updated_at)
             """)
             
+            # Create magento_product_list table for product filtering
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS magento_product_list (
+                    sku VARCHAR(255) PRIMARY KEY,
+                    product_name TEXT,
+                    item_id VARCHAR(255),
+                    discontinued_status VARCHAR(50) DEFAULT 'No',
+                    status VARCHAR(50),
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_magento_product_list_discontinued 
+                ON magento_product_list (discontinued_status)
+            """)
+            
+            # Create label print job tables
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS label_print_jobs (
+                    id SERIAL PRIMARY KEY,
+                    created_by VARCHAR(255),
+                    line_date DATE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS label_print_items (
+                    id SERIAL PRIMARY KEY,
+                    job_id INTEGER NOT NULL REFERENCES label_print_jobs(id) ON DELETE CASCADE,
+                    item_id VARCHAR(255) NOT NULL,
+                    sku VARCHAR(255),
+                    product_name TEXT,
+                    uk_6m_data INTEGER DEFAULT 0,
+                    fr_6m_data INTEGER DEFAULT 0,
+                    line_date DATE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_label_print_items_job_id 
+                ON label_print_items (job_id)
+            """)
+            
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_label_print_items_sku 
+                ON label_print_items (sku)
+            """)
+            
             conn.commit()
             logger.info("Inventory management tables initialized successfully")
             
         except psycopg2.Error as e:
             logger.error(f"Database error in init_tables: {e}")
+            raise
+        finally:
+            conn.close()
+
+    def sync_zoho_to_magento_product_list(self, zoho_items: List[Dict[str, Any]]) -> Dict[str, int]:
+        """
+        Sync Zoho inventory items to magento_product_list table.
+        Filters based on discontinued_status custom field.
+        Returns stats about sync operation.
+        """
+        conn = self.get_metadata_connection()
+        try:
+            cursor = conn.cursor()
+            
+            stats = {
+                "total_items": len(zoho_items),
+                "inserted": 0,
+                "updated": 0,
+                "skipped": 0
+            }
+            
+            for item in zoho_items:
+                sku = item.get("sku", "").strip()
+                if not sku:
+                    stats["skipped"] += 1
+                    continue
+                
+                product_name = item.get("product_name") or item.get("name", "")
+                item_id = item.get("item_id", "")
+                status = item.get("status", "")
+                
+                # Get discontinued_status from custom_fields
+                discontinued_status = "No"  # Default
+                custom_fields = item.get("custom_fields", {})
+                if isinstance(custom_fields, dict):
+                    discontinued_status = custom_fields.get("discontinued_status", "No")
+                elif isinstance(custom_fields, list):
+                    # Handle list format from Zoho API
+                    for field in custom_fields:
+                        if isinstance(field, dict) and field.get("label") == "Discontinued":
+                            discontinued_status = field.get("value", "No")
+                            break
+                
+                # Upsert into magento_product_list
+                cursor.execute("""
+                    INSERT INTO magento_product_list (sku, product_name, item_id, discontinued_status, status, updated_at)
+                    VALUES (%s, %s, %s, %s, %s, NOW())
+                    ON CONFLICT (sku) DO UPDATE SET
+                        product_name = EXCLUDED.product_name,
+                        item_id = EXCLUDED.item_id,
+                        discontinued_status = EXCLUDED.discontinued_status,
+                        status = EXCLUDED.status,
+                        updated_at = NOW()
+                    RETURNING (xmax = 0) AS inserted
+                """, (sku, product_name, item_id, discontinued_status, status))
+                
+                result = cursor.fetchone()
+                if result and result[0]:
+                    stats["inserted"] += 1
+                else:
+                    stats["updated"] += 1
+            
+            conn.commit()
+            logger.info(f"✅ Synced magento_product_list: {stats['inserted']} inserted, {stats['updated']} updated")
+            return stats
+            
+        except psycopg2.Error as e:
+            if conn:
+                conn.rollback()
+            logger.error(f"Database error in sync_zoho_to_magento_product_list: {e}")
             raise
         finally:
             conn.close()

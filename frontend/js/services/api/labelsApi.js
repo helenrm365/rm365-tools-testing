@@ -1,83 +1,99 @@
 // js/services/api/labelsApi.js
 import { get, post, http } from './http.js';
+import { getToken } from '../state/sessionStore.js';
+import { config } from '../../config.js';
 
 const API = '/api/v1/labels';
 
-// Label management operations
-export async function getLabels() {
-  return await get(`${API}/`);
+/**
+ * Get all products available for label printing (active, not discontinued)
+ */
+export async function getProductsToPrint() {
+  return await get(`${API}/to-print`);
 }
 
-export async function getLabel(labelId) {
-  return await get(`${API}/${labelId}`);
+/**
+ * Create a new label print job
+ * @param {Object} payload - { line_date: 'YYYY-MM-DD', created_by: 'email' }
+ */
+export async function createPrintJob(payload = {}) {
+  return await post(`${API}/start-job`, payload);
 }
 
-export async function createLabel(labelData) {
-  return await post(`${API}/`, labelData);
+/**
+ * Get label print job details
+ * @param {number} jobId - Job ID
+ */
+export async function getPrintJob(jobId) {
+  return await get(`${API}/job/${jobId}`);
 }
 
-export async function updateLabel(labelId, labelData) {
-  return await http(`${API}/${labelId}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(labelData)
-  });
+/**
+ * Delete a print job
+ * @param {number} jobId - Job ID
+ */
+export async function deletePrintJob(jobId) {
+  return await http(`${API}/job/${jobId}`, { method: 'DELETE' });
 }
 
-export async function deleteLabel(labelId) {
-  return await http(`${API}/${labelId}`, { method: 'DELETE' });
-}
-
-// Print operations
-export async function printLabel(labelId, printData) {
-  return await post(`${API}/${labelId}/print`, printData);
-}
-
-export async function printLabelWithData(labelId, data, quantity = 1) {
-  return await post(`${API}/${labelId}/print`, {
-    data: data,
-    quantity: quantity
-  });
-}
-
-// Print history operations
-export async function getPrintHistory(filters = {}) {
-  const params = new URLSearchParams();
+/**
+ * Download PDF labels for a job
+ * @param {number} jobId - Job ID
+ */
+export async function downloadPDF(jobId) {
+  const BASE = config.API.replace(/\/+$/, '');
+  const url = `${BASE}${API}/job/${jobId}/pdf`;
   
-  Object.entries(filters).forEach(([key, value]) => {
-    if (value) params.append(key, value);
-  });
+  const token = getToken();
+  const headers = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
   
-  const url = params.toString() ? `${API}/history?${params}` : `${API}/history`;
-  return await get(url);
+  const response = await fetch(url, { headers });
+  
+  if (!response.ok) {
+    throw new Error(`Failed to download PDF: ${response.statusText}`);
+  }
+  
+  const blob = await response.blob();
+  const downloadUrl = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = downloadUrl;
+  a.download = `labels_job_${jobId}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(downloadUrl);
+  document.body.removeChild(a);
 }
 
-export async function getPrintRecord(recordId) {
-  return await get(`${API}/history/${recordId}`);
-}
-
-export async function deletePrintRecord(recordId) {
-  return await http(`${API}/history/${recordId}`, { method: 'DELETE' });
-}
-
-export async function reprintLabel(recordId) {
-  return await post(`${API}/history/${recordId}/reprint`, {});
-}
-
-// Template operations
-export async function validateTemplate(template) {
-  return await post(`${API}/validate-template`, { template });
-}
-
-export async function previewLabel(labelId, data = {}) {
-  return await post(`${API}/${labelId}/preview`, { data });
-}
-
-// Printer operations
-export async function getPrinters() {
-  return await get(`${API}/printers`);
-}
-
-export async function testPrinter(printerName) {
-  return await post(`${API}/printers/${printerName}/test`, {});
+/**
+ * Download CSV labels for a job
+ * @param {number} jobId - Job ID
+ */
+export async function downloadCSV(jobId) {
+  const BASE = config.API.replace(/\/+$/, '');
+  const url = `${BASE}${API}/job/${jobId}/csv`;
+  
+  const token = getToken();
+  const headers = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  
+  const response = await fetch(url, { headers });
+  
+  if (!response.ok) {
+    throw new Error(`Failed to download CSV: ${response.statusText}`);
+  }
+  
+  const blob = await response.blob();
+  const downloadUrl = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = downloadUrl;
+  a.download = `labels_job_${jobId}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(downloadUrl);
+  document.body.removeChild(a);
 }

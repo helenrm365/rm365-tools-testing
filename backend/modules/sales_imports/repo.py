@@ -2,6 +2,7 @@ from typing import List, Dict, Any, Optional
 import logging
 import csv
 import io
+import json
 from datetime import datetime
 from core.db import get_products_connection
 
@@ -47,6 +48,33 @@ class SalesImportsRepo:
                 logger.info(f"✅ Created table: sku_aliases")
             else:
                 logger.info(f"ℹ️  Table already exists: sku_aliases")
+            
+            # Create import history table if it doesn't exist
+            cursor.execute("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_schema = 'public' 
+                    AND table_name = 'import_history'
+                )
+            """)
+            
+            if not cursor.fetchone()[0]:
+                cursor.execute("""
+                    CREATE TABLE import_history (
+                        id SERIAL PRIMARY KEY,
+                        region VARCHAR(10) NOT NULL,
+                        filename VARCHAR(255),
+                        rows_imported INTEGER NOT NULL DEFAULT 0,
+                        rows_failed INTEGER NOT NULL DEFAULT 0,
+                        errors TEXT,
+                        imported_by VARCHAR(100),
+                        imported_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        status VARCHAR(50) NOT NULL
+                    )
+                """)
+                logger.info(f"✅ Created table: import_history")
+            else:
+                logger.info(f"ℹ️  Table already exists: import_history")
             
             # Create main sales data tables
             for table_name in tables:
@@ -242,12 +270,15 @@ class SalesImportsRepo:
                 cursor.close()
                 conn.close()
     
-    def import_csv_data(self, table_name: str, csv_content: str) -> Dict[str, Any]:
+    def import_csv_data(self, table_name: str, csv_content: str, filename: str = None, username: str = None) -> Dict[str, Any]:
         """Import CSV data into a specific sales table using column positions"""
         # Validate table name to prevent SQL injection
         valid_tables = ['uk_sales_data', 'fr_sales_data', 'nl_sales_data']
         if table_name not in valid_tables:
             raise ValueError(f"Invalid table name: {table_name}")
+        
+        # Extract region from table name
+        region = table_name.replace('_sales_data', '').upper()
         
         conn = None
         try:
@@ -326,6 +357,26 @@ class SalesImportsRepo:
                     errors.append(f"Row {row_num}: {str(e)}")
                     logger.error(f"Error importing row {row_num}: {e}")
             
+            conn.commit()
+            
+            # Log to import_history
+            import_status = "success" if rows_imported > 0 else "failed"
+            errors_json = json.dumps(errors) if errors else None
+            
+            history_query = """
+                INSERT INTO import_history 
+                (region, filename, rows_imported, rows_failed, errors, imported_by, status)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """
+            cursor.execute(history_query, (
+                region, 
+                filename, 
+                rows_imported, 
+                len(errors), 
+                errors_json, 
+                username, 
+                import_status
+            ))
             conn.commit()
             
             return {
@@ -610,6 +661,64 @@ class SalesImportsRepo:
             if conn:
                 conn.rollback()
             logger.error(f"Error deleting SKU alias: {e}")
+            raise
+        finally:
+            if conn:
+                cursor.close()
+                conn.close()
+    
+    def get_import_history(self, limit: int = 100, offset: int = 0, region: str = None) -> Dict[str, Any]:
+        """Get import history with pagination and optional region filter"""
+        conn = None
+        try:
+            conn = get_products_connection()
+            cursor = conn.cursor()
+            
+            # Build query with optional region filter
+            where_clause = "WHERE region = %s" if region else ""
+            params = [region] if region else []
+            
+            # Get total count
+            count_query = f"SELECT COUNT(*) FROM import_history {where_clause}"
+            cursor.execute(count_query, params)
+            total_count = cursor.fetchone()[0]
+            
+            # Get paginated data
+            query = f"""
+                SELECT id, region, filename, rows_imported, rows_failed, errors, 
+                       imported_by, imported_at, status
+                FROM import_history
+                {where_clause}
+                ORDER BY imported_at DESC
+                LIMIT %s OFFSET %s
+            """
+            params.extend([limit, offset])
+            cursor.execute(query, params)
+            
+            columns = [desc[0] for desc in cursor.description]
+            data = []
+            for row in cursor.fetchall():
+                row_dict = dict(zip(columns, row))
+                # Convert datetime to string
+                if row_dict.get('imported_at'):
+                    row_dict['imported_at'] = row_dict['imported_at'].isoformat() if hasattr(row_dict['imported_at'], 'isoformat') else str(row_dict['imported_at'])
+                # Parse errors JSON if present
+                if row_dict.get('errors'):
+                    try:
+                        row_dict['errors'] = json.loads(row_dict['errors'])
+                    except:
+                        pass
+                data.append(row_dict)
+            
+            return {
+                "data": data,
+                "total_count": total_count,
+                "limit": limit,
+                "offset": offset
+            }
+            
+        except Exception as e:
+            logger.error(f"Error fetching import history: {e}")
             raise
         finally:
             if conn:

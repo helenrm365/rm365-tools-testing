@@ -1,199 +1,295 @@
 // js/modules/labels/generator.js
-import { getLabelData, generateLabels, downloadLabels } from '../../services/api/labelsApi.js';
+import { getProductsToPrint, createPrintJob, downloadPDF, downloadCSV } from '../../services/api/labelsApi.js';
+import { showToast } from '../../ui/toast.js';
 
 let state = {
-  previewData: null,
-  generatedData: null
+  products: [],
+  filteredProducts: [],
+  selectedProducts: new Set(),
+  selectAll: false
 };
 
-function $(sel) { return document.querySelector(sel); }
-
-async function previewData() {
-  const startDate = $('#startDate').value;
-  const endDate = $('#endDate').value;
-  const search = $('#searchTerm').value.trim();
+export async function initLabelGenerator() {
+  console.log('[Labels] Initializing label generator');
   
-  if (!startDate || !endDate) {
-    notify('❌ Please select both start and end dates', true);
-    return;
-  }
-  
-  if (startDate > endDate) {
-    notify('❌ Start date cannot be after end date', true);
-    return;
-  }
+  await loadProducts();
+  setupEventListeners();
+  updateUI();
+}
 
-  const previewBtn = $('#previewBtn');
-  previewBtn.disabled = true;
-  previewBtn.textContent = 'Loading...';
+async function loadProducts() {
+  const loadingEl = document.querySelector('#loadingIndicator');
+  const errorEl = document.querySelector('#errorMessage');
+  
+  if (loadingEl) loadingEl.style.display = 'block';
+  if (errorEl) errorEl.style.display = 'none';
   
   try {
-    const result = await getLabelData(startDate, endDate, search);
-    state.previewData = result;
-    displayPreview(result);
-    notify('✅ Preview loaded successfully');
-  } catch (e) {
-    notify('❌ ' + e.message, true);
-  } finally {
-    previewBtn.disabled = false;
-    previewBtn.textContent = '👁️ Preview Data';
+    state.products = await getProductsToPrint();
+    state.filteredProducts = [...state.products];
+    console.log(`[Labels] Loaded ${state.products.length} products`);
+    
+    if (loadingEl) loadingEl.style.display = 'none';
+    renderProductTable();
+    updateStats();
+  } catch (error) {
+    console.error('[Labels] Error loading products:', error);
+    if (loadingEl) loadingEl.style.display = 'none';
+    if (errorEl) {
+      errorEl.style.display = 'block';
+      errorEl.textContent = `Failed to load products: ${error.message}`;
+    }
+    showToast('Failed to load products: ' + error.message, 'error');
   }
 }
 
-async function generateLabelData() {
-  const startDate = $('#startDate').value;
-  const endDate = $('#endDate').value;
-  const search = $('#searchTerm').value.trim();
-  const format = $('#formatSelect').value;
-  
-  if (!startDate || !endDate) {
-    notify('❌ Please select both start and end dates', true);
-    return;
+function setupEventListeners() {
+  // Search
+  const searchInput = document.querySelector('#searchInput');
+  if (searchInput) {
+    searchInput.addEventListener('input', handleSearch);
   }
-
-  const generateBtn = $('#generateBtn');
-  generateBtn.disabled = true;
-  generateBtn.textContent = 'Generating...';
   
-  try {
-    const result = await generateLabels(startDate, endDate, search, format);
-    state.generatedData = result;
-    displayGenerated(result);
-    $('#downloadBtn').disabled = false;
-    notify('✅ Labels generated successfully');
-  } catch (e) {
-    notify('❌ ' + e.message, true);
-  } finally {
-    generateBtn.disabled = false;
-    generateBtn.textContent = '🏷️ Generate Labels';
+  // Select all checkbox
+  const selectAllCheckbox = document.querySelector('#selectAllCheckbox');
+  if (selectAllCheckbox) {
+    selectAllCheckbox.addEventListener('change', handleSelectAll);
   }
-}
-
-async function downloadLabelFile() {
-  const startDate = $('#startDate').value;
-  const endDate = $('#endDate').value;
-  const search = $('#searchTerm').value.trim();
-  const format = $('#formatSelect').value;
   
-  if (!startDate || !endDate) {
-    notify('❌ Please select both start and end dates', true);
-    return;
+  // Line date input
+  const lineDateInput = document.querySelector('#lineDateInput');
+  if (lineDateInput) {
+    // Set default to today
+    lineDateInput.value = new Date().toISOString().split('T')[0];
   }
-
-  const downloadBtn = $('#downloadBtn');
-  downloadBtn.disabled = true;
-  downloadBtn.textContent = 'Downloading...';
   
-  try {
-    await downloadLabels(startDate, endDate, search, format);
-    notify('✅ Download started');
-  } catch (e) {
-    notify('❌ ' + e.message, true);
-  } finally {
-    downloadBtn.disabled = false;
-    downloadBtn.textContent = '⬇️ Download';
+  // Generate button
+  const generateBtn = document.querySelector('#generateBtn');
+  if (generateBtn) {
+    generateBtn.addEventListener('click', handleGenerate);
+  }
+  
+  // Refresh button
+  const refreshBtn = document.querySelector('#refreshBtn');
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', loadProducts);
   }
 }
 
-function displayPreview(result) {
-  const section = $('#previewSection');
-  const statsDiv = $('#previewStats');
-  const tableDiv = $('#previewTable');
+function handleSearch(e) {
+  const query = e.target.value.toLowerCase().trim();
   
-  section.style.display = 'block';
-  
-  statsDiv.innerHTML = `
-    <div class="alert" style="background: rgba(0,123,255,0.1); border-left: 4px solid #007bff; padding: 1rem;">
-      <strong>Found ${result.count} records</strong> for the selected criteria
-    </div>
-  `;
-  
-  if (result.data && result.data.length > 0) {
-    const headers = Object.keys(result.data[0]);
-    tableDiv.innerHTML = `
-      <table class="grid modern-table" style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
-        <thead>
-          <tr style="background: rgba(0,0,0,0.05);">
-            ${headers.map(h => `<th style="padding: 8px; text-align: left; border-bottom: 2px solid #ddd;">${h}</th>`).join('')}
-          </tr>
-        </thead>
-        <tbody>
-          ${result.data.slice(0, 10).map(row => `
-            <tr style="border-bottom: 1px solid #eee;">
-              ${headers.map(h => `<td style="padding: 8px;">${row[h] || '—'}</td>`).join('')}
-            </tr>
-          `).join('')}
-          ${result.data.length > 10 ? `
-            <tr>
-              <td colspan="${headers.length}" style="padding: 12px; text-align: center; font-style: italic; color: #666;">
-                ... and ${result.data.length - 10} more records
-              </td>
-            </tr>
-          ` : ''}
-        </tbody>
-      </table>
-    `;
+  if (!query) {
+    state.filteredProducts = [...state.products];
   } else {
-    tableDiv.innerHTML = '<p class="muted" style="text-align: center; padding: 2rem; color: #999;">No data found for the selected criteria.</p>';
+    state.filteredProducts = state.products.filter(p => 
+      (p.sku || '').toLowerCase().includes(query) ||
+      (p.product_name || '').toLowerCase().includes(query) ||
+      (p.item_id || '').toLowerCase().includes(query)
+    );
+  }
+  
+  renderProductTable();
+  updateStats();
+}
+
+function handleSelectAll(e) {
+  state.selectAll = e.target.checked;
+  
+  if (state.selectAll) {
+    // Select all filtered products
+    state.filteredProducts.forEach(p => state.selectedProducts.add(p.item_id));
+  } else {
+    // Deselect all
+    state.selectedProducts.clear();
+  }
+  
+  renderProductTable();
+  updateStats();
+}
+
+function handleProductSelect(itemId, checked) {
+  if (checked) {
+    state.selectedProducts.add(itemId);
+  } else {
+    state.selectedProducts.delete(itemId);
+  }
+  
+  // Update select all checkbox
+  const selectAllCheckbox = document.querySelector('#selectAllCheckbox');
+  if (selectAllCheckbox) {
+    selectAllCheckbox.checked = state.selectedProducts.size === state.filteredProducts.length;
+  }
+  
+  updateStats();
+}
+
+function renderProductTable() {
+  const tbody = document.querySelector('#productsTableBody');
+  if (!tbody) return;
+  
+  if (state.filteredProducts.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6" style="text-align: center; padding: 2rem; color: #666;">
+          No products found
+        </td>
+      </tr>
+    `;
+    return;
+  }
+  
+  tbody.innerHTML = state.filteredProducts.map(product => {
+    const isChecked = state.selectedProducts.has(product.item_id);
+    return `
+      <tr>
+        <td>
+          <input 
+            type="checkbox" 
+            class="product-checkbox" 
+            data-item-id="${product.item_id}"
+            ${isChecked ? 'checked' : ''}
+          >
+        </td>
+        <td>${escapeHtml(product.sku || '-')}</td>
+        <td>${escapeHtml(product.product_name || '-')}</td>
+        <td>${escapeHtml(product.item_id || '-')}</td>
+        <td>${product.uk_6m_data || '0'}</td>
+        <td>${product.fr_6m_data || '0'}</td>
+      </tr>
+    `;
+  }).join('');
+  
+  // Attach checkbox listeners
+  tbody.querySelectorAll('.product-checkbox').forEach(checkbox => {
+    checkbox.addEventListener('change', (e) => {
+      handleProductSelect(e.target.dataset.itemId, e.target.checked);
+    });
+  });
+}
+
+function updateStats() {
+  const totalEl = document.querySelector('#totalProducts');
+  const selectedEl = document.querySelector('#selectedProducts');
+  const generateBtn = document.querySelector('#generateBtn');
+  
+  if (totalEl) totalEl.textContent = state.filteredProducts.length;
+  if (selectedEl) selectedEl.textContent = state.selectedProducts.size;
+  if (generateBtn) {
+    generateBtn.disabled = state.selectedProducts.size === 0;
   }
 }
 
-function displayGenerated(result) {
-  const section = $('#generatedSection');
-  const statsDiv = $('#generatedStats');
-  const previewDiv = $('#generatedPreview');
+function updateUI() {
+  const generateBtn = document.querySelector('#generateBtn');
+  if (generateBtn) {
+    generateBtn.disabled = state.selectedProducts.size === 0;
+  }
+}
+
+async function handleGenerate() {
+  if (state.selectedProducts.size === 0) {
+    showToast('Please select at least one product', 'error');
+    return;
+  }
   
-  section.style.display = 'block';
+  const lineDateInput = document.querySelector('#lineDateInput');
+  const lineDate = lineDateInput ? lineDateInput.value : null;
   
-  statsDiv.innerHTML = `
-    <div class="alert" style="background: rgba(40,167,69,0.1); border-left: 4px solid #28a745; padding: 1rem;">
-      <strong>Successfully generated ${result.count} labels</strong> at ${new Date(result.generated_at).toLocaleString()}
+  const generateBtn = document.querySelector('#generateBtn');
+  if (generateBtn) {
+    generateBtn.disabled = true;
+    generateBtn.textContent = 'Creating Job...';
+  }
+  
+  try {
+    // Create print job with selected item IDs
+    const payload = {
+      line_date: lineDate || undefined,
+      created_by: 'user@example.com', // TODO: Get from session
+      item_ids: Array.from(state.selectedProducts)
+    };
+    
+    const result = await createPrintJob(payload);
+    const jobId = result.job_id;
+    
+    console.log(`[Labels] Created job ${jobId}`);
+    showToast('Print job created successfully!', 'success');
+    
+    // Show download options modal
+    showDownloadModal(jobId);
+    
+  } catch (error) {
+    console.error('[Labels] Error creating print job:', error);
+    showToast('Failed to create print job: ' + error.message, 'error');
+  } finally {
+    if (generateBtn) {
+      generateBtn.disabled = false;
+      generateBtn.textContent = '🏷️ Generate Labels';
+    }
+  }
+}
+
+function showDownloadModal(jobId) {
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.innerHTML = `
+    <div class="modal-content" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3>✅ Label Job Created</h3>
+        <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="margin-bottom: 1.5rem;">
+          Your label print job <strong>#${jobId}</strong> has been created with <strong>${state.selectedProducts.size}</strong> products.
+        </p>
+        <div style="display: flex; gap: 1rem; flex-direction: column;">
+          <button class="modern-button" id="downloadPdfBtn" style="width: 100%;">
+            📄 Download PDF Labels
+          </button>
+          <button class="modern-button" id="downloadCsvBtn" style="width: 100%; background: #10b981;">
+            📊 Download CSV Export
+          </button>
+          <button class="modern-button" onclick="this.closest('.modal-overlay').remove()" style="width: 100%; background: #6b7280;">
+            Close
+          </button>
+        </div>
+      </div>
     </div>
   `;
   
-  // Show preview of generated content (first 1000 characters)
-  const preview = result.content ? result.content.substring(0, 1000) : '';
-  previewDiv.textContent = preview + (result.content && result.content.length > 1000 ? '\n\n... (truncated)' : '');
+  document.body.appendChild(modal);
+  
+  // PDF download
+  modal.querySelector('#downloadPdfBtn').addEventListener('click', async () => {
+    try {
+      await downloadPDF(jobId);
+      showToast('PDF download started', 'success');
+    } catch (error) {
+      showToast('Failed to download PDF: ' + error.message, 'error');
+    }
+  });
+  
+  // CSV download
+  modal.querySelector('#downloadCsvBtn').addEventListener('click', async () => {
+    try {
+      await downloadCSV(jobId);
+      showToast('CSV download started', 'success');
+    } catch (error) {
+      showToast('Failed to download CSV: ' + error.message, 'error');
+    }
+  });
+  
+  // Close on overlay click
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      modal.remove();
+    }
+  });
 }
 
-function wireControls() {
-  const today = new Date();
-  const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-  
-  $('#endDate').value = today.toISOString().split('T')[0];
-  $('#startDate').value = weekAgo.toISOString().split('T')[0];
-
-  $('#previewBtn')?.addEventListener('click', previewData);
-  $('#generateBtn')?.addEventListener('click', generateLabelData);
-  $('#downloadBtn')?.addEventListener('click', downloadLabelFile);
-}
-
-function notify(msg, isErr = false) {
-  let n = $('#notification');
-  if (!n) {
-    n = document.createElement('div');
-    n.id = 'notification';
-    n.style.cssText = `
-      position: fixed; top: 20px; right: 20px; z-index: 10000;
-      padding: 12px 20px; border-radius: 8px; color: white; font-weight: bold;
-      transform: translateY(-100px); opacity: 0; transition: all 0.3s ease;
-      max-width: 300px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    `;
-    document.body.appendChild(n);
-  }
-  
-  n.textContent = msg;
-  n.style.background = isErr ? 'linear-gradient(135deg, #e74c3c, #c0392b)' : 'linear-gradient(135deg, #27ae60, #2d3436)';
-  n.style.transform = 'translateY(0)';
-  n.style.opacity = '1';
-  
-  // Auto-hide after 3 seconds
-  setTimeout(() => { 
-    n.style.transform = 'translateY(-100px)';
-    n.style.opacity = '0';
-  }, 3000);
-}
-
-export async function init() {
-  wireControls();
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
 }
