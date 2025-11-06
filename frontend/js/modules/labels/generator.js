@@ -329,8 +329,28 @@ async function handleGeneratePdf() {
     
     showToast(`Print job created with ${itemCount} labels!`, 'success');
     
-    // Show download options modal
-    showPdfPreviewModal(jobId, itemCount);
+    // Automatically start PDF download
+    console.log('[Labels] Automatically downloading PDF for job:', jobId);
+    
+    try {
+      if (generatePdfBtn) {
+        generatePdfBtn.textContent = '⏳ Generating PDF...';
+      }
+      
+      await downloadPDF(jobId);
+      showToast('PDF downloaded successfully!', 'success');
+      
+      // Show modal for additional downloads (CSV) if needed
+      console.log('[Labels] Opening modal for additional options');
+      showPdfPreviewModal(jobId, itemCount);
+      
+    } catch (pdfError) {
+      console.error('[Labels] PDF download failed:', pdfError);
+      showToast('PDF created but download failed: ' + pdfError.message, 'error');
+      
+      // Still show modal so user can try again
+      showPdfPreviewModal(jobId, itemCount);
+    }
     
   } catch (error) {
     console.error('[Labels] Error creating print job:', error);
@@ -344,8 +364,11 @@ async function handleGeneratePdf() {
 }
 
 function showPdfPreviewModal(jobId, itemCount) {
+  console.log('[Labels] showPdfPreviewModal called with jobId:', jobId, 'itemCount:', itemCount);
+  
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
+  modal.style.display = 'flex'; // Ensure it's visible
   modal.innerHTML = `
     <div class="modal-content" style="max-width: 500px;">
       <div class="modal-header">
@@ -357,16 +380,16 @@ function showPdfPreviewModal(jobId, itemCount) {
           Your label print job <strong>#${jobId}</strong> has been created with <strong>${itemCount}</strong> products.
         </p>
         <p style="margin-bottom: 1.5rem; color: #666; font-size: 0.9rem;">
-          Generate a PDF to preview the labels before printing, or download the data as CSV.
+          Click below to download the PDF with your labels, or export as CSV.
         </p>
         <div style="display: flex; gap: 1rem; flex-direction: column;">
-          <button class="modern-button" id="downloadPdfBtn" style="width: 100%; background: linear-gradient(135deg, #ef4444, #dc2626); color: white; font-weight: 600;">
+          <button class="modern-button" id="downloadPdfBtn" style="width: 100%; background: linear-gradient(135deg, #ef4444, #dc2626); color: white; font-weight: 600; padding: 1rem; font-size: 1.1rem;">
             📄 Download PDF Labels
           </button>
-          <button class="modern-button" id="downloadCsvBtn" style="width: 100%; background: linear-gradient(135deg, #10b981, #059669); color: white;">
+          <button class="modern-button" id="downloadCsvBtn" style="width: 100%; background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 0.75rem;">
             📊 Download CSV Export
           </button>
-          <button class="modern-button" onclick="this.closest('.modal-overlay').remove()" style="width: 100%; background: #6b7280; color: white;">
+          <button class="modern-button" onclick="this.closest('.modal-overlay').remove()" style="width: 100%; background: #6b7280; color: white; padding: 0.75rem;">
             Close
           </button>
         </div>
@@ -375,6 +398,13 @@ function showPdfPreviewModal(jobId, itemCount) {
   `;
   
   document.body.appendChild(modal);
+  console.log('[Labels] Modal appended to body');
+  
+  // Ensure modal is visible
+  setTimeout(() => {
+    modal.style.display = 'flex';
+    modal.style.opacity = '1';
+  }, 10);
   
   // PDF download
   modal.querySelector('#downloadPdfBtn').addEventListener('click', async () => {
