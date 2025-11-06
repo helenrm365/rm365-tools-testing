@@ -13,14 +13,17 @@ export async function init(path) {
       const { initSalesImportsHome } = await import('./home.js');
       await initSalesImportsHome();
     } else if (path === '/sales-imports/uk-sales') {
-      // Future: Load UK sales page
-      console.log('[Sales Imports] UK sales page - to be implemented');
+      // Load UK sales page
+      const { initUKSales } = await import('./uk-sales.js');
+      await initUKSales();
     } else if (path === '/sales-imports/fr-sales') {
-      // Future: Load FR sales page
-      console.log('[Sales Imports] FR sales page - to be implemented');
+      // Load FR sales page
+      const { initFRSales } = await import('./fr-sales.js');
+      await initFRSales();
     } else if (path === '/sales-imports/nl-sales') {
-      // Future: Load NL sales page
-      console.log('[Sales Imports] NL sales page - to be implemented');
+      // Load NL sales page
+      const { initNLSales } = await import('./nl-sales.js');
+      await initNLSales();
     } else if (path === '/sales-imports/history') {
       // Future: Load history page
       console.log('[Sales Imports] History page - to be implemented');

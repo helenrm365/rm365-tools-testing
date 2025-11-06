@@ -16,26 +16,129 @@ export async function checkTablesStatus() {
 }
 
 // UK Sales Data operations
-export async function getUKSalesData(limit = 50, offset = 0, search = '') {
+export async function getUKSalesData(limit = 100, offset = 0, search = '') {
   const params = new URLSearchParams({
     limit: limit.toString(),
     offset: offset.toString(),
     search: search
   });
-  return await get(`${API}/uk-sales?${params.toString()}`);
+  return await get(`${API}/uk?${params.toString()}`);
 }
 
-// Sales Orders operations
-export async function getSalesOrders(limit = 100, search = '') {
+export async function uploadUKSalesCSV(file) {
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  const BASE = config.API.replace(/\/+$/, '');
+  const url = `${BASE}${API}/uk/upload`;
+  
+  const fetchOptions = {
+    method: 'POST',
+    mode: 'cors',
+    credentials: 'omit',
+    headers: {
+      'Accept': 'application/json',
+    },
+    body: formData
+  };
+  
+  const token = getToken();
+  if (token) {
+    fetchOptions.headers['Authorization'] = `Bearer ${token}`;
+  }
+  
+  const response = await fetch(url, fetchOptions);
+  
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || errorData.message || `Upload failed with status ${response.status}`);
+  }
+  
+  return await response.json();
+}
+
+// FR Sales Data operations
+export async function getFRSalesData(limit = 100, offset = 0, search = '') {
   const params = new URLSearchParams({
     limit: limit.toString(),
+    offset: offset.toString(),
     search: search
   });
-  return await get(`${API}/orders?${params.toString()}`);
+  return await get(`${API}/fr?${params.toString()}`);
 }
 
-export async function deleteSalesOrder(orderId) {
-  return await http(`${API}/orders/${orderId}`, { method: 'DELETE' });
+export async function uploadFRSalesCSV(file) {
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  const BASE = config.API.replace(/\/+$/, '');
+  const url = `${BASE}${API}/fr/upload`;
+  
+  const fetchOptions = {
+    method: 'POST',
+    mode: 'cors',
+    credentials: 'omit',
+    headers: {
+      'Accept': 'application/json',
+    },
+    body: formData
+  };
+  
+  const token = getToken();
+  if (token) {
+    fetchOptions.headers['Authorization'] = `Bearer ${token}`;
+  }
+  
+  const response = await fetch(url, fetchOptions);
+  
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || errorData.message || `Upload failed with status ${response.status}`);
+  }
+  
+  return await response.json();
+}
+
+// NL Sales Data operations
+export async function getNLSalesData(limit = 100, offset = 0, search = '') {
+  const params = new URLSearchParams({
+    limit: limit.toString(),
+    offset: offset.toString(),
+    search: search
+  });
+  return await get(`${API}/nl?${params.toString()}`);
+}
+
+export async function uploadNLSalesCSV(file) {
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  const BASE = config.API.replace(/\/+$/, '');
+  const url = `${BASE}${API}/nl/upload`;
+  
+  const fetchOptions = {
+    method: 'POST',
+    mode: 'cors',
+    credentials: 'omit',
+    headers: {
+      'Accept': 'application/json',
+    },
+    body: formData
+  };
+  
+  const token = getToken();
+  if (token) {
+    fetchOptions.headers['Authorization'] = `Bearer ${token}`;
+  }
+  
+  const response = await fetch(url, fetchOptions);
+  
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || errorData.message || `Upload failed with status ${response.status}`);
+  }
+  
+  return await response.json();
 }
 
 // Import operations - using raw fetch for FormData
