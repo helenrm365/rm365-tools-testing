@@ -139,6 +139,8 @@ html.dark-mode .sidebar {
     align-items: center;
     gap: 10px;
     margin-bottom: 1rem;
+    height: 60px; /* Fixed height to prevent content shifting */
+    position: relative;
 }
 
 .logo {
@@ -159,15 +161,18 @@ html.dark-mode .logo {
     height: 50px;
     margin: 0 auto;
     display: block;
-    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
-                height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                margin 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    object-fit: contain;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sidebar:hover #sidebarLogo {
-    width: 120px;
-    height: 120px;
-    margin: 10px auto;
+    width: 140px;
+    height: 140px;
+    margin: 0 auto;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
 }
 
 .profile-info {

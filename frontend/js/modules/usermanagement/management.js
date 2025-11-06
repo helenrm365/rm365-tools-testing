@@ -149,14 +149,19 @@ function renderTabCheckboxes(allowedTabs) {
     const mainTabAllowed = allowedTabs.includes(tabKey) || 
                            allowedTabs.some(t => t.startsWith(tabKey + '.'));
     
+    const hasSubtabs = tabInfo.subtabs.length > 0;
+    
     html += `
-      <div class="tab-group" style="margin-bottom: 12px; padding: 8px; border-left: 3px solid var(--primary-color, #007bff); padding-left: 12px; background: var(--tab-bg, #f8f9fa); border-radius: 4px;">
-        <label class="checkbox-label" style="display: flex; align-items: center; font-weight: 500; margin-bottom: ${tabInfo.subtabs.length > 0 ? '8px' : '0'}; color: var(--text-color, #333);">
-          <input type="checkbox" class="tab-checkbox parent-tab" value="${tabKey}" ${mainTabAllowed ? 'checked' : ''} style="margin-right: 6px;"> 
-          ${tabInfo.label}
-        </label>
-        ${tabInfo.subtabs.length > 0 ? `
-          <div class="subtabs-container" style="margin-left: 24px; display: flex; flex-direction: column; gap: 6px;">
+      <div class="tab-group ${hasSubtabs ? 'collapsible' : ''}" data-tab-key="${tabKey}" style="margin-bottom: 12px; padding: 8px; border-left: 3px solid var(--primary-color, #007bff); padding-left: 12px; background: var(--tab-bg, #f8f9fa); border-radius: 4px;">
+        <div class="tab-header" style="display: flex; align-items: center; cursor: ${hasSubtabs ? 'pointer' : 'default'};">
+          <label class="checkbox-label" style="display: flex; align-items: center; font-weight: 500; color: var(--text-color, #333); flex: 1; margin: 0;">
+            <input type="checkbox" class="tab-checkbox parent-tab" value="${tabKey}" ${mainTabAllowed ? 'checked' : ''} style="margin-right: 6px;" onclick="event.stopPropagation();"> 
+            ${tabInfo.label}
+          </label>
+          ${hasSubtabs ? `<span class="expand-icon" style="margin-left: auto; transition: transform 0.2s; user-select: none;">▼</span>` : ''}
+        </div>
+        ${hasSubtabs ? `
+          <div class="subtabs-container" style="margin-left: 24px; margin-top: 8px; display: none; flex-direction: column; gap: 6px;">
             ${tabInfo.subtabs.map(sub => {
               const subtabValue = `${tabKey}.${sub.key}`;
               const isChecked = allowedTabs.includes(subtabValue);
@@ -236,6 +241,14 @@ function wireTableEvents() {
       selectAllCheckbox.indeterminate = checkedCount > 0 && checkedCount < allTabCheckboxes.length;
     }
   }
+  
+  // Add collapsible functionality for table rows
+  $all('tbody tr').forEach(tr => {
+    const tabsCell = tr.querySelector('.tabs-checkboxes');
+    if (tabsCell) {
+      wireTabCollapsibles(tabsCell);
+    }
+  });
 
   // Handle role dropdown "Add New Role" option
   $all('.role-dropdown').forEach(select => {
@@ -249,6 +262,10 @@ function wireTableEvents() {
         customInput.style.display = 'block';
         customInput.focus();
         customInput.value = '';
+      } else {
+        // Auto-populate tabs based on selected role for this user row
+        const tr = e.target.closest('tr');
+        autoPopulateTabsForRoleInRow(tr, e.target.value);
       }
     });
   });
@@ -449,14 +466,19 @@ function populateCreateTabsCheckboxes() {
 
   let html = '';
   for (const [tabKey, tabInfo] of Object.entries(TAB_STRUCTURE)) {
+    const hasSubtabs = tabInfo.subtabs.length > 0;
+    
     html += `
-      <div class="tab-group" style="margin-bottom: 12px; padding: 8px; border-left: 3px solid var(--primary-color, #007bff); padding-left: 12px; background: var(--tab-bg, #f8f9fa); border-radius: 4px;">
-        <label class="checkbox-label" style="display: flex; align-items: center; font-weight: 500; margin-bottom: ${tabInfo.subtabs.length > 0 ? '8px' : '0'}; color: var(--text-color, #333);">
-          <input type="checkbox" class="parent-tab-create" name="allowed_tabs" value="${tabKey}" style="margin-right: 6px;"> 
-          ${tabInfo.label}
-        </label>
-        ${tabInfo.subtabs.length > 0 ? `
-          <div class="subtabs-container" style="margin-left: 24px; display: flex; flex-direction: column; gap: 6px;">
+      <div class="tab-group ${hasSubtabs ? 'collapsible' : ''}" data-tab-key="${tabKey}" style="margin-bottom: 12px; padding: 8px; border-left: 3px solid var(--primary-color, #007bff); padding-left: 12px; background: var(--tab-bg, #f8f9fa); border-radius: 4px;">
+        <div class="tab-header" style="display: flex; align-items: center; cursor: ${hasSubtabs ? 'pointer' : 'default'};">
+          <label class="checkbox-label" style="display: flex; align-items: center; font-weight: 500; color: var(--text-color, #333); flex: 1; margin: 0;">
+            <input type="checkbox" class="parent-tab-create" name="allowed_tabs" value="${tabKey}" style="margin-right: 6px;" onclick="event.stopPropagation();"> 
+            ${tabInfo.label}
+          </label>
+          ${hasSubtabs ? `<span class="expand-icon" style="margin-left: auto; transition: transform 0.2s; user-select: none;">▼</span>` : ''}
+        </div>
+        ${hasSubtabs ? `
+          <div class="subtabs-container" style="margin-left: 24px; margin-top: 8px; display: none; flex-direction: column; gap: 6px;">
             ${tabInfo.subtabs.map(sub => {
               const subtabValue = `${tabKey}.${sub.key}`;
               return `
@@ -524,6 +546,119 @@ function populateCreateTabsCheckboxes() {
       selectAllCheckbox.indeterminate = checkedCount > 0 && checkedCount < allCheckboxes.length;
     }
   }
+  
+  // Add collapsible functionality
+  wireTabCollapsibles(container);
+}
+
+function wireTabCollapsibles(container) {
+  // Add click handlers for collapsible tab groups
+  const tabGroups = container.querySelectorAll('.tab-group.collapsible');
+  tabGroups.forEach(group => {
+    const header = group.querySelector('.tab-header');
+    const subtabsContainer = group.querySelector('.subtabs-container');
+    const expandIcon = group.querySelector('.expand-icon');
+    
+    if (header && subtabsContainer) {
+      header.addEventListener('click', (e) => {
+        // Toggle visibility
+        const isExpanded = subtabsContainer.style.display === 'flex';
+        subtabsContainer.style.display = isExpanded ? 'none' : 'flex';
+        
+        // Rotate icon
+        if (expandIcon) {
+          expandIcon.style.transform = isExpanded ? 'rotate(0deg)' : 'rotate(180deg)';
+        }
+      });
+    }
+  });
+}
+
+function autoPopulateTabsForRole(roleName) {
+  // Find the role in state
+  const role = state.roles.find(r => r.role_name === roleName);
+  if (!role || !role.allowed_tabs) return;
+  
+  // Get all tab checkboxes in the create modal
+  const container = $('#tabsCheckboxGroup');
+  if (!container) return;
+  
+  const allCheckboxes = container.querySelectorAll('input[name="allowed_tabs"]');
+  
+  // Uncheck all first
+  allCheckboxes.forEach(cb => cb.checked = false);
+  
+  // Check the tabs that match the role's allowed_tabs
+  allCheckboxes.forEach(cb => {
+    if (role.allowed_tabs.includes(cb.value)) {
+      cb.checked = true;
+    }
+  });
+  
+  // Update parent checkbox states based on children
+  const parentTabs = container.querySelectorAll('.parent-tab-create');
+  parentTabs.forEach(parentCheckbox => {
+    const tabKey = parentCheckbox.value;
+    const subtabs = container.querySelectorAll(`.subtab-checkbox-create[data-parent="${tabKey}"]`);
+    
+    if (subtabs.length > 0) {
+      const allSubtabsChecked = Array.from(subtabs).every(st => st.checked);
+      const someSubtabsChecked = Array.from(subtabs).some(st => st.checked);
+      
+      parentCheckbox.checked = allSubtabsChecked;
+      parentCheckbox.indeterminate = someSubtabsChecked && !allSubtabsChecked;
+    }
+  });
+  
+  // Update "Select All" state
+  const selectAllCheckbox = $('#selectAllTabs');
+  if (selectAllCheckbox) {
+    const checkedCount = Array.from(allCheckboxes).filter(c => c.checked).length;
+    selectAllCheckbox.checked = checkedCount === allCheckboxes.length;
+    selectAllCheckbox.indeterminate = checkedCount > 0 && checkedCount < allCheckboxes.length;
+  }
+}
+
+function autoPopulateTabsForRoleInRow(tr, roleName) {
+  // Find the role in state
+  const role = state.roles.find(r => r.role_name === roleName);
+  if (!role || !role.allowed_tabs) return;
+  
+  // Get all tab checkboxes in this row
+  const allCheckboxes = tr.querySelectorAll('.tab-checkbox');
+  
+  // Uncheck all first
+  allCheckboxes.forEach(cb => cb.checked = false);
+  
+  // Check the tabs that match the role's allowed_tabs
+  allCheckboxes.forEach(cb => {
+    if (role.allowed_tabs.includes(cb.value)) {
+      cb.checked = true;
+    }
+  });
+  
+  // Update parent checkbox states based on children
+  const parentTabs = tr.querySelectorAll('.parent-tab');
+  parentTabs.forEach(parentCheckbox => {
+    const tabKey = parentCheckbox.value;
+    const subtabs = tr.querySelectorAll(`.subtab-checkbox[data-parent="${tabKey}"]`);
+    
+    if (subtabs.length > 0) {
+      const allSubtabsChecked = Array.from(subtabs).every(st => st.checked);
+      const someSubtabsChecked = Array.from(subtabs).some(st => st.checked);
+      
+      parentCheckbox.checked = allSubtabsChecked;
+      parentCheckbox.indeterminate = someSubtabsChecked && !allSubtabsChecked;
+    }
+  });
+  
+  // Update "Select All Tabs" state for this row
+  const selectAllCheckbox = tr.querySelector('.select-all-tabs-row');
+  if (selectAllCheckbox) {
+    const checkedCount = Array.from(allCheckboxes).filter(c => c.checked).length;
+    selectAllCheckbox.checked = checkedCount === allCheckboxes.length;
+    selectAllCheckbox.indeterminate = checkedCount > 0 && checkedCount < allCheckboxes.length;
+  }
 }
 
 function hideCreateUserModal() {
@@ -587,6 +722,9 @@ function wireCreateUserModal() {
         customInput.style.display = 'block';
         customInput.focus();
         customInput.value = '';
+      } else {
+        // Auto-populate tabs based on selected role
+        autoPopulateTabsForRole(e.target.value);
       }
     });
 

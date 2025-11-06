@@ -7,13 +7,34 @@
 
 .tabs-checkboxes {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 8px;
 }
 
 .tabs-checkboxes .checkbox-label {
   font-size: 0.85rem;
   white-space: nowrap;
+}
+
+/* Tab Group Collapsible Styles */
+.tab-group.collapsible .tab-header {
+  transition: background-color 0.2s;
+}
+
+.tab-group.collapsible .tab-header:hover {
+  background-color: rgba(0, 123, 255, 0.05);
+  border-radius: 4px;
+  margin: -4px;
+  padding: 4px;
+}
+
+.expand-icon {
+  font-size: 0.8em;
+  color: var(--primary-color, #007bff);
+}
+
+html.dark-mode .expand-icon {
+  color: var(--primary-color, #4a9eff);
 }
 
 .checkbox-group {
