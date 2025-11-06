@@ -162,10 +162,10 @@ class InventoryManagementRepo:
             """)
             
             # Create magento_product_list table for product filtering
+            # Minimal schema - only what we need for filtering
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS magento_product_list (
                     sku VARCHAR(255) PRIMARY KEY,
-                    product_name TEXT,
                     item_id VARCHAR(255),
                     additional_attributes TEXT,
                     status VARCHAR(50),
@@ -249,22 +249,20 @@ class InventoryManagementRepo:
                     stats["skipped"] += 1
                     continue
                 
-                product_name = item.get("product_name") or item.get("name", "")
                 item_id = item.get("item_id", "")
                 status = item.get("status", "")
                 
-                # Upsert into magento_product_list
-                # Note: additional_attributes should be populated by Magento import, not Zoho
+                # Upsert into magento_product_list (minimal data)
+                # Note: additional_attributes should be populated by Magento CSV import, not Zoho
                 cursor.execute("""
-                    INSERT INTO magento_product_list (sku, product_name, item_id, status, updated_at)
-                    VALUES (%s, %s, %s, %s, NOW())
+                    INSERT INTO magento_product_list (sku, item_id, status, updated_at)
+                    VALUES (%s, %s, %s, NOW())
                     ON CONFLICT (sku) DO UPDATE SET
-                        product_name = EXCLUDED.product_name,
                         item_id = EXCLUDED.item_id,
                         status = EXCLUDED.status,
                         updated_at = NOW()
                     RETURNING (xmax = 0) AS inserted
-                """, (sku, product_name, item_id, status))
+                """, (sku, item_id, status))
                 
                 result = cursor.fetchone()
                 if result and result[0]:
@@ -372,7 +370,7 @@ class InventoryManagementRepo:
                 like_params = [f'%discontinued_status={f}%' for f in filters]
                 
                 cursor.execute(f"""
-                    SELECT sku, product_name, item_id, status, additional_attributes
+                    SELECT sku, item_id, status, additional_attributes
                     FROM magento_product_list
                     WHERE ({like_conditions})
                     ORDER BY sku
@@ -380,12 +378,12 @@ class InventoryManagementRepo:
             else:
                 # No filters - return all
                 cursor.execute("""
-                    SELECT sku, product_name, item_id, status, additional_attributes
+                    SELECT sku, item_id, status, additional_attributes
                     FROM magento_product_list
                     ORDER BY sku
                 """)
             
-            columns = ['sku', 'product_name', 'item_id', 'status', 'additional_attributes']
+            columns = ['sku', 'item_id', 'status', 'additional_attributes']
             rows = cursor.fetchall()
             
             # Parse discontinued_status from additional_attributes for each row
@@ -395,6 +393,8 @@ class InventoryManagementRepo:
                 row_dict['discontinued_status'] = self.parse_discontinued_status_from_additional_attributes(
                     row_dict.get('additional_attributes', '')
                 )
+                # Add empty product_name for compatibility
+                row_dict['product_name'] = ''
                 result.append(row_dict)
             
             return result
