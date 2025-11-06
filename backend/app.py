@@ -59,6 +59,10 @@ def _parse_regex_env():
     Returns a string pattern or None. Empty strings are treated as None.
     """
     patt = os.getenv('ALLOW_ORIGIN_REGEX', '').strip()
+    if not patt:
+        # Default regex to match all Cloudflare Pages subdomains (no $ anchor)
+        patt = r"https://.*\.pages\.dev"
+    print(f"🔍 Regex pattern: {patt}")
     return patt or None
 
 def _resolve_allow_origins():
@@ -95,22 +99,22 @@ except Exception as e:
 allow_origins = _resolve_allow_origins()
 allow_origin_regex = _resolve_allow_origin_regex()
 
-# Simplified CORS for Railway + Cloudflare Pages
-# Using wildcard is fine since we use JWT (not cookies) for auth
-if not allow_origins:
-    allow_origins = ["*"]  # Allow all origins
-    print("🌍 CORS: Allowing all origins (using JWT authentication)")
-else:
-    # Ensure Cloudflare Pages is always included
-    cloudflare_origin = "https://rm365-tools-testing.pages.dev"
-    if cloudflare_origin not in allow_origins:
-        allow_origins.append(cloudflare_origin)
-        print(f"✅ Added Cloudflare Pages origin: {cloudflare_origin}")
+# Always ensure we have permissive CORS for Cloudflare Pages
+if allow_origins:
+    # Make sure Cloudflare Pages main domain is included
+    if 'https://rm365-tools-testing.pages.dev' not in allow_origins:
+        allow_origins.append('https://rm365-tools-testing.pages.dev')
+        print("✅ Added main Cloudflare Pages domain")
     print(f"🌍 CORS: Using specific origins: {allow_origins}")
+else:
+    # No specific origins set, allow all
+    allow_origins = ["*"]
+    print("🌍 CORS: Allowing all origins (wildcard)")
 
-# Add regex pattern for Cloudflare preview deployments
-if not allow_origin_regex:
+# Ensure regex pattern is set for preview deployments (without $ anchor)
+if not allow_origin_regex or allow_origin_regex.endswith('$'):
     allow_origin_regex = r"https://.*\.pages\.dev"
+    print(f"✅ Set regex pattern (no end anchor): {allow_origin_regex}")
 
 print(f"🌍 CORS Configuration:")
 print(f"   Allow Origins: {allow_origins}")
@@ -121,7 +125,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=allow_origins,
     allow_origin_regex=allow_origin_regex,
-    allow_credentials=False,  # Changed to False - we use JWT in headers, not cookies
+    allow_credentials=False,
     allow_methods=['*'],
     allow_headers=['*'],
 )
