@@ -35,8 +35,8 @@ class SalesDataResponse(BaseModel):
     message: Optional[str] = None
 
 
-class SalesImportResponse(BaseModel):
-    """Response for sales import operations"""
+class SalesDataImportResponse(BaseModel):
+    """Response for sales data import operations"""
     status: str
     message: str
     rows_imported: Optional[int] = None

@@ -19,12 +19,12 @@ const routes = {
   '/labels/generator':      '/html/labels/generator.html',
   '/labels/history':        '/html/labels/history.html',
 
-  '/sales-imports':         '/html/sales-imports/home.html',
-  '/sales-imports/uk-sales':'/html/sales-imports/uk-sales.html',
-  '/sales-imports/fr-sales':'/html/sales-imports/fr-sales.html',
-  '/sales-imports/nl-sales':'/html/sales-imports/nl-sales.html',
-  '/sales-imports/upload':  '/html/sales-imports/upload.html',
-  '/sales-imports/history': '/html/sales-imports/history.html',
+  '/salesdata':         '/html/salesdata/home.html',
+  '/salesdata/uk-sales':'/html/salesdata/uk-sales.html',
+  '/salesdata/fr-sales':'/html/salesdata/fr-sales.html',
+  '/salesdata/nl-sales':'/html/salesdata/nl-sales.html',
+  '/salesdata/upload':  '/html/salesdata/upload.html',
+  '/salesdata/history': '/html/salesdata/history.html',
 
   '/inventory':             '/html/inventory/home.html',
   '/inventory/management':  '/html/inventory/management.html',
@@ -129,7 +129,17 @@ export async function navigate(path, replace = false) {
     const pageTitle = document.getElementById('pageTitle');
     if (pageTitle) {
       const tabName = path.split('/')[1] || 'RM365';
-      pageTitle.textContent = tabName.charAt(0).toUpperCase() + tabName.slice(1);
+      // Map for proper title casing
+      const titleMap = {
+        'usermanagement': 'User Management',
+        'salesdata': 'Sales Data',
+        'attendance': 'Attendance',
+        'enrollment': 'Enrollment',
+        'labels': 'Labels',
+        'inventory': 'Inventory',
+        'login': 'Login'
+      };
+      pageTitle.textContent = titleMap[tabName] || tabName.charAt(0).toUpperCase() + tabName.slice(1);
     }
 
     // Lazy-load tab-specific JavaScript
@@ -157,12 +167,12 @@ export async function navigate(path, replace = false) {
       } catch (e) {
         console.warn('[Router] Labels module error:', e);
       }
-    } else if (path.startsWith('/sales-imports')) {
+    } else if (path.startsWith('/salesdata')) {
       try {
-        const mod = await import('./modules/sales-imports/index.js');
+        const mod = await import('./modules/salesdata/index.js');
         await mod.init(path);
       } catch (e) {
-        console.warn('[Router] Sales imports module error:', e);
+        console.warn('[Router] Sales data module error:', e);
       }
     } else if (path.startsWith('/inventory')) {
       try {

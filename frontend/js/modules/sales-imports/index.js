@@ -8,23 +8,23 @@ export async function init(path) {
   console.log('[Sales Imports] Initializing module for path:', path);
   
   try {
-    if (path === '/sales-imports' || path === '/sales-imports/home') {
+    if (path === '/salesdata' || path === '/salesdata/home') {
       // Load the home page module
       const { initSalesImportsHome } = await import('./home.js');
       await initSalesImportsHome();
-    } else if (path === '/sales-imports/uk-sales') {
+    } else if (path === '/salesdata/uk-sales') {
       // Load UK sales page
       const { initUKSales } = await import('./uk-sales.js');
       await initUKSales();
-    } else if (path === '/sales-imports/fr-sales') {
+    } else if (path === '/salesdata/fr-sales') {
       // Load FR sales page
       const { initFRSales } = await import('./fr-sales.js');
       await initFRSales();
-    } else if (path === '/sales-imports/nl-sales') {
+    } else if (path === '/salesdata/nl-sales') {
       // Load NL sales page
       const { initNLSales } = await import('./nl-sales.js');
       await initNLSales();
-    } else if (path === '/sales-imports/history') {
+    } else if (path === '/salesdata/history') {
       // Load history page
       const { initImportHistory } = await import('./history.js');
       await initImportHistory();

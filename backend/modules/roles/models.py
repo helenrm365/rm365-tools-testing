@@ -13,7 +13,7 @@ Database models for roles table
 
 # Sample data:
 # INSERT INTO roles (role_name, allowed_tabs) VALUES
-# ('admin', 'enrollment,inventory,attendance,labels,sales-imports,usermanagement'),
-# ('manager', 'enrollment,inventory,attendance,labels,sales-imports'),
+# ('admin', 'enrollment,inventory,attendance,labels,salesdata,usermanagement'),
+# ('manager', 'enrollment,inventory,attendance,labels,salesdata'),
 # ('user', 'enrollment,attendance')
 # ON CONFLICT (role_name) DO NOTHING;

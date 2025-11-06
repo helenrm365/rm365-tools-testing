@@ -1,15 +1,15 @@
 from typing import Dict, Any
 import logging
-from .repo import SalesImportsRepo
+from .repo import SalesDataRepo
 
 logger = logging.getLogger(__name__)
 
 
-class SalesImportsService:
-    """Service layer for sales imports operations"""
+class SalesDataService:
+    """Service layer for sales data operations"""
     
-    def __init__(self, repo: SalesImportsRepo = None):
-        self.repo = repo or SalesImportsRepo()
+    def __init__(self, repo: SalesDataRepo = None):
+        self.repo = repo or SalesDataRepo()
     
     # Table name mapping for validation
     VALID_REGIONS = {
@@ -43,7 +43,7 @@ class SalesImportsService:
             
             return {
                 "status": "success",
-                "message": "Sales import tables initialized successfully",
+                "message": "Sales data tables initialized successfully",
                 "tables": tables
             }
         except Exception as e:

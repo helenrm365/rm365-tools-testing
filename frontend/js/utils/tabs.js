@@ -49,8 +49,8 @@ export function getDefaultAllowedPath(allowed = null) {
   }
   // Then labels
   if (isAllowed('labels', allowedTabs)) return '/labels';
-  // Then sales-imports
-  if (isAllowed('sales-imports', allowedTabs)) return '/sales-imports';
+  // Then salesdata
+  if (isAllowed('salesdata', allowedTabs)) return '/salesdata';
   // Then inventory
   if (isAllowed('inventory', allowedTabs)) return '/inventory';
   // Then user management

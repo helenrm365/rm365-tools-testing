@@ -9,8 +9,8 @@ from core.db import get_products_connection
 logger = logging.getLogger(__name__)
 
 
-class SalesImportsRepo:
-    """Repository for sales imports data operations"""
+class SalesDataRepo:
+    """Repository for sales data operations"""
     
     def __init__(self):
         pass

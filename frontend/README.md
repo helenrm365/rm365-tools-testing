@@ -222,7 +222,7 @@ frontend/## Getting Started
 
 │   │4. **Open in Browser**
 
-│   ├── sales-imports/         # Sales import module   ```
+│   ├── salesdata/             # Sales data module   ```
 
 │   │   ├── history.html   http://localhost:3000
 
@@ -314,11 +314,11 @@ frontend/## Getting Started
 
     │   ││   │   ├── generator.html
 
-    │   ├── sales-imports/│   │   └── printHistory.html
+    │   ├── salesdata/│   │   └── printHistory.html
 
     │   │   ├── index.js│   │
 
-    │   │   ├── history.js│   ├── sales-imports/         # Sales import module
+    │   │   ├── history.js│   ├── salesdata/              # Sales data module
 
     │   │   ├── ukSalesData.js│   │   ├── history.html
 
@@ -350,7 +350,7 @@ frontend/## Getting Started
 
     │   │   ├── rolesApi.js    │   ├── attendance/
 
-    │   │   ├── salesImportsApi.js    │   │   ├── index.js
+    │   │   ├── salesDataApi.js    │   │   ├── index.js
 
     │   │   └── usersApi.js    │   │   ├── automaticClocking.js
 
@@ -400,7 +400,7 @@ frontend/## Getting Started
 
     │   │
 
-### Making Changes    │   ├── sales-imports/
+### Making Changes    │   ├── salesdata/
 
     │   │   ├── index.js
 

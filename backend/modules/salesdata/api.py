@@ -1,18 +1,18 @@
 from fastapi import APIRouter, Depends, UploadFile, File, Query
 from typing import Dict, Any
 from common.deps import get_current_user
-from .service import SalesImportsService
-from .schemas import InitTablesResponse, SalesDataResponse, SalesImportResponse, ImportHistoryResponse
+from .service import SalesDataService
+from .schemas import InitTablesResponse, SalesDataResponse, SalesDataImportResponse, ImportHistoryResponse
 
 router = APIRouter()
-svc = SalesImportsService()
+svc = SalesDataService()
 
 
 @router.get("/init", response_model=InitTablesResponse)
 def initialize_tables(user=Depends(get_current_user)):
     """
-    Initialize sales import tables (uk_sales_data, fr_sales_data, nl_sales_data).
-    This endpoint is called when the sales imports home page is accessed.
+    Initialize sales data tables (uk_sales_data, fr_sales_data, nl_sales_data).
+    This endpoint is called when the sales data home page is accessed.
     """
     result = svc.initialize_tables()
     return InitTablesResponse(**result)
@@ -39,7 +39,7 @@ def get_uk_sales_data(
     return SalesDataResponse(**result)
 
 
-@router.post("/uk/upload", response_model=SalesImportResponse)
+@router.post("/uk/upload", response_model=SalesDataImportResponse)
 async def upload_uk_sales_csv(
     file: UploadFile = File(...),
     user=Depends(get_current_user)
@@ -49,7 +49,7 @@ async def upload_uk_sales_csv(
     csv_content = content.decode('utf-8')
     username = user.get("username") or user.get("email") or "unknown"
     result = svc.import_csv("uk", csv_content, file.filename, username)
-    return SalesImportResponse(**result)
+    return SalesDataImportResponse(**result)
 
 
 # FR Sales endpoints
@@ -65,7 +65,7 @@ def get_fr_sales_data(
     return SalesDataResponse(**result)
 
 
-@router.post("/fr/upload", response_model=SalesImportResponse)
+@router.post("/fr/upload", response_model=SalesDataImportResponse)
 async def upload_fr_sales_csv(
     file: UploadFile = File(...),
     user=Depends(get_current_user)
@@ -75,7 +75,7 @@ async def upload_fr_sales_csv(
     csv_content = content.decode('utf-8')
     username = user.get("username") or user.get("email") or "unknown"
     result = svc.import_csv("fr", csv_content, file.filename, username)
-    return SalesImportResponse(**result)
+    return SalesDataImportResponse(**result)
 
 
 # NL Sales endpoints
@@ -91,7 +91,7 @@ def get_nl_sales_data(
     return SalesDataResponse(**result)
 
 
-@router.post("/nl/upload", response_model=SalesImportResponse)
+@router.post("/nl/upload", response_model=SalesDataImportResponse)
 async def upload_nl_sales_csv(
     file: UploadFile = File(...),
     user=Depends(get_current_user)
@@ -101,7 +101,7 @@ async def upload_nl_sales_csv(
     csv_content = content.decode('utf-8')
     username = user.get("username") or user.get("email") or "unknown"
     result = svc.import_csv("nl", csv_content, file.filename, username)
-    return SalesImportResponse(**result)
+    return SalesDataImportResponse(**result)
 
 
 # Condensed data endpoints (6-month aggregated by SKU)

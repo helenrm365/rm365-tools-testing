@@ -20,9 +20,9 @@ class SuccessErrorCount(BaseModel):
 
 
 # ---------------------------
-# Sales imports (FR CSV)
+# Sales data (CSV uploads)
 # ---------------------------
-# /sales-imports/upload/fr -> {"detail": "..."}  (already covered by Detail)
+# /salesdata/upload -> {"detail": "..."}  (already covered by Detail)
 # :contentReference[oaicite:1]{index=1}
 
 

@@ -1,4 +1,4 @@
-// js/services/api/salesImportsApi.js
+// js/services/api/salesDataApi.js
 import { get, post, http } from './http.js';
 import { getToken } from '../state/sessionStore.js';
 import { config } from '../../config.js';

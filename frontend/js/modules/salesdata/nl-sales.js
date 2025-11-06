@@ -1,5 +1,5 @@
-// frontend/js/modules/sales-imports/uk-sales.js
-import { getUKSalesData, uploadUKSalesCSV, getUKCondensedData } from '../../services/api/salesImportsApi.js';
+// frontend/js/modules/salesdata/nl-sales.js
+import { getNLSalesData, uploadNLSalesCSV, getNLCondensedData } from '../../services/api/salesDataApi.js';
 import { showToast } from '../../ui/toast.js';
 
 let currentPage = 0;
@@ -8,10 +8,10 @@ let currentSearch = '';
 let viewMode = 'full'; // 'full' or 'condensed'
 
 /**
- * Initialize UK sales page
+ * Initialize NL sales page
  */
-export async function initUKSales() {
-  console.log('[UK Sales] Initializing page...');
+export async function initNLSalesData() {
+  console.log('[NL Sales] Initializing page...');
   
   // Set up event listeners
   setupEventListeners();
@@ -125,10 +125,10 @@ async function loadSalesData() {
     let result;
     
     if (viewMode === 'condensed') {
-      result = await getUKCondensedData(pageSize, offset, currentSearch);
+      result = await getNLCondensedData(pageSize, offset, currentSearch);
       displayCondensedData(result.data, result.total_count);
     } else {
-      result = await getUKSalesData(pageSize, offset, currentSearch);
+      result = await getNLSalesData(pageSize, offset, currentSearch);
       displaySalesData(result.data, result.total_count);
     }
     
@@ -151,7 +151,7 @@ async function loadSalesData() {
       showToast('Failed to load sales data: ' + result.message, 'error');
     }
   } catch (error) {
-    console.error('[UK Sales] Error loading data:', error);
+    console.error('[NL Sales] Error loading data:', error);
     tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem; color: red;">Error: ${error.message}</td></tr>`;
     showToast('Error loading data: ' + error.message, 'error');
   }
@@ -195,7 +195,7 @@ function displaySalesData(data, totalCount) {
       <td>${escapeHtml(row.sku || '')}</td>
       <td>${escapeHtml(row.name || '')}</td>
       <td>${row.qty || 0}</td>
-      <td>£${parseFloat(row.price || 0).toFixed(2)}</td>
+      <td>€${parseFloat(row.price || 0).toFixed(2)}</td>
       <td>${escapeHtml(row.status || '')}</td>
       <td>${formatDateTime(row.imported_at)}</td>
       <td>${formatDateTime(row.updated_at)}</td>
@@ -259,14 +259,14 @@ async function handleUpload(event) {
   try {
     showToast('Uploading...', 'info');
     
-    const result = await uploadUKSalesCSV(file);
+    const result = await uploadNLSalesCSV(file);
     
     if (result.status === 'success') {
       showToast(`Successfully imported ${result.rows_imported} rows!`, 'success');
       
       // Show any errors that occurred during import
       if (result.errors && result.errors.length > 0) {
-        console.warn('[UK Sales] Import errors:', result.errors);
+        console.warn('[NL Sales] Import errors:', result.errors);
         showToast(`Import completed with ${result.errors.length} errors. Check console for details.`, 'warning');
       }
       
@@ -280,7 +280,7 @@ async function handleUpload(event) {
       showToast('Upload failed: ' + result.message, 'error');
     }
   } catch (error) {
-    console.error('[UK Sales] Upload error:', error);
+    console.error('[NL Sales] Upload error:', error);
     showToast('Upload error: ' + error.message, 'error');
   }
 }

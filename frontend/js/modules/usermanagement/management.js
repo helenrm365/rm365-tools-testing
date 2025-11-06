@@ -28,7 +28,7 @@ const TAB_STRUCTURE = {
       { key: 'history', label: 'History' }
     ]
   },
-  'sales-imports': {
+  'salesdata': {
     label: 'Sales Data',
     subtabs: [
       { key: 'uk-sales', label: 'UK Sales' },
@@ -953,8 +953,8 @@ async function loadRoles() {
     // Fallback to default roles if API fails
     state.roles = [
       { role_name: 'user', allowed_tabs: ['enrollment', 'attendance'] },
-      { role_name: 'admin', allowed_tabs: ['enrollment', 'inventory', 'attendance', 'labels', 'sales-imports', 'usermanagement'] },
-      { role_name: 'manager', allowed_tabs: ['enrollment', 'inventory', 'attendance', 'labels', 'sales-imports'] }
+      { role_name: 'admin', allowed_tabs: ['enrollment', 'inventory', 'attendance', 'labels', 'salesdata', 'usermanagement'] },
+      { role_name: 'manager', allowed_tabs: ['enrollment', 'inventory', 'attendance', 'labels', 'salesdata'] }
     ];
   }
 }

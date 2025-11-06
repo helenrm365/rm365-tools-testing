@@ -3,7 +3,7 @@ export const mockUsers = [
   {
     username: 'admin',
     role: 'admin',
-    allowed_tabs: ['attendance', 'enrollment', 'labels', 'sales-imports', 'inventory', 'usermanagement']
+    allowed_tabs: ['attendance', 'enrollment', 'labels', 'salesdata', 'inventory', 'usermanagement']
   },
   {
     username: 'manager',

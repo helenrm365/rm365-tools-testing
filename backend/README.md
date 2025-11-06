@@ -127,7 +127,7 @@ backend/
     │   └── service.py
     │
     ├── roles/             # Role management
-    ├── sales_imports/     # Data import
+    ├── salesdata/         # Sales data management
     └── users/             # User management
 ```
 
@@ -246,7 +246,7 @@ All endpoints are prefixed with `/api/v1`:
 - **Enrollment**: `/api/v1/enrollment/*`
 - **Inventory**: `/api/v1/inventory/*`
 - **Labels**: `/api/v1/labels/*`
-- **Sales Imports**: `/api/v1/sales-imports/*`
+- **Sales Data**: `/api/v1/salesdata/*`
 
 ### Testing Endpoints
 

@@ -1,6 +1,6 @@
-// frontend/js/modules/sales-imports/history.js
+// frontend/js/modules/salesdata/history.js
 
-import { getImportHistory } from '../../services/api/salesImportsApi.js';
+import { getImportHistory } from '../../services/api/salesDataApi.js';
 import { showToast } from '../../ui/toast.js';
 
 // State
@@ -12,8 +12,8 @@ let filterRegion = null;
 /**
  * Initialize the import history page
  */
-export async function initImportHistory() {
-  console.log('[Import History] Initializing import history page');
+export async function initSalesDataHistory() {
+  console.log('[Sales Data History] Initializing import history page');
   
   // Set up region filter
   setupRegionFilter();

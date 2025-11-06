@@ -1,5 +1,5 @@
-// frontend/js/modules/sales-imports/fr-sales.js
-import { getFRSalesData, uploadFRSalesCSV, getFRCondensedData } from '../../services/api/salesImportsApi.js';
+// frontend/js/modules/salesdata/fr-sales.js
+import { getFRSalesData, uploadFRSalesCSV, getFRCondensedData } from '../../services/api/salesDataApi.js';
 import { showToast } from '../../ui/toast.js';
 
 let currentPage = 0;
@@ -10,7 +10,7 @@ let viewMode = 'full'; // 'full' or 'condensed'
 /**
  * Initialize FR sales page
  */
-export async function initFRSales() {
+export async function initFRSalesData() {
   console.log('[FR Sales] Initializing page...');
   
   // Set up event listeners
