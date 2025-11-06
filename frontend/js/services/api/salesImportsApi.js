@@ -5,6 +5,16 @@ import { config } from '../../config.js';
 
 const API = '/api/v1/sales-imports';
 
+// Initialize tables
+export async function initializeTables() {
+  return await get(`${API}/init`);
+}
+
+// Check tables status
+export async function checkTablesStatus() {
+  return await get(`${API}/status`);
+}
+
 // UK Sales Data operations
 export async function getUKSalesData(limit = 50, offset = 0, search = '') {
   const params = new URLSearchParams({
