@@ -145,22 +145,17 @@ class SalesImportsRepo:
     
     
     def _ensure_region_table_exists(self, region: str) -> None:
-        """Ensure the table exists for a specific region (only checks once per region per instance)"""
+        """
+        Mark region as checked without creating tables.
+        Tables should be created via the /initialize endpoint on the home page.
+        This method now just tracks that we've checked this region to avoid repeated warnings.
+        """
         region = region.lower()
         if region not in self._tables_checked:
             raise ValueError(f"Invalid region: {region}")
             
-        if self._tables_checked[region]:
-            return
-           
-        try:
-            # Use the new ensure_all_tables_exist method which checks all tables at once
-            self.ensure_all_tables_exist()
-            self._tables_checked[region] = True
-        except Exception as e:
-            logger.warning(f"Could not ensure {region} table exists: {e}")
-            # Still mark as checked to avoid repeated attempts
-            self._tables_checked[region] = True
+        # Just mark as checked - tables are created via /initialize endpoint
+        self._tables_checked[region] = True
 
     def ensure_all_tables_exist(self) -> Dict[str, Any]:
         """

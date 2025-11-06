@@ -20,11 +20,10 @@ export async function init(path) {
     currentModule = await import('./history.js');
     await currentModule.init();
   } else if (path === '/sales-imports' || path === '/sales-imports/home') {
-    // Initialize tables when home page loads
+    // Home page is static HTML - just initialize tables
     await initializeTables();
-    // Keep the home page with tabs for backwards compatibility
-    currentModule = await import('./regionalSales.js');
-    await currentModule.init();
+    // No module needed - home.html is just navigation buttons
+    currentModule = null;
   }
 }
 
