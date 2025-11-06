@@ -392,18 +392,12 @@ class SalesImportsService:
         """Get condensed sales data with pagination"""
         try:
             data, total = self.repo.get_condensed_sales_paginated(region, limit, offset, search)
-            page = (offset // limit) + 1 if limit > 0 else 1
-            total_pages = (total + limit - 1) // limit if limit > 0 else 1
             
             return {
                 "status": "success",
                 "data": data,
-                "pagination": {
-                    "page": page,
-                    "page_size": limit,
-                    "total": total,
-                    "total_pages": total_pages
-                }
+                "count": len(data),
+                "total": total
             }
         except Exception as e:
             logger.error(f"Error getting condensed sales data for {region}: {e}")
@@ -411,10 +405,6 @@ class SalesImportsService:
                 "status": "error",
                 "message": str(e),
                 "data": [],
-                "pagination": {
-                    "page": 1,
-                    "page_size": limit,
-                    "total": 0,
-                    "total_pages": 0
-                }
+                "count": 0,
+                "total": 0
             }

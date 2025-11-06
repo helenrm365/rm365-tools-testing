@@ -183,13 +183,3 @@ def get_nl_sales_data(
     result = _svc().get_nl_sales_data(limit, offset, search)
     return UKSalesDataResponse(**result)
 
-@router.get("/history", response_model=UKSalesDataResponse)
-def get_import_history(
-    limit: int = Query(100, description="Number of records per page"),
-    offset: int = Query(0, description="Offset for pagination"),
-    region: str = Query("", description="Filter by region: uk, fr, nl, or empty for all"),
-    user=Depends(get_current_user)
-):
-    """Get import history with pagination and optional region filter"""
-    result = _svc().get_import_history(limit, offset, region)
-    return UKSalesDataResponse(**result)
