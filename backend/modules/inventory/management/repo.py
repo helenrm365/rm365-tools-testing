@@ -370,7 +370,7 @@ class InventoryManagementRepo:
                 like_params = [f'%discontinued_status={f}%' for f in filters]
                 
                 cursor.execute(f"""
-                    SELECT sku, item_id, status, additional_attributes
+                    SELECT sku, additional_attributes
                     FROM magento_product_list
                     WHERE ({like_conditions})
                     ORDER BY sku
@@ -378,12 +378,12 @@ class InventoryManagementRepo:
             else:
                 # No filters - return all
                 cursor.execute("""
-                    SELECT sku, item_id, status, additional_attributes
+                    SELECT sku, additional_attributes
                     FROM magento_product_list
                     ORDER BY sku
                 """)
             
-            columns = ['sku', 'item_id', 'status', 'additional_attributes']
+            columns = ['sku', 'additional_attributes']
             rows = cursor.fetchall()
             
             # Parse discontinued_status from additional_attributes for each row
@@ -393,8 +393,10 @@ class InventoryManagementRepo:
                 row_dict['discontinued_status'] = self.parse_discontinued_status_from_additional_attributes(
                     row_dict.get('additional_attributes', '')
                 )
-                # Add empty product_name for compatibility
+                # Add empty fields for compatibility
                 row_dict['product_name'] = ''
+                row_dict['item_id'] = ''
+                row_dict['status'] = ''
                 result.append(row_dict)
             
             return result
