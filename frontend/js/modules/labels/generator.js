@@ -314,14 +314,23 @@ async function handleGeneratePdf() {
       item_ids: Array.from(state.selectedProducts)
     };
     
+    console.log('[Labels] Creating print job with', payload.item_ids.length, 'items');
+    
     const result = await createPrintJob(payload);
     const jobId = result.job_id;
+    const itemCount = result.item_count || state.selectedProducts.size;
     
-    console.log(`[Labels] Created job ${jobId}`);
-    showToast('Print job created successfully!', 'success');
+    console.log(`[Labels] Created job ${jobId} with ${itemCount} items`);
+    
+    if (itemCount === 0) {
+      showToast('Warning: Print job created but no items were added', 'warning');
+      return;
+    }
+    
+    showToast(`Print job created with ${itemCount} labels!`, 'success');
     
     // Show download options modal
-    showPdfPreviewModal(jobId);
+    showPdfPreviewModal(jobId, itemCount);
     
   } catch (error) {
     console.error('[Labels] Error creating print job:', error);
@@ -334,7 +343,7 @@ async function handleGeneratePdf() {
   }
 }
 
-function showPdfPreviewModal(jobId) {
+function showPdfPreviewModal(jobId, itemCount) {
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
   modal.innerHTML = `
@@ -345,7 +354,7 @@ function showPdfPreviewModal(jobId) {
       </div>
       <div class="modal-body">
         <p style="margin-bottom: 1.5rem;">
-          Your label print job <strong>#${jobId}</strong> has been created with <strong>${state.selectedProducts.size}</strong> products.
+          Your label print job <strong>#${jobId}</strong> has been created with <strong>${itemCount}</strong> products.
         </p>
         <p style="margin-bottom: 1.5rem; color: #666; font-size: 0.9rem;">
           Generate a PDF to preview the labels before printing, or download the data as CSV.
@@ -375,6 +384,7 @@ function showPdfPreviewModal(jobId) {
     btn.disabled = true;
     
     try {
+      console.log('[Labels] Attempting to download PDF for job:', jobId);
       await downloadPDF(jobId);
       showToast('PDF downloaded successfully!', 'success');
       // Keep modal open so user can download CSV too if needed
@@ -384,6 +394,7 @@ function showPdfPreviewModal(jobId) {
         btn.disabled = false;
       }, 2000);
     } catch (error) {
+      console.error('[Labels] PDF download error:', error);
       showToast('Failed to download PDF: ' + error.message, 'error');
       btn.textContent = originalText;
       btn.disabled = false;

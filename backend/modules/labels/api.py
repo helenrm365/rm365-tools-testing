@@ -74,14 +74,34 @@ def start_print_job(
     # Create a new label print job with optional line_date values.
     """
     try:
+        print(f"[Labels API] Creating print job with payload: {payload}")
+        
         with inventory_conn() as conn:
             zoho_map = get_zoho_items_with_skus_full()
+            print(f"[Labels API] Zoho map loaded with {len(zoho_map)} items")
+            
             job_id = start_label_job(conn, zoho_map, payload)
-            return {"status": "ok", "job_id": job_id}
+            
+            # Verify items were inserted
+            with conn.cursor() as cur:
+                cur.execute("SELECT COUNT(*) FROM label_print_items WHERE job_id = %s", (job_id,))
+                item_count = cur.fetchone()[0]
+            
+            print(f"[Labels API] Created job {job_id} with {item_count} items")
+            
+            return {
+                "status": "ok", 
+                "job_id": job_id,
+                "item_count": item_count,
+                "message": f"Successfully created print job with {item_count} labels"
+            }
     except Exception as e:
+        import traceback
+        error_detail = f"Failed to start print job: {str(e)}\n{traceback.format_exc()}"
+        print(f"[Labels API] Error: {error_detail}")
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to start print job: {e}"
+            detail=error_detail
         )
 
 @router.delete("/job/{job_id}")
@@ -112,11 +132,26 @@ def download_labels_pdf(
     """
     try:
         with inventory_conn() as conn:
+            # First verify the job exists and has items
+            with conn.cursor() as cur:
+                cur.execute("SELECT COUNT(*) FROM label_print_items WHERE job_id = %s", (job_id,))
+                count = cur.fetchone()[0]
+                if count == 0:
+                    raise HTTPException(
+                        status_code=404,
+                        detail=f"No label items found for job {job_id}. The job may be empty or not exist."
+                    )
+            
             return stream_pdf_labels(conn, job_id)
+    except HTTPException:
+        raise
     except Exception as e:
+        import traceback
+        error_detail = f"Failed to generate PDF: {str(e)}\n{traceback.format_exc()}"
+        print(f"[Labels API] PDF generation error: {error_detail}")
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to generate PDF: {e}"
+            detail=error_detail
         )
 
 @router.get("/job/{job_id}/csv")

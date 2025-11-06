@@ -53,6 +53,8 @@ export async function downloadPDF(jobId) {
   const BASE = config.API.replace(/\/+$/, '');
   const url = `${BASE}${API}/job/${jobId}/pdf`;
   
+  console.log('[Labels API] Downloading PDF from:', url);
+  
   const token = getToken();
   const headers = {};
   if (token) {
@@ -62,10 +64,18 @@ export async function downloadPDF(jobId) {
   const response = await fetch(url, { headers });
   
   if (!response.ok) {
-    throw new Error(`Failed to download PDF: ${response.statusText}`);
+    const errorText = await response.text();
+    console.error('[Labels API] PDF download failed:', response.status, errorText);
+    throw new Error(`Failed to download PDF: ${response.statusText}. ${errorText}`);
   }
   
   const blob = await response.blob();
+  console.log('[Labels API] PDF blob received, size:', blob.size, 'bytes');
+  
+  if (blob.size === 0) {
+    throw new Error('Received empty PDF file');
+  }
+  
   const downloadUrl = window.URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = downloadUrl;
@@ -74,6 +84,8 @@ export async function downloadPDF(jobId) {
   a.click();
   window.URL.revokeObjectURL(downloadUrl);
   document.body.removeChild(a);
+  
+  console.log('[Labels API] PDF download completed');
 }
 
 /**
