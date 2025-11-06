@@ -115,6 +115,41 @@ ORD-003,2024-10-17,SKU-789,Device Elite,2,149.99,completed"""
         headers={"Content-Disposition": "attachment; filename=sales_import_template.csv"}
     )
 
+# Condensed routes must come BEFORE the base routes to avoid route matching conflicts
+@router.get("/uk-sales/condensed", response_model=UKSalesDataResponse)
+def get_uk_condensed_sales(
+    limit: int = Query(100, description="Number of records per page"),
+    offset: int = Query(0, description="Offset for pagination"),
+    search: str = Query("", description="Search term"),
+    user=Depends(get_current_user)
+):
+    """Get UK condensed sales data (6-month aggregates)"""
+    result = _svc().get_condensed_sales('uk', limit, offset, search)
+    return UKSalesDataResponse(**result)
+
+@router.get("/fr-sales/condensed", response_model=UKSalesDataResponse)
+def get_fr_condensed_sales(
+    limit: int = Query(100, description="Number of records per page"),
+    offset: int = Query(0, description="Offset for pagination"),
+    search: str = Query("", description="Search term"),
+    user=Depends(get_current_user)
+):
+    """Get FR condensed sales data (6-month aggregates)"""
+    result = _svc().get_condensed_sales('fr', limit, offset, search)
+    return UKSalesDataResponse(**result)
+
+@router.get("/nl-sales/condensed", response_model=UKSalesDataResponse)
+def get_nl_condensed_sales(
+    limit: int = Query(100, description="Number of records per page"),
+    offset: int = Query(0, description="Offset for pagination"),
+    search: str = Query("", description="Search term"),
+    user=Depends(get_current_user)
+):
+    """Get NL condensed sales data (6-month aggregates)"""
+    result = _svc().get_condensed_sales('nl', limit, offset, search)
+    return UKSalesDataResponse(**result)
+
+# Base routes come after more specific routes
 @router.get("/uk-sales", response_model=UKSalesDataResponse)
 def get_uk_sales_data(
     limit: int = Query(100, description="Number of records per page"),
@@ -157,37 +192,4 @@ def get_import_history(
 ):
     """Get import history with pagination and optional region filter"""
     result = _svc().get_import_history(limit, offset, region)
-    return UKSalesDataResponse(**result)
-
-@router.get("/uk-sales/condensed", response_model=UKSalesDataResponse)
-def get_uk_condensed_sales(
-    limit: int = Query(100, description="Number of records per page"),
-    offset: int = Query(0, description="Offset for pagination"),
-    search: str = Query("", description="Search term"),
-    user=Depends(get_current_user)
-):
-    """Get UK condensed sales data (6-month aggregates)"""
-    result = _svc().get_condensed_sales('uk', limit, offset, search)
-    return UKSalesDataResponse(**result)
-
-@router.get("/fr-sales/condensed", response_model=UKSalesDataResponse)
-def get_fr_condensed_sales(
-    limit: int = Query(100, description="Number of records per page"),
-    offset: int = Query(0, description="Offset for pagination"),
-    search: str = Query("", description="Search term"),
-    user=Depends(get_current_user)
-):
-    """Get FR condensed sales data (6-month aggregates)"""
-    result = _svc().get_condensed_sales('fr', limit, offset, search)
-    return UKSalesDataResponse(**result)
-
-@router.get("/nl-sales/condensed", response_model=UKSalesDataResponse)
-def get_nl_condensed_sales(
-    limit: int = Query(100, description="Number of records per page"),
-    offset: int = Query(0, description="Offset for pagination"),
-    search: str = Query("", description="Search term"),
-    user=Depends(get_current_user)
-):
-    """Get NL condensed sales data (6-month aggregates)"""
-    result = _svc().get_condensed_sales('nl', limit, offset, search)
     return UKSalesDataResponse(**result)

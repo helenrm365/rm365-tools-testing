@@ -305,6 +305,8 @@ class SalesImportsRepo:
         self._ensure_table_exists()
        
         conn = self.get_connection()
+        cursor = None
+        count_cursor = None
         try:
             cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
            
@@ -358,6 +360,8 @@ class SalesImportsRepo:
             logger.error(f"Database error in get_uk_sales_data: {e}")
             raise
         finally:
+            if count_cursor:
+                count_cursor.close()
             if cursor:
                 cursor.close()
             if conn:
@@ -939,6 +943,8 @@ class SalesImportsRepo:
         self._ensure_table_exists()
        
         conn = self.get_connection()
+        cursor = None
+        count_cursor = None
         try:
             cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
            
@@ -992,6 +998,8 @@ class SalesImportsRepo:
             logger.error(f"Database error in get_fr_sales_data: {e}")
             raise
         finally:
+            if count_cursor:
+                count_cursor.close()
             if cursor:
                 cursor.close()
             if conn:
@@ -1002,6 +1010,8 @@ class SalesImportsRepo:
         self._ensure_table_exists()
        
         conn = self.get_connection()
+        cursor = None
+        count_cursor = None
         try:
             cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
            
@@ -1055,6 +1065,8 @@ class SalesImportsRepo:
             logger.error(f"Database error in get_nl_sales_data: {e}")
             raise
         finally:
+            if count_cursor:
+                count_cursor.close()
             if cursor:
                 cursor.close()
             if conn:
