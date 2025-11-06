@@ -99,3 +99,66 @@ async def upload_nl_sales_csv(
     csv_content = content.decode('utf-8')
     result = svc.import_csv("nl", csv_content)
     return SalesImportResponse(**result)
+
+
+# Condensed data endpoints (6-month aggregated by SKU)
+@router.get("/uk/condensed", response_model=SalesDataResponse)
+def get_uk_condensed_data(
+    limit: int = Query(100, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+    search: str = Query(""),
+    user=Depends(get_current_user)
+):
+    """Get UK condensed sales data (6-month aggregated by SKU)"""
+    result = svc.get_condensed_data("uk", limit, offset, search)
+    return SalesDataResponse(**result)
+
+
+@router.get("/fr/condensed", response_model=SalesDataResponse)
+def get_fr_condensed_data(
+    limit: int = Query(100, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+    search: str = Query(""),
+    user=Depends(get_current_user)
+):
+    """Get FR condensed sales data (6-month aggregated by SKU)"""
+    result = svc.get_condensed_data("fr", limit, offset, search)
+    return SalesDataResponse(**result)
+
+
+@router.get("/nl/condensed", response_model=SalesDataResponse)
+def get_nl_condensed_data(
+    limit: int = Query(100, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+    search: str = Query(""),
+    user=Depends(get_current_user)
+):
+    """Get NL condensed sales data (6-month aggregated by SKU)"""
+    result = svc.get_condensed_data("nl", limit, offset, search)
+    return SalesDataResponse(**result)
+
+
+# SKU Aliases management endpoints
+@router.get("/sku-aliases")
+def get_sku_aliases(user=Depends(get_current_user)):
+    """Get all SKU aliases mappings"""
+    return svc.get_sku_aliases()
+
+
+@router.post("/sku-aliases")
+def add_sku_alias(
+    alias_sku: str = Query(..., description="The alias SKU"),
+    unified_sku: str = Query(..., description="The unified SKU to map to"),
+    user=Depends(get_current_user)
+):
+    """Add a new SKU alias mapping. After adding, condensed data will be automatically refreshed."""
+    return svc.add_sku_alias(alias_sku, unified_sku)
+
+
+@router.delete("/sku-aliases/{alias_id}")
+def delete_sku_alias(
+    alias_id: int,
+    user=Depends(get_current_user)
+):
+    """Delete a SKU alias mapping. After deletion, condensed data will be automatically refreshed."""
+    return svc.delete_sku_alias(alias_id)

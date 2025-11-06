@@ -227,3 +227,31 @@ export async function downloadTemplate() {
 export async function checkHealth() {
   return await get(`${API}/health`);
 }
+
+// Condensed data operations (6-month aggregated by SKU)
+export async function getUKCondensedData(limit = 100, offset = 0, search = '') {
+  const params = new URLSearchParams({
+    limit: limit.toString(),
+    offset: offset.toString(),
+    search: search
+  });
+  return await get(`${API}/uk/condensed?${params.toString()}`);
+}
+
+export async function getFRCondensedData(limit = 100, offset = 0, search = '') {
+  const params = new URLSearchParams({
+    limit: limit.toString(),
+    offset: offset.toString(),
+    search: search
+  });
+  return await get(`${API}/fr/condensed?${params.toString()}`);
+}
+
+export async function getNLCondensedData(limit = 100, offset = 0, search = '') {
+  const params = new URLSearchParams({
+    limit: limit.toString(),
+    offset: offset.toString(),
+    search: search
+  });
+  return await get(`${API}/nl/condensed?${params.toString()}`);
+}

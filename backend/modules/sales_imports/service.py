@@ -28,10 +28,19 @@ class SalesImportsService:
     def initialize_tables(self) -> Dict[str, Any]:
         """
         Initialize the sales data tables.
-        Creates uk_sales_data, fr_sales_data, and nl_sales_data if they don't exist.
+        Creates uk_sales_data, fr_sales_data, nl_sales_data and their condensed versions.
+        Also populates condensed tables with existing data.
         """
         try:
             tables = self.repo.init_tables()
+            
+            # Refresh condensed data for all regions
+            for region in ['uk', 'fr', 'nl']:
+                try:
+                    self.repo.refresh_condensed_data(region)
+                except Exception as e:
+                    logger.warning(f"Could not refresh condensed data for {region}: {e}")
+            
             return {
                 "status": "success",
                 "message": "Sales import tables initialized successfully",
@@ -91,12 +100,19 @@ class SalesImportsService:
             }
     
     def import_csv(self, region: str, csv_content: str) -> Dict[str, Any]:
-        """Import CSV data for a specific region"""
+        """Import CSV data for a specific region and refresh condensed data"""
         try:
             table_name = self._get_table_name(region)
             result = self.repo.import_csv_data(table_name, csv_content)
             
             if result['success']:
+                # Refresh condensed data after import
+                try:
+                    condensed_result = self.repo.refresh_condensed_data(region)
+                    logger.info(f"Refreshed condensed data for {region}: {condensed_result['rows_aggregated']} SKUs")
+                except Exception as e:
+                    logger.error(f"Failed to refresh condensed data for {region}: {e}")
+                
                 return {
                     "status": "success",
                     "message": f"Successfully imported {result['rows_imported']} rows to {region.upper()} sales",
@@ -123,4 +139,105 @@ class SalesImportsService:
                 "status": "error",
                 "message": f"Failed to import CSV: {str(e)}",
                 "rows_imported": 0
+            }
+    
+    def get_condensed_data(self, region: str, limit: int = 100, offset: int = 0, search: str = "") -> Dict[str, Any]:
+        """Get condensed (6-month aggregated) sales data for a specific region"""
+        try:
+            result = self.repo.get_condensed_data(region, limit, offset, search)
+            return {
+                "status": "success",
+                "region": region,
+                **result
+            }
+        except ValueError as e:
+            logger.error(f"Invalid region: {e}")
+            return {
+                "status": "error",
+                "message": str(e),
+                "data": [],
+                "total_count": 0
+            }
+        except Exception as e:
+            logger.error(f"Error getting condensed {region} data: {e}")
+            return {
+                "status": "error",
+                "message": f"Failed to get condensed data: {str(e)}",
+                "data": [],
+                "total_count": 0
+            }
+    
+    def get_sku_aliases(self) -> Dict[str, Any]:
+        """Get all SKU aliases"""
+        try:
+            aliases = self.repo.get_sku_aliases()
+            return {
+                "status": "success",
+                "aliases": aliases,
+                "count": len(aliases)
+            }
+        except Exception as e:
+            logger.error(f"Error getting SKU aliases: {e}")
+            return {
+                "status": "error",
+                "message": f"Failed to get SKU aliases: {str(e)}",
+                "aliases": []
+            }
+    
+    def add_sku_alias(self, alias_sku: str, unified_sku: str) -> Dict[str, Any]:
+        """Add a new SKU alias mapping"""
+        try:
+            result = self.repo.add_sku_alias(alias_sku, unified_sku)
+            
+            # Refresh all condensed data to apply the new alias
+            for region in ['uk', 'fr', 'nl']:
+                try:
+                    self.repo.refresh_condensed_data(region)
+                except Exception as e:
+                    logger.warning(f"Could not refresh condensed data for {region}: {e}")
+            
+            return {
+                "status": "success",
+                "message": f"SKU alias added: {alias_sku} → {unified_sku}",
+                **result
+            }
+        except ValueError as e:
+            return {
+                "status": "error",
+                "message": str(e)
+            }
+        except Exception as e:
+            logger.error(f"Error adding SKU alias: {e}")
+            return {
+                "status": "error",
+                "message": f"Failed to add SKU alias: {str(e)}"
+            }
+    
+    def delete_sku_alias(self, alias_id: int) -> Dict[str, Any]:
+        """Delete a SKU alias mapping"""
+        try:
+            result = self.repo.delete_sku_alias(alias_id)
+            
+            # Refresh all condensed data to remove the alias effect
+            for region in ['uk', 'fr', 'nl']:
+                try:
+                    self.repo.refresh_condensed_data(region)
+                except Exception as e:
+                    logger.warning(f"Could not refresh condensed data for {region}: {e}")
+            
+            return {
+                "status": "success",
+                "message": "SKU alias deleted",
+                **result
+            }
+        except ValueError as e:
+            return {
+                "status": "error",
+                "message": str(e)
+            }
+        except Exception as e:
+            logger.error(f"Error deleting SKU alias: {e}")
+            return {
+                "status": "error",
+                "message": f"Failed to delete SKU alias: {str(e)}"
             }

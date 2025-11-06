@@ -1,10 +1,11 @@
 // frontend/js/modules/sales-imports/uk-sales.js
-import { getUKSalesData, uploadUKSalesCSV } from '../../services/api/salesImportsApi.js';
+import { getUKSalesData, uploadUKSalesCSV, getUKCondensedData } from '../../services/api/salesImportsApi.js';
 import { showToast } from '../../ui/toast.js';
 
 let currentPage = 0;
 const pageSize = 100;
 let currentSearch = '';
+let viewMode = 'full'; // 'full' or 'condensed'
 
 /**
  * Initialize UK sales page
@@ -27,6 +28,30 @@ function setupEventListeners() {
   const uploadForm = document.getElementById('uploadForm');
   if (uploadForm) {
     uploadForm.addEventListener('submit', handleUpload);
+  }
+  
+  // View toggle buttons
+  const viewFullBtn = document.getElementById('viewFullBtn');
+  const viewCondensedBtn = document.getElementById('viewCondensedBtn');
+  
+  if (viewFullBtn) {
+    viewFullBtn.addEventListener('click', () => {
+      viewMode = 'full';
+      viewFullBtn.classList.add('active');
+      viewCondensedBtn?.classList.remove('active');
+      currentPage = 0;
+      loadSalesData();
+    });
+  }
+  
+  if (viewCondensedBtn) {
+    viewCondensedBtn.addEventListener('click', () => {
+      viewMode = 'condensed';
+      viewCondensedBtn.classList.add('active');
+      viewFullBtn?.classList.remove('active');
+      currentPage = 0;
+      loadSalesData();
+    });
   }
   
   // Search functionality
@@ -92,19 +117,27 @@ async function loadSalesData() {
   if (!tbody) return;
   
   // Show loading state
-  tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 2rem;">Loading...</td></tr>';
+  const colSpan = viewMode === 'condensed' ? '4' : '10';
+  tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem;">Loading...</td></tr>`;
   
   try {
     const offset = currentPage * pageSize;
-    const result = await getUKSalesData(pageSize, offset, currentSearch);
+    let result;
+    
+    if (viewMode === 'condensed') {
+      result = await getUKCondensedData(pageSize, offset, currentSearch);
+      displayCondensedData(result.data, result.total_count);
+    } else {
+      result = await getUKSalesData(pageSize, offset, currentSearch);
+      displaySalesData(result.data, result.total_count);
+    }
     
     if (result.status === 'success') {
-      displaySalesData(result.data, result.total_count);
-      
       // Update pagination info
       if (pageInfo) {
         const totalPages = Math.ceil(result.total_count / pageSize);
-        pageInfo.textContent = `Page ${currentPage + 1} of ${totalPages} (${result.total_count} total records)`;
+        const viewLabel = viewMode === 'condensed' ? 'Condensed (6-Month)' : 'Full Sales';
+        pageInfo.textContent = `${viewLabel} - Page ${currentPage + 1} of ${totalPages} (${result.total_count} total records)`;
       }
       
       // Update pagination buttons
@@ -114,12 +147,12 @@ async function loadSalesData() {
       if (nextBtn) nextBtn.disabled = (currentPage + 1) * pageSize >= result.total_count;
       
     } else {
-      tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; padding: 2rem; color: red;">Error: ${result.message}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem; color: red;">Error: ${result.message}</td></tr>`;
       showToast('Failed to load sales data: ' + result.message, 'error');
     }
   } catch (error) {
     console.error('[UK Sales] Error loading data:', error);
-    tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; padding: 2rem; color: red;">Error: ${error.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem; color: red;">Error: ${error.message}</td></tr>`;
     showToast('Error loading data: ' + error.message, 'error');
   }
 }
@@ -129,7 +162,25 @@ async function loadSalesData() {
  */
 function displaySalesData(data, totalCount) {
   const tbody = document.getElementById('salesTableBody');
+  const thead = document.querySelector('#salesTable thead tr');
+  
   if (!tbody) return;
+  
+  // Update table headers for full view
+  if (thead) {
+    thead.innerHTML = `
+      <th>ID</th>
+      <th>Order Number</th>
+      <th>Created At</th>
+      <th>SKU</th>
+      <th>Name</th>
+      <th>Quantity</th>
+      <th>Price</th>
+      <th>Status</th>
+      <th>Imported At</th>
+      <th>Updated At</th>
+    `;
+  }
   
   if (!data || data.length === 0) {
     tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 2rem;">No data found</td></tr>';
@@ -148,6 +199,40 @@ function displaySalesData(data, totalCount) {
       <td>${escapeHtml(row.status || '')}</td>
       <td>${formatDateTime(row.imported_at)}</td>
       <td>${formatDateTime(row.updated_at)}</td>
+    </tr>
+  `).join('');
+}
+
+/**
+ * Display condensed sales data in the table
+ */
+function displayCondensedData(data, totalCount) {
+  const tbody = document.getElementById('salesTableBody');
+  const thead = document.querySelector('#salesTable thead tr');
+  
+  if (!tbody) return;
+  
+  // Update table headers for condensed view
+  if (thead) {
+    thead.innerHTML = `
+      <th>SKU</th>
+      <th>Product Name</th>
+      <th>Total Quantity (6 Months)</th>
+      <th>Last Updated</th>
+    `;
+  }
+  
+  if (!data || data.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 2rem;">No data found</td></tr>';
+    return;
+  }
+  
+  tbody.innerHTML = data.map(row => `
+    <tr>
+      <td>${escapeHtml(row.sku || '')}</td>
+      <td>${escapeHtml(row.name || '')}</td>
+      <td><strong>${row.total_qty || 0}</strong></td>
+      <td>${formatDateTime(row.last_updated)}</td>
     </tr>
   `).join('');
 }
