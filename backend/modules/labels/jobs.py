@@ -59,6 +59,7 @@ def start_label_job(conn: PGConn, zoho_map: Dict[str, str], payload: Dict[str, A
                 r.get("product_name", ""),
                 int(r.get("uk_6m_data", 0)),
                 int(r.get("fr_6m_data", 0)),
+                float(r.get("price", 0.00)),  # Include price from sales data
                 None,  # per-row line_date (override) — keep None now
             ))
 
@@ -66,8 +67,8 @@ def start_label_job(conn: PGConn, zoho_map: Dict[str, str], payload: Dict[str, A
             cur.executemany(
                 """
                 INSERT INTO label_print_items
-                    (job_id, item_id, sku, product_name, uk_6m_data, fr_6m_data, line_date)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    (job_id, item_id, sku, product_name, uk_6m_data, fr_6m_data, price, line_date)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 to_insert,
             )
@@ -80,7 +81,7 @@ def get_label_job_rows(conn: PGConn, job_id: int) -> List[Dict[str, Any]]:
     with conn.cursor() as cur:
         cur.execute(
             """
-            SELECT id, job_id, item_id, sku, product_name, uk_6m_data, fr_6m_data, line_date
+            SELECT id, job_id, item_id, sku, product_name, uk_6m_data, fr_6m_data, price, line_date
             FROM label_print_items
             WHERE job_id = %s
             ORDER BY sku

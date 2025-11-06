@@ -67,7 +67,7 @@ class LabelsRepo:
         if not item_ids:
             return {}
         with conn.cursor() as cur:
-            # psycopg2 “IN %s” trick: pass a tuple for the IN list
+            # psycopg2 "IN %s" trick: pass a tuple for the IN list
             cur.execute(
                 """
                 SELECT item_id,
@@ -79,6 +79,58 @@ class LabelsRepo:
                 (item_ids,)  # ARRAY/ANY is simpler than building a dynamic IN
             )
             return {str(r[0]): (str(r[1]), str(r[2])) for r in cur.fetchall()}
+    
+    def _load_latest_prices_psycopg(self, conn, skus: List[str]) -> Dict[str, str]:
+        """
+        Return { sku: price } with the most recent price from sales data.
+        Checks uk_sales_data, fr_sales_data, and nl_sales_data.
+        """
+        if not skus:
+            return {}
+        
+        prices = {}
+        with conn.cursor() as cur:
+            # Query all three sales tables and get the most recent price for each SKU
+            # We use UNION ALL to combine results from all tables, then pick the most recent
+            cur.execute(
+                """
+                WITH combined_sales AS (
+                    SELECT sku, price, created_at, 'uk' as source
+                    FROM uk_sales_data
+                    WHERE sku = ANY(%s) AND price IS NOT NULL
+                    
+                    UNION ALL
+                    
+                    SELECT sku, price, created_at, 'fr' as source
+                    FROM fr_sales_data
+                    WHERE sku = ANY(%s) AND price IS NOT NULL
+                    
+                    UNION ALL
+                    
+                    SELECT sku, price, created_at, 'nl' as source
+                    FROM nl_sales_data
+                    WHERE sku = ANY(%s) AND price IS NOT NULL
+                ),
+                ranked_sales AS (
+                    SELECT 
+                        sku,
+                        price,
+                        created_at,
+                        ROW_NUMBER() OVER (PARTITION BY sku ORDER BY created_at DESC) as rn
+                    FROM combined_sales
+                )
+                SELECT sku, price
+                FROM ranked_sales
+                WHERE rn = 1
+                """,
+                (skus, skus, skus)
+            )
+            for row in cur.fetchall():
+                sku = str(row[0]).strip()
+                price = str(row[1]) if row[1] else "0.00"
+                prices[sku] = price
+        
+        return prices
 
     def _resolve_to_rows(
         self,
@@ -132,17 +184,23 @@ class LabelsRepo:
         # 6M data
         item_ids = [t[0] for t in resolved.values()]
         sixm = self._load_six_month_data_psycopg(conn, item_ids)
+        
+        # Latest prices from sales data
+        all_skus = list(set([t[1] for t in resolved.values()]))  # Get unique SKUs
+        prices = self._load_latest_prices_psycopg(conn, all_skus)
 
         # build rows
         out: List[Dict[str, Any]] = []
         for base, (item_id, sku_used, name) in resolved.items():
             uk, fr = sixm.get(item_id, ("0", "0"))
+            price = prices.get(sku_used, "0.00")  # Get price for this SKU
             out.append({
                 "item_id": item_id,       # barcode (Zoho item_id)
                 "sku": sku_used,          # chosen Zoho SKU (base or -MD)
                 "product_name": name,     # may be blank unless you hydrate it
                 "uk_6m_data": uk,
                 "fr_6m_data": fr,         # FR already includes FR+NL in your sync
+                "price": price,           # most recent price from sales data
             })
         return out
 

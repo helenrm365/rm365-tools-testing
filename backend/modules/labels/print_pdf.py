@@ -140,7 +140,7 @@ def stream_pdf_labels(conn: PGConn, job_id: int) -> StreamingResponse:
             """
             SELECT r.sku, r.product_name, r.uk_6m_data, r.fr_6m_data,
                    COALESCE(r.line_date, j.line_date) AS line_date,
-                   r.item_id
+                   r.item_id, r.price
             FROM label_print_items r
             JOIN label_print_jobs j ON j.id = r.job_id
             WHERE r.job_id = %s
@@ -162,7 +162,7 @@ def stream_pdf_labels(conn: PGConn, job_id: int) -> StreamingResponse:
     tmpdir = tempfile.mkdtemp()
 
     # 3. render labels
-    for sku, name, uk, fr, line_date, barcode_val in rows:
+    for sku, name, uk, fr, line_date, barcode_val, price in rows:
         col = label_no % COLS_PER_PAGE
         row_pos = (label_no // COLS_PER_PAGE) % ROWS_PER_PAGE
         x = x0 + col * LABEL_WIDTH
@@ -182,10 +182,14 @@ def stream_pdf_labels(conn: PGConn, job_id: int) -> StreamingResponse:
         # --- right info block ---
         right_x = x + LABEL_WIDTH - 69
         max_w = LABEL_WIDTH - (right_x - x) - 4
+        
+        # Format price with currency symbol
+        price_str = f"£{float(price):.2f}" if price else ""
+        
         important = [
             ("Date:", today),
-            ("Line:", str(line_date or "")),
-            ("Price:", ""),  # left blank intentionally
+            ("Line:", ""),  # left blank intentionally - to be written on after printing
+            ("Price:", price_str),
             ("SKU:", sku or ""),
         ]
         start_y = y + LABEL_HEIGHT - 12

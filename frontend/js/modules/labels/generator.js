@@ -76,6 +76,26 @@ async function loadProducts() {
     
     console.log(`[Labels] Loaded ${state.allProducts.length} products with filters:`, state.statusFilters);
     
+    // Auto-select all products when using default filters
+    const isDefaultFilters = 
+      state.statusFilters.length === 4 &&
+      state.statusFilters.includes('Active') &&
+      state.statusFilters.includes('Temporarily OOS') &&
+      state.statusFilters.includes('Pre Order') &&
+      state.statusFilters.includes('Samples');
+    
+    if (isDefaultFilters) {
+      console.log('[Labels] Auto-selecting all products with default filters');
+      state.selectedProducts.clear();
+      state.allProducts.forEach(p => state.selectedProducts.add(p.item_id));
+      
+      // Update select all checkbox
+      const selectAllCheckbox = document.querySelector('#selectAllCheckbox');
+      if (selectAllCheckbox) {
+        selectAllCheckbox.checked = true;
+      }
+    }
+    
     if (loadingEl) loadingEl.style.display = 'none';
     renderProductTable();
     updateStats();

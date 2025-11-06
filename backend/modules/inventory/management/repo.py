@@ -202,6 +202,7 @@ class InventoryManagementRepo:
                     product_name TEXT,
                     uk_6m_data INTEGER DEFAULT 0,
                     fr_6m_data INTEGER DEFAULT 0,
+                    price DECIMAL(10, 2) DEFAULT 0.00,
                     line_date DATE,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
