@@ -7,23 +7,62 @@
       <h3>🏷️ Label Generation System</h3>
     </div>
     <div class="card-body">
-      <p>Generate shipping labels and product labels from your sales data. Filter by date range and search criteria to create custom label batches.</p>
-      
-      <h4>Available Features:</h4>
-      <ul>
-        <li><strong>Generator:</strong> Create labels from sales data with date and search filters</li>
-        <li><strong>History:</strong> View past label generation runs and download previous batches</li>
-      </ul>
+      <p>Generate barcode labels for products with UK and FR 6-month sales data. Labels use Code128 barcodes from Zoho inventory item IDs.</p>
     </div>
   </div>
-</div>
 
-<script>
-  // Auto-redirect to generator as the default sub-tab
-  setTimeout(() => {
-    if (window.location.pathname === '/labels') {
-      window.history.replaceState({path: '/labels/generator'}, '', '/labels/generator');
-      window.location.href = '/labels/generator';
-    }
-  }, 100);
-</script>
+  <!-- Navigation Cards -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 2rem;">
+    
+    <!-- Generator Card -->
+    <div class="card" style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;" 
+         onclick="location.href='/labels/generator'"
+         onmouseenter="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 16px rgba(0,0,0,0.15)'"
+         onmouseleave="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.1)'">
+      <div class="card-header" style="background: linear-gradient(135deg, #10b981, #059669); color: white;">
+        <h3>🏷️ Label Generator</h3>
+      </div>
+      <div class="card-body">
+        <p style="margin-bottom: 1rem;">Select products and generate barcode labels with sales data.</p>
+        <ul style="margin: 0; padding-left: 1.5rem; color: #666;">
+          <li>Browse all printable products</li>
+          <li>Select specific items to print</li>
+          <li>Set optional line date</li>
+          <li>Download PDF labels (7 per page)</li>
+          <li>Export data as CSV</li>
+        </ul>
+        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #eee;">
+          <button class="modern-button" style="width: 100%; background: linear-gradient(135deg, #10b981, #059669); color: white;">
+            Open Generator →
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- History Card -->
+    <div class="card" style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;" 
+         onclick="location.href='/labels/history'"
+         onmouseenter="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 16px rgba(0,0,0,0.15)'"
+         onmouseleave="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.1)'">
+      <div class="card-header" style="background: linear-gradient(135deg, #3b82f6, #2563eb); color: white;">
+        <h3>📋 Print History</h3>
+      </div>
+      <div class="card-body">
+        <p style="margin-bottom: 1rem;">View and download previous label print jobs.</p>
+        <ul style="margin: 0; padding-left: 1.5rem; color: #666;">
+          <li>Browse past print jobs</li>
+          <li>View job details and products</li>
+          <li>Re-download PDF labels</li>
+          <li>Re-download CSV exports</li>
+          <li>Delete old jobs</li>
+        </ul>
+        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #eee;">
+          <button class="modern-button" style="width: 100%; background: linear-gradient(135deg, #3b82f6, #2563eb); color: white;">
+            View History →
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
