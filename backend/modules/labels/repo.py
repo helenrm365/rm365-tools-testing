@@ -28,15 +28,21 @@ class LabelsRepo:
     def _fetch_allowed_skus_from_magento_psycopg(self, conn) -> List[str]:
         """
         Magento allow-list: only SKUs with discontinued_status IN ('Active','Temporarily OOS','Pre Order','Samples').
+        Parses discontinued_status from additional_attributes field.
         """
         with conn.cursor() as cur:
             cur.execute(
                 """
                 SELECT sku
                 FROM magento_product_list
-                WHERE discontinued_status IN ('Active', 'Temporarily OOS', 'Pre Order', 'Samples')
-                  AND sku IS NOT NULL
+                WHERE sku IS NOT NULL
                   AND sku <> ''
+                  AND (
+                    additional_attributes LIKE '%discontinued_status=Active%'
+                    OR additional_attributes LIKE '%discontinued_status=Temporarily OOS%'
+                    OR additional_attributes LIKE '%discontinued_status=Pre Order%'
+                    OR additional_attributes LIKE '%discontinued_status=Samples%'
+                  )
                 """
             )
             return [str(r[0]).strip() for r in cur.fetchall()]
@@ -166,6 +172,7 @@ class LabelsRepo:
         """
         CSV-driven (optional): validate against Magento to exclude discontinued.
         Only includes Active, Temporarily OOS, Pre Order, and Samples.
+        Parses discontinued_status from additional_attributes field.
         """
         if not csv_skus:
             return []
@@ -175,7 +182,12 @@ class LabelsRepo:
                 SELECT sku
                 FROM magento_product_list
                 WHERE sku = ANY(%s)
-                  AND discontinued_status IN ('Active','Temporarily OOS','Pre Order','Samples')
+                  AND (
+                    additional_attributes LIKE '%discontinued_status=Active%'
+                    OR additional_attributes LIKE '%discontinued_status=Temporarily OOS%'
+                    OR additional_attributes LIKE '%discontinued_status=Pre Order%'
+                    OR additional_attributes LIKE '%discontinued_status=Samples%'
+                  )
                 """,
                 (csv_skus,)
             )

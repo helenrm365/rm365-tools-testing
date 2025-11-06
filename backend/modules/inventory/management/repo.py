@@ -168,17 +168,20 @@ class InventoryManagementRepo:
                     product_name TEXT,
                     item_id VARCHAR(255),
                     additional_attributes TEXT,
-                    discontinued_status VARCHAR(50),
                     status VARCHAR(50),
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
             
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_magento_product_list_discontinued 
-                ON magento_product_list (discontinued_status)
-            """)
+            # Add additional_attributes column if it doesn't exist (migration for existing tables)
+            try:
+                cursor.execute("""
+                    ALTER TABLE magento_product_list 
+                    ADD COLUMN IF NOT EXISTS additional_attributes TEXT
+                """)
+            except Exception as e:
+                logger.debug(f"Column addition skipped (may already exist): {e}")
             
             # Create label print job tables
             cursor.execute("""
@@ -250,30 +253,18 @@ class InventoryManagementRepo:
                 item_id = item.get("item_id", "")
                 status = item.get("status", "")
                 
-                # Get discontinued_status from custom_fields
-                discontinued_status = "No"  # Default
-                custom_fields = item.get("custom_fields", {})
-                if isinstance(custom_fields, dict):
-                    discontinued_status = custom_fields.get("discontinued_status", "No")
-                elif isinstance(custom_fields, list):
-                    # Handle list format from Zoho API
-                    for field in custom_fields:
-                        if isinstance(field, dict) and field.get("label") == "Discontinued":
-                            discontinued_status = field.get("value", "No")
-                            break
-                
                 # Upsert into magento_product_list
+                # Note: additional_attributes should be populated by Magento import, not Zoho
                 cursor.execute("""
-                    INSERT INTO magento_product_list (sku, product_name, item_id, discontinued_status, status, updated_at)
-                    VALUES (%s, %s, %s, %s, %s, NOW())
+                    INSERT INTO magento_product_list (sku, product_name, item_id, status, updated_at)
+                    VALUES (%s, %s, %s, %s, NOW())
                     ON CONFLICT (sku) DO UPDATE SET
                         product_name = EXCLUDED.product_name,
                         item_id = EXCLUDED.item_id,
-                        discontinued_status = EXCLUDED.discontinued_status,
                         status = EXCLUDED.status,
                         updated_at = NOW()
                     RETURNING (xmax = 0) AS inserted
-                """, (sku, product_name, item_id, discontinued_status, status))
+                """, (sku, product_name, item_id, status))
                 
                 result = cursor.fetchone()
                 if result and result[0]:
@@ -360,6 +351,7 @@ class InventoryManagementRepo:
     def get_magento_products(self, status_filters: str = None) -> List[Dict[str, Any]]:
         """
         Get products from magento_product_list, optionally filtered by discontinued_status.
+        Parses discontinued_status from additional_attributes field.
         
         Args:
             status_filters: Comma-separated string like "Active,Temporarily OOS,Pre Order,Samples"
@@ -372,28 +364,40 @@ class InventoryManagementRepo:
             cursor = conn.cursor()
             
             if status_filters:
-                # Parse comma-separated filters
+                # Parse comma-separated filters and build LIKE conditions
                 filters = [f.strip() for f in status_filters.split(',') if f.strip()]
-                placeholders = ','.join(['%s'] * len(filters))
+                like_conditions = ' OR '.join([
+                    "additional_attributes LIKE %s" for _ in filters
+                ])
+                like_params = [f'%discontinued_status={f}%' for f in filters]
                 
                 cursor.execute(f"""
-                    SELECT sku, product_name, item_id, discontinued_status, status, additional_attributes
+                    SELECT sku, product_name, item_id, status, additional_attributes
                     FROM magento_product_list
-                    WHERE discontinued_status IN ({placeholders})
+                    WHERE ({like_conditions})
                     ORDER BY sku
-                """, tuple(filters))
+                """, tuple(like_params))
             else:
                 # No filters - return all
                 cursor.execute("""
-                    SELECT sku, product_name, item_id, discontinued_status, status, additional_attributes
+                    SELECT sku, product_name, item_id, status, additional_attributes
                     FROM magento_product_list
                     ORDER BY sku
                 """)
             
-            columns = ['sku', 'product_name', 'item_id', 'discontinued_status', 'status', 'additional_attributes']
+            columns = ['sku', 'product_name', 'item_id', 'status', 'additional_attributes']
             rows = cursor.fetchall()
             
-            return [dict(zip(columns, row)) for row in rows]
+            # Parse discontinued_status from additional_attributes for each row
+            result = []
+            for row in rows:
+                row_dict = dict(zip(columns, row))
+                row_dict['discontinued_status'] = self.parse_discontinued_status_from_additional_attributes(
+                    row_dict.get('additional_attributes', '')
+                )
+                result.append(row_dict)
+            
+            return result
             
         except psycopg2.Error as e:
             logger.error(f"Database error in get_magento_products: {e}")

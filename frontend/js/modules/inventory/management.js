@@ -57,6 +57,7 @@ testBackendConnectivity();
 
 let inventoryData = [];
 let metadataIndex = new Map();
+let magentoProductsIndex = new Map(); // NEW: Index for magento_product_list data
 let dropdownDocListenersBound = false;
 let dropdownBackdrop;
 let _filterSeq = 0;
@@ -180,6 +181,22 @@ async function loadInventoryData() {
       throw new Error('No working API endpoints found');
     }
     
+    // Load magento_product_list for discontinued status filtering
+    try {
+      const magentoProducts = await get(`/api/v1/inventory/management/magento-products`);
+      magentoProductsIndex.clear();
+      if (Array.isArray(magentoProducts)) {
+        magentoProducts.forEach(product => {
+          if (product.sku) {
+            magentoProductsIndex.set(product.sku, product);
+          }
+        });
+        console.log(`[Inventory Management] Loaded ${magentoProducts.length} magento products`);
+      }
+    } catch (err) {
+      console.warn('[Inventory Management] Could not load magento products:', err);
+    }
+    
     inventoryData = Array.isArray(items) ? items : [];
     
     // Index metadata by item_id
@@ -191,6 +208,9 @@ async function loadInventoryData() {
     }
     
     console.log(`[Inventory Management] Loaded ${inventoryData.length} items and ${metadata.length} metadata records`);
+    
+    // Setup table with filtered data
+    setupTable();
     
   } catch (error) {
     console.error('[Inventory Management] Error loading data:', error);
@@ -345,14 +365,47 @@ function setupTable() {
   // Clear existing content
   tableBody.innerHTML = '';
 
-  // Populate table with combined data
+  // Get selected status filters
+  const selectedFilters = getSavedStatusFilters();
+  const filterSet = new Set(selectedFilters);
+  
+  let filteredCount = 0;
+  let skippedCount = 0;
+
+  // Populate table with combined data, applying discontinued status filter
   inventoryData.forEach(item => {
     const metadata = metadataIndex.get(item.item_id) || {};
+    
+    // Check if this product should be displayed based on discontinued status
+    const sku = item.sku;
+    if (sku && magentoProductsIndex.has(sku)) {
+      const magentoProduct = magentoProductsIndex.get(sku);
+      const discontinuedStatus = magentoProduct.discontinued_status;
+      
+      // Filter: only show if discontinued_status is in selected filters
+      if (discontinuedStatus && !filterSet.has(discontinuedStatus)) {
+        skippedCount++;
+        return; // Skip this item
+      }
+    }
+    
     const row = createTableRow(item, metadata);
     tableBody.appendChild(row);
+    filteredCount++;
   });
 
-  console.log(`[Inventory Management] Created ${tableBody.children.length} table rows`);
+  console.log(`[Inventory Management] Displayed ${filteredCount} rows (filtered out ${skippedCount} rows)`);
+  
+  // Show message if no items match filters
+  if (filteredCount === 0) {
+    tableBody.innerHTML = `
+      <tr>
+        <td colspan="16" style="text-align: center; padding: 2rem; color: #666;">
+          No products match the selected status filters. Try selecting different statuses.
+        </td>
+      </tr>
+    `;
+  }
 }
 
 function createTableRow(item, metadata) {
@@ -542,10 +595,14 @@ function setupStatusFilters() {
       // Save preferences
       saveStatusFilters(selectedFilters);
       
-      // Reload data with filters
-      await loadInventoryData();
+      // Re-render table with new filters (no need to reload data from API)
+      setupTable();
       
       console.log('[Inventory] Applied status filters:', selectedFilters);
+      
+      // Show toast notification
+      const count = document.querySelectorAll('#inventoryManagementBody tr').length;
+      console.log(`[Inventory] Now showing ${count} products`);
     });
   }
 }
