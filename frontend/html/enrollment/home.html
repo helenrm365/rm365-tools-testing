@@ -1,32 +1,57 @@
 <!-- Default enrollment landing page -->
-<div class="enrollment-home">
-  <h2>Enrollment</h2>
-  <div class="inner-tabs" style="margin-bottom: 1.5rem; display: flex; gap: 0.5rem;">
-    <button class="modern-button" data-nav onclick="location.href='/enrollment/management'">Management</button>
-    <button class="modern-button" data-nav onclick="location.href='/enrollment/card'">Card</button>
-    <button class="modern-button" data-nav onclick="location.href='/enrollment/fingerprint'">Fingerprint</button>
+<div class="enrollment-home-hero">
+  <div class="hero-content">
+    <h1 class="hero-title">Enrollment</h1>
+    <p class="hero-subtitle">Streamlined employee management at your fingertips</p>
   </div>
-  
-  <div class="welcome-box" style="padding: 2rem; background: linear-gradient(135deg, #667eea15, #764ba215); border-radius: 12px;">
-    <h3>Welcome to Enrollment</h3>
-    <p>Manage your employees, cards, and fingerprints from this section.</p>
-    <ul style="margin-top: 1rem; line-height: 1.8;">
-      <li><strong>Management:</strong> Create, edit, and delete employee records</li>
-      <li><strong>Card:</strong> Scan and assign RFID cards to employees</li>
-      <li><strong>Fingerprint:</strong> Register biometric data for secure access</li>
-    </ul>
+
+  <div class="enrollment-cards-grid">
+    <div class="enrollment-feature-card" onclick="location.href='/enrollment/management'">
+      <div class="card-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+          <circle cx="9" cy="7" r="4"></circle>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+        </svg>
+      </div>
+      <h3 class="card-title">Management</h3>
+      <p class="card-description">Create, edit, and manage employee records with ease</p>
+      <div class="card-arrow">→</div>
+    </div>
+
+    <div class="enrollment-feature-card" onclick="location.href='/enrollment/card'">
+      <div class="card-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+          <line x1="1" y1="10" x2="23" y2="10"></line>
+        </svg>
+      </div>
+      <h3 class="card-title">Card</h3>
+      <p class="card-description">Scan and assign RFID cards to employees</p>
+      <div class="card-arrow">→</div>
+    </div>
+
+    <div class="enrollment-feature-card" onclick="location.href='/enrollment/fingerprint'">
+      <div class="card-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"></path>
+          <path d="M14 13.12c0 2.38 0 6.38-1 8.88"></path>
+          <path d="M17.29 21.02c.12-.6.43-2.3.5-3.02"></path>
+          <path d="M2 12a10 10 0 0 1 18-6"></path>
+          <path d="M2 16h.01"></path>
+          <path d="M21.8 16c.2-2 .131-5.354 0-6"></path>
+          <path d="M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2"></path>
+          <path d="M8.65 22c.21-.66.45-1.32.57-2"></path>
+          <path d="M9 6.8a6 6 0 0 1 9 5.2v2"></path>
+        </svg>
+      </div>
+      <h3 class="card-title">Fingerprint</h3>
+      <p class="card-description">Register biometric data for secure access control</p>
+      <div class="card-arrow">→</div>
+    </div>
   </div>
 </div>
-
-<script>
-  // Auto-redirect to management as the default sub-tab
-  setTimeout(() => {
-    if (window.location.pathname === '/enrollment') {
-      window.history.replaceState({path: '/enrollment/management'}, '', '/enrollment/management');
-      window.location.href = '/enrollment/management';
-    }
-  }, 100);
-</script>
 <!-- Universal Footer -->
 <div id="footerPlaceholder"></div>
 <script>
