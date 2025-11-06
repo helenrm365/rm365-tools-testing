@@ -130,6 +130,18 @@ export async function navigate(path, replace = false) {
     const pageTitle = document.getElementById('pageTitle');
     if (pageTitle) {
       const tabName = path.split('/')[1] || 'RM365';
+      const subPath = path.split('/')[2];
+      
+      // Hide header on home pages (no subpath or subpath is 'home')
+      const header = pageTitle.closest('.header');
+      if (header) {
+        if (!subPath || subPath === 'home') {
+          header.style.display = 'none';
+        } else {
+          header.style.display = '';
+        }
+      }
+      
       // Map for proper title casing
       const titleMap = {
         'usermanagement': 'User Management',

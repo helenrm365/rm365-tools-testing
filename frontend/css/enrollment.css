@@ -18,15 +18,15 @@
 }
 
 .inner-tabs .modern-button.active {
-  background: linear-gradient(135deg, #10b981, #059669);
+  background: linear-gradient(135deg, #76a12b, #5e8122);
   color: white;
   border-color: rgba(255,255,255,0.2);
-  box-shadow: 0 4px 8px rgba(16,185,129,0.3);
+  box-shadow: 0 4px 8px rgba(118,161,43,0.3);
 }
 
 .inner-tabs .modern-button:hover:not(.active) {
-  border-color: #10b981;
-  background: rgba(16,185,129,0.1);
+  border-color: #76a12b;
+  background: rgba(118,161,43,0.1);
 }
 
 /* Card container improvements */
@@ -108,11 +108,11 @@ html.dark-mode .modern-table tbody tr {
 }
 
 .modern-table tbody tr:hover {
-  background: rgba(16,185,129,0.05);
+  background: rgba(118,161,43,0.05);
 }
 
 html.dark-mode .modern-table tbody tr:hover {
-  background: rgba(16,185,129,0.15);
+  background: rgba(118,161,43,0.15);
 }
 
 /* Fix table edges and ensure proper rendering */
@@ -132,22 +132,22 @@ html.dark-mode .table-wrap {
 
 /* Instructions box */
 .instructions {
-  border-left: 4px solid #10b981;
-  background: linear-gradient(135deg, rgba(16,185,129,0.1), rgba(5,150,105,0.05));
+  border-left: 4px solid #76a12b;
+  background: linear-gradient(135deg, rgba(118,161,43,0.1), rgba(94,129,34,0.05));
 }
 
 html.dark-mode .instructions {
-  background: linear-gradient(135deg, rgba(16,185,129,0.2), rgba(5,150,105,0.1));
-  border-left-color: #059669;
+  background: linear-gradient(135deg, rgba(118,161,43,0.2), rgba(94,129,34,0.1));
+  border-left-color: #5e8122;
 }
 
 .instructions h4 {
   margin-top: 0;
-  color: #10b981;
+  color: #76a12b;
 }
 
 html.dark-mode .instructions h4 {
-  color: #34d399;
+  color: #8ec134;
 }
 
 .instructions ol {
@@ -161,11 +161,11 @@ html.dark-mode .instructions h4 {
 /* Welcome box styling */
 .welcome-box h3 {
   margin-top: 0;
-  color: #10b981;
+  color: #76a12b;
 }
 
 html.dark-mode .welcome-box h3 {
-  color: #34d399;
+  color: #8ec134;
 }
 
 /* Fingerprint preview area */
@@ -243,8 +243,8 @@ html.dark-mode .welcome-box h3 {
   display: inline-block;
   width: 16px;
   height: 16px;
-  border: 2px solid rgba(16,185,129,0.3);
-  border-top: 2px solid #10b981;
+  border: 2px solid rgba(118,161,43,0.3);
+  border-top: 2px solid #76a12b;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-right: 0.5rem;
@@ -412,8 +412,8 @@ html.dark-mode .form-label {
 
 .form-input:focus {
   outline: none;
-  border-color: #10b981;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+  border-color: #76a12b;
+  box-shadow: 0 0 0 3px rgba(118, 161, 43, 0.1);
 }
 
 html.dark-mode .form-input {
@@ -423,8 +423,8 @@ html.dark-mode .form-input {
 }
 
 html.dark-mode .form-input:focus {
-  border-color: #059669;
-  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.2);
+  border-color: #5e8122;
+  box-shadow: 0 0 0 3px rgba(94, 129, 34, 0.2);
 }
 
 .modal-footer {
@@ -434,7 +434,7 @@ html.dark-mode .form-input:focus {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #10b981, #059669);
+  background: linear-gradient(135deg, #76a12b, #5e8122);
   color: white;
   border: none;
   padding: 12px 24px;
@@ -446,7 +446,7 @@ html.dark-mode .form-input:focus {
 
 .btn-primary:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.3);
 }
 
 .btn-secondary {
@@ -516,8 +516,8 @@ button:focus,
 input:focus,
 textarea:focus {
   outline: none;
-  border: 2px solid #10b981 !important;
-  box-shadow: 0 4px 8px rgba(16,185,129,0.3) !important;
+  border: 2px solid #76a12b !important;
+  box-shadow: 0 4px 8px rgba(118,161,43,0.3) !important;
   transform: translateY(-1px);
   transition: all 0.2s ease;
 }

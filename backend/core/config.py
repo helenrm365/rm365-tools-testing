@@ -10,6 +10,9 @@ class Settings(BaseSettings):
     ALLOW_ORIGINS: List[str] = [
         "https://rm365-tools-testing.pages.dev",  # Cloudflare Pages main domain
     ]
+    
+    # Allow all Cloudflare Pages preview deployments
+    ALLOW_ORIGIN_REGEX: str = r"https://.*\.pages\.dev"
 
     # Auth/JWT
     AUTH_SECRET_KEY: str = "change-me"       # set via ENV in production
@@ -43,9 +46,6 @@ class Settings(BaseSettings):
     ZC_LOG_FORM: str | None = None
     ZC_ORG_ID: str | None = None
     ZOHO_ACCOUNTS_BASE: str | None = None
-    
-    # Additional CORS setting
-    ALLOW_ORIGIN_REGEX: str | None = None
 
     class Config:
         # Railway provides environment variables directly - no .env file needed in production
