@@ -1,6 +1,6 @@
 from __future__ import annotations
-from typing import Any, Dict
-from fastapi import APIRouter, Depends, HTTPException, Path, Body
+from typing import Any, Dict, Optional
+from fastapi import APIRouter, Depends, HTTPException, Path, Body, Query
 
 
 from common.deps import get_current_user, inventory_conn
@@ -20,15 +20,27 @@ def labels_health():
     return {"status": "Labels module ready"}
 
 @router.get("/to-print")
-def labels_to_print(user=Depends(get_current_user)):
+def labels_to_print(
+    discontinued_statuses: Optional[str] = None,
+    user=Depends(get_current_user)
+):
     """
-    Return label rows for active Magento products (discontinued ∈ {No, Temporarily OOS}).
+    Return label rows for Magento products filtered by discontinued_status.
     Base/MD collapse + Zoho + 6M enrichment handled in repo.
+    
+    Args:
+        discontinued_statuses: Comma-separated list of statuses (e.g., "Active,Temporarily OOS")
+                              Defaults to: Active, Temporarily OOS, Pre Order, Samples
     """
     try:
+        # Parse discontinued_statuses if provided
+        status_list = None
+        if discontinued_statuses:
+            status_list = [s.strip() for s in discontinued_statuses.split(',') if s.strip()]
+        
         zoho_map = get_zoho_items_with_skus_full()
         with inventory_conn() as conn:
-            return LabelsRepo().get_labels_to_print_psycopg(conn, zoho_map)
+            return LabelsRepo().get_labels_to_print_psycopg(conn, zoho_map, status_list)
     except Exception as e:
         raise HTTPException(
             status_code=503,

@@ -6,10 +6,19 @@ import { config } from '../../config.js';
 const API = '/api/v1/labels';
 
 /**
- * Get all products available for label printing (active, not discontinued)
+ * Get all products available for label printing
+ * @param {Array<string>} discontinuedStatuses - Optional array of discontinued statuses to filter by
  */
-export async function getProductsToPrint() {
-  return await get(`${API}/to-print`);
+export async function getProductsToPrint(discontinuedStatuses = null) {
+  let url = `${API}/to-print`;
+  
+  // Add discontinued_statuses query parameter if provided
+  if (discontinuedStatuses && discontinuedStatuses.length > 0) {
+    const statusParam = discontinuedStatuses.join(',');
+    url += `?discontinued_statuses=${encodeURIComponent(statusParam)}`;
+  }
+  
+  return await get(url);
 }
 
 /**

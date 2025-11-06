@@ -25,26 +25,41 @@ class LabelsRepo:
         return None
 
     # --- psycopg2 queries ---
-    def _fetch_allowed_skus_from_magento_psycopg(self, conn) -> List[str]:
+    def _fetch_allowed_skus_from_magento_psycopg(self, conn, discontinued_statuses: Optional[List[str]] = None) -> List[str]:
         """
-        Magento allow-list: only SKUs with discontinued_status IN ('Active','Temporarily OOS','Pre Order','Samples').
+        Magento allow-list: fetch SKUs filtered by discontinued_status.
         Parses discontinued_status from additional_attributes field.
+        
+        Args:
+            conn: database connection
+            discontinued_statuses: list of statuses to include (e.g., ['Active', 'Temporarily OOS'])
+                                  If None, defaults to ['Active', 'Temporarily OOS', 'Pre Order', 'Samples']
         """
+        # Default to the standard active statuses if not specified
+        if discontinued_statuses is None:
+            discontinued_statuses = ['Active', 'Temporarily OOS', 'Pre Order', 'Samples']
+        
+        if not discontinued_statuses:
+            return []
+        
+        # Build LIKE conditions dynamically
+        conditions = " OR ".join([
+            f"additional_attributes LIKE %s"
+            for _ in discontinued_statuses
+        ])
+        
+        # Build parameter list with wildcards
+        params = [f'%discontinued_status={status}%' for status in discontinued_statuses]
+        
         with conn.cursor() as cur:
-            cur.execute(
-                """
+            query = f"""
                 SELECT sku
                 FROM magento_product_list
                 WHERE sku IS NOT NULL
                   AND sku <> ''
-                  AND (
-                    additional_attributes LIKE '%discontinued_status=Active%'
-                    OR additional_attributes LIKE '%discontinued_status=Temporarily OOS%'
-                    OR additional_attributes LIKE '%discontinued_status=Pre Order%'
-                    OR additional_attributes LIKE '%discontinued_status=Samples%'
-                  )
-                """
-            )
+                  AND ({conditions})
+            """
+            cur.execute(query, params)
             return [str(r[0]).strip() for r in cur.fetchall()]
 
     def _load_six_month_data_psycopg(self, conn, item_ids: List[str]) -> Dict[str, Tuple[str, str]]:
@@ -132,14 +147,19 @@ class LabelsRepo:
         return out
 
     # --- public (psycopg2) ---
-    def get_labels_to_print_psycopg(self, conn, zoho_sku_map) -> List[Dict[str, Any]]:
+    def get_labels_to_print_psycopg(self, conn, zoho_sku_map, discontinued_statuses: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         """
         DB-driven: Magento 'discontinued_status' decides inclusion.
         Accepts either:
           - {sku: item_id}  (legacy)
           - {sku: (item_id, name)}  (full)
+        
+        Args:
+            conn: database connection
+            zoho_sku_map: mapping of SKUs to Zoho item IDs and names
+            discontinued_statuses: list of discontinued statuses to filter by (optional)
         """
-        magento_skus = self._fetch_allowed_skus_from_magento_psycopg(conn)
+        magento_skus = self._fetch_allowed_skus_from_magento_psycopg(conn, discontinued_statuses)
 
         # Normalize maps
         if magento_skus and zoho_sku_map:
