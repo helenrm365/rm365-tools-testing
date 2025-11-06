@@ -87,6 +87,14 @@ def initialize_database():
         except Exception as e:
             print(f"⚠️  Could not initialize roles table: {e}")
         
+        try:
+            from modules.sales_imports.repo import SalesImportsRepo
+            sales_repo = SalesImportsRepo()
+            sales_repo.init_tables()
+            print("✅ Sales imports tables initialized (UK, FR, NL sales data and condensed tables)")
+        except Exception as e:
+            print(f"⚠️  Could not initialize sales imports tables: {e}")
+        
         return True
     except Exception as e:
         print(f"❌ Database connection failed: {e}")
