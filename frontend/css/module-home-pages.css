@@ -32,14 +32,14 @@
 
 .hero-subtitle {
   font-size: 1.25rem;
-  color: var(--text-secondary);
+  color: #4a4a4a;
   font-weight: 400;
   margin: 0;
   letter-spacing: 0.01em;
 }
 
 html.dark-mode .hero-subtitle {
-  color: #aaa;
+  color: #c0c0c0;
 }
 
 /* ===== Feature Cards Grid ===== */
@@ -130,13 +130,13 @@ html.dark-mode .card-icon {
 
 .card-description {
   font-size: 1rem;
-  color: var(--text-secondary);
+  color: #555;
   line-height: 1.6;
   margin: 0;
 }
 
 html.dark-mode .card-description {
-  color: #aaa;
+  color: #b8b8b8;
 }
 
 .card-arrow {
