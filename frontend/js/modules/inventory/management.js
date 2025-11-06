@@ -369,39 +369,60 @@ function setupTable() {
   const selectedFilters = getSavedStatusFilters();
   const filterSet = new Set(selectedFilters);
   
+  console.log('[Inventory Management] Active filters:', Array.from(filterSet));
+  console.log('[Inventory Management] Total inventory items:', inventoryData.length);
+  console.log('[Inventory Management] Magento products indexed:', magentoProductsIndex.size);
+  
   let filteredCount = 0;
   let skippedCount = 0;
+  let noMagentoDataCount = 0;
 
   // Populate table with combined data, applying discontinued status filter
   inventoryData.forEach(item => {
     const metadata = metadataIndex.get(item.item_id) || {};
-    
-    // Check if this product should be displayed based on discontinued status
     const sku = item.sku;
-    if (sku && magentoProductsIndex.has(sku)) {
-      const magentoProduct = magentoProductsIndex.get(sku);
-      const discontinuedStatus = magentoProduct.discontinued_status;
-      
-      // Filter: only show if discontinued_status is in selected filters
-      if (discontinuedStatus && !filterSet.has(discontinuedStatus)) {
-        skippedCount++;
-        return; // Skip this item
-      }
+    
+    // Check if this product exists in magento_product_list
+    if (!sku || !magentoProductsIndex.has(sku)) {
+      // Product not in magento_product_list - default behavior: show it
+      noMagentoDataCount++;
+      const row = createTableRow(item, metadata);
+      tableBody.appendChild(row);
+      filteredCount++;
+      return;
     }
     
+    // Product exists in magento_product_list - check discontinued status
+    const magentoProduct = magentoProductsIndex.get(sku);
+    const discontinuedStatus = magentoProduct.discontinued_status;
+    
+    console.log(`[Filter Check] SKU: ${sku}, Status: ${discontinuedStatus}, Include: ${filterSet.has(discontinuedStatus)}`);
+    
+    // Filter: only show if discontinued_status is in selected filters
+    if (!discontinuedStatus || !filterSet.has(discontinuedStatus)) {
+      skippedCount++;
+      return; // Skip this item
+    }
+    
+    // Product passes filter - add to table
     const row = createTableRow(item, metadata);
     tableBody.appendChild(row);
     filteredCount++;
   });
 
-  console.log(`[Inventory Management] Displayed ${filteredCount} rows (filtered out ${skippedCount} rows)`);
+  console.log(`[Inventory Management] Filter results:`);
+  console.log(`  - Displayed: ${filteredCount} rows`);
+  console.log(`  - Filtered out: ${skippedCount} rows`);
+  console.log(`  - No magento data: ${noMagentoDataCount} rows`);
   
   // Show message if no items match filters
   if (filteredCount === 0) {
     tableBody.innerHTML = `
       <tr>
         <td colspan="16" style="text-align: center; padding: 2rem; color: #666;">
-          No products match the selected status filters. Try selecting different statuses.
+          No products match the selected status filters.<br>
+          <small>Selected filters: ${Array.from(filterSet).join(', ')}</small><br>
+          <small>Try selecting different statuses or check if products have discontinued_status in magento_product_list.</small>
         </td>
       </tr>
     `;
@@ -592,17 +613,26 @@ function setupStatusFilters() {
         .filter(cb => cb.checked)
         .map(cb => cb.value);
       
+      console.log('[Inventory] Applying filters:', selectedFilters);
+      
       // Save preferences
       saveStatusFilters(selectedFilters);
       
       // Re-render table with new filters (no need to reload data from API)
       setupTable();
       
-      console.log('[Inventory] Applied status filters:', selectedFilters);
+      // Count visible rows
+      const visibleRows = document.querySelectorAll('#inventoryManagementBody tr:not([style*="display: none"])').length;
+      console.log(`[Inventory] Now showing ${visibleRows} products after applying filters`);
       
-      // Show toast notification
-      const count = document.querySelectorAll('#inventoryManagementBody tr').length;
-      console.log(`[Inventory] Now showing ${count} products`);
+      // Visual feedback on button
+      const originalText = applyBtn.textContent;
+      applyBtn.textContent = '✓ Filters Applied';
+      applyBtn.style.background = '#10b981';
+      setTimeout(() => {
+        applyBtn.textContent = originalText;
+        applyBtn.style.background = '';
+      }, 2000);
     });
   }
 }
