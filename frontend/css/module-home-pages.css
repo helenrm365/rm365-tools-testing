@@ -22,7 +22,7 @@
 .hero-title {
   font-size: 3.5rem;
   font-weight: 700;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: linear-gradient(135deg, #10b981, #059669);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -59,7 +59,7 @@ html.dark-mode .hero-subtitle {
   padding: 2.5rem;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 2px solid rgba(102, 126, 234, 0.1);
+  border: 2px solid rgba(16, 185, 129, 0.1);
   overflow: hidden;
 }
 
@@ -70,7 +70,7 @@ html.dark-mode .hero-subtitle {
   left: 0;
   right: 0;
   height: 4px;
-  background: linear-gradient(90deg, #667eea, #764ba2);
+  background: linear-gradient(90deg, #10b981, #059669);
   transform: scaleX(0);
   transform-origin: left;
   transition: transform 0.3s ease;
@@ -82,42 +82,42 @@ html.dark-mode .hero-subtitle {
 
 .module-feature-card:hover {
   transform: translateY(-8px);
-  box-shadow: 0 20px 40px rgba(102, 126, 234, 0.15);
-  border-color: rgba(102, 126, 234, 0.3);
+  box-shadow: 0 20px 40px rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.3);
 }
 
 html.dark-mode .module-feature-card {
   background: #2a2a2a;
-  border-color: rgba(139, 155, 239, 0.2);
+  border-color: rgba(52, 211, 153, 0.2);
 }
 
 html.dark-mode .module-feature-card:hover {
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-  border-color: rgba(139, 155, 239, 0.4);
+  border-color: rgba(52, 211, 153, 0.4);
 }
 
 .card-icon {
   width: 72px;
   height: 72px;
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.1));
   border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 1.5rem;
-  color: #667eea;
+  color: #10b981;
   transition: all 0.3s ease;
 }
 
 .module-feature-card:hover .card-icon {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: linear-gradient(135deg, #10b981, #059669);
   color: white;
   transform: scale(1.05);
 }
 
 html.dark-mode .card-icon {
-  background: linear-gradient(135deg, rgba(139, 155, 239, 0.15), rgba(118, 75, 162, 0.15));
-  color: #8b9bef;
+  background: linear-gradient(135deg, rgba(52, 211, 153, 0.15), rgba(5, 150, 105, 0.15));
+  color: #34d399;
 }
 
 .card-title {
@@ -144,7 +144,7 @@ html.dark-mode .card-description {
   bottom: 2rem;
   right: 2rem;
   font-size: 1.5rem;
-  color: #667eea;
+  color: #10b981;
   opacity: 0;
   transform: translateX(-10px);
   transition: all 0.3s ease;
@@ -156,7 +156,7 @@ html.dark-mode .card-description {
 }
 
 html.dark-mode .card-arrow {
-  color: #8b9bef;
+  color: #34d399;
 }
 
 /* ===== Animations ===== */

@@ -13,7 +13,7 @@ function authHeader() {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-export async function http(path, { method = 'GET', headers = {}, body, retry = 0 } = {}) {
+export async function http(path, { method = 'GET', headers = {}, body, retry = 0, timeout = 10000 } = {}) {
   const url = `${BASE}${path}`;
   
   // Check if body is FormData (for file uploads)
@@ -52,33 +52,48 @@ export async function http(path, { method = 'GET', headers = {}, body, retry = 0
       }
     });
 
-    const res = await fetch(url, fetchOptions);
+    // Add timeout to prevent hanging
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+    fetchOptions.signal = controller.signal;
 
-    console.log(`[HTTP] Response ${res.status}`, { 
-      ok: res.ok, 
-      url: res.url,
-      headers: Object.fromEntries(res.headers.entries()) 
-    });
+    try {
+      const res = await fetch(url, fetchOptions);
+      clearTimeout(timeoutId);
 
-    const text = await res.text();
-    let data = null;
-    try { data = text ? JSON.parse(text) : null; } catch { data = text; }
+      console.log(`[HTTP] Response ${res.status}`, { 
+        ok: res.ok, 
+        url: res.url,
+        headers: Object.fromEntries(res.headers.entries()) 
+      });
 
-    if (!res.ok) {
-      // simple retry on 5xx if requested
-      if (retry > 0 && res.status >= 500) {
-        console.log(`[HTTP] Retrying ${method} ${url} (${retry} retries left)`);
-        return http(path, { method, headers, body, retry: retry - 1 });
+      const text = await res.text();
+      let data = null;
+      try { data = text ? JSON.parse(text) : null; } catch { data = text; }
+
+      if (!res.ok) {
+        // simple retry on 5xx if requested
+        if (retry > 0 && res.status >= 500) {
+          console.log(`[HTTP] Retrying ${method} ${url} (${retry} retries left)`);
+          return http(path, { method, headers, body, retry: retry - 1 });
+        }
+        const msg = (data && (data.detail || data.error)) || `HTTP ${res.status}`;
+        console.error(`[HTTP] Error: ${msg}`, { status: res.status, data, url });
+        throw new Error(msg);
       }
-      const msg = (data && (data.detail || data.error)) || `HTTP ${res.status}`;
-      console.error(`[HTTP] Error: ${msg}`, { status: res.status, data, url });
-      throw new Error(msg);
+      
+      if (method !== 'GET') {
+        console.log(`[HTTP] Success:`, data);
+      }
+      return data;
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      if (fetchError.name === 'AbortError') {
+        console.error(`[HTTP] Request timeout after ${timeout}ms for ${method} ${url}`);
+        throw new Error(`Request timeout after ${timeout}ms`);
+      }
+      throw fetchError;
     }
-    
-    if (method !== 'GET') {
-      console.log(`[HTTP] Success:`, data);
-    }
-    return data;
     
   } catch (error) {
     console.error(`[HTTP] Fetch failed for ${method} ${url}:`, error);

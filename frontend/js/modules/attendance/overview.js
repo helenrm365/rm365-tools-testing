@@ -877,10 +877,40 @@ export async function init() {
   setupEventHandlers();
   
   // Load locations first
-  await loadLocations();
+  try {
+    await loadLocations();
+  } catch (error) {
+    console.error('Failed to load locations:', error);
+    showErrorMessage('Failed to load locations. Please check your connection and try again.');
+  }
   
   // Load all data with the unified system
-  await loadAllData();
+  try {
+    await loadAllData();
+  } catch (error) {
+    console.error('Failed to load attendance data:', error);
+    showErrorMessage('Failed to load attendance data. Please check your connection and try again.');
+  }
+}
+
+function showErrorMessage(message) {
+  const view = document.querySelector('#view');
+  if (!view) return;
+  
+  // Only show error if the page is mostly empty (to avoid overwriting partial data)
+  const dailyStatsCard = view.querySelector('.daily-stats-card');
+  if (!dailyStatsCard || dailyStatsCard.children.length === 0) {
+    const errorDiv = document.createElement('div');
+    errorDiv.style.cssText = 'padding: 2rem; text-align: center; color: #dc3545; background: rgba(220, 53, 69, 0.1); border-radius: 8px; margin: 1rem;';
+    errorDiv.innerHTML = `
+      <h3 style="margin-top: 0;">⚠️ Unable to Load Data</h3>
+      <p>${message}</p>
+      <button class="modern-button" onclick="window.location.reload()" style="margin-top: 1rem;">
+        🔄 Retry
+      </button>
+    `;
+    view.insertBefore(errorDiv, view.firstChild);
+  }
 }
 
 // Export for external use

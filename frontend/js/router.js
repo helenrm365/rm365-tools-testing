@@ -30,7 +30,8 @@ const routes = {
   '/inventory/management':  '/html/inventory/management.html',
   '/inventory/adjustments': '/html/inventory/adjustments.html',
   
-  '/usermanagement':        '/html/usermanagement/home.html',
+  '/usermanagement':            '/html/usermanagement/home.html',
+  '/usermanagement/management': '/html/usermanagement/management.html',
 };
 
 // Show loading overlay

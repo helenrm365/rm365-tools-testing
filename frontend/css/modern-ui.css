@@ -20,7 +20,7 @@
     --text-color: #333;
     --text-secondary: #666;
     --header-color: #1a1a1a;
-    --header-accent: #667eea;
+    --header-accent: #10b981;
 }
 
 html.dark-mode {
@@ -29,7 +29,7 @@ html.dark-mode {
     --text-color: #fff;
     --text-secondary: #aaa;
     --header-color: #ffffff;
-    --header-accent: #8b9bef;
+    --header-accent: #34d399;
 }
 
 * { font-family: 'Sora', sans-serif; }
@@ -46,39 +46,39 @@ html.dark-mode {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: rgba(102, 126, 234, 0.3);
+    background: rgba(16, 185, 129, 0.3);
     border-radius: 10px;
     transition: background 0.2s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: rgba(102, 126, 234, 0.5);
+    background: rgba(16, 185, 129, 0.5);
 }
 
 ::-webkit-scrollbar-thumb:active {
-    background: rgba(102, 126, 234, 0.7);
+    background: rgba(16, 185, 129, 0.7);
 }
 
 html.dark-mode ::-webkit-scrollbar-thumb {
-    background: rgba(139, 155, 239, 0.3);
+    background: rgba(52, 211, 153, 0.3);
 }
 
 html.dark-mode ::-webkit-scrollbar-thumb:hover {
-    background: rgba(139, 155, 239, 0.5);
+    background: rgba(52, 211, 153, 0.5);
 }
 
 html.dark-mode ::-webkit-scrollbar-thumb:active {
-    background: rgba(139, 155, 239, 0.7);
+    background: rgba(52, 211, 153, 0.7);
 }
 
 /* Firefox */
 * {
     scrollbar-width: thin;
-    scrollbar-color: rgba(102, 126, 234, 0.3) transparent;
+    scrollbar-color: rgba(16, 185, 129, 0.3) transparent;
 }
 
 html.dark-mode * {
-    scrollbar-color: rgba(139, 155, 239, 0.3) transparent;
+    scrollbar-color: rgba(52, 211, 153, 0.3) transparent;
 }
 
 /* === Universal Header Styling === */
@@ -94,13 +94,13 @@ h1, h2, h3, h4, h5, h6 {
 h1 {
     font-size: 2.5rem;
     font-weight: 700;
-    background: linear-gradient(135deg, var(--header-accent), #764ba2);
+    background: linear-gradient(135deg, var(--header-accent), #059669);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
     margin-bottom: 1.5rem;
     padding-bottom: 0.75rem;
-    border-bottom: 2px solid rgba(102, 126, 234, 0.15);
+    border-bottom: 2px solid rgba(16, 185, 129, 0.15);
 }
 
 h2 {
