@@ -142,281 +142,7 @@ class SalesImportsRepo:
                 cursor.close()
             if conn:
                 conn.close()
-
- 
-    def init_tables(self) -> None:
-        """Initialize sales_data tables (UK, FR, NL), import_history, and indexes in PostgreSQL"""
-        conn = self.get_connection()
-        try:
-            cursor = conn.cursor()
-           
-            # Create import history table
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS sales_import_history (
-                    id SERIAL PRIMARY KEY,
-                    filename VARCHAR(500) NOT NULL,
-                    region VARCHAR(10) NOT NULL,
-                    uploaded_by VARCHAR(255) NOT NULL,
-                    user_email VARCHAR(255),
-                    total_rows INTEGER NOT NULL DEFAULT 0,
-                    imported_rows INTEGER NOT NULL DEFAULT 0,
-                    errors_count INTEGER NOT NULL DEFAULT 0,
-                    status VARCHAR(50) NOT NULL DEFAULT 'pending',
-                    error_details TEXT,
-                    imported_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-            
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_import_history_region
-                ON sales_import_history(region)
-            """)
-            
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_import_history_uploaded_by
-                ON sales_import_history(uploaded_by)
-            """)
-            
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_import_history_imported_at
-                ON sales_import_history(imported_at DESC)
-            """)
-            
-            # Create SKU aliases table
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS sku_aliases (
-                    id SERIAL PRIMARY KEY,
-                    alias_sku VARCHAR(255) NOT NULL UNIQUE,
-                    unified_sku VARCHAR(255) NOT NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-            
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_sku_aliases_alias
-                ON sku_aliases(alias_sku)
-            """)
-            
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_sku_aliases_unified
-                ON sku_aliases(unified_sku)
-            """)
-           
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS uk_sales_data (
-                    id SERIAL PRIMARY KEY,
-                    order_number VARCHAR(255) NOT NULL,
-                    created_at TIMESTAMP NOT NULL,
-                    sku VARCHAR(255) NOT NULL,
-                    name TEXT NOT NULL,
-                    qty INTEGER NOT NULL DEFAULT 1,
-                    price NUMERIC(10, 2) NOT NULL DEFAULT 0.0,
-                    status VARCHAR(100),
-                    imported_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-           
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_uk_sales_order_number
-                ON uk_sales_data(order_number)
-            """)
-           
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_uk_sales_sku
-                ON uk_sales_data(sku)
-            """)
-           
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_uk_sales_created_at
-                ON uk_sales_data(created_at)
-            """)
-           
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_uk_sales_status
-                ON uk_sales_data(status)
-            """)
-            
-            # Ensure imported_at and updated_at columns exist (migration for existing tables)
-            cursor.execute("""
-                DO $$ 
-                BEGIN 
-                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
-                                   WHERE table_name='uk_sales_data' AND column_name='imported_at') THEN
-                        ALTER TABLE uk_sales_data ADD COLUMN imported_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
-                    END IF;
-                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
-                                   WHERE table_name='uk_sales_data' AND column_name='updated_at') THEN
-                        ALTER TABLE uk_sales_data ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
-                    END IF;
-                END $$;
-            """)
- 
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS fr_sales_data (
-                    id SERIAL PRIMARY KEY,
-                    order_number VARCHAR(255) NOT NULL,
-                    created_at TIMESTAMP NOT NULL,
-                    sku VARCHAR(255) NOT NULL,
-                    name TEXT NOT NULL,
-                    qty INTEGER NOT NULL DEFAULT 1,
-                    price NUMERIC(10, 2) NOT NULL DEFAULT 0.0,
-                    status VARCHAR(100),
-                    imported_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
- 
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_fr_sales_order_number
-                ON fr_sales_data(order_number)
-            """)
-           
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_fr_sales_sku
-                ON fr_sales_data(sku)
-            """)
-           
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_fr_sales_created_at
-                ON fr_sales_data(created_at)
-            """)
-           
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_fr_sales_status
-                ON fr_sales_data(status)
-            """)
-            
-            # Ensure imported_at and updated_at columns exist (migration for existing tables)
-            cursor.execute("""
-                DO $$ 
-                BEGIN 
-                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
-                                   WHERE table_name='fr_sales_data' AND column_name='imported_at') THEN
-                        ALTER TABLE fr_sales_data ADD COLUMN imported_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
-                    END IF;
-                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
-                                   WHERE table_name='fr_sales_data' AND column_name='updated_at') THEN
-                        ALTER TABLE fr_sales_data ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
-                    END IF;
-                END $$;
-            """)
- 
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS nl_sales_data (
-                    id SERIAL PRIMARY KEY,
-                    order_number VARCHAR(255) NOT NULL,
-                    created_at TIMESTAMP NOT NULL,
-                    sku VARCHAR(255) NOT NULL,
-                    name TEXT NOT NULL,
-                    qty INTEGER NOT NULL DEFAULT 1,
-                    price NUMERIC(10, 2) NOT NULL DEFAULT 0.0,
-                    status VARCHAR(100),
-                    imported_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
- 
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_nl_sales_order_number
-                ON nl_sales_data(order_number)
-            """)
-           
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_nl_sales_sku
-                ON nl_sales_data(sku)
-            """)
-           
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_nl_sales_created_at
-                ON nl_sales_data(created_at)
-            """)
-           
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_nl_sales_status
-                ON nl_sales_data(status)
-            """)
-            
-            # Ensure imported_at and updated_at columns exist (migration for existing tables)
-            cursor.execute("""
-                DO $$ 
-                BEGIN 
-                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
-                                   WHERE table_name='nl_sales_data' AND column_name='imported_at') THEN
-                        ALTER TABLE nl_sales_data ADD COLUMN imported_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
-                    END IF;
-                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
-                                   WHERE table_name='nl_sales_data' AND column_name='updated_at') THEN
-                        ALTER TABLE nl_sales_data ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
-                    END IF;
-                END $$;
-            """)
-            
-            # Create condensed sales tables for 6-month aggregates
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS uk_condensed_sales (
-                    id SERIAL PRIMARY KEY,
-                    sku VARCHAR(255) NOT NULL,
-                    product_name TEXT,
-                    total_qty INTEGER NOT NULL DEFAULT 0,
-                    start_date DATE,
-                    end_date DATE,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-            
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_uk_condensed_sku
-                ON uk_condensed_sales(sku)
-            """)
-            
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS fr_condensed_sales (
-                    id SERIAL PRIMARY KEY,
-                    sku VARCHAR(255) NOT NULL,
-                    product_name TEXT,
-                    total_qty INTEGER NOT NULL DEFAULT 0,
-                    start_date DATE,
-                    end_date DATE,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-            
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_fr_condensed_sku
-                ON fr_condensed_sales(sku)
-            """)
-            
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS nl_condensed_sales (
-                    id SERIAL PRIMARY KEY,
-                    sku VARCHAR(255) NOT NULL,
-                    product_name TEXT,
-                    total_qty INTEGER NOT NULL DEFAULT 0,
-                    start_date DATE,
-                    end_date DATE,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-            
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_nl_condensed_sku
-                ON nl_condensed_sales(sku)
-            """)
-           
-            conn.commit()
-            logger.info(" The respective sales data table has initialized successfully")
-           
-        except psycopg2.Error as e:
-            conn.rollback()
-            logger.error(f"Database error in init_tables: {e}")
-            raise
-        finally:
-            if cursor:
-                cursor.close()
-            if conn:
-                conn.close()
+    
     
     def _ensure_region_table_exists(self, region: str) -> None:
         """Ensure the table exists for a specific region (only checks once per region per instance)"""
@@ -428,124 +154,122 @@ class SalesImportsRepo:
             return
            
         try:
-            self.init_region_table(region)
+            # Use the new ensure_all_tables_exist method which checks all tables at once
+            self.ensure_all_tables_exist()
             self._tables_checked[region] = True
         except Exception as e:
             logger.warning(f"Could not ensure {region} table exists: {e}")
             # Still mark as checked to avoid repeated attempts
             self._tables_checked[region] = True
-    
-    def init_region_table(self, region: str) -> None:
-        """Initialize tables for a specific region (UK, FR, or NL)"""
-        region = region.lower()
-        if region not in region_tables:
-            raise ValueError(f"Invalid region: {region}")
-        
+
+    def ensure_all_tables_exist(self) -> Dict[str, Any]:
+        """
+        Check and create all 6 sales tables if they don't exist:
+        - uk_sales_data, fr_sales_data, nl_sales_data
+        - uk_condensed_sales, fr_condensed_sales, nl_condensed_sales
+        Returns a status dictionary with information about created tables
+        """
         conn = self.get_connection()
+        created_tables = []
+        existing_tables = []
+        
         try:
             cursor = conn.cursor()
             
-            # Create shared tables first (if they don't exist)
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS sales_import_history (
-                    id SERIAL PRIMARY KEY,
-                    filename VARCHAR(500) NOT NULL,
-                    region VARCHAR(10) NOT NULL,
-                    uploaded_by VARCHAR(255) NOT NULL,
-                    user_email VARCHAR(255),
-                    total_rows INTEGER NOT NULL DEFAULT 0,
-                    imported_rows INTEGER NOT NULL DEFAULT 0,
-                    errors_count INTEGER NOT NULL DEFAULT 0,
-                    status VARCHAR(50) NOT NULL DEFAULT 'pending',
-                    error_details TEXT,
-                    imported_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
+            # Define all tables with their schemas
+            tables_to_check = [
+                ('uk_sales_data', 'uk'),
+                ('fr_sales_data', 'fr'),
+                ('nl_sales_data', 'nl'),
+                ('uk_condensed_sales', 'uk_condensed'),
+                ('fr_condensed_sales', 'fr_condensed'),
+                ('nl_condensed_sales', 'nl_condensed')
+            ]
             
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_import_history_region
-                ON sales_import_history(region)
-            """)
-            
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS sku_aliases (
-                    id SERIAL PRIMARY KEY,
-                    alias_sku VARCHAR(255) NOT NULL UNIQUE,
-                    unified_sku VARCHAR(255) NOT NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-            
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_sku_aliases_alias
-                ON sku_aliases(alias_sku)
-            """)
-            
-            # Create the specific region table
-            table_name = region_tables[region]
-            condensed_table = f"{region}_condensed_sales"
-            
-            cursor.execute(f"""
-                CREATE TABLE IF NOT EXISTS {table_name} (
-                    id SERIAL PRIMARY KEY,
-                    order_number VARCHAR(255) NOT NULL,
-                    created_at TIMESTAMP NOT NULL,
-                    sku VARCHAR(255) NOT NULL,
-                    name TEXT NOT NULL,
-                    qty INTEGER NOT NULL DEFAULT 1,
-                    price NUMERIC(10, 2) NOT NULL DEFAULT 0.0,
-                    status VARCHAR(100),
-                    imported_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-            
-            cursor.execute(f"""
-                CREATE INDEX IF NOT EXISTS idx_{region}_sales_order_number
-                ON {table_name}(order_number)
-            """)
-            
-            cursor.execute(f"""
-                CREATE INDEX IF NOT EXISTS idx_{region}_sales_sku
-                ON {table_name}(sku)
-            """)
-            
-            cursor.execute(f"""
-                CREATE INDEX IF NOT EXISTS idx_{region}_sales_created_at
-                ON {table_name}(created_at)
-            """)
-            
-            cursor.execute(f"""
-                CREATE INDEX IF NOT EXISTS idx_{region}_sales_status
-                ON {table_name}(status)
-            """)
-            
-            # Create condensed table for this region
-            cursor.execute(f"""
-                CREATE TABLE IF NOT EXISTS {condensed_table} (
-                    id SERIAL PRIMARY KEY,
-                    sku VARCHAR(255) NOT NULL,
-                    product_name TEXT,
-                    total_qty INTEGER NOT NULL DEFAULT 0,
-                    start_date DATE,
-                    end_date DATE,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-            
-            cursor.execute(f"""
-                CREATE INDEX IF NOT EXISTS idx_{region}_condensed_sku
-                ON {condensed_table}(sku)
-            """)
+            for table_name, table_type in tables_to_check:
+                # Check if table exists
+                cursor.execute("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables 
+                        WHERE table_schema = 'public' 
+                        AND table_name = %s
+                    )
+                """, (table_name,))
+                
+                table_exists = cursor.fetchone()[0]
+                
+                if table_exists:
+                    existing_tables.append(table_name)
+                    logger.info(f"✓ Table {table_name} already exists")
+                else:
+                    # Create the table
+                    if 'condensed' in table_type:
+                        # Create condensed sales table
+                        cursor.execute(f"""
+                            CREATE TABLE {table_name} (
+                                id SERIAL PRIMARY KEY,
+                                sku VARCHAR(255) NOT NULL,
+                                product_name TEXT,
+                                total_qty INTEGER NOT NULL DEFAULT 0,
+                                start_date DATE,
+                                end_date DATE,
+                                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                            )
+                        """)
+                        
+                        cursor.execute(f"""
+                            CREATE INDEX idx_{table_name}_sku ON {table_name}(sku)
+                        """)
+                    else:
+                        # Create sales data table
+                        cursor.execute(f"""
+                            CREATE TABLE {table_name} (
+                                id SERIAL PRIMARY KEY,
+                                order_number VARCHAR(255) NOT NULL,
+                                created_at TIMESTAMP NOT NULL,
+                                sku VARCHAR(255) NOT NULL,
+                                name TEXT NOT NULL,
+                                qty INTEGER NOT NULL DEFAULT 1,
+                                price NUMERIC(10, 2) NOT NULL DEFAULT 0.0,
+                                status VARCHAR(100),
+                                imported_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                            )
+                        """)
+                        
+                        # Create indexes
+                        cursor.execute(f"""
+                            CREATE INDEX idx_{table_name}_order_number ON {table_name}(order_number)
+                        """)
+                        cursor.execute(f"""
+                            CREATE INDEX idx_{table_name}_sku ON {table_name}(sku)
+                        """)
+                        cursor.execute(f"""
+                            CREATE INDEX idx_{table_name}_created_at ON {table_name}(created_at)
+                        """)
+                        cursor.execute(f"""
+                            CREATE INDEX idx_{table_name}_status ON {table_name}(status)
+                        """)
+                    
+                    created_tables.append(table_name)
+                    logger.info(f"✓ Created table {table_name}")
             
             conn.commit()
-            logger.info(f"✅ {region.upper()} sales data tables initialized successfully")
-           
+            
+            return {
+                'status': 'success',
+                'created_tables': created_tables,
+                'existing_tables': existing_tables,
+                'message': f'Tables initialized: {len(created_tables)} created, {len(existing_tables)} already existed'
+            }
+            
         except psycopg2.Error as e:
             conn.rollback()
-            logger.error(f"Database error in init_region_table for {region}: {e}")
-            raise
+            logger.error(f"Database error in ensure_all_tables_exist: {e}")
+            return {
+                'status': 'error',
+                'message': f'Failed to initialize tables: {str(e)}'
+            }
         finally:
             if cursor:
                 cursor.close()

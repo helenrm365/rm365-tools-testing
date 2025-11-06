@@ -16,20 +16,22 @@ def _svc() -> SalesImportsService:
 def sales_imports_health():
     return {"status": "Sales imports module ready"}
 
-@router.post("/upload", response_model=ImportResponse)
-async def upload_csv(
+@router.get("/initialize")
+def initialize_tables(user=Depends(get_current_user)):
+    """Initialize all sales import tables if they don't exist"""
+    result = _svc().initialize_tables()
+    return result
+
+# Region-specific upload endpoints
+@router.post("/uk-sales/upload", response_model=ImportResponse)
+async def upload_uk_csv(
     file: UploadFile = File(...),
-    region: str = Query("uk", description="Region: uk, fr, or nl"),
     user=Depends(get_current_user)
 ):
-    """Upload and import CSV file with sales data"""
+    """Upload and import CSV file with UK sales data"""
     
     if not file.filename.lower().endswith('.csv'):
         raise HTTPException(status_code=400, detail="Only CSV files are allowed")
-    
-    # Validate region
-    if region not in ['uk', 'fr', 'nl']:
-        raise HTTPException(status_code=400, detail="Invalid region. Must be 'uk', 'fr', or 'nl'")
     
     try:
         content = await file.read()
@@ -41,7 +43,63 @@ async def upload_csv(
             'email': getattr(user, 'email', '')
         }
         
-        result = _svc().import_csv_file(file_content, file.filename, region, user_info)
+        result = _svc().import_csv_file(file_content, file.filename, 'uk', user_info)
+        return ImportResponse(**result)
+        
+    except UnicodeDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid file encoding. Please use UTF-8 encoded CSV files.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
+
+@router.post("/fr-sales/upload", response_model=ImportResponse)
+async def upload_fr_csv(
+    file: UploadFile = File(...),
+    user=Depends(get_current_user)
+):
+    """Upload and import CSV file with FR sales data"""
+    
+    if not file.filename.lower().endswith('.csv'):
+        raise HTTPException(status_code=400, detail="Only CSV files are allowed")
+    
+    try:
+        content = await file.read()
+        file_content = content.decode('utf-8')
+        
+        # Extract user info
+        user_info = {
+            'username': getattr(user, 'username', 'Unknown'),
+            'email': getattr(user, 'email', '')
+        }
+        
+        result = _svc().import_csv_file(file_content, file.filename, 'fr', user_info)
+        return ImportResponse(**result)
+        
+    except UnicodeDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid file encoding. Please use UTF-8 encoded CSV files.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
+
+@router.post("/nl-sales/upload", response_model=ImportResponse)
+async def upload_nl_csv(
+    file: UploadFile = File(...),
+    user=Depends(get_current_user)
+):
+    """Upload and import CSV file with NL sales data"""
+    
+    if not file.filename.lower().endswith('.csv'):
+        raise HTTPException(status_code=400, detail="Only CSV files are allowed")
+    
+    try:
+        content = await file.read()
+        file_content = content.decode('utf-8')
+        
+        # Extract user info
+        user_info = {
+            'username': getattr(user, 'username', 'Unknown'),
+            'email': getattr(user, 'email', '')
+        }
+        
+        result = _svc().import_csv_file(file_content, file.filename, 'nl', user_info)
         return ImportResponse(**result)
         
     except UnicodeDecodeError:
@@ -70,25 +128,6 @@ async def validate_csv(
         raise HTTPException(status_code=400, detail="Invalid file encoding. Please use UTF-8 encoded CSV files.")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error validating file: {str(e)}")
-
-@router.get("/orders", response_model=SalesOrdersResponse)
-def get_sales_orders(
-    limit: int = Query(100, description="Maximum number of orders to return"),
-    search: str = Query("", description="Search term"),
-    user=Depends(get_current_user)
-):
-    """Get sales orders with optional search"""
-    orders = _svc().get_sales_orders(limit, search)
-    return SalesOrdersResponse(orders=orders, count=len(orders))
-
-@router.delete("/orders/{order_id}", response_model=DeleteResponse)
-def delete_sales_order(
-    order_id: int,
-    user=Depends(get_current_user)
-):
-    """Delete a sales order"""
-    result = _svc().delete_sales_order(order_id)
-    return DeleteResponse(**result)
 
 @router.get("/history", response_model=ImportHistoryResponse)
 def get_import_history(

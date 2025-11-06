@@ -14,6 +14,22 @@ class SalesImportsService:
     def __init__(self, repo: Optional[SalesImportsRepo] = None):
         self.repo = repo or SalesImportsRepo()
 
+    def initialize_tables(self) -> Dict[str, Any]:
+        """
+        Initialize all sales import tables if they don't exist.
+        Checks and creates: uk_sales_data, fr_sales_data, nl_sales_data,
+        uk_condensed_sales, fr_condensed_sales, nl_condensed_sales
+        """
+        try:
+            result = self.repo.ensure_all_tables_exist()
+            return result
+        except Exception as e:
+            logger.error(f"Error initializing tables: {e}")
+            return {
+                'status': 'error',
+                'message': f'Failed to initialize tables: {str(e)}'
+            }
+
     def import_csv_file(self, file_content: str, filename: str, region: str = 'uk', user_info: Dict[str, Any] = None) -> Dict[str, Any]:
         """
         Import sales data from CSV file based on column position.
@@ -208,26 +224,6 @@ class SalesImportsService:
         except Exception as e:
             logger.error(f"Error getting import history: {e}")
             return []
-
-    def get_sales_orders(self, limit: int = 100, search: str = "") -> List[Dict[str, Any]]:
-        """Get recent sales orders"""
-        try:
-            return self.repo.get_sales_orders(limit, search)
-        except Exception as e:
-            logger.error(f"Error getting sales orders: {e}")
-            return []
-
-    def delete_sales_order(self, order_id: int) -> Dict[str, Any]:
-        """Delete a sales order"""
-        try:
-            success = self.repo.delete_sales_order(order_id)
-            if success:
-                return {"status": "success", "message": "Order deleted successfully"}
-            else:
-                return {"status": "error", "message": "Order not found"}
-        except Exception as e:
-            logger.error(f"Error deleting sales order: {e}")
-            return {"status": "error", "message": str(e)}
 
     def validate_csv_format(self, file_content: str) -> Dict[str, Any]:
         """

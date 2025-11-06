@@ -1,4 +1,6 @@
 // js/modules/sales-imports/index.js
+import { get } from '../../services/api/http.js';
+
 let currentModule = null;
 
 export async function init(path) {
@@ -18,9 +20,29 @@ export async function init(path) {
     currentModule = await import('./history.js');
     await currentModule.init();
   } else if (path === '/sales-imports' || path === '/sales-imports/home') {
+    // Initialize tables when home page loads
+    await initializeTables();
     // Keep the home page with tabs for backwards compatibility
     currentModule = await import('./regionalSales.js');
     await currentModule.init();
+  }
+}
+
+async function initializeTables() {
+  try {
+    console.log('[Sales Imports] Checking and initializing tables...');
+    const result = await get('/api/v1/sales-imports/initialize');
+    
+    if (result.status === 'success') {
+      console.log('[Sales Imports] Tables initialized:', result.message);
+      if (result.created_tables && result.created_tables.length > 0) {
+        console.log('[Sales Imports] Created tables:', result.created_tables);
+      }
+    } else {
+      console.error('[Sales Imports] Failed to initialize tables:', result.message);
+    }
+  } catch (error) {
+    console.error('[Sales Imports] Error initializing tables:', error);
   }
 }
 

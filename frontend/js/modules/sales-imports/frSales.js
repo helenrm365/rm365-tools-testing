@@ -221,11 +221,11 @@ async function handleUpload(event) {
     
     try {
         showToast('Uploading file...', 'info');
-        console.log('[FR Sales] Uploading file to:', '/api/v1/sales-imports/upload?region=fr');
+        console.log('[FR Sales] Uploading file to:', '/api/v1/sales-imports/fr-sales/upload');
         
         // Use raw http function for multipart form data
         // Don't set Content-Type header - browser will set it with boundary
-        const response = await http(`/api/v1/sales-imports/upload?region=fr`, {
+        const response = await http(`/api/v1/sales-imports/fr-sales/upload`, {
             method: 'POST',
             body: formData,
             headers: {} // Let browser set Content-Type with boundary
