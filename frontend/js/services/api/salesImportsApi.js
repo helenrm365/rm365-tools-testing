@@ -210,14 +210,6 @@ export async function validateCSV(file) {
   return await response.json();
 }
 
-// Import History operations
-export async function getImportHistory(limit = 20) {
-  const params = new URLSearchParams({
-    limit: limit.toString()
-  });
-  return await get(`${API}/history?${params.toString()}`);
-}
-
 // Template operations
 export async function downloadTemplate() {
   return await get(`${API}/template`);
