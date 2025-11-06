@@ -84,15 +84,15 @@
           </div>
         </div>
         
-        <div style="display: flex; align-items: center; gap: 1rem; padding: 1rem; background: #f8f9fa; border-radius: 6px;">
+        <div style="display: flex; align-items: center; gap: 1rem; padding: 1rem; background: var(--selection-bar-bg, #f8f9fa); border-radius: 6px; border: 1px solid var(--border-color, #e5e7eb);">
           <div style="display: flex; align-items: center; gap: 0.5rem;">
             <input type="checkbox" id="selectAllCheckbox" style="width: 18px; height: 18px; cursor: pointer;">
-            <label for="selectAllCheckbox" style="cursor: pointer; font-weight: 500;">Select All</label>
+            <label for="selectAllCheckbox" style="cursor: pointer; font-weight: 500; color: var(--text-color, #333);">Select All</label>
           </div>
           <button id="deselectAllBtn" class="modern-button" style="background: #6b7280;">
             Deselect All
           </button>
-          <div style="flex: 1; text-align: center; color: #666;">
+          <div style="flex: 1; text-align: center; color: var(--text-secondary, #666);">
             <span id="selectedProducts">0</span> of <span id="totalProducts">0</span> products selected
           </div>
           <button id="generatePdfBtn" class="modern-button" disabled style="background: linear-gradient(to bottom right, #10b981, #059669);">

@@ -38,6 +38,14 @@ export async function getPrintJob(jobId) {
 }
 
 /**
+ * List recent label print jobs
+ * @param {number} limit - Number of jobs to return (default 10, max 100)
+ */
+export async function listPrintJobs(limit = 10) {
+  return await get(`${API}/jobs?limit=${limit}`);
+}
+
+/**
  * Delete a print job
  * @param {number} jobId - Job ID
  */

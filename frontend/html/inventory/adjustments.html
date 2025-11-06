@@ -110,6 +110,25 @@
           <p class="muted" style="text-align: center; padding: 1rem; color: #999;">Recent adjustments will appear here...</p>
         </div>
       </div>
+
+      <!-- Tips Section -->
+      <div class="tips-section modern-box" style="margin-top: 2rem; background: #f8f9fa; border-left: 4px solid #007bff;">
+        <h4 style="color: #007bff;">💡 How Inventory Adjustments Work</h4>
+        <ul style="margin: 0; padding-left: 1.5rem; line-height: 1.8;">
+          <li><strong>Manual Selection Required:</strong> When scanning items, you must manually select which location to affect using the "Affect" dropdown (Shelf &lt; 1 Year, Shelf &gt; 1 Year, or Top Floor).</li>
+          <li><strong>Best Practice:</strong> When picking/packing orders, prioritize taking from "Shelf &lt; 1 Year" first to ensure older stock is used before expiration. If nothing is available there, then select "Shelf &gt; 1 Year".</li>
+          <li><strong>Positive vs Negative Adjustments:</strong> 
+            <ul style="margin-top: 0.5rem;">
+              <li><em>Outbound reasons</em> (Pick/Pack, Damaged, Lost) will <strong>reduce</strong> inventory by the quantity specified</li>
+              <li><em>Inbound reasons</em> (Received, Returned, Found) will <strong>add</strong> to inventory by the quantity specified</li>
+              <li><em>Correction</em> allows manual adjustment in either direction based on the quantity entered</li>
+            </ul>
+          </li>
+          <li><strong>Real-time Updates:</strong> Changes to local inventory metadata happen immediately upon submission, even before syncing to Zoho.</li>
+          <li><strong>Zoho Sync:</strong> Adjustments are logged locally first, then synced to Zoho either automatically (if auto-sync is enabled) or manually via the "Sync to Zoho" button.</li>
+          <li><strong>Top Floor:</strong> Use this location for overflow or bulk storage that isn't on the main shelf areas.</li>
+        </ul>
+      </div>
     </div>
   </section>
 </div>

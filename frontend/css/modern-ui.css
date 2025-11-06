@@ -13,6 +13,21 @@
    NOTE: Ordering preserved to keep behaviour identical.
    ========================================= */
 
+/* === CSS Variables === */
+:root {
+    --selection-bar-bg: #f8f9fa;
+    --border-color: #e5e7eb;
+    --text-color: #333;
+    --text-secondary: #666;
+}
+
+html.dark-mode {
+    --selection-bar-bg: #2e2e2e;
+    --border-color: #444;
+    --text-color: #fff;
+    --text-secondary: #aaa;
+}
+
 * { font-family: 'Sora', sans-serif; }
 
 /* === Modern Buttons === */

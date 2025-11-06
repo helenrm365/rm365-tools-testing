@@ -2,6 +2,34 @@
 import { getUsers, createUser, updateUser, deleteUser } from '../../services/api/usersApi.js';
 import { getRoles } from '../../services/api/rolesApi.js';
 
+// Define tab structure with sub-tabs
+const TAB_STRUCTURE = {
+  'attendance': {
+    label: 'Attendance',
+    subtabs: ['automatic', 'manual', 'logs', 'overview']
+  },
+  'enrollment': {
+    label: 'Enrollment',
+    subtabs: ['management', 'card', 'fingerprint']
+  },
+  'labels': {
+    label: 'Labels',
+    subtabs: ['generator', 'history']
+  },
+  'sales-imports': {
+    label: 'Sales Imports',
+    subtabs: ['uk-sales', 'fr-sales', 'nl-sales', 'history']
+  },
+  'inventory': {
+    label: 'Inventory',
+    subtabs: ['management', 'adjustments']
+  },
+  'usermanagement': {
+    label: 'User Management',
+    subtabs: []
+  }
+};
+
 let state = {
   users: [],
   roles: [],
@@ -50,10 +78,10 @@ function renderTable() {
           <th style="width: 40px;">
             <input type="checkbox" id="selectAll" ${state.selectedForDelete.size === filtered.length && filtered.length > 0 ? 'checked' : ''}>
           </th>
-          <th>Username</th>
-          <th>Role</th>
-          <th>Allowed Tabs</th>
-          <th>Actions</th>
+          <th style="width: 200px;">Username</th>
+          <th style="width: 180px;">Role</th>
+          <th>Allowed Tabs & Sub-tabs</th>
+          <th style="width: 150px;">Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -63,18 +91,19 @@ function renderTable() {
               <input type="checkbox" class="row-select" value="${user.username}" ${state.selectedForDelete.has(user.username) ? 'checked' : ''}>
             </td>
             <td>
-              <input type="text" class="in username" value="${user.username}" data-original="${user.username}">
+              <input type="text" class="in username modern-input" value="${user.username}" data-original="${user.username}" style="width: 100%; max-width: 180px;">
             </td>
             <td>
               ${renderRoleDropdown(user.role, 'role-select-' + user.username)}
             </td>
             <td>
               <div class="tabs-checkboxes">
-                ${['attendance', 'enrollment', 'labels', 'sales-imports', 'inventory', 'usermanagement'].map(tab => `
-                  <label class="checkbox-label" style="display: inline-block; margin-right: 8px;">
-                    <input type="checkbox" class="tab-checkbox" value="${tab}" ${user.allowed_tabs.includes(tab) ? 'checked' : ''}> ${tab}
+                <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                  <label class="checkbox-label" style="display: inline-flex; align-items: center; margin-right: 8px; font-weight: 500;">
+                    <input type="checkbox" class="select-all-tabs-row" style="margin-right: 4px;"> Select All
                   </label>
-                `).join('')}
+                </div>
+                ${renderTabCheckboxes(user.allowed_tabs)}
               </div>
             </td>
             <td>
@@ -93,7 +122,64 @@ function renderTable() {
   wireTableEvents();
 }
 
+function renderTabCheckboxes(allowedTabs) {
+  let html = '';
+  for (const [tabKey, tabInfo] of Object.entries(TAB_STRUCTURE)) {
+    const isChecked = allowedTabs.includes(tabKey);
+    html += `
+      <div style="margin-bottom: 8px; padding: 4px; border-left: 3px solid #007bff; padding-left: 8px; background: #f8f9fa;">
+        <label class="checkbox-label" style="display: block; font-weight: 500; margin-bottom: 4px;">
+          <input type="checkbox" class="tab-checkbox" value="${tabKey}" ${isChecked ? 'checked' : ''}> 
+          ${tabInfo.label}
+        </label>
+        ${tabInfo.subtabs.length > 0 ? `
+          <div style="margin-left: 20px; font-size: 0.9em; color: #666;">
+            ${tabInfo.subtabs.map(sub => `<span style="display: inline-block; margin-right: 8px;">• ${sub}</span>`).join('')}
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }
+  return html;
+}
+
 function wireTableEvents() {
+  // Handle "Select All Tabs" checkbox in each row
+  $all('.select-all-tabs-row').forEach(selectAllCheckbox => {
+    selectAllCheckbox.addEventListener('change', (e) => {
+      const tr = e.target.closest('tr');
+      const tabCheckboxes = tr.querySelectorAll('.tab-checkbox');
+      tabCheckboxes.forEach(cb => {
+        cb.checked = e.target.checked;
+      });
+    });
+  });
+
+  // Update "Select All Tabs" when individual tabs are checked/unchecked
+  $all('.tab-checkbox').forEach(tabCheckbox => {
+    tabCheckbox.addEventListener('change', (e) => {
+      const tr = e.target.closest('tr');
+      const selectAllCheckbox = tr.querySelector('.select-all-tabs-row');
+      const allTabCheckboxes = tr.querySelectorAll('.tab-checkbox');
+      const checkedCount = Array.from(allTabCheckboxes).filter(cb => cb.checked).length;
+      
+      if (selectAllCheckbox) {
+        selectAllCheckbox.checked = checkedCount === allTabCheckboxes.length;
+        selectAllCheckbox.indeterminate = checkedCount > 0 && checkedCount < allTabCheckboxes.length;
+      }
+    });
+    
+    // Initialize indeterminate state on load
+    const tr = tabCheckbox.closest('tr');
+    const selectAllCheckbox = tr.querySelector('.select-all-tabs-row');
+    const allTabCheckboxes = tr.querySelectorAll('.tab-checkbox');
+    const checkedCount = Array.from(allTabCheckboxes).filter(cb => cb.checked).length;
+    
+    if (selectAllCheckbox && checkedCount > 0 && checkedCount < allTabCheckboxes.length) {
+      selectAllCheckbox.indeterminate = true;
+    }
+  });
+
   // Handle role dropdown "Add New Role" option
   $all('.role-dropdown').forEach(select => {
     select.addEventListener('change', (e) => {
@@ -294,9 +380,54 @@ function updateBulkDeleteButton() {
 
 function showCreateUserModal() {
   populateCreateRoleDropdown(); // Populate with latest roles
+  populateCreateTabsCheckboxes(); // Populate with tab structure
   const modal = $('#createUserModal');
   modal.style.display = 'flex';
   $('#createUsername').focus();
+}
+
+function populateCreateTabsCheckboxes() {
+  const container = $('#tabsCheckboxGroup');
+  if (!container) return;
+
+  let html = '';
+  for (const [tabKey, tabInfo] of Object.entries(TAB_STRUCTURE)) {
+    html += `
+      <div style="margin-bottom: 8px; padding: 4px; border-left: 3px solid #007bff; padding-left: 8px; background: #f8f9fa;">
+        <label class="checkbox-label" style="display: block; font-weight: 500; margin-bottom: 4px;">
+          <input type="checkbox" name="allowed_tabs" value="${tabKey}"> 
+          ${tabInfo.label}
+        </label>
+        ${tabInfo.subtabs.length > 0 ? `
+          <div style="margin-left: 20px; font-size: 0.9em; color: #666;">
+            ${tabInfo.subtabs.map(sub => `<span style="display: inline-block; margin-right: 8px;">• ${sub}</span>`).join('')}
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }
+  container.innerHTML = html;
+
+  // Wire up the "Select All" checkbox for the modal
+  const selectAllCheckbox = $('#selectAllTabs');
+  if (selectAllCheckbox) {
+    selectAllCheckbox.addEventListener('change', (e) => {
+      const allCheckboxes = container.querySelectorAll('input[name="allowed_tabs"]');
+      allCheckboxes.forEach(cb => {
+        cb.checked = e.target.checked;
+      });
+    });
+
+    // Update "Select All" when individual checkboxes change
+    const allCheckboxes = container.querySelectorAll('input[name="allowed_tabs"]');
+    allCheckboxes.forEach(cb => {
+      cb.addEventListener('change', () => {
+        const checkedCount = Array.from(allCheckboxes).filter(c => c.checked).length;
+        selectAllCheckbox.checked = checkedCount === allCheckboxes.length;
+        selectAllCheckbox.indeterminate = checkedCount > 0 && checkedCount < allCheckboxes.length;
+      });
+    });
+  }
 }
 
 function hideCreateUserModal() {

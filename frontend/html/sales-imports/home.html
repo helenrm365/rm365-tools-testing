@@ -1,6 +1,6 @@
 <!-- Sales Imports Home Page -->
 <div class="sales-imports-home">
-  <h2>Sales Imports</h2>
+  <h2>Sales Data</h2>
   <div class="inner-tabs" style="margin-bottom: 1.5rem; display: flex; gap: 0.5rem;">
     <button class="modern-button" data-nav onclick="location.href='/sales-imports/uk-sales'">UK Sales</button>
     <button class="modern-button" data-nav onclick="location.href='/sales-imports/fr-sales'">FR Sales</button>
@@ -23,10 +23,10 @@
         <li><strong>Import History:</strong> View all previous imports with detailed logs</li>
       </ul>
 
-      <div class="info-box modern-box" style="margin-top: 2rem; padding: 1.5rem; background: #f8f9fa; border-radius: 8px;">
-        <h4>📋 CSV Format Requirements</h4>
-        <p style="margin: 0.5rem 0;">Each CSV file should contain the following columns:</p>
-        <ul style="margin-top: 0.5rem;">
+      <div class="info-box modern-box" style="margin-top: 2rem; padding: 1.5rem; background: var(--selection-bar-bg, #f8f9fa); border-radius: 8px; border: 1px solid var(--border-color, #e5e7eb);">
+        <h4 style="color: var(--text-color, #333);">📋 CSV Format Requirements</h4>
+        <p style="margin: 0.5rem 0; color: var(--text-color, #333);">Each CSV file should contain the following columns:</p>
+        <ul style="margin-top: 0.5rem; color: var(--text-color, #333);">
           <li>Order Number</li>
           <li>Created At (date/time)</li>
           <li>SKU</li>
@@ -35,7 +35,7 @@
           <li>Price</li>
           <li>Status</li>
         </ul>
-        <p style="margin-top: 1rem; font-style: italic; color: #666;">
+        <p style="margin-top: 1rem; font-style: italic; color: var(--text-secondary, #666);">
           Each regional page has its own upload form that automatically routes data to the correct table.
         </p>
       </div>

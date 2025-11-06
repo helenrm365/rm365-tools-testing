@@ -47,6 +47,52 @@ def labels_to_print(
             detail=f"Zoho lookup / DB failed: {e}"
         )
 
+@router.get("/jobs")
+def list_print_jobs(
+        limit: int = Query(10, ge=1, le=100),
+        user=Depends(get_current_user)
+):
+    """
+    # List recent label print jobs with summary info
+    """
+    try:
+        with inventory_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT 
+                        j.id,
+                        j.created_by,
+                        j.line_date,
+                        j.created_at,
+                        COUNT(i.id) as item_count,
+                        SUM(i.uk_6m_data) as total_uk_6m,
+                        SUM(i.fr_6m_data) as total_fr_6m
+                    FROM label_print_jobs j
+                    LEFT JOIN label_print_items i ON j.id = i.job_id
+                    GROUP BY j.id, j.created_by, j.line_date, j.created_at
+                    ORDER BY j.created_at DESC
+                    LIMIT %s
+                    """,
+                    (limit,)
+                )
+                cols = [c[0] for c in cur.description]
+                jobs = [dict(zip(cols, row)) for row in cur.fetchall()]
+                
+                # Convert datetime to ISO string for JSON serialization
+                for job in jobs:
+                    if job.get('created_at'):
+                        job['created_at'] = job['created_at'].isoformat()
+                    if job.get('line_date'):
+                        job['line_date'] = str(job['line_date'])
+                
+                return {"jobs": jobs, "count": len(jobs)}
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to list print jobs: {e}"
+        )
+
 @router.get("/job/{job_id}")
 def get_print_job(
         job_id: int = Path(..., title="Label print job ID"),
