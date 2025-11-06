@@ -1,74 +1,37 @@
 <!-- Labels Home Page -->
-<div class="labels-home">
-  <h2>Label Management</h2>
-  
-  <div class="inner-tabs" style="margin-bottom: 1.5rem; display: flex; gap: 0.5rem;">
-    <button class="modern-button" data-nav onclick="location.href='/labels/generator'">Generator</button>
-    <button class="modern-button" data-nav onclick="location.href='/labels/history'">History</button>
-  </div>
-  
-  <div class="intro-card card">
-    <div class="card-header">
-      <h3>🏷️ Label Generation System</h3>
-    </div>
-    <div class="card-body">
-      <p>Generate barcode labels for products with UK and FR 6-month sales data. Labels use Code128 barcodes from Zoho inventory item IDs.</p>
-    </div>
+<div class="module-home-hero">
+  <div class="hero-content">
+    <h1 class="hero-title">Labels</h1>
+    <p class="hero-subtitle">Generate and manage product barcode labels</p>
   </div>
 
-  <!-- Navigation Cards -->
-  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 2rem;">
-    
-    <!-- Generator Card -->
-    <div class="card" style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;" 
-         onclick="location.href='/labels/generator'"
-         onmouseenter="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 16px rgba(0,0,0,0.15)'"
-         onmouseleave="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.1)'">
-      <div class="card-header" style="background: linear-gradient(135deg, #10b981, #059669); color: white;">
-        <h3>🏷️ Label Generator</h3>
+  <div class="module-cards-grid">
+    <div class="module-feature-card" onclick="location.href='/labels/generator'">
+      <div class="card-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect>
+          <polyline points="17 2 12 7 7 2"></polyline>
+        </svg>
       </div>
-      <div class="card-body">
-        <p style="margin-bottom: 1rem;">Select products and generate barcode labels with sales data.</p>
-        <ul style="margin: 0; padding-left: 1.5rem; color: #666;">
-          <li>Browse all printable products</li>
-          <li>Select specific items to print</li>
-          <li>Set optional line date</li>
-          <li>Download PDF labels (7 per page)</li>
-          <li>Export data as CSV</li>
-        </ul>
-        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #eee;">
-          <button class="modern-button" style="width: 100%; background: linear-gradient(135deg, #10b981, #059669); color: white;">
-            Open Generator →
-          </button>
-        </div>
-      </div>
+      <h3 class="card-title">Generator</h3>
+      <p class="card-description">Create barcode labels with UK and FR 6-month sales data</p>
+      <div class="card-arrow">→</div>
     </div>
 
-    <!-- History Card -->
-    <div class="card" style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;" 
-         onclick="location.href='/labels/history'"
-         onmouseenter="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 16px rgba(0,0,0,0.15)'"
-         onmouseleave="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.1)'">
-      <div class="card-header" style="background: linear-gradient(135deg, #3b82f6, #2563eb); color: white;">
-        <h3>📋 Print History</h3>
+    <div class="module-feature-card" onclick="location.href='/labels/history'">
+      <div class="card-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="16" y1="13" x2="8" y2="13"></line>
+          <line x1="16" y1="17" x2="8" y2="17"></line>
+          <polyline points="10 9 9 9 8 9"></polyline>
+        </svg>
       </div>
-      <div class="card-body">
-        <p style="margin-bottom: 1rem;">View and download previous label print jobs.</p>
-        <ul style="margin: 0; padding-left: 1.5rem; color: #666;">
-          <li>Browse past print jobs</li>
-          <li>View job details and products</li>
-          <li>Re-download PDF labels</li>
-          <li>Re-download CSV exports</li>
-          <li>Delete old jobs</li>
-        </ul>
-        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #eee;">
-          <button class="modern-button" style="width: 100%; background: linear-gradient(135deg, #3b82f6, #2563eb); color: white;">
-            View History →
-          </button>
-        </div>
-      </div>
+      <h3 class="card-title">History</h3>
+      <p class="card-description">View and download previous label print jobs</p>
+      <div class="card-arrow">→</div>
     </div>
-
   </div>
 </div>
 <!-- Universal Footer -->

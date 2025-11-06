@@ -13,9 +13,9 @@ export async function init(path) {
   
   try {
     if (path === '/inventory' || path === '/inventory/') {
-      // Main inventory page - no specific module to load
-      console.log('[Inventory] Loading main inventory page');
-      // Don't redirect, just let the home page show
+      // Main inventory home page - no module to load, just display landing page
+      console.log('[Inventory] Loading main inventory home page');
+      return;
     } else if (path === '/inventory/management') {
       const mod = await import('./management.js');
       currentInventoryModule = mod;
@@ -26,7 +26,6 @@ export async function init(path) {
       await mod.init();
     } else {
       console.warn('[Inventory] Unknown inventory path:', path);
-      // Only redirect if it's truly an unknown path, not the main inventory page
     }
   } catch (error) {
     console.error('[Inventory] Failed to initialize module:', error);

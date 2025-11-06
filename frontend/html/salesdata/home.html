@@ -1,205 +1,60 @@
 <!-- Sales Data Home Page -->
-<div class="salesdata-home">
-  <h2>Sales Data</h2>
-  <div class="inner-tabs" style="margin-bottom: 1.5rem; display: flex; gap: 0.5rem;">
-    <button class="modern-button" data-nav onclick="location.href='/salesdata/uk-sales'">UK Sales</button>
-    <button class="modern-button" data-nav onclick="location.href='/salesdata/fr-sales'">FR Sales</button>
-    <button class="modern-button" data-nav onclick="location.href='/salesdata/nl-sales'">NL Sales</button>
-    <button class="modern-button" data-nav onclick="location.href='/salesdata/history'">Import History</button>
+<div class="module-home-hero">
+  <div class="hero-content">
+    <h1 class="hero-title">Sales Data</h1>
+    <p class="hero-subtitle">Import and manage regional sales information</p>
   </div>
-  
-  <div class="intro-card card">
-    <div class="card-header">
-      <h3>📊 Sales Data System</h3>
-    </div>
-    <div class="card-body">
-      <p>Import and manage sales data for different regions with CSV file uploads and comprehensive tracking.</p>
-      
-      <h4>Available Features:</h4>
-      <ul>
-        <li><strong>UK Sales:</strong> Import and view United Kingdom sales data</li>
-        <li><strong>FR Sales:</strong> Import and view France sales data</li>
-        <li><strong>NL Sales:</strong> Import and view Netherlands sales data</li>
-        <li><strong>Import History:</strong> View all previous imports with detailed logs</li>
-      </ul>
 
-      <div class="info-box modern-box" style="margin-top: 2rem; padding: 1.5rem; background: var(--selection-bar-bg, #f8f9fa); border-radius: 8px; border: 1px solid var(--border-color, #e5e7eb);">
-        <h4 style="color: var(--text-color, #333);">📋 CSV Format Requirements</h4>
-        <p style="margin: 0.5rem 0; color: var(--text-color, #333);">Each CSV file should contain the following columns:</p>
-        <ul style="margin-top: 0.5rem; color: var(--text-color, #333);">
-          <li>Order Number</li>
-          <li>Created At (date/time)</li>
-          <li>SKU</li>
-          <li>Product Name</li>
-          <li>Quantity</li>
-          <li>Price</li>
-          <li>Status</li>
-        </ul>
-        <p style="margin-top: 1rem; font-style: italic; color: var(--text-secondary, #666);">
-          Each regional page has its own upload form that automatically routes data to the correct table.
-        </p>
+  <div class="module-cards-grid">
+    <div class="module-feature-card" onclick="location.href='/salesdata/uk-sales'">
+      <div class="card-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="1" x2="12" y2="23"></line>
+          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+        </svg>
       </div>
+      <h3 class="card-title">UK Sales</h3>
+      <p class="card-description">Import and view United Kingdom sales data</p>
+      <div class="card-arrow">→</div>
+    </div>
+
+    <div class="module-feature-card" onclick="location.href='/salesdata/fr-sales'">
+      <div class="card-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="1" x2="12" y2="23"></line>
+          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+        </svg>
+      </div>
+      <h3 class="card-title">FR Sales</h3>
+      <p class="card-description">Import and view France sales data</p>
+      <div class="card-arrow">→</div>
+    </div>
+
+    <div class="module-feature-card" onclick="location.href='/salesdata/nl-sales'">
+      <div class="card-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="1" x2="12" y2="23"></line>
+          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+        </svg>
+      </div>
+      <h3 class="card-title">NL Sales</h3>
+      <p class="card-description">Import and view Netherlands sales data</p>
+      <div class="card-arrow">→</div>
+    </div>
+
+    <div class="module-feature-card" onclick="location.href='/salesdata/history'">
+      <div class="card-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <polyline points="12 6 12 12 16 14"></polyline>
+        </svg>
+      </div>
+      <h3 class="card-title">Import History</h3>
+      <p class="card-description">View all previous imports with detailed logs</p>
+      <div class="card-arrow">→</div>
     </div>
   </div>
 </div>
-
-<style>
-.salesdata-home {
-  padding: 1.5rem;
-  max-width: 100%;
-}
-
-.intro-card {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-html.dark-mode .intro-card {
-  background: #2e2e2e;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-}
-
-.intro-card .card-header {
-  padding: 1.5rem;
-  border-bottom: 1px solid #e0e0e0;
-}
-
-html.dark-mode .intro-card .card-header {
-  border-bottom: 1px solid #444;
-}
-
-.intro-card .card-header h3 {
-  margin: 0;
-  color: #333;
-}
-
-html.dark-mode .intro-card .card-header h3 {
-  color: #fff;
-}
-
-.intro-card .card-body {
-  padding: 1.5rem;
-  color: #333;
-}
-
-html.dark-mode .intro-card .card-body {
-  color: #e0e0e0;
-}
-
-.intro-card ul {
-  margin-top: 1rem;
-  line-height: 1.8;
-}
-
-.search-input:focus {
-  outline: none;
-  border-color: #007bff;
-  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
-}
-
-.upload-section h4 {
-  margin-top: 0;
-  margin-bottom: 1rem;
-  color: #333;
-}
-
-html.dark-mode .upload-section h4 {
-  color: #fff;
-}
-
-.stats-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.stat-card {
-  background: white;
-  padding: 1.5rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  text-align: center;
-  border: 1px solid transparent;
-}
-
-html.dark-mode .stat-card {
-  background: #2e2e2e;
-  border: 1px solid #444;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-}
-
-.stat-value {
-  font-size: 2rem;
-  font-weight: bold;
-  color: #007bff;
-  margin-bottom: 0.5rem;
-}
-
-html.dark-mode .stat-value {
-  color: #3399ff;
-}
-
-.stat-label {
-  font-size: 0.9rem;
-  color: #666;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-html.dark-mode .stat-label {
-  color: #aaa;
-}
-
-.table-container {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  overflow-x: auto;
-  margin-bottom: 1.5rem;
-  border: 1px solid transparent;
-}
-
-html.dark-mode .table-container {
-  background: #2e2e2e;
-  border: 1px solid #444;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-}
-
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.data-table th {
-  background: #f8f9fa;
-  color: #333;
-  font-weight: 600;
-  text-align: left;
-  padding: 1rem;
-  border-bottom: 2px solid #dee2e6;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-html.dark-mode .data-table th {
-  background: #1e1e1e;
-  color: #fff;
-  border-bottom: 2px solid #444;
-}
-
-.data-table td {
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid #dee2e6;
-}
-
-html.dark-mode .data-table td {
-  border-bottom: 1px solid #444;
-  color: #e0e0e0;
-}
-</style>
 <!-- Universal Footer -->
 <div id="footerPlaceholder"></div>
 <script>

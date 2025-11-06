@@ -1,6 +1,10 @@
 // js/modules/enrollment/index.js
 export async function init(path) {
-  if (path === '/enrollment' || path === '/enrollment/management') {
+  // Home page - no initialization needed, just a landing page
+  if (path === '/enrollment') {
+    return;
+  }
+  if (path === '/enrollment/management') {
     const mod = await import('./management.js');
     await mod.init();
     return;

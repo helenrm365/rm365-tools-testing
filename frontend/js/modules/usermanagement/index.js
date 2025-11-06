@@ -4,6 +4,10 @@ export async function init(path) {
   
   switch (path) {
     case '/usermanagement':
+      // Home page - no initialization needed, just a landing page
+      console.log('[UserManagement] Loading home page');
+      break;
+    case '/usermanagement/management':
       // Load and initialize the user management module
       console.log('[UserManagement] Loading management module...');
       try {
