@@ -28,21 +28,14 @@ app = FastAPI(
     openapi_url='/api/openapi.json',
 )
 
-# --- Database Initialization (non-blocking) ---------------------------------
+# --- Database Initialization -------------------------------------------------
 try:
-    import threading
     from core.db import initialize_database
-
-    def _init_db_bg():
-        try:
-            initialize_database()
-        except Exception as e:
-            print(f"❌ Background DB initialization failed: {e}")
-
-    threading.Thread(target=_init_db_bg, daemon=True).start()
-    print("🧩 DB initialization started in background thread")
+    initialize_database()
 except Exception as e:
-    print(f"⚠️  Could not start background DB init: {e}")
+    print(f"❌ Database initialization failed: {e}")
+    print("⚠️  Application will continue but may not function properly")
+
 
 # --- CORS (From working Label Printer #7 configuration) ---------------------
 def _parse_origins_env():

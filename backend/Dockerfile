@@ -30,10 +30,9 @@ RUN pip install --upgrade pip setuptools wheel && \
 # Copy app code
 COPY . .
 
-# Runtime env - Railway will override this with $PORT
+# Runtime env
 ENV PORT=8080
 EXPOSE 8080
 
-# Start FastAPI on 0.0.0.0 using Railway's PORT (defaults to 8080)
-# Using exec form with shell to support env var substitution
-CMD ["sh", "-c", "uvicorn app:app --host 0.0.0.0 --port $PORT --no-access-log"]
+# Start FastAPI (Railway injects $PORT)
+CMD ["sh", "-c", "uvicorn app:app --host 0.0.0.0 --port ${PORT}"]
