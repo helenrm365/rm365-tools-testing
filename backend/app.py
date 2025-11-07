@@ -144,7 +144,7 @@ if allow_origin_regex:
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allow_origins if allow_origins else ["*"],  # Fallback to allow all if empty
+    allow_origins=allow_origins,
     allow_origin_regex=allow_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
