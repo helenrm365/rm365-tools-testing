@@ -28,9 +28,9 @@ except Exception:
 # ---------------------------
 # Auth
 # ---------------------------
-def get_current_user():
+async def get_current_user():
     """Auth dependency used by protected routes."""
-    return _get_current_user()
+    return await _get_current_user()
 
 
 # ---------------------------
