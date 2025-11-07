@@ -1,6 +1,7 @@
 import os
 import time
 import base64
+import json
 from pathlib import Path
 
 # Load environment variables from .env file for local development
@@ -43,29 +44,79 @@ try:
 except Exception as e:
     print(f"⚠️  Could not start background DB init: {e}")
 
-# --- CORS (Respects env vars, falls back to wildcard) ----------------------
-def _get_cors_config():
-    """Get CORS configuration from environment or use permissive defaults."""
-    origins_env = os.getenv('ALLOW_ORIGINS', '').strip()
-    regex_env = os.getenv('ALLOW_ORIGIN_REGEX', '').strip()
-    
-    # Parse origins - support comma-separated values
-    if origins_env:
-        origins = [o.strip() for o in origins_env.split(',') if o.strip()]
-        print(f"🌍 CORS: Using origins from env: {origins}")
-    else:
-        origins = ["*"]
-        print("🌍 CORS: No ALLOW_ORIGINS set, using wildcard")
-    
-    # Use regex if provided
-    if regex_env:
-        print(f"🌍 CORS: Using regex from env: {regex_env}")
-    else:
-        regex_env = None
-    
-    return origins, regex_env
+# --- CORS (From working Label Printer #7 configuration) ---------------------
+def _parse_origins_env():
+    """
+    Accepts:
+      - JSON array: '["https://a.com","https://b.com"]'
+      - Comma-separated string: 'https://a.com,https://b.com'
+      - Empty / missing -> []
+    Never raises; always returns a list[str].
+    """
+    raw = os.getenv('ALLOW_ORIGINS', '').strip()
+    if not raw:
+        return []
 
-allow_origins, allow_origin_regex = _get_cors_config()
+    # Debug logging
+    print(f"🔍 Raw ALLOW_ORIGINS: {raw}")
+    
+    try:
+        # Handle Railway's JSON array format
+        val = json.loads(raw)
+        if isinstance(val, list):
+            origins = [str(x) for x in val]
+            print(f"✅ Parsed JSON origins: {origins}")
+            return origins
+        # If someone set ALLOW_ORIGINS='null' or object, fall back
+    except json.JSONDecodeError as e:
+        print(f"⚠️  JSON parse error: {e}, falling back to comma-separated")
+    except Exception as e:
+        print(f"⚠️  Unexpected error parsing origins: {e}")
+
+    # Fallback: comma-separated
+    fallback = [p.strip() for p in raw.split(',') if p.strip()]
+    print(f"📋 Fallback comma-separated origins: {fallback}")
+    return fallback
+
+def _parse_regex_env():
+    """
+    Returns a string pattern or None. Empty strings are treated as None.
+    """
+    patt = os.getenv('ALLOW_ORIGIN_REGEX', '').strip()
+    return patt or None
+
+def _resolve_allow_origins():
+    """Return allowed origins preferring env, else config settings."""
+    env_list = _parse_origins_env()
+    if env_list:
+        return env_list
+    return list(settings.ALLOW_ORIGINS or [])
+
+def _resolve_allow_origin_regex():
+    """Return regex pattern preferring env, else config settings."""
+    env_val = _parse_regex_env()
+    if env_val:
+        return env_val
+    return settings.ALLOW_ORIGIN_REGEX
+
+allow_origins = _resolve_allow_origins()
+allow_origin_regex = _resolve_allow_origin_regex()
+
+# Add common development and Cloudflare origins if not specified
+if not allow_origins and not allow_origin_regex:
+    allow_origins = [
+        "http://localhost:3000",
+        "http://localhost:5000",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5000",
+        "https://*.pages.dev",  # Cloudflare Pages
+    ]
+    allow_origin_regex = r"https://.*\.pages\.dev"
+    print("🔧 Using default CORS origins for development")
+
+print(f"🌍 CORS Configuration:")
+print(f"   Allow Origins: {allow_origins}")
+print(f"   Allow Origin Regex: {allow_origin_regex}")
 
 app.add_middleware(
     CORSMiddleware,
