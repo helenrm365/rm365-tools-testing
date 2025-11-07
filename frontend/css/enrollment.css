@@ -781,8 +781,23 @@ html.dark-mode .card-actions {
   border-top-color: #444;
 }
 
-.btn-save {
+.btn-save,
+.btn-delete {
   flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-save {
   background: linear-gradient(135deg, #76a12b, #5e8122);
   color: white;
   box-shadow: 0 2px 8px rgba(118, 161, 43, 0.3);
@@ -802,6 +817,12 @@ html.dark-mode .card-actions {
 .btn-delete:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
+}
+
+.btn-save:disabled,
+.btn-delete:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Empty State */
@@ -2326,7 +2347,7 @@ html.dark-mode .enrollment-fingerprint .step-item {
   width: 36px;
   height: 36px;
   border-radius: 8px;
-  background: linear-gradient(135deg, #9b59b6, #8e44ad);
+  background: linear-gradient(135deg, #76a12b, #5e8122);
   color: white;
   display: flex;
   align-items: center;
@@ -2334,11 +2355,11 @@ html.dark-mode .enrollment-fingerprint .step-item {
   font-weight: 700;
   font-size: 1rem;
   flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(155, 89, 182, 0.3);
+  box-shadow: 0 2px 8px rgba(118, 161, 43, 0.3);
 }
 
 html.dark-mode .enrollment-fingerprint .step-number {
-  box-shadow: 0 2px 8px rgba(155, 89, 182, 0.5);
+  box-shadow: 0 2px 8px rgba(118, 161, 43, 0.5);
 }
 
 .enrollment-fingerprint .step-info {
@@ -2370,15 +2391,15 @@ html.dark-mode .enrollment-fingerprint .step-desc {
 /* Tips Section */
 .enrollment-fingerprint .tips-section {
   padding: 1.5rem;
-  background: linear-gradient(135deg, rgba(155, 89, 182, 0.1), rgba(142, 68, 173, 0.05));
+  background: linear-gradient(135deg, rgba(118, 161, 43, 0.1), rgba(94, 129, 34, 0.05));
   border-radius: 12px;
-  border: 2px solid rgba(155, 89, 182, 0.2);
+  border: 2px solid rgba(118, 161, 43, 0.2);
   margin-bottom: 1.5rem;
 }
 
 html.dark-mode .enrollment-fingerprint .tips-section {
-  background: linear-gradient(135deg, rgba(155, 89, 182, 0.15), rgba(142, 68, 173, 0.08));
-  border-color: rgba(155, 89, 182, 0.3);
+  background: linear-gradient(135deg, rgba(139, 195, 74, 0.15), rgba(118, 161, 43, 0.08));
+  border-color: rgba(139, 195, 74, 0.3);
 }
 
 .enrollment-fingerprint .tip-item {
@@ -2386,7 +2407,7 @@ html.dark-mode .enrollment-fingerprint .tips-section {
   align-items: center;
   gap: 0.75rem;
   font-size: 0.9rem;
-  color: #8e44ad;
+  color: #5e8122;
   margin-bottom: 0.75rem;
   line-height: 1.5;
 }
@@ -2396,7 +2417,7 @@ html.dark-mode .enrollment-fingerprint .tips-section {
 }
 
 html.dark-mode .enrollment-fingerprint .tip-item {
-  color: #bb8fce;
+  color: #8bc34a;
 }
 
 .enrollment-fingerprint .tip-item i {

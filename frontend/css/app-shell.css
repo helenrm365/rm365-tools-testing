@@ -396,8 +396,13 @@ html.dark-mode .sidebar-nav::-webkit-scrollbar-thumb {
   font-weight: 500;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   justify-content: center;
+  min-height: 48px;
+}
+
+.sidebar:not(:hover) .nav-item {
+  padding: 0.5rem;
 }
 
 .sidebar:hover .nav-item {
@@ -465,11 +470,14 @@ html.dark-mode .sidebar-nav li.active .nav-item {
   font-size: 1.35rem;
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   line-height: 1;
+  position: relative;
 }
 
-/* Ensure icons are visible when sidebar is collapsed */
+/* Ensure icons are visible and centered when sidebar is collapsed */
 .sidebar:not(:hover) .nav-icon {
   font-size: 1.5rem;
+  width: 48px;
+  height: 48px;
 }
 
 .nav-item:hover .nav-icon {
@@ -531,11 +539,14 @@ html.dark-mode .sidebar-nav li.active .nav-item {
   justify-content: center;
   font-size: 1.35rem;
   line-height: 1;
+  position: relative;
 }
 
 /* Ensure footer button icon is visible when collapsed */
 .sidebar:not(:hover) .footer-button .nav-icon {
   font-size: 1.5rem;
+  width: 48px;
+  height: 48px;
 }
 
 .sidebar:hover .footer-button {
@@ -586,11 +597,14 @@ html.dark-mode .dark-mode-toggle:hover {
   justify-content: center;
   font-size: 1.35rem;
   line-height: 1;
+  position: relative;
 }
 
 /* Ensure dark mode toggle icon is visible when collapsed */
 .sidebar:not(:hover) .dark-mode-toggle .nav-icon {
   font-size: 1.5rem;
+  width: 48px;
+  height: 48px;
 }
 
 /* === Toggle Switch === */
