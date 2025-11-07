@@ -174,13 +174,13 @@ function loadRecentActivity() {
   // Placeholder for recent activity - would typically fetch from API
   const tableDiv = $('#recentActivityTable');
   tableDiv.innerHTML = `
-    <table class="grid modern-table" style="width: 100%; border-collapse: collapse;">
+    <table class="manual-table">
       <thead>
-        <tr style="background: rgba(0,0,0,0.05);">
-          <th style="padding: 8px; text-align: left;">Time</th>
-          <th style="padding: 8px; text-align: left;">Employee</th>
-          <th style="padding: 8px; text-align: left;">Action</th>
-          <th style="padding: 8px; text-align: left;">Method</th>
+        <tr>
+          <th>Time</th>
+          <th>Employee</th>
+          <th>Action</th>
+          <th>Method</th>
         </tr>
       </thead>
       <tbody>

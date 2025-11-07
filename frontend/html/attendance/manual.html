@@ -1,53 +1,117 @@
 <!-- Manual Clocking Page -->
 <div class="attendance-manual">
-  <h2>Manual Clocking</h2>
-  <div class="inner-tabs" style="margin-bottom: 1.5rem; display: flex; gap: 0.5rem;">
-    <button class="modern-button" data-nav onclick="location.href='/attendance/overview'">Overview</button>
-    <button class="modern-button active" data-nav onclick="location.href='/attendance/manual'">Manual</button>
-    <button class="modern-button" data-nav onclick="location.href='/attendance/automatic'">Automatic</button>
-    <button class="modern-button" data-nav onclick="location.href='/attendance/logs'">Logs</button>
+  <!-- Page Header -->
+  <div class="manual-page-header">
+    <h1 class="manual-page-title">Manual Clocking</h1>
+    <p class="manual-page-subtitle">Manually clock employees in and out with ease</p>
   </div>
-  
-  <section class="card">
-    <div class="card-header">
-      <h3>👤 Manual Employee Clocking</h3>
-    </div>
-    <div class="card-body">
-      <p>Manually clock employees in or out. Select an employee and click the appropriate action.</p>
-      
-      <div class="manual-controls modern-box" style="margin-bottom: 2rem;">
-        <div style="display: grid; grid-template-columns: 1fr auto; gap: 1rem; align-items: end;">
-          <div>
-            <label class="form-label">Select Employee:</label>
-            <select id="employeeSelect" class="modern-select" data-enhance="c-select" style="width: 100%;">
+
+  <!-- Navigation Tabs -->
+  <div class="manual-inner-tabs">
+    <button class="manual-tab-button" onclick="location.href='/attendance/overview'">
+      <i class="fas fa-chart-line"></i>
+      <span>Overview</span>
+    </button>
+    <button class="manual-tab-button active" onclick="location.href='/attendance/manual'">
+      <i class="fas fa-hand-pointer"></i>
+      <span>Manual</span>
+    </button>
+    <button class="manual-tab-button" onclick="location.href='/attendance/automatic'">
+      <i class="fas fa-microchip"></i>
+      <span>Automatic</span>
+    </button>
+    <button class="manual-tab-button" onclick="location.href='/attendance/logs'">
+      <i class="fas fa-list-ul"></i>
+      <span>Logs</span>
+    </button>
+  </div>
+
+  <!-- Main Content -->
+  <div class="manual-content">
+    <!-- Employee Selection Section -->
+    <section class="manual-select-section">
+      <div class="manual-section-header">
+        <h2 class="manual-section-title">Select Employee</h2>
+      </div>
+      <div class="manual-select-card">
+        <div class="manual-select-wrapper">
+          <label class="manual-select-label">
+            <i class="fas fa-user"></i>
+            <span>Choose an employee to clock in or out</span>
+          </label>
+          <div class="manual-custom-select">
+            <select id="employeeSelect" class="manual-employee-dropdown">
               <option value="">Loading employees...</option>
             </select>
-          </div>
-          <div style="display: flex; gap: 0.5rem;">
-            <button id="clockInBtn" class="modern-button" style="background: linear-gradient(to bottom right, #28a745, #20c997);" disabled>
-              ⏰ Clock In
-            </button>
-            <button id="clockOutBtn" class="modern-button" style="background: linear-gradient(to bottom right, #ffc107, #fd7e14);" disabled>
-              ⏰ Clock Out
-            </button>
+            <i class="fas fa-chevron-down manual-dropdown-arrow"></i>
           </div>
         </div>
       </div>
+    </section>
 
-      <div id="employeeStatus" class="modern-box" style="display: none;">
-        <h4>Employee Status</h4>
-        <div id="statusDetails"></div>
+    <!-- Action Buttons Section -->
+    <section class="manual-actions-section">
+      <div class="manual-clock-actions">
+        <button id="clockInBtn" class="manual-clock-btn clock-in" disabled>
+          <div class="manual-btn-icon">
+            <i class="fas fa-sign-in-alt"></i>
+          </div>
+          <div class="manual-btn-content">
+            <div class="manual-btn-title">Clock In</div>
+            <div class="manual-btn-subtitle">Start work shift</div>
+          </div>
+        </button>
+        <button id="clockOutBtn" class="manual-clock-btn clock-out" disabled>
+          <div class="manual-btn-icon">
+            <i class="fas fa-sign-out-alt"></i>
+          </div>
+          <div class="manual-btn-content">
+            <div class="manual-btn-title">Clock Out</div>
+            <div class="manual-btn-subtitle">End work shift</div>
+          </div>
+        </button>
       </div>
+    </section>
 
-      <div class="recent-activity modern-box">
-        <h4>📋 Recent Manual Clocking Activity</h4>
-        <div id="recentActivityTable">
-          <p class="muted" style="text-align: center; padding: 2rem; color: #999;">No recent activity.</p>
-        </div>
+    <!-- Employee Status Section -->
+    <div id="employeeStatus" class="manual-status-section" style="display: none;">
+      <div class="manual-section-header">
+        <h2 class="manual-section-title">Employee Status</h2>
+      </div>
+      <div class="manual-status-card">
+        <div id="statusDetails" class="manual-status-details"></div>
       </div>
     </div>
-  </section>
+
+    <!-- Recent Activity Section -->
+    <section class="manual-activity-section">
+      <div class="manual-section-header">
+        <h2 class="manual-section-title">Recent Manual Activity</h2>
+      </div>
+      <div class="manual-activity-card">
+        <div id="recentActivityTable">
+          <div class="manual-empty-state">
+            <i class="fas fa-clock"></i>
+            <p>No recent activity</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
 </div>
+
+<!-- Universal Footer -->
+<div id="footerPlaceholder"></div>
+<script>
+  if (!document.getElementById('universalFooter')) {
+    fetch('/components/universal-footer.html')
+      .then(response => response.text())
+      .then(html => {
+        document.getElementById('footerPlaceholder').innerHTML = html;
+      })
+      .catch(error => console.error('Error loading footer:', error));
+  }
+</script>
 <!-- Universal Footer -->
 <div id="footerPlaceholder"></div>
 <script>
