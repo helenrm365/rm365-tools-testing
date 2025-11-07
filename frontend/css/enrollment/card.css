@@ -1,0 +1,729 @@
+/* ===== Enrollment Card Page Styles ===== */
+/* All CSS specific to the enrollment card page */
+/* Universal CSS (app-shell.css, modern-ui.css) is not included */
+
+/* Page Header */
+.enrollment-card .page-header {
+  margin-bottom: 2rem;
+  padding: 2rem 0 1rem 0;
+}
+
+.enrollment-card .header-content {
+  max-width: 800px;
+}
+
+.enrollment-card .page-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
+  color: #2c3e50;
+  background: linear-gradient(135deg, #2c3e50, #76a12b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+html.dark-mode .enrollment-card .page-title {
+  background: linear-gradient(135deg, #ecf0f1, #8bc34a);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.enrollment-card .page-subtitle {
+  font-size: 1.1rem;
+  color: #7f8c8d;
+  margin: 0;
+  font-weight: 400;
+}
+
+html.dark-mode .enrollment-card .page-subtitle {
+  color: #95a5a6;
+}
+
+/* Navigation Tabs */
+.enrollment-card .inner-tabs {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.tab-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  background: white;
+  color: #5a6c7d;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.tab-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  border-color: rgba(118, 161, 43, 0.3);
+}
+
+.tab-button.active {
+  background: linear-gradient(135deg, #76a12b, #5e8122);
+  color: white;
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.4);
+}
+
+html.dark-mode .tab-button {
+  background: #2a2a2a;
+  color: #b0b0b0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+html.dark-mode .tab-button:hover {
+  background: #333;
+  border-color: rgba(118, 161, 43, 0.5);
+}
+
+html.dark-mode .tab-button.active {
+  background: linear-gradient(135deg, #76a12b, #5e8122);
+  color: white;
+}
+
+.tab-button i {
+  font-size: 1.1rem;
+}
+
+.tab-button span {
+  font-weight: 500;
+}
+
+/* Main Wrapper */
+.enrollment-card .card-enrollment-wrapper {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+/* Card Sections */
+.enrollment-card-section {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+
+html.dark-mode .enrollment-card-section {
+  background: #2a2a2a;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Primary Section */
+.enrollment-card .primary-section {
+  padding: 2rem;
+}
+
+/* Action Blocks */
+.enrollment-card .action-block {
+  margin-bottom: 2rem;
+}
+
+.enrollment-card .block-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.enrollment-card .block-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.enrollment-card .scan-icon {
+  background: linear-gradient(135deg, #76a12b, #5e8122);
+  color: white;
+  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.3);
+}
+
+.enrollment-card .assign-icon {
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  color: white;
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+}
+
+html.dark-mode .enrollment-card .scan-icon {
+  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.5);
+}
+
+html.dark-mode .enrollment-card .assign-icon {
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.5);
+}
+
+.enrollment-card .block-title-group {
+  flex: 1;
+}
+
+.enrollment-card .block-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0 0 0.25rem 0;
+}
+
+html.dark-mode .enrollment-card .block-title {
+  color: #ecf0f1;
+}
+
+.enrollment-card .block-subtitle {
+  font-size: 0.95rem;
+  color: #7f8c8d;
+  margin: 0;
+}
+
+html.dark-mode .enrollment-card .block-subtitle {
+  color: #95a5a6;
+}
+
+/* Block Content */
+.enrollment-card .block-content {
+  padding-left: 72px;
+}
+
+/* UID Display */
+.enrollment-card .uid-display-area {
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  border: 2px solid rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+}
+
+html.dark-mode .enrollment-card .uid-display-area {
+  background: linear-gradient(135deg, #1e1e1e, #2a2a2a);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.enrollment-card .uid-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #7f8c8d;
+  margin-bottom: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+html.dark-mode .enrollment-card .uid-label {
+  color: #95a5a6;
+}
+
+.enrollment-card .uid-label i {
+  font-size: 1rem;
+}
+
+.enrollment-card .uid-value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+  color: #2c3e50;
+  padding: 0.75rem 1rem;
+  background: white;
+  border-radius: 8px;
+  border: 2px solid rgba(0, 0, 0, 0.08);
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  transition: all 0.3s ease;
+}
+
+html.dark-mode .enrollment-card .uid-value {
+  background: #1a1a1a;
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #ecf0f1;
+}
+
+.enrollment-card .uid-value.has-value {
+  border-color: #76a12b;
+  box-shadow: 0 0 0 3px rgba(118, 161, 43, 0.1);
+}
+
+html.dark-mode .enrollment-card .uid-value.has-value {
+  border-color: #8bc34a;
+  box-shadow: 0 0 0 3px rgba(139, 195, 74, 0.15);
+}
+
+.enrollment-card .placeholder-text {
+  color: #95a5a6;
+  font-size: 1rem;
+  font-weight: 400;
+}
+
+html.dark-mode .enrollment-card .placeholder-text {
+  color: #7f8c8d;
+}
+
+/* Action Divider */
+.enrollment-card .action-divider {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 2rem 0;
+  padding: 0 72px;
+}
+
+.enrollment-card .divider-line {
+  flex: 1;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.1), transparent);
+}
+
+html.dark-mode .enrollment-card .divider-line {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+}
+
+.enrollment-card .divider-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #7f8c8d;
+  font-size: 0.875rem;
+  border: 2px solid rgba(0, 0, 0, 0.06);
+}
+
+html.dark-mode .enrollment-card .divider-icon {
+  background: linear-gradient(135deg, #2a2a2a, #1e1e1e);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #95a5a6;
+}
+
+/* Employee Select */
+.enrollment-card .employee-select-wrapper {
+  margin-bottom: 1.5rem;
+}
+
+.enrollment-card .select-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #7f8c8d;
+  margin-bottom: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+html.dark-mode .enrollment-card .select-label {
+  color: #95a5a6;
+}
+
+.enrollment-card .custom-select {
+  position: relative;
+}
+
+.enrollment-card .employee-dropdown {
+  width: 100%;
+  padding: 1rem 3rem 1rem 1rem;
+  font-size: 1rem;
+  color: #2c3e50;
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  border: 2px solid rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+  appearance: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 500;
+}
+
+.enrollment-card .employee-dropdown:hover {
+  border-color: rgba(118, 161, 43, 0.3);
+  background: white;
+}
+
+.enrollment-card .employee-dropdown:focus {
+  outline: none;
+  border-color: #76a12b;
+  box-shadow: 0 0 0 3px rgba(118, 161, 43, 0.1);
+  background: white;
+}
+
+html.dark-mode .enrollment-card .employee-dropdown {
+  background: linear-gradient(135deg, #1e1e1e, #2a2a2a);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #ecf0f1;
+}
+
+html.dark-mode .enrollment-card .employee-dropdown:hover {
+  border-color: rgba(139, 195, 74, 0.3);
+  background: #1a1a1a;
+}
+
+html.dark-mode .enrollment-card .employee-dropdown:focus {
+  border-color: #8bc34a;
+  box-shadow: 0 0 0 3px rgba(139, 195, 74, 0.15);
+  background: #1a1a1a;
+}
+
+.enrollment-card .dropdown-arrow {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #7f8c8d;
+  pointer-events: none;
+  font-size: 0.875rem;
+}
+
+html.dark-mode .enrollment-card .dropdown-arrow {
+  color: #95a5a6;
+}
+
+/* Action Buttons */
+.enrollment-card .action-btn {
+  width: 100%;
+  padding: 1rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.enrollment-card .action-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.enrollment-card .action-btn:active {
+  transform: translateY(0);
+}
+
+.enrollment-card .action-btn i {
+  font-size: 1.125rem;
+}
+
+.enrollment-card .scan-btn {
+  background: linear-gradient(135deg, #76a12b, #5e8122);
+  color: white;
+}
+
+.enrollment-card .scan-btn:hover {
+  background: linear-gradient(135deg, #8bc34a, #76a12b);
+  box-shadow: 0 4px 16px rgba(118, 161, 43, 0.4);
+}
+
+.enrollment-card .save-btn {
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  color: white;
+}
+
+.enrollment-card .save-btn:hover {
+  background: linear-gradient(135deg, #5dade2, #3498db);
+  box-shadow: 0 4px 16px rgba(52, 152, 219, 0.4);
+}
+
+.enrollment-card .action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+/* Status Bar */
+.enrollment-card .status-bar {
+  margin-top: 2rem;
+  padding: 1rem 1.5rem;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.enrollment-card .status-bar[data-status="ready"] {
+  background: linear-gradient(135deg, rgba(52, 152, 219, 0.1), rgba(41, 128, 185, 0.05));
+  border: 2px solid rgba(52, 152, 219, 0.2);
+  color: #2980b9;
+}
+
+.enrollment-card .status-bar[data-status="scanning"] {
+  background: linear-gradient(135deg, rgba(241, 196, 15, 0.1), rgba(243, 156, 18, 0.05));
+  border: 2px solid rgba(241, 196, 15, 0.3);
+  color: #f39c12;
+}
+
+.enrollment-card .status-bar[data-status="success"] {
+  background: linear-gradient(135deg, rgba(118, 161, 43, 0.1), rgba(94, 129, 34, 0.05));
+  border: 2px solid rgba(118, 161, 43, 0.3);
+  color: #5e8122;
+}
+
+.enrollment-card .status-bar[data-status="error"] {
+  background: linear-gradient(135deg, rgba(231, 76, 60, 0.1), rgba(192, 57, 43, 0.05));
+  border: 2px solid rgba(231, 76, 60, 0.3);
+  color: #c0392b;
+}
+
+html.dark-mode .enrollment-card .status-bar[data-status="ready"] {
+  background: linear-gradient(135deg, rgba(52, 152, 219, 0.15), rgba(41, 128, 185, 0.08));
+  border-color: rgba(52, 152, 219, 0.3);
+  color: #5dade2;
+}
+
+html.dark-mode .enrollment-card .status-bar[data-status="scanning"] {
+  background: linear-gradient(135deg, rgba(241, 196, 15, 0.15), rgba(243, 156, 18, 0.08));
+  border-color: rgba(241, 196, 15, 0.4);
+  color: #f1c40f;
+}
+
+html.dark-mode .enrollment-card .status-bar[data-status="success"] {
+  background: linear-gradient(135deg, rgba(139, 195, 74, 0.15), rgba(118, 161, 43, 0.08));
+  border-color: rgba(139, 195, 74, 0.3);
+  color: #8bc34a;
+}
+
+html.dark-mode .enrollment-card .status-bar[data-status="error"] {
+  background: linear-gradient(135deg, rgba(231, 76, 60, 0.15), rgba(192, 57, 43, 0.08));
+  border-color: rgba(231, 76, 60, 0.4);
+  color: #e74c3c;
+}
+
+.enrollment-card .status-icon {
+  font-size: 0.625rem;
+}
+
+.enrollment-card .status-bar[data-status="scanning"] .status-icon {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* Instructions Card */
+.enrollment-card .instructions-card {
+  padding: 2rem;
+}
+
+.enrollment-card .instructions-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.enrollment-card .instructions-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #f39c12, #e67e22);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  box-shadow: 0 4px 12px rgba(243, 156, 18, 0.3);
+}
+
+html.dark-mode .enrollment-card .instructions-icon {
+  box-shadow: 0 4px 12px rgba(243, 156, 18, 0.5);
+}
+
+.enrollment-card .instructions-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0;
+}
+
+html.dark-mode .enrollment-card .instructions-title {
+  color: #ecf0f1;
+}
+
+/* Steps List */
+.enrollment-card .steps-list {
+  margin-bottom: 2rem;
+}
+
+.enrollment-card .step-item {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.enrollment-card .step-item:last-child {
+  border-bottom: none;
+}
+
+html.dark-mode .enrollment-card .step-item {
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+.enrollment-card .step-number {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #76a12b, #5e8122);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1rem;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(118, 161, 43, 0.3);
+}
+
+html.dark-mode .enrollment-card .step-number {
+  box-shadow: 0 2px 8px rgba(118, 161, 43, 0.5);
+}
+
+.enrollment-card .step-info {
+  flex: 1;
+}
+
+.enrollment-card .step-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0 0 0.25rem 0;
+}
+
+html.dark-mode .enrollment-card .step-name {
+  color: #ecf0f1;
+}
+
+.enrollment-card .step-desc {
+  font-size: 0.9rem;
+  color: #7f8c8d;
+  margin: 0;
+  line-height: 1.5;
+}
+
+html.dark-mode .enrollment-card .step-desc {
+  color: #95a5a6;
+}
+
+/* Tips Section */
+.enrollment-card .tips-section {
+  padding: 1.5rem;
+  background: linear-gradient(135deg, rgba(52, 152, 219, 0.1), rgba(41, 128, 185, 0.05));
+  border-radius: 12px;
+  border: 2px solid rgba(52, 152, 219, 0.2);
+}
+
+html.dark-mode .enrollment-card .tips-section {
+  background: linear-gradient(135deg, rgba(52, 152, 219, 0.15), rgba(41, 128, 185, 0.08));
+  border-color: rgba(52, 152, 219, 0.3);
+}
+
+.enrollment-card .tip-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.9rem;
+  color: #2980b9;
+  margin-bottom: 0.75rem;
+  line-height: 1.5;
+}
+
+.enrollment-card .tip-item:last-child {
+  margin-bottom: 0;
+}
+
+html.dark-mode .enrollment-card .tip-item {
+  color: #5dade2;
+}
+
+.enrollment-card .tip-item i {
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+/* Responsive */
+@media (max-width: 968px) {
+  .enrollment-card .card-enrollment-wrapper {
+    grid-template-columns: 1fr;
+  }
+
+  .enrollment-card .instructions-card {
+    order: -1;
+  }
+}
+
+@media (max-width: 768px) {
+  .enrollment-card .primary-section,
+  .enrollment-card .instructions-card {
+    padding: 1.5rem;
+  }
+
+  .enrollment-card .block-content {
+    padding-left: 0;
+  }
+
+  .enrollment-card .action-divider {
+    padding: 0;
+  }
+
+  .enrollment-card .block-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .enrollment-card .block-icon {
+    width: 48px;
+    height: 48px;
+    font-size: 1.25rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .enrollment-card .page-header {
+    padding: 1rem 0 0.5rem 0;
+  }
+
+  .enrollment-card .page-title {
+    font-size: 1.75rem;
+  }
+
+  .tab-button {
+    padding: 0.65rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  .tab-button i {
+    font-size: 1rem;
+  }
+}
