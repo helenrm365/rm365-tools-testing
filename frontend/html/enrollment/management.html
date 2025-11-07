@@ -10,60 +10,70 @@
 
   <!-- Navigation Tabs -->
   <div class="inner-tabs">
-    <button class="tab-button active" data-nav onclick="location.href='/enrollment/management'">
-      <span class="tab-icon">👥</span>
-      <span class="tab-label">Management</span>
+    <button class="tab-button active" onclick="location.href='/enrollment/management'">
+      <i class="fas fa-users"></i>
+      <span>Management</span>
     </button>
-    <button class="tab-button" data-nav onclick="location.href='/enrollment/card'">
-      <span class="tab-icon">💳</span>
-      <span class="tab-label">Card</span>
+    <button class="tab-button" onclick="location.href='/enrollment/card'">
+      <i class="fas fa-id-card"></i>
+      <span>Card</span>
     </button>
-    <button class="tab-button" data-nav onclick="location.href='/enrollment/fingerprint'">
-      <span class="tab-icon">👆</span>
-      <span class="tab-label">Fingerprint</span>
+    <button class="tab-button" onclick="location.href='/enrollment/fingerprint'">
+      <i class="fas fa-fingerprint"></i>
+      <span>Fingerprint</span>
     </button>
   </div>
   
   <!-- Main Content -->
-  <div class="management-container">
-    <!-- Toolbar -->
-    <div class="management-toolbar">
-      <div class="toolbar-left">
-        <button class="btn-primary" id="enrCreateBtn">
-          <span class="btn-icon">➕</span>
-          <span>New Employee</span>
-        </button>
-        <button class="btn-danger" id="enrBulkDeleteBtn">
-          <span class="btn-icon">🗑️</span>
-          <span>Delete Selected</span>
-        </button>
-      </div>
-      <div class="toolbar-right">
-        <div class="search-container">
-          <span class="search-icon">🔍</span>
-          <input type="text" id="employeeSearch" class="search-input" placeholder="Search employees...">
+  <div class="management-wrapper">
+    <!-- Main Section -->
+    <div class="management-main-section">
+      <!-- Toolbar -->
+      <div class="management-toolbar">
+        <div class="toolbar-actions">
+          <button class="action-btn primary-btn" id="enrCreateBtn">
+            <i class="fas fa-plus"></i>
+            <span>New Employee</span>
+          </button>
+          <button class="action-btn danger-btn" id="enrBulkDeleteBtn">
+            <i class="fas fa-trash-alt"></i>
+            <span>Delete Selected</span>
+          </button>
         </div>
-        <div class="filter-group">
-          <select id="statusFilter" class="filter-select">
-            <option value="">All Status</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select>
-          <select id="locationFilter" class="filter-select">
-            <option value="">All Locations</option>
-            <option value="UK">UK</option>
-            <option value="FR">France</option>
-          </select>
+        
+        <div class="toolbar-filters">
+          <div class="search-box">
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" id="employeeSearch" class="search-input" placeholder="Search employees...">
+          </div>
+          <div class="filter-controls">
+            <div class="filter-item">
+              <i class="fas fa-filter"></i>
+              <select id="statusFilter" class="filter-select">
+                <option value="">All Status</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+            <div class="filter-item">
+              <i class="fas fa-map-marker-alt"></i>
+              <select id="locationFilter" class="filter-select">
+                <option value="">All Locations</option>
+                <option value="UK">UK</option>
+                <option value="FR">France</option>
+              </select>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- Employee Grid -->
-    <div id="enrEmployeeGrid" class="employee-grid">
-      <!-- Your JS will render the employee cards here -->
-      <div class="loading-state">
-        <div class="loading-spinner"></div>
-        <p>Loading employees...</p>
+      <!-- Employee Grid -->
+      <div id="enrEmployeeGrid" class="employee-grid">
+        <!-- Your JS will render the employee cards here -->
+        <div class="loading-state">
+          <div class="loading-spinner"></div>
+          <p>Loading employees...</p>
+        </div>
       </div>
     </div>
   </div>
@@ -73,23 +83,37 @@
 <div id="createEmployeeModal" class="modal-overlay">
   <div class="modal-content">
     <div class="modal-header">
-      <h3 class="modal-title">➕ Create New Employee</h3>
-      <button class="modal-close" id="closeModal">&times;</button>
+      <div class="modal-header-icon">
+        <i class="fas fa-user-plus"></i>
+      </div>
+      <h3 class="modal-title">Create New Employee</h3>
+      <button class="modal-close" id="closeModal">
+        <i class="fas fa-times"></i>
+      </button>
     </div>
     <div class="modal-body">
       <div class="form-group">
-        <label class="form-label" for="employeeName">Employee Name *</label>
+        <label class="form-label" for="employeeName">
+          <i class="fas fa-user"></i>
+          <span>Employee Name *</span>
+        </label>
         <input type="text" id="employeeName" class="form-input" placeholder="Enter full name" required>
       </div>
       <div class="form-group">
-        <label class="form-label" for="employeeLocation">Location *</label>
+        <label class="form-label" for="employeeLocation">
+          <i class="fas fa-map-marker-alt"></i>
+          <span>Location *</span>
+        </label>
         <select id="employeeLocation" class="form-input">
           <option value="UK">United Kingdom (UK)</option>
           <option value="FR">France (FR)</option>
         </select>
       </div>
       <div class="form-group">
-        <label class="form-label" for="employeeStatus">Status</label>
+        <label class="form-label" for="employeeStatus">
+          <i class="fas fa-toggle-on"></i>
+          <span>Status</span>
+        </label>
         <select id="employeeStatus" class="form-input">
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>
@@ -97,8 +121,14 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn-secondary" id="cancelCreate">Cancel</button>
-      <button class="btn-primary" id="confirmCreate">Create Employee</button>
+      <button class="btn-secondary" id="cancelCreate">
+        <i class="fas fa-times"></i>
+        <span>Cancel</span>
+      </button>
+      <button class="btn-primary" id="confirmCreate">
+        <i class="fas fa-check"></i>
+        <span>Create Employee</span>
+      </button>
     </div>
   </div>
 </div>
