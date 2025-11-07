@@ -19,38 +19,91 @@ function fillEmployeeSelect() {
 
 async function onScan() {
   const status = $('#cardStatus');
+  const statusText = status?.querySelector('.status-message');
+  const uidDisplay = $('#cardUidDisplay');
   const uidBox = $('#cardUid');
-  status.textContent = '🕐 Waiting for card tap...';
-  uidBox.value = '';
+  
+  if (statusText) statusText.textContent = 'Waiting for card tap...';
+  if (status) status.setAttribute('data-status', 'scanning');
+  if (uidDisplay) {
+    uidDisplay.innerHTML = '<span class="placeholder-text">Scanning...</span>';
+    uidDisplay.classList.remove('has-value');
+  }
+  if (uidBox) uidBox.value = '';
 
   try {
     const res = await scanCard();
     if (res.status === 'scanned' && res.uid) {
       cache.scannedUid = res.uid;
-      uidBox.value = res.uid;
-      status.textContent = '✅ UID scanned';
+      if (uidBox) uidBox.value = res.uid;
+      if (uidDisplay) {
+        uidDisplay.textContent = res.uid;
+        uidDisplay.classList.add('has-value');
+      }
+      if (statusText) statusText.textContent = 'Card scanned successfully';
+      if (status) status.setAttribute('data-status', 'success');
     } else {
-      status.textContent = `❌ ${res.detail || 'Failed to read card UID'}`;
+      if (uidDisplay) {
+        uidDisplay.innerHTML = '<span class="placeholder-text">No card scanned yet</span>';
+        uidDisplay.classList.remove('has-value');
+      }
+      if (statusText) statusText.textContent = res.detail || 'Failed to read card UID';
+      if (status) status.setAttribute('data-status', 'error');
     }
   } catch (e) {
-    status.textContent = '❌ ' + e.message;
+    if (uidDisplay) {
+      uidDisplay.innerHTML = '<span class="placeholder-text">No card scanned yet</span>';
+      uidDisplay.classList.remove('has-value');
+    }
+    if (statusText) statusText.textContent = e.message;
+    if (status) status.setAttribute('data-status', 'error');
   }
 }
 
 async function onSave() {
   const status = $('#cardStatus');
+  const statusText = status?.querySelector('.status-message');
   const empId = Number($('#cardEmployee')?.value || 0);
-  if (!empId) { status.textContent = '❌ Select an employee first'; return; }
-  if (!cache.scannedUid) { status.textContent = '❌ Scan a card first'; return; }
+  
+  if (!empId) { 
+    if (statusText) statusText.textContent = 'Please select an employee first';
+    if (status) status.setAttribute('data-status', 'error');
+    return;
+  }
+  if (!cache.scannedUid) { 
+    if (statusText) statusText.textContent = 'Please scan a card first';
+    if (status) status.setAttribute('data-status', 'error');
+    return;
+  }
+
+  if (statusText) statusText.textContent = 'Saving assignment...';
+  if (status) status.setAttribute('data-status', 'scanning');
 
   try {
     await saveCard(empId, cache.scannedUid);
-    status.textContent = '✅ UID saved to employee';
+    if (statusText) statusText.textContent = 'Card successfully assigned to employee';
+    if (status) status.setAttribute('data-status', 'success');
     cache.scannedUid = null;
-    $('#cardUid').value = '';
+    
+    const uidDisplay = $('#cardUidDisplay');
+    const uidBox = $('#cardUid');
+    if (uidDisplay) {
+      uidDisplay.innerHTML = '<span class="placeholder-text">No card scanned yet</span>';
+      uidDisplay.classList.remove('has-value');
+    }
+    if (uidBox) uidBox.value = '';
+    
+    $('#cardEmployee').value = '';
     window.dispatchEvent(new Event('reloadEmployees'));
+    
+    // Reset to ready after 3 seconds
+    setTimeout(() => {
+      if (statusText) statusText.textContent = 'Ready to scan';
+      if (status) status.setAttribute('data-status', 'ready');
+    }, 3000);
   } catch (e) {
-    status.textContent = '❌ ' + e.message;
+    if (statusText) statusText.textContent = e.message;
+    if (status) status.setAttribute('data-status', 'error');
   }
 }
 

@@ -1,55 +1,170 @@
 <!-- Card Enrollment Page -->
 <div class="enrollment-card">
-  <h2>Card Enrollment</h2>
-  <div class="inner-tabs" style="margin-bottom: 1.5rem; display: flex; gap: 0.5rem;">
-    <button class="modern-button" data-nav onclick="location.href='/enrollment/management'">Management</button>
-    <button class="modern-button active" data-nav onclick="location.href='/enrollment/card'">Card</button>
-    <button class="modern-button" data-nav onclick="location.href='/enrollment/fingerprint'">Fingerprint</button>
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <h1 class="page-title">Card Enrollment</h1>
+      <p class="page-subtitle">Register RFID cards and assign them to employees</p>
+    </div>
   </div>
-  
-  <section class="card">
-    <div class="card-header">
-      <h3>💳 RFID Card Registration</h3>
-    </div>
-    <div class="card-body">
-      <p>Scan an RFID card and assign it to an employee for access control.</p>
-      
-      <div class="modern-box">
-        <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
-          <button class="modern-button" id="scanCardBtn">🔍 Scan Card</button>
-          <input type="text" id="cardUid" class="modern-input" placeholder="Card UID will appear here..." readonly style="flex: 1;">
+
+  <!-- Navigation Tabs -->
+  <div class="inner-tabs">
+    <button class="tab-button" onclick="location.href='/enrollment/management'">
+      <i class="fas fa-users"></i>
+      <span>Management</span>
+    </button>
+    <button class="tab-button active" onclick="location.href='/enrollment/card'">
+      <i class="fas fa-id-card"></i>
+      <span>Card</span>
+    </button>
+    <button class="tab-button" onclick="location.href='/enrollment/fingerprint'">
+      <i class="fas fa-fingerprint"></i>
+      <span>Fingerprint</span>
+    </button>
+  </div>
+
+  <!-- Main Content -->
+  <div class="card-enrollment-wrapper">
+    <!-- Primary Actions Card -->
+    <div class="enrollment-card-section primary-section">
+      <!-- Scan Card Area -->
+      <div class="action-block scan-block">
+        <div class="block-header">
+          <div class="block-icon scan-icon">
+            <i class="fas fa-credit-card"></i>
+          </div>
+          <div class="block-title-group">
+            <h3 class="block-title">Scan RFID Card</h3>
+            <p class="block-subtitle">Hold card near the reader</p>
+          </div>
         </div>
-        
-        <div style="margin-bottom: 1rem;">
-          <label for="cardEmployee" style="display: block; margin-bottom: 0.5rem; font-weight: bold;">Select Employee:</label>
-          <select id="cardEmployee" class="modern-select" data-enhance="c-select" style="width: 100%; max-width: 300px;">
-            <option value="">Loading employees...</option>
-          </select>
-        </div>
-        
-        <div style="margin-bottom: 1rem;">
-          <button class="modern-button" id="saveCardBtn">💾 Save UID to Employee</button>
-        </div>
-        
-        <div style="padding: 1rem; background: rgba(0,0,0,0.05); border-radius: 8px;">
-          <strong>Status:</strong>
-          <span id="cardStatus" style="margin-left: 0.5rem;">Ready to scan</span>
+
+        <div class="block-content">
+          <div class="uid-display-area">
+            <div class="uid-label">
+              <i class="fas fa-barcode"></i>
+              <span>Card UID</span>
+            </div>
+            <div class="uid-value" id="cardUidDisplay">
+              <span class="placeholder-text">No card scanned yet</span>
+            </div>
+            <input type="hidden" id="cardUid">
+          </div>
+
+          <button class="action-btn scan-btn" id="scanCardBtn">
+            <i class="fas fa-search"></i>
+            <span>Scan Card</span>
+          </button>
         </div>
       </div>
-      
-      <div class="instructions" style="margin-top: 2rem; padding: 1rem; background: rgba(0,123,255,0.1); border-radius: 8px;">
-        <h4>Instructions:</h4>
-        <ol>
-          <li>Click <strong>"Scan Card"</strong> button</li>
-          <li>Hold the RFID card near the reader</li>
-          <li>Wait for the UID to appear in the text box</li>
-          <li>Select the employee from the dropdown</li>
-          <li>Click <strong>"Save UID to Employee"</strong></li>
-        </ol>
+
+      <!-- Divider -->
+      <div class="action-divider">
+        <div class="divider-line"></div>
+        <div class="divider-icon">
+          <i class="fas fa-arrow-down"></i>
+        </div>
+        <div class="divider-line"></div>
+      </div>
+
+      <!-- Assign Employee Area -->
+      <div class="action-block assign-block">
+        <div class="block-header">
+          <div class="block-icon assign-icon">
+            <i class="fas fa-user-tag"></i>
+          </div>
+          <div class="block-title-group">
+            <h3 class="block-title">Assign to Employee</h3>
+            <p class="block-subtitle">Link card to team member</p>
+          </div>
+        </div>
+
+        <div class="block-content">
+          <div class="employee-select-wrapper">
+            <label for="cardEmployee" class="select-label">
+              <i class="fas fa-user"></i>
+              <span>Employee</span>
+            </label>
+            <div class="custom-select">
+              <select id="cardEmployee" class="employee-dropdown">
+                <option value="">Loading employees...</option>
+              </select>
+              <i class="fas fa-chevron-down dropdown-arrow"></i>
+            </div>
+          </div>
+
+          <button class="action-btn save-btn" id="saveCardBtn">
+            <i class="fas fa-check-circle"></i>
+            <span>Save Assignment</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Status Bar -->
+      <div class="status-bar" id="cardStatus" data-status="ready">
+        <i class="fas fa-circle status-icon"></i>
+        <span class="status-message">Ready to scan</span>
       </div>
     </div>
-  </section>
+
+    <!-- Instructions Card -->
+    <div class="enrollment-card-section instructions-card">
+      <div class="instructions-header">
+        <div class="instructions-icon">
+          <i class="fas fa-lightbulb"></i>
+        </div>
+        <h3 class="instructions-title">Quick Guide</h3>
+      </div>
+
+      <div class="steps-list">
+        <div class="step-item">
+          <div class="step-number">1</div>
+          <div class="step-info">
+            <h4 class="step-name">Scan Card</h4>
+            <p class="step-desc">Click "Scan Card" and hold RFID card near reader</p>
+          </div>
+        </div>
+
+        <div class="step-item">
+          <div class="step-number">2</div>
+          <div class="step-info">
+            <h4 class="step-name">Verify UID</h4>
+            <p class="step-desc">Card's unique ID will appear above</p>
+          </div>
+        </div>
+
+        <div class="step-item">
+          <div class="step-number">3</div>
+          <div class="step-info">
+            <h4 class="step-name">Select Employee</h4>
+            <p class="step-desc">Choose team member from dropdown</p>
+          </div>
+        </div>
+
+        <div class="step-item">
+          <div class="step-number">4</div>
+          <div class="step-info">
+            <h4 class="step-name">Save</h4>
+            <p class="step-desc">Click "Save Assignment" to complete</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="tips-section">
+        <div class="tip-item">
+          <i class="fas fa-info-circle"></i>
+          <span>Card must be within 2-3cm of reader</span>
+        </div>
+        <div class="tip-item">
+          <i class="fas fa-check"></i>
+          <span>Each card can only be assigned to one employee</span>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
+
 <!-- Universal Footer -->
 <div id="footerPlaceholder"></div>
 <script>
