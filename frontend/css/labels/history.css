@@ -55,6 +55,172 @@ html.dark-mode .labels-history .page-subtitle {
   }
 }
 
+/* ===== History Controls ===== */
+.labels-history .history-controls {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 2px solid #f1f5f9;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+html.dark-mode .labels-history .history-controls {
+  background: #2a2a2a;
+  border-color: #404040;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.labels-history .controls-group {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.labels-history .control-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.labels-history .control-label {
+  font-weight: 600;
+  color: #374151;
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+html.dark-mode .labels-history .control-label {
+  color: #e5e7eb;
+}
+
+.labels-history .control-select {
+  padding: 0.75rem 1rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  background: white;
+  color: #374151;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 140px;
+}
+
+html.dark-mode .labels-history .control-select {
+  background: #1e1e1e;
+  border-color: #404040;
+  color: #e5e7eb;
+}
+
+.labels-history .control-select:focus {
+  outline: none;
+  border-color: #76a12b;
+  box-shadow: 0 0 0 3px rgba(118, 161, 43, 0.1);
+}
+
+.labels-history .control-select:hover {
+  border-color: #cbd5e1;
+}
+
+html.dark-mode .labels-history .control-select:hover {
+  border-color: #555;
+}
+
+.labels-history .filter-button {
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #76a12b, #5e8122);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.labels-history .filter-button:hover {
+  background: linear-gradient(135deg, #8bc34a, #76a12b);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.4);
+}
+
+.labels-history .filter-button.secondary {
+  background: linear-gradient(135deg, #6b7280, #4b5563);
+}
+
+.labels-history .filter-button.secondary:hover {
+  background: linear-gradient(135deg, #9ca3af, #6b7280);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
+}
+
+/* ===== History Table Container ===== */
+.labels-history .history-table-container {
+  background: white;
+  border-radius: 12px;
+  border: 2px solid #f1f5f9;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  margin-bottom: 2rem;
+}
+
+html.dark-mode .labels-history .history-table-container {
+  background: #2a2a2a;
+  border-color: #404040;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+}
+
+.labels-history .loading-message {
+  text-align: center;
+  padding: 3rem;
+  color: #7f8c8d;
+}
+
+html.dark-mode .labels-history .loading-message {
+  color: #95a5a6;
+}
+
+.labels-history .loading-message i {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.labels-history .loading-message p {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+/* ===== History Details ===== */
+.labels-history .history-details {
+  background: white;
+  border-radius: 12px;
+  border: 2px solid #f1f5f9;
+  padding: 1.5rem;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+html.dark-mode .labels-history .history-details {
+  background: #2a2a2a;
+  border-color: #404040;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+}
+
+.labels-history .history-details h4 {
+  color: #2c3e50;
+  margin: 0 0 1rem 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+html.dark-mode .labels-history .history-details h4 {
+  color: #ecf0f1;
+}
+
 /* ===== History Table ===== */
 .labels-history .history-table {
   background: white;
@@ -70,15 +236,23 @@ html.dark-mode .labels-history .history-table {
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
 }
 
-.labels-history .history-controls {
-  background: #f8fafc;
-  padding: 1rem;
-  border-radius: 8px;
-  border: 2px solid #e2e8f0;
-  margin-bottom: 1.5rem;
-}
-
-html.dark-mode .labels-history .history-controls {
-  background: #1e1e1e;
-  border-color: #404040;
+/* ===== Responsive Design ===== */
+@media (max-width: 768px) {
+  .labels-history .controls-group {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+  
+  .labels-history .control-item {
+    justify-content: space-between;
+  }
+  
+  .labels-history .control-select {
+    min-width: 120px;
+  }
+  
+  .labels-history .filter-button {
+    justify-content: center;
+  }
 }

@@ -121,10 +121,7 @@ async function loadProducts() {
   } catch (error) {
     console.error('[Labels] Error loading products:', error);
     if (loadingEl) loadingEl.style.display = 'none';
-    if (errorEl) {
-      errorEl.style.display = 'block';
-      errorEl.textContent = `Failed to load products: ${error.message}`;
-    }
+    // Only show toast, no error banner
     showToast('Failed to load products: ' + error.message, 'error');
   }
 }
@@ -146,13 +143,6 @@ function setupEventListeners() {
   const deselectAllBtn = document.querySelector('#deselectAllBtn');
   if (deselectAllBtn) {
     deselectAllBtn.addEventListener('click', handleDeselectAll);
-  }
-  
-  // Line date input
-  const lineDateInput = document.querySelector('#lineDateInput');
-  if (lineDateInput) {
-    // Set default to today
-    lineDateInput.value = new Date().toISOString().split('T')[0];
   }
   
   // Generate PDF button
@@ -338,9 +328,6 @@ async function handleGeneratePdf() {
     return;
   }
   
-  const lineDateInput = document.querySelector('#lineDateInput');
-  const lineDate = lineDateInput ? lineDateInput.value : null;
-  
   const generatePdfBtn = document.querySelector('#generatePdfBtn');
   if (generatePdfBtn) {
     generatePdfBtn.disabled = true;
@@ -350,7 +337,6 @@ async function handleGeneratePdf() {
   try {
     // Create print job with selected item IDs
     const payload = {
-      line_date: lineDate || undefined,
       created_by: 'user@example.com', // TODO: Get from session
       item_ids: Array.from(state.selectedProducts)
     };
