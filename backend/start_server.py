@@ -34,13 +34,15 @@ try:
     import uvicorn
     
     print("✅ App module imported successfully")
-    print("🚀 Starting server on http://127.0.0.1:8000")
-    
-    # Start the server
+    host = os.getenv("HOST", "0.0.0.0")
+    port = int(os.getenv("PORT", "8000"))
+    print(f"🚀 Starting server on http://{host}:{port}")
+
+    # Start the server (Railway injects PORT env var)
     uvicorn.run(
         "app:app",  # Import string instead of app instance for reload
-        host="127.0.0.1",
-        port=8000,
+        host=host,
+        port=port,
         reload=False,  # Disable reload to avoid the warning
         log_level="info"
     )
