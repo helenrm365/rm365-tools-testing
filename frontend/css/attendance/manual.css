@@ -35,7 +35,7 @@ html.dark-mode .attendance-manual .manual-page-subtitle {
   color: #95a5a6;
 }
 
-/* Navigation Tabs */
+/* Navigation Tabs - Fixed to match other attendance pages */
 .attendance-manual .manual-inner-tabs {
   display: flex;
   gap: 1rem;
