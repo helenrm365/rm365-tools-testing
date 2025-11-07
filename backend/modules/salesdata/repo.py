@@ -91,8 +91,6 @@ class SalesDataRepo:
                 
                 if not exists:
                     # Create the table with the required columns
-                    # Set default currency based on region
-                    default_currency = 'GBP' if 'uk' in table_name else 'EUR'
                     create_table_sql = f"""
                         CREATE TABLE {table_name} (
                             id SERIAL PRIMARY KEY,
@@ -103,8 +101,8 @@ class SalesDataRepo:
                             qty INTEGER NOT NULL,
                             price DECIMAL(10, 2) NOT NULL,
                             status VARCHAR(100) NOT NULL,
-                            customer_group VARCHAR(255) DEFAULT 'Standard',
-                            currency VARCHAR(10) DEFAULT '{default_currency}',
+                            customer_group VARCHAR(255),
+                            currency VARCHAR(10),
                             imported_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                         )
@@ -332,11 +330,8 @@ class SalesDataRepo:
                     status = row[6].strip() if len(row) > 6 else ''
                     
                     # New optional columns
-                    customer_group = row[7].strip() if len(row) > 7 and row[7].strip() else 'Standard'
-                    
-                    # Set default currency based on region
-                    default_currency = 'GBP' if 'uk' in table_name else 'EUR'
-                    currency = row[8].strip() if len(row) > 8 and row[8].strip() else default_currency
+                    customer_group = row[7].strip() if len(row) > 7 and row[7].strip() else None
+                    currency = row[8].strip() if len(row) > 8 and row[8].strip() else None
                     
                     # Validate required fields
                     if not order_number or not sku:

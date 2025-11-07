@@ -199,8 +199,8 @@ function displaySalesData(data, totalCount) {
       <td>${row.qty || 0}</td>
       <td>€${parseFloat(row.price || 0).toFixed(2)}</td>
       <td>${escapeHtml(row.status || '')}</td>
-      <td>${escapeHtml(row.customer_group || 'Standard')}</td>
-      <td>${escapeHtml(row.currency || 'EUR')}</td>
+      <td>${escapeHtml(row.customer_group || '')}</td>
+      <td>${escapeHtml(row.currency || '')}</td>
       <td>${formatDateTime(row.imported_at)}</td>
       <td>${formatDateTime(row.updated_at)}</td>
     </tr>
