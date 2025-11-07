@@ -143,8 +143,10 @@ app.add_middleware(
     allow_origins=allow_origins,
     allow_origin_regex=allow_origin_regex,
     allow_credentials=False,
-    allow_methods=['*'],
+    allow_methods=['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allow_headers=['*'],
+    expose_headers=['*'],
+    max_age=3600,  # Cache preflight for 1 hour
 )
 
 # --- Middleware & error handlers ---------------------------------------------
@@ -155,6 +157,12 @@ install_handlers(app)     # AppError → JSON
 @app.get('/api/health')
 def health():
     return {'status': 'ok', 'uptime': round(time.time() - BOOT_T0, 2)}
+
+@app.options('/api/health')
+@app.options('/api/v1/{full_path:path}')
+async def options_handler():
+    """Explicit OPTIONS handler for CORS preflight"""
+    return {'status': 'ok'}
 
 @app.get('/api/cors-test')
 def cors_test():
