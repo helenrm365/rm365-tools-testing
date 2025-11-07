@@ -9,14 +9,15 @@ let state = {
   query: '',
   status: '',
   location: '',
+  selectedIds: new Set(),
 };
 
 function $(sel) { return document.querySelector(sel); }
 function $all(sel) { return Array.from(document.querySelectorAll(sel)); }
 
 function renderTable() {
-  const wrap = $('#enrTableWrap');
-  if (!wrap) return;
+  const grid = $('#enrEmployeeGrid');
+  if (!grid) return;
 
   const rows = state.employees
     .filter(e => !state.status || (e.status || 'active').toLowerCase() === state.status)
@@ -29,129 +30,192 @@ function renderTable() {
     });
 
   if (!rows.length) {
-    wrap.innerHTML = '<p class="muted" style="text-align: center; padding: 2rem; color: #999;">No employees found.</p>';
+    grid.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">📭</div>
+        <h3>No employees found</h3>
+        <p>Try adjusting your filters or create a new employee</p>
+      </div>`;
     return;
   }
 
-  wrap.innerHTML = `
-    <table class="grid modern-table" style="width: 100%; border-collapse: collapse; table-layout: fixed;">
-      <thead>
-        <tr style="background: rgba(0,0,0,0.05); border-bottom: 2px solid #ddd;">
-          <th style="padding: 12px 8px; text-align: left; width: 40px;"><input type="checkbox" id="bulkSelAll"></th>
-          <th style="padding: 12px 8px; text-align: left; width: 150px;">Name</th>
-          <th style="padding: 12px 8px; text-align: left; width: 80px;">Code</th>
-          <th style="padding: 12px 8px; text-align: left; width: 90px;">Location</th>
-          <th style="padding: 12px 8px; text-align: left; width: 100px;">Status</th>
-          <th style="padding: 12px 8px; text-align: left; width: 120px;">Card UID</th>
-          <th style="padding: 12px 8px; text-align: center; width: 80px;">Fingerprint</th>
-          <th style="padding: 12px 8px; text-align: center; width: 130px;">Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${rows.map(e => `
-          <tr data-id="${e.id}" style="border-bottom: 1px solid #eee;">
-            <td style="padding: 8px; width: 40px;"><input type="checkbox" class="sel"></td>
-            <td style="padding: 8px; width: 150px;"><input class="modern-input in name" value="${e.name || ''}" style="width: 100%; max-width: 140px; font-size: 0.9rem;"></td>
-            <td style="padding: 8px; width: 80px;"><input class="modern-input in code employee-code-input" value="${e.employee_code || ''}" disabled style="width: 100%; max-width: 70px; font-size: 0.85rem;"></td>
-            <td style="padding: 8px; width: 90px;">
-              <select class="modern-input in location" style="width: 100%; max-width: 80px; font-size: 0.85rem;">
-                <option ${e.location === 'UK' ? 'selected' : ''} value="UK">UK</option>
-                <option ${e.location === 'FR' ? 'selected' : ''} value="FR">FR</option>
-              </select>
-            </td>
-            <td style="padding: 8px; width: 100px;">
-              <select class="modern-input in status" style="width: 100%; max-width: 90px; font-size: 0.85rem;">
-                <option ${!e.status || e.status === 'active' ? 'selected' : ''} value="active">Active</option>
-                <option ${e.status === 'inactive' ? 'selected' : ''} value="inactive">Inactive</option>
-              </select>
-            </td>
-            <td style="padding: 8px; width: 120px;"><input class="modern-input in card" value="${e.card_uid || ''}" placeholder="UID" style="width: 100%; max-width: 110px; font-family: monospace; font-size: 0.8rem;"></td>
-            <td style="padding: 8px; text-align: center; width: 80px;">${e.has_fingerprint ? '✅' : '❌'}</td>
-            <td style="padding: 8px; text-align: center; width: 130px;">
-              <div style="display: flex; gap: 0.25rem; justify-content: center;">
-                <button class="modern-button save" style="padding: 4px 8px; font-size: 0.75rem; min-width: 50px;">💾</button>
-                <button class="modern-button del" style="padding: 4px 8px; font-size: 0.75rem; min-width: 40px; background: linear-gradient(to bottom right, #e74c3c, #c0392b); color: white;">🗑️</button>
-              </div>
-            </td>
-          </tr>
-        `).join('')}
-      </tbody>
-    </table>
-  `;
+  grid.innerHTML = rows.map(e => `
+    <div class="employee-card" data-id="${e.id}">
+      <div class="card-header-section">
+        <div class="checkbox-wrapper">
+          <input type="checkbox" class="employee-checkbox" data-id="${e.id}" ${state.selectedIds.has(e.id) ? 'checked' : ''}>
+        </div>
+        <div class="employee-info">
+          <div class="employee-name-section">
+            <input class="employee-name-input" value="${e.name || ''}" placeholder="Employee Name">
+            <span class="employee-code">#${e.employee_code || 'N/A'}</span>
+          </div>
+          <div class="employee-meta">
+            <span class="meta-badge location-badge">${e.location || 'N/A'}</span>
+            <span class="meta-badge status-badge status-${(e.status || 'active').toLowerCase()}">
+              ${(e.status || 'active').charAt(0).toUpperCase() + (e.status || 'active').slice(1)}
+            </span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="card-details">
+        <div class="detail-row">
+          <label class="detail-label">Location</label>
+          <select class="detail-select location-select">
+            <option ${e.location === 'UK' ? 'selected' : ''} value="UK">🇬🇧 United Kingdom</option>
+            <option ${e.location === 'FR' ? 'selected' : ''} value="FR">🇫🇷 France</option>
+          </select>
+        </div>
+        
+        <div class="detail-row">
+          <label class="detail-label">Status</label>
+          <select class="detail-select status-select">
+            <option ${!e.status || e.status === 'active' ? 'selected' : ''} value="active">✅ Active</option>
+            <option ${e.status === 'inactive' ? 'selected' : ''} value="inactive">⏸️ Inactive</option>
+          </select>
+        </div>
+        
+        <div class="detail-row">
+          <label class="detail-label">Card UID</label>
+          <input class="detail-input card-input" value="${e.card_uid || ''}" placeholder="No card assigned">
+        </div>
+        
+        <div class="detail-row">
+          <label class="detail-label">Fingerprint</label>
+          <div class="fingerprint-status">
+            <span class="status-indicator ${e.has_fingerprint ? 'active' : 'inactive'}"></span>
+            <span>${e.has_fingerprint ? 'Enrolled' : 'Not enrolled'}</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="card-actions">
+        <button class="btn-save">
+          <span class="btn-icon">💾</span>
+          <span>Save Changes</span>
+        </button>
+        <button class="btn-delete">
+          <span class="btn-icon">🗑️</span>
+          <span>Delete</span>
+        </button>
+      </div>
+    </div>
+  `).join('');
 
-  // bulk select
-  const bulkAll = $('#bulkSelAll');
-  if (bulkAll) {
-    bulkAll.addEventListener('change', () => {
-      $all('tbody .sel').forEach(cb => cb.checked = bulkAll.checked);
+  // Wire up event listeners
+  wireCardEvents();
+}
+
+function wireCardEvents() {
+  // Checkbox selection
+  $all('.employee-checkbox').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const id = Number(cb.dataset.id);
+      if (cb.checked) {
+        state.selectedIds.add(id);
+      } else {
+        state.selectedIds.delete(id);
+      }
+      updateBulkDeleteButton();
     });
-  }
+  });
 
-  // row actions
-  $all('tbody .save').forEach(btn => {
+  // Save button
+  $all('.btn-save').forEach(btn => {
     btn.addEventListener('click', async () => {
-      const tr = btn.closest('tr');
-      const id = Number(tr.dataset.id);
-      const name = tr.querySelector('.in.name').value.trim();
-      const location = tr.querySelector('.in.location').value;
-      const status = tr.querySelector('.in.status').value;
-      const card_uid = tr.querySelector('.in.card').value.trim() || null;
+      const card = btn.closest('.employee-card');
+      const id = Number(card.dataset.id);
+      const name = card.querySelector('.employee-name-input').value.trim();
+      const location = card.querySelector('.location-select').value;
+      const status = card.querySelector('.status-select').value;
+      const card_uid = card.querySelector('.card-input').value.trim() || null;
 
+      if (!name) {
+        notify('❌ Employee name is required', true);
+        return;
+      }
+
+      const originalText = btn.innerHTML;
       btn.disabled = true;
+      btn.innerHTML = '<span class="btn-icon">⏳</span><span>Saving...</span>';
+      
       try {
         await updateEmployee(id, { name, location, status, card_uid });
-        notify('✅ Saved successfully');
+        notify('✅ Changes saved successfully');
         await refresh();
       } catch (e) {
         notify('❌ Save failed: ' + e.message, true);
-      } finally {
+        btn.innerHTML = originalText;
         btn.disabled = false;
       }
     });
   });
 
-  $all('tbody .del').forEach((btn) => {
+  // Delete button
+  $all('.btn-delete').forEach(btn => {
     btn.addEventListener('click', async () => {
-      const tr = btn.closest('tr');
-      const id = Number(tr.dataset.id);
-      const name = tr.querySelector('.in.name').value.trim();
+      const card = btn.closest('.employee-card');
+      const id = Number(card.dataset.id);
+      const name = card.querySelector('.employee-name-input').value.trim();
       
-      // Use modern confirmation modal
       const confirmed = await confirmDelete(name, 'employee');
       if (!confirmed) return;
       
+      const originalText = btn.innerHTML;
       btn.disabled = true;
-      btn.textContent = '🔄';
+      btn.innerHTML = '<span class="btn-icon">⏳</span><span>Deleting...</span>';
       
       try {
         await deleteEmployee(id);
-        notify('✅ Employee and related attendance logs deleted successfully');
+        notify('✅ Employee deleted successfully');
+        state.selectedIds.delete(id);
         await refresh();
       } catch (e) {
         notify('❌ Delete failed: ' + e.message, true);
-      } finally {
+        btn.innerHTML = originalText;
         btn.disabled = false;
-        btn.textContent = '🗑️';
       }
     });
   });
 }
 
+function updateBulkDeleteButton() {
+  const bulkBtn = $('#enrBulkDeleteBtn');
+  if (!bulkBtn) return;
+  
+  const count = state.selectedIds.size;
+  if (count > 0) {
+    bulkBtn.innerHTML = `<span class="btn-icon">🗑️</span><span>Delete Selected (${count})</span>`;
+    bulkBtn.disabled = false;
+  } else {
+    bulkBtn.innerHTML = '<span class="btn-icon">🗑️</span><span>Delete Selected</span>';
+    bulkBtn.disabled = true;
+  }
+}
+
 function wireToolbar() {
   const createBtn = $('#enrCreateBtn');
   const bulkBtn = $('#enrBulkDeleteBtn');
+  const searchBox = $('#employeeSearch');
+  const statusFilter = $('#statusFilter');
+  const locationFilter = $('#locationFilter');
 
-  const searchBox = document.createElement('input');
-  searchBox.className = 'modern-input';
-  searchBox.placeholder = 'Search employees...';
-  searchBox.style.marginLeft = '0.5rem';
-  searchBox.style.flex = '1';
-  searchBox.style.maxWidth = '300px';
-  const toolbar = createBtn?.closest('.toolbar');
-  if (toolbar) toolbar.appendChild(searchBox);
-
+  // Search functionality
   searchBox?.addEventListener('input', () => {
     state.query = searchBox.value;
+    renderTable();
+  });
+
+  // Status filter
+  statusFilter?.addEventListener('change', () => {
+    state.status = statusFilter.value;
+    renderTable();
+  });
+
+  // Location filter
+  locationFilter?.addEventListener('change', () => {
+    state.location = locationFilter.value;
     renderTable();
   });
 
@@ -163,33 +227,35 @@ function wireToolbar() {
   });
 
   bulkBtn?.addEventListener('click', async () => {
-    const ids = $all('tbody tr').filter(tr => tr.querySelector('.sel')?.checked)
-      .map(tr => Number(tr.dataset.id));
+    const ids = Array.from(state.selectedIds);
     
     if (!ids.length) { 
       notify('❌ Select at least one employee', true); 
       return; 
     }
     
-    // Use modern confirmation modal
     const confirmed = await confirmBulkDelete(ids.length, 'employees');
     if (!confirmed) return;
     
+    const originalText = bulkBtn.innerHTML;
     bulkBtn.disabled = true;
-    bulkBtn.textContent = '🔄 Deleting...';
+    bulkBtn.innerHTML = '<span class="btn-icon">⏳</span><span>Deleting...</span>';
     
     try {
       const result = await bulkDeleteEmployees(ids);
-      notify(`✅ Successfully deleted ${result.deleted} employee(s) and their attendance logs`);
+      notify(`✅ Successfully deleted ${result.deleted} employee(s)`);
+      state.selectedIds.clear();
       await refresh();
     } catch (e) {
       console.error('Bulk delete failed:', e);
       notify('❌ Bulk delete failed: ' + e.message, true);
     } finally {
-      bulkBtn.disabled = false;
-      bulkBtn.textContent = '🗑️ Bulk Delete';
+      bulkBtn.innerHTML = originalText;
+      updateBulkDeleteButton();
     }
   });
+  
+  updateBulkDeleteButton();
 }
 
 function showCreateEmployeeModal() {

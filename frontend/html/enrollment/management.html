@@ -1,31 +1,72 @@
 <!-- Employee Management Page -->
 <div class="enrollment-management">
-  <h2>Employee Management</h2>
-  <div class="inner-tabs" style="margin-bottom: 1.5rem; display: flex; gap: 0.5rem;">
-    <button class="modern-button active" data-nav onclick="location.href='/enrollment/management'">Management</button>
-    <button class="modern-button" data-nav onclick="location.href='/enrollment/card'">Card</button>
-    <button class="modern-button" data-nav onclick="location.href='/enrollment/fingerprint'">Fingerprint</button>
+  <!-- Header Section -->
+  <div class="page-header">
+    <div class="header-content">
+      <h1 class="page-title">Employee Management</h1>
+      <p class="page-subtitle">Manage your team members, cards, and access credentials</p>
+    </div>
+  </div>
+
+  <!-- Navigation Tabs -->
+  <div class="inner-tabs">
+    <button class="tab-button active" data-nav onclick="location.href='/enrollment/management'">
+      <span class="tab-icon">👥</span>
+      <span class="tab-label">Management</span>
+    </button>
+    <button class="tab-button" data-nav onclick="location.href='/enrollment/card'">
+      <span class="tab-icon">💳</span>
+      <span class="tab-label">Card</span>
+    </button>
+    <button class="tab-button" data-nav onclick="location.href='/enrollment/fingerprint'">
+      <span class="tab-icon">👆</span>
+      <span class="tab-label">Fingerprint</span>
+    </button>
   </div>
   
-  <section class="card">
-    <div class="card-header">
-      <h3>👥 Employee Database</h3>
-    </div>
-    <div class="card-body">
-      <p>Manage employees here. Create, update, or delete employees; attach card UIDs and fingerprints.</p>
-
-      <div class="toolbar" style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: center;">
-        <button class="modern-button" id="enrCreateBtn">➕ Create Employee</button>
-        <button class="modern-button" id="enrBulkDeleteBtn" style="background: linear-gradient(to bottom right, #e74c3c, #c0392b); color: white;">🗑️ Bulk Delete</button>
-        <!-- Search box will be added by JS -->
+  <!-- Main Content -->
+  <div class="management-container">
+    <!-- Toolbar -->
+    <div class="management-toolbar">
+      <div class="toolbar-left">
+        <button class="btn-primary" id="enrCreateBtn">
+          <span class="btn-icon">➕</span>
+          <span>New Employee</span>
+        </button>
+        <button class="btn-danger" id="enrBulkDeleteBtn">
+          <span class="btn-icon">🗑️</span>
+          <span>Delete Selected</span>
+        </button>
       </div>
-
-      <div id="enrTableWrap" class="table-wrap modern-box">
-        <!-- Your JS will render the table of employees here -->
-        <p class="muted" style="text-align: center; padding: 2rem; color: #999;">Employee list will load here...</p>
+      <div class="toolbar-right">
+        <div class="search-container">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="employeeSearch" class="search-input" placeholder="Search employees...">
+        </div>
+        <div class="filter-group">
+          <select id="statusFilter" class="filter-select">
+            <option value="">All Status</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+          <select id="locationFilter" class="filter-select">
+            <option value="">All Locations</option>
+            <option value="UK">UK</option>
+            <option value="FR">France</option>
+          </select>
+        </div>
       </div>
     </div>
-  </section>
+
+    <!-- Employee Grid -->
+    <div id="enrEmployeeGrid" class="employee-grid">
+      <!-- Your JS will render the employee cards here -->
+      <div class="loading-state">
+        <div class="loading-spinner"></div>
+        <p>Loading employees...</p>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- Employee Creation Modal (moved outside enrollment-management container) -->
