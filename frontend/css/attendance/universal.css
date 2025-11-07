@@ -245,27 +245,33 @@ html.dark-mode .filter-select:focus {
 }
 
 .primary-btn:hover {
+  background: linear-gradient(135deg, #8bc34a, #76a12b);
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(118, 161, 43, 0.4);
+  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.4);
 }
 
 .secondary-btn {
-  background: #f1f5f9;
-  color: #475569;
+  background: linear-gradient(135deg, #6b7280, #4b5563);
+  color: white;
+  box-shadow: 0 2px 8px rgba(107, 114, 128, 0.2);
 }
 
 .secondary-btn:hover {
-  background: #e2e8f0;
+  background: linear-gradient(135deg, #9ca3af, #6b7280);
   transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
 }
 
 html.dark-mode .secondary-btn {
-  background: #1e1e1e;
-  color: #cbd5e1;
+  background: linear-gradient(135deg, #6b7280, #4b5563);
+  color: white;
+  box-shadow: 0 2px 8px rgba(107, 114, 128, 0.2);
 }
 
 html.dark-mode .secondary-btn:hover {
-  background: #2a2a2a;
+  background: linear-gradient(135deg, #9ca3af, #6b7280);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
 }
 
 /* ===== Data Sections ===== */

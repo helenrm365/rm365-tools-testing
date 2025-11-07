@@ -359,27 +359,9 @@ html.dark-mode .attendance-overview .filter-select:focus {
 }
 
 .attendance-overview .primary-btn:hover {
+  background: linear-gradient(135deg, #8bc34a, #76a12b);
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(118, 161, 43, 0.4);
-}
-
-.attendance-overview .secondary-btn {
-  background: #f1f5f9;
-  color: #475569;
-}
-
-.attendance-overview .secondary-btn:hover {
-  background: #e2e8f0;
-  transform: translateY(-2px);
-}
-
-html.dark-mode .attendance-overview .secondary-btn {
-  background: #1e1e1e;
-  color: #cbd5e1;
-}
-
-html.dark-mode .attendance-overview .secondary-btn:hover {
-  background: #2a2a2a;
+  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.4);
 }
 
 /* ===== Data Sections (Summary & Work Hours) ===== */
