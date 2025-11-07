@@ -1,6 +1,72 @@
 /* ===== Salesdata Universal Styles ===== */
 /* Shared styles used across all sales data pages */
 
+/* ===== Layout Structure ===== */
+.main-container {
+  min-height: 100vh;
+  background: #f8fafc;
+  padding: 2rem;
+}
+
+html.dark-mode .main-container {
+  background: #1a1a1a;
+}
+
+.uk-sales-content,
+.fr-sales-content,
+.nl-sales-content,
+.history-content {
+  animation: fadeInUp 0.4s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ===== Grid Layouts ===== */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.filters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  align-items: end;
+}
+
+.controls-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2rem;
+  align-items: center;
+}
+
+.upload-form {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1rem;
+  align-items: end;
+}
+
+.filter-actions {
+  display: flex;
+  gap: 1rem;
+  grid-column: 1 / -1;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
 /* ===== Section Headers ===== */
 .section-header {
   margin-bottom: 1.5rem;
@@ -97,6 +163,12 @@ html.dark-mode .tab-button.active {
 }
 
 /* ===== Form Elements ===== */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
 .form-input,
 .form-select,
 .form-textarea {
@@ -139,6 +211,90 @@ html.dark-mode .form-textarea {
 
 html.dark-mode .form-label {
   color: #e5e7eb;
+}
+
+.file-input {
+  padding: 1rem;
+  border: 2px dashed #e5e7eb;
+  border-radius: 8px;
+  background: #f8fafc;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+html.dark-mode .file-input {
+  background: #1e1e1e;
+  border-color: #404040;
+  color: #e5e7eb;
+}
+
+.file-input:hover {
+  border-color: #76a12b;
+  background: #f0f9ff;
+}
+
+html.dark-mode .file-input:hover {
+  border-color: #8bc34a;
+  background: #2a2a2a;
+}
+
+/* ===== View Toggle Controls ===== */
+.view-toggle {
+  display: flex;
+  gap: 0.5rem;
+  background: #f8fafc;
+  padding: 0.25rem;
+  border-radius: 8px;
+}
+
+html.dark-mode .view-toggle {
+  background: #1e1e1e;
+}
+
+.toggle-btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: transparent;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.toggle-btn:hover {
+  color: #374151;
+  background: rgba(118, 161, 43, 0.1);
+}
+
+.toggle-btn.active {
+  background: linear-gradient(135deg, #76a12b, #5e8122);
+  color: white;
+  box-shadow: 0 2px 8px rgba(118, 161, 43, 0.3);
+}
+
+html.dark-mode .toggle-btn {
+  color: #9ca3af;
+}
+
+html.dark-mode .toggle-btn:hover {
+  color: #e5e7eb;
+  background: rgba(139, 195, 74, 0.2);
+}
+
+/* ===== Search Controls ===== */
+.search-controls {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.search-input {
+  flex: 1;
+  min-width: 300px;
 }
 
 /* ===== Button Styles ===== */
@@ -212,6 +368,105 @@ html.dark-mode .secondary-btn:hover {
 }
 
 /* ===== Tables ===== */
+.table-container {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: 2px solid #f1f5f9;
+  margin-bottom: 2rem;
+}
+
+html.dark-mode .table-container {
+  background: #2a2a2a;
+  border-color: #404040;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+}
+
+.products-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table-header {
+  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+  border-bottom: 2px solid #e2e8f0;
+}
+
+html.dark-mode .table-header {
+  background: linear-gradient(135deg, #404040, #333);
+  border-bottom-color: #555;
+}
+
+.table-header th {
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+html.dark-mode .table-header th {
+  color: #e5e7eb;
+}
+
+.table-body tr {
+  border-bottom: 1px solid #f1f5f9;
+  transition: all 0.2s ease;
+}
+
+html.dark-mode .table-body tr {
+  border-bottom-color: #404040;
+}
+
+.table-body tr:hover {
+  background: linear-gradient(135deg, #fefefe, #f8fafc);
+}
+
+html.dark-mode .table-body tr:hover {
+  background: linear-gradient(135deg, #2a2a2a, #333);
+}
+
+.table-body td {
+  padding: 1rem;
+  color: #374151;
+  font-size: 0.95rem;
+}
+
+html.dark-mode .table-body td {
+  color: #e5e7eb;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem;
+  color: #9ca3af;
+}
+
+.empty-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.empty-message {
+  font-size: 1.1rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.empty-submessage {
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+html.dark-mode .empty-submessage {
+  color: #9ca3af;
+}
+
+/* Legacy table support */
 .modern-table {
   background: white;
   border-radius: 12px;
@@ -271,6 +526,92 @@ html.dark-mode .modern-table tbody tr:hover {
 
 html.dark-mode .modern-table td {
   color: #e5e7eb;
+}
+
+/* ===== Stats Cards ===== */
+.stats-card {
+  text-align: center;
+}
+
+.stat-icon {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 0.5rem;
+}
+
+html.dark-mode .stat-value {
+  color: #ecf0f1;
+}
+
+.stat-label {
+  color: #7f8c8d;
+  font-weight: 500;
+}
+
+html.dark-mode .stat-label {
+  color: #95a5a6;
+}
+
+/* ===== Responsive Design ===== */
+@media (max-width: 768px) {
+  .main-container {
+    padding: 1rem;
+  }
+  
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .filters-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .controls-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .upload-form {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .view-toggle {
+    justify-content: center;
+  }
+  
+  .search-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .search-input {
+    min-width: auto;
+  }
+  
+  .table-container {
+    overflow-x: auto;
+  }
+  
+  .filter-actions {
+    grid-column: 1;
+    flex-direction: column;
+  }
+  
+  .section-title {
+    font-size: 1.25rem;
+  }
+  
+  .card-title {
+    font-size: 1.2rem;
+  }
 }
 
 /* ===== Cards ===== */

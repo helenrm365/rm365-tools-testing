@@ -10,62 +10,89 @@
     <link rel="stylesheet" href="/css/salesdata/fr-sales.css">
 </head>
 <body>
-    <div class="salesdata-fr main-container">
+    <div class="salesdata-page salesdata-fr main-container">
         <!-- Navigation Tabs -->
-        <nav class="navigation-tabs">
-            <div class="tabs-container">
-                <button class="tab-btn" data-nav onclick="location.href='/salesdata/uk-sales'">UK Sales</button>
-                <button class="tab-btn active" data-nav onclick="location.href='/salesdata/fr-sales'">FR Sales</button>
-                <button class="tab-btn" data-nav onclick="location.href='/salesdata/nl-sales'">NL Sales</button>
-                <button class="tab-btn" data-nav onclick="location.href='/salesdata/history'">Import History</button>
-            </div>
-        </nav>
-
-        <!-- Page Header -->
-        <section class="page-header">
-            <div class="header-content">
-                <h1 class="page-title">FR Sales Data</h1>
-                <p class="page-subtitle">Upload and manage France sales data imports</p>
-            </div>
-        </section>
+        <div class="inner-tabs">
+            <button class="tab-button" onclick="location.href='/salesdata/uk-sales'">
+                <i class="fas fa-flag"></i>
+                <span>UK Sales</span>
+            </button>
+            <button class="tab-button active" onclick="location.href='/salesdata/fr-sales'">
+                <i class="fas fa-flag"></i>
+                <span>FR Sales</span>
+            </button>
+            <button class="tab-button" onclick="location.href='/salesdata/nl-sales'">
+                <i class="fas fa-flag"></i>
+                <span>NL Sales</span>
+            </button>
+            <button class="tab-button" onclick="location.href='/salesdata/history'">
+                <i class="fas fa-history"></i>
+                <span>Import History</span>
+            </button>
+        </div>
 
         <!-- Main Content -->
-        <div class="main-content">
+        <div class="fr-sales-content">
+            <!-- Page Header -->
+            <section class="section-header">
+                <h2 class="section-title">
+                    <i class="fas fa-flag"></i>
+                    FR Sales Data
+                </h2>
+                <p class="section-subtitle">Upload and manage French sales data imports</p>
+            </section>
+
             <!-- Upload Section -->
             <section class="upload-section">
-                <div class="section-header">
-                    <h2 class="section-title">
-                        <i class="icon">📤</i>
-                        File Upload
-                    </h2>
-                    <p class="section-subtitle">Upload CSV files containing France sales data</p>
-                </div>
-                
-                <div class="upload-card">
-                    <form id="uploadForm" class="upload-form">
-                        <div class="file-input-group">
-                            <label for="csvFile" class="input-label">Select CSV File</label>
-                            <input type="file" id="csvFile" accept=".csv" required class="file-input">
-                        </div>
-                        <button type="submit" class="upload-btn">
-                            <i class="icon">⬆️</i>
-                            Upload File
-                        </button>
-                    </form>
+                <div class="content-card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-upload"></i>
+                            File Upload
+                        </h3>
+                        <p class="card-subtitle">Upload CSV files containing French sales data</p>
+                    </div>
+                    <div class="card-body">
+                        <form id="uploadForm" class="upload-form">
+                            <div class="form-group">
+                                <label for="csvFile" class="form-label">
+                                    <i class="fas fa-file-csv"></i>
+                                    Select CSV File
+                                </label>
+                                <input type="file" id="csvFile" accept=".csv" required class="form-input file-input">
+                            </div>
+                            <button type="submit" class="action-btn primary-btn upload-btn">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                Upload File
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </section>
 
             <!-- Data Controls -->
             <section class="controls-section">
-                <div class="controls-grid">
-                    <div class="view-toggle">
-                        <button id="viewFullBtn" class="toggle-btn active">Full Data</button>
-                        <button id="viewCondensedBtn" class="toggle-btn">6-Month</button>
-                    </div>
-                    <div class="search-controls">
-                        <input type="text" id="searchInput" placeholder="Search by order number or SKU..." class="search-input form-input">
-                        <button id="searchBtn" class="btn-secondary">Search</button>
-                        <button id="clearSearchBtn" class="btn-secondary">Clear</button>
+                <div class="content-card">
+                    <div class="card-body">
+                        <div class="controls-grid">
+                            <div class="view-toggle">
+                                <button class="toggle-btn active">
+                                    <i class="fas fa-list"></i>
+                                    Full Data
+                                </button>
+                                <button class="toggle-btn">
+                                    <i class="fas fa-calendar-alt"></i>
+                                    6-Month
+                                </button>
+                            </div>
+                            <div class="search-controls">
+                                <input type="text" class="form-input search-input" placeholder="Search by order number or SKU...">
+                                <button class="action-btn secondary-btn">
+                                    <i class="fas fa-search"></i>
+                                    Search
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -73,52 +100,48 @@
             <!-- Data Table -->
             <section class="table-section">
                 <div class="table-container">
-                    <table id="salesTable" class="data-table">
-                        <thead>
+                    <table class="products-table">
+                        <thead class="table-header">
                             <tr>
-                                <th>ID</th>
-                                <th>Order Number</th>
-                                <th>Created At</th>
-                                <th>SKU</th>
-                                <th>Name</th>
-                                <th>Quantity</th>
-                                <th>Price</th>
-                                <th>Status</th>
-                                <th>Imported At</th>
-                                <th>Updated At</th>
+                                <th>
+                                    <i class="fas fa-hashtag"></i>
+                                    Order ID
+                                </th>
+                                <th>
+                                    <i class="fas fa-calendar"></i>
+                                    Date
+                                </th>
+                                <th>
+                                    <i class="fas fa-barcode"></i>
+                                    SKU
+                                </th>
+                                <th>
+                                    <i class="fas fa-box"></i>
+                                    Product
+                                </th>
+                                <th>
+                                    <i class="fas fa-sort-numeric-up"></i>
+                                    Quantity
+                                </th>
+                                <th>
+                                    <i class="fas fa-euro-sign"></i>
+                                    Price
+                                </th>
                             </tr>
                         </thead>
-                        <tbody id="salesTableBody">
+                        <tbody id="dataTableBody" class="table-body">
                             <tr>
-                                <td colspan="10" class="table-empty-state">
+                                <td colspan="6" class="empty-state">
                                     <div class="empty-icon">📊</div>
-                                    <div class="empty-message">Loading sales data...</div>
-                                    <div class="empty-submessage">Please wait while we fetch the data</div>
+                                    <div class="empty-message">No data available</div>
+                                    <div class="empty-submessage">Upload a CSV file to view sales data</div>
                                 </td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
             </section>
-
-            <!-- Pagination -->
-            <section class="pagination-section">
-                <button id="prevPageBtn" class="btn-secondary">← Previous</button>
-                <span id="pageInfo" class="page-info">Page 1</span>
-                <button id="nextPageBtn" class="btn-secondary">Next →</button>
-            </section>
         </div>
     </div>
-
-    <!-- Universal Footer -->
-    <div id="footerPlaceholder"></div>
-    <script>
-        fetch('/components/universal-footer.html')
-            .then(response => response.text())
-            .then(html => {
-                document.getElementById('footerPlaceholder').innerHTML = html;
-            })
-            .catch(error => console.error('Error loading footer:', error));
-    </script>
 </body>
 </html>

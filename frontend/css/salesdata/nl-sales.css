@@ -1,20 +1,7 @@
-/* ===== NL Sales Page Styles ===== */
+/* ===== NL Sales (Orange Theme) ===== */
 
-/* ===== Page Header ===== */
-.salesdata-nl .page-header {
-  margin-bottom: 2rem;
-  padding: 2rem 0 1rem 0;
-}
-
-.salesdata-nl .header-content {
-  max-width: 800px;
-}
-
+/* NL-specific color variations for the page header */
 .salesdata-nl .page-title {
-  font-size: 2.5rem;
-  font-weight: 700;
-  margin: 0 0 0.5rem 0;
-  color: #2c3e50;
   background: linear-gradient(135deg, #2c3e50, #e67e22);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -28,209 +15,36 @@ html.dark-mode .salesdata-nl .page-title {
   background-clip: text;
 }
 
-.salesdata-nl .page-subtitle {
-  font-size: 1.1rem;
-  color: #7f8c8d;
-  margin: 0;
-  font-weight: 400;
+/* NL-specific accent colors for buttons and highlights */
+.salesdata-nl .tab-button.active {
+  background: linear-gradient(135deg, #e67e22, #d35400);
+  color: white;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 12px rgba(230, 126, 34, 0.4);
 }
 
-html.dark-mode .salesdata-nl .page-subtitle {
-  color: #95a5a6;
+.salesdata-nl .primary-btn {
+  background: linear-gradient(135deg, #e67e22, #d35400);
+  box-shadow: 0 4px 12px rgba(230, 126, 34, 0.3);
 }
 
-/* ===== Main Content ===== */
-.salesdata-nl .main-content {
-  animation: fadeInUp 0.4s ease-out;
-}
-
-/* ===== Upload Section ===== */
-.salesdata-nl .upload-section {
-  margin-bottom: 2rem;
-}
-
-.salesdata-nl .upload-card {
-  background: white;
-  border-radius: 16px;
-  padding: 2rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  border: 2px solid #f1f5f9;
-  transition: all 0.3s ease;
-}
-
-html.dark-mode .salesdata-nl .upload-card {
-  background: #2a2a2a;
-  border-color: #404040;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-}
-
-.salesdata-nl .upload-card:hover {
-  border-color: rgba(230, 126, 34, 0.2);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
-}
-
-.salesdata-nl .upload-form {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 1rem;
-  align-items: end;
-}
-
-.salesdata-nl .file-input-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.salesdata-nl .file-input {
-  padding: 1rem;
-  border: 2px dashed #e5e7eb;
-  border-radius: 8px;
-  background: #f8fafc;
-  transition: all 0.2s ease;
-  cursor: pointer;
-}
-
-.salesdata-nl .file-input:hover {
-  border-color: #e67e22;
-  background: #fff8e1;
-}
-
-html.dark-mode .salesdata-nl .file-input {
-  background: #1e1e1e;
-  border-color: #404040;
-  color: #e5e7eb;
-}
-
-html.dark-mode .salesdata-nl .file-input:hover {
-  border-color: #ff9800;
-  background: #2a2a2a;
+.salesdata-nl .primary-btn:hover {
+  background: linear-gradient(135deg, #f39c12, #e67e22);
+  box-shadow: 0 4px 12px rgba(230, 126, 34, 0.4);
 }
 
 .salesdata-nl .upload-btn {
-  padding: 1rem 2rem;
   background: linear-gradient(135deg, #e67e22, #d35400);
   color: white;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
 }
 
 .salesdata-nl .upload-btn:hover {
   background: linear-gradient(135deg, #f39c12, #e67e22);
-  transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(230, 126, 34, 0.4);
-}
-
-/* ===== Controls Section ===== */
-.salesdata-nl .controls-section {
-  background: white;
-  border-radius: 12px;
-  padding: 1.5rem;
-  margin-bottom: 2rem;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-  border: 2px solid #f1f5f9;
-}
-
-html.dark-mode .salesdata-nl .controls-section {
-  background: #2a2a2a;
-  border-color: #404040;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
-}
-
-.salesdata-nl .controls-grid {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 2rem;
-  align-items: center;
-}
-
-.salesdata-nl .view-toggle {
-  display: flex;
-  gap: 0.5rem;
-  background: #f8fafc;
-  padding: 0.25rem;
-  border-radius: 8px;
-}
-
-html.dark-mode .salesdata-nl .view-toggle {
-  background: #1e1e1e;
-}
-
-.salesdata-nl .toggle-btn {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  background: transparent;
-  color: #6b7280;
-}
-
-.salesdata-nl .toggle-btn:hover {
-  color: #374151;
-  background: rgba(230, 126, 34, 0.1);
 }
 
 .salesdata-nl .toggle-btn.active {
   background: linear-gradient(135deg, #e67e22, #d35400);
   color: white;
   box-shadow: 0 2px 8px rgba(230, 126, 34, 0.3);
-}
-
-html.dark-mode .salesdata-nl .toggle-btn {
-  color: #9ca3af;
-}
-
-html.dark-mode .salesdata-nl .toggle-btn:hover {
-  color: #e5e7eb;
-  background: rgba(255, 152, 0, 0.2);
-}
-
-.salesdata-nl .search-controls {
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-}
-
-.salesdata-nl .search-input {
-  flex: 1;
-  min-width: 300px;
-}
-
-/* ===== Responsive Design ===== */
-@media (max-width: 768px) {
-  .salesdata-nl .page-title {
-    font-size: 2rem;
-  }
-  
-  .salesdata-nl .upload-form {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-  
-  .salesdata-nl .controls-grid {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-  
-  .salesdata-nl .view-toggle {
-    justify-content: center;
-  }
-  
-  .salesdata-nl .search-controls {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  
-  .salesdata-nl .search-input {
-    min-width: auto;
-  }
 }

@@ -1,162 +1,190 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Import History</title>
+    <title>Sales Data Import History</title>
     
     <!-- Salesdata CSS -->
     <link rel="stylesheet" href="/css/salesdata/universal.css">
     <link rel="stylesheet" href="/css/salesdata/history.css">
 </head>
 <body>
-    <div class="salesdata-history main-container">
+    <div class="salesdata-page salesdata-history main-container">
         <!-- Navigation Tabs -->
-        <nav class="navigation-tabs">
-            <div class="tabs-container">
-                <button class="tab-btn" onclick="location.href='/salesdata/uk-sales'">UK Sales</button>
-                <button class="tab-btn" onclick="location.href='/salesdata/fr-sales'">FR Sales</button>
-                <button class="tab-btn" onclick="location.href='/salesdata/nl-sales'">NL Sales</button>
-                <button class="tab-btn active" onclick="location.href='/salesdata/history'">Import History</button>
-            </div>
-        </nav>
-
-        <!-- Page Header -->
-        <section class="page-header">
-            <div class="header-content">
-                <h1 class="page-title">Import History</h1>
-                <p class="page-subtitle">View and manage all sales data import records</p>
-            </div>
-        </section>
+        <div class="inner-tabs">
+            <button class="tab-button" onclick="location.href='/salesdata/uk-sales'">
+                <i class="fas fa-flag"></i>
+                <span>UK Sales</span>
+            </button>
+            <button class="tab-button" onclick="location.href='/salesdata/fr-sales'">
+                <i class="fas fa-flag"></i>
+                <span>FR Sales</span>
+            </button>
+            <button class="tab-button" onclick="location.href='/salesdata/nl-sales'">
+                <i class="fas fa-flag"></i>
+                <span>NL Sales</span>
+            </button>
+            <button class="tab-button active" onclick="location.href='/salesdata/history'">
+                <i class="fas fa-history"></i>
+                <span>Import History</span>
+            </button>
+        </div>
 
         <!-- Main Content -->
-        <div class="main-content">
-            <!-- Stats Overview -->
+        <div class="history-content">
+            <!-- Page Header -->
+            <section class="section-header">
+                <h2 class="section-title">
+                    <i class="fas fa-history"></i>
+                    Import History
+                </h2>
+                <p class="section-subtitle">View and manage sales data import history</p>
+            </section>
+
+            <!-- Stats Cards -->
             <section class="stats-section">
                 <div class="stats-grid">
-                    <div class="stat-card">
-                        <span class="stat-icon"></span>
-                        <div class="stat-value" id="totalImports">0</div>
-                        <div class="stat-label">Total Imports</div>
+                    <div class="content-card stats-card">
+                        <div class="card-body">
+                            <div class="stat-icon">📊</div>
+                            <div class="stat-value">24</div>
+                            <div class="stat-label">Total Imports</div>
+                        </div>
                     </div>
-                    <div class="stat-card">
-                        <span class="stat-icon"></span>
-                        <div class="stat-value" id="successfulImports">0</div>
-                        <div class="stat-label">Successful</div>
+                    <div class="content-card stats-card">
+                        <div class="card-body">
+                            <div class="stat-icon">✅</div>
+                            <div class="stat-value">20</div>
+                            <div class="stat-label">Successful</div>
+                        </div>
                     </div>
-                    <div class="stat-card">
-                        <span class="stat-icon"></span>
-                        <div class="stat-value" id="failedImports">0</div>
-                        <div class="stat-label">Failed</div>
+                    <div class="content-card stats-card">
+                        <div class="card-body">
+                            <div class="stat-icon">❌</div>
+                            <div class="stat-value">4</div>
+                            <div class="stat-label">Failed</div>
+                        </div>
                     </div>
-                    <div class="stat-card">
-                        <span class="stat-icon"></span>
-                        <div class="stat-value" id="totalRows">0</div>
-                        <div class="stat-label">Total Rows</div>
+                    <div class="content-card stats-card">
+                        <div class="card-body">
+                            <div class="stat-icon">📅</div>
+                            <div class="stat-value">Today</div>
+                            <div class="stat-label">Last Import</div>
+                        </div>
                     </div>
                 </div>
             </section>
 
             <!-- Filters -->
             <section class="filters-section">
-                <div class="section-header">
-                    <h2 class="section-title">
-                        <i class="icon"></i>
-                        Filter and Search
-                    </h2>
-                </div>
-                <div class="filters-grid">
-                    <div class="filter-group">
-                        <label for="regionFilter" class="input-label">Region</label>
-                        <select id="regionFilter" class="form-input">
-                            <option value="">All Regions</option>
-                            <option value="uk">United Kingdom</option>
-                            <option value="fr">France</option>
-                            <option value="nl">Netherlands</option>
-                        </select>
+                <div class="content-card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-filter"></i>
+                            Filter History
+                        </h3>
                     </div>
-                    <div class="filter-group">
-                        <label for="statusFilter" class="input-label">Status</label>
-                        <select id="statusFilter" class="form-input">
-                            <option value="">All Status</option>
-                            <option value="completed">Completed</option>
-                            <option value="failed">Failed</option>
-                            <option value="processing">Processing</option>
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label for="dateFrom" class="input-label">Date From</label>
-                        <input type="date" id="dateFrom" class="form-input">
-                    </div>
-                    <div class="filter-group">
-                        <label for="dateTo" class="input-label">Date To</label>
-                        <input type="date" id="dateTo" class="form-input">
-                    </div>
-                    <div class="filter-actions">
-                        <button id="applyFiltersBtn" class="btn-primary">Apply Filters</button>
-                        <button id="clearFiltersBtn" class="btn-secondary">Clear All</button>
-                        <button id="refreshBtn" class="btn-secondary"> Refresh</button>
+                    <div class="card-body">
+                        <div class="filters-grid">
+                            <div class="filter-group">
+                                <label for="fromDate" class="form-label">
+                                    <i class="fas fa-calendar"></i>
+                                    From Date
+                                </label>
+                                <input type="date" id="fromDate" class="form-input">
+                            </div>
+                            <div class="filter-group">
+                                <label for="toDate" class="form-label">
+                                    <i class="fas fa-calendar"></i>
+                                    To Date
+                                </label>
+                                <input type="date" id="toDate" class="form-input">
+                            </div>
+                            <div class="filter-group">
+                                <label for="region" class="form-label">
+                                    <i class="fas fa-globe"></i>
+                                    Region
+                                </label>
+                                <select id="region" class="form-select">
+                                    <option value="">All Regions</option>
+                                    <option value="UK">UK</option>
+                                    <option value="FR">France</option>
+                                    <option value="NL">Netherlands</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="status" class="form-label">
+                                    <i class="fas fa-check-circle"></i>
+                                    Status
+                                </label>
+                                <select id="status" class="form-select">
+                                    <option value="">All Statuses</option>
+                                    <option value="success">Success</option>
+                                    <option value="error">Error</option>
+                                    <option value="processing">Processing</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="filter-actions">
+                            <button class="action-btn primary-btn">
+                                <i class="fas fa-search"></i>
+                                Apply Filters
+                            </button>
+                            <button class="action-btn secondary-btn">
+                                <i class="fas fa-times"></i>
+                                Clear All
+                            </button>
+                        </div>
                     </div>
                 </div>
             </section>
 
             <!-- History Table -->
-            <section class="history-section">
-                <div class="section-header">
-                    <h2 class="section-title">
-                        <i class="icon"></i>
-                        Import Records
-                    </h2>
-                </div>
-                
+            <section class="table-section">
                 <div class="table-container">
-                    <table id="historyTable" class="history-table">
-                        <thead>
+                    <table class="products-table">
+                        <thead class="table-header">
                             <tr>
-                                <th>Import ID</th>
-                                <th>Date and Time</th>
-                                <th>Filename</th>
-                                <th>Region</th>
-                                <th>Uploaded By</th>
-                                <th>Email</th>
-                                <th>Total Rows</th>
-                                <th>Imported</th>
-                                <th>Errors</th>
-                                <th>Status</th>
-                                <th>Actions</th>
+                                <th>
+                                    <i class="fas fa-calendar"></i>
+                                    Date
+                                </th>
+                                <th>
+                                    <i class="fas fa-file"></i>
+                                    File Name
+                                </th>
+                                <th>
+                                    <i class="fas fa-globe"></i>
+                                    Region
+                                </th>
+                                <th>
+                                    <i class="fas fa-sort-numeric-up"></i>
+                                    Records
+                                </th>
+                                <th>
+                                    <i class="fas fa-check-circle"></i>
+                                    Status
+                                </th>
+                                <th>
+                                    <i class="fas fa-cogs"></i>
+                                    Actions
+                                </th>
                             </tr>
                         </thead>
-                        <tbody id="historyTableBody">
+                        <tbody id="historyTableBody" class="table-body">
                             <tr>
-                                <td colspan="11" class="empty-state">
-                                    <div class="empty-icon"></div>
-                                    <div class="empty-message">Loading import history...</div>
-                                    <div class="empty-submessage">Please wait while we fetch the records</div>
+                                <td colspan="6" class="empty-state">
+                                    <div class="empty-icon">📁</div>
+                                    <div class="empty-message">No import history</div>
+                                    <div class="empty-submessage">Import history will appear here once you upload sales data</div>
                                 </td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
             </section>
-
-            <!-- Pagination -->
-            <section class="pagination-section">
-                <button id="prevPageBtn" class="btn-secondary"> Previous</button>
-                <span id="pageInfo" class="page-info">Page 1</span>
-                <button id="nextPageBtn" class="btn-secondary">Next </button>
-            </section>
         </div>
     </div>
-
-    <!-- Universal Footer -->
-    <div id="footerPlaceholder"></div>
-    <script>
-        fetch('/components/universal-footer.html')
-            .then(response => response.text())
-            .then(html => {
-                document.getElementById('footerPlaceholder').innerHTML = html;
-            })
-            .catch(error => console.error('Error loading footer:', error));
-    </script>
 </body>
 </html>

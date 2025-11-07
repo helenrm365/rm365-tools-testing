@@ -1,20 +1,7 @@
-/* ===== UK Sales Page Styles ===== */
+/* ===== UK Sales (Green Theme) ===== */
 
-/* ===== Page Header ===== */
-.salesdata-uk .page-header {
-  margin-bottom: 2rem;
-  padding: 2rem 0 1rem 0;
-}
-
-.salesdata-uk .header-content {
-  max-width: 800px;
-}
-
+/* UK-specific color variations for the page header */
 .salesdata-uk .page-title {
-  font-size: 2.5rem;
-  font-weight: 700;
-  margin: 0 0 0.5rem 0;
-  color: #2c3e50;
   background: linear-gradient(135deg, #2c3e50, #76a12b);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -28,166 +15,32 @@ html.dark-mode .salesdata-uk .page-title {
   background-clip: text;
 }
 
-.salesdata-uk .page-subtitle {
-  font-size: 1.1rem;
-  color: #7f8c8d;
-  margin: 0;
-  font-weight: 400;
+/* UK-specific accent colors for buttons and highlights */
+.salesdata-uk .tab-button.active {
+  background: linear-gradient(135deg, #76a12b, #5e8122);
+  color: white;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.4);
 }
 
-html.dark-mode .salesdata-uk .page-subtitle {
-  color: #95a5a6;
+.salesdata-uk .primary-btn {
+  background: linear-gradient(135deg, #76a12b, #5e8122);
+  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.3);
 }
 
-/* ===== Main Content ===== */
-.salesdata-uk .main-content {
-  animation: fadeInUp 0.4s ease-out;
-}
-
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* ===== Upload Section ===== */
-.salesdata-uk .upload-section {
-  margin-bottom: 2rem;
-}
-
-.salesdata-uk .upload-card {
-  background: white;
-  border-radius: 16px;
-  padding: 2rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  border: 2px solid #f1f5f9;
-  transition: all 0.3s ease;
-}
-
-html.dark-mode .salesdata-uk .upload-card {
-  background: #2a2a2a;
-  border-color: #404040;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-}
-
-.salesdata-uk .upload-card:hover {
-  border-color: rgba(118, 161, 43, 0.2);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
-}
-
-.salesdata-uk .upload-form {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 1rem;
-  align-items: end;
-}
-
-.salesdata-uk .file-input-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.salesdata-uk .file-input {
-  padding: 1rem;
-  border: 2px dashed #e5e7eb;
-  border-radius: 8px;
-  background: #f8fafc;
-  transition: all 0.2s ease;
-  cursor: pointer;
-}
-
-.salesdata-uk .file-input:hover {
-  border-color: #76a12b;
-  background: #f0f9ff;
-}
-
-html.dark-mode .salesdata-uk .file-input {
-  background: #1e1e1e;
-  border-color: #404040;
-  color: #e5e7eb;
-}
-
-html.dark-mode .salesdata-uk .file-input:hover {
-  border-color: #8bc34a;
-  background: #2a2a2a;
+.salesdata-uk .primary-btn:hover {
+  background: linear-gradient(135deg, #8bc34a, #76a12b);
+  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.4);
 }
 
 .salesdata-uk .upload-btn {
-  padding: 1rem 2rem;
-  background: linear-gradient(135deg, #10b981, #059669);
+  background: linear-gradient(135deg, #76a12b, #5e8122);
   color: white;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
 }
 
 .salesdata-uk .upload-btn:hover {
-  background: linear-gradient(135deg, #34d399, #10b981);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
-}
-
-/* ===== Controls Section ===== */
-.salesdata-uk .controls-section {
-  background: white;
-  border-radius: 12px;
-  padding: 1.5rem;
-  margin-bottom: 2rem;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-  border: 2px solid #f1f5f9;
-}
-
-html.dark-mode .salesdata-uk .controls-section {
-  background: #2a2a2a;
-  border-color: #404040;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
-}
-
-.salesdata-uk .controls-grid {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 2rem;
-  align-items: center;
-}
-
-.salesdata-uk .view-toggle {
-  display: flex;
-  gap: 0.5rem;
-  background: #f8fafc;
-  padding: 0.25rem;
-  border-radius: 8px;
-}
-
-html.dark-mode .salesdata-uk .view-toggle {
-  background: #1e1e1e;
-}
-
-.salesdata-uk .toggle-btn {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  background: transparent;
-  color: #6b7280;
-}
-
-.salesdata-uk .toggle-btn:hover {
-  color: #374151;
-  background: rgba(118, 161, 43, 0.1);
+  background: linear-gradient(135deg, #8bc34a, #76a12b);
+  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.4);
 }
 
 .salesdata-uk .toggle-btn.active {
@@ -196,179 +49,14 @@ html.dark-mode .salesdata-uk .view-toggle {
   box-shadow: 0 2px 8px rgba(118, 161, 43, 0.3);
 }
 
-html.dark-mode .salesdata-uk .toggle-btn {
-  color: #9ca3af;
+.salesdata-uk .content-card:hover {
+  border-color: rgba(118, 161, 43, 0.1);
 }
 
-html.dark-mode .salesdata-uk .toggle-btn:hover {
-  color: #e5e7eb;
-  background: rgba(139, 195, 74, 0.2);
+.salesdata-uk .file-input:hover {
+  border-color: #76a12b;
 }
 
-.salesdata-uk .search-controls {
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-}
-
-.salesdata-uk .search-input {
-  flex: 1;
-  min-width: 300px;
-}
-
-/* ===== Data Table ===== */
-.salesdata-uk .table-section {
-  margin-bottom: 2rem;
-}
-
-.salesdata-uk .table-container {
-  background: white;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-  border: 2px solid #f1f5f9;
-}
-
-html.dark-mode .salesdata-uk .table-container {
-  background: #2a2a2a;
-  border-color: #404040;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
-}
-
-.salesdata-uk .data-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.salesdata-uk .data-table th {
-  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
-  padding: 1rem;
-  text-align: left;
-  font-weight: 600;
-  color: #374151;
-  border-bottom: 2px solid #e5e7eb;
-  font-size: 0.9rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-html.dark-mode .salesdata-uk .data-table th {
-  background: linear-gradient(135deg, #404040, #333);
-  color: #e5e7eb;
-  border-bottom-color: #555;
-}
-
-.salesdata-uk .data-table td {
-  padding: 1rem;
-  border-bottom: 1px solid #f1f5f9;
-  color: #374151;
-  font-size: 0.95rem;
-}
-
-html.dark-mode .salesdata-uk .data-table td {
-  border-bottom-color: #404040;
-  color: #e5e7eb;
-}
-
-.salesdata-uk .data-table tbody tr:hover {
-  background: linear-gradient(135deg, #fefefe, #f8fafc);
-}
-
-html.dark-mode .salesdata-uk .data-table tbody tr:hover {
-  background: linear-gradient(135deg, #2a2a2a, #333);
-}
-
-.salesdata-uk .table-empty-state {
-  text-align: center;
-  padding: 3rem;
-  color: #9ca3af;
-}
-
-.salesdata-uk .empty-icon {
-  font-size: 3rem;
-  margin-bottom: 1rem;
-  opacity: 0.5;
-}
-
-.salesdata-uk .empty-message {
-  font-size: 1.1rem;
-  font-weight: 500;
-  margin-bottom: 0.5rem;
-}
-
-.salesdata-uk .empty-submessage {
-  font-size: 0.9rem;
-  color: #6b7280;
-}
-
-html.dark-mode .salesdata-uk .empty-submessage {
-  color: #9ca3af;
-}
-
-/* ===== Pagination ===== */
-.salesdata-uk .pagination-section {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 1rem;
-  padding: 1.5rem;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  border: 2px solid #f1f5f9;
-}
-
-html.dark-mode .salesdata-uk .pagination-section {
-  background: #2a2a2a;
-  border-color: #404040;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}
-
-.salesdata-uk .page-info {
-  font-weight: 600;
-  color: #374151;
-  padding: 0 1rem;
-}
-
-html.dark-mode .salesdata-uk .page-info {
-  color: #e5e7eb;
-}
-
-/* ===== Responsive Design ===== */
-@media (max-width: 768px) {
-  .salesdata-uk .page-title {
-    font-size: 2rem;
-  }
-  
-  .salesdata-uk .upload-form {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-  
-  .salesdata-uk .controls-grid {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-  
-  .salesdata-uk .view-toggle {
-    justify-content: center;
-  }
-  
-  .salesdata-uk .search-controls {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  
-  .salesdata-uk .search-input {
-    min-width: auto;
-  }
-  
-  .salesdata-uk .table-container {
-    overflow-x: auto;
-  }
-  
-  .salesdata-uk .pagination-section {
-    flex-direction: column;
-    gap: 0.5rem;
-  }
+html.dark-mode .salesdata-uk .file-input:hover {
+  border-color: #8bc34a;
 }
