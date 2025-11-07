@@ -12,10 +12,7 @@ html.dark-mode .main-container {
   background: #1a1a1a;
 }
 
-.uk-sales-content,
-.fr-sales-content,
-.nl-sales-content,
-.history-content {
+.sales-content {
   animation: fadeInUp 0.4s ease-out;
 }
 
@@ -557,6 +554,56 @@ html.dark-mode .stat-value {
 
 html.dark-mode .stat-label {
   color: #95a5a6;
+}
+
+/* ===== Pagination ===== */
+.pagination-section {
+  margin-top: 2rem;
+}
+
+.pagination-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 2px solid #f1f5f9;
+}
+
+html.dark-mode .pagination-controls {
+  background: #2a2a2a;
+  border-color: #404040;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.page-info {
+  font-weight: 600;
+  color: #374151;
+  padding: 0 1rem;
+  font-size: 0.95rem;
+}
+
+html.dark-mode .page-info {
+  color: #e5e7eb;
+}
+
+/* ===== Filter Groups ===== */
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.filters-section {
+  margin-bottom: 2rem;
+}
+
+.upload-section,
+.controls-section {
+  margin-bottom: 2rem;
 }
 
 /* ===== Responsive Design ===== */

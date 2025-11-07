@@ -7,10 +7,9 @@
     
     <!-- Salesdata CSS -->
     <link rel="stylesheet" href="/css/salesdata/universal.css">
-    <link rel="stylesheet" href="/css/salesdata/history.css">
 </head>
 <body>
-    <div class="salesdata-page salesdata-history main-container">
+    <div class="salesdata-page main-container">
         <!-- Navigation Tabs -->
         <div class="inner-tabs">
             <button class="tab-button" onclick="location.href='/salesdata/uk-sales'">
@@ -32,7 +31,7 @@
         </div>
 
         <!-- Main Content -->
-        <div class="history-content">
+        <div class="sales-content">
             <!-- Page Header -->
             <section class="section-header">
                 <h2 class="section-title">
@@ -48,28 +47,28 @@
                     <div class="content-card stats-card">
                         <div class="card-body">
                             <div class="stat-icon">📊</div>
-                            <div class="stat-value">24</div>
+                            <div class="stat-value" id="totalImports">24</div>
                             <div class="stat-label">Total Imports</div>
                         </div>
                     </div>
                     <div class="content-card stats-card">
                         <div class="card-body">
                             <div class="stat-icon">✅</div>
-                            <div class="stat-value">20</div>
+                            <div class="stat-value" id="successfulImports">20</div>
                             <div class="stat-label">Successful</div>
                         </div>
                     </div>
                     <div class="content-card stats-card">
                         <div class="card-body">
                             <div class="stat-icon">❌</div>
-                            <div class="stat-value">4</div>
+                            <div class="stat-value" id="failedImports">4</div>
                             <div class="stat-label">Failed</div>
                         </div>
                     </div>
                     <div class="content-card stats-card">
                         <div class="card-body">
                             <div class="stat-icon">📅</div>
-                            <div class="stat-value">Today</div>
+                            <div class="stat-value" id="lastImport">Today</div>
                             <div class="stat-label">Last Import</div>
                         </div>
                     </div>
@@ -127,11 +126,11 @@
                             </div>
                         </div>
                         <div class="filter-actions">
-                            <button class="action-btn primary-btn">
+                            <button class="action-btn primary-btn" id="applyFiltersBtn">
                                 <i class="fas fa-search"></i>
                                 Apply Filters
                             </button>
-                            <button class="action-btn secondary-btn">
+                            <button class="action-btn secondary-btn" id="clearFiltersBtn">
                                 <i class="fas fa-times"></i>
                                 Clear All
                             </button>
@@ -143,7 +142,7 @@
             <!-- History Table -->
             <section class="table-section">
                 <div class="table-container">
-                    <table class="products-table">
+                    <table class="products-table" id="historyTable">
                         <thead class="table-header">
                             <tr>
                                 <th>
@@ -182,6 +181,21 @@
                             </tr>
                         </tbody>
                     </table>
+                </div>
+            </section>
+
+            <!-- Pagination -->
+            <section class="pagination-section">
+                <div class="pagination-controls">
+                    <button id="prevPageBtn" class="action-btn secondary-btn">
+                        <i class="fas fa-chevron-left"></i>
+                        Previous
+                    </button>
+                    <span id="pageInfo" class="page-info">Page 1 of 0 (0 total records)</span>
+                    <button id="nextPageBtn" class="action-btn secondary-btn">
+                        Next
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
                 </div>
             </section>
         </div>

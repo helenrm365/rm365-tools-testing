@@ -7,10 +7,9 @@
     
     <!-- Salesdata CSS -->
     <link rel="stylesheet" href="/css/salesdata/universal.css">
-    <link rel="stylesheet" href="/css/salesdata/uk-sales.css">
 </head>
 <body>
-    <div class="salesdata-page salesdata-uk main-container">
+    <div class="salesdata-page main-container">
         <!-- Navigation Tabs -->
         <div class="inner-tabs">
             <button class="tab-button active" onclick="location.href='/salesdata/uk-sales'">
@@ -32,7 +31,7 @@
         </div>
 
         <!-- Main Content -->
-        <div class="uk-sales-content">
+        <div class="sales-content">
             <!-- Page Header -->
             <section class="section-header">
                 <h2 class="section-title">
@@ -61,7 +60,7 @@
                                 </label>
                                 <input type="file" id="csvFile" accept=".csv" required class="form-input file-input">
                             </div>
-                            <button type="submit" class="action-btn primary-btn upload-btn">
+                            <button type="submit" class="action-btn primary-btn">
                                 <i class="fas fa-cloud-upload-alt"></i>
                                 Upload File
                             </button>
@@ -76,20 +75,24 @@
                     <div class="card-body">
                         <div class="controls-grid">
                             <div class="view-toggle">
-                                <button class="toggle-btn active">
+                                <button class="toggle-btn active" id="viewFullBtn">
                                     <i class="fas fa-list"></i>
                                     Full Data
                                 </button>
-                                <button class="toggle-btn">
+                                <button class="toggle-btn" id="viewCondensedBtn">
                                     <i class="fas fa-calendar-alt"></i>
                                     6-Month
                                 </button>
                             </div>
                             <div class="search-controls">
-                                <input type="text" class="form-input search-input" placeholder="Search by order number or SKU...">
-                                <button class="action-btn secondary-btn">
+                                <input type="text" id="searchInput" class="form-input search-input" placeholder="Search by order number or SKU...">
+                                <button class="action-btn secondary-btn" id="searchBtn">
                                     <i class="fas fa-search"></i>
                                     Search
+                                </button>
+                                <button class="action-btn secondary-btn" id="clearSearchBtn">
+                                    <i class="fas fa-times"></i>
+                                    Clear
                                 </button>
                             </div>
                         </div>
@@ -100,7 +103,7 @@
             <!-- Data Table -->
             <section class="table-section">
                 <div class="table-container">
-                    <table class="products-table">
+                    <table class="products-table" id="salesTable">
                         <thead class="table-header">
                             <tr>
                                 <th>
@@ -127,11 +130,15 @@
                                     <i class="fas fa-pound-sign"></i>
                                     Price
                                 </th>
+                                <th>
+                                    <i class="fas fa-info-circle"></i>
+                                    Status
+                                </th>
                             </tr>
                         </thead>
-                        <tbody id="dataTableBody" class="table-body">
+                        <tbody id="salesTableBody" class="table-body">
                             <tr>
-                                <td colspan="6" class="empty-state">
+                                <td colspan="7" class="empty-state">
                                     <div class="empty-icon">📊</div>
                                     <div class="empty-message">No data available</div>
                                     <div class="empty-submessage">Upload a CSV file to view sales data</div>
@@ -141,71 +148,22 @@
                     </table>
                 </div>
             </section>
-        </div>
-    </div>
-</body>
-</html>
-                    <div class="view-toggle">
-                        <button id="viewFullBtn" class="toggle-btn active">Full Data</button>
-                        <button id="viewCondensedBtn" class="toggle-btn">6-Month</button>
-                    </div>
-                    <div class="search-controls">
-                        <input type="text" id="searchInput" placeholder="Search by order number or SKU..." class="search-input form-input">
-                        <button id="searchBtn" class="btn-secondary">Search</button>
-                        <button id="clearSearchBtn" class="btn-secondary">Clear</button>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Data Table -->
-            <section class="table-section">
-                <div class="table-container">
-                    <table id="salesTable" class="data-table">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Order Number</th>
-                                <th>Created At</th>
-                                <th>SKU</th>
-                                <th>Name</th>
-                                <th>Quantity</th>
-                                <th>Price</th>
-                                <th>Status</th>
-                                <th>Imported At</th>
-                                <th>Updated At</th>
-                            </tr>
-                        </thead>
-                        <tbody id="salesTableBody">
-                            <tr>
-                                <td colspan="10" class="table-empty-state">
-                                    <div class="empty-icon">📊</div>
-                                    <div class="empty-message">Loading sales data...</div>
-                                    <div class="empty-submessage">Please wait while we fetch the data</div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
 
             <!-- Pagination -->
             <section class="pagination-section">
-                <button id="prevPageBtn" class="btn-secondary">← Previous</button>
-                <span id="pageInfo" class="page-info">Page 1</span>
-                <button id="nextPageBtn" class="btn-secondary">Next →</button>
+                <div class="pagination-controls">
+                    <button id="prevPageBtn" class="action-btn secondary-btn">
+                        <i class="fas fa-chevron-left"></i>
+                        Previous
+                    </button>
+                    <span id="pageInfo" class="page-info">Page 1 of 0 (0 total records)</span>
+                    <button id="nextPageBtn" class="action-btn secondary-btn">
+                        Next
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
             </section>
         </div>
     </div>
-
-    <!-- Universal Footer -->
-    <div id="footerPlaceholder"></div>
-    <script>
-        fetch('/components/universal-footer.html')
-            .then(response => response.text())
-            .then(html => {
-                document.getElementById('footerPlaceholder').innerHTML = html;
-            })
-            .catch(error => console.error('Error loading footer:', error));
-    </script>
 </body>
 </html>
