@@ -91,6 +91,8 @@ class SalesDataRepo:
                 
                 if not exists:
                     # Create the table with the required columns
+                    # Set default currency based on region
+                    default_currency = 'GBP' if 'uk' in table_name else 'EUR'
                     create_table_sql = f"""
                         CREATE TABLE {table_name} (
                             id SERIAL PRIMARY KEY,
@@ -101,6 +103,8 @@ class SalesDataRepo:
                             qty INTEGER NOT NULL,
                             price DECIMAL(10, 2) NOT NULL,
                             status VARCHAR(100) NOT NULL,
+                            customer_group VARCHAR(255) DEFAULT 'Standard',
+                            currency VARCHAR(10) DEFAULT '{default_currency}',
                             imported_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                         )
@@ -212,7 +216,7 @@ class SalesDataRepo:
                 """
                 data_query = f"""
                     SELECT id, order_number, created_at, sku, name, qty, price, status, 
-                           imported_at, updated_at
+                           customer_group, currency, imported_at, updated_at
                     FROM {table_name}
                     WHERE order_number ILIKE %s 
                        OR sku ILIKE %s 
@@ -229,7 +233,7 @@ class SalesDataRepo:
                 count_query = f"SELECT COUNT(*) FROM {table_name}"
                 data_query = f"""
                     SELECT id, order_number, created_at, sku, name, qty, price, status, 
-                           imported_at, updated_at
+                           customer_group, currency, imported_at, updated_at
                     FROM {table_name}
                     ORDER BY imported_at DESC
                     LIMIT %s OFFSET %s
@@ -240,7 +244,7 @@ class SalesDataRepo:
                 cursor.execute(data_query, (limit, offset))
             
             # Fetch all rows
-            columns = ['id', 'order_number', 'created_at', 'sku', 'name', 'qty', 'price', 'status', 'imported_at', 'updated_at']
+            columns = ['id', 'order_number', 'created_at', 'sku', 'name', 'qty', 'price', 'status', 'customer_group', 'currency', 'imported_at', 'updated_at']
             rows = cursor.fetchall()
             
             data = []
@@ -312,9 +316,11 @@ class SalesDataRepo:
                     # Column 5 (index 4): qty
                     # Column 6 (index 5): price
                     # Column 7 (index 6): status
+                    # Column 8 (index 7): customer_group (optional, defaults to 'Standard')
+                    # Column 9 (index 8): currency (optional, defaults based on region)
                     
                     if len(row) < 7:
-                        errors.append(f"Row {row_num}: Not enough columns (expected 7, got {len(row)})")
+                        errors.append(f"Row {row_num}: Not enough columns (expected at least 7, got {len(row)})")
                         continue
                     
                     order_number = row[0].strip() if len(row) > 0 else ''
@@ -324,6 +330,13 @@ class SalesDataRepo:
                     qty_str = row[4].strip() if len(row) > 4 else '0'
                     price_str = row[5].strip() if len(row) > 5 else '0'
                     status = row[6].strip() if len(row) > 6 else ''
+                    
+                    # New optional columns
+                    customer_group = row[7].strip() if len(row) > 7 and row[7].strip() else 'Standard'
+                    
+                    # Set default currency based on region
+                    default_currency = 'GBP' if 'uk' in table_name else 'EUR'
+                    currency = row[8].strip() if len(row) > 8 and row[8].strip() else default_currency
                     
                     # Validate required fields
                     if not order_number or not sku:
@@ -344,12 +357,12 @@ class SalesDataRepo:
                     # Insert into database
                     insert_query = f"""
                         INSERT INTO {table_name} 
-                        (order_number, created_at, sku, name, qty, price, status, imported_at, updated_at)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        (order_number, created_at, sku, name, qty, price, status, customer_group, currency, imported_at, updated_at)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """
                     now = datetime.utcnow()
                     cursor.execute(insert_query, (
-                        order_number, created_at, sku, name, qty, price, status, now, now
+                        order_number, created_at, sku, name, qty, price, status, customer_group, currency, now, now
                     ))
                     rows_imported += 1
                     

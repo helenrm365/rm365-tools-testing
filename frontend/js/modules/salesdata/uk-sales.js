@@ -177,13 +177,15 @@ function displaySalesData(data, totalCount) {
       <th>Quantity</th>
       <th>Price</th>
       <th>Status</th>
+      <th>Customer Group</th>
+      <th>Currency</th>
       <th>Imported At</th>
       <th>Updated At</th>
     `;
   }
   
   if (!data || data.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 2rem;">No data found</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="12" style="text-align: center; padding: 2rem;">No data found</td></tr>';
     return;
   }
   
@@ -197,6 +199,8 @@ function displaySalesData(data, totalCount) {
       <td>${row.qty || 0}</td>
       <td>£${parseFloat(row.price || 0).toFixed(2)}</td>
       <td>${escapeHtml(row.status || '')}</td>
+      <td>${escapeHtml(row.customer_group || 'Standard')}</td>
+      <td>${escapeHtml(row.currency || 'GBP')}</td>
       <td>${formatDateTime(row.imported_at)}</td>
       <td>${formatDateTime(row.updated_at)}</td>
     </tr>
