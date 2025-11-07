@@ -39,48 +39,20 @@ html.dark-mode .labels-history .page-subtitle {
   color: #95a5a6;
 }
 
-/* ===== Content Card ===== */
-.labels-history .content-card {
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  border: 2px solid transparent;
-  overflow: hidden;
-  transition: all 0.3s ease;
+/* ===== Main Content Container ===== */
+.labels-history .history-content {
+  animation: fadeInUp 0.4s ease-out;
 }
 
-html.dark-mode .labels-history .content-card {
-  background: #2a2a2a;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-}
-
-.labels-history .card-header {
-  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-  padding: 1.5rem;
-  border-bottom: 2px solid #e0e0e0;
-}
-
-html.dark-mode .labels-history .card-header {
-  background: linear-gradient(135deg, #404040, #333);
-  border-bottom-color: #555;
-}
-
-.labels-history .card-title {
-  font-size: 1.4rem;
-  font-weight: 600;
-  color: #2c3e50;
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-html.dark-mode .labels-history .card-title {
-  color: #ecf0f1;
-}
-
-.labels-history .card-body {
-  padding: 2rem;
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ===== History Table ===== */
