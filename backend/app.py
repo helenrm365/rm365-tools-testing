@@ -1,7 +1,6 @@
 import os
 import time
 import base64
-import json
 from pathlib import Path
 
 # Load environment variables from .env file for local development
@@ -20,73 +19,6 @@ from core.config import settings
 from core.middleware import install_middleware
 from core.errors import install_handlers
 
-# --- helpers -----------------------------------------------------------------
-def _parse_origins_env():
-    """
-    Accepts:
-      - JSON array: '["https://a.com","https://b.com"]'
-      - Comma-separated string: 'https://a.com,https://b.com'
-            - Wildcard/all: '*', 'all', or 'any'
-      - Empty / missing -> []
-    Never raises; always returns a list[str].
-    """
-    raw = os.getenv('ALLOW_ORIGINS', '').strip()
-    if not raw:
-        return []
-    
-    # Debug logging
-    print(f"🔍 Raw ALLOW_ORIGINS: {raw}")
-    # Wildcard helpers
-    if raw in {"*", "all", "any"}:
-        print("✅ Using wildcard origins ('*') from env")
-        return ["*"]
-    
-    try:
-        # Handle Railway's JSON array format
-        val = json.loads(raw)
-        if isinstance(val, list):
-            origins = [str(x) for x in val]
-            print(f"✅ Parsed JSON origins: {origins}")
-            return origins
-        # If someone set ALLOW_ORIGINS='null' or object, fall back
-    except json.JSONDecodeError as e:
-        print(f"⚠️  JSON parse error: {e}, falling back to comma-separated")
-    except Exception as e:
-        print(f"⚠️  Unexpected error parsing origins: {e}")
-    
-    # Fallback: comma-separated
-    fallback = [p.strip() for p in raw.split(',') if p.strip()]
-    print(f"📋 Fallback comma-separated origins: {fallback}")
-    return fallback
-
-def _parse_regex_env():
-    """
-    Returns a string pattern or None. Empty strings are treated as None.
-    """
-    patt = os.getenv('ALLOW_ORIGIN_REGEX', '').strip()
-    if not patt:
-        # Default regex to match all Cloudflare Pages subdomains (no $ anchor)
-        patt = r"https://.*\.pages\.dev"
-    print(f"🔍 Regex pattern: {patt}")
-    return patt or None
-
-def _resolve_allow_origins():
-    """Return allowed origins preferring env, else config settings."""
-    env_list = _parse_origins_env()
-    if env_list:
-        return env_list
-    # Default to main Cloudflare Pages domain
-    return [
-        'https://rm365-tools-testing.pages.dev'
-    ]
-
-def _resolve_allow_origin_regex():
-    """Return regex pattern preferring env, else config settings."""
-    env_val = _parse_regex_env()
-    if env_val:
-        return env_val
-    return settings.ALLOW_ORIGIN_REGEX
-
 BOOT_T0 = time.time()
 app = FastAPI(
     title='VK API',
@@ -96,7 +28,6 @@ app = FastAPI(
 )
 
 # --- Database Initialization (non-blocking) ---------------------------------
-# Kick off DB/table initialization in a background thread so the app starts
 try:
     import threading
     from core.db import initialize_database
@@ -112,41 +43,37 @@ try:
 except Exception as e:
     print(f"⚠️  Could not start background DB init: {e}")
 
-# --- CORS --------------------------------------------------------------------
-allow_origins = _resolve_allow_origins()
-allow_origin_regex = _resolve_allow_origin_regex()
+# --- CORS (Respects env vars, falls back to wildcard) ----------------------
+def _get_cors_config():
+    """Get CORS configuration from environment or use permissive defaults."""
+    origins_env = os.getenv('ALLOW_ORIGINS', '').strip()
+    regex_env = os.getenv('ALLOW_ORIGIN_REGEX', '').strip()
+    
+    # Parse origins - support comma-separated values
+    if origins_env:
+        origins = [o.strip() for o in origins_env.split(',') if o.strip()]
+        print(f"🌍 CORS: Using origins from env: {origins}")
+    else:
+        origins = ["*"]
+        print("🌍 CORS: No ALLOW_ORIGINS set, using wildcard")
+    
+    # Use regex if provided
+    if regex_env:
+        print(f"🌍 CORS: Using regex from env: {regex_env}")
+    else:
+        regex_env = None
+    
+    return origins, regex_env
 
-# Always ensure we have permissive CORS for Cloudflare Pages
-if allow_origins:
-    # Make sure Cloudflare Pages main domain is included
-    if 'https://rm365-tools-testing.pages.dev' not in allow_origins:
-        allow_origins.append('https://rm365-tools-testing.pages.dev')
-        print("✅ Added main Cloudflare Pages domain")
-    print(f"🌍 CORS: Using specific origins: {allow_origins}")
-else:
-    # No specific origins set, allow all
-    allow_origins = ["*"]
-    print("🌍 CORS: Allowing all origins (wildcard)")
-
-# Ensure regex pattern is set for preview deployments (without $ anchor)
-if not allow_origin_regex or allow_origin_regex.endswith('$'):
-    allow_origin_regex = r"https://.*\.pages\.dev"
-    print(f"✅ Set regex pattern (no end anchor): {allow_origin_regex}")
-
-print(f"🌍 CORS Configuration:")
-print(f"   Allow Origins: {allow_origins}")
-print(f"   Allow Origin Regex: {allow_origin_regex}")
-print(f"   Allow Credentials: False (JWT-based auth)")
+allow_origins, allow_origin_regex = _get_cors_config()
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allow_origins,
     allow_origin_regex=allow_origin_regex,
     allow_credentials=False,
-    allow_methods=['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allow_headers=['*'],
-    expose_headers=['*'],
-    max_age=3600,  # Cache preflight for 1 hour
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # --- Middleware & error handlers ---------------------------------------------
@@ -157,12 +84,6 @@ install_handlers(app)     # AppError → JSON
 @app.get('/api/health')
 def health():
     return {'status': 'ok', 'uptime': round(time.time() - BOOT_T0, 2)}
-
-@app.options('/api/health')
-@app.options('/api/v1/{full_path:path}')
-async def options_handler():
-    """Explicit OPTIONS handler for CORS preflight"""
-    return {'status': 'ok'}
 
 @app.get('/api/cors-test')
 def cors_test():
@@ -221,6 +142,7 @@ def debug_inventory():
             'database': db_status,
             'zoho': zoho_status,
             'cors_origins': allow_origins,
+            'cors_regex': allow_origin_regex,
             'timestamp': time.time()
         }
     except Exception as e:
