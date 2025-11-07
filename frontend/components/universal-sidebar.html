@@ -1,150 +1,186 @@
 <!-- Universal Animated Sidebar Component -->
-<!-- This can be included on any page that needs the sidebar -->
-
-<nav id="sidebar" class="sidebar">
-  <div class="sidebar-top">
-    <div class="profile">
-      <img src="/assets/RM365_Logo.png" alt="RM365 Logo" class="sidebar-logo" style="width: 50px; height: 50px; object-fit: contain; border-radius: 8px;">
+<nav id="sidebar" class="sidebar" aria-label="Main Navigation">
+  <!-- Profile Section -->
+  <div class="sidebar-header">
+    <div class="profile-section">
+      <div class="logo-container">
+        <img src="/assets/RM365_Logo.png" alt="RM365 Logo" class="sidebar-logo">
+      </div>
       <div class="profile-info">
-        <h4 id="profileName">User</h4>
-        <small id="profileSubtitle">Dashboard</small>
+        <h4 id="profileName" class="profile-name">User</h4>
+        <span id="profileSubtitle" class="profile-role">Dashboard</span>
       </div>
     </div>
 
-    <div class="search-wrapper">
-      <span class="search-icon">🔍</span>
-      <input type="text" id="searchInput" placeholder="Search..." disabled />
+    <div class="search-container">
+      <span class="search-icon" aria-hidden="true">🔍</span>
+      <input 
+        type="text" 
+        id="searchInput" 
+        class="search-input" 
+        placeholder="Search modules..." 
+        aria-label="Search navigation items"
+      />
     </div>
   </div>
 
-  <hr class="sidebar-divider">
+  <div class="sidebar-divider"></div>
 
-  <!-- Persistent nav: each item is a real link -->
-  <ul class="sidebar-tabs">
-    <li><a class="sidebar-link" data-nav href="/enrollment">
-      <span class="icon">📝</span>
-      <span class="label">Enrollment</span>
-    </a></li>
-    <li><a class="sidebar-link" data-nav href="/attendance">
-      <span class="icon">🕒</span>
-      <span class="label">Attendance</span>
-    </a></li>
-    <li><a class="sidebar-link" data-nav href="/labels">
-      <span class="icon">🏷️</span>
-      <span class="label">Labels</span>
-    </a></li>
-    <li><a class="sidebar-link" data-nav href="/salesdata">
-      <span class="icon">📊</span>
-      <span class="label">Sales Data</span>
-    </a></li>
-    <li><a class="sidebar-link" data-nav href="/inventory">
-      <span class="icon">📦</span>
-      <span class="label">Inventory</span>
-    </a></li>
-    <li><a class="sidebar-link" data-nav href="/usermanagement">
-      <span class="icon">👤</span>
-      <span class="label">User Management</span>
-    </a></li>
+  <!-- Navigation Menu -->
+  <ul class="sidebar-nav" role="list">
+    <li role="listitem">
+      <a class="nav-item" data-nav href="/enrollment" aria-label="Enrollment">
+        <span class="nav-icon" aria-hidden="true">📝</span>
+        <span class="nav-label">Enrollment</span>
+      </a>
+    </li>
+    <li role="listitem">
+      <a class="nav-item" data-nav href="/attendance" aria-label="Attendance">
+        <span class="nav-icon" aria-hidden="true">🕒</span>
+        <span class="nav-label">Attendance</span>
+      </a>
+    </li>
+    <li role="listitem">
+      <a class="nav-item" data-nav href="/labels" aria-label="Labels">
+        <span class="nav-icon" aria-hidden="true">🏷️</span>
+        <span class="nav-label">Labels</span>
+      </a>
+    </li>
+    <li role="listitem">
+      <a class="nav-item" data-nav href="/salesdata" aria-label="Sales Data">
+        <span class="nav-icon" aria-hidden="true">📊</span>
+        <span class="nav-label">Sales Data</span>
+      </a>
+    </li>
+    <li role="listitem">
+      <a class="nav-item" data-nav href="/inventory" aria-label="Inventory">
+        <span class="nav-icon" aria-hidden="true">📦</span>
+        <span class="nav-label">Inventory</span>
+      </a>
+    </li>
+    <li role="listitem">
+      <a class="nav-item" data-nav href="/usermanagement" aria-label="User Management">
+        <span class="nav-icon" aria-hidden="true">👤</span>
+        <span class="nav-label">User Management</span>
+      </a>
+    </li>
   </ul>
 
-  <hr class="sidebar-divider">
+  <div class="sidebar-divider"></div>
 
-  <div class="sidebar-bottom">
-    <button id="logoutBtn">
-      <span class="icon">🚪</span>
-      <span class="label">Logout</span>
+  <!-- Footer Section -->
+  <div class="sidebar-footer">
+    <button id="logoutBtn" class="footer-button" aria-label="Logout">
+      <span class="nav-icon" aria-hidden="true">🚪</span>
+      <span class="nav-label">Logout</span>
     </button>
+    
     <div class="dark-mode-toggle">
-      <span class="icon">🌙</span>
-      <label class="switch">
-        <input type="checkbox" id="darkModeToggle">
-        <span class="slider round"></span>
+      <span class="nav-icon" aria-hidden="true">🌙</span>
+      <label class="toggle-switch" aria-label="Toggle dark mode">
+        <input type="checkbox" id="darkModeToggle" aria-checked="false">
+        <span class="toggle-slider"></span>
       </label>
-      <span class="label" style="margin-left: 8px;">Dark Mode</span>
+      <span class="nav-label">Dark Mode</span>
     </div>
   </div>
 </nav>
 
 <script>
-// Universal sidebar functionality - can be loaded independently
+// Universal sidebar functionality
 (function() {
   'use strict';
   
   if (window.sidebarInitialized) return;
   window.sidebarInitialized = true;
   
-  function initSidebar() {
+  const THEME_KEY = 'darkMode';
+  const USER_KEY = 'user';
+  
+  function initDarkMode() {
     const toggle = document.getElementById('darkModeToggle');
-    const THEME_KEY = 'darkMode';
+    if (!toggle) return;
     
-    if (toggle) {
-      const stored = localStorage.getItem(THEME_KEY);
-      const isDark = stored === 'true' || (stored == null && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
-      document.documentElement.classList.toggle('dark-mode', isDark);
-      toggle.checked = isDark;
-      
-      toggle.addEventListener('change', e => {
-        const on = !!e.target.checked;
-        document.documentElement.classList.toggle('dark-mode', on);
-        localStorage.setItem(THEME_KEY, String(on));
-      });
-    }
+    const stored = localStorage.getItem(THEME_KEY);
+    const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+    const isDark = stored === 'true' || (stored == null && prefersDark);
     
+    document.documentElement.classList.toggle('dark-mode', isDark);
+    toggle.checked = isDark;
+    toggle.setAttribute('aria-checked', String(isDark));
+    
+    toggle.addEventListener('change', (e) => {
+      const enabled = e.target.checked;
+      document.documentElement.classList.toggle('dark-mode', enabled);
+      localStorage.setItem(THEME_KEY, String(enabled));
+      toggle.setAttribute('aria-checked', String(enabled));
+    });
+  }
+  
+  function initSearch() {
     const searchInput = document.getElementById('searchInput');
-    if (searchInput) {
-      searchInput.removeAttribute('disabled');
-      searchInput.addEventListener('input', () => {
-        const query = searchInput.value.trim().toLowerCase();
-        document.querySelectorAll('.sidebar .sidebar-link').forEach(link => {
-          const label = link.querySelector('.label')?.textContent?.toLowerCase() || '';
-          const listItem = link.closest('li');
-          if (listItem) {
-            listItem.style.display = label.includes(query) ? 'flex' : 'none';
-          }
-        });
-      });
-    }
+    if (!searchInput) return;
     
-    function highlightActive(pathname = location.pathname) {
-      document.querySelectorAll('.sidebar .sidebar-link').forEach(link => {
-        const listItem = link.closest('li');
-        if (listItem) {
-          listItem.classList.toggle('active', link.getAttribute('href') === pathname);
-        }
-      });
-    }
-    
-    highlightActive();
-    
-    if (window.addEventListener) {
-      window.addEventListener('popstate', () => highlightActive());
+    searchInput.addEventListener('input', (e) => {
+      const query = e.target.value.trim().toLowerCase();
+      const navItems = document.querySelectorAll('.sidebar .nav-item');
       
-      document.addEventListener('click', (e) => {
-        const link = e.target.closest('a[data-nav]');
-        if (link && link.getAttribute('href')?.startsWith('/')) {
-          setTimeout(() => highlightActive(link.getAttribute('href')), 0);
+      navItems.forEach(item => {
+        const label = item.querySelector('.nav-label')?.textContent?.toLowerCase() || '';
+        const listItem = item.closest('li');
+        if (listItem) {
+          listItem.style.display = label.includes(query) ? '' : 'none';
         }
       });
-    }
+    });
+  }
+  
+  function highlightActiveNav(pathname = location.pathname) {
+    document.querySelectorAll('.sidebar .nav-item').forEach(link => {
+      const listItem = link.closest('li');
+      const isActive = link.getAttribute('href') === pathname;
+      
+      if (listItem) {
+        listItem.classList.toggle('active', isActive);
+        link.setAttribute('aria-current', isActive ? 'page' : 'false');
+      }
+    });
+  }
+  
+  function initNavigation() {
+    highlightActiveNav();
     
+    window.addEventListener('popstate', () => highlightActiveNav());
+    
+    document.addEventListener('click', (e) => {
+      const link = e.target.closest('a[data-nav]');
+      if (link?.getAttribute('href')?.startsWith('/')) {
+        setTimeout(() => highlightActiveNav(link.getAttribute('href')), 0);
+      }
+    });
+  }
+  
+  function initLogout() {
     const logoutBtn = document.getElementById('logoutBtn');
-    if (logoutBtn) {
-      logoutBtn.addEventListener('click', async () => {
-        if (!confirm('Are you sure you want to log out?')) return;
-        
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('user');
-        
-        if (window.navigate) {
-          await window.navigate('/login');
-        } else {
-          window.location.href = '/login';
-        }
-      });
-    }
+    if (!logoutBtn) return;
     
+    logoutBtn.addEventListener('click', async () => {
+      if (!confirm('Are you sure you want to log out?')) return;
+      
+      localStorage.removeItem('authToken');
+      localStorage.removeItem(USER_KEY);
+      
+      if (window.navigate) {
+        await window.navigate('/login');
+      } else {
+        window.location.href = '/login';
+      }
+    });
+  }
+  
+  function loadUserProfile() {
     try {
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const user = JSON.parse(localStorage.getItem(USER_KEY) || '{}');
       const profileName = document.getElementById('profileName');
       const profileSubtitle = document.getElementById('profileSubtitle');
       
@@ -157,52 +193,64 @@
     } catch (e) {
       console.warn('[Sidebar] Could not load user profile:', e);
     }
-    
-    const createMobileToggle = () => {
-      const existingToggle = document.querySelector('.mobile-sidebar-toggle');
-      if (existingToggle) return;
+  }
+  
+  function initMobileToggle() {
+    const createToggle = () => {
+      if (document.querySelector('.mobile-sidebar-toggle')) return;
       
       const toggle = document.createElement('button');
       toggle.className = 'mobile-sidebar-toggle';
       toggle.innerHTML = '☰';
       toggle.setAttribute('aria-label', 'Toggle Sidebar');
+      toggle.setAttribute('aria-expanded', 'false');
       
       toggle.addEventListener('click', () => {
         const sidebar = document.getElementById('sidebar');
         if (sidebar) {
-          sidebar.classList.toggle('mobile-open');
+          const isOpen = sidebar.classList.toggle('mobile-open');
+          toggle.setAttribute('aria-expanded', String(isOpen));
         }
       });
       
       document.body.appendChild(toggle);
     };
     
-    if (window.innerWidth <= 768) {
-      createMobileToggle();
-    }
+    const removeToggle = () => {
+      const toggle = document.querySelector('.mobile-sidebar-toggle');
+      toggle?.remove();
+      
+      const sidebar = document.getElementById('sidebar');
+      sidebar?.classList.remove('mobile-open');
+    };
     
-    window.addEventListener('resize', () => {
+    const handleResize = () => {
       if (window.innerWidth <= 768) {
-        createMobileToggle();
+        createToggle();
       } else {
-        const toggle = document.querySelector('.mobile-sidebar-toggle');
-        if (toggle) {
-          toggle.remove();
-        }
-        const sidebar = document.getElementById('sidebar');
-        if (sidebar) {
-          sidebar.classList.remove('mobile-open');
-        }
+        removeToggle();
       }
-    });
+    };
     
-    console.log('[Sidebar] Universal sidebar initialized');
+    handleResize();
+    window.addEventListener('resize', handleResize);
+  }
+  
+  function init() {
+    initDarkMode();
+    initSearch();
+    initNavigation();
+    initLogout();
+    loadUserProfile();
+    initMobileToggle();
+    
+    console.log('[Sidebar] Initialized successfully');
   }
   
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initSidebar);
+    document.addEventListener('DOMContentLoaded', init);
   } else {
-    initSidebar();
+    init();
   }
 })();
 </script>
