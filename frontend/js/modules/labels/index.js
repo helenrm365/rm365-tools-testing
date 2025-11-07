@@ -1,10 +1,6 @@
 // js/modules/labels/index.js
 export async function init(path) {
-  // Home page - no initialization needed, just a landing page
-  if (path === '/labels') {
-    return;
-  }
-  if (path === '/labels/generator') {
+  if (path === '/labels' || path === '/labels/generator') {
     const mod = await import('./generator.js');
     await mod.initLabelGenerator();
     return;

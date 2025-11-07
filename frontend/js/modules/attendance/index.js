@@ -1,10 +1,6 @@
 // js/modules/attendance/index.js
 export async function init(path) {
-  // Home page - no initialization needed, just a landing page
-  if (path === '/attendance') {
-    return;
-  }
-  if (path === '/attendance/overview') {
+  if (path === '/attendance' || path === '/attendance/overview') {
     const mod = await import('./overview.js');
     await mod.init();
     return;
