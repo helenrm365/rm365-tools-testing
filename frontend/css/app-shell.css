@@ -464,6 +464,12 @@ html.dark-mode .sidebar-nav li.active .nav-item {
   justify-content: center;
   font-size: 1.35rem;
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  line-height: 1;
+}
+
+/* Ensure icons are visible when sidebar is collapsed */
+.sidebar:not(:hover) .nav-icon {
+  font-size: 1.5rem;
 }
 
 .nav-item:hover .nav-icon {
@@ -481,11 +487,13 @@ html.dark-mode .sidebar-nav li.active .nav-item {
   opacity: 0;
   transform: translateX(-10px);
   transition: opacity 0.3s ease 0.1s, transform 0.3s ease 0.1s;
+  pointer-events: none;
 }
 
 .sidebar:hover .nav-label {
   opacity: 1;
   transform: translateX(0);
+  pointer-events: auto;
 }
 
 /* === Footer Section === */
@@ -512,6 +520,22 @@ html.dark-mode .sidebar-nav li.active .nav-item {
   transition: all 0.3s ease;
   text-align: left;
   justify-content: center;
+}
+
+.footer-button .nav-icon {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+/* Ensure footer button icon is visible when collapsed */
+.sidebar:not(:hover) .footer-button .nav-icon {
+  font-size: 1.5rem;
 }
 
 .sidebar:hover .footer-button {
@@ -561,6 +585,12 @@ html.dark-mode .dark-mode-toggle:hover {
   align-items: center;
   justify-content: center;
   font-size: 1.35rem;
+  line-height: 1;
+}
+
+/* Ensure dark mode toggle icon is visible when collapsed */
+.sidebar:not(:hover) .dark-mode-toggle .nav-icon {
+  font-size: 1.5rem;
 }
 
 /* === Toggle Switch === */

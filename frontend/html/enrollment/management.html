@@ -26,37 +26,75 @@
   
   <!-- Main Content -->
   <div class="management-wrapper">
-    <!-- Main Section -->
-    <div class="management-main-section">
-      <!-- Toolbar -->
-      <div class="management-toolbar">
-        <div class="toolbar-actions">
-          <button class="action-btn primary-btn" id="enrCreateBtn">
-            <i class="fas fa-plus"></i>
-            <span>New Employee</span>
-          </button>
-          <button class="action-btn danger-btn" id="enrBulkDeleteBtn">
-            <i class="fas fa-trash-alt"></i>
-            <span>Delete Selected</span>
-          </button>
+    <!-- Primary Management Card -->
+    <div class="management-card-section primary-section">
+      <!-- Toolbar Actions Block -->
+      <div class="action-block toolbar-block">
+        <div class="block-header">
+          <div class="block-icon toolbar-icon">
+            <i class="fas fa-users-cog"></i>
+          </div>
+          <div class="block-title-group">
+            <h3 class="block-title">Employee Actions</h3>
+            <p class="block-subtitle">Create or manage team members</p>
+          </div>
         </div>
-        
-        <div class="toolbar-filters">
+
+        <div class="block-content">
+          <div class="action-buttons-grid">
+            <button class="action-btn primary-btn" id="enrCreateBtn">
+              <i class="fas fa-user-plus"></i>
+              <span>New Employee</span>
+            </button>
+            <button class="action-btn danger-btn" id="enrBulkDeleteBtn">
+              <i class="fas fa-trash-alt"></i>
+              <span>Delete Selected</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Divider -->
+      <div class="action-divider">
+        <div class="divider-line"></div>
+      </div>
+
+      <!-- Search & Filter Block -->
+      <div class="action-block filter-block">
+        <div class="block-header">
+          <div class="block-icon filter-icon">
+            <i class="fas fa-filter"></i>
+          </div>
+          <div class="block-title-group">
+            <h3 class="block-title">Search & Filter</h3>
+            <p class="block-subtitle">Find specific employees</p>
+          </div>
+        </div>
+
+        <div class="block-content">
           <div class="search-box">
             <i class="fas fa-search search-icon"></i>
-            <input type="text" id="employeeSearch" class="search-input" placeholder="Search employees...">
+            <input type="text" id="employeeSearch" class="search-input" placeholder="Search by name or code...">
           </div>
+
           <div class="filter-controls">
             <div class="filter-item">
-              <i class="fas fa-filter"></i>
+              <label class="filter-label">
+                <i class="fas fa-toggle-on"></i>
+                <span>Status</span>
+              </label>
               <select id="statusFilter" class="filter-select">
                 <option value="">All Status</option>
                 <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
               </select>
             </div>
+
             <div class="filter-item">
-              <i class="fas fa-map-marker-alt"></i>
+              <label class="filter-label">
+                <i class="fas fa-map-marker-alt"></i>
+                <span>Location</span>
+              </label>
               <select id="locationFilter" class="filter-select">
                 <option value="">All Locations</option>
                 <option value="UK">UK</option>
@@ -67,12 +105,108 @@
         </div>
       </div>
 
-      <!-- Employee Grid -->
-      <div id="enrEmployeeGrid" class="employee-grid">
-        <!-- Your JS will render the employee cards here -->
-        <div class="loading-state">
-          <div class="loading-spinner"></div>
-          <p>Loading employees...</p>
+      <!-- Divider -->
+      <div class="action-divider">
+        <div class="divider-line"></div>
+      </div>
+
+      <!-- Employee Grid Block -->
+      <div class="action-block employees-block">
+        <div class="block-header">
+          <div class="block-icon employees-icon">
+            <i class="fas fa-users"></i>
+          </div>
+          <div class="block-title-group">
+            <h3 class="block-title">Team Members</h3>
+            <p class="block-subtitle" id="employeeCount">Loading...</p>
+          </div>
+        </div>
+
+        <div class="block-content">
+          <div id="enrEmployeeGrid" class="employee-grid">
+            <!-- Your JS will render the employee cards here -->
+            <div class="loading-state">
+              <div class="loading-spinner"></div>
+              <p>Loading employees...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Instructions Card -->
+    <div class="management-card-section instructions-card">
+      <div class="instructions-header">
+        <div class="instructions-icon">
+          <i class="fas fa-info-circle"></i>
+        </div>
+        <h3 class="instructions-title">Management Guide</h3>
+      </div>
+
+      <div class="steps-list">
+        <div class="step-item">
+          <div class="step-number">1</div>
+          <div class="step-info">
+            <h4 class="step-name">Create Employee</h4>
+            <p class="step-desc">Click "New Employee" to add team members</p>
+          </div>
+        </div>
+
+        <div class="step-item">
+          <div class="step-number">2</div>
+          <div class="step-info">
+            <h4 class="step-name">Edit Details</h4>
+            <p class="step-desc">Update employee name, location, and status directly in cards</p>
+          </div>
+        </div>
+
+        <div class="step-item">
+          <div class="step-number">3</div>
+          <div class="step-info">
+            <h4 class="step-name">Assign Credentials</h4>
+            <p class="step-desc">Use Card or Fingerprint tabs to link access methods</p>
+          </div>
+        </div>
+
+        <div class="step-item">
+          <div class="step-number">4</div>
+          <div class="step-info">
+            <h4 class="step-name">Save Changes</h4>
+            <p class="step-desc">Click save button after editing any employee card</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-boxes">
+        <div class="info-box">
+          <div class="info-header">
+            <i class="fas fa-id-card"></i>
+            <h4>Card Assignment</h4>
+          </div>
+          <p>Navigate to the Card tab to scan and assign RFID cards to employees.</p>
+        </div>
+
+        <div class="info-box">
+          <div class="info-header">
+            <i class="fas fa-fingerprint"></i>
+            <h4>Fingerprint Enrollment</h4>
+          </div>
+          <p>Use the Fingerprint tab to enroll biometric data for secure access.</p>
+        </div>
+      </div>
+
+      <div class="tips-section">
+        <div class="tip-item">
+          <i class="fas fa-check"></i>
+          <span>Changes are saved immediately when you click save</span>
+        </div>
+        <div class="tip-item">
+          <i class="fas fa-trash-alt"></i>
+          <span>Select multiple employees to delete in bulk</span>
+        </div>
+        <div class="tip-item">
+          <i class="fas fa-search"></i>
+          <span>Use search and filters to quickly find employees</span>
         </div>
       </div>
     </div>

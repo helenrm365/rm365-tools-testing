@@ -29,6 +29,18 @@ function renderTable() {
       return hay.includes(q);
     });
 
+  // Update employee count
+  const countEl = $('#employeeCount');
+  if (countEl) {
+    const total = state.employees.length;
+    const shown = rows.length;
+    if (shown === total) {
+      countEl.textContent = `${total} employee${total !== 1 ? 's' : ''} total`;
+    } else {
+      countEl.textContent = `Showing ${shown} of ${total} employee${total !== 1 ? 's' : ''}`;
+    }
+  }
+
   if (!rows.length) {
     grid.innerHTML = `
       <div class="empty-state">
