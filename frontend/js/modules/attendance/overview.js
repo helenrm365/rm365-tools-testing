@@ -428,7 +428,7 @@ function displaySummaryTable(summaryData) {
   if (!resultsEl) return;
 
   if (!summaryData || summaryData.length === 0) {
-    resultsEl.innerHTML = '<p style="text-align: center; color: #666; padding: 2rem;">No data found for the selected period.</p>';
+    resultsEl.innerHTML = '<p style="text-align: center; color: #94a3b8; padding: 2rem;">No data found for the selected period.</p>';
     resultsEl.style.display = 'block';
     return;
   }
@@ -458,7 +458,7 @@ function displaySummaryTable(summaryData) {
         }).join('')}
       </tbody>
     </table>
-    <div style="margin-top: 1rem; font-size: 0.9em; color: #666;">
+    <div style="margin-top: 1rem; font-size: 0.9em; color: #64748b;">
       <strong>Total Logs:</strong> ${summaryData.reduce((sum, item) => sum + item.count, 0)} | 
       <strong>Active Employees:</strong> ${summaryData.length}
     </div>
@@ -475,8 +475,8 @@ function displayWorkHoursTable(workHoursData) {
     if (summaryEl) {
       const workHoursContainer = document.createElement('div');
       workHoursContainer.id = 'workHoursResults';
-      workHoursContainer.className = 'modern-box';
-      workHoursContainer.style.marginTop = '2rem';
+      workHoursContainer.className = 'data-section';
+      workHoursContainer.style.marginTop = '0';
       summaryEl.parentNode.insertBefore(workHoursContainer, summaryEl.nextSibling);
     } else {
       return;
@@ -485,7 +485,7 @@ function displayWorkHoursTable(workHoursData) {
 
   const workHoursContainer = $("#workHoursResults");
   if (!workHoursData || workHoursData.length === 0) {
-    workHoursContainer.innerHTML = '<h4>⏰ Work Hours</h4><p style="color: #666;">No complete work days found (missing clock in/out pairs).</p>';
+    workHoursContainer.innerHTML = '<h4>⏰ Work Hours</h4><p style="color: #666; text-align: center; padding: 1rem;">No complete work days found (missing clock in/out pairs).</p>';
     workHoursContainer.style.display = 'block';
     return;
   }
@@ -531,7 +531,7 @@ function displayWorkHoursTable(workHoursData) {
         ).join('')}
       </tbody>
     </table>
-    <div style="margin-top: 1rem; font-size: 0.9em; color: #666;">
+    <div style="margin-top: 1rem; font-size: 0.9em; color: #64748b;">
       <strong>Total Work Days:</strong> ${workHoursData.length} | 
       <strong>Average Hours per Day:</strong> ${formatHoursToHM(workHoursData.reduce((sum, item) => sum + item.hours_worked, 0) / workHoursData.length)} |
       <strong>Average Lunch Time:</strong> ${(() => {
@@ -552,7 +552,7 @@ function displayCurrentStatus(employees) {
   if (!statusEl) return;
 
   if (!employees || employees.length === 0) {
-    statusEl.innerHTML = '<p style="text-align: center; color: #666; padding: 2rem;">No employee data available.</p>';
+    statusEl.innerHTML = '<p style="text-align: center; color: #94a3b8; padding: 2rem;">No employee data available.</p>';
     return;
   }
 
@@ -608,7 +608,7 @@ function displayCurrentStatus(employees) {
         }).join('')}
       </tbody>
     </table>
-    <div style="margin-top: 1rem; font-size: 0.9em; color: #666;">
+    <div style="margin-top: 1rem; font-size: 0.9em; color: #64748b;">
       <strong>Total Employees:</strong> ${employees.length} | 
       <strong>Currently In:</strong> ${employees.filter(e => e.status === 'in').length} |
       <strong>Currently Out:</strong> ${employees.filter(e => e.status === 'out').length}
