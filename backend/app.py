@@ -74,18 +74,41 @@ def _parse_origins_env():
 def _parse_regex_env():
     """
     Returns a string pattern or None. Empty strings are treated as None.
+    Cleans up common regex mistakes for CORS origin matching.
     """
     patt = os.getenv('ALLOW_ORIGIN_REGEX', '').strip()
-    if patt:
-        print(f"🔍 Raw ALLOW_ORIGIN_REGEX: {patt}")
+    if not patt:
+        return None
+    
+    print(f"🔍 Raw ALLOW_ORIGIN_REGEX: {patt}")
+    
+    # Remove quotes if present
+    patt = patt.strip('"').strip("'")
+    
+    # Remove anchors and path patterns - CORS only matches origin (protocol + domain)
+    # Common mistakes: ^https://... or .../.*)?$ or (/.*)?$
+    patt = patt.lstrip('^')
+    if '(/.*' in patt:
+        # Remove path matching patterns like (/.*)?$
+        patt = patt.split('(/.*')[0]
+    patt = patt.rstrip('$')
+    
+    print(f"✅ Cleaned ALLOW_ORIGIN_REGEX: {patt}")
     return patt or None
 
 def _resolve_allow_origins():
     """Return allowed origins preferring env, else config settings."""
     env_list = _parse_origins_env()
     if env_list:
+        print(f"✅ Using {len(env_list)} origin(s) from environment")
         return env_list
-    return list(settings.ALLOW_ORIGINS or [])
+    
+    # Fallback to settings
+    if settings.ALLOW_ORIGINS:
+        print(f"⚠️  No env origins found, using settings")
+        return [settings.ALLOW_ORIGINS] if isinstance(settings.ALLOW_ORIGINS, str) else list(settings.ALLOW_ORIGINS)
+    
+    return []
 
 def _resolve_allow_origin_regex():
     """Return regex pattern preferring env, else config settings."""
