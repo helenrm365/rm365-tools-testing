@@ -35,7 +35,7 @@ export async function uploadUKSalesCSV(file) {
   const fetchOptions = {
     method: 'POST',
     mode: 'cors',
-    credentials: 'omit',
+    credentials: 'include',
     headers: {
       'Accept': 'application/json',
     },
@@ -77,7 +77,7 @@ export async function uploadFRSalesCSV(file) {
   const fetchOptions = {
     method: 'POST',
     mode: 'cors',
-    credentials: 'omit',
+    credentials: 'include',
     headers: {
       'Accept': 'application/json',
     },
@@ -119,7 +119,7 @@ export async function uploadNLSalesCSV(file) {
   const fetchOptions = {
     method: 'POST',
     mode: 'cors',
-    credentials: 'omit',
+    credentials: 'include',
     headers: {
       'Accept': 'application/json',
     },
@@ -152,7 +152,7 @@ export async function uploadCSV(file) {
   const fetchOptions = {
     method: 'POST',
     mode: 'cors',
-    credentials: 'omit',
+    credentials: 'include',
     headers: {
       'Accept': 'application/json',
       // Don't set Content-Type - let browser set it with boundary for FormData
@@ -186,7 +186,7 @@ export async function validateCSV(file) {
   const fetchOptions = {
     method: 'POST',
     mode: 'cors',
-    credentials: 'omit',
+    credentials: 'include',
     headers: {
       'Accept': 'application/json',
       // Don't set Content-Type - let browser set it with boundary for FormData
