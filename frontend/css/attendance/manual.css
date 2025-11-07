@@ -38,64 +38,70 @@ html.dark-mode .attendance-manual .manual-page-subtitle {
 /* Navigation Tabs */
 .attendance-manual .manual-inner-tabs {
   display: flex;
-  gap: 0.5rem;
+  gap: 1rem;
   margin-bottom: 2rem;
-  overflow-x: auto;
-  padding: 0.25rem 0;
+  background: white;
+  padding: 1rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+html.dark-mode .attendance-manual .manual-inner-tabs {
+  background: #2a2a2a;
 }
 
 .attendance-manual .manual-tab-button {
+  flex: 1;
+  padding: 1rem 1.5rem;
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  border: 2px solid transparent;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #7f8c8d;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.75rem;
-  padding: 0.875rem 1.5rem;
-  border: none;
-  background: white;
-  color: #64748b;
-  border-radius: 12px;
-  font-size: 0.95rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  white-space: nowrap;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 2px solid transparent;
 }
 
 .attendance-manual .manual-tab-button i {
-  font-size: 1.1rem;
-  transition: transform 0.3s ease;
+  font-size: 1.125rem;
 }
 
 .attendance-manual .manual-tab-button:hover {
-  background: #f8fafc;
+  background: white;
+  border-color: rgba(118, 161, 43, 0.3);
+  color: #5e8122;
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .attendance-manual .manual-tab-button.active {
-  background: linear-gradient(135deg, #76a12b, #5a7d22);
+  background: linear-gradient(135deg, #76a12b, #5e8122);
   color: white;
-  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.3);
-}
-
-.attendance-manual .manual-tab-button.active i {
-  transform: scale(1.1);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.4);
+  transform: translateY(-1px);
 }
 
 html.dark-mode .attendance-manual .manual-tab-button {
-  background: #2a2a2a;
-  color: #94a3b8;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  background: linear-gradient(135deg, #1e1e1e, #2a2a2a);
+  color: #95a5a6;
 }
 
 html.dark-mode .attendance-manual .manual-tab-button:hover {
-  background: #333333;
+  background: #1a1a1a;
+  border-color: rgba(139, 195, 74, 0.3);
+  color: #8bc34a;
 }
 
 html.dark-mode .attendance-manual .manual-tab-button.active {
-  background: linear-gradient(135deg, #8bc34a, #689f38);
+  background: linear-gradient(135deg, #76a12b, #5e8122);
   color: white;
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 /* Main Content Container */

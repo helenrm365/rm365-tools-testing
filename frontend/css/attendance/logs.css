@@ -1,0 +1,589 @@
+/* ===== Attendance Logs Page Styles ===== */
+
+/* Page Header */
+.attendance-logs .page-header {
+  margin-bottom: 2rem;
+  padding: 2rem 0 1rem 0;
+}
+
+.attendance-logs .header-content {
+  max-width: 800px;
+}
+
+.attendance-logs .page-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
+  color: #2c3e50;
+  background: linear-gradient(135deg, #2c3e50, #76a12b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+html.dark-mode .attendance-logs .page-title {
+  background: linear-gradient(135deg, #ecf0f1, #8bc34a);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.attendance-logs .page-subtitle {
+  font-size: 1.1rem;
+  color: #7f8c8d;
+  margin: 0;
+  font-weight: 400;
+}
+
+html.dark-mode .attendance-logs .page-subtitle {
+  color: #95a5a6;
+}
+
+/* Navigation Tabs */
+.attendance-logs .inner-tabs {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  background: white;
+  padding: 1rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+html.dark-mode .attendance-logs .inner-tabs {
+  background: #2a2a2a;
+}
+
+.attendance-logs .tab-button {
+  flex: 1;
+  padding: 1rem 1.5rem;
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  border: 2px solid transparent;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #7f8c8d;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.attendance-logs .tab-button:hover {
+  background: white;
+  border-color: rgba(118, 161, 43, 0.3);
+  color: #5e8122;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.attendance-logs .tab-button.active {
+  background: linear-gradient(135deg, #76a12b, #5e8122);
+  color: white;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.4);
+  transform: translateY(-1px);
+}
+
+html.dark-mode .attendance-logs .tab-button {
+  background: linear-gradient(135deg, #1e1e1e, #2a2a2a);
+  color: #95a5a6;
+}
+
+html.dark-mode .attendance-logs .tab-button:hover {
+  background: #1a1a1a;
+  border-color: rgba(139, 195, 74, 0.3);
+  color: #8bc34a;
+}
+
+html.dark-mode .attendance-logs .tab-button.active {
+  background: linear-gradient(135deg, #76a12b, #5e8122);
+  color: white;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.attendance-logs .tab-button i {
+  font-size: 1.125rem;
+}
+
+/* Main Content */
+.attendance-logs .logs-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* Quick Stats Section */
+.attendance-logs .quick-stats-section {
+  animation: fadeInUp 0.4s ease-out;
+}
+
+.attendance-logs .total-logs-icon {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(37, 99, 235, 0.15));
+  color: #3b82f6;
+}
+
+.attendance-logs .date-range-icon {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(124, 58, 237, 0.15));
+  color: #8b5cf6;
+}
+
+.attendance-logs .employees-icon {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(22, 163, 74, 0.15));
+  color: #22c55e;
+}
+
+.attendance-logs .locations-icon {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(217, 119, 6, 0.15));
+  color: #f59e0b;
+}
+
+/* Filter Section */
+.attendance-logs .filter-section {
+  animation: fadeInUp 0.4s ease-out 0.1s backwards;
+}
+
+.attendance-logs .filter-card {
+  background: white;
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  border: 2px solid rgba(118, 161, 43, 0.1);
+}
+
+html.dark-mode .attendance-logs .filter-card {
+  background: #2a2a2a;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  border-color: rgba(139, 195, 74, 0.2);
+}
+
+.attendance-logs .filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+/* Results Section */
+.attendance-logs .results-section {
+  animation: fadeInUp 0.4s ease-out 0.2s backwards;
+}
+
+.attendance-logs .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.attendance-logs .results-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: rgba(118, 161, 43, 0.1);
+  color: #5e8122;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+html.dark-mode .attendance-logs .results-info {
+  background: rgba(139, 195, 74, 0.2);
+  color: #8bc34a;
+}
+
+.attendance-logs .results-card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+
+html.dark-mode .attendance-logs .results-card {
+  background: #2a2a2a;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+}
+
+.attendance-logs .table-wrapper {
+  max-height: 600px;
+  overflow-y: auto;
+  overflow-x: auto;
+}
+
+.attendance-logs .table-wrapper::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.attendance-logs .table-wrapper::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+html.dark-mode .attendance-logs .table-wrapper::-webkit-scrollbar-track {
+  background: #1e1e1e;
+}
+
+.attendance-logs .table-wrapper::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.attendance-logs .table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+html.dark-mode .attendance-logs .table-wrapper::-webkit-scrollbar-thumb {
+  background: #3a3a3a;
+}
+
+html.dark-mode .attendance-logs .table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #4a4a4a;
+}
+
+/* Export Section */
+.attendance-logs .export-section {
+  animation: fadeInUp 0.4s ease-out 0.3s backwards;
+}
+
+.attendance-logs .export-card {
+  background: white;
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+html.dark-mode .attendance-logs .export-card {
+  background: #2a2a2a;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+}
+
+.attendance-logs .export-description {
+  color: #64748b;
+  margin: 0 0 1.5rem 0;
+  font-size: 1rem;
+}
+
+html.dark-mode .attendance-logs .export-description {
+  color: #94a3b8;
+}
+
+.attendance-logs .export-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+}
+
+.attendance-logs .export-btn {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1.5rem;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: inherit;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 2px solid transparent;
+  background: white;
+}
+
+.attendance-logs .export-btn:hover:not(:disabled) {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+.attendance-logs .export-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+html.dark-mode .attendance-logs .export-btn {
+  background: #1e1e1e;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.attendance-logs .csv-btn {
+  border-color: rgba(34, 197, 94, 0.2);
+}
+
+.attendance-logs .csv-btn:hover:not(:disabled) {
+  border-color: rgba(34, 197, 94, 0.4);
+}
+
+.attendance-logs .pdf-btn {
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.attendance-logs .pdf-btn:hover:not(:disabled) {
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.attendance-logs .print-btn {
+  border-color: rgba(100, 116, 139, 0.2);
+}
+
+.attendance-logs .print-btn:hover:not(:disabled) {
+  border-color: rgba(100, 116, 139, 0.4);
+}
+
+.attendance-logs .excel-btn {
+  border-color: rgba(34, 139, 34, 0.2);
+}
+
+.attendance-logs .excel-btn:hover:not(:disabled) {
+  border-color: rgba(34, 139, 34, 0.4);
+}
+
+.attendance-logs .export-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.75rem;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+
+.attendance-logs .csv-btn .export-icon {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(22, 163, 74, 0.15));
+  color: #22c55e;
+}
+
+.attendance-logs .pdf-btn .export-icon {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(220, 38, 38, 0.15));
+  color: #ef4444;
+}
+
+.attendance-logs .print-btn .export-icon {
+  background: linear-gradient(135deg, rgba(100, 116, 139, 0.15), rgba(71, 85, 105, 0.15));
+  color: #64748b;
+}
+
+.attendance-logs .excel-btn .export-icon {
+  background: linear-gradient(135deg, rgba(34, 139, 34, 0.15), rgba(0, 100, 0, 0.15));
+  color: #228b22;
+}
+
+.attendance-logs .export-btn:hover:not(:disabled) .export-icon {
+  transform: scale(1.1);
+}
+
+.attendance-logs .export-info {
+  text-align: left;
+  flex: 1;
+}
+
+.attendance-logs .export-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--header-color);
+  margin-bottom: 0.25rem;
+}
+
+html.dark-mode .attendance-logs .export-title {
+  color: #ecf0f1;
+}
+
+.attendance-logs .export-subtitle {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+html.dark-mode .attendance-logs .export-subtitle {
+  color: #94a3b8;
+}
+
+/* Loading State */
+.attendance-logs .loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  color: #94a3b8;
+}
+
+.attendance-logs .loading-state i {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  color: #76a12b;
+}
+
+html.dark-mode .attendance-logs .loading-state i {
+  color: #8bc34a;
+}
+
+.attendance-logs .loading-state p {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+/* Table Styles */
+.attendance-logs .logs-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.attendance-logs .logs-table thead th {
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 2px solid #e2e8f0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+html.dark-mode .attendance-logs .logs-table thead th {
+  background: #1e1e1e;
+  color: #cbd5e1;
+  border-bottom-color: #3a3a3a;
+}
+
+.attendance-logs .logs-table tbody tr {
+  transition: background-color 0.2s ease;
+}
+
+.attendance-logs .logs-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+html.dark-mode .attendance-logs .logs-table tbody tr:hover {
+  background: #1e1e1e;
+}
+
+.attendance-logs .logs-table tbody td {
+  padding: 1rem;
+  color: var(--text-color);
+  border-bottom: 1px solid #e2e8f0;
+}
+
+html.dark-mode .attendance-logs .logs-table tbody td {
+  border-bottom-color: #3a3a3a;
+}
+
+.attendance-logs .logs-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Action badges in table */
+.attendance-logs .action-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.attendance-logs .action-badge.clock-in {
+  background: rgba(34, 197, 94, 0.15);
+  color: #16a34a;
+}
+
+.attendance-logs .action-badge.clock-out {
+  background: rgba(239, 68, 68, 0.15);
+  color: #dc2626;
+}
+
+html.dark-mode .attendance-logs .action-badge.clock-in {
+  background: rgba(34, 197, 94, 0.2);
+  color: #4ade80;
+}
+
+html.dark-mode .attendance-logs .action-badge.clock-out {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+}
+
+/* Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 968px) {
+  .attendance-logs .filter-grid {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+
+  .attendance-logs .export-grid {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .attendance-logs .page-title {
+    font-size: 2rem;
+  }
+
+  .attendance-logs .filter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .attendance-logs .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .attendance-logs .export-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .attendance-logs .table-wrapper {
+    max-height: 400px;
+  }
+}
+
+@media (max-width: 480px) {
+  .attendance-logs .page-title {
+    font-size: 1.75rem;
+  }
+
+  .attendance-logs .page-subtitle {
+    font-size: 1rem;
+  }
+
+  .attendance-logs .filter-card,
+  .attendance-logs .results-card,
+  .attendance-logs .export-card {
+    padding: 1.5rem;
+  }
+
+  .attendance-logs .export-btn {
+    padding: 1.25rem;
+  }
+
+  .attendance-logs .export-icon {
+    width: 48px;
+    height: 48px;
+    font-size: 1.5rem;
+  }
+}

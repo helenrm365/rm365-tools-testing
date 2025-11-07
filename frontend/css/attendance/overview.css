@@ -42,54 +42,70 @@ html.dark-mode .attendance-overview .page-subtitle {
 /* ===== Navigation Tabs ===== */
 .attendance-overview .inner-tabs {
   display: flex;
-  gap: 0.75rem;
-  margin-bottom: 2.5rem;
-  flex-wrap: wrap;
-}
-
-.attendance-overview .tab-button {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  border: 2px solid transparent;
-  border-radius: 12px;
+  gap: 1rem;
+  margin-bottom: 2rem;
   background: white;
-  color: #5a6c7d;
-  font-size: 1rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 1rem;
+  border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
+html.dark-mode .attendance-overview .inner-tabs {
+  background: #2a2a2a;
+}
+
+.attendance-overview .tab-button {
+  flex: 1;
+  padding: 1rem 1.5rem;
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  border: 2px solid transparent;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #7f8c8d;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
 .attendance-overview .tab-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  background: white;
   border-color: rgba(118, 161, 43, 0.3);
+  color: #5e8122;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .attendance-overview .tab-button.active {
   background: linear-gradient(135deg, #76a12b, #5e8122);
   color: white;
-  border-color: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.1);
   box-shadow: 0 4px 12px rgba(118, 161, 43, 0.4);
+  transform: translateY(-1px);
 }
 
 html.dark-mode .attendance-overview .tab-button {
-  background: #2a2a2a;
-  color: #b0b0b0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  background: linear-gradient(135deg, #1e1e1e, #2a2a2a);
+  color: #95a5a6;
 }
 
 html.dark-mode .attendance-overview .tab-button:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-  border-color: rgba(139, 195, 74, 0.4);
+  background: #1a1a1a;
+  border-color: rgba(139, 195, 74, 0.3);
+  color: #8bc34a;
 }
 
 html.dark-mode .attendance-overview .tab-button.active {
-  background: linear-gradient(135deg, #8bc34a, #689f38);
-  color: #1a1a1a;
+  background: linear-gradient(135deg, #76a12b, #5e8122);
+  color: white;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.attendance-overview .tab-button i {
+  font-size: 1.125rem;
 }
 
 /* ===== Main Content Wrapper ===== */

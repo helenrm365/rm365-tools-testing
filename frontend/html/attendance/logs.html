@@ -1,80 +1,250 @@
 <!-- Attendance Logs Page -->
 <div class="attendance-logs">
-  <h2>Attendance Logs</h2>
-  <div class="inner-tabs" style="margin-bottom: 1.5rem; display: flex; gap: 0.5rem;">
-    <button class="modern-button" data-nav onclick="location.href='/attendance/overview'">Overview</button>
-    <button class="modern-button" data-nav onclick="location.href='/attendance/manual'">Manual</button>
-    <button class="modern-button" data-nav onclick="location.href='/attendance/automatic'">Automatic</button>
-    <button class="modern-button active" data-nav onclick="location.href='/attendance/logs'">Logs</button>
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <h1 class="page-title">Attendance Logs</h1>
+      <p class="page-subtitle">View, filter, and export comprehensive attendance records</p>
+    </div>
   </div>
-  
-  <section class="card">
-    <div class="card-header">
-      <h3>📋 Attendance Logs</h3>
-    </div>
-    <div class="card-body">
-      <!-- Unified Filter Controls -->
-      <div class="modern-box filter-box" style="margin-bottom: 2rem;">
-        <h4>🔍 Filter Logs</h4>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
-          <div>
-            <label class="form-label">From Date:</label>
-            <input type="date" id="fromDate" class="modern-input" required>
-          </div>
-          <div>
-            <label class="form-label">To Date:</label>
-            <input type="date" id="toDate" class="modern-input" required>
-          </div>
-          <div>
-            <label class="form-label">Location:</label>
-            <select id="locationFilter" class="modern-select" data-enhance="c-select">
-              <option value="">All Locations</option>
-              <option value="UK">UK</option>
-              <option value="FR">FR</option>
-            </select>
-          </div>
-          <div>
-            <label class="form-label">Employee Name:</label>
-            <input type="text" id="nameFilter" class="modern-input" placeholder="Search by name...">
-          </div>
-        </div>
-        <div style="display: flex; gap: 1rem; align-items: center;">
-          <button id="filterBtn" class="modern-button" style="background: linear-gradient(to bottom right, #007bff, #6610f2);">
-            🔍 Apply Filters
-          </button>
-          <button id="clearBtn" class="modern-button" style="background: linear-gradient(to bottom right, #6c757d, #495057);">
-            🗑️ Clear
-          </button>
-        </div>
-      </div>
 
-      <!-- Results Section -->
-      <div id="logsResults" class="modern-box" style="display: none;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-          <h4>📊 Attendance Logs</h4>
-          <div id="logsStats" style="color: #666; font-size: 0.9em;"></div>
-        </div>
-        <div id="logsTable" style="max-height: 600px; overflow-y: auto;"></div>
-      </div>
+  <!-- Navigation Tabs -->
+  <div class="inner-tabs">
+    <button class="tab-button" onclick="location.href='/attendance/overview'">
+      <i class="fas fa-chart-line"></i>
+      <span>Overview</span>
+    </button>
+    <button class="tab-button" onclick="location.href='/attendance/manual'">
+      <i class="fas fa-hand-pointer"></i>
+      <span>Manual</span>
+    </button>
+    <button class="tab-button" onclick="location.href='/attendance/automatic'">
+      <i class="fas fa-microchip"></i>
+      <span>Automatic</span>
+    </button>
+    <button class="tab-button active" onclick="location.href='/attendance/logs'">
+      <i class="fas fa-list-ul"></i>
+      <span>Logs</span>
+    </button>
+  </div>
 
-      <!-- Export Options -->
-      <div class="export-options modern-box" style="margin-top: 2rem;">
-        <h4>📤 Export Options</h4>
-        <p style="color: #666; margin-bottom: 1rem;">Export attendance data for reporting and analysis.</p>
-        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-          <button id="exportCsvBtn" class="modern-button" disabled style="background: linear-gradient(to bottom right, #28a745, #20c997);">
-            📄 Export to CSV
+  <!-- Main Content -->
+  <div class="logs-content">
+    <!-- Quick Stats Section -->
+    <section class="quick-stats-section">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon total-logs-icon">
+            <i class="fas fa-file-alt"></i>
+          </div>
+          <div class="stat-info">
+            <div class="stat-value" id="totalLogs">0</div>
+            <div class="stat-label">Total Logs</div>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon date-range-icon">
+            <i class="fas fa-calendar-alt"></i>
+          </div>
+          <div class="stat-info">
+            <div class="stat-value" id="dateRange">—</div>
+            <div class="stat-label">Date Range</div>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon employees-icon">
+            <i class="fas fa-users"></i>
+          </div>
+          <div class="stat-info">
+            <div class="stat-value" id="uniqueEmployees">0</div>
+            <div class="stat-label">Employees</div>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon locations-icon">
+            <i class="fas fa-map-marker-alt"></i>
+          </div>
+          <div class="stat-info">
+            <div class="stat-value" id="uniqueLocations">—</div>
+            <div class="stat-label">Locations</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Filter Section -->
+    <section class="filter-section">
+      <div class="section-header">
+        <h2 class="section-title">
+          <i class="fas fa-filter"></i>
+          Filter Logs
+        </h2>
+      </div>
+      <div class="filter-card">
+        <div class="filter-grid">
+          <div class="filter-group">
+            <label class="filter-label">
+              <i class="fas fa-calendar-day"></i>
+              <span>From Date</span>
+            </label>
+            <input type="date" id="fromDate" class="filter-input" required>
+          </div>
+
+          <div class="filter-group">
+            <label class="filter-label">
+              <i class="fas fa-calendar-day"></i>
+              <span>To Date</span>
+            </label>
+            <input type="date" id="toDate" class="filter-input" required>
+          </div>
+
+          <div class="filter-group">
+            <label class="filter-label">
+              <i class="fas fa-map-marker-alt"></i>
+              <span>Location</span>
+            </label>
+            <div class="custom-select">
+              <select id="locationFilter" class="filter-select">
+                <option value="">All Locations</option>
+                <option value="UK">UK</option>
+                <option value="FR">FR</option>
+                <option value="NL">NL</option>
+              </select>
+              <i class="fas fa-chevron-down dropdown-arrow"></i>
+            </div>
+          </div>
+
+          <div class="filter-group">
+            <label class="filter-label">
+              <i class="fas fa-search"></i>
+              <span>Employee Name</span>
+            </label>
+            <input type="text" id="nameFilter" class="filter-input" placeholder="Search by name...">
+          </div>
+
+          <div class="filter-group">
+            <label class="filter-label">
+              <i class="fas fa-toggle-on"></i>
+              <span>Action Type</span>
+            </label>
+            <div class="custom-select">
+              <select id="actionFilter" class="filter-select">
+                <option value="">All Actions</option>
+                <option value="in">Clock In</option>
+                <option value="out">Clock Out</option>
+              </select>
+              <i class="fas fa-chevron-down dropdown-arrow"></i>
+            </div>
+          </div>
+
+          <div class="filter-group">
+            <label class="filter-label">
+              <i class="fas fa-sort-amount-down"></i>
+              <span>Sort By</span>
+            </label>
+            <div class="custom-select">
+              <select id="sortFilter" class="filter-select">
+                <option value="date_desc">Date (Newest First)</option>
+                <option value="date_asc">Date (Oldest First)</option>
+                <option value="name_asc">Name (A-Z)</option>
+                <option value="name_desc">Name (Z-A)</option>
+              </select>
+              <i class="fas fa-chevron-down dropdown-arrow"></i>
+            </div>
+          </div>
+        </div>
+
+        <div class="filter-actions">
+          <button id="filterBtn" class="action-btn primary-btn">
+            <i class="fas fa-search"></i>
+            <span>Apply Filters</span>
           </button>
-          <button id="exportPdfBtn" class="modern-button" disabled style="background: linear-gradient(to bottom right, #dc3545, #c82333);">
-            📄 Export to PDF
-          </button>
-          <button id="printBtn" class="modern-button" disabled style="background: linear-gradient(to bottom right, #6c757d, #495057);">
-            🖨️ Print Report
+          <button id="clearBtn" class="action-btn secondary-btn">
+            <i class="fas fa-undo"></i>
+            <span>Clear Filters</span>
           </button>
         </div>
       </div>
-    </div>
-  </section>
+    </section>
+
+    <!-- Results Section -->
+    <section class="results-section" id="logsResultsSection" style="display: none;">
+      <div class="section-header">
+        <h2 class="section-title">
+          <i class="fas fa-table"></i>
+          Attendance Records
+        </h2>
+        <div class="results-info" id="resultsInfo"></div>
+      </div>
+      <div class="results-card">
+        <div class="table-wrapper">
+          <div id="logsTable">
+            <div class="loading-state">
+              <i class="fas fa-spinner fa-spin"></i>
+              <p>Loading logs...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Export Section -->
+    <section class="export-section">
+      <div class="section-header">
+        <h2 class="section-title">
+          <i class="fas fa-download"></i>
+          Export Options
+        </h2>
+      </div>
+      <div class="export-card">
+        <p class="export-description">Download or print attendance data for reporting and analysis</p>
+        <div class="export-grid">
+          <button id="exportCsvBtn" class="export-btn csv-btn" disabled>
+            <div class="export-icon">
+              <i class="fas fa-file-csv"></i>
+            </div>
+            <div class="export-info">
+              <div class="export-title">Export CSV</div>
+              <div class="export-subtitle">Spreadsheet format</div>
+            </div>
+          </button>
+
+          <button id="exportPdfBtn" class="export-btn pdf-btn" disabled>
+            <div class="export-icon">
+              <i class="fas fa-file-pdf"></i>
+            </div>
+            <div class="export-info">
+              <div class="export-title">Export PDF</div>
+              <div class="export-subtitle">Document format</div>
+            </div>
+          </button>
+
+          <button id="printBtn" class="export-btn print-btn" disabled>
+            <div class="export-icon">
+              <i class="fas fa-print"></i>
+            </div>
+            <div class="export-info">
+              <div class="export-title">Print Report</div>
+              <div class="export-subtitle">Physical copy</div>
+            </div>
+          </button>
+
+          <button id="exportExcelBtn" class="export-btn excel-btn" disabled>
+            <div class="export-icon">
+              <i class="fas fa-file-excel"></i>
+            </div>
+            <div class="export-info">
+              <div class="export-title">Export Excel</div>
+              <div class="export-subtitle">Advanced format</div>
+            </div>
+          </button>
+        </div>
+      </div>
+    </section>
+  </div>
 </div>
 <!-- Universal Footer -->
 <div id="footerPlaceholder"></div>
