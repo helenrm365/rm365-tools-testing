@@ -1,132 +1,185 @@
 <!-- Label Generator Page -->
 <div class="labels-generator">
-  <h2>Label Generator</h2>
-  <div class="inner-tabs" style="margin-bottom: 1.5rem; display: flex; gap: 0.5rem;">
-    <button class="modern-button active" data-nav onclick="location.href='/labels/generator'">Generator</button>
-    <button class="modern-button" data-nav onclick="location.href='/labels/history'">History</button>
-  </div>
-  
-  <section class="card">
-    <div class="card-header">
-      <h3>🏷️ Generate Labels</h3>
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <h1 class="page-title">Label Generator</h1>
+      <p class="page-subtitle">Generate professional barcode labels with comprehensive sales data insights</p>
     </div>
-    <div class="card-body">
-      <p>Select products to generate barcode labels with UK/FR 6-month sales data.</p>
-      
-      <!-- Loading Indicator -->
-      <div id="loadingIndicator" style="display: none; text-align: center; padding: 2rem;">
-        <div style="font-size: 2rem;">⏳</div>
-        <p>Loading products...</p>
-      </div>
+  </div>
 
-      <!-- Error Message -->
-      <div id="errorMessage" style="display: none; padding: 1rem; background: #fee; border-left: 4px solid #c00; color: #c00; margin-bottom: 1rem; border-radius: 4px;">
-        Error loading products
-      </div>
+  <!-- Navigation Tabs -->
+  <div class="inner-tabs">
+    <button class="tab-button active" onclick="location.href='/labels/generator'">
+      <i class="fas fa-barcode"></i>
+      <span>Generator</span>
+    </button>
+    <button class="tab-button" onclick="location.href='/labels/history'">
+      <i class="fas fa-history"></i>
+      <span>History</span>
+    </button>
+  </div>
 
-      <!-- Controls -->
-      <div class="generator-controls modern-box" style="margin-bottom: 1.5rem;">
-        <!-- Discontinued Status Filters -->
-        <div style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #eee;">
-          <label style="font-weight: 600; margin-bottom: 0.5rem; display: block; color: #333;">
-            Product Status Filters:
-          </label>
-          <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; align-items: center;">
-            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-              <input type="checkbox" id="filter_Active" class="status-filter-checkbox" value="Active" checked style="width: 18px; height: 18px;">
-              <span>Active</span>
-            </label>
-            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-              <input type="checkbox" id="filter_TemporarilyOOS" class="status-filter-checkbox" value="Temporarily OOS" checked style="width: 18px; height: 18px;">
-              <span>Temporarily OOS</span>
-            </label>
-            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-              <input type="checkbox" id="filter_PreOrder" class="status-filter-checkbox" value="Pre Order" checked style="width: 18px; height: 18px;">
-              <span>Pre Order</span>
-            </label>
-            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-              <input type="checkbox" id="filter_Samples" class="status-filter-checkbox" value="Samples" checked style="width: 18px; height: 18px;">
-              <span>Samples</span>
-            </label>
-            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-              <input type="checkbox" id="filter_DiscontinuedSupplier" class="status-filter-checkbox" value="Discontinued (Supplier)" style="width: 18px; height: 18px;">
-              <span>Discontinued (Supplier)</span>
-            </label>
-            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-              <input type="checkbox" id="filter_DiscontinuedRM" class="status-filter-checkbox" value="Discontinued (RM)" style="width: 18px; height: 18px;">
-              <span>Discontinued (RM)</span>
-            </label>
-            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-              <input type="checkbox" id="filter_SpecialOffer" class="status-filter-checkbox" value="Special Offer" style="width: 18px; height: 18px;">
-              <span>Special Offer</span>
-            </label>
-            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-              <input type="checkbox" id="filter_SpecialItem" class="status-filter-checkbox" value="Special Item" style="width: 18px; height: 18px;">
-              <span>Special Item</span>
-            </label>
-            <button id="applyStatusFilters" class="modern-button" style="margin-left: auto; background: linear-gradient(135deg, #3b82f6, #2563eb); color: white;">
-              Apply Filters
-            </button>
+  <!-- Main Content -->
+  <div class="generator-content">
+    <!-- Content Card -->
+    <div class="content-card">
+      <div class="card-header">
+        <h2 class="card-title">
+          <i class="fas fa-tags"></i>
+          Generate Labels
+        </h2>
+        <p class="card-subtitle">Select products to generate barcode labels with UK/FR 6-month sales data</p>
+      </div>
+      <div class="card-body">
+        
+        <!-- Loading State -->
+        <div id="loadingIndicator" class="loading-state">
+          <div class="loading-spinner">⏳</div>
+          <p>Loading products...</p>
+        </div>
+
+        <!-- Error State -->
+        <div id="errorMessage" class="error-state">
+          <i class="fas fa-exclamation-triangle"></i>
+          <span>Error loading products</span>
+        </div>
+
+        <!-- Filters Section -->
+        <div class="filters-section">
+          <div class="filters-card">
+            <!-- Status Filters -->
+            <div class="filter-group">
+              <h3 class="filter-title">
+                <i class="fas fa-filter"></i>
+                Product Status Filters
+              </h3>
+              <div class="status-filters">
+                <label class="status-filter">
+                  <input type="checkbox" id="filter_Active" class="status-checkbox status-filter-checkbox" value="Active" checked>
+                  <span class="status-label">Active</span>
+                </label>
+                <label class="status-filter">
+                  <input type="checkbox" id="filter_TemporarilyOOS" class="status-checkbox status-filter-checkbox" value="Temporarily OOS" checked>
+                  <span class="status-label">Temporarily OOS</span>
+                </label>
+                <label class="status-filter">
+                  <input type="checkbox" id="filter_PreOrder" class="status-checkbox status-filter-checkbox" value="Pre Order" checked>
+                  <span class="status-label">Pre Order</span>
+                </label>
+                <label class="status-filter">
+                  <input type="checkbox" id="filter_Samples" class="status-checkbox status-filter-checkbox" value="Samples" checked>
+                  <span class="status-label">Samples</span>
+                </label>
+                <label class="status-filter">
+                  <input type="checkbox" id="filter_DiscontinuedSupplier" class="status-checkbox status-filter-checkbox" value="Discontinued (Supplier)">
+                  <span class="status-label">Discontinued (Supplier)</span>
+                </label>
+                <label class="status-filter">
+                  <input type="checkbox" id="filter_DiscontinuedRM" class="status-checkbox status-filter-checkbox" value="Discontinued (RM)">
+                  <span class="status-label">Discontinued (RM)</span>
+                </label>
+                <label class="status-filter">
+                  <input type="checkbox" id="filter_SpecialOffer" class="status-checkbox status-filter-checkbox" value="Special Offer">
+                  <span class="status-label">Special Offer</span>
+                </label>
+                <label class="status-filter">
+                  <input type="checkbox" id="filter_SpecialItem" class="status-checkbox status-filter-checkbox" value="Special Item">
+                  <span class="status-label">Special Item</span>
+                </label>
+              </div>
+            </div>
+            
+            <!-- Search and Controls -->
+            <div class="filters-controls">
+              <div class="filter-input-group">
+                <label class="filter-label">
+                  <i class="fas fa-search"></i>
+                  Search Products
+                </label>
+                <input type="text" id="searchInput" class="filter-input" placeholder="Search by SKU, Product Name, or Item ID...">
+              </div>
+              <div class="filter-input-group">
+                <label class="filter-label">
+                  <i class="fas fa-calendar-alt"></i>
+                  Line Date
+                </label>
+                <input type="date" id="lineDateInput" class="filter-input">
+              </div>
+              <button id="applyStatusFilters" class="filter-button">
+                <i class="fas fa-check"></i>
+                Apply Filters
+              </button>
+              <button id="refreshBtn" class="filter-button secondary">
+                <i class="fas fa-sync-alt"></i>
+                Refresh
+              </button>
+            </div>
           </div>
         </div>
-        
-        <div style="display: grid; grid-template-columns: 1fr auto auto; gap: 1rem; align-items: center; margin-bottom: 1rem;">
-          <div>
-            <label class="form-label">Search Products:</label>
-            <input type="text" id="searchInput" class="modern-input" placeholder="Search by SKU, Product Name, or Item ID...">
+        <!-- Selection Bar -->
+        <div class="selection-bar">
+          <div class="select-all-group">
+            <input type="checkbox" id="selectAllCheckbox" class="select-all-checkbox">
+            <label for="selectAllCheckbox" class="select-all-label">Select All</label>
           </div>
-          <div>
-            <label class="form-label">Line Date:</label>
-            <input type="date" id="lineDateInput" class="modern-input">
-          </div>
-          <div style="padding-top: 1.5rem;">
-            <button id="refreshBtn" class="modern-button" style="background: #6b7280;">🔄 Refresh</button>
-          </div>
-        </div>
-        
-        <div style="display: flex; align-items: center; gap: 1rem; padding: 1rem; background: var(--selection-bar-bg, #f8f9fa); border-radius: 6px; border: 1px solid var(--border-color, #e5e7eb);">
-          <div style="display: flex; align-items: center; gap: 0.5rem;">
-            <input type="checkbox" id="selectAllCheckbox" style="width: 18px; height: 18px; cursor: pointer;">
-            <label for="selectAllCheckbox" style="cursor: pointer; font-weight: 500; color: var(--text-color, #333);">Select All</label>
-          </div>
-          <button id="deselectAllBtn" class="modern-button" style="background: #6b7280;">
+          <button id="deselectAllBtn" class="filter-button secondary">
+            <i class="fas fa-times"></i>
             Deselect All
           </button>
-          <div style="flex: 1; text-align: center; color: var(--text-secondary, #666);">
-            <span id="selectedProducts">0</span> of <span id="totalProducts">0</span> products selected
+          <div class="selection-info">
+            <span class="selection-count" id="selectedProducts">0</span> of <span id="totalProducts">0</span> products selected
           </div>
-          <button id="generatePdfBtn" class="modern-button" disabled style="background: linear-gradient(to bottom right, #10b981, #059669);">
-            📄 Generate PDF Labels
+          <button id="generatePdfBtn" class="action-button" disabled>
+            <i class="fas fa-file-pdf"></i>
+            Generate PDF Labels
           </button>
         </div>
-      </div>
 
-      <!-- Products Table -->
-      <div class="modern-box" style="overflow-x: auto;">
-        <table class="modern-table" style="width: 100%; border-collapse: collapse;">
-          <thead>
-            <tr style="background: rgba(0,0,0,0.05);">
-              <th style="padding: 12px; text-align: left; width: 50px;">
-                <div style="width: 20px;"></div>
-              </th>
-              <th style="padding: 12px; text-align: left;">SKU</th>
-              <th style="padding: 12px; text-align: left;">Product Name</th>
-              <th style="padding: 12px; text-align: left;">Item ID</th>
-              <th style="padding: 12px; text-align: right;">UK 6M</th>
-              <th style="padding: 12px; text-align: right;">FR 6M</th>
-            </tr>
-          </thead>
-          <tbody id="productsTableBody">
-            <tr>
-              <td colspan="6" style="text-align: center; padding: 2rem; color: #999;">
-                Loading...
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <!-- Products Table -->
+        <div class="table-container">
+          <table class="products-table">
+            <thead class="table-header">
+              <tr>
+                <th class="checkbox-col">
+                  <i class="fas fa-check-square"></i>
+                </th>
+                <th>
+                  <i class="fas fa-barcode"></i>
+                  SKU
+                </th>
+                <th>
+                  <i class="fas fa-box"></i>
+                  Product Name
+                </th>
+                <th>
+                  <i class="fas fa-hashtag"></i>
+                  Item ID
+                </th>
+                <th class="sales-col">
+                  <i class="fas fa-chart-line"></i>
+                  UK 6M
+                </th>
+                <th class="sales-col">
+                  <i class="fas fa-chart-area"></i>
+                  FR 6M
+                </th>
+              </tr>
+            </thead>
+            <tbody id="productsTableBody" class="table-body">
+              <tr>
+                <td colspan="6" class="empty-state">
+                  <div class="empty-icon">📦</div>
+                  <div class="empty-message">Loading products...</div>
+                  <div class="empty-submessage">Please wait while we fetch your product data</div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
-  </section>
+  </div>
 </div>
 <!-- Universal Footer -->
 <div id="footerPlaceholder"></div>

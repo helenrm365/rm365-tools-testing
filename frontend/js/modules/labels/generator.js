@@ -58,6 +58,25 @@ function setupStatusFilterCheckboxes() {
   
   checkboxes.forEach(checkbox => {
     checkbox.checked = state.statusFilters.includes(checkbox.value);
+    
+    // Add change listener for visual feedback
+    checkbox.addEventListener('change', updateStatusFilterVisuals);
+  });
+  
+  // Initial visual update
+  updateStatusFilterVisuals();
+}
+
+function updateStatusFilterVisuals() {
+  const filters = document.querySelectorAll('.status-filter');
+  
+  filters.forEach(filter => {
+    const checkbox = filter.querySelector('.status-filter-checkbox');
+    if (checkbox && checkbox.checked) {
+      filter.classList.add('checked');
+    } else {
+      filter.classList.remove('checked');
+    }
   });
 }
 
@@ -255,8 +274,10 @@ function renderProductTable() {
   if (state.displayedProducts.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="6" style="text-align: center; padding: 2rem; color: #666;">
-          No products found
+        <td colspan="6" class="empty-state">
+          <div class="empty-icon">🔍</div>
+          <div class="empty-message">No products found</div>
+          <div class="empty-submessage">Try adjusting your filters or search criteria</div>
         </td>
       </tr>
     `;
@@ -266,7 +287,7 @@ function renderProductTable() {
   tbody.innerHTML = state.displayedProducts.map(product => {
     const isChecked = state.selectedProducts.has(product.item_id);
     return `
-      <tr>
+      <tr class="${isChecked ? 'selected' : ''}">
         <td>
           <input 
             type="checkbox" 
@@ -275,11 +296,11 @@ function renderProductTable() {
             ${isChecked ? 'checked' : ''}
           >
         </td>
-        <td>${escapeHtml(product.sku || '-')}</td>
-        <td>${escapeHtml(product.product_name || '-')}</td>
+        <td class="product-sku">${escapeHtml(product.sku || '-')}</td>
+        <td class="product-name" title="${escapeHtml(product.product_name || '-')}">${escapeHtml(product.product_name || '-')}</td>
         <td>${escapeHtml(product.item_id || '-')}</td>
-        <td style="text-align: right;">${product.uk_6m_data || '0'}</td>
-        <td style="text-align: right;">${product.fr_6m_data || '0'}</td>
+        <td class="sales-data">${product.uk_6m_data || '0'}</td>
+        <td class="sales-data">${product.fr_6m_data || '0'}</td>
       </tr>
     `;
   }).join('');

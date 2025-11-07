@@ -1,0 +1,112 @@
+/* ===== Labels History Page Styles ===== */
+
+/* ===== Page Header ===== */
+.labels-history .page-header {
+  margin-bottom: 2rem;
+  padding: 2rem 0 1rem 0;
+}
+
+.labels-history .header-content {
+  max-width: 800px;
+}
+
+.labels-history .page-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
+  color: #2c3e50;
+  background: linear-gradient(135deg, #2c3e50, #76a12b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+html.dark-mode .labels-history .page-title {
+  background: linear-gradient(135deg, #ecf0f1, #8bc34a);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.labels-history .page-subtitle {
+  font-size: 1.1rem;
+  color: #7f8c8d;
+  margin: 0;
+  font-weight: 400;
+}
+
+html.dark-mode .labels-history .page-subtitle {
+  color: #95a5a6;
+}
+
+/* ===== Content Card ===== */
+.labels-history .content-card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 2px solid transparent;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+html.dark-mode .labels-history .content-card {
+  background: #2a2a2a;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.labels-history .card-header {
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  padding: 1.5rem;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+html.dark-mode .labels-history .card-header {
+  background: linear-gradient(135deg, #404040, #333);
+  border-bottom-color: #555;
+}
+
+.labels-history .card-title {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+html.dark-mode .labels-history .card-title {
+  color: #ecf0f1;
+}
+
+.labels-history .card-body {
+  padding: 2rem;
+}
+
+/* ===== History Table ===== */
+.labels-history .history-table {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: 2px solid #f1f5f9;
+}
+
+html.dark-mode .labels-history .history-table {
+  background: #2a2a2a;
+  border-color: #404040;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+}
+
+.labels-history .history-controls {
+  background: #f8fafc;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 2px solid #e2e8f0;
+  margin-bottom: 1.5rem;
+}
+
+html.dark-mode .labels-history .history-controls {
+  background: #1e1e1e;
+  border-color: #404040;
+}
