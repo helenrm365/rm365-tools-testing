@@ -76,6 +76,8 @@ def _parse_regex_env():
     Returns a string pattern or None. Empty strings are treated as None.
     """
     patt = os.getenv('ALLOW_ORIGIN_REGEX', '').strip()
+    if patt:
+        print(f"🔍 Raw ALLOW_ORIGIN_REGEX: {patt}")
     return patt or None
 
 def _resolve_allow_origins():
@@ -111,9 +113,15 @@ print(f"🌍 CORS Configuration:")
 print(f"   Allow Origins: {allow_origins}")
 print(f"   Allow Origin Regex: {allow_origin_regex}")
 
+# Additional debug info
+if allow_origins:
+    print(f"   📝 Origins list has {len(allow_origins)} entries")
+if allow_origin_regex:
+    print(f"   📝 Using regex pattern for dynamic matching")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allow_origins,
+    allow_origins=allow_origins if allow_origins else ["*"],  # Fallback to allow all if empty
     allow_origin_regex=allow_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
