@@ -75,7 +75,10 @@ def _resolve_allow_origins():
     env_list = _parse_origins_env()
     if env_list:
         return env_list
-    return list(settings.ALLOW_ORIGINS or [])
+    # Default to main Cloudflare Pages domain
+    return [
+        'https://rm365-tools-testing.pages.dev'
+    ]
 
 def _resolve_allow_origin_regex():
     """Return regex pattern preferring env, else config settings."""

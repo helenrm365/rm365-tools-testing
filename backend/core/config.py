@@ -6,12 +6,11 @@ from dotenv import load_dotenv
 import os
 
 class Settings(BaseSettings):
-    # CORS - Default settings for production (Railway + Cloudflare)
-    ALLOW_ORIGINS: List[str] = [
-        "https://rm365-tools-testing.pages.dev",  # Cloudflare Pages main domain
-    ]
-    
-    # Allow all Cloudflare Pages preview deployments
+    # CORS – keep env parsing simple: store raw string, parse in app.py
+    # This avoids pydantic-settings trying to JSON-decode LIST values and crashing
+    # when Railway stores comma-separated strings or '*'.
+    ALLOW_ORIGINS: str | None = None
+    # Allow all Cloudflare Pages preview deployments by default
     ALLOW_ORIGIN_REGEX: str = r"https://.*\.pages\.dev"
 
     # Auth/JWT
