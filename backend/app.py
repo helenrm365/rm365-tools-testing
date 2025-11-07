@@ -129,8 +129,12 @@ if not allow_origins and not allow_origin_regex:
         "http://127.0.0.1:5000",
         "https://rm365-tools-testing.pages.dev",  # Production Cloudflare Pages
     ]
-    allow_origin_regex = r"https://.*\.pages\.dev"
     print("🔧 Using default CORS origins for development")
+
+# Ensure the regex for Cloudflare is always present if not otherwise specified
+if not allow_origin_regex:
+    allow_origin_regex = r"https://.*\.pages\.dev"
+    print("🔧 Applying default Cloudflare Pages CORS regex")
 
 print(f"🌍 CORS Configuration:")
 print(f"   Allow Origins: {allow_origins}")
