@@ -6,272 +6,105 @@
     <title>UK Sales Data</title>
 </head>
 <body>
-    <div class="sales-page-container">
-        <div class="page-header">
-            <h1>UK Sales Data</h1>
-            <p>View and manage UK sales data</p>
-        </div>
-
+    <div class="salesdata-uk main-container">
         <!-- Navigation Tabs -->
-        <div class="inner-tabs" style="margin-bottom: 1.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
-            <button class="modern-button active" data-nav onclick="location.href='/salesdata/uk-sales'">UK Sales</button>
-            <button class="modern-button" data-nav onclick="location.href='/salesdata/fr-sales'">FR Sales</button>
-            <button class="modern-button" data-nav onclick="location.href='/salesdata/nl-sales'">NL Sales</button>
-            <button class="modern-button" data-nav onclick="location.href='/salesdata/history'">Import History</button>
-        </div>
+        <nav class="navigation-tabs">
+            <div class="tabs-container">
+                <button class="tab-btn active" data-nav onclick="location.href='/salesdata/uk-sales'">UK Sales</button>
+                <button class="tab-btn" data-nav onclick="location.href='/salesdata/fr-sales'">FR Sales</button>
+                <button class="tab-btn" data-nav onclick="location.href='/salesdata/nl-sales'">NL Sales</button>
+                <button class="tab-btn" data-nav onclick="location.href='/salesdata/history'">Import History</button>
+            </div>
+        </nav>
 
-        <!-- Upload Section -->
-        <div class="upload-card">
-            <h3>📤 Upload CSV File</h3>
-            <form id="uploadForm">
-                <div class="form-row">
-                    <input type="file" id="csvFile" accept=".csv" required class="modern-input">
-                    <button type="submit" class="modern-button">Upload</button>
+        <!-- Page Header -->
+        <section class="page-header">
+            <div class="header-content">
+                <h1 class="page-title">UK Sales Data</h1>
+                <p class="page-subtitle">Upload and manage UK sales data imports</p>
+            </div>
+        </section>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Upload Section -->
+            <section class="upload-section">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <i class="icon">📤</i>
+                        File Upload
+                    </h2>
+                    <p class="section-subtitle">Upload CSV files containing UK sales data</p>
                 </div>
-            </form>
-        </div>
+                
+                <div class="upload-card">
+                    <form id="uploadForm" class="upload-form">
+                        <div class="file-input-group">
+                            <label for="csvFile" class="input-label">Select CSV File</label>
+                            <input type="file" id="csvFile" accept=".csv" required class="file-input">
+                        </div>
+                        <button type="submit" class="upload-btn">
+                            <i class="icon">⬆️</i>
+                            Upload File
+                        </button>
+                    </form>
+                </div>
+            </section>
 
-        <!-- View Toggle and Search -->
-        <div class="controls-section">
-            <div class="view-toggle">
-                <button id="viewFullBtn" class="modern-button active">Full Sales Data</button>
-                <button id="viewCondensedBtn" class="modern-button">Condensed (6-Month)</button>
-            </div>
-            <div class="search-box">
-                <input type="text" id="searchInput" placeholder="Search by order number or SKU..." class="modern-input">
-                <button id="searchBtn" class="modern-button">Search</button>
-                <button id="clearSearchBtn" class="modern-button">Clear</button>
-            </div>
-        </div>
+            <!-- Data Controls -->
+            <section class="controls-section">
+                <div class="controls-grid">
+                    <div class="view-toggle">
+                        <button id="viewFullBtn" class="toggle-btn active">Full Data</button>
+                        <button id="viewCondensedBtn" class="toggle-btn">6-Month</button>
+                    </div>
+                    <div class="search-controls">
+                        <input type="text" id="searchInput" placeholder="Search by order number or SKU..." class="search-input form-input">
+                        <button id="searchBtn" class="btn-secondary">Search</button>
+                        <button id="clearSearchBtn" class="btn-secondary">Clear</button>
+                    </div>
+                </div>
+            </section>
 
-        <!-- Sales Data Table -->
-        <div class="table-card">
-            <table id="salesTable" class="data-table">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Order Number</th>
-                        <th>Created At</th>
-                        <th>SKU</th>
-                        <th>Name</th>
-                        <th>Quantity</th>
-                        <th>Price</th>
-                        <th>Status</th>
-                        <th>Imported At</th>
-                        <th>Updated At</th>
-                    </tr>
-                </thead>
-                <tbody id="salesTableBody">
-                    <tr><td colspan="10" style="text-align: center; padding: 2rem;">Loading...</td></tr>
-                </tbody>
-            </table>
-        </div>
+            <!-- Data Table -->
+            <section class="table-section">
+                <div class="table-container">
+                    <table id="salesTable" class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Order Number</th>
+                                <th>Created At</th>
+                                <th>SKU</th>
+                                <th>Name</th>
+                                <th>Quantity</th>
+                                <th>Price</th>
+                                <th>Status</th>
+                                <th>Imported At</th>
+                                <th>Updated At</th>
+                            </tr>
+                        </thead>
+                        <tbody id="salesTableBody">
+                            <tr>
+                                <td colspan="10" class="table-empty-state">
+                                    <div class="empty-icon">📊</div>
+                                    <div class="empty-message">Loading sales data...</div>
+                                    <div class="empty-submessage">Please wait while we fetch the data</div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
 
-        <!-- Pagination -->
-        <div class="pagination-section">
-            <button id="prevPageBtn" class="modern-button">← Previous</button>
-            <span id="pageInfo" class="page-info">Page 1</span>
-            <button id="nextPageBtn" class="modern-button">Next →</button>
+            <!-- Pagination -->
+            <section class="pagination-section">
+                <button id="prevPageBtn" class="btn-secondary">← Previous</button>
+                <span id="pageInfo" class="page-info">Page 1</span>
+                <button id="nextPageBtn" class="btn-secondary">Next →</button>
+            </section>
         </div>
     </div>
-
-    <style>
-        .sales-page-container {
-            padding: 1.5rem;
-            max-width: 100%;
-        }
-
-        .page-header {
-            margin-bottom: 1.5rem;
-        }
-
-        .page-header h1 {
-            margin: 0 0 0.5rem 0;
-            color: #333;
-            font-size: 1.8rem;
-        }
-
-        html.dark-mode .page-header h1 {
-            color: #fff;
-        }
-
-        .page-header p {
-            margin: 0;
-            color: #666;
-            font-size: 0.95rem;
-        }
-
-        html.dark-mode .page-header p {
-            color: #aaa;
-        }
-
-        .upload-card {
-            background: white;
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        html.dark-mode .upload-card {
-            background: #2e2e2e;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-        }
-
-        .upload-card h3 {
-            margin: 0 0 1rem 0;
-            color: #333;
-            font-size: 1.1rem;
-        }
-
-        html.dark-mode .upload-card h3 {
-            color: #fff;
-        }
-
-        .form-row {
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .form-row input[type="file"] {
-            flex: 1;
-            min-width: 250px;
-        }
-
-        .controls-section {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-            flex-wrap: wrap;
-        }
-
-        .view-toggle {
-            display: flex;
-            gap: 0.5rem;
-        }
-
-        .view-toggle .modern-button.active {
-            background: #007bff;
-            color: white;
-        }
-
-        html.dark-mode .view-toggle .modern-button.active {
-            background: #0056b3;
-        }
-
-        .search-box {
-            display: flex;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-        }
-
-        .search-box .modern-input {
-            min-width: 250px;
-            flex: 1;
-        }
-
-        .table-card {
-            background: white;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            margin-bottom: 1.5rem;
-        }
-
-        html.dark-mode .table-card {
-            background: #2e2e2e;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-        }
-
-        .data-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .data-table thead {
-            background: #f8f9fa;
-        }
-
-        html.dark-mode .data-table thead {
-            background: #1e1e1e;
-        }
-
-        .data-table th {
-            padding: 1rem;
-            text-align: left;
-            font-weight: 600;
-            color: #333;
-            border-bottom: 2px solid #dee2e6;
-            white-space: nowrap;
-        }
-
-        html.dark-mode .data-table th {
-            color: #fff;
-            border-bottom: 2px solid #444;
-        }
-
-        .data-table td {
-            padding: 0.875rem 1rem;
-            color: #333;
-            border-bottom: 1px solid #f0f0f0;
-        }
-
-        html.dark-mode .data-table td {
-            color: #e0e0e0;
-            border-bottom: 1px solid #3a3a3a;
-        }
-
-        .data-table tbody tr:hover {
-            background: #f8f9fa;
-        }
-
-        html.dark-mode .data-table tbody tr:hover {
-            background: #3a3a3a;
-        }
-
-        .pagination-section {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 1rem;
-            padding: 1rem 0;
-        }
-
-        .page-info {
-            padding: 0.5rem 1rem;
-            color: #666;
-            font-weight: 500;
-        }
-
-        html.dark-mode .page-info {
-            color: #aaa;
-        }
-
-        .modern-button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        @media (max-width: 768px) {
-            .controls-section {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .view-toggle,
-            .search-box {
-                width: 100%;
-            }
-
-            .search-box .modern-input {
-                width: 100%;
-            }
-        }
-    </style>
 
     <!-- Universal Footer -->
     <div id="footerPlaceholder"></div>

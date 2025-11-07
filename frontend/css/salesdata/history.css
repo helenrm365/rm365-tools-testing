@@ -1,0 +1,346 @@
+/* ===== Import History Page Styles ===== */
+
+/* ===== Page Header ===== */
+.salesdata-history .page-header {
+  margin-bottom: 2rem;
+  padding: 2rem 0 1rem 0;
+}
+
+.salesdata-history .header-content {
+  max-width: 800px;
+}
+
+.salesdata-history .page-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
+  color: #2c3e50;
+  background: linear-gradient(135deg, #2c3e50, #8e44ad);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+html.dark-mode .salesdata-history .page-title {
+  background: linear-gradient(135deg, #ecf0f1, #9b59b6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.salesdata-history .page-subtitle {
+  font-size: 1.1rem;
+  color: #7f8c8d;
+  margin: 0;
+  font-weight: 400;
+}
+
+html.dark-mode .salesdata-history .page-subtitle {
+  color: #95a5a6;
+}
+
+/* ===== Main Content ===== */
+.salesdata-history .main-content {
+  animation: fadeInUp 0.4s ease-out;
+}
+
+/* ===== Stats Cards ===== */
+.salesdata-history .stats-section {
+  margin-bottom: 2rem;
+}
+
+.salesdata-history .stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.salesdata-history .stat-card {
+  background: white;
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 2px solid #f1f5f9;
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+html.dark-mode .salesdata-history .stat-card {
+  background: #2a2a2a;
+  border-color: #404040;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.salesdata-history .stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  border-color: rgba(142, 68, 173, 0.3);
+}
+
+.salesdata-history .stat-icon {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.salesdata-history .stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 0.5rem;
+}
+
+html.dark-mode .salesdata-history .stat-value {
+  color: #ecf0f1;
+}
+
+.salesdata-history .stat-label {
+  color: #7f8c8d;
+  font-weight: 500;
+}
+
+html.dark-mode .salesdata-history .stat-label {
+  color: #95a5a6;
+}
+
+/* ===== Filters Section ===== */
+.salesdata-history .filters-section {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: 2px solid #f1f5f9;
+}
+
+html.dark-mode .salesdata-history .filters-section {
+  background: #2a2a2a;
+  border-color: #404040;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+}
+
+.salesdata-history .filters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  align-items: end;
+}
+
+.salesdata-history .filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.salesdata-history .filter-actions {
+  display: flex;
+  gap: 1rem;
+  grid-column: 1 / -1;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+/* ===== History Table ===== */
+.salesdata-history .history-section {
+  margin-bottom: 2rem;
+}
+
+.salesdata-history .table-container {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: 2px solid #f1f5f9;
+}
+
+html.dark-mode .salesdata-history .table-container {
+  background: #2a2a2a;
+  border-color: #404040;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+}
+
+.salesdata-history .history-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.salesdata-history .history-table th {
+  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 2px solid #e5e7eb;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+html.dark-mode .salesdata-history .history-table th {
+  background: linear-gradient(135deg, #404040, #333);
+  color: #e5e7eb;
+  border-bottom-color: #555;
+}
+
+.salesdata-history .history-table td {
+  padding: 1rem;
+  border-bottom: 1px solid #f1f5f9;
+  color: #374151;
+  font-size: 0.95rem;
+}
+
+html.dark-mode .salesdata-history .history-table td {
+  border-bottom-color: #404040;
+  color: #e5e7eb;
+}
+
+.salesdata-history .history-table tbody tr:hover {
+  background: linear-gradient(135deg, #fefefe, #f8fafc);
+}
+
+html.dark-mode .salesdata-history .history-table tbody tr:hover {
+  background: linear-gradient(135deg, #2a2a2a, #333);
+}
+
+/* ===== Status Badges ===== */
+.salesdata-history .status-badge {
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.salesdata-history .status-success {
+  background: linear-gradient(135deg, #d4edda, #c3e6cb);
+  color: #155724;
+  border: 1px solid #b6d7a8;
+}
+
+.salesdata-history .status-error {
+  background: linear-gradient(135deg, #f8d7da, #f5c6cb);
+  color: #721c24;
+  border: 1px solid #f1b0b7;
+}
+
+.salesdata-history .status-processing {
+  background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+  color: #856404;
+  border: 1px solid #fdd835;
+}
+
+html.dark-mode .salesdata-history .status-success {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+}
+
+html.dark-mode .salesdata-history .status-error {
+  background: linear-gradient(135deg, #dc3545, #e83e8c);
+  color: white;
+}
+
+html.dark-mode .salesdata-history .status-processing {
+  background: linear-gradient(135deg, #ffc107, #fd7e14);
+  color: #212529;
+}
+
+/* ===== Action Buttons ===== */
+.salesdata-history .action-btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.85rem;
+  margin-right: 0.5rem;
+}
+
+.salesdata-history .btn-view {
+  background: linear-gradient(135deg, #17a2b8, #138496);
+  color: white;
+}
+
+.salesdata-history .btn-view:hover {
+  background: linear-gradient(135deg, #20c9e7, #17a2b8);
+  transform: translateY(-1px);
+}
+
+.salesdata-history .btn-download {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+}
+
+.salesdata-history .btn-download:hover {
+  background: linear-gradient(135deg, #34ce57, #28a745);
+  transform: translateY(-1px);
+}
+
+.salesdata-history .btn-delete {
+  background: linear-gradient(135deg, #dc3545, #c82333);
+  color: white;
+}
+
+.salesdata-history .btn-delete:hover {
+  background: linear-gradient(135deg, #e4606d, #dc3545);
+  transform: translateY(-1px);
+}
+
+/* ===== Empty State ===== */
+.salesdata-history .empty-state {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: #9ca3af;
+}
+
+.salesdata-history .empty-icon {
+  font-size: 4rem;
+  margin-bottom: 1.5rem;
+  opacity: 0.5;
+}
+
+.salesdata-history .empty-message {
+  font-size: 1.2rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.salesdata-history .empty-submessage {
+  font-size: 1rem;
+  color: #6b7280;
+}
+
+html.dark-mode .salesdata-history .empty-submessage {
+  color: #9ca3af;
+}
+
+/* ===== Responsive Design ===== */
+@media (max-width: 768px) {
+  .salesdata-history .page-title {
+    font-size: 2rem;
+  }
+  
+  .salesdata-history .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .salesdata-history .filters-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .salesdata-history .filter-actions {
+    grid-column: 1;
+    flex-direction: column;
+  }
+  
+  .salesdata-history .table-container {
+    overflow-x: auto;
+  }
+  
+  .salesdata-history .action-btn {
+    display: block;
+    margin: 0.25rem 0;
+    margin-right: 0;
+  }
+}
