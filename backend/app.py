@@ -26,6 +26,7 @@ def _parse_origins_env():
     Accepts:
       - JSON array: '["https://a.com","https://b.com"]'
       - Comma-separated string: 'https://a.com,https://b.com'
+            - Wildcard/all: '*', 'all', or 'any'
       - Empty / missing -> []
     Never raises; always returns a list[str].
     """
@@ -35,6 +36,10 @@ def _parse_origins_env():
     
     # Debug logging
     print(f"🔍 Raw ALLOW_ORIGINS: {raw}")
+    # Wildcard helpers
+    if raw in {"*", "all", "any"}:
+        print("✅ Using wildcard origins ('*') from env")
+        return ["*"]
     
     try:
         # Handle Railway's JSON array format
@@ -87,13 +92,22 @@ app = FastAPI(
     openapi_url='/api/openapi.json',
 )
 
-# --- Database Initialization -------------------------------------------------
+# --- Database Initialization (non-blocking) ---------------------------------
+# Kick off DB/table initialization in a background thread so the app starts
 try:
+    import threading
     from core.db import initialize_database
-    initialize_database()
+
+    def _init_db_bg():
+        try:
+            initialize_database()
+        except Exception as e:
+            print(f"❌ Background DB initialization failed: {e}")
+
+    threading.Thread(target=_init_db_bg, daemon=True).start()
+    print("🧩 DB initialization started in background thread")
 except Exception as e:
-    print(f"❌ Database initialization failed: {e}")
-    print("⚠️  Application will continue but may not function properly")
+    print(f"⚠️  Could not start background DB init: {e}")
 
 # --- CORS --------------------------------------------------------------------
 allow_origins = _resolve_allow_origins()
@@ -146,6 +160,15 @@ def cors_test():
         'message': 'CORS is working!',
         'timestamp': time.time(),
         'status': 'success'
+    }
+
+@app.get('/api/cors-config')
+def cors_config():
+    """Expose the active CORS configuration for quick diagnostics."""
+    return {
+        'allow_origins': allow_origins,
+        'allow_origin_regex': allow_origin_regex,
+        'allow_credentials': False,
     }
 
 @app.get('/api/debug/inventory')

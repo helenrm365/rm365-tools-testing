@@ -4,6 +4,15 @@ from sqlalchemy import create_engine
 from contextlib import contextmanager
 from pathlib import Path
 
+def _conn_common_kwargs():
+    """Common connection kwargs with sane defaults for cloud envs."""
+    # Keep startup snappy; let app boot even if DB is slow/unreachable
+    timeout = int(os.getenv("DB_CONNECT_TIMEOUT", "5"))
+    # Railway proxy endpoints usually require SSL
+    sslmode = os.getenv("DB_SSLMODE", "require")
+    return {"connect_timeout": timeout, "sslmode": sslmode}
+
+
 def get_psycopg_connection():
     """Get a raw psycopg2 connection for attendance/enrollment modules"""
     # Use individual environment variables as set in Railway
@@ -21,7 +30,8 @@ def get_psycopg_connection():
         port=port,
         database=database,
         user=user,
-        password=password
+        password=password,
+        **_conn_common_kwargs(),
     )
 
 def get_inventory_log_connection():
@@ -40,7 +50,8 @@ def get_inventory_log_connection():
         port=port,
         database=database,
         user=user,
-        password=password
+        password=password,
+        **_conn_common_kwargs(),
     )
 
 def get_products_connection():
@@ -59,7 +70,8 @@ def get_products_connection():
         port=port,
         database=database,
         user=user,
-        password=password
+        password=password,
+        **_conn_common_kwargs(),
     )
 
 def get_sqlalchemy_engine():
