@@ -6,7 +6,7 @@
 }
 
 .enrollment-fingerprint .header-content {
-  text-align: center;
+  text-align: left;
 }
 
 .enrollment-fingerprint .page-title {
@@ -74,8 +74,9 @@ html.dark-mode .enrollment-fingerprint .inner-tabs {
 .enrollment-fingerprint .tab-button.active {
   background: linear-gradient(135deg, #76a12b, #5e8122);
   color: white;
-  border-color: transparent;
-  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.3);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.4);
+  transform: translateY(-1px);
 }
 
 html.dark-mode .enrollment-fingerprint .tab-button {
@@ -92,6 +93,7 @@ html.dark-mode .enrollment-fingerprint .tab-button:hover {
 html.dark-mode .enrollment-fingerprint .tab-button.active {
   background: linear-gradient(135deg, #76a12b, #5e8122);
   color: white;
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 .enrollment-fingerprint .tab-button i {
