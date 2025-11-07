@@ -9,9 +9,10 @@ export async function init(path) {
   
   try {
     if (path === '/salesdata' || path === '/salesdata/home') {
-      // Home page - no initialization needed, just a landing page
+      // Load home page and initialize tables
       console.log('[Sales Data] Loading home page');
-      return;
+      const { initSalesDataHome } = await import('./home.js');
+      await initSalesDataHome();
     } else if (path === '/salesdata/uk-sales') {
       // Load UK sales page
       const { initUKSalesData } = await import('./uk-sales.js');
