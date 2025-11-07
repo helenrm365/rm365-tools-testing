@@ -2,7 +2,7 @@
 from contextlib import contextmanager
 from typing import Generator, Optional, Dict
 
-from fastapi import Depends, HTTPException, UploadFile
+from fastapi import Depends, HTTPException, UploadFile, Header
 from core.db import (
     get_psycopg_connection,
     get_inventory_log_connection,
@@ -28,9 +28,9 @@ except Exception:
 # ---------------------------
 # Auth
 # ---------------------------
-async def get_current_user():
+async def get_current_user(authorization: str = Header(...)):
     """Auth dependency used by protected routes."""
-    return await _get_current_user()
+    return await _get_current_user(authorization=authorization)
 
 
 # ---------------------------
