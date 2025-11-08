@@ -15,7 +15,8 @@ let state = {
   displayedProducts: [], // Products after applying search filter
   selectedProducts: new Set(),
   selectAll: false,
-  statusFilters: []
+  statusFilters: [],
+  region: "uk"           // Default region preference for prices/names
 };
 
 // Get saved status filters from localStorage
@@ -49,6 +50,9 @@ export async function initLabelGenerator() {
   // Setup status filter checkboxes
   setupStatusFilterCheckboxes();
   
+  // Setup region selection
+  setupRegionSelection();
+  
   await loadProducts();
   setupEventListeners();
   updateUI();
@@ -81,6 +85,21 @@ function updateStatusFilterVisuals() {
   });
 }
 
+function setupRegionSelection() {
+  const regionRadios = document.querySelectorAll('.region-radio');
+  
+  regionRadios.forEach(radio => {
+    radio.addEventListener('change', (e) => {
+      if (e.target.checked) {
+        state.region = e.target.value;
+        console.log('[Labels] Region preference changed to:', state.region);
+        // Reload products with new region preference
+        loadProducts();
+      }
+    });
+  });
+}
+
 async function loadProducts() {
   const loadingEl = document.querySelector('#loadingIndicator');
   const errorEl = document.querySelector('#errorMessage');
@@ -89,12 +108,12 @@ async function loadProducts() {
   if (errorEl) errorEl.style.display = 'none';
   
   try {
-    // Fetch products with current status filters
-    state.allProducts = await getProductsToPrint(state.statusFilters);
+    // Fetch products with current status filters and region preference
+    state.allProducts = await getProductsToPrint(state.statusFilters, state.region);
     state.filteredProducts = [...state.allProducts];
     state.displayedProducts = [...state.allProducts];
     
-    console.log(`[Labels] Loaded ${state.allProducts.length} products with filters:`, state.statusFilters);
+    console.log(`[Labels] Loaded ${state.allProducts.length} products with filters:`, state.statusFilters, 'Region:', state.region);
     
     // Auto-select all products when using default filters
     const isDefaultFilters = 

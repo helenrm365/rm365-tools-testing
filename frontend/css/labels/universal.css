@@ -157,3 +157,76 @@ html.dark-mode .error-body p {
 .error-actions .action-btn {
   min-width: 140px;
 }
+
+/* ===== Region Selection ===== */
+.region-toggle {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.region-option {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 0.75rem 1rem;
+  background: #f8f9fa;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  flex: 1;
+}
+
+.region-option:hover {
+  background: #e9ecef;
+  border-color: rgba(118, 161, 43, 0.3);
+}
+
+.region-option:has(input:checked) {
+  background: linear-gradient(135deg, #76a12b, #5e8122);
+  color: white;
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 2px 8px rgba(118, 161, 43, 0.3);
+}
+
+html.dark-mode .region-option {
+  background: #2a2a2a;
+  color: #e5e7eb;
+}
+
+html.dark-mode .region-option:hover {
+  background: #1e1e1e;
+  border-color: rgba(139, 195, 74, 0.3);
+}
+
+.region-radio {
+  display: none;
+}
+
+.region-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  width: 100%;
+  justify-content: center;
+  font-size: 0.9rem;
+}
+
+.region-label i {
+  font-size: 1rem;
+}
+
+.region-help {
+  font-size: 0.85rem;
+  color: #6b7280;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-style: italic;
+}
+
+html.dark-mode .region-help {
+  color: #9ca3af;
+}

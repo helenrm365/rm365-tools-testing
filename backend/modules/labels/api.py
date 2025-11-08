@@ -89,6 +89,7 @@ def init_label_dependencies(user=Depends(get_current_user)):
 @router.get("/to-print")
 def labels_to_print(
     discontinued_statuses: Optional[str] = None,
+    region: str = Query("uk", regex="^(uk|fr|nl)$"),
     user=Depends(get_current_user)
 ):
     """
@@ -98,6 +99,9 @@ def labels_to_print(
     Args:
         discontinued_statuses: Comma-separated list of statuses (e.g., "Active,Temporarily OOS")
                               Defaults to: Active, Temporarily OOS, Pre Order, Samples
+        region: Region preference for pricing/names ("uk", "fr", or "nl"). Defaults to "uk".
+                SKUs always come from UK Magento, but prices/names can come from any region.
+                6M data: UK separate, FR+NL combined.
     """
     try:
         # Parse discontinued_statuses if provided
@@ -107,7 +111,12 @@ def labels_to_print(
         
         zoho_map = get_zoho_items_with_skus_full()
         with inventory_conn() as conn:
-            return LabelsRepo().get_labels_to_print_psycopg(conn, zoho_map, status_list)
+            return LabelsRepo().get_labels_to_print_psycopg(
+                conn, 
+                zoho_map, 
+                status_list, 
+                preferred_region=region
+            )
     except Exception as e:
         error_msg = str(e)
         

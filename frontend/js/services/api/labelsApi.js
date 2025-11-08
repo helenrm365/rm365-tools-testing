@@ -8,14 +8,24 @@ const API = '/api/v1/labels';
 /**
  * Get all products available for label printing
  * @param {Array<string>} discontinuedStatuses - Optional array of discontinued statuses to filter by
+ * @param {string} region - Region preference: "uk", "fr", or "nl"
  */
-export async function getProductsToPrint(discontinuedStatuses = null) {
+export async function getProductsToPrint(discontinuedStatuses = null, region = "uk") {
   let url = `${API}/to-print`;
+  
+  const params = new URLSearchParams();
   
   // Add discontinued_statuses query parameter if provided
   if (discontinuedStatuses && discontinuedStatuses.length > 0) {
     const statusParam = discontinuedStatuses.join(',');
-    url += `?discontinued_statuses=${encodeURIComponent(statusParam)}`;
+    params.append('discontinued_statuses', statusParam);
+  }
+  
+  // Add region parameter
+  params.append('region', region);
+  
+  if (params.toString()) {
+    url += `?${params.toString()}`;
   }
   
   return await get(url);

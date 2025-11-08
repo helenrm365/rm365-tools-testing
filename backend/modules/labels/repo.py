@@ -63,7 +63,7 @@ class LabelsRepo:
             return [str(r[0]).strip() for r in cur.fetchall()]
 
     def _load_six_month_data_psycopg(self, conn, item_ids: List[str]) -> Dict[str, Tuple[str, str]]:
-        """Return { item_id: (uk_6m_data, fr_6m_data) }."""
+        """Return { item_id: (uk_6m_data, fr_nl_combined_6m_data) }."""
         if not item_ids:
             return {}
         with conn.cursor() as cur:
@@ -72,18 +72,34 @@ class LabelsRepo:
                 """
                 SELECT item_id,
                        COALESCE(uk_6m_data, '0') AS uk_6m_data,
-                       COALESCE(fr_6m_data, '0') AS fr_6m_data
+                       COALESCE(fr_6m_data, '0') AS fr_6m_data,
+                       COALESCE(nl_6m_data, '0') AS nl_6m_data
                 FROM inventory_metadata
                 WHERE item_id = ANY(%s)
                 """,
                 (item_ids,)  # ARRAY/ANY is simpler than building a dynamic IN
             )
-            return {str(r[0]): (str(r[1]), str(r[2])) for r in cur.fetchall()}
+            result = {}
+            for row in cur.fetchall():
+                item_id = str(row[0])
+                uk_data = str(row[1])
+                fr_data = int(row[2]) if row[2] else 0
+                nl_data = int(row[3]) if row[3] else 0
+                # Combine FR and NL data
+                fr_nl_combined = str(fr_data + nl_data)
+                result[item_id] = (uk_data, fr_nl_combined)
+            return result
     
-    def _load_latest_prices_psycopg(self, conn, skus: List[str]) -> Dict[str, str]:
+    def _load_latest_prices_psycopg(self, conn, skus: List[str], preferred_region: str = "uk") -> Dict[str, str]:
         """
         Return { sku: price } with the most recent price from sales data.
         Checks uk_sales_data, fr_sales_data, and nl_sales_data.
+        
+        Args:
+            conn: Database connection
+            skus: List of SKUs to get prices for
+            preferred_region: "uk" (default), "fr", or "nl" - determines price priority
+        
         Returns empty dict if tables don't exist yet.
         """
         if not skus:
@@ -106,21 +122,39 @@ class LabelsRepo:
                 logger.warning("No sales data tables found. Please initialize sales data first.")
                 return {}
             
-            # Build dynamic query for only existing tables
+            # Build dynamic query for only existing tables with region prioritization
             union_parts = []
             params = []
             
+            # Currency mapping for regions
+            region_currency_map = {
+                'uk_sales_data': 'GBP',
+                'fr_sales_data': 'EUR', 
+                'nl_sales_data': 'EUR'
+            }
+            
             for table in existing_tables:
                 region = table.split('_')[0]  # uk, fr, or nl
+                default_currency = region_currency_map.get(table, 'GBP')
+                
                 union_parts.append(f"""
-                    SELECT sku, price, created_at, '{region}' as source
+                    SELECT 
+                        sku, 
+                        price, 
+                        name,
+                        created_at, 
+                        COALESCE(currency, '{default_currency}') as currency,
+                        '{region}' as source
                     FROM {table}
-                    WHERE sku = ANY(%s) AND price IS NOT NULL
+                    WHERE sku = ANY(%s) AND price IS NOT NULL AND price > 0
                 """)
                 params.append(skus)
             
             if not union_parts:
                 return {}
+            
+            # Prioritize preferred region in the ranking
+            region_priority = f"CASE WHEN source = '{preferred_region}' THEN 1 ELSE 2 END"
             
             combined_query = f"""
                 WITH combined_sales AS (
@@ -130,11 +164,17 @@ class LabelsRepo:
                     SELECT 
                         sku,
                         price,
+                        name,
+                        currency,
                         created_at,
-                        ROW_NUMBER() OVER (PARTITION BY sku ORDER BY created_at DESC) as rn
+                        source,
+                        ROW_NUMBER() OVER (
+                            PARTITION BY sku 
+                            ORDER BY {region_priority}, created_at DESC
+                        ) as rn
                     FROM combined_sales
                 )
-                SELECT sku, price
+                SELECT sku, price, currency
                 FROM ranked_sales
                 WHERE rn = 1
             """
@@ -144,7 +184,10 @@ class LabelsRepo:
                 for row in cur.fetchall():
                     sku = str(row[0]).strip()
                     price = str(row[1]) if row[1] else "0.00"
-                    prices[sku] = price
+                    currency = str(row[2]) if len(row) > 2 else "GBP"
+                    # Format with currency symbol for display
+                    currency_symbol = "£" if currency == "GBP" else "€"
+                    prices[sku] = f"{currency_symbol}{price}"
             except Exception as e:
                 logger.error(f"Error querying sales data for prices: {e}")
                 # Return empty dict on error rather than crashing
@@ -152,15 +195,106 @@ class LabelsRepo:
         
         return prices
 
+    def _load_product_names_psycopg(self, conn, skus: List[str], preferred_region: str = "uk") -> Dict[str, str]:
+        """
+        Return { sku: product_name } with the most recent product name from sales data.
+        Prioritizes preferred region, then falls back to other regions.
+        
+        Args:
+            conn: Database connection
+            skus: List of SKUs to get names for
+            preferred_region: "uk" (default), "fr", or "nl" - determines name priority
+        
+        Returns empty dict if tables don't exist yet.
+        """
+        if not skus:
+            return {}
+        
+        names = {}
+        with conn.cursor() as cur:
+            # First check if the sales tables exist
+            cur.execute("""
+                SELECT table_name 
+                FROM information_schema.tables 
+                WHERE table_schema = 'public' 
+                AND table_name IN ('uk_sales_data', 'fr_sales_data', 'nl_sales_data')
+            """)
+            
+            existing_tables = [row[0] for row in cur.fetchall()]
+            
+            if not existing_tables:
+                logger.warning("No sales data tables found for product names.")
+                return {}
+            
+            # Build dynamic query for only existing tables with region prioritization
+            union_parts = []
+            params = []
+            
+            for table in existing_tables:
+                region = table.split('_')[0]  # uk, fr, or nl
+                
+                union_parts.append(f"""
+                    SELECT 
+                        sku, 
+                        name,
+                        created_at,
+                        '{region}' as source
+                    FROM {table}
+                    WHERE sku = ANY(%s) AND name IS NOT NULL AND name != ''
+                """)
+                params.append(skus)
+            
+            if not union_parts:
+                return {}
+            
+            # Prioritize preferred region in the ranking
+            region_priority = f"CASE WHEN source = '{preferred_region}' THEN 1 ELSE 2 END"
+            
+            combined_query = f"""
+                WITH combined_sales AS (
+                    {' UNION ALL '.join(union_parts)}
+                ),
+                ranked_sales AS (
+                    SELECT 
+                        sku,
+                        name,
+                        created_at,
+                        source,
+                        ROW_NUMBER() OVER (
+                            PARTITION BY sku 
+                            ORDER BY {region_priority}, created_at DESC
+                        ) as rn
+                    FROM combined_sales
+                )
+                SELECT sku, name
+                FROM ranked_sales
+                WHERE rn = 1
+            """
+            
+            try:
+                cur.execute(combined_query, params)
+                for row in cur.fetchall():
+                    sku = str(row[0]).strip()
+                    name = str(row[1]).strip() if row[1] else ""
+                    if name:
+                        names[sku] = name
+            except Exception as e:
+                logger.error(f"Error querying sales data for product names: {e}")
+                return {}
+        
+        return names
+
     def _resolve_to_rows(
         self,
         conn,
         zoho_map: Dict[str, str],       # sku -> item_id  (from get_zoho_items_with_skus)
         candidate_skus: List[str],
         zoho_name_lookup: Optional[Dict[str, str]] = None,  # if later you return names too
+        preferred_region: str = "uk",  # region preference for price/name selection
     ) -> List[Dict[str, Any]]:
         """
         Collapse per-base to base/-MD, map to Zoho, attach 6M data.
+        SKUs come from UK (magento), but prices/names can come from any region.
         """
         if not candidate_skus:
             return []
@@ -190,7 +324,7 @@ class LabelsRepo:
             for c in cands:
                 if c in zoho_map and zoho_map[c]:
                     item_id = zoho_map[c]
-                    # product name optional; can be fetched separately if needed
+                    # Try to get name from Zoho first, then from sales data
                     name = "" if not zoho_name_lookup else (zoho_name_lookup.get(c, "") or "")
                     hit = (item_id, c, name)
                     break
@@ -201,31 +335,40 @@ class LabelsRepo:
         if not resolved:
             return []
 
-        # 6M data
+        # Get unique SKUs for data loading
+        all_skus = list(set([t[1] for t in resolved.values()]))
+        
+        # Load 6M data (UK separate, FR+NL combined)
         item_ids = [t[0] for t in resolved.values()]
         sixm = self._load_six_month_data_psycopg(conn, item_ids)
         
-        # Latest prices from sales data
-        all_skus = list(set([t[1] for t in resolved.values()]))  # Get unique SKUs
-        prices = self._load_latest_prices_psycopg(conn, all_skus)
+        # Load prices with region preference
+        prices = self._load_latest_prices_psycopg(conn, all_skus, preferred_region)
+        
+        # Load product names from sales data with region preference (fallback for empty Zoho names)
+        sales_names = self._load_product_names_psycopg(conn, all_skus, preferred_region)
 
         # build rows
         out: List[Dict[str, Any]] = []
-        for base, (item_id, sku_used, name) in resolved.items():
-            uk, fr = sixm.get(item_id, ("0", "0"))
-            price = prices.get(sku_used, "0.00")  # Get price for this SKU
+        for base, (item_id, sku_used, zoho_name) in resolved.items():
+            uk_6m, fr_nl_6m = sixm.get(item_id, ("0", "0"))
+            price = prices.get(sku_used, "£0.00")  # Get price for this SKU with region preference
+            
+            # Use Zoho name if available, otherwise use sales data name
+            product_name = zoho_name or sales_names.get(sku_used, "")
+            
             out.append({
                 "item_id": item_id,       # barcode (Zoho item_id)
-                "sku": sku_used,          # chosen Zoho SKU (base or -MD)
-                "product_name": name,     # may be blank unless you hydrate it
-                "uk_6m_data": uk,
-                "fr_6m_data": fr,         # FR already includes FR+NL in your sync
-                "price": price,           # most recent price from sales data
+                "sku": sku_used,          # chosen Zoho SKU (base or -MD) - always from UK
+                "product_name": product_name,     # from Zoho or sales data (region preference)
+                "uk_6m_data": uk_6m,      # UK 6-month data only
+                "fr_6m_data": fr_nl_6m,   # FR+NL combined 6-month data
+                "price": price,           # most recent price from preferred region
             })
         return out
 
     # --- public (psycopg2) ---
-    def get_labels_to_print_psycopg(self, conn, zoho_sku_map, discontinued_statuses: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+    def get_labels_to_print_psycopg(self, conn, zoho_sku_map, discontinued_statuses: Optional[List[str]] = None, preferred_region: str = "uk") -> List[Dict[str, Any]]:
         """
         DB-driven: Magento 'discontinued_status' decides inclusion.
         Accepts either:
@@ -236,6 +379,7 @@ class LabelsRepo:
             conn: database connection
             zoho_sku_map: mapping of SKUs to Zoho item IDs and names
             discontinued_statuses: list of discontinued statuses to filter by (optional)
+            preferred_region: "uk" (default), "fr", or "nl" - determines price/name priority
         """
         magento_skus = self._fetch_allowed_skus_from_magento_psycopg(conn, discontinued_statuses)
 
@@ -259,6 +403,7 @@ class LabelsRepo:
             sku_to_item_id,  # existing param
             magento_skus,
             zoho_name_lookup=sku_to_name,  # <— NEW: passes names through
+            preferred_region=preferred_region,  # <— NEW: region preference
         )
 
     def get_labels_to_print_from_csv_psycopg(
@@ -266,6 +411,7 @@ class LabelsRepo:
         conn,
         zoho_sku_to_item_id: Dict[str, str],
         csv_skus: List[str],
+        preferred_region: str = "uk",
     ) -> List[Dict[str, Any]]:
         """
         CSV-driven (optional): validate against Magento to exclude discontinued.
@@ -290,4 +436,4 @@ class LabelsRepo:
                 (csv_skus,)
             )
             allowed = [str(r[0]).strip() for r in cur.fetchall()]
-        return self._resolve_to_rows(conn, zoho_sku_to_item_id, allowed)
+        return self._resolve_to_rows(conn, zoho_sku_to_item_id, allowed, preferred_region=preferred_region)
