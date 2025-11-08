@@ -1,5 +1,5 @@
 from __future__ import annotations
-import io, os, tempfile
+import io, os, tempfile, shutil
 from datetime import datetime
 from typing import Any
 from psycopg2.extensions import connection as PGConn  # type: ignore
@@ -134,134 +134,155 @@ def stream_pdf_labels(conn: PGConn, job_id: int) -> StreamingResponse:
     Generate printable labels for a print job — matches Ian's layout.
     One label per product row.
     """
-    # 1. fetch data
-    with conn.cursor() as cur:
-        cur.execute(
-            """
-            SELECT r.sku, r.product_name, r.uk_6m_data, r.fr_6m_data,
-                   COALESCE(r.line_date, j.line_date) AS line_date,
-                   r.item_id, r.price
-            FROM label_print_items r
-            JOIN label_print_jobs j ON j.id = r.job_id
-            WHERE r.job_id = %s
-            ORDER BY r.sku
-            """,
-            (job_id,),
-        )
-        rows = cur.fetchall()
+    tmpdir = None
+    try:
+        # 1. fetch data
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT r.sku, r.product_name, r.uk_6m_data, r.fr_6m_data,
+                       COALESCE(r.line_date, j.line_date) AS line_date,
+                       r.item_id, r.price
+                FROM label_print_items r
+                JOIN label_print_jobs j ON j.id = r.job_id
+                WHERE r.job_id = %s
+                ORDER BY r.sku
+                """,
+                (job_id,),
+            )
+            rows = cur.fetchall()
 
-    # 2. setup PDF
-    buf = io.BytesIO()
-    c = canvas.Canvas(buf, pagesize=PAGE_SIZE)
-    today = datetime.today().strftime("%d/%m/%y")
-    page_w, page_h = PAGE_SIZE
-    x0 = LEFT_MARGIN
-    y0 = page_h - LABEL_HEIGHT - TOP_MARGIN
-    label_no = 0
+        if not rows:
+            raise ValueError(f"No label items found for job {job_id}")
 
-    tmpdir = tempfile.mkdtemp()
+        # 2. setup PDF
+        buf = io.BytesIO()
+        c = canvas.Canvas(buf, pagesize=PAGE_SIZE)
+        today = datetime.today().strftime("%d/%m/%y")
+        page_w, page_h = PAGE_SIZE
+        x0 = LEFT_MARGIN
+        y0 = page_h - LABEL_HEIGHT - TOP_MARGIN
+        label_no = 0
 
-    # 3. render labels
-    for sku, name, uk, fr, line_date, barcode_val, price in rows:
-        col = label_no % COLS_PER_PAGE
-        row_pos = (label_no // COLS_PER_PAGE) % ROWS_PER_PAGE
-        x = x0 + col * LABEL_WIDTH
-        y = y0 - row_pos * LABEL_HEIGHT
-        c.rect(x, y, LABEL_WIDTH, LABEL_HEIGHT)
+        tmpdir = tempfile.mkdtemp()
 
-        # --- product name block ---
-        fit_wrapped_text(
-            c,
-            text=str(name),
-            x=x + 4,
-            y=y + 38,
-            width=LABEL_WIDTH - 84,
-            height=38,
-        )
+        # 3. render labels
+        for sku, name, uk, fr, line_date, barcode_val, price in rows:
+            col = label_no % COLS_PER_PAGE
+            row_pos = (label_no // COLS_PER_PAGE) % ROWS_PER_PAGE
+            x = x0 + col * LABEL_WIDTH
+            y = y0 - row_pos * LABEL_HEIGHT
+            c.rect(x, y, LABEL_WIDTH, LABEL_HEIGHT)
 
-        # --- right info block ---
-        right_x = x + LABEL_WIDTH - 69
-        max_w = LABEL_WIDTH - (right_x - x) - 4
-        
-        # Format price with currency symbol (handle both float and string inputs)
-        if price:
-            if isinstance(price, (int, float)):
-                # Price is already a number
-                price_str = f"£{float(price):.2f}"
+            # --- product name block ---
+            fit_wrapped_text(
+                c,
+                text=str(name or ""),
+                x=x + 4,
+                y=y + 38,
+                width=LABEL_WIDTH - 84,
+                height=38,
+            )
+
+            # --- right info block ---
+            right_x = x + LABEL_WIDTH - 69
+            max_w = LABEL_WIDTH - (right_x - x) - 4
+            
+            # Format price with currency symbol (handle both float and string inputs)
+            if price:
+                if isinstance(price, (int, float)):
+                    # Price is already a number
+                    price_str = f"£{float(price):.2f}"
+                else:
+                    # Price is a string, possibly already formatted
+                    price_clean = str(price).replace("£", "").replace("€", "").replace("$", "").strip()
+                    try:
+                        price_num = float(price_clean)
+                        price_str = f"£{price_num:.2f}"
+                    except ValueError:
+                        # If we can't parse it, use as-is
+                        price_str = str(price)
             else:
-                # Price is a string, possibly already formatted
-                price_clean = str(price).replace("£", "").replace("€", "").replace("$", "").strip()
-                try:
-                    price_num = float(price_clean)
-                    price_str = f"£{price_num:.2f}"
-                except ValueError:
-                    # If we can't parse it, use as-is
-                    price_str = str(price)
-        else:
-            price_str = ""
-        
-        important = [
-            ("Date:", today),
-            ("Line:", ""),  # left blank intentionally - to be written on after printing
-            ("Price:", price_str),
-            ("SKU:", sku or ""),
-        ]
-        start_y = y + LABEL_HEIGHT - 12
-        for i, (label, value) in enumerate(important):
-            yy = start_y - i * LINE_SPACING
-            c.setFont(TITLE_FONT, TITLE_SIZE)
-            c.drawString(right_x, yy, label)
-            lw = c.stringWidth(label, TITLE_FONT, TITLE_SIZE)
-            if label == "SKU:":
-                c.setFont(TEXT_FONT, VALUE_BASE_SIZE)
-                c.drawString(right_x + lw + 1, yy, value)
-            else:
+                price_str = "£0.00"
+            
+            important = [
+                ("Date:", today),
+                ("Line:", ""),  # left blank intentionally - to be written on after printing
+                ("Price:", price_str),
+                ("SKU:", str(sku or "")),
+            ]
+            start_y = y + LABEL_HEIGHT - 12
+            for i, (label, value) in enumerate(important):
+                yy = start_y - i * LINE_SPACING
+                c.setFont(TITLE_FONT, TITLE_SIZE)
+                c.drawString(right_x, yy, label)
+                lw = c.stringWidth(label, TITLE_FONT, TITLE_SIZE)
+                if label == "SKU:":
+                    c.setFont(TEXT_FONT, VALUE_BASE_SIZE)
+                    c.drawString(right_x + lw + 1, yy, value)
+                else:
+                    fitted = fit_value_font(c, label, value, max_w)
+                    c.setFont(TEXT_FONT, fitted)
+                    c.drawString(right_x + lw + 1, yy, value)
+
+            # --- FR/UK bottom block ---
+            uk_str = str(uk if uk is not None else "0")
+            fr_str = str(fr if fr is not None else "0")
+            for j, (label, value) in enumerate([("UK:", uk_str), ("FR:", fr_str)]):
+                yy = y + 4.5 + j * LINE_SPACING
                 fitted = fit_value_font(c, label, value, max_w)
+                c.setFont(TITLE_FONT, TITLE_SIZE)
+                c.drawString(right_x, yy, label)
+                lw = c.stringWidth(label, TITLE_FONT, TITLE_SIZE)
                 c.setFont(TEXT_FONT, fitted)
                 c.drawString(right_x + lw + 1, yy, value)
 
-        # --- FR/UK bottom block ---
-        for j, (label, value) in enumerate([("UK:", uk), ("FR:", fr)]):
-            yy = y + 4.5 + j * LINE_SPACING
-            fitted = fit_value_font(c, label, str(value), max_w)
-            c.setFont(TITLE_FONT, TITLE_SIZE)
-            c.drawString(right_x, yy, label)
-            lw = c.stringWidth(label, TITLE_FONT, TITLE_SIZE)
-            c.setFont(TEXT_FONT, fitted)
-            c.drawString(right_x + lw + 1, yy, str(value))
+            # --- barcode ---
+            try:
+                barcode_path = os.path.join(tmpdir, f"barcode_{label_no}")
+                barcode_value = str(barcode_val or sku or "NONE")
+                Code128(barcode_value, writer=ImageWriter()).save(barcode_path, BARCODE_OPTIONS)
+                img_path = barcode_path + ".png"
+                barcode_width = LABEL_WIDTH - 10
+                barcode_height = 13 * mm
+                barcode_x = x + (LABEL_WIDTH - barcode_width) / 2
+                c.drawImage(
+                    img_path,
+                    barcode_x,
+                    y + 1,
+                    width=barcode_width,
+                    height=barcode_height,
+                    preserveAspectRatio=True,
+                    anchor="sw",
+                    mask="auto",
+                )
+            except Exception as e:
+                # Log barcode generation errors but continue
+                print(f"Warning: Could not generate barcode for {barcode_val or sku}: {e}")
+                pass
 
-        # --- barcode ---
-        try:
-            barcode_path = os.path.join(tmpdir, f"barcode_{label_no}")
-            Code128(str(barcode_val or sku), writer=ImageWriter()).save(barcode_path, BARCODE_OPTIONS)
-            img_path = barcode_path + ".png"
-            barcode_width = LABEL_WIDTH - 10
-            barcode_height = 13 * mm
-            barcode_x = x + (LABEL_WIDTH - barcode_width) / 2
-            c.drawImage(
-                img_path,
-                barcode_x,
-                y + 1,
-                width=barcode_width,
-                height=barcode_height,
-                preserveAspectRatio=True,
-                anchor="sw",
-                mask="auto",
-            )
-        except Exception:
-            pass
+            label_no += 1
+            if label_no % (COLS_PER_PAGE * ROWS_PER_PAGE) == 0:
+                c.showPage()
 
-        label_no += 1
-        if label_no % (COLS_PER_PAGE * ROWS_PER_PAGE) == 0:
-            c.showPage()
+        c.save()
+        buf.seek(0)
 
-    c.save()
-    buf.seek(0)
-
-    # 4. return response
-    filename = f"labels_job_{job_id}.pdf"
-    return StreamingResponse(
-        iter([buf.getvalue()]),
-        media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename=\"{filename}\"'},
-    )
+        # 4. return response
+        filename = f"labels_job_{job_id}.pdf"
+        return StreamingResponse(
+            iter([buf.getvalue()]),
+            media_type="application/pdf",
+            headers={"Content-Disposition": f'attachment; filename=\"{filename}\"'},
+        )
+    
+    except Exception as e:
+        print(f"Error generating PDF for job {job_id}: {e}")
+        raise
+    finally:
+        # Clean up temp directory
+        if tmpdir and os.path.exists(tmpdir):
+            try:
+                shutil.rmtree(tmpdir)
+            except Exception as e:
+                print(f"Warning: Could not clean up temp directory {tmpdir}: {e}")
