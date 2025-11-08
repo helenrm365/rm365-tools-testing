@@ -391,6 +391,11 @@ html.dark-mode .labels-generator .table-header th {
   width: 100px;
 }
 
+.labels-generator .table-header .price-col {
+  text-align: right;
+  width: 110px;
+}
+
 .labels-generator .table-body tr {
   border-bottom: 1px solid #f1f5f9;
   transition: all 0.2s ease;
@@ -455,6 +460,17 @@ html.dark-mode .labels-generator .product-sku {
   font-weight: 600;
   text-align: right;
   color: #059669;
+}
+
+.labels-generator .price-data {
+  font-weight: 600;
+  text-align: right;
+  color: #2563eb;
+  font-variant-numeric: tabular-nums;
+}
+
+html.dark-mode .labels-generator .price-data {
+  color: #60a5fa;
 }
 
 html.dark-mode .labels-generator .sales-data {

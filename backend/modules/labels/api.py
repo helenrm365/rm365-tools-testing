@@ -121,6 +121,11 @@ def labels_to_print(
         error_msg = str(e)
         
         # Check if it's a sales data table missing error
+        if "Sales data tables not initialized" in error_msg:
+            raise HTTPException(
+                status_code=503,
+                detail="Sales data tables not initialized. Please go to Sales Data module and click 'Initialize Tables' first, then try generating labels again."
+            )
         if "uk_sales_data" in error_msg and "does not exist" in error_msg:
             raise HTTPException(
                 status_code=503,

@@ -6,6 +6,94 @@ from modules.labels.repo import LabelsRepo
 
 logger = logging.getLogger(__name__)
 
+
+def _ensure_label_print_schema(conn: PGConn) -> None:
+    """Make sure new columns exist for legacy deployments."""
+    with conn.cursor() as cur:
+        cur.execute("SELECT to_regclass('public.label_print_jobs')")
+        jobs_exists = cur.fetchone()[0] is not None
+    if not jobs_exists:
+        with conn.cursor() as cur:
+            logger.info("Creating missing label_print_jobs table")
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS label_print_jobs (
+                    id SERIAL PRIMARY KEY,
+                    created_by VARCHAR(255),
+                    line_date DATE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+                """
+            )
+
+    with conn.cursor() as cur:
+        cur.execute("SELECT to_regclass('public.label_print_items')")
+        items_exists = cur.fetchone()[0] is not None
+    if not items_exists:
+        with conn.cursor() as cur:
+            logger.info("Creating missing label_print_items table")
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS label_print_items (
+                    id SERIAL PRIMARY KEY,
+                    job_id INTEGER NOT NULL REFERENCES label_print_jobs(id) ON DELETE CASCADE,
+                    item_id VARCHAR(255) NOT NULL,
+                    sku VARCHAR(255),
+                    product_name TEXT,
+                    uk_6m_data INTEGER DEFAULT 0,
+                    fr_6m_data INTEGER DEFAULT 0,
+                    price DECIMAL(10, 2) DEFAULT 0.00,
+                    line_date DATE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+                """
+            )
+            cur.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_label_print_items_job_id ON label_print_items (job_id)
+                """
+            )
+            cur.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_label_print_items_sku ON label_print_items (sku)
+                """
+            )
+        return
+
+    # Avoid re-running ALTER for every insert by checking information_schema first.
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND table_name = 'label_print_items'
+            """
+        )
+        existing = {row[0] for row in cur.fetchall()}
+
+    alter_statements = []
+    if 'price' not in existing:
+        alter_statements.append(
+            "ALTER TABLE label_print_items ADD COLUMN IF NOT EXISTS price DECIMAL(10, 2) DEFAULT 0.00"
+        )
+    if 'line_date' not in existing:
+        alter_statements.append(
+            "ALTER TABLE label_print_items ADD COLUMN IF NOT EXISTS line_date DATE"
+        )
+    if 'created_at' not in existing:
+        alter_statements.append(
+            "ALTER TABLE label_print_items ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+        )
+
+    if not alter_statements:
+        return
+
+    with conn.cursor() as cur:
+        for stmt in alter_statements:
+            logger.info("Applying label_print_items schema patch: %s", stmt)
+            cur.execute(stmt)
+
 # --- helpers ---------------------------------------------------------------
 
 def _snapshot_rows(conn: PGConn, zoho_map: Dict[str, str], item_ids: List[str] = None) -> List[Dict[str, Any]]:
@@ -36,6 +124,8 @@ def start_label_job(conn: PGConn, zoho_map: Dict[str, str], payload: Dict[str, A
     line_date = payload.get("line_date")  # let SQL cast DATE if provided
     created_by = payload.get("created_by")
     item_ids = payload.get("item_ids")  # list of selected item IDs
+
+    _ensure_label_print_schema(conn)
 
     with conn.cursor() as cur:
         # 1) insert job

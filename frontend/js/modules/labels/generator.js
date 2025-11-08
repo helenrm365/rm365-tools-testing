@@ -416,11 +416,17 @@ function handleSearch(e) {
   if (!query) {
     state.displayedProducts = [...state.filteredProducts];
   } else {
-    state.displayedProducts = state.filteredProducts.filter(p => 
-      (p.sku || '').toLowerCase().includes(query) ||
-      (p.product_name || '').toLowerCase().includes(query) ||
-      (p.item_id || '').toLowerCase().includes(query)
-    );
+    state.displayedProducts = state.filteredProducts.filter(p => {
+      const priceText = formatPrice(p.price).toLowerCase();
+      return (
+        (p.sku || '').toLowerCase().includes(query) ||
+        (p.product_name || '').toLowerCase().includes(query) ||
+        (p.item_id || '').toLowerCase().includes(query) ||
+        priceText.includes(query) ||
+        (p.uk_6m_data ?? '').toString().toLowerCase().includes(query) ||
+        (p.fr_6m_data ?? '').toString().toLowerCase().includes(query)
+      );
+    });
   }
   
   renderProductTable();
@@ -478,7 +484,7 @@ function renderProductTable() {
   if (state.displayedProducts.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="6" class="empty-state">
+  <td colspan="7" class="empty-state">
           <div class="empty-icon">🔍</div>
           <div class="empty-message">No products found</div>
           <div class="empty-submessage">Try adjusting your filters or search criteria</div>
@@ -502,9 +508,10 @@ function renderProductTable() {
         </td>
         <td class="product-sku">${escapeHtml(product.sku || '-')}</td>
         <td class="product-name" title="${escapeHtml(product.product_name || '-')}">${escapeHtml(product.product_name || '-')}</td>
+  <td class="price-data">${escapeHtml(formatPrice(product.price))}</td>
         <td>${escapeHtml(product.item_id || '-')}</td>
-        <td class="sales-data">${product.uk_6m_data || '0'}</td>
-        <td class="sales-data">${product.fr_6m_data || '0'}</td>
+  <td class="sales-data">${escapeHtml(String(product.uk_6m_data ?? '0'))}</td>
+  <td class="sales-data">${escapeHtml(String(product.fr_6m_data ?? '0'))}</td>
       </tr>
     `;
   }).join('');
@@ -700,6 +707,23 @@ function showPdfPreviewModal(jobId, itemCount) {
       modal.remove();
     }
   });
+}
+
+function formatPrice(price) {
+  if (price === null || price === undefined) {
+    return '-';
+  }
+
+  if (typeof price === 'number') {
+    if (!Number.isFinite(price)) {
+      return '-';
+    }
+    const symbol = state.region === 'uk' ? '£' : '€';
+    return `${symbol}${price.toFixed(2)}`;
+  }
+
+  const text = String(price).trim();
+  return text.length ? text : '-';
 }
 
 function escapeHtml(text) {

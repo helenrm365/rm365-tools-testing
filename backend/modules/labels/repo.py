@@ -103,7 +103,7 @@ class LabelsRepo:
             
             if not existing_tables:
                 logger.warning("No condensed sales tables found for 6M data.")
-                return {}
+                raise RuntimeError("Sales data tables not initialized")
             
             # Get UK 6M data
             uk_data = {}
@@ -188,9 +188,8 @@ class LabelsRepo:
             existing_tables = [row[0] for row in cur.fetchall()]
             
             if not existing_tables:
-                # No sales tables exist yet - return empty dict
                 logger.warning("No sales data tables found. Please initialize sales data first.")
-                return {}
+                raise RuntimeError("Sales data tables not initialized")
             
             # Build dynamic query for only existing tables with region prioritization
             union_parts = []
@@ -294,7 +293,7 @@ class LabelsRepo:
             
             if not existing_tables:
                 logger.warning("No sales data tables found for product names.")
-                return {}
+                raise RuntimeError("Sales data tables not initialized")
             
             # Build dynamic query for only existing tables with region prioritization
             union_parts = []
