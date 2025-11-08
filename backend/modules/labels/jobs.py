@@ -1,7 +1,10 @@
 from __future__ import annotations
 from typing import Any, Dict, List, Tuple
+import logging
 from psycopg2.extensions import connection as PGConn  # type: ignore
 from modules.labels.repo import LabelsRepo
+
+logger = logging.getLogger(__name__)
 
 # --- helpers ---------------------------------------------------------------
 
@@ -52,6 +55,16 @@ def start_label_job(conn: PGConn, zoho_map: Dict[str, str], payload: Dict[str, A
         # 3) bulk insert items (map keys—adjust if your row keys differ)
         to_insert: List[Tuple[Any, ...]] = []
         for r in rows:
+            # Parse price, removing currency symbols
+            price_str = str(r.get("price", "0.00"))
+            # Remove common currency symbols and whitespace
+            price_clean = price_str.replace("£", "").replace("€", "").replace("$", "").strip()
+            try:
+                price_float = float(price_clean) if price_clean else 0.00
+            except ValueError:
+                logger.warning(f"Could not parse price '{price_str}' for SKU {r.get('sku')}, using 0.00")
+                price_float = 0.00
+            
             to_insert.append((
                 job_id,
                 r.get("item_id"),
@@ -59,7 +72,7 @@ def start_label_job(conn: PGConn, zoho_map: Dict[str, str], payload: Dict[str, A
                 r.get("product_name", ""),
                 int(r.get("uk_6m_data", 0)),
                 int(r.get("fr_6m_data", 0)),
-                float(r.get("price", 0.00)),  # Include price from sales data
+                price_float,  # Use cleaned price
                 None,  # per-row line_date (override) — keep None now
             ))
 

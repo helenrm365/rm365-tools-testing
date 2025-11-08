@@ -64,12 +64,72 @@ function setupStatusFilterCheckboxes() {
   checkboxes.forEach(checkbox => {
     checkbox.checked = state.statusFilters.includes(checkbox.value);
     
-    // Add change listener for visual feedback
-    checkbox.addEventListener('change', updateStatusFilterVisuals);
+    // Add change listener for visual feedback AND auto-apply filters
+    checkbox.addEventListener('change', handleStatusFilterChange);
   });
   
   // Initial visual update
   updateStatusFilterVisuals();
+}
+
+async function handleStatusFilterChange() {
+  // Update visuals immediately
+  updateStatusFilterVisuals();
+  
+  // Get current filter state
+  const checkboxes = document.querySelectorAll('.status-filter-checkbox');
+  const selectedFilters = Array.from(checkboxes)
+    .filter(cb => cb.checked)
+    .map(cb => cb.value);
+  
+  console.log('[Labels] Status filter changed, new filters:', selectedFilters);
+  
+  // Save preferences
+  state.statusFilters = selectedFilters;
+  saveStatusFilters(selectedFilters);
+  
+  // Show loading state
+  const applyBtn = document.getElementById('applyStatusFilters');
+  if (applyBtn) {
+    const originalText = applyBtn.textContent;
+    applyBtn.textContent = 'Applying...';
+    applyBtn.disabled = true;
+  }
+  
+  // Clear selections when changing filters
+  state.selectedProducts.clear();
+  
+  try {
+    // Auto-reload products with new filters
+    await loadProducts();
+    
+    // Show success feedback
+    if (applyBtn) {
+      applyBtn.textContent = '✓ Applied';
+      applyBtn.style.background = '#10b981';
+      setTimeout(() => {
+        applyBtn.textContent = 'Apply Filters';
+        applyBtn.style.background = '';
+        applyBtn.disabled = false;
+      }, 1500);
+    }
+    
+    // Show toast notification
+    showToast(`Applied ${selectedFilters.length} status filters`, 'success');
+    
+  } catch (error) {
+    console.error('[Labels] Error applying filters:', error);
+    if (applyBtn) {
+      applyBtn.textContent = 'Error - Retry';
+      applyBtn.style.background = '#ef4444';
+      setTimeout(() => {
+        applyBtn.textContent = 'Apply Filters';
+        applyBtn.style.background = '';
+        applyBtn.disabled = false;
+      }, 2000);
+    }
+    showToast('Error applying filters', 'error');
+  }
 }
 
 function updateStatusFilterVisuals() {
@@ -108,12 +168,19 @@ async function loadProducts() {
   if (errorEl) errorEl.style.display = 'none';
   
   try {
+    // Debug: Log what filters are being sent
+    console.log(`[Labels] Loading products with filters:`, {
+      statusFilters: state.statusFilters,
+      region: state.region,
+      filterCount: state.statusFilters.length
+    });
+    
     // Fetch products with current status filters and region preference
     state.allProducts = await getProductsToPrint(state.statusFilters, state.region);
     state.filteredProducts = [...state.allProducts];
     state.displayedProducts = [...state.allProducts];
     
-    console.log(`[Labels] Loaded ${state.allProducts.length} products with filters:`, state.statusFilters, 'Region:', state.region);
+    console.log(`[Labels] Successfully loaded ${state.allProducts.length} products with filters:`, state.statusFilters, 'Region:', state.region);
     
     // Auto-select all products when using default filters
     const isDefaultFilters = 
@@ -293,7 +360,7 @@ async function handleApplyStatusFilters() {
     .filter(cb => cb.checked)
     .map(cb => cb.value);
   
-  console.log('[Labels] Applying filters:', selectedFilters);
+  console.log('[Labels] Manually applying filters:', selectedFilters);
   
   // Save preferences
   state.statusFilters = selectedFilters;
@@ -302,20 +369,44 @@ async function handleApplyStatusFilters() {
   // Clear selections when changing filters
   state.selectedProducts.clear();
   
-  // Reload products from API with new filters
-  await loadProducts();
-  
   // Visual feedback on button
   const applyBtn = document.getElementById('applyStatusFilters');
   if (applyBtn) {
     const originalText = applyBtn.textContent;
-    const originalBg = applyBtn.style.background;
-    applyBtn.textContent = '✓ Filters Applied';
-    applyBtn.style.background = '#10b981';
-    setTimeout(() => {
-      applyBtn.textContent = originalText;
-      applyBtn.style.background = originalBg;
-    }, 2000);
+    applyBtn.textContent = 'Applying...';
+    applyBtn.disabled = true;
+  }
+  
+  try {
+    // Reload products from API with new filters
+    await loadProducts();
+    
+    // Success feedback
+    if (applyBtn) {
+      applyBtn.textContent = '✓ Filters Applied';
+      applyBtn.style.background = '#10b981';
+      setTimeout(() => {
+        applyBtn.textContent = originalText;
+        applyBtn.style.background = '';
+        applyBtn.disabled = false;
+      }, 2000);
+    }
+    
+    showToast(`Applied ${selectedFilters.length} status filters - Found ${state.allProducts.length} products`, 'success');
+    
+  } catch (error) {
+    console.error('[Labels] Error applying filters:', error);
+    if (applyBtn) {
+      applyBtn.textContent = 'Error - Retry';
+      applyBtn.style.background = '#ef4444';
+      setTimeout(() => {
+        applyBtn.textContent = originalText;
+        applyBtn.style.background = '';
+        applyBtn.disabled = false;
+      }, 3000);
+    }
+    
+    showToast('Error applying status filters: ' + error.message, 'error');
   }
 }
 
