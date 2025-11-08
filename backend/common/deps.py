@@ -55,10 +55,15 @@ def pg_conn():
 def inventory_conn():
     """
     Context manager for the inventory_logs DB (metadata + logs).
+    Automatically commits on successful exit, rolls back on exception.
     """
     conn = get_inventory_log_connection()
     try:
         yield conn
+        conn.commit()  # Auto-commit on success
+    except Exception:
+        conn.rollback()  # Auto-rollback on error
+        raise
     finally:
         conn.close()
 

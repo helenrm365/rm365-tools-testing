@@ -175,8 +175,10 @@ def start_label_job(conn: PGConn, zoho_map: Dict[str, str], payload: Dict[str, A
                 """,
                 to_insert,
             )
+        
+        logger.info(f"Created label job {job_id} with {len(to_insert)} items")
 
-    conn.commit()
+    # Don't commit here - let the context manager handle it
     return job_id
 
 
