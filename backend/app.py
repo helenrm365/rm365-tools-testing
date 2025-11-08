@@ -20,6 +20,16 @@ from core.config import settings
 from core.middleware import install_middleware
 from core.errors import install_handlers
 
+NULL_SENTINELS = {"null", "none", "undefined", "false", "0"}
+
+def _normalize_origin(origin: str) -> str | None:
+    sanitized = origin.strip().rstrip('/')
+    if not sanitized:
+        return None
+    if sanitized.lower() in NULL_SENTINELS:
+        return None
+    return sanitized
+
 BOOT_T0 = time.time()
 app = FastAPI(
     title='VK API',
@@ -57,7 +67,8 @@ def _parse_origins_env():
         # Handle Railway's JSON array format
         val = json.loads(raw)
         if isinstance(val, list):
-            origins = [str(x) for x in val]
+            origins = [_normalize_origin(str(x)) for x in val]
+            origins = [o for o in origins if o]
             print(f"✅ Parsed JSON origins: {origins}")
             return origins
         # If someone set ALLOW_ORIGINS='null' or object, fall back
@@ -67,7 +78,8 @@ def _parse_origins_env():
         print(f"⚠️  Unexpected error parsing origins: {e}")
 
     # Fallback: comma-separated
-    fallback = [p.strip() for p in raw.split(',') if p.strip()]
+    fallback = [_normalize_origin(p) for p in raw.split(',')]
+    fallback = [p for p in fallback if p]
     print(f"📋 Fallback comma-separated origins: {fallback}")
     return fallback
 
@@ -84,6 +96,13 @@ def _parse_regex_env():
     
     # Remove quotes if present
     patt = patt.strip('"').strip("'")
+
+    if not patt:
+        return None
+
+    if patt.lower() in NULL_SENTINELS:
+        print("⚠️  Regex env set to null-like value; falling back to defaults")
+        return None
     
     # Remove anchors and path patterns - CORS only matches origin (protocol + domain)
     # Common mistakes: ^https://... or .../.*)?$ or (/.*)?$
@@ -119,6 +138,16 @@ def _resolve_allow_origin_regex():
 
 allow_origins = _resolve_allow_origins()
 allow_origin_regex = _resolve_allow_origin_regex()
+
+DEFAULT_PAGES_ORIGIN = "https://rm365-tools-testing.pages.dev"
+
+if allow_origins and allow_origins != ['*']:
+    if DEFAULT_PAGES_ORIGIN not in allow_origins:
+        allow_origins.append(DEFAULT_PAGES_ORIGIN)
+
+if not allow_origins and allow_origin_regex:
+    # If someone set regex to something else, still include the production Pages origin explicitly.
+    allow_origins = [DEFAULT_PAGES_ORIGIN]
 
 # Add common development and Cloudflare origins if not specified
 if not allow_origins and not allow_origin_regex:
