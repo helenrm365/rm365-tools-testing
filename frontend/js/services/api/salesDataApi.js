@@ -259,3 +259,12 @@ export async function getImportHistory(limit = 100, offset = 0, region = null) {
   }
   return await get(`${API}/history?${params.toString()}`);
 }
+
+// Condensed data refresh operations
+export async function refreshAllCondensedData() {
+  return await post(`${API}/refresh-condensed`, {});
+}
+
+export async function refreshCondensedDataForRegion(region) {
+  return await post(`${API}/refresh-condensed/${region}`, {});
+}

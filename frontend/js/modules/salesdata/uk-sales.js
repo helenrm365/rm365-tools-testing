@@ -1,5 +1,5 @@
 // frontend/js/modules/salesdata/uk-sales.js
-import { getUKSalesData, uploadUKSalesCSV, getUKCondensedData } from '../../services/api/salesDataApi.js';
+import { getUKSalesData, uploadUKSalesCSV, getUKCondensedData, refreshCondensedDataForRegion } from '../../services/api/salesDataApi.js';
 import { showToast } from '../../ui/toast.js';
 
 let currentPage = 0;
@@ -104,6 +104,12 @@ function setupEventListeners() {
       currentPage++;
       loadSalesData();
     });
+  }
+  
+  // Refresh condensed data button
+  const refreshCondensedBtn = document.getElementById('refreshCondensedBtn');
+  if (refreshCondensedBtn) {
+    refreshCondensedBtn.addEventListener('click', handleRefreshCondensedData);
   }
 }
 
@@ -308,5 +314,30 @@ function formatDateTime(dateStr) {
     return date.toLocaleString();
   } catch {
     return dateStr;
+  }
+}
+
+/**
+ * Handle refresh condensed data
+ */
+async function handleRefreshCondensedData() {
+  try {
+    showToast('Refreshing condensed data...', 'info');
+    
+    const result = await refreshCondensedDataForRegion('uk');
+    
+    if (result.status === 'success') {
+      showToast(`Successfully refreshed condensed data! ${result.rows_aggregated} SKUs processed.`, 'success');
+      
+      // Reload the data if currently viewing condensed view
+      if (viewMode === 'condensed') {
+        await loadSalesData();
+      }
+    } else {
+      showToast('Refresh failed: ' + result.message, 'error');
+    }
+  } catch (error) {
+    console.error('[UK Sales] Refresh error:', error);
+    showToast('Refresh error: ' + error.message, 'error');
   }
 }

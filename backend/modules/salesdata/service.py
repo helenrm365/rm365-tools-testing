@@ -144,6 +144,14 @@ class SalesDataService:
     def get_condensed_data(self, region: str, limit: int = 100, offset: int = 0, search: str = "") -> Dict[str, Any]:
         """Get condensed (6-month aggregated) sales data for a specific region"""
         try:
+            # Always refresh condensed data before retrieving to ensure it's up-to-date
+            try:
+                refresh_result = self.repo.refresh_condensed_data(region)
+                logger.info(f"Auto-refreshed condensed data for {region}: {refresh_result['rows_aggregated']} SKUs")
+            except Exception as refresh_error:
+                logger.warning(f"Could not auto-refresh condensed data for {region}: {refresh_error}")
+                # Continue with existing data even if refresh fails
+            
             result = self.repo.get_condensed_data(region, limit, offset, search)
             return {
                 "status": "success",
@@ -165,6 +173,63 @@ class SalesDataService:
                 "message": f"Failed to get condensed data: {str(e)}",
                 "data": [],
                 "total_count": 0
+            }
+    
+    def refresh_condensed_data_for_region(self, region: str) -> Dict[str, Any]:
+        """Manually refresh condensed data for a specific region"""
+        try:
+            result = self.repo.refresh_condensed_data(region)
+            return {
+                "status": "success",
+                "message": f"Successfully refreshed condensed data for {region.upper()}",
+                "region": region,
+                **result
+            }
+        except ValueError as e:
+            logger.error(f"Invalid region: {e}")
+            return {
+                "status": "error",
+                "message": str(e)
+            }
+        except Exception as e:
+            logger.error(f"Error refreshing condensed data for {region}: {e}")
+            return {
+                "status": "error",
+                "message": f"Failed to refresh condensed data: {str(e)}"
+            }
+    
+    def refresh_all_condensed_data(self) -> Dict[str, Any]:
+        """Manually refresh condensed data for all regions"""
+        try:
+            results = {}
+            for region in ['uk', 'fr', 'nl']:
+                try:
+                    result = self.repo.refresh_condensed_data(region)
+                    results[region] = {
+                        "success": True,
+                        "rows_aggregated": result['rows_aggregated']
+                    }
+                except Exception as e:
+                    results[region] = {
+                        "success": False,
+                        "error": str(e)
+                    }
+                    logger.error(f"Failed to refresh condensed data for {region}: {e}")
+            
+            successful_regions = [r for r, res in results.items() if res['success']]
+            total_rows = sum(res.get('rows_aggregated', 0) for res in results.values() if res['success'])
+            
+            return {
+                "status": "success",
+                "message": f"Refreshed condensed data for {len(successful_regions)}/3 regions",
+                "results": results,
+                "total_rows_aggregated": total_rows
+            }
+        except Exception as e:
+            logger.error(f"Error refreshing all condensed data: {e}")
+            return {
+                "status": "error",
+                "message": f"Failed to refresh condensed data: {str(e)}"
             }
     
     def get_sku_aliases(self) -> Dict[str, Any]:

@@ -178,3 +178,19 @@ def delete_sku_alias(
 ):
     """Delete a SKU alias mapping. After deletion, condensed data will be automatically refreshed."""
     return svc.delete_sku_alias(alias_id)
+
+
+# Condensed data refresh endpoints
+@router.post("/refresh-condensed")
+def refresh_all_condensed_data(user=Depends(get_current_user)):
+    """Manually refresh condensed data for all regions (UK, FR, NL)"""
+    return svc.refresh_all_condensed_data()
+
+
+@router.post("/refresh-condensed/{region}")
+def refresh_condensed_data_for_region(
+    region: str,
+    user=Depends(get_current_user)
+):
+    """Manually refresh condensed data for a specific region"""
+    return svc.refresh_condensed_data_for_region(region)
