@@ -95,3 +95,65 @@ html.dark-mode .tab-button.active {
   color: white;
   border-color: rgba(255, 255, 255, 0.1);
 }
+
+/* ===== Sales Data Error Card ===== */
+.sales-data-error {
+  margin: 2rem 0;
+  display: none;
+}
+
+.error-card {
+  background: #fef2f2;
+  border: 2px solid #fecaca;
+  border-radius: 12px;
+  padding: 2rem;
+  text-align: center;
+}
+
+html.dark-mode .error-card {
+  background: #2a1f1f;
+  border-color: #7f1d1d;
+}
+
+.error-header {
+  margin-bottom: 1rem;
+}
+
+.error-header i {
+  font-size: 3rem;
+  color: #ef4444;
+  margin-bottom: 0.5rem;
+}
+
+.error-header h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #dc2626;
+  margin: 0;
+}
+
+html.dark-mode .error-header h3 {
+  color: #f87171;
+}
+
+.error-body p {
+  color: #6b7280;
+  font-size: 1rem;
+  margin: 0 0 1.5rem 0;
+  line-height: 1.6;
+}
+
+html.dark-mode .error-body p {
+  color: #9ca3af;
+}
+
+.error-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.error-actions .action-btn {
+  min-width: 140px;
+}

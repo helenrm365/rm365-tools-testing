@@ -1,6 +1,7 @@
 // js/modules/labels/generator.js
 import { getProductsToPrint, createPrintJob, downloadPDF, downloadCSV } from '../../services/api/labelsApi.js';
 import { showToast } from '../../ui/toast.js';
+import { getToken } from '../../services/state/sessionStore.js';
 
 // Status filter preferences key
 const STATUS_FILTERS_KEY = 'labels_status_filters';
@@ -121,10 +122,113 @@ async function loadProducts() {
   } catch (error) {
     console.error('[Labels] Error loading products:', error);
     if (loadingEl) loadingEl.style.display = 'none';
-    // Only show toast, no error banner
-    showToast('Failed to load products: ' + error.message, 'error');
+    
+    // Check if error is about missing sales data tables
+    const errorMessage = error.message || '';
+    if (errorMessage.includes('Sales data tables not initialized')) {
+      // Show a helpful error message with action button
+      showSalesDataInitError();
+    } else {
+      // Show generic error toast
+      showToast('Failed to load products: ' + errorMessage, 'error');
+    }
   }
 }
+
+// Show specific error UI for sales data initialization
+function showSalesDataInitError() {
+  // Create or update error message element
+  let errorEl = document.querySelector('#salesDataError');
+  if (!errorEl) {
+    errorEl = document.createElement('div');
+    errorEl.id = 'salesDataError';
+    errorEl.className = 'sales-data-error';
+    
+    // Insert after loading indicator
+    const loadingEl = document.querySelector('#loadingIndicator');
+    if (loadingEl && loadingEl.parentNode) {
+      loadingEl.parentNode.insertBefore(errorEl, loadingEl.nextSibling);
+    }
+  }
+  
+  errorEl.innerHTML = `
+    <div class="error-card">
+      <div class="error-header">
+        <i class="fas fa-exclamation-triangle"></i>
+        <h3>Sales Data Not Initialized</h3>
+      </div>
+      <div class="error-body">
+        <p>The label generator requires sales data tables to be set up first. This provides pricing information and sales history for your products.</p>
+        <div class="error-actions">
+          <button class="action-btn primary-btn" onclick="window.location.href='/salesdata'">
+            <i class="fas fa-database"></i>
+            Go to Sales Data Module
+          </button>
+          <button class="action-btn secondary-btn" onclick="initSalesDataFromLabels()">
+            <i class="fas fa-magic"></i>
+            Initialize Here
+          </button>
+          <button class="action-btn secondary-btn" onclick="retryLoadProducts()">
+            <i class="fas fa-redo"></i>
+            Retry
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  errorEl.style.display = 'block';
+}
+
+// Initialize sales data from labels module
+async function initSalesDataFromLabels() {
+  const button = document.querySelector('#salesDataError .action-btn');
+  if (button) {
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Initializing...';
+  }
+  
+  try {
+    const response = await fetch('/api/v1/labels/init-dependencies', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getToken()}`
+      }
+    });
+    
+    const result = await response.json();
+    
+    if (result.status === 'success') {
+      showToast('Sales data initialized successfully! Reloading products...', 'success');
+      // Hide error and reload
+      const errorEl = document.querySelector('#salesDataError');
+      if (errorEl) errorEl.style.display = 'none';
+      await loadProducts();
+    } else {
+      throw new Error(result.message || 'Failed to initialize');
+    }
+  } catch (error) {
+    console.error('[Labels] Error initializing sales data:', error);
+    showToast('Failed to initialize sales data: ' + error.message, 'error');
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.innerHTML = '<i class="fas fa-magic"></i> Initialize Here';
+    }
+  }
+}
+
+// Retry loading products
+async function retryLoadProducts() {
+  const errorEl = document.querySelector('#salesDataError');
+  if (errorEl) errorEl.style.display = 'none';
+  await loadProducts();
+}
+
+// Make functions available globally for onclick handlers
+window.initSalesDataFromLabels = initSalesDataFromLabels;
+window.retryLoadProducts = retryLoadProducts;
 
 function setupEventListeners() {
   // Search

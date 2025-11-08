@@ -84,32 +84,47 @@ class LabelsRepo:
         """
         Return { sku: price } with the most recent price from sales data.
         Checks uk_sales_data, fr_sales_data, and nl_sales_data.
+        Returns empty dict if tables don't exist yet.
         """
         if not skus:
             return {}
         
         prices = {}
         with conn.cursor() as cur:
-            # Query all three sales tables and get the most recent price for each SKU
-            # We use UNION ALL to combine results from all tables, then pick the most recent
-            cur.execute(
-                """
+            # First check if the sales tables exist
+            cur.execute("""
+                SELECT table_name 
+                FROM information_schema.tables 
+                WHERE table_schema = 'public' 
+                AND table_name IN ('uk_sales_data', 'fr_sales_data', 'nl_sales_data')
+            """)
+            
+            existing_tables = [row[0] for row in cur.fetchall()]
+            
+            if not existing_tables:
+                # No sales tables exist yet - return empty dict
+                logger.warning("No sales data tables found. Please initialize sales data first.")
+                return {}
+            
+            # Build dynamic query for only existing tables
+            union_parts = []
+            params = []
+            
+            for table in existing_tables:
+                region = table.split('_')[0]  # uk, fr, or nl
+                union_parts.append(f"""
+                    SELECT sku, price, created_at, '{region}' as source
+                    FROM {table}
+                    WHERE sku = ANY(%s) AND price IS NOT NULL
+                """)
+                params.append(skus)
+            
+            if not union_parts:
+                return {}
+            
+            combined_query = f"""
                 WITH combined_sales AS (
-                    SELECT sku, price, created_at, 'uk' as source
-                    FROM uk_sales_data
-                    WHERE sku = ANY(%s) AND price IS NOT NULL
-                    
-                    UNION ALL
-                    
-                    SELECT sku, price, created_at, 'fr' as source
-                    FROM fr_sales_data
-                    WHERE sku = ANY(%s) AND price IS NOT NULL
-                    
-                    UNION ALL
-                    
-                    SELECT sku, price, created_at, 'nl' as source
-                    FROM nl_sales_data
-                    WHERE sku = ANY(%s) AND price IS NOT NULL
+                    {' UNION ALL '.join(union_parts)}
                 ),
                 ranked_sales AS (
                     SELECT 
@@ -122,13 +137,18 @@ class LabelsRepo:
                 SELECT sku, price
                 FROM ranked_sales
                 WHERE rn = 1
-                """,
-                (skus, skus, skus)
-            )
-            for row in cur.fetchall():
-                sku = str(row[0]).strip()
-                price = str(row[1]) if row[1] else "0.00"
-                prices[sku] = price
+            """
+            
+            try:
+                cur.execute(combined_query, params)
+                for row in cur.fetchall():
+                    sku = str(row[0]).strip()
+                    price = str(row[1]) if row[1] else "0.00"
+                    prices[sku] = price
+            except Exception as e:
+                logger.error(f"Error querying sales data for prices: {e}")
+                # Return empty dict on error rather than crashing
+                return {}
         
         return prices
 

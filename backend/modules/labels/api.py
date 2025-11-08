@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Path, Body, Query
 from common.deps import get_current_user, inventory_conn
 from modules._integrations.zoho.client import get_zoho_items_with_skus, get_zoho_items_with_skus_full
 from modules.labels.repo import LabelsRepo
+from modules.salesdata.service import SalesDataService
 
 from modules.labels.jobs import start_label_job, get_label_job_rows, delete_label_job
 from modules.labels.print_csv import stream_csv_labels
@@ -17,7 +18,73 @@ router = APIRouter()
 
 @router.get("/health")
 def labels_health():
-    return {"status": "Labels module ready"}
+    """
+    Check if labels module is ready and provide status information.
+    """
+    try:
+        from common.deps import inventory_conn
+        
+        with inventory_conn() as conn:
+            cursor = conn.cursor()
+            # Check if required sales tables exist
+            cursor.execute("""
+                SELECT table_name 
+                FROM information_schema.tables 
+                WHERE table_schema = 'public' 
+                AND table_name IN ('uk_sales_data', 'fr_sales_data', 'nl_sales_data')
+            """)
+            
+            existing_tables = [row[0] for row in cursor.fetchall()]
+            
+            if not existing_tables:
+                return {
+                    "status": "warning",
+                    "message": "Labels module ready, but sales data not initialized",
+                    "recommendation": "Initialize sales data tables first at /salesdata/init",
+                    "sales_tables_exist": False,
+                    "existing_sales_tables": []
+                }
+            else:
+                return {
+                    "status": "ready", 
+                    "message": "Labels module fully ready",
+                    "sales_tables_exist": True,
+                    "existing_sales_tables": existing_tables
+                }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Health check failed: {e}",
+            "sales_tables_exist": False
+        }
+
+@router.post("/init-dependencies")
+def init_label_dependencies(user=Depends(get_current_user)):
+    """
+    Initialize dependencies needed for label generation (sales data tables).
+    """
+    try:
+        # Initialize sales data tables
+        sales_service = SalesDataService()
+        result = sales_service.initialize_tables()
+        
+        if result.get("status") == "success":
+            return {
+                "status": "success",
+                "message": "Dependencies initialized successfully. Label generation is now ready.",
+                "details": result
+            }
+        else:
+            return {
+                "status": "error", 
+                "message": "Failed to initialize dependencies",
+                "details": result
+            }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Failed to initialize dependencies: {e}"
+        }
 
 @router.get("/to-print")
 def labels_to_print(
@@ -42,10 +109,19 @@ def labels_to_print(
         with inventory_conn() as conn:
             return LabelsRepo().get_labels_to_print_psycopg(conn, zoho_map, status_list)
     except Exception as e:
-        raise HTTPException(
-            status_code=503,
-            detail=f"Zoho lookup / DB failed: {e}"
-        )
+        error_msg = str(e)
+        
+        # Check if it's a sales data table missing error
+        if "uk_sales_data" in error_msg and "does not exist" in error_msg:
+            raise HTTPException(
+                status_code=503,
+                detail="Sales data tables not initialized. Please go to Sales Data module and click 'Initialize Tables' first, then try generating labels again."
+            )
+        else:
+            raise HTTPException(
+                status_code=503,
+                detail=f"Zoho lookup / DB failed: {e}"
+            )
 
 @router.get("/jobs")
 def list_print_jobs(
