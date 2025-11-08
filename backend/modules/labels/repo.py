@@ -156,167 +156,125 @@ class LabelsRepo:
         """
         Return { sku: price } with the most recent price from sales data.
         Checks uk_sales_data, fr_sales_data, and nl_sales_data.
+        Queries each table separately to avoid timeout issues.
         
         Args:
             conn: Database connection
             skus: List of SKUs to get prices for
             preferred_region: "uk" (default), "fr", or "nl" - determines price priority
-        
-        Returns empty dict if tables don't exist yet.
         """
         if not skus:
             return {}
         
         prices = {}
-        with conn.cursor() as cur:
-            # Build query for all sales tables with region prioritization
-            # Currency mapping for regions
-            region_currency_map = {
-                'uk_sales_data': 'GBP',
-                'fr_sales_data': 'EUR', 
-                'nl_sales_data': 'EUR'
-            }
-            
-            tables = ['uk_sales_data', 'fr_sales_data', 'nl_sales_data']
-            union_parts = []
-            params = []
-            
-            for table in tables:
-                region = table.split('_')[0]  # uk, fr, or nl
-                default_currency = region_currency_map.get(table, 'GBP')
-                
-                union_parts.append(f"""
-                    SELECT 
-                        sku, 
-                        price, 
-                        name,
-                        created_at, 
-                        COALESCE(currency, '{default_currency}') as currency,
-                        '{region}' as source
-                    FROM {table}
-                    WHERE sku = ANY(%s) AND price IS NOT NULL AND price > 0
-                """)
-                params.append(skus)
-            
-            if not union_parts:
-                return {}
-            
-            # Prioritize preferred region in the ranking
-            region_priority = f"CASE WHEN source = '{preferred_region}' THEN 1 ELSE 2 END"
-            
-            combined_query = f"""
-                WITH combined_sales AS (
-                    {' UNION ALL '.join(union_parts)}
-                ),
-                ranked_sales AS (
-                    SELECT 
-                        sku,
-                        price,
-                        name,
-                        currency,
-                        created_at,
-                        source,
-                        ROW_NUMBER() OVER (
-                            PARTITION BY sku 
-                            ORDER BY {region_priority}, created_at DESC
-                        ) as rn
-                    FROM combined_sales
-                )
-                SELECT sku, price, currency
-                FROM ranked_sales
-                WHERE rn = 1
-            """
-            
-            try:
-                cur.execute(combined_query, params)
-                for row in cur.fetchall():
-                    sku = str(row[0]).strip()
-                    price = str(row[1]) if row[1] else "0.00"
-                    currency = str(row[2]) if len(row) > 2 else "GBP"
-                    # Format with currency symbol for display
-                    currency_symbol = "£" if currency == "GBP" else "€"
-                    prices[sku] = f"{currency_symbol}{price}"
-            except Exception as e:
-                logger.error(f"Error querying sales data for prices: {e}")
-                # Return empty dict on error rather than crashing
-                return {}
         
+        # Currency mapping for regions
+        region_currency_map = {
+            'uk': 'GBP',
+            'fr': 'EUR', 
+            'nl': 'EUR'
+        }
+        
+        # Query order based on preferred region (preferred region first)
+        tables = [
+            (f'{preferred_region}_sales_data', preferred_region),
+            ('uk_sales_data', 'uk'),
+            ('fr_sales_data', 'fr'),
+            ('nl_sales_data', 'nl')
+        ]
+        # Remove duplicates while preserving order
+        seen = set()
+        tables = [(t, r) for t, r in tables if not (t in seen or seen.add(t))]
+        
+        with conn.cursor() as cur:
+            for table_name, region in tables:
+                try:
+                    # Get latest price for each SKU from this table
+                    cur.execute(f"""
+                        SELECT DISTINCT ON (sku) 
+                            sku, 
+                            price,
+                            COALESCE(currency, %s) as currency
+                        FROM {table_name}
+                        WHERE sku = ANY(%s) 
+                          AND price IS NOT NULL 
+                          AND price > 0
+                        ORDER BY sku, created_at DESC
+                    """, (region_currency_map[region], skus))
+                    
+                    for row in cur.fetchall():
+                        sku = str(row[0]).strip()
+                        price = float(row[1]) if row[1] else 0.00
+                        currency = str(row[2]) if len(row) > 2 else region_currency_map[region]
+                        
+                        # Only set if not already found (preferred region wins)
+                        if sku not in prices and price > 0:
+                            currency_symbol = "£" if currency == "GBP" else "€"
+                            prices[sku] = f"{currency_symbol}{price:.2f}"
+                    
+                    logger.debug(f"Loaded {len([s for s in skus if s in prices])} prices from {table_name}")
+                except Exception as e:
+                    logger.debug(f"Could not fetch prices from {table_name}: {e}")
+                    continue
+        
+        logger.info(f"Loaded prices for {len(prices)}/{len(skus)} SKUs")
         return prices
 
     def _load_product_names_psycopg(self, conn, skus: List[str], preferred_region: str = "uk") -> Dict[str, str]:
         """
         Return { sku: product_name } with the most recent product name from sales data.
         Prioritizes preferred region, then falls back to other regions.
+        Queries each table separately to avoid timeout issues.
         
         Args:
             conn: Database connection
             skus: List of SKUs to get names for
             preferred_region: "uk" (default), "fr", or "nl" - determines name priority
-        
-        Returns empty dict if tables don't exist yet.
         """
         if not skus:
             return {}
         
         names = {}
-        with conn.cursor() as cur:
-            # Build query for all sales tables with region prioritization
-            tables = ['uk_sales_data', 'fr_sales_data', 'nl_sales_data']
-            union_parts = []
-            params = []
-            
-            for table in tables:
-                region = table.split('_')[0]  # uk, fr, or nl
-                
-                union_parts.append(f"""
-                    SELECT 
-                        sku, 
-                        name,
-                        created_at,
-                        '{region}' as source
-                    FROM {table}
-                    WHERE sku = ANY(%s) AND name IS NOT NULL AND name != ''
-                """)
-                params.append(skus)
-            
-            if not union_parts:
-                return {}
-            
-            # Prioritize preferred region in the ranking
-            region_priority = f"CASE WHEN source = '{preferred_region}' THEN 1 ELSE 2 END"
-            
-            combined_query = f"""
-                WITH combined_sales AS (
-                    {' UNION ALL '.join(union_parts)}
-                ),
-                ranked_sales AS (
-                    SELECT 
-                        sku,
-                        name,
-                        created_at,
-                        source,
-                        ROW_NUMBER() OVER (
-                            PARTITION BY sku 
-                            ORDER BY {region_priority}, created_at DESC
-                        ) as rn
-                    FROM combined_sales
-                )
-                SELECT sku, name
-                FROM ranked_sales
-                WHERE rn = 1
-            """
-            
-            try:
-                cur.execute(combined_query, params)
-                for row in cur.fetchall():
-                    sku = str(row[0]).strip()
-                    name = str(row[1]).strip() if row[1] else ""
-                    if name:
-                        names[sku] = name
-            except Exception as e:
-                logger.error(f"Error querying sales data for product names: {e}")
-                return {}
         
+        # Query order based on preferred region (preferred region first)
+        tables = [
+            f'{preferred_region}_sales_data',
+            'uk_sales_data',
+            'fr_sales_data',
+            'nl_sales_data'
+        ]
+        # Remove duplicates while preserving order
+        tables = list(dict.fromkeys(tables))
+        
+        with conn.cursor() as cur:
+            for table_name in tables:
+                try:
+                    # Get latest product name for each SKU from this table
+                    cur.execute(f"""
+                        SELECT DISTINCT ON (sku) 
+                            sku, 
+                            name
+                        FROM {table_name}
+                        WHERE sku = ANY(%s) 
+                          AND name IS NOT NULL 
+                          AND name != ''
+                        ORDER BY sku, created_at DESC
+                    """, (skus,))
+                    
+                    for row in cur.fetchall():
+                        sku = str(row[0]).strip()
+                        name = str(row[1]).strip() if row[1] else ""
+                        
+                        # Only set if not already found (preferred region wins)
+                        if sku not in names and name:
+                            names[sku] = name
+                    
+                    logger.debug(f"Loaded {len([s for s in skus if s in names])} names from {table_name}")
+                except Exception as e:
+                    logger.debug(f"Could not fetch names from {table_name}: {e}")
+                    continue
+        
+        logger.info(f"Loaded names for {len(names)}/{len(skus)} SKUs")
         return names
 
     def _resolve_to_rows(
@@ -367,15 +325,19 @@ class LabelsRepo:
 
         # Get unique SKUs for data loading
         all_skus = list(set([t[1] for t in resolved.values()]))
+        logger.info(f"Loading data for {len(all_skus)} unique SKUs from {len(resolved)} products")
         
         # Load 6M data (UK separate, FR+NL combined) from condensed sales tables
         sixm = self._load_six_month_data_psycopg(conn, resolved)
+        logger.info(f"Loaded 6M data for {len(sixm)} items")
         
         # Load prices with region preference
         prices = self._load_latest_prices_psycopg(conn, all_skus, preferred_region)
+        logger.info(f"Loaded prices for {len(prices)} SKUs (region: {preferred_region})")
         
         # Load product names from sales data with region preference (fallback for empty Zoho names)
         sales_names = self._load_product_names_psycopg(conn, all_skus, preferred_region)
+        logger.info(f"Loaded names for {len(sales_names)} SKUs (region: {preferred_region})")
 
         # build rows
         out: List[Dict[str, Any]] = []
@@ -394,6 +356,8 @@ class LabelsRepo:
                 "fr_6m_data": fr_nl_6m,   # FR+NL combined 6-month data
                 "price": price,           # most recent price from preferred region
             })
+        
+        logger.info(f"Built {len(out)} label rows")
         return out
 
     # --- public (psycopg2) ---
