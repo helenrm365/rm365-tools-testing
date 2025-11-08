@@ -63,28 +63,101 @@ class LabelsRepo:
             cur.execute(query, params)
             return [str(r[0]).strip() for r in cur.fetchall()]
 
-    def _load_six_month_data_psycopg(self, conn, item_ids: List[str]) -> Dict[str, Tuple[str, str]]:
-        """Return { item_id: (uk_6m_data, fr_nl_combined_6m_data) }."""
-        if not item_ids:
+    def _load_six_month_data_psycopg(self, conn, resolved_data: Dict[str, Tuple[str, str, str]]) -> Dict[str, Tuple[str, str]]:
+        """
+        Load 6-month sales data from condensed sales tables.
+        
+        Args:
+            conn: Database connection
+            resolved_data: Dict[base_sku] -> (item_id, sku_used, zoho_name)
+        
+        Returns:
+            Dict[item_id] -> (uk_6m_qty, fr_nl_combined_qty)
+        """
+        if not resolved_data:
             return {}
+        
+        # Extract SKUs and create mapping from item_id to SKU
+        item_to_sku = {}  # item_id -> sku
+        skus_to_lookup = set()
+        
+        for base, (item_id, sku_used, zoho_name) in resolved_data.items():
+            item_to_sku[item_id] = sku_used
+            skus_to_lookup.add(sku_used)
+        
+        if not skus_to_lookup:
+            return {}
+        
+        sku_list = list(skus_to_lookup)
+        
         with conn.cursor() as cur:
-            # psycopg2 "IN %s" trick: pass a tuple for the IN list
-            cur.execute(
-                """
-                SELECT item_id,
-                       COALESCE(uk_6m_data, '0') AS uk_6m_data,
-                       COALESCE(fr_6m_data, '0') AS fr_6m_data
-                FROM inventory_metadata
-                WHERE item_id = ANY(%s)
-                """,
-                (item_ids,)  # ARRAY/ANY is simpler than building a dynamic IN
-            )
+            # Check which condensed sales tables exist
+            cur.execute("""
+                SELECT table_name 
+                FROM information_schema.tables 
+                WHERE table_schema = 'public' 
+                AND table_name IN ('uk_condensed_sales', 'fr_condensed_sales', 'nl_condensed_sales')
+            """)
+            
+            existing_tables = [row[0] for row in cur.fetchall()]
+            
+            if not existing_tables:
+                logger.warning("No condensed sales tables found for 6M data.")
+                return {}
+            
+            # Get UK 6M data
+            uk_data = {}
+            if 'uk_condensed_sales' in existing_tables:
+                cur.execute("""
+                    SELECT sku, total_qty 
+                    FROM uk_condensed_sales 
+                    WHERE sku = ANY(%s)
+                """, (sku_list,))
+                
+                for row in cur.fetchall():
+                    sku = str(row[0])
+                    qty = int(row[1]) if row[1] else 0
+                    uk_data[sku] = str(qty)
+            
+            # Get FR data  
+            fr_data = {}
+            if 'fr_condensed_sales' in existing_tables:
+                cur.execute("""
+                    SELECT sku, total_qty 
+                    FROM fr_condensed_sales 
+                    WHERE sku = ANY(%s)
+                """, (sku_list,))
+                
+                for row in cur.fetchall():
+                    sku = str(row[0])
+                    qty = int(row[1]) if row[1] else 0
+                    fr_data[sku] = qty
+            
+            # Get NL data
+            nl_data = {}
+            if 'nl_condensed_sales' in existing_tables:
+                cur.execute("""
+                    SELECT sku, total_qty 
+                    FROM nl_condensed_sales 
+                    WHERE sku = ANY(%s)
+                """, (sku_list,))
+                
+                for row in cur.fetchall():
+                    sku = str(row[0])
+                    qty = int(row[1]) if row[1] else 0
+                    nl_data[sku] = qty
+            
+            # Combine FR + NL data and build final result keyed by item_id
             result = {}
-            for row in cur.fetchall():
-                item_id = str(row[0])
-                uk_data = str(row[1])
-                fr_nl_combined = str(row[2])  # fr_6m_data already contains FR+NL combined data
-                result[item_id] = (uk_data, fr_nl_combined)
+            for item_id, sku in item_to_sku.items():
+                uk_qty = uk_data.get(sku, "0")
+                fr_qty = fr_data.get(sku, 0)
+                nl_qty = nl_data.get(sku, 0)
+                fr_nl_combined = str(fr_qty + nl_qty)
+                
+                result[item_id] = (uk_qty, fr_nl_combined)
+            
+            logger.info(f"Loaded 6M data from condensed tables: UK={len(uk_data)}, FR={len(fr_data)}, NL={len(nl_data)} SKUs")
             return result
     
     def _load_latest_prices_psycopg(self, conn, skus: List[str], preferred_region: str = "uk") -> Dict[str, str]:
@@ -330,9 +403,8 @@ class LabelsRepo:
         # Get unique SKUs for data loading
         all_skus = list(set([t[1] for t in resolved.values()]))
         
-        # Load 6M data (UK separate, FR+NL combined)
-        item_ids = [t[0] for t in resolved.values()]
-        sixm = self._load_six_month_data_psycopg(conn, item_ids)
+        # Load 6M data (UK separate, FR+NL combined) from condensed sales tables
+        sixm = self._load_six_month_data_psycopg(conn, resolved)
         
         # Load prices with region preference
         prices = self._load_latest_prices_psycopg(conn, all_skus, preferred_region)

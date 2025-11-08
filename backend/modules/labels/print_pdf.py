@@ -183,8 +183,22 @@ def stream_pdf_labels(conn: PGConn, job_id: int) -> StreamingResponse:
         right_x = x + LABEL_WIDTH - 69
         max_w = LABEL_WIDTH - (right_x - x) - 4
         
-        # Format price with currency symbol
-        price_str = f"£{float(price):.2f}" if price else ""
+        # Format price with currency symbol (handle both float and string inputs)
+        if price:
+            if isinstance(price, (int, float)):
+                # Price is already a number
+                price_str = f"£{float(price):.2f}"
+            else:
+                # Price is a string, possibly already formatted
+                price_clean = str(price).replace("£", "").replace("€", "").replace("$", "").strip()
+                try:
+                    price_num = float(price_clean)
+                    price_str = f"£{price_num:.2f}"
+                except ValueError:
+                    # If we can't parse it, use as-is
+                    price_str = str(price)
+        else:
+            price_str = ""
         
         important = [
             ("Date:", today),
