@@ -142,9 +142,6 @@ def start_print_job(
             
             job_id = start_label_job(conn, zoho_map, payload)
             
-            # Commit the transaction
-            conn.commit()
-            
             # Verify items were inserted
             with conn.cursor() as cur:
                 cur.execute("SELECT COUNT(*) FROM label_print_items WHERE job_id = %s", (job_id,))
@@ -178,7 +175,6 @@ def delete_print_job(
     try:
         with inventory_conn() as conn:
             delete_label_job(conn, job_id)
-            conn.commit()
             return {"status": "deleted", "job_id": job_id}
     except Exception as e:
         raise HTTPException(

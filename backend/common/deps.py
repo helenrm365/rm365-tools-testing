@@ -40,8 +40,7 @@ async def get_current_user(authorization: str = Header(...)):
 def pg_conn():
     """
     Context manager for your main psycopg2 DB (used by attendance/enrollment).
-    Note: Does NOT auto-commit. Caller must commit if needed.
-    Will rollback on exception to clean up any failed transactions.
+    Automatically commits on successful exit, rolls back on exception.
     Usage:
         with pg_conn() as conn:
             with conn.cursor() as cur: ...
@@ -49,8 +48,9 @@ def pg_conn():
     conn = get_psycopg_connection()
     try:
         yield conn
+        conn.commit()  # Auto-commit on success (including read operations)
     except Exception:
-        conn.rollback()  # Rollback on error
+        conn.rollback()  # Auto-rollback on error
         raise
     finally:
         conn.close()
@@ -60,14 +60,14 @@ def pg_conn():
 def inventory_conn():
     """
     Context manager for the inventory_logs DB (metadata + logs).
-    Note: Does NOT auto-commit. Caller must commit if needed.
-    Will rollback on exception to clean up any failed transactions.
+    Automatically commits on successful exit, rolls back on exception.
     """
     conn = get_inventory_log_connection()
     try:
         yield conn
+        conn.commit()  # Auto-commit on success (including read operations)
     except Exception:
-        conn.rollback()  # Rollback on error
+        conn.rollback()  # Auto-rollback on error
         raise
     finally:
         conn.close()
