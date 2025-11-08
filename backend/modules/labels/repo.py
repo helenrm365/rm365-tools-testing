@@ -91,23 +91,9 @@ class LabelsRepo:
         sku_list = list(skus_to_lookup)
         
         with conn.cursor() as cur:
-            # Check which condensed sales tables exist
-            cur.execute("""
-                SELECT table_name 
-                FROM information_schema.tables 
-                WHERE table_schema = 'public' 
-                AND table_name IN ('uk_condensed_sales', 'fr_condensed_sales', 'nl_condensed_sales')
-            """)
-            
-            existing_tables = [row[0] for row in cur.fetchall()]
-            
-            if not existing_tables:
-                logger.warning("No condensed sales tables found for 6M data.")
-                raise RuntimeError("Sales data tables not initialized")
-            
             # Get UK 6M data
             uk_data = {}
-            if 'uk_condensed_sales' in existing_tables:
+            try:
                 cur.execute("""
                     SELECT sku, total_qty 
                     FROM uk_condensed_sales 
@@ -118,10 +104,12 @@ class LabelsRepo:
                     sku = str(row[0])
                     qty = int(row[1]) if row[1] else 0
                     uk_data[sku] = str(qty)
+            except Exception as e:
+                logger.warning(f"Could not fetch UK condensed sales data: {e}")
             
             # Get FR data  
             fr_data = {}
-            if 'fr_condensed_sales' in existing_tables:
+            try:
                 cur.execute("""
                     SELECT sku, total_qty 
                     FROM fr_condensed_sales 
@@ -132,10 +120,12 @@ class LabelsRepo:
                     sku = str(row[0])
                     qty = int(row[1]) if row[1] else 0
                     fr_data[sku] = qty
+            except Exception as e:
+                logger.warning(f"Could not fetch FR condensed sales data: {e}")
             
             # Get NL data
             nl_data = {}
-            if 'nl_condensed_sales' in existing_tables:
+            try:
                 cur.execute("""
                     SELECT sku, total_qty 
                     FROM nl_condensed_sales 
@@ -146,6 +136,8 @@ class LabelsRepo:
                     sku = str(row[0])
                     qty = int(row[1]) if row[1] else 0
                     nl_data[sku] = qty
+            except Exception as e:
+                logger.warning(f"Could not fetch NL condensed sales data: {e}")
             
             # Combine FR + NL data and build final result keyed by item_id
             result = {}
@@ -177,24 +169,7 @@ class LabelsRepo:
         
         prices = {}
         with conn.cursor() as cur:
-            # First check if the sales tables exist
-            cur.execute("""
-                SELECT table_name 
-                FROM information_schema.tables 
-                WHERE table_schema = 'public' 
-                AND table_name IN ('uk_sales_data', 'fr_sales_data', 'nl_sales_data')
-            """)
-            
-            existing_tables = [row[0] for row in cur.fetchall()]
-            
-            if not existing_tables:
-                logger.warning("No sales data tables found. Please initialize sales data first.")
-                raise RuntimeError("Sales data tables not initialized")
-            
-            # Build dynamic query for only existing tables with region prioritization
-            union_parts = []
-            params = []
-            
+            # Build query for all sales tables with region prioritization
             # Currency mapping for regions
             region_currency_map = {
                 'uk_sales_data': 'GBP',
@@ -202,7 +177,11 @@ class LabelsRepo:
                 'nl_sales_data': 'EUR'
             }
             
-            for table in existing_tables:
+            tables = ['uk_sales_data', 'fr_sales_data', 'nl_sales_data']
+            union_parts = []
+            params = []
+            
+            for table in tables:
                 region = table.split('_')[0]  # uk, fr, or nl
                 default_currency = region_currency_map.get(table, 'GBP')
                 
@@ -281,25 +260,12 @@ class LabelsRepo:
         
         names = {}
         with conn.cursor() as cur:
-            # First check if the sales tables exist
-            cur.execute("""
-                SELECT table_name 
-                FROM information_schema.tables 
-                WHERE table_schema = 'public' 
-                AND table_name IN ('uk_sales_data', 'fr_sales_data', 'nl_sales_data')
-            """)
-            
-            existing_tables = [row[0] for row in cur.fetchall()]
-            
-            if not existing_tables:
-                logger.warning("No sales data tables found for product names.")
-                raise RuntimeError("Sales data tables not initialized")
-            
-            # Build dynamic query for only existing tables with region prioritization
+            # Build query for all sales tables with region prioritization
+            tables = ['uk_sales_data', 'fr_sales_data', 'nl_sales_data']
             union_parts = []
             params = []
             
-            for table in existing_tables:
+            for table in tables:
                 region = table.split('_')[0]  # uk, fr, or nl
                 
                 union_parts.append(f"""
