@@ -732,3 +732,120 @@ class SalesDataRepo:
             if conn:
                 cursor.close()
                 conn.close()
+
+    def auto_create_md_variant_aliases(self) -> Dict[str, Any]:
+        """
+        Automatically create SKU aliases for MD variants to merge with their base SKUs.
+        For example: PROD123-MD -> PROD123, so sales data gets combined.
+        """
+        conn = None
+        try:
+            conn = get_products_connection()
+            cursor = conn.cursor()
+            
+            # Get all unique SKUs from all sales tables that end with -MD
+            tables = ['uk_sales_data', 'fr_sales_data', 'nl_sales_data']
+            md_skus = set()
+            base_skus = set()
+            
+            for table in tables:
+                # Check if table exists first
+                cursor.execute("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables 
+                        WHERE table_schema = 'public' 
+                        AND table_name = %s
+                    )
+                """, (table,))
+                
+                if not cursor.fetchone()[0]:
+                    continue
+                
+                # Get SKUs from this table
+                cursor.execute(f"SELECT DISTINCT sku FROM {table} WHERE sku IS NOT NULL AND sku != ''")
+                for row in cursor.fetchall():
+                    sku = str(row[0]).strip()
+                    if sku.upper().endswith('-MD'):
+                        md_skus.add(sku)
+                        # Calculate the base SKU
+                        base_sku = sku[:-3]  # Remove -MD suffix
+                        base_skus.add(base_sku)
+                    else:
+                        base_skus.add(sku)
+            
+            if not md_skus:
+                logger.info("No MD variant SKUs found to create aliases for")
+                return {
+                    "success": True,
+                    "message": "No MD variants found",
+                    "aliases_created": 0,
+                    "aliases_skipped": 0
+                }
+            
+            aliases_created = 0
+            aliases_skipped = 0
+            
+            for md_sku in md_skus:
+                base_sku = md_sku[:-3]  # Remove -MD suffix
+                
+                # Only create alias if base SKU also exists in the data
+                if base_sku in base_skus:
+                    # Check if MD variant alias already exists
+                    cursor.execute("SELECT id FROM sku_aliases WHERE alias_sku = %s", (md_sku,))
+                    if cursor.fetchone():
+                        aliases_skipped += 1
+                        continue
+                    
+                    # Check if the base SKU already has an alias mapping (is already an alias_sku)
+                    cursor.execute("SELECT unified_sku FROM sku_aliases WHERE alias_sku = %s", (base_sku,))
+                    base_alias_result = cursor.fetchone()
+                    
+                    if base_alias_result:
+                        # Base SKU is already aliased to something else, use that unified SKU
+                        unified_sku = base_alias_result[0]
+                        logger.info(f"Base SKU {base_sku} already aliases to {unified_sku}, using that for MD variant")
+                    else:
+                        # Check if the base SKU is already used as a unified_sku by other aliases
+                        cursor.execute("SELECT COUNT(*) FROM sku_aliases WHERE unified_sku = %s", (base_sku,))
+                        base_as_unified_count = cursor.fetchone()[0]
+                        
+                        if base_as_unified_count > 0:
+                            # Base SKU is already a unified target, use it
+                            unified_sku = base_sku
+                        else:
+                            # Neither scenario applies, use base SKU as the unified target
+                            unified_sku = base_sku
+                    
+                    # Create the alias: MD variant -> unified SKU
+                    cursor.execute("""
+                        INSERT INTO sku_aliases (alias_sku, unified_sku)
+                        VALUES (%s, %s)
+                    """, (md_sku, unified_sku))
+                    
+                    aliases_created += 1
+                    logger.info(f"Created alias: {md_sku} → {unified_sku}")
+                else:
+                    # MD variant exists but no base SKU found
+                    aliases_skipped += 1
+                    logger.debug(f"Skipped {md_sku} - no base SKU {base_sku} found")
+            
+            conn.commit()
+            
+            logger.info(f"✅ Auto-created {aliases_created} MD variant aliases, skipped {aliases_skipped}")
+            
+            return {
+                "success": True,
+                "message": f"Created {aliases_created} MD variant aliases",
+                "aliases_created": aliases_created,
+                "aliases_skipped": aliases_skipped
+            }
+            
+        except Exception as e:
+            if conn:
+                conn.rollback()
+            logger.error(f"Error auto-creating MD variant aliases: {e}")
+            raise
+        finally:
+            if conn:
+                cursor.close()
+                conn.close()

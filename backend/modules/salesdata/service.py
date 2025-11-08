@@ -29,10 +29,17 @@ class SalesDataService:
         """
         Initialize the sales data tables.
         Creates uk_sales_data, fr_sales_data, nl_sales_data and their condensed versions.
-        Also populates condensed tables with existing data.
+        Also populates condensed tables with existing data and auto-creates MD variant aliases.
         """
         try:
             tables = self.repo.init_tables()
+            
+            # Auto-create MD variant aliases if there's existing data
+            try:
+                alias_result = self.repo.auto_create_md_variant_aliases()
+                logger.info(f"Auto-created {alias_result.get('aliases_created', 0)} MD variant aliases")
+            except Exception as e:
+                logger.warning(f"Could not auto-create MD variant aliases: {e}")
             
             # Refresh condensed data for all regions
             for region in ['uk', 'fr', 'nl']:
@@ -322,4 +329,30 @@ class SalesDataService:
                 "message": f"Failed to get import history: {str(e)}",
                 "data": [],
                 "total_count": 0
+            }
+
+    def auto_create_md_variant_aliases(self) -> Dict[str, Any]:
+        """Auto-create SKU aliases for MD variants to merge with base SKUs"""
+        try:
+            result = self.repo.auto_create_md_variant_aliases()
+            
+            # Refresh all condensed data to apply the new aliases
+            if result.get("aliases_created", 0) > 0:
+                for region in ['uk', 'fr', 'nl']:
+                    try:
+                        self.repo.refresh_condensed_data(region)
+                    except Exception as e:
+                        logger.warning(f"Could not refresh condensed data for {region}: {e}")
+            
+            return {
+                "status": "success",
+                **result
+            }
+        except Exception as e:
+            logger.error(f"Error auto-creating MD variant aliases: {e}")
+            return {
+                "status": "error",
+                "message": f"Failed to auto-create MD variant aliases: {str(e)}",
+                "aliases_created": 0,
+                "aliases_skipped": 0
             }

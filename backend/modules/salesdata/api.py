@@ -180,6 +180,13 @@ def delete_sku_alias(
     return svc.delete_sku_alias(alias_id)
 
 
+@router.post("/sku-aliases/auto-create-md-variants")
+def auto_create_md_variant_aliases(user=Depends(get_current_user)):
+    """Automatically create SKU aliases for MD variants to merge with their base SKUs. 
+    This will make PROD123-MD sales data merge with PROD123 sales data."""
+    return svc.auto_create_md_variant_aliases()
+
+
 # Condensed data refresh endpoints
 @router.post("/refresh-condensed")
 def refresh_all_condensed_data(user=Depends(get_current_user)):

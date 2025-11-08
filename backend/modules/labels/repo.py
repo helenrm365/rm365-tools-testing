@@ -15,14 +15,15 @@ class LabelsRepo:
 
     @classmethod
     def _choose_sku_for_base(cls, base: str, variants: List[str]) -> Optional[str]:
-        """Prefer base; fallback to base-MD."""
+        """
+        Simply return any available SKU - no filtering logic.
+        All SKUs are treated as valid products.
+        """
         vs = {v.strip() for v in (variants or []) if v}
-        if base in vs:
-            return base
-        md = f"{base}-MD"
-        if md in vs:
-            return md
-        return None
+        if not vs:
+            return None
+        # Just return the first available SKU
+        return next(iter(vs), None)
 
     # --- psycopg2 queries ---
     def _fetch_allowed_skus_from_magento_psycopg(self, conn, discontinued_statuses: Optional[List[str]] = None) -> List[str]:
@@ -316,22 +317,17 @@ class LabelsRepo:
         if not chosen_by_base:
             return []
 
-        # map to Zoho (fallback base <-> -MD)
+        # map to Zoho - simple direct mapping
         resolved: Dict[str, Tuple[str, str, str]] = {}  # base -> (item_id, sku_used, name)
         for base, chosen in chosen_by_base.items():
-            cands = [chosen, (base if chosen.upper().endswith("-MD") else f"{base}-MD")]
-            hit = None
-            for c in cands:
-                if c in zoho_map and zoho_map[c]:
-                    item_id = zoho_map[c]
-                    # Try to get name from Zoho first, then from sales data
-                    name = "" if not zoho_name_lookup else (zoho_name_lookup.get(c, "") or "")
-                    hit = (item_id, c, name)
-                    break
-            if not hit:
-                log.warning("Zoho mapping missing for base=%s, tried=%s", base, cands)
-                continue
-            resolved[base] = hit
+            # Try the chosen SKU directly
+            if chosen in zoho_map and zoho_map[chosen]:
+                item_id = zoho_map[chosen]
+                # Try to get name from Zoho first, then from sales data
+                name = "" if not zoho_name_lookup else (zoho_name_lookup.get(chosen, "") or "")
+                resolved[base] = (item_id, chosen, name)
+            else:
+                log.warning("Zoho mapping missing for SKU=%s", chosen)
         if not resolved:
             return []
 
