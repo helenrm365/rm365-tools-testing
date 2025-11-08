@@ -102,10 +102,13 @@ def _snapshot_rows(conn: PGConn, zoho_map: Dict[str, str], item_ids: List[str] =
     Expected keys used below: sku, item_id, product_name, uk_6m_data, fr_6m_data
     """
     try:
+        logger.info(f"Fetching labels data with {len(zoho_map)} zoho items")
         all_rows = LabelsRepo().get_labels_to_print_psycopg(conn, zoho_map)
         logger.info(f"Fetched {len(all_rows)} total rows from labels repo")
     except Exception as e:
         logger.error(f"Error fetching labels data: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
         raise
     
     # Filter by selected item_ids if provided
@@ -138,6 +141,14 @@ def start_label_job(conn: PGConn, zoho_map: Dict[str, str], payload: Dict[str, A
         logger.error(f"Failed to ensure schema: {e}")
         raise
 
+    # 2) snapshot current rows (filtered by item_ids if provided) - do this BEFORE starting transaction
+    try:
+        rows = _snapshot_rows(conn, zoho_map, item_ids)
+        logger.info(f"Fetched {len(rows)} rows for new job")
+    except Exception as e:
+        logger.error(f"Failed to snapshot rows: {e}")
+        raise
+
     with conn.cursor() as cur:
         try:
             # 1) insert job
@@ -153,14 +164,6 @@ def start_label_job(conn: PGConn, zoho_map: Dict[str, str], payload: Dict[str, A
             logger.info(f"Created label job {job_id}")
         except Exception as e:
             logger.error(f"Failed to create job record: {e}")
-            raise
-
-        # 2) snapshot current rows (filtered by item_ids if provided)
-        try:
-            rows = _snapshot_rows(conn, zoho_map, item_ids)
-            logger.info(f"Fetched {len(rows)} rows for job {job_id}")
-        except Exception as e:
-            logger.error(f"Failed to snapshot rows: {e}")
             raise
 
         # 3) bulk insert items (map keys—adjust if your row keys differ)
