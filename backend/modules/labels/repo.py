@@ -73,8 +73,7 @@ class LabelsRepo:
                 """
                 SELECT item_id,
                        COALESCE(uk_6m_data, '0') AS uk_6m_data,
-                       COALESCE(fr_6m_data, '0') AS fr_6m_data,
-                       COALESCE(nl_6m_data, '0') AS nl_6m_data
+                       COALESCE(fr_6m_data, '0') AS fr_6m_data
                 FROM inventory_metadata
                 WHERE item_id = ANY(%s)
                 """,
@@ -84,10 +83,7 @@ class LabelsRepo:
             for row in cur.fetchall():
                 item_id = str(row[0])
                 uk_data = str(row[1])
-                fr_data = int(row[2]) if row[2] else 0
-                nl_data = int(row[3]) if row[3] else 0
-                # Combine FR and NL data
-                fr_nl_combined = str(fr_data + nl_data)
+                fr_nl_combined = str(row[2])  # fr_6m_data already contains FR+NL combined data
                 result[item_id] = (uk_data, fr_nl_combined)
             return result
     
