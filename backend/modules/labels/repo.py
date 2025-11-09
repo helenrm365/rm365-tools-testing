@@ -92,68 +92,73 @@ class LabelsRepo:
         
         logger.info(f"Looking up 6M data for {len(sku_list)} SKUs. Sample SKUs: {sku_list[:5]}")
         
-        with conn.cursor() as cur:
-            # Get UK 6M data
-            uk_data = {}
-            try:
-                cur.execute("""
-                    SELECT sku, total_qty 
-                    FROM uk_condensed_sales 
-                    WHERE sku = ANY(%s)
-                """, (sku_list,))
-                
-                for row in cur.fetchall():
-                    sku = str(row[0])
-                    qty = int(row[1]) if row[1] else 0
-                    uk_data[sku] = str(qty)
-                logger.info(f"Found UK 6M data for {len(uk_data)} SKUs. Sample: {list(uk_data.items())[:3]}")
-            except Exception as e:
-                logger.warning(f"Could not fetch UK condensed sales data: {e}")
+        # Get UK 6M data - use separate connection to avoid transaction issues
+        uk_data = {}
+        try:
+            with inventory_conn() as uk_conn:
+                with uk_conn.cursor() as cur:
+                    cur.execute("""
+                        SELECT sku, total_qty 
+                        FROM uk_condensed_sales 
+                        WHERE sku = ANY(%s)
+                    """, (sku_list,))
+                    
+                    for row in cur.fetchall():
+                        sku = str(row[0])
+                        qty = int(row[1]) if row[1] else 0
+                        uk_data[sku] = str(qty)
+                    logger.info(f"Found UK 6M data for {len(uk_data)} SKUs. Sample: {list(uk_data.items())[:3]}")
+        except Exception as e:
+            logger.warning(f"Could not fetch UK condensed sales data: {e}")
+        
+        # Get FR data - use separate connection
+        fr_data = {}
+        try:
+            with inventory_conn() as fr_conn:
+                with fr_conn.cursor() as cur:
+                    cur.execute("""
+                        SELECT sku, total_qty 
+                        FROM fr_condensed_sales 
+                        WHERE sku = ANY(%s)
+                    """, (sku_list,))
+                    
+                    for row in cur.fetchall():
+                        sku = str(row[0])
+                        qty = int(row[1]) if row[1] else 0
+                        fr_data[sku] = qty
+        except Exception as e:
+            logger.warning(f"Could not fetch FR condensed sales data: {e}")
+        
+        # Get NL data - use separate connection
+        nl_data = {}
+        try:
+            with inventory_conn() as nl_conn:
+                with nl_conn.cursor() as cur:
+                    cur.execute("""
+                        SELECT sku, total_qty 
+                        FROM nl_condensed_sales 
+                        WHERE sku = ANY(%s)
+                    """, (sku_list,))
+                    
+                    for row in cur.fetchall():
+                        sku = str(row[0])
+                        qty = int(row[1]) if row[1] else 0
+                        nl_data[sku] = qty
+        except Exception as e:
+            logger.warning(f"Could not fetch NL condensed sales data: {e}")
+        
+        # Combine FR + NL data and build final result keyed by item_id
+        result = {}
+        for item_id, sku in item_to_sku.items():
+            uk_qty = uk_data.get(sku, "0")
+            fr_qty = fr_data.get(sku, 0)
+            nl_qty = nl_data.get(sku, 0)
+            fr_nl_combined = str(fr_qty + nl_qty)
             
-            # Get FR data  
-            fr_data = {}
-            try:
-                cur.execute("""
-                    SELECT sku, total_qty 
-                    FROM fr_condensed_sales 
-                    WHERE sku = ANY(%s)
-                """, (sku_list,))
-                
-                for row in cur.fetchall():
-                    sku = str(row[0])
-                    qty = int(row[1]) if row[1] else 0
-                    fr_data[sku] = qty
-            except Exception as e:
-                logger.warning(f"Could not fetch FR condensed sales data: {e}")
-            
-            # Get NL data
-            nl_data = {}
-            try:
-                cur.execute("""
-                    SELECT sku, total_qty 
-                    FROM nl_condensed_sales 
-                    WHERE sku = ANY(%s)
-                """, (sku_list,))
-                
-                for row in cur.fetchall():
-                    sku = str(row[0])
-                    qty = int(row[1]) if row[1] else 0
-                    nl_data[sku] = qty
-            except Exception as e:
-                logger.warning(f"Could not fetch NL condensed sales data: {e}")
-            
-            # Combine FR + NL data and build final result keyed by item_id
-            result = {}
-            for item_id, sku in item_to_sku.items():
-                uk_qty = uk_data.get(sku, "0")
-                fr_qty = fr_data.get(sku, 0)
-                nl_qty = nl_data.get(sku, 0)
-                fr_nl_combined = str(fr_qty + nl_qty)
-                
-                result[item_id] = (uk_qty, fr_nl_combined)
-            
-            logger.info(f"Loaded 6M data from condensed tables: UK={len(uk_data)}, FR={len(fr_data)}, NL={len(nl_data)} SKUs")
-            return result
+            result[item_id] = (uk_qty, fr_nl_combined)
+        
+        logger.info(f"Loaded 6M data from condensed tables: UK={len(uk_data)}, FR={len(fr_data)}, NL={len(nl_data)} SKUs")
+        return result
     
     def _load_latest_prices_psycopg(self, conn, skus: List[str], preferred_region: str = "uk") -> Dict[str, str]:
         """
