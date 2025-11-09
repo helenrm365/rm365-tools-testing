@@ -90,6 +90,8 @@ class LabelsRepo:
         
         sku_list = list(skus_to_lookup)
         
+        logger.info(f"Looking up 6M data for {len(sku_list)} SKUs. Sample SKUs: {sku_list[:5]}")
+        
         with conn.cursor() as cur:
             # Get UK 6M data
             uk_data = {}
@@ -104,6 +106,7 @@ class LabelsRepo:
                     sku = str(row[0])
                     qty = int(row[1]) if row[1] else 0
                     uk_data[sku] = str(qty)
+                logger.info(f"Found UK 6M data for {len(uk_data)} SKUs. Sample: {list(uk_data.items())[:3]}")
             except Exception as e:
                 logger.warning(f"Could not fetch UK condensed sales data: {e}")
             
@@ -186,6 +189,8 @@ class LabelsRepo:
         seen = set()
         tables = [(t, r) for t, r in tables if not (t in seen or seen.add(t))]
         
+        logger.info(f"Looking up prices for {len(skus)} SKUs. Sample SKUs: {skus[:5]}")
+        
         with conn.cursor() as cur:
             for table_name, region in tables:
                 try:
@@ -217,7 +222,7 @@ class LabelsRepo:
                     logger.debug(f"Could not fetch prices from {table_name}: {e}")
                     continue
         
-        logger.info(f"Loaded prices for {len(prices)}/{len(skus)} SKUs")
+        logger.info(f"Loaded prices for {len(prices)}/{len(skus)} SKUs. Sample prices: {list(prices.items())[:5]}")
         return prices
 
     def _load_product_names_psycopg(self, conn, skus: List[str], preferred_region: str = "uk") -> Dict[str, str]:
