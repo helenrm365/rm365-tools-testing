@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Tuple
 import logging
 from psycopg2.extensions import connection as PGConn  # type: ignore
 from modules.labels.repo import LabelsRepo
-from core.db import get_products_connection
+from core.db import get_inventory_log_connection
 
 logger = logging.getLogger(__name__)
 
@@ -101,14 +101,14 @@ def _snapshot_rows(zoho_map: Dict[str, str], item_ids: List[str] = None) -> List
     """
     Pull current /to-print rows from your repo, optionally filtered by item_ids.
     Expected keys used below: sku, item_id, product_name, uk_6m_data, fr_6m_data
-    Uses products database connection to query magento and sales data.
+    Uses inventory_logs database connection to query magento and sales data.
     """
-    products_conn = None
+    inventory_conn = None
     try:
-        # Use products database connection for querying magento/sales tables
-        products_conn = get_products_connection()
-        logger.info(f"Fetching labels data with {len(zoho_map)} zoho items from products DB")
-        all_rows = LabelsRepo().get_labels_to_print_psycopg(products_conn, zoho_map)
+        # Use inventory_logs database connection (same as /to-print endpoint)
+        inventory_conn = get_inventory_log_connection()
+        logger.info(f"Fetching labels data with {len(zoho_map)} zoho items from inventory_logs DB")
+        all_rows = LabelsRepo().get_labels_to_print_psycopg(inventory_conn, zoho_map)
         logger.info(f"Fetched {len(all_rows)} total rows from labels repo")
     except Exception as e:
         logger.error(f"Error fetching labels data: {e}")
@@ -116,8 +116,8 @@ def _snapshot_rows(zoho_map: Dict[str, str], item_ids: List[str] = None) -> List
         logger.error(traceback.format_exc())
         raise
     finally:
-        if products_conn:
-            products_conn.close()
+        if inventory_conn:
+            inventory_conn.close()
     
     # Filter by selected item_ids if provided
     if item_ids:
