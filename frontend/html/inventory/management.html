@@ -9,10 +9,10 @@
   
   <!-- Search and Filter Controls -->
   <div class="management-controls modern-box" style="margin-bottom: 1rem;">
-    <!-- Discontinued Status Filters -->
+    <!-- Discontinued Status Filters (Checkboxes) -->
     <div style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #eee;">
       <label style="font-weight: 600; margin-bottom: 0.5rem; display: block; color: #333;">
-        Product Status Filters:
+        Discontinued Status Filters:
       </label>
       <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; align-items: center;">
         <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
@@ -53,6 +53,7 @@
       </div>
     </div>
     
+    <!-- Search and Stock Status Filter (Dropdown) -->
     <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
       <div style="flex: 1; max-width: 300px;">
         <input type="text" id="inventorySearch" class="modern-input" placeholder="Search products, SKU, location..." style="width: 100%;">
@@ -66,10 +67,10 @@
         <div class="dropdown-content"></div>
       </div>
       
-      <!-- Status Dropdown -->
+      <!-- Stock Status Dropdown (Overstock/Low Stock) -->
       <div class="dropdown-container" id="statusDropdown">
         <button class="dropdown-toggle modern-button" id="statusToggle">
-          All Status <span class="arrow">▼</span>
+          All Stock Status <span class="arrow">▼</span>
         </button>
         <div class="dropdown-content"></div>
       </div>

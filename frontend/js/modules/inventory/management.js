@@ -6,31 +6,31 @@ const API = config.API;
 console.log('[Inventory Management] Using API:', API);
 console.log('[Inventory Management] Window location:', window.location.href);
 
-// Status filter preferences key
-const STATUS_FILTERS_KEY = 'inventory_status_filters';
+// Discontinued status filter preferences key (for checkboxes)
+const DISCONTINUED_STATUS_FILTERS_KEY = 'inventory_discontinued_status_filters';
 
-// Default status filters (all checked by default)
-const DEFAULT_STATUS_FILTERS = ['Active', 'Temporarily OOS', 'Pre Order', 'Samples'];
+// Default discontinued status filters (all checked by default)
+const DEFAULT_DISCONTINUED_STATUS_FILTERS = ['Active', 'Temporarily OOS', 'Pre Order', 'Samples'];
 
-// Get saved status filters from localStorage
-function getSavedStatusFilters() {
+// Get saved discontinued status filters from localStorage
+function getSavedDiscontinuedStatusFilters() {
   try {
-    const saved = localStorage.getItem(STATUS_FILTERS_KEY);
+    const saved = localStorage.getItem(DISCONTINUED_STATUS_FILTERS_KEY);
     if (saved) {
       return JSON.parse(saved);
     }
   } catch (e) {
-    console.error('[Inventory] Error loading saved filters:', e);
+    console.error('[Inventory] Error loading saved discontinued filters:', e);
   }
-  return DEFAULT_STATUS_FILTERS;
+  return DEFAULT_DISCONTINUED_STATUS_FILTERS;
 }
 
-// Save status filters to localStorage
-function saveStatusFilters(filters) {
+// Save discontinued status filters to localStorage
+function saveDiscontinuedStatusFilters(filters) {
   try {
-    localStorage.setItem(STATUS_FILTERS_KEY, JSON.stringify(filters));
+    localStorage.setItem(DISCONTINUED_STATUS_FILTERS_KEY, JSON.stringify(filters));
   } catch (e) {
-    console.error('[Inventory] Error saving filters:', e);
+    console.error('[Inventory] Error saving discontinued filters:', e);
   }
 }
 
@@ -61,6 +61,11 @@ let magentoProductsIndex = new Map(); // NEW: Index for magento_product_list dat
 let dropdownDocListenersBound = false;
 let dropdownBackdrop;
 let _filterSeq = 0;
+
+// Pagination settings
+const ITEMS_PER_PAGE = 100;
+let currentPage = 0;
+let totalFilteredItems = 0;
 
 // Fast search helpers
 const rowEntryByEl = new WeakMap();
@@ -274,9 +279,9 @@ function setupDropdowns() {
     { value: 'col-16', text: 'FR 6M Data', checked: true }
   ], true); // true = this is a column dropdown
 
-  // Status dropdown - only overstock and low stock
+  // Stock status dropdown - for overstock/low stock indicators (based on metadata.status field)
   bindDropdown('statusDropdown', 'statusToggle', [
-    { value: '', text: 'All Status' },
+    { value: '', text: 'All Stock Status' },
     { value: 'overstock', text: 'Overstock' },
     { value: 'lowstock', text: 'Low Stock' }
   ]);
@@ -324,7 +329,7 @@ function bindDropdown(containerId, toggleId, options, isColumnDropdown = false) 
       }
     });
   } else {
-    // Regular dropdown
+    // Regular dropdown (for stock status filter)
     dropdownContent.innerHTML = options.map(opt => 
       `<button class="dropdown-item" data-value="${opt.value}">${opt.text}</button>`
     ).join('');
@@ -336,7 +341,9 @@ function bindDropdown(containerId, toggleId, options, isColumnDropdown = false) 
         const text = e.target.textContent;
         toggle.innerHTML = `${text} <span class="arrow">▼</span>`;
         closeAllDropdowns();
-        applyFilters();
+        
+        // Trigger stock status filter change
+        onStockStatusFilterChange();
       }
     });
   }
@@ -365,19 +372,29 @@ function setupTable() {
   // Clear existing content
   tableBody.innerHTML = '';
 
-  // Get selected status filters
-  const selectedFilters = getSavedStatusFilters();
-  const filterSet = new Set(selectedFilters);
+  // Get selected discontinued status filters (checkboxes)
+  const selectedDiscontinuedFilters = getSavedDiscontinuedStatusFilters();
+  const discontinuedFilterSet = new Set(selectedDiscontinuedFilters);
   
-  console.log('[Inventory Management] Active filters:', Array.from(filterSet));
+  // Get stock status filter (dropdown)
+  const statusToggle = document.getElementById('statusToggle');
+  const stockStatusFilter = getSelectedValue(statusToggle);
+  
+  // Get search query
+  const searchInput = document.getElementById('inventorySearch');
+  const searchQuery = searchInput?.value?.toLowerCase().trim() || '';
+  
+  console.log('[Inventory Management] Active discontinued status filters:', Array.from(discontinuedFilterSet));
+  console.log('[Inventory Management] Active stock status filter:', stockStatusFilter);
+  console.log('[Inventory Management] Search query:', searchQuery);
   console.log('[Inventory Management] Total inventory items:', inventoryData.length);
   console.log('[Inventory Management] Magento products indexed:', magentoProductsIndex.size);
   
-  let filteredCount = 0;
+  let filteredItems = [];
   let skippedCount = 0;
   let noMagentoDataCount = 0;
 
-  // Populate table with combined data, applying discontinued status filter
+  // Filter items based on discontinued status, stock status, and search
   inventoryData.forEach(item => {
     const metadata = metadataIndex.get(item.item_id) || {};
     const sku = item.sku;
@@ -386,9 +403,20 @@ function setupTable() {
     if (!sku || !magentoProductsIndex.has(sku)) {
       // Product not in magento_product_list - default behavior: show it
       noMagentoDataCount++;
-      const row = createTableRow(item, metadata);
-      tableBody.appendChild(row);
-      filteredCount++;
+      
+      // Apply stock status filter (from metadata.status field)
+      if (stockStatusFilter && !matchesStockStatus(metadata, stockStatusFilter)) {
+        skippedCount++;
+        return;
+      }
+      
+      // Apply search filter
+      if (searchQuery && !matchesSearch(item, metadata, searchQuery)) {
+        skippedCount++;
+        return;
+      }
+      
+      filteredItems.push({ item, metadata });
       return;
     }
     
@@ -396,36 +424,169 @@ function setupTable() {
     const magentoProduct = magentoProductsIndex.get(sku);
     const discontinuedStatus = magentoProduct.discontinued_status;
     
-    console.log(`[Filter Check] SKU: ${sku}, Status: ${discontinuedStatus}, Include: ${filterSet.has(discontinuedStatus)}`);
+    console.log(`[Filter Check] SKU: ${sku}, Discontinued Status: ${discontinuedStatus}, Stock Status: ${metadata.status}, Include: ${discontinuedFilterSet.has(discontinuedStatus)}`);
     
     // Filter: only show if discontinued_status is in selected filters
-    if (!discontinuedStatus || !filterSet.has(discontinuedStatus)) {
+    if (!discontinuedStatus || !discontinuedFilterSet.has(discontinuedStatus)) {
       skippedCount++;
       return; // Skip this item
     }
     
-    // Product passes filter - add to table
-    const row = createTableRow(item, metadata);
-    tableBody.appendChild(row);
-    filteredCount++;
+    // Apply stock status filter (from metadata.status field)
+    if (stockStatusFilter && !matchesStockStatus(metadata, stockStatusFilter)) {
+      skippedCount++;
+      return;
+    }
+    
+    // Apply search filter
+    if (searchQuery && !matchesSearch(item, metadata, searchQuery)) {
+      skippedCount++;
+      return;
+    }
+    
+    // Product passes all filters - add to filtered list
+    filteredItems.push({ item, metadata });
   });
 
+  // Update total filtered items count
+  totalFilteredItems = filteredItems.length;
+
+  // Calculate pagination
+  const startIndex = currentPage * ITEMS_PER_PAGE;
+  const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, totalFilteredItems);
+  const paginatedItems = filteredItems.slice(startIndex, endIndex);
+
   console.log(`[Inventory Management] Filter results:`);
-  console.log(`  - Displayed: ${filteredCount} rows`);
+  console.log(`  - Total filtered: ${totalFilteredItems} items`);
+  console.log(`  - Displaying: ${paginatedItems.length} items (page ${currentPage + 1})`);
   console.log(`  - Filtered out: ${skippedCount} rows`);
   console.log(`  - No magento data: ${noMagentoDataCount} rows`);
+
+  // Populate table with paginated items
+  paginatedItems.forEach(({ item, metadata }) => {
+    const row = createTableRow(item, metadata);
+    tableBody.appendChild(row);
+  });
   
   // Show message if no items match filters
-  if (filteredCount === 0) {
+  if (totalFilteredItems === 0) {
     tableBody.innerHTML = `
       <tr>
         <td colspan="16" style="text-align: center; padding: 2rem; color: #666;">
-          No products match the selected status filters.<br>
-          <small>Selected filters: ${Array.from(filterSet).join(', ')}</small><br>
-          <small>Try selecting different statuses or check if products have discontinued_status in magento_product_list.</small>
+          No products match the selected filters.<br>
+          <small>Discontinued status filters: ${Array.from(discontinuedFilterSet).join(', ')}</small><br>
+          <small>Stock status filter: ${stockStatusFilter || 'All'}</small><br>
+          <small>Try adjusting your filters.</small>
         </td>
       </tr>
     `;
+  }
+
+  // Update pagination controls
+  updatePaginationControls();
+}
+
+function matchesStockStatus(metadata, stockStatusFilter) {
+  // Stock status filter based on metadata.status field
+  // This is for overstock/low stock indicators, not discontinued status
+  const metadataStatus = (metadata.status || '').toLowerCase();
+  
+  if (stockStatusFilter === 'overstock') {
+    // Add logic for overstock detection here when available
+    return metadataStatus.includes('overstock');
+  } else if (stockStatusFilter === 'lowstock') {
+    // Add logic for low stock detection here when available
+    return metadataStatus.includes('low') || metadataStatus.includes('lowstock');
+  }
+  
+  return true; // No filter or unknown filter value
+}
+
+function matchesSearch(item, metadata, searchQuery) {
+  // Build searchable text from item and metadata
+  const searchableText = [
+    item.product_name,
+    item.sku,
+    metadata.location,
+    metadata.status,
+    metadata.shelf_lt1,
+    metadata.shelf_gt1
+  ].filter(Boolean).join(' ').toLowerCase();
+  
+  // Split search query into tokens and check if all are present
+  const tokens = searchQuery.split(/\s+/).filter(Boolean);
+  return tokens.every(token => searchableText.includes(token));
+}
+
+function updatePaginationControls() {
+  // Create or update pagination controls
+  let paginationDiv = document.getElementById('inventoryPagination');
+  
+  if (!paginationDiv) {
+    // Create pagination controls if they don't exist
+    const tableWrapper = document.getElementById('inventoryManagementTableWrapper');
+    if (!tableWrapper) return;
+    
+    paginationDiv = document.createElement('div');
+    paginationDiv.id = 'inventoryPagination';
+    paginationDiv.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: var(--inv-surface); border-top: 1px solid var(--inv-border);';
+    
+    tableWrapper.parentNode.insertBefore(paginationDiv, tableWrapper.nextSibling);
+  }
+  
+  const totalPages = Math.ceil(totalFilteredItems / ITEMS_PER_PAGE);
+  const startItem = totalFilteredItems > 0 ? (currentPage * ITEMS_PER_PAGE) + 1 : 0;
+  const endItem = Math.min((currentPage + 1) * ITEMS_PER_PAGE, totalFilteredItems);
+  
+  paginationDiv.innerHTML = `
+    <div style="color: var(--inv-text-muted); font-size: 14px;">
+      Showing ${startItem}-${endItem} of ${totalFilteredItems} products
+    </div>
+    <div style="display: flex; gap: 0.5rem;">
+      <button 
+        id="prevPageBtn" 
+        class="modern-button" 
+        ${currentPage === 0 ? 'disabled' : ''}
+        style="padding: 0.5rem 1rem;">
+        ← Previous
+      </button>
+      <div style="display: flex; align-items: center; padding: 0 1rem; color: var(--inv-text);">
+        Page ${currentPage + 1} of ${totalPages || 1}
+      </div>
+      <button 
+        id="nextPageBtn" 
+        class="modern-button" 
+        ${currentPage >= totalPages - 1 || totalFilteredItems === 0 ? 'disabled' : ''}
+        style="padding: 0.5rem 1rem;">
+        Next →
+      </button>
+    </div>
+  `;
+  
+  // Bind pagination button events
+  const prevBtn = document.getElementById('prevPageBtn');
+  const nextBtn = document.getElementById('nextPageBtn');
+  
+  if (prevBtn) {
+    prevBtn.addEventListener('click', () => {
+      if (currentPage > 0) {
+        currentPage--;
+        setupTable();
+        // Scroll to top of table
+        document.getElementById('inventoryManagementTableScroller')?.scrollTo(0, 0);
+      }
+    });
+  }
+  
+  if (nextBtn) {
+    nextBtn.addEventListener('click', () => {
+      if (currentPage < totalPages - 1) {
+        currentPage++;
+        setupTable();
+        // Scroll to top of table
+        document.getElementById('inventoryManagementTableScroller')?.scrollTo(0, 0);
+      }
+    });
   }
 }
 
@@ -554,22 +715,10 @@ async function saveRowData(row) {
     const updatedWithId = { ...updated, item_id };
     metadataIndex.set(item_id, updatedWithId);
     
-    // Show success feedback
-    row.style.backgroundColor = '#d4edda';
-    setTimeout(() => {
-      row.style.backgroundColor = '';
-    }, 2000);
-    
     console.log('[Inventory Management] Successfully updated:', item_id);
     
   } catch (err) {
     console.error('[Inventory Management] Update failed:', err);
-    
-    // Show error feedback
-    row.style.backgroundColor = '#f8d7da';
-    setTimeout(() => {
-      row.style.backgroundColor = '';
-    }, 3000);
     
     alert(`Failed to save changes: ${err.message}`);
   }
@@ -592,13 +741,13 @@ function setupSearchAndFilters() {
     searchInput.addEventListener('input', searchHandler);
   }
   
-  // Setup status filter checkboxes
-  setupStatusFilters();
+  // Setup discontinued status filter checkboxes
+  setupDiscontinuedStatusFilters();
 }
 
-function setupStatusFilters() {
+function setupDiscontinuedStatusFilters() {
   // Load saved filters and set checkbox states
-  const savedFilters = getSavedStatusFilters();
+  const savedFilters = getSavedDiscontinuedStatusFilters();
   const checkboxes = document.querySelectorAll('.status-filter-checkbox');
   
   checkboxes.forEach(checkbox => {
@@ -613,10 +762,13 @@ function setupStatusFilters() {
         .filter(cb => cb.checked)
         .map(cb => cb.value);
       
-      console.log('[Inventory] Applying filters:', selectedFilters);
+      console.log('[Inventory] Applying discontinued status filters:', selectedFilters);
       
       // Save preferences
-      saveStatusFilters(selectedFilters);
+      saveDiscontinuedStatusFilters(selectedFilters);
+      
+      // Reset to first page when filters change
+      currentPage = 0;
       
       // Re-render table with new filters (no need to reload data from API)
       setupTable();
@@ -638,69 +790,38 @@ function setupStatusFilters() {
 }
 
 const searchHandler = debounce(() => {
-  applyFilters();
+  // Reset to first page when search changes
+  currentPage = 0;
+  setupTable();
 }, 300);
 
+// Stock status dropdown change handler
+function onStockStatusFilterChange() {
+  currentPage = 0;
+  setupTable();
+}
+
 function applyFilters() {
-  const searchInput = document.getElementById('inventorySearch');
-  const statusToggle = document.getElementById('statusToggle');
-  
-  const searchQuery = searchInput?.value || '';
-  const statusFilter = getSelectedValue(statusToggle);
-
-  console.log('[Inventory Management] Applying filters:', { searchQuery, statusFilter });
-
-  const tableBody = document.getElementById('inventoryManagementBody');
-  if (!tableBody) return;
-
-  const rows = Array.from(tableBody.querySelectorAll('tr'));
-  let visibleCount = 0;
-
-  rows.forEach(row => {
-    const entry = rowEntryByEl.get(row);
-    if (!entry) return;
-
-    let visible = true;
-
-    // Search filter
-    if (searchQuery && !entry.search(searchQuery)) {
-      visible = false;
-    }
-
-    // Status filter - now matches the CSS classes used
-    if (statusFilter) {
-      const rowStatus = row.dataset.status || '';
-      if (statusFilter === 'overstock' && !row.classList.contains('status-overstock')) {
-        visible = false;
-      } else if (statusFilter === 'lowstock' && !row.classList.contains('status-lowstock')) {
-        visible = false;
-      }
-    }
-
-    row.style.display = visible ? '' : 'none';
-    if (visible) visibleCount++;
-  });
-
-  console.log(`[Inventory Management] ${visibleCount} of ${rows.length} rows visible`);
+  // Deprecated - search is now handled by rebuilding the table
+  // This function is kept for compatibility but does nothing
+  console.log('[Inventory Management] applyFilters called (deprecated)');
 }
 
 function getSelectedValue(toggle) {
   if (!toggle) return '';
   const text = toggle.textContent;
-  // Extract value from dropdown selections like "London ▼" -> "London"
+  // Extract value from dropdown selections like "Overstock ▼" -> "Overstock"
   const match = text.match(/^(.+?)\s*▼?$/);
   const value = match ? match[1].trim() : text.trim();
   
-  // Map display text to actual values
+  // Map display text to actual filter values
   const valueMap = {
-    'All Locations': '',
-    'All Status': '',
-    'Low Stock': 'low_stock',
-    'Out of Stock': 'out_of_stock',
-    'Active': 'active'
+    'All Stock Status': '',
+    'Overstock': 'overstock',
+    'Low Stock': 'lowstock'
   };
   
-  return valueMap[value] || value;
+  return valueMap[value] || '';
 }
 
 function bindGlobalHandlers() {
@@ -878,6 +999,16 @@ export function cleanup() {
   inventoryData = [];
   metadataIndex.clear();
   rowEntryByEl.clear();
+  
+  // Reset pagination
+  currentPage = 0;
+  totalFilteredItems = 0;
+  
+  // Remove pagination controls
+  const paginationDiv = document.getElementById('inventoryPagination');
+  if (paginationDiv) {
+    paginationDiv.remove();
+  }
   
   // Remove global functions
   if (window.saveRow) {
