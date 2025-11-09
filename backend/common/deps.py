@@ -6,6 +6,7 @@ from fastapi import Depends, HTTPException, UploadFile, Header
 from core.db import (
     get_psycopg_connection,
     get_inventory_log_connection,
+    get_products_connection,
     get_sqlalchemy_engine,
 )
 from core.security import get_current_user as _get_current_user
@@ -63,6 +64,23 @@ def inventory_conn():
     Automatically commits on successful exit, rolls back on exception.
     """
     conn = get_inventory_log_connection()
+    try:
+        yield conn
+        conn.commit()  # Auto-commit on success (including read operations)
+    except Exception:
+        conn.rollback()  # Auto-rollback on error
+        raise
+    finally:
+        conn.close()
+
+
+@contextmanager
+def products_conn():
+    """
+    Context manager for the products DB (sales data, condensed_sales, etc.).
+    Automatically commits on successful exit, rolls back on exception.
+    """
+    conn = get_products_connection()
     try:
         yield conn
         conn.commit()  # Auto-commit on success (including read operations)

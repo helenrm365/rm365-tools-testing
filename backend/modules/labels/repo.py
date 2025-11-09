@@ -2,6 +2,7 @@
 from __future__ import annotations
 from typing import List, Dict, Any, Optional, Tuple
 import logging
+from common.deps import products_conn
 
 logger = logging.getLogger(__name__)
 log = logging.getLogger("labels")
@@ -95,7 +96,7 @@ class LabelsRepo:
         # Get UK 6M data - use separate connection to avoid transaction issues
         uk_data = {}
         try:
-            with inventory_conn() as uk_conn:
+            with products_conn() as uk_conn:
                 with uk_conn.cursor() as cur:
                     cur.execute("""
                         SELECT sku, total_qty 
@@ -114,7 +115,7 @@ class LabelsRepo:
         # Get FR data - use separate connection
         fr_data = {}
         try:
-            with inventory_conn() as fr_conn:
+            with products_conn() as fr_conn:
                 with fr_conn.cursor() as cur:
                     cur.execute("""
                         SELECT sku, total_qty 
@@ -132,7 +133,7 @@ class LabelsRepo:
         # Get NL data - use separate connection
         nl_data = {}
         try:
-            with inventory_conn() as nl_conn:
+            with products_conn() as nl_conn:
                 with nl_conn.cursor() as cur:
                     cur.execute("""
                         SELECT sku, total_qty 
@@ -289,15 +290,22 @@ class LabelsRepo:
 
     def _resolve_to_rows(
         self,
-        conn,
-        zoho_map: Dict[str, str],       # sku -> item_id  (from get_zoho_items_with_skus)
+        inventory_conn,  # for magento_product_list
         candidate_skus: List[str],
+        zoho_map: Dict[str, str],       # sku -> item_id  (from get_zoho_items_with_skus)
         zoho_name_lookup: Optional[Dict[str, str]] = None,  # if later you return names too
         preferred_region: str = "uk",  # region preference for price/name selection
     ) -> List[Dict[str, Any]]:
         """
         Collapse per-base to base/-MD, map to Zoho, attach 6M data.
-        SKUs come from UK (magento), but prices/names can come from any region.
+        SKUs come from UK (magento), but prices/names come from products database.
+        
+        Args:
+            inventory_conn: Connection to inventory_logs database (for magento)
+            candidate_skus: List of SKUs to process
+            zoho_map: Mapping of SKUs to Zoho item IDs
+            zoho_name_lookup: Optional mapping of SKUs to product names
+            preferred_region: Region preference for pricing (uk/fr/nl)
         """
         if not candidate_skus:
             return []
@@ -337,17 +345,21 @@ class LabelsRepo:
         all_skus = list(set([t[1] for t in resolved.values()]))
         logger.info(f"Loading data for {len(all_skus)} unique SKUs from {len(resolved)} products")
         
+        # Load sales data from products database (separate connection from magento)
         # Load 6M data (UK separate, FR+NL combined) from condensed sales tables
-        sixm = self._load_six_month_data_psycopg(conn, resolved)
-        logger.info(f"Loaded 6M data for {len(sixm)} items")
+        with products_conn() as prod_conn:
+            sixm = self._load_six_month_data_psycopg(prod_conn, resolved)
+            logger.info(f"Loaded 6M data for {len(sixm)} items")
         
         # Load prices with region preference
-        prices = self._load_latest_prices_psycopg(conn, all_skus, preferred_region)
-        logger.info(f"Loaded prices for {len(prices)} SKUs (region: {preferred_region})")
+        with products_conn() as prod_conn:
+            prices = self._load_latest_prices_psycopg(prod_conn, all_skus, preferred_region)
+            logger.info(f"Loaded prices for {len(prices)} SKUs (region: {preferred_region})")
         
         # Load product names from sales data with region preference (fallback for empty Zoho names)
-        sales_names = self._load_product_names_psycopg(conn, all_skus, preferred_region)
-        logger.info(f"Loaded names for {len(sales_names)} SKUs (region: {preferred_region})")
+        with products_conn() as prod_conn:
+            sales_names = self._load_product_names_psycopg(prod_conn, all_skus, preferred_region)
+            logger.info(f"Loaded names for {len(sales_names)} SKUs (region: {preferred_region})")
 
         # build rows
         out: List[Dict[str, Any]] = []
@@ -403,8 +415,8 @@ class LabelsRepo:
 
         return self._resolve_to_rows(
             conn,
-            sku_to_item_id,  # existing param
             magento_skus,
+            sku_to_item_id,
             zoho_name_lookup=sku_to_name,  # <— NEW: passes names through
             preferred_region=preferred_region,  # <— NEW: region preference
         )
@@ -439,4 +451,4 @@ class LabelsRepo:
                 (csv_skus,)
             )
             allowed = [str(r[0]).strip() for r in cur.fetchall()]
-        return self._resolve_to_rows(conn, zoho_sku_to_item_id, allowed, preferred_region=preferred_region)
+        return self._resolve_to_rows(conn, allowed, zoho_sku_to_item_id, preferred_region=preferred_region)
