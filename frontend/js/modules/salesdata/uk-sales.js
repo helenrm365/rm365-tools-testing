@@ -62,6 +62,12 @@ function setupEventListeners() {
   const clearSearchBtn = document.getElementById('clearSearchBtn');
   const searchInput = document.getElementById('searchInput');
   
+  console.log('[UK Sales] Search elements:', {
+    searchInput: searchInput ? 'FOUND' : 'NOT FOUND',
+    searchBtn: searchBtn ? 'FOUND' : 'NOT FOUND',
+    clearSearchBtn: clearSearchBtn ? 'FOUND' : 'NOT FOUND'
+  });
+  
   let searchTimeout = null;
   
   // Perform search function - queries server for ALL matching records
@@ -125,32 +131,47 @@ function setupEventListeners() {
   
   // Add event listeners
   if (searchInput) {
+    console.log('[UK Sales] Adding input event listener to search field');
     // Debounced real-time search as user types
-    searchInput.addEventListener('input', debouncedSearch);
+    searchInput.addEventListener('input', (e) => {
+      console.log('[UK Sales] Input event fired! Current value:', e.target.value);
+      debouncedSearch();
+    });
     
     // Enter key to search immediately
     searchInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
+        console.log('[UK Sales] Enter key pressed in search');
         e.preventDefault();
         if (searchTimeout) clearTimeout(searchTimeout);
         performSearch();
       }
     });
+  } else {
+    console.error('[UK Sales] Search input element not found! Cannot attach event listeners.');
   }
   
   if (searchBtn) {
+    console.log('[UK Sales] Adding click event listener to search button');
     searchBtn.addEventListener('click', (e) => {
+      console.log('[UK Sales] Search button clicked');
       e.preventDefault();
       if (searchTimeout) clearTimeout(searchTimeout);
       performSearch();
     });
+  } else {
+    console.error('[UK Sales] Search button not found!');
   }
   
   if (clearSearchBtn) {
+    console.log('[UK Sales] Adding click event listener to clear button');
     clearSearchBtn.addEventListener('click', (e) => {
+      console.log('[UK Sales] Clear button clicked');
       e.preventDefault();
       clearSearch();
     });
+  } else {
+    console.error('[UK Sales] Clear search button not found!');
   }
   
   // Pagination
