@@ -60,10 +60,10 @@ function setupEventListeners() {
   // Search functionality - server-side query with fuzzy matching
   const searchBtn = document.getElementById('searchBtn');
   const clearSearchBtn = document.getElementById('clearSearchBtn');
-  const searchInput = document.getElementById('searchInput');
+  const searchInput = document.getElementById('salesSearchInput');
   
   // Check for duplicate elements with same ID
-  const allSearchInputs = document.querySelectorAll('#searchInput');
+  const allSearchInputs = document.querySelectorAll('#salesSearchInput');
   const allSearchInputsByClass = document.querySelectorAll('.search-input');
   
   console.log('[UK Sales] Search elements:', {
@@ -71,7 +71,7 @@ function setupEventListeners() {
     searchBtn: searchBtn ? 'FOUND' : 'NOT FOUND',
     clearSearchBtn: clearSearchBtn ? 'FOUND' : 'NOT FOUND'
   });
-  console.log('[UK Sales] DUPLICATE CHECK - Elements with id="searchInput":', allSearchInputs.length);
+  console.log('[UK Sales] DUPLICATE CHECK - Elements with id="salesSearchInput":', allSearchInputs.length);
   console.log('[UK Sales] DUPLICATE CHECK - Elements with class="search-input":', allSearchInputsByClass.length);
   allSearchInputs.forEach((el, idx) => {
     console.log(`[UK Sales] searchInput #${idx}:`, el, 'Parent:', el.parentElement);
@@ -81,7 +81,7 @@ function setupEventListeners() {
   
   // Perform search function - queries server for ALL matching records
   const performSearch = async () => {
-    const inputElement = document.getElementById('searchInput');
+    const inputElement = document.getElementById('salesSearchInput');
     if (!inputElement) {
       console.warn('[UK Sales] Search input not found');
       return;
@@ -122,7 +122,7 @@ function setupEventListeners() {
   
   // Clear search function - returns to pagination mode
   const clearSearch = () => {
-    const inputElement = document.getElementById('searchInput');
+    const inputElement = document.getElementById('salesSearchInput');
     if (inputElement) {
       inputElement.value = '';
     }
@@ -177,7 +177,7 @@ function setupEventListeners() {
     console.log('[UK Sales] Adding click event listener to search button');
     searchBtn.addEventListener('click', (e) => {
       console.log('[UK Sales] Search button clicked');
-      console.log('[UK Sales] At button click, searchInput.value is:', document.getElementById('searchInput').value);
+      console.log('[UK Sales] At button click, searchInput.value is:', document.getElementById('salesSearchInput').value);
       e.preventDefault();
       if (searchTimeout) clearTimeout(searchTimeout);
       performSearch();
