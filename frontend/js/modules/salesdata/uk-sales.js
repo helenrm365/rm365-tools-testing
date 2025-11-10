@@ -255,16 +255,15 @@ async function loadSalesData() {
   try {
     console.log(`[UK Sales] Loading data - Mode: ${viewMode}, Page: ${currentPage + 1}`);
     
-    // For condensed view, always load all data
-    if (viewMode === 'condensed') {
-      await loadAllDataForCondensed();
-      return;
-    }
-    
-    // For full view in pagination mode, load 100 records at a time
+    // Both full and condensed views now use server-side pagination (100 records at a time)
     const offset = currentPage * pageSize;
     
-    const result = await getUKSalesData(pageSize, offset, '');
+    let result;
+    if (viewMode === 'condensed') {
+      result = await getUKCondensedData(pageSize, offset, '');
+    } else {
+      result = await getUKSalesData(pageSize, offset, '');
+    }
     
     if (result.status === 'success' && result.data) {
       allData = result.data;
@@ -334,54 +333,6 @@ async function loadSearchResults(searchTerm) {
 }
 
 /**
- * Load ALL data for condensed view
- */
-async function loadAllDataForCondensed() {
-  const tbody = document.getElementById('salesTableBody');
-  const colSpan = '4';
-  
-  if (!tbody) return;
-  
-  tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem;">Loading condensed data...</td></tr>`;
-  
-  try {
-    allData = [];
-    const batchSize = 1000;
-    let offset = 0;
-    let hasMore = true;
-    
-    while (hasMore) {
-      const result = await getUKCondensedData(batchSize, offset, '');
-      
-      if (result.status === 'success' && result.data && result.data.length > 0) {
-        allData = allData.concat(result.data);
-        offset += batchSize;
-        
-        // Update loading message
-        tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem;">Loading condensed data... (${allData.length} SKUs loaded)</td></tr>`;
-        
-        if (result.data.length < batchSize) {
-          hasMore = false;
-        }
-      } else {
-        hasMore = false;
-      }
-    }
-    
-    console.log(`[UK Sales] Loaded ${allData.length} condensed records`);
-    
-    // Reset to first page and display
-    currentPage = 0;
-    totalRecords = allData.length;
-    displayCurrentPage();
-  } catch (error) {
-    console.error('[UK Sales] Error loading condensed data:', error);
-    tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem; color: red;">Error: ${error.message}</td></tr>`;
-    showToast('Error loading data: ' + error.message, 'error');
-  }
-}
-
-/**
  * Display current page of data (works for both pagination and search modes)
  */
 function displayCurrentPage() {
@@ -406,33 +357,12 @@ function displayCurrentPage() {
     return;
   }
   
-  // In pagination mode (not search), we only have one page of data loaded
-  // In search mode with new approach, we also use server-side pagination
-  // Only condensed view uses client-side pagination of all loaded data
-  let pageData;
-  let totalPages;
+  // All views now use server-side pagination (100 records at a time)
+  // Display all data from the current page load
+  const pageData = allData;
+  const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize));
   
-  if (viewMode === 'condensed') {
-    // Client-side pagination of all loaded data (condensed view loads everything)
-    totalPages = Math.max(1, Math.ceil(allData.length / pageSize));
-    
-    // Ensure current page is valid
-    if (currentPage >= totalPages) {
-      currentPage = Math.max(0, totalPages - 1);
-    }
-    
-    const startIdx = currentPage * pageSize;
-    const endIdx = Math.min(startIdx + pageSize, allData.length);
-    pageData = allData.slice(startIdx, endIdx);
-    
-    console.log(`[UK Sales] Client-side pagination - Page ${currentPage + 1} of ${totalPages} (rows ${startIdx + 1}-${endIdx} of ${allData.length})`);
-  } else {
-    // Server-side pagination - display all data from current page (both normal and search modes)
-    pageData = allData;
-    totalPages = Math.max(1, Math.ceil(totalRecords / pageSize));
-    
-    console.log(`[UK Sales] Server-side pagination - Page ${currentPage + 1} of ${totalPages} (showing ${allData.length} of ${totalRecords} total)`);
-  }
+  console.log(`[UK Sales] Server-side pagination - Page ${currentPage + 1} of ${totalPages} (showing ${allData.length} of ${totalRecords} total)`);
   
   // Display the data
   if (viewMode === 'condensed') {
@@ -449,7 +379,7 @@ function displayCurrentPage() {
     if (isSearchMode) {
       pageInfo.textContent = `${viewLabel}${searchLabel} - Page ${currentPage + 1} of ${totalPages} (${totalRecords} matching records)`;
     } else if (viewMode === 'condensed') {
-      pageInfo.textContent = `${viewLabel} - Page ${currentPage + 1} of ${totalPages} (${allData.length} total SKUs)`;
+      pageInfo.textContent = `${viewLabel} - Page ${currentPage + 1} of ${totalPages} (${totalRecords} total SKUs)`;
     } else {
       pageInfo.textContent = `${viewLabel} - Page ${currentPage + 1} of ${totalPages} (${totalRecords} total records)`;
     }
@@ -470,15 +400,9 @@ function updatePaginationButtons() {
   }
   
   if (nextBtn) {
-    if (viewMode === 'condensed') {
-      // In condensed view, check against total pages of loaded data (client-side pagination)
-      const totalPages = Math.ceil(allData.length / pageSize);
-      nextBtn.disabled = currentPage >= totalPages - 1 || allData.length === 0;
-    } else {
-      // In pagination mode (both normal and search), check against total records from server
-      const totalPages = Math.ceil(totalRecords / pageSize);
-      nextBtn.disabled = currentPage >= totalPages - 1 || totalRecords === 0;
-    }
+    // All views use server-side pagination now, check against total records from server
+    const totalPages = Math.ceil(totalRecords / pageSize);
+    nextBtn.disabled = currentPage >= totalPages - 1 || totalRecords === 0;
   }
 }
 
