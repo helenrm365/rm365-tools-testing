@@ -136,9 +136,18 @@ function setupEventListeners() {
   // Add event listeners
   if (searchInput) {
     console.log('[UK Sales] Adding input event listener to search field');
+    console.log('[UK Sales] Search input element ID:', searchInput.id);
+    console.log('[UK Sales] Search input initial value:', searchInput.value);
+    
+    // Test: Can we set the value programmatically?
+    searchInput.value = 'TEST';
+    console.log('[UK Sales] After setting to TEST, value is:', searchInput.value);
+    searchInput.value = '';
+    
     // Debounced real-time search as user types
     searchInput.addEventListener('input', (e) => {
       console.log('[UK Sales] Input event fired! Current value:', e.target.value);
+      console.log('[UK Sales] Input event - searchInput.value:', searchInput.value);
       debouncedSearch();
     });
     
@@ -159,6 +168,7 @@ function setupEventListeners() {
     console.log('[UK Sales] Adding click event listener to search button');
     searchBtn.addEventListener('click', (e) => {
       console.log('[UK Sales] Search button clicked');
+      console.log('[UK Sales] At button click, searchInput.value is:', document.getElementById('searchInput').value);
       e.preventDefault();
       if (searchTimeout) clearTimeout(searchTimeout);
       performSearch();
