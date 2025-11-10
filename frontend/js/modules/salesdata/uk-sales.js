@@ -407,12 +407,13 @@ function displayCurrentPage() {
   }
   
   // In pagination mode (not search), we only have one page of data loaded
-  // In search mode or condensed view, we have all data and paginate client-side
+  // In search mode with new approach, we also use server-side pagination
+  // Only condensed view uses client-side pagination of all loaded data
   let pageData;
   let totalPages;
   
-  if (isSearchMode || viewMode === 'condensed') {
-    // Client-side pagination of all loaded data
+  if (viewMode === 'condensed') {
+    // Client-side pagination of all loaded data (condensed view loads everything)
     totalPages = Math.max(1, Math.ceil(allData.length / pageSize));
     
     // Ensure current page is valid
@@ -426,7 +427,7 @@ function displayCurrentPage() {
     
     console.log(`[UK Sales] Client-side pagination - Page ${currentPage + 1} of ${totalPages} (rows ${startIdx + 1}-${endIdx} of ${allData.length})`);
   } else {
-    // Server-side pagination - display all data from current page
+    // Server-side pagination - display all data from current page (both normal and search modes)
     pageData = allData;
     totalPages = Math.max(1, Math.ceil(totalRecords / pageSize));
     
@@ -446,7 +447,7 @@ function displayCurrentPage() {
     const searchLabel = currentSearch ? ` (search: "${currentSearch}")` : '';
     
     if (isSearchMode) {
-      pageInfo.textContent = `${viewLabel}${searchLabel} - Page ${currentPage + 1} of ${totalPages} (${allData.length} matching records)`;
+      pageInfo.textContent = `${viewLabel}${searchLabel} - Page ${currentPage + 1} of ${totalPages} (${totalRecords} matching records)`;
     } else if (viewMode === 'condensed') {
       pageInfo.textContent = `${viewLabel} - Page ${currentPage + 1} of ${totalPages} (${allData.length} total SKUs)`;
     } else {
@@ -469,12 +470,12 @@ function updatePaginationButtons() {
   }
   
   if (nextBtn) {
-    if (isSearchMode || viewMode === 'condensed') {
-      // In search mode or condensed view, check against total pages of loaded data
+    if (viewMode === 'condensed') {
+      // In condensed view, check against total pages of loaded data (client-side pagination)
       const totalPages = Math.ceil(allData.length / pageSize);
       nextBtn.disabled = currentPage >= totalPages - 1 || allData.length === 0;
     } else {
-      // In pagination mode, check against total records from server
+      // In pagination mode (both normal and search), check against total records from server
       const totalPages = Math.ceil(totalRecords / pageSize);
       nextBtn.disabled = currentPage >= totalPages - 1 || totalRecords === 0;
     }
