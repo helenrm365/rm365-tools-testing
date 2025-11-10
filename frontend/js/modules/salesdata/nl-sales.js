@@ -61,7 +61,9 @@ function setupEventListeners() {
   
   if (searchBtn) {
     searchBtn.addEventListener('click', () => {
-      currentSearch = searchInput?.value || '';
+      const searchValue = searchInput?.value?.trim() || '';
+      console.log('[NL Sales] Search triggered with value:', searchValue);
+      currentSearch = searchValue;
       currentPage = 0;
       loadSalesData();
     });
@@ -72,6 +74,7 @@ function setupEventListeners() {
       if (searchInput) searchInput.value = '';
       currentSearch = '';
       currentPage = 0;
+      console.log('[NL Sales] Search cleared');
       loadSalesData();
     });
   }
@@ -79,7 +82,9 @@ function setupEventListeners() {
   if (searchInput) {
     searchInput.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') {
-        currentSearch = searchInput.value;
+        const searchValue = searchInput.value?.trim() || '';
+        console.log('[NL Sales] Search triggered (Enter key) with value:', searchValue);
+        currentSearch = searchValue;
         currentPage = 0;
         loadSalesData();
       }
@@ -130,6 +135,8 @@ async function loadSalesData() {
     const offset = currentPage * pageSize;
     let result;
     
+    console.log(`[NL Sales] Loading data - Mode: ${viewMode}, Page: ${currentPage}, Search: "${currentSearch}"`);
+    
     if (viewMode === 'condensed') {
       result = await getNLCondensedData(pageSize, offset, currentSearch);
       displayCondensedData(result.data, result.total_count);
@@ -139,11 +146,14 @@ async function loadSalesData() {
     }
     
     if (result.status === 'success') {
+      console.log(`[NL Sales] Loaded ${result.data.length} records (${result.total_count} total)`);
+      
       // Update pagination info
       if (pageInfo) {
         const totalPages = Math.ceil(result.total_count / pageSize);
         const viewLabel = viewMode === 'condensed' ? 'Condensed (6-Month)' : 'Full Sales';
-        pageInfo.textContent = `${viewLabel} - Page ${currentPage + 1} of ${totalPages} (${result.total_count} total records)`;
+        const searchLabel = currentSearch ? ` (filtered by "${currentSearch}")` : '';
+        pageInfo.textContent = `${viewLabel}${searchLabel} - Page ${currentPage + 1} of ${totalPages} (${result.total_count} total records)`;
       }
       
       // Update pagination buttons
