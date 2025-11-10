@@ -3,13 +3,12 @@ import { getFRSalesData, uploadFRSalesCSV, getFRCondensedData, refreshCondensedD
 import { showToast } from '../../ui/toast.js';
 
 let currentPage = 0;
-const pageSize = 100;
+const pageSize = 100; // Display 100 records per page
 let currentSearch = '';
 let viewMode = 'full'; // 'full' or 'condensed'
-let allData = []; // Store all loaded data for client-side filtering
-let filteredData = []; // Store filtered results
-let totalAvailableRecords = 0; // Total records in database
-let isSearchMode = false; // Whether we're in search mode (all data loaded) or pagination mode
+let allData = []; // Store loaded data
+let totalRecords = 0; // Total records available (from server count)
+let isSearchMode = false; // Whether we're in search mode (all matching results loaded) or pagination mode
 
 /**
  * Initialize FR sales page
@@ -63,7 +62,9 @@ function setupEventListeners() {
   const clearSearchBtn = document.getElementById('clearSearchBtn');
   const searchInput = document.getElementById('searchInput');
   
-  // Perform search function - loads ALL data when searching
+  let searchTimeout = null;
+  
+  // Perform search function - queries server for ALL matching records
   const performSearch = async () => {
     const inputElement = document.getElementById('searchInput');
     if (!inputElement) {
@@ -77,20 +78,23 @@ function setupEventListeners() {
     currentSearch = searchValue;
     currentPage = 0;
     
-    // If there's a search term, load ALL data to search through
     if (searchValue.length > 0) {
-      if (!isSearchMode) {
-        console.log('[FR Sales] Entering search mode - loading all records...');
-        await loadAllDataForSearch();
-        isSearchMode = true;
-      }
-      // Apply filter after data is loaded
-      applySearchFilter();
+      // Enter search mode - load ALL matching records from server
+      isSearchMode = true;
+      await loadSearchResults(searchValue);
     } else {
-      // No search - just apply filter to current data
+      // No search - return to pagination mode
       isSearchMode = false;
-      applySearchFilter();
+      await loadSalesData();
     }
+  };
+  
+  // Debounced search for real-time filtering
+  const debouncedSearch = () => {
+    if (searchTimeout) clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+      performSearch();
+    }, 400); // Wait 400ms after user stops typing
   };
   
   // Clear search function - returns to pagination mode
@@ -111,13 +115,14 @@ function setupEventListeners() {
   
   // Add event listeners
   if (searchInput) {
-    // Real-time search as user types
-    searchInput.addEventListener('input', performSearch);
+    // Debounced real-time search as user types
+    searchInput.addEventListener('input', debouncedSearch);
     
-    // Enter key to search
+    // Enter key to search immediately
     searchInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
+        if (searchTimeout) clearTimeout(searchTimeout);
         performSearch();
       }
     });
@@ -126,6 +131,7 @@ function setupEventListeners() {
   if (searchBtn) {
     searchBtn.addEventListener('click', (e) => {
       e.preventDefault();
+      if (searchTimeout) clearTimeout(searchTimeout);
       performSearch();
     });
   }
@@ -146,10 +152,10 @@ function setupEventListeners() {
       if (currentPage > 0) {
         currentPage--;
         if (isSearchMode) {
-          // In search mode, just re-filter existing data
-          applySearchFilter();
+          // In search mode, navigate through client-side pages
+          displayCurrentPage();
         } else {
-          // In pagination mode, load previous page from server
+          // In pagination mode, load previous 100 records from server
           loadSalesData();
         }
       }
@@ -159,14 +165,14 @@ function setupEventListeners() {
   if (nextBtn) {
     nextBtn.addEventListener('click', () => {
       if (isSearchMode) {
-        // In search mode, check against filtered data
-        const totalPages = Math.ceil(filteredData.length / pageSize);
+        // In search mode, navigate through client-side pages of all search results
+        const totalPages = Math.ceil(allData.length / pageSize);
         if (currentPage < totalPages - 1) {
           currentPage++;
-          applySearchFilter();
+          displayCurrentPage();
         }
       } else {
-        // In pagination mode, load next page from server
+        // In pagination mode, load next 100 records from server
         currentPage++;
         loadSalesData();
       }
@@ -181,7 +187,7 @@ function setupEventListeners() {
 }
 
 /**
- * Load sales data from the backend - pagination mode (1000 records at a time)
+ * Load sales data from the backend - pagination mode (100 records at a time)
  */
 async function loadSalesData() {
   const tbody = document.getElementById('salesTableBody');
@@ -202,21 +208,19 @@ async function loadSalesData() {
       return;
     }
     
-    // For full view in pagination mode, load 1000 records at a time
-    const batchSize = 1000;
-    const offset = currentPage * batchSize;
+    // For full view in pagination mode, load 100 records at a time
+    const offset = currentPage * pageSize;
     
-    const result = await getFRSalesData(batchSize, offset, '');
+    const result = await getFRSalesData(pageSize, offset, '');
     
     if (result.status === 'success' && result.data) {
       allData = result.data;
-      totalAvailableRecords = result.total || allData.length;
+      totalRecords = result.total_count || 0;
       
-      console.log(`[FR Sales] Loaded ${allData.length} records (offset: ${offset})`);
+      console.log(`[FR Sales] Loaded ${allData.length} records (offset: ${offset}, total: ${totalRecords})`);
       
       // Display the data
-      filteredData = allData.slice();
-      applySearchFilter();
+      displayCurrentPage();
     } else {
       console.error('[FR Sales] Failed to load data:', result.message);
       tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem; color: red;">Error: ${result.message}</td></tr>`;
@@ -231,7 +235,7 @@ async function loadSalesData() {
 }
 
 /**
- * Load search results - queries ALL records matching the search term
+ * Load search results - queries ALL records matching the search term from server
  */
 async function loadSearchResults(searchTerm) {
   const tbody = document.getElementById('salesTableBody');
@@ -239,14 +243,14 @@ async function loadSearchResults(searchTerm) {
   
   if (!tbody) return;
   
-  tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem;">Searching all records for "${searchTerm}"...</td></tr>`;
+  tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem;">Searching for "${searchTerm}"...</td></tr>`;
   
   try {
     console.log(`[FR Sales] Searching for: "${searchTerm}"`);
     
-    // Load ALL records in batches with the search term
+    // Load ALL matching records from server in batches
     allData = [];
-    const batchSize = 1000;
+    const batchSize = 1000; // Fetch in larger batches for search
     let offset = 0;
     let hasMore = true;
     
@@ -276,135 +280,14 @@ async function loadSearchResults(searchTerm) {
     
     console.log(`[FR Sales] Search complete: ${allData.length} records match "${searchTerm}"`);
     
-    // Apply fuzzy matching on the results for better relevance
-    if (allData.length > 0) {
-      filteredData = fuzzyFilter(allData, searchTerm);
-      console.log(`[FR Sales] After fuzzy filtering: ${filteredData.length} records`);
-    } else {
-      filteredData = [];
-    }
-    
-    totalAvailableRecords = filteredData.length;
+    totalRecords = allData.length;
     currentPage = 0;
-    applySearchFilter();
+    displayCurrentPage();
     
   } catch (error) {
     console.error('[FR Sales] Error searching data:', error);
     tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem; color: red;">Search error: ${error.message}</td></tr>`;
     showToast('Search error: ' + error.message, 'error');
-  }
-}
-
-/**
- * Fuzzy filter - scores and sorts results by relevance
- */
-function fuzzyFilter(data, searchTerm) {
-  if (!searchTerm || searchTerm.length === 0) return data;
-  
-  const searchLower = searchTerm.toLowerCase();
-  const searchWords = searchLower.split(/\s+/).filter(w => w.length > 0);
-  
-  // Score each row based on how well it matches the search
-  const scored = data.map(row => {
-    let score = 0;
-    const fields = [
-      row.order_number,
-      row.sku,
-      row.name,
-      row.status,
-      row.customer_group,
-      row.currency,
-      row.created_at,
-      row.price,
-      row.qty,
-      row.total_qty
-    ];
-    
-    const rowText = fields.filter(Boolean).join(' ').toLowerCase();
-    
-    // Exact phrase match = highest score
-    if (rowText.includes(searchLower)) {
-      score += 100;
-    }
-    
-    // All words present = high score
-    const allWordsPresent = searchWords.every(word => rowText.includes(word));
-    if (allWordsPresent) {
-      score += 50;
-    }
-    
-    // Count matching words
-    searchWords.forEach(word => {
-      if (rowText.includes(word)) {
-        score += 10;
-      }
-      
-      // Fuzzy match: check if field starts with search word
-      fields.forEach(field => {
-        if (field) {
-          const fieldLower = String(field).toLowerCase();
-          if (fieldLower.startsWith(word)) {
-            score += 20;
-          }
-          // Partial match within word
-          if (fieldLower.includes(word)) {
-            score += 5;
-          }
-        }
-      });
-    });
-    
-    return { row, score };
-  });
-  
-  // Filter out items with score 0, then sort by score descending
-  return scored
-    .filter(item => item.score > 0)
-    .sort((a, b) => b.score - a.score)
-    .map(item => item.row);
-}
-
-/**
- * Load ALL data for search mode
- */
-async function loadAllDataForSearch() {
-  const tbody = document.getElementById('salesTableBody');
-  const colSpan = viewMode === 'condensed' ? '4' : '9';
-  
-  if (!tbody) return;
-  
-  tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem;">Loading all records for search...</td></tr>`;
-  
-  try {
-    allData = [];
-    const batchSize = 1000;
-    let offset = 0;
-    let hasMore = true;
-    
-    while (hasMore) {
-      const result = await getFRSalesData(batchSize, offset, '');
-      
-      if (result.status === 'success' && result.data && result.data.length > 0) {
-        allData = allData.concat(result.data);
-        offset += batchSize;
-        
-        // Update loading message
-        tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem;">Loading all records for search... (${allData.length} loaded)</td></tr>`;
-        
-        // If we got less than batchSize, we've reached the end
-        if (result.data.length < batchSize) {
-          hasMore = false;
-        }
-      } else {
-        hasMore = false;
-      }
-    }
-    
-    console.log(`[FR Sales] Loaded ALL ${allData.length} records for search`);
-    totalAvailableRecords = allData.length;
-  } catch (error) {
-    console.error('[FR Sales] Error loading all data for search:', error);
-    showToast('Error loading data for search: ' + error.message, 'error');
   }
 }
 
@@ -445,11 +328,10 @@ async function loadAllDataForCondensed() {
     
     console.log(`[FR Sales] Loaded ${allData.length} condensed records`);
     
-    // Reset to first page and apply filter
+    // Reset to first page and display
     currentPage = 0;
-    isSearchMode = false; // Condensed always shows all
-    filteredData = allData.slice();
-    applySearchFilter();
+    totalRecords = allData.length;
+    displayCurrentPage();
   } catch (error) {
     console.error('[FR Sales] Error loading condensed data:', error);
     tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem; color: red;">Error: ${error.message}</td></tr>`;
@@ -458,10 +340,10 @@ async function loadAllDataForCondensed() {
 }
 
 /**
- * Filter and display data based on current search term
+ * Display current page of data (works for both pagination and search modes)
  */
-function applySearchFilter() {
-  console.log('[FR Sales] Applying search filter:', currentSearch, '| Search mode:', isSearchMode);
+function displayCurrentPage() {
+  console.log('[FR Sales] Displaying current page:', currentPage + 1, '| Search mode:', isSearchMode);
   
   const tbody = document.getElementById('salesTableBody');
   const pageInfo = document.getElementById('pageInfo');
@@ -471,58 +353,72 @@ function applySearchFilter() {
     return;
   }
   
-  // In search mode, filteredData is already prepared by loadSearchResults with fuzzy matching
-  // Just use it directly without re-filtering
-  if (isSearchMode) {
-    console.log(`[FR Sales] Using pre-filtered search results: ${filteredData.length} rows`);
-    // filteredData is already set by loadSearchResults, don't modify it
-  } else {
-    // Pagination mode - check if data is loaded
-    if (!allData || allData.length === 0) {
-      const colSpan = viewMode === 'condensed' ? '4' : '9';
-      tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem;">No data available</td></tr>`;
-      if (pageInfo) {
-        pageInfo.textContent = 'No data loaded';
-      }
-      return;
+  // Check if data is loaded
+  if (!allData || allData.length === 0) {
+    const colSpan = viewMode === 'condensed' ? '4' : '9';
+    tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem;">No data available</td></tr>`;
+    if (pageInfo) {
+      pageInfo.textContent = 'No data loaded';
+    }
+    updatePaginationButtons();
+    return;
+  }
+  
+  // In pagination mode (not search), we only have one page of data loaded
+  // In search mode or condensed view, we have all data and paginate client-side
+  let pageData;
+  let totalPages;
+  
+  if (isSearchMode || viewMode === 'condensed') {
+    // Client-side pagination of all loaded data
+    totalPages = Math.max(1, Math.ceil(allData.length / pageSize));
+    
+    // Ensure current page is valid
+    if (currentPage >= totalPages) {
+      currentPage = Math.max(0, totalPages - 1);
     }
     
-    // Pagination mode - show all loaded data
-    filteredData = allData.slice();
-    console.log(`[FR Sales] Pagination mode - showing ${allData.length} rows`);
+    const startIdx = currentPage * pageSize;
+    const endIdx = Math.min(startIdx + pageSize, allData.length);
+    pageData = allData.slice(startIdx, endIdx);
+    
+    console.log(`[FR Sales] Client-side pagination - Page ${currentPage + 1} of ${totalPages} (rows ${startIdx + 1}-${endIdx} of ${allData.length})`);
+  } else {
+    // Server-side pagination - display all data from current page
+    pageData = allData;
+    totalPages = Math.max(1, Math.ceil(totalRecords / pageSize));
+    
+    console.log(`[FR Sales] Server-side pagination - Page ${currentPage + 1} of ${totalPages} (showing ${allData.length} of ${totalRecords} total)`);
   }
-  
-  // Calculate pagination
-  const totalFiltered = filteredData.length;
-  const totalPages = Math.max(1, Math.ceil(totalFiltered / pageSize));
-  
-  // Ensure current page is valid
-  if (currentPage >= totalPages) {
-    currentPage = Math.max(0, totalPages - 1);
-  }
-  
-  const startIdx = currentPage * pageSize;
-  const endIdx = Math.min(startIdx + pageSize, totalFiltered);
-  const pageData = filteredData.slice(startIdx, endIdx);
-  
-  console.log(`[FR Sales] Displaying page ${currentPage + 1} of ${totalPages} (rows ${startIdx + 1}-${endIdx} of ${totalFiltered})`);
   
   // Display the data
   if (viewMode === 'condensed') {
-    displayCondensedData(pageData, totalFiltered);
+    displayCondensedData(pageData);
   } else {
-    displaySalesData(pageData, totalFiltered);
+    displaySalesData(pageData);
   }
   
   // Update pagination info
   if (pageInfo) {
     const viewLabel = viewMode === 'condensed' ? 'Condensed (6-Month)' : 'Full Sales';
-    const modeLabel = isSearchMode ? ' [Searching all records]' : ' [Pagination mode]';
-    const searchLabel = currentSearch ? ` (filtered by "${currentSearch}")` : '';
-    pageInfo.textContent = `${viewLabel}${modeLabel}${searchLabel} - Page ${currentPage + 1} of ${totalPages} (${totalFiltered} total records)`;
+    const searchLabel = currentSearch ? ` (search: "${currentSearch}")` : '';
+    
+    if (isSearchMode) {
+      pageInfo.textContent = `${viewLabel}${searchLabel} - Page ${currentPage + 1} of ${totalPages} (${allData.length} matching records)`;
+    } else if (viewMode === 'condensed') {
+      pageInfo.textContent = `${viewLabel} - Page ${currentPage + 1} of ${totalPages} (${allData.length} total SKUs)`;
+    } else {
+      pageInfo.textContent = `${viewLabel} - Page ${currentPage + 1} of ${totalPages} (${totalRecords} total records)`;
+    }
   }
   
-  // Update pagination buttons
+  updatePaginationButtons();
+}
+
+/**
+ * Update pagination button states
+ */
+function updatePaginationButtons() {
   const prevBtn = document.getElementById('prevPageBtn');
   const nextBtn = document.getElementById('nextPageBtn');
   
@@ -532,12 +428,13 @@ function applySearchFilter() {
   
   if (nextBtn) {
     if (isSearchMode || viewMode === 'condensed') {
-      // In search mode or condensed view, disable if on last page of filtered results
-      nextBtn.disabled = currentPage >= totalPages - 1 || totalFiltered === 0;
+      // In search mode or condensed view, check against total pages of loaded data
+      const totalPages = Math.ceil(allData.length / pageSize);
+      nextBtn.disabled = currentPage >= totalPages - 1 || allData.length === 0;
     } else {
-      // In pagination mode, always allow next (will load more data)
-      // Only disable if we got less than 1000 records (meaning no more data)
-      nextBtn.disabled = allData.length < 1000;
+      // In pagination mode, check against total records from server
+      const totalPages = Math.ceil(totalRecords / pageSize);
+      nextBtn.disabled = currentPage >= totalPages - 1 || totalRecords === 0;
     }
   }
 }
@@ -545,7 +442,7 @@ function applySearchFilter() {
 /**
  * Display sales data in the table
  */
-function displaySalesData(data, totalCount) {
+function displaySalesData(data) {
   const tbody = document.getElementById('salesTableBody');
   const thead = document.querySelector('#salesTable thead tr');
   
@@ -589,7 +486,7 @@ function displaySalesData(data, totalCount) {
 /**
  * Display condensed sales data in the table
  */
-function displayCondensedData(data, totalCount) {
+function displayCondensedData(data) {
   const tbody = document.getElementById('salesTableBody');
   const thead = document.querySelector('#salesTable thead tr');
   
