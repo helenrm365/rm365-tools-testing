@@ -63,8 +63,8 @@ function setupEventListeners() {
   
   if (searchInput) {
     // Real-time search as user types
-    searchInput.addEventListener('input', () => {
-      const searchValue = searchInput.value?.trim() || '';
+    searchInput.addEventListener('input', (e) => {
+      const searchValue = e.target?.value?.trim() || '';
       currentSearch = searchValue;
       currentPage = 0;
       filterAndDisplayData();
@@ -72,7 +72,8 @@ function setupEventListeners() {
     
     searchInput.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') {
-        const searchValue = searchInput.value?.trim() || '';
+        e.preventDefault();
+        const searchValue = e.target?.value?.trim() || '';
         currentSearch = searchValue;
         currentPage = 0;
         filterAndDisplayData();
@@ -81,7 +82,8 @@ function setupEventListeners() {
   }
   
   if (searchBtn) {
-    searchBtn.addEventListener('click', () => {
+    searchBtn.addEventListener('click', (e) => {
+      e.preventDefault();
       const searchValue = searchInput?.value?.trim() || '';
       currentSearch = searchValue;
       currentPage = 0;
@@ -90,7 +92,8 @@ function setupEventListeners() {
   }
   
   if (clearSearchBtn) {
-    clearSearchBtn.addEventListener('click', () => {
+    clearSearchBtn.addEventListener('click', (e) => {
+      e.preventDefault();
       if (searchInput) searchInput.value = '';
       currentSearch = '';
       currentPage = 0;
@@ -141,12 +144,12 @@ async function loadSalesData() {
   try {
     console.log(`[UK Sales] Loading data - Mode: ${viewMode}`);
     
-    // Load ALL data from backend (no pagination on API call)
+    // Load data from backend with reasonable limit
     let result;
     if (viewMode === 'condensed') {
-      result = await getUKCondensedData(10000, 0, ''); // Load up to 10k records
+      result = await getUKCondensedData(1000, 0, ''); // Load up to 1k records
     } else {
-      result = await getUKSalesData(10000, 0, ''); // Load up to 10k records
+      result = await getUKSalesData(1000, 0, ''); // Load up to 1k records
     }
     
     if (result.status === 'success') {
@@ -176,6 +179,13 @@ function filterAndDisplayData() {
   const pageInfo = document.getElementById('pageInfo');
   
   if (!tbody) return;
+  
+  // Don't filter if no data has been loaded yet
+  if (!allData || allData.length === 0) {
+    const colSpan = viewMode === 'condensed' ? '4' : '9';
+    tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem;">No data available</td></tr>`;
+    return;
+  }
   
   // Filter data based on search term
   if (currentSearch) {
