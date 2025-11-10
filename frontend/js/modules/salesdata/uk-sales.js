@@ -78,6 +78,10 @@ function setupEventListeners() {
       return;
     }
     
+    console.log('[UK Sales] performSearch called. Input element:', inputElement);
+    console.log('[UK Sales] Input element value attribute:', inputElement.value);
+    console.log('[UK Sales] Input element actual value:', inputElement.getAttribute('value'));
+    
     const searchValue = inputElement.value.trim();
     console.log('[UK Sales] Performing search:', searchValue, '| Length:', searchValue.length);
     
