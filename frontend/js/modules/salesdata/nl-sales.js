@@ -73,17 +73,19 @@ function setupEventListeners() {
     }
     
     const searchValue = inputElement.value.trim();
-    console.log('[NL Sales] Performing search:', searchValue);
+    console.log('[NL Sales] Performing search:', searchValue, '| Length:', searchValue.length);
     
     currentSearch = searchValue;
     currentPage = 0;
     
     if (searchValue.length > 0) {
       // Enter search mode - load ALL matching records from server
+      console.log('[NL Sales] Entering search mode for:', searchValue);
       isSearchMode = true;
       await loadSearchResults(searchValue);
     } else {
       // No search - return to pagination mode
+      console.log('[NL Sales] Empty search, returning to pagination mode');
       isSearchMode = false;
       await loadSalesData();
     }
