@@ -62,10 +62,19 @@ function setupEventListeners() {
   const clearSearchBtn = document.getElementById('clearSearchBtn');
   const searchInput = document.getElementById('searchInput');
   
+  // Check for duplicate elements with same ID
+  const allSearchInputs = document.querySelectorAll('#searchInput');
+  const allSearchInputsByClass = document.querySelectorAll('.search-input');
+  
   console.log('[UK Sales] Search elements:', {
     searchInput: searchInput ? 'FOUND' : 'NOT FOUND',
     searchBtn: searchBtn ? 'FOUND' : 'NOT FOUND',
     clearSearchBtn: clearSearchBtn ? 'FOUND' : 'NOT FOUND'
+  });
+  console.log('[UK Sales] DUPLICATE CHECK - Elements with id="searchInput":', allSearchInputs.length);
+  console.log('[UK Sales] DUPLICATE CHECK - Elements with class="search-input":', allSearchInputsByClass.length);
+  allSearchInputs.forEach((el, idx) => {
+    console.log(`[UK Sales] searchInput #${idx}:`, el, 'Parent:', el.parentElement);
   });
   
   let searchTimeout = null;
