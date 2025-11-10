@@ -140,6 +140,7 @@ async function setupInventoryManagement() {
   setupDropdowns();
   setupTable();
   setupSearchAndFilters();
+  setupZoomControls();
   bindGlobalHandlers();
 
   // Auto sync
@@ -803,6 +804,99 @@ function getSelectedValue(toggle) {
   };
   
   return valueMap[value] || '';
+}
+
+// Zoom control functionality
+const ZOOM_STORAGE_KEY = 'inventory_table_zoom';
+const DEFAULT_ZOOM = 100;
+const MIN_ZOOM = 50;
+const MAX_ZOOM = 200;
+const ZOOM_STEP = 10;
+
+function setupZoomControls() {
+  const zoomInBtn = document.getElementById('zoomInBtn');
+  const zoomOutBtn = document.getElementById('zoomOutBtn');
+  const zoomResetBtn = document.getElementById('zoomResetBtn');
+  const zoomIndicator = document.getElementById('zoomIndicator');
+  const tableScroller = document.getElementById('inventoryManagementTableScroller');
+  
+  if (!zoomInBtn || !zoomOutBtn || !zoomResetBtn || !zoomIndicator || !tableScroller) {
+    console.warn('[Inventory] Zoom controls not found');
+    return;
+  }
+  
+  // Load saved zoom or use default
+  let currentZoom = getSavedZoom();
+  applyZoom(currentZoom);
+  
+  // Zoom in
+  zoomInBtn.addEventListener('click', () => {
+    if (currentZoom < MAX_ZOOM) {
+      currentZoom = Math.min(currentZoom + ZOOM_STEP, MAX_ZOOM);
+      applyZoom(currentZoom);
+      saveZoom(currentZoom);
+    }
+  });
+  
+  // Zoom out
+  zoomOutBtn.addEventListener('click', () => {
+    if (currentZoom > MIN_ZOOM) {
+      currentZoom = Math.max(currentZoom - ZOOM_STEP, MIN_ZOOM);
+      applyZoom(currentZoom);
+      saveZoom(currentZoom);
+    }
+  });
+  
+  // Reset zoom
+  zoomResetBtn.addEventListener('click', () => {
+    currentZoom = DEFAULT_ZOOM;
+    applyZoom(currentZoom);
+    saveZoom(currentZoom);
+  });
+  
+  function applyZoom(zoom) {
+    const table = document.getElementById('inventoryManagementTable');
+    if (table) {
+      table.style.transform = `scale(${zoom / 100})`;
+      table.style.transformOrigin = 'top left';
+      
+      // Adjust the scroller width to accommodate the scaled table
+      const scaledWidth = table.offsetWidth * (zoom / 100);
+      tableScroller.style.width = '100%';
+    }
+    
+    // Update indicator
+    if (zoomIndicator) {
+      zoomIndicator.textContent = `${zoom}%`;
+    }
+    
+    // Update button states
+    zoomInBtn.disabled = zoom >= MAX_ZOOM;
+    zoomOutBtn.disabled = zoom <= MIN_ZOOM;
+  }
+  
+  function saveZoom(zoom) {
+    try {
+      localStorage.setItem(ZOOM_STORAGE_KEY, zoom.toString());
+    } catch (e) {
+      console.error('[Inventory] Failed to save zoom:', e);
+    }
+  }
+  
+  function getSavedZoom() {
+    try {
+      const saved = localStorage.getItem(ZOOM_STORAGE_KEY);
+      if (saved) {
+        const zoom = parseInt(saved, 10);
+        if (!isNaN(zoom) && zoom >= MIN_ZOOM && zoom <= MAX_ZOOM) {
+          return zoom;
+        }
+      }
+    } catch (e) {
+      console.error('[Inventory] Failed to load saved zoom:', e);
+    }
+    return DEFAULT_ZOOM;
+  }
 }
 
 function bindGlobalHandlers() {

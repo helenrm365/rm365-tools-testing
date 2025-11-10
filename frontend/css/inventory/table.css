@@ -7,6 +7,7 @@
   background: white;
   border-radius: 16px;
   overflow: hidden;
+  max-height: 700px;
 }
 
 html.dark-mode .inventory-management .table-wrapper {
@@ -15,6 +16,7 @@ html.dark-mode .inventory-management .table-wrapper {
 
 #inventoryManagementTableScroller {
   width: 100%;
+  max-height: 700px;
   overflow: auto;
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
@@ -181,19 +183,11 @@ html.dark-mode #inventoryManagementTable th:nth-child(16) {
 /* ===== Table Rows ===== */
 #inventoryManagementTable tbody tr {
   border-bottom: 1px solid #f1f5f9;
-  transition: background-color 0.15s ease;
+  background: transparent;
 }
 
 html.dark-mode #inventoryManagementTable tbody tr {
   border-bottom-color: #404040;
-}
-
-#inventoryManagementTable tbody tr:nth-child(even) {
-  background: #f8f9fa;
-}
-
-html.dark-mode #inventoryManagementTable tbody tr:nth-child(even) {
-  background: #1e1e1e;
 }
 
 /* ===== Table Cells ===== */

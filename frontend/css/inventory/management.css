@@ -467,11 +467,77 @@ html.dark-mode .inventory-management .dropdown-item label {
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
   overflow: hidden;
   margin-bottom: 2rem;
+  padding: 1rem;
 }
 
 html.dark-mode .inventory-management .table-section {
   background: #2a2a2a;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* ===== Zoom Controls ===== */
+.inventory-management .table-zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border-radius: 10px;
+  width: fit-content;
+}
+
+html.dark-mode .inventory-management .table-zoom-controls {
+  background: #1e1e1e;
+}
+
+.inventory-management .zoom-btn {
+  padding: 0.5rem 0.75rem;
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 1rem;
+  color: #2c3e50;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.inventory-management .zoom-btn:hover {
+  border-color: #76a12b;
+  background: #f8f9fa;
+  color: #76a12b;
+  transform: translateY(-2px);
+}
+
+.inventory-management .zoom-btn:active {
+  transform: translateY(0);
+}
+
+html.dark-mode .inventory-management .zoom-btn {
+  background: #2a2a2a;
+  border-color: #404040;
+  color: #ecf0f1;
+}
+
+html.dark-mode .inventory-management .zoom-btn:hover {
+  border-color: #8bc34a;
+  background: #1a1a1a;
+  color: #8bc34a;
+}
+
+.inventory-management .zoom-indicator {
+  padding: 0.5rem 1rem;
+  background: linear-gradient(135deg, #76a12b, #5e8122);
+  color: white;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  min-width: 70px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(118, 161, 43, 0.3);
 }
 
 .inventory-management .table-wrapper {
