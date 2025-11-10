@@ -60,13 +60,13 @@ function setupEventListeners() {
   // Search functionality - completely rebuilt
   const searchBtn = document.getElementById('searchBtn');
   const clearSearchBtn = document.getElementById('clearSearchBtn');
-  const searchInput = document.getElementById('searchInput');
+  const searchInput = document.getElementById('salesSearchInput');
   
   let searchTimeout = null;
   
   // Perform search function - queries server for ALL matching records
   const performSearch = async () => {
-    const inputElement = document.getElementById('searchInput');
+    const inputElement = document.getElementById('salesSearchInput');
     if (!inputElement) {
       console.warn('[NL Sales] Search input not found');
       return;
@@ -101,7 +101,7 @@ function setupEventListeners() {
   
   // Clear search function - returns to pagination mode
   const clearSearch = () => {
-    const inputElement = document.getElementById('searchInput');
+    const inputElement = document.getElementById('salesSearchInput');
     if (inputElement) {
       inputElement.value = '';
     }
