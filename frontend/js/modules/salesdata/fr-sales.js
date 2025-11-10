@@ -471,44 +471,25 @@ function applySearchFilter() {
     return;
   }
   
-  // Check if data is loaded
-  if (!allData || allData.length === 0) {
-    const colSpan = viewMode === 'condensed' ? '4' : '9';
-    tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem;">No data available</td></tr>`;
-    if (pageInfo) {
-      pageInfo.textContent = 'No data loaded';
-    }
-    return;
-  }
-  
-  // Filter the data
-  if (currentSearch && currentSearch.length > 0) {
-    const searchLower = currentSearch.toLowerCase();
-    
-    filteredData = allData.filter(row => {
-      // Build searchable string from all relevant fields
-      const fields = [];
-      
-      if (row.order_number) fields.push(String(row.order_number));
-      if (row.sku) fields.push(String(row.sku));
-      if (row.name) fields.push(String(row.name));
-      if (row.status) fields.push(String(row.status));
-      if (row.customer_group) fields.push(String(row.customer_group));
-      if (row.currency) fields.push(String(row.currency));
-      if (row.created_at) fields.push(String(row.created_at));
-      if (row.price) fields.push(String(row.price));
-      if (row.qty) fields.push(String(row.qty));
-      if (row.total_qty) fields.push(String(row.total_qty));
-      
-      const searchableText = fields.join(' ').toLowerCase();
-      return searchableText.indexOf(searchLower) !== -1;
-    });
-    
-    console.log(`[FR Sales] Filtered ${allData.length} rows to ${filteredData.length} matching "${currentSearch}"`);
+  // In search mode, filteredData is already prepared by loadSearchResults with fuzzy matching
+  // Just use it directly without re-filtering
+  if (isSearchMode) {
+    console.log(`[FR Sales] Using pre-filtered search results: ${filteredData.length} rows`);
+    // filteredData is already set by loadSearchResults, don't modify it
   } else {
-    // No search term - show current page of data
+    // Pagination mode - check if data is loaded
+    if (!allData || allData.length === 0) {
+      const colSpan = viewMode === 'condensed' ? '4' : '9';
+      tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem;">No data available</td></tr>`;
+      if (pageInfo) {
+        pageInfo.textContent = 'No data loaded';
+      }
+      return;
+    }
+    
+    // Pagination mode - show all loaded data
     filteredData = allData.slice();
-    console.log(`[FR Sales] No search - showing ${allData.length} rows`);
+    console.log(`[FR Sales] Pagination mode - showing ${allData.length} rows`);
   }
   
   // Calculate pagination
