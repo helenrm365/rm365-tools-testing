@@ -56,62 +56,66 @@ function setupEventListeners() {
     });
   }
   
-  // Search functionality - client-side filtering
+  // Search functionality - completely rebuilt
   const searchBtn = document.getElementById('searchBtn');
   const clearSearchBtn = document.getElementById('clearSearchBtn');
   const searchInput = document.getElementById('searchInput');
   
-  if (searchInput) {
-    const readSearchValue = () => (searchInput?.value || '').trim();
-
-    // Real-time search as user types
-    searchInput.addEventListener('input', () => {
-      try {
-        currentSearch = readSearchValue();
-        currentPage = 0;
-        filterAndDisplayData();
-      } catch (err) {
-        // Ignore errors triggered by browser extensions that inject content scripts
-        console.warn('Search input error (likely browser extension):', err);
-      }
-    });
+  // Perform search function
+  const performSearch = () => {
+    const inputElement = document.getElementById('searchInput');
+    if (!inputElement) {
+      console.warn('[FR Sales] Search input not found');
+      return;
+    }
     
-    searchInput.addEventListener('keypress', (e) => {
-      try {
-        if (e.key === 'Enter') {
-          currentSearch = readSearchValue();
-          currentPage = 0;
-          filterAndDisplayData();
-        }
-      } catch (err) {
-        console.warn('Search keypress error (likely browser extension):', err);
+    const searchValue = inputElement.value.trim();
+    console.log('[FR Sales] Performing search:', searchValue);
+    
+    currentSearch = searchValue;
+    currentPage = 0;
+    applySearchFilter();
+  };
+  
+  // Clear search function
+  const clearSearch = () => {
+    const inputElement = document.getElementById('searchInput');
+    if (inputElement) {
+      inputElement.value = '';
+    }
+    
+    console.log('[FR Sales] Clearing search');
+    currentSearch = '';
+    currentPage = 0;
+    applySearchFilter();
+  };
+  
+  // Add event listeners
+  if (searchInput) {
+    // Real-time search as user types
+    searchInput.addEventListener('input', performSearch);
+    
+    // Enter key to search
+    searchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        performSearch();
       }
     });
-
-    if (searchBtn) {
-      searchBtn.addEventListener('click', () => {
-        try {
-          currentSearch = readSearchValue();
-          currentPage = 0;
-          filterAndDisplayData();
-        } catch (err) {
-          console.warn('Search button error:', err);
-        }
-      });
-    }
-
-    if (clearSearchBtn) {
-      clearSearchBtn.addEventListener('click', () => {
-        try {
-          if (searchInput) searchInput.value = '';
-          currentSearch = '';
-          currentPage = 0;
-          filterAndDisplayData();
-        } catch (err) {
-          console.warn('Clear search error:', err);
-        }
-      });
-    }
+  }
+  
+  if (searchBtn) {
+    searchBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      performSearch();
+    });
+  }
+  
+  if (clearSearchBtn) {
+    clearSearchBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      clearSearch();
+    });
   }
   
   // Pagination
@@ -122,15 +126,18 @@ function setupEventListeners() {
     prevBtn.addEventListener('click', () => {
       if (currentPage > 0) {
         currentPage--;
-        filterAndDisplayData();
+        applySearchFilter();
       }
     });
   }
   
   if (nextBtn) {
     nextBtn.addEventListener('click', () => {
-      currentPage++;
-      filterAndDisplayData();
+      const totalPages = Math.ceil(filteredData.length / pageSize);
+      if (currentPage < totalPages - 1) {
+        currentPage++;
+        applySearchFilter();
+      }
     });
   }
   
@@ -191,7 +198,7 @@ async function loadSalesData() {
     
     // Reset to first page and apply any current search
     currentPage = 0;
-    filterAndDisplayData();
+    applySearchFilter();
     
   } catch (error) {
     console.error('[FR Sales] Error loading data:', error);
@@ -204,49 +211,73 @@ async function loadSalesData() {
 /**
  * Filter and display data based on current search term
  */
-function filterAndDisplayData() {
+function applySearchFilter() {
+  console.log('[FR Sales] Applying search filter:', currentSearch);
+  
   const tbody = document.getElementById('salesTableBody');
   const pageInfo = document.getElementById('pageInfo');
   
-  if (!tbody) return;
-  
-  // Don't filter if no data has been loaded yet
-  if (!allData || allData.length === 0) {
-    const colSpan = viewMode === 'condensed' ? '4' : '9';
-    tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem;">No data available</td></tr>`;
+  if (!tbody) {
+    console.warn('[FR Sales] Table body not found');
     return;
   }
   
-  // Filter data based on search term
-  if (currentSearch) {
+  // Check if data is loaded
+  if (!allData || allData.length === 0) {
+    const colSpan = viewMode === 'condensed' ? '4' : '9';
+    tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem;">No data available</td></tr>`;
+    if (pageInfo) {
+      pageInfo.textContent = 'No data loaded';
+    }
+    return;
+  }
+  
+  // Filter the data
+  if (currentSearch && currentSearch.length > 0) {
     const searchLower = currentSearch.toLowerCase();
+    
     filteredData = allData.filter(row => {
-      // Search across all relevant fields
-      const searchableText = [
-        row.order_number,
-        row.sku,
-        row.name,
-        row.status,
-        row.customer_group,
-        row.currency,
-        row.created_at
-      ].filter(Boolean).join(' ').toLowerCase();
+      // Build searchable string from all relevant fields
+      const fields = [];
       
-      return searchableText.includes(searchLower);
+      if (row.order_number) fields.push(String(row.order_number));
+      if (row.sku) fields.push(String(row.sku));
+      if (row.name) fields.push(String(row.name));
+      if (row.status) fields.push(String(row.status));
+      if (row.customer_group) fields.push(String(row.customer_group));
+      if (row.currency) fields.push(String(row.currency));
+      if (row.created_at) fields.push(String(row.created_at));
+      if (row.price) fields.push(String(row.price));
+      if (row.qty) fields.push(String(row.qty));
+      if (row.total_qty) fields.push(String(row.total_qty));
+      
+      const searchableText = fields.join(' ').toLowerCase();
+      return searchableText.indexOf(searchLower) !== -1;
     });
-    console.log(`[FR Sales] Filtered to ${filteredData.length} records (search: "${currentSearch}")`);
+    
+    console.log(`[FR Sales] Filtered ${allData.length} rows to ${filteredData.length} matching "${currentSearch}"`);
   } else {
-    filteredData = [...allData];
+    // No search term - show all data
+    filteredData = allData.slice();
+    console.log(`[FR Sales] No search - showing all ${allData.length} rows`);
   }
   
   // Calculate pagination
   const totalFiltered = filteredData.length;
-  const totalPages = Math.ceil(totalFiltered / pageSize);
+  const totalPages = Math.max(1, Math.ceil(totalFiltered / pageSize));
+  
+  // Ensure current page is valid
+  if (currentPage >= totalPages) {
+    currentPage = Math.max(0, totalPages - 1);
+  }
+  
   const startIdx = currentPage * pageSize;
   const endIdx = Math.min(startIdx + pageSize, totalFiltered);
   const pageData = filteredData.slice(startIdx, endIdx);
   
-  // Display current page of data
+  console.log(`[FR Sales] Displaying page ${currentPage + 1} of ${totalPages} (rows ${startIdx + 1}-${endIdx} of ${totalFiltered})`);
+  
+  // Display the data
   if (viewMode === 'condensed') {
     displayCondensedData(pageData, totalFiltered);
   } else {
@@ -257,14 +288,20 @@ function filterAndDisplayData() {
   if (pageInfo) {
     const viewLabel = viewMode === 'condensed' ? 'Condensed (6-Month)' : 'Full Sales';
     const searchLabel = currentSearch ? ` (filtered by "${currentSearch}")` : '';
-    pageInfo.textContent = `${viewLabel}${searchLabel} - Page ${currentPage + 1} of ${totalPages || 1} (${totalFiltered} total records)`;
+    pageInfo.textContent = `${viewLabel}${searchLabel} - Page ${currentPage + 1} of ${totalPages} (${totalFiltered} total records)`;
   }
   
   // Update pagination buttons
   const prevBtn = document.getElementById('prevPageBtn');
   const nextBtn = document.getElementById('nextPageBtn');
-  if (prevBtn) prevBtn.disabled = currentPage === 0;
-  if (nextBtn) nextBtn.disabled = currentPage >= totalPages - 1;
+  
+  if (prevBtn) {
+    prevBtn.disabled = currentPage === 0;
+  }
+  
+  if (nextBtn) {
+    nextBtn.disabled = currentPage >= totalPages - 1 || totalFiltered === 0;
+  }
 }
 
 /**
