@@ -1,137 +1,191 @@
 <!-- Inventory Management Page -->
 <div class="inventory-management">
-  <h2>Inventory Management</h2>
-  <div class="inner-tabs" style="margin-bottom: 1.5rem; display: flex; gap: 0.5rem;">
-    <button class="modern-button active" data-nav onclick="location.href='/inventory/management'">Management</button>
-    <button class="modern-button" data-nav onclick="location.href='/inventory/adjustments'">Adjustments</button>
-      <button id="syncSalesBtn" class ="modern-button"> Sync Sales Data </button>
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <h1 class="page-title">Inventory Management</h1>
+      <p class="page-subtitle">Monitor stock levels, manage product availability, and track inventory across locations</p>
+    </div>
+  </div>
+
+  <!-- Navigation Tabs -->
+  <div class="inner-tabs">
+    <button class="tab-button active" onclick="location.href='/inventory/management'">
+      <i class="fas fa-boxes"></i>
+      <span>Management</span>
+    </button>
+    <button class="tab-button" onclick="location.href='/inventory/adjustments'">
+      <i class="fas fa-sliders-h"></i>
+      <span>Adjustments</span>
+    </button>
+    <button id="syncSalesBtn" class="tab-button">
+      <i class="fas fa-sync-alt"></i>
+      <span>Sync Sales Data</span>
+    </button>
   </div>
   
-  <!-- Search and Filter Controls -->
-  <div class="management-controls modern-box" style="margin-bottom: 1rem;">
-    <!-- Discontinued Status Filters (Checkboxes) -->
-    <div style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #eee;">
-      <label style="font-weight: 600; margin-bottom: 0.5rem; display: block; color: #333;">
-        Discontinued Status Filters:
-      </label>
-      <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; align-items: center;">
-        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-          <input type="checkbox" id="filter_Active" class="status-filter-checkbox" value="Active" checked style="width: 18px; height: 18px;">
-          <span>Active</span>
-        </label>
-        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-          <input type="checkbox" id="filter_TemporarilyOOS" class="status-filter-checkbox" value="Temporarily OOS" checked style="width: 18px; height: 18px;">
-          <span>Temporarily OOS</span>
-        </label>
-        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-          <input type="checkbox" id="filter_PreOrder" class="status-filter-checkbox" value="Pre Order" checked style="width: 18px; height: 18px;">
-          <span>Pre Order</span>
-        </label>
-        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-          <input type="checkbox" id="filter_Samples" class="status-filter-checkbox" value="Samples" checked style="width: 18px; height: 18px;">
-          <span>Samples</span>
-        </label>
-        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-          <input type="checkbox" id="filter_DiscontinuedSupplier" class="status-filter-checkbox" value="Discontinued (Supplier)" style="width: 18px; height: 18px;">
-          <span>Discontinued (Supplier)</span>
-        </label>
-        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-          <input type="checkbox" id="filter_DiscontinuedRM" class="status-filter-checkbox" value="Discontinued (RM)" style="width: 18px; height: 18px;">
-          <span>Discontinued (RM)</span>
-        </label>
-        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-          <input type="checkbox" id="filter_SpecialOffer" class="status-filter-checkbox" value="Special Offer" style="width: 18px; height: 18px;">
-          <span>Special Offer</span>
-        </label>
-        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-          <input type="checkbox" id="filter_SpecialItem" class="status-filter-checkbox" value="Special Item" style="width: 18px; height: 18px;">
-          <span>Special Item</span>
-        </label>
-        <button id="applyStatusFilters" class="modern-button" style="margin-left: auto; background: linear-gradient(135deg, #3b82f6, #2563eb); color: white;">
-          Apply Filters
-        </button>
+  <!-- Main Content -->
+  <div class="management-content">
+    <!-- Filter Section -->
+    <section class="filter-section">
+      <div class="section-header">
+        <h2 class="section-title">
+          <i class="fas fa-filter"></i>
+          Filter Inventory
+        </h2>
+        <p class="section-subtitle">Refine your inventory view with status and search filters</p>
       </div>
-    </div>
-    
-    <!-- Search and Stock Status Filter (Dropdown) -->
-    <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
-      <div style="flex: 1; max-width: 300px;">
-        <input type="text" id="inventorySearch" class="modern-input" placeholder="Search products, SKU, location..." style="width: 100%;">
-      </div>
-      
-      <!-- Column Filter Dropdown -->
-      <div class="dropdown-container" id="columnDropdown">
-        <button class="dropdown-toggle modern-button" id="columnToggle">
-          Show/Hide Columns <span class="arrow">▼</span>
-        </button>
-        <div class="dropdown-content"></div>
-      </div>
-      
-      <!-- Stock Status Dropdown (Overstock/Low Stock) -->
-      <div class="dropdown-container" id="statusDropdown">
-        <button class="dropdown-toggle modern-button" id="statusToggle">
-          All Stock Status <span class="arrow">▼</span>
-        </button>
-        <div class="dropdown-content"></div>
-      </div>
-      
 
-    </div>
+      <!-- Discontinued Status Filters -->
+      <div class="discontinued-filters">
+        <label class="filter-group-title">
+          <i class="fas fa-tags"></i>
+          Discontinued Status Filters
+        </label>
+        <div class="checkbox-grid">
+          <label class="checkbox-label">
+            <input type="checkbox" id="filter_Active" class="status-filter-checkbox" value="Active" checked>
+            <span>Active</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="filter_TemporarilyOOS" class="status-filter-checkbox" value="Temporarily OOS" checked>
+            <span>Temporarily OOS</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="filter_PreOrder" class="status-filter-checkbox" value="Pre Order" checked>
+            <span>Pre Order</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="filter_Samples" class="status-filter-checkbox" value="Samples" checked>
+            <span>Samples</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="filter_DiscontinuedSupplier" class="status-filter-checkbox" value="Discontinued (Supplier)">
+            <span>Discontinued (Supplier)</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="filter_DiscontinuedRM" class="status-filter-checkbox" value="Discontinued (RM)">
+            <span>Discontinued (RM)</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="filter_SpecialOffer" class="status-filter-checkbox" value="Special Offer">
+            <span>Special Offer</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="filter_SpecialItem" class="status-filter-checkbox" value="Special Item">
+            <span>Special Item</span>
+          </label>
+          <button id="applyStatusFilters" class="apply-filters-btn">
+            <i class="fas fa-check"></i>
+            Apply Filters
+          </button>
+        </div>
+      </div>
+
+      <!-- Search and Controls -->
+      <div class="search-controls">
+        <input type="text" id="inventorySearch" class="search-input" placeholder="Search products, SKU, location...">
+        
+        <!-- Column Filter Dropdown -->
+        <div class="dropdown-container" id="columnDropdown">
+          <button class="dropdown-toggle" id="columnToggle">
+            <i class="fas fa-columns"></i>
+            Show/Hide Columns
+            <span class="arrow">▼</span>
+          </button>
+          <div class="dropdown-content"></div>
+        </div>
+        
+        <!-- Stock Status Dropdown -->
+        <div class="dropdown-container" id="statusDropdown">
+          <button class="dropdown-toggle" id="statusToggle">
+            <i class="fas fa-warehouse"></i>
+            All Stock Status
+            <span class="arrow">▼</span>
+          </button>
+          <div class="dropdown-content"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Table Section -->
+    <section class="table-section">
+      <div class="table-wrapper" id="inventoryManagementTableWrapper">
+        <div id="inventoryManagementTableScroller">
+          <table id="inventoryManagementTable">
+            <colgroup>
+              <col class="col-1">
+              <col class="col-2">
+              <col class="col-3">
+              <col class="col-4">
+              <col class="col-5">
+              <col class="col-6">
+              <col class="col-7">
+              <col class="col-8">
+              <col class="col-9">
+              <col class="col-10">
+              <col class="col-11">
+              <col class="col-12">
+              <col class="col-13">
+              <col class="col-14">
+              <col class="col-15">
+              <col class="col-16">
+            </colgroup>
+            <thead>
+              <tr>
+                <th>Location</th>
+                <th>Date</th>
+                <th>Product Name</th>
+                <th>SKU</th>
+                <th>UK 6M Data</th>
+                <th>Shelf &lt; 1</th>
+                <th>Shelf &lt; 1 Year Qty</th>
+                <th>Shelf &gt; 1</th>
+                <th>Shelf &gt; 1 Year Qty</th>
+                <th>Shelf Total</th>
+                <th>Top Floor Expiry Date</th>
+                <th>Top Floor Total</th>
+                <th>Total Stock</th>
+                <th>Status</th>
+                <th>UK + FR Pre Order</th>
+                <th>FR 6M Data</th>
+              </tr>
+            </thead>
+            <tbody id="inventoryManagementBody">
+              <tr>
+                <td colspan="16">
+                  <div class="loading-state">
+                    <div class="loading-spinner"></div>
+                    <p>Loading inventory data...</p>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pagination Section -->
+    <section class="pagination-section" id="paginationSection" style="display: none;">
+      <div class="pagination-info" id="paginationInfo">
+        Showing 0 of 0 items
+      </div>
+      <div class="pagination-controls">
+        <button class="pagination-btn" id="prevPageBtn" disabled>
+          <i class="fas fa-chevron-left"></i>
+          Previous
+        </button>
+        <div class="page-indicator" id="pageIndicator">
+          Page 1
+        </div>
+        <button class="pagination-btn" id="nextPageBtn" disabled>
+          Next
+          <i class="fas fa-chevron-right"></i>
+        </button>
+      </div>
+    </section>
   </div>
-
-  <!-- Inventory Management Table -->
-  <div id="inventoryManagementTableWrapper">
-    <div id="inventoryManagementTableScroller">
-      <table id="inventoryManagementTable">
-        <colgroup>
-          <col class="col-1">
-          <col class="col-2">
-          <col class="col-3">
-          <col class="col-4">
-          <col class="col-5">
-          <col class="col-6">
-          <col class="col-7">
-          <col class="col-8">
-          <col class="col-9">
-          <col class="col-10">
-          <col class="col-11">
-          <col class="col-12">
-          <col class="col-13">
-          <col class="col-14">
-          <col class="col-15">
-          <col class="col-16">
-        </colgroup>
-        <thead>
-          <tr>
-            <th>Location</th>
-            <th>Date</th>
-            <th>Product Name</th>
-            <th>SKU</th>
-            <th>UK 6M Data</th>
-            <th>Shelf &lt; 1</th>
-            <th>Shelf &lt; 1 Year Qty</th>
-            <th>Shelf &gt; 1</th>
-            <th>Shelf &gt; 1 Year Qty</th>
-            <th>Shelf Total</th>
-            <th>Top Floor Expiry Date</th>
-            <th>Top Floor Total</th>
-            <th>Total Stock</th>
-            <th>Status</th>
-            <th>UK + FR Pre Order</th>
-            <th>FR 6M Data</th>
-          </tr>
-        </thead>
-        <tbody id="inventoryManagementBody">
-          <tr>
-            <td colspan="16" style="text-align: center; padding: 2rem; color: #999;">
-              Loading inventory data...
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
 </div>
 
 <!-- Global Dropdown Backdrop -->

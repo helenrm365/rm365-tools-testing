@@ -299,6 +299,9 @@ function bindDropdown(containerId, toggleId, options, isColumnDropdown = false) 
     closeAllDropdowns();
     if (willOpen) {
       container.classList.add('open');
+      toggle.classList.add('open');
+      const content = container.querySelector('.dropdown-content');
+      if (content) content.classList.add('show');
       getBackdrop().classList.add('show');
     }
   });
@@ -339,7 +342,9 @@ function bindDropdown(containerId, toggleId, options, isColumnDropdown = false) 
       if (e.target.classList.contains('dropdown-item')) {
         const value = e.target.dataset.value;
         const text = e.target.textContent;
-        toggle.innerHTML = `${text} <span class="arrow">▼</span>`;
+        const icon = toggle.querySelector('i');
+        const iconHTML = icon ? icon.outerHTML : '';
+        toggle.innerHTML = `${iconHTML} ${text} <span class="arrow">▼</span>`;
         closeAllDropdowns();
         
         // Trigger stock status filter change
@@ -472,11 +477,17 @@ function setupTable() {
   if (totalFilteredItems === 0) {
     tableBody.innerHTML = `
       <tr>
-        <td colspan="16" style="text-align: center; padding: 2rem; color: #666;">
-          No products match the selected filters.<br>
-          <small>Discontinued status filters: ${Array.from(discontinuedFilterSet).join(', ')}</small><br>
-          <small>Stock status filter: ${stockStatusFilter || 'All'}</small><br>
-          <small>Try adjusting your filters.</small>
+        <td colspan="16">
+          <div class="empty-state">
+            <i class="fas fa-inbox"></i>
+            <h3>No Products Found</h3>
+            <p>No products match the selected filters.</p>
+            <small style="display: block; margin-top: 0.5rem; color: #7f8c8d;">
+              Discontinued status filters: ${Array.from(discontinuedFilterSet).join(', ')}<br>
+              Stock status filter: ${stockStatusFilter || 'All'}<br>
+              Try adjusting your filters.
+            </small>
+          </div>
         </td>
       </tr>
     `;
@@ -519,74 +530,44 @@ function matchesSearch(item, metadata, searchQuery) {
 }
 
 function updatePaginationControls() {
-  // Create or update pagination controls
-  let paginationDiv = document.getElementById('inventoryPagination');
+  // Update the new pagination section
+  const paginationSection = document.getElementById('paginationSection');
+  const paginationInfo = document.getElementById('paginationInfo');
+  const pageIndicator = document.getElementById('pageIndicator');
+  const prevBtn = document.getElementById('prevPageBtn');
+  const nextBtn = document.getElementById('nextPageBtn');
   
-  if (!paginationDiv) {
-    // Create pagination controls if they don't exist
-    const tableWrapper = document.getElementById('inventoryManagementTableWrapper');
-    if (!tableWrapper) return;
-    
-    paginationDiv = document.createElement('div');
-    paginationDiv.id = 'inventoryPagination';
-    paginationDiv.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: var(--inv-surface); border-top: 1px solid var(--inv-border);';
-    
-    tableWrapper.parentNode.insertBefore(paginationDiv, tableWrapper.nextSibling);
-  }
+  if (!paginationSection) return;
   
   const totalPages = Math.ceil(totalFilteredItems / ITEMS_PER_PAGE);
   const startItem = totalFilteredItems > 0 ? (currentPage * ITEMS_PER_PAGE) + 1 : 0;
   const endItem = Math.min((currentPage + 1) * ITEMS_PER_PAGE, totalFilteredItems);
   
-  paginationDiv.innerHTML = `
-    <div style="color: var(--inv-text-muted); font-size: 14px;">
-      Showing ${startItem}-${endItem} of ${totalFilteredItems} products
-    </div>
-    <div style="display: flex; gap: 0.5rem;">
-      <button 
-        id="prevPageBtn" 
-        class="modern-button" 
-        ${currentPage === 0 ? 'disabled' : ''}
-        style="padding: 0.5rem 1rem;">
-        ← Previous
-      </button>
-      <div style="display: flex; align-items: center; padding: 0 1rem; color: var(--inv-text);">
-        Page ${currentPage + 1} of ${totalPages || 1}
-      </div>
-      <button 
-        id="nextPageBtn" 
-        class="modern-button" 
-        ${currentPage >= totalPages - 1 || totalFilteredItems === 0 ? 'disabled' : ''}
-        style="padding: 0.5rem 1rem;">
-        Next →
-      </button>
-    </div>
-  `;
+  // Show pagination section if there are items
+  if (totalFilteredItems > 0) {
+    paginationSection.style.display = 'flex';
+  } else {
+    paginationSection.style.display = 'none';
+    return;
+  }
   
-  // Bind pagination button events
-  const prevBtn = document.getElementById('prevPageBtn');
-  const nextBtn = document.getElementById('nextPageBtn');
+  // Update pagination info
+  if (paginationInfo) {
+    paginationInfo.textContent = `Showing ${startItem}-${endItem} of ${totalFilteredItems} items`;
+  }
   
+  // Update page indicator
+  if (pageIndicator) {
+    pageIndicator.textContent = `Page ${currentPage + 1} of ${totalPages || 1}`;
+  }
+  
+  // Update button states
   if (prevBtn) {
-    prevBtn.addEventListener('click', () => {
-      if (currentPage > 0) {
-        currentPage--;
-        setupTable();
-        // Scroll to top of table
-        document.getElementById('inventoryManagementTableScroller')?.scrollTo(0, 0);
-      }
-    });
+    prevBtn.disabled = currentPage === 0;
   }
   
   if (nextBtn) {
-    nextBtn.addEventListener('click', () => {
-      if (currentPage < totalPages - 1) {
-        currentPage++;
-        setupTable();
-        // Scroll to top of table
-        document.getElementById('inventoryManagementTableScroller')?.scrollTo(0, 0);
-      }
-    });
+    nextBtn.disabled = currentPage >= totalPages - 1 || totalFilteredItems === 0;
   }
 }
 
@@ -849,6 +830,33 @@ function bindGlobalHandlers() {
     }
   };
 
+  // Bind pagination buttons
+  const prevBtn = document.getElementById('prevPageBtn');
+  const nextBtn = document.getElementById('nextPageBtn');
+  
+  if (prevBtn) {
+    prevBtn.addEventListener('click', () => {
+      if (currentPage > 0) {
+        currentPage--;
+        setupTable();
+        // Scroll to top of table
+        document.getElementById('inventoryManagementTableScroller')?.scrollTo(0, 0);
+      }
+    });
+  }
+  
+  if (nextBtn) {
+    nextBtn.addEventListener('click', () => {
+      const totalPages = Math.ceil(totalFilteredItems / ITEMS_PER_PAGE);
+      if (currentPage < totalPages - 1) {
+        currentPage++;
+        setupTable();
+        // Scroll to top of table
+        document.getElementById('inventoryManagementTableScroller')?.scrollTo(0, 0);
+      }
+    });
+  }
+
   // Bind document click for dropdown closing
   if (!dropdownDocListenersBound) {
     document.addEventListener('click', () => {
@@ -922,6 +930,12 @@ function getBackdrop() {
 function closeAllDropdowns() {
   document.querySelectorAll('.dropdown-container.open').forEach(el => {
     el.classList.remove('open');
+  });
+  document.querySelectorAll('.dropdown-toggle.open').forEach(el => {
+    el.classList.remove('open');
+  });
+  document.querySelectorAll('.dropdown-content.show').forEach(el => {
+    el.classList.remove('show');
   });
   getBackdrop().classList.remove('show');
 }
@@ -998,16 +1012,17 @@ export function cleanup() {
   // Clear data
   inventoryData = [];
   metadataIndex.clear();
+  magentoProductsIndex.clear();
   rowEntryByEl.clear();
   
   // Reset pagination
   currentPage = 0;
   totalFilteredItems = 0;
   
-  // Remove pagination controls
-  const paginationDiv = document.getElementById('inventoryPagination');
-  if (paginationDiv) {
-    paginationDiv.remove();
+  // Hide pagination section
+  const paginationSection = document.getElementById('paginationSection');
+  if (paginationSection) {
+    paginationSection.style.display = 'none';
   }
   
   // Remove global functions

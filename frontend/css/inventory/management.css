@@ -1,0 +1,834 @@
+/* ===== Inventory Management Page Styles ===== */
+/* Modern, clean styles matching the enrollment, attendance, labels, and sales data modules */
+
+/* ===== Page Header ===== */
+.inventory-management .page-header {
+  margin-bottom: 2rem;
+  padding: 2rem 0 1rem 0;
+}
+
+.inventory-management .header-content {
+  max-width: 800px;
+}
+
+.inventory-management .page-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
+  color: #2c3e50;
+  background: linear-gradient(135deg, #2c3e50, #76a12b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+html.dark-mode .inventory-management .page-title {
+  background: linear-gradient(135deg, #ecf0f1, #8bc34a);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.inventory-management .page-subtitle {
+  font-size: 1.1rem;
+  color: #7f8c8d;
+  margin: 0;
+  font-weight: 400;
+}
+
+html.dark-mode .inventory-management .page-subtitle {
+  color: #95a5a6;
+}
+
+/* ===== Navigation Tabs ===== */
+.inventory-management .inner-tabs {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  background: white;
+  padding: 1rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+html.dark-mode .inventory-management .inner-tabs {
+  background: #2a2a2a;
+}
+
+.inventory-management .tab-button {
+  flex: 1;
+  padding: 1rem 1.5rem;
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  border: 2px solid transparent;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #7f8c8d;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.inventory-management .tab-button:hover {
+  background: white;
+  border-color: rgba(118, 161, 43, 0.3);
+  color: #5e8122;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.inventory-management .tab-button.active {
+  background: linear-gradient(135deg, #76a12b, #5e8122);
+  color: white;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.4);
+  transform: translateY(-1px);
+}
+
+html.dark-mode .inventory-management .tab-button {
+  background: linear-gradient(135deg, #1e1e1e, #2a2a2a);
+  color: #95a5a6;
+}
+
+html.dark-mode .inventory-management .tab-button:hover {
+  background: #1a1a1a;
+  border-color: rgba(139, 195, 74, 0.3);
+  color: #8bc34a;
+}
+
+html.dark-mode .inventory-management .tab-button.active {
+  background: linear-gradient(135deg, #76a12b, #5e8122);
+  color: white;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.inventory-management .tab-button i {
+  font-size: 1.125rem;
+}
+
+/* ===== Main Content ===== */
+.inventory-management .management-content {
+  animation: fadeInUp 0.4s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ===== Filter Section ===== */
+.inventory-management .filter-section {
+  background: white;
+  padding: 2rem;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  margin-bottom: 2rem;
+  border: 2px solid #f1f5f9;
+}
+
+html.dark-mode .inventory-management .filter-section {
+  background: #2a2a2a;
+  border-color: #404040;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+}
+
+.inventory-management .section-header {
+  margin-bottom: 1.5rem;
+}
+
+.inventory-management .section-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0 0 0.5rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+html.dark-mode .inventory-management .section-title {
+  color: #ecf0f1;
+}
+
+.inventory-management .section-subtitle {
+  font-size: 1rem;
+  color: #7f8c8d;
+  margin: 0;
+  font-weight: 400;
+}
+
+html.dark-mode .inventory-management .section-subtitle {
+  color: #95a5a6;
+}
+
+/* ===== Discontinued Status Filters ===== */
+.inventory-management .discontinued-filters {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 2px solid #f1f5f9;
+}
+
+html.dark-mode .inventory-management .discontinued-filters {
+  border-bottom-color: #404040;
+}
+
+.inventory-management .filter-group-title {
+  font-weight: 600;
+  margin-bottom: 1rem;
+  display: block;
+  color: #2c3e50;
+  font-size: 1rem;
+}
+
+html.dark-mode .inventory-management .filter-group-title {
+  color: #ecf0f1;
+}
+
+.inventory-management .checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+  align-items: center;
+}
+
+.inventory-management .checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  padding: 0.75rem;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  background: #f8f9fa;
+}
+
+.inventory-management .checkbox-label:hover {
+  background: #e9ecef;
+}
+
+html.dark-mode .inventory-management .checkbox-label {
+  background: #1e1e1e;
+}
+
+html.dark-mode .inventory-management .checkbox-label:hover {
+  background: #2a2a2a;
+}
+
+.inventory-management .status-filter-checkbox {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: #76a12b;
+}
+
+.inventory-management .checkbox-label span {
+  font-size: 0.95rem;
+  color: #2c3e50;
+  font-weight: 500;
+}
+
+html.dark-mode .inventory-management .checkbox-label span {
+  color: #ecf0f1;
+}
+
+.inventory-management .apply-filters-btn {
+  grid-column: -1;
+  justify-self: end;
+  padding: 0.875rem 1.75rem;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.inventory-management .apply-filters-btn:hover {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+/* ===== Search and Controls ===== */
+.inventory-management .search-controls {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  gap: 1rem;
+  align-items: center;
+}
+
+.inventory-management .search-input {
+  padding: 0.875rem 1.25rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  color: #2c3e50;
+  transition: all 0.3s ease;
+  font-weight: 500;
+}
+
+.inventory-management .search-input:hover {
+  border-color: rgba(118, 161, 43, 0.3);
+  background: white;
+}
+
+.inventory-management .search-input:focus {
+  outline: none;
+  border-color: #76a12b;
+  box-shadow: 0 0 0 3px rgba(118, 161, 43, 0.1);
+  background: white;
+}
+
+html.dark-mode .inventory-management .search-input {
+  background: linear-gradient(135deg, #1e1e1e, #2a2a2a);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #ecf0f1;
+}
+
+html.dark-mode .inventory-management .search-input:hover {
+  border-color: rgba(139, 195, 74, 0.3);
+  background: #1a1a1a;
+}
+
+html.dark-mode .inventory-management .search-input:focus {
+  border-color: #8bc34a;
+  box-shadow: 0 0 0 3px rgba(139, 195, 74, 0.15);
+  background: #1a1a1a;
+}
+
+/* ===== Dropdown Buttons ===== */
+.inventory-management .dropdown-container {
+  position: relative;
+}
+
+.inventory-management .dropdown-toggle {
+  padding: 0.875rem 1.25rem;
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #2c3e50;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+}
+
+.inventory-management .dropdown-toggle:hover {
+  border-color: rgba(118, 161, 43, 0.3);
+  background: #f8f9fa;
+}
+
+.inventory-management .dropdown-toggle.open {
+  border-color: #76a12b;
+  background: #f8f9fa;
+}
+
+html.dark-mode .inventory-management .dropdown-toggle {
+  background: #1e1e1e;
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #ecf0f1;
+}
+
+html.dark-mode .inventory-management .dropdown-toggle:hover {
+  border-color: rgba(139, 195, 74, 0.3);
+  background: #2a2a2a;
+}
+
+html.dark-mode .inventory-management .dropdown-toggle.open {
+  border-color: #8bc34a;
+  background: #2a2a2a;
+}
+
+.inventory-management .dropdown-toggle .arrow {
+  transition: transform 0.3s ease;
+  font-size: 0.75rem;
+}
+
+.inventory-management .dropdown-toggle.open .arrow {
+  transform: rotate(180deg);
+}
+
+.inventory-management .dropdown-content {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  z-index: 1000;
+  max-height: 400px;
+  overflow-y: auto;
+  min-width: 250px;
+  padding: 0.75rem;
+  display: none;
+}
+
+.inventory-management .dropdown-content.show {
+  display: block;
+  animation: dropdownSlideIn 0.2s ease;
+}
+
+@keyframes dropdownSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+html.dark-mode .inventory-management .dropdown-content {
+  background: #2a2a2a;
+  border-color: #404040;
+}
+
+.inventory-management .dropdown-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.inventory-management .dropdown-content::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+html.dark-mode .inventory-management .dropdown-content::-webkit-scrollbar-track {
+  background: #1e1e1e;
+}
+
+.inventory-management .dropdown-content::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+html.dark-mode .inventory-management .dropdown-content::-webkit-scrollbar-thumb {
+  background: #3a3a3a;
+}
+
+.inventory-management .dropdown-item {
+  padding: 0.75rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.inventory-management .dropdown-item:hover {
+  background: #f1f5f9;
+}
+
+html.dark-mode .inventory-management .dropdown-item:hover {
+  background: #1e1e1e;
+}
+
+.inventory-management .dropdown-item input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #76a12b;
+}
+
+.inventory-management .dropdown-item label {
+  cursor: pointer;
+  flex: 1;
+  font-size: 0.9rem;
+  color: #2c3e50;
+  font-weight: 500;
+}
+
+html.dark-mode .inventory-management .dropdown-item label {
+  color: #ecf0f1;
+}
+
+/* ===== Table Section ===== */
+.inventory-management .table-section {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  margin-bottom: 2rem;
+}
+
+html.dark-mode .inventory-management .table-section {
+  background: #2a2a2a;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+}
+
+.inventory-management .table-wrapper {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 700px;
+}
+
+.inventory-management .table-wrapper::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.inventory-management .table-wrapper::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 5px;
+}
+
+html.dark-mode .inventory-management .table-wrapper::-webkit-scrollbar-track {
+  background: #1e1e1e;
+}
+
+.inventory-management .table-wrapper::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 5px;
+}
+
+.inventory-management .table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+html.dark-mode .inventory-management .table-wrapper::-webkit-scrollbar-thumb {
+  background: #3a3a3a;
+}
+
+html.dark-mode .inventory-management .table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #4a4a4a;
+}
+
+/* ===== Inventory Table ===== */
+.inventory-management #inventoryManagementTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.inventory-management #inventoryManagementTable thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+}
+
+html.dark-mode .inventory-management #inventoryManagementTable thead {
+  background: linear-gradient(135deg, #1e1e1e, #2a2a2a);
+}
+
+.inventory-management #inventoryManagementTable th {
+  padding: 1rem;
+  text-align: left;
+  font-weight: 700;
+  color: #2c3e50;
+  border-bottom: 2px solid #e5e7eb;
+  white-space: nowrap;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+html.dark-mode .inventory-management #inventoryManagementTable th {
+  color: #ecf0f1;
+  border-bottom-color: #404040;
+}
+
+.inventory-management #inventoryManagementTable tbody tr {
+  border-bottom: 1px solid #f1f5f9;
+  transition: all 0.2s ease;
+}
+
+html.dark-mode .inventory-management #inventoryManagementTable tbody tr {
+  border-bottom-color: #404040;
+}
+
+.inventory-management #inventoryManagementTable tbody tr:hover {
+  background: #f8f9fa;
+}
+
+html.dark-mode .inventory-management #inventoryManagementTable tbody tr:hover {
+  background: #1e1e1e;
+}
+
+.inventory-management #inventoryManagementTable td {
+  padding: 1rem;
+  color: #374151;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+html.dark-mode .inventory-management #inventoryManagementTable td {
+  color: #d1d5db;
+}
+
+/* Hidden columns */
+.inventory-management #inventoryManagementTable th.hidden-col,
+.inventory-management #inventoryManagementTable td.hidden-col {
+  display: none;
+}
+
+/* Column visibility toggles */
+.inventory-management .table-wrapper.hide-col-1 .col-1,
+.inventory-management .table-wrapper.hide-col-2 .col-2,
+.inventory-management .table-wrapper.hide-col-3 .col-3,
+.inventory-management .table-wrapper.hide-col-4 .col-4,
+.inventory-management .table-wrapper.hide-col-5 .col-5,
+.inventory-management .table-wrapper.hide-col-6 .col-6,
+.inventory-management .table-wrapper.hide-col-7 .col-7,
+.inventory-management .table-wrapper.hide-col-8 .col-8,
+.inventory-management .table-wrapper.hide-col-9 .col-9,
+.inventory-management .table-wrapper.hide-col-10 .col-10,
+.inventory-management .table-wrapper.hide-col-11 .col-11,
+.inventory-management .table-wrapper.hide-col-12 .col-12,
+.inventory-management .table-wrapper.hide-col-13 .col-13,
+.inventory-management .table-wrapper.hide-col-14 .col-14,
+.inventory-management .table-wrapper.hide-col-15 .col-15,
+.inventory-management .table-wrapper.hide-col-16 .col-16 {
+  display: none;
+}
+
+.inventory-management .table-wrapper.hide-col-1 th:nth-child(1),
+.inventory-management .table-wrapper.hide-col-1 td:nth-child(1),
+.inventory-management .table-wrapper.hide-col-2 th:nth-child(2),
+.inventory-management .table-wrapper.hide-col-2 td:nth-child(2),
+.inventory-management .table-wrapper.hide-col-3 th:nth-child(3),
+.inventory-management .table-wrapper.hide-col-3 td:nth-child(3),
+.inventory-management .table-wrapper.hide-col-4 th:nth-child(4),
+.inventory-management .table-wrapper.hide-col-4 td:nth-child(4),
+.inventory-management .table-wrapper.hide-col-5 th:nth-child(5),
+.inventory-management .table-wrapper.hide-col-5 td:nth-child(5),
+.inventory-management .table-wrapper.hide-col-6 th:nth-child(6),
+.inventory-management .table-wrapper.hide-col-6 td:nth-child(6),
+.inventory-management .table-wrapper.hide-col-7 th:nth-child(7),
+.inventory-management .table-wrapper.hide-col-7 td:nth-child(7),
+.inventory-management .table-wrapper.hide-col-8 th:nth-child(8),
+.inventory-management .table-wrapper.hide-col-8 td:nth-child(8),
+.inventory-management .table-wrapper.hide-col-9 th:nth-child(9),
+.inventory-management .table-wrapper.hide-col-9 td:nth-child(9),
+.inventory-management .table-wrapper.hide-col-10 th:nth-child(10),
+.inventory-management .table-wrapper.hide-col-10 td:nth-child(10),
+.inventory-management .table-wrapper.hide-col-11 th:nth-child(11),
+.inventory-management .table-wrapper.hide-col-11 td:nth-child(11),
+.inventory-management .table-wrapper.hide-col-12 th:nth-child(12),
+.inventory-management .table-wrapper.hide-col-12 td:nth-child(12),
+.inventory-management .table-wrapper.hide-col-13 th:nth-child(13),
+.inventory-management .table-wrapper.hide-col-13 td:nth-child(13),
+.inventory-management .table-wrapper.hide-col-14 th:nth-child(14),
+.inventory-management .table-wrapper.hide-col-14 td:nth-child(14),
+.inventory-management .table-wrapper.hide-col-15 th:nth-child(15),
+.inventory-management .table-wrapper.hide-col-15 td:nth-child(15),
+.inventory-management .table-wrapper.hide-col-16 th:nth-child(16),
+.inventory-management .table-wrapper.hide-col-16 td:nth-child(16) {
+  display: none;
+}
+
+/* ===== Pagination ===== */
+.inventory-management .pagination-section {
+  background: white;
+  padding: 1.5rem 2rem;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 2rem;
+}
+
+html.dark-mode .inventory-management .pagination-section {
+  background: #2a2a2a;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+}
+
+.inventory-management .pagination-info {
+  font-size: 0.95rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+html.dark-mode .inventory-management .pagination-info {
+  color: #94a3b8;
+}
+
+.inventory-management .pagination-controls {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.inventory-management .pagination-btn {
+  padding: 0.75rem 1.25rem;
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  font-weight: 600;
+  color: #2c3e50;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.inventory-management .pagination-btn:hover:not(:disabled) {
+  border-color: #76a12b;
+  background: #f8f9fa;
+  transform: translateY(-2px);
+}
+
+.inventory-management .pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+html.dark-mode .inventory-management .pagination-btn {
+  background: #1e1e1e;
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #ecf0f1;
+}
+
+html.dark-mode .inventory-management .pagination-btn:hover:not(:disabled) {
+  border-color: #8bc34a;
+  background: #2a2a2a;
+}
+
+.inventory-management .page-indicator {
+  padding: 0.75rem 1.25rem;
+  background: linear-gradient(135deg, #76a12b, #5e8122);
+  color: white;
+  border-radius: 10px;
+  font-weight: 700;
+  min-width: 100px;
+  text-align: center;
+}
+
+/* ===== Loading State ===== */
+.inventory-management .loading-state {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: #7f8c8d;
+}
+
+html.dark-mode .inventory-management .loading-state {
+  color: #95a5a6;
+}
+
+.inventory-management .loading-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid #f1f5f9;
+  border-top-color: #76a12b;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+html.dark-mode .inventory-management .loading-spinner {
+  border-color: #404040;
+  border-top-color: #8bc34a;
+}
+
+/* ===== Empty State ===== */
+.inventory-management .empty-state {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: #7f8c8d;
+}
+
+html.dark-mode .inventory-management .empty-state {
+  color: #95a5a6;
+}
+
+.inventory-management .empty-state i {
+  font-size: 4rem;
+  color: #cbd5e1;
+  margin-bottom: 1rem;
+}
+
+html.dark-mode .inventory-management .empty-state i {
+  color: #404040;
+}
+
+.inventory-management .empty-state h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 0.5rem;
+}
+
+html.dark-mode .inventory-management .empty-state h3 {
+  color: #ecf0f1;
+}
+
+/* ===== Responsive Design ===== */
+@media (max-width: 1200px) {
+  .inventory-management .search-controls {
+    grid-template-columns: 1fr;
+  }
+  
+  .inventory-management .checkbox-grid {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .inventory-management .inner-tabs {
+    flex-direction: column;
+  }
+  
+  .inventory-management .tab-button {
+    width: 100%;
+  }
+  
+  .inventory-management .checkbox-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .inventory-management .pagination-section {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .inventory-management .page-title {
+    font-size: 2rem;
+  }
+}
+
+/* ===== Dropdown Backdrop ===== */
+.dropdown-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.2);
+  z-index: 999;
+  display: none;
+  backdrop-filter: blur(2px);
+}
+
+.dropdown-backdrop.show {
+  display: block;
+}
+
+html.dark-mode .dropdown-backdrop {
+  background: rgba(0, 0, 0, 0.5);
+}
