@@ -206,8 +206,8 @@ function setupEventListeners() {
       if (currentPage > 0) {
         currentPage--;
         if (isSearchMode) {
-          // In search mode, navigate through client-side pages
-          displayCurrentPage();
+          // In search mode, load previous page of search results from server
+          loadSearchResults(currentSearch);
         } else {
           // In pagination mode, load previous 100 records from server
           loadSalesData();
@@ -218,17 +218,16 @@ function setupEventListeners() {
   
   if (nextBtn) {
     nextBtn.addEventListener('click', () => {
-      if (isSearchMode) {
-        // In search mode, navigate through client-side pages of all search results
-        const totalPages = Math.ceil(allData.length / pageSize);
-        if (currentPage < totalPages - 1) {
-          currentPage++;
-          displayCurrentPage();
-        }
-      } else {
-        // In pagination mode, load next 100 records from server
+      const totalPages = Math.ceil(totalRecords / pageSize);
+      if (currentPage < totalPages - 1) {
         currentPage++;
-        loadSalesData();
+        if (isSearchMode) {
+          // In search mode, load next page of search results from server
+          loadSearchResults(currentSearch);
+        } else {
+          // In pagination mode, load next 100 records from server
+          loadSalesData();
+        }
       }
     });
   }
@@ -291,6 +290,9 @@ async function loadSalesData() {
 /**
  * Load search results - queries ALL records matching the search term from server
  */
+/**
+ * Load search results from server - pagination mode (100 records at a time with search term)
+ */
 async function loadSearchResults(searchTerm) {
   const tbody = document.getElementById('salesTableBody');
   const colSpan = viewMode === 'condensed' ? '4' : '9';
@@ -300,43 +302,29 @@ async function loadSearchResults(searchTerm) {
   tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem;">Searching for "${searchTerm}"...</td></tr>`;
   
   try {
-    console.log(`[UK Sales] Searching for: "${searchTerm}"`);
+    console.log(`[UK Sales] Searching for: "${searchTerm}" - Page: ${currentPage + 1}`);
     
-    // Load ALL matching records from server in batches
-    allData = [];
-    const batchSize = 1000; // Fetch in larger batches for search
-    let offset = 0;
-    let hasMore = true;
+    // Fetch 100 matching records at a time, just like regular pagination
+    const offset = currentPage * pageSize;
     
-    while (hasMore) {
-      let result;
-      if (viewMode === 'condensed') {
-        result = await getUKCondensedData(batchSize, offset, searchTerm);
-      } else {
-        result = await getUKSalesData(batchSize, offset, searchTerm);
-      }
-      
-      if (result.status === 'success' && result.data && result.data.length > 0) {
-        allData = allData.concat(result.data);
-        offset += batchSize;
-        
-        // Update loading message with progress
-        tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem;">Searching... (${allData.length} matching records found)</td></tr>`;
-        
-        // If we got less than batchSize, we've reached the end
-        if (result.data.length < batchSize) {
-          hasMore = false;
-        }
-      } else {
-        hasMore = false;
-      }
+    let result;
+    if (viewMode === 'condensed') {
+      result = await getUKCondensedData(pageSize, offset, searchTerm);
+    } else {
+      result = await getUKSalesData(pageSize, offset, searchTerm);
     }
     
-    console.log(`[UK Sales] Search complete: ${allData.length} records match "${searchTerm}"`);
-    
-    totalRecords = allData.length;
-    currentPage = 0;
-    displayCurrentPage();
+    if (result.status === 'success' && result.data) {
+      allData = result.data;
+      totalRecords = result.total_count || 0;
+      
+      console.log(`[UK Sales] Search results: ${allData.length} records on this page (offset: ${offset}, total matches: ${totalRecords})`);
+      
+      displayCurrentPage();
+    } else {
+      console.error('[UK Sales] Search failed:', result.message);
+      tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem; color: red;">Search error: ${result.message}</td></tr>`;
+    }
     
   } catch (error) {
     console.error('[UK Sales] Error searching data:', error);
