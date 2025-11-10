@@ -62,15 +62,16 @@ function setupEventListeners() {
   const searchInput = document.getElementById('searchInput');
   
   if (searchInput) {
+    const readSearchValue = () => (searchInput?.value || '').trim();
+
     // Real-time search as user types
-    searchInput.addEventListener('input', (e) => {
+    searchInput.addEventListener('input', () => {
       try {
-        const searchValue = e.target?.value?.trim() || '';
-        currentSearch = searchValue;
+        currentSearch = readSearchValue();
         currentPage = 0;
         filterAndDisplayData();
       } catch (err) {
-        // Ignore errors from browser extensions
+        // Ignore errors from browser extensions hooking into inputs
         console.warn('Search input error (likely browser extension):', err);
       }
     });
@@ -78,42 +79,39 @@ function setupEventListeners() {
     searchInput.addEventListener('keypress', (e) => {
       try {
         if (e.key === 'Enter') {
-          const searchValue = e.target?.value?.trim() || '';
-          currentSearch = searchValue;
+          currentSearch = readSearchValue();
           currentPage = 0;
           filterAndDisplayData();
         }
       } catch (err) {
-        // Ignore errors from browser extensions
         console.warn('Search keypress error (likely browser extension):', err);
       }
     });
-  }
-  
-  if (searchBtn) {
-    searchBtn.addEventListener('click', () => {
-      try {
-        const searchValue = searchInput?.value?.trim() || '';
-        currentSearch = searchValue;
-        currentPage = 0;
-        filterAndDisplayData();
-      } catch (err) {
-        console.warn('Search button error:', err);
-      }
-    });
-  }
-  
-  if (clearSearchBtn) {
-    clearSearchBtn.addEventListener('click', () => {
-      try {
-        if (searchInput) searchInput.value = '';
-        currentSearch = '';
-        currentPage = 0;
-        filterAndDisplayData();
-      } catch (err) {
-        console.warn('Clear search error:', err);
-      }
-    });
+
+    if (searchBtn) {
+      searchBtn.addEventListener('click', () => {
+        try {
+          currentSearch = readSearchValue();
+          currentPage = 0;
+          filterAndDisplayData();
+        } catch (err) {
+          console.warn('Search button error:', err);
+        }
+      });
+    }
+
+    if (clearSearchBtn) {
+      clearSearchBtn.addEventListener('click', () => {
+        try {
+          if (searchInput) searchInput.value = '';
+          currentSearch = '';
+          currentPage = 0;
+          filterAndDisplayData();
+        } catch (err) {
+          console.warn('Clear search error:', err);
+        }
+      });
+    }
   }
   
   // Pagination
