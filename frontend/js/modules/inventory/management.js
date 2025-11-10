@@ -857,12 +857,18 @@ function setupZoomControls() {
   function applyZoom(zoom) {
     const table = document.getElementById('inventoryManagementTable');
     if (table) {
-      table.style.transform = `scale(${zoom / 100})`;
+      const scaleRatio = zoom / 100;
+      table.style.transform = `scale(${scaleRatio})`;
       table.style.transformOrigin = 'top left';
       
-      // Adjust the scroller width to accommodate the scaled table
-      const scaledWidth = table.offsetWidth * (zoom / 100);
-      tableScroller.style.width = '100%';
+      // Adjust scrollable area to match scaled size
+      // When zoomed to 80%, the table visually takes 80% space but the container thinks it's 100%
+      // We need to adjust the container's perceived size
+      const tableWrapper = table.closest('.table-wrapper');
+      if (tableWrapper) {
+        // Set the wrapper to overflow based on the scaled content
+        tableWrapper.style.width = `${scaleRatio * 100}%`;
+      }
     }
     
     // Update indicator

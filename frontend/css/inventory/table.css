@@ -8,6 +8,7 @@
   border-radius: 16px;
   overflow: hidden;
   max-height: 700px;
+  transition: width 0.2s ease;
 }
 
 html.dark-mode .inventory-management .table-wrapper {
@@ -70,6 +71,7 @@ html.dark-mode #inventoryManagementTableScroller::-webkit-scrollbar-thumb:hover 
   font-size: 0.9rem;
   line-height: 1.5;
   table-layout: auto; /* Dynamic column sizing */
+  transform-origin: top left;
 }
 
 /* Let columns size naturally based on content */
@@ -79,14 +81,14 @@ html.dark-mode #inventoryManagementTableScroller::-webkit-scrollbar-thumb:hover 
 
 /* ===== Table Headers ===== */
 #inventoryManagementTable thead {
-  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  background: #f8f9fa;
   position: sticky;
   top: 0;
   z-index: 10;
 }
 
 html.dark-mode #inventoryManagementTable thead {
-  background: linear-gradient(135deg, #1e1e1e, #2a2a2a);
+  background: #1e1e1e;
 }
 
 #inventoryManagementTable th {
@@ -110,16 +112,16 @@ html.dark-mode #inventoryManagementTable th {
   border-right-color: rgba(255, 255, 255, 0.05);
 }
 
-/* Header group visual grouping with subtle gradients */
+/* Header group visual grouping with subtle solid colors */
 #inventoryManagementTable th:nth-child(1) {
-  background: linear-gradient(135deg, rgba(241, 245, 249, 0.5), transparent);
+  background: rgba(241, 245, 249, 0.4);
 }
 
 #inventoryManagementTable th:nth-child(2),
 #inventoryManagementTable th:nth-child(3),
 #inventoryManagementTable th:nth-child(4),
 #inventoryManagementTable th:nth-child(5) {
-  background: linear-gradient(135deg, rgba(219, 234, 254, 0.3), transparent);
+  background: rgba(219, 234, 254, 0.25);
 }
 
 #inventoryManagementTable th:nth-child(6),
@@ -127,34 +129,34 @@ html.dark-mode #inventoryManagementTable th {
 #inventoryManagementTable th:nth-child(8),
 #inventoryManagementTable th:nth-child(9),
 #inventoryManagementTable th:nth-child(10) {
-  background: linear-gradient(135deg, rgba(254, 243, 199, 0.3), transparent);
+  background: rgba(254, 243, 199, 0.25);
 }
 
 #inventoryManagementTable th:nth-child(11),
 #inventoryManagementTable th:nth-child(12) {
-  background: linear-gradient(135deg, rgba(236, 253, 245, 0.3), transparent);
+  background: rgba(236, 253, 245, 0.25);
 }
 
 #inventoryManagementTable th:nth-child(13) {
-  background: linear-gradient(135deg, rgba(254, 242, 242, 0.3), transparent);
+  background: rgba(254, 242, 242, 0.25);
 }
 
 #inventoryManagementTable th:nth-child(14),
 #inventoryManagementTable th:nth-child(15),
 #inventoryManagementTable th:nth-child(16) {
-  background: linear-gradient(135deg, rgba(243, 232, 255, 0.3), transparent);
+  background: rgba(243, 232, 255, 0.25);
 }
 
 /* Dark mode header groups */
 html.dark-mode #inventoryManagementTable th:nth-child(1) {
-  background: linear-gradient(135deg, rgba(58, 58, 58, 0.3), transparent);
+  background: rgba(58, 58, 58, 0.25);
 }
 
 html.dark-mode #inventoryManagementTable th:nth-child(2),
 html.dark-mode #inventoryManagementTable th:nth-child(3),
 html.dark-mode #inventoryManagementTable th:nth-child(4),
 html.dark-mode #inventoryManagementTable th:nth-child(5) {
-  background: linear-gradient(135deg, rgba(42, 52, 65, 0.3), transparent);
+  background: rgba(42, 52, 65, 0.25);
 }
 
 html.dark-mode #inventoryManagementTable th:nth-child(6),
@@ -162,32 +164,51 @@ html.dark-mode #inventoryManagementTable th:nth-child(7),
 html.dark-mode #inventoryManagementTable th:nth-child(8),
 html.dark-mode #inventoryManagementTable th:nth-child(9),
 html.dark-mode #inventoryManagementTable th:nth-child(10) {
-  background: linear-gradient(135deg, rgba(61, 56, 40, 0.3), transparent);
+  background: rgba(61, 56, 40, 0.25);
 }
 
 html.dark-mode #inventoryManagementTable th:nth-child(11),
 html.dark-mode #inventoryManagementTable th:nth-child(12) {
-  background: linear-gradient(135deg, rgba(42, 61, 47, 0.3), transparent);
+  background: rgba(42, 61, 47, 0.25);
 }
 
 html.dark-mode #inventoryManagementTable th:nth-child(13) {
-  background: linear-gradient(135deg, rgba(61, 42, 42, 0.3), transparent);
+  background: rgba(61, 42, 42, 0.25);
 }
 
 html.dark-mode #inventoryManagementTable th:nth-child(14),
 html.dark-mode #inventoryManagementTable th:nth-child(15),
 html.dark-mode #inventoryManagementTable th:nth-child(16) {
-  background: linear-gradient(135deg, rgba(53, 42, 61, 0.3), transparent);
+  background: rgba(53, 42, 61, 0.25);
 }
 
 /* ===== Table Rows ===== */
 #inventoryManagementTable tbody tr {
   border-bottom: 1px solid #f1f5f9;
-  background: transparent;
+  background: white;
+  transition: background-color 0.15s ease;
+}
+
+#inventoryManagementTable tbody tr:nth-child(even) {
+  background: #f9fafb;
 }
 
 html.dark-mode #inventoryManagementTable tbody tr {
   border-bottom-color: #404040;
+  background: #2a2a2a;
+}
+
+html.dark-mode #inventoryManagementTable tbody tr:nth-child(even) {
+  background: #252525;
+}
+
+/* Row hover - light highlight for entire row */
+#inventoryManagementTable tbody tr:hover {
+  background: #f3f4f6;
+}
+
+html.dark-mode #inventoryManagementTable tbody tr:hover {
+  background: #333333;
 }
 
 /* ===== Table Cells ===== */
