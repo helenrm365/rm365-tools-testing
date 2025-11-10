@@ -863,8 +863,19 @@ function setupZoomControls() {
       const scaledFontSize = baseFontSize * (zoom / 100);
       table.style.fontSize = `${scaledFontSize}rem`;
       
-      // Also scale padding proportionally for better fit
-      const cells = table.querySelectorAll('td, th');
+      // Scale headers too, but keep them proportionally larger (80% of zoom vs 100%)
+      // This ensures headers shrink enough to fit but remain more readable
+      const headers = table.querySelectorAll('th');
+      const baseHeaderFontSize = 0.8; // Base rem from CSS
+      const headerZoomFactor = 0.7 + (zoom / 100) * 0.3; // 70% base + 30% of zoom (so at 50% zoom, headers are 85% size)
+      const scaledHeaderFontSize = baseHeaderFontSize * (zoom / 100) * 1.15; // Keep headers 15% larger than body
+      headers.forEach(header => {
+        header.style.fontSize = `${scaledHeaderFontSize}rem`;
+        header.style.padding = `${0.875 * (zoom / 100)}rem 1rem`;
+      });
+      
+      // Scale body cell padding proportionally for better fit
+      const cells = table.querySelectorAll('td');
       const basePadding = 1; // Base rem value
       const scaledPadding = basePadding * (zoom / 100);
       cells.forEach(cell => {
