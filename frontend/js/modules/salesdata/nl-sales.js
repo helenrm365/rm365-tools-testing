@@ -64,37 +64,55 @@ function setupEventListeners() {
   if (searchInput) {
     // Real-time search as user types
     searchInput.addEventListener('input', (e) => {
-      const searchValue = e.target?.value?.trim() || '';
-      currentSearch = searchValue;
-      currentPage = 0;
-      filterAndDisplayData();
-    });
-    
-    searchInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
+      try {
         const searchValue = e.target?.value?.trim() || '';
         currentSearch = searchValue;
         currentPage = 0;
         filterAndDisplayData();
+      } catch (err) {
+        // Ignore errors from browser extensions
+        console.warn('Search input error (likely browser extension):', err);
+      }
+    });
+    
+    searchInput.addEventListener('keypress', (e) => {
+      try {
+        if (e.key === 'Enter') {
+          const searchValue = e.target?.value?.trim() || '';
+          currentSearch = searchValue;
+          currentPage = 0;
+          filterAndDisplayData();
+        }
+      } catch (err) {
+        // Ignore errors from browser extensions
+        console.warn('Search keypress error (likely browser extension):', err);
       }
     });
   }
   
   if (searchBtn) {
     searchBtn.addEventListener('click', () => {
-      const searchValue = searchInput?.value?.trim() || '';
-      currentSearch = searchValue;
-      currentPage = 0;
-      filterAndDisplayData();
+      try {
+        const searchValue = searchInput?.value?.trim() || '';
+        currentSearch = searchValue;
+        currentPage = 0;
+        filterAndDisplayData();
+      } catch (err) {
+        console.warn('Search button error:', err);
+      }
     });
   }
   
   if (clearSearchBtn) {
     clearSearchBtn.addEventListener('click', () => {
-      if (searchInput) searchInput.value = '';
-      currentSearch = '';
-      currentPage = 0;
-      filterAndDisplayData();
+      try {
+        if (searchInput) searchInput.value = '';
+        currentSearch = '';
+        currentPage = 0;
+        filterAndDisplayData();
+      } catch (err) {
+        console.warn('Clear search error:', err);
+      }
     });
   }
   
