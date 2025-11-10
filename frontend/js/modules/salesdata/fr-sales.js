@@ -43,7 +43,16 @@ function setupEventListeners() {
       viewFullBtn.classList.add('active');
       viewCondensedBtn?.classList.remove('active');
       currentPage = 0;
-      loadSalesData();
+      
+      // Check if there's an active search and preserve it
+      const searchInput = document.getElementById('salesSearchInput');
+      if (searchInput && searchInput.value.trim()) {
+        // Keep search active and reload with search term
+        loadSearchResults(searchInput.value.trim());
+      } else {
+        // No search, just load data normally
+        loadSalesData();
+      }
     });
   }
   
@@ -53,7 +62,16 @@ function setupEventListeners() {
       viewCondensedBtn.classList.add('active');
       viewFullBtn?.classList.remove('active');
       currentPage = 0;
-      loadSalesData();
+      
+      // Check if there's an active search and preserve it
+      const searchInput = document.getElementById('salesSearchInput');
+      if (searchInput && searchInput.value.trim()) {
+        // Keep search active and reload with search term
+        loadSearchResults(searchInput.value.trim());
+      } else {
+        // No search, just load data normally
+        loadSalesData();
+      }
     });
   }
   
