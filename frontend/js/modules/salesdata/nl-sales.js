@@ -82,11 +82,13 @@ function setupEventListeners() {
       if (!isSearchMode) {
         console.log('[NL Sales] Entering search mode - loading all records...');
         await loadAllDataForSearch();
+        isSearchMode = true;
       }
-      isSearchMode = true;
+      // Apply filter after data is loaded
       applySearchFilter();
     } else {
       // No search - just apply filter to current data
+      isSearchMode = false;
       applySearchFilter();
     }
   };
