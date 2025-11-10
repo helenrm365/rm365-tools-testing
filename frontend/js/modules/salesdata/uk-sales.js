@@ -93,8 +93,10 @@ function setupEventListeners() {
   
   // Debounced search for real-time filtering
   const debouncedSearch = () => {
+    console.log('[UK Sales] Debounced search triggered, will execute in 400ms');
     if (searchTimeout) clearTimeout(searchTimeout);
     searchTimeout = setTimeout(() => {
+      console.log('[UK Sales] Debounced search executing now...');
       performSearch();
     }, 400); // Wait 400ms after user stops typing
   };
@@ -110,6 +112,12 @@ function setupEventListeners() {
     currentSearch = '';
     currentPage = 0;
     isSearchMode = false;
+    
+    // Clear any pending debounced search
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+      searchTimeout = null;
+    }
     
     // Reload just the first page of data
     loadSalesData();
