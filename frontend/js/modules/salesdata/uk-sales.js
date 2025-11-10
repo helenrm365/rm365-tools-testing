@@ -6,6 +6,8 @@ let currentPage = 0;
 const pageSize = 100;
 let currentSearch = '';
 let viewMode = 'full'; // 'full' or 'condensed'
+let allData = []; // Store all loaded data for client-side filtering
+let filteredData = []; // Store filtered results
 
 /**
  * Initialize UK sales page
@@ -54,18 +56,36 @@ function setupEventListeners() {
     });
   }
   
-  // Search functionality
+  // Search functionality - client-side filtering
   const searchBtn = document.getElementById('searchBtn');
   const clearSearchBtn = document.getElementById('clearSearchBtn');
   const searchInput = document.getElementById('searchInput');
   
+  if (searchInput) {
+    // Real-time search as user types
+    searchInput.addEventListener('input', () => {
+      const searchValue = searchInput.value?.trim() || '';
+      currentSearch = searchValue;
+      currentPage = 0;
+      filterAndDisplayData();
+    });
+    
+    searchInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        const searchValue = searchInput.value?.trim() || '';
+        currentSearch = searchValue;
+        currentPage = 0;
+        filterAndDisplayData();
+      }
+    });
+  }
+  
   if (searchBtn) {
     searchBtn.addEventListener('click', () => {
       const searchValue = searchInput?.value?.trim() || '';
-      console.log('[UK Sales] Search triggered with value:', searchValue);
       currentSearch = searchValue;
       currentPage = 0;
-      loadSalesData();
+      filterAndDisplayData();
     });
   }
   
@@ -74,20 +94,7 @@ function setupEventListeners() {
       if (searchInput) searchInput.value = '';
       currentSearch = '';
       currentPage = 0;
-      console.log('[UK Sales] Search cleared');
-      loadSalesData();
-    });
-  }
-  
-  if (searchInput) {
-    searchInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        const searchValue = searchInput.value?.trim() || '';
-        console.log('[UK Sales] Search triggered (Enter key) with value:', searchValue);
-        currentSearch = searchValue;
-        currentPage = 0;
-        loadSalesData();
-      }
+      filterAndDisplayData();
     });
   }
   
@@ -99,7 +106,7 @@ function setupEventListeners() {
     prevBtn.addEventListener('click', () => {
       if (currentPage > 0) {
         currentPage--;
-        loadSalesData();
+        filterAndDisplayData();
       }
     });
   }
@@ -107,7 +114,7 @@ function setupEventListeners() {
   if (nextBtn) {
     nextBtn.addEventListener('click', () => {
       currentPage++;
-      loadSalesData();
+      filterAndDisplayData();
     });
   }
   
@@ -128,49 +135,96 @@ async function loadSalesData() {
   if (!tbody) return;
   
   // Show loading state
-  const colSpan = viewMode === 'condensed' ? '4' : '10';
+  const colSpan = viewMode === 'condensed' ? '4' : '9';
   tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem;">Loading...</td></tr>`;
   
   try {
-    const offset = currentPage * pageSize;
+    console.log(`[UK Sales] Loading data - Mode: ${viewMode}`);
+    
+    // Load ALL data from backend (no pagination on API call)
     let result;
-    
-    console.log(`[UK Sales] Loading data - Mode: ${viewMode}, Page: ${currentPage}, Search: "${currentSearch}"`);
-    
     if (viewMode === 'condensed') {
-      result = await getUKCondensedData(pageSize, offset, currentSearch);
-      displayCondensedData(result.data, result.total_count);
+      result = await getUKCondensedData(10000, 0, ''); // Load up to 10k records
     } else {
-      result = await getUKSalesData(pageSize, offset, currentSearch);
-      displaySalesData(result.data, result.total_count);
+      result = await getUKSalesData(10000, 0, ''); // Load up to 10k records
     }
     
     if (result.status === 'success') {
-      console.log(`[UK Sales] Loaded ${result.data.length} records (${result.total_count} total)`);
+      allData = result.data || [];
+      console.log(`[UK Sales] Loaded ${allData.length} total records`);
       
-      // Update pagination info
-      if (pageInfo) {
-        const totalPages = Math.ceil(result.total_count / pageSize);
-        const viewLabel = viewMode === 'condensed' ? 'Condensed (6-Month)' : 'Full Sales';
-        const searchLabel = currentSearch ? ` (filtered by "${currentSearch}")` : '';
-        pageInfo.textContent = `${viewLabel}${searchLabel} - Page ${currentPage + 1} of ${totalPages} (${result.total_count} total records)`;
-      }
-      
-      // Update pagination buttons
-      const prevBtn = document.getElementById('prevPageBtn');
-      const nextBtn = document.getElementById('nextPageBtn');
-      if (prevBtn) prevBtn.disabled = currentPage === 0;
-      if (nextBtn) nextBtn.disabled = (currentPage + 1) * pageSize >= result.total_count;
-      
+      // Reset to first page and apply any current search
+      currentPage = 0;
+      filterAndDisplayData();
     } else {
       tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem; color: red;">Error: ${result.message}</td></tr>`;
       showToast('Failed to load sales data: ' + result.message, 'error');
     }
   } catch (error) {
     console.error('[UK Sales] Error loading data:', error);
+    const colSpan = viewMode === 'condensed' ? '4' : '9';
     tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem; color: red;">Error: ${error.message}</td></tr>`;
     showToast('Error loading data: ' + error.message, 'error');
   }
+}
+
+/**
+ * Filter and display data based on current search term
+ */
+function filterAndDisplayData() {
+  const tbody = document.getElementById('salesTableBody');
+  const pageInfo = document.getElementById('pageInfo');
+  
+  if (!tbody) return;
+  
+  // Filter data based on search term
+  if (currentSearch) {
+    const searchLower = currentSearch.toLowerCase();
+    filteredData = allData.filter(row => {
+      // Search across all relevant fields
+      const searchableText = [
+        row.order_number,
+        row.sku,
+        row.name,
+        row.status,
+        row.customer_group,
+        row.currency,
+        row.created_at
+      ].filter(Boolean).join(' ').toLowerCase();
+      
+      return searchableText.includes(searchLower);
+    });
+    console.log(`[UK Sales] Filtered to ${filteredData.length} records (search: "${currentSearch}")`);
+  } else {
+    filteredData = [...allData];
+  }
+  
+  // Calculate pagination
+  const totalFiltered = filteredData.length;
+  const totalPages = Math.ceil(totalFiltered / pageSize);
+  const startIdx = currentPage * pageSize;
+  const endIdx = Math.min(startIdx + pageSize, totalFiltered);
+  const pageData = filteredData.slice(startIdx, endIdx);
+  
+  // Display current page of data
+  if (viewMode === 'condensed') {
+    displayCondensedData(pageData, totalFiltered);
+  } else {
+    displaySalesData(pageData, totalFiltered);
+  }
+  
+  // Update pagination info
+  if (pageInfo) {
+    const viewLabel = viewMode === 'condensed' ? 'Condensed (6-Month)' : 'Full Sales';
+    const searchLabel = currentSearch ? ` (filtered by "${currentSearch}")` : '';
+    pageInfo.textContent = `${viewLabel}${searchLabel} - Page ${currentPage + 1} of ${totalPages || 1} (${totalFiltered} total records)`;
+  }
+  
+  // Update pagination buttons
+  const prevBtn = document.getElementById('prevPageBtn');
+  const nextBtn = document.getElementById('nextPageBtn');
+  if (prevBtn) prevBtn.disabled = currentPage === 0;
+  if (nextBtn) nextBtn.disabled = currentPage >= totalPages - 1;
 }
 
 /**
@@ -182,32 +236,28 @@ function displaySalesData(data, totalCount) {
   
   if (!tbody) return;
   
-  // Update table headers for full view
+  // Update table headers for full view (matching the 9 columns in HTML)
   if (thead) {
     thead.innerHTML = `
-      <th>ID</th>
-      <th>Order Number</th>
-      <th>Created At</th>
-      <th>SKU</th>
-      <th>Name</th>
-      <th>Quantity</th>
-      <th>Price</th>
-      <th>Status</th>
-      <th>Customer Group</th>
-      <th>Currency</th>
-      <th>Imported At</th>
-      <th>Updated At</th>
+      <th><i class="fas fa-hashtag"></i> Order ID</th>
+      <th><i class="fas fa-calendar"></i> Date</th>
+      <th><i class="fas fa-barcode"></i> SKU</th>
+      <th><i class="fas fa-box"></i> Product</th>
+      <th><i class="fas fa-sort-numeric-up"></i> Quantity</th>
+      <th><i class="fas fa-pound-sign"></i> Price</th>
+      <th><i class="fas fa-info-circle"></i> Status</th>
+      <th><i class="fas fa-users"></i> Customer Group</th>
+      <th><i class="fas fa-money-bill"></i> Currency</th>
     `;
   }
   
   if (!data || data.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="12" style="text-align: center; padding: 2rem;">No data found</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 2rem;">No data found</td></tr>';
     return;
   }
   
   tbody.innerHTML = data.map(row => `
     <tr>
-      <td>${row.id || ''}</td>
       <td>${escapeHtml(row.order_number || '')}</td>
       <td>${escapeHtml(row.created_at || '')}</td>
       <td>${escapeHtml(row.sku || '')}</td>
@@ -217,8 +267,6 @@ function displaySalesData(data, totalCount) {
       <td>${escapeHtml(row.status || '')}</td>
       <td>${escapeHtml(row.customer_group || '')}</td>
       <td>${escapeHtml(row.currency || '')}</td>
-      <td>${formatDateTime(row.imported_at)}</td>
-      <td>${formatDateTime(row.updated_at)}</td>
     </tr>
   `).join('');
 }
