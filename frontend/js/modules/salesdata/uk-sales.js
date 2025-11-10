@@ -72,7 +72,6 @@ function setupEventListeners() {
     
     searchInput.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') {
-        e.preventDefault();
         const searchValue = e.target?.value?.trim() || '';
         currentSearch = searchValue;
         currentPage = 0;
@@ -82,8 +81,7 @@ function setupEventListeners() {
   }
   
   if (searchBtn) {
-    searchBtn.addEventListener('click', (e) => {
-      e.preventDefault();
+    searchBtn.addEventListener('click', () => {
       const searchValue = searchInput?.value?.trim() || '';
       currentSearch = searchValue;
       currentPage = 0;
@@ -92,8 +90,7 @@ function setupEventListeners() {
   }
   
   if (clearSearchBtn) {
-    clearSearchBtn.addEventListener('click', (e) => {
-      e.preventDefault();
+    clearSearchBtn.addEventListener('click', () => {
       if (searchInput) searchInput.value = '';
       currentSearch = '';
       currentPage = 0;
@@ -145,24 +142,46 @@ async function loadSalesData() {
     console.log(`[UK Sales] Loading data - Mode: ${viewMode}`);
     
     // Load data from backend with reasonable limit
+    // Batch loading to get all records
+    allData = [];
+    let offset = 0;
+    const batchSize = 1000;
+    let hasMore = true;
     let result;
-    if (viewMode === 'condensed') {
-      result = await getUKCondensedData(1000, 0, ''); // Load up to 1k records
-    } else {
-      result = await getUKSalesData(1000, 0, ''); // Load up to 1k records
+    
+    while (hasMore) {
+      if (viewMode === 'condensed') {
+        result = await getUKCondensedData(batchSize, offset, '');
+      } else {
+        result = await getUKSalesData(batchSize, offset, '');
+      }
+      
+      if (result.status === 'success' && result.data && result.data.length > 0) {
+        allData = allData.concat(result.data);
+        offset += batchSize;
+        
+        // Show loading progress
+        tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem;">Loading UK Sales... (${allData.length} records loaded)</td></tr>`;
+        
+        // If we got less than batchSize, we've reached the end
+        if (result.data.length < batchSize) {
+          hasMore = false;
+        }
+      } else {
+        hasMore = false;
+        if (result.status !== 'success' && allData.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem; color: red;">Error: ${result.message}</td></tr>`;
+          showToast('Failed to load sales data: ' + result.message, 'error');
+          return;
+        }
+      }
     }
     
-    if (result.status === 'success') {
-      allData = result.data || [];
-      console.log(`[UK Sales] Loaded ${allData.length} total records`);
-      
-      // Reset to first page and apply any current search
-      currentPage = 0;
-      filterAndDisplayData();
-    } else {
-      tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem; color: red;">Error: ${result.message}</td></tr>`;
-      showToast('Failed to load sales data: ' + result.message, 'error');
-    }
+    console.log(`[UK Sales] Loaded ${allData.length} total records`);
+    
+    // Reset to first page and apply any current search
+    currentPage = 0;
+    filterAndDisplayData();
   } catch (error) {
     console.error('[UK Sales] Error loading data:', error);
     const colSpan = viewMode === 'condensed' ? '4' : '9';
