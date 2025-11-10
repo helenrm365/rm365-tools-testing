@@ -8,6 +8,8 @@ let currentSearch = '';
 let viewMode = 'full'; // 'full' or 'condensed'
 let allData = []; // Store all loaded data for client-side filtering
 let filteredData = []; // Store filtered results
+let totalAvailableRecords = 0; // Total records in database
+let isSearchMode = false; // Whether we're in search mode (all data loaded) or pagination mode
 
 /**
  * Initialize NL sales page
@@ -61,8 +63,8 @@ function setupEventListeners() {
   const clearSearchBtn = document.getElementById('clearSearchBtn');
   const searchInput = document.getElementById('searchInput');
   
-  // Perform search function
-  const performSearch = () => {
+  // Perform search function - loads ALL data when searching
+  const performSearch = async () => {
     const inputElement = document.getElementById('searchInput');
     if (!inputElement) {
       console.warn('[NL Sales] Search input not found');
@@ -74,20 +76,35 @@ function setupEventListeners() {
     
     currentSearch = searchValue;
     currentPage = 0;
-    applySearchFilter();
+    
+    // If there's a search term, load ALL data to search through
+    if (searchValue.length > 0) {
+      if (!isSearchMode) {
+        console.log('[NL Sales] Entering search mode - loading all records...');
+        await loadAllDataForSearch();
+      }
+      isSearchMode = true;
+      applySearchFilter();
+    } else {
+      // No search - just apply filter to current data
+      applySearchFilter();
+    }
   };
   
-  // Clear search function
+  // Clear search function - returns to pagination mode
   const clearSearch = () => {
     const inputElement = document.getElementById('searchInput');
     if (inputElement) {
       inputElement.value = '';
     }
     
-    console.log('[NL Sales] Clearing search');
+    console.log('[NL Sales] Clearing search - returning to pagination mode');
     currentSearch = '';
     currentPage = 0;
-    applySearchFilter();
+    isSearchMode = false;
+    
+    // Reload just the first page of data
+    loadSalesData();
   };
   
   // Add event listeners
@@ -126,17 +143,30 @@ function setupEventListeners() {
     prevBtn.addEventListener('click', () => {
       if (currentPage > 0) {
         currentPage--;
-        applySearchFilter();
+        if (isSearchMode) {
+          // In search mode, just re-filter existing data
+          applySearchFilter();
+        } else {
+          // In pagination mode, load previous page from server
+          loadSalesData();
+        }
       }
     });
   }
   
   if (nextBtn) {
     nextBtn.addEventListener('click', () => {
-      const totalPages = Math.ceil(filteredData.length / pageSize);
-      if (currentPage < totalPages - 1) {
+      if (isSearchMode) {
+        // In search mode, check against filtered data
+        const totalPages = Math.ceil(filteredData.length / pageSize);
+        if (currentPage < totalPages - 1) {
+          currentPage++;
+          applySearchFilter();
+        }
+      } else {
+        // In pagination mode, load next page from server
         currentPage++;
-        applySearchFilter();
+        loadSalesData();
       }
     });
   }
@@ -149,7 +179,7 @@ function setupEventListeners() {
 }
 
 /**
- * Load sales data from the backend
+ * Load sales data from the backend - pagination mode (1000 records at a time)
  */
 async function loadSalesData() {
   const tbody = document.getElementById('salesTableBody');
@@ -162,49 +192,34 @@ async function loadSalesData() {
   tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem;">Loading...</td></tr>`;
   
   try {
-    console.log(`[NL Sales] Loading data - Mode: ${viewMode}`);
+    console.log(`[NL Sales] Loading data - Mode: ${viewMode}, Page: ${currentPage + 1}`);
     
-    // Load data from backend with reasonable limit
-    // Batch loading to get all records
-    allData = [];
-    let offset = 0;
-    const batchSize = 1000;
-    let hasMore = true;
-    let result;
-    
-    while (hasMore) {
-      if (viewMode === 'condensed') {
-        result = await getNLCondensedData(batchSize, offset, '');
-      } else {
-        result = await getNLSalesData(batchSize, offset, '');
-      }
-      
-      if (result.status === 'success' && result.data && result.data.length > 0) {
-        allData = allData.concat(result.data);
-        offset += batchSize;
-        
-        // Show loading progress
-        tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem;">Loading NL Sales... (${allData.length} records loaded)</td></tr>`;
-        
-        // If we got less than batchSize, we've reached the end
-        if (result.data.length < batchSize) {
-          hasMore = false;
-        }
-      } else {
-        hasMore = false;
-        if (result.status !== 'success' && allData.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem; color: red;">Error: ${result.message}</td></tr>`;
-          showToast('Failed to load sales data: ' + result.message, 'error');
-          return;
-        }
-      }
+    // For condensed view, always load all data
+    if (viewMode === 'condensed') {
+      await loadAllDataForCondensed();
+      return;
     }
     
-    console.log(`[NL Sales] Loaded ${allData.length} total records`);
+    // For full view in pagination mode, load 1000 records at a time
+    const batchSize = 1000;
+    const offset = currentPage * batchSize;
     
-    // Reset to first page and apply any current search
-    currentPage = 0;
-    applySearchFilter();
+    const result = await getNLSalesData(batchSize, offset, '');
+    
+    if (result.status === 'success' && result.data) {
+      allData = result.data;
+      totalAvailableRecords = result.total || allData.length;
+      
+      console.log(`[NL Sales] Loaded ${allData.length} records (offset: ${offset})`);
+      
+      // Display the data
+      filteredData = allData.slice();
+      applySearchFilter();
+    } else {
+      console.error('[NL Sales] Failed to load data:', result.message);
+      tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem; color: red;">Error: ${result.message}</td></tr>`;
+      showToast('Failed to load sales data: ' + result.message, 'error');
+    }
   } catch (error) {
     console.error('[NL Sales] Error loading data:', error);
     const colSpan = viewMode === 'condensed' ? '4' : '9';
@@ -214,10 +229,103 @@ async function loadSalesData() {
 }
 
 /**
+ * Load ALL data for search mode
+ */
+async function loadAllDataForSearch() {
+  const tbody = document.getElementById('salesTableBody');
+  const colSpan = viewMode === 'condensed' ? '4' : '9';
+  
+  if (!tbody) return;
+  
+  tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem;">Loading all records for search...</td></tr>`;
+  
+  try {
+    allData = [];
+    const batchSize = 1000;
+    let offset = 0;
+    let hasMore = true;
+    
+    while (hasMore) {
+      const result = await getNLSalesData(batchSize, offset, '');
+      
+      if (result.status === 'success' && result.data && result.data.length > 0) {
+        allData = allData.concat(result.data);
+        offset += batchSize;
+        
+        // Update loading message
+        tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem;">Loading all records for search... (${allData.length} loaded)</td></tr>`;
+        
+        // If we got less than batchSize, we've reached the end
+        if (result.data.length < batchSize) {
+          hasMore = false;
+        }
+      } else {
+        hasMore = false;
+      }
+    }
+    
+    console.log(`[NL Sales] Loaded ALL ${allData.length} records for search`);
+    totalAvailableRecords = allData.length;
+  } catch (error) {
+    console.error('[NL Sales] Error loading all data for search:', error);
+    showToast('Error loading data for search: ' + error.message, 'error');
+  }
+}
+
+/**
+ * Load ALL data for condensed view
+ */
+async function loadAllDataForCondensed() {
+  const tbody = document.getElementById('salesTableBody');
+  const colSpan = '4';
+  
+  if (!tbody) return;
+  
+  tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem;">Loading condensed data...</td></tr>`;
+  
+  try {
+    allData = [];
+    const batchSize = 1000;
+    let offset = 0;
+    let hasMore = true;
+    
+    while (hasMore) {
+      const result = await getNLCondensedData(batchSize, offset, '');
+      
+      if (result.status === 'success' && result.data && result.data.length > 0) {
+        allData = allData.concat(result.data);
+        offset += batchSize;
+        
+        // Update loading message
+        tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem;">Loading condensed data... (${allData.length} SKUs loaded)</td></tr>`;
+        
+        if (result.data.length < batchSize) {
+          hasMore = false;
+        }
+      } else {
+        hasMore = false;
+      }
+    }
+    
+    console.log(`[NL Sales] Loaded ${allData.length} condensed records`);
+    
+    // Reset to first page and apply filter
+    currentPage = 0;
+    isSearchMode = false; // Condensed always shows all
+    filteredData = allData.slice();
+    applySearchFilter();
+  } catch (error) {
+    console.error('[NL Sales] Error loading condensed data:', error);
+    tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem; color: red;">Error: ${error.message}</td></tr>`;
+    showToast('Error loading data: ' + error.message, 'error');
+  }
+}
+
+/**
  * Filter and display data based on current search term
  */
 function applySearchFilter() {
-  console.log('[NL Sales] Applying search filter:', currentSearch);
+  console.log('[NL Sales] Applying search filter:', currentSearch, '| Search mode:', isSearchMode);
   
   const tbody = document.getElementById('salesTableBody');
   const pageInfo = document.getElementById('pageInfo');
@@ -262,9 +370,9 @@ function applySearchFilter() {
     
     console.log(`[NL Sales] Filtered ${allData.length} rows to ${filteredData.length} matching "${currentSearch}"`);
   } else {
-    // No search term - show all data
+    // No search term - show current page of data
     filteredData = allData.slice();
-    console.log(`[NL Sales] No search - showing all ${allData.length} rows`);
+    console.log(`[NL Sales] No search - showing ${allData.length} rows`);
   }
   
   // Calculate pagination
@@ -292,8 +400,9 @@ function applySearchFilter() {
   // Update pagination info
   if (pageInfo) {
     const viewLabel = viewMode === 'condensed' ? 'Condensed (6-Month)' : 'Full Sales';
+    const modeLabel = isSearchMode ? ' [Searching all records]' : ' [Pagination mode]';
     const searchLabel = currentSearch ? ` (filtered by "${currentSearch}")` : '';
-    pageInfo.textContent = `${viewLabel}${searchLabel} - Page ${currentPage + 1} of ${totalPages} (${totalFiltered} total records)`;
+    pageInfo.textContent = `${viewLabel}${modeLabel}${searchLabel} - Page ${currentPage + 1} of ${totalPages} (${totalFiltered} total records)`;
   }
   
   // Update pagination buttons
@@ -305,7 +414,14 @@ function applySearchFilter() {
   }
   
   if (nextBtn) {
-    nextBtn.disabled = currentPage >= totalPages - 1 || totalFiltered === 0;
+    if (isSearchMode || viewMode === 'condensed') {
+      // In search mode or condensed view, disable if on last page of filtered results
+      nextBtn.disabled = currentPage >= totalPages - 1 || totalFiltered === 0;
+    } else {
+      // In pagination mode, always allow next (will load more data)
+      // Only disable if we got less than 1000 records (meaning no more data)
+      nextBtn.disabled = allData.length < 1000;
+    }
   }
 }
 
