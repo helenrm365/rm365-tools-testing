@@ -58,12 +58,14 @@ function setupEventListeners() {
     });
   }
   
-  // Search functionality - completely rebuilt
+  // Search functionality - server-side query with fuzzy matching
   const searchBtn = document.getElementById('searchBtn');
   const clearSearchBtn = document.getElementById('clearSearchBtn');
   const searchInput = document.getElementById('searchInput');
   
-  // Perform search function - loads ALL data when searching
+  let searchTimeout = null;
+  
+  // Perform search function - queries server for matching records
   const performSearch = async () => {
     const inputElement = document.getElementById('searchInput');
     if (!inputElement) {
@@ -77,20 +79,24 @@ function setupEventListeners() {
     currentSearch = searchValue;
     currentPage = 0;
     
-    // If there's a search term, load ALL data to search through
     if (searchValue.length > 0) {
-      if (!isSearchMode) {
-        console.log('[UK Sales] Entering search mode - loading all records...');
-        await loadAllDataForSearch();
-        isSearchMode = true;
-      }
-      // Apply filter after data is loaded
-      applySearchFilter();
+      // Enter search mode and load ALL matching records from server
+      isSearchMode = true;
+      await loadSearchResults(searchValue);
     } else {
-      // No search - just apply filter to current data
+      // No search - return to pagination mode
       isSearchMode = false;
-      applySearchFilter();
+      currentSearch = '';
+      await loadSalesData();
     }
+  };
+  
+  // Debounced search for real-time filtering
+  const debouncedSearch = () => {
+    if (searchTimeout) clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+      performSearch();
+    }, 400); // Wait 400ms after user stops typing
   };
   
   // Clear search function - returns to pagination mode
@@ -111,13 +117,14 @@ function setupEventListeners() {
   
   // Add event listeners
   if (searchInput) {
-    // Real-time search as user types
-    searchInput.addEventListener('input', performSearch);
+    // Debounced real-time search as user types
+    searchInput.addEventListener('input', debouncedSearch);
     
-    // Enter key to search
+    // Enter key to search immediately
     searchInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
+        if (searchTimeout) clearTimeout(searchTimeout);
         performSearch();
       }
     });
@@ -126,6 +133,7 @@ function setupEventListeners() {
   if (searchBtn) {
     searchBtn.addEventListener('click', (e) => {
       e.preventDefault();
+      if (searchTimeout) clearTimeout(searchTimeout);
       performSearch();
     });
   }
@@ -228,6 +236,140 @@ async function loadSalesData() {
     tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem; color: red;">Error: ${error.message}</td></tr>`;
     showToast('Error loading data: ' + error.message, 'error');
   }
+}
+
+/**
+ * Load search results - queries ALL records matching the search term
+ */
+async function loadSearchResults(searchTerm) {
+  const tbody = document.getElementById('salesTableBody');
+  const colSpan = viewMode === 'condensed' ? '4' : '9';
+  
+  if (!tbody) return;
+  
+  tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem;">Searching all records for "${searchTerm}"...</td></tr>`;
+  
+  try {
+    console.log(`[UK Sales] Searching for: "${searchTerm}"`);
+    
+    // Load ALL records in batches with the search term
+    allData = [];
+    const batchSize = 1000;
+    let offset = 0;
+    let hasMore = true;
+    
+    while (hasMore) {
+      let result;
+      if (viewMode === 'condensed') {
+        result = await getUKCondensedData(batchSize, offset, searchTerm);
+      } else {
+        result = await getUKSalesData(batchSize, offset, searchTerm);
+      }
+      
+      if (result.status === 'success' && result.data && result.data.length > 0) {
+        allData = allData.concat(result.data);
+        offset += batchSize;
+        
+        // Update loading message with progress
+        tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem;">Searching... (${allData.length} matching records found)</td></tr>`;
+        
+        // If we got less than batchSize, we've reached the end
+        if (result.data.length < batchSize) {
+          hasMore = false;
+        }
+      } else {
+        hasMore = false;
+      }
+    }
+    
+    console.log(`[UK Sales] Search complete: ${allData.length} records match "${searchTerm}"`);
+    
+    // Apply fuzzy matching on the results for better relevance
+    if (allData.length > 0) {
+      filteredData = fuzzyFilter(allData, searchTerm);
+      console.log(`[UK Sales] After fuzzy filtering: ${filteredData.length} records`);
+    } else {
+      filteredData = [];
+    }
+    
+    totalAvailableRecords = filteredData.length;
+    currentPage = 0;
+    applySearchFilter();
+    
+  } catch (error) {
+    console.error('[UK Sales] Error searching data:', error);
+    tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem; color: red;">Search error: ${error.message}</td></tr>`;
+    showToast('Search error: ' + error.message, 'error');
+  }
+}
+
+/**
+ * Fuzzy filter - scores and sorts results by relevance
+ */
+function fuzzyFilter(data, searchTerm) {
+  if (!searchTerm || searchTerm.length === 0) return data;
+  
+  const searchLower = searchTerm.toLowerCase();
+  const searchWords = searchLower.split(/\s+/).filter(w => w.length > 0);
+  
+  // Score each row based on how well it matches the search
+  const scored = data.map(row => {
+    let score = 0;
+    const fields = [
+      row.order_number,
+      row.sku,
+      row.name,
+      row.status,
+      row.customer_group,
+      row.currency,
+      row.created_at,
+      row.price,
+      row.qty,
+      row.total_qty
+    ];
+    
+    const rowText = fields.filter(Boolean).join(' ').toLowerCase();
+    
+    // Exact phrase match = highest score
+    if (rowText.includes(searchLower)) {
+      score += 100;
+    }
+    
+    // All words present = high score
+    const allWordsPresent = searchWords.every(word => rowText.includes(word));
+    if (allWordsPresent) {
+      score += 50;
+    }
+    
+    // Count matching words
+    searchWords.forEach(word => {
+      if (rowText.includes(word)) {
+        score += 10;
+      }
+      
+      // Fuzzy match: check if field starts with search word
+      fields.forEach(field => {
+        if (field) {
+          const fieldLower = String(field).toLowerCase();
+          if (fieldLower.startsWith(word)) {
+            score += 20;
+          }
+          // Partial match within word
+          if (fieldLower.includes(word)) {
+            score += 5;
+          }
+        }
+      });
+    });
+    
+    return { row, score };
+  });
+  
+  // Filter out items with score 0, then sort by score descending
+  return scored
+    .filter(item => item.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .map(item => item.row);
 }
 
 /**
