@@ -8,7 +8,6 @@
   border-radius: 16px;
   overflow: hidden;
   max-height: 700px;
-  transition: width 0.2s ease;
 }
 
 html.dark-mode .inventory-management .table-wrapper {
@@ -71,7 +70,6 @@ html.dark-mode #inventoryManagementTableScroller::-webkit-scrollbar-thumb:hover 
   font-size: 0.9rem;
   line-height: 1.5;
   table-layout: auto; /* Dynamic column sizing */
-  transform-origin: top left;
 }
 
 /* Let columns size naturally based on content */

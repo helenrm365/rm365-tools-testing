@@ -857,17 +857,28 @@ function setupZoomControls() {
   function applyZoom(zoom) {
     const table = document.getElementById('inventoryManagementTable');
     if (table) {
-      const scaleRatio = zoom / 100;
-      table.style.transform = `scale(${scaleRatio})`;
-      table.style.transformOrigin = 'top left';
+      // Use font-size scaling instead of transform scale
+      // This actually makes content smaller/larger and lets you see more/less
+      const baseFontSize = 0.9; // Base rem value from CSS
+      const scaledFontSize = baseFontSize * (zoom / 100);
+      table.style.fontSize = `${scaledFontSize}rem`;
       
-      // Adjust scrollable area to match scaled size
-      // When zoomed to 80%, the table visually takes 80% space but the container thinks it's 100%
-      // We need to adjust the container's perceived size
+      // Also scale padding proportionally for better fit
+      const cells = table.querySelectorAll('td, th');
+      const basePadding = 1; // Base rem value
+      const scaledPadding = basePadding * (zoom / 100);
+      cells.forEach(cell => {
+        cell.style.padding = `${scaledPadding}rem`;
+      });
+      
+      // Reset any transform that might have been applied
+      table.style.transform = '';
+      table.style.transformOrigin = '';
+      
+      // Reset wrapper width
       const tableWrapper = table.closest('.table-wrapper');
       if (tableWrapper) {
-        // Set the wrapper to overflow based on the scaled content
-        tableWrapper.style.width = `${scaleRatio * 100}%`;
+        tableWrapper.style.width = '';
       }
     }
     
