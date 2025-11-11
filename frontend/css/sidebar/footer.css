@@ -1,0 +1,206 @@
+/* Sidebar Footer Styles */
+
+/* === Footer Section === */
+.sidebar-footer {
+  padding: 1rem 0.5rem 1.5rem;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* === Logout Button === */
+.footer-button {
+  display: flex;
+  align-items: center;
+  padding: 0.85rem;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  color: #e74c3c;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: left;
+  min-height: 48px;
+}
+
+/* Collapsed state */
+.sidebar:not(:hover) .footer-button {
+  padding: 0.85rem 0;
+  justify-content: center;
+}
+
+/* Expanded state */
+.sidebar:hover .footer-button {
+  padding: 0.85rem 1rem;
+  justify-content: flex-start;
+  gap: 1rem;
+}
+
+.footer-button .nav-icon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.sidebar:hover .footer-button .nav-icon {
+  width: 28px;
+  height: 28px;
+  font-size: 1.35rem;
+}
+
+.footer-button:hover {
+  background: rgba(231, 76, 60, 0.1);
+}
+
+.sidebar:hover .footer-button:hover {
+  transform: translateX(4px);
+}
+
+.footer-button .nav-label {
+  font-size: 0.95rem;
+  white-space: nowrap;
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
+  transition: opacity 0.3s ease 0.1s, width 0.3s ease;
+  pointer-events: none;
+}
+
+.sidebar:hover .footer-button .nav-label {
+  opacity: 1;
+  width: auto;
+  pointer-events: auto;
+}
+
+html.dark-mode .footer-button {
+  color: #ff6b6b;
+}
+
+html.dark-mode .footer-button:hover {
+  background: rgba(231, 76, 60, 0.15);
+}
+
+/* === Dark Mode Toggle === */
+.dark-mode-toggle {
+  display: flex;
+  align-items: center;
+  padding: 0.85rem;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  min-height: 48px;
+}
+
+/* Collapsed state */
+.sidebar:not(:hover) .dark-mode-toggle {
+  padding: 0.85rem 0;
+  justify-content: center;
+}
+
+/* Expanded state */
+.sidebar:hover .dark-mode-toggle {
+  padding: 0.85rem 1rem;
+  justify-content: flex-start;
+  gap: 0.5rem;
+}
+
+.dark-mode-toggle:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+html.dark-mode .dark-mode-toggle:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.dark-mode-toggle .nav-icon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.sidebar:hover .dark-mode-toggle .nav-icon {
+  width: 28px;
+  height: 28px;
+  font-size: 1.35rem;
+}
+
+.dark-mode-toggle .nav-label {
+  font-size: 0.95rem;
+  white-space: nowrap;
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
+  transition: opacity 0.3s ease 0.1s, width 0.3s ease;
+  pointer-events: none;
+}
+
+.sidebar:hover .dark-mode-toggle .nav-label {
+  opacity: 1;
+  width: auto;
+  pointer-events: auto;
+}
+
+/* === Toggle Switch === */
+.toggle-switch {
+  position: relative;
+  display: none;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.sidebar:hover .toggle-switch {
+  display: inline-block;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background: #bdc3c7;
+  border-radius: 24px;
+  transition: all 0.3s ease;
+}
+
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background: white;
+  border-radius: 50%;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+input:checked + .toggle-slider {
+  background: linear-gradient(135deg, #76a12b, #5e8122);
+}
+
+input:checked + .toggle-slider::before {
+  transform: translateX(20px);
+}
+
+input:focus + .toggle-slider {
+  box-shadow: 0 0 0 3px rgba(118, 161, 43, 0.2);
+}

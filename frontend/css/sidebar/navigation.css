@@ -1,0 +1,162 @@
+/* Sidebar Navigation Styles */
+
+/* === Navigation Menu === */
+.sidebar-nav {
+  flex: 1;
+  list-style: none;
+  margin: 0;
+  padding: 0 0.5rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.sidebar-nav::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 3px;
+}
+
+html.dark-mode .sidebar-nav::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-nav li {
+  margin: 0.35rem 0;
+  transition: all 0.2s ease;
+}
+
+/* === Navigation Items === */
+.nav-item {
+  display: flex;
+  align-items: center;
+  padding: 0.85rem;
+  border-radius: 12px;
+  text-decoration: none;
+  color: #5a6c7d;
+  font-weight: 500;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: visible;
+  min-height: 48px;
+}
+
+/* Collapsed state - center the icon */
+.sidebar:not(:hover) .nav-item {
+  padding: 0.85rem 0;
+  justify-content: center;
+}
+
+/* Expanded state - align items to the left */
+.sidebar:hover .nav-item {
+  padding: 0.85rem 1rem;
+  justify-content: flex-start;
+  gap: 1rem;
+}
+
+/* Active indicator bar */
+.nav-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(135deg, #76a12b, #5e8122);
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: all 0.3s ease;
+  border-radius: 0 4px 4px 0;
+}
+
+.nav-item:hover {
+  background: rgba(118, 161, 43, 0.08);
+  color: #2c3e50;
+}
+
+.sidebar:hover .nav-item:hover {
+  transform: translateX(4px);
+}
+
+.nav-item:hover::before {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* Active state */
+.sidebar-nav li.active .nav-item {
+  background: linear-gradient(135deg, rgba(118, 161, 43, 0.15), rgba(94, 129, 34, 0.1));
+  color: #76a12b;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(118, 161, 43, 0.15);
+}
+
+.sidebar-nav li.active .nav-item::before {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* Dark mode */
+html.dark-mode .nav-item {
+  color: #b0b0b0;
+}
+
+html.dark-mode .nav-item:hover {
+  background: rgba(118, 161, 43, 0.15);
+  color: #ecf0f1;
+}
+
+html.dark-mode .sidebar-nav li.active .nav-item {
+  background: linear-gradient(135deg, rgba(118, 161, 43, 0.25), rgba(94, 129, 34, 0.15));
+  color: #8ec134;
+}
+
+/* === Navigation Icons === */
+.nav-icon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  line-height: 1;
+}
+
+.sidebar:hover .nav-icon {
+  width: 28px;
+  height: 28px;
+  font-size: 1.35rem;
+}
+
+.nav-item:hover .nav-icon {
+  transform: scale(1.1);
+}
+
+.sidebar-nav li.active .nav-item .nav-icon {
+  transform: scale(1.05);
+}
+
+/* === Navigation Labels === */
+.nav-label {
+  font-size: 0.95rem;
+  white-space: nowrap;
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
+  transition: opacity 0.3s ease 0.1s, width 0.3s ease;
+  pointer-events: none;
+}
+
+.sidebar:hover .nav-label {
+  opacity: 1;
+  width: auto;
+  pointer-events: auto;
+}
