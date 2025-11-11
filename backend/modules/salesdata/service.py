@@ -215,6 +215,13 @@ class SalesDataService:
     def refresh_all_condensed_data(self) -> Dict[str, Any]:
         """Manually refresh condensed data for all regions"""
         try:
+            # First, auto-create MD variant aliases from existing data
+            try:
+                alias_result = self.repo.auto_create_md_variant_aliases()
+                logger.info(f"Auto-created {alias_result.get('aliases_created', 0)} MD variant aliases before refresh")
+            except Exception as e:
+                logger.warning(f"Could not auto-create MD variant aliases: {e}")
+            
             results = {}
             for region in ['uk', 'fr', 'nl']:
                 try:
