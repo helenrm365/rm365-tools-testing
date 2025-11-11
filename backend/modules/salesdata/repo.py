@@ -515,21 +515,16 @@ class SalesDataRepo:
             cursor.execute(f"DELETE FROM {condensed_table}")
             
             # Get the grand total threshold for this region (if set)
-            try:
-                cursor.execute("""
-                    SELECT threshold FROM condensed_sales_grand_total_threshold 
-                    WHERE region = %s
-                """, (region,))
-                threshold_row = cursor.fetchone()
-                grand_total_threshold = threshold_row[0] if threshold_row else None
-            except Exception as e:
-                logger.warning(f"Could not fetch grand total threshold: {e}. Using None.")
-                grand_total_threshold = None
+            cursor.execute("""
+                SELECT threshold FROM condensed_sales_grand_total_threshold 
+                WHERE region = %s
+            """, (region,))
+            threshold_row = cursor.fetchone()
+            grand_total_threshold = threshold_row[0] if threshold_row else None
             
             # Aggregate data from last 6 months, using SKU aliases to unify related SKUs
             # The created_at field is a string, so we need to try to parse various date formats
             # Also automatically merge -MD variants with their base SKU
-            # Exclude customers and orders based on filters
             aggregate_query = f"""
                 INSERT INTO {condensed_table} (sku, name, total_qty, last_updated)
                 SELECT 
@@ -546,15 +541,8 @@ class SalesDataRepo:
                 FROM {sales_table} s
                 LEFT JOIN sku_aliases sa ON s.sku = sa.alias_sku
                 WHERE 
-                    -- Exclude customers in the exclusion list
-                    NOT EXISTS (
-                        SELECT 1 FROM condensed_sales_excluded_customers ec
-                        WHERE ec.region = %s AND s.customer_email = ec.customer_email
-                    )
-                    -- Exclude orders over the grand total threshold (if set)
-                    AND (%s IS NULL OR s.grand_total IS NULL OR s.grand_total <= %s)
                     -- Try to parse created_at as various date formats and check if within 6 months
-                    AND (
+                    (
                         -- Try ISO format: YYYY-MM-DD or YYYY-MM-DD HH:MI:SS
                         (s.created_at ~ '^[0-9]{{4}}-[0-9]{{2}}-[0-9]{{2}}' AND 
                          TO_TIMESTAMP(s.created_at, 'YYYY-MM-DD HH24:MI:SS') >= CURRENT_DATE - INTERVAL '6 months')
@@ -580,7 +568,7 @@ class SalesDataRepo:
                 ORDER BY total_qty DESC
             """
             
-            cursor.execute(aggregate_query, (region, grand_total_threshold, grand_total_threshold))
+            cursor.execute(aggregate_query)
             rows_affected = cursor.rowcount
             
             conn.commit()
