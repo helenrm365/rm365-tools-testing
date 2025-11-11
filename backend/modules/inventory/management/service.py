@@ -10,11 +10,78 @@ from core.config import settings
 
 logger = logging.getLogger(__name__)
 
+# Module-level cache for total count only (lightweight)
+_CACHED_TOTAL: Optional[int] = None
+_TOTAL_CACHE_TIMESTAMP: Optional[datetime] = None
+_TOTAL_CACHE_TTL = 3600  # Cache total count for 1 hour
+
 
 class InventoryManagementService:
     def __init__(self, repo: Optional[InventoryManagementRepo] = None):
         self.repo = repo or InventoryManagementRepo()
         self.zoho_org_id = settings.ZC_ORG_ID
+    
+    def _get_total_count(self) -> int:
+        """Get accurate total count from Zoho by counting all pages (cached)"""
+        global _CACHED_TOTAL, _TOTAL_CACHE_TIMESTAMP
+        
+        # Return cached total if still valid
+        if (_CACHED_TOTAL is not None and 
+            _TOTAL_CACHE_TIMESTAMP is not None and 
+            datetime.now() - _TOTAL_CACHE_TIMESTAMP < timedelta(seconds=_TOTAL_CACHE_TTL)):
+            logger.info(f"Using cached total count: {_CACHED_TOTAL}")
+            return _CACHED_TOTAL
+        
+        # Count all items by iterating through pages
+        logger.info("Calculating total count from Zoho...")
+        try:
+            inventory_token = get_cached_inventory_token()
+            if not inventory_token:
+                return 0
+            
+            headers = {"Authorization": f"Zoho-oauthtoken {inventory_token}"}
+            url = f"https://www.zohoapis.eu/inventory/v1/items"
+            
+            total = 0
+            zoho_page = 1
+            
+            while True:
+                params = {
+                    "organization_id": self.zoho_org_id,
+                    "page": zoho_page,
+                    "per_page": 200
+                }
+                
+                response = requests.get(url, headers=headers, params=params, timeout=5)
+                data = response.json()
+                
+                if data.get("code") != 0:
+                    logger.error(f"Error counting from Zoho page {zoho_page}: {data}")
+                    break
+                
+                items = data.get("items", [])
+                total += len(items)
+                
+                page_context = data.get("page_context", {})
+                has_more = page_context.get("has_more_page", False)
+                
+                logger.info(f"Counting page {zoho_page}: {len(items)} items (total so far: {total})")
+                
+                if not has_more or len(items) == 0:
+                    break
+                
+                zoho_page += 1
+            
+            # Cache the result
+            _CACHED_TOTAL = total
+            _TOTAL_CACHE_TIMESTAMP = datetime.now()
+            logger.info(f"Total count calculated and cached: {total} items")
+            
+            return total
+            
+        except Exception as e:
+            logger.error(f"Error calculating total count: {e}")
+            return 0
     
     def get_zoho_inventory_items(self, page: int = 1, per_page: int = 100) -> Dict[str, Any]:
         """Get inventory items from Zoho Inventory API with pagination (fast, no full cache)
@@ -41,6 +108,10 @@ class InventoryManagementService:
             headers = {"Authorization": f"Zoho-oauthtoken {inventory_token}"}
             url = f"https://www.zohoapis.eu/inventory/v1/items"
             
+            # Get accurate total count (cached after first call)
+            total_items = self._get_total_count()
+            total_pages = (total_items + per_page - 1) // per_page if total_items > 0 else 1
+            
             # Zoho uses 200 items per page max
             zoho_per_page = 200
             
@@ -52,7 +123,6 @@ class InventoryManagementService:
             zoho_end_page = ((end_item - 1) // zoho_per_page) + 1
             
             all_items = []
-            estimated_total = 0
             
             # Fetch only the Zoho pages we need
             for zoho_page in range(zoho_start_page, zoho_end_page + 1):
@@ -68,21 +138,9 @@ class InventoryManagementService:
                 if data.get("code") != 0:
                     logger.error(f"Zoho API error on page {zoho_page}: {data}")
                     break
-                
-                # Estimate total based on current page
-                # Zoho doesn't give us total, so we estimate: if has_more_page, total is at least current + more
-                page_context = data.get("page_context", {})
-                has_more = page_context.get("has_more_page", False)
-                
-                if has_more:
-                    # Conservative estimate: assume at least 10 more pages
-                    estimated_total = (zoho_page + 10) * zoho_per_page
-                else:
-                    # We're on last page, calculate exact total
-                    estimated_total = (zoho_page - 1) * zoho_per_page + len(data.get("items", []))
 
                 items = data.get("items", [])
-                logger.info(f"Fetched {len(items)} items from Zoho page {zoho_page}, has_more: {has_more}")
+                logger.info(f"Fetched {len(items)} items from Zoho page {zoho_page}")
                 
                 for item in items:
                     shelf_total = self._get_custom_field_value(item, "Shelf Total")
@@ -103,13 +161,11 @@ class InventoryManagementService:
             offset = (start_item - 1) % (zoho_per_page * (zoho_end_page - zoho_start_page + 1))
             paginated_items = all_items[offset:offset + per_page]
             
-            total_pages = (estimated_total + per_page - 1) // per_page if estimated_total > 0 else 1
-            
-            logger.info(f"Returning {len(paginated_items)} items for page {page}, estimated total: {estimated_total}")
+            logger.info(f"Returning {len(paginated_items)} items for page {page}/{total_pages}, total: {total_items}")
             
             return {
                 "items": paginated_items,
-                "total": estimated_total,
+                "total": total_items,
                 "page": page,
                 "per_page": per_page,
                 "total_pages": total_pages
