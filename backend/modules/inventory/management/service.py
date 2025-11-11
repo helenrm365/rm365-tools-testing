@@ -42,63 +42,23 @@ class InventoryManagementService:
                 "Authorization": f"Zoho-oauthtoken {inventory_token}"
             }
 
-            # Zoho API uses 200 items per page max, so we need to fetch accordingly
+            url = f"https://www.zohoapis.eu/inventory/v1/items"
+            
+            # Zoho API uses 200 items per page max
             zoho_per_page = 200
             
-            # Calculate which Zoho pages we need to fetch
+            # Calculate which Zoho page we need
             # For example: if client wants page 2 with 100 items, we need items 101-200
-            # This corresponds to Zoho page 1, items 101-200
             start_item = (page - 1) * per_page + 1
             end_item = page * per_page
             
-            # First, get total count from Zoho
-            url = f"https://www.zohoapis.eu/inventory/v1/items"
-            params = {
-                "organization_id": self.zoho_org_id,
-                "page": 1,
-                "per_page": 1  # Just to get the total count
-            }
-            
-            response = requests.get(url, headers=headers, params=params)
-            data = response.json()
-            
-            logger.info(f"Zoho initial response for count: {data}")
-            
-            if data.get("code") != 0:
-                logger.error(f"Zoho API error: {data}")
-                return {
-                    "items": [],
-                    "total": 0,
-                    "page": page,
-                    "per_page": per_page,
-                    "total_pages": 0
-                }
-            
-            # Try different ways to get total count from Zoho
-            page_context = data.get("page_context", {})
-            total_items = page_context.get("total", 0)
-            
-            # If total is not in page_context, check other possible locations
-            if total_items == 0:
-                # Some Zoho APIs return it differently
-                total_items = data.get("total", 0)
-            
-            if total_items == 0:
-                # Fallback: calculate from has_more_page
-                # If we can't get total, we'll need to estimate or fetch all
-                logger.warning(f"Could not determine total items from Zoho. page_context: {page_context}, data keys: {data.keys()}")
-                # For now, let's fetch the first page with max items to at least work
-                total_items = 0  # We'll handle this below
-            
-            total_pages = (total_items + per_page - 1) // per_page if total_items > 0 else 0
-            
-            logger.info(f"Zoho pagination: total_items={total_items}, requested page={page}, per_page={per_page}, total_pages={total_pages}")
-            
-            # Now fetch the actual items we need
-            all_items = []
             zoho_start_page = ((start_item - 1) // zoho_per_page) + 1
             zoho_end_page = ((end_item - 1) // zoho_per_page) + 1
             
+            all_items = []
+            total_items = 0
+            
+            # Fetch the Zoho pages we need
             for zoho_page in range(zoho_start_page, zoho_end_page + 1):
                 params = {
                     "organization_id": self.zoho_org_id,
@@ -110,20 +70,27 @@ class InventoryManagementService:
                 data = response.json()
 
                 if data.get("code") != 0:
-                    logger.error(f"Zoho API error: {data}")
+                    logger.error(f"Zoho API error on page {zoho_page}: {data}")
                     break
                 
-                # Try to get total from this response if we didn't get it earlier
-                if total_items == 0:
-                    page_ctx = data.get("page_context", {})
-                    total_items = page_ctx.get("total", 0)
+                # Extract total count from page_context on first iteration
+                if zoho_page == zoho_start_page:
+                    page_context = data.get("page_context", {})
+                    total_items = page_context.get("total", 0)
+                    
+                    # Log the page context to debug
+                    logger.info(f"Page context from Zoho: {page_context}")
+                    logger.info(f"Full data keys: {list(data.keys())}")
+                    
                     if total_items == 0:
+                        # Try alternative locations
                         total_items = data.get("total", 0)
-                    if total_items > 0:
-                        total_pages = (total_items + per_page - 1) // per_page
-                        logger.info(f"Got total from data fetch: {total_items}, total_pages: {total_pages}")
+                    
+                    logger.info(f"Extracted total_items: {total_items}")
 
                 items = data.get("items", [])
+                logger.info(f"Fetched {len(items)} items from Zoho page {zoho_page}")
+                
                 for item in items:
                     # Parse custom fields properly
                     shelf_total = self._get_custom_field_value(item, "Shelf Total")
@@ -144,7 +111,9 @@ class InventoryManagementService:
             offset_in_fetched = (start_item - 1) % (zoho_per_page * (zoho_end_page - zoho_start_page + 1))
             paginated_items = all_items[offset_in_fetched:offset_in_fetched + per_page]
             
-            logger.info(f"Returning {len(paginated_items)} items for page {page} (total: {total_items})")
+            total_pages = (total_items + per_page - 1) // per_page if total_items > 0 else 0
+            
+            logger.info(f"Returning {len(paginated_items)} items for page {page}, total: {total_items}, total_pages: {total_pages}")
             
             return {
                 "items": paginated_items,
@@ -155,7 +124,7 @@ class InventoryManagementService:
             }
 
         except Exception as e:
-            logger.error(f"Error fetching Zoho inventory items: {e}")
+            logger.error(f"Error fetching Zoho inventory items: {e}", exc_info=True)
             return {
                 "items": [],
                 "total": 0,
