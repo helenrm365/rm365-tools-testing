@@ -101,7 +101,7 @@ function createFiltersModal(region) {
                         <input 
                             type="number" 
                             class="threshold-input" 
-                            placeholder="Enter threshold (e.g., 10000)"
+                            placeholder="Leave empty for no threshold"
                             step="0.01"
                             min="0"
                             id="threshold-input-${region}"
@@ -109,7 +109,7 @@ function createFiltersModal(region) {
                     </div>
                     
                     <div class="threshold-current" id="threshold-current-${region}">
-                        Current: <strong>Not set</strong> (all orders included)
+                        Current: <strong>No threshold</strong> (all orders included)
                     </div>
                 </div>
                 
@@ -128,7 +128,7 @@ function createFiltersModal(region) {
                         <input 
                             type="number" 
                             class="threshold-input" 
-                            placeholder="Enter qty threshold (e.g., 50)"
+                            placeholder="Leave empty for no threshold"
                             step="1"
                             min="0"
                             id="qty-threshold-input-${region}"
@@ -136,7 +136,7 @@ function createFiltersModal(region) {
                     </div>
                     
                     <div class="threshold-current" id="qty-threshold-current-${region}">
-                        Current: <strong>Not set</strong> (all orders included)
+                        Current: <strong>No threshold</strong> (all orders included)
                     </div>
                 </div>
             </div>
@@ -373,41 +373,63 @@ async function applyAllFilters(region) {
             }
         }
         
-        // 2. Save grand total threshold
+        // 2. Save grand total threshold (or clear it if empty)
         const thresholdInput = document.getElementById(`threshold-input-${region}`);
-        if (thresholdInput && thresholdInput.value) {
-            const threshold = parseFloat(thresholdInput.value);
-            if (!isNaN(threshold) && threshold >= 0) {
-                try {
-                    const response = await post(`${API}/filters/threshold/${region}?threshold=${threshold}`);
-                    if (response.status !== 'success') {
-                        errors.push('Failed to save grand total threshold');
+        if (thresholdInput) {
+            const value = thresholdInput.value.trim();
+            try {
+                let response;
+                if (value === '') {
+                    // Clear the threshold by sending null
+                    response = await post(`${API}/filters/threshold/${region}`);
+                } else {
+                    const threshold = parseFloat(value);
+                    if (!isNaN(threshold) && threshold >= 0) {
+                        response = await post(`${API}/filters/threshold/${region}?threshold=${threshold}`);
+                    } else {
+                        errors.push('Invalid grand total threshold value');
                         hasErrors = true;
                     }
-                } catch (error) {
-                    console.error('Error saving threshold:', error);
-                    errors.push('Error saving grand total threshold');
+                }
+                
+                if (response && response.status !== 'success') {
+                    errors.push('Failed to save grand total threshold');
                     hasErrors = true;
                 }
+            } catch (error) {
+                console.error('Error saving threshold:', error);
+                errors.push('Error saving grand total threshold');
+                hasErrors = true;
             }
         }
         
-        // 3. Save qty threshold
+        // 3. Save qty threshold (or clear it if empty)
         const qtyThresholdInput = document.getElementById(`qty-threshold-input-${region}`);
-        if (qtyThresholdInput && qtyThresholdInput.value) {
-            const qtyThreshold = parseInt(qtyThresholdInput.value);
-            if (!isNaN(qtyThreshold) && qtyThreshold >= 0) {
-                try {
-                    const response = await post(`${API}/filters/qty-threshold/${region}?qty_threshold=${qtyThreshold}`);
-                    if (response.status !== 'success') {
-                        errors.push('Failed to save quantity threshold');
+        if (qtyThresholdInput) {
+            const value = qtyThresholdInput.value.trim();
+            try {
+                let response;
+                if (value === '') {
+                    // Clear the threshold by sending null
+                    response = await post(`${API}/filters/qty-threshold/${region}`);
+                } else {
+                    const qtyThreshold = parseInt(value);
+                    if (!isNaN(qtyThreshold) && qtyThreshold >= 0) {
+                        response = await post(`${API}/filters/qty-threshold/${region}?qty_threshold=${qtyThreshold}`);
+                    } else {
+                        errors.push('Invalid quantity threshold value');
                         hasErrors = true;
                     }
-                } catch (error) {
-                    console.error('Error saving qty threshold:', error);
-                    errors.push('Error saving quantity threshold');
+                }
+                
+                if (response && response.status !== 'success') {
+                    errors.push('Failed to save quantity threshold');
                     hasErrors = true;
                 }
+            } catch (error) {
+                console.error('Error saving qty threshold:', error);
+                errors.push('Error saving quantity threshold');
+                hasErrors = true;
             }
         }
         
@@ -682,15 +704,19 @@ function displayThreshold() {
     const currentDisplay = document.getElementById(`threshold-current-${currentRegion}`);
     const currencySymbol = currentRegion === 'uk' ? '£' : '€';
     
-    if (thresholdInput && currentThreshold !== null) {
-        thresholdInput.value = currentThreshold;
+    if (thresholdInput) {
+        if (currentThreshold !== null && currentThreshold !== undefined) {
+            thresholdInput.value = currentThreshold;
+        } else {
+            thresholdInput.value = ''; // Clear input if no threshold
+        }
     }
     
     if (currentDisplay) {
-        if (currentThreshold !== null) {
+        if (currentThreshold !== null && currentThreshold !== undefined) {
             currentDisplay.innerHTML = `Current: <strong>${currencySymbol}${parseFloat(currentThreshold).toFixed(2)}</strong> (orders above this are excluded)`;
         } else {
-            currentDisplay.innerHTML = 'Current: <strong>Not set</strong> (all orders included)';
+            currentDisplay.innerHTML = 'Current: <strong>No threshold</strong> (all orders included)';
         }
     }
 }
@@ -756,15 +782,19 @@ function displayQtyThreshold() {
     const qtyThresholdInput = document.getElementById(`qty-threshold-input-${currentRegion}`);
     const currentDisplay = document.getElementById(`qty-threshold-current-${currentRegion}`);
     
-    if (qtyThresholdInput && currentQtyThreshold !== null) {
-        qtyThresholdInput.value = currentQtyThreshold;
+    if (qtyThresholdInput) {
+        if (currentQtyThreshold !== null && currentQtyThreshold !== undefined) {
+            qtyThresholdInput.value = currentQtyThreshold;
+        } else {
+            qtyThresholdInput.value = ''; // Clear input if no threshold
+        }
     }
     
     if (currentDisplay) {
-        if (currentQtyThreshold !== null) {
+        if (currentQtyThreshold !== null && currentQtyThreshold !== undefined) {
             currentDisplay.innerHTML = `Current: <strong>${currentQtyThreshold}</strong> (orders with qty above this are excluded)`;
         } else {
-            currentDisplay.innerHTML = 'Current: <strong>Not set</strong> (all orders included)';
+            currentDisplay.innerHTML = 'Current: <strong>No threshold</strong> (all orders included)';
         }
     }
 }

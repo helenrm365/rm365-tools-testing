@@ -262,10 +262,10 @@ def get_grand_total_threshold(
 @router.post("/filters/threshold/{region}")
 def set_grand_total_threshold(
     region: str,
-    threshold: float,
+    threshold: float = None,
     user=Depends(get_current_user)
 ):
-    """Set the grand total threshold for a region (requires admin/manager)"""
+    """Set the grand total threshold for a region (requires admin/manager). Pass None to clear."""
     # Check if user has permission (admin or manager)
     user_role = user.get("role", "").lower()
     if user_role not in ["admin", "manager"]:
@@ -289,10 +289,10 @@ def get_qty_threshold(
 @router.post("/filters/qty-threshold/{region}")
 def set_qty_threshold(
     region: str,
-    qty_threshold: int,
+    qty_threshold: int = None,
     user=Depends(get_current_user)
 ):
-    """Set the quantity threshold for a region (requires admin/manager)"""
+    """Set the quantity threshold for a region (requires admin/manager). Pass None to clear."""
     # Check if user has permission (admin or manager)
     user_role = user.get("role", "").lower()
     if user_role not in ["admin", "manager"]:
