@@ -1,5 +1,12 @@
 /* App Shell UI (extracted from styles.css) */
 
+/* Import Sidebar Styles */
+@import url('sidebar/base.css');
+@import url('sidebar/header.css');
+@import url('sidebar/navigation.css');
+@import url('sidebar/footer.css');
+@import url('sidebar/responsive.css');
+
 * { font-family: 'Sora', sans-serif; }
 
 html {
@@ -78,14 +85,6 @@ html.dark-mode {
 html.dark-mode .popup-content pre {
   background: rgba(255, 255, 255, 0.05);
 }
-
-
-/* === Modern Sidebar === */
-@import url('sidebar/base.css');
-@import url('sidebar/header.css');
-@import url('sidebar/navigation.css');
-@import url('sidebar/footer.css');
-@import url('sidebar/responsive.css');
 
 
 /* === Tabs === */
