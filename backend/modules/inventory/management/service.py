@@ -3,6 +3,7 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta
 import logging
 import requests
+import threading
 
 from .repo import InventoryManagementRepo
 from modules._integrations.zoho.client import get_cached_inventory_token
@@ -14,6 +15,7 @@ logger = logging.getLogger(__name__)
 _CACHED_TOTAL: Optional[int] = None
 _TOTAL_CACHE_TIMESTAMP: Optional[datetime] = None
 _TOTAL_CACHE_TTL = 3600  # Cache total count for 1 hour
+_COUNTING_IN_PROGRESS = False  # Flag to prevent duplicate counting
 
 
 class InventoryManagementService:
@@ -21,23 +23,16 @@ class InventoryManagementService:
         self.repo = repo or InventoryManagementRepo()
         self.zoho_org_id = settings.ZC_ORG_ID
     
-    def _get_total_count(self) -> int:
-        """Get accurate total count from Zoho by counting all pages (cached)"""
-        global _CACHED_TOTAL, _TOTAL_CACHE_TIMESTAMP
+    def _count_total_in_background(self):
+        """Count total items in background thread"""
+        global _CACHED_TOTAL, _TOTAL_CACHE_TIMESTAMP, _COUNTING_IN_PROGRESS
         
-        # Return cached total if still valid
-        if (_CACHED_TOTAL is not None and 
-            _TOTAL_CACHE_TIMESTAMP is not None and 
-            datetime.now() - _TOTAL_CACHE_TIMESTAMP < timedelta(seconds=_TOTAL_CACHE_TTL)):
-            logger.info(f"Using cached total count: {_CACHED_TOTAL}")
-            return _CACHED_TOTAL
-        
-        # Count all items by iterating through pages
-        logger.info("Calculating total count from Zoho...")
         try:
+            logger.info("Background: Starting total count from Zoho...")
             inventory_token = get_cached_inventory_token()
             if not inventory_token:
-                return 0
+                _COUNTING_IN_PROGRESS = False
+                return
             
             headers = {"Authorization": f"Zoho-oauthtoken {inventory_token}"}
             url = f"https://www.zohoapis.eu/inventory/v1/items"
@@ -56,7 +51,7 @@ class InventoryManagementService:
                 data = response.json()
                 
                 if data.get("code") != 0:
-                    logger.error(f"Error counting from Zoho page {zoho_page}: {data}")
+                    logger.error(f"Background count error on page {zoho_page}: {data}")
                     break
                 
                 items = data.get("items", [])
@@ -65,23 +60,49 @@ class InventoryManagementService:
                 page_context = data.get("page_context", {})
                 has_more = page_context.get("has_more_page", False)
                 
-                logger.info(f"Counting page {zoho_page}: {len(items)} items (total so far: {total})")
+                if zoho_page % 5 == 0:  # Log every 5 pages
+                    logger.info(f"Background counting: page {zoho_page}, total so far: {total}")
                 
                 if not has_more or len(items) == 0:
                     break
                 
                 zoho_page += 1
             
-            # Cache the result
+            # Update cache
             _CACHED_TOTAL = total
             _TOTAL_CACHE_TIMESTAMP = datetime.now()
-            logger.info(f"Total count calculated and cached: {total} items")
-            
-            return total
+            _COUNTING_IN_PROGRESS = False
+            logger.info(f"Background count complete: {total} items cached")
             
         except Exception as e:
-            logger.error(f"Error calculating total count: {e}")
-            return 0
+            logger.error(f"Background count error: {e}")
+            _COUNTING_IN_PROGRESS = False
+    
+    def _get_total_count_fast(self) -> int:
+        """Get total count - returns estimate immediately, calculates exact count in background"""
+        global _CACHED_TOTAL, _TOTAL_CACHE_TIMESTAMP, _COUNTING_IN_PROGRESS
+        
+        # Return cached total if available and valid
+        if (_CACHED_TOTAL is not None and 
+            _TOTAL_CACHE_TIMESTAMP is not None and 
+            datetime.now() - _TOTAL_CACHE_TIMESTAMP < timedelta(seconds=_TOTAL_CACHE_TTL)):
+            return _CACHED_TOTAL
+        
+        # Start background counting if not already in progress
+        if not _COUNTING_IN_PROGRESS:
+            _COUNTING_IN_PROGRESS = True
+            thread = threading.Thread(target=self._count_total_in_background, daemon=True)
+            thread.start()
+            logger.info("Started background thread to count total items")
+        
+        # Return cached value if available (even if expired), otherwise return conservative estimate
+        if _CACHED_TOTAL is not None:
+            logger.info(f"Returning stale cached total while recounting: {_CACHED_TOTAL}")
+            return _CACHED_TOTAL
+        
+        # No cache at all - return conservative estimate
+        logger.info("No cache available, returning estimate of 2000")
+        return 2000  # Conservative estimate
     
     def get_zoho_inventory_items(self, page: int = 1, per_page: int = 100) -> Dict[str, Any]:
         """Get inventory items from Zoho Inventory API with pagination (fast, no full cache)
@@ -108,8 +129,8 @@ class InventoryManagementService:
             headers = {"Authorization": f"Zoho-oauthtoken {inventory_token}"}
             url = f"https://www.zohoapis.eu/inventory/v1/items"
             
-            # Get accurate total count (cached after first call)
-            total_items = self._get_total_count()
+            # Get total count (returns immediately with estimate or cached value)
+            total_items = self._get_total_count_fast()
             total_pages = (total_items + per_page - 1) // per_page if total_items > 0 else 1
             
             # Zoho uses 200 items per page max
