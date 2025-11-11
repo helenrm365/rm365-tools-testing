@@ -1,11 +1,7 @@
 /* App Shell UI (extracted from styles.css) */
 
-/* Import Sidebar Styles */
-@import url('sidebar/base.css');
-@import url('sidebar/header.css');
-@import url('sidebar/navigation.css');
-@import url('sidebar/footer.css');
-@import url('sidebar/responsive.css');
+/* Import consolidated sidebar styles */
+@import url('sidebar/sidebar.css');
 
 * { font-family: 'Sora', sans-serif; }
 
