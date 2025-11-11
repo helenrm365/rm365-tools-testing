@@ -541,11 +541,12 @@ class SalesDataRepo:
                     CURRENT_TIMESTAMP as last_updated
                 FROM {sales_table} s
                 LEFT JOIN sku_aliases sa ON s.sku = sa.alias_sku
-                LEFT JOIN condensed_sales_excluded_customers ec 
-                    ON ec.region = %s AND s.customer_email = ec.customer_email
                 WHERE 
                     -- Exclude customers in the exclusion list
-                    ec.id IS NULL
+                    NOT EXISTS (
+                        SELECT 1 FROM condensed_sales_excluded_customers ec
+                        WHERE ec.region = %s AND s.customer_email = ec.customer_email
+                    )
                     -- Exclude orders over the grand total threshold (if set)
                     AND (%s IS NULL OR s.grand_total IS NULL OR s.grand_total <= %s)
                     -- Try to parse created_at as various date formats and check if within 6 months
@@ -908,7 +909,7 @@ class SalesDataRepo:
                 # Only create alias if base SKU also exists in the data
                 if base_sku in base_skus:
                     # Check if MD variant alias already exists
-                    cursor.execute("SELECT id FROM sku_aliases WHERE alias_sku = %s", (md_sku,))
+                    cursor.execute("SELECT alias_sku FROM sku_aliases WHERE alias_sku = %s", (md_sku,))
                     if cursor.fetchone():
                         aliases_skipped += 1
                         continue
