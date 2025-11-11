@@ -1,8 +1,5 @@
 /* App Shell UI (extracted from styles.css) */
 
-/* Import consolidated sidebar styles */
-@import url('sidebar/sidebar.css');
-
 * { font-family: 'Sora', sans-serif; }
 
 html {
