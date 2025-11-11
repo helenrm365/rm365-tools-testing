@@ -113,6 +113,13 @@ class SalesDataService:
             result = self.repo.import_csv_data(table_name, csv_content, filename, username)
             
             if result['success']:
+                # Auto-create MD variant aliases for any new -MD SKUs in the imported data
+                try:
+                    alias_result = self.repo.auto_create_md_variant_aliases()
+                    logger.info(f"Auto-created {alias_result.get('aliases_created', 0)} MD variant aliases after import")
+                except Exception as e:
+                    logger.warning(f"Could not auto-create MD variant aliases after import: {e}")
+                
                 # Refresh condensed data after import
                 try:
                     condensed_result = self.repo.refresh_condensed_data(region)
