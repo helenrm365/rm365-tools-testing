@@ -66,6 +66,7 @@ let _filterSeq = 0;
 const ITEMS_PER_PAGE = 100;
 let currentPage = 0;
 let totalFilteredItems = 0;
+let totalItemsFromAPI = 0; // Total items from Zoho (not filtered)
 
 // Fast search helpers
 const rowEntryByEl = new WeakMap();
@@ -134,7 +135,7 @@ async function setupInventoryManagement() {
 
   console.log('[Inventory Management] Setting up interface');
   
-  // Load data
+  // Load initial data
   await loadInventoryData();
   
   setupDropdowns();
@@ -148,7 +149,7 @@ async function setupInventoryManagement() {
 }
 
 async function loadInventoryData() {
-  console.log('[Inventory Management] Loading data from Zoho and PostgreSQL');
+  console.log('[Inventory Management] Loading paginated data from Zoho and PostgreSQL');
   
   try {
     // Try multiple possible API paths
@@ -159,7 +160,7 @@ async function loadInventoryData() {
       { items: `/api/inventory/items`, metadata: `/api/inventory/metadata` }
     ];
     
-    let items = [];
+    let itemsData = null;
     let metadata = [];
     let workingPath = null;
     
@@ -167,11 +168,12 @@ async function loadInventoryData() {
       try {
         console.log(`[Inventory Management] Trying paths: ${pathSet.items}, ${pathSet.metadata}`);
         
-        const itemsResponse = await get(pathSet.items);
+        // Fetch first page of items (page numbers are 1-indexed in the API)
+        const itemsResponse = await get(`${pathSet.items}?page=${currentPage + 1}&per_page=${ITEMS_PER_PAGE}`);
         const metadataResponse = await get(pathSet.metadata);
         
         if (itemsResponse && metadataResponse) {
-          items = itemsResponse;
+          itemsData = itemsResponse;
           metadata = metadataResponse;
           workingPath = pathSet;
           console.log(`[Inventory Management] Successfully connected using: ${pathSet.items}`);
@@ -203,7 +205,17 @@ async function loadInventoryData() {
       console.warn('[Inventory Management] Could not load magento products:', err);
     }
     
-    inventoryData = Array.isArray(items) ? items : [];
+    // Handle paginated response
+    if (itemsData && itemsData.items) {
+      inventoryData = Array.isArray(itemsData.items) ? itemsData.items : [];
+      totalItemsFromAPI = itemsData.total || inventoryData.length;
+      console.log(`[Inventory Management] Loaded page ${itemsData.page} with ${inventoryData.length} items (total: ${totalItemsFromAPI})`);
+    } else {
+      // Fallback for old non-paginated API
+      inventoryData = Array.isArray(itemsData) ? itemsData : [];
+      totalItemsFromAPI = inventoryData.length;
+      console.log(`[Inventory Management] Loaded ${inventoryData.length} items (non-paginated)`);
+    }
     
     // Index metadata by item_id
     metadataIndex.clear();
@@ -213,10 +225,7 @@ async function loadInventoryData() {
       });
     }
     
-    console.log(`[Inventory Management] Loaded ${inventoryData.length} items and ${metadata.length} metadata records`);
-    
-    // Setup table with filtered data
-    setupTable();
+    console.log(`[Inventory Management] Indexed ${metadata.length} metadata records`);
     
   } catch (error) {
     console.error('[Inventory Management] Error loading data:', error);
@@ -239,6 +248,8 @@ async function loadInventoryData() {
         available_stock: 20
       }
     ];
+    
+    totalItemsFromAPI = inventoryData.length;
     
     metadataIndex.clear();
     metadataIndex.set("sample_001", {
@@ -393,7 +404,7 @@ function setupTable() {
   console.log('[Inventory Management] Active discontinued status filters:', Array.from(discontinuedFilterSet));
   console.log('[Inventory Management] Active stock status filter:', stockStatusFilter);
   console.log('[Inventory Management] Search query:', searchQuery);
-  console.log('[Inventory Management] Total inventory items:', inventoryData.length);
+  console.log('[Inventory Management] Current page inventory items:', inventoryData.length);
   console.log('[Inventory Management] Magento products indexed:', magentoProductsIndex.size);
   
   let filteredItems = [];
@@ -454,39 +465,36 @@ function setupTable() {
     filteredItems.push({ item, metadata });
   });
 
-  // Update total filtered items count
-  totalFilteredItems = filteredItems.length;
-
-  // Calculate pagination
-  const startIndex = currentPage * ITEMS_PER_PAGE;
-  const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, totalFilteredItems);
-  const paginatedItems = filteredItems.slice(startIndex, endIndex);
+  // For now, use the filtered items count as total (server-side filtering would be better)
+  // In a full implementation, we'd send filter params to API and get total_filtered from server
+  totalFilteredItems = totalItemsFromAPI;
 
   console.log(`[Inventory Management] Filter results:`);
-  console.log(`  - Total filtered: ${totalFilteredItems} items`);
-  console.log(`  - Displaying: ${paginatedItems.length} items (page ${currentPage + 1})`);
-  console.log(`  - Filtered out: ${skippedCount} rows`);
+  console.log(`  - Total items in API: ${totalItemsFromAPI}`);
+  console.log(`  - Displaying on this page: ${filteredItems.length} items`);
+  console.log(`  - Current page: ${currentPage + 1}`);
+  console.log(`  - Filtered out on this page: ${skippedCount} rows`);
   console.log(`  - No magento data: ${noMagentoDataCount} rows`);
 
-  // Populate table with paginated items
-  paginatedItems.forEach(({ item, metadata }) => {
+  // Populate table with filtered items from current page
+  filteredItems.forEach(({ item, metadata }) => {
     const row = createTableRow(item, metadata);
     tableBody.appendChild(row);
   });
   
   // Show message if no items match filters
-  if (totalFilteredItems === 0) {
+  if (filteredItems.length === 0) {
     tableBody.innerHTML = `
       <tr>
         <td colspan="16">
           <div class="empty-state">
             <i class="fas fa-inbox"></i>
             <h3>No Products Found</h3>
-            <p>No products match the selected filters.</p>
+            <p>No products match the selected filters on this page.</p>
             <small style="display: block; margin-top: 0.5rem; color: #7f8c8d;">
               Discontinued status filters: ${Array.from(discontinuedFilterSet).join(', ')}<br>
               Stock status filter: ${stockStatusFilter || 'All'}<br>
-              Try adjusting your filters.
+              Try adjusting your filters or navigating to a different page.
             </small>
           </div>
         </td>
@@ -752,7 +760,8 @@ function setupDiscontinuedStatusFilters() {
       // Reset to first page when filters change
       currentPage = 0;
       
-      // Re-render table with new filters (no need to reload data from API)
+      // Reload data from API with new page and re-render table
+      await loadInventoryData();
       setupTable();
       
       // Count visible rows
@@ -771,15 +780,17 @@ function setupDiscontinuedStatusFilters() {
   }
 }
 
-const searchHandler = debounce(() => {
+const searchHandler = debounce(async () => {
   // Reset to first page when search changes
   currentPage = 0;
+  await loadInventoryData();
   setupTable();
 }, 300);
 
 // Stock status dropdown change handler
-function onStockStatusFilterChange() {
+async function onStockStatusFilterChange() {
   currentPage = 0;
+  await loadInventoryData();
   setupTable();
 }
 
@@ -957,9 +968,10 @@ function bindGlobalHandlers() {
   const nextBtn = document.getElementById('nextPageBtn');
   
   if (prevBtn) {
-    prevBtn.addEventListener('click', () => {
+    prevBtn.addEventListener('click', async () => {
       if (currentPage > 0) {
         currentPage--;
+        await loadInventoryData();
         setupTable();
         // Scroll to top of table
         document.getElementById('inventoryManagementTableScroller')?.scrollTo(0, 0);
@@ -968,10 +980,11 @@ function bindGlobalHandlers() {
   }
   
   if (nextBtn) {
-    nextBtn.addEventListener('click', () => {
+    nextBtn.addEventListener('click', async () => {
       const totalPages = Math.ceil(totalFilteredItems / ITEMS_PER_PAGE);
       if (currentPage < totalPages - 1) {
         currentPage++;
+        await loadInventoryData();
         setupTable();
         // Scroll to top of table
         document.getElementById('inventoryManagementTableScroller')?.scrollTo(0, 0);

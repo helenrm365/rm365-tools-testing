@@ -16,28 +16,76 @@ class InventoryManagementService:
         self.repo = repo or InventoryManagementRepo()
         self.zoho_org_id = settings.ZC_ORG_ID
 
-    def get_zoho_inventory_items(self) -> List[Dict[str, Any]]:
-        """Get inventory items from Zoho Inventory API"""
+    def get_zoho_inventory_items(self, page: int = 1, per_page: int = 100) -> Dict[str, Any]:
+        """Get inventory items from Zoho Inventory API with pagination
+        
+        Args:
+            page: Page number (1-indexed)
+            per_page: Number of items per page
+            
+        Returns:
+            Dict with items, total count, and pagination info
+        """
         try:
             inventory_token = get_cached_inventory_token()
             if not inventory_token:
                 logger.error("Failed to get Zoho inventory token")
-                return []
+                return {
+                    "items": [],
+                    "total": 0,
+                    "page": page,
+                    "per_page": per_page,
+                    "total_pages": 0
+                }
 
             headers = {
                 "Authorization": f"Zoho-oauthtoken {inventory_token}"
             }
 
+            # Zoho API uses 200 items per page max, so we need to fetch accordingly
+            zoho_per_page = 200
+            
+            # Calculate which Zoho pages we need to fetch
+            # For example: if client wants page 2 with 100 items, we need items 101-200
+            # This corresponds to Zoho page 1, items 101-200
+            start_item = (page - 1) * per_page + 1
+            end_item = page * per_page
+            
+            # First, get total count from Zoho
+            url = f"https://www.zohoapis.eu/inventory/v1/items"
+            params = {
+                "organization_id": self.zoho_org_id,
+                "page": 1,
+                "per_page": 1  # Just to get the total count
+            }
+            
+            response = requests.get(url, headers=headers, params=params)
+            data = response.json()
+            
+            if data.get("code") != 0:
+                logger.error(f"Zoho API error: {data}")
+                return {
+                    "items": [],
+                    "total": 0,
+                    "page": page,
+                    "per_page": per_page,
+                    "total_pages": 0
+                }
+            
+            page_context = data.get("page_context", {})
+            total_items = page_context.get("total", 0)
+            total_pages = (total_items + per_page - 1) // per_page
+            
+            # Now fetch the actual items we need
             all_items = []
-            page = 1
-            per_page = 200
-
-            while True:
-                url = f"https://www.zohoapis.eu/inventory/v1/items"
+            zoho_start_page = ((start_item - 1) // zoho_per_page) + 1
+            zoho_end_page = ((end_item - 1) // zoho_per_page) + 1
+            
+            for zoho_page in range(zoho_start_page, zoho_end_page + 1):
                 params = {
                     "organization_id": self.zoho_org_id,
-                    "page": page,
-                    "per_page": per_page
+                    "page": zoho_page,
+                    "per_page": zoho_per_page
                 }
                 
                 response = requests.get(url, headers=headers, params=params)
@@ -63,16 +111,28 @@ class InventoryManagementService:
                             "reserve_stock": int(reserve_stock) if reserve_stock and reserve_stock.isdigit() else None
                         }
                     })
-
-                if len(items) < per_page:
-                    break
-                page += 1
-
-            return all_items
+            
+            # Slice to get exactly the items we need for this page
+            offset_in_fetched = (start_item - 1) % (zoho_per_page * (zoho_end_page - zoho_start_page + 1))
+            paginated_items = all_items[offset_in_fetched:offset_in_fetched + per_page]
+            
+            return {
+                "items": paginated_items,
+                "total": total_items,
+                "page": page,
+                "per_page": per_page,
+                "total_pages": total_pages
+            }
 
         except Exception as e:
             logger.error(f"Error fetching Zoho inventory items: {e}")
-            return []
+            return {
+                "items": [],
+                "total": 0,
+                "page": page,
+                "per_page": per_page,
+                "total_pages": 0
+            }
 
     def _get_custom_field_value(self, item: Dict[str, Any], field_name: str) -> Optional[str]:
         """Extract custom field value from Zoho item"""

@@ -24,12 +24,18 @@ def inventory_management_health():
 
 
 # ---- Zoho Inventory Items ----
-@router.get("/items", response_model=List[InventoryItemOut])
-def get_inventory_items(user=Depends(get_current_user)):
-    """Get inventory items from Zoho Inventory API"""
+@router.get("/items")
+def get_inventory_items(page: int = 1, per_page: int = 100, user=Depends(get_current_user)):
+    """Get inventory items from Zoho Inventory API with pagination"""
     try:
-        items = _svc().get_zoho_inventory_items()
-        return [InventoryItemOut(**item) for item in items]
+        result = _svc().get_zoho_inventory_items(page=page, per_page=per_page)
+        return {
+            "items": [InventoryItemOut(**item) for item in result["items"]],
+            "total": result["total"],
+            "page": result["page"],
+            "per_page": result["per_page"],
+            "total_pages": result["total_pages"]
+        }
     except Exception as e:
         logger.error(f"Error fetching inventory items: {e}")
         raise HTTPException(status_code=500, detail=str(e))
