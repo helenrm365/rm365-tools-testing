@@ -479,3 +479,33 @@ class SalesDataService:
                 "status": "error",
                 "message": f"Failed to set threshold: {str(e)}"
             }
+    
+    def get_qty_threshold(self, region: str) -> Dict[str, Any]:
+        """Get quantity threshold for a region"""
+        try:
+            threshold = self.repo.get_qty_threshold(region)
+            return {
+                "status": "success",
+                "qty_threshold": threshold
+            }
+        except Exception as e:
+            logger.error(f"Error getting qty threshold: {e}")
+            return {
+                "status": "error",
+                "message": f"Failed to get qty threshold: {str(e)}"
+            }
+    
+    def set_qty_threshold(self, region: str, qty_threshold: int, username: str) -> Dict[str, Any]:
+        """Set quantity threshold for a region"""
+        try:
+            result = self.repo.set_qty_threshold(region, qty_threshold, username)
+            return {
+                "status": "success",
+                **result
+            }
+        except Exception as e:
+            logger.error(f"Error setting qty threshold: {e}")
+            return {
+                "status": "error",
+                "message": f"Failed to set qty threshold: {str(e)}"
+            }

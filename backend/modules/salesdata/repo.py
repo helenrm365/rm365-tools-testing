@@ -115,7 +115,8 @@ class SalesDataRepo:
                     CREATE TABLE condensed_sales_grand_total_threshold (
                         id SERIAL PRIMARY KEY,
                         region VARCHAR(10) NOT NULL UNIQUE,
-                        threshold DECIMAL(10, 2) NOT NULL,
+                        threshold DECIMAL(10, 2),
+                        qty_threshold INTEGER,
                         updated_by VARCHAR(100),
                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
@@ -123,6 +124,26 @@ class SalesDataRepo:
                 logger.info(f"✅ Created table: condensed_sales_grand_total_threshold")
             else:
                 logger.info(f"ℹ️  Table already exists: condensed_sales_grand_total_threshold")
+                # Add qty_threshold column if it doesn't exist
+                cursor.execute("""
+                    SELECT column_name 
+                    FROM information_schema.columns 
+                    WHERE table_name = 'condensed_sales_grand_total_threshold' 
+                    AND column_name = 'qty_threshold'
+                """)
+                if not cursor.fetchone():
+                    cursor.execute("""
+                        ALTER TABLE condensed_sales_grand_total_threshold 
+                        ADD COLUMN qty_threshold INTEGER
+                    """)
+                    logger.info(f"✅ Added qty_threshold column to condensed_sales_grand_total_threshold")
+            
+            # Make threshold column nullable if it isn't already
+            cursor.execute("""
+                ALTER TABLE condensed_sales_grand_total_threshold 
+                ALTER COLUMN threshold DROP NOT NULL
+            """)
+
             
             # Create main sales data tables
             for table_name in tables:
@@ -514,16 +535,18 @@ class SalesDataRepo:
             # Clear existing condensed data
             cursor.execute(f"DELETE FROM {condensed_table}")
             
-            # Get the grand total threshold for this region (if set)
+            # Get the thresholds for this region (if set)
             cursor.execute("""
-                SELECT threshold FROM condensed_sales_grand_total_threshold 
+                SELECT threshold, qty_threshold FROM condensed_sales_grand_total_threshold 
                 WHERE region = %s
             """, (region,))
             threshold_row = cursor.fetchone()
             grand_total_threshold = threshold_row[0] if threshold_row else None
+            qty_threshold = threshold_row[1] if threshold_row and len(threshold_row) > 1 else None
             
             # Convert None to SQL NULL for use in f-string
             threshold_sql = 'NULL' if grand_total_threshold is None else str(grand_total_threshold)
+            qty_threshold_sql = 'NULL' if qty_threshold is None else str(qty_threshold)
             
             # Aggregate data from last 6 months, using SKU aliases to unify related SKUs
             # The created_at field is a string, so we need to try to parse various date formats
@@ -552,6 +575,8 @@ class SalesDataRepo:
                     )
                     -- Exclude orders over the grand total threshold (if set)
                     AND ({threshold_sql} IS NULL OR s.grand_total IS NULL OR s.grand_total <= {threshold_sql})
+                    -- Exclude orders over the qty threshold (if set)
+                    AND ({qty_threshold_sql} IS NULL OR s.qty IS NULL OR s.qty <= {qty_threshold_sql})
                     -- Try to parse created_at as various date formats and check if within 6 months
                     AND (
                         -- Try ISO format: YYYY-MM-DD or YYYY-MM-DD HH:MI:SS
@@ -1194,6 +1219,65 @@ class SalesDataRepo:
             if conn:
                 conn.rollback()
             logger.error(f"Error setting grand total threshold: {e}")
+            raise
+        finally:
+            if conn:
+                cursor.close()
+                conn.close()
+    
+    def get_qty_threshold(self, region: str) -> Optional[int]:
+        """Get the quantity threshold for a region"""
+        conn = None
+        try:
+            conn = get_products_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                SELECT qty_threshold FROM condensed_sales_grand_total_threshold
+                WHERE region = %s
+            """, (region,))
+            
+            result = cursor.fetchone()
+            return int(result[0]) if result and result[0] is not None else None
+            
+        except Exception as e:
+            logger.error(f"Error getting qty threshold: {e}")
+            raise
+        finally:
+            if conn:
+                cursor.close()
+                conn.close()
+    
+    def set_qty_threshold(self, region: str, qty_threshold: int, username: str) -> Dict[str, Any]:
+        """Set the quantity threshold for a region"""
+        conn = None
+        try:
+            conn = get_products_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                INSERT INTO condensed_sales_grand_total_threshold 
+                (region, qty_threshold, updated_by, updated_at)
+                VALUES (%s, %s, %s, CURRENT_TIMESTAMP)
+                ON CONFLICT (region) 
+                DO UPDATE SET 
+                    qty_threshold = EXCLUDED.qty_threshold,
+                    updated_by = EXCLUDED.updated_by,
+                    updated_at = CURRENT_TIMESTAMP
+                RETURNING id
+            """, (region, qty_threshold, username))
+            
+            conn.commit()
+            
+            return {
+                "success": True,
+                "message": f"Quantity threshold set to {qty_threshold} for {region.upper()}"
+            }
+            
+        except Exception as e:
+            if conn:
+                conn.rollback()
+            logger.error(f"Error setting qty threshold: {e}")
             raise
         finally:
             if conn:

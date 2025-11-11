@@ -275,3 +275,30 @@ def set_grand_total_threshold(
         }
     
     return svc.set_grand_total_threshold(region, threshold, user.get("username", "unknown"))
+
+
+@router.get("/filters/qty-threshold/{region}")
+def get_qty_threshold(
+    region: str,
+    user=Depends(get_current_user)
+):
+    """Get the quantity threshold for a region"""
+    return svc.get_qty_threshold(region)
+
+
+@router.post("/filters/qty-threshold/{region}")
+def set_qty_threshold(
+    region: str,
+    qty_threshold: int,
+    user=Depends(get_current_user)
+):
+    """Set the quantity threshold for a region (requires admin/manager)"""
+    # Check if user has permission (admin or manager)
+    user_role = user.get("role", "").lower()
+    if user_role not in ["admin", "manager"]:
+        return {
+            "status": "error",
+            "message": "Only admins and managers can set the quantity threshold"
+        }
+    
+    return svc.set_qty_threshold(region, qty_threshold, user.get("username", "unknown"))
