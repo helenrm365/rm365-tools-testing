@@ -16,9 +16,11 @@
   <script>
     const html = document.documentElement;
     const stored = localStorage.getItem('darkMode');
-    if (stored === 'dark') html.classList.add('dark-mode');
-    else if (stored === 'light') html.classList.remove('dark-mode');
-    else if (stored === 'dark-mode') html.classList.add('dark-mode');
+    const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+    const isDark = stored === 'true' || (stored == null && prefersDark);
+    if (isDark) {
+      html.classList.add('dark-mode');
+    }
   </script>
 
   <!-- Fonts + libs -->
