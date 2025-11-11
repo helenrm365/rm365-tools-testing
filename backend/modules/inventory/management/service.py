@@ -98,12 +98,13 @@ class InventoryManagementService:
             logger.error(f"Error fetching all items: {e}", exc_info=True)
             return []
     
-    def get_zoho_inventory_items(self, page: int = 1, per_page: int = 100) -> Dict[str, Any]:
-        """Get inventory items from Zoho with pagination (loads all once, then caches)
+    def get_zoho_inventory_items(self, page: int = 1, per_page: int = 100, search: str = None) -> Dict[str, Any]:
+        """Get inventory items from Zoho with pagination and search (loads all once, then caches)
         
         Args:
             page: Page number (1-indexed)
             per_page: Number of items per page
+            search: Search query to filter items (searches product_name and sku)
             
         Returns:
             Dict with items, total count, and pagination info
@@ -121,17 +122,28 @@ class InventoryManagementService:
                     "total_pages": 0
                 }
             
-            total_items = len(all_items)
-            total_pages = (total_items + per_page - 1) // per_page
+            # Apply search filter if provided
+            filtered_items = all_items
+            if search and search.strip():
+                search_lower = search.strip().lower()
+                filtered_items = [
+                    item for item in all_items
+                    if (search_lower in (item.get("product_name") or "").lower() or
+                        search_lower in (item.get("sku") or "").lower())
+                ]
+                logger.info(f"Search '{search}' filtered {len(all_items)} items to {len(filtered_items)} items")
+            
+            total_items = len(filtered_items)
+            total_pages = (total_items + per_page - 1) // per_page if total_items > 0 else 1
             
             # Calculate slice indices
             start_idx = (page - 1) * per_page
             end_idx = min(start_idx + per_page, total_items)
             
             # Get the page slice
-            paginated_items = all_items[start_idx:end_idx]
+            paginated_items = filtered_items[start_idx:end_idx]
             
-            logger.info(f"Returning page {page}/{total_pages}: items {start_idx+1}-{end_idx} of {total_items}")
+            logger.info(f"Returning page {page}/{total_pages}: items {start_idx+1}-{end_idx} of {total_items} (search: '{search or 'none'}')")
             
             return {
                 "items": paginated_items,

@@ -25,10 +25,15 @@ def inventory_management_health():
 
 # ---- Zoho Inventory Items ----
 @router.get("/items")
-def get_inventory_items(page: int = 1, per_page: int = 100, user=Depends(get_current_user)):
-    """Get inventory items from Zoho Inventory API with pagination"""
+def get_inventory_items(
+    page: int = 1, 
+    per_page: int = 100, 
+    search: str = None,
+    user=Depends(get_current_user)
+):
+    """Get inventory items from Zoho Inventory API with pagination and search"""
     try:
-        result = _svc().get_zoho_inventory_items(page=page, per_page=per_page)
+        result = _svc().get_zoho_inventory_items(page=page, per_page=per_page, search=search)
         return {
             "items": [InventoryItemOut(**item) for item in result["items"]],
             "total": result["total"],

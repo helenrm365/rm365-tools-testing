@@ -168,8 +168,18 @@ async function loadInventoryData() {
       try {
         console.log(`[Inventory Management] Trying paths: ${pathSet.items}, ${pathSet.metadata}`);
         
-        // Fetch first page of items (page numbers are 1-indexed in the API)
-        const itemsResponse = await get(`${pathSet.items}?page=${currentPage + 1}&per_page=${ITEMS_PER_PAGE}`);
+        // Get search query
+        const searchInput = document.getElementById('inventorySearch');
+        const searchQuery = searchInput?.value?.trim() || '';
+        
+        // Build URL with search parameter
+        let itemsUrl = `${pathSet.items}?page=${currentPage + 1}&per_page=${ITEMS_PER_PAGE}`;
+        if (searchQuery) {
+          itemsUrl += `&search=${encodeURIComponent(searchQuery)}`;
+        }
+        
+        // Fetch items with search and metadata
+        const itemsResponse = await get(itemsUrl);
         const metadataResponse = await get(pathSet.metadata);
         
         if (itemsResponse && metadataResponse) {
