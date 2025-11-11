@@ -1,0 +1,4 @@
+Order number,Created At,Product SKU,Product Name,Product Qty,Product Price,Status,Currency,Grand Total,Customer Email,Customer Full Name,Billing Address,Shipping Address,Customer Group Code
+ORD-TEST-001,2024-11-05 10:00:00,SKU-AAA,Product with all fields,3,10.00,complete,GBP,30.00,test@example.com,Test User,10 Street Address,20 Shipping Address,VIP
+ORD-TEST-002,2024-11-05 11:00:00,SKU-BBB,Product minimal fields,1,25.50,pending,,,,,,
+ORD-TEST-003,2024-11-05 12:00:00,SKU-CCC,Product partial fields,2,15.99,complete,EUR,31.98,partial@example.com,Partial Name,,,STANDARD

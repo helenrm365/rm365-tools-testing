@@ -101,8 +101,13 @@ class SalesDataRepo:
                             qty INTEGER NOT NULL,
                             price DECIMAL(10, 2) NOT NULL,
                             status VARCHAR(100) NOT NULL,
-                            customer_group VARCHAR(255),
                             currency VARCHAR(10),
+                            grand_total DECIMAL(10, 2),
+                            customer_email VARCHAR(255),
+                            customer_full_name VARCHAR(255),
+                            billing_address TEXT,
+                            shipping_address TEXT,
+                            customer_group_code VARCHAR(255),
                             imported_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                         )
@@ -211,27 +216,35 @@ class SalesDataRepo:
                        OR sku ILIKE %s 
                        OR name ILIKE %s
                        OR status ILIKE %s
+                       OR customer_email ILIKE %s
+                       OR customer_full_name ILIKE %s
                 """
                 data_query = f"""
                     SELECT id, order_number, created_at, sku, name, qty, price, status, 
-                           customer_group, currency, imported_at, updated_at
+                           currency, grand_total, customer_email, customer_full_name, 
+                           billing_address, shipping_address, customer_group_code,
+                           imported_at, updated_at
                     FROM {table_name}
                     WHERE order_number ILIKE %s 
                        OR sku ILIKE %s 
                        OR name ILIKE %s
                        OR status ILIKE %s
+                       OR customer_email ILIKE %s
+                       OR customer_full_name ILIKE %s
                     ORDER BY imported_at DESC
                     LIMIT %s OFFSET %s
                 """
-                cursor.execute(count_query, (search_pattern, search_pattern, search_pattern, search_pattern))
+                cursor.execute(count_query, (search_pattern, search_pattern, search_pattern, search_pattern, search_pattern, search_pattern))
                 total_count = cursor.fetchone()[0]
                 
-                cursor.execute(data_query, (search_pattern, search_pattern, search_pattern, search_pattern, limit, offset))
+                cursor.execute(data_query, (search_pattern, search_pattern, search_pattern, search_pattern, search_pattern, search_pattern, limit, offset))
             else:
                 count_query = f"SELECT COUNT(*) FROM {table_name}"
                 data_query = f"""
                     SELECT id, order_number, created_at, sku, name, qty, price, status, 
-                           customer_group, currency, imported_at, updated_at
+                           currency, grand_total, customer_email, customer_full_name, 
+                           billing_address, shipping_address, customer_group_code,
+                           imported_at, updated_at
                     FROM {table_name}
                     ORDER BY imported_at DESC
                     LIMIT %s OFFSET %s
@@ -242,7 +255,10 @@ class SalesDataRepo:
                 cursor.execute(data_query, (limit, offset))
             
             # Fetch all rows
-            columns = ['id', 'order_number', 'created_at', 'sku', 'name', 'qty', 'price', 'status', 'customer_group', 'currency', 'imported_at', 'updated_at']
+            columns = ['id', 'order_number', 'created_at', 'sku', 'name', 'qty', 'price', 'status', 
+                      'currency', 'grand_total', 'customer_email', 'customer_full_name', 
+                      'billing_address', 'shipping_address', 'customer_group_code',
+                      'imported_at', 'updated_at']
             rows = cursor.fetchall()
             
             data = []
@@ -306,19 +322,24 @@ class SalesDataRepo:
             
             for row_num, row in enumerate(reader, start=2):  # Start at 2 because row 1 is header
                 try:
-                    # Expected column positions (1-indexed in description, 0-indexed in code):
-                    # Column 1 (index 0): order_number
-                    # Column 2 (index 1): created_at
-                    # Column 3 (index 2): sku
-                    # Column 4 (index 3): name
-                    # Column 5 (index 4): qty
-                    # Column 6 (index 5): price
-                    # Column 7 (index 6): status
-                    # Column 8 (index 7): customer_group (optional, defaults to 'Standard')
-                    # Column 9 (index 8): currency (optional, defaults based on region)
+                    # Expected column positions (0-indexed):
+                    # 0: order_number
+                    # 1: created_at
+                    # 2: sku (Product SKU)
+                    # 3: name (Product Name)
+                    # 4: qty (Product Qty)
+                    # 5: price (Product Price)
+                    # 6: status
+                    # 7: currency
+                    # 8: grand_total
+                    # 9: customer_email
+                    # 10: customer_full_name
+                    # 11: billing_address
+                    # 12: shipping_address
+                    # 13: customer_group_code
                     
-                    if len(row) < 7:
-                        errors.append(f"Row {row_num}: Not enough columns (expected at least 7, got {len(row)})")
+                    if len(row) < 14:
+                        errors.append(f"Row {row_num}: Not enough columns (expected 14, got {len(row)})")
                         continue
                     
                     order_number = row[0].strip() if len(row) > 0 else ''
@@ -328,10 +349,13 @@ class SalesDataRepo:
                     qty_str = row[4].strip() if len(row) > 4 else '0'
                     price_str = row[5].strip() if len(row) > 5 else '0'
                     status = row[6].strip() if len(row) > 6 else ''
-                    
-                    # New optional columns
-                    customer_group = row[7].strip() if len(row) > 7 and row[7].strip() else None
-                    currency = row[8].strip() if len(row) > 8 and row[8].strip() else None
+                    currency = row[7].strip() if len(row) > 7 and row[7].strip() else None
+                    grand_total_str = row[8].strip() if len(row) > 8 and row[8].strip() else ''
+                    customer_email = row[9].strip() if len(row) > 9 and row[9].strip() else None
+                    customer_full_name = row[10].strip() if len(row) > 10 and row[10].strip() else None
+                    billing_address = row[11].strip() if len(row) > 11 and row[11].strip() else None
+                    shipping_address = row[12].strip() if len(row) > 12 and row[12].strip() else None
+                    customer_group_code = row[13].strip() if len(row) > 13 and row[13].strip() else None
                     
                     # Validate required fields
                     if not order_number or not sku:
@@ -349,15 +373,28 @@ class SalesDataRepo:
                     except (ValueError, TypeError):
                         price = 0.0
                     
+                    # Convert grand_total - allow it to be None if empty
+                    grand_total = None
+                    if grand_total_str:
+                        try:
+                            grand_total = float(grand_total_str)
+                        except (ValueError, TypeError):
+                            # If conversion fails, leave as None but don't fail the import
+                            pass
+                    
                     # Insert into database
                     insert_query = f"""
                         INSERT INTO {table_name} 
-                        (order_number, created_at, sku, name, qty, price, status, customer_group, currency, imported_at, updated_at)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        (order_number, created_at, sku, name, qty, price, status, currency, 
+                         grand_total, customer_email, customer_full_name, billing_address, 
+                         shipping_address, customer_group_code, imported_at, updated_at)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """
                     now = datetime.utcnow()
                     cursor.execute(insert_query, (
-                        order_number, created_at, sku, name, qty, price, status, customer_group, currency, now, now
+                        order_number, created_at, sku, name, qty, price, status, currency, 
+                        grand_total, customer_email, customer_full_name, billing_address, 
+                        shipping_address, customer_group_code, now, now
                     ))
                     rows_imported += 1
                     

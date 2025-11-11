@@ -267,7 +267,7 @@ async function loadSalesData() {
   if (!tbody) return;
   
   // Show loading state
-  const colSpan = viewMode === 'condensed' ? '4' : '9';
+  const colSpan = viewMode === 'condensed' ? '4' : '14';
   tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem;">Loading...</td></tr>`;
   
   try {
@@ -298,7 +298,7 @@ async function loadSalesData() {
     }
   } catch (error) {
     console.error('[UK Sales] Error loading data:', error);
-    const colSpan = viewMode === 'condensed' ? '4' : '9';
+    const colSpan = viewMode === 'condensed' ? '4' : '14';
     tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem; color: red;">Error: ${error.message}</td></tr>`;
     showToast('Error loading data: ' + error.message, 'error');
   }
@@ -312,7 +312,7 @@ async function loadSalesData() {
  */
 async function loadSearchResults(searchTerm) {
   const tbody = document.getElementById('salesTableBody');
-  const colSpan = viewMode === 'condensed' ? '4' : '9';
+  const colSpan = viewMode === 'condensed' ? '4' : '14';
   
   if (!tbody) return;
   
@@ -366,7 +366,7 @@ function displayCurrentPage() {
   
   // Check if data is loaded
   if (!allData || allData.length === 0) {
-    const colSpan = viewMode === 'condensed' ? '4' : '9';
+    const colSpan = viewMode === 'condensed' ? '4' : '14';
     tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem;">No data available</td></tr>`;
     if (pageInfo) {
       pageInfo.textContent = 'No data loaded';
@@ -433,23 +433,28 @@ function displaySalesData(data) {
   
   if (!tbody) return;
   
-  // Update table headers for full view (matching the 9 columns in HTML)
+  // Update table headers for full view (matching the 14 columns in HTML)
   if (thead) {
     thead.innerHTML = `
-      <th><i class="fas fa-hashtag"></i> Order ID</th>
-      <th><i class="fas fa-calendar"></i> Date</th>
-      <th><i class="fas fa-barcode"></i> SKU</th>
-      <th><i class="fas fa-box"></i> Product</th>
-      <th><i class="fas fa-sort-numeric-up"></i> Quantity</th>
-      <th><i class="fas fa-pound-sign"></i> Price</th>
+      <th><i class="fas fa-hashtag"></i> Order Number</th>
+      <th><i class="fas fa-calendar"></i> Created At</th>
+      <th><i class="fas fa-barcode"></i> Product SKU</th>
+      <th><i class="fas fa-box"></i> Product Name</th>
+      <th><i class="fas fa-sort-numeric-up"></i> Product Qty</th>
+      <th><i class="fas fa-pound-sign"></i> Product Price</th>
       <th><i class="fas fa-info-circle"></i> Status</th>
-      <th><i class="fas fa-users"></i> Customer Group</th>
       <th><i class="fas fa-money-bill"></i> Currency</th>
+      <th><i class="fas fa-calculator"></i> Grand Total</th>
+      <th><i class="fas fa-envelope"></i> Customer Email</th>
+      <th><i class="fas fa-user"></i> Customer Full Name</th>
+      <th><i class="fas fa-map-marker-alt"></i> Billing Address</th>
+      <th><i class="fas fa-shipping-fast"></i> Shipping Address</th>
+      <th><i class="fas fa-users"></i> Customer Group Code</th>
     `;
   }
   
   if (!data || data.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 2rem;">No data found</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="14" style="text-align: center; padding: 2rem;">No data found</td></tr>';
     return;
   }
   
@@ -462,8 +467,13 @@ function displaySalesData(data) {
       <td>${row.qty || 0}</td>
       <td>£${parseFloat(row.price || 0).toFixed(2)}</td>
       <td>${escapeHtml(row.status || '')}</td>
-      <td>${escapeHtml(row.customer_group || '')}</td>
       <td>${escapeHtml(row.currency || '')}</td>
+      <td>${row.grand_total ? '£' + parseFloat(row.grand_total).toFixed(2) : ''}</td>
+      <td>${escapeHtml(row.customer_email || '')}</td>
+      <td>${escapeHtml(row.customer_full_name || '')}</td>
+      <td>${escapeHtml(row.billing_address || '')}</td>
+      <td>${escapeHtml(row.shipping_address || '')}</td>
+      <td>${escapeHtml(row.customer_group_code || '')}</td>
     </tr>
   `).join('');
 }
