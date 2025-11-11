@@ -62,6 +62,8 @@ class InventoryManagementService:
             response = requests.get(url, headers=headers, params=params)
             data = response.json()
             
+            logger.info(f"Zoho initial response for count: {data}")
+            
             if data.get("code") != 0:
                 logger.error(f"Zoho API error: {data}")
                 return {
@@ -72,9 +74,23 @@ class InventoryManagementService:
                     "total_pages": 0
                 }
             
+            # Try different ways to get total count from Zoho
             page_context = data.get("page_context", {})
             total_items = page_context.get("total", 0)
-            total_pages = (total_items + per_page - 1) // per_page
+            
+            # If total is not in page_context, check other possible locations
+            if total_items == 0:
+                # Some Zoho APIs return it differently
+                total_items = data.get("total", 0)
+            
+            if total_items == 0:
+                # Fallback: calculate from has_more_page
+                # If we can't get total, we'll need to estimate or fetch all
+                logger.warning(f"Could not determine total items from Zoho. page_context: {page_context}, data keys: {data.keys()}")
+                # For now, let's fetch the first page with max items to at least work
+                total_items = 0  # We'll handle this below
+            
+            total_pages = (total_items + per_page - 1) // per_page if total_items > 0 else 0
             
             logger.info(f"Zoho pagination: total_items={total_items}, requested page={page}, per_page={per_page}, total_pages={total_pages}")
             
@@ -96,6 +112,16 @@ class InventoryManagementService:
                 if data.get("code") != 0:
                     logger.error(f"Zoho API error: {data}")
                     break
+                
+                # Try to get total from this response if we didn't get it earlier
+                if total_items == 0:
+                    page_ctx = data.get("page_context", {})
+                    total_items = page_ctx.get("total", 0)
+                    if total_items == 0:
+                        total_items = data.get("total", 0)
+                    if total_items > 0:
+                        total_pages = (total_items + per_page - 1) // per_page
+                        logger.info(f"Got total from data fetch: {total_items}, total_pages: {total_pages}")
 
                 items = data.get("items", [])
                 for item in items:
