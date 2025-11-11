@@ -520,7 +520,7 @@ class SalesDataRepo:
                 WHERE region = %s
             """, (region,))
             threshold_row = cursor.fetchone()
-            grand_total_threshold = threshold_row[0] if threshold_row else None
+            grand_total_threshold = threshold_row[0] if (threshold_row and len(threshold_row) > 0) else None
             
             # Aggregate data from last 6 months, using SKU aliases to unify related SKUs
             # The created_at field is a string, so we need to try to parse various date formats
