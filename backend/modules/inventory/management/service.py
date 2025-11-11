@@ -76,6 +76,8 @@ class InventoryManagementService:
             total_items = page_context.get("total", 0)
             total_pages = (total_items + per_page - 1) // per_page
             
+            logger.info(f"Zoho pagination: total_items={total_items}, requested page={page}, per_page={per_page}, total_pages={total_pages}")
+            
             # Now fetch the actual items we need
             all_items = []
             zoho_start_page = ((start_item - 1) // zoho_per_page) + 1
@@ -115,6 +117,8 @@ class InventoryManagementService:
             # Slice to get exactly the items we need for this page
             offset_in_fetched = (start_item - 1) % (zoho_per_page * (zoho_end_page - zoho_start_page + 1))
             paginated_items = all_items[offset_in_fetched:offset_in_fetched + per_page]
+            
+            logger.info(f"Returning {len(paginated_items)} items for page {page} (total: {total_items})")
             
             return {
                 "items": paginated_items,

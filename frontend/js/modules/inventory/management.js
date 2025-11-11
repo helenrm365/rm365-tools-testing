@@ -209,7 +209,8 @@ async function loadInventoryData() {
     if (itemsData && itemsData.items) {
       inventoryData = Array.isArray(itemsData.items) ? itemsData.items : [];
       totalItemsFromAPI = itemsData.total || inventoryData.length;
-      console.log(`[Inventory Management] Loaded page ${itemsData.page} with ${inventoryData.length} items (total: ${totalItemsFromAPI})`);
+      console.log(`[Inventory Management] Loaded page ${itemsData.page} with ${inventoryData.length} items (total: ${totalItemsFromAPI}, total_pages: ${itemsData.total_pages})`);
+      console.log(`[Inventory Management] API Response:`, itemsData);
     } else {
       // Fallback for old non-paginated API
       inventoryData = Array.isArray(itemsData) ? itemsData : [];
@@ -552,6 +553,8 @@ function updatePaginationControls() {
   const startItem = totalFilteredItems > 0 ? (currentPage * ITEMS_PER_PAGE) + 1 : 0;
   const endItem = Math.min((currentPage + 1) * ITEMS_PER_PAGE, totalFilteredItems);
   
+  console.log(`[Pagination] totalFilteredItems: ${totalFilteredItems}, totalPages: ${totalPages}, currentPage: ${currentPage}`);
+  
   // Show pagination section if there are items
   if (totalFilteredItems > 0) {
     paginationSection.style.display = 'flex';
@@ -577,6 +580,7 @@ function updatePaginationControls() {
   
   if (nextBtn) {
     nextBtn.disabled = currentPage >= totalPages - 1 || totalFilteredItems === 0;
+    console.log(`[Pagination] Next button disabled: ${nextBtn.disabled}, condition: currentPage (${currentPage}) >= totalPages - 1 (${totalPages - 1})`);
   }
 }
 
