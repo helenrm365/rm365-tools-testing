@@ -118,6 +118,7 @@
 
   <!-- Universal Sidebar Component -->
   <div id="universalSidebar"></div>
+  <script src="/js/utils/sidebar-init.js"></script>
   <script>
     // Load universal sidebar component
     fetch('/components/universal-sidebar.html')
@@ -125,6 +126,10 @@
       .then(html => {
         document.getElementById('universalSidebar').innerHTML = html;
         console.log('[Sidebar] Universal sidebar loaded');
+        // Initialize sidebar after HTML is inserted
+        if (window.initSidebar) {
+          window.initSidebar();
+        }
       })
       .catch(err => console.error('[Sidebar] Failed to load universal sidebar:', err));
   </script>
