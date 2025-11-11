@@ -10,23 +10,27 @@ from core.config import settings
 
 logger = logging.getLogger(__name__)
 
+# Module-level cache (shared across all instances)
+_CACHED_ITEMS: Optional[List[Dict[str, Any]]] = None
+_CACHE_TIMESTAMP: Optional[datetime] = None
+_CACHE_TTL = 3600  # 1 hour
+
 
 class InventoryManagementService:
     def __init__(self, repo: Optional[InventoryManagementRepo] = None):
         self.repo = repo or InventoryManagementRepo()
         self.zoho_org_id = settings.ZC_ORG_ID
-        self._cached_items = None  # Cache all items
-        self._cache_timestamp = None
-        self._cache_ttl = 3600  # Cache for 1 hour
     
     def _get_all_items_cached(self) -> List[Dict[str, Any]]:
         """Get all items from Zoho with caching for fast pagination"""
+        global _CACHED_ITEMS, _CACHE_TIMESTAMP
+        
         # Check if cache is still valid
-        if (self._cached_items is not None and 
-            self._cache_timestamp is not None and 
-            datetime.now() - self._cache_timestamp < timedelta(seconds=self._cache_ttl)):
-            logger.info(f"Using cached items: {len(self._cached_items)} items")
-            return self._cached_items
+        if (_CACHED_ITEMS is not None and 
+            _CACHE_TIMESTAMP is not None and 
+            datetime.now() - _CACHE_TIMESTAMP < timedelta(seconds=_CACHE_TTL)):
+            logger.info(f"Using cached items: {len(_CACHED_ITEMS)} items")
+            return _CACHED_ITEMS
         
         # Fetch all items from Zoho
         logger.info("Fetching all items from Zoho (cache miss or expired)...")
@@ -84,9 +88,9 @@ class InventoryManagementService:
                 
                 zoho_page += 1
             
-            # Cache the result
-            self._cached_items = all_items
-            self._cache_timestamp = datetime.now()
+            # Cache the result at module level
+            _CACHED_ITEMS = all_items
+            _CACHE_TIMESTAMP = datetime.now()
             logger.info(f"Cached {len(all_items)} items from Zoho")
             
             return all_items
