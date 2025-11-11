@@ -1,6 +1,7 @@
 // frontend/js/modules/salesdata/uk-sales.js
 import { getUKSalesData, uploadUKSalesCSV, getUKCondensedData, refreshCondensedDataForRegion } from '../../services/api/salesDataApi.js';
 import { showToast } from '../../ui/toast.js';
+import { showFiltersModal } from './condensed-filters.js';
 
 let currentPage = 0;
 const pageSize = 100; // Display 100 records per page
@@ -254,6 +255,14 @@ function setupEventListeners() {
   const refreshCondensedBtn = document.getElementById('refreshCondensedBtn');
   if (refreshCondensedBtn) {
     refreshCondensedBtn.addEventListener('click', handleRefreshCondensedData);
+  }
+  
+  // Filters button
+  const filtersBtn = document.getElementById('filtersBtn');
+  if (filtersBtn) {
+    filtersBtn.addEventListener('click', () => {
+      showFiltersModal('uk');
+    });
   }
 }
 

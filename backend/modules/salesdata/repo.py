@@ -76,6 +76,54 @@ class SalesDataRepo:
             else:
                 logger.info(f"ℹ️  Table already exists: import_history")
             
+            # Create excluded customers table for 6M condensed sales filters
+            cursor.execute("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_schema = 'public' 
+                    AND table_name = 'condensed_sales_excluded_customers'
+                )
+            """)
+            
+            if not cursor.fetchone()[0]:
+                cursor.execute("""
+                    CREATE TABLE condensed_sales_excluded_customers (
+                        id SERIAL PRIMARY KEY,
+                        region VARCHAR(10) NOT NULL,
+                        customer_email VARCHAR(255) NOT NULL,
+                        customer_full_name VARCHAR(255),
+                        added_by VARCHAR(100),
+                        added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE(region, customer_email)
+                    )
+                """)
+                logger.info(f"✅ Created table: condensed_sales_excluded_customers")
+            else:
+                logger.info(f"ℹ️  Table already exists: condensed_sales_excluded_customers")
+            
+            # Create grand total threshold table for 6M condensed sales filters
+            cursor.execute("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_schema = 'public' 
+                    AND table_name = 'condensed_sales_grand_total_threshold'
+                )
+            """)
+            
+            if not cursor.fetchone()[0]:
+                cursor.execute("""
+                    CREATE TABLE condensed_sales_grand_total_threshold (
+                        id SERIAL PRIMARY KEY,
+                        region VARCHAR(10) NOT NULL UNIQUE,
+                        threshold DECIMAL(10, 2) NOT NULL,
+                        updated_by VARCHAR(100),
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                logger.info(f"✅ Created table: condensed_sales_grand_total_threshold")
+            else:
+                logger.info(f"ℹ️  Table already exists: condensed_sales_grand_total_threshold")
+            
             # Create main sales data tables
             for table_name in tables:
                 # Check if table exists
@@ -466,9 +514,18 @@ class SalesDataRepo:
             # Clear existing condensed data
             cursor.execute(f"DELETE FROM {condensed_table}")
             
+            # Get the grand total threshold for this region (if set)
+            cursor.execute("""
+                SELECT threshold FROM condensed_sales_grand_total_threshold 
+                WHERE region = %s
+            """, (region,))
+            threshold_row = cursor.fetchone()
+            grand_total_threshold = threshold_row[0] if threshold_row else None
+            
             # Aggregate data from last 6 months, using SKU aliases to unify related SKUs
             # The created_at field is a string, so we need to try to parse various date formats
             # Also automatically merge -MD variants with their base SKU
+            # Exclude customers and orders based on filters
             aggregate_query = f"""
                 INSERT INTO {condensed_table} (sku, name, total_qty, last_updated)
                 SELECT 
@@ -484,9 +541,15 @@ class SalesDataRepo:
                     CURRENT_TIMESTAMP as last_updated
                 FROM {sales_table} s
                 LEFT JOIN sku_aliases sa ON s.sku = sa.alias_sku
+                LEFT JOIN condensed_sales_excluded_customers ec 
+                    ON ec.region = %s AND s.customer_email = ec.customer_email
                 WHERE 
+                    -- Exclude customers in the exclusion list
+                    ec.id IS NULL
+                    -- Exclude orders over the grand total threshold (if set)
+                    AND (%s IS NULL OR s.grand_total IS NULL OR s.grand_total <= %s)
                     -- Try to parse created_at as various date formats and check if within 6 months
-                    (
+                    AND (
                         -- Try ISO format: YYYY-MM-DD or YYYY-MM-DD HH:MI:SS
                         (s.created_at ~ '^[0-9]{{4}}-[0-9]{{2}}-[0-9]{{2}}' AND 
                          TO_TIMESTAMP(s.created_at, 'YYYY-MM-DD HH24:MI:SS') >= CURRENT_DATE - INTERVAL '6 months')
@@ -512,7 +575,7 @@ class SalesDataRepo:
                 ORDER BY total_qty DESC
             """
             
-            cursor.execute(aggregate_query)
+            cursor.execute(aggregate_query, (region, grand_total_threshold, grand_total_threshold))
             rows_affected = cursor.rowcount
             
             conn.commit()
@@ -898,6 +961,235 @@ class SalesDataRepo:
             if conn:
                 conn.rollback()
             logger.error(f"Error auto-creating MD variant aliases: {e}")
+            raise
+        finally:
+            if conn:
+                cursor.close()
+                conn.close()
+
+    # ===== CONDENSED SALES FILTER METHODS =====
+    
+    def search_customers(self, region: str, search_term: str, limit: int = 20) -> List[Dict[str, Any]]:
+        """Search for customers by email or name in sales data"""
+        region_mapping = {
+            'uk': 'uk_sales_data',
+            'fr': 'fr_sales_data',
+            'nl': 'nl_sales_data'
+        }
+        
+        if region not in region_mapping:
+            raise ValueError(f"Invalid region: {region}")
+        
+        table_name = region_mapping[region]
+        conn = None
+        try:
+            conn = get_products_connection()
+            cursor = conn.cursor()
+            
+            search_pattern = f"%{search_term}%"
+            
+            query = f"""
+                SELECT DISTINCT 
+                    customer_email,
+                    customer_full_name
+                FROM {table_name}
+                WHERE 
+                    (customer_email ILIKE %s OR customer_full_name ILIKE %s)
+                    AND customer_email IS NOT NULL
+                    AND customer_email != ''
+                ORDER BY customer_email
+                LIMIT %s
+            """
+            
+            cursor.execute(query, (search_pattern, search_pattern, limit))
+            rows = cursor.fetchall()
+            
+            customers = []
+            for row in rows:
+                customers.append({
+                    "email": row[0],
+                    "full_name": row[1] or ""
+                })
+            
+            return customers
+            
+        except Exception as e:
+            logger.error(f"Error searching customers: {e}")
+            raise
+        finally:
+            if conn:
+                cursor.close()
+                conn.close()
+    
+    def get_excluded_customers(self, region: str) -> List[Dict[str, Any]]:
+        """Get list of excluded customers for a region"""
+        conn = None
+        try:
+            conn = get_products_connection()
+            cursor = conn.cursor()
+            
+            query = """
+                SELECT 
+                    id, customer_email, customer_full_name, 
+                    added_by, added_at
+                FROM condensed_sales_excluded_customers
+                WHERE region = %s
+                ORDER BY customer_email
+            """
+            
+            cursor.execute(query, (region,))
+            rows = cursor.fetchall()
+            
+            customers = []
+            for row in rows:
+                customers.append({
+                    "id": row[0],
+                    "email": row[1],
+                    "full_name": row[2] or "",
+                    "added_by": row[3],
+                    "added_at": row[4].isoformat() if row[4] else None
+                })
+            
+            return customers
+            
+        except Exception as e:
+            logger.error(f"Error getting excluded customers: {e}")
+            raise
+        finally:
+            if conn:
+                cursor.close()
+                conn.close()
+    
+    def add_excluded_customer(self, region: str, email: str, full_name: str, username: str) -> Dict[str, Any]:
+        """Add a customer to the exclusion list"""
+        conn = None
+        try:
+            conn = get_products_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                INSERT INTO condensed_sales_excluded_customers 
+                (region, customer_email, customer_full_name, added_by)
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT (region, customer_email) DO NOTHING
+                RETURNING id
+            """, (region, email, full_name, username))
+            
+            result = cursor.fetchone()
+            conn.commit()
+            
+            if result:
+                return {
+                    "success": True,
+                    "message": f"Customer {email} added to exclusion list",
+                    "id": result[0]
+                }
+            else:
+                return {
+                    "success": False,
+                    "message": f"Customer {email} already in exclusion list"
+                }
+            
+        except Exception as e:
+            if conn:
+                conn.rollback()
+            logger.error(f"Error adding excluded customer: {e}")
+            raise
+        finally:
+            if conn:
+                cursor.close()
+                conn.close()
+    
+    def remove_excluded_customer(self, customer_id: int) -> Dict[str, Any]:
+        """Remove a customer from the exclusion list"""
+        conn = None
+        try:
+            conn = get_products_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                DELETE FROM condensed_sales_excluded_customers 
+                WHERE id = %s
+                RETURNING customer_email
+            """, (customer_id,))
+            
+            result = cursor.fetchone()
+            conn.commit()
+            
+            if result:
+                return {
+                    "success": True,
+                    "message": f"Customer {result[0]} removed from exclusion list"
+                }
+            else:
+                return {
+                    "success": False,
+                    "message": "Customer not found"
+                }
+            
+        except Exception as e:
+            if conn:
+                conn.rollback()
+            logger.error(f"Error removing excluded customer: {e}")
+            raise
+        finally:
+            if conn:
+                cursor.close()
+                conn.close()
+    
+    def get_grand_total_threshold(self, region: str) -> Optional[float]:
+        """Get the grand total threshold for a region"""
+        conn = None
+        try:
+            conn = get_products_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                SELECT threshold FROM condensed_sales_grand_total_threshold
+                WHERE region = %s
+            """, (region,))
+            
+            result = cursor.fetchone()
+            return float(result[0]) if result else None
+            
+        except Exception as e:
+            logger.error(f"Error getting grand total threshold: {e}")
+            raise
+        finally:
+            if conn:
+                cursor.close()
+                conn.close()
+    
+    def set_grand_total_threshold(self, region: str, threshold: float, username: str) -> Dict[str, Any]:
+        """Set the grand total threshold for a region"""
+        conn = None
+        try:
+            conn = get_products_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                INSERT INTO condensed_sales_grand_total_threshold 
+                (region, threshold, updated_by, updated_at)
+                VALUES (%s, %s, %s, CURRENT_TIMESTAMP)
+                ON CONFLICT (region) 
+                DO UPDATE SET 
+                    threshold = EXCLUDED.threshold,
+                    updated_by = EXCLUDED.updated_by,
+                    updated_at = CURRENT_TIMESTAMP
+                RETURNING id
+            """, (region, threshold, username))
+            
+            conn.commit()
+            
+            return {
+                "success": True,
+                "message": f"Grand total threshold set to {threshold} for {region.upper()}"
+            }
+            
+        except Exception as e:
+            if conn:
+                conn.rollback()
+            logger.error(f"Error setting grand total threshold: {e}")
             raise
         finally:
             if conn:

@@ -378,3 +378,104 @@ class SalesDataService:
                 "aliases_created": 0,
                 "aliases_skipped": 0
             }
+    
+    # ===== CONDENSED SALES FILTER METHODS =====
+    
+    def search_customers(self, region: str, search_term: str) -> Dict[str, Any]:
+        """Search for customers in sales data"""
+        try:
+            customers = self.repo.search_customers(region, search_term)
+            return {
+                "status": "success",
+                "customers": customers
+            }
+        except ValueError as e:
+            return {
+                "status": "error",
+                "message": str(e),
+                "customers": []
+            }
+        except Exception as e:
+            logger.error(f"Error searching customers: {e}")
+            return {
+                "status": "error",
+                "message": f"Failed to search customers: {str(e)}",
+                "customers": []
+            }
+    
+    def get_excluded_customers(self, region: str) -> Dict[str, Any]:
+        """Get excluded customers for a region"""
+        try:
+            customers = self.repo.get_excluded_customers(region)
+            return {
+                "status": "success",
+                "customers": customers
+            }
+        except Exception as e:
+            logger.error(f"Error getting excluded customers: {e}")
+            return {
+                "status": "error",
+                "message": f"Failed to get excluded customers: {str(e)}",
+                "customers": []
+            }
+    
+    def add_excluded_customer(self, region: str, email: str, full_name: str, username: str) -> Dict[str, Any]:
+        """Add customer to exclusion list"""
+        try:
+            result = self.repo.add_excluded_customer(region, email, full_name, username)
+            return {
+                "status": "success" if result["success"] else "info",
+                **result
+            }
+        except Exception as e:
+            logger.error(f"Error adding excluded customer: {e}")
+            return {
+                "status": "error",
+                "message": f"Failed to add excluded customer: {str(e)}"
+            }
+    
+    def remove_excluded_customer(self, customer_id: int) -> Dict[str, Any]:
+        """Remove customer from exclusion list"""
+        try:
+            result = self.repo.remove_excluded_customer(customer_id)
+            return {
+                "status": "success" if result["success"] else "error",
+                **result
+            }
+        except Exception as e:
+            logger.error(f"Error removing excluded customer: {e}")
+            return {
+                "status": "error",
+                "message": f"Failed to remove excluded customer: {str(e)}"
+            }
+    
+    def get_grand_total_threshold(self, region: str) -> Dict[str, Any]:
+        """Get grand total threshold for a region"""
+        try:
+            threshold = self.repo.get_grand_total_threshold(region)
+            return {
+                "status": "success",
+                "threshold": threshold
+            }
+        except Exception as e:
+            logger.error(f"Error getting grand total threshold: {e}")
+            return {
+                "status": "error",
+                "message": f"Failed to get threshold: {str(e)}",
+                "threshold": None
+            }
+    
+    def set_grand_total_threshold(self, region: str, threshold: float, username: str) -> Dict[str, Any]:
+        """Set grand total threshold for a region"""
+        try:
+            result = self.repo.set_grand_total_threshold(region, threshold, username)
+            return {
+                "status": "success",
+                **result
+            }
+        except Exception as e:
+            logger.error(f"Error setting grand total threshold: {e}")
+            return {
+                "status": "error",
+                "message": f"Failed to set threshold: {str(e)}"
+            }

@@ -1,0 +1,366 @@
+/* Sales Data 6M Filters Modal */
+
+.filters-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    opacity: 0;
+    animation: fadeIn 0.2s ease-out forwards;
+}
+
+@keyframes fadeIn {
+    to {
+        opacity: 1;
+    }
+}
+
+.filters-modal {
+    background: var(--surface-color, #1e1e1e);
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    max-width: 700px;
+    width: 90%;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    transform: scale(0.9);
+    animation: scaleIn 0.2s ease-out forwards;
+}
+
+@keyframes scaleIn {
+    to {
+        transform: scale(1);
+    }
+}
+
+.filters-modal-header {
+    padding: 24px;
+    border-bottom: 1px solid var(--border-color, #333);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.filters-modal-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-primary, #fff);
+}
+
+.filters-modal-close {
+    background: none;
+    border: none;
+    color: var(--text-secondary, #999);
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.filters-modal-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary, #fff);
+}
+
+.filters-modal-body {
+    padding: 24px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.filter-section {
+    margin-bottom: 32px;
+}
+
+.filter-section:last-child {
+    margin-bottom: 0;
+}
+
+.filter-section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.filter-section-icon {
+    font-size: 1.25rem;
+}
+
+.filter-section-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary, #fff);
+    margin: 0;
+}
+
+.filter-section-description {
+    color: var(--text-secondary, #999);
+    font-size: 0.875rem;
+    margin: 0 0 16px 0;
+    line-height: 1.5;
+}
+
+/* Customer Search */
+.customer-search-container {
+    position: relative;
+    margin-bottom: 16px;
+}
+
+.customer-search-input {
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--input-bg, #2a2a2a);
+    border: 1px solid var(--border-color, #333);
+    border-radius: 8px;
+    color: var(--text-primary, #fff);
+    font-size: 0.9375rem;
+    transition: all 0.2s;
+}
+
+.customer-search-input:focus {
+    outline: none;
+    border-color: var(--accent-color, #0078d4);
+    box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.1);
+}
+
+.customer-search-input::placeholder {
+    color: var(--text-tertiary, #666);
+}
+
+.customer-search-results {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--surface-color, #1e1e1e);
+    border: 1px solid var(--border-color, #333);
+    border-radius: 8px;
+    margin-top: 4px;
+    max-height: 200px;
+    overflow-y: auto;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 100;
+    display: none;
+}
+
+.customer-search-results.visible {
+    display: block;
+}
+
+.customer-search-result-item {
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: background 0.15s;
+    border-bottom: 1px solid var(--border-color, #333);
+}
+
+.customer-search-result-item:last-child {
+    border-bottom: none;
+}
+
+.customer-search-result-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.customer-result-email {
+    color: var(--text-primary, #fff);
+    font-weight: 500;
+    font-size: 0.9375rem;
+}
+
+.customer-result-name {
+    color: var(--text-secondary, #999);
+    font-size: 0.8125rem;
+    margin-top: 2px;
+}
+
+.customer-search-no-results {
+    padding: 16px;
+    text-align: center;
+    color: var(--text-secondary, #999);
+    font-size: 0.875rem;
+}
+
+/* Excluded Customers List */
+.excluded-customers-list {
+    max-height: 200px;
+    overflow-y: auto;
+    background: var(--input-bg, #2a2a2a);
+    border-radius: 8px;
+    padding: 8px;
+}
+
+.excluded-customer-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    background: var(--surface-color, #1e1e1e);
+    border-radius: 6px;
+    margin-bottom: 6px;
+}
+
+.excluded-customer-item:last-child {
+    margin-bottom: 0;
+}
+
+.excluded-customer-info {
+    flex: 1;
+}
+
+.excluded-customer-email {
+    color: var(--text-primary, #fff);
+    font-weight: 500;
+    font-size: 0.875rem;
+}
+
+.excluded-customer-name {
+    color: var(--text-secondary, #999);
+    font-size: 0.8125rem;
+    margin-top: 2px;
+}
+
+.excluded-customer-remove {
+    background: none;
+    border: none;
+    color: var(--danger-color, #f44336);
+    cursor: pointer;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    transition: all 0.2s;
+}
+
+.excluded-customer-remove:hover {
+    background: rgba(244, 67, 54, 0.1);
+}
+
+.excluded-customers-empty {
+    text-align: center;
+    padding: 24px;
+    color: var(--text-secondary, #999);
+    font-size: 0.875rem;
+}
+
+/* Grand Total Threshold */
+.threshold-input-container {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+}
+
+.threshold-input-wrapper {
+    flex: 1;
+    position: relative;
+}
+
+.threshold-currency-symbol {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-secondary, #999);
+    font-weight: 600;
+}
+
+.threshold-input {
+    width: 100%;
+    padding: 12px 16px 12px 36px;
+    background: var(--input-bg, #2a2a2a);
+    border: 1px solid var(--border-color, #333);
+    border-radius: 8px;
+    color: var(--text-primary, #fff);
+    font-size: 0.9375rem;
+    transition: all 0.2s;
+}
+
+.threshold-input:focus {
+    outline: none;
+    border-color: var(--accent-color, #0078d4);
+    box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.1);
+}
+
+.threshold-save-btn {
+    padding: 12px 24px;
+    background: var(--accent-color, #0078d4);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.threshold-save-btn:hover {
+    background: var(--accent-hover, #006cbd);
+    transform: translateY(-1px);
+}
+
+.threshold-save-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.threshold-current {
+    margin-top: 8px;
+    padding: 10px 14px;
+    background: rgba(0, 120, 212, 0.1);
+    border-left: 3px solid var(--accent-color, #0078d4);
+    border-radius: 4px;
+    font-size: 0.875rem;
+    color: var(--text-secondary, #999);
+}
+
+.threshold-current strong {
+    color: var(--text-primary, #fff);
+}
+
+/* Info boxes */
+.filter-info-box {
+    background: rgba(255, 193, 7, 0.1);
+    border-left: 3px solid #ffc107;
+    padding: 12px 16px;
+    border-radius: 4px;
+    margin-top: 16px;
+    font-size: 0.875rem;
+    color: var(--text-secondary, #999);
+}
+
+.filter-info-box strong {
+    color: var(--text-primary, #fff);
+}
+
+/* Scrollbar styling */
+.excluded-customers-list::-webkit-scrollbar,
+.customer-search-results::-webkit-scrollbar {
+    width: 6px;
+}
+
+.excluded-customers-list::-webkit-scrollbar-track,
+.customer-search-results::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.excluded-customers-list::-webkit-scrollbar-thumb,
+.customer-search-results::-webkit-scrollbar-thumb {
+    background: var(--border-color, #333);
+    border-radius: 3px;
+}
+
+.excluded-customers-list::-webkit-scrollbar-thumb:hover,
+.customer-search-results::-webkit-scrollbar-thumb:hover {
+    background: var(--text-tertiary, #666);
+}

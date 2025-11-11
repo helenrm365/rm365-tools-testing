@@ -207,3 +207,71 @@ def refresh_condensed_data_for_region(
 def create_md_aliases(user=Depends(get_current_user)):
     """Manually trigger MD variant alias creation"""
     return svc.create_md_variant_aliases()
+
+
+# ===== CONDENSED SALES FILTER ENDPOINTS =====
+
+@router.get("/filters/customers/search/{region}")
+def search_customers(
+    region: str,
+    q: str,
+    user=Depends(get_current_user)
+):
+    """Search for customers by email or name"""
+    return svc.search_customers(region, q)
+
+
+@router.get("/filters/customers/{region}")
+def get_excluded_customers(
+    region: str,
+    user=Depends(get_current_user)
+):
+    """Get list of excluded customers for a region"""
+    return svc.get_excluded_customers(region)
+
+
+@router.post("/filters/customers/{region}")
+def add_excluded_customer(
+    region: str,
+    email: str,
+    full_name: str = "",
+    user=Depends(get_current_user)
+):
+    """Add a customer to the exclusion list"""
+    return svc.add_excluded_customer(region, email, full_name, user.get("username", "unknown"))
+
+
+@router.delete("/filters/customers/{customer_id}")
+def remove_excluded_customer(
+    customer_id: int,
+    user=Depends(get_current_user)
+):
+    """Remove a customer from the exclusion list"""
+    return svc.remove_excluded_customer(customer_id)
+
+
+@router.get("/filters/threshold/{region}")
+def get_grand_total_threshold(
+    region: str,
+    user=Depends(get_current_user)
+):
+    """Get the grand total threshold for a region"""
+    return svc.get_grand_total_threshold(region)
+
+
+@router.post("/filters/threshold/{region}")
+def set_grand_total_threshold(
+    region: str,
+    threshold: float,
+    user=Depends(get_current_user)
+):
+    """Set the grand total threshold for a region (requires admin/manager)"""
+    # Check if user has permission (admin or manager)
+    user_role = user.get("role", "").lower()
+    if user_role not in ["admin", "manager"]:
+        return {
+            "status": "error",
+            "message": "Only admins and managers can set the grand total threshold"
+        }
+    
+    return svc.set_grand_total_threshold(region, threshold, user.get("username", "unknown"))
