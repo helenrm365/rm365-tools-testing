@@ -468,10 +468,17 @@ class SalesDataRepo:
             
             # Aggregate data from last 6 months, using SKU aliases to unify related SKUs
             # The created_at field is a string, so we need to try to parse various date formats
+            # Also automatically merge -MD variants with their base SKU
             aggregate_query = f"""
                 INSERT INTO {condensed_table} (sku, name, total_qty, last_updated)
                 SELECT 
-                    COALESCE(sa.unified_sku, s.sku) as sku,
+                    COALESCE(
+                        sa.unified_sku,
+                        CASE 
+                            WHEN s.sku ILIKE '%-MD' THEN SUBSTRING(s.sku FROM 1 FOR LENGTH(s.sku) - 3)
+                            ELSE s.sku
+                        END
+                    ) as sku,
                     MAX(s.name) as name,
                     SUM(s.qty) as total_qty,
                     CURRENT_TIMESTAMP as last_updated
@@ -495,7 +502,13 @@ class SalesDataRepo:
                         -- If can't parse, include it (better to include than exclude)
                         NOT (s.created_at ~ '^[0-9]')
                     )
-                GROUP BY COALESCE(sa.unified_sku, s.sku)
+                GROUP BY COALESCE(
+                    sa.unified_sku,
+                    CASE 
+                        WHEN s.sku ILIKE '%-MD' THEN SUBSTRING(s.sku FROM 1 FOR LENGTH(s.sku) - 3)
+                        ELSE s.sku
+                    END
+                )
                 ORDER BY total_qty DESC
             """
             
