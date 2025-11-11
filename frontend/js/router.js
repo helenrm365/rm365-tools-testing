@@ -238,6 +238,9 @@ export async function navigate(path, replace = false) {
 export function setupRouter() {
   console.log('[Router] Setting up router');
   
+  // Expose navigate globally for components like the sidebar
+  window.navigate = navigate;
+  
   // Intercept clicks on <a data-nav href="/...">
   document.addEventListener('click', (e) => {
     const a = e.target.closest('a[data-nav]');

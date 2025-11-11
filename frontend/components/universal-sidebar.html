@@ -106,24 +106,19 @@
     
     console.log('[Sidebar] Initializing dark mode');
     
-    const stored = localStorage.getItem(THEME_KEY);
-    const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
-    const isDark = stored === 'true' || (stored == null && prefersDark);
-    
-    // Check the actual current state of the HTML element
+    // Check the actual current state of the HTML element (already set by index.html)
     const currentlyDark = document.documentElement.classList.contains('dark-mode');
     
-    console.log('[Sidebar] Dark mode state:', { stored, prefersDark, isDark, currentlyDark });
+    console.log('[Sidebar] Dark mode current state:', currentlyDark);
     
     // Sync the toggle with the actual current state
     toggle.checked = currentlyDark;
     toggle.setAttribute('aria-checked', String(currentlyDark));
     
-    // If there's a mismatch, update localStorage to match reality
-    if (currentlyDark !== isDark) {
-      localStorage.setItem(THEME_KEY, String(currentlyDark));
-    }
+    // Ensure localStorage is in sync
+    localStorage.setItem(THEME_KEY, String(currentlyDark));
     
+    // Add change event listener
     toggle.addEventListener('change', (e) => {
       const enabled = e.target.checked;
       console.log('[Sidebar] Dark mode toggled:', enabled);
