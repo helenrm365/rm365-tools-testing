@@ -93,21 +93,31 @@
     
     console.log('[Sidebar] Initializing logout button');
     
-    logoutBtn.addEventListener('click', async () => {
+    logoutBtn.addEventListener('click', (e) => {
       console.log('[Sidebar] Logout button clicked');
       
       if (!confirm('Are you sure you want to log out?')) return;
       
-      localStorage.removeItem('authToken');
-      localStorage.removeItem(USER_KEY);
+      // Clear all authentication and user data
+      // Remove access_token from both sessionStorage and localStorage
+      sessionStorage.removeItem('access_token');
+      localStorage.removeItem('access_token');
       
-      if (window.navigate) {
-        console.log('[Sidebar] Using window.navigate to go to /login');
-        await window.navigate('/login');
-      } else {
-        console.log('[Sidebar] Fallback: using window.location.href');
-        window.location.href = '/login';
-      }
+      // Remove user data
+      localStorage.removeItem(USER_KEY);
+      localStorage.removeItem('allowed_tabs');
+      
+      // Clear any legacy auth tokens
+      localStorage.removeItem('authToken');
+      
+      // Clear everything in sessionStorage to be safe
+      sessionStorage.clear();
+      
+      console.log('[Sidebar] All auth data cleared, redirecting to login');
+      
+      // Force a full page reload to /login to ensure clean state
+      // This is more reliable than using the router after clearing auth
+      window.location.href = '/login';
     });
   }
   
