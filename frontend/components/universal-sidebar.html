@@ -99,11 +99,18 @@
   
   function initDarkMode() {
     const toggle = document.getElementById('darkModeToggle');
-    if (!toggle) return;
+    if (!toggle) {
+      console.warn('[Sidebar] Dark mode toggle not found');
+      return;
+    }
+    
+    console.log('[Sidebar] Initializing dark mode');
     
     const stored = localStorage.getItem(THEME_KEY);
     const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
     const isDark = stored === 'true' || (stored == null && prefersDark);
+    
+    console.log('[Sidebar] Dark mode state:', { stored, prefersDark, isDark });
     
     document.documentElement.classList.toggle('dark-mode', isDark);
     toggle.checked = isDark;
@@ -111,6 +118,7 @@
     
     toggle.addEventListener('change', (e) => {
       const enabled = e.target.checked;
+      console.log('[Sidebar] Dark mode toggled:', enabled);
       document.documentElement.classList.toggle('dark-mode', enabled);
       localStorage.setItem(THEME_KEY, String(enabled));
       toggle.setAttribute('aria-checked', String(enabled));
@@ -247,10 +255,12 @@
     console.log('[Sidebar] Initialized successfully');
   }
   
+  // Wait for the sidebar HTML to be fully inserted into the DOM
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
-    init();
+    // Use setTimeout to ensure HTML is parsed even if document is already ready
+    setTimeout(init, 0);
   }
 })();
 </script>
