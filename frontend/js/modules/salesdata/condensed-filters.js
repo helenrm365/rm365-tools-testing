@@ -97,7 +97,7 @@ function createFiltersModal(region) {
                     </p>
                     
                     <div class="threshold-input-wrapper">
-                        <span class="threshold-currency-symbol">£</span>
+                        <span class="threshold-currency-symbol">${region === 'uk' ? '£' : '€'}</span>
                         <input 
                             type="number" 
                             class="threshold-input" 
@@ -213,15 +213,127 @@ function setupEventListeners(region) {
 }
 
 /**
+ * Show custom confirmation dialog
+ */
+function showConfirmDialog(message) {
+    return new Promise((resolve) => {
+        // Create overlay
+        const overlay = document.createElement('div');
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 10001;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.2s ease;
+        `;
+        
+        // Create dialog
+        const dialog = document.createElement('div');
+        dialog.style.cssText = `
+            background: var(--surface-color, #1e1e1e);
+            border: 1px solid var(--border-color, #333);
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 400px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            animation: slideUp 0.3s ease;
+        `;
+        
+        dialog.innerHTML = `
+            <div style="margin-bottom: 20px;">
+                <div style="font-size: 1.25rem; font-weight: 600; color: var(--text-primary, #fff); margin-bottom: 12px;">
+                    Confirm Filter Changes
+                </div>
+                <div style="color: var(--text-secondary, #999); line-height: 1.5;">
+                    ${message}
+                </div>
+            </div>
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button id="confirm-cancel" style="
+                    padding: 10px 20px;
+                    background: transparent;
+                    border: 1px solid var(--border-color, #333);
+                    border-radius: 6px;
+                    color: var(--text-primary, #fff);
+                    cursor: pointer;
+                    font-size: 0.9375rem;
+                    transition: all 0.2s;
+                ">Cancel</button>
+                <button id="confirm-ok" style="
+                    padding: 10px 20px;
+                    background: var(--accent-color, #0078d4);
+                    border: none;
+                    border-radius: 6px;
+                    color: white;
+                    cursor: pointer;
+                    font-size: 0.9375rem;
+                    font-weight: 600;
+                    transition: all 0.2s;
+                ">Apply & Refresh</button>
+            </div>
+        `;
+        
+        overlay.appendChild(dialog);
+        document.body.appendChild(overlay);
+        
+        // Add hover effects
+        const cancelBtn = dialog.querySelector('#confirm-cancel');
+        const okBtn = dialog.querySelector('#confirm-ok');
+        
+        cancelBtn.addEventListener('mouseenter', () => {
+            cancelBtn.style.background = 'var(--hover-bg, #2a2a2a)';
+        });
+        cancelBtn.addEventListener('mouseleave', () => {
+            cancelBtn.style.background = 'transparent';
+        });
+        
+        okBtn.addEventListener('mouseenter', () => {
+            okBtn.style.background = 'var(--accent-hover, #106ebe)';
+        });
+        okBtn.addEventListener('mouseleave', () => {
+            okBtn.style.background = 'var(--accent-color, #0078d4)';
+        });
+        
+        // Handle buttons
+        cancelBtn.addEventListener('click', () => {
+            overlay.remove();
+            resolve(false);
+        });
+        
+        okBtn.addEventListener('click', () => {
+            overlay.remove();
+            resolve(true);
+        });
+        
+        // Handle escape key
+        const handleEscape = (e) => {
+            if (e.key === 'Escape') {
+                overlay.remove();
+                document.removeEventListener('keydown', handleEscape);
+                resolve(false);
+            }
+        };
+        document.addEventListener('keydown', handleEscape);
+    });
+}
+
+/**
  * Apply all filter changes at once
  */
 async function applyAllFilters(region) {
     const applyBtn = document.getElementById(`filters-apply-${region}`);
     if (!applyBtn) return;
     
-    // Show confirmation dialog
+    // Show custom confirmation dialog
     const confirmMessage = 'Apply all filter changes and refresh 6M condensed sales data?';
-    if (!confirm(confirmMessage)) {
+    const confirmed = await showConfirmDialog(confirmMessage);
+    if (!confirmed) {
         return;
     }
     
@@ -568,6 +680,7 @@ async function loadThreshold() {
 function displayThreshold() {
     const thresholdInput = document.getElementById(`threshold-input-${currentRegion}`);
     const currentDisplay = document.getElementById(`threshold-current-${currentRegion}`);
+    const currencySymbol = currentRegion === 'uk' ? '£' : '€';
     
     if (thresholdInput && currentThreshold !== null) {
         thresholdInput.value = currentThreshold;
@@ -575,7 +688,7 @@ function displayThreshold() {
     
     if (currentDisplay) {
         if (currentThreshold !== null) {
-            currentDisplay.innerHTML = `Current: <strong>£${parseFloat(currentThreshold).toFixed(2)}</strong> (orders above this are excluded)`;
+            currentDisplay.innerHTML = `Current: <strong>${currencySymbol}${parseFloat(currentThreshold).toFixed(2)}</strong> (orders above this are excluded)`;
         } else {
             currentDisplay.innerHTML = 'Current: <strong>Not set</strong> (all orders included)';
         }

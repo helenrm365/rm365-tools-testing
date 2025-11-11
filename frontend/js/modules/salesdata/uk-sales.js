@@ -264,6 +264,22 @@ function setupEventListeners() {
       showFiltersModal('uk');
     });
   }
+  
+  // Listen for condensed data refresh events from filter modal
+  document.addEventListener('condensed-data-refreshed', (e) => {
+    if (e.detail.region === 'uk' && viewMode === 'condensed') {
+      // Reload the table data if currently viewing condensed data
+      const searchInput = document.getElementById('salesSearchInput');
+      if (searchInput && searchInput.value.trim()) {
+        // Reload with current search
+        loadSearchResults(searchInput.value.trim());
+      } else {
+        // Reload normal paginated data
+        currentPage = 0; // Reset to first page
+        loadSalesData();
+      }
+    }
+  });
 }
 
 /**
