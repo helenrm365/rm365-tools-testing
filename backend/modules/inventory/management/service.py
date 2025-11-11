@@ -10,62 +10,81 @@ from core.config import settings
 
 logger = logging.getLogger(__name__)
 
-# Module-level cache (shared across all instances)
-_CACHED_ITEMS: Optional[List[Dict[str, Any]]] = None
-_CACHE_TIMESTAMP: Optional[datetime] = None
-_CACHE_TTL = 3600  # 1 hour
-
 
 class InventoryManagementService:
     def __init__(self, repo: Optional[InventoryManagementRepo] = None):
         self.repo = repo or InventoryManagementRepo()
         self.zoho_org_id = settings.ZC_ORG_ID
     
-    def _get_all_items_cached(self) -> List[Dict[str, Any]]:
-        """Get all items from Zoho with caching for fast pagination"""
-        global _CACHED_ITEMS, _CACHE_TIMESTAMP
+    def get_zoho_inventory_items(self, page: int = 1, per_page: int = 100) -> Dict[str, Any]:
+        """Get inventory items from Zoho Inventory API with pagination (fast, no full cache)
         
-        # Check if cache is still valid
-        if (_CACHED_ITEMS is not None and 
-            _CACHE_TIMESTAMP is not None and 
-            datetime.now() - _CACHE_TIMESTAMP < timedelta(seconds=_CACHE_TTL)):
-            logger.info(f"Using cached items: {len(_CACHED_ITEMS)} items")
-            return _CACHED_ITEMS
-        
-        # Fetch all items from Zoho
-        logger.info("Fetching all items from Zoho (cache miss or expired)...")
+        Args:
+            page: Page number (1-indexed)
+            per_page: Number of items per page
+            
+        Returns:
+            Dict with items, total count, and pagination info
+        """
         try:
             inventory_token = get_cached_inventory_token()
             if not inventory_token:
                 logger.error("Failed to get Zoho inventory token")
-                return []
-            
+                return {
+                    "items": [],
+                    "total": 0,
+                    "page": page,
+                    "per_page": per_page,
+                    "total_pages": 0
+                }
+
             headers = {"Authorization": f"Zoho-oauthtoken {inventory_token}"}
             url = f"https://www.zohoapis.eu/inventory/v1/items"
             
-            all_items = []
-            zoho_page = 1
+            # Zoho uses 200 items per page max
             zoho_per_page = 200
             
-            while True:
+            # Calculate which Zoho page(s) contain our requested items
+            start_item = (page - 1) * per_page + 1
+            end_item = page * per_page
+            
+            zoho_start_page = ((start_item - 1) // zoho_per_page) + 1
+            zoho_end_page = ((end_item - 1) // zoho_per_page) + 1
+            
+            all_items = []
+            estimated_total = 0
+            
+            # Fetch only the Zoho pages we need
+            for zoho_page in range(zoho_start_page, zoho_end_page + 1):
                 params = {
                     "organization_id": self.zoho_org_id,
                     "page": zoho_page,
                     "per_page": zoho_per_page
                 }
                 
-                response = requests.get(url, headers=headers, params=params)
+                response = requests.get(url, headers=headers, params=params, timeout=5)
                 data = response.json()
-                
+
                 if data.get("code") != 0:
-                    logger.error(f"Error fetching from Zoho page {zoho_page}: {data}")
+                    logger.error(f"Zoho API error on page {zoho_page}: {data}")
                     break
                 
+                # Estimate total based on current page
+                # Zoho doesn't give us total, so we estimate: if has_more_page, total is at least current + more
+                page_context = data.get("page_context", {})
+                has_more = page_context.get("has_more_page", False)
+                
+                if has_more:
+                    # Conservative estimate: assume at least 10 more pages
+                    estimated_total = (zoho_page + 10) * zoho_per_page
+                else:
+                    # We're on last page, calculate exact total
+                    estimated_total = (zoho_page - 1) * zoho_per_page + len(data.get("items", []))
+
                 items = data.get("items", [])
-                logger.info(f"Fetched {len(items)} items from Zoho page {zoho_page}")
+                logger.info(f"Fetched {len(items)} items from Zoho page {zoho_page}, has_more: {has_more}")
                 
                 for item in items:
-                    # Parse custom fields properly
                     shelf_total = self._get_custom_field_value(item, "Shelf Total")
                     reserve_stock = self._get_custom_field_value(item, "Reserve Stock")
                     
@@ -79,71 +98,25 @@ class InventoryManagementService:
                             "reserve_stock": int(reserve_stock) if reserve_stock and reserve_stock.isdigit() else None
                         }
                     })
-                
-                page_context = data.get("page_context", {})
-                has_more = page_context.get("has_more_page", False)
-                
-                if not has_more or len(items) < zoho_per_page:
-                    break
-                
-                zoho_page += 1
             
-            # Cache the result at module level
-            _CACHED_ITEMS = all_items
-            _CACHE_TIMESTAMP = datetime.now()
-            logger.info(f"Cached {len(all_items)} items from Zoho")
+            # Slice to get exact items for this page
+            offset = (start_item - 1) % (zoho_per_page * (zoho_end_page - zoho_start_page + 1))
+            paginated_items = all_items[offset:offset + per_page]
             
-            return all_items
+            total_pages = (estimated_total + per_page - 1) // per_page if estimated_total > 0 else 1
             
-        except Exception as e:
-            logger.error(f"Error fetching all items: {e}", exc_info=True)
-            return []
-
-    def get_zoho_inventory_items(self, page: int = 1, per_page: int = 100) -> Dict[str, Any]:
-        """Get inventory items from Zoho Inventory API with pagination
-        
-        Args:
-            page: Page number (1-indexed)
-            per_page: Number of items per page
-            
-        Returns:
-            Dict with items, total count, and pagination info
-        """
-        try:
-            # Get all items (from cache if available)
-            all_items = self._get_all_items_cached()
-            
-            if not all_items:
-                return {
-                    "items": [],
-                    "total": 0,
-                    "page": page,
-                    "per_page": per_page,
-                    "total_pages": 0
-                }
-            
-            total_items = len(all_items)
-            total_pages = (total_items + per_page - 1) // per_page
-            
-            # Calculate slice indices
-            start_idx = (page - 1) * per_page
-            end_idx = min(start_idx + per_page, total_items)
-            
-            # Get the page slice
-            paginated_items = all_items[start_idx:end_idx]
-            
-            logger.info(f"Returning page {page}: items {start_idx+1}-{end_idx} of {total_items} (from cache)")
+            logger.info(f"Returning {len(paginated_items)} items for page {page}, estimated total: {estimated_total}")
             
             return {
                 "items": paginated_items,
-                "total": total_items,
+                "total": estimated_total,
                 "page": page,
                 "per_page": per_page,
                 "total_pages": total_pages
             }
 
         except Exception as e:
-            logger.error(f"Error fetching Zoho inventory items: {e}", exc_info=True)
+            logger.error(f"Error fetching inventory items: {e}", exc_info=True)
             return {
                 "items": [],
                 "total": 0,
