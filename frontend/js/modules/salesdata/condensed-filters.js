@@ -1,5 +1,5 @@
 // frontend/js/modules/salesdata/condensed-filters.js
-import { fetchAPI } from '../../services/api.js';
+import { get, post, del } from '../../services/api/http.js';
 import { showToast } from '../../ui/toast.js';
 
 let currentRegion = null;
@@ -176,7 +176,7 @@ function debounceSearch(region, query) {
  */
 async function searchCustomers(region, query) {
     try {
-        const response = await fetchAPI(`/api/salesdata/filters/customers/search/${region}?q=${encodeURIComponent(query)}`);
+        const response = await get(`/api/salesdata/filters/customers/search/${region}?q=${encodeURIComponent(query)}`);
         
         if (response.status === 'success') {
             displaySearchResults(region, response.customers);
@@ -240,7 +240,7 @@ async function loadExcludedCustomers() {
     if (!currentRegion) return;
     
     try {
-        const response = await fetchAPI(`/api/salesdata/filters/customers/${currentRegion}`);
+        const response = await get(`/api/salesdata/filters/customers/${currentRegion}`);
         
         if (response.status === 'success') {
             excludedCustomers = response.customers;
@@ -287,9 +287,7 @@ function displayExcludedCustomers() {
  */
 async function addExcludedCustomer(region, email, fullName) {
     try {
-        const response = await fetchAPI(`/api/salesdata/filters/customers/${region}?email=${encodeURIComponent(email)}&full_name=${encodeURIComponent(fullName || '')}`, {
-            method: 'POST'
-        });
+        const response = await post(`/api/salesdata/filters/customers/${region}?email=${encodeURIComponent(email)}&full_name=${encodeURIComponent(fullName || '')}`);
         
         if (response.status === 'success') {
             showToast(`✅ ${email} added to exclusion list`, 'success');
@@ -310,9 +308,7 @@ async function addExcludedCustomer(region, email, fullName) {
  */
 async function removeExcludedCustomer(customerId) {
     try {
-        const response = await fetchAPI(`/api/salesdata/filters/customers/${customerId}`, {
-            method: 'DELETE'
-        });
+        const response = await del(`/api/salesdata/filters/customers/${customerId}`);
         
         if (response.status === 'success') {
             showToast('✅ Customer removed from exclusion list', 'success');
@@ -333,7 +329,7 @@ async function loadThreshold() {
     if (!currentRegion) return;
     
     try {
-        const response = await fetchAPI(`/api/salesdata/filters/threshold/${currentRegion}`);
+        const response = await get(`/api/salesdata/filters/threshold/${currentRegion}`);
         
         if (response.status === 'success') {
             currentThreshold = response.threshold;
@@ -383,9 +379,7 @@ async function saveThreshold(region) {
     saveBtn.disabled = true;
     
     try {
-        const response = await fetchAPI(`/api/salesdata/filters/threshold/${region}?threshold=${threshold}`, {
-            method: 'POST'
-        });
+        const response = await post(`/api/salesdata/filters/threshold/${region}?threshold=${threshold}`);
         
         if (response.status === 'success') {
             showToast(`✅ ${response.message}`, 'success');
