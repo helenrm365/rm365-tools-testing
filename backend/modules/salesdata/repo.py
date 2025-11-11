@@ -515,12 +515,16 @@ class SalesDataRepo:
             cursor.execute(f"DELETE FROM {condensed_table}")
             
             # Get the grand total threshold for this region (if set)
-            cursor.execute("""
-                SELECT threshold FROM condensed_sales_grand_total_threshold 
-                WHERE region = %s
-            """, (region,))
-            threshold_row = cursor.fetchone()
-            grand_total_threshold = threshold_row[0] if (threshold_row and len(threshold_row) > 0) else None
+            try:
+                cursor.execute("""
+                    SELECT threshold FROM condensed_sales_grand_total_threshold 
+                    WHERE region = %s
+                """, (region,))
+                threshold_row = cursor.fetchone()
+                grand_total_threshold = threshold_row[0] if threshold_row else None
+            except Exception as e:
+                logger.warning(f"Could not fetch grand total threshold: {e}. Using None.")
+                grand_total_threshold = None
             
             # Aggregate data from last 6 months, using SKU aliases to unify related SKUs
             # The created_at field is a string, so we need to try to parse various date formats
