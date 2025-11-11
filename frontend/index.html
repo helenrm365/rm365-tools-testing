@@ -42,7 +42,15 @@
 
   <!-- Your CSS (order matters) -->
   <link rel="stylesheet" href="/css/app-shell.css">
-  <link rel="stylesheet" href="/css/sidebar/sidebar.css">
+  
+  <!-- Sidebar CSS - Modular components (loaded in dependency order) -->
+  <link rel="stylesheet" href="/css/sidebar/base.css">
+  <link rel="stylesheet" href="/css/sidebar/header.css">
+  <link rel="stylesheet" href="/css/sidebar/navigation.css">
+  <link rel="stylesheet" href="/css/sidebar/footer.css">
+  <link rel="stylesheet" href="/css/sidebar/responsive.css">
+  
+  <!-- Modern UI and module-specific CSS -->
   <link rel="stylesheet" href="/css/modern-ui.css">
   <link rel="stylesheet" href="/css/module-home-pages.css">
   <link rel="stylesheet" href="/css/enrollment/universal.css">
@@ -106,51 +114,18 @@
     </div>
   </div>
 
-  <!-- Sidebar -->
-  <nav id="sidebar" class="sidebar">
-    <div class="sidebar-top">
-      <div class="profile">
-        <img src="/assets/RM365_Logo.png" alt="RM365 Logo" class="sidebar-logo" id="sidebarLogo">
-        <div class="profile-info">
-          <h4 id="profileName"></h4>
-          <small id="profileSubtitle"></small>
-        </div>
-      </div>
-
-      <div class="search-wrapper">
-        <span class="search-icon">🔍</span>
-        <input type="text" id="searchInput" placeholder="Search..." disabled />
-      </div>
-    </div>
-
-    <hr class="sidebar-divider">
-
-    <!-- Persistent nav: each item is a real link -->
-    <ul class="sidebar-tabs">
-      <li><a class="sidebar-link" data-nav href="/enrollment"><span class="icon">📝</span><span
-            class="label">Enrollment</span></a></li>
-      <li><a class="sidebar-link" data-nav href="/attendance"><span class="icon">🕒</span><span
-            class="label">Attendance</span></a></li>
-      <li><a class="sidebar-link" data-nav href="/labels"><span class="icon">🏷️</span><span class="label">Labels</span></a></li>
-      <li><a class="sidebar-link" data-nav href="/salesdata"><span class="icon">📊</span><span class="label">Sales Data</span></a></li>
-      <li><a class="sidebar-link" data-nav href="/inventory"><span class="icon">📦</span><span
-            class="label">Inventory</span></a></li>
-      <li><a class="sidebar-link" data-nav href="/usermanagement"><span class="icon">👤</span><span class="label">User
-            Management</span></a></li>
-    </ul>
-
-    <hr class="sidebar-divider">
-
-    <div class="sidebar-bottom">
-      <button id="logoutBtn"><span class="icon">🚪</span><span class="label">Logout</span></button>
-      <div class="dark-mode-toggle">
-        <span class="icon">🌙</span>
-        <label class="switch">
-          <input type="checkbox" id="darkModeToggle"><span class="slider round"></span>
-        </label>
-      </div>
-    </div>
-  </nav>
+  <!-- Universal Sidebar Component -->
+  <div id="universalSidebar"></div>
+  <script>
+    // Load universal sidebar component
+    fetch('/components/universal-sidebar.html')
+      .then(res => res.text())
+      .then(html => {
+        document.getElementById('universalSidebar').innerHTML = html;
+        console.log('[Sidebar] Universal sidebar loaded');
+      })
+      .catch(err => console.error('[Sidebar] Failed to load universal sidebar:', err));
+  </script>
 
   <!-- Header -->
   <header class="header">

@@ -80,14 +80,15 @@ export function enforceRoutePermission(pathname) {
 // Hide or show sidebar items according to allowed tabs
 export function filterSidebarByPermissions() {
   const allowedTabs = getAllowedTabs();
-  const items = document.querySelectorAll('.sidebar .sidebar-tabs > li');
+  // Updated to work with new universal sidebar structure
+  const items = document.querySelectorAll('.sidebar .sidebar-nav > li');
   items.forEach(li => {
-    const a = li.querySelector('a.sidebar-link[href^="/"]');
+    const a = li.querySelector('a.nav-item[href^="/"]');
     if (!a) return;
     const href = a.getAttribute('href') || '/';
     const section = href.replace(/^\/+/, '').split('/')[0];
     const ok = isAllowed(section, allowedTabs);
-    li.style.display = ok ? 'flex' : 'none';
+    li.style.display = ok ? '' : 'none';
   });
 }
 
