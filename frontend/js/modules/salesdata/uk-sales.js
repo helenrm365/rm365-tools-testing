@@ -605,7 +605,12 @@ async function handleRefreshCondensedData() {
       
       // Reload the data if currently viewing condensed view
       if (viewMode === 'condensed') {
-        await loadSalesData();
+        // Check if there's an active search and reload with it
+        if (currentSearch) {
+          await loadSearchResults(currentSearch);
+        } else {
+          await loadSalesData();
+        }
       }
     } else {
       showToast('Refresh failed: ' + result.message, 'error');

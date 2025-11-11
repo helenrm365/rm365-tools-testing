@@ -522,6 +522,9 @@ class SalesDataRepo:
             threshold_row = cursor.fetchone()
             grand_total_threshold = threshold_row[0] if threshold_row else None
             
+            # Convert None to SQL NULL for use in f-string
+            threshold_sql = 'NULL' if grand_total_threshold is None else str(grand_total_threshold)
+            
             # Aggregate data from last 6 months, using SKU aliases to unify related SKUs
             # The created_at field is a string, so we need to try to parse various date formats
             # Also automatically merge -MD variants with their base SKU
@@ -548,7 +551,7 @@ class SalesDataRepo:
                         WHERE ec.region = '{region}' AND s.customer_email = ec.customer_email
                     )
                     -- Exclude orders over the grand total threshold (if set)
-                    AND ({grand_total_threshold} IS NULL OR s.grand_total IS NULL OR s.grand_total <= {grand_total_threshold})
+                    AND ({threshold_sql} IS NULL OR s.grand_total IS NULL OR s.grand_total <= {threshold_sql})
                     -- Try to parse created_at as various date formats and check if within 6 months
                     AND (
                         -- Try ISO format: YYYY-MM-DD or YYYY-MM-DD HH:MI:SS
