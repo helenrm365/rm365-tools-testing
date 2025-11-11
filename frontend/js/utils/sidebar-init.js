@@ -52,7 +52,17 @@
       navItems.forEach(item => {
         const label = item.querySelector('.nav-label')?.textContent?.toLowerCase() || '';
         const listItem = item.closest('li');
-        if (listItem) {
+        if (!listItem) return;
+        
+        // Check if item should be hidden by permissions
+        // If it was already hidden (display: none), keep it hidden regardless of search
+        const wasHiddenByPermissions = listItem.hasAttribute('data-permission-hidden');
+        
+        if (wasHiddenByPermissions) {
+          // Don't show items that were hidden by permissions
+          listItem.style.display = 'none';
+        } else {
+          // Only filter by search query for allowed items
           listItem.style.display = label.includes(query) ? '' : 'none';
         }
       });
@@ -187,6 +197,17 @@
     initLogout();
     loadUserProfile();
     initMobileToggle();
+    
+    // Apply permission-based filtering to sidebar items
+    // This ensures tabs the user doesn't have access to are hidden
+    // and marked so the search won't reveal them
+    try {
+      if (window.filterSidebarByPermissions) {
+        window.filterSidebarByPermissions();
+      }
+    } catch (e) {
+      console.warn('[Sidebar] Could not apply permission filtering:', e);
+    }
     
     console.log('[Sidebar] Initialized successfully');
   }

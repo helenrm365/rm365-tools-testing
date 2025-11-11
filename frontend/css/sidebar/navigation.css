@@ -64,15 +64,16 @@ html.dark-mode .sidebar-nav::-webkit-scrollbar-thumb {
 .nav-item::before {
   content: '';
   position: absolute;
-  left: 0;
+  left: -0.5rem;
   top: 0;
   bottom: 0;
   width: 4px;
   background: linear-gradient(135deg, #76a12b, #5e8122);
   opacity: 0;
-  transform: translateX(-4px);
+  transform: scaleY(0);
   transition: all 0.3s ease;
   border-radius: 0 4px 4px 0;
+  transform-origin: center;
 }
 
 .nav-item:hover {
@@ -86,7 +87,7 @@ html.dark-mode .sidebar-nav::-webkit-scrollbar-thumb {
 
 .nav-item:hover::before {
   opacity: 1;
-  transform: translateX(0);
+  transform: scaleY(1);
 }
 
 /* Active state */
@@ -99,7 +100,7 @@ html.dark-mode .sidebar-nav::-webkit-scrollbar-thumb {
 
 .sidebar-nav li.active .nav-item::before {
   opacity: 1;
-  transform: translateX(0);
+  transform: scaleY(1);
 }
 
 /* Dark mode */

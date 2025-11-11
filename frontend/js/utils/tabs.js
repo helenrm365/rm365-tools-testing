@@ -88,7 +88,14 @@ export function filterSidebarByPermissions() {
     const href = a.getAttribute('href') || '/';
     const section = href.replace(/^\/+/, '').split('/')[0];
     const ok = isAllowed(section, allowedTabs);
-    li.style.display = ok ? '' : 'none';
+    
+    if (ok) {
+      li.style.display = '';
+      li.removeAttribute('data-permission-hidden');
+    } else {
+      li.style.display = 'none';
+      li.setAttribute('data-permission-hidden', 'true');
+    }
   });
 }
 

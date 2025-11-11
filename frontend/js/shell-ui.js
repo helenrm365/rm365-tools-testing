@@ -58,6 +58,9 @@ export function setupShellUI() {
   // which includes its own JavaScript for dark mode, search, navigation, logout, etc.
   // The universal sidebar will initialize itself when loaded.
   
+  // Expose filterSidebarByPermissions globally so sidebar can access it
+  window.filterSidebarByPermissions = filterSidebarByPermissions;
+  
   // ---- Permissions-based tab filtering (if available)
   try {
     setupTabsForUser();
