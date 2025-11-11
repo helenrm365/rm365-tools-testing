@@ -110,11 +110,19 @@
     const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
     const isDark = stored === 'true' || (stored == null && prefersDark);
     
-    console.log('[Sidebar] Dark mode state:', { stored, prefersDark, isDark });
+    // Check the actual current state of the HTML element
+    const currentlyDark = document.documentElement.classList.contains('dark-mode');
     
-    document.documentElement.classList.toggle('dark-mode', isDark);
-    toggle.checked = isDark;
-    toggle.setAttribute('aria-checked', String(isDark));
+    console.log('[Sidebar] Dark mode state:', { stored, prefersDark, isDark, currentlyDark });
+    
+    // Sync the toggle with the actual current state
+    toggle.checked = currentlyDark;
+    toggle.setAttribute('aria-checked', String(currentlyDark));
+    
+    // If there's a mismatch, update localStorage to match reality
+    if (currentlyDark !== isDark) {
+      localStorage.setItem(THEME_KEY, String(currentlyDark));
+    }
     
     toggle.addEventListener('change', (e) => {
       const enabled = e.target.checked;
