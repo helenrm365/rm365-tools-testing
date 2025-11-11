@@ -3,7 +3,6 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta
 import logging
 import requests
-import threading
 
 from .repo import InventoryManagementRepo
 from modules._integrations.zoho.client import get_cached_inventory_token
@@ -11,11 +10,10 @@ from core.config import settings
 
 logger = logging.getLogger(__name__)
 
-# Module-level cache for total count only (lightweight)
-_CACHED_TOTAL: Optional[int] = None
-_TOTAL_CACHE_TIMESTAMP: Optional[datetime] = None
-_TOTAL_CACHE_TTL = 3600  # Cache total count for 1 hour
-_COUNTING_IN_PROGRESS = False  # Flag to prevent duplicate counting
+# Module-level cache for all items (shared across requests)
+_CACHED_ITEMS: Optional[List[Dict[str, Any]]] = None
+_CACHE_TIMESTAMP: Optional[datetime] = None
+_CACHE_TTL = 3600  # Cache for 1 hour
 
 
 class InventoryManagementService:
@@ -23,143 +21,46 @@ class InventoryManagementService:
         self.repo = repo or InventoryManagementRepo()
         self.zoho_org_id = settings.ZC_ORG_ID
     
-    def _count_total_in_background(self):
-        """Count total items in background thread"""
-        global _CACHED_TOTAL, _TOTAL_CACHE_TIMESTAMP, _COUNTING_IN_PROGRESS
+    def _fetch_all_items(self) -> List[Dict[str, Any]]:
+        """Fetch all items from Zoho (called once, then cached)"""
+        global _CACHED_ITEMS, _CACHE_TIMESTAMP
         
-        try:
-            logger.info("Background: Starting total count from Zoho...")
-            inventory_token = get_cached_inventory_token()
-            if not inventory_token:
-                _COUNTING_IN_PROGRESS = False
-                return
-            
-            headers = {"Authorization": f"Zoho-oauthtoken {inventory_token}"}
-            url = f"https://www.zohoapis.eu/inventory/v1/items"
-            
-            total = 0
-            zoho_page = 1
-            
-            while True:
-                params = {
-                    "organization_id": self.zoho_org_id,
-                    "page": zoho_page,
-                    "per_page": 200
-                }
-                
-                response = requests.get(url, headers=headers, params=params, timeout=5)
-                data = response.json()
-                
-                if data.get("code") != 0:
-                    logger.error(f"Background count error on page {zoho_page}: {data}")
-                    break
-                
-                items = data.get("items", [])
-                total += len(items)
-                
-                page_context = data.get("page_context", {})
-                has_more = page_context.get("has_more_page", False)
-                
-                if zoho_page % 5 == 0:  # Log every 5 pages
-                    logger.info(f"Background counting: page {zoho_page}, total so far: {total}")
-                
-                if not has_more or len(items) == 0:
-                    break
-                
-                zoho_page += 1
-            
-            # Update cache
-            _CACHED_TOTAL = total
-            _TOTAL_CACHE_TIMESTAMP = datetime.now()
-            _COUNTING_IN_PROGRESS = False
-            logger.info(f"Background count complete: {total} items cached")
-            
-        except Exception as e:
-            logger.error(f"Background count error: {e}")
-            _COUNTING_IN_PROGRESS = False
-    
-    def _get_total_count_fast(self) -> int:
-        """Get total count - returns estimate immediately, calculates exact count in background"""
-        global _CACHED_TOTAL, _TOTAL_CACHE_TIMESTAMP, _COUNTING_IN_PROGRESS
+        # Check if cache is still valid
+        if (_CACHED_ITEMS is not None and 
+            _CACHE_TIMESTAMP is not None and 
+            datetime.now() - _CACHE_TIMESTAMP < timedelta(seconds=_CACHE_TTL)):
+            logger.info(f"Using cached items: {len(_CACHED_ITEMS)} items")
+            return _CACHED_ITEMS
         
-        # Return cached total if available and valid
-        if (_CACHED_TOTAL is not None and 
-            _TOTAL_CACHE_TIMESTAMP is not None and 
-            datetime.now() - _TOTAL_CACHE_TIMESTAMP < timedelta(seconds=_TOTAL_CACHE_TTL)):
-            return _CACHED_TOTAL
-        
-        # Start background counting if not already in progress
-        if not _COUNTING_IN_PROGRESS:
-            _COUNTING_IN_PROGRESS = True
-            thread = threading.Thread(target=self._count_total_in_background, daemon=True)
-            thread.start()
-            logger.info("Started background thread to count total items")
-        
-        # Return cached value if available (even if expired), otherwise return conservative estimate
-        if _CACHED_TOTAL is not None:
-            logger.info(f"Returning stale cached total while recounting: {_CACHED_TOTAL}")
-            return _CACHED_TOTAL
-        
-        # No cache at all - return conservative estimate
-        logger.info("No cache available, returning estimate of 2000")
-        return 2000  # Conservative estimate
-    
-    def get_zoho_inventory_items(self, page: int = 1, per_page: int = 100) -> Dict[str, Any]:
-        """Get inventory items from Zoho Inventory API with pagination (fast, no full cache)
-        
-        Args:
-            page: Page number (1-indexed)
-            per_page: Number of items per page
-            
-        Returns:
-            Dict with items, total count, and pagination info
-        """
+        # Fetch all items from Zoho
+        logger.info("Fetching all items from Zoho...")
         try:
             inventory_token = get_cached_inventory_token()
             if not inventory_token:
                 logger.error("Failed to get Zoho inventory token")
-                return {
-                    "items": [],
-                    "total": 0,
-                    "page": page,
-                    "per_page": per_page,
-                    "total_pages": 0
-                }
-
+                return []
+            
             headers = {"Authorization": f"Zoho-oauthtoken {inventory_token}"}
             url = f"https://www.zohoapis.eu/inventory/v1/items"
             
-            # Get total count (returns immediately with estimate or cached value)
-            total_items = self._get_total_count_fast()
-            total_pages = (total_items + per_page - 1) // per_page if total_items > 0 else 1
-            
-            # Zoho uses 200 items per page max
+            all_items = []
+            zoho_page = 1
             zoho_per_page = 200
             
-            # Calculate which Zoho page(s) contain our requested items
-            start_item = (page - 1) * per_page + 1
-            end_item = page * per_page
-            
-            zoho_start_page = ((start_item - 1) // zoho_per_page) + 1
-            zoho_end_page = ((end_item - 1) // zoho_per_page) + 1
-            
-            all_items = []
-            
-            # Fetch only the Zoho pages we need
-            for zoho_page in range(zoho_start_page, zoho_end_page + 1):
+            while True:
                 params = {
                     "organization_id": self.zoho_org_id,
                     "page": zoho_page,
                     "per_page": zoho_per_page
                 }
                 
-                response = requests.get(url, headers=headers, params=params, timeout=5)
+                response = requests.get(url, headers=headers, params=params)
                 data = response.json()
-
+                
                 if data.get("code") != 0:
-                    logger.error(f"Zoho API error on page {zoho_page}: {data}")
+                    logger.error(f"Error fetching from Zoho page {zoho_page}: {data}")
                     break
-
+                
                 items = data.get("items", [])
                 logger.info(f"Fetched {len(items)} items from Zoho page {zoho_page}")
                 
@@ -177,12 +78,60 @@ class InventoryManagementService:
                             "reserve_stock": int(reserve_stock) if reserve_stock and reserve_stock.isdigit() else None
                         }
                     })
+                
+                page_context = data.get("page_context", {})
+                has_more = page_context.get("has_more_page", False)
+                
+                if not has_more or len(items) == 0:
+                    break
+                
+                zoho_page += 1
             
-            # Slice to get exact items for this page
-            offset = (start_item - 1) % (zoho_per_page * (zoho_end_page - zoho_start_page + 1))
-            paginated_items = all_items[offset:offset + per_page]
+            # Cache the result at module level
+            _CACHED_ITEMS = all_items
+            _CACHE_TIMESTAMP = datetime.now()
+            logger.info(f"Cached {len(all_items)} items from Zoho")
             
-            logger.info(f"Returning {len(paginated_items)} items for page {page}/{total_pages}, total: {total_items}")
+            return all_items
+            
+        except Exception as e:
+            logger.error(f"Error fetching all items: {e}", exc_info=True)
+            return []
+    
+    def get_zoho_inventory_items(self, page: int = 1, per_page: int = 100) -> Dict[str, Any]:
+        """Get inventory items from Zoho with pagination (loads all once, then caches)
+        
+        Args:
+            page: Page number (1-indexed)
+            per_page: Number of items per page
+            
+        Returns:
+            Dict with items, total count, and pagination info
+        """
+        try:
+            # Get all items (from cache if available)
+            all_items = self._fetch_all_items()
+            
+            if not all_items:
+                return {
+                    "items": [],
+                    "total": 0,
+                    "page": page,
+                    "per_page": per_page,
+                    "total_pages": 0
+                }
+            
+            total_items = len(all_items)
+            total_pages = (total_items + per_page - 1) // per_page
+            
+            # Calculate slice indices
+            start_idx = (page - 1) * per_page
+            end_idx = min(start_idx + per_page, total_items)
+            
+            # Get the page slice
+            paginated_items = all_items[start_idx:end_idx]
+            
+            logger.info(f"Returning page {page}/{total_pages}: items {start_idx+1}-{end_idx} of {total_items}")
             
             return {
                 "items": paginated_items,
