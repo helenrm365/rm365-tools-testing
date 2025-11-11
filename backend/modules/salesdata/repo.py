@@ -819,11 +819,15 @@ class SalesDataRepo:
                     "aliases_skipped": 0
                 }
             
+            logger.info(f"Found {len(md_skus)} MD variant SKUs: {list(md_skus)[:5]}...")  # Show first 5
+            
             aliases_created = 0
             aliases_skipped = 0
             
             for md_sku in md_skus:
                 base_sku = md_sku[:-3]  # Remove -MD suffix
+                
+                logger.debug(f"Processing MD SKU: {md_sku} -> base: {base_sku}, base exists: {base_sku in base_skus}")
                 
                 # Only create alias if base SKU also exists in the data
                 if base_sku in base_skus:

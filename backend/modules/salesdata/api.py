@@ -201,3 +201,9 @@ def refresh_condensed_data_for_region(
 ):
     """Manually refresh condensed data for a specific region"""
     return svc.refresh_condensed_data_for_region(region)
+
+
+@router.post("/create-md-aliases")
+def create_md_aliases(user=Depends(get_current_user)):
+    """Manually trigger MD variant alias creation"""
+    return svc.create_md_variant_aliases()

@@ -253,6 +253,21 @@ class SalesDataService:
                 "message": f"Failed to refresh condensed data: {str(e)}"
             }
     
+    def create_md_variant_aliases(self) -> Dict[str, Any]:
+        """Manually trigger MD variant alias creation"""
+        try:
+            result = self.repo.auto_create_md_variant_aliases()
+            return {
+                "status": "success",
+                **result
+            }
+        except Exception as e:
+            logger.error(f"Error creating MD variant aliases: {e}")
+            return {
+                "status": "error",
+                "message": f"Failed to create MD variant aliases: {str(e)}"
+            }
+    
     def get_sku_aliases(self) -> Dict[str, Any]:
         """Get all SKU aliases"""
         try:
