@@ -7,8 +7,8 @@ import { isAuthed } from '../services/state/sessionStore.js';
 export function isAllowed(key, allowed = null) {
   const allowedTabs = Array.isArray(allowed) ? allowed : getAllowedTabs();
 
-  // If allowedTabs is empty or falsy, deny all
-  if (!allowedTabs || allowedTabs.length === 0) return false;
+  // If allowedTabs is empty or falsy, allow all (no restrictions)
+  if (!allowedTabs || allowedTabs.length === 0) return true;
 
   // If '*' is present, allow all
   if (allowedTabs.includes('*')) return true;
@@ -27,8 +27,8 @@ export function isAllowed(key, allowed = null) {
 export function getDefaultAllowedPath(allowed = null) {
   const allowedTabs = Array.isArray(allowed) ? allowed : getAllowedTabs();
   if (!allowedTabs || allowedTabs.length === 0) {
-    // No restrictions: choose sensible default
-    return '/enrollment/management';
+    // No restrictions: allow all, default to enrollment
+    return '/enrollment';
   }
 
   // Prefer enrollment if present
