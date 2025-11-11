@@ -4,18 +4,27 @@
 .sidebar-header {
   padding: 1rem 1rem 0.75rem;
   flex-shrink: 0;
+  transition: padding 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar:hover .sidebar-header {
+  padding-top: 1.5rem;
 }
 
 /* === Profile Section === */
 .profile-section {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 1rem;
+  gap: 0.5rem;
   margin-bottom: 1rem;
   min-height: 64px;
-  max-height: 64px;
-  position: relative;
-  overflow: visible;
+  transition: min-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar:hover .profile-section {
+  min-height: 160px;
+  gap: 1rem;
 }
 
 .logo-container {
@@ -28,20 +37,14 @@
   border-radius: 12px;
   background: linear-gradient(135deg, rgba(118, 161, 43, 0.1), rgba(94, 129, 34, 0.05));
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: 10;
 }
 
 .sidebar:hover .logo-container {
   width: 120px;
   height: 120px;
   border-radius: 20px;
-  position: absolute;
-  left: 50%;
-  top: 32px;
-  transform: translate(-50%, -50%);
   background: linear-gradient(135deg, rgba(118, 161, 43, 0.15), rgba(94, 129, 34, 0.1));
   box-shadow: 0 8px 24px rgba(118, 161, 43, 0.2);
-  z-index: 10;
 }
 
 .sidebar-logo {
@@ -60,23 +63,22 @@
   flex: 1;
   min-width: 0;
   opacity: 0;
-  transform: translateX(-10px);
+  transform: translateY(-10px);
   transition: opacity 0.3s ease 0.1s, transform 0.3s ease 0.1s;
   pointer-events: none;
-  position: absolute;
-  left: 64px;
-  white-space: nowrap;
+  text-align: center;
+  width: 100%;
 }
 
 .sidebar:hover .profile-info {
   opacity: 1;
-  transform: translateX(0);
+  transform: translateY(0);
   pointer-events: auto;
 }
 
 .profile-name {
   margin: 0 0 0.25rem 0;
-  font-size: 1rem;
+  font-size: 1.1rem;
   font-weight: 600;
   color: #2c3e50;
   white-space: nowrap;
@@ -85,7 +87,7 @@
 }
 
 .profile-role {
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   color: #7f8c8d;
   font-weight: 400;
 }
