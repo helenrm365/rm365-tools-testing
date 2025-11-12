@@ -6,7 +6,6 @@ import requests
 import time
 
 from .repo import AdjustmentsRepo
-from modules._integrations.zoho.client import get_cached_inventory_token
 from core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -15,7 +14,8 @@ logger = logging.getLogger(__name__)
 class AdjustmentsService:
     def __init__(self, repo: Optional[AdjustmentsRepo] = None):
         self.repo = repo or AdjustmentsRepo()
-        self.zoho_org_id = settings.ZC_ORG_ID
+        self.zoho_enabled = getattr(settings, 'ZOHO_SYNC_ENABLED', False)
+        self.zoho_org_id = getattr(settings, 'ZC_ORG_ID', None) if self.zoho_enabled else None
         
         try:
             self.repo.init_tables()
@@ -84,11 +84,22 @@ class AdjustmentsService:
     def check_zoho_connection(self) -> Dict[str, Any]:
         """
         Check connectivity to Zoho Inventory API.
+        Only works if Zoho integration is enabled.
         
         Returns:
             Dict with connection status, timing, and any error details
         """
+        if not self.zoho_enabled:
+            return {
+                "status": "disabled",
+                "connected": False,
+                "message": "Zoho integration is disabled. Adjustments work locally without Zoho.",
+                "timestamp": datetime.now().isoformat()
+            }
+        
         try:
+            from modules._integrations.zoho.client import get_cached_inventory_token
+            
             inventory_token = get_cached_inventory_token()
             if not inventory_token:
                 return {
@@ -174,7 +185,13 @@ class AdjustmentsService:
             }
 
     def log_adjustment(self, *, barcode: str, quantity: int, reason: str, field: str) -> Dict[str, Any]:
-        """Log an inventory adjustment to PostgreSQL and update management table"""
+        """
+        Log an inventory adjustment to PostgreSQL and update inventory_metadata immediately.
+        
+        The adjustment is applied to inventory_metadata in real-time, providing immediate 
+        local inventory tracking. If Zoho sync is enabled, the adjustment will be queued 
+        for later sync to Zoho.
+        """
         try:
             if quantity == 0:
                 raise ValueError("Adjustment quantity cannot be zero")
@@ -243,17 +260,19 @@ class AdjustmentsService:
                 logger.error(f"   Error: {e}")
                 # Don't fail the adjustment logging if metadata update fails, but log the error
             
-            logger.info(f"Adjustment logged for barcode {sanitized_barcode}, field {field}, quantity {quantity} - metadata updated immediately, awaiting sync to Zoho")
+            sync_status = "queued for Zoho sync" if self.zoho_enabled else "Zoho sync disabled"
+            logger.info(f"Adjustment logged for barcode {sanitized_barcode}, field {field}, quantity {quantity} - metadata updated immediately, {sync_status}")
             
             return {
                 "status": "success", 
-                "message": f"Adjustment logged and {field} updated immediately (affect: {field})",
+                "message": f"Adjustment logged and {field} updated immediately (affect: {field}). {sync_status.capitalize()}.",
                 "adjustment": adjustment,
                 "metadata_updated": {
                     "field": field,
                     "delta": quantity,
                     "item_id": sanitized_barcode
-                }
+                },
+                "zoho_enabled": self.zoho_enabled
             }
             
         except Exception as e:
@@ -261,11 +280,29 @@ class AdjustmentsService:
             raise
 
     def sync_adjustments_to_zoho(self) -> Dict[str, Any]:
-        """Sync pending adjustments from PostgreSQL to Zoho Inventory"""
+        """
+        Sync pending adjustments from PostgreSQL to Zoho Inventory.
+        Only works if Zoho integration is enabled.
+        """
+        if not self.zoho_enabled:
+            return {
+                "success_count": 0, 
+                "error_count": 0, 
+                "message": "Zoho sync is disabled. Adjustments are tracked locally in inventory_metadata only.",
+                "zoho_enabled": False
+            }
+        
         try:
+            from modules._integrations.zoho.client import get_cached_inventory_token
+            
             inventory_token = get_cached_inventory_token()
             if not inventory_token:
-                return {"success_count": 0, "error_count": 0, "message": "Failed to refresh Zoho Inventory token"}
+                return {
+                    "success_count": 0, 
+                    "error_count": 0, 
+                    "message": "Failed to refresh Zoho Inventory token",
+                    "zoho_enabled": True
+                }
 
             headers = {
                 "Content-Type": "application/json",
@@ -360,7 +397,8 @@ class AdjustmentsService:
             return {
                 "success_count": success_count,
                 "error_count": error_count,
-                "message": f"Sync completed: {success_count} successful, {error_count} failed"
+                "message": f"Sync completed: {success_count} successful, {error_count} failed",
+                "zoho_enabled": True
             }
 
         except Exception as e:
@@ -368,7 +406,8 @@ class AdjustmentsService:
             return {
                 "success_count": 0,
                 "error_count": 0,
-                "message": f"Sync failed: {str(e)}"
+                "message": f"Sync failed: {str(e)}",
+                "zoho_enabled": True
             }
 
     def list_adjustments(self, *, limit: int = 50, item_id: Optional[str] = None) -> List[Dict[str, Any]]:

@@ -103,7 +103,10 @@ def get_public_status():
 
 @router.get("/connection-status")
 def check_zoho_connection(user=Depends(get_current_user)):
-    """Check connectivity to Zoho Inventory API"""
+    """
+    Check connectivity to Zoho Inventory API.
+    Returns status indicating if Zoho sync is enabled and if connection is working.
+    """
     try:
         result = _svc().check_zoho_connection()
         return result
@@ -117,7 +120,12 @@ def check_zoho_connection(user=Depends(get_current_user)):
 
 @router.post("/log", response_model=AdjustmentOut)
 def log_inventory_adjustment(body: AdjustmentLogIn, user=Depends(get_current_user)):
-    """Log an inventory adjustment to PostgreSQL for later sync to Zoho"""
+    """
+    Log an inventory adjustment and update inventory_metadata immediately.
+    
+    The adjustment is applied to local inventory tracking in real-time.
+    If Zoho sync is enabled, the adjustment will be queued for later sync.
+    """
     try:
         result = _svc().log_adjustment(
             barcode=body.barcode,
@@ -134,7 +142,10 @@ def log_inventory_adjustment(body: AdjustmentLogIn, user=Depends(get_current_use
 
 @router.post("/sync", response_model=InventorySyncResult)
 def sync_inventory_adjustments(user=Depends(get_current_user)):
-    """Sync pending adjustments from PostgreSQL to Zoho Inventory"""
+    """
+    Sync pending adjustments from PostgreSQL to Zoho Inventory.
+    Only works if Zoho integration is enabled.
+    """
     try:
         result = _svc().sync_adjustments_to_zoho()
         return InventorySyncResult(**result)
@@ -143,13 +154,21 @@ def sync_inventory_adjustments(user=Depends(get_current_user)):
 
 @router.get("/pending")
 def get_pending_adjustments(user=Depends(get_current_user)):
-    """Get all pending adjustments that haven't been synced to Zoho yet"""
+    """
+    Get all pending adjustments that haven't been synced to Zoho yet.
+    If Zoho sync is disabled, this returns all adjustments since they don't need syncing.
+    """
     try:
-        pending = _svc().get_pending_adjustments()
+        service = _svc()
+        pending = service.get_pending_adjustments()
+        
+        sync_message = "Zoho sync disabled - adjustments tracked locally only" if not service.zoho_enabled else f"Found {len(pending)} pending adjustments awaiting Zoho sync"
+        
         return {
             "adjustments": pending,
             "count": len(pending),
-            "message": f"Found {len(pending)} pending adjustments awaiting sync to Zoho"
+            "message": sync_message,
+            "zoho_enabled": service.zoho_enabled
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

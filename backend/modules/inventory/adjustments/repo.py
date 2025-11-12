@@ -67,7 +67,10 @@ class AdjustmentsRepo:
             conn.close()
 
     def get_pending_adjustments(self) -> List[Dict[str, Any]]:
-        """Get all pending adjustment logs (not yet synced to Zoho)"""
+        """
+        Get all pending adjustment logs (not yet synced to external systems).
+        If Zoho sync is disabled, these are informational only.
+        """
         conn = self.get_connection()
         try:
             cursor = conn.cursor()
