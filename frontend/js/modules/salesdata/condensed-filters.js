@@ -13,6 +13,7 @@ let currentQtyThreshold = null;
 let pendingCustomerAdds = []; // Customers to be added when Apply is clicked
 let pendingCustomerRemoves = []; // Customer IDs to be removed when Apply is clicked
 let exchangeRates = null; // Cached exchange rates
+let conversionDebounceTimer = null; // Debounce timer for currency conversion updates
 
 /**
  * Show the filters modal for a specific region
@@ -215,6 +216,14 @@ function setupEventListeners(region) {
     const applyBtn = document.getElementById(`filters-apply-${region}`);
     if (applyBtn) {
         applyBtn.addEventListener('click', () => applyAllFilters(region));
+    }
+    
+    // Threshold input - update conversion display as user types
+    const thresholdInput = document.getElementById(`threshold-input-${region}`);
+    if (thresholdInput) {
+        thresholdInput.addEventListener('input', (e) => {
+            debounceConversionUpdate(region, e.target.value);
+        });
     }
 }
 
@@ -862,23 +871,13 @@ async function loadExchangeRates(region) {
         const response = await get(`${API}/currency/rates`);
         
         if (response.status === 'success') {
-            exchangeRates = response.rates;
-            const conversions = response.conversions;
+            exchangeRates = response;
             
-            // Display relevant conversion info based on region
-            const baseCurrency = region === 'uk' ? 'GBP' : 'EUR';
-            let conversionHtml = '<i class="fas fa-exchange-alt"></i> Live currency conversion enabled:<br>';
+            // Get initial threshold value to display
+            const thresholdInput = document.getElementById(`threshold-input-${region}`);
+            const initialValue = thresholdInput?.value || '100';
             
-            if (region === 'uk') {
-                // UK uses GBP as base
-                conversionHtml += `£100 = $${(100 * conversions.GBP_to_USD).toFixed(2)} USD = €${(100 * conversions.GBP_to_EUR).toFixed(2)} EUR`;
-            } else {
-                // FR/NL use EUR as base
-                conversionHtml += `€100 = $${(100 * conversions.EUR_to_USD).toFixed(2)} USD = £${(100 / conversions.GBP_to_EUR).toFixed(2)} GBP`;
-            }
-            
-            infoElement.innerHTML = conversionHtml;
-            infoElement.style.color = '#27ae60';
+            updateConversionDisplay(region, initialValue);
         } else {
             throw new Error('Failed to load rates');
         }
@@ -888,4 +887,51 @@ async function loadExchangeRates(region) {
         infoElement.style.color = '#e67e22';
     }
 }
+
+/**
+ * Debounce the conversion display update
+ */
+function debounceConversionUpdate(region, value) {
+    clearTimeout(conversionDebounceTimer);
+    conversionDebounceTimer = setTimeout(() => {
+        updateConversionDisplay(region, value);
+    }, 300); // 300ms debounce - nice and responsive
+}
+
+/**
+ * Update the conversion display with the current input value
+ */
+function updateConversionDisplay(region, value) {
+    const infoElement = document.getElementById(`currency-conversion-info-${region}`);
+    
+    if (!infoElement || !exchangeRates) return;
+    
+    const amount = parseFloat(value) || 0;
+    
+    if (amount === 0) {
+        // Show default message
+        infoElement.innerHTML = '<i class="fas fa-exchange-alt"></i> Enter an amount to see live conversions';
+        infoElement.style.color = '#95a5a6';
+        return;
+    }
+    
+    const conversions = exchangeRates.conversions;
+    let conversionHtml = '<i class="fas fa-exchange-alt"></i> Live conversion: ';
+    
+    if (region === 'uk') {
+        // UK uses GBP as base
+        const usd = (amount * conversions.GBP_to_USD).toFixed(2);
+        const eur = (amount * conversions.GBP_to_EUR).toFixed(2);
+        conversionHtml += `<strong>£${amount.toFixed(2)}</strong> = $${usd} USD = €${eur} EUR`;
+    } else {
+        // FR/NL use EUR as base
+        const usd = (amount * conversions.EUR_to_USD).toFixed(2);
+        const gbp = (amount / conversions.GBP_to_EUR).toFixed(2);
+        conversionHtml += `<strong>€${amount.toFixed(2)}</strong> = $${usd} USD = £${gbp} GBP`;
+    }
+    
+    infoElement.innerHTML = conversionHtml;
+    infoElement.style.color = '#27ae60';
+}
+
 
