@@ -172,10 +172,16 @@ async function loadInventoryData() {
         const searchInput = document.getElementById('inventorySearch');
         const searchQuery = searchInput?.value?.trim() || '';
         
-        // Build URL with search parameter
+        // Get discontinued status filters
+        const discontinuedFilters = Array.from(discontinuedFilterSet).join(',');
+        
+        // Build URL with search and discontinued status parameters
         let itemsUrl = `${pathSet.items}?page=${currentPage + 1}&per_page=${ITEMS_PER_PAGE}`;
         if (searchQuery) {
           itemsUrl += `&search=${encodeURIComponent(searchQuery)}`;
+        }
+        if (discontinuedFilters) {
+          itemsUrl += `&discontinued_status=${encodeURIComponent(discontinuedFilters)}`;
         }
         
         // Fetch items with search and metadata
@@ -440,38 +446,8 @@ function setupTable() {
       }
     }
     
-    // Check if this product exists in magento_product_list
-    if (!sku || !magentoProductsIndex.has(sku)) {
-      // Product not in magento_product_list - default behavior: show it
-      noMagentoDataCount++;
-      
-      // Apply stock status filter (from metadata.status field)
-      if (stockStatusFilter && !matchesStockStatus(metadata, stockStatusFilter)) {
-        skippedCount++;
-        return;
-      }
-      
-      // Apply search filter
-      if (searchQuery && !matchesSearch(item, metadata, searchQuery)) {
-        skippedCount++;
-        return;
-      }
-      
-      filteredItems.push({ item, metadata });
-      return;
-    }
-    
-    // Product exists in magento_product_list - check discontinued status
-    const magentoProduct = magentoProductsIndex.get(sku);
-    const discontinuedStatus = magentoProduct.discontinued_status;
-    
-    console.log(`[Filter Check] SKU: ${sku}, Discontinued Status: ${discontinuedStatus}, Stock Status: ${metadata.status}, Include: ${discontinuedFilterSet.has(discontinuedStatus)}`);
-    
-    // Filter: only show if discontinued_status is in selected filters
-    if (!discontinuedStatus || !discontinuedFilterSet.has(discontinuedStatus)) {
-      skippedCount++;
-      return; // Skip this item
-    }
+    // Note: Discontinued status filtering is now done on the backend
+    // Items returned from API are already filtered by discontinued_status parameter
     
     // Apply stock status filter (from metadata.status field)
     if (stockStatusFilter && !matchesStockStatus(metadata, stockStatusFilter)) {
@@ -479,7 +455,7 @@ function setupTable() {
       return;
     }
     
-    // Apply search filter
+    // Apply search filter (note: search is also done backend, but we keep this for consistency)
     if (searchQuery && !matchesSearch(item, metadata, searchQuery)) {
       skippedCount++;
       return;

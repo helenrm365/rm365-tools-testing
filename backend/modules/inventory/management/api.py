@@ -29,11 +29,17 @@ def get_inventory_items(
     page: int = 1, 
     per_page: int = 100, 
     search: str = None,
+    discontinued_status: str = None,
     user=Depends(get_current_user)
 ):
-    """Get inventory items from magento_product_list with pagination and search"""
+    """Get inventory items from magento_product_list with pagination, search, and discontinued status filter"""
     try:
-        result = _svc().get_inventory_items(page=page, per_page=per_page, search=search)
+        result = _svc().get_inventory_items(
+            page=page, 
+            per_page=per_page, 
+            search=search,
+            discontinued_status=discontinued_status
+        )
         return {
             "items": [InventoryItemOut(**item) for item in result["items"]],
             "total": result["total"],

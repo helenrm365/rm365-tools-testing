@@ -82,13 +82,14 @@ class InventoryManagementService:
             # Return items unchanged if there's an error
             return items
     
-    def get_inventory_items_from_magento(self, page: int = 1, per_page: int = 100, search: str = None) -> Dict[str, Any]:
-        """Get inventory items from magento_product_list table with pagination and search
+    def get_inventory_items_from_magento(self, page: int = 1, per_page: int = 100, search: str = None, discontinued_status: str = None) -> Dict[str, Any]:
+        """Get inventory items from magento_product_list table with pagination, search, and discontinued status filter
         
         Args:
             page: Page number (1-indexed)
             per_page: Number of items per page
             search: Search query to filter items (searches product_name and sku)
+            discontinued_status: Comma-separated discontinued statuses to filter by (e.g., "Active,Pre Order")
             
         Returns:
             Dict with items, total count, and pagination info
@@ -108,8 +109,8 @@ class InventoryManagementService:
             # Step 3: Ensure all products have item IDs in inventory_metadata (after merging)
             self.repo.ensure_all_products_have_item_ids()
             
-            # Get all products from magento_product_list
-            all_products = self.repo.get_magento_products()
+            # Get all products from magento_product_list (with optional discontinued status filter)
+            all_products = self.repo.get_magento_products(status_filters=discontinued_status)
             
             if not all_products:
                 return {
@@ -202,18 +203,19 @@ class InventoryManagementService:
         logger.warning("_fetch_all_items_legacy called - this method is deprecated")
         return []
     
-    def get_inventory_items(self, page: int = 1, per_page: int = 100, search: str = None) -> Dict[str, Any]:
+    def get_inventory_items(self, page: int = 1, per_page: int = 100, search: str = None, discontinued_status: str = None) -> Dict[str, Any]:
         """Get inventory items from magento_product_list table
         
         Args:
             page: Page number (1-indexed)
             per_page: Number of items per page
             search: Search query to filter items (searches product_name and sku)
+            discontinued_status: Comma-separated discontinued statuses to filter by
             
         Returns:
             Dict with items, total count, and pagination info
         """
-        return self.get_inventory_items_from_magento(page, per_page, search)
+        return self.get_inventory_items_from_magento(page, per_page, search, discontinued_status)
 
     def _get_custom_field_value(self, item: Dict[str, Any], field_name: str) -> Optional[str]:
         """DEPRECATED: Extract custom field value from item (legacy method)"""
