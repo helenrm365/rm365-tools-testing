@@ -1,6 +1,5 @@
 // frontend/js/modules/home/index.js
 import { isAuthed } from '../../services/state/sessionStore.js';
-import { getUser } from '../../services/state/userStore.js';
 
 export async function init() {
   console.log('[Home] Initializing home page');
@@ -18,10 +17,14 @@ export async function init() {
       welcomeMessage.hidden = false;
       
       // Personalize welcome message
-      const user = getUser();
-      const welcomeUserName = document.getElementById('welcomeUserName');
-      if (welcomeUserName && user?.name) {
-        welcomeUserName.textContent = `Welcome back, ${user.name}!`;
+      try {
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        const welcomeUserName = document.getElementById('welcomeUserName');
+        if (welcomeUserName && user?.name) {
+          welcomeUserName.textContent = `Welcome back, ${user.name}!`;
+        }
+      } catch (e) {
+        console.warn('[Home] Could not load user data:', e);
       }
     }
     
