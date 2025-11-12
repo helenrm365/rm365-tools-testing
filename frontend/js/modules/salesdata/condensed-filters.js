@@ -924,12 +924,14 @@ function updateConversionDisplay(region, value) {
         // UK uses GBP as base
         const usd = (amount * conversions.GBP_to_USD).toFixed(2);
         const eur = (amount * conversions.GBP_to_EUR).toFixed(2);
-        conversionHtml += `<strong>£${amount.toFixed(2)}</strong> = $${usd} USD = €${eur} EUR`;
+        const cny = (amount * exchangeRates.rates.CNY).toFixed(2);
+        conversionHtml += `<strong>£${amount.toFixed(2)}</strong> = $${usd} USD = €${eur} EUR = ¥${cny} CNY`;
     } else {
         // FR/NL use EUR as base
         const usd = (amount * conversions.EUR_to_USD).toFixed(2);
         const gbp = (amount / conversions.GBP_to_EUR).toFixed(2);
-        conversionHtml += `<strong>€${amount.toFixed(2)}</strong> = $${usd} USD = £${gbp} GBP`;
+        const cny = (amount * (exchangeRates.rates.CNY / exchangeRates.rates.EUR)).toFixed(2);
+        conversionHtml += `<strong>€${amount.toFixed(2)}</strong> = $${usd} USD = £${gbp} GBP = ¥${cny} CNY`;
     }
     
     infoElement.innerHTML = conversionHtml;
