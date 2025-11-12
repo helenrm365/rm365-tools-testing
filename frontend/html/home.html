@@ -1,0 +1,71 @@
+<!-- Home Page -->
+<div class="home-container">
+  <div class="home-hero">
+    <div class="home-logo">
+      <img src="/assets/RM365_Logo.png" alt="RM365 Logo" class="home-logo-image">
+    </div>
+    <h1 class="home-title">Welcome to RM365 Tools</h1>
+    <p class="home-subtitle">Your comprehensive business management platform</p>
+    
+    <!-- Login prompt for unauthenticated users -->
+    <div id="loginPrompt" class="login-prompt" hidden>
+      <div class="prompt-card">
+        <span class="prompt-icon">🔒</span>
+        <h2>Not logged in?</h2>
+        <p>Sign in to access all features and tools</p>
+        <button id="goToLoginBtn" class="modern-button primary-button">
+          <span>Login Here</span>
+          <span class="button-icon">→</span>
+        </button>
+      </div>
+    </div>
+    
+    <!-- Welcome message for authenticated users -->
+    <div id="welcomeMessage" class="welcome-message" hidden>
+      <div class="welcome-card">
+        <span class="welcome-icon">👋</span>
+        <h2 id="welcomeUserName">Welcome back!</h2>
+        <p>Select a module from the sidebar to get started</p>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Feature Cards Grid -->
+  <div class="features-grid">
+    <div class="feature-card" data-module="enrollment">
+      <div class="feature-icon">📝</div>
+      <h3>Enrollment</h3>
+      <p>Manage student and staff enrollment</p>
+    </div>
+    
+    <div class="feature-card" data-module="attendance">
+      <div class="feature-icon">🕒</div>
+      <h3>Attendance</h3>
+      <p>Track and monitor attendance records</p>
+    </div>
+    
+    <div class="feature-card" data-module="labels">
+      <div class="feature-icon">🏷️</div>
+      <h3>Labels</h3>
+      <p>Generate and print labels</p>
+    </div>
+    
+    <div class="feature-card" data-module="salesdata">
+      <div class="feature-icon">📊</div>
+      <h3>Sales Data</h3>
+      <p>View and analyze sales information</p>
+    </div>
+    
+    <div class="feature-card" data-module="inventory">
+      <div class="feature-icon">📦</div>
+      <h3>Inventory</h3>
+      <p>Manage inventory and stock</p>
+    </div>
+    
+    <div class="feature-card" data-module="usermanagement">
+      <div class="feature-icon">👤</div>
+      <h3>User Management</h3>
+      <p>Manage users and permissions</p>
+    </div>
+  </div>
+</div>
