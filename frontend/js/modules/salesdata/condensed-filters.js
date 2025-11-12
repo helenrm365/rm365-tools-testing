@@ -875,7 +875,7 @@ async function loadExchangeRates(region) {
             
             // Get initial threshold value to display
             const thresholdInput = document.getElementById(`threshold-input-${region}`);
-            const initialValue = thresholdInput?.value || '100';
+            const initialValue = thresholdInput?.value || '';
             
             updateConversionDisplay(region, initialValue);
         } else {
@@ -906,9 +906,11 @@ function updateConversionDisplay(region, value) {
     
     if (!infoElement || !exchangeRates) return;
     
-    const amount = parseFloat(value) || 0;
+    // Check if value is empty or not a valid number
+    const trimmedValue = (value || '').trim();
+    const amount = parseFloat(trimmedValue);
     
-    if (amount === 0) {
+    if (!trimmedValue || isNaN(amount) || amount === 0) {
         // Show default message
         infoElement.innerHTML = '<i class="fas fa-exchange-alt"></i> Enter an amount to see live conversions';
         infoElement.style.color = '#95a5a6';
