@@ -94,6 +94,9 @@ class InventoryManagementService:
             Dict with items, total count, and pagination info
         """
         try:
+            # Step 0: Ensure tables exist (creates if not present)
+            self.repo.init_tables()
+            
             # Step 1: Merge identifier products with their base SKUs
             # This must happen BEFORE generating item IDs
             self.repo.merge_identifier_products()
