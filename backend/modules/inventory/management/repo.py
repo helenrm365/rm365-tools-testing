@@ -3,6 +3,7 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime
 import psycopg2
 import logging
+import hashlib
 
 from common.deps import pg_conn
 from core.db import get_inventory_log_connection, get_products_connection
@@ -13,6 +14,22 @@ logger = logging.getLogger(__name__)
 class InventoryManagementRepo:
     def __init__(self):
         pass
+
+    @staticmethod
+    def generate_item_id(sku: str) -> str:
+        """
+        Generate a unique item ID in 18-digit format (e.g., 772578000000491823)
+        Uses hash of SKU to create a consistent ID.
+        Format mimics legacy system for compatibility.
+        """
+        # Create a hash of the SKU
+        hash_obj = hashlib.sha256(sku.encode())
+        hash_int = int(hash_obj.hexdigest(), 16)
+        
+        # Take first 18 digits and ensure it starts with 7 (for format consistency)
+        item_id = str(700000000000000000 + (hash_int % 100000000000000000))
+        
+        return item_id
 
     def get_metadata_connection(self):
         """Get connection for inventory metadata - try inventory DB first, fallback to main DB"""
@@ -31,14 +48,14 @@ class InventoryManagementRepo:
         try:
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT item_id, location, date, shelf_lt1, shelf_lt1_qty,
+                SELECT sku, item_id, location, date, shelf_lt1, shelf_lt1_qty,
                        shelf_gt1, shelf_gt1_qty, top_floor_expiry, top_floor_total,
                        status, uk_fr_preorder, uk_6m_data, fr_6m_data
                 FROM inventory_metadata
-                ORDER BY item_id
+                ORDER BY sku
             """)
             
-            columns = ['item_id', 'location', 'date', 'shelf_lt1', 'shelf_lt1_qty',
+            columns = ['sku', 'item_id', 'location', 'date', 'shelf_lt1', 'shelf_lt1_qty',
                       'shelf_gt1', 'shelf_gt1_qty', 'top_floor_expiry', 'top_floor_total',
                       'status', 'uk_fr_preorder', 'uk_6m_data', 'fr_6m_data']
             rows = cursor.fetchall()
@@ -52,19 +69,34 @@ class InventoryManagementRepo:
             conn.close()
 
     def save_inventory_metadata(self, metadata: Dict[str, Any]) -> Dict[str, Any]:
-        """Save or update inventory metadata"""
+        """Save or update inventory metadata
+        
+        Note: uk_6m_data and fr_6m_data are NOT updated by this method.
+        They are populated by the sales sync process and preserved during updates.
+        """
         conn = self.get_metadata_connection()
         try:
             cursor = conn.cursor()
             
-            # PostgreSQL upsert with ON CONFLICT - using actual table schema
+            # Generate item_id if not provided
+            sku = metadata.get('sku')
+            if not sku:
+                raise ValueError("SKU is required")
+            
+            item_id = metadata.get('item_id')
+            if not item_id:
+                item_id = self.generate_item_id(sku)
+            
+            # PostgreSQL upsert with ON CONFLICT - using SKU as primary key
+            # Note: uk_6m_data and fr_6m_data are NOT included here - they're populated by sales_sync
             cursor.execute("""
                 INSERT INTO inventory_metadata (
-                    item_id, location, date, shelf_lt1, shelf_lt1_qty,
+                    sku, item_id, location, date, shelf_lt1, shelf_lt1_qty,
                     shelf_gt1, shelf_gt1_qty, top_floor_expiry, top_floor_total,
                     status, uk_fr_preorder
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT (item_id) DO UPDATE SET
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (sku) DO UPDATE SET
+                    item_id = COALESCE(inventory_metadata.item_id, EXCLUDED.item_id),
                     location = EXCLUDED.location,
                     date = EXCLUDED.date,
                     shelf_lt1 = EXCLUDED.shelf_lt1,
@@ -75,11 +107,12 @@ class InventoryManagementRepo:
                     top_floor_total = EXCLUDED.top_floor_total,
                     status = EXCLUDED.status,
                     uk_fr_preorder = EXCLUDED.uk_fr_preorder
-                RETURNING item_id, location, date, shelf_lt1, shelf_lt1_qty,
+                RETURNING sku, item_id, location, date, shelf_lt1, shelf_lt1_qty,
                           shelf_gt1, shelf_gt1_qty, top_floor_expiry, top_floor_total,
-                          status, uk_fr_preorder
+                          status, uk_fr_preorder, uk_6m_data, fr_6m_data
             """, (
-                metadata['item_id'],
+                sku,
+                item_id,
                 metadata.get('location'),
                 metadata.get('date'),
                 metadata.get('shelf_lt1'),
@@ -93,12 +126,12 @@ class InventoryManagementRepo:
             ))
             
             row = cursor.fetchone()
-            columns = ['item_id', 'location', 'date', 'shelf_lt1', 'shelf_lt1_qty',
+            columns = ['sku', 'item_id', 'location', 'date', 'shelf_lt1', 'shelf_lt1_qty',
                       'shelf_gt1', 'shelf_gt1_qty', 'top_floor_expiry', 'top_floor_total',
-                      'status', 'uk_fr_preorder']
+                      'status', 'uk_fr_preorder', 'uk_6m_data', 'fr_6m_data']
             
             conn.commit()
-            logger.info(f"Metadata saved for item_id: {metadata['item_id']}")
+            logger.info(f"Metadata saved for SKU: {sku}, item_id: {item_id}")
             return dict(zip(columns, row)) if row else {}
             
         except Exception as e:
@@ -138,7 +171,8 @@ class InventoryManagementRepo:
             
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS inventory_metadata (
-                    item_id VARCHAR(255) PRIMARY KEY,
+                    sku VARCHAR(255) PRIMARY KEY,
+                    item_id VARCHAR(255) UNIQUE,
                     location VARCHAR(255),
                     date DATE,
                     uk_6m_data TEXT,
@@ -166,6 +200,7 @@ class InventoryManagementRepo:
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS magento_product_list (
                     sku VARCHAR(255) PRIMARY KEY,
+                    product_name TEXT,
                     item_id VARCHAR(255),
                     additional_attributes TEXT,
                     status VARCHAR(50),
@@ -182,6 +217,15 @@ class InventoryManagementRepo:
                 """)
             except Exception as e:
                 logger.debug(f"Column addition skipped (may already exist): {e}")
+            
+            # Add product_name column if it doesn't exist (migration for existing tables)
+            try:
+                cursor.execute("""
+                    ALTER TABLE magento_product_list 
+                    ADD COLUMN IF NOT EXISTS product_name TEXT
+                """)
+            except Exception as e:
+                logger.debug(f"Column product_name addition skipped (may already exist): {e}")
             
             # Create label print job tables
             cursor.execute("""
@@ -227,10 +271,10 @@ class InventoryManagementRepo:
         finally:
             conn.close()
 
-    def sync_zoho_to_magento_product_list(self, zoho_items: List[Dict[str, Any]]) -> Dict[str, int]:
+    def sync_items_to_magento_product_list(self, items: List[Dict[str, Any]]) -> Dict[str, int]:
         """
-        Sync Zoho inventory items to magento_product_list table.
-        Filters based on discontinued_status custom field.
+        Sync inventory items to magento_product_list table.
+        Can be used to import items from any source (Zoho, CSV, etc.)
         Returns stats about sync operation.
         """
         conn = self.get_metadata_connection()
@@ -238,32 +282,33 @@ class InventoryManagementRepo:
             cursor = conn.cursor()
             
             stats = {
-                "total_items": len(zoho_items),
+                "total_items": len(items),
                 "inserted": 0,
                 "updated": 0,
                 "skipped": 0
             }
             
-            for item in zoho_items:
+            for item in items:
                 sku = item.get("sku", "").strip()
                 if not sku:
                     stats["skipped"] += 1
                     continue
                 
-                item_id = item.get("item_id", "")
+                product_name = item.get("product_name", "") or item.get("name", "")
+                item_id = self.generate_item_id(sku)
                 status = item.get("status", "")
                 
-                # Upsert into magento_product_list (minimal data)
-                # Note: additional_attributes should be populated by Magento CSV import, not Zoho
+                # Upsert into magento_product_list
                 cursor.execute("""
-                    INSERT INTO magento_product_list (sku, item_id, status, updated_at)
-                    VALUES (%s, %s, %s, NOW())
+                    INSERT INTO magento_product_list (sku, product_name, item_id, status, updated_at)
+                    VALUES (%s, %s, %s, %s, NOW())
                     ON CONFLICT (sku) DO UPDATE SET
-                        item_id = EXCLUDED.item_id,
+                        product_name = EXCLUDED.product_name,
+                        item_id = COALESCE(magento_product_list.item_id, EXCLUDED.item_id),
                         status = EXCLUDED.status,
                         updated_at = NOW()
                     RETURNING (xmax = 0) AS inserted
-                """, (sku, item_id, status))
+                """, (sku, product_name, item_id, status))
                 
                 result = cursor.fetchone()
                 if result and result[0]:
@@ -278,7 +323,7 @@ class InventoryManagementRepo:
         except psycopg2.Error as e:
             if conn:
                 conn.rollback()
-            logger.error(f"Database error in sync_zoho_to_magento_product_list: {e}")
+            logger.error(f"Database error in sync_items_to_magento_product_list: {e}")
             raise
         finally:
             conn.close()
@@ -300,6 +345,151 @@ class InventoryManagementRepo:
             return match.group(1).strip()
         
         return "Active"
+
+    def merge_identifier_products(self) -> Dict[str, int]:
+        """
+        Merge products with identifier suffixes (-SD, -DP, -NP, -MV, -MD) into their base SKU products.
+        This should be called BEFORE ensure_all_products_have_item_ids() so that item IDs are generated
+        after merging is complete.
+        
+        Process:
+        1. Find all products with identifier suffixes
+        2. For each, check if base SKU product exists
+        3. If base exists: delete the identifier variant (data merged conceptually via sales aggregation)
+        4. If base doesn't exist: rename the identifier SKU to base SKU
+        
+        Returns stats about the operation.
+        """
+        conn = self.get_metadata_connection()
+        try:
+            cursor = conn.cursor()
+            
+            # Identifiers to merge
+            identifiers = ["-SD", "-DP", "-NP", "-MV", "-MD"]
+            
+            stats = {
+                "total_checked": 0,
+                "deleted": 0,
+                "renamed": 0,
+                "base_existed": 0,
+                "base_created": 0
+            }
+            
+            # Find all products with identifier suffixes
+            identifier_pattern = " OR ".join([f"sku LIKE '%{suffix}'" for suffix in identifiers])
+            cursor.execute(f"""
+                SELECT sku FROM magento_product_list
+                WHERE {identifier_pattern}
+                ORDER BY sku
+            """)
+            
+            identifier_skus = [row[0] for row in cursor.fetchall()]
+            stats["total_checked"] = len(identifier_skus)
+            
+            logger.info(f"Found {len(identifier_skus)} products with identifier suffixes")
+            
+            # Process each identifier SKU
+            for sku in identifier_skus:
+                # Determine base SKU
+                base_sku = sku
+                for suffix in identifiers:
+                    if sku.endswith(suffix):
+                        base_sku = sku[:-len(suffix)]
+                        break
+                
+                # Check if base SKU already exists
+                cursor.execute("""
+                    SELECT sku, product_name FROM magento_product_list
+                    WHERE sku = %s
+                """, (base_sku,))
+                
+                base_exists = cursor.fetchone()
+                
+                if base_exists:
+                    # Base exists - delete the identifier variant
+                    # (sales data will be aggregated via the sales aggregation logic)
+                    cursor.execute("""
+                        DELETE FROM magento_product_list
+                        WHERE sku = %s
+                    """, (sku,))
+                    stats["deleted"] += 1
+                    stats["base_existed"] += 1
+                    logger.debug(f"Deleted {sku} (base {base_sku} exists)")
+                else:
+                    # Base doesn't exist - rename identifier SKU to base SKU
+                    cursor.execute("""
+                        UPDATE magento_product_list
+                        SET sku = %s, updated_at = NOW()
+                        WHERE sku = %s
+                    """, (base_sku, sku))
+                    stats["renamed"] += 1
+                    stats["base_created"] += 1
+                    logger.debug(f"Renamed {sku} to {base_sku}")
+            
+            conn.commit()
+            
+            logger.info(f"✅ Merge complete: {stats['deleted']} deleted, {stats['renamed']} renamed")
+            
+            return stats
+            
+        except psycopg2.Error as e:
+            if conn:
+                conn.rollback()
+            logger.error(f"Database error in merge_identifier_products: {e}")
+            raise
+        finally:
+            conn.close()
+
+    def ensure_all_products_have_item_ids(self) -> Dict[str, int]:
+        """
+        Ensure all products in magento_product_list have generated item IDs.
+        This should be called when loading the inventory management page.
+        Returns stats about the operation.
+        """
+        conn = self.get_metadata_connection()
+        try:
+            cursor = conn.cursor()
+            
+            # Find all products without item_ids
+            cursor.execute("""
+                SELECT sku FROM magento_product_list
+                WHERE item_id IS NULL OR item_id = ''
+            """)
+            
+            skus_without_ids = [row[0] for row in cursor.fetchall()]
+            stats = {
+                "total_checked": 0,
+                "ids_generated": 0
+            }
+            
+            # Count total products
+            cursor.execute("SELECT COUNT(*) FROM magento_product_list")
+            stats["total_checked"] = cursor.fetchone()[0]
+            
+            # Generate and update item IDs
+            for sku in skus_without_ids:
+                item_id = self.generate_item_id(sku)
+                cursor.execute("""
+                    UPDATE magento_product_list
+                    SET item_id = %s, updated_at = NOW()
+                    WHERE sku = %s
+                """, (item_id, sku))
+                stats["ids_generated"] += 1
+            
+            conn.commit()
+            
+            if stats["ids_generated"] > 0:
+                logger.info(f"✅ Generated {stats['ids_generated']} item IDs for products")
+            
+            return stats
+            
+        except psycopg2.Error as e:
+            if conn:
+                conn.rollback()
+            logger.error(f"Database error in ensure_all_products_have_item_ids: {e}")
+            raise
+        finally:
+            conn.close()
 
     def update_discontinued_status_from_additional_attributes(self) -> Dict[str, int]:
         """
@@ -371,7 +561,7 @@ class InventoryManagementRepo:
                 like_params = [f'%discontinued_status={f}%' for f in filters]
                 
                 cursor.execute(f"""
-                    SELECT sku, additional_attributes
+                    SELECT sku, product_name, item_id, additional_attributes, status
                     FROM magento_product_list
                     WHERE ({like_conditions})
                     ORDER BY sku
@@ -379,12 +569,12 @@ class InventoryManagementRepo:
             else:
                 # No filters - return all
                 cursor.execute("""
-                    SELECT sku, additional_attributes
+                    SELECT sku, product_name, item_id, additional_attributes, status
                     FROM magento_product_list
                     ORDER BY sku
                 """)
             
-            columns = ['sku', 'additional_attributes']
+            columns = ['sku', 'product_name', 'item_id', 'additional_attributes', 'status']
             rows = cursor.fetchall()
             
             # Parse discontinued_status from additional_attributes for each row
@@ -394,10 +584,9 @@ class InventoryManagementRepo:
                 row_dict['discontinued_status'] = self.parse_discontinued_status_from_additional_attributes(
                     row_dict.get('additional_attributes', '')
                 )
-                # Add empty fields for compatibility
-                row_dict['product_name'] = ''
-                row_dict['item_id'] = ''
-                row_dict['status'] = ''
+                # Generate item_id if not present
+                if not row_dict.get('item_id'):
+                    row_dict['item_id'] = self.generate_item_id(row_dict['sku'])
                 result.append(row_dict)
             
             return result

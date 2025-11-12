@@ -5,12 +5,11 @@ import logging
 import requests
 
 from .repo import InventoryManagementRepo
-from modules._integrations.zoho.client import get_cached_inventory_token
 from core.config import settings
 
 logger = logging.getLogger(__name__)
 
-# Module-level cache for all items (shared across requests)
+# Module-level cache for all items (shared across requests) - DEPRECATED, no longer used
 _CACHED_ITEMS: Optional[List[Dict[str, Any]]] = None
 _CACHE_TIMESTAMP: Optional[datetime] = None
 _CACHE_TTL = 3600  # Cache for 1 hour
@@ -19,87 +18,72 @@ _CACHE_TTL = 3600  # Cache for 1 hour
 class InventoryManagementService:
     def __init__(self, repo: Optional[InventoryManagementRepo] = None):
         self.repo = repo or InventoryManagementRepo()
-        self.zoho_org_id = settings.ZC_ORG_ID
     
-    def _fetch_all_items(self) -> List[Dict[str, Any]]:
-        """Fetch all items from Zoho (called once, then cached)"""
-        global _CACHED_ITEMS, _CACHE_TIMESTAMP
+    def _populate_sales_data_for_items(self, items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Populate uk_6m_data and fr_6m_data for items from condensed_sales tables.
+        Uses SKU to match sales data.
         
-        # Check if cache is still valid
-        if (_CACHED_ITEMS is not None and 
-            _CACHE_TIMESTAMP is not None and 
-            datetime.now() - _CACHE_TIMESTAMP < timedelta(seconds=_CACHE_TTL)):
-            logger.info(f"Using cached items: {len(_CACHED_ITEMS)} items")
-            return _CACHED_ITEMS
-        
-        # Fetch all items from Zoho
-        logger.info("Fetching all items from Zoho...")
+        All identifier suffixes (-SD, -DP, -NP, -MV, -MD) are merged with the base SKU.
+        """
         try:
-            inventory_token = get_cached_inventory_token()
-            if not inventory_token:
-                logger.error("Failed to get Zoho inventory token")
-                return []
+            # Get sales data from condensed tables
+            uk_sales = self.repo.get_condensed_sales("uk")
+            fr_sales_raw = self.repo.get_condensed_sales("fr")
+            nl_sales_raw = self.repo.get_condensed_sales("nl")
             
-            headers = {"Authorization": f"Zoho-oauthtoken {inventory_token}"}
-            url = f"https://www.zohoapis.eu/inventory/v1/items"
+            # Combine FR and NL sales
+            fr_sales = {}
+            for sku, qty in fr_sales_raw.items():
+                fr_sales[sku] = fr_sales.get(sku, 0) + qty
+            for sku, qty in nl_sales_raw.items():
+                fr_sales[sku] = fr_sales.get(sku, 0) + qty
             
-            all_items = []
-            zoho_page = 1
-            zoho_per_page = 200
+            # Helper to get base SKU (remove all identifier suffixes)
+            def get_base_sku(sku: str) -> str:
+                """Remove identifier suffixes: -SD, -DP, -NP, -MV, -MD"""
+                for suffix in ["-SD", "-DP", "-NP", "-MV", "-MD"]:
+                    if sku.endswith(suffix):
+                        return sku[:-len(suffix)]
+                return sku
             
-            while True:
-                params = {
-                    "organization_id": self.zoho_org_id,
-                    "page": zoho_page,
-                    "per_page": zoho_per_page
-                }
-                
-                response = requests.get(url, headers=headers, params=params)
-                data = response.json()
-                
-                if data.get("code") != 0:
-                    logger.error(f"Error fetching from Zoho page {zoho_page}: {data}")
-                    break
-                
-                items = data.get("items", [])
-                logger.info(f"Fetched {len(items)} items from Zoho page {zoho_page}")
-                
-                for item in items:
-                    shelf_total = self._get_custom_field_value(item, "Shelf Total")
-                    reserve_stock = self._get_custom_field_value(item, "Reserve Stock")
-                    
-                    all_items.append({
-                        "item_id": item.get("item_id"),
-                        "product_name": item.get("name"),
-                        "sku": item.get("sku"),
-                        "stock_on_hand": item.get("stock_on_hand"),
-                        "custom_fields": {
-                            "shelf_total": int(shelf_total) if shelf_total and shelf_total.isdigit() else None,
-                            "reserve_stock": int(reserve_stock) if reserve_stock and reserve_stock.isdigit() else None
-                        }
-                    })
-                
-                page_context = data.get("page_context", {})
-                has_more = page_context.get("has_more_page", False)
-                
-                if not has_more or len(items) == 0:
-                    break
-                
-                zoho_page += 1
+            # Aggregate sales by base SKU (all identifiers merged with base)
+            uk_aggregated = {}
+            fr_aggregated = {}
             
-            # Cache the result at module level
-            _CACHED_ITEMS = all_items
-            _CACHE_TIMESTAMP = datetime.now()
-            logger.info(f"Cached {len(all_items)} items from Zoho")
+            for sku, qty in uk_sales.items():
+                base = get_base_sku(sku)
+                uk_aggregated[base] = uk_aggregated.get(base, 0) + qty
             
-            return all_items
+            for sku, qty in fr_sales.items():
+                base = get_base_sku(sku)
+                fr_aggregated[base] = fr_aggregated.get(base, 0) + qty
+            
+            # Populate items with sales data
+            for item in items:
+                sku = item.get("sku", "")
+                base_sku = get_base_sku(sku)
+                
+                # Get sales data for this SKU's base
+                uk_qty = uk_aggregated.get(base_sku, 0)
+                fr_qty = fr_aggregated.get(base_sku, 0)
+                
+                # Add to custom_fields for compatibility
+                if "custom_fields" not in item:
+                    item["custom_fields"] = {}
+                
+                item["custom_fields"]["uk_6m_data"] = uk_qty
+                item["custom_fields"]["fr_6m_data"] = fr_qty
+            
+            return items
             
         except Exception as e:
-            logger.error(f"Error fetching all items: {e}", exc_info=True)
-            return []
+            logger.error(f"Error populating sales data: {e}", exc_info=True)
+            # Return items unchanged if there's an error
+            return items
     
-    def get_zoho_inventory_items(self, page: int = 1, per_page: int = 100, search: str = None) -> Dict[str, Any]:
-        """Get inventory items from Zoho with pagination and search (loads all once, then caches)
+    def get_inventory_items_from_magento(self, page: int = 1, per_page: int = 100, search: str = None) -> Dict[str, Any]:
+        """Get inventory items from magento_product_list table with pagination and search
         
         Args:
             page: Page number (1-indexed)
@@ -110,10 +94,17 @@ class InventoryManagementService:
             Dict with items, total count, and pagination info
         """
         try:
-            # Get all items (from cache if available)
-            all_items = self._fetch_all_items()
+            # Step 1: Merge identifier products with their base SKUs
+            # This must happen BEFORE generating item IDs
+            self.repo.merge_identifier_products()
             
-            if not all_items:
+            # Step 2: Ensure all products have item IDs (after merging)
+            self.repo.ensure_all_products_have_item_ids()
+            
+            # Get all products from magento_product_list
+            all_products = self.repo.get_magento_products()
+            
+            if not all_products:
                 return {
                     "items": [],
                     "total": 0,
@@ -123,17 +114,17 @@ class InventoryManagementService:
                 }
             
             # Apply search filter if provided
-            filtered_items = all_items
+            filtered_products = all_products
             if search and search.strip():
                 search_lower = search.strip().lower()
-                filtered_items = [
-                    item for item in all_items
-                    if (search_lower in (item.get("product_name") or "").lower() or
-                        search_lower in (item.get("sku") or "").lower())
+                filtered_products = [
+                    product for product in all_products
+                    if (search_lower in (product.get("product_name") or "").lower() or
+                        search_lower in (product.get("sku") or "").lower())
                 ]
-                logger.info(f"Search '{search}' filtered {len(all_items)} items to {len(filtered_items)} items")
+                logger.info(f"Search '{search}' filtered {len(all_products)} products to {len(filtered_products)} products")
             
-            total_items = len(filtered_items)
+            total_items = len(filtered_products)
             total_pages = (total_items + per_page - 1) // per_page if total_items > 0 else 1
             
             # Calculate slice indices
@@ -141,12 +132,30 @@ class InventoryManagementService:
             end_idx = min(start_idx + per_page, total_items)
             
             # Get the page slice
-            paginated_items = filtered_items[start_idx:end_idx]
+            paginated_products = filtered_products[start_idx:end_idx]
+            
+            # Transform to match expected format (add stock info if available)
+            items = []
+            for product in paginated_products:
+                item = {
+                    "item_id": product.get("item_id"),
+                    "product_name": product.get("product_name", ""),
+                    "sku": product.get("sku"),
+                    "stock_on_hand": 0,  # Will be calculated from metadata
+                    "custom_fields": {
+                        "shelf_total": None,
+                        "reserve_stock": None
+                    }
+                }
+                items.append(item)
+            
+            # Populate sales data from condensed_sales tables
+            items = self._populate_sales_data_for_items(items)
             
             logger.info(f"Returning page {page}/{total_pages}: items {start_idx+1}-{end_idx} of {total_items} (search: '{search or 'none'}')")
             
             return {
-                "items": paginated_items,
+                "items": items,
                 "total": total_items,
                 "page": page,
                 "per_page": per_page,
@@ -154,7 +163,7 @@ class InventoryManagementService:
             }
 
         except Exception as e:
-            logger.error(f"Error fetching inventory items: {e}", exc_info=True)
+            logger.error(f"Error fetching inventory items from magento: {e}", exc_info=True)
             return {
                 "items": [],
                 "total": 0,
@@ -162,9 +171,31 @@ class InventoryManagementService:
                 "per_page": per_page,
                 "total_pages": 0
             }
+    
+    def _fetch_all_items_legacy(self) -> List[Dict[str, Any]]:
+        """
+        DEPRECATED: Legacy method for fetching items from Zoho API.
+        This method is no longer used. Use get_inventory_items_from_magento() instead.
+        Kept for reference only.
+        """
+        logger.warning("_fetch_all_items_legacy called - this method is deprecated")
+        return []
+    
+    def get_inventory_items(self, page: int = 1, per_page: int = 100, search: str = None) -> Dict[str, Any]:
+        """Get inventory items from magento_product_list table
+        
+        Args:
+            page: Page number (1-indexed)
+            per_page: Number of items per page
+            search: Search query to filter items (searches product_name and sku)
+            
+        Returns:
+            Dict with items, total count, and pagination info
+        """
+        return self.get_inventory_items_from_magento(page, per_page, search)
 
     def _get_custom_field_value(self, item: Dict[str, Any], field_name: str) -> Optional[str]:
-        """Extract custom field value from Zoho item"""
+        """DEPRECATED: Extract custom field value from item (legacy method)"""
         for field in item.get("custom_fields", []):
             if field.get("label") == field_name:
                 return field.get("value")
@@ -179,36 +210,32 @@ class InventoryManagementService:
             return []
 
     def save_inventory_metadata(self, metadata: Dict[str, Any]) -> Dict[str, Any]:
-        """Save inventory metadata and sync total stock to Zoho"""
+        """Save inventory metadata - now uses SKU as primary key"""
         try:
-            if not metadata.get('item_id'):
-                raise ValueError("Missing item_id")
+            sku = metadata.get('sku')
+            if not sku:
+                # Try to get from item_id if legacy call
+                item_id = metadata.get('item_id')
+                if item_id:
+                    raise ValueError("Please provide SKU instead of item_id")
+                raise ValueError("Missing SKU")
 
             # Save to local PostgreSQL
             saved_metadata = self.repo.save_inventory_metadata(metadata)
 
-            # Calculate total stock for Zoho sync
+            # Calculate total stock
             total_stock = (
                 metadata.get('shelf_lt1_qty', 0) + 
                 metadata.get('shelf_gt1_qty', 0) + 
                 metadata.get('top_floor_total', 0)
             )
 
-            # Sync actual stock quantity to Zoho Inventory
-            try:
-                sync_result = self.live_inventory_sync(
-                    item_id=metadata['item_id'], 
-                    new_quantity=total_stock,
-                    reason="Shelf count adjustment from RM365"
-                )
-                logger.info(f"Successfully synced stock to Zoho: {sync_result}")
-            except Exception as sync_error:
-                logger.warning(f"Failed to sync stock to Zoho: {sync_error}")
-                # Don't fail the whole operation if Zoho sync fails
+            # Note: Zoho sync is removed as we now use magento_product_list
+            logger.info(f"Metadata saved for SKU {sku}, total_stock: {total_stock}")
 
             return {
                 "status": "success",
-                "message": "Metadata saved and synced",
+                "message": "Metadata saved",
                 "metadata": saved_metadata,
                 "total_stock": total_stock
             }
@@ -217,105 +244,35 @@ class InventoryManagementService:
             logger.error(f"Error saving inventory metadata: {e}")
             raise
 
-    def _sync_shelf_total_to_zoho(self, item_id: str, total_stock: int) -> None:
-        """Sync the shelf total back to Zoho as a custom field"""
-        try:
-            token = get_cached_inventory_token()
-            if not token:
-                logger.warning("No Zoho token available for sync")
-                return
+    def _sync_shelf_total_legacy(self, item_id: str, total_stock: int) -> None:
+        """
+        DEPRECATED: Legacy method to sync shelf total to Zoho.
+        No longer used as we now use magento_product_list.
+        Kept for reference only.
+        """
+        logger.warning("_sync_shelf_total_legacy called - this method is deprecated and does nothing")
+        return
 
-            headers = {
-                "Authorization": f"Zoho-oauthtoken {token}",
-                "Content-Type": "application/json"
-            }
-
-            sync_payload = {
-                "custom_fields": [
-                    {"label": "Shelf Total", "value": str(total_stock)}
-                ]
-            }
-
-            url = f"https://www.zohoapis.eu/inventory/v1/items/{item_id}"
-            params = {"organization_id": self.zoho_org_id}
-            
-            response = requests.put(url, headers=headers, json=sync_payload, params=params)
-            
-            if response.status_code == 200:
-                logger.info(f"Successfully synced shelf total to Zoho for item {item_id}")
-            else:
-                logger.warning(f"Failed to sync to Zoho: {response.status_code} - {response.text}")
-
-        except Exception as e:
-            logger.error(f"Error syncing shelf total to Zoho: {e}")
-
-    def live_inventory_sync(self, item_id: str, new_quantity: int, reason: str = "Inventory Re-evaluation") -> Dict[str, Any]:
-        """Perform live inventory sync - adjust Zoho stock directly"""
-        try:
-            token = get_cached_inventory_token()
-            if not token:
-                raise ValueError("Invalid Zoho token")
-
-            headers = {
-                "Authorization": f"Zoho-oauthtoken {token}",
-                "Content-Type": "application/json"
-            }
-
-            # Step 1: Get current stock_on_hand from Zoho
-            item_url = f"https://www.zohoapis.eu/inventory/v1/items/{item_id}"
-            params = {"organization_id": self.zoho_org_id}
-            
-            item_resp = requests.get(item_url, headers=headers, params=params)
-            item_data = item_resp.json()
-            
-            if item_resp.status_code != 200 or item_data.get("code") != 0:
-                raise ValueError(f"Failed to fetch current stock: {item_data}")
-            
-            current_qty = item_data.get("item", {}).get("stock_on_hand", 0)
-            diff = new_quantity - current_qty
-            
-            if diff == 0:
-                return {"detail": "No adjustment needed", "stock_on_hand": current_qty}
-
-            # Step 2: Perform inventory adjustment
-            adj_url = f"https://www.zohoapis.eu/inventory/v1/inventoryadjustments"
-            payload = {
-                "date": datetime.now().strftime("%Y-%m-%d"),
-                "reason": reason,
-                "line_items": [{
-                    "item_id": item_id,
-                    "quantity_adjusted": diff
-                }]
-            }
-
-            response = requests.post(adj_url, headers=headers, json=payload, params=params)
-            result = response.json()
-            
-            if response.status_code != 201 or result.get("code") != 0:
-                raise ValueError(f"Adjustment failed: {result}")
-            
-            return {
-                "detail": f"Stock adjusted by {diff}",
-                "new_stock_on_hand": new_quantity,
-                "adjustment_id": result.get("inventoryadjustment", {}).get("inventoryadjustment_id")
-            }
-
-        except Exception as e:
-            logger.error(f"Error in live inventory sync: {e}")
-            raise
+    def live_inventory_sync_legacy(self, item_id: str, new_quantity: int, reason: str = "Inventory Re-evaluation") -> Dict[str, Any]:
+        """
+        DEPRECATED: Legacy method to perform live inventory sync with Zoho.
+        No longer used as we now use magento_product_list.
+        Kept for reference only.
+        """
+        logger.warning("live_inventory_sync_legacy called - this method is deprecated")
+        raise NotImplementedError("Live inventory sync is no longer supported. Inventory is now managed via magento_product_list.")
 
     # Legacy methods for compatibility
     def list_items(self, *, limit: int = 100, search: str = "", low_stock_only: bool = False) -> List[Dict[str, Any]]:
-        """Legacy method - returns Zoho items"""
-        items = self.get_zoho_inventory_items()
+        """Legacy method - returns items from magento_product_list"""
+        result = self.get_inventory_items(page=1, per_page=limit, search=search)
+        items = result.get("items", [])
         
-        if search:
-            search_lower = search.lower()
-            items = [item for item in items if 
-                    search_lower in item.get('product_name', '').lower() or
-                    search_lower in item.get('sku', '').lower()]
+        if low_stock_only:
+            # Filter items with low stock (placeholder logic)
+            items = [item for item in items if item.get('stock_on_hand', 0) < 10]
         
-        return items[:limit]
+        return items
 
     def get_categories(self) -> List[str]:
         """Legacy method - placeholder"""
@@ -325,36 +282,33 @@ class InventoryManagementService:
         """Legacy method - placeholder"""
         return ["Supplier A", "Supplier B", "Supplier C"]
 
-    def sync_zoho_to_magento_product_list(self) -> Dict[str, Any]:
+    def sync_items_to_magento_product_list(self, items: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
-        Sync Zoho inventory items to magento_product_list table.
-        Fetches all items from Zoho and updates the magento_product_list table
-        with SKU, name, item_id, and discontinued_status.
+        Sync inventory items to magento_product_list table.
+        Can be used to import items from any source (CSV, API, etc.)
+        Updates SKU, name, item_id, and discontinued_status.
         """
         try:
-            logger.info("Starting Zoho to magento_product_list sync...")
+            logger.info("Starting sync to magento_product_list...")
             
-            # Fetch all items from Zoho
-            zoho_items = self.get_zoho_inventory_items()
-            
-            if not zoho_items:
+            if not items:
                 return {
                     "status": "error",
-                    "message": "No items fetched from Zoho",
+                    "message": "No items provided for sync",
                     "stats": {}
                 }
             
             # Sync to database
-            stats = self.repo.sync_zoho_to_magento_product_list(zoho_items)
+            stats = self.repo.sync_items_to_magento_product_list(items)
             
             return {
                 "status": "success",
-                "message": f"Synced {stats['total_items']} items from Zoho",
+                "message": f"Synced {stats['total_items']} items",
                 "stats": stats
             }
             
         except Exception as e:
-            logger.error(f"Error syncing Zoho to magento_product_list: {e}")
+            logger.error(f"Error syncing to magento_product_list: {e}")
             return {
                 "status": "error",
                 "message": f"Sync failed: {str(e)}",

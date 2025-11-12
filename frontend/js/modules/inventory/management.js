@@ -228,15 +228,18 @@ async function loadInventoryData() {
       console.log(`[Inventory Management] Loaded ${inventoryData.length} items (non-paginated)`);
     }
     
-    // Index metadata by item_id
+    // Index metadata by SKU (primary key is now SKU)
     metadataIndex.clear();
     if (Array.isArray(metadata)) {
       metadata.forEach(meta => {
-        metadataIndex.set(meta.item_id, meta);
+        const sku = meta.sku;
+        if (sku) {
+          metadataIndex.set(sku, meta);
+        }
       });
     }
     
-    console.log(`[Inventory Management] Indexed ${metadata.length} metadata records`);
+    console.log(`[Inventory Management] Indexed ${metadata.length} metadata records by SKU`);
     
   } catch (error) {
     console.error('[Inventory Management] Error loading data:', error);
@@ -424,8 +427,18 @@ function setupTable() {
 
   // Filter items based on discontinued status, stock status, and search
   inventoryData.forEach(item => {
-    const metadata = metadataIndex.get(item.item_id) || {};
     const sku = item.sku;
+    const metadata = metadataIndex.get(sku) || {};
+    
+    // Merge sales data from item.custom_fields into metadata
+    if (item.custom_fields) {
+      if (item.custom_fields.uk_6m_data !== undefined) {
+        metadata.uk_6m_data = item.custom_fields.uk_6m_data;
+      }
+      if (item.custom_fields.fr_6m_data !== undefined) {
+        metadata.fr_6m_data = item.custom_fields.fr_6m_data;
+      }
+    }
     
     // Check if this product exists in magento_product_list
     if (!sku || !magentoProductsIndex.has(sku)) {
@@ -678,7 +691,11 @@ async function saveRowData(row) {
   const cells = row.children;
   if (cells.length < 16) return;
 
-  const item_id = row.dataset.itemId;
+  const sku = row.dataset.sku;
+  if (!sku) {
+    console.error('[Inventory Management] Cannot save - no SKU found');
+    return;
+  }
 
   function getTextWithLineBreaks(cell) {
     // Convert <br> tags to \n and get text content
@@ -691,6 +708,7 @@ async function saveRowData(row) {
   }
 
   const updated = {
+    sku: sku,
     location: getTextWithLineBreaks(cells[0]),
     date: getTextWithLineBreaks(cells[1]),
     // uk_6m_data: excluded - populated from table
@@ -706,20 +724,19 @@ async function saveRowData(row) {
   };
 
   try {
-    // Use PATCH for updating existing metadata
-    const patchPath = `/api/v1/inventory/management/metadata/${item_id}`;
+    // Use PATCH for updating existing metadata (now using SKU)
+    const patchPath = `/api/v1/inventory/management/metadata/${encodeURIComponent(sku)}`;
     
-    console.log(`[Inventory Management] Updating item ${item_id} with:`, updated);
+    console.log(`[Inventory Management] Updating SKU ${sku} with:`, updated);
     
     // Use PATCH for updating existing metadata
     await patch(patchPath, updated);
     
     console.log(`[Inventory Management] Successfully updated via PATCH: ${patchPath}`);
     
-    const updatedWithId = { ...updated, item_id };
-    metadataIndex.set(item_id, updatedWithId);
+    metadataIndex.set(sku, updated);
     
-    console.log('[Inventory Management] Successfully updated:', item_id);
+    console.log('[Inventory Management] Successfully updated:', sku);
     
   } catch (err) {
     console.error('[Inventory Management] Update failed:', err);
@@ -1019,10 +1036,14 @@ async function handleUpdate(row) {
   const cells = row.children;
   if (cells.length < 16) return;
 
-  const item_id = row.dataset.itemId;
+  const sku = row.dataset.sku;
+  if (!sku) {
+    console.error('[Inventory Management] Cannot update - no SKU found');
+    return;
+  }
 
   const updated = {
-    item_id,
+    sku: sku,
     location: cells[0].textContent.trim(),
     date: cells[1].textContent.trim(),
     // uk_6m_data: excluded - populated from table
@@ -1045,9 +1066,9 @@ async function handleUpdate(row) {
   try {
     await post(`/api/v1/inventory/management/metadata`, updated);
     
-    metadataIndex.set(item_id, updated);
+    metadataIndex.set(sku, updated);
     
-    console.log('[Inventory Management] Successfully updated:', item_id);
+    console.log('[Inventory Management] Successfully updated:', sku);
     
   } catch (err) {
     console.error('[Inventory Management] Update failed:', err);

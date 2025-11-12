@@ -5,7 +5,8 @@ from pydantic import BaseModel
 
 # Input schemas for inventory management
 class InventoryMetadataCreateIn(BaseModel):
-    item_id: str
+    sku: str
+    item_id: Optional[str] = None  # Auto-generated if not provided
     location: Optional[str] = None
     date: Optional[str] = None
     uk_6m_data: Optional[str] = None

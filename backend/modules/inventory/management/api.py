@@ -23,7 +23,7 @@ def inventory_management_health():
     return {"status": "Inventory management module ready"}
 
 
-# ---- Zoho Inventory Items ----
+# ---- Inventory Items ----
 @router.get("/items")
 def get_inventory_items(
     page: int = 1, 
@@ -31,9 +31,9 @@ def get_inventory_items(
     search: str = None,
     user=Depends(get_current_user)
 ):
-    """Get inventory items from Zoho Inventory API with pagination and search"""
+    """Get inventory items from magento_product_list with pagination and search"""
     try:
-        result = _svc().get_zoho_inventory_items(page=page, per_page=per_page, search=search)
+        result = _svc().get_inventory_items(page=page, per_page=per_page, search=search)
         return {
             "items": [InventoryItemOut(**item) for item in result["items"]],
             "total": result["total"],
@@ -60,10 +60,10 @@ def load_inventory_metadata(user=Depends(get_current_user)):
 
 @router.post("/metadata")
 def save_inventory_metadata(body: InventoryMetadataCreateIn, user=Depends(get_current_user)):
-    """Save inventory metadata to PostgreSQL and sync to Zoho"""
+    """Save inventory metadata to PostgreSQL"""
     try:
         result = _svc().save_inventory_metadata(body.model_dump())
-        return {"detail": "Metadata saved and synced", "result": result}
+        return {"detail": "Metadata saved", "result": result}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -85,18 +85,18 @@ async def sync_sales_data(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.patch("/metadata/{item_id}")
+@router.patch("/metadata/{sku}")
 def update_inventory_metadata(
-        item_id: str,
+        sku: str,
         body: InventoryMetadataUpdateIn,
         user=Depends(get_current_user)
 ):
-    """Update inventory metadata"""
+    """Update inventory metadata by SKU"""
     try:
         metadata = body.model_dump(exclude_unset=True)
-        metadata['item_id'] = item_id
+        metadata['sku'] = sku
         result = _svc().save_inventory_metadata(metadata)
-        return {"detail": "Metadata updated and synced", "result": result}
+        return {"detail": "Metadata updated", "result": result}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -104,22 +104,17 @@ def update_inventory_metadata(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# ---- Live Sync ----
-@router.post("/live-sync", response_model=LiveSyncResult)
+# ---- Live Sync (DEPRECATED) ----
+@router.post("/live-sync", response_model=LiveSyncResult, deprecated=True)
 def live_inventory_sync(body: LiveSyncIn, user=Depends(get_current_user)):
-    """Perform live inventory sync - adjust Zoho stock directly"""
-    try:
-        result = _svc().live_inventory_sync(
-            body.item_id,
-            body.new_quantity,
-            body.reason
-        )
-        return LiveSyncResult(**result)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        logger.error(f"Error in live sync: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    """
+    DEPRECATED: Live inventory sync is no longer supported.
+    Inventory is now managed via magento_product_list table.
+    """
+    raise HTTPException(
+        status_code=501, 
+        detail="Live sync is no longer supported. Inventory is managed via magento_product_list."
+    )
 
 
 # ---- Legacy endpoints for compatibility ----
@@ -135,17 +130,20 @@ def get_suppliers(user=Depends(get_current_user)):
     return _svc().get_suppliers()
 
 
-@router.post("/sync-magento-product-list")
-def sync_magento_product_list(user=Depends(get_current_user)):
+@router.post("/sync-items-to-magento")
+def sync_items_to_magento(user=Depends(get_current_user)):
     """
-    Sync Zoho inventory items to magento_product_list table.
-    Updates SKU, product name, item_id, and discontinued_status for all products.
+    Sync inventory items to magento_product_list table.
+    This endpoint can be used to import items from various sources.
+    Note: Items should be provided in the request body if implementing CSV upload.
     """
     try:
-        result = _svc().sync_zoho_to_magento_product_list()
+        # For now, this is a placeholder that could be extended to accept items
+        # You could modify this to accept items from request body or trigger a sync from another source
+        result = _svc().sync_items_to_magento_product_list([])
         return result
     except Exception as e:
-        logger.error(f"Error syncing magento product list: {e}")
+        logger.error(f"Error syncing items to magento: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

@@ -63,46 +63,48 @@ def merge_fr_nl_sales(fr_sales: Dict[str, int], nl_sales: Dict[str, int]) -> Dic
 
 
 def sync_sales_to_inventory_metadata(dry_run: bool = False) -> Dict[str, any]:
+    """
+    Sync sales data from condensed_sales tables to inventory_metadata.
+    Now uses SKU as the primary key instead of item_id.
+    """
     stats = {
-        "total_zoho_items": 0,
+        "total_skus": 0,
         "matched_skus": 0,
         "updated_records": 0,
         "skipped_no_sales": 0,
         "unmatched_skus": [],
     }
 
-    # Fetch Zoho item map { sku: item_id}
-    sku_to_item_id = get_zoho_items_with_skus()
-    stats["total_zoho_items"] = len(sku_to_item_id)
-
     # Fetch raw sales data
     uk_sales, fr_sales, nl_sales = get_regional_sales()
     combined_fr_sales = merge_fr_nl_sales(fr_sales, nl_sales)
 
-    #  Define SKU filter
-    def is_valid_sku(sku: str) -> bool:
-        if sku.endswith(("-SD", "-DP", "-NP", "-MV")):
-            return False
-        return True  # base SKUs and -MD are allowed
+    # Helper to get base SKU (remove all identifier suffixes)
+    def get_base_sku(sku: str) -> str:
+        """Remove identifier suffixes: -SD, -DP, -NP, -MV, -MD"""
+        for suffix in ["-SD", "-DP", "-NP", "-MV", "-MD"]:
+            if sku.endswith(suffix):
+                return sku[:-len(suffix)]
+        return sku
 
-    #  Filter SKUs
-    uk_sales = {sku: qty for sku, qty in uk_sales.items() if is_valid_sku(sku)}
-    combined_fr_sales = {sku: qty for sku, qty in combined_fr_sales.items() if is_valid_sku(sku)}
-
-    # Aggregate sales by base so base and -MD roll up together
+    # Aggregate sales by base SKU (all identifiers merged with base)
     bases: Dict[str, Dict[str, int]] = defaultdict(lambda: {"uk": 0, "fr": 0})
 
     for sku, qty in uk_sales.items():
-        bases[_base_of(sku)]["uk"] += int(qty or 0)
+        base = get_base_sku(sku)
+        bases[base]["uk"] += int(qty or 0)
 
     for sku, qty in combined_fr_sales.items():
-        bases[_base_of(sku)]["fr"] += int(qty or 0)
+        base = get_base_sku(sku)
+        bases[base]["fr"] += int(qty or 0)
+
+    stats["total_skus"] = len(bases)
 
     conn = get_inventory_log_connection()
     try:
         cursor = conn.cursor()
 
-        for base, qtys in bases.items():
+        for base_sku, qtys in bases.items():
             uk_qty = int(qtys.get("uk", 0))
             fr_qty = int(qtys.get("fr", 0))
 
@@ -111,29 +113,28 @@ def sync_sales_to_inventory_metadata(dry_run: bool = False) -> Dict[str, any]:
                 stats["skipped_no_sales"] += 1
                 continue
 
-            # Resolve Zoho item by base -> fallback to base-MD
-            sku_used, item_id = _resolve_zoho_item(sku_to_item_id, base)
-            if not item_id:
-                stats["unmatched_skus"].append(base)  # track base that didn't resolve
-                continue
-
+            # Use the base SKU directly (no need to resolve via Zoho)
+            sku_to_use = base_sku
+            
             if dry_run:
-                logger.info(f"[DRY RUN] Would update {item_id} ({sku_used} / base={base}): UK={uk_qty}, FR={fr_qty}")
+                logger.info(f"[DRY RUN] Would update SKU {sku_to_use}: UK={uk_qty}, FR={fr_qty}")
                 stats["updated_records"] += 1
                 continue
 
+            # Now using SKU as primary key
             cursor.execute(
                 """
-                INSERT INTO inventory_metadata (item_id, uk_6m_data, fr_6m_data, updated_at)
-                VALUES (%s, %s, %s, NOW()) ON CONFLICT (item_id) DO
-                UPDATE SET
+                INSERT INTO inventory_metadata (sku, uk_6m_data, fr_6m_data, updated_at)
+                VALUES (%s, %s, %s, NOW()) 
+                ON CONFLICT (sku) DO UPDATE SET
                     uk_6m_data = EXCLUDED.uk_6m_data,
                     fr_6m_data = EXCLUDED.fr_6m_data,
                     updated_at = NOW()
                 """,
-                (item_id, str(uk_qty), str(fr_qty)),
+                (sku_to_use, str(uk_qty), str(fr_qty)),
             )
             stats["updated_records"] += 1
+            stats["matched_skus"] += 1
 
         if not dry_run:
             conn.commit()
