@@ -598,6 +598,10 @@ function createTableRow(item, metadata) {
   const shelfTotal = (metadata.shelf_lt1_qty || 0) + (metadata.shelf_gt1_qty || 0);
   const totalStock = shelfTotal + (metadata.top_floor_total || 0);
 
+  // Get discontinued status from magento products
+  const magentoProduct = magentoProductsIndex.get(item.sku);
+  const discontinuedStatus = magentoProduct?.discontinued_status || '';
+
   row.innerHTML = `
     <td contenteditable="true">${formatTextForDisplay(metadata.location)}</td>
     <td contenteditable="true">${formatTextForDisplay(metadata.date)}</td>
@@ -612,9 +616,10 @@ function createTableRow(item, metadata) {
     <td contenteditable="true">${formatTextForDisplay(metadata.top_floor_expiry)}</td>
     <td contenteditable="true">${metadata.top_floor_total || 0}</td>
     <td>${totalStock}</td>
-    <td contenteditable="true">${formatTextForDisplay(metadata.status)}</td>
+    <td contenteditable="false" class="readonly-field" title="For warehouse status calculations (not yet implemented)"></td>
     <td contenteditable="true">${formatTextForDisplay(metadata.uk_fr_preorder)}</td>
     <td class="readonly-field" title="Populated from table">${metadata.fr_6m_data || ''}</td>
+    <td class="readonly-field">${discontinuedStatus}</td>
   `;
 
   // Add save functionality to editable cells
