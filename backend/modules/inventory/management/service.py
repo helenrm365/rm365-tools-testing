@@ -97,11 +97,15 @@ class InventoryManagementService:
             # Step 0: Ensure tables exist (creates if not present)
             self.repo.init_tables()
             
-            # Step 1: Merge identifier products with their base SKUs
+            # Step 1: Sync products from magento_product_list to inventory_metadata
+            # This creates inventory_metadata records for any new products
+            self.repo.sync_magento_products_to_inventory_metadata()
+            
+            # Step 2: Merge identifier products with their base SKUs in inventory_metadata
             # This must happen BEFORE generating item IDs
             self.repo.merge_identifier_products()
             
-            # Step 2: Ensure all products have item IDs (after merging)
+            # Step 3: Ensure all products have item IDs in inventory_metadata (after merging)
             self.repo.ensure_all_products_have_item_ids()
             
             # Get all products from magento_product_list

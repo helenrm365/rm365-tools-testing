@@ -195,13 +195,13 @@ class InventoryManagementRepo:
                 ON inventory_metadata (updated_at)
             """)
             
-            # Create magento_product_list table for product filtering
-            # Minimal schema - only what we need for filtering
+            # Create magento_product_list table - simple product catalog
+            # This is the source of truth for products (imported from Magento)
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS magento_product_list (
                     sku VARCHAR(255) PRIMARY KEY,
                     product_name TEXT,
-                    item_id VARCHAR(255),
+                    categories TEXT,
                     additional_attributes TEXT,
                     status VARCHAR(50),
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -209,14 +209,27 @@ class InventoryManagementRepo:
                 )
             """)
             
-            # Add additional_attributes column if it doesn't exist (migration for existing tables)
+            # Add columns if they don't exist (migration for existing tables)
             try:
                 cursor.execute("""
                     ALTER TABLE magento_product_list 
                     ADD COLUMN IF NOT EXISTS additional_attributes TEXT
                 """)
+                cursor.execute("""
+                    ALTER TABLE magento_product_list 
+                    ADD COLUMN IF NOT EXISTS product_name TEXT
+                """)
+                cursor.execute("""
+                    ALTER TABLE magento_product_list 
+                    ADD COLUMN IF NOT EXISTS categories TEXT
+                """)
+                # Remove item_id from magento_product_list if it exists (cleanup)
+                cursor.execute("""
+                    ALTER TABLE magento_product_list 
+                    DROP COLUMN IF EXISTS item_id
+                """)
             except Exception as e:
-                logger.debug(f"Column addition skipped (may already exist): {e}")
+                logger.debug(f"Column migration skipped: {e}")
             
             # Add product_name column if it doesn't exist (migration for existing tables)
             try:
@@ -346,14 +359,93 @@ class InventoryManagementRepo:
         
         return "Active"
 
+    def sync_magento_products_to_inventory_metadata(self) -> Dict[str, int]:
+        """
+        Sync products from magento_product_list to inventory_metadata.
+        
+        Behavior:
+        - NEW products (SKU not in inventory_metadata): Creates new record with just SKU
+        - EXISTING products (SKU already in inventory_metadata): Preserved completely
+          * Keeps item_id, location, shelf quantities, sales data, etc.
+          * No updates or overwrites
+        - FILTERED OUT: Products with "AW365" in categories column are completely ignored
+        
+        This allows you to:
+        1. Delete all data from magento_product_list
+        2. Re-import fresh product catalog
+        3. New products get added to inventory_metadata
+        4. Existing products retain ALL their warehouse data
+        
+        Returns stats about the operation.
+        """
+        conn = self.get_metadata_connection()
+        try:
+            cursor = conn.cursor()
+            
+            stats = {
+                "total_products": 0,
+                "new_records": 0,
+                "existing_records": 0,
+                "filtered_aw365": 0
+            }
+            
+            # Get all products from magento_product_list, excluding AW365 category
+            cursor.execute("""
+                SELECT sku, product_name, categories FROM magento_product_list
+                ORDER BY sku
+            """)
+            
+            products = cursor.fetchall()
+            
+            # Process each product, filtering out AW365
+            for sku, product_name, categories in products:
+                stats["total_products"] += 1
+                
+                # Filter: Skip if categories contains "AW365" (case-insensitive)
+                if categories and "AW365" in categories.upper():
+                    stats["filtered_aw365"] += 1
+                    logger.debug(f"Filtered out {sku} (contains AW365 in categories)")
+                    continue
+                
+                # Insert into inventory_metadata (only if SKU doesn't exist)
+                cursor.execute("""
+                    INSERT INTO inventory_metadata (sku)
+                    VALUES (%s)
+                    ON CONFLICT (sku) DO NOTHING
+                    RETURNING sku
+                """, (sku,))
+                
+                if cursor.fetchone():
+                    stats["new_records"] += 1
+                else:
+                    stats["existing_records"] += 1
+            
+            conn.commit()
+            
+            if stats["new_records"] > 0:
+                logger.info(f"✅ Synced {stats['new_records']} new products to inventory_metadata")
+            if stats["filtered_aw365"] > 0:
+                logger.info(f"🚫 Filtered out {stats['filtered_aw365']} AW365 products")
+            
+            return stats
+            
+        except psycopg2.Error as e:
+            if conn:
+                conn.rollback()
+            logger.error(f"Database error in sync_magento_products_to_inventory_metadata: {e}")
+            raise
+        finally:
+            conn.close()
+
     def merge_identifier_products(self) -> Dict[str, int]:
         """
         Merge products with identifier suffixes (-SD, -DP, -NP, -MV, -MD) into their base SKU products.
+        This operates on inventory_metadata table (not magento_product_list).
         This should be called BEFORE ensure_all_products_have_item_ids() so that item IDs are generated
         after merging is complete.
         
         Process:
-        1. Find all products with identifier suffixes
+        1. Find all products with identifier suffixes in inventory_metadata
         2. For each, check if base SKU product exists
         3. If base exists: delete the identifier variant (data merged conceptually via sales aggregation)
         4. If base doesn't exist: rename the identifier SKU to base SKU
@@ -378,7 +470,7 @@ class InventoryManagementRepo:
             # Find all products with identifier suffixes
             identifier_pattern = " OR ".join([f"sku LIKE '%{suffix}'" for suffix in identifiers])
             cursor.execute(f"""
-                SELECT sku FROM magento_product_list
+                SELECT sku FROM inventory_metadata
                 WHERE {identifier_pattern}
                 ORDER BY sku
             """)
@@ -386,7 +478,7 @@ class InventoryManagementRepo:
             identifier_skus = [row[0] for row in cursor.fetchall()]
             stats["total_checked"] = len(identifier_skus)
             
-            logger.info(f"Found {len(identifier_skus)} products with identifier suffixes")
+            logger.info(f"Found {len(identifier_skus)} products with identifier suffixes in inventory_metadata")
             
             # Process each identifier SKU
             for sku in identifier_skus:
@@ -399,7 +491,7 @@ class InventoryManagementRepo:
                 
                 # Check if base SKU already exists
                 cursor.execute("""
-                    SELECT sku, product_name FROM magento_product_list
+                    SELECT sku FROM inventory_metadata
                     WHERE sku = %s
                 """, (base_sku,))
                 
@@ -409,7 +501,7 @@ class InventoryManagementRepo:
                     # Base exists - delete the identifier variant
                     # (sales data will be aggregated via the sales aggregation logic)
                     cursor.execute("""
-                        DELETE FROM magento_product_list
+                        DELETE FROM inventory_metadata
                         WHERE sku = %s
                     """, (sku,))
                     stats["deleted"] += 1
@@ -418,7 +510,7 @@ class InventoryManagementRepo:
                 else:
                     # Base doesn't exist - rename identifier SKU to base SKU
                     cursor.execute("""
-                        UPDATE magento_product_list
+                        UPDATE inventory_metadata
                         SET sku = %s, updated_at = NOW()
                         WHERE sku = %s
                     """, (base_sku, sku))
@@ -442,7 +534,7 @@ class InventoryManagementRepo:
 
     def ensure_all_products_have_item_ids(self) -> Dict[str, int]:
         """
-        Ensure all products in magento_product_list have generated item IDs.
+        Ensure all products in inventory_metadata have generated item IDs.
         This should be called when loading the inventory management page.
         Returns stats about the operation.
         """
@@ -452,7 +544,7 @@ class InventoryManagementRepo:
             
             # Find all products without item_ids
             cursor.execute("""
-                SELECT sku FROM magento_product_list
+                SELECT sku FROM inventory_metadata
                 WHERE item_id IS NULL OR item_id = ''
             """)
             
@@ -463,14 +555,14 @@ class InventoryManagementRepo:
             }
             
             # Count total products
-            cursor.execute("SELECT COUNT(*) FROM magento_product_list")
+            cursor.execute("SELECT COUNT(*) FROM inventory_metadata")
             stats["total_checked"] = cursor.fetchone()[0]
             
             # Generate and update item IDs
             for sku in skus_without_ids:
                 item_id = self.generate_item_id(sku)
                 cursor.execute("""
-                    UPDATE magento_product_list
+                    UPDATE inventory_metadata
                     SET item_id = %s, updated_at = NOW()
                     WHERE sku = %s
                 """, (item_id, sku))
