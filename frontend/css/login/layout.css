@@ -7,7 +7,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--login-bg);
+  background: transparent;
   padding: 2rem 1rem;
   font-family: 'Sora', system-ui, -apple-system, sans-serif;
 }
