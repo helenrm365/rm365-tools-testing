@@ -1,0 +1,102 @@
+/* ========================================
+   LOGIN PAGE - LAYOUT
+   ======================================== */
+
+.login-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--login-bg);
+  padding: 2rem 1rem;
+  font-family: 'Sora', system-ui, -apple-system, sans-serif;
+}
+
+.login-content {
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  animation: fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Header Section */
+.login-header {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  animation: fadeIn 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.login-logo-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.5rem;
+}
+
+.login-logo {
+  width: 120px;
+  height: auto;
+  filter: drop-shadow(0 4px 12px rgba(118, 161, 43, 0.2));
+}
+
+.login-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--login-text);
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.login-subtitle {
+  font-size: 0.95rem;
+  color: var(--login-text-muted);
+  margin: 0;
+  font-weight: 400;
+}
+
+/* Login Card */
+.login-card {
+  background: var(--login-card-bg);
+  border: 1px solid var(--login-card-border);
+  border-radius: 20px;
+  padding: 2.5rem 2rem;
+  box-shadow: 0 8px 32px var(--login-shadow);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  animation: slideUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.1s backwards;
+}
+
+/* Footer */
+.login-footer {
+  text-align: center;
+  color: var(--login-text-muted);
+  font-size: 0.85rem;
+  animation: fadeIn 1s cubic-bezier(0.4, 0, 0.2, 1) 0.3s backwards;
+}
+
+.login-footer p {
+  margin: 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .login-container {
+    padding: 1.5rem 1rem;
+  }
+  
+  .login-card {
+    padding: 2rem 1.5rem;
+    border-radius: 16px;
+  }
+  
+  .login-title {
+    font-size: 1.75rem;
+  }
+  
+  .login-logo {
+    width: 100px;
+  }
+}

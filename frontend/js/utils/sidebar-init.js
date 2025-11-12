@@ -10,6 +10,132 @@
   const THEME_KEY = 'darkMode';
   const USER_KEY = 'user';
   
+  // Custom confirmation modal
+  function showLogoutConfirmation() {
+    return new Promise((resolve) => {
+      // Create modal backdrop
+      const backdrop = document.createElement('div');
+      backdrop.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: fadeIn 0.2s ease;
+      `;
+      
+      // Create modal
+      const modal = document.createElement('div');
+      modal.style.cssText = `
+        background: ${document.documentElement.classList.contains('dark-mode') ? '#2a2a2a' : 'white'};
+        border-radius: 16px;
+        padding: 2rem;
+        max-width: 400px;
+        width: 90%;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        animation: slideUp 0.3s ease;
+        color: ${document.documentElement.classList.contains('dark-mode') ? '#ecf0f1' : '#2c3e50'};
+      `;
+      
+      modal.innerHTML = `
+        <div style="text-align: center;">
+          <div style="font-size: 3rem; margin-bottom: 1rem;">🚪</div>
+          <h2 style="margin: 0 0 0.5rem 0; font-size: 1.5rem; font-weight: 600; color: inherit;">Logout Confirmation</h2>
+          <p style="margin: 0 0 1.5rem 0; color: ${document.documentElement.classList.contains('dark-mode') ? '#95a5a6' : '#7f8c8d'}; font-size: 1rem;">Are you sure you want to log out?</p>
+          <div style="display: flex; gap: 0.75rem; justify-content: center;">
+            <button id="logoutCancel" style="
+              padding: 0.75rem 1.5rem;
+              border: 2px solid ${document.documentElement.classList.contains('dark-mode') ? '#444' : '#e0e0e0'};
+              background: transparent;
+              color: inherit;
+              border-radius: 8px;
+              font-size: 1rem;
+              font-weight: 600;
+              cursor: pointer;
+              transition: all 0.2s ease;
+              font-family: 'Sora', sans-serif;
+            ">Cancel</button>
+            <button id="logoutConfirm" style="
+              padding: 0.75rem 1.5rem;
+              border: none;
+              background: linear-gradient(135deg, #e74c3c, #c0392b);
+              color: white;
+              border-radius: 8px;
+              font-size: 1rem;
+              font-weight: 600;
+              cursor: pointer;
+              transition: all 0.2s ease;
+              box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+              font-family: 'Sora', sans-serif;
+            ">Logout</button>
+          </div>
+        </div>
+      `;
+      
+      backdrop.appendChild(modal);
+      document.body.appendChild(backdrop);
+      
+      // Add animations
+      const style = document.createElement('style');
+      style.textContent = `
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes slideUp {
+          from { opacity: 0; transform: translateY(20px) scale(0.95); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        #logoutCancel:hover {
+          background: ${document.documentElement.classList.contains('dark-mode') ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)'} !important;
+          border-color: ${document.documentElement.classList.contains('dark-mode') ? '#666' : '#ccc'} !important;
+        }
+        #logoutConfirm:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 16px rgba(231, 76, 60, 0.4) !important;
+        }
+      `;
+      document.head.appendChild(style);
+      
+      const confirmBtn = backdrop.querySelector('#logoutConfirm');
+      const cancelBtn = backdrop.querySelector('#logoutCancel');
+      
+      const cleanup = () => {
+        backdrop.style.animation = 'fadeIn 0.2s ease reverse';
+        setTimeout(() => {
+          backdrop.remove();
+          style.remove();
+        }, 200);
+      };
+      
+      confirmBtn.addEventListener('click', () => {
+        cleanup();
+        resolve(true);
+      });
+      
+      cancelBtn.addEventListener('click', () => {
+        cleanup();
+        resolve(false);
+      });
+      
+      backdrop.addEventListener('click', (e) => {
+        if (e.target === backdrop) {
+          cleanup();
+          resolve(false);
+        }
+      });
+      
+      // Focus confirm button
+      setTimeout(() => confirmBtn.focus(), 100);
+    });
+  }
+  
   function initDarkMode() {
     const toggle = document.getElementById('darkModeToggle');
     if (!toggle) {
@@ -128,27 +254,29 @@
       newLogoutBtn.addEventListener('click', (e) => {
         console.log('[Sidebar] Logout button clicked');
         
-        if (!confirm('Are you sure you want to log out?')) return;
-        
-        // Clear all authentication and user data
-        // Remove access_token from both sessionStorage and localStorage
-        sessionStorage.removeItem('access_token');
-        localStorage.removeItem('access_token');
-        
-        // Remove user data
-        localStorage.removeItem(USER_KEY);
-        localStorage.removeItem('allowed_tabs');
-        
-        // Clear any legacy auth tokens
-        localStorage.removeItem('authToken');
-        
-        // Clear everything in sessionStorage to be safe
-        sessionStorage.clear();
-        
-        console.log('[Sidebar] All auth data cleared, redirecting to home');
-        
-        // Redirect to home page instead of login
-        window.location.href = '/home';
+        showLogoutConfirmation().then((confirmed) => {
+          if (!confirmed) return;
+          
+          // Clear all authentication and user data
+          // Remove access_token from both sessionStorage and localStorage
+          sessionStorage.removeItem('access_token');
+          localStorage.removeItem('access_token');
+          
+          // Remove user data
+          localStorage.removeItem(USER_KEY);
+          localStorage.removeItem('allowed_tabs');
+          
+          // Clear any legacy auth tokens
+          localStorage.removeItem('authToken');
+          
+          // Clear everything in sessionStorage to be safe
+          sessionStorage.clear();
+          
+          console.log('[Sidebar] All auth data cleared, redirecting to home');
+          
+          // Redirect to home page instead of login
+          window.location.href = '/home';
+        });
       });
     } else {
       // Show login button for unauthenticated users

@@ -1,0 +1,44 @@
+/* ========================================
+   LOGIN PAGE - BASE STYLES
+   ======================================== */
+
+/* CSS Variables */
+:root {
+  --login-primary: #76a12b;
+  --login-primary-dark: #5e8122;
+  --login-bg: #0a0a0a;
+  --login-card-bg: rgba(255, 255, 255, 0.03);
+  --login-card-border: rgba(255, 255, 255, 0.08);
+  --login-text: #ffffff;
+  --login-text-secondary: rgba(255, 255, 255, 0.7);
+  --login-text-muted: rgba(255, 255, 255, 0.5);
+  --login-input-bg: rgba(255, 255, 255, 0.05);
+  --login-input-border: rgba(255, 255, 255, 0.1);
+  --login-input-focus: var(--login-primary);
+  --login-shadow: rgba(0, 0, 0, 0.3);
+  --login-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --login-bg: #0a0a0a;
+    --login-card-bg: rgba(255, 255, 255, 0.03);
+    --login-text: #ffffff;
+  }
+}
+
+/* Light mode adjustments */
+@media (prefers-color-scheme: light) {
+  :root {
+    --login-bg: #f5f5f5;
+    --login-card-bg: #ffffff;
+    --login-card-border: rgba(0, 0, 0, 0.1);
+    --login-text: #1a1a1a;
+    --login-text-secondary: rgba(0, 0, 0, 0.7);
+    --login-text-muted: rgba(0, 0, 0, 0.5);
+    --login-input-bg: #f8f8f8;
+    --login-input-border: rgba(0, 0, 0, 0.15);
+    --login-shadow: rgba(0, 0, 0, 0.1);
+  }
+}
