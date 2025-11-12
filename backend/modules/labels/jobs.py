@@ -97,18 +97,18 @@ def _ensure_label_print_schema(conn: PGConn) -> None:
 
 # --- helpers ---------------------------------------------------------------
 
-def _snapshot_rows(zoho_map: Dict[str, str], item_ids: List[str] = None) -> List[Dict[str, Any]]:
+def _snapshot_rows(item_ids: List[str] = None) -> List[Dict[str, Any]]:
     """
     Pull current /to-print rows from your repo, optionally filtered by item_ids.
     Expected keys used below: sku, item_id, product_name, uk_6m_data, fr_6m_data
-    Uses inventory_logs database connection to query magento and sales data.
+    Uses inventory_logs database connection to query magento, inventory_metadata, and sales data.
     """
     inventory_conn = None
     try:
         # Use inventory_logs database connection (same as /to-print endpoint)
         inventory_conn = get_inventory_log_connection()
-        logger.info(f"Fetching labels data with {len(zoho_map)} zoho items from inventory_logs DB")
-        all_rows = LabelsRepo().get_labels_to_print_psycopg(inventory_conn, zoho_map)
+        logger.info(f"Fetching labels data from inventory_logs DB")
+        all_rows = LabelsRepo().get_labels_to_print_psycopg(inventory_conn)
         logger.info(f"Fetched {len(all_rows)} total rows from labels repo")
     except Exception as e:
         logger.error(f"Error fetching labels data: {e}")
@@ -130,7 +130,7 @@ def _snapshot_rows(zoho_map: Dict[str, str], item_ids: List[str] = None) -> List
 
 # --- API-facing functions --------------------------------------------------
 
-def start_label_job(conn: PGConn, zoho_map: Dict[str, str], payload: Dict[str, Any]) -> int:
+def start_label_job(conn: PGConn, payload: Dict[str, Any]) -> int:
     """
     Create job + bulk insert rows.
     payload: { 
@@ -150,9 +150,9 @@ def start_label_job(conn: PGConn, zoho_map: Dict[str, str], payload: Dict[str, A
         raise
 
     # 2) snapshot current rows (filtered by item_ids if provided) - do this BEFORE starting transaction
-    # This uses a SEPARATE connection to the products database
+    # This uses a SEPARATE connection to the inventory database
     try:
-        rows = _snapshot_rows(zoho_map, item_ids)
+        rows = _snapshot_rows(item_ids)
         logger.info(f"Fetched {len(rows)} rows for new job")
     except Exception as e:
         logger.error(f"Failed to snapshot rows: {e}")

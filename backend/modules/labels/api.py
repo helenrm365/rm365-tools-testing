@@ -4,7 +4,6 @@ from fastapi import APIRouter, Depends, HTTPException, Path, Body, Query
 
 
 from common.deps import get_current_user, inventory_conn
-from modules._integrations.zoho.client import get_zoho_items_with_skus, get_zoho_items_with_skus_full
 from modules.labels.repo import LabelsRepo
 
 from modules.labels.jobs import start_label_job, get_label_job_rows, delete_label_job
@@ -32,14 +31,14 @@ def labels_to_print(
 ):
     """
     Return label rows for Magento products filtered by discontinued_status.
-    Base/MD collapse + Zoho + 6M enrichment handled in repo.
+    Base/MD collapse + inventory_metadata + 6M enrichment handled in repo.
     
     Args:
         discontinued_statuses: Comma-separated list of statuses (e.g., "Active,Temporarily OOS")
                               Defaults to: Active, Temporarily OOS, Pre Order, Samples
         region: Region preference for pricing/names ("uk", "fr", or "nl"). Defaults to "uk".
                 SKUs always come from UK Magento, but prices/names can come from any region.
-                6M data: UK separate, FR+NL combined.
+                6M data: from inventory_metadata (UK separate, FR+NL combined).
     """
     try:
         # Parse discontinued_statuses if provided
@@ -47,11 +46,9 @@ def labels_to_print(
         if discontinued_statuses:
             status_list = [s.strip() for s in discontinued_statuses.split(',') if s.strip()]
         
-        zoho_map = get_zoho_items_with_skus_full()
         with inventory_conn() as conn:
             return LabelsRepo().get_labels_to_print_psycopg(
                 conn, 
-                zoho_map, 
                 status_list, 
                 preferred_region=region
             )
@@ -137,10 +134,7 @@ def start_print_job(
         print(f"[Labels API] Creating print job with payload: {payload}")
         
         with inventory_conn() as conn:
-            zoho_map = get_zoho_items_with_skus_full()
-            print(f"[Labels API] Zoho map loaded with {len(zoho_map)} items")
-            
-            job_id = start_label_job(conn, zoho_map, payload)
+            job_id = start_label_job(conn, payload)
             
             # Verify items were inserted
             with conn.cursor() as cur:

@@ -64,102 +64,44 @@ class LabelsRepo:
             cur.execute(query, params)
             return [str(r[0]).strip() for r in cur.fetchall()]
 
-    def _load_six_month_data_psycopg(self, conn, resolved_data: Dict[str, Tuple[str, str, str]]) -> Dict[str, Tuple[str, str]]:
+    # DEPRECATED: No longer used - 6M data now comes from inventory_metadata table
+    # def _load_six_month_data_psycopg(self, conn, resolved_data: Dict[str, Tuple[str, str, str]]) -> Dict[str, Tuple[str, str]]:
+    #     """Old method that loaded 6M data from condensed_sales tables using Zoho item_ids"""
+    #     pass
+
+    def _load_inventory_metadata_map(self, inventory_conn) -> Dict[str, Tuple[str, str, str]]:
         """
-        Load 6-month sales data from condensed sales tables.
+        Load inventory metadata mapping: sku -> (item_id, uk_6m_data, fr_6m_data)
         
         Args:
-            conn: Database connection
-            resolved_data: Dict[base_sku] -> (item_id, sku_used, zoho_name)
-        
-        Returns:
-            Dict[item_id] -> (uk_6m_qty, fr_nl_combined_qty)
-        """
-        if not resolved_data:
-            return {}
-        
-        # Extract SKUs and create mapping from item_id to SKU
-        item_to_sku = {}  # item_id -> sku
-        skus_to_lookup = set()
-        
-        for base, (item_id, sku_used, zoho_name) in resolved_data.items():
-            item_to_sku[item_id] = sku_used
-            skus_to_lookup.add(sku_used)
-        
-        if not skus_to_lookup:
-            return {}
-        
-        sku_list = list(skus_to_lookup)
-        
-        logger.info(f"Looking up 6M data for {len(sku_list)} SKUs. Sample SKUs: {sku_list[:5]}")
-        
-        # Get UK 6M data - use separate connection to avoid transaction issues
-        uk_data = {}
-        try:
-            with products_conn() as uk_conn:
-                with uk_conn.cursor() as cur:
-                    cur.execute("""
-                        SELECT sku, total_qty 
-                        FROM uk_condensed_sales 
-                        WHERE sku = ANY(%s)
-                    """, (sku_list,))
-                    
-                    for row in cur.fetchall():
-                        sku = str(row[0])
-                        qty = int(row[1]) if row[1] else 0
-                        uk_data[sku] = str(qty)
-                    logger.info(f"Found UK 6M data for {len(uk_data)} SKUs. Sample: {list(uk_data.items())[:3]}")
-        except Exception as e:
-            logger.warning(f"Could not fetch UK condensed sales data: {e}")
-        
-        # Get FR data - use separate connection
-        fr_data = {}
-        try:
-            with products_conn() as fr_conn:
-                with fr_conn.cursor() as cur:
-                    cur.execute("""
-                        SELECT sku, total_qty 
-                        FROM fr_condensed_sales 
-                        WHERE sku = ANY(%s)
-                    """, (sku_list,))
-                    
-                    for row in cur.fetchall():
-                        sku = str(row[0])
-                        qty = int(row[1]) if row[1] else 0
-                        fr_data[sku] = qty
-        except Exception as e:
-            logger.warning(f"Could not fetch FR condensed sales data: {e}")
-        
-        # Get NL data - use separate connection
-        nl_data = {}
-        try:
-            with products_conn() as nl_conn:
-                with nl_conn.cursor() as cur:
-                    cur.execute("""
-                        SELECT sku, total_qty 
-                        FROM nl_condensed_sales 
-                        WHERE sku = ANY(%s)
-                    """, (sku_list,))
-                    
-                    for row in cur.fetchall():
-                        sku = str(row[0])
-                        qty = int(row[1]) if row[1] else 0
-                        nl_data[sku] = qty
-        except Exception as e:
-            logger.warning(f"Could not fetch NL condensed sales data: {e}")
-        
-        # Combine FR + NL data and build final result keyed by item_id
-        result = {}
-        for item_id, sku in item_to_sku.items():
-            uk_qty = uk_data.get(sku, "0")
-            fr_qty = fr_data.get(sku, 0)
-            nl_qty = nl_data.get(sku, 0)
-            fr_nl_combined = str(fr_qty + nl_qty)
+            inventory_conn: Connection to inventory database
             
-            result[item_id] = (uk_qty, fr_nl_combined)
-        
-        logger.info(f"Loaded 6M data from condensed tables: UK={len(uk_data)}, FR={len(fr_data)}, NL={len(nl_data)} SKUs")
-        return result
+        Returns:
+            Dict mapping SKU to tuple of (item_id, uk_6m_data, fr_6m_data)
+        """
+        metadata_map = {}
+        try:
+            with inventory_conn.cursor() as cur:
+                cur.execute("""
+                    SELECT sku, item_id, uk_6m_data, fr_6m_data
+                    FROM inventory_metadata
+                    WHERE sku IS NOT NULL 
+                      AND item_id IS NOT NULL
+                """)
+                
+                for row in cur.fetchall():
+                    sku = str(row[0]).strip()
+                    item_id = str(row[1]).strip()
+                    uk_6m = str(row[2] or "0")
+                    fr_6m = str(row[3] or "0")
+                    metadata_map[sku] = (item_id, uk_6m, fr_6m)
+                    
+            logger.info(f"Loaded {len(metadata_map)} records from inventory_metadata")
+        except Exception as e:
+            logger.error(f"Failed to load inventory_metadata: {e}")
+            # Return empty map if table doesn't exist yet
+            
+        return metadata_map
     
     def _load_latest_prices_psycopg(self, conn, skus: List[str], preferred_region: str = "uk") -> Dict[str, str]:
         """
@@ -288,26 +230,63 @@ class LabelsRepo:
         logger.info(f"Loaded names for {len(names)}/{len(skus)} SKUs")
         return names
 
+    def _load_inventory_metadata_map(self, inventory_conn) -> Dict[str, Tuple[str, str, str]]:
+        """
+        Load inventory metadata mapping: sku -> (item_id, uk_6m_data, fr_6m_data)
+        
+        Args:
+            inventory_conn: Connection to inventory database
+            
+        Returns:
+            Dict mapping SKU to tuple of (item_id, uk_6m_data, fr_6m_data)
+        """
+        metadata_map = {}
+        try:
+            with inventory_conn.cursor() as cur:
+                cur.execute("""
+                    SELECT sku, item_id, uk_6m_data, fr_6m_data
+                    FROM inventory_metadata
+                    WHERE sku IS NOT NULL 
+                      AND item_id IS NOT NULL
+                """)
+                
+                for row in cur.fetchall():
+                    sku = str(row[0]).strip()
+                    item_id = str(row[1]).strip()
+                    uk_6m = str(row[2] or "0")
+                    fr_6m = str(row[3] or "0")
+                    metadata_map[sku] = (item_id, uk_6m, fr_6m)
+                    
+            logger.info(f"Loaded {len(metadata_map)} records from inventory_metadata")
+        except Exception as e:
+            logger.error(f"Failed to load inventory_metadata: {e}")
+            # Return empty map if table doesn't exist yet
+            
+        return metadata_map
+
     def _resolve_to_rows(
         self,
-        inventory_conn,  # for magento_product_list
+        inventory_conn,  # for magento_product_list and inventory_metadata
         candidate_skus: List[str],
-        zoho_map: Dict[str, str],       # sku -> item_id  (from get_zoho_items_with_skus)
-        zoho_name_lookup: Optional[Dict[str, str]] = None,  # if later you return names too
         preferred_region: str = "uk",  # region preference for price/name selection
     ) -> List[Dict[str, Any]]:
         """
-        Collapse per-base to base/-MD, map to Zoho, attach 6M data.
-        SKUs come from UK (magento), but prices/names come from products database.
+        Collapse per-base to base/-MD, map to inventory_metadata, attach 6M data and prices.
+        SKUs come from UK (magento), but prices/names come from sales data.
+        Item IDs and 6M data come from inventory_metadata table.
         
         Args:
-            inventory_conn: Connection to inventory_logs database (for magento)
+            inventory_conn: Connection to inventory_logs database (for magento and inventory_metadata)
             candidate_skus: List of SKUs to process
-            zoho_map: Mapping of SKUs to Zoho item IDs
-            zoho_name_lookup: Optional mapping of SKUs to product names
             preferred_region: Region preference for pricing (uk/fr/nl)
         """
         if not candidate_skus:
+            return []
+
+        # Load inventory metadata mapping (item_id and 6M data)
+        metadata_map = self._load_inventory_metadata_map(inventory_conn)
+        if not metadata_map:
+            logger.warning("No inventory_metadata records found. Ensure inventory sync has run.")
             return []
 
         # group by base
@@ -327,17 +306,15 @@ class LabelsRepo:
         if not chosen_by_base:
             return []
 
-        # map to Zoho - simple direct mapping
-        resolved: Dict[str, Tuple[str, str, str]] = {}  # base -> (item_id, sku_used, name)
+        # map to inventory_metadata - get item_id and 6M data
+        resolved: Dict[str, Tuple[str, str, str, str]] = {}  # base -> (item_id, sku_used, uk_6m, fr_6m)
         for base, chosen in chosen_by_base.items():
             # Try the chosen SKU directly
-            if chosen in zoho_map and zoho_map[chosen]:
-                item_id = zoho_map[chosen]
-                # Try to get name from Zoho first, then from sales data
-                name = "" if not zoho_name_lookup else (zoho_name_lookup.get(chosen, "") or "")
-                resolved[base] = (item_id, chosen, name)
+            if chosen in metadata_map:
+                item_id, uk_6m, fr_6m = metadata_map[chosen]
+                resolved[base] = (item_id, chosen, uk_6m, fr_6m)
             else:
-                log.warning("Zoho mapping missing for SKU=%s", chosen)
+                log.warning("inventory_metadata mapping missing for SKU=%s", chosen)
         if not resolved:
             return []
 
@@ -345,37 +322,28 @@ class LabelsRepo:
         all_skus = list(set([t[1] for t in resolved.values()]))
         logger.info(f"Loading data for {len(all_skus)} unique SKUs from {len(resolved)} products")
         
-        # Load sales data from products database (separate connection from magento)
-        # Load 6M data (UK separate, FR+NL combined) from condensed sales tables
-        with products_conn() as prod_conn:
-            sixm = self._load_six_month_data_psycopg(prod_conn, resolved)
-            logger.info(f"Loaded 6M data for {len(sixm)} items")
-        
-        # Load prices with region preference
+        # Load prices with region preference from sales data
         with products_conn() as prod_conn:
             prices = self._load_latest_prices_psycopg(prod_conn, all_skus, preferred_region)
             logger.info(f"Loaded prices for {len(prices)} SKUs (region: {preferred_region})")
         
-        # Load product names from sales data with region preference (fallback for empty Zoho names)
+        # Load product names from sales data with region preference
         with products_conn() as prod_conn:
             sales_names = self._load_product_names_psycopg(prod_conn, all_skus, preferred_region)
             logger.info(f"Loaded names for {len(sales_names)} SKUs (region: {preferred_region})")
 
         # build rows
         out: List[Dict[str, Any]] = []
-        for base, (item_id, sku_used, zoho_name) in resolved.items():
-            uk_6m, fr_nl_6m = sixm.get(item_id, ("0", "0"))
+        for base, (item_id, sku_used, uk_6m, fr_6m) in resolved.items():
             price = prices.get(sku_used, "£0.00")  # Get price for this SKU with region preference
-            
-            # Use Zoho name if available, otherwise use sales data name
-            product_name = zoho_name or sales_names.get(sku_used, "")
+            product_name = sales_names.get(sku_used, "")
             
             out.append({
-                "item_id": item_id,       # barcode (Zoho item_id)
-                "sku": sku_used,          # chosen Zoho SKU (base or -MD) - always from UK
-                "product_name": product_name,     # from Zoho or sales data (region preference)
-                "uk_6m_data": uk_6m,      # UK 6-month data only
-                "fr_6m_data": fr_nl_6m,   # FR+NL combined 6-month data
+                "item_id": item_id,       # barcode from inventory_metadata
+                "sku": sku_used,          # chosen SKU (base or -MD) - always from UK
+                "product_name": product_name,     # from sales data (region preference)
+                "uk_6m_data": uk_6m,      # UK 6-month data from inventory_metadata
+                "fr_6m_data": fr_6m,      # FR+NL combined 6-month data from inventory_metadata
                 "price": price,           # most recent price from preferred region
             })
         
@@ -383,48 +351,28 @@ class LabelsRepo:
         return out
 
     # --- public (psycopg2) ---
-    def get_labels_to_print_psycopg(self, conn, zoho_sku_map, discontinued_statuses: Optional[List[str]] = None, preferred_region: str = "uk") -> List[Dict[str, Any]]:
+    def get_labels_to_print_psycopg(self, conn, discontinued_statuses: Optional[List[str]] = None, preferred_region: str = "uk") -> List[Dict[str, Any]]:
         """
         DB-driven: Magento 'discontinued_status' decides inclusion.
-        Accepts either:
-          - {sku: item_id}  (legacy)
-          - {sku: (item_id, name)}  (full)
+        Gets item_id and 6M data from inventory_metadata table.
+        Gets prices and names from sales_data tables.
         
         Args:
-            conn: database connection
-            zoho_sku_map: mapping of SKUs to Zoho item IDs and names
+            conn: database connection to inventory_logs database
             discontinued_statuses: list of discontinued statuses to filter by (optional)
             preferred_region: "uk" (default), "fr", or "nl" - determines price/name priority
         """
         magento_skus = self._fetch_allowed_skus_from_magento_psycopg(conn, discontinued_statuses)
 
-        # Normalize maps
-        if magento_skus and zoho_sku_map:
-            # sku -> item_id
-            sku_to_item_id = {
-                k: (v if isinstance(v, str) else v[0])
-                for k, v in zoho_sku_map.items()
-            }
-            # sku -> name (only for full map)
-            sku_to_name = {
-                k: (v[1] if isinstance(v, tuple) and len(v) > 1 else "")
-                for k, v in zoho_sku_map.items()
-            }
-        else:
-            sku_to_item_id, sku_to_name = {}, {}
-
         return self._resolve_to_rows(
             conn,
             magento_skus,
-            sku_to_item_id,
-            zoho_name_lookup=sku_to_name,  # <— NEW: passes names through
-            preferred_region=preferred_region,  # <— NEW: region preference
+            preferred_region=preferred_region,
         )
 
     def get_labels_to_print_from_csv_psycopg(
         self,
         conn,
-        zoho_sku_to_item_id: Dict[str, str],
         csv_skus: List[str],
         preferred_region: str = "uk",
     ) -> List[Dict[str, Any]]:
@@ -432,6 +380,7 @@ class LabelsRepo:
         CSV-driven (optional): validate against Magento to exclude discontinued.
         Only includes Active, Temporarily OOS, Pre Order, and Samples.
         Parses discontinued_status from additional_attributes field.
+        Gets item_id and 6M data from inventory_metadata table.
         """
         if not csv_skus:
             return []
@@ -451,4 +400,4 @@ class LabelsRepo:
                 (csv_skus,)
             )
             allowed = [str(r[0]).strip() for r in cur.fetchall()]
-        return self._resolve_to_rows(conn, allowed, zoho_sku_to_item_id, preferred_region=preferred_region)
+        return self._resolve_to_rows(conn, allowed, preferred_region=preferred_region)
