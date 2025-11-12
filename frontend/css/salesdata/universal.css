@@ -374,8 +374,7 @@ html.dark-mode .secondary-btn:hover {
 .table-container {
   background: white;
   border-radius: 12px;
-  overflow-x: auto;
-  overflow-y: hidden;
+  overflow: auto;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
   border: 2px solid #f1f5f9;
   margin-bottom: 2rem;
@@ -391,11 +390,19 @@ html.dark-mode .table-container {
 /* Custom scrollbar for table container */
 .table-container::-webkit-scrollbar {
   height: 12px;
+  width: 12px;
 }
 
 .table-container::-webkit-scrollbar-track {
   background: #f1f5f9;
+}
+
+.table-container::-webkit-scrollbar-track:horizontal {
   border-radius: 0 0 12px 12px;
+}
+
+.table-container::-webkit-scrollbar-track:vertical {
+  border-radius: 0 12px 12px 0;
 }
 
 .table-container::-webkit-scrollbar-thumb {
