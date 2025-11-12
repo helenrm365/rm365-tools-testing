@@ -79,7 +79,9 @@ export function enforceRoutePermission(pathname) {
 
 // Hide or show sidebar items according to allowed tabs
 export function filterSidebarByPermissions() {
+  const authenticated = isAuthed();
   const allowedTabs = getAllowedTabs();
+  
   // Updated to work with new universal sidebar structure
   const items = document.querySelectorAll('.sidebar .sidebar-nav > li');
   items.forEach(li => {
@@ -87,6 +89,21 @@ export function filterSidebarByPermissions() {
     if (!a) return;
     const href = a.getAttribute('href') || '/';
     const section = href.replace(/^\/+/, '').split('/')[0];
+    
+    // If not authenticated, only show home page
+    if (!authenticated) {
+      const isHome = section === 'home' || href === '/' || href === '/home';
+      if (isHome) {
+        li.style.display = '';
+        li.removeAttribute('data-permission-hidden');
+      } else {
+        li.style.display = 'none';
+        li.setAttribute('data-permission-hidden', 'true');
+      }
+      return;
+    }
+    
+    // If authenticated, check permissions
     const ok = isAllowed(section, allowedTabs);
     
     if (ok) {

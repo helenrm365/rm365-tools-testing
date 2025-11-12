@@ -9,24 +9,15 @@ export async function init() {
   
   const loginPrompt = document.getElementById('loginPrompt');
   const welcomeMessage = document.getElementById('welcomeMessage');
+  const featuresGrid = document.querySelector('.features-grid');
   
   if (authenticated) {
-    // Show welcome message for authenticated users
+    // Hide both login prompt and welcome message for authenticated users
     if (loginPrompt) loginPrompt.hidden = true;
-    if (welcomeMessage) {
-      welcomeMessage.hidden = false;
-      
-      // Personalize welcome message
-      try {
-        const user = JSON.parse(localStorage.getItem('user') || '{}');
-        const welcomeUserName = document.getElementById('welcomeUserName');
-        if (welcomeUserName && user?.name) {
-          welcomeUserName.textContent = `Welcome back, ${user.name}!`;
-        }
-      } catch (e) {
-        console.warn('[Home] Could not load user data:', e);
-      }
-    }
+    if (welcomeMessage) welcomeMessage.hidden = true;
+    
+    // Show feature cards for authenticated users
+    if (featuresGrid) featuresGrid.style.display = 'grid';
     
     // Enable feature cards navigation for authenticated users
     setupFeatureCards(true);
@@ -34,6 +25,9 @@ export async function init() {
     // Show login prompt for unauthenticated users
     if (loginPrompt) loginPrompt.hidden = false;
     if (welcomeMessage) welcomeMessage.hidden = true;
+    
+    // Hide feature cards for unauthenticated users
+    if (featuresGrid) featuresGrid.style.display = 'none';
     
     // Setup login button
     const goToLoginBtn = document.getElementById('goToLoginBtn');
@@ -46,9 +40,6 @@ export async function init() {
         }
       });
     }
-    
-    // Disable feature cards for unauthenticated users (show them but make non-clickable)
-    setupFeatureCards(false);
   }
 }
 

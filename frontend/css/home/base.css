@@ -1,0 +1,41 @@
+/* ===== Home Page - Base Variables & Resets ===== */
+
+/* CSS Variables used by home page */
+:root {
+    --selection-bar-bg: #f8f9fa;
+    --border-color: #e5e7eb;
+    --text-color: #333;
+    --text-secondary: #666;
+    --header-color: #1a1a1a;
+    --header-accent: #76a12b;
+    --card-background: white;
+    --text-primary: #1a1a1a;
+}
+
+html.dark-mode {
+    --selection-bar-bg: #2e2e2e;
+    --border-color: #444;
+    --text-color: #fff;
+    --text-secondary: #aaa;
+    --header-color: #ffffff;
+    --header-accent: #8ec134;
+    --card-background: #2a2a2a;
+    --text-primary: #ffffff;
+}
+
+/* Font family */
+* { 
+    font-family: 'Sora', sans-serif; 
+}
+
+/* Dark mode support */
+html {
+    background-color: #ffffff;
+    color: #000000;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+html.dark-mode {
+    background-color: #1a1a1a;
+    color: #ffffff;
+}
