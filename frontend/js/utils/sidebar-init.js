@@ -102,17 +102,30 @@
     }
     
     console.log('[Sidebar] Initializing logout/login button');
+    updateLogoutButton();
+  }
+  
+  function updateLogoutButton() {
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (!logoutBtn) {
+      console.warn('[Sidebar] Logout button not found for update');
+      return;
+    }
     
     // Check if user is authenticated
     const isAuthenticated = sessionStorage.getItem('access_token') || localStorage.getItem('access_token');
     
+    // Remove existing event listeners by cloning the button
+    const newLogoutBtn = logoutBtn.cloneNode(true);
+    logoutBtn.parentNode.replaceChild(newLogoutBtn, logoutBtn);
+    
     if (isAuthenticated) {
       // Show logout button for authenticated users
-      logoutBtn.querySelector('.nav-label').textContent = 'Logout';
-      logoutBtn.querySelector('.nav-icon').textContent = '🚪';
-      logoutBtn.setAttribute('aria-label', 'Logout');
+      newLogoutBtn.querySelector('.nav-label').textContent = 'Logout';
+      newLogoutBtn.querySelector('.nav-icon').textContent = '🚪';
+      newLogoutBtn.setAttribute('aria-label', 'Logout');
       
-      logoutBtn.addEventListener('click', (e) => {
+      newLogoutBtn.addEventListener('click', (e) => {
         console.log('[Sidebar] Logout button clicked');
         
         if (!confirm('Are you sure you want to log out?')) return;
@@ -139,11 +152,11 @@
       });
     } else {
       // Show login button for unauthenticated users
-      logoutBtn.querySelector('.nav-label').textContent = 'Login';
-      logoutBtn.querySelector('.nav-icon').textContent = '🔑';
-      logoutBtn.setAttribute('aria-label', 'Login');
+      newLogoutBtn.querySelector('.nav-label').textContent = 'Login';
+      newLogoutBtn.querySelector('.nav-icon').textContent = '🔑';
+      newLogoutBtn.setAttribute('aria-label', 'Login');
       
-      logoutBtn.addEventListener('click', (e) => {
+      newLogoutBtn.addEventListener('click', (e) => {
         console.log('[Sidebar] Login button clicked');
         
         // Navigate to login page
@@ -257,6 +270,9 @@
   
   // Export init function globally so it can be called after sidebar HTML is loaded
   window.initSidebar = init;
+  
+  // Export updateLogoutButton globally so it can be called after login
+  window.updateSidebarLogoutButton = updateLogoutButton;
   
   // Auto-init if sidebar already exists in DOM
   if (document.getElementById('sidebar')) {
