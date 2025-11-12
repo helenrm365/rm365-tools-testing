@@ -23,7 +23,7 @@
 }
 
 .sidebar:hover .profile-section {
-  min-height: 160px;
+  min-height: 120px;
   gap: 1rem;
   margin-bottom: 1rem;
 }
@@ -41,9 +41,9 @@
 }
 
 .sidebar:hover .logo-container {
-  width: 120px;
-  height: 120px;
-  border-radius: 20px;
+  width: 200px;
+  height: 80px;
+  border-radius: 16px;
   background: linear-gradient(135deg, rgba(118, 161, 43, 0.15), rgba(94, 129, 34, 0.1));
   box-shadow: 0 8px 24px rgba(118, 161, 43, 0.2);
 }
@@ -56,8 +56,8 @@
 }
 
 .sidebar:hover .sidebar-logo {
-  width: 100px;
-  height: 100px;
+  width: 180px;
+  height: 72px;
 }
 
 .profile-info {
@@ -153,12 +153,18 @@ html.dark-mode .sidebar-header .search-container:focus-within {
   flex-shrink: 0;
   font-size: 1.1rem;
   color: #7f8c8d;
-  transition: color 0.3s ease;
+  transition: color 0.3s ease, margin 0.3s ease;
   width: 28px;
   height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* Ensure icon is centered when sidebar is collapsed */
+.sidebar:not(:hover) .search-icon,
+.sidebar:not(:hover) .sidebar-header .search-icon {
+  margin: 0;
 }
 
 html.dark-mode .sidebar .search-icon,

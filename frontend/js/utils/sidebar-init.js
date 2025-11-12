@@ -306,8 +306,8 @@
       if (profileName && user.name) {
         profileName.textContent = user.name;
       }
-      if (profileSubtitle && user.role) {
-        profileSubtitle.textContent = user.role;
+      if (profileSubtitle) {
+        profileSubtitle.textContent = 'Dashboard';
       }
     } catch (e) {
       console.warn('[Sidebar] Could not load user profile:', e);
