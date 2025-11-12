@@ -25,7 +25,9 @@ class InventoryManagementService:
         Uses SKU to match sales data.
         
         All identifier suffixes (-SD, -DP, -NP, -MV, -MD) are merged with the base SKU.
+        Also handles extended variants like -SD-xxxx, -DP-xxxx, -NP-xxxx, -MV-xxxx, -MD-xxxx.
         """
+        import re
         try:
             # Get sales data from condensed tables
             uk_sales = self.repo.get_condensed_sales("uk")
@@ -39,13 +41,12 @@ class InventoryManagementService:
             for sku, qty in nl_sales_raw.items():
                 fr_sales[sku] = fr_sales.get(sku, 0) + qty
             
-            # Helper to get base SKU (remove all identifier suffixes)
+            # Helper to get base SKU (remove all identifier suffixes including -xxxx variants)
             def get_base_sku(sku: str) -> str:
-                """Remove identifier suffixes: -SD, -DP, -NP, -MV, -MD"""
-                for suffix in ["-SD", "-DP", "-NP", "-MV", "-MD"]:
-                    if sku.endswith(suffix):
-                        return sku[:-len(suffix)]
-                return sku
+                """Remove identifier suffixes: -SD, -DP, -NP, -MV, -MD (and their -xxxx variants)"""
+                # Match any of the identifiers with optional -xxxx suffix
+                pattern = re.compile(r'-(?:SD|DP|NP|MV|MD)(?:-.*)?$', re.IGNORECASE)
+                return pattern.sub('', sku)
             
             # Aggregate sales by base SKU (all identifiers merged with base)
             uk_aggregated = {}

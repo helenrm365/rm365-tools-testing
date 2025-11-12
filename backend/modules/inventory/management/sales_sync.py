@@ -79,13 +79,13 @@ def sync_sales_to_inventory_metadata(dry_run: bool = False) -> Dict[str, any]:
     uk_sales, fr_sales, nl_sales = get_regional_sales()
     combined_fr_sales = merge_fr_nl_sales(fr_sales, nl_sales)
 
-    # Helper to get base SKU (remove all identifier suffixes)
+    # Helper to get base SKU (remove all identifier suffixes including -xxxx variants)
     def get_base_sku(sku: str) -> str:
-        """Remove identifier suffixes: -SD, -DP, -NP, -MV, -MD"""
-        for suffix in ["-SD", "-DP", "-NP", "-MV", "-MD"]:
-            if sku.endswith(suffix):
-                return sku[:-len(suffix)]
-        return sku
+        """Remove identifier suffixes: -SD, -DP, -NP, -MV, -MD (and their -xxxx variants)"""
+        import re
+        # Match any of the identifiers with optional -xxxx suffix
+        pattern = re.compile(r'-(?:SD|DP|NP|MV|MD)(?:-.*)?$', re.IGNORECASE)
+        return pattern.sub('', sku)
 
     # Aggregate sales by base SKU (all identifiers merged with base)
     bases: Dict[str, Dict[str, int]] = defaultdict(lambda: {"uk": 0, "fr": 0})

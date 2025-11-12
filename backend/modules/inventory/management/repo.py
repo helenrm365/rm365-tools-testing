@@ -448,6 +448,7 @@ class InventoryManagementRepo:
     def merge_identifier_products(self) -> Dict[str, int]:
         """
         Merge products with identifier suffixes (-SD, -DP, -NP, -MV, -MD) into their base SKU products.
+        Also handles extended variants like -SD-xxxx, -DP-xxxx, -NP-xxxx, -MV-xxxx, -MD-xxxx.
         This operates on inventory_metadata table (not magento_product_list).
         This should be called BEFORE ensure_all_products_have_item_ids() so that item IDs are generated
         after merging is complete.
@@ -460,12 +461,16 @@ class InventoryManagementRepo:
         
         Returns stats about the operation.
         """
+        import re
         conn = self.get_metadata_connection()
         try:
             cursor = conn.cursor()
             
-            # Identifiers to merge
+            # Identifiers to merge (both exact and with -xxxx extensions)
             identifiers = ["-SD", "-DP", "-NP", "-MV", "-MD"]
+            
+            # Regex pattern to match any identifier with optional -xxxx suffix
+            identifier_pattern_regex = re.compile(r'-(?:SD|DP|NP|MV|MD)(?:-.*)?$', re.IGNORECASE)
             
             stats = {
                 "total_checked": 0,
@@ -475,27 +480,25 @@ class InventoryManagementRepo:
                 "base_created": 0
             }
             
-            # Find all products with identifier suffixes
-            identifier_pattern = " OR ".join([f"sku LIKE '%{suffix}'" for suffix in identifiers])
+            # Find all products with identifier suffixes (including -xxxx variants)
+            identifier_pattern = " OR ".join([f"sku LIKE '%{suffix}%'" for suffix in identifiers])
             cursor.execute(f"""
                 SELECT sku FROM inventory_metadata
                 WHERE {identifier_pattern}
                 ORDER BY sku
             """)
             
-            identifier_skus = [row[0] for row in cursor.fetchall()]
+            # Filter to only SKUs that actually match the pattern (avoid false positives)
+            all_skus = [row[0] for row in cursor.fetchall()]
+            identifier_skus = [sku for sku in all_skus if identifier_pattern_regex.search(sku)]
             stats["total_checked"] = len(identifier_skus)
             
             logger.info(f"Found {len(identifier_skus)} products with identifier suffixes in inventory_metadata")
             
             # Process each identifier SKU
             for sku in identifier_skus:
-                # Determine base SKU
-                base_sku = sku
-                for suffix in identifiers:
-                    if sku.endswith(suffix):
-                        base_sku = sku[:-len(suffix)]
-                        break
+                # Determine base SKU by removing identifier suffix (and any -xxxx extension)
+                base_sku = identifier_pattern_regex.sub('', sku)
                 
                 # Check if base SKU already exists
                 cursor.execute("""
