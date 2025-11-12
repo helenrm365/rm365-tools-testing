@@ -120,12 +120,19 @@ class InventoryManagementService:
                     "total_pages": 0
                 }
             
+            # Filter out AW365 products (same logic as sync)
+            filtered_products = [
+                product for product in all_products
+                if not (product.get("categories") and "AW365" in product.get("categories", "").upper())
+            ]
+            
+            logger.info(f"Filtered out {len(all_products) - len(filtered_products)} AW365 products")
+            
             # Apply search filter if provided
-            filtered_products = all_products
             if search and search.strip():
                 search_lower = search.strip().lower()
                 filtered_products = [
-                    product for product in all_products
+                    product for product in filtered_products
                     if (search_lower in (product.get("product_name") or "").lower() or
                         search_lower in (product.get("sku") or "").lower())
                 ]
