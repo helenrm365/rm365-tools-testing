@@ -89,16 +89,20 @@
   
   .prompt-icon-wrapper,
   .welcome-icon-wrapper,
-  .card-icon-wrapper {
+  .card-icon {
     width: 60px;
     height: 60px;
   }
   
   .prompt-icon,
-  .welcome-icon,
-  .card-icon {
+  .welcome-icon {
     width: 30px;
     height: 30px;
+  }
+  
+  .card-icon svg {
+    width: 40px;
+    height: 40px;
   }
   
   .feature-card {

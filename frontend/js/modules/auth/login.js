@@ -38,17 +38,11 @@ async function doLogin() {
       console.warn('[LOGIN] Tab setup failed:', e);
     }
     
-    const dest = getDefaultAllowedPath(allowed_tabs);
-    console.log('[LOGIN] Navigating to:', dest);
+    console.log('[LOGIN] Navigating to home page');
     
     // Add a small delay to ensure state is properly set
     setTimeout(async () => {
-      if (dest && dest !== '/login') {
-        await navigate(dest, true);
-      } else {
-        console.warn('[LOGIN] No valid destination path found, staying on login');
-        status.textContent = 'Login successful but no accessible pages found.';
-      }
+      await navigate('/home', true);
     }, 500);
     
   } catch (e) {
@@ -73,16 +67,9 @@ export async function init() {
       console.log('[LOGIN] Token valid, allowed tabs:', allowed_tabs);
       setAllowedTabs(allowed_tabs);
       try { setupTabsForUser(); } catch {}
-      const dest = getDefaultAllowedPath(allowed_tabs);
-      console.log('[LOGIN] Redirecting authenticated user to:', dest);
-      if (dest && dest !== '/login') {
-        await navigate(dest, true);
-        return;
-      } else {
-        console.warn('[LOGIN] No accessible pages for authenticated user');
-        // Stay on login if no permissions
-        return;
-      }
+      console.log('[LOGIN] Redirecting authenticated user to home page');
+      await navigate('/home', true);
+      return;
     } catch (error) {
       console.warn('[LOGIN] Token validation failed:', error);
       clearToken();

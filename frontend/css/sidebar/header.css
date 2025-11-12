@@ -17,14 +17,15 @@
   flex-direction: column;
   align-items: center;
   gap: 0.5rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
   min-height: 64px;
-  transition: min-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: min-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), margin-bottom 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sidebar:hover .profile-section {
   min-height: 160px;
   gap: 1rem;
+  margin-bottom: 1rem;
 }
 
 .logo-container {
