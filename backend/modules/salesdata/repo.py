@@ -556,7 +556,7 @@ class SalesDataRepo:
                     COALESCE(
                         sa.unified_sku,
                         CASE 
-                            WHEN s.sku ILIKE '%-MD' THEN SUBSTRING(s.sku FROM 1 FOR LENGTH(s.sku) - 3)
+                            WHEN s.sku ~* '-MD(-|$)' THEN REGEXP_REPLACE(s.sku, '-MD(-.*)?$', '', 'i')
                             ELSE s.sku
                         END
                     ) as sku,
@@ -915,17 +915,21 @@ class SalesDataRepo:
     def auto_create_md_variant_aliases(self) -> Dict[str, Any]:
         """
         Automatically create SKU aliases for MD variants to merge with their base SKUs.
-        For example: PROD123-MD -> PROD123, so sales data gets combined.
+        For example: PROD123-MD -> PROD123, PROD123-MD-1225 -> PROD123, so sales data gets combined.
         """
+        import re
         conn = None
         try:
             conn = get_products_connection()
             cursor = conn.cursor()
             
-            # Get all unique SKUs from all sales tables that end with -MD
+            # Get all unique SKUs from all sales tables that have -MD or -MD-xxxx patterns
             tables = ['uk_sales_data', 'fr_sales_data', 'nl_sales_data']
             md_skus = set()
             base_skus = set()
+            
+            # Regex pattern to match -MD or -MD-xxxx (case-insensitive)
+            md_pattern = re.compile(r'-MD(-.*)?$', re.IGNORECASE)
             
             for table in tables:
                 # Check if table exists first
@@ -944,10 +948,10 @@ class SalesDataRepo:
                 cursor.execute(f"SELECT DISTINCT sku FROM {table} WHERE sku IS NOT NULL AND sku != ''")
                 for row in cursor.fetchall():
                     sku = str(row[0]).strip()
-                    if sku.upper().endswith('-MD'):
+                    if md_pattern.search(sku):
                         md_skus.add(sku)
-                        # Calculate the base SKU
-                        base_sku = sku[:-3]  # Remove -MD suffix
+                        # Calculate the base SKU by removing -MD or -MD-xxxx suffix
+                        base_sku = md_pattern.sub('', sku)
                         base_skus.add(base_sku)
                     else:
                         base_skus.add(sku)
@@ -967,7 +971,8 @@ class SalesDataRepo:
             aliases_skipped = 0
             
             for md_sku in md_skus:
-                base_sku = md_sku[:-3]  # Remove -MD suffix
+                # Remove -MD or -MD-xxxx suffix to get base SKU
+                base_sku = md_pattern.sub('', md_sku)
                 
                 logger.debug(f"Processing MD SKU: {md_sku} -> base: {base_sku}, base exists: {base_sku in base_skus}")
                 
