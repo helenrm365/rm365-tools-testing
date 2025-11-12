@@ -490,10 +490,10 @@ function displaySalesData(data) {
       <td>${escapeHtml(row.sku || '')}</td>
       <td>${escapeHtml(row.name || '')}</td>
       <td>${row.qty || 0}</td>
-      <td>£${parseFloat(row.price || 0).toFixed(2)}</td>
+      <td>${getCurrencySymbol(row.currency)}${parseFloat(row.price || 0).toFixed(2)}</td>
       <td>${escapeHtml(row.status || '')}</td>
       <td>${escapeHtml(row.currency || '')}</td>
-      <td>${row.grand_total ? '£' + parseFloat(row.grand_total).toFixed(2) : ''}</td>
+      <td>${row.grand_total ? getCurrencySymbol(row.currency) + parseFloat(row.grand_total).toFixed(2) : ''}</td>
       <td>${escapeHtml(row.customer_email || '')}</td>
       <td>${escapeHtml(row.customer_full_name || '')}</td>
       <td>${escapeHtml(row.billing_address || '')}</td>
@@ -592,6 +592,30 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+/**
+ * Get currency symbol from currency code
+ */
+function getCurrencySymbol(currencyCode) {
+  const symbols = {
+    'GBP': '£',
+    'EUR': '€',
+    'USD': '$',
+    'CAD': 'C$',
+    'AUD': 'A$',
+    'JPY': '¥',
+    'CNY': '¥',
+    'CHF': 'Fr',
+    'SEK': 'kr',
+    'NOK': 'kr',
+    'DKK': 'kr',
+    'PLN': 'zł',
+    'CZK': 'Kč',
+    'HUF': 'Ft'
+  };
+  
+  return symbols[currencyCode?.toUpperCase()] || currencyCode || '';
 }
 
 /**
