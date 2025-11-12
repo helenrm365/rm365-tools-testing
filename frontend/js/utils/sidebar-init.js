@@ -101,34 +101,59 @@
       return;
     }
     
-    console.log('[Sidebar] Initializing logout button');
+    console.log('[Sidebar] Initializing logout/login button');
     
-    logoutBtn.addEventListener('click', (e) => {
-      console.log('[Sidebar] Logout button clicked');
+    // Check if user is authenticated
+    const isAuthenticated = sessionStorage.getItem('access_token') || localStorage.getItem('access_token');
+    
+    if (isAuthenticated) {
+      // Show logout button for authenticated users
+      logoutBtn.querySelector('.nav-label').textContent = 'Logout';
+      logoutBtn.querySelector('.nav-icon').textContent = '🚪';
+      logoutBtn.setAttribute('aria-label', 'Logout');
       
-      if (!confirm('Are you sure you want to log out?')) return;
+      logoutBtn.addEventListener('click', (e) => {
+        console.log('[Sidebar] Logout button clicked');
+        
+        if (!confirm('Are you sure you want to log out?')) return;
+        
+        // Clear all authentication and user data
+        // Remove access_token from both sessionStorage and localStorage
+        sessionStorage.removeItem('access_token');
+        localStorage.removeItem('access_token');
+        
+        // Remove user data
+        localStorage.removeItem(USER_KEY);
+        localStorage.removeItem('allowed_tabs');
+        
+        // Clear any legacy auth tokens
+        localStorage.removeItem('authToken');
+        
+        // Clear everything in sessionStorage to be safe
+        sessionStorage.clear();
+        
+        console.log('[Sidebar] All auth data cleared, redirecting to home');
+        
+        // Redirect to home page instead of login
+        window.location.href = '/home';
+      });
+    } else {
+      // Show login button for unauthenticated users
+      logoutBtn.querySelector('.nav-label').textContent = 'Login';
+      logoutBtn.querySelector('.nav-icon').textContent = '🔑';
+      logoutBtn.setAttribute('aria-label', 'Login');
       
-      // Clear all authentication and user data
-      // Remove access_token from both sessionStorage and localStorage
-      sessionStorage.removeItem('access_token');
-      localStorage.removeItem('access_token');
-      
-      // Remove user data
-      localStorage.removeItem(USER_KEY);
-      localStorage.removeItem('allowed_tabs');
-      
-      // Clear any legacy auth tokens
-      localStorage.removeItem('authToken');
-      
-      // Clear everything in sessionStorage to be safe
-      sessionStorage.clear();
-      
-      console.log('[Sidebar] All auth data cleared, redirecting to login');
-      
-      // Force a full page reload to /login to ensure clean state
-      // This is more reliable than using the router after clearing auth
-      window.location.href = '/login';
-    });
+      logoutBtn.addEventListener('click', (e) => {
+        console.log('[Sidebar] Login button clicked');
+        
+        // Navigate to login page
+        if (window.navigate) {
+          window.navigate('/login');
+        } else {
+          window.location.href = '/login';
+        }
+      });
+    }
   }
   
   function loadUserProfile() {
@@ -145,6 +170,23 @@
       }
     } catch (e) {
       console.warn('[Sidebar] Could not load user profile:', e);
+    }
+  }
+  
+  function initLogoClick() {
+    const logo = document.querySelector('.sidebar-logo');
+    const logoContainer = document.querySelector('.logo-container');
+    
+    if (logoContainer) {
+      logoContainer.style.cursor = 'pointer';
+      logoContainer.addEventListener('click', () => {
+        console.log('[Sidebar] Logo clicked, navigating to home');
+        if (window.navigate) {
+          window.navigate('/home');
+        } else {
+          window.location.href = '/home';
+        }
+      });
     }
   }
   
@@ -196,6 +238,7 @@
     initNavigation();
     initLogout();
     loadUserProfile();
+    initLogoClick();
     initMobileToggle();
     
     // Apply permission-based filtering to sidebar items

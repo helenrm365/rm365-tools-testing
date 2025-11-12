@@ -3,6 +3,8 @@ import { isAuthed } from './services/state/sessionStore.js';
 import { enforceRoutePermission, applyInnerTabPermissions, getDefaultAllowedPath } from './utils/tabs.js';
 
 const routes = {
+  '/':                      '/html/home.html',
+  '/home':                  '/html/home.html',
   '/login':                 '/html/login.html',
   '/attendance':            '/html/attendance/home.html',
   '/attendance/overview':   '/html/attendance/overview.html',
@@ -61,15 +63,15 @@ export async function navigate(path, replace = false) {
     // Show loading overlay
     showLoading('Loading...');
 
-    // Auth gate: everything except /login requires a token
-    if (path !== '/login' && !isAuthed()) {
-      console.log('[Router] Not authenticated, redirecting to login');
-      path = '/login';
+    // Auth gate: everything except /login and /home requires a token
+    if (path !== '/login' && path !== '/home' && path !== '/' && !isAuthed()) {
+      console.log('[Router] Not authenticated, redirecting to home');
+      path = '/home';
       replace = true;
     }
 
     // Permission gate: if not allowed, redirect to default allowed path
-    if (path !== '/login') {
+    if (path !== '/login' && path !== '/home' && path !== '/') {
       const perm = enforceRoutePermission(path);
       if (!perm.allowed && perm.redirect && perm.redirect !== path) {
         console.log('[Router] Not allowed, redirecting to:', perm.redirect);
@@ -81,8 +83,8 @@ export async function navigate(path, replace = false) {
     const url = routes[path];
     if (!url) {
       console.warn('[Router] No route defined for:', path);
-      // Fallback to a default route
-      const fallbackPath = isAuthed() ? getDefaultAllowedPath() : '/login';
+      // Fallback to home page
+      const fallbackPath = '/home';
       if (path !== fallbackPath) {
         console.log('[Router] Using fallback path:', fallbackPath);
         return navigate(fallbackPath, replace);
@@ -129,13 +131,13 @@ export async function navigate(path, replace = false) {
 
     const pageTitle = document.getElementById('pageTitle');
     if (pageTitle) {
-      const tabName = path.split('/')[1] || 'RM365';
+      const tabName = path.split('/')[1] || 'home';
       const subPath = path.split('/')[2];
       
-      // Hide header on home pages (no subpath or subpath is 'home')
+      // Hide header on home pages (no subpath or subpath is 'home' or path is root)
       const header = pageTitle.closest('.header');
       if (header) {
-        if (!subPath || subPath === 'home') {
+        if (!subPath || subPath === 'home' || path === '/' || path === '/home') {
           header.style.display = 'none';
         } else {
           header.style.display = '';
@@ -144,6 +146,7 @@ export async function navigate(path, replace = false) {
       
       // Map for proper title casing
       const titleMap = {
+        'home': 'Home',
         'usermanagement': 'User Management',
         'salesdata': 'Sales Data',
         'attendance': 'Attendance',
@@ -158,6 +161,9 @@ export async function navigate(path, replace = false) {
     // Lazy-load tab-specific JavaScript
     if (path === '/login') {
       const mod = await import('./modules/auth/login.js');
+      await mod.init();
+    } else if (path === '/home' || path === '/') {
+      const mod = await import('./modules/home/index.js');
       await mod.init();
     } else if (path.startsWith('/attendance')) {
       try {
@@ -260,7 +266,7 @@ export function setupRouter() {
   // Determine initial route
   const currentPath = (location.pathname && location.pathname !== '/')
     ? location.pathname
-    : (isAuthed() ? getDefaultAllowedPath() : '/login');
+    : '/home';
   
   console.log('[Router] Initial route:', currentPath);
   
