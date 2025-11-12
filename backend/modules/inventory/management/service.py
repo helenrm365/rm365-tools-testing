@@ -24,12 +24,11 @@ class InventoryManagementService:
         Populate uk_6m_data and fr_6m_data for items from condensed_sales tables.
         Uses SKU to match sales data.
         
-        All identifier suffixes (-SD, -DP, -NP, -MV, -MD) are merged with the base SKU.
-        Also handles extended variants like -SD-xxxx, -DP-xxxx, -NP-xxxx, -MV-xxxx, -MD-xxxx.
+        MD variants are already merged in the condensed sales tables.
+        Other variants (SD, DP, NP, MV) are kept separate and not shown in inventory management.
         """
-        import re
         try:
-            # Get sales data from condensed tables
+            # Get sales data from condensed tables (MD already merged there)
             uk_sales = self.repo.get_condensed_sales("uk")
             fr_sales_raw = self.repo.get_condensed_sales("fr")
             nl_sales_raw = self.repo.get_condensed_sales("nl")
@@ -41,33 +40,14 @@ class InventoryManagementService:
             for sku, qty in nl_sales_raw.items():
                 fr_sales[sku] = fr_sales.get(sku, 0) + qty
             
-            # Helper to get base SKU (remove all identifier suffixes including -xxxx variants)
-            def get_base_sku(sku: str) -> str:
-                """Remove identifier suffixes: -SD, -DP, -NP, -MV, -MD (and their -xxxx variants)"""
-                # Match any of the identifiers with optional -xxxx suffix
-                pattern = re.compile(r'-(?:SD|DP|NP|MV|MD)(?:-.*)?$', re.IGNORECASE)
-                return pattern.sub('', sku)
-            
-            # Aggregate sales by base SKU (all identifiers merged with base)
-            uk_aggregated = {}
-            fr_aggregated = {}
-            
-            for sku, qty in uk_sales.items():
-                base = get_base_sku(sku)
-                uk_aggregated[base] = uk_aggregated.get(base, 0) + qty
-            
-            for sku, qty in fr_sales.items():
-                base = get_base_sku(sku)
-                fr_aggregated[base] = fr_aggregated.get(base, 0) + qty
-            
-            # Populate items with sales data
+            # Populate items with sales data - direct lookup, no aggregation needed
+            # (MD variants are already merged in condensed tables)
             for item in items:
                 sku = item.get("sku", "")
-                base_sku = get_base_sku(sku)
                 
-                # Get sales data for this SKU's base
-                uk_qty = uk_aggregated.get(base_sku, 0)
-                fr_qty = fr_aggregated.get(base_sku, 0)
+                # Direct lookup - condensed tables already have MD merged
+                uk_qty = uk_sales.get(sku, 0)
+                fr_qty = fr_sales.get(sku, 0)
                 
                 # Add to custom_fields for compatibility
                 if "custom_fields" not in item:
