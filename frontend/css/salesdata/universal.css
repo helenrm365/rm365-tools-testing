@@ -374,10 +374,12 @@ html.dark-mode .secondary-btn:hover {
 .table-container {
   background: white;
   border-radius: 12px;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
   border: 2px solid #f1f5f9;
   margin-bottom: 2rem;
+  max-height: 700px;
 }
 
 html.dark-mode .table-container {
@@ -386,9 +388,42 @@ html.dark-mode .table-container {
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
 }
 
+/* Custom scrollbar for table container */
+.table-container::-webkit-scrollbar {
+  height: 12px;
+}
+
+.table-container::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 0 0 12px 12px;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 6px;
+  transition: background 0.2s ease;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+html.dark-mode .table-container::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+
+html.dark-mode .table-container::-webkit-scrollbar-thumb {
+  background: #555;
+}
+
+html.dark-mode .table-container::-webkit-scrollbar-thumb:hover {
+  background: #666;
+}
+
 .products-table {
   width: 100%;
   border-collapse: collapse;
+  min-width: 1400px; /* Ensure table doesn't shrink below this width */
 }
 
 .table-header {
