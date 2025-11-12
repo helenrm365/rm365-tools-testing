@@ -197,13 +197,13 @@ class InventoryManagementRepo:
             
             # Create magento_product_list table - simple product catalog
             # This is the source of truth for products (imported from Magento)
+            # Note: discontinued_status is parsed from additional_attributes, not a separate column
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS magento_product_list (
                     sku VARCHAR(255) PRIMARY KEY,
                     product_name TEXT,
                     categories TEXT,
                     additional_attributes TEXT,
-                    status VARCHAR(50),
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
@@ -223,10 +223,14 @@ class InventoryManagementRepo:
                     ALTER TABLE magento_product_list 
                     ADD COLUMN IF NOT EXISTS categories TEXT
                 """)
-                # Remove item_id from magento_product_list if it exists (cleanup)
+                # Cleanup: Remove columns that shouldn't be in magento_product_list
                 cursor.execute("""
                     ALTER TABLE magento_product_list 
                     DROP COLUMN IF EXISTS item_id
+                """)
+                cursor.execute("""
+                    ALTER TABLE magento_product_list 
+                    DROP COLUMN IF EXISTS status
                 """)
             except Exception as e:
                 logger.debug(f"Column migration skipped: {e}")
@@ -653,7 +657,7 @@ class InventoryManagementRepo:
                 like_params = [f'%discontinued_status={f}%' for f in filters]
                 
                 cursor.execute(f"""
-                    SELECT sku, product_name, categories, additional_attributes, status
+                    SELECT sku, product_name, categories, additional_attributes
                     FROM magento_product_list
                     WHERE ({like_conditions})
                     ORDER BY sku
@@ -661,12 +665,12 @@ class InventoryManagementRepo:
             else:
                 # No filters - return all
                 cursor.execute("""
-                    SELECT sku, product_name, categories, additional_attributes, status
+                    SELECT sku, product_name, categories, additional_attributes
                     FROM magento_product_list
                     ORDER BY sku
                 """)
             
-            columns = ['sku', 'product_name', 'categories', 'additional_attributes', 'status']
+            columns = ['sku', 'product_name', 'categories', 'additional_attributes']
             rows = cursor.fetchall()
             
             # Parse discontinued_status from additional_attributes for each row
