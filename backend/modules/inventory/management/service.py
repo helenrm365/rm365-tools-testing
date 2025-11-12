@@ -141,13 +141,20 @@ class InventoryManagementService:
             # Get the page slice
             paginated_products = filtered_products[start_idx:end_idx]
             
-            # Transform to match expected format (add stock info if available)
+            # Load inventory_metadata to get item_ids
+            metadata_records = self.repo.load_inventory_metadata()
+            metadata_by_sku = {m["sku"]: m for m in metadata_records}
+            
+            # Transform to match expected format (merge with metadata)
             items = []
             for product in paginated_products:
+                sku = product.get("sku")
+                metadata = metadata_by_sku.get(sku, {})
+                
                 item = {
-                    "item_id": product.get("item_id"),
-                    "product_name": product.get("product_name", ""),
-                    "sku": product.get("sku"),
+                    "item_id": metadata.get("item_id") or "",  # Get from inventory_metadata
+                    "product_name": product.get("product_name") or "",
+                    "sku": sku or "",
                     "stock_on_hand": 0,  # Will be calculated from metadata
                     "custom_fields": {
                         "shelf_total": None,
