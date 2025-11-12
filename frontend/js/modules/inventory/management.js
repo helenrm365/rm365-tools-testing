@@ -694,13 +694,13 @@ async function saveRowData(row) {
   const updated = {
     sku: sku,
     location: getTextWithLineBreaks(cells[0]),
-    date: getTextWithLineBreaks(cells[1]),
+    date: getTextWithLineBreaks(cells[1]) || null,
     // uk_6m_data: excluded - populated from table
     shelf_lt1: getTextWithLineBreaks(cells[5]),
     shelf_lt1_qty: Number(cells[6].textContent.trim()) || 0,
     shelf_gt1: getTextWithLineBreaks(cells[7]),
     shelf_gt1_qty: Number(cells[8].textContent.trim()) || 0,
-    top_floor_expiry: getTextWithLineBreaks(cells[10]),
+    top_floor_expiry: getTextWithLineBreaks(cells[10]) || null,
     top_floor_total: Number(cells[11].textContent.trim()) || 0,
     status: getTextWithLineBreaks(cells[13]),
     uk_fr_preorder: getTextWithLineBreaks(cells[14]),
@@ -1029,13 +1029,13 @@ async function handleUpdate(row) {
   const updated = {
     sku: sku,
     location: cells[0].textContent.trim(),
-    date: cells[1].textContent.trim(),
+    date: cells[1].textContent.trim() || null,
     // uk_6m_data: excluded - populated from table
     shelf_lt1: cells[5].textContent.trim(),
     shelf_lt1_qty: Number(cells[6].textContent.trim()) || 0,
     shelf_gt1: cells[7].textContent.trim(),
     shelf_gt1_qty: Number(cells[8].textContent.trim()) || 0,
-    top_floor_expiry: cells[10].textContent.trim(),
+    top_floor_expiry: cells[10].textContent.trim() || null,
     top_floor_total: Number(cells[11].textContent.trim()) || 0,
     status: cells[13].textContent.trim(),
     uk_fr_preorder: cells[14].textContent.trim(),
