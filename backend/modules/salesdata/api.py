@@ -302,3 +302,24 @@ def set_qty_threshold(
         }
     
     return svc.set_qty_threshold(region, qty_threshold, user.get("username", "unknown"))
+
+
+@router.get("/currency/rates")
+def get_exchange_rates(user=Depends(get_current_user)):
+    """Get current exchange rates for currency conversion"""
+    from common.currency import get_exchange_rates, get_rate_for_display
+    
+    rates = get_exchange_rates()
+    
+    return {
+        "status": "success",
+        "base_currency": "GBP",
+        "rates": rates,
+        "conversions": {
+            "GBP_to_USD": get_rate_for_display("GBP", "USD"),
+            "GBP_to_EUR": get_rate_for_display("GBP", "EUR"),
+            "EUR_to_USD": get_rate_for_display("EUR", "USD"),
+            "USD_to_GBP": get_rate_for_display("USD", "GBP"),
+            "USD_to_EUR": get_rate_for_display("USD", "EUR"),
+        }
+    }

@@ -514,18 +514,21 @@ class SalesDataRepo:
         Refresh condensed sales data for a region.
         Aggregates last 6 months of data by SKU, summing quantities.
         Uses sku_aliases table to combine related SKUs under their unified_sku.
+        Applies currency conversion when filtering by grand_total threshold.
         """
-        # Map region to table names
+        from common.currency import convert_to_gbp, convert_to_eur
+        
+        # Map region to table names and base currency
         region_mapping = {
-            'uk': ('uk_sales_data', 'uk_condensed_sales'),
-            'fr': ('fr_sales_data', 'fr_condensed_sales'),
-            'nl': ('nl_sales_data', 'nl_condensed_sales')
+            'uk': ('uk_sales_data', 'uk_condensed_sales', 'GBP', convert_to_gbp),
+            'fr': ('fr_sales_data', 'fr_condensed_sales', 'EUR', convert_to_eur),
+            'nl': ('nl_sales_data', 'nl_condensed_sales', 'EUR', convert_to_eur)
         }
         
         if region not in region_mapping:
             raise ValueError(f"Invalid region: {region}")
         
-        sales_table, condensed_table = region_mapping[region]
+        sales_table, condensed_table, base_currency, converter_func = region_mapping[region]
         
         conn = None
         try:
@@ -544,16 +547,11 @@ class SalesDataRepo:
             grand_total_threshold = threshold_row[0] if threshold_row else None
             qty_threshold = threshold_row[1] if threshold_row and len(threshold_row) > 1 else None
             
-            # Convert None to SQL NULL for use in f-string
-            threshold_sql = 'NULL' if grand_total_threshold is None else str(grand_total_threshold)
-            qty_threshold_sql = 'NULL' if qty_threshold is None else str(qty_threshold)
+            logger.info(f"Refreshing {region} condensed data with threshold: {grand_total_threshold} {base_currency}, qty_threshold: {qty_threshold}")
             
-            # Aggregate data from last 6 months, using SKU aliases to unify related SKUs
-            # The created_at field is a string, so we need to try to parse various date formats
-            # Also automatically merge -MD variants with their base SKU
-            # Exclude customers and orders based on filters
-            aggregate_query = f"""
-                INSERT INTO {condensed_table} (sku, name, total_qty, last_updated)
+            # Fetch all sales data from last 6 months with SKU aliases
+            # We'll filter in Python to apply currency conversion
+            fetch_query = f"""
                 SELECT 
                     COALESCE(
                         sa.unified_sku,
@@ -562,23 +560,17 @@ class SalesDataRepo:
                             ELSE s.sku
                         END
                     ) as sku,
-                    MAX(s.name) as name,
-                    SUM(s.qty) as total_qty,
-                    CURRENT_TIMESTAMP as last_updated
+                    s.name,
+                    s.qty,
+                    s.grand_total,
+                    s.currency,
+                    s.customer_email,
+                    s.created_at
                 FROM {sales_table} s
                 LEFT JOIN sku_aliases sa ON s.sku = sa.alias_sku
                 WHERE 
-                    -- Exclude customers in the exclusion list
-                    NOT EXISTS (
-                        SELECT 1 FROM condensed_sales_excluded_customers ec
-                        WHERE ec.region = '{region}' AND s.customer_email = ec.customer_email
-                    )
-                    -- Exclude orders over the grand total threshold (if set)
-                    AND ({threshold_sql} IS NULL OR s.grand_total IS NULL OR s.grand_total <= {threshold_sql})
-                    -- Exclude orders over the qty threshold (if set)
-                    AND ({qty_threshold_sql} IS NULL OR s.qty IS NULL OR s.qty <= {qty_threshold_sql})
                     -- Try to parse created_at as various date formats and check if within 6 months
-                    AND (
+                    (
                         -- Try ISO format: YYYY-MM-DD or YYYY-MM-DD HH:MI:SS
                         (s.created_at ~ '^[0-9]{{4}}-[0-9]{{2}}-[0-9]{{2}}' AND 
                          TO_TIMESTAMP(s.created_at, 'YYYY-MM-DD HH24:MI:SS') >= CURRENT_DATE - INTERVAL '6 months')
@@ -594,22 +586,67 @@ class SalesDataRepo:
                         -- If can't parse, include it (better to include than exclude)
                         NOT (s.created_at ~ '^[0-9]')
                     )
-                GROUP BY COALESCE(
-                    sa.unified_sku,
-                    CASE 
-                        WHEN s.sku ILIKE '%-MD' THEN SUBSTRING(s.sku FROM 1 FOR LENGTH(s.sku) - 3)
-                        ELSE s.sku
-                    END
-                )
-                ORDER BY total_qty DESC
             """
             
-            cursor.execute(aggregate_query)
-            rows_affected = cursor.rowcount
+            cursor.execute(fetch_query)
+            all_rows = cursor.fetchall()
+            
+            # Get excluded customers
+            cursor.execute("""
+                SELECT customer_email FROM condensed_sales_excluded_customers
+                WHERE region = %s
+            """, (region,))
+            excluded_emails = {row[0] for row in cursor.fetchall()}
+            
+            # Filter and aggregate in Python with currency conversion
+            sku_aggregates = {}
+            filtered_count = 0
+            
+            for row in all_rows:
+                sku, name, qty, grand_total, currency, customer_email, created_at = row
+                
+                # Skip excluded customers
+                if customer_email in excluded_emails:
+                    continue
+                
+                # Apply quantity threshold filter
+                if qty_threshold is not None and qty is not None and qty > qty_threshold:
+                    filtered_count += 1
+                    continue
+                
+                # Apply grand total threshold filter with currency conversion
+                if grand_total_threshold is not None and grand_total is not None:
+                    # Convert grand_total to base currency for comparison
+                    converted_total = converter_func(float(grand_total), currency or base_currency)
+                    if converted_total > float(grand_total_threshold):
+                        filtered_count += 1
+                        continue
+                
+                # Aggregate by SKU
+                if sku not in sku_aggregates:
+                    sku_aggregates[sku] = {'name': name, 'total_qty': 0}
+                sku_aggregates[sku]['total_qty'] += (qty or 0)
+                sku_aggregates[sku]['name'] = name  # Keep the latest name
+            
+            # Insert aggregated data
+            if sku_aggregates:
+                insert_query = f"""
+                    INSERT INTO {condensed_table} (sku, name, total_qty, last_updated)
+                    VALUES (%s, %s, %s, CURRENT_TIMESTAMP)
+                """
+                
+                insert_data = [
+                    (sku, data['name'], data['total_qty'])
+                    for sku, data in sku_aggregates.items()
+                ]
+                
+                cursor.executemany(insert_query, insert_data)
+            
+            rows_affected = len(sku_aggregates)
             
             conn.commit()
             
-            logger.info(f"✅ Refreshed {condensed_table}: {rows_affected} SKUs aggregated (with alias mapping)")
+            logger.info(f"✅ Refreshed {condensed_table}: {rows_affected} SKUs aggregated (filtered {filtered_count} orders with thresholds)")
             
             return {
                 "success": True,

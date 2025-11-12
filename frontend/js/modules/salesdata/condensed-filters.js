@@ -12,6 +12,7 @@ let currentThreshold = null;
 let currentQtyThreshold = null;
 let pendingCustomerAdds = []; // Customers to be added when Apply is clicked
 let pendingCustomerRemoves = []; // Customer IDs to be removed when Apply is clicked
+let exchangeRates = null; // Cached exchange rates
 
 /**
  * Show the filters modal for a specific region
@@ -30,6 +31,7 @@ export function showFiltersModal(region) {
     loadExcludedCustomers();
     loadThreshold();
     loadQtyThreshold();
+    loadExchangeRates(region);
     
     // Focus on customer search input
     setTimeout(() => {
@@ -94,6 +96,10 @@ function createFiltersModal(region) {
                     </div>
                     <p class="filter-section-description">
                         Orders with a grand total above this amount will be excluded from 6-month condensed sales.
+                        <strong>All currencies are automatically converted</strong> to ${region === 'uk' ? 'GBP (£)' : 'EUR (€)'} at current exchange rates for comparison.
+                        <span id="currency-conversion-info-${region}" style="display: block; margin-top: 0.5rem; font-size: 0.9em; color: #3498db;">
+                            <i class="fas fa-sync fa-spin"></i> Loading exchange rates...
+                        </span>
                     </p>
                     
                     <div class="threshold-input-wrapper">
@@ -843,3 +849,43 @@ function escapeHtml(text) {
     div.textContent = text;
     return div.innerHTML;
 }
+
+/**
+ * Load exchange rates and display conversion info
+ */
+async function loadExchangeRates(region) {
+    const infoElement = document.getElementById(`currency-conversion-info-${region}`);
+    
+    if (!infoElement) return;
+    
+    try {
+        const response = await get(`${API}/currency/rates`);
+        
+        if (response.status === 'success') {
+            exchangeRates = response.rates;
+            const conversions = response.conversions;
+            
+            // Display relevant conversion info based on region
+            const baseCurrency = region === 'uk' ? 'GBP' : 'EUR';
+            let conversionHtml = '<i class="fas fa-exchange-alt"></i> Live currency conversion enabled:<br>';
+            
+            if (region === 'uk') {
+                // UK uses GBP as base
+                conversionHtml += `£100 = $${(100 * conversions.GBP_to_USD).toFixed(2)} USD = €${(100 * conversions.GBP_to_EUR).toFixed(2)} EUR`;
+            } else {
+                // FR/NL use EUR as base
+                conversionHtml += `€100 = $${(100 * conversions.EUR_to_USD).toFixed(2)} USD = £${(100 / conversions.GBP_to_EUR).toFixed(2)} GBP`;
+            }
+            
+            infoElement.innerHTML = conversionHtml;
+            infoElement.style.color = '#27ae60';
+        } else {
+            throw new Error('Failed to load rates');
+        }
+    } catch (error) {
+        console.error('Error loading exchange rates:', error);
+        infoElement.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Using fallback exchange rates';
+        infoElement.style.color = '#e67e22';
+    }
+}
+
