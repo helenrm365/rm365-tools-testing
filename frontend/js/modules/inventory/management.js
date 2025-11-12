@@ -62,6 +62,9 @@ let dropdownDocListenersBound = false;
 let dropdownBackdrop;
 let _filterSeq = 0;
 
+// Discontinued status filter set
+let discontinuedFilterSet = new Set(DEFAULT_DISCONTINUED_STATUS_FILTERS);
+
 // Pagination settings
 const ITEMS_PER_PAGE = 100;
 let currentPage = 0;
@@ -409,9 +412,9 @@ function setupTable() {
   // Clear existing content
   tableBody.innerHTML = '';
 
-  // Get selected discontinued status filters (checkboxes)
+  // Get selected discontinued status filters (checkboxes) and update global set
   const selectedDiscontinuedFilters = getSavedDiscontinuedStatusFilters();
-  const discontinuedFilterSet = new Set(selectedDiscontinuedFilters);
+  discontinuedFilterSet = new Set(selectedDiscontinuedFilters);
   
   // Get stock status filter (dropdown)
   const statusToggle = document.getElementById('statusToggle');
