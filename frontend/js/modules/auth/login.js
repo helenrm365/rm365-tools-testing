@@ -1,7 +1,7 @@
 // frontend/js/modules/auth/login.js
 import { login, me } from '../../services/api/authApi.js';
 import { setToken, clearToken, isAuthed } from '../../services/state/sessionStore.js';
-import { setAllowedTabs, clearUser } from '../../services/state/userStore.js';
+import { setAllowedTabs, clearUser, setUserData } from '../../services/state/userStore.js';
 import { navigate } from '../../router.js';
 import { setupTabsForUser, getDefaultAllowedPath } from '../../utils/tabs.js';
 
@@ -29,6 +29,16 @@ async function doLogin() {
     
     setToken(access_token);
     setAllowedTabs(allowed_tabs);
+    
+    // Fetch and store user data
+    try {
+      const userData = await me();
+      console.log('[LOGIN] User data retrieved:', userData);
+      setUserData(userData);
+    } catch (e) {
+      console.warn('[LOGIN] Failed to fetch user data:', e);
+    }
+    
     status.textContent = 'Login successful! Redirecting...';
     
     try { 
@@ -44,8 +54,12 @@ async function doLogin() {
         window.updateSidebarLogoutButton();
         console.log('[LOGIN] Sidebar logout button updated');
       }
+      if (window.updateSidebarUserProfile) {
+        window.updateSidebarUserProfile();
+        console.log('[LOGIN] Sidebar user profile updated');
+      }
     } catch (e) {
-      console.warn('[LOGIN] Failed to update sidebar logout button:', e);
+      console.warn('[LOGIN] Failed to update sidebar:', e);
     }
     
     console.log('[LOGIN] Navigating to home page');
@@ -73,9 +87,10 @@ export async function init() {
   if (isAuthed()) {
     console.log('[LOGIN] Found existing auth token, validating...');
     try {
-      const { allowed_tabs } = await me();
-      console.log('[LOGIN] Token valid, allowed tabs:', allowed_tabs);
-      setAllowedTabs(allowed_tabs);
+      const userData = await me();
+      console.log('[LOGIN] Token valid, user data:', userData);
+      setAllowedTabs(userData.allowed_tabs);
+      setUserData(userData);
       try { setupTabsForUser(); } catch {}
       console.log('[LOGIN] Redirecting authenticated user to home page');
       await navigate('/home', true);

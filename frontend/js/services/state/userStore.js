@@ -1,5 +1,6 @@
 // frontend/js/services/state/userStore.js
 const TABS_KEY = 'allowed_tabs';
+const USER_KEY = 'user';
 
 export function setAllowedTabs(tabs) {
   const arr = Array.isArray(tabs)
@@ -24,7 +25,24 @@ export function getAllowedTabs() {
   }
 }
 
+export function setUserData(userData) {
+  console.log('[UserStore] Setting user data:', userData);
+  localStorage.setItem(USER_KEY, JSON.stringify(userData));
+}
+
+export function getUserData() {
+  try {
+    const user = JSON.parse(localStorage.getItem(USER_KEY) || '{}');
+    console.log('[UserStore] Retrieved user data:', user);
+    return user;
+  } catch (e) {
+    console.warn('[UserStore] Failed to parse user data:', e);
+    return {};
+  }
+}
+
 export function clearUser() {
   console.log('[UserStore] Clearing user data');
   localStorage.removeItem(TABS_KEY);
+  localStorage.removeItem(USER_KEY);
 }

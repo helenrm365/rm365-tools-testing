@@ -303,8 +303,8 @@
       const profileName = document.getElementById('profileName');
       const profileSubtitle = document.getElementById('profileSubtitle');
       
-      if (profileName && user.name) {
-        profileName.textContent = user.name;
+      if (profileName && user.username) {
+        profileName.textContent = user.username;
       }
       if (profileSubtitle) {
         profileSubtitle.textContent = 'Dashboard';
@@ -401,6 +401,9 @@
   
   // Export updateLogoutButton globally so it can be called after login
   window.updateSidebarLogoutButton = updateLogoutButton;
+  
+  // Export loadUserProfile globally so it can be called after login
+  window.updateSidebarUserProfile = loadUserProfile;
   
   // Auto-init if sidebar already exists in DOM
   if (document.getElementById('sidebar')) {

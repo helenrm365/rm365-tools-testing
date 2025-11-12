@@ -152,7 +152,7 @@ html.dark-mode .sidebar-nav li.active .nav-item {
   opacity: 0;
   width: 0;
   overflow: hidden;
-  transition: opacity 0.3s ease 0.1s, width 0.3s ease;
+  transition: opacity 0.2s ease, width 0.3s ease 0.2s;
   pointer-events: none;
 }
 
@@ -160,4 +160,5 @@ html.dark-mode .sidebar-nav li.active .nav-item {
   opacity: 1;
   width: auto;
   pointer-events: auto;
+  transition: opacity 0.3s ease 0.1s, width 0.3s ease;
 }
