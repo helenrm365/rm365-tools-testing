@@ -201,7 +201,7 @@ class InventoryManagementRepo:
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS magento_product_list (
                     sku VARCHAR(255) PRIMARY KEY,
-                    product_name TEXT,
+                    name TEXT,
                     categories TEXT,
                     additional_attributes TEXT,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -217,7 +217,7 @@ class InventoryManagementRepo:
                 """)
                 cursor.execute("""
                     ALTER TABLE magento_product_list 
-                    ADD COLUMN IF NOT EXISTS product_name TEXT
+                    ADD COLUMN IF NOT EXISTS name TEXT
                 """)
                 cursor.execute("""
                     ALTER TABLE magento_product_list 
@@ -231,6 +231,10 @@ class InventoryManagementRepo:
                 cursor.execute("""
                     ALTER TABLE magento_product_list 
                     DROP COLUMN IF EXISTS status
+                """)
+                cursor.execute("""
+                    ALTER TABLE magento_product_list 
+                    DROP COLUMN IF EXISTS product_name
                 """)
             except Exception as e:
                 logger.debug(f"Column migration skipped: {e}")
@@ -393,16 +397,16 @@ class InventoryManagementRepo:
                 "filtered_aw365": 0
             }
             
-            # Get all products from magento_product_list, excluding AW365 category
+            # Get all products from magento_product_list
             cursor.execute("""
-                SELECT sku, product_name, categories FROM magento_product_list
+                SELECT sku, name, categories FROM magento_product_list
                 ORDER BY sku
             """)
             
             products = cursor.fetchall()
             
             # Process each product, filtering out AW365
-            for sku, product_name, categories in products:
+            for sku, name, categories in products:
                 stats["total_products"] += 1
                 
                 # Filter: Skip if categories contains "AW365" (case-insensitive)
@@ -657,7 +661,7 @@ class InventoryManagementRepo:
                 like_params = [f'%discontinued_status={f}%' for f in filters]
                 
                 cursor.execute(f"""
-                    SELECT sku, product_name, categories, additional_attributes
+                    SELECT sku, name, categories, additional_attributes
                     FROM magento_product_list
                     WHERE ({like_conditions})
                     ORDER BY sku
@@ -665,12 +669,12 @@ class InventoryManagementRepo:
             else:
                 # No filters - return all
                 cursor.execute("""
-                    SELECT sku, product_name, categories, additional_attributes
+                    SELECT sku, name, categories, additional_attributes
                     FROM magento_product_list
                     ORDER BY sku
                 """)
             
-            columns = ['sku', 'product_name', 'categories', 'additional_attributes']
+            columns = ['sku', 'name', 'categories', 'additional_attributes']
             rows = cursor.fetchall()
             
             # Parse discontinued_status from additional_attributes for each row

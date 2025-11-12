@@ -160,7 +160,7 @@ class InventoryManagementService:
                 
                 item = {
                     "item_id": metadata.get("item_id") or "",  # Get from inventory_metadata
-                    "product_name": product.get("product_name") or "",
+                    "product_name": product.get("name") or "",  # Use 'name' column from magento_product_list
                     "sku": sku or "",
                     "stock_on_hand": 0,  # Will be calculated from metadata
                     "custom_fields": {
