@@ -422,56 +422,7 @@ html.dark-mode .attendance-manual .manual-activity-card {
 }
 
 /* Manual page specific table styles */
-.attendance-manual .manual-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.95rem;
-}
-
-.attendance-manual .manual-table thead th {
-  background: #f8fafc;
-  color: #475569;
-  font-weight: 600;
-  text-align: left;
-  padding: 1rem;
-  border-bottom: 2px solid #e2e8f0;
-  font-size: 0.875rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-html.dark-mode .attendance-manual .manual-table thead th {
-  background: #1a1a1a;
-  color: #94a3b8;
-  border-bottom-color: #3a3a3a;
-}
-
-.attendance-manual .manual-table tbody tr {
-  transition: background-color 0.2s ease;
-}
-
-.attendance-manual .manual-table tbody tr:hover {
-  background: #f8fafc;
-}
-
-html.dark-mode .attendance-manual .manual-table tbody tr:hover {
-  background: #333333;
-}
-
-.attendance-manual .manual-table tbody td {
-  padding: 1rem;
-  color: #334155;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-html.dark-mode .attendance-manual .manual-table tbody td {
-  color: #cbd5e1;
-  border-bottom-color: #3a3a3a;
-}
-
-.attendance-manual .manual-table tbody tr:last-child td {
-  border-bottom: none;
-}
+/* Tables now use standardized component styles from /css/components/table.css */
 
 /* Status badges for manual page */
 .attendance-manual .manual-status-badge {
@@ -544,12 +495,12 @@ html.dark-mode .attendance-manual .manual-status-badge.status-out {
     font-size: 1.1rem;
   }
 
-  .attendance-manual .manual-table {
+  .attendance-manual .modern-table {
     font-size: 0.85rem;
   }
 
-  .attendance-manual .manual-table thead th,
-  .attendance-manual .manual-table tbody td {
+  .attendance-manual .modern-table thead th,
+  .attendance-manual .modern-table tbody td {
     padding: 0.75rem 0.5rem;
   }
 }

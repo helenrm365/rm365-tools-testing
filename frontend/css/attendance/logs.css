@@ -430,58 +430,7 @@ html.dark-mode .attendance-logs .loading-state i {
 }
 
 /* Table Styles */
-.attendance-logs .logs-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-}
-
-.attendance-logs .logs-table thead th {
-  background: #f8fafc;
-  color: #475569;
-  font-weight: 600;
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 1rem;
-  text-align: left;
-  border-bottom: 2px solid #e2e8f0;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-html.dark-mode .attendance-logs .logs-table thead th {
-  background: #1e1e1e;
-  color: #cbd5e1;
-  border-bottom-color: #3a3a3a;
-}
-
-.attendance-logs .logs-table tbody tr {
-  transition: background-color 0.2s ease;
-}
-
-.attendance-logs .logs-table tbody tr:hover {
-  background: #f8fafc;
-}
-
-html.dark-mode .attendance-logs .logs-table tbody tr:hover {
-  background: #1e1e1e;
-}
-
-.attendance-logs .logs-table tbody td {
-  padding: 1rem;
-  color: var(--text-color);
-  border-bottom: 1px solid #e2e8f0;
-}
-
-html.dark-mode .attendance-logs .logs-table tbody td {
-  border-bottom-color: #3a3a3a;
-}
-
-.attendance-logs .logs-table tbody tr:last-child td {
-  border-bottom: none;
-}
+/* Tables now use standardized component styles from /css/components/table.css */
 
 /* Action badges in table */
 .attendance-logs .action-badge {

@@ -175,7 +175,7 @@ function loadRecentActivity() {
   const tableDiv = $('#recentActivityTable');
   tableDiv.innerHTML = `
     <div class="table-container">
-    <table class="manual-table">
+    <table class="modern-table">
       <thead>
         <tr>
           <th>Time</th>

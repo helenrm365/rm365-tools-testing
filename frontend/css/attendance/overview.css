@@ -464,56 +464,7 @@ html.dark-mode .attendance-overview .loading-state i {
 }
 
 /* ===== Tables ===== */
-.attendance-overview .modern-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  margin-top: 1rem;
-}
-
-.attendance-overview .modern-table thead th {
-  background: #f8fafc;
-  color: #475569;
-  font-weight: 600;
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 1rem;
-  text-align: left;
-  border-bottom: 2px solid #e2e8f0;
-}
-
-html.dark-mode .attendance-overview .modern-table thead th {
-  background: #1e1e1e;
-  color: #cbd5e1;
-  border-bottom-color: #3a3a3a;
-}
-
-.attendance-overview .modern-table tbody tr {
-  transition: background-color 0.2s ease;
-}
-
-.attendance-overview .modern-table tbody tr:hover {
-  background: #f8fafc;
-}
-
-html.dark-mode .attendance-overview .modern-table tbody tr:hover {
-  background: #1e1e1e;
-}
-
-.attendance-overview .modern-table tbody td {
-  padding: 1rem;
-  color: var(--text-color);
-  border-bottom: 1px solid #e2e8f0;
-}
-
-html.dark-mode .attendance-overview .modern-table tbody td {
-  border-bottom-color: #3a3a3a;
-}
-
-.attendance-overview .modern-table tbody tr:last-child td {
-  border-bottom: none;
-}
+/* Tables now use standardized component styles from /css/components/table.css */
 
 /* Status badges */
 .attendance-overview .status-badge {
