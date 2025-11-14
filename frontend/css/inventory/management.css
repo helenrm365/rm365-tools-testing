@@ -901,19 +901,6 @@ html.dark-mode .dropdown-backdrop {
 
 /* ===== Stock Status Indicators ===== */
 .stock-status-overstock {
-  background-color: #fef3c7 !important;
-  color: #92400e !important;
-  font-weight: 600;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-}
-
-html.dark-mode .stock-status-overstock {
-  background-color: #854d0e !important;
-  color: #fef3c7 !important;
-}
-
-.stock-status-lowstock {
   background-color: #fee2e2 !important;
   color: #991b1b !important;
   font-weight: 600;
@@ -921,9 +908,22 @@ html.dark-mode .stock-status-overstock {
   border-radius: 4px;
 }
 
-html.dark-mode .stock-status-lowstock {
+html.dark-mode .stock-status-overstock {
   background-color: #991b1b !important;
   color: #fee2e2 !important;
+}
+
+.stock-status-lowstock {
+  background-color: #fef9c3 !important;
+  color: #713f12 !important;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
+html.dark-mode .stock-status-lowstock {
+  background-color: #a16207 !important;
+  color: #fef9c3 !important;
 }
 
 .stock-status-normal {
