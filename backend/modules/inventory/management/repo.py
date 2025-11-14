@@ -197,13 +197,14 @@ class InventoryManagementRepo:
             
             # Create magento_product_list table - simple product catalog
             # This is the source of truth for products (imported from Magento)
-            # Note: discontinued_status is parsed from additional_attributes, not a separate column
+            # Note: discontinued_status is parsed from additional_attributes and stored in a separate indexed column
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS magento_product_list (
                     sku VARCHAR(255) PRIMARY KEY,
                     name TEXT,
                     categories TEXT,
                     additional_attributes TEXT,
+                    discontinued_status VARCHAR(100) DEFAULT 'Active',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
@@ -247,6 +248,24 @@ class InventoryManagementRepo:
                 """)
             except Exception as e:
                 logger.debug(f"Column product_name addition skipped (may already exist): {e}")
+            
+            # Add discontinued_status column if it doesn't exist (migration for existing tables)
+            try:
+                cursor.execute("""
+                    ALTER TABLE magento_product_list 
+                    ADD COLUMN IF NOT EXISTS discontinued_status VARCHAR(100) DEFAULT 'Active'
+                """)
+            except Exception as e:
+                logger.debug(f"Column discontinued_status addition skipped (may already exist): {e}")
+            
+            # Create index on discontinued_status for fast filtering
+            try:
+                cursor.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_magento_product_list_discontinued_status
+                    ON magento_product_list (discontinued_status)
+                """)
+            except Exception as e:
+                logger.debug(f"Index creation on discontinued_status skipped: {e}")
             
             # Create label print job tables
             cursor.execute("""
@@ -598,14 +617,16 @@ class InventoryManagementRepo:
         """
         Update discontinued_status column by parsing additional_attributes field.
         This should be run after importing data that has additional_attributes.
+        Only updates rows where discontinued_status is NULL or needs to be changed.
         """
         conn = self.get_metadata_connection()
         try:
             cursor = conn.cursor()
             
-            # Fetch all rows with additional_attributes
+            # Fetch rows where discontinued_status is NULL or additional_attributes is not NULL
+            # (meaning they might need parsing/updating)
             cursor.execute("""
-                SELECT sku, additional_attributes
+                SELECT sku, additional_attributes, discontinued_status
                 FROM magento_product_list
                 WHERE additional_attributes IS NOT NULL
             """)
@@ -613,23 +634,32 @@ class InventoryManagementRepo:
             
             stats = {
                 "total_processed": len(rows),
-                "updated": 0
+                "updated": 0,
+                "skipped": 0
             }
             
-            for sku, additional_attributes in rows:
-                discontinued_status = self.parse_discontinued_status_from_additional_attributes(additional_attributes)
+            for sku, additional_attributes, current_status in rows:
+                # Parse the discontinued_status from additional_attributes
+                new_status = self.parse_discontinued_status_from_additional_attributes(additional_attributes)
                 
-                cursor.execute("""
-                    UPDATE magento_product_list
-                    SET discontinued_status = %s, updated_at = NOW()
-                    WHERE sku = %s AND (discontinued_status IS NULL OR discontinued_status != %s)
-                """, (discontinued_status, sku, discontinued_status))
-                
-                if cursor.rowcount > 0:
+                # Only update if status is NULL or different from current
+                if current_status is None or current_status != new_status:
+                    cursor.execute("""
+                        UPDATE magento_product_list
+                        SET discontinued_status = %s, updated_at = NOW()
+                        WHERE sku = %s
+                    """, (new_status, sku))
                     stats["updated"] += 1
+                else:
+                    stats["skipped"] += 1
             
             conn.commit()
-            logger.info(f"✅ Updated discontinued_status: {stats['updated']} of {stats['total_processed']} rows")
+            
+            if stats["updated"] > 0:
+                logger.info(f"✅ Updated discontinued_status: {stats['updated']} of {stats['total_processed']} rows")
+            if stats["skipped"] > 0:
+                logger.debug(f"⏩ Skipped {stats['skipped']} rows (already up-to-date)")
+            
             return stats
             
         except psycopg2.Error as e:
@@ -656,37 +686,31 @@ class InventoryManagementRepo:
             cursor = conn.cursor()
             
             if status_filters:
-                # Parse comma-separated filters and build LIKE conditions
+                # Parse comma-separated filters and use efficient WHERE IN query
                 filters = [f.strip() for f in status_filters.split(',') if f.strip()]
-                like_conditions = ' OR '.join([
-                    "additional_attributes LIKE %s" for _ in filters
-                ])
-                like_params = [f'%discontinued_status={f}%' for f in filters]
+                placeholders = ','.join(['%s'] * len(filters))
                 
                 cursor.execute(f"""
-                    SELECT sku, name, categories, additional_attributes
+                    SELECT sku, name, categories, additional_attributes, discontinued_status
                     FROM magento_product_list
-                    WHERE ({like_conditions})
+                    WHERE discontinued_status IN ({placeholders})
                     ORDER BY sku
-                """, tuple(like_params))
+                """, tuple(filters))
             else:
                 # No filters - return all
                 cursor.execute("""
-                    SELECT sku, name, categories, additional_attributes
+                    SELECT sku, name, categories, additional_attributes, discontinued_status
                     FROM magento_product_list
                     ORDER BY sku
                 """)
             
-            columns = ['sku', 'name', 'categories', 'additional_attributes']
+            columns = ['sku', 'name', 'categories', 'additional_attributes', 'discontinued_status']
             rows = cursor.fetchall()
             
-            # Parse discontinued_status from additional_attributes for each row
+            # Convert rows to dictionaries - discontinued_status is now in the result set
             result = []
             for row in rows:
                 row_dict = dict(zip(columns, row))
-                row_dict['discontinued_status'] = self.parse_discontinued_status_from_additional_attributes(
-                    row_dict.get('additional_attributes', '')
-                )
                 # Note: item_id is now stored in inventory_metadata, not magento_product_list
                 # magento_product_list is just the product catalog
                 result.append(row_dict)

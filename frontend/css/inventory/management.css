@@ -898,3 +898,43 @@ html.dark-mode .inventory-management .empty-state h3 {
 html.dark-mode .dropdown-backdrop {
   background: rgba(0, 0, 0, 0.5);
 }
+
+/* ===== Stock Status Indicators ===== */
+.stock-status-overstock {
+  background-color: #fef3c7 !important;
+  color: #92400e !important;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
+html.dark-mode .stock-status-overstock {
+  background-color: #854d0e !important;
+  color: #fef3c7 !important;
+}
+
+.stock-status-lowstock {
+  background-color: #fee2e2 !important;
+  color: #991b1b !important;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
+html.dark-mode .stock-status-lowstock {
+  background-color: #991b1b !important;
+  color: #fee2e2 !important;
+}
+
+.stock-status-normal {
+  background-color: #d1fae5 !important;
+  color: #065f46 !important;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
+html.dark-mode .stock-status-normal {
+  background-color: #065f46 !important;
+  color: #d1fae5 !important;
+}

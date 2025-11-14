@@ -509,20 +509,40 @@ function setupTable() {
   updatePaginationControls();
 }
 
-function matchesStockStatus(metadata, stockStatusFilter) {
-  // Stock status filter based on metadata.status field
-  // This is for overstock/low stock indicators, not discontinued status
-  const metadataStatus = (metadata.status || '').toLowerCase();
+function calculateStockStatus(metadata) {
+  // Calculate demand: UK 6M Data + FR 6M Data (FR already includes NL)
+  const ukData = parseInt(metadata.uk_6m_data) || 0;
+  const frData = parseInt(metadata.fr_6m_data) || 0;
+  const demand = ukData + frData;
   
-  if (stockStatusFilter === 'overstock') {
-    // Add logic for overstock detection here when available
-    return metadataStatus.includes('overstock');
-  } else if (stockStatusFilter === 'lowstock') {
-    // Add logic for low stock detection here when available
-    return metadataStatus.includes('low') || metadataStatus.includes('lowstock');
+  // Calculate total stock
+  const shelfTotal = (parseInt(metadata.shelf_lt1_qty) || 0) + (parseInt(metadata.shelf_gt1_qty) || 0);
+  const totalStock = shelfTotal + (parseInt(metadata.top_floor_total) || 0);
+  
+  // Determine status based on demand vs stock
+  if (demand === 0) {
+    // No demand data - can't determine status
+    return '';
   }
   
-  return true; // No filter or unknown filter value
+  if (totalStock >= demand * 3) {
+    return 'overstock';
+  } else if (totalStock < demand) {
+    return 'lowstock';
+  } else {
+    return 'normal';
+  }
+}
+
+function matchesStockStatus(metadata, stockStatusFilter) {
+  // Stock status filter based on calculated demand vs stock
+  const calculatedStatus = calculateStockStatus(metadata);
+  
+  if (!stockStatusFilter) {
+    return true; // No filter applied
+  }
+  
+  return calculatedStatus === stockStatusFilter;
 }
 
 function matchesSearch(item, metadata, searchQuery) {
@@ -604,6 +624,13 @@ function createTableRow(item, metadata) {
   // Get discontinued status from magento products
   const magentoProduct = magentoProductsIndex.get(item.sku);
   const discontinuedStatus = magentoProduct?.discontinued_status || '';
+  
+  // Calculate stock status based on demand
+  const stockStatus = calculateStockStatus(metadata);
+  const stockStatusDisplay = stockStatus === 'overstock' ? 'Over Stock' : 
+                            stockStatus === 'lowstock' ? 'Low Stock' : 
+                            stockStatus === 'normal' ? 'Normal Stock' : '';
+  const stockStatusClass = stockStatus ? `stock-status-${stockStatus}` : '';
 
   row.innerHTML = `
     <td contenteditable="true">${formatTextForDisplay(metadata.location)}</td>
@@ -619,9 +646,9 @@ function createTableRow(item, metadata) {
     <td contenteditable="true">${formatTextForDisplay(metadata.top_floor_expiry)}</td>
     <td contenteditable="true">${metadata.top_floor_total || 0}</td>
     <td>${totalStock}</td>
-    <td contenteditable="false" class="readonly-field" title="For warehouse status calculations (not yet implemented)"></td>
+    <td contenteditable="false" class="readonly-field ${stockStatusClass}" title="Calculated: Demand (UK+FR 6M) vs Total Stock">${stockStatusDisplay}</td>
     <td contenteditable="true">${formatTextForDisplay(metadata.uk_fr_preorder)}</td>
-    <td class="readonly-field" title="Populated from table">${metadata.fr_6m_data || ''}</td>
+    <td class="readonly-field" title="Populated from table (FR + NL merged)">${metadata.fr_6m_data || ''}</td>
     <td class="readonly-field">${discontinuedStatus}</td>
   `;
 
@@ -669,6 +696,31 @@ function updateRowCalculations(row) {
 
   cells[9].textContent = shelfTotal; // Shelf Total
   cells[12].textContent = totalStock; // Total Stock
+  
+  // Recalculate stock status
+  const uk_6m_data = Number(cells[4].textContent.trim()) || 0;
+  const fr_6m_data = Number(cells[15].textContent.trim()) || 0;
+  const demand = uk_6m_data + fr_6m_data;
+  
+  let stockStatus = '';
+  let stockStatusDisplay = '';
+  
+  if (demand > 0) {
+    if (totalStock >= demand * 3) {
+      stockStatus = 'overstock';
+      stockStatusDisplay = 'Over Stock';
+    } else if (totalStock < demand) {
+      stockStatus = 'lowstock';
+      stockStatusDisplay = 'Low Stock';
+    } else {
+      stockStatus = 'normal';
+      stockStatusDisplay = 'Normal Stock';
+    }
+  }
+  
+  // Update stock status cell (column 13)
+  cells[13].textContent = stockStatusDisplay;
+  cells[13].className = stockStatus ? `readonly-field stock-status-${stockStatus}` : 'readonly-field';
 }
 
 async function saveRowData(row) {
@@ -769,28 +821,56 @@ function setupDiscontinuedStatusFilters() {
       
       console.log('[Inventory] Applying discontinued status filters:', selectedFilters);
       
-      // Save preferences
-      saveDiscontinuedStatusFilters(selectedFilters);
-      
-      // Reset to first page when filters change
-      currentPage = 0;
-      
-      // Reload data from API with new page and re-render table
-      await loadInventoryData();
-      setupTable();
-      
-      // Count visible rows
-      const visibleRows = document.querySelectorAll('#inventoryManagementBody tr:not([style*="display: none"])').length;
-      console.log(`[Inventory] Now showing ${visibleRows} products after applying filters`);
-      
-      // Visual feedback on button
+      // Immediate visual feedback - show loading state
       const originalText = applyBtn.textContent;
-      applyBtn.textContent = '✓ Filters Applied';
-      applyBtn.style.background = '#10b981';
-      setTimeout(() => {
-        applyBtn.textContent = originalText;
-        applyBtn.style.background = '';
-      }, 2000);
+      applyBtn.textContent = '⏳ Loading...';
+      applyBtn.disabled = true;
+      applyBtn.style.opacity = '0.7';
+      applyBtn.style.cursor = 'wait';
+      
+      try {
+        // Save preferences
+        saveDiscontinuedStatusFilters(selectedFilters);
+        
+        // Reset to first page when filters change
+        currentPage = 0;
+        
+        // Reload data from API with new filters and re-render table
+        await loadInventoryData();
+        setupTable();
+        
+        // Count visible rows
+        const visibleRows = document.querySelectorAll('#inventoryManagementBody tr:not([style*="display: none"])').length;
+        console.log(`[Inventory] Now showing ${visibleRows} products after applying filters`);
+        
+        // Success feedback
+        applyBtn.textContent = '✓ Filters Applied';
+        applyBtn.style.background = '#10b981';
+        applyBtn.style.opacity = '1';
+        applyBtn.style.cursor = 'pointer';
+        
+        setTimeout(() => {
+          applyBtn.textContent = originalText;
+          applyBtn.style.background = '';
+          applyBtn.disabled = false;
+        }, 2000);
+      } catch (error) {
+        console.error('[Inventory] Error applying filters:', error);
+        
+        // Error feedback
+        applyBtn.textContent = '✗ Error';
+        applyBtn.style.background = '#ef4444';
+        applyBtn.style.opacity = '1';
+        applyBtn.style.cursor = 'pointer';
+        
+        setTimeout(() => {
+          applyBtn.textContent = originalText;
+          applyBtn.style.background = '';
+          applyBtn.disabled = false;
+          applyBtn.style.opacity = '1';
+          applyBtn.style.cursor = 'pointer';
+        }, 2000);
+      }
     });
   }
 }
@@ -825,8 +905,9 @@ function getSelectedValue(toggle) {
   // Map display text to actual filter values
   const valueMap = {
     'All Stock Status': '',
-    'Overstock': 'overstock',
-    'Low Stock': 'lowstock'
+    'Over Stock': 'overstock',
+    'Low Stock': 'lowstock',
+    'Normal Stock': 'normal'
   };
   
   return valueMap[value] || '';

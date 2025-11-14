@@ -83,6 +83,10 @@ class InventoryManagementService:
             # This creates inventory_metadata records for any new products
             self.repo.sync_magento_products_to_inventory_metadata()
             
+            # Step 1.5: Ensure discontinued_status column is populated from additional_attributes
+            # This ensures filtering is fast (no need to parse on every query)
+            self.repo.update_discontinued_status_from_additional_attributes()
+            
             # Step 2: Merge identifier products with their base SKUs in inventory_metadata
             # This must happen BEFORE generating item IDs
             self.repo.merge_identifier_products()
