@@ -246,60 +246,7 @@ html.dark-mode .block-subtitle {
   gap: 1rem;
 }
 
-.action-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-  padding: 1rem 1.5rem;
-  border: none;
-  border-radius: 12px;
-  font-size: 0.95rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  white-space: nowrap;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.action-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.action-btn:active {
-  transform: translateY(0);
-}
-
-.action-btn i {
-  font-size: 1rem;
-}
-
-.primary-btn {
-  background: linear-gradient(135deg, #76a12b, #5e8122);
-  color: white;
-}
-
-.primary-btn:hover {
-  background: linear-gradient(135deg, #8bc34a, #76a12b);
-  box-shadow: 0 4px 16px rgba(118, 161, 43, 0.4);
-}
-
-.danger-btn {
-  background: linear-gradient(135deg, #e74c3c, #c0392b);
-  color: white;
-}
-
-.danger-btn:hover {
-  background: linear-gradient(135deg, #ff6b6b, #e74c3c);
-  box-shadow: 0 4px 16px rgba(231, 76, 60, 0.4);
-}
-
-.action-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none !important;
-}
+/* Button styles are now in components/button.css */
 
 /* Action Divider */
 .action-divider {
@@ -800,11 +747,12 @@ html.dark-mode .card-actions {
   gap: 0.5rem;
   padding: 0.75rem 1.25rem;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   font-size: 0.95rem;
   font-weight: 600;
+  font-family: 'Sora', system-ui, sans-serif;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .btn-save {

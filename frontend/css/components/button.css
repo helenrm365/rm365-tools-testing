@@ -1,0 +1,320 @@
+/* ===== Standardized Button Component ===== */
+/* Based on sales data button design - used across all modules */
+
+/* Base Action Button */
+.action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: 'Sora', system-ui, sans-serif;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+/* Primary Button - Green gradient (main actions) */
+.primary-btn {
+  background: linear-gradient(135deg, #76a12b, #5e8122);
+  color: white;
+  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.3);
+}
+
+.primary-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #8bc34a, #76a12b);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.4);
+}
+
+.primary-btn:active {
+  transform: translateY(0);
+}
+
+/* Secondary Button - Gray gradient (secondary actions) */
+.secondary-btn {
+  background: linear-gradient(135deg, #6b7280, #4b5563);
+  color: white;
+  box-shadow: 0 2px 8px rgba(107, 114, 128, 0.2);
+}
+
+.secondary-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #9ca3af, #6b7280);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
+}
+
+.secondary-btn:active {
+  transform: translateY(0);
+}
+
+html.dark-mode .secondary-btn {
+  background: linear-gradient(135deg, #6b7280, #4b5563);
+  color: white;
+  box-shadow: 0 2px 8px rgba(107, 114, 128, 0.2);
+}
+
+html.dark-mode .secondary-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #9ca3af, #6b7280);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
+}
+
+/* Danger Button - Red gradient (destructive actions) */
+.danger-btn {
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  color: white;
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+}
+
+.danger-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #ff6b6b, #e74c3c);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
+}
+
+.danger-btn:active {
+  transform: translateY(0);
+}
+
+/* Info Button - Blue gradient (informational actions) */
+.info-btn {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.info-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #60a5fa, #3b82f6);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.info-btn:active {
+  transform: translateY(0);
+}
+
+/* Success Button - Emerald gradient (success/completion actions) */
+.success-btn {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.success-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #34d399, #10b981);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+.success-btn:active {
+  transform: translateY(0);
+}
+
+/* Warning Button - Orange gradient (warning actions) */
+.warning-btn {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+.warning-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+}
+
+.warning-btn:active {
+  transform: translateY(0);
+}
+
+/* Disabled state for all buttons */
+.action-btn:disabled,
+.primary-btn:disabled,
+.secondary-btn:disabled,
+.danger-btn:disabled,
+.info-btn:disabled,
+.success-btn:disabled,
+.warning-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Button with icon styling */
+.action-btn i {
+  font-size: 1rem;
+}
+
+/* Small button variant */
+.action-btn.btn-sm {
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+}
+
+/* Large button variant */
+.action-btn.btn-lg {
+  padding: 1rem 2rem;
+  font-size: 1.05rem;
+}
+
+/* Button group */
+.btn-group {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Icon-only button */
+.btn-icon {
+  padding: 0.75rem;
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Outline button variants */
+.btn-outline {
+  background: transparent;
+  border: 2px solid currentColor;
+  box-shadow: none;
+}
+
+.btn-outline.primary-btn {
+  color: #76a12b;
+  border-color: #76a12b;
+}
+
+.btn-outline.primary-btn:hover:not(:disabled) {
+  background: #76a12b;
+  color: white;
+}
+
+.btn-outline.secondary-btn {
+  color: #6b7280;
+  border-color: #6b7280;
+}
+
+.btn-outline.secondary-btn:hover:not(:disabled) {
+  background: #6b7280;
+  color: white;
+}
+
+.btn-outline.danger-btn {
+  color: #e74c3c;
+  border-color: #e74c3c;
+}
+
+.btn-outline.danger-btn:hover:not(:disabled) {
+  background: #e74c3c;
+  color: white;
+}
+
+/* Dark mode adjustments */
+html.dark-mode .btn-outline.primary-btn {
+  color: #8bc34a;
+  border-color: #8bc34a;
+}
+
+html.dark-mode .btn-outline.primary-btn:hover:not(:disabled) {
+  background: #8bc34a;
+  color: #1e1e1e;
+}
+
+html.dark-mode .btn-outline.secondary-btn {
+  color: #9ca3af;
+  border-color: #9ca3af;
+}
+
+html.dark-mode .btn-outline.secondary-btn:hover:not(:disabled) {
+  background: #9ca3af;
+  color: #1e1e1e;
+}
+
+html.dark-mode .btn-outline.danger-btn {
+  color: #ff6b6b;
+  border-color: #ff6b6b;
+}
+
+html.dark-mode .btn-outline.danger-btn:hover:not(:disabled) {
+  background: #ff6b6b;
+  color: #1e1e1e;
+}
+
+/* Standalone btn-primary and btn-secondary (without action-btn base) */
+/* Used in some modals for backward compatibility */
+.btn-primary,
+.btn-secondary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: 'Sora', system-ui, sans-serif;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #76a12b, #5e8122);
+  color: white;
+  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.3);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #8bc34a, #76a12b);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.4);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-secondary {
+  background: linear-gradient(135deg, #6b7280, #4b5563);
+  color: white;
+  box-shadow: 0 2px 8px rgba(107, 114, 128, 0.2);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #9ca3af, #6b7280);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
+}
+
+.btn-secondary:active {
+  transform: translateY(0);
+}
+
+.btn-primary:disabled,
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+html.dark-mode .btn-secondary {
+  background: linear-gradient(135deg, #6b7280, #4b5563);
+  color: white;
+}
+
+html.dark-mode .btn-secondary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #9ca3af, #6b7280);
+}

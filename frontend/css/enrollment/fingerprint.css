@@ -430,60 +430,36 @@ html.dark-mode .enrollment-fingerprint .dropdown-arrow {
   color: #95a5a6;
 }
 
-/* Action Buttons */
+/* Button styles are now in components/button.css */
+/* Override for full-width buttons */
 .enrollment-fingerprint .action-btn {
   width: 100%;
   padding: 1rem 1.5rem;
   font-size: 1rem;
-  font-weight: 600;
-  border: none;
-  border-radius: 12px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
   justify-content: center;
-  gap: 0.75rem;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.enrollment-fingerprint .action-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.enrollment-fingerprint .action-btn:active {
-  transform: translateY(0);
-}
-
-.enrollment-fingerprint .action-btn i {
-  font-size: 1.125rem;
-}
-
+/* Special button colors for enrollment fingerprint */
 .enrollment-fingerprint .scan-btn {
   background: linear-gradient(135deg, #76a12b, #5e8122);
   color: white;
+  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.3);
 }
 
-.enrollment-fingerprint .scan-btn:hover {
+.enrollment-fingerprint .scan-btn:hover:not(:disabled) {
   background: linear-gradient(135deg, #8bc34a, #76a12b);
   box-shadow: 0 4px 16px rgba(118, 161, 43, 0.4);
 }
 
 .enrollment-fingerprint .save-btn {
-  background: linear-gradient(135deg, #3498db, #2980b9);
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
   color: white;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
-.enrollment-fingerprint .save-btn:hover {
-  background: linear-gradient(135deg, #5dade2, #3498db);
-  box-shadow: 0 4px 16px rgba(52, 152, 219, 0.4);
-}
-
-.enrollment-fingerprint .action-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none !important;
+.enrollment-fingerprint .save-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #60a5fa, #3b82f6);
+  box-shadow: 0 4px 16px rgba59, 130, 246, 0.4);
 }
 
 /* Status Bar */

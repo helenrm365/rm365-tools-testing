@@ -395,51 +395,8 @@ html.dark-mode .dropdown-item:hover {
   flex-wrap: wrap;
 }
 
-.primary-btn {
-  padding: 0.875rem 2rem;
-  background: linear-gradient(135deg, #28a745, #20c997);
-  color: white;
-  border: none;
-  border-radius: 10px;
-  font-size: 1.05rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
-}
-
-.primary-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(40, 167, 69, 0.4);
-}
-
-.primary-btn:active {
-  transform: translateY(0);
-}
-
-.secondary-btn {
-  padding: 0.875rem 2rem;
-  background: linear-gradient(135deg, #007bff, #0056b3);
-  color: white;
-  border: none;
-  border-radius: 10px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
-}
-
-.secondary-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 123, 255, 0.4);
-}
+/* Button styles are now in components/button.css */
+/* Keep tertiary-btn as it's unique to inventory */
 
 .tertiary-btn {
   padding: 0.75rem 1.5rem;

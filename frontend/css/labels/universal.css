@@ -199,6 +199,13 @@ html.dark-mode .region-option:hover {
   border-color: rgba(139, 195, 74, 0.3);
 }
 
+html.dark-mode .region-option:has(input:checked) {
+  background: linear-gradient(135deg, #8bc34a, #76a12b);
+  color: white;
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 2px 8px rgba(139, 195, 74, 0.4);
+}
+
 .region-radio {
   display: none;
 }
