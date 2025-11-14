@@ -172,25 +172,29 @@ html.dark-mode .prompt-card p {
   color: #b8b8b8;
 }
 
+/* Button styles now use components/button.css */
+/* Legacy support for primary-button - maps to action-btn primary-btn */
 .primary-button {
   background: linear-gradient(135deg, #76a12b, #5e8122);
   color: white;
   padding: 0.875rem 2rem;
   font-size: 1.05rem;
   font-weight: 600;
+  font-family: 'Sora', system-ui, sans-serif;
   border: none;
   border-radius: 12px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
   box-shadow: 0 4px 12px rgba(118, 161, 43, 0.3);
 }
 
-.primary-button:hover {
+.primary-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #8bc34a, #76a12b);
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(118, 161, 43, 0.4);
+  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.4);
 }
 
 .primary-button:active {

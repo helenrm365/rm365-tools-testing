@@ -249,13 +249,20 @@ html.dark-mode .inventory-management .checkbox-label span {
   border: none;
   border-radius: 10px;
   font-weight: 600;
+  font-family: 'Sora', system-ui, sans-serif;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
   font-size: 0.95rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.inventory-management .apply-filters-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #60a5fa, #3b82f6);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
 }
 
 /* ===== Sync Sales Button ===== */

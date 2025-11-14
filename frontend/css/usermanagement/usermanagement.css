@@ -220,6 +220,39 @@ html.dark-mode .subtabs-container .checkbox-label {
   transform: translateY(0);
 }
 
+/* Modern-button with primary modifier - green like primary-btn */
+.modern-button.primary {
+  background: linear-gradient(135deg, #76a12b, #5e8122);
+  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.3);
+}
+
+.modern-button.primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #8bc34a, #76a12b);
+  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.4);
+}
+
+/* Modern-button with secondary modifier - same as base modern-button */
+.modern-button.secondary {
+  background: linear-gradient(135deg, #6b7280, #4b5563);
+  box-shadow: 0 2px 8px rgba(107, 114, 128, 0.2);
+}
+
+.modern-button.secondary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #9ca3af, #6b7280);
+  box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
+}
+
+/* Modern-button with danger modifier - red like danger-btn */
+.modern-button.danger {
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+}
+
+.modern-button.danger:hover:not(:disabled) {
+  background: linear-gradient(135deg, #ff6b6b, #e74c3c);
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
+}
+
 html.dark-mode .modern-button {
   background: linear-gradient(135deg, #6b7280, #4b5563);
   color: white;
@@ -227,6 +260,14 @@ html.dark-mode .modern-button {
 
 html.dark-mode .modern-button:hover:not(:disabled) {
   background: linear-gradient(135deg, #9ca3af, #6b7280);
+}
+
+html.dark-mode .modern-button.primary {
+  background: linear-gradient(135deg, #76a12b, #5e8122);
+}
+
+html.dark-mode .modern-button.primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #8bc34a, #76a12b);
 }
 
 /* ===== Modern Inputs (from modern-ui.css) ===== */
