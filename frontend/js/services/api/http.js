@@ -13,7 +13,7 @@ function authHeader() {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-export async function http(path, { method = 'GET', headers = {}, body, retry = 0, timeout = 10000 } = {}) {
+export async function http(path, { method = 'GET', headers = {}, body, retry = 0, timeout = 60000 } = {}) {
   const url = `${BASE}${path}`;
   
   // Check if body is FormData (for file uploads)

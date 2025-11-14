@@ -7,7 +7,7 @@ const API = '/api/v1/salesdata';
 
 // Initialize tables
 export async function initializeTables() {
-  return await get(`${API}/init`);
+  return await http(`${API}/init`, { timeout: 120000 }); // 2 minutes for slow init
 }
 
 // Check tables status

@@ -1,4 +1,4 @@
-import { get, post, patch } from '../../services/api/http.js';
+import { get, post, patch, http } from '../../services/api/http.js';
 import { config } from '../../config.js';
 import { showToast } from '../../ui/toast.js';
 
@@ -189,7 +189,7 @@ async function loadInventoryData() {
         }
         
         // Fetch items with search and metadata
-        const itemsResponse = await get(itemsUrl);
+        const itemsResponse = await http(itemsUrl, { timeout: 120000 }); // 2 minutes for slow inventory fetch
         const metadataResponse = await get(pathSet.metadata);
         
         if (itemsResponse && metadataResponse) {
