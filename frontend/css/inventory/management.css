@@ -981,3 +981,48 @@ html.dark-mode .stock-status-normal {
   background-color: #065f46 !important;
   color: #d1fae5 !important;
 }
+
+/* ===== Stats Components (from modern-ui.css) ===== */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border: 1px solid rgba(0,0,0,0.05);
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: #7f8c8d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+html.dark-mode .stat-card {
+    background: #2e2e2e;
+    border: 1px solid rgba(255,255,255,0.1);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+html.dark-mode .stat-value {
+    color: #ecf0f1;
+}
+
+html.dark-mode .stat-label {
+    color: #bdc3c7;
+}

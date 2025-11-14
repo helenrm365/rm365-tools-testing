@@ -794,3 +794,28 @@ html.dark-mode .sync-status {
 .info-card:nth-child(1) { animation-delay: 0.1s; }
 .info-card:nth-child(2) { animation-delay: 0.2s; }
 .info-card:nth-child(3) { animation-delay: 0.3s; }
+
+/* ===== Modern Input (from modern-ui.css) ===== */
+.modern-input {
+    padding: 10px 12px;
+    font-size: 0.95rem;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    outline: none;
+    transition: all 0.2s ease;
+    margin-right: 10px;
+    margin-bottom: 8px;
+}
+.modern-input:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 5px rgba(0,123,255,0.3);
+}
+html.dark-mode .modern-input {
+    background-color: #2e2e2e;
+    border: 1px solid #555;
+    color: #fff;
+}
+html.dark-mode .modern-input:focus {
+    border-color: #3399ff;
+    box-shadow: 0 0 5px rgba(51,153,255,0.3);
+}

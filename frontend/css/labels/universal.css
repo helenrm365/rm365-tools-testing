@@ -230,3 +230,5 @@ html.dark-mode .region-option:hover {
 html.dark-mode .region-help {
   color: #9ca3af;
 }
+/* ===== C-Select System (from modern-ui.css for JS compatibility) ===== */
+.c-select { position: relative; display: inline-block; width: 100%; }
