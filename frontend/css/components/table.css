@@ -1,0 +1,274 @@
+/* ===== Standardized Table Component ===== */
+/* Based on sales data table design - used across all modules except inventory management */
+
+/* Table Container - provides scrolling and styling wrapper */
+.table-container {
+  background: white;
+  border-radius: 12px;
+  overflow: auto;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: 2px solid #f1f5f9;
+  margin-bottom: 2rem;
+  max-height: 700px;
+}
+
+html.dark-mode .table-container {
+  background: #2a2a2a;
+  border-color: #404040;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Custom scrollbar for table container */
+.table-container::-webkit-scrollbar {
+  height: 12px;
+  width: 12px;
+}
+
+.table-container::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+.table-container::-webkit-scrollbar-track:horizontal {
+  border-radius: 0 0 12px 12px;
+}
+
+.table-container::-webkit-scrollbar-track:vertical {
+  border-radius: 0 12px 12px 0;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 6px;
+  transition: background 0.2s ease;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+html.dark-mode .table-container::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+
+html.dark-mode .table-container::-webkit-scrollbar-thumb {
+  background: #555;
+}
+
+html.dark-mode .table-container::-webkit-scrollbar-thumb:hover {
+  background: #666;
+}
+
+/* Modern Table - standard table class */
+.modern-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.modern-table thead {
+  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+  border-bottom: 2px solid #e5e7eb;
+}
+
+html.dark-mode .modern-table thead {
+  background: linear-gradient(135deg, #404040, #333);
+  border-bottom-color: #555;
+}
+
+.modern-table th {
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+html.dark-mode .modern-table th {
+  color: #e5e7eb;
+}
+
+.modern-table tbody tr {
+  background: white;
+  border-bottom: 1px solid #f1f5f9;
+  transition: all 0.2s ease;
+}
+
+html.dark-mode .modern-table tbody tr {
+  background: #2a2a2a;
+  border-bottom-color: #404040;
+}
+
+.modern-table tbody tr:hover {
+  background: linear-gradient(135deg, #fefefe, #f8fafc);
+}
+
+html.dark-mode .modern-table tbody tr:hover {
+  background: linear-gradient(135deg, #2a2a2a, #333);
+}
+
+.modern-table td {
+  padding: 1rem;
+  color: #374151;
+  font-size: 0.95rem;
+}
+
+html.dark-mode .modern-table td {
+  color: #e5e7eb;
+}
+
+/* Alternative table classes for backward compatibility */
+.products-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table-header {
+  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+  border-bottom: 2px solid #e2e8f0;
+}
+
+html.dark-mode .table-header {
+  background: linear-gradient(135deg, #404040, #333);
+  border-bottom-color: #555;
+}
+
+.table-header th {
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+html.dark-mode .table-header th {
+  color: #e5e7eb;
+}
+
+.table-body tr {
+  border-bottom: 1px solid #f1f5f9;
+  transition: all 0.2s ease;
+}
+
+html.dark-mode .table-body tr {
+  border-bottom-color: #404040;
+}
+
+.table-body tr:hover {
+  background: linear-gradient(135deg, #fefefe, #f8fafc);
+}
+
+html.dark-mode .table-body tr:hover {
+  background: linear-gradient(135deg, #2a2a2a, #333);
+}
+
+.table-body td {
+  padding: 1rem;
+  color: #374151;
+  font-size: 0.95rem;
+}
+
+html.dark-mode .table-body td {
+  color: #e5e7eb;
+}
+
+/* Empty state for tables */
+.empty-state {
+  text-align: center;
+  padding: 3rem;
+  color: #9ca3af;
+}
+
+.empty-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.empty-message {
+  font-size: 1.1rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.empty-submessage {
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+html.dark-mode .empty-submessage {
+  color: #9ca3af;
+}
+
+/* Table input fields */
+.modern-table .in,
+.modern-table input[type="text"],
+.modern-table input[type="email"],
+.modern-table select {
+  border: 1px solid #ddd;
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  box-sizing: border-box;
+  background: white;
+  color: #374151;
+}
+
+html.dark-mode .modern-table .in,
+html.dark-mode .modern-table input[type="text"],
+html.dark-mode .modern-table input[type="email"],
+html.dark-mode .modern-table select {
+  background: #444;
+  border-color: #555;
+  color: #fff;
+}
+
+.modern-table .in:focus,
+.modern-table input:focus,
+.modern-table select:focus {
+  outline: none;
+  border-color: #76a12b;
+}
+
+/* Table wrapper (alternative to table-container) */
+.table-wrap {
+  border-radius: 12px;
+  overflow: hidden;
+  background: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 2px solid #e0e0e0;
+}
+
+html.dark-mode .table-wrap {
+  background: #2a2a2a;
+  border-color: #555;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Loading state */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  color: #94a3b8;
+}
+
+.loading-state i {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  color: #76a12b;
+}
+
+html.dark-mode .loading-state i {
+  color: #8bc34a;
+}
+
+.loading-state p {
+  margin: 0;
+  font-size: 0.95rem;
+}

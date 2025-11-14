@@ -309,57 +309,7 @@ html.dark-mode .loading-state i {
   font-size: 0.95rem;
 }
 
-/* ===== Tables ===== */
-.modern-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  margin-top: 1rem;
-}
-
-.modern-table thead th {
-  background: #f8fafc;
-  color: #475569;
-  font-weight: 600;
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 1rem;
-  text-align: left;
-  border-bottom: 2px solid #e2e8f0;
-}
-
-html.dark-mode .modern-table thead th {
-  background: #1e1e1e;
-  color: #cbd5e1;
-  border-bottom-color: #3a3a3a;
-}
-
-.modern-table tbody tr {
-  transition: background-color 0.2s ease;
-}
-
-.modern-table tbody tr:hover {
-  background: #f8fafc;
-}
-
-html.dark-mode .modern-table tbody tr:hover {
-  background: #1e1e1e;
-}
-
-.modern-table tbody td {
-  padding: 1rem;
-  color: var(--text-color);
-  border-bottom: 1px solid #e2e8f0;
-}
-
-html.dark-mode .modern-table tbody td {
-  border-bottom-color: #3a3a3a;
-}
-
-.modern-table tbody tr:last-child td {
-  border-bottom: none;
-}
+/* Tables and forms are now in components/table.css and components/form.css */
 
 /* ===== Status Badges ===== */
 .status-badge {

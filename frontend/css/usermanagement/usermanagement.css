@@ -95,35 +95,7 @@ html.dark-mode .expand-icon {
   margin: 0;
 }
 
-/* Modal styles are now in components/modal.css */
-
-/* Form overrides for user management */
-.form-group {
-  margin-bottom: 16px;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 6px;
-  font-weight: 500;
-  color: #333;
-}
-
-.form-group input,
-.form-group select {
-  width: 100%;
-  padding: 10px;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
-  font-size: 1rem;
-  transition: border-color 0.2s;
-}
-
-.form-group input:focus,
-.form-group select:focus {
-  outline: none;
-  border-color: #76a12b;
-}
+/* Form and table styles are now in components/form.css and components/table.css */
 
 /* Action buttons in table */
 .action-btn {
@@ -184,17 +156,6 @@ html.dark-mode .expand-icon {
 }
 
 /* Dark mode support */
-html.dark-mode .form-group label {
-  color: #fff;
-}
-
-html.dark-mode .form-group input,
-html.dark-mode .form-group select {
-  background: #444;
-  border-color: #555;
-  color: #fff;
-}
-
 html.dark-mode .modern-table .in {
   background: #444;
   border-color: #555;
@@ -314,27 +275,4 @@ html.dark-mode .modern-input:focus {
     border-bottom: none;
     padding-bottom: 0;
 }
-/* ===== Modern Table (for JS-generated user table) ===== */
-.modern-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.95rem;
-}
-.modern-table th,
-.modern-table td {
-  border: 1px solid #ccc;
-  padding: 8px 12px;
-  text-align: left;
-}
-.modern-table th {
-  background-color: #f4f4f4;
-  font-weight: 600;
-}
-html.dark-mode .modern-table th {
-  background-color: #2a2a2a;
-  color: #fff;
-}
-html.dark-mode .modern-table td {
-  border-color: #555;
-  color: #eee;
-}
+/* Modern table styles are now in components/table.css */

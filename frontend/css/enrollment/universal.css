@@ -2,51 +2,7 @@
 /* Shared styles for Management, Card, and Fingerprint enrollment pages */
 /* Page-specific styles (including modals for management) are in their dedicated CSS files */
 
-/* Modern Table Styling */
-.modern-table {
-  background: white;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  border: 2px solid #e0e0e0;
-}
-
-html.dark-mode .modern-table {
-  background: #2a2a2a;
-  border-color: #555;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}
-
-.modern-table th {
-  background: linear-gradient(135deg, #f1f3f4, #e8eaed);
-  font-weight: 600;
-  color: #333;
-  border-bottom: 2px solid #ddd !important;
-}
-
-html.dark-mode .modern-table th {
-  background: linear-gradient(135deg, #404040, #333);
-  color: #fff;
-  border-bottom: 2px solid #555 !important;
-}
-
-.modern-table tbody tr {
-  background: white;
-  border-bottom: 1px solid #eee !important;
-}
-
-html.dark-mode .modern-table tbody tr {
-  background: #2a2a2a;
-  border-bottom: 1px solid #444 !important;
-}
-
-.modern-table tbody tr:hover {
-  background: rgba(118, 161, 43, 0.05);
-}
-
-html.dark-mode .modern-table tbody tr:hover {
-  background: rgba(118, 161, 43, 0.15);
-}
+/* Table and form styles are now in components/table.css and components/form.css */
 
 /* Table Wrap */
 .table-wrap {

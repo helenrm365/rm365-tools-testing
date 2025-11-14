@@ -1103,70 +1103,7 @@ html.dark-mode .management-wrapper .tip-item {
 }
 
 /* Modal styles are now in components/modal.css */
-
-.form-group {
-  margin-bottom: 1.5rem;
-}
-
-.form-label {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 0.75rem;
-  font-weight: 600;
-  font-size: 0.95rem;
-  color: #2c3e50;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.form-label i {
-  color: #76a12b;
-  font-size: 1rem;
-}
-
-html.dark-mode .form-label {
-  color: #ecf0f1;
-}
-
-html.dark-mode .form-label i {
-  color: #8bc34a;
-}
-
-.form-input,
-.form-select {
-  width: 100%;
-  padding: 0.85rem 1rem;
-  border: 2px solid rgba(0, 0, 0, 0.08);
-  border-radius: 12px;
-  font-size: 0.95rem;
-  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-  color: #2c3e50;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  font-weight: 500;
-  box-sizing: border-box;
-}
-
-.form-input:hover,
-.form-select:hover {
-  border-color: rgba(118, 161, 43, 0.3);
-  background: white;
-}
-
-.form-input:focus,
-.form-select:focus {
-  outline: none;
-  border-color: #76a12b;
-  box-shadow: 0 0 0 3px rgba(118, 161, 43, 0.1);
-  background: white;
-}
-
-html.dark-mode .form-input,
-html.dark-mode .form-select {
-  background: linear-gradient(135deg, #1e1e1e, #2a2a2a);
-  border-color: rgba(255, 255, 255, 0.1);
-  color: #ecf0f1;
-}
+/* Form styles are now in components/form.css */
 
 html.dark-mode .form-input:hover,
 html.dark-mode .form-select:hover {

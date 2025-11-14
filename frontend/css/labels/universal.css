@@ -233,30 +233,7 @@ html.dark-mode .region-help {
 /* ===== C-Select System (from modern-ui.css for JS compatibility) ===== */
 .c-select { position: relative; display: inline-block; width: 100%; }
 
-/* ===== Modern Table (for JS-generated tables in labels module) ===== */
-.modern-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.95rem;
-}
-.modern-table th,
-.modern-table td {
-  border: 1px solid #ccc;
-  padding: 8px 12px;
-  text-align: left;
-}
-.modern-table th {
-  background-color: #f4f4f4;
-  font-weight: 600;
-}
-html.dark-mode .modern-table th {
-  background-color: #2a2a2a;
-  color: #fff;
-}
-html.dark-mode .modern-table td {
-  border-color: #555;
-  color: #eee;
-}
+/* Modern table styles are now in components/table.css */
 
 /* ===== Status Badges (for JS-generated status indicators) ===== */
 .status-badge {
