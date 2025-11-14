@@ -459,6 +459,7 @@ function displaySummaryTable(summaryData) {
         }).join('')}
       </tbody>
     </table>
+    </div>
     <div style="margin-top: 1rem; font-size: 0.9em; color: #64748b;">
       <strong>Total Logs:</strong> ${summaryData.reduce((sum, item) => sum + item.count, 0)} | 
       <strong>Active Employees:</strong> ${summaryData.length}
@@ -612,6 +613,7 @@ function displayCurrentStatus(employees) {
         }).join('')}
       </tbody>
     </table>
+    </div>
     <div style="margin-top: 1rem; font-size: 0.9em; color: #64748b;">
       <strong>Total Employees:</strong> ${employees.length} | 
       <strong>Currently In:</strong> ${employees.filter(e => e.status === 'in').length} |

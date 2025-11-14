@@ -898,6 +898,12 @@ html.dark-mode .inventory-management .empty-state h3 {
   }
 }
 
+@media (max-width: 968px) {
+  .inventory-management .checkbox-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  }
+}
+
 @media (max-width: 768px) {
   .inventory-management .inner-tabs {
     flex-direction: column;

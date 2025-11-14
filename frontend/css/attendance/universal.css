@@ -74,8 +74,8 @@ html.dark-mode .section-title {
 
 .filters-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
   margin-bottom: 1.5rem;
 }
 
@@ -118,6 +118,7 @@ html.dark-mode .filter-label i {
   transition: all 0.2s ease;
   background: white;
   color: var(--text-color);
+  box-sizing: border-box;
 }
 
 .filter-input:focus,
@@ -375,6 +376,13 @@ html.dark-mode .status-unknown {
 }
 
 /* ===== Responsive Design ===== */
+@media (max-width: 968px) {
+  .filters-grid {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 0.75rem;
+  }
+}
+
 @media (max-width: 768px) {
   .stats-grid {
     grid-template-columns: 1fr;
@@ -382,6 +390,7 @@ html.dark-mode .status-unknown {
 
   .filters-grid {
     grid-template-columns: 1fr;
+    gap: 1rem;
   }
 
   .filter-actions {

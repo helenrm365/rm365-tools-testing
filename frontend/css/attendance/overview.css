@@ -252,8 +252,8 @@ html.dark-mode .attendance-overview .filters-card {
 
 .attendance-overview .filters-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
   margin-bottom: 1.5rem;
 }
 
@@ -296,6 +296,7 @@ html.dark-mode .attendance-overview .filter-label i {
   transition: all 0.2s ease;
   background: white;
   color: var(--text-color);
+  box-sizing: border-box;
 }
 
 .attendance-overview .filter-input:focus,
@@ -530,6 +531,13 @@ html.dark-mode .attendance-overview .status-unknown {
 }
 
 /* ===== Responsive Design ===== */
+@media (max-width: 968px) {
+  .attendance-overview .filters-grid {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 0.75rem;
+  }
+}
+
 @media (max-width: 768px) {
   .attendance-overview .page-title {
     font-size: 2rem;
@@ -541,6 +549,7 @@ html.dark-mode .attendance-overview .status-unknown {
 
   .attendance-overview .filters-grid {
     grid-template-columns: 1fr;
+    gap: 1rem;
   }
 
   .attendance-overview .filter-actions {

@@ -419,6 +419,7 @@ html.dark-mode .filter-label i {
 }
 
 .filter-select {
+  width: 100%;
   padding: 0.9rem 1rem;
   border: 2px solid rgba(0, 0, 0, 0.08);
   border-radius: 12px;
@@ -433,6 +434,7 @@ html.dark-mode .filter-label i {
   background-repeat: no-repeat;
   background-position: right 1rem center;
   padding-right: 2.5rem;
+  box-sizing: border-box;
 }
 
 .filter-select:hover {
@@ -1210,6 +1212,16 @@ html.dark-mode .modal-footer .btn-secondary:hover {
   }
 }
 
+@media (max-width: 968px) {
+  .filter-controls {
+    gap: 0.75rem;
+  }
+
+  .employee-grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+}
+
 @media (max-width: 768px) {
   .enrollment-management {
     padding: 0.75rem;
@@ -1241,6 +1253,7 @@ html.dark-mode .modal-footer .btn-secondary:hover {
 
   .filter-controls {
     grid-template-columns: 1fr;
+    gap: 1rem;
   }
 
   .search-box {
