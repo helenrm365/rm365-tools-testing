@@ -8,6 +8,9 @@ from core.db import (
     get_inventory_log_connection,
     get_products_connection,
     get_sqlalchemy_engine,
+    return_attendance_connection,
+    return_inventory_connection,
+    return_products_connection,
 )
 from core.security import get_current_user as _get_current_user
 from core.pagination import get_page_params, PageParams  # re-export
@@ -54,7 +57,7 @@ def pg_conn():
         conn.rollback()  # Auto-rollback on error
         raise
     finally:
-        conn.close()
+        return_attendance_connection(conn)
 
 
 @contextmanager
@@ -71,7 +74,7 @@ def inventory_conn():
         conn.rollback()  # Auto-rollback on error
         raise
     finally:
-        conn.close()
+        return_inventory_connection(conn)
 
 
 @contextmanager
@@ -88,7 +91,7 @@ def products_conn():
         conn.rollback()  # Auto-rollback on error
         raise
     finally:
-        conn.close()
+        return_products_connection(conn)
 
 
 def labels_engine():

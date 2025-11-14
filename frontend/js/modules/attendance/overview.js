@@ -753,7 +753,8 @@ async function loadAllData() {
     const location = state.filters.location || null;
     const nameSearch = state.filters.nameSearch || null;
 
-    // Fetch data with better error handling - don't let one failure block others
+    // OPTIMIZED: Parallel data fetching - all requests execute simultaneously
+    const startTime = performance.now();
     const results = await Promise.allSettled([
       fetchDailyStats(location, nameSearch),
       fetchSummary(fromDate, toDate, location, nameSearch),
@@ -761,6 +762,8 @@ async function loadAllData() {
       fetchWorkHours(fromDate, toDate, location, nameSearch),
       fetchCurrentStatus()
     ]);
+    const loadTime = performance.now() - startTime;
+    console.log(`⚡ Parallel data fetch completed in ${loadTime.toFixed(0)}ms`);
 
     // Extract results, using fallbacks for failed requests
     const [dailyStats, summaryData, chartData, workHoursData, currentStatus] = results.map((result, index) => {

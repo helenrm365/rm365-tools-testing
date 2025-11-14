@@ -14,6 +14,7 @@ except ImportError:
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from core.config import settings
@@ -184,6 +185,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# --- GZip Compression (for faster data transfer) -----------------------------
+# Compress responses larger than 1KB to reduce bandwidth and improve load times
+app.add_middleware(
+    GZipMiddleware,
+    minimum_size=1000,  # Only compress responses >= 1KB
+    compresslevel=6     # Balance between speed and compression (1-9, default is 5)
+)
+print("✅ GZip compression enabled (minimum size: 1KB)")
+
 # --- Middleware & error handlers ---------------------------------------------
 install_middleware(app)   # request logging, request-id, etc.
 install_handlers(app)     # AppError → JSON
@@ -225,12 +235,12 @@ def debug_inventory():
         # Test database connection
         db_status = 'unknown'
         try:
-            from core.db import get_inventory_log_connection
+            from core.db import get_inventory_log_connection, return_inventory_connection
             conn = get_inventory_log_connection()
             cursor = conn.cursor()
             cursor.execute("SELECT 1")
             cursor.fetchone()
-            conn.close()
+            return_inventory_connection(conn)
             db_status = '✅ connected'
         except Exception as e:
             db_status = f'❌ {str(e)}'

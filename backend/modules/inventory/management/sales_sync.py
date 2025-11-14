@@ -7,7 +7,12 @@ from collections import defaultdict
 import requests
 
 from core.config import settings
-from core.db import get_products_connection, get_inventory_log_connection
+from core.db import (
+    get_products_connection, 
+    get_inventory_log_connection,
+    return_products_connection,
+    return_inventory_connection
+)
 
 # ✅ Import Zoho helpers from client.py
 from modules._integrations.zoho.client import (
@@ -47,7 +52,7 @@ def get_regional_sales() -> Tuple[Dict[str, int], Dict[str, int], Dict[str, int]
         return uk_sales, fr_sales, nl_sales
 
     finally:
-        conn.close()
+        return_products_connection(conn)
 
 
 def merge_fr_nl_sales(fr_sales: Dict[str, int], nl_sales: Dict[str, int]) -> Dict[str, int]:
@@ -139,7 +144,7 @@ def sync_sales_to_inventory_metadata(dry_run: bool = False) -> Dict[str, any]:
         if not dry_run:
             conn.commit()
     finally:
-        conn.close()
+        return_inventory_connection(conn)
 
     logger.info(f"✅ Sync complete: {stats['updated_records']} records updated")
     return stats

@@ -4,7 +4,7 @@ import jwt
 from passlib.context import CryptContext
 from fastapi import Header, HTTPException, status, Depends
 from core.config import settings
-from core.db import get_psycopg_connection
+from core.db import get_psycopg_connection, return_attendance_connection
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -60,7 +60,7 @@ async def get_current_user(authorization: str = Header(...)):
         cur.execute("SELECT COALESCE(NULLIF(role, ''), 'user') as role, allowed_tabs FROM login_users WHERE username = %s", (username,))
         row = cur.fetchone()
     finally:
-        conn.close()
+        return_attendance_connection(conn)
 
     if not row:
         raise HTTPException(status_code=404, detail="User not found")

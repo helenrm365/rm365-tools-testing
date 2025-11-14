@@ -79,11 +79,11 @@ class SalesDataService:
                 "message": f"Failed to check tables: {str(e)}"
             }
     
-    def get_region_data(self, region: str, limit: int = 100, offset: int = 0, search: str = "") -> Dict[str, Any]:
-        """Get sales data for a specific region"""
+    def get_region_data(self, region: str, limit: int = 100, offset: int = 0, search: str = "", fields: list = None) -> Dict[str, Any]:
+        """Get sales data for a specific region with optional field selection"""
         try:
             table_name = self._get_table_name(region)
-            result = self.repo.get_sales_data(table_name, limit, offset, search)
+            result = self.repo.get_sales_data(table_name, limit, offset, search, fields)
             return {
                 "status": "success",
                 "region": region,

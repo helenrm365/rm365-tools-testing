@@ -1,21 +1,36 @@
 // frontend/js/services/api/attendanceApi.js
 import { get, post } from './http.js';
+import { apiCache } from '../../utils/cache.js';
 
 const API = '/api/v1/attendance';
 
+// Cache TTLs
+const LOCATIONS_CACHE_TTL = 10 * 60 * 1000; // 10 minutes (locations rarely change)
+const EMPLOYEES_CACHE_TTL = 2 * 60 * 1000;  // 2 minutes
+
 export function getEmployees() {
-  return get(`${API}/employees`);
+  return apiCache.getOrFetch('attendance-employees', async () => {
+    return get(`${API}/employees`);
+  }, EMPLOYEES_CACHE_TTL);
 }
 
 export function getEmployeesWithStatus(location = null, nameSearch = null) {
   const params = new URLSearchParams();
   if (location) params.append('location', location);
   if (nameSearch) params.append('name_search', nameSearch);
-  return get(`${API}/employees/status?${params}`);
+  
+  // Cache key includes filters
+  const cacheKey = `employees-status-${location || 'all'}-${nameSearch || 'none'}`;
+  
+  return apiCache.getOrFetch(cacheKey, async () => {
+    return get(`${API}/employees/status?${params}`);
+  }, 30000); // 30 seconds cache for status (frequently changes)
 }
 
 export function getLocations() {
-  return get(`${API}/locations`);
+  return apiCache.getOrFetch('attendance-locations', async () => {
+    return get(`${API}/locations`);
+  }, LOCATIONS_CACHE_TTL);
 }
 
 // Clock in/out for an employee

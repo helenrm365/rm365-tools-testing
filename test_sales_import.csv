@@ -1,4 +1,0 @@
-Order number,Created At,Product SKU,Product Name,Product Qty,Product Price,Status,Currency,Grand Total,Customer Email,Customer Full Name,Billing Address,Shipping Address,Customer Group Code
-ORD-001,2024-11-01 10:30:00,SKU-12345,Test Product A,2,29.99,complete,GBP,59.98,customer1@example.com,John Smith,123 Main St London UK,123 Main St London UK,RETAIL
-ORD-002,2024-11-02 14:15:00,SKU-67890,Test Product B,1,49.99,complete,GBP,49.99,customer2@example.com,Jane Doe,456 High St Manchester UK,456 High St Manchester UK,WHOLESALE
-ORD-003,2024-11-03 09:45:00,SKU-11111,Test Product C,5,15.00,pending,GBP,75.00,customer3@example.com,Bob Johnson,789 Park Ave Birmingham UK,789 Park Ave Birmingham UK,RETAIL

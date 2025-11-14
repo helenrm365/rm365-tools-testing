@@ -32,10 +32,12 @@ def get_uk_sales_data(
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0),
     search: str = Query(""),
+    fields: str = Query(None, description="Comma-separated list of fields to return (e.g., 'sku,name,qty,price')"),
     user=Depends(get_current_user)
 ):
-    """Get UK sales data with pagination and search"""
-    result = svc.get_region_data("uk", limit, offset, search)
+    """Get UK sales data with pagination, search, and optional field selection"""
+    field_list = fields.split(',') if fields else None
+    result = svc.get_region_data("uk", limit, offset, search, field_list)
     return SalesDataResponse(**result)
 
 
@@ -58,10 +60,12 @@ def get_fr_sales_data(
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0),
     search: str = Query(""),
+    fields: str = Query(None, description="Comma-separated list of fields to return"),
     user=Depends(get_current_user)
 ):
-    """Get FR sales data with pagination and search"""
-    result = svc.get_region_data("fr", limit, offset, search)
+    """Get FR sales data with pagination, search, and optional field selection"""
+    field_list = fields.split(',') if fields else None
+    result = svc.get_region_data("fr", limit, offset, search, field_list)
     return SalesDataResponse(**result)
 
 
@@ -84,10 +88,12 @@ def get_nl_sales_data(
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0),
     search: str = Query(""),
+    fields: str = Query(None, description="Comma-separated list of fields to return"),
     user=Depends(get_current_user)
 ):
-    """Get NL sales data with pagination and search"""
-    result = svc.get_region_data("nl", limit, offset, search)
+    """Get NL sales data with pagination, search, and optional field selection"""
+    field_list = fields.split(',') if fields else None
+    result = svc.get_region_data("nl", limit, offset, search, field_list)
     return SalesDataResponse(**result)
 
 

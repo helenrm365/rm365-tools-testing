@@ -1,8 +1,14 @@
 import os
 import psycopg2
+from psycopg2 import pool
 from sqlalchemy import create_engine
 from contextlib import contextmanager
 from pathlib import Path
+
+# Connection pools for better performance
+_attendance_pool = None
+_inventory_pool = None
+_products_pool = None
 
 def _conn_common_kwargs():
     """Common connection kwargs with sane defaults for cloud envs."""
@@ -13,66 +19,128 @@ def _conn_common_kwargs():
     return {"connect_timeout": timeout, "sslmode": sslmode}
 
 
+def _get_attendance_pool():
+    """Get or create attendance database connection pool"""
+    global _attendance_pool
+    if _attendance_pool is None:
+        host = os.getenv("ATTENDANCE_DB_HOST")
+        port = os.getenv("ATTENDANCE_DB_PORT", "5432")
+        database = os.getenv("ATTENDANCE_DB_NAME", "railway")
+        user = os.getenv("ATTENDANCE_DB_USER", "postgres")
+        password = os.getenv("ATTENDANCE_DB_PASSWORD")
+        
+        if not all([host, password]):
+            raise ValueError("Missing required database environment variables: ATTENDANCE_DB_HOST and ATTENDANCE_DB_PASSWORD")
+        
+        _attendance_pool = pool.SimpleConnectionPool(
+            minconn=2,
+            maxconn=20,
+            host=host,
+            port=port,
+            database=database,
+            user=user,
+            password=password,
+            **_conn_common_kwargs(),
+        )
+        print("✅ Attendance database connection pool created (2-20 connections)")
+    
+    return _attendance_pool
+
+
 def get_psycopg_connection():
     """Get a raw psycopg2 connection for attendance/enrollment modules"""
-    # Use individual environment variables as set in Railway
-    host = os.getenv("ATTENDANCE_DB_HOST")
-    port = os.getenv("ATTENDANCE_DB_PORT", "5432")
-    database = os.getenv("ATTENDANCE_DB_NAME", "railway")
-    user = os.getenv("ATTENDANCE_DB_USER", "postgres")
-    password = os.getenv("ATTENDANCE_DB_PASSWORD")
+    pool_obj = _get_attendance_pool()
+    return pool_obj.getconn()
+
+
+def return_psycopg_connection(conn):
+    """Return a connection to the attendance pool"""
+    if _attendance_pool and conn:
+        _attendance_pool.putconn(conn)
+
+
+# Alias for clarity
+return_attendance_connection = return_psycopg_connection
+
+
+def _get_inventory_pool():
+    """Get or create inventory database connection pool"""
+    global _inventory_pool
+    if _inventory_pool is None:
+        host = os.getenv("INVENTORY_LOGS_HOST")
+        port = os.getenv("INVENTORY_LOGS_PORT", "5432")
+        database = os.getenv("INVENTORY_LOGS_NAME", "railway")
+        user = os.getenv("INVENTORY_LOGS_USER", "postgres")
+        password = os.getenv("INVENTORY_LOGS_PASSWORD")
+        
+        if not all([host, password]):
+            raise ValueError("Missing required inventory database environment variables")
+        
+        _inventory_pool = pool.SimpleConnectionPool(
+            minconn=2,
+            maxconn=20,
+            host=host,
+            port=port,
+            database=database,
+            user=user,
+            password=password,
+            **_conn_common_kwargs(),
+        )
+        print("✅ Inventory database connection pool created (2-20 connections)")
     
-    if not all([host, password]):
-        raise ValueError("Missing required database environment variables: ATTENDANCE_DB_HOST and ATTENDANCE_DB_PASSWORD")
-    
-    return psycopg2.connect(
-        host=host,
-        port=port,
-        database=database,
-        user=user,
-        password=password,
-        **_conn_common_kwargs(),
-    )
+    return _inventory_pool
+
 
 def get_inventory_log_connection():
     """Get connection for inventory logs"""
-    host = os.getenv("INVENTORY_LOGS_HOST")
-    port = os.getenv("INVENTORY_LOGS_PORT", "5432")
-    database = os.getenv("INVENTORY_LOGS_NAME", "railway")
-    user = os.getenv("INVENTORY_LOGS_USER", "postgres")
-    password = os.getenv("INVENTORY_LOGS_PASSWORD")
+    pool_obj = _get_inventory_pool()
+    return pool_obj.getconn()
+
+
+def return_inventory_connection(conn):
+    """Return a connection to the inventory pool"""
+    if _inventory_pool and conn:
+        _inventory_pool.putconn(conn)
+
+
+def _get_products_pool():
+    """Get or create products database connection pool"""
+    global _products_pool
+    if _products_pool is None:
+        host = os.getenv("PRODUCTS_DB_HOST")
+        port = os.getenv("PRODUCTS_DB_PORT", "5432")
+        database = os.getenv("PRODUCTS_DB_NAME", "railway")
+        user = os.getenv("PRODUCTS_DB_USER", "postgres")
+        password = os.getenv("PRODUCTS_DB_PASSWORD")
+        
+        if not all([host, password]):
+            raise ValueError("Missing required products database environment variables")
+        
+        _products_pool = pool.SimpleConnectionPool(
+            minconn=2,
+            maxconn=20,
+            host=host,
+            port=port,
+            database=database,
+            user=user,
+            password=password,
+            **_conn_common_kwargs(),
+        )
+        print("✅ Products database connection pool created (2-20 connections)")
     
-    if not all([host, password]):
-        raise ValueError("Missing required inventory database environment variables")
-    
-    return psycopg2.connect(
-        host=host,
-        port=port,
-        database=database,
-        user=user,
-        password=password,
-        **_conn_common_kwargs(),
-    )
+    return _products_pool
+
 
 def get_products_connection():
     """Get connection for products/sales database"""
-    host = os.getenv("PRODUCTS_DB_HOST")
-    port = os.getenv("PRODUCTS_DB_PORT", "5432")
-    database = os.getenv("PRODUCTS_DB_NAME", "railway")
-    user = os.getenv("PRODUCTS_DB_USER", "postgres")
-    password = os.getenv("PRODUCTS_DB_PASSWORD")
-    
-    if not all([host, password]):
-        raise ValueError("Missing required products database environment variables")
-    
-    return psycopg2.connect(
-        host=host,
-        port=port,
-        database=database,
-        user=user,
-        password=password,
-        **_conn_common_kwargs(),
-    )
+    pool_obj = _get_products_pool()
+    return pool_obj.getconn()
+
+
+def return_products_connection(conn):
+    """Return a connection to the products pool"""
+    if _products_pool and conn:
+        _products_pool.putconn(conn)
 
 def get_sqlalchemy_engine():
     """Get SQLAlchemy engine for labels module"""
@@ -88,7 +156,7 @@ def initialize_database():
     try:
         # Test database connection
         conn = get_psycopg_connection()
-        conn.close()
+        return_attendance_connection(conn)
         print("✅ Database connection successful - Railway database is ready")
         
         try:

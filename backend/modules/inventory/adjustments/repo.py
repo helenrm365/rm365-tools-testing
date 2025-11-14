@@ -5,25 +5,45 @@ import psycopg2
 import logging
 
 from common.deps import pg_conn
-from core.db import get_inventory_log_connection
+from core.db import (
+    get_inventory_log_connection,
+    return_inventory_connection,
+    return_psycopg_connection
+)
 
 logger = logging.getLogger(__name__)
 
 
 class AdjustmentsRepo:
     def __init__(self):
-        pass
+        self._last_conn_type = None  # Track which pool connection came from
 
     def get_connection(self):
         """Get connection for inventory adjustments - try inventory DB first, fallback to main DB"""
         try:
             # Try dedicated inventory database first
-            return get_inventory_log_connection()
+            conn = get_inventory_log_connection()
+            self._last_conn_type = 'inventory'
+            return conn
         except (ValueError, Exception) as e:
             logger.warning(f"Inventory database not available ({e}), using main database")
             # Fallback to main database
             from core.db import get_psycopg_connection
-            return get_psycopg_connection()
+            conn = get_psycopg_connection()
+            self._last_conn_type = 'psycopg'
+            return conn
+    
+    def return_connection(self, conn):
+        """Return connection to the appropriate pool"""
+        if not conn:
+            return
+        if self._last_conn_type == 'inventory':
+            return_inventory_connection(conn)
+        elif self._last_conn_type == 'psycopg':
+            return_psycopg_connection(conn)
+        else:
+            # Fallback to inventory (most common)
+            return_inventory_connection(conn)
 
     def create_adjustment_log(self, adjustment_data: Dict[str, Any]) -> Dict[str, Any]:
         """Create a new adjustment log record"""
@@ -64,7 +84,7 @@ class AdjustmentsRepo:
             logger.error(f"Error creating adjustment log: {e}")
             raise
         finally:
-            conn.close()
+            self.return_connection(conn)
 
     def get_pending_adjustments(self) -> List[Dict[str, Any]]:
         """
@@ -99,7 +119,7 @@ class AdjustmentsRepo:
             logger.error(f"Database error in get_pending_adjustments: {e}")
             return []
         finally:
-            conn.close()
+            self.return_connection(conn)
 
     def update_adjustment_status(self, record_id: int, status: str, message: str) -> None:
         """Update the status of an adjustment log record"""
@@ -158,7 +178,7 @@ class AdjustmentsRepo:
             logger.error(f"Database error in list_adjustments: {e}")
             return []
         finally:
-            conn.close()
+            self.return_connection(conn)
 
     def get_item_history(self, barcode: str, limit: int = 20) -> List[Dict[str, Any]]:
         """Get adjustment history for a specific item by barcode"""
@@ -190,7 +210,7 @@ class AdjustmentsRepo:
             logger.error(f"Database error in get_item_history: {e}")
             return []
         finally:
-            conn.close()
+            self.return_connection(conn)
 
     def get_adjustments_summary(self, start_date: str, end_date: str) -> Dict[str, Any]:
         """Get adjustments summary for date range"""
@@ -237,7 +257,7 @@ class AdjustmentsRepo:
                 'date_range': {'start': start_date, 'end': end_date}
             }
         finally:
-            conn.close()
+            self.return_connection(conn)
 
     def get_metadata_connection(self):
         """Get connection for inventory metadata - same as management module"""
@@ -303,7 +323,7 @@ class AdjustmentsRepo:
             conn.rollback()
             raise
         finally:
-            conn.close()
+            self.return_connection(conn)
 
     def mark_corrupted_adjustments_as_failed(self) -> int:
         """Mark adjustments with corrupted barcode data (tabs, multiple IDs) as failed"""
@@ -337,7 +357,7 @@ class AdjustmentsRepo:
             logger.error(f"Database error in mark_corrupted_adjustments_as_failed: {e}")
             return 0
         finally:
-            conn.close()
+            self.return_connection(conn)
 
     def get_item_metadata(self, item_id: str) -> Optional[Dict[str, Any]]:
         """Get inventory metadata for a specific item"""
@@ -364,7 +384,7 @@ class AdjustmentsRepo:
             logger.error(f"Database error in get_item_metadata: {e}")
             return None
         finally:
-            conn.close()
+            self.return_connection(conn)
 
     def init_tables(self) -> None:
         """Initialize inventory tables in PostgreSQL"""
@@ -427,4 +447,4 @@ class AdjustmentsRepo:
             logger.error(f"Database error in init_tables: {e}")
             raise
         finally:
-            conn.close()
+            self.return_connection(conn)

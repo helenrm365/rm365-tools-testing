@@ -6,14 +6,19 @@ import logging
 import hashlib
 
 from common.deps import pg_conn
-from core.db import get_inventory_log_connection, get_products_connection
+from core.db import (
+    get_inventory_log_connection, 
+    get_products_connection,
+    return_inventory_connection,
+    return_psycopg_connection
+)
 
 logger = logging.getLogger(__name__)
 
 
 class InventoryManagementRepo:
     def __init__(self):
-        pass
+        self._last_conn_type = None  # Track which pool connection came from
 
     @staticmethod
     def generate_item_id(sku: str) -> str:
@@ -35,12 +40,28 @@ class InventoryManagementRepo:
         """Get connection for inventory metadata - try inventory DB first, fallback to main DB"""
         try:
             # Try dedicated inventory database first
-            return get_inventory_log_connection()
+            conn = get_inventory_log_connection()
+            self._last_conn_type = 'inventory'
+            return conn
         except (ValueError, Exception) as e:
             logger.warning(f"Inventory database not available ({e}), using main database")
             # Fallback to main database
             from core.db import get_psycopg_connection
-            return get_psycopg_connection()
+            conn = get_psycopg_connection()
+            self._last_conn_type = 'psycopg'
+            return conn
+    
+    def return_connection(self, conn):
+        """Return connection to the appropriate pool"""
+        if not conn:
+            return
+        if self._last_conn_type == 'inventory':
+            return_inventory_connection(conn)
+        elif self._last_conn_type == 'psycopg':
+            return_psycopg_connection(conn)
+        else:
+            # Fallback to inventory (most common)
+            return_inventory_connection(conn)
 
     def load_inventory_metadata(self) -> List[Dict[str, Any]]:
         """Load all inventory metadata from PostgreSQL"""
@@ -66,7 +87,7 @@ class InventoryManagementRepo:
             logger.error(f"Database error in load_inventory_metadata: {e}")
             return []
         finally:
-            conn.close()
+            self.return_connection(conn)
 
     def save_inventory_metadata(self, metadata: Dict[str, Any]) -> Dict[str, Any]:
         """Save or update inventory metadata
@@ -140,7 +161,7 @@ class InventoryManagementRepo:
             logger.error(f"Error saving inventory metadata: {e}")
             raise
         finally:
-            conn.close()
+            self.return_connection(conn)
 
     def get_condensed_sales(self, region: str) -> Dict[str, int]:
         """Fetch {sku: total_qty} from condensed sales table for given region."""
@@ -163,7 +184,7 @@ class InventoryManagementRepo:
             rows = cursor.fetchall()
             return {sku: int(qty or 0) for sku, qty in rows}
         finally:
-            conn.close()
+            self.return_connection(conn)
 
     def init_tables(self) -> None:
         """Initialize inventory metadata tables"""
@@ -312,7 +333,7 @@ class InventoryManagementRepo:
             logger.error(f"Database error in init_tables: {e}")
             raise
         finally:
-            conn.close()
+            self.return_connection(conn)
 
     def sync_items_to_magento_product_list(self, items: List[Dict[str, Any]]) -> Dict[str, int]:
         """
@@ -369,7 +390,7 @@ class InventoryManagementRepo:
             logger.error(f"Database error in sync_items_to_magento_product_list: {e}")
             raise
         finally:
-            conn.close()
+            self.return_connection(conn)
 
     @staticmethod
     def parse_discontinued_status_from_additional_attributes(additional_attributes: str) -> str:
@@ -465,7 +486,7 @@ class InventoryManagementRepo:
             logger.error(f"Database error in sync_magento_products_to_inventory_metadata: {e}")
             raise
         finally:
-            conn.close()
+            self.return_connection(conn)
 
     def merge_identifier_products(self) -> Dict[str, int]:
         """
@@ -563,7 +584,7 @@ class InventoryManagementRepo:
             logger.error(f"Database error in merge_identifier_products: {e}")
             raise
         finally:
-            conn.close()
+            self.return_connection(conn)
 
     def ensure_all_products_have_item_ids(self) -> Dict[str, int]:
         """
@@ -614,7 +635,7 @@ class InventoryManagementRepo:
             logger.error(f"Database error in ensure_all_products_have_item_ids: {e}")
             raise
         finally:
-            conn.close()
+            self.return_connection(conn)
 
     def update_discontinued_status_from_additional_attributes(self) -> Dict[str, int]:
         """
@@ -671,7 +692,7 @@ class InventoryManagementRepo:
             logger.error(f"Database error in update_discontinued_status_from_additional_attributes: {e}")
             raise
         finally:
-            conn.close()
+            self.return_connection(conn)
 
     def get_magento_products(self, status_filters: str = None) -> List[Dict[str, Any]]:
         """
@@ -724,5 +745,5 @@ class InventoryManagementRepo:
             logger.error(f"Database error in get_magento_products: {e}")
             raise
         finally:
-            conn.close()
+            self.return_connection(conn)
 

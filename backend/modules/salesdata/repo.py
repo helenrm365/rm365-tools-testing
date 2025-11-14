@@ -4,7 +4,7 @@ import csv
 import io
 import json
 from datetime import datetime
-from core.db import get_products_connection
+from core.db import get_products_connection, return_products_connection
 
 logger = logging.getLogger(__name__)
 
@@ -231,7 +231,7 @@ class SalesDataRepo:
         finally:
             if conn:
                 cursor.close()
-                conn.close()
+                return_products_connection(conn)
     
     def check_tables_exist(self) -> dict:
         """Check which tables exist"""
@@ -262,14 +262,33 @@ class SalesDataRepo:
         finally:
             if conn:
                 cursor.close()
-                conn.close()
+                return_products_connection(conn)
     
-    def get_sales_data(self, table_name: str, limit: int = 100, offset: int = 0, search: str = "") -> Dict[str, Any]:
-        """Get sales data from a specific table with pagination and search"""
+    def get_sales_data(self, table_name: str, limit: int = 100, offset: int = 0, search: str = "", fields: list = None) -> Dict[str, Any]:
+        """Get sales data from a specific table with pagination, search, and optional field selection"""
         # Validate table name to prevent SQL injection
         valid_tables = ['uk_sales_data', 'fr_sales_data', 'nl_sales_data']
         if table_name not in valid_tables:
             raise ValueError(f"Invalid table name: {table_name}")
+        
+        # Define all available columns
+        all_columns = ['id', 'order_number', 'created_at', 'sku', 'name', 'qty', 'price', 'status', 
+                      'currency', 'grand_total', 'customer_email', 'customer_full_name', 
+                      'billing_address', 'shipping_address', 'customer_group_code',
+                      'imported_at', 'updated_at']
+        
+        # Use specified fields or all columns
+        if fields:
+            # Validate and sanitize field names
+            fields = [f.strip() for f in fields if f.strip() in all_columns]
+            if not fields:
+                fields = all_columns  # Fallback if no valid fields
+            columns = fields
+        else:
+            columns = all_columns
+        
+        # Build SELECT clause with validated columns
+        select_clause = ', '.join(columns)
         
         conn = None
         try:
@@ -289,10 +308,7 @@ class SalesDataRepo:
                        OR customer_full_name ILIKE %s
                 """
                 data_query = f"""
-                    SELECT id, order_number, created_at, sku, name, qty, price, status, 
-                           currency, grand_total, customer_email, customer_full_name, 
-                           billing_address, shipping_address, customer_group_code,
-                           imported_at, updated_at
+                    SELECT {select_clause}
                     FROM {table_name}
                     WHERE order_number ILIKE %s 
                        OR sku ILIKE %s 
@@ -310,10 +326,7 @@ class SalesDataRepo:
             else:
                 count_query = f"SELECT COUNT(*) FROM {table_name}"
                 data_query = f"""
-                    SELECT id, order_number, created_at, sku, name, qty, price, status, 
-                           currency, grand_total, customer_email, customer_full_name, 
-                           billing_address, shipping_address, customer_group_code,
-                           imported_at, updated_at
+                    SELECT {select_clause}
                     FROM {table_name}
                     ORDER BY imported_at DESC
                     LIMIT %s OFFSET %s
@@ -324,10 +337,6 @@ class SalesDataRepo:
                 cursor.execute(data_query, (limit, offset))
             
             # Fetch all rows
-            columns = ['id', 'order_number', 'created_at', 'sku', 'name', 'qty', 'price', 'status', 
-                      'currency', 'grand_total', 'customer_email', 'customer_full_name', 
-                      'billing_address', 'shipping_address', 'customer_group_code',
-                      'imported_at', 'updated_at']
             rows = cursor.fetchall()
             
             data = []
@@ -355,7 +364,7 @@ class SalesDataRepo:
         finally:
             if conn:
                 cursor.close()
-                conn.close()
+                return_products_connection(conn)
     
     def import_csv_data(self, table_name: str, csv_content: str, filename: str = None, username: str = None) -> Dict[str, Any]:
         """Import CSV data into a specific sales table using column positions"""
@@ -507,7 +516,7 @@ class SalesDataRepo:
         finally:
             if conn:
                 cursor.close()
-                conn.close()
+                return_products_connection(conn)
     
     def refresh_condensed_data(self, region: str) -> Dict[str, Any]:
         """
@@ -662,7 +671,7 @@ class SalesDataRepo:
         finally:
             if conn:
                 cursor.close()
-                conn.close()
+                return_products_connection(conn)
     
     def get_condensed_data(self, region: str, limit: int = 100, offset: int = 0, search: str = "") -> Dict[str, Any]:
         """Get condensed sales data for a specific region"""
@@ -743,7 +752,7 @@ class SalesDataRepo:
         finally:
             if conn:
                 cursor.close()
-                conn.close()
+                return_products_connection(conn)
     
     def get_sku_aliases(self) -> List[Dict[str, Any]]:
         """Get all SKU aliases"""
@@ -780,7 +789,7 @@ class SalesDataRepo:
         finally:
             if conn:
                 cursor.close()
-                conn.close()
+                return_products_connection(conn)
     
     def add_sku_alias(self, alias_sku: str, unified_sku: str) -> Dict[str, Any]:
         """Add a new SKU alias mapping"""
@@ -821,7 +830,7 @@ class SalesDataRepo:
         finally:
             if conn:
                 cursor.close()
-                conn.close()
+                return_products_connection(conn)
     
     def delete_sku_alias(self, alias_id: int) -> Dict[str, Any]:
         """Delete a SKU alias mapping"""
@@ -852,7 +861,7 @@ class SalesDataRepo:
         finally:
             if conn:
                 cursor.close()
-                conn.close()
+                return_products_connection(conn)
     
     def get_import_history(self, limit: int = 100, offset: int = 0, region: str = None) -> Dict[str, Any]:
         """Get import history with pagination and optional region filter"""
@@ -910,7 +919,7 @@ class SalesDataRepo:
         finally:
             if conn:
                 cursor.close()
-                conn.close()
+                return_products_connection(conn)
 
     def auto_create_md_variant_aliases(self) -> Dict[str, Any]:
         """
@@ -1036,7 +1045,7 @@ class SalesDataRepo:
         finally:
             if conn:
                 cursor.close()
-                conn.close()
+                return_products_connection(conn)
 
     # ===== CONDENSED SALES FILTER METHODS =====
     
@@ -1090,7 +1099,7 @@ class SalesDataRepo:
         finally:
             if conn:
                 cursor.close()
-                conn.close()
+                return_products_connection(conn)
     
     def get_excluded_customers(self, region: str) -> List[Dict[str, Any]]:
         """Get list of excluded customers for a region"""
@@ -1129,7 +1138,7 @@ class SalesDataRepo:
         finally:
             if conn:
                 cursor.close()
-                conn.close()
+                return_products_connection(conn)
     
     def add_excluded_customer(self, region: str, email: str, full_name: str, username: str) -> Dict[str, Any]:
         """Add a customer to the exclusion list"""
@@ -1169,7 +1178,7 @@ class SalesDataRepo:
         finally:
             if conn:
                 cursor.close()
-                conn.close()
+                return_products_connection(conn)
     
     def remove_excluded_customer(self, customer_id: int) -> Dict[str, Any]:
         """Remove a customer from the exclusion list"""
@@ -1206,7 +1215,7 @@ class SalesDataRepo:
         finally:
             if conn:
                 cursor.close()
-                conn.close()
+                return_products_connection(conn)
     
     def get_grand_total_threshold(self, region: str) -> Optional[float]:
         """Get the grand total threshold for a region"""
@@ -1229,7 +1238,7 @@ class SalesDataRepo:
         finally:
             if conn:
                 cursor.close()
-                conn.close()
+                return_products_connection(conn)
     
     def set_grand_total_threshold(self, region: str, threshold: float, username: str) -> Dict[str, Any]:
         """Set the grand total threshold for a region"""
@@ -1265,7 +1274,7 @@ class SalesDataRepo:
         finally:
             if conn:
                 cursor.close()
-                conn.close()
+                return_products_connection(conn)
     
     def get_qty_threshold(self, region: str) -> Optional[int]:
         """Get the quantity threshold for a region"""
@@ -1288,7 +1297,7 @@ class SalesDataRepo:
         finally:
             if conn:
                 cursor.close()
-                conn.close()
+                return_products_connection(conn)
     
     def set_qty_threshold(self, region: str, qty_threshold: int, username: str) -> Dict[str, Any]:
         """Set the quantity threshold for a region"""
@@ -1324,4 +1333,4 @@ class SalesDataRepo:
         finally:
             if conn:
                 cursor.close()
-                conn.close()
+                return_products_connection(conn)

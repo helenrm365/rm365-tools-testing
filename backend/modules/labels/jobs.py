@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Tuple
 import logging
 from psycopg2.extensions import connection as PGConn  # type: ignore
 from modules.labels.repo import LabelsRepo
-from core.db import get_inventory_log_connection
+from core.db import get_inventory_log_connection, return_inventory_connection
 
 logger = logging.getLogger(__name__)
 
@@ -117,7 +117,7 @@ def _snapshot_rows(item_ids: List[str] = None) -> List[Dict[str, Any]]:
         raise
     finally:
         if inventory_conn:
-            inventory_conn.close()
+            return_inventory_connection(inventory_conn)
     
     # Filter by selected item_ids if provided
     if item_ids:
