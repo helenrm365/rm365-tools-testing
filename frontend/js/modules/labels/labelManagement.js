@@ -35,7 +35,8 @@ function renderLabelsTable() {
   }
 
   tableDiv.innerHTML = `
-    <table class="modern-table" style="width: 100%;">
+    <div class="table-container">
+    <table class="modern-table">
       <thead>
         <tr>
           <th style="text-align: left;">Label Details</th>
@@ -81,6 +82,7 @@ function renderLabelsTable() {
         `).join('')}
       </tbody>
     </table>
+    </div>
   `;
 }
 

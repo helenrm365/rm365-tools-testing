@@ -45,7 +45,8 @@ function renderJobsTable() {
   const container = $('#historyTable');
   
   container.innerHTML = `
-    <table class="modern-table" style="width: 100%;">
+    <div class="table-container">
+    <table class="modern-table">
       <thead>
         <tr>
           <th style="text-align: left;">Job ID</th>
@@ -95,6 +96,7 @@ function renderJobsTable() {
         `).join('')}
       </tbody>
     </table>
+    </div>
   `;
 }
 
@@ -136,7 +138,8 @@ window.viewJobDetails = async function(jobId) {
         <h5>Job #${jobId} - ${rows.length} Items</h5>
       </div>
       <div style="max-height: 400px; overflow-y: auto;">
-        <table class="modern-table" style="width: 100%; font-size: 0.9rem;">
+        <div class="table-container">
+        <table class="modern-table" style="font-size: 0.9rem;">
           <thead>
             <tr>
               <th>SKU</th>
@@ -160,6 +163,7 @@ window.viewJobDetails = async function(jobId) {
             `).join('')}
           </tbody>
         </table>
+        </div>
       </div>
       <div style="margin-top: 1rem; text-align: right;">
         <button class="modern-button" onclick="closeJobDetails()">Close</button>

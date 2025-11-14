@@ -92,6 +92,7 @@ function renderTable() {
   });
 
   const tableHTML = `
+    <div class="table-container">
     <table class="modern-table">
       <thead>
         <tr>
@@ -134,6 +135,7 @@ function renderTable() {
         `).join('')}
       </tbody>
     </table>
+    </div>
   `;
 
   tbody.innerHTML = tableHTML;

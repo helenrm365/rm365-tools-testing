@@ -61,7 +61,8 @@ function renderHistoryTable() {
   const pageData = state.filteredHistory.slice(startIndex, endIndex);
 
   tableDiv.innerHTML = `
-    <table class="modern-table" style="width: 100%;">
+    <div class="table-container">
+    <table class="modern-table">
       <thead>
         <tr>
           <th style="text-align: left;">Print Details</th>
@@ -123,6 +124,7 @@ function renderHistoryTable() {
         `).join('')}
       </tbody>
     </table>
+    </div>
   `;
 }
 

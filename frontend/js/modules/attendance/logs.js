@@ -84,7 +84,8 @@ function displayLogs(logs) {
   }
 
   const table = `
-    <table class="modern-table" style="width: 100%;">
+    <div class="table-container">
+    <table class="modern-table">
       <thead>
         <tr>
           <th data-key="employee" style="cursor: pointer;">
@@ -116,6 +117,7 @@ function displayLogs(logs) {
         `).join('')}
       </tbody>
     </table>
+    </div>
   `;
 
   container.innerHTML = table;

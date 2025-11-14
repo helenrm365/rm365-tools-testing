@@ -435,7 +435,8 @@ function displaySummaryTable(summaryData) {
 
   const table = `
     <h4>📋 Summary Report</h4>
-    <table class="modern-table" style="width: 100%; margin-top: 1rem;">
+    <div class="table-container">
+      <table class="modern-table">
       <thead>
         <tr>
           <th>Employee</th>
@@ -501,7 +502,8 @@ function displayWorkHoursTable(workHoursData) {
 
   const table = `
     <h4>⏰ Work Hours Analysis</h4>
-    <table class="modern-table" style="width: 100%; margin-top: 1rem;">
+    <div class="table-container">
+    <table class="modern-table">
       <thead>
         <tr>
           <th>Employee</th>
@@ -531,6 +533,7 @@ function displayWorkHoursTable(workHoursData) {
         ).join('')}
       </tbody>
     </table>
+    </div>
     <div style="margin-top: 1rem; font-size: 0.9em; color: #64748b;">
       <strong>Total Work Days:</strong> ${workHoursData.length} | 
       <strong>Average Hours per Day:</strong> ${formatHoursToHM(workHoursData.reduce((sum, item) => sum + item.hours_worked, 0) / workHoursData.length)} |
@@ -557,7 +560,8 @@ function displayCurrentStatus(employees) {
   }
 
   const table = `
-    <table class="modern-table" style="width: 100%; margin-top: 1rem;">
+    <div class="table-container">
+      <table class="modern-table">
       <thead>
         <tr>
           <th>Employee</th>
