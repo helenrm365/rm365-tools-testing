@@ -5,6 +5,45 @@
   padding: 20px;
 }
 
+/* Page Header */
+.usermanagement-management .page-header {
+  padding: 2rem 0 1rem 0;
+  margin-bottom: 2rem;
+}
+
+.usermanagement-management .header-content {
+  max-width: 800px;
+  text-align: left;
+}
+
+.usermanagement-management .page-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #3498db, #27ae60);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0 0 0.5rem 0;
+}
+
+html.dark-mode .usermanagement-management .page-title {
+  background: linear-gradient(135deg, #ecf0f1, #a8d85f);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.usermanagement-management .page-subtitle {
+  font-size: 1.1rem;
+  color: #7f8c8d;
+  margin: 0;
+  font-weight: 400;
+}
+
+html.dark-mode .usermanagement-management .page-subtitle {
+  color: #95a5a6;
+}
+
 .tabs-checkboxes {
   display: flex;
   flex-direction: column;
