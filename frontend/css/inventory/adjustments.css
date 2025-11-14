@@ -1,28 +1,36 @@
 /* ===== Inventory Adjustments Page Styles ===== */
-/* Modern, simplistic design matching enrollment card/fingerprint pages */
+/* Modern, clean styles matching the inventory management module */
 
-/* Page Header */
+/* ===== Page Header ===== */
 .inventory-adjustments .page-header {
   margin-bottom: 2rem;
+  padding: 2rem 0 1rem 0;
 }
 
 .inventory-adjustments .header-content {
-  text-align: left;
+  max-width: 800px;
 }
 
 .inventory-adjustments .page-title {
-  font-size: 2rem;
+  font-size: 2.5rem;
   font-weight: 700;
-  color: #2c3e50;
   margin: 0 0 0.5rem 0;
+  color: #2c3e50;
+  background: linear-gradient(135deg, #2c3e50, #76a12b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 html.dark-mode .inventory-adjustments .page-title {
-  color: #ecf0f1;
+  background: linear-gradient(135deg, #ecf0f1, #8bc34a);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .inventory-adjustments .page-subtitle {
-  font-size: 1.125rem;
+  font-size: 1.1rem;
   color: #7f8c8d;
   margin: 0;
   font-weight: 400;
@@ -32,7 +40,7 @@ html.dark-mode .inventory-adjustments .page-subtitle {
   color: #95a5a6;
 }
 
-/* Navigation Tabs */
+/* ===== Navigation Tabs ===== */
 .inventory-adjustments .inner-tabs {
   display: flex;
   gap: 1rem;

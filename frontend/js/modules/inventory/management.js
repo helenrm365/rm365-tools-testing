@@ -1,5 +1,6 @@
 import { get, post, patch } from '../../services/api/http.js';
 import { config } from '../../config.js';
+import { showToast } from '../../ui/toast.js';
 
 const API = config.API;
 
@@ -850,33 +851,27 @@ function setupDiscontinuedStatusFilters() {
         const visibleRows = document.querySelectorAll('#inventoryManagementBody tr:not([style*="display: none"])').length;
         console.log(`[Inventory] Now showing ${visibleRows} products after applying filters`);
         
-        // Success feedback
-        applyBtn.textContent = '✓ Filters Applied';
-        applyBtn.style.background = '#10b981';
+        // Show success toast
+        showToast(`Filters applied! Showing ${visibleRows} products`, 'success');
+        
+        // Reset button state
+        applyBtn.textContent = originalText;
+        applyBtn.style.background = '';
+        applyBtn.disabled = false;
         applyBtn.style.opacity = '1';
         applyBtn.style.cursor = 'pointer';
-        
-        setTimeout(() => {
-          applyBtn.textContent = originalText;
-          applyBtn.style.background = '';
-          applyBtn.disabled = false;
-        }, 2000);
       } catch (error) {
         console.error('[Inventory] Error applying filters:', error);
         
-        // Error feedback
-        applyBtn.textContent = '✗ Error';
-        applyBtn.style.background = '#ef4444';
+        // Show error toast
+        showToast('Error applying filters: ' + error.message, 'error');
+        
+        // Reset button state
+        applyBtn.textContent = originalText;
+        applyBtn.style.background = '';
+        applyBtn.disabled = false;
         applyBtn.style.opacity = '1';
         applyBtn.style.cursor = 'pointer';
-        
-        setTimeout(() => {
-          applyBtn.textContent = originalText;
-          applyBtn.style.background = '';
-          applyBtn.disabled = false;
-          applyBtn.style.opacity = '1';
-          applyBtn.style.cursor = 'pointer';
-        }, 2000);
       }
     });
   }
@@ -1195,7 +1190,7 @@ async function syncSalesData(showNotification = true) {
     isSyncing = true;
     if (btn) {
       btn.disabled = true;
-      btn.innerText = 'Syncing...';
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
     }
     const res = await post('/api/v1/inventory/management/sync-sales-data', {
       dry_run: false
@@ -1204,7 +1199,7 @@ async function syncSalesData(showNotification = true) {
       const updated = res.stats?.updated_records ?? 0;
       console.log(`[Sync] Success: ${updated} records updated`);
       if (showNotification) {
-        alert(`✅ Sync complete: ${updated} records updated`);
+        showToast(`Sales data synced! ${updated} records updated`, 'success');
       }
 
       // Refresh table if available
@@ -1212,17 +1207,21 @@ async function syncSalesData(showNotification = true) {
         await loadInventoryData();
         setupTable(); // Rebuild table with updated data
       }
+      
+      localStorage.setItem('lastSalesSync', new Date().toISOString());
     } else {
       throw new Error(res?.detail || 'Sync failed');
     }
   } catch (err) {
     console.error('[Sync] Failed:', err);
-    alert('❌ Sync failed: ' + err.message);
+    if (showNotification) {
+      showToast('Sync failed: ' + err.message, 'error');
+    }
   } finally {
     isSyncing = false;
     if (btn) {
       btn.disabled = false;
-      btn.innerText = 'Sync Sales Data';
+      btn.innerHTML = '<i class="fas fa-sync-alt"></i> Sync Sales Data';
     }
   }
 }
