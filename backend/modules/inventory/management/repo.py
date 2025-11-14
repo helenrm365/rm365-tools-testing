@@ -48,14 +48,14 @@ class InventoryManagementRepo:
         try:
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT sku, item_id, location, date, shelf_lt1, shelf_lt1_qty,
+                SELECT sku, item_id, location, date, qty_ordered_jason, shelf_lt1, shelf_lt1_qty,
                        shelf_gt1, shelf_gt1_qty, top_floor_expiry, top_floor_total,
                        status, uk_fr_preorder, uk_6m_data, fr_6m_data
                 FROM inventory_metadata
                 ORDER BY sku
             """)
             
-            columns = ['sku', 'item_id', 'location', 'date', 'shelf_lt1', 'shelf_lt1_qty',
+            columns = ['sku', 'item_id', 'location', 'date', 'qty_ordered_jason', 'shelf_lt1', 'shelf_lt1_qty',
                       'shelf_gt1', 'shelf_gt1_qty', 'top_floor_expiry', 'top_floor_total',
                       'status', 'uk_fr_preorder', 'uk_6m_data', 'fr_6m_data']
             rows = cursor.fetchall()
@@ -91,14 +91,15 @@ class InventoryManagementRepo:
             # Note: uk_6m_data and fr_6m_data are NOT included here - they're populated by sales_sync
             cursor.execute("""
                 INSERT INTO inventory_metadata (
-                    sku, item_id, location, date, shelf_lt1, shelf_lt1_qty,
+                    sku, item_id, location, date, qty_ordered_jason, shelf_lt1, shelf_lt1_qty,
                     shelf_gt1, shelf_gt1_qty, top_floor_expiry, top_floor_total,
                     status, uk_fr_preorder
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (sku) DO UPDATE SET
                     item_id = COALESCE(inventory_metadata.item_id, EXCLUDED.item_id),
                     location = EXCLUDED.location,
                     date = EXCLUDED.date,
+                    qty_ordered_jason = EXCLUDED.qty_ordered_jason,
                     shelf_lt1 = EXCLUDED.shelf_lt1,
                     shelf_lt1_qty = EXCLUDED.shelf_lt1_qty,
                     shelf_gt1 = EXCLUDED.shelf_gt1,
@@ -107,7 +108,7 @@ class InventoryManagementRepo:
                     top_floor_total = EXCLUDED.top_floor_total,
                     status = EXCLUDED.status,
                     uk_fr_preorder = EXCLUDED.uk_fr_preorder
-                RETURNING sku, item_id, location, date, shelf_lt1, shelf_lt1_qty,
+                RETURNING sku, item_id, location, date, qty_ordered_jason, shelf_lt1, shelf_lt1_qty,
                           shelf_gt1, shelf_gt1_qty, top_floor_expiry, top_floor_total,
                           status, uk_fr_preorder, uk_6m_data, fr_6m_data
             """, (
@@ -115,6 +116,7 @@ class InventoryManagementRepo:
                 item_id,
                 metadata.get('location'),
                 metadata.get('date'),
+                metadata.get('qty_ordered_jason', 0),
                 metadata.get('shelf_lt1'),
                 metadata.get('shelf_lt1_qty', 0),
                 metadata.get('shelf_gt1'),
@@ -126,7 +128,7 @@ class InventoryManagementRepo:
             ))
             
             row = cursor.fetchone()
-            columns = ['sku', 'item_id', 'location', 'date', 'shelf_lt1', 'shelf_lt1_qty',
+            columns = ['sku', 'item_id', 'location', 'date', 'qty_ordered_jason', 'shelf_lt1', 'shelf_lt1_qty',
                       'shelf_gt1', 'shelf_gt1_qty', 'top_floor_expiry', 'top_floor_total',
                       'status', 'uk_fr_preorder', 'uk_6m_data', 'fr_6m_data']
             
@@ -175,6 +177,7 @@ class InventoryManagementRepo:
                     item_id VARCHAR(255) UNIQUE,
                     location VARCHAR(255),
                     date DATE,
+                    qty_ordered_jason INTEGER DEFAULT 0,
                     uk_6m_data TEXT,
                     shelf_lt1 VARCHAR(255),
                     shelf_lt1_qty INTEGER DEFAULT 0,
@@ -257,6 +260,15 @@ class InventoryManagementRepo:
                 """)
             except Exception as e:
                 logger.debug(f"Column discontinued_status addition skipped (may already exist): {e}")
+            
+            # Add qty_ordered_jason column if it doesn't exist (migration for existing tables)
+            try:
+                cursor.execute("""
+                    ALTER TABLE inventory_metadata 
+                    ADD COLUMN IF NOT EXISTS qty_ordered_jason INTEGER DEFAULT 0
+                """)
+            except Exception as e:
+                logger.debug(f"Column qty_ordered_jason addition skipped (may already exist): {e}")
             
             # Create index on discontinued_status for fast filtering
             try:

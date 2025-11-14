@@ -279,6 +279,7 @@ async function loadInventoryData() {
       item_id: "sample_001",
       location: "London",
       date: "2025-09-05",
+      qty_ordered_jason: 0,
       uk_6m_data: "",
       shelf_lt1: "A1",
       shelf_lt1_qty: 5,
@@ -298,20 +299,21 @@ function setupDropdowns() {
   bindDropdown('columnDropdown', 'columnToggle', [
     { value: 'col-1', text: 'Location', checked: true },
     { value: 'col-2', text: 'Date', checked: true },
-    { value: 'col-3', text: 'Product Name', checked: true },
-    { value: 'col-4', text: 'SKU', checked: true },
-    { value: 'col-5', text: 'UK 6M Data', checked: true },
-    { value: 'col-6', text: 'Shelf < 1', checked: true },
-    { value: 'col-7', text: 'Shelf < 1 Year Qty', checked: true },
-    { value: 'col-8', text: 'Shelf > 1', checked: true },
-    { value: 'col-9', text: 'Shelf > 1 Year Qty', checked: true },
-    { value: 'col-10', text: 'Shelf Total', checked: true },
-    { value: 'col-11', text: 'Top Floor Expiry Date', checked: true },
-    { value: 'col-12', text: 'Top Floor Total', checked: true },
-    { value: 'col-13', text: 'Total Stock', checked: true },
-    { value: 'col-14', text: 'Status', checked: true },
-    { value: 'col-15', text: 'UK + FR Pre Order', checked: true },
-    { value: 'col-16', text: 'FR 6M Data', checked: true }
+    { value: 'col-3', text: 'Qty Ordered - Jason', checked: true },
+    { value: 'col-4', text: 'Product Name', checked: true },
+    { value: 'col-5', text: 'SKU', checked: true },
+    { value: 'col-6', text: 'UK 6M Data', checked: true },
+    { value: 'col-7', text: 'Shelf < 1', checked: true },
+    { value: 'col-8', text: 'Shelf < 1 Year Qty', checked: true },
+    { value: 'col-9', text: 'Shelf > 1', checked: true },
+    { value: 'col-10', text: 'Shelf > 1 Year Qty', checked: true },
+    { value: 'col-11', text: 'Shelf Total', checked: true },
+    { value: 'col-12', text: 'Top Floor Expiry Date', checked: true },
+    { value: 'col-13', text: 'Top Floor Total', checked: true },
+    { value: 'col-14', text: 'Total Stock', checked: true },
+    { value: 'col-15', text: 'Status', checked: true },
+    { value: 'col-16', text: 'UK + FR Pre Order', checked: true },
+    { value: 'col-17', text: 'FR 6M Data', checked: true }
   ], true); // true = this is a column dropdown
 
   // Stock status dropdown - for overstock/low stock indicators (based on metadata.status field)
@@ -635,6 +637,7 @@ function createTableRow(item, metadata) {
   row.innerHTML = `
     <td contenteditable="true">${formatTextForDisplay(metadata.location)}</td>
     <td contenteditable="true">${formatTextForDisplay(metadata.date)}</td>
+    <td contenteditable="true">${metadata.qty_ordered_jason || 0}</td>
     <td class="wrap">${item.product_name || ''}</td>
     <td class="wrap">${item.sku || ''}</td>
     <td class="readonly-field" title="Populated from table">${metadata.uk_6m_data || ''}</td>
@@ -684,22 +687,22 @@ function createTableRow(item, metadata) {
 
 function updateRowCalculations(row) {
   const cells = row.children;
-  if (cells.length < 16) return;
+  if (cells.length < 17) return;
 
-  const shelf_lt1_qty = Number(cells[6].textContent.trim()) || 0;
-  const shelf_gt1_qty = Number(cells[8].textContent.trim()) || 0;
-  const top_floor_total = Number(cells[11].textContent.trim()) || 0;
+  const shelf_lt1_qty = Number(cells[7].textContent.trim()) || 0;
+  const shelf_gt1_qty = Number(cells[9].textContent.trim()) || 0;
+  const top_floor_total = Number(cells[12].textContent.trim()) || 0;
 
   // Calculate totals
   const shelfTotal = shelf_lt1_qty + shelf_gt1_qty;
   const totalStock = shelfTotal + top_floor_total;
 
-  cells[9].textContent = shelfTotal; // Shelf Total
-  cells[12].textContent = totalStock; // Total Stock
+  cells[10].textContent = shelfTotal; // Shelf Total
+  cells[13].textContent = totalStock; // Total Stock
   
   // Recalculate stock status
-  const uk_6m_data = Number(cells[4].textContent.trim()) || 0;
-  const fr_6m_data = Number(cells[15].textContent.trim()) || 0;
+  const uk_6m_data = Number(cells[5].textContent.trim()) || 0;
+  const fr_6m_data = Number(cells[16].textContent.trim()) || 0;
   const demand = uk_6m_data + fr_6m_data;
   
   let stockStatus = '';
@@ -718,14 +721,14 @@ function updateRowCalculations(row) {
     }
   }
   
-  // Update stock status cell (column 13)
-  cells[13].textContent = stockStatusDisplay;
-  cells[13].className = stockStatus ? `readonly-field stock-status-${stockStatus}` : 'readonly-field';
+  // Update stock status cell (column 14)
+  cells[14].textContent = stockStatusDisplay;
+  cells[14].className = stockStatus ? `readonly-field stock-status-${stockStatus}` : 'readonly-field';
 }
 
 async function saveRowData(row) {
   const cells = row.children;
-  if (cells.length < 16) return;
+  if (cells.length < 17) return;
 
   const sku = row.dataset.sku;
   if (!sku) {
@@ -747,15 +750,16 @@ async function saveRowData(row) {
     sku: sku,
     location: getTextWithLineBreaks(cells[0]),
     date: getTextWithLineBreaks(cells[1]) || null,
+    qty_ordered_jason: Number(cells[2].textContent.trim()) || 0,
     // uk_6m_data: excluded - populated from table
-    shelf_lt1: getTextWithLineBreaks(cells[5]),
-    shelf_lt1_qty: Number(cells[6].textContent.trim()) || 0,
-    shelf_gt1: getTextWithLineBreaks(cells[7]),
-    shelf_gt1_qty: Number(cells[8].textContent.trim()) || 0,
-    top_floor_expiry: getTextWithLineBreaks(cells[10]) || null,
-    top_floor_total: Number(cells[11].textContent.trim()) || 0,
-    status: getTextWithLineBreaks(cells[13]),
-    uk_fr_preorder: getTextWithLineBreaks(cells[14]),
+    shelf_lt1: getTextWithLineBreaks(cells[6]),
+    shelf_lt1_qty: Number(cells[7].textContent.trim()) || 0,
+    shelf_gt1: getTextWithLineBreaks(cells[8]),
+    shelf_gt1_qty: Number(cells[9].textContent.trim()) || 0,
+    top_floor_expiry: getTextWithLineBreaks(cells[11]) || null,
+    top_floor_total: Number(cells[12].textContent.trim()) || 0,
+    status: getTextWithLineBreaks(cells[14]),
+    uk_fr_preorder: getTextWithLineBreaks(cells[15]),
     // fr_6m_data: excluded - populated from table
   };
 
