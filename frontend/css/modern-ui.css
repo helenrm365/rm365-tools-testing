@@ -1146,7 +1146,6 @@ panel
   transform: translateY(-8px) scale(0.95);
   transform-origin: top center;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  backdrop-filter: blur(8px);
 
   z-index: 3004;
   pointer-events: none;
