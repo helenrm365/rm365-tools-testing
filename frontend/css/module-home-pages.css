@@ -22,12 +22,19 @@
 .hero-title {
   font-size: 3.5rem;
   font-weight: 700;
-  background: linear-gradient(135deg, #76a12b, #5e8122);
+  background: linear-gradient(135deg, #2c3e50, #76a12b);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   margin-bottom: 1rem;
   letter-spacing: -0.02em;
+}
+
+html.dark-mode .hero-title {
+  background: linear-gradient(135deg, #ecf0f1, #a8d85f);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .hero-subtitle {

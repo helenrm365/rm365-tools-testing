@@ -4,26 +4,34 @@
 
 /* Page Header */
 .enrollment-management .page-header {
+  padding: 2rem 0 1rem 0;
   margin-bottom: 2rem;
 }
 
 .enrollment-management .header-content {
+  max-width: 800px;
   text-align: left;
 }
 
 .enrollment-management .page-title {
-  font-size: 2rem;
+  font-size: 2.5rem;
   font-weight: 700;
-  color: #2c3e50;
+  background: linear-gradient(135deg, #2c3e50, #76a12b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   margin: 0 0 0.5rem 0;
 }
 
 html.dark-mode .enrollment-management .page-title {
-  color: #ecf0f1;
+  background: linear-gradient(135deg, #ecf0f1, #a8d85f);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .enrollment-management .page-subtitle {
-  font-size: 1.125rem;
+  font-size: 1.1rem;
   color: #7f8c8d;
   margin: 0;
   font-weight: 400;
