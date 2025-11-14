@@ -836,6 +836,9 @@ function setupDiscontinuedStatusFilters() {
         // Save preferences
         saveDiscontinuedStatusFilters(selectedFilters);
         
+        // Update the global filter set BEFORE loading data
+        discontinuedFilterSet = new Set(selectedFilters);
+        
         // Reset to first page when filters change
         currentPage = 0;
         
