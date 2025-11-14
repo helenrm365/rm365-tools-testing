@@ -59,7 +59,7 @@ html.dark-mode .enrollment-fingerprint .inner-tabs {
   flex: 1;
   padding: 1rem 1.5rem;
   background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-  border: 2px solid transparent;
+  border: none;
   border-radius: 10px;
   font-size: 1rem;
   font-weight: 600;
@@ -76,7 +76,6 @@ html.dark-mode .enrollment-fingerprint .inner-tabs {
 
 .enrollment-fingerprint .tab-button:hover {
   background: white;
-  border-color: rgba(118, 161, 43, 0.3);
   color: #4a6e1a;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
@@ -96,13 +95,11 @@ html.dark-mode .enrollment-fingerprint .inner-tabs {
 html.dark-mode .enrollment-fingerprint .tab-button {
   background: linear-gradient(135deg, #1e1e1e, #2a2a2a);
   color: #d1d5db;
-  border: 2px solid transparent;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 html.dark-mode .enrollment-fingerprint .tab-button:hover {
   background: #1a1a1a;
-  border-color: rgba(139, 195, 74, 0.3);
   color: #a5d461;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
