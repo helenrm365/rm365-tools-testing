@@ -68,17 +68,16 @@ class AdjustmentsRepo:
 
     def get_pending_adjustments(self) -> List[Dict[str, Any]]:
         """
-        Get all pending adjustment logs (not yet synced to external systems).
-        If Zoho sync is disabled, these are informational only.
-        """
+        Get all adjustment logs for display purposes.
+        \"\"\"
         conn = self.get_connection()
         try:
             cursor = conn.cursor()
             cursor.execute("""
                 SELECT id, barcode, quantity, reason, field, status, response_message, created_at
                 FROM inventory_logs
-                WHERE status IS NULL OR status != 'Success'
-                ORDER BY created_at ASC
+                ORDER BY created_at DESC
+                LIMIT 100
             """)
             
             columns = ['id', 'barcode', 'quantity', 'reason', 'field', 'status', 'response_message', 'created_at']
@@ -92,7 +91,7 @@ class AdjustmentsRepo:
                     adjustment['created_at'] = adjustment['created_at'].isoformat() if hasattr(adjustment['created_at'], 'isoformat') else str(adjustment['created_at'])
                 adjustments.append(adjustment)
                 
-            logger.info(f"Found {len(adjustments)} pending adjustments to sync")
+            logger.info(f"Retrieved {len(adjustments)} adjustment logs\")
             
             return adjustments
             
@@ -337,6 +336,33 @@ class AdjustmentsRepo:
         except psycopg2.Error as e:
             logger.error(f"Database error in mark_corrupted_adjustments_as_failed: {e}")
             return 0
+        finally:
+            conn.close()
+
+    def get_item_metadata(self, item_id: str) -> Optional[Dict[str, Any]]:
+        """Get inventory metadata for a specific item"""
+        conn = self.get_metadata_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT item_id, shelf_lt1_qty, shelf_gt1_qty, top_floor_total
+                FROM inventory_metadata
+                WHERE item_id = %s
+            """, (item_id,))
+            
+            row = cursor.fetchone()
+            if row:
+                return {
+                    'item_id': row[0],
+                    'shelf_lt1_qty': row[1],
+                    'shelf_gt1_qty': row[2],
+                    'top_floor_total': row[3]
+                }
+            return None
+            
+        except psycopg2.Error as e:
+            logger.error(f"Database error in get_item_metadata: {e}")
+            return None
         finally:
             conn.close()
 

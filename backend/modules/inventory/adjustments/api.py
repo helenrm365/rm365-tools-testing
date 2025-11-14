@@ -101,30 +101,13 @@ def get_public_status():
             "timestamp": datetime.now().isoformat()
         }
 
-@router.get("/connection-status")
-def check_zoho_connection(user=Depends(get_current_user)):
-    """
-    Check connectivity to Zoho Inventory API.
-    Returns status indicating if Zoho sync is enabled and if connection is working.
-    """
-    try:
-        result = _svc().check_zoho_connection()
-        return result
-    except Exception as e:
-        return {
-            "status": "error",
-            "connected": False,
-            "message": str(e),
-            "timestamp": datetime.now().isoformat()
-        }
-
 @router.post("/log", response_model=AdjustmentOut)
 def log_inventory_adjustment(body: AdjustmentLogIn, user=Depends(get_current_user)):
     """
     Log an inventory adjustment and update inventory_metadata immediately.
     
     The adjustment is applied to local inventory tracking in real-time.
-    If Zoho sync is enabled, the adjustment will be queued for later sync.
+    Smart shelf logic automatically allocates stock across shelf_lt1, shelf_gt1, and top_floor.
     """
     try:
         result = _svc().log_adjustment(
@@ -140,44 +123,35 @@ def log_inventory_adjustment(body: AdjustmentLogIn, user=Depends(get_current_use
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/sync", response_model=InventorySyncResult)
-def sync_inventory_adjustments(user=Depends(get_current_user)):
-    """
-    Sync pending adjustments from PostgreSQL to Zoho Inventory.
-    Only works if Zoho integration is enabled.
-    """
-    try:
-        result = _svc().sync_adjustments_to_zoho()
-        return InventorySyncResult(**result)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
 @router.get("/pending")
 def get_pending_adjustments(user=Depends(get_current_user)):
     """
-    Get all pending adjustments that haven't been synced to Zoho yet.
-    If Zoho sync is disabled, this returns all adjustments since they don't need syncing.
+    Get all recent adjustments.
     """
     try:
         service = _svc()
         pending = service.get_pending_adjustments()
         
-        sync_message = "Zoho sync disabled - adjustments tracked locally only" if not service.zoho_enabled else f"Found {len(pending)} pending adjustments awaiting Zoho sync"
-        
         return {
             "adjustments": pending,
             "count": len(pending),
-            "message": sync_message,
-            "zoho_enabled": service.zoho_enabled
+            "message": f"Found {len(pending)} adjustments"
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/status")
-def get_sync_status(user=Depends(get_current_user)):
-    """Get comprehensive sync status including pending and recent adjustments"""
+def get_adjustments_status(user=Depends(get_current_user)):
+    """Get comprehensive status including pending and recent adjustments"""
     try:
-        return _svc().get_sync_status()
+        service = _svc()
+        pending = service.get_pending_adjustments()
+        
+        return {
+            \"pending_count\": len(pending),
+            \"message\": f\"{len(pending)} adjustments logged\",
+            \"recent_items\": pending[:10] if pending else []
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

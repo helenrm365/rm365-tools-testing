@@ -116,48 +116,16 @@
               <input type="checkbox" id="autoSubmit" checked>
               <label for="autoSubmit">Auto-submit on scan</label>
             </div>
-            
-            <div class="checkbox-group">
-              <input type="checkbox" id="autoSync" checked>
-              <label for="autoSync">Auto-sync to Zoho</label>
-            </div>
           </div>
 
           <!-- Status Message -->
           <div id="statusMessage" class="status-message"></div>
         </div>
       </div>
-
-      <!-- Sync Controls -->
-      <div class="sync-controls">
-        <div class="sync-button-group">
-          <button id="syncBtn" class="secondary-btn">
-            <i class="fas fa-sync-alt"></i>
-            Sync to Zoho
-          </button>
-          <button id="viewPendingBtn" class="tertiary-btn">
-            <i class="fas fa-list"></i>
-            View Pending
-          </button>
-        </div>
-        <div id="syncStatus" class="sync-status" style="display: none;"></div>
-      </div>
     </div>
 
     <!-- Sidebar Section -->
     <div class="sidebar-section">
-      <!-- Connection Status Card -->
-      <div class="info-card">
-        <h4 class="info-card-title">
-          <i class="fas fa-wifi"></i>
-          Connection Status
-        </h4>
-        <div style="display: flex; align-items: center; gap: 1rem; font-size: 0.9rem;">
-          <span>Status:</span>
-          <span id="connectionIndicator" class="connection-status">Checking...</span>
-        </div>
-      </div>
-
       <!-- Recent Adjustments Card -->
       <div class="info-card">
         <h4 class="info-card-title">
@@ -178,6 +146,13 @@
         <ul>
           <li><strong>Manual Selection Required:</strong> When scanning items, you must manually select which location to affect using the "Location" dropdown (Shelf &lt; 1 Year, Shelf &gt; 1 Year, or Top Floor).</li>
           <li><strong>Best Practice:</strong> When picking/packing orders, prioritize taking from "Shelf &lt; 1 Year" first to ensure older stock is used before expiration.</li>
+          <li><strong>Smart Shelf Logic:</strong> When removing stock from Shelf &lt; 1 Year:
+            <ul style="margin-top: 0.5rem;">
+              <li>If Shelf &lt; 1 Year quantity is insufficient, the system automatically takes from Shelf &gt; 1 Year</li>
+              <li>If Shelf &gt; 1 Year is also insufficient, it takes from Top Floor</li>
+              <li>This ensures FIFO (First In, First Out) inventory management</li>
+            </ul>
+          </li>
           <li><strong>Adjustment Types:</strong>
             <ul style="margin-top: 0.5rem;">
               <li><em>Outbound</em> (Pick/Pack, Damaged, Lost) will <strong>reduce</strong> inventory</li>
@@ -185,8 +160,7 @@
               <li><em>Correction</em> allows manual adjustment in either direction</li>
             </ul>
           </li>
-          <li><strong>Real-time Updates:</strong> Changes happen immediately upon submission, even before syncing to Zoho.</li>
-          <li><strong>Zoho Sync:</strong> Adjustments are logged locally first, then synced to Zoho either automatically (if enabled) or manually.</li>
+          <li><strong>Real-time Updates:</strong> All changes are applied immediately to the local inventory database.</li>
         </ul>
       </div>
     </div>

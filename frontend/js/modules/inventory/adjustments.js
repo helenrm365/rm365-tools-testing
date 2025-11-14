@@ -21,12 +21,6 @@ function loadPreferences() {
         autoSubmitCheckbox.checked = prefs.autoSubmit;
       }
       
-      // Load auto-sync preference  
-      const autoSyncCheckbox = document.getElementById('autoSync');
-      if (autoSyncCheckbox && prefs.autoSync !== undefined) {
-        autoSyncCheckbox.checked = prefs.autoSync;
-      }
-      
       // Load selected reason
       if (prefs.selectedReason) {
         state.selectedReason = prefs.selectedReason;
@@ -49,11 +43,9 @@ function loadPreferences() {
 // Save preferences to localStorage
 function savePreferences() {
   const autoSubmitCheckbox = document.getElementById('autoSubmit');
-  const autoSyncCheckbox = document.getElementById('autoSync');
   
   const prefs = {
     autoSubmit: autoSubmitCheckbox?.checked || true,
-    autoSync: autoSyncCheckbox?.checked || true,
     selectedReason: state.selectedReason,
     selectedField: state.selectedField
   };
@@ -130,7 +122,6 @@ export async function init() {
   // Only try to load data if authenticated
   try {
     await loadRecentAdjustments();
-    await checkZohoConnectionStatus();
     showStatus('📱 Ready to scan barcodes', 'success');
   } catch (dataError) {
     console.warn('[Inventory Adjustments] Data loading failed, but interface is ready:', dataError);
@@ -235,19 +226,9 @@ function hideBackdrop() {
 
 function setupFormHandlers() {
   const submitBtn = document.getElementById('submitBtn');
-  const syncBtn = document.getElementById('syncBtn');
-  const viewPendingBtn = document.getElementById('viewPendingBtn');
 
   if (submitBtn) {
     submitBtn.addEventListener('click', submitAdjustment);
-  }
-
-  if (syncBtn) {
-    syncBtn.addEventListener('click', syncToZoho);
-  }
-
-  if (viewPendingBtn) {
-    viewPendingBtn.addEventListener('click', viewPendingAdjustments);
   }
 }
 
@@ -274,14 +255,9 @@ function setupAutoFocus() {
   });
   
   const autoSubmitCheckbox = document.getElementById('autoSubmit');
-  const autoSyncCheckbox = document.getElementById('autoSync');
   
   if (autoSubmitCheckbox) {
     autoSubmitCheckbox.addEventListener('change', savePreferences);
-  }
-  
-  if (autoSyncCheckbox) {
-    autoSyncCheckbox.addEventListener('change', savePreferences);
   }
 }
 
@@ -341,7 +317,6 @@ async function submitAdjustment() {
   const barcodeInput = document.getElementById('barcodeInput');
   const quantityInput = document.getElementById('quantityInput');
   const statusMessage = document.getElementById('statusMessage');
-  const autoSync = document.getElementById('autoSync')?.checked;
   
   if (!barcodeInput || !quantityInput || !statusMessage) {
     console.error('[Inventory Adjustments] Missing form elements');
@@ -374,18 +349,11 @@ async function submitAdjustment() {
       field: state.selectedField
     });
 
-    showStatus(`✅ Adjustment logged successfully (ID: ${data.id})`, 'success');
+    const adjustmentId = data.adjustment?.id || data.id || 'N/A';
+    showStatus(`✅ Adjustment logged successfully (ID: ${adjustmentId})`, 'success');
     
     // Auto-clear barcode for next scan
     autoClearBarcode();
-    
-    // Auto-sync if enabled
-    if (autoSync) {
-      setTimeout(async () => {
-        showStatus('⏳ Auto-syncing to Zoho...', 'info');
-        await syncToZoho();
-      }, 500); // Small delay to avoid overwhelming the system
-    }
     
     // Reload recent adjustments
     await loadRecentAdjustments();
@@ -423,72 +391,6 @@ function autoClearBarcode() {
   
   if (scanStatus) {
     scanStatus.textContent = '';
-  }
-}
-
-async function syncToZoho() {
-  const syncBtn = document.getElementById('syncBtn');
-  const syncStatus = document.getElementById('syncStatus');
-  
-  if (syncBtn) syncBtn.disabled = true;
-  showSyncStatus('⏳ Checking connection...', 'info');
-  
-  // First check if Zoho is reachable
-  try {
-    const connectionCheck = await get(`/api/v1/inventory/adjustments/connection-status`);
-    if (connectionCheck && !connectionCheck.connected) {
-      showSyncStatus(`❌ Zoho connection failed: ${connectionCheck.message}`, 'error');
-      if (syncBtn) syncBtn.disabled = false;
-      return;
-    }
-  } catch (err) {
-    console.warn('[Inventory Adjustments] Connection check failed, proceeding with sync:', err);
-  }
-  
-  showSyncStatus('⏳ Syncing to Zoho...', 'info');
-
-  try {
-    const data = await post(`/api/v1/inventory/adjustments/sync`, {});
-    showSyncStatus(`✅ Sync complete: ${data.success_count || 0} successful, ${data.error_count || 0} failed`, 'success');
-    await loadRecentAdjustments(); // Refresh the list
-  } catch (err) {
-    console.error('[Inventory Adjustments] Sync error:', err);
-    
-    // Provide more specific error feedback for sync operations
-    let syncErrorMessage = '❌ Network error during sync';
-    if (err.message) {
-      if (err.message.includes('timeout') || err.message.includes('Timeout')) {
-        syncErrorMessage = '❌ Sync timed out. Some adjustments may not have been processed.';
-      } else if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
-        syncErrorMessage = '❌ Connection lost during sync. Check connection and try again.';
-      } else if (err.message.includes('401') || err.message.includes('Unauthorized')) {
-        syncErrorMessage = '❌ Authentication expired. Please refresh and try again.';
-      } else if (err.message.includes('token') || err.message.includes('Token')) {
-        syncErrorMessage = '❌ Zoho authentication failed. Contact administrator.';
-      } else if (err.message.length > 10) {
-        syncErrorMessage = `❌ Sync failed: ${err.message}`;
-      }
-    }
-    
-    showSyncStatus(syncErrorMessage, 'error');
-  }
-
-  if (syncBtn) syncBtn.disabled = false;
-}
-
-async function viewPendingAdjustments() {
-  try {
-    const response = await get(`/api/v1/inventory/adjustments/pending`);
-    
-    if (response.ok) {
-      const data = await response.json();
-      showPendingModal(data.adjustments || []);
-    } else {
-      showStatus('❌ Failed to load pending adjustments', 'error');
-    }
-  } catch (err) {
-    console.error('[Inventory Adjustments] Error loading pending:', err);
-    showStatus('❌ Network error loading pending adjustments', 'error');
   }
 }
 
@@ -566,20 +468,6 @@ function displayRecentAdjustments(adjustments) {
   container.innerHTML = table;
 }
 
-function showPendingModal(adjustments) {
-  // Simple alert for now - could be enhanced with a modal
-  if (!adjustments.length) {
-    alert('No pending adjustments');
-    return;
-  }
-  
-  const summary = adjustments.map(adj => 
-    `${adj.barcode}: ${adj.quantity} (${adj.reason})`
-  ).join('\n');
-  
-  alert(`Pending adjustments (${adjustments.length}):\n\n${summary}`);
-}
-
 function showStatus(message, type) {
   const statusMessage = document.getElementById('statusMessage');
   if (!statusMessage) return;
@@ -600,21 +488,6 @@ function showStatus(message, type) {
     setTimeout(() => {
       statusMessage.textContent = '';
     }, 5000);
-  }
-}
-
-function showSyncStatus(message, type) {
-  const syncStatus = document.getElementById('syncStatus');
-  if (!syncStatus) return;
-  
-  syncStatus.textContent = message;
-  
-  if (type === 'success') {
-    syncStatus.style.color = '#28a745';
-  } else if (type === 'error') {
-    syncStatus.style.color = '#dc3545';
-  } else {
-    syncStatus.style.color = '#007bff';
   }
 }
 
@@ -642,70 +515,6 @@ document.addEventListener('DOMContentLoaded', () => {
     backdrop.addEventListener('click', closeAllDropdowns);
   }
 });
-
-async function checkZohoConnectionStatus() {
-  /**
-   * Check Zoho API connection status and display indicator
-   */
-  try {
-    // Check if user is authenticated first
-    const { isAuthed } = await import('../../services/state/sessionStore.js');
-    if (!isAuthed()) {
-      const indicator = document.getElementById('connectionIndicator');
-      if (indicator) {
-        indicator.innerHTML = '🔐 Login Required';
-        indicator.className = 'connection-status unknown';
-        indicator.title = 'Please log in to check Zoho connection';
-      }
-      return null;
-    }
-
-    const response = await get(`/api/v1/inventory/adjustments/connection-status`);
-    
-    const indicator = document.getElementById('connectionIndicator');
-    if (indicator) {
-      if (response.connected) {
-        indicator.innerHTML = `🟢 Connected (${response.response_time_ms}ms)`;
-        indicator.className = 'connection-status connected';
-        indicator.title = `Zoho API connection successful at ${response.timestamp}`;
-      } else {
-        indicator.innerHTML = '🔴 Disconnected';
-        indicator.className = 'connection-status disconnected';
-        indicator.title = `Zoho API connection failed: ${response.message}`;
-      }
-    }
-    
-    return response;
-    
-  } catch (err) {
-    console.error('[Inventory Adjustments] Connection status check failed:', err);
-    
-    const indicator = document.getElementById('connectionIndicator');
-    if (indicator) {
-      if (err.message.includes('401') || err.message.includes('Unauthorized')) {
-        indicator.innerHTML = '🔐 Auth Required';
-        indicator.className = 'connection-status unknown';
-        indicator.title = 'Authentication required to check connection';
-      } else if (err.message.includes('Failed to fetch')) {
-        indicator.innerHTML = '🌐 Network Error';
-        indicator.className = 'connection-status unknown';
-        indicator.title = 'Network error - check internet connection';
-      } else {
-        indicator.innerHTML = '⚠️ Unknown';
-        indicator.className = 'connection-status unknown';
-        indicator.title = 'Unable to check Zoho API connection status';
-      }
-    }
-    
-    return { connected: false, message: 'Status check failed' };
-  }
-}
-
-// Export the connection check function for external use
-export { checkZohoConnectionStatus };
-
-// Periodically check connection status (every 2 minutes)
-setInterval(checkZohoConnectionStatus, 120000);
 
 export function cleanup() {
   console.log('[Inventory Adjustments] Cleaning up');
