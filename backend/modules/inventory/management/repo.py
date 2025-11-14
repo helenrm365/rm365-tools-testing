@@ -193,6 +193,17 @@ class InventoryManagementRepo:
                 )
             """)
             
+            # CRITICAL: Add qty_ordered_jason column if it doesn't exist (migration for existing tables)
+            # This MUST run before any SELECT queries that include this column
+            try:
+                cursor.execute("""
+                    ALTER TABLE inventory_metadata 
+                    ADD COLUMN IF NOT EXISTS qty_ordered_jason INTEGER DEFAULT 0
+                """)
+                conn.commit()
+            except Exception as e:
+                logger.debug(f"Column qty_ordered_jason addition skipped (may already exist): {e}")
+            
             cursor.execute("""
                 CREATE INDEX IF NOT EXISTS idx_inventory_metadata_updated_at 
                 ON inventory_metadata (updated_at)
@@ -260,15 +271,6 @@ class InventoryManagementRepo:
                 """)
             except Exception as e:
                 logger.debug(f"Column discontinued_status addition skipped (may already exist): {e}")
-            
-            # Add qty_ordered_jason column if it doesn't exist (migration for existing tables)
-            try:
-                cursor.execute("""
-                    ALTER TABLE inventory_metadata 
-                    ADD COLUMN IF NOT EXISTS qty_ordered_jason INTEGER DEFAULT 0
-                """)
-            except Exception as e:
-                logger.debug(f"Column qty_ordered_jason addition skipped (may already exist): {e}")
             
             # Create index on discontinued_status for fast filtering
             try:
