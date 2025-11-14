@@ -1,5 +1,22 @@
 /* ===== Standardized Button Component ===== */
-/* Based on sales data button design - used across all modules */
+/* 
+  DESIGN PHILOSOPHY - Purposeful Distinction:
+  
+  GRADIENT BUTTONS (Premium, Action-Oriented):
+  - Used for PRIMARY ACTIONS that modify data or trigger important operations
+  - Examples: Submit, Create, Delete, Save, Export, Sync, Apply Filters
+  - Visual weight signals importance and consequences
+  - Classes: .primary-btn, .secondary-btn, .danger-btn, .info-btn, .success-btn, .warning-btn
+  
+  FLAT COLOR BUTTONS (Clean, Functional):
+  - Used for SECONDARY UI CONTROLS that don't modify data
+  - Examples: Toggle views, Zoom controls, Pagination, Tab navigation
+  - Less visual weight to avoid competing with primary actions
+  - Classes: .toggle-btn, .zoom-btn, .pagination-btn, tab buttons
+  - Exception: Active state may use gradient for clear visual feedback
+  
+  This creates clear visual hierarchy and helps users understand button importance.
+*/
 
 /* Base Action Button */
 .action-btn {

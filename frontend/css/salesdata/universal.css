@@ -174,44 +174,62 @@ html.dark-mode .view-toggle {
   background: #1e1e1e;
 }
 
+/* Toggle Button - Flat color secondary UI control */
 .toggle-btn {
   padding: 0.75rem 1.5rem;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   font-weight: 600;
+  font-family: 'Sora', system-ui, sans-serif;
   cursor: pointer;
-  transition: all 0.2s ease;
-  background: transparent;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: #f3f4f6;
   color: #6b7280;
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .toggle-btn:hover {
+  background: #e5e7eb;
   color: #374151;
-  background: rgba(118, 161, 43, 0.1);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
 .toggle-btn.active {
   background: linear-gradient(135deg, #8bc34a, #76a12b);
   color: white;
-  box-shadow: 0 2px 8px rgba(118, 161, 43, 0.4);
+  box-shadow: 0 3px 10px rgba(118, 161, 43, 0.3);
   border: none;
 }
 
+.toggle-btn.active:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.4);
+}
+
 html.dark-mode .toggle-btn {
+  background: #374151;
   color: #9ca3af;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 html.dark-mode .toggle-btn:hover {
+  background: #4b5563;
   color: #e5e7eb;
-  background: rgba(139, 195, 74, 0.2);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
 }
 
 html.dark-mode .toggle-btn.active {
   background: linear-gradient(135deg, #8bc34a, #76a12b);
   color: white;
+  box-shadow: 0 3px 10px rgba(139, 195, 74, 0.3);
+}
+
+html.dark-mode .toggle-btn.active:hover {
+  box-shadow: 0 4px 12px rgba(139, 195, 74, 0.4);
 }
 
 /* ===== Search Controls ===== */
