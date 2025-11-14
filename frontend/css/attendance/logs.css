@@ -58,13 +58,13 @@ html.dark-mode .attendance-logs .inner-tabs {
 .attendance-logs .tab-button {
   flex: 1;
   padding: 1rem 1.5rem;
-  background: #f3f4f6;
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
   border: none;
   border-radius: 10px;
   font-size: 1rem;
   font-weight: 600;
   font-family: 'Sora', system-ui, sans-serif;
-  color: #6b7280;
+  color: #495057;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
@@ -75,10 +75,10 @@ html.dark-mode .attendance-logs .inner-tabs {
 }
 
 .attendance-logs .tab-button:hover {
-  background: #e5e7eb;
-  color: #374151;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  background: white;
+  color: #4a6e1a;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .attendance-logs .tab-button.active {
@@ -93,15 +93,15 @@ html.dark-mode .attendance-logs .inner-tabs {
 }
 
 html.dark-mode .attendance-logs .tab-button {
-  background: #374151;
-  color: #9ca3af;
+  background: linear-gradient(135deg, #1e1e1e, #2a2a2a);
+  color: #d1d5db;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 html.dark-mode .attendance-logs .tab-button:hover {
-  background: #4b5563;
-  color: #e5e7eb;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  background: #1a1a1a;
+  color: #a5d461;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 html.dark-mode .attendance-logs .tab-button.active {

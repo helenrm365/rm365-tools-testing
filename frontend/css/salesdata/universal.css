@@ -113,10 +113,11 @@ html.dark-mode .inner-tabs {
   flex: 1;
   padding: 1rem 1.5rem;
   background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-  border: 2px solid transparent;
+  border: none;
   border-radius: 10px;
   font-size: 1rem;
   font-weight: 600;
+  font-family: 'Sora', system-ui, sans-serif;
   color: #495057;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -124,11 +125,11 @@ html.dark-mode .inner-tabs {
   align-items: center;
   justify-content: center;
   gap: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .tab-button:hover {
   background: white;
-  border-color: rgba(118, 161, 43, 0.3);
   color: #4a6e1a;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
@@ -137,26 +138,34 @@ html.dark-mode .inner-tabs {
 .tab-button.active {
   background: linear-gradient(135deg, #76a12b, #5e8122);
   color: white;
-  border-color: rgba(255, 255, 255, 0.1);
-  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.4);
+  box-shadow: 0 3px 10px rgba(118, 161, 43, 0.3);
   transform: translateY(-1px);
+}
+
+.tab-button.active:hover {
+  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.4);
 }
 
 html.dark-mode .tab-button {
   background: linear-gradient(135deg, #1e1e1e, #2a2a2a);
   color: #d1d5db;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 html.dark-mode .tab-button:hover {
   background: #1a1a1a;
-  border-color: rgba(139, 195, 74, 0.3);
   color: #a5d461;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 html.dark-mode .tab-button.active {
   background: linear-gradient(135deg, #76a12b, #5e8122);
   color: white;
-  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 3px 10px rgba(139, 195, 74, 0.3);
+}
+
+html.dark-mode .tab-button.active:hover {
+  box-shadow: 0 4px 12px rgba(139, 195, 74, 0.4);
 }
 
 /* Form and table styles are now in components/form.css and components/table.css */
