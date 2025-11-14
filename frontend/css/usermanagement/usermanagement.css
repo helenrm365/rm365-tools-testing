@@ -403,3 +403,27 @@ html.dark-mode .modern-input:focus {
     border-bottom: none;
     padding-bottom: 0;
 }
+/* ===== Modern Table (for JS-generated user table) ===== */
+.modern-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+.modern-table th,
+.modern-table td {
+  border: 1px solid #ccc;
+  padding: 8px 12px;
+  text-align: left;
+}
+.modern-table th {
+  background-color: #f4f4f4;
+  font-weight: 600;
+}
+html.dark-mode .modern-table th {
+  background-color: #2a2a2a;
+  color: #fff;
+}
+html.dark-mode .modern-table td {
+  border-color: #555;
+  color: #eee;
+}

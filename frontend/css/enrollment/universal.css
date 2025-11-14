@@ -472,3 +472,22 @@ html.dark-mode .dropdown-container .dropdown-item.selected {
     border-bottom: none;
     padding-bottom: 0;
 }
+
+/* ===== Status Indicator (for JS-generated fingerprint status in management) ===== */
+.status-indicator {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 0.5rem;
+}
+
+.status-indicator.active {
+    background: #27ae60;
+    box-shadow: 0 0 0 3px rgba(39, 174, 96, 0.3);
+}
+
+.status-indicator.inactive {
+    background: #e74c3c;
+    box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.3);
+}

@@ -1,0 +1,22 @@
+/* ===== Global CSS Variables ===== */
+
+:root {
+    --search-bg: #f2f2f2;
+    --text-muted: #555;
+    --text-color: #000;
+    --os-handle: rgba(0,0,0,.35);
+    --os-handle-hover: rgba(0,0,0,.55);
+    --os-handle-active: rgba(0,0,0,.75);
+}
+
+html.dark-mode {
+    --search-bg: #2b2b2b;
+    --text-muted: #aaa;
+    --text-color: #fff;
+    --os-handle: rgba(255,255,255,.35);
+    --os-handle-hover: rgba(255,255,255,.55);
+    --os-handle-active: rgba(255,255,255,.75);
+    --input-border: rgba(255,255,255,.14);
+    --menu-bg: rgba(22,22,26,.95);
+    --focus: #8fb0ff;
+}

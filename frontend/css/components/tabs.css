@@ -1,0 +1,45 @@
+/* ===== Tabs Component ===== */
+
+.tab,
+.inner-tab {
+    display: none;
+}
+
+.tab.active,
+.inner-tab.active {
+    display: block;
+}
+
+.top-nav {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 1rem;
+}
+
+.top-nav button.active {
+    background: #007bff;
+    color: white;
+}
+
+.inner-tab-group {
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+/* === Tab Highlighter === */
+.active-tab-indicator {
+    position: absolute;
+    left: 0;
+    width: calc(100% - 28px); /* 100% minus horizontal margin (14px each side) */
+    height: 66px;
+    background-color: rgba(143, 0, 255, 1); /* match hover color exactly */
+    border-radius: 12px;
+    transition: top 0.5s cubic-bezier(0.3, 1.5, 0.5, 1), opacity 0.4s ease;
+    z-index: 0;
+    pointer-events: none;
+    margin-left: 14px;
+}
+
+html.dark-mode .active-tab-indicator {
+    background-color: rgba(128, 128, 128, 0.25);
+}

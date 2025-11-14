@@ -1,0 +1,33 @@
+/* ===== Base Styles ===== */
+
+* { 
+    font-family: 'Sora', sans-serif; 
+}
+
+html {
+    font-family: var(--font-family);
+    background-color: #ffffff;
+    color: #000000;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+html.dark-mode {
+    background-color: #1a1a1a;
+    color: #ffffff;
+}
+
+/* Hide the original select if you keep any native ones */
+.select-hidden {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+.sort-icon {
+    margin-left: 6px;
+    font-size: 0.8rem;
+    opacity: 0.6;
+}

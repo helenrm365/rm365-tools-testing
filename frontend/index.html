@@ -43,10 +43,17 @@
   </script>
 
   <!-- Your CSS (order matters) -->
-  <link rel="stylesheet" href="/css/app-shell.css">
-  
-  <!-- Shared Components CSS (replaces modern-ui.css) -->
-  <link rel="stylesheet" href="/css/_shared-components.css">
+  <!-- Component CSS - Modular components (loaded in dependency order) -->
+  <link rel="stylesheet" href="/css/components/variables.css">
+  <link rel="stylesheet" href="/css/components/base.css">
+  <link rel="stylesheet" href="/css/components/popup.css">
+  <link rel="stylesheet" href="/css/components/tabs.css">
+  <link rel="stylesheet" href="/css/components/collapsible.css">
+  <link rel="stylesheet" href="/css/components/scrollbar.css">
+  <link rel="stylesheet" href="/css/components/chart.css">
+  <link rel="stylesheet" href="/css/components/loader.css">
+  <link rel="stylesheet" href="/css/components/filter-category.css">
+  <link rel="stylesheet" href="/css/components/c-select.css">
   
   <!-- Sidebar CSS - Modular components (loaded in dependency order) -->
   <link rel="stylesheet" href="/css/sidebar/base.css">
@@ -70,7 +77,7 @@
   <link rel="stylesheet" href="/css/login/animations.css">
   
   <!-- Modern UI and other module-specific CSS -->
-  <!-- <link rel="stylesheet" href="/css/modern-ui.css"> --> <!-- COMMENTED OUT - Replaced by _shared-components.css -->
+  <!-- <link rel="stylesheet" href="/css/modern-ui.css"> --> <!-- COMMENTED OUT - Replaced by component CSS files -->
   <link rel="stylesheet" href="/css/module-home-pages.css">
   <link rel="stylesheet" href="/css/enrollment/universal.css">
   <link rel="stylesheet" href="/css/enrollment/management.css">

@@ -1,0 +1,13 @@
+/* ===== OverlayScrollbars Styling ===== */
+
+html.dark-mode .os-scrollbar {
+    background: transparent !important;
+}
+
+html.dark-mode .os-scrollbar-handle {
+    background: rgba(255, 255, 255, 0.1) !important;
+}
+
+html.dark-mode .os-scrollbar-handle:hover {
+    background: rgba(255, 255, 255, 0.25) !important;
+}

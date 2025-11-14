@@ -1,0 +1,57 @@
+/* ===== Popup Component ===== */
+
+#first-launch-popup {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+}
+
+.popup-backdrop {
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.popup-content {
+    background-color: var(--popup-bg, #ffffff);
+    color: var(--popup-text, #000000);
+    max-width: 500px;
+    margin: 10% auto;
+    padding: 2rem;
+    border-radius: 8px;
+    font-family: 'Sora', sans-serif;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+}
+
+.popup-content pre {
+    background: rgba(0, 0, 0, 0.05);
+    padding: 1em;
+    border-radius: 6px;
+    overflow-x: auto;
+}
+
+.popup-content button {
+    margin-top: 1rem;
+    padding: 0.5em 1em;
+    cursor: pointer;
+}
+
+#timeoutPopup .popup-content {
+    text-align: center;
+    padding: 2rem;
+}
+
+/* === Light Mode === */
+body:not(.dark-mode) {
+    --popup-bg: #ffffff;
+    --popup-text: #000000;
+}
+
+/* === Dark Mode === */
+html.dark-mode {
+    --popup-bg: #1a1a1a;
+    --popup-text: #ffffff;
+}
+
+html.dark-mode .popup-content pre {
+    background: rgba(255, 255, 255, 0.05);
+}

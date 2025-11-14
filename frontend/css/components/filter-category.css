@@ -1,0 +1,52 @@
+/* ===== Filter Category Component ===== */
+/* Note: Currently only used in Inventory module */
+
+.filter-category {
+    margin: 10px 0 4px;
+    cursor: pointer;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* Sub-category arrow: closed = up, expanded = down */
+.filter-category .category-arrow { 
+    transition: transform 0.25s ease; 
+    transform: rotate(180deg); 
+}
+
+.filter-category.expanded .category-arrow { 
+    transform: rotate(0deg); 
+}
+
+/* Options list animation */
+.filter-options {
+    display: block;
+    margin-left: 4px;
+    padding-left: 8px;
+    border-left: 2px solid rgba(0,0,0,0.08);
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: max-height 0.25s ease, opacity 0.25s ease, transform 0.25s ease;
+}
+
+/* Show options when category expanded */
+.filter-category.expanded + .filter-options { 
+    max-height: 600px; 
+    opacity: 1; 
+    transform: translateY(0); 
+}
+
+/* Stack labels vertically */
+.filter-options label { 
+    display: block; 
+    margin: 6px 0; 
+}
+
+/* Dark mode tweak just for the divider */
+html.dark-mode .filter-options { 
+    border-left-color: rgba(255,255,255,0.12); 
+}

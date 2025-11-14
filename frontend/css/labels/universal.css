@@ -232,3 +232,153 @@ html.dark-mode .region-help {
 }
 /* ===== C-Select System (from modern-ui.css for JS compatibility) ===== */
 .c-select { position: relative; display: inline-block; width: 100%; }
+
+/* ===== Modern Table (for JS-generated tables in labels module) ===== */
+.modern-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+.modern-table th,
+.modern-table td {
+  border: 1px solid #ccc;
+  padding: 8px 12px;
+  text-align: left;
+}
+.modern-table th {
+  background-color: #f4f4f4;
+  font-weight: 600;
+}
+html.dark-mode .modern-table th {
+  background-color: #2a2a2a;
+  color: #fff;
+}
+html.dark-mode .modern-table td {
+  border-color: #555;
+  color: #eee;
+}
+
+/* ===== Status Badges (for JS-generated status indicators) ===== */
+.status-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.status-badge.success {
+    background: rgba(39, 174, 96, 0.1);
+    color: #27ae60;
+    border: 1px solid rgba(39, 174, 96, 0.2);
+}
+
+.status-badge.warning {
+    background: rgba(241, 196, 15, 0.1);
+    color: #f1c40f;
+    border: 1px solid rgba(241, 196, 15, 0.2);
+}
+
+.status-badge.danger {
+    background: rgba(231, 76, 60, 0.1);
+    color: #e74c3c;
+    border: 1px solid rgba(231, 76, 60, 0.2);
+}
+
+/* ===== Button Groups and Icons (for JS-generated action buttons) ===== */
+.btn-group {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.btn-icon {
+    padding: 6px 8px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-icon.primary {
+    background: rgba(52, 152, 219, 0.1);
+    color: #3498db;
+}
+
+.btn-icon.primary:hover {
+    background: rgba(52, 152, 219, 0.2);
+}
+
+.btn-icon.info {
+    background: rgba(52, 152, 219, 0.1);
+    color: #3498db;
+}
+
+.btn-icon.info:hover {
+    background: rgba(52, 152, 219, 0.2);
+}
+
+.btn-icon.danger {
+    background: rgba(231, 76, 60, 0.1);
+    color: #e74c3c;
+}
+
+.btn-icon.danger:hover {
+    background: rgba(231, 76, 60, 0.2);
+}
+
+/* ===== Pagination (for JS-generated pagination controls) ===== */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 2rem 0;
+}
+
+.page-btn {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    background: white;
+    color: #333;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+}
+
+.page-btn:hover {
+    background: #f8f9fa;
+    border-color: #adb5bd;
+}
+
+.page-btn.active {
+    background: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+.page-ellipsis {
+    padding: 8px 4px;
+    color: #6c757d;
+}
+
+html.dark-mode .page-btn {
+    background: #2e2e2e;
+    color: #ecf0f1;
+    border-color: #495057;
+}
+
+html.dark-mode .page-btn:hover {
+    background: #3b3b3b;
+    border-color: #6c757d;
+}
+
+html.dark-mode .page-btn.active {
+    background: #007bff;
+}

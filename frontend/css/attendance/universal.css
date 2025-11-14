@@ -588,3 +588,59 @@ html.dark-mode .stat-value {
 html.dark-mode .stat-label {
     color: #bdc3c7;
 }
+
+/* ===== Status Indicators (for JS-generated reader status in automatic) ===== */
+.status-box {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    border-radius: 12px;
+    margin-bottom: 1rem;
+}
+
+.status-box.connected {
+    background: rgba(39, 174, 96, 0.1);
+    border: 1px solid rgba(39, 174, 96, 0.2);
+}
+
+.status-box.disconnected {
+    background: rgba(231, 76, 60, 0.1);
+    border: 1px solid rgba(231, 76, 60, 0.2);
+}
+
+.status-indicator.connected {
+    background: #27ae60;
+    box-shadow: 0 0 0 3px rgba(39, 174, 96, 0.3);
+}
+
+.status-indicator.disconnected {
+    background: #e74c3c;
+    box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.3);
+}
+
+.status-title {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.status-subtitle {
+    font-size: 0.9rem;
+    opacity: 0.8;
+}
+
+.reader-status {
+    padding: 1rem;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    margin-bottom: 1rem;
+}
+
+.reader-status.enabled {
+    background: rgba(39, 174, 96, 0.05);
+    border-color: rgba(39, 174, 96, 0.2);
+}
+
+.reader-status.disabled {
+    background: rgba(149, 165, 166, 0.05);
+    border-color: rgba(149, 165, 166, 0.2);
+}
