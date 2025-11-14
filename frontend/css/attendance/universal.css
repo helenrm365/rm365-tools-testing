@@ -31,34 +31,9 @@ html.dark-mode .section-title {
   gap: 1.5rem;
 }
 
-.stat-card {
-  background: white;
-  border-radius: 16px;
-  padding: 1.75rem;
-  display: flex;
-  align-items: center;
-  gap: 1.25rem;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 2px solid transparent;
-}
+/* Stat card styles are now in components/card.css */
 
-.stat-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-  border-color: rgba(118, 161, 43, 0.2);
-}
-
-html.dark-mode .stat-card {
-  background: #2a2a2a;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
-}
-
-html.dark-mode .stat-card:hover {
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-  border-color: rgba(139, 195, 74, 0.3);
-}
-
+/* Stat icon color variants specific to attendance module */
 .stat-icon {
   width: 56px;
   height: 56px;
@@ -90,51 +65,12 @@ html.dark-mode .stat-card:hover {
   color: #ef4444;
 }
 
-.stat-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.stat-value {
-  font-size: 2.25rem;
-  font-weight: 700;
-  line-height: 1;
-  margin-bottom: 0.5rem;
-  color: var(--header-color);
-}
-
-html.dark-mode .stat-value {
-  color: #ecf0f1;
-}
-
-.stat-label {
-  font-size: 0.95rem;
-  color: #64748b;
-  font-weight: 500;
-}
-
-html.dark-mode .stat-label {
-  color: #94a3b8;
-}
-
 /* ===== Filters Components ===== */
 .filters-section {
   animation: fadeInUp 0.4s ease-out 0.1s backwards;
 }
 
-.filters-card {
-  background: white;
-  border-radius: 16px;
-  padding: 2rem;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  border: 2px solid rgba(118, 161, 43, 0.1);
-}
-
-html.dark-mode .filters-card {
-  background: #2a2a2a;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
-  border-color: rgba(139, 195, 74, 0.2);
-}
+/* Filters card styles are now in components/card.css */
 
 .filters-grid {
   display: grid;
@@ -552,42 +488,7 @@ html.dark-mode .status-unknown {
     margin-bottom: 2rem;
 }
 
-.stat-card {
-    background: white;
-    border-radius: 12px;
-    padding: 1.5rem;
-    text-align: center;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    border: 1px solid rgba(0,0,0,0.05);
-}
-
-.stat-value {
-    font-size: 2rem;
-    font-weight: 700;
-    color: #2c3e50;
-    margin-bottom: 0.5rem;
-}
-
-.stat-label {
-    font-size: 0.9rem;
-    color: #7f8c8d;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-html.dark-mode .stat-card {
-    background: #2e2e2e;
-    border: 1px solid rgba(255,255,255,0.1);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-}
-
-html.dark-mode .stat-value {
-    color: #ecf0f1;
-}
-
-html.dark-mode .stat-label {
-    color: #bdc3c7;
-}
+/* Stat card styles are now in components/card.css */
 
 /* ===== Status Indicators (for JS-generated reader status in automatic) ===== */
 .status-box {

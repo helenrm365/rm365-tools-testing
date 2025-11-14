@@ -594,36 +594,7 @@ html.dark-mode .modern-table td {
   color: #e5e7eb;
 }
 
-/* ===== Stats Cards ===== */
-.stats-card {
-  text-align: center;
-}
-
-.stat-icon {
-  font-size: 2.5rem;
-  margin-bottom: 1rem;
-  display: block;
-}
-
-.stat-value {
-  font-size: 2rem;
-  font-weight: 700;
-  color: #2c3e50;
-  margin-bottom: 0.5rem;
-}
-
-html.dark-mode .stat-value {
-  color: #ecf0f1;
-}
-
-.stat-label {
-  color: #7f8c8d;
-  font-weight: 500;
-}
-
-html.dark-mode .stat-label {
-  color: #95a5a6;
-}
+/* Stats card styles are now in components/card.css */
 
 /* ===== Pagination ===== */
 .pagination-section {
@@ -730,67 +701,7 @@ html.dark-mode .page-info {
   }
 }
 
-/* ===== Cards ===== */
-.content-card {
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  border: 2px solid transparent;
-  overflow: hidden;
-  transition: all 0.3s ease;
-  margin-bottom: 2rem;
-}
-
-html.dark-mode .content-card {
-  background: #2a2a2a;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-}
-
-.content-card:hover {
-  border-color: rgba(118, 161, 43, 0.1);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
-}
-
-.card-header {
-  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-  padding: 1.5rem;
-  border-bottom: 2px solid #e5e7eb;
-}
-
-html.dark-mode .card-header {
-  background: linear-gradient(135deg, #404040, #333);
-  border-bottom-color: #555;
-}
-
-.card-title {
-  font-size: 1.4rem;
-  font-weight: 600;
-  color: #2c3e50;
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-html.dark-mode .card-title {
-  color: #ecf0f1;
-}
-
-.card-subtitle {
-  font-size: 0.95rem;
-  color: #7f8c8d;
-  margin: 0.5rem 0 0 0;
-  font-weight: 400;
-}
-
-html.dark-mode .card-subtitle {
-  color: #95a5a6;
-}
-
-.card-body {
-  padding: 2rem;
-}
+/* Card styles are now in components/card.css - using .card-animated for this module */
 
 /* ===== Status Indicators ===== */
 .status-indicator {

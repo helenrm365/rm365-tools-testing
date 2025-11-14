@@ -114,45 +114,7 @@ html.dark-mode .employee-code-input {
   color: #bbb !important;
 }
 
-/* Card Container */
-.card {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-  border: 1px solid rgba(0, 0, 0, 0.05);
-}
-
-html.dark-mode .card {
-  background: #2a2a2a;
-  border-color: rgba(255, 255, 255, 0.1);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-.card-header {
-  padding: 1rem 1.5rem;
-  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-html.dark-mode .card-header {
-  background: linear-gradient(135deg, #333, #2a2a2a);
-  border-bottom-color: rgba(255, 255, 255, 0.1);
-}
-
-.card-header h3 {
-  margin: 0;
-  color: #333;
-  font-weight: 600;
-}
-
-html.dark-mode .card-header h3 {
-  color: #fff;
-}
-
-.card-body {
-  padding: 1.5rem;
-}
+/* Card styles are now in components/card.css - using basic .card for this module */
 
 /* Instructions Box */
 .instructions {

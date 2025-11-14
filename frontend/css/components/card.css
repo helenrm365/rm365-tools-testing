@@ -1,0 +1,232 @@
+/* ===== Card Components ===== */
+/* Two types of cards: basic (no animation) and animated (with hover effects) */
+
+/* ===== Basic Card (No Animation) ===== */
+.card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+html.dark-mode .card {
+  background: #2a2a2a;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.card-header {
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  border-bottom: 2px solid #e5e7eb;
+}
+
+html.dark-mode .card-header {
+  background: linear-gradient(135deg, #404040, #333);
+  border-bottom-color: #555;
+}
+
+.card-title {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+html.dark-mode .card-title {
+  color: #ecf0f1;
+}
+
+.card-subtitle {
+  font-size: 0.95rem;
+  color: #7f8c8d;
+  margin: 0.5rem 0 0 0;
+  font-weight: 400;
+}
+
+html.dark-mode .card-subtitle {
+  color: #95a5a6;
+}
+
+.card-body {
+  padding: 2rem;
+}
+
+/* ===== Animated Card (With Hover Effects) ===== */
+.card-animated {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 2px solid transparent;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  margin-bottom: 2rem;
+}
+
+html.dark-mode .card-animated {
+  background: #2a2a2a;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.card-animated:hover {
+  border-color: rgba(118, 161, 43, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+}
+
+html.dark-mode .card-animated:hover {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+/* Animated card uses same header/title/body as basic card */
+.card-animated .card-header {
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  border-bottom: 2px solid #e5e7eb;
+}
+
+html.dark-mode .card-animated .card-header {
+  background: linear-gradient(135deg, #404040, #333);
+  border-bottom-color: #555;
+}
+
+.card-animated .card-title {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+html.dark-mode .card-animated .card-title {
+  color: #ecf0f1;
+}
+
+.card-animated .card-subtitle {
+  font-size: 0.95rem;
+  color: #7f8c8d;
+  margin: 0.5rem 0 0 0;
+  font-weight: 400;
+}
+
+html.dark-mode .card-animated .card-subtitle {
+  color: #95a5a6;
+}
+
+.card-animated .card-body {
+  padding: 2rem;
+}
+
+/* ===== Stat Card (Specialized animated card for statistics) ===== */
+.stat-card {
+  background: white;
+  border-radius: 16px;
+  padding: 1.75rem;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 2px solid transparent;
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  border-color: rgba(118, 161, 43, 0.2);
+}
+
+html.dark-mode .stat-card {
+  background: #2a2a2a;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+}
+
+html.dark-mode .stat-card:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  border-color: rgba(139, 195, 74, 0.3);
+}
+
+.stat-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.stat-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.stat-value {
+  font-size: 2.25rem;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 0.5rem;
+  color: #2c3e50;
+}
+
+html.dark-mode .stat-value {
+  color: #ecf0f1;
+}
+
+.stat-label {
+  font-size: 0.95rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+html.dark-mode .stat-label {
+  color: #94a3b8;
+}
+
+/* ===== Filters Card (Specialized card for filter sections) ===== */
+.filters-card {
+  background: white;
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  border: 2px solid rgba(118, 161, 43, 0.1);
+}
+
+html.dark-mode .filters-card {
+  background: #2a2a2a;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  border-color: rgba(139, 195, 74, 0.2);
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .card-body,
+  .card-animated .card-body {
+    padding: 1.25rem;
+  }
+
+  .card-header,
+  .card-animated .card-header {
+    padding: 1.25rem;
+  }
+
+  .card-title,
+  .card-animated .card-title {
+    font-size: 1.2rem;
+  }
+
+  .stat-card {
+    padding: 1.25rem;
+  }
+
+  .filters-card {
+    padding: 1.25rem;
+  }
+}
