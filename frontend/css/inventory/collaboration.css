@@ -1,0 +1,326 @@
+/**
+ * Collaboration Styles for Real-time Inventory Management
+ * Presence indicators, cursor highlights, and user avatars
+ */
+
+/* ============================================================================
+   Presence Container
+   ============================================================================ */
+
+.collab-presence-container {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 0.75rem 1rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+}
+
+/* Connection Status */
+.collab-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-right: 1rem;
+  border-right: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.collab-status-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #6c757d;
+  animation: pulse-offline 2s infinite;
+}
+
+.collab-status-indicator.connected {
+  background-color: #28a745;
+  animation: pulse-online 2s infinite;
+}
+
+.collab-status-indicator.disconnected {
+  background-color: #dc3545;
+  animation: pulse-offline 2s infinite;
+}
+
+@keyframes pulse-online {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7);
+  }
+  50% {
+    opacity: 0.8;
+    box-shadow: 0 0 0 4px rgba(40, 167, 69, 0);
+  }
+}
+
+@keyframes pulse-offline {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.collab-status-text {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #ffffff;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ============================================================================
+   Users List
+   ============================================================================ */
+
+.collab-users-list {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.collab-no-users {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-style: italic;
+}
+
+.collab-user {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.75rem 0.25rem 0.25rem;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  transition: all 0.2s ease;
+  cursor: default;
+}
+
+.collab-user:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+.collab-user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #ffffff;
+  background-color: #667eea;
+  border: 2px solid #ffffff;
+  text-transform: uppercase;
+}
+
+.collab-user-name {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #ffffff;
+  white-space: nowrap;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ============================================================================
+   Row Editing Indicators
+   ============================================================================ */
+
+/* Cell being edited by another user */
+td.collab-cell-editing {
+  position: relative;
+  overflow: visible;
+  background-color: rgba(102, 126, 234, 0.1) !important;
+  box-shadow: inset 0 0 0 2px var(--collab-user-color, #667eea);
+  transition: background-color 0.2s ease;
+}
+
+td.collab-cell-editing:focus-visible {
+  outline: none;
+}
+
+/* User indicator badge on field */
+.collab-user-indicator {
+  position: absolute;
+  top: 50%;
+  left: -12px;
+  transform: translate(-50%, -50%);
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #ffffff;
+  background-color: #667eea;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  z-index: 15;
+  animation: fadeInScale 0.3s ease;
+  pointer-events: none;
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ============================================================================
+   Flash Update Animation
+   ============================================================================ */
+
+/* Flash animation when row is updated by another user */
+tr.collab-flash-update {
+  animation: flashUpdate 2s ease;
+}
+
+@keyframes flashUpdate {
+  0%, 100% {
+    background-color: transparent;
+  }
+  10%, 30% {
+    background-color: rgba(40, 167, 69, 0.15);
+  }
+  20% {
+    background-color: rgba(40, 167, 69, 0.25);
+  }
+}
+
+/* ============================================================================
+   Cursor Position Indicators (Optional Enhancement)
+   ============================================================================ */
+
+.collab-cursor {
+  position: absolute;
+  width: 2px;
+  height: 20px;
+  background-color: var(--collab-user-color, #667eea);
+  pointer-events: none;
+  z-index: 1000;
+  animation: blink 1s infinite;
+}
+
+.collab-cursor::before {
+  content: attr(data-username);
+  position: absolute;
+  top: -20px;
+  left: 4px;
+  background-color: var(--collab-user-color, #667eea);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 0.7rem;
+  white-space: nowrap;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+@keyframes blink {
+  0%, 49% {
+    opacity: 1;
+  }
+  50%, 100% {
+    opacity: 0;
+  }
+}
+
+/* ============================================================================
+   Responsive Adjustments
+   ============================================================================ */
+
+@media (max-width: 768px) {
+  .collab-presence-container {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .collab-status {
+    padding-right: 0;
+    padding-bottom: 0.75rem;
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    width: 100%;
+  }
+
+  .collab-users-list {
+    width: 100%;
+  }
+
+  .collab-user-name {
+    max-width: 100px;
+  }
+}
+
+@media (max-width: 480px) {
+  .collab-user-name {
+    display: none;
+  }
+
+  .collab-user {
+    padding: 0.25rem;
+    background: transparent;
+  }
+
+  .collab-user-avatar {
+    width: 28px;
+    height: 28px;
+    font-size: 0.7rem;
+  }
+}
+
+/* ============================================================================
+   Dark Mode Support (if applicable)
+   ============================================================================ */
+
+@media (prefers-color-scheme: dark) {
+  .collab-presence-container {
+    background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+  }
+
+}
+
+/* ============================================================================
+   Accessibility
+   ============================================================================ */
+
+.collab-user:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+
+.collab-user-indicator:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .collab-status-indicator,
+  .collab-user-indicator,
+  tr.collab-flash-update,
+  .collab-cursor {
+    animation: none !important;
+  }
+
+  .collab-user:hover {
+    transform: none;
+  }
+}

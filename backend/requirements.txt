@@ -16,3 +16,5 @@ python-multipart
 requests
 certifi
 httpx==0.27.*
+python-socketio
+aioredis

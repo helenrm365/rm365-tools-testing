@@ -1,6 +1,7 @@
 import { get, post, patch, http } from '../../services/api/http.js';
 import { config } from '../../config.js';
 import { showToast } from '../../ui/toast.js';
+import { collaborationManager } from './collaboration.js';
 
 const API = config.API;
 
@@ -75,6 +76,58 @@ let totalItemsFromAPI = 0; // Total items from Zoho (not filtered)
 // Fast search helpers
 const rowEntryByEl = new WeakMap();
 
+const FIELD_CELL_MAP = {
+  location: { index: 0, type: 'rich' },
+  date: { index: 1, type: 'rich' },
+  qty_ordered_jason: { index: 2, type: 'number' },
+  shelf_lt1: { index: 6, type: 'rich' },
+  shelf_lt1_qty: { index: 7, type: 'number' },
+  shelf_gt1: { index: 8, type: 'rich' },
+  shelf_gt1_qty: { index: 9, type: 'number' },
+  top_floor_expiry: { index: 11, type: 'rich' },
+  top_floor_total: { index: 12, type: 'number' },
+  status: { index: 14, type: 'rich' },
+  uk_fr_preorder: { index: 15, type: 'rich' },
+};
+
+const METADATA_FIELD_TYPES = Object.keys(FIELD_CELL_MAP).reduce((acc, field) => {
+  acc[field] = FIELD_CELL_MAP[field].type;
+  return acc;
+}, {});
+
+function normalizeFieldValue(field, value) {
+  const type = METADATA_FIELD_TYPES[field];
+  if (type === 'number') {
+    const num = Number(value);
+    return Number.isFinite(num) ? num : 0;
+  }
+  if (value === null || value === undefined) {
+    return '';
+  }
+  return String(value).replace(/\r/g, '').trim();
+}
+
+function normalizeMetadataRecord(record = {}) {
+  const normalized = { ...record };
+  Object.keys(METADATA_FIELD_TYPES).forEach((field) => {
+    normalized[field] = normalizeFieldValue(field, record[field]);
+  });
+  if (record.sku && !normalized.sku) {
+    normalized.sku = String(record.sku);
+  }
+  return normalized;
+}
+
+function diffMetadataFields(previous = {}, next = {}) {
+  const changed = [];
+  Object.keys(METADATA_FIELD_TYPES).forEach((field) => {
+    if (previous[field] !== next[field]) {
+      changed.push(field);
+    }
+  });
+  return changed;
+}
+
 function tokenize(str) {
   return String(str).toLowerCase().split(/[^a-z0-9]+/i).filter(Boolean);
 }
@@ -122,6 +175,13 @@ function makeSearchFnFromTokens(tokens) {
   };
 }
 
+function formatMultilineText(text) {
+  if (!text) {
+    return '';
+  }
+  return String(text).replace(/\n/g, '<br>');
+}
+
 export async function init() {
   console.log('[Inventory Management] Initializing management module');
   
@@ -149,7 +209,10 @@ async function setupInventoryManagement() {
   bindGlobalHandlers();
 
   // Auto sync
-    await initAutoSync();
+  await initAutoSync();
+  
+  // Initialize collaboration features
+  await initCollaboration();
 }
 
 async function loadInventoryData() {
@@ -244,7 +307,7 @@ async function loadInventoryData() {
       metadata.forEach(meta => {
         const sku = meta.sku;
         if (sku) {
-          metadataIndex.set(sku, meta);
+          metadataIndex.set(sku, normalizeMetadataRecord(meta));
         }
       });
     }
@@ -276,7 +339,7 @@ async function loadInventoryData() {
     totalItemsFromAPI = inventoryData.length;
     
     metadataIndex.clear();
-    metadataIndex.set("sample_001", {
+    metadataIndex.set("sample_001", normalizeMetadataRecord({
       item_id: "sample_001",
       location: "London",
       date: "2025-09-05",
@@ -291,7 +354,7 @@ async function loadInventoryData() {
       status: "",
       uk_fr_preorder: "",
       fr_6m_data: ""
-    });
+    }));
   }
 }
 
@@ -639,10 +702,6 @@ function updatePaginationControls() {
 }
 
 function createTableRow(item, metadata) {
-  function formatTextForDisplay(text) {
-    return text ? String(text).replace(/\n/g, '<br>') : '';
-  }
-
   const row = document.createElement('tr');
   row.dataset.itemId = item.item_id;
   row.dataset.product = item.product_name || '';
@@ -665,22 +724,22 @@ function createTableRow(item, metadata) {
   const stockStatusClass = stockStatus ? `stock-status-${stockStatus}` : '';
 
   row.innerHTML = `
-    <td contenteditable="true">${formatTextForDisplay(metadata.location)}</td>
-    <td contenteditable="true">${formatTextForDisplay(metadata.date)}</td>
-    <td contenteditable="true">${metadata.qty_ordered_jason || 0}</td>
+    <td contenteditable="true" data-field="location">${formatMultilineText(metadata.location)}</td>
+    <td contenteditable="true" data-field="date">${formatMultilineText(metadata.date)}</td>
+    <td contenteditable="true" data-field="qty_ordered_jason">${metadata.qty_ordered_jason || 0}</td>
     <td class="wrap">${item.product_name || ''}</td>
     <td class="wrap">${item.sku || ''}</td>
     <td class="readonly-field" title="Populated from table">${metadata.uk_6m_data || ''}</td>
-    <td contenteditable="true">${formatTextForDisplay(metadata.shelf_lt1)}</td>
-    <td contenteditable="true">${metadata.shelf_lt1_qty || 0}</td>
-    <td contenteditable="true">${formatTextForDisplay(metadata.shelf_gt1)}</td>
-    <td contenteditable="true">${metadata.shelf_gt1_qty || 0}</td>
+    <td contenteditable="true" data-field="shelf_lt1">${formatMultilineText(metadata.shelf_lt1)}</td>
+    <td contenteditable="true" data-field="shelf_lt1_qty">${metadata.shelf_lt1_qty || 0}</td>
+    <td contenteditable="true" data-field="shelf_gt1">${formatMultilineText(metadata.shelf_gt1)}</td>
+    <td contenteditable="true" data-field="shelf_gt1_qty">${metadata.shelf_gt1_qty || 0}</td>
     <td>${shelfTotal}</td>
-    <td contenteditable="true">${formatTextForDisplay(metadata.top_floor_expiry)}</td>
-    <td contenteditable="true">${metadata.top_floor_total || 0}</td>
+    <td contenteditable="true" data-field="top_floor_expiry">${formatMultilineText(metadata.top_floor_expiry)}</td>
+    <td contenteditable="true" data-field="top_floor_total">${metadata.top_floor_total || 0}</td>
     <td>${totalStock}</td>
     <td contenteditable="false" class="readonly-field ${stockStatusClass}" title="Calculated: Demand (UK+FR 6M) vs Total Stock">${stockStatusDisplay}</td>
-    <td contenteditable="true">${formatTextForDisplay(metadata.uk_fr_preorder)}</td>
+    <td contenteditable="true" data-field="uk_fr_preorder">${formatMultilineText(metadata.uk_fr_preorder)}</td>
     <td class="readonly-field" title="Populated from table (FR + NL merged)">${metadata.fr_6m_data || ''}</td>
     <td class="readonly-field">${discontinuedStatus}</td>
   `;
@@ -769,6 +828,8 @@ async function saveRowData(row) {
   function getTextWithLineBreaks(cell) {
     // Convert <br> tags to \n and get text content
     const clone = cell.cloneNode(true);
+    const indicators = clone.querySelectorAll('.collab-user-indicator');
+    indicators.forEach(indicator => indicator.remove());
     const brTags = clone.querySelectorAll('br');
     brTags.forEach(br => {
       br.replaceWith('\n');
@@ -794,18 +855,37 @@ async function saveRowData(row) {
   };
 
   try {
-    // Use PATCH for updating existing metadata (now using SKU)
+    const previousMetadata = metadataIndex.get(sku) || {};
+    const previousSnapshot = normalizeMetadataRecord(previousMetadata);
+    const nextSnapshot = normalizeMetadataRecord({
+      ...previousSnapshot,
+      ...updated,
+    });
+    const changedFields = diffMetadataFields(previousSnapshot, nextSnapshot);
+
+    if (changedFields.length === 0) {
+      console.log('[Inventory Management] No changes detected for', sku);
+      return;
+    }
+
     const patchPath = `/api/v1/inventory/management/metadata/${encodeURIComponent(sku)}`;
-    
     console.log(`[Inventory Management] Updating SKU ${sku} with:`, updated);
-    
-    // Use PATCH for updating existing metadata
     await patch(patchPath, updated);
-    
     console.log(`[Inventory Management] Successfully updated via PATCH: ${patchPath}`);
-    
-    metadataIndex.set(sku, updated);
-    
+
+    metadataIndex.set(sku, nextSnapshot);
+
+    if (collaborationManager && collaborationManager.isInitialized) {
+      changedFields.forEach(field => {
+        collaborationManager.broadcastUpdate(
+          sku,
+          field,
+          previousSnapshot[field],
+          nextSnapshot[field]
+        );
+      });
+    }
+
     console.log('[Inventory Management] Successfully updated:', sku);
     
   } catch (err) {
@@ -1310,8 +1390,198 @@ async function initAutoSync() {
 // Attach to button
 document.getElementById('syncSalesBtn')?.addEventListener('click', () => syncSalesData(true));
 
+/**
+ * Initialize real-time collaboration features
+ */
+async function initCollaboration() {
+  try {
+    // Get current user from localStorage or session
+    const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
+    if (!userStr) {
+      console.warn('[Collaboration] No user found, skipping collaboration init');
+      return;
+    }
+
+    const user = JSON.parse(userStr);
+    console.log('[Collaboration] Initializing with user:', user);
+
+    // Initialize collaboration manager
+    await collaborationManager.init(user);
+
+    // Listen for inventory changes from other users
+    window.addEventListener('inventory-data-changed', async (event) => {
+      const change = event.detail || {};
+      const { sku } = change;
+      console.log('[Collaboration] Refreshing data for SKU:', sku, change);
+
+      try {
+        const patched = applyRemoteInventoryPatch(change);
+        if (patched) {
+          return;
+        }
+
+        await loadInventoryData();
+        setupTable();
+        highlightUpdatedRowAfterRefresh(sku);
+      } catch (error) {
+        console.error('[Collaboration] Failed to refresh inventory data:', error);
+      }
+    });
+
+    // Add row focus/blur listeners for cursor tracking
+    setupCollaborationRowListeners();
+
+  } catch (error) {
+    console.error('[Collaboration] Failed to initialize:', error);
+    // Don't block the app if collaboration fails
+  }
+}
+
+/**
+ * Setup row listeners for collaboration cursor tracking
+ */
+function setupCollaborationRowListeners() {
+  const table = document.getElementById('inventoryManagementTable');
+  if (!table) return;
+
+  // Delegate event listeners to the table
+  table.addEventListener('focusin', (e) => {
+    const cell = e.target.closest('td[data-field]');
+    if (!cell) return;
+    const row = cell.closest('tr[data-sku]');
+    if (!row) return;
+    const sku = row.dataset.sku;
+    const field = cell.dataset.field;
+    collaborationManager.notifyRowFocus(sku, field);
+  });
+
+  table.addEventListener('focusout', () => {
+    setTimeout(() => {
+      const activeCell = document.activeElement?.closest('td[data-field]');
+      if (!activeCell) {
+        collaborationManager.notifyRowBlur();
+      }
+    }, 50);
+  });
+}
+
+/**
+ * Highlight and scroll to a row after collaboration refresh
+ */
+function highlightUpdatedRowAfterRefresh(sku) {
+  if (!sku) {
+    return;
+  }
+
+  const flashRow = () => {
+    const row = document.querySelector(`tr[data-sku="${CSS.escape(sku)}"]`);
+    if (!row) {
+      return;
+    }
+
+    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    row.classList.add('collab-flash-update');
+    setTimeout(() => {
+      row.classList.remove('collab-flash-update');
+    }, 2000);
+  };
+
+  if (typeof requestAnimationFrame === 'function') {
+    requestAnimationFrame(flashRow);
+  } else {
+    setTimeout(flashRow, 0);
+  }
+}
+
+function applyRemoteInventoryPatch(change) {
+  if (!change || !change.sku) {
+    return false;
+  }
+
+  const sku = change.sku;
+  const mergedMetadata = mergeMetadataChange(sku, change);
+  const row = document.querySelector(`tr[data-sku="${escapeSkuForSelector(sku)}"]`);
+
+  if (!row) {
+    return false;
+  }
+
+  let mutated = false;
+
+  if (change.field === 'all' && typeof change.new_value === 'object') {
+    Object.keys(FIELD_CELL_MAP).forEach(field => {
+      mutated = updateCellFromField(row, field, mergedMetadata[field]) || mutated;
+    });
+  } else if (FIELD_CELL_MAP[change.field]) {
+    mutated = updateCellFromField(row, change.field, mergedMetadata[change.field]);
+  }
+
+  if (!mutated) {
+    return false;
+  }
+
+  updateRowCalculations(row);
+  refreshRowSearchTokens(row);
+  highlightUpdatedRowAfterRefresh(sku);
+  return true;
+}
+
+function mergeMetadataChange(sku, change) {
+  const current = metadataIndex.get(sku) || {};
+  let merged = current;
+
+  if (change.field === 'all' && typeof change.new_value === 'object') {
+    merged = { ...current, ...change.new_value };
+  } else if (change.field && change.field !== 'all') {
+    merged = { ...current, [change.field]: change.new_value };
+  }
+
+  const normalized = normalizeMetadataRecord(merged);
+  metadataIndex.set(sku, normalized);
+  return normalized;
+}
+
+function updateCellFromField(row, field, value) {
+  const mapping = FIELD_CELL_MAP[field];
+  if (!mapping) {
+    return false;
+  }
+
+  const cell = row.children[mapping.index];
+  if (!cell) {
+    return false;
+  }
+
+  if (mapping.type === 'number') {
+    const numeric = value === '' || value === null || value === undefined ? 0 : Number(value);
+    cell.textContent = Number.isFinite(numeric) ? numeric : (value ?? '');
+  } else {
+    cell.innerHTML = formatMultilineText(value);
+  }
+
+  return true;
+}
+
+function refreshRowSearchTokens(row) {
+  const tokens = buildTokens(row);
+  const search = makeSearchFnFromTokens(tokens);
+  rowEntryByEl.set(row, { search, status: row.dataset.status });
+}
+
+function escapeSkuForSelector(sku) {
+  if (window.CSS && typeof window.CSS.escape === 'function') {
+    return window.CSS.escape(sku);
+  }
+  return sku.replace(/([ !"#$%&'()*+,./:;<=>?@[\\\]^`{|}~])/g, '\\$1');
+}
+
 export function cleanup() {
   console.log('[Inventory Management] Cleaning up');
+  
+  // Cleanup collaboration
+  if (collaborationManager) {
+    collaborationManager.destroy();
+  }
   
   // Clear data
   inventoryData = [];

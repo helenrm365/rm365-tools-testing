@@ -3,6 +3,7 @@ import time
 import base64
 import json
 from pathlib import Path
+from typing import Optional
 
 # Load environment variables from .env file for local development
 try:
@@ -23,7 +24,7 @@ from core.errors import install_handlers
 
 NULL_SENTINELS = {"null", "none", "undefined", "false", "0"}
 
-def _normalize_origin(origin: str) -> str | None:
+def _normalize_origin(origin: str) -> Optional[str]:
     sanitized = origin.strip().rstrip('/')
     if not sanitized:
         return None
@@ -38,6 +39,11 @@ app = FastAPI(
     docs_url='/api/docs',
     openapi_url='/api/openapi.json',
 )
+
+# --- WebSocket Integration - Deferred until after middleware ----------------
+# We need to add Socket.IO AFTER all middleware is configured
+# This is done at the bottom of this file
+
 
 # --- Database Initialization -------------------------------------------------
 try:
@@ -305,6 +311,7 @@ working_modules = [
     ('modules.salesdata.api', 'router', f'{API}/salesdata', ['salesdata']),
     ('modules.inventory.adjustments.api', 'router', f'{API}/inventory/adjustments', ['inventory-adjustments']),
     ('modules.inventory.management.api', 'router', f'{API}/inventory/management', ['inventory-management']),
+    ('modules.inventory.collaboration', 'router', f'{API}/inventory/collaboration', ['inventory-collaboration']),
 ]
 
 for mod, attr, prefix, tags in working_modules:
@@ -343,6 +350,34 @@ if FRONTEND_DIR.is_dir():
     print(f'[boot] mounted / -> {FRONTEND_DIR}')
 else:
     print('[boot] frontend dir not found:', FRONTEND_DIR)
+
+fastapi_app = app  # Keep reference for wrapping/testing
+
+# --- WebSocket Integration (After All Middleware) ---------------------------
+# Wrap the FastAPI app with Socket.IO so /ws/socket.io works on Railway
+try:
+    from core.websocket import sio
+    import socketio
+
+    socket_app = socketio.ASGIApp(
+        socketio_server=sio,
+        other_asgi_app=fastapi_app,
+        socketio_path='ws/socket.io'
+    )
+
+    app = socket_app
+
+    print("✅ WebSocket support enabled at /ws/socket.io")
+    print("   Railway WebSocket connections supported!")
+except ImportError as e:
+    app = fastapi_app
+    print(f"⚠️  WebSocket dependencies not installed: {e}")
+    print("   Run: pip install python-socketio aioredis")
+except Exception as e:
+    app = fastapi_app
+    print(f"⚠️  WebSocket initialization failed: {e}")
+    import traceback
+    traceback.print_exc()
 
 if __name__ == "__main__":
     import uvicorn

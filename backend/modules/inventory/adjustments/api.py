@@ -163,9 +163,9 @@ def get_adjustments_status(user=Depends(get_current_user)):
         pending = service.get_pending_adjustments()
         
         return {
-            \"pending_count\": len(pending),
-            \"message\": f\"{len(pending)} adjustments logged\",
-            \"recent_items\": pending[:10] if pending else []
+            "pending_count": len(pending),
+            "message": f"{len(pending)} adjustments logged",
+            "recent_items": pending[:10] if pending else []
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
