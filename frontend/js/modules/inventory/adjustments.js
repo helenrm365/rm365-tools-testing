@@ -89,8 +89,8 @@ function updateFieldDisplay() {
   const fieldToggle = document.getElementById('fieldToggle');
   if (fieldToggle) {
     const fieldMap = {
-      'shelf_lt1_qty': 'Shelf &lt; 1 Year',
-      'shelf_gt1_qty': 'Shelf &gt; 1 Year',
+      'shelf_lt1_qty': 'Shelf < 1 Year',
+      'shelf_gt1_qty': 'Shelf > 1 Year',
       'top_floor_total': 'Top Floor'
     };
     
@@ -430,7 +430,35 @@ async function loadRecentAdjustments() {
       return;
     }
 
-    const data = await get(`/api/v1/inventory/adjustments/pending`);
+    // Try the pending endpoint, with multiple fallbacks
+    let data;
+    try {
+      data = await get(`/api/v1/inventory/adjustments/pending`);
+    } catch (err) {
+      if (err.message.includes('404') || err.message.includes('Not Found')) {
+        console.warn('[Inventory Adjustments] /pending endpoint returned 404, trying fallbacks...');
+        
+        // Try the status endpoint as fallback
+        try {
+          const statusData = await get(`/api/v1/inventory/adjustments/status`);
+          data = { adjustments: statusData.recent_items || [], count: statusData.pending_count || 0 };
+        } catch (statusErr) {
+          console.warn('[Inventory Adjustments] /status endpoint also failed:', statusErr);
+          
+          // Last resort: try public test endpoint to verify routing
+          try {
+            const publicData = await get(`/api/v1/inventory/adjustments/pending-public`);
+            console.log('[Inventory Adjustments] Public test endpoint works:', publicData);
+            throw new Error('Routing works but authenticated endpoints are not accessible. Check backend logs.');
+          } catch (publicErr) {
+            console.error('[Inventory Adjustments] All endpoints failed, including public test');
+            throw new Error('Inventory adjustments API is not responding. Check backend deployment.');
+          }
+        }
+      } else {
+        throw err;
+      }
+    }
     displayRecentAdjustments(data.adjustments || []);
   } catch (err) {
     console.error('[Inventory Adjustments] Error loading recent adjustments:', err);
@@ -438,10 +466,12 @@ async function loadRecentAdjustments() {
     // Handle specific error types
     if (err.message.includes('401') || err.message.includes('Unauthorized')) {
       container.innerHTML = '<p class="muted" style="text-align: center; padding: 1rem; color: #dc3545;">🔐 Please log in to view adjustments</p>';
+    } else if (err.message.includes('404') || err.message.includes('Not Found')) {
+      container.innerHTML = '<p class="muted" style="text-align: center; padding: 1rem; color: #ff9800;">⚠️ Adjustments endpoint not available. Please contact support.</p>';
     } else if (err.message.includes('Failed to fetch')) {
       container.innerHTML = '<p class="muted" style="text-align: center; padding: 1rem; color: #dc3545;">🌐 Network error - check connection</p>';
     } else {
-      container.innerHTML = '<p class="muted" style="text-align: center; padding: 1rem; color: #999;">Failed to load adjustments</p>';
+      container.innerHTML = `<p class="muted" style="text-align: center; padding: 1rem; color: #999;">Failed to load adjustments: ${err.message}</p>`;
     }
   }
 }

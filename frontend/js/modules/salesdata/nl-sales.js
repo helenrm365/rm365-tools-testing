@@ -241,7 +241,15 @@ async function loadSalesData() {
   
   // Show loading state
   const colSpan = viewMode === 'condensed' ? '4' : '14';
-  tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem;">Loading...</td></tr>`;
+  tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem;">
+    <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
+      <div class="loader" style="margin: 0;">
+        <div class="dot" style="background: var(--accent-color, #0078d4);"></div>
+        <div class="dot" style="background: var(--accent-color, #0078d4);"></div>
+        <div class="dot" style="background: var(--accent-color, #0078d4);"></div>
+      </div>
+    </div>
+  </td></tr>`;
   
   try {
     console.log(`[NL Sales] Loading data - Mode: ${viewMode}, Page: ${currentPage + 1}`);
@@ -332,7 +340,16 @@ async function loadAllDataForCondensed() {
   
   if (!tbody) return;
   
-  tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem;">Loading condensed data...</td></tr>`;
+  tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem;">
+    <div style="display: flex; justify-content: center; align-items: center; gap: 10px; flex-direction: column;">
+      <div style="margin-bottom: 1rem; color: var(--text-secondary);">Loading condensed data...</div>
+      <div class="loader" style="margin: 0;">
+        <div class="dot" style="background: var(--accent-color, #0078d4);"></div>
+        <div class="dot" style="background: var(--accent-color, #0078d4);"></div>
+        <div class="dot" style="background: var(--accent-color, #0078d4);"></div>
+      </div>
+    </div>
+  </td></tr>`;
   
   try {
     allData = [];
@@ -348,7 +365,16 @@ async function loadAllDataForCondensed() {
         offset += batchSize;
         
         // Update loading message
-        tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem;">Loading condensed data... (${allData.length} SKUs loaded)</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem;">
+          <div style="display: flex; justify-content: center; align-items: center; gap: 10px; flex-direction: column;">
+            <div style="margin-bottom: 1rem; color: var(--text-secondary);">Loading condensed data... (${allData.length} SKUs loaded)</div>
+            <div class="loader" style="margin: 0;">
+              <div class="dot" style="background: var(--accent-color, #0078d4);"></div>
+              <div class="dot" style="background: var(--accent-color, #0078d4);"></div>
+              <div class="dot" style="background: var(--accent-color, #0078d4);"></div>
+            </div>
+          </div>
+        </td></tr>`;
         
         if (result.data.length < batchSize) {
           hasMore = false;

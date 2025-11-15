@@ -144,7 +144,7 @@ html.dark-mode .adjustments-section {
 
 /* Scanner Section */
 .scanner-section {
-  margin-bottom: 2rem;
+  /* Section styling */
 }
 
 .section-header {
@@ -197,18 +197,20 @@ html.dark-mode .section-subtitle {
   color: #95a5a6;
 }
 
-/* Scanner Interface */
-.scanner-interface {
-  background: linear-gradient(135deg, #f8fbf3, #f1f7eb);
-  border: 2px solid rgba(118, 161, 43, 0.2);
+/* Scanner Interface Card */
+.scanner-interface-card {
+  background: #f8f9fa;
+  border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 12px;
   padding: 1.5rem;
-  margin-bottom: 1.5rem;
+  margin-top: 1rem;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
 }
 
-html.dark-mode .scanner-interface {
-  background: linear-gradient(135deg, #1e2d1a, #1a2417);
-  border-color: rgba(118, 161, 43, 0.3);
+html.dark-mode .scanner-interface-card {
+  background: #1e1e1e;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
 }
 
 .scanner-status-badge {

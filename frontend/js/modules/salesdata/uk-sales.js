@@ -293,7 +293,15 @@ async function loadSalesData() {
   
   // Show loading state
   const colSpan = viewMode === 'condensed' ? '4' : '14';
-  tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem;">Loading...</td></tr>`;
+  tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem;">
+    <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
+      <div class="loader" style="margin: 0;">
+        <div class="dot" style="background: var(--accent-color, #0078d4);"></div>
+        <div class="dot" style="background: var(--accent-color, #0078d4);"></div>
+        <div class="dot" style="background: var(--accent-color, #0078d4);"></div>
+      </div>
+    </div>
+  </td></tr>`;
   
   try {
     console.log(`[UK Sales] Loading data - Mode: ${viewMode}, Page: ${currentPage + 1}`);

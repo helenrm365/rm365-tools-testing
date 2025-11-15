@@ -87,6 +87,7 @@ def get_public_status():
             "message": "Inventory adjustments API is running",
             "endpoints": {
                 "health": "GET /health (public)",
+                "pending-public": "GET /pending-public (public test)",
                 "connection": "GET /connection-status (auth required)",
                 "log": "POST /log (auth required)", 
                 "sync": "POST /sync (auth required)",
@@ -100,6 +101,20 @@ def get_public_status():
             "message": str(e),
             "timestamp": datetime.now().isoformat()
         }
+
+@router.get("/pending-public")
+def get_pending_adjustments_public():
+    """
+    Public test endpoint - returns mock data to verify routing works.
+    REMOVE THIS AFTER DEBUGGING.
+    """
+    return {
+        "adjustments": [],
+        "count": 0,
+        "message": "Test endpoint - routing is working! The /pending endpoint requires authentication.",
+        "status": "success",
+        "timestamp": datetime.now().isoformat()
+    }
 
 @router.post("/log", response_model=AdjustmentOut)
 def log_inventory_adjustment(body: AdjustmentLogIn, user=Depends(get_current_user)):
