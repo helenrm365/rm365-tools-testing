@@ -241,6 +241,29 @@ html.dark-mode .expand-icon {
   box-shadow: 0 1px 4px rgba(118, 161, 43, 0.15);
 }
 
+/* Main tabs container - collapsible wrapper for all tabs */
+.main-tabs-container {
+  margin-top: 0;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.4s ease, opacity 0.4s ease, margin-top 0.4s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.main-tabs-container.expanded {
+  max-height: 2000px;
+  opacity: 1;
+  margin-top: 8px;
+}
+
+.main-tabs-container.collapsed {
+  max-height: 0;
+  opacity: 0;
+  margin-top: 0;
+}
+
 .tab-header {
   display: flex;
   align-items: center;
@@ -489,6 +512,16 @@ html.dark-mode .modern-button.primary:hover:not(:disabled) {
   background: linear-gradient(135deg, #8bc34a, #76a12b);
 }
 
+html.dark-mode .modern-button.danger {
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+}
+
+html.dark-mode .modern-button.danger:hover:not(:disabled) {
+  background: linear-gradient(135deg, #ff6b6b, #e74c3c);
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
+}
+
 /* ===== Modern Inputs (from modern-ui.css) ===== */
 .modern-input {
     padding: var(--input-padding-y, 0.75rem) var(--input-padding-x, 1rem);
@@ -529,6 +562,16 @@ html.dark-mode .modern-input:focus {
   margin: 16px 0;
   box-sizing: border-box;
   overflow: visible;
+}
+
+/* Override modern-box when used as table wrapper inside card */
+.card-body .table-wrap.modern-box {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+  margin: 0;
 }
 
 /* ===== Modal Title (from modern-ui.css) ===== */

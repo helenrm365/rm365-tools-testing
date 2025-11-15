@@ -477,12 +477,19 @@ function populateCreateTabsCheckboxes() {
   if (!container) return;
 
   let html = `
-    <div class="tabs-master-control" style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
-      <button type="button" class="expand-all-tabs-btn" style="padding: 6px 12px; background: linear-gradient(135deg, #76a12b, #5e8122); color: white; border: none; border-radius: 6px; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; font-weight: 500;">
-        ▼ Expand All
-      </button>
-      <span style="font-size: 0.85rem; color: var(--text-secondary, #666);">Click to expand/collapse all sections</span>
+    <div class="tabs-master-control" style="margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <button type="button" class="expand-main-tabs-btn" style="padding: 6px 12px; background: linear-gradient(135deg, #76a12b, #5e8122); color: white; border: none; border-radius: 6px; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; font-weight: 500;">
+          ▼ Expand Main Tabs
+        </button>
+        <button type="button" class="expand-all-subtabs-btn" style="padding: 6px 12px; background: linear-gradient(135deg, #6b7280, #4b5563); color: white; border: none; border-radius: 6px; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; font-weight: 500; opacity: 0.5;" disabled>
+          ▼ Expand All Sub-tabs
+        </button>
+      </div>
+      <span style="font-size: 0.85rem; color: var(--text-secondary, #666);">Click dropdown arrows to expand/collapse sections</span>
     </div>
+    
+    <div class="main-tabs-container collapsed">
   `;
   
   for (const [tabKey, tabInfo] of Object.entries(TAB_STRUCTURE)) {
@@ -498,7 +505,7 @@ function populateCreateTabsCheckboxes() {
           ${hasSubtabs ? `<span class="expand-icon">▼</span>` : ''}
         </div>
         ${hasSubtabs ? `
-          <div class="subtabs-container">
+          <div class="subtabs-container collapsed">
             ${tabInfo.subtabs.map(sub => {
               const subtabValue = `${tabKey}.${sub.key}`;
               return `
@@ -513,6 +520,9 @@ function populateCreateTabsCheckboxes() {
       </div>
     `;
   }
+  
+  html += `</div>`; // Close main-tabs-container
+  
   container.innerHTML = html;
 
   // Wire up the "Select All" checkbox for the modal
@@ -572,36 +582,35 @@ function populateCreateTabsCheckboxes() {
 }
 
 function wireTabCollapsibles(container) {
-  // Add click handlers for collapsible tab groups
+  const mainTabsContainer = container.querySelector('.main-tabs-container');
+  const expandMainBtn = container.querySelector('.expand-main-tabs-btn');
+  const expandAllSubtabsBtn = container.querySelector('.expand-all-subtabs-btn');
   const tabGroups = container.querySelectorAll('.tab-group.collapsible');
+  
+  // Add click handlers for individual collapsible tab groups (sub-tabs)
   tabGroups.forEach(group => {
-    const header = group.querySelector('.tab-header');
     const subtabsContainer = group.querySelector('.subtabs-container');
     const expandIcon = group.querySelector('.expand-icon');
     
     if (expandIcon && subtabsContainer) {
-      // Toggle function
+      // Toggle function for individual sub-tabs
       const toggleExpand = (e) => {
         e.stopPropagation();
         e.preventDefault();
         
-        // Toggle visibility with animation
         const isExpanded = subtabsContainer.classList.contains('expanded');
         
         if (isExpanded) {
           subtabsContainer.classList.remove('expanded');
           subtabsContainer.classList.add('collapsed');
           expandIcon.style.transform = 'rotate(0deg)';
-          expandIcon.setAttribute('aria-label', expandIcon.getAttribute('aria-label').replace('Collapse', 'Expand'));
         } else {
           subtabsContainer.classList.remove('collapsed');
           subtabsContainer.classList.add('expanded');
           expandIcon.style.transform = 'rotate(180deg)';
-          expandIcon.setAttribute('aria-label', expandIcon.getAttribute('aria-label').replace('Expand', 'Collapse'));
         }
       };
       
-      // Only toggle on expand icon click
       expandIcon.addEventListener('click', toggleExpand);
       expandIcon.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -611,20 +620,54 @@ function wireTabCollapsibles(container) {
     }
   });
   
-  // Master expand/collapse button
-  const expandAllBtn = container.querySelector('.expand-all-tabs-btn');
-  if (expandAllBtn) {
-    let allExpanded = false;
-    expandAllBtn.addEventListener('click', (e) => {
+  // Main tabs expand/collapse button
+  if (expandMainBtn && mainTabsContainer) {
+    let mainExpanded = false;
+    expandMainBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      allExpanded = !allExpanded;
+      mainExpanded = !mainExpanded;
+      
+      if (mainExpanded) {
+        mainTabsContainer.classList.remove('collapsed');
+        mainTabsContainer.classList.add('expanded');
+        expandMainBtn.textContent = '▲ Collapse Main Tabs';
+        expandAllSubtabsBtn.disabled = false;
+        expandAllSubtabsBtn.style.opacity = '1';
+      } else {
+        mainTabsContainer.classList.remove('expanded');
+        mainTabsContainer.classList.add('collapsed');
+        expandMainBtn.textContent = '▼ Expand Main Tabs';
+        expandAllSubtabsBtn.disabled = true;
+        expandAllSubtabsBtn.style.opacity = '0.5';
+        
+        // Also collapse all subtabs when main tabs are collapsed
+        tabGroups.forEach(group => {
+          const subtabsContainer = group.querySelector('.subtabs-container');
+          const expandIcon = group.querySelector('.expand-icon');
+          if (subtabsContainer) {
+            subtabsContainer.classList.remove('expanded');
+            subtabsContainer.classList.add('collapsed');
+            if (expandIcon) expandIcon.style.transform = 'rotate(0deg)';
+          }
+        });
+        expandAllSubtabsBtn.textContent = '▼ Expand All Sub-tabs';
+      }
+    });
+  }
+  
+  // All subtabs expand/collapse button
+  if (expandAllSubtabsBtn) {
+    let allSubtabsExpanded = false;
+    expandAllSubtabsBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      allSubtabsExpanded = !allSubtabsExpanded;
       
       tabGroups.forEach(group => {
         const subtabsContainer = group.querySelector('.subtabs-container');
         const expandIcon = group.querySelector('.expand-icon');
         
         if (subtabsContainer) {
-          if (allExpanded) {
+          if (allSubtabsExpanded) {
             subtabsContainer.classList.remove('collapsed');
             subtabsContainer.classList.add('expanded');
             if (expandIcon) expandIcon.style.transform = 'rotate(180deg)';
@@ -636,7 +679,7 @@ function wireTabCollapsibles(container) {
         }
       });
       
-      expandAllBtn.textContent = allExpanded ? '▲ Collapse All' : '▼ Expand All';
+      expandAllSubtabsBtn.textContent = allSubtabsExpanded ? '▲ Collapse All Sub-tabs' : '▼ Expand All Sub-tabs';
     });
   }
 }

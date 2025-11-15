@@ -7,7 +7,7 @@
     opacity: 1;
     transition: opacity 0.3s ease-in-out;
     position: relative;
-    z-index: 4000;
+    z-index: 1;
     border-radius: 8px;
 }
 
@@ -18,7 +18,7 @@
 /* Chart container styling to match modern-ui theme */
 .chart-container {
     position: relative;
-    z-index: 4000;
+    z-index: 1;
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 16px;
@@ -27,7 +27,7 @@
 
 .chart-wrapper {
     position: relative;
-    z-index: 4001;
+    z-index: 1;
     background: rgba(255, 255, 255, 0.01);
     border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: 12px;
