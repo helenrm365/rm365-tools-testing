@@ -851,7 +851,8 @@ async function saveRowData(row) {
     shelf_gt1_qty: Number(cells[9].textContent.trim()) || 0,
     top_floor_expiry: getTextWithLineBreaks(cells[11]) || null,
     top_floor_total: Number(cells[12].textContent.trim()) || 0,
-    status: getTextWithLineBreaks(cells[14]),
+    // status: cell[14] is CALCULATED stock status (not editable), don't save it
+    // The actual status field comes from discontinued_status in magento_product_list
     uk_fr_preorder: getTextWithLineBreaks(cells[15]),
     // fr_6m_data: excluded - populated from table
   };

@@ -28,8 +28,8 @@ class CollaborationManager {
     }
 
     console.log('[Collaboration] Initializing for user:', currentUser);
-    this.currentUserId = currentUser?.user_id || currentUser?.id || 'unknown';
-    this.currentUsername = currentUser?.username || currentUser?.name || 'Guest';
+    this.currentUserId = currentUser?.username || 'unknown';
+    this.currentUsername = currentUser?.username || 'Guest';
 
     try {
       // Connect to WebSocket with timeout
@@ -493,7 +493,7 @@ class CollaborationManager {
   }
 
   _getCurrentUserId() {
-    return this.currentUserId || wsService.currentUser?.user_id || wsService.currentUser?.id || 'unknown';
+    return this.currentUserId || wsService.currentUser?.username || 'unknown';
   }
 
   /**

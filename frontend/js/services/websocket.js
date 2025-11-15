@@ -307,8 +307,8 @@ class WebSocketService {
     console.log('[WebSocket] Joining room:', roomToJoin);
 
     this.socket.emit('join_inventory_room', {
-      user_id: this.currentUser?.user_id || this.currentUser?.id || 'unknown',
-      username: this.currentUser?.username || this.currentUser?.name || 'Guest',
+      user_id: this.currentUser?.username || 'unknown',
+      username: this.currentUser?.username || 'Guest',
       room: roomToJoin,
     });
   }

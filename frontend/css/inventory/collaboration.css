@@ -139,26 +139,30 @@
 /* Container for multiple user indicators */
 td[data-field] {
   position: relative;
+  overflow: visible !important; /* Prevent avatar cutoff */
 }
 
-/* Local user's own selection (green highlight) */
+/* Local user's own selection (green highlight - sharp corners) */
 td[contenteditable="true"]:focus {
   outline: none;
   background-color: rgba(118, 161, 43, 0.15) !important;
-  box-shadow: inset 0 0 0 2px #76a12b;
+  box-shadow: inset 0 0 0 3px #76a12b !important;
+  border-radius: 0 !important; /* Sharp corners */
   transition: background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 /* Cell being edited by another remote user */
 td.collab-cell-editing {
   position: relative;
-  overflow: visible;
+  overflow: visible !important; /* Prevent avatar cutoff */
+  border-radius: 0 !important; /* Sharp corners */
 }
 
 /* Support for multiple simultaneous editors */
 td.collab-cell-editing[data-collab-count="1"] {
   background-color: rgba(102, 126, 234, 0.1) !important;
-  box-shadow: inset 0 0 0 2px var(--collab-user-color-1, #667eea);
+  box-shadow: inset 0 0 0 3px var(--collab-user-color-1, #667eea) !important;
+  border-radius: 0 !important; /* Sharp corners */
 }
 
 td.collab-cell-editing[data-collab-count="2"] {
@@ -167,7 +171,8 @@ td.collab-cell-editing[data-collab-count="2"] {
     rgba(102, 126, 234, 0.1) 50%,
     rgba(255, 107, 107, 0.1) 50%,
     rgba(255, 107, 107, 0.1) 100%) !important;
-  box-shadow: inset 0 0 0 2px var(--collab-user-color-1, #667eea);
+  box-shadow: inset 0 0 0 3px var(--collab-user-color-1, #667eea) !important;
+  border-radius: 0 !important; /* Sharp corners */
 }
 
 td.collab-cell-editing[data-collab-count="3"],
@@ -179,7 +184,8 @@ td.collab-cell-editing[data-collab-count="5"] {
     rgba(102, 126, 234, 0.15) calc(360deg / var(--collab-count, 3)),
     transparent calc(360deg / var(--collab-count, 3))
   ) !important;
-  box-shadow: inset 0 0 0 2px var(--collab-user-color-1, #667eea);
+  box-shadow: inset 0 0 0 3px var(--collab-user-color-1, #667eea) !important;
+  border-radius: 0 !important; /* Sharp corners */
 }
 
 td.collab-cell-editing:focus-visible {
@@ -190,20 +196,21 @@ td.collab-cell-editing:focus-visible {
 .collab-user-indicator {
   position: absolute;
   top: 50%;
+  left: -16px; /* Moved slightly further left to prevent cutoff */
   transform: translateY(-50%);
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.6rem;
+  font-size: 0.65rem;
   font-weight: 700;
   color: #ffffff;
   background-color: #667eea;
   border: 2px solid #ffffff;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  z-index: 15;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  z-index: 1000; /* Higher z-index to ensure visibility */
   animation: fadeInScale 0.3s ease;
   pointer-events: none;
   cursor: default;
@@ -211,22 +218,23 @@ td.collab-cell-editing:focus-visible {
 
 /* Stack indicators for multiple users */
 .collab-user-indicator:nth-of-type(1) {
-  left: -14px;
+  left: -16px;
+  top: 50%;
 }
 
 .collab-user-indicator:nth-of-type(2) {
-  left: -14px;
-  top: calc(50% + 20px);
+  left: -16px;
+  top: calc(50% + 24px);
 }
 
 .collab-user-indicator:nth-of-type(3) {
-  left: -14px;
-  top: calc(50% - 20px);
+  left: -16px;
+  top: calc(50% - 24px);
 }
 
 .collab-user-indicator:nth-of-type(4) {
-  left: -14px;
-  top: calc(50% + 40px);
+  left: -16px;
+  top: calc(50% + 48px);
 }
 
 @keyframes fadeInScale {
