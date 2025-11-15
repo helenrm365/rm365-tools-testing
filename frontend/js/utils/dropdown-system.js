@@ -147,10 +147,7 @@ class ModernDropdownSystem {
     container.classList.add('open');
     this.activeDropdown = container;
     
-    // Show backdrop
-    if (this.backdrop) {
-      this.backdrop.classList.add('show');
-    }
+    // No backdrop - dropdowns should not darken the background
     
     const toggle = container.querySelector('.dropdown-toggle');
     if (toggle) {
@@ -175,10 +172,7 @@ class ModernDropdownSystem {
       this.activeDropdown = null;
     }
     
-    // Hide backdrop if no active dropdowns
-    if (!document.querySelector('.dropdown-container.open') && this.backdrop) {
-      this.backdrop.classList.remove('show');
-    }
+    // No backdrop to hide - dropdowns don't darken background
 
     // Trigger custom event
     container.dispatchEvent(new CustomEvent('dropdown:closed', { bubbles: true }));
@@ -191,9 +185,7 @@ class ModernDropdownSystem {
     
     this.activeDropdown = null;
     
-    if (this.backdrop) {
-      this.backdrop.classList.remove('show');
-    }
+    // No backdrop to hide - dropdowns don't darken background
   }
 
   handleGlobalClick(e) {

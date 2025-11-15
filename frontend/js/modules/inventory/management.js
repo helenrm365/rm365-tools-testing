@@ -411,7 +411,7 @@ function bindDropdown(containerId, toggleId, options, isColumnDropdown = false) 
         container.classList.add('open');
         const list = container.querySelector('.c-select__list');
         if (list) list.setAttribute('aria-hidden', 'false');
-        getBackdrop().classList.add('show');
+        // No backdrop needed - dropdowns should not darken the background
       }
     });
   }
@@ -1237,7 +1237,7 @@ function closeAllDropdowns() {
     el.classList.remove('show');
   });
   
-  getBackdrop().classList.remove('show');
+  // No backdrop to remove - dropdowns don't use backdrop
 }
 
 // State management

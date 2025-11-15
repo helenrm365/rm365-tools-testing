@@ -205,8 +205,7 @@ window.initModernUI = initModernBoxes;
       if (toggle) toggle.classList.remove('active', 'open');
     });
     
-    const bd = getBackdrop();
-    if (bd) bd.classList.remove('show');
+    // No backdrop to remove - dropdowns don't darken background
   }
 
   function buildCSelect(native) {
@@ -312,15 +311,9 @@ window.initModernUI = initModernBoxes;
         }
       }
       
-      const bd = getBackdrop();
-      if (bd) {
-        bd.classList.add('show');
-        if (!bd.dataset.bound) {
-          bd.addEventListener('click', closeAll);
-          bd.dataset.bound = '1';
-        }
-      } else {
-        // graceful fallback without a backdrop
+      // No backdrop - dropdowns should not darken the background
+      if (!bd.dataset.bound) {
+        // For closing on outside click
         const once = ev => {
           if (!wrap.contains(ev.target)) {
             document.removeEventListener('click', once, true);

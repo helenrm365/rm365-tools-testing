@@ -316,9 +316,9 @@ html.dark-mode .inventory-management .filter-group-title {
 /* Collapsible Content */
 .inventory-management .checkbox-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 1rem;
-  align-items: center;
+  align-items: stretch;
   max-height: 0;
   overflow: hidden;
   opacity: 0;
@@ -326,7 +326,7 @@ html.dark-mode .inventory-management .filter-group-title {
 }
 
 .inventory-management .discontinued-filters.expanded .checkbox-grid {
-  max-height: 500px;
+  max-height: 600px;
   opacity: 1;
   margin-top: 0.5rem;
 }
@@ -336,44 +336,59 @@ html.dark-mode .inventory-management .filter-group-title {
   align-items: center;
   gap: 0.75rem;
   cursor: pointer;
-  padding: 0.75rem;
+  padding: 0.75rem 1rem;
   border-radius: 8px;
   transition: all 0.2s ease;
-  background: #f8f9fa;
+  background: #f8fafc;
+  border: 2px solid #e2e8f0;
 }
 
 .inventory-management .checkbox-label:hover {
-  background: #e9ecef;
+  background: #f1f5f9;
+  border-color: #cbd5e1;
 }
 
 html.dark-mode .inventory-management .checkbox-label {
   background: #1e1e1e;
+  border-color: #404040;
 }
 
 html.dark-mode .inventory-management .checkbox-label:hover {
   background: #2a2a2a;
+  border-color: #555;
+}
+
+/* Checked state with green gradient matching theme */
+.inventory-management .checkbox-label:has(.status-filter-checkbox:checked) {
+  background: linear-gradient(135deg, #e8f5e0, #d4edcc);
+  border-color: #76a12b;
+}
+
+html.dark-mode .inventory-management .checkbox-label:has(.status-filter-checkbox:checked) {
+  background: linear-gradient(135deg, #2d4a1f, #3d5e28);
+  border-color: #76a12b;
 }
 
 .inventory-management .status-filter-checkbox {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   cursor: pointer;
   accent-color: #76a12b;
 }
 
 .inventory-management .checkbox-label span {
   font-size: 0.95rem;
-  color: #2c3e50;
+  color: #475569;
   font-weight: 500;
+  user-select: none;
 }
 
 html.dark-mode .inventory-management .checkbox-label span {
-  color: #ecf0f1;
+  color: #cbd5e1;
 }
 
 .inventory-management .apply-filters-btn {
-  grid-column: -1;
-  justify-self: end;
+  margin-top: 1rem;
   padding: 0.875rem 1.75rem;
   background: linear-gradient(135deg, #3b82f6, #2563eb);
   color: white;
@@ -385,7 +400,7 @@ html.dark-mode .inventory-management .checkbox-label span {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
   font-size: 0.95rem;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 0.5rem;
 }

@@ -271,13 +271,13 @@ html.dark-mode .labels-generator .status-filter:hover {
 }
 
 .labels-generator .status-filter.checked {
-  background: linear-gradient(135deg, #dbeafe, #bfdbfe);
-  border-color: #3b82f6;
+  background: linear-gradient(135deg, #e8f5e0, #d4edcc);
+  border-color: #76a12b;
 }
 
 html.dark-mode .labels-generator .status-filter.checked {
-  background: linear-gradient(135deg, #1e3a8a, #1d4ed8);
-  border-color: #3b82f6;
+  background: linear-gradient(135deg, #2d4a1f, #3d5e28);
+  border-color: #76a12b;
 }
 
 .labels-generator .status-checkbox {

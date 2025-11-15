@@ -528,7 +528,6 @@ html.dark-mode .modern-input:focus {
   padding: 12px;
   margin: 16px 0;
   box-sizing: border-box;
-  isolation: isolate;
   overflow: visible;
 }
 

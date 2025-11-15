@@ -210,7 +210,7 @@ function bindDropdown(container, toggle, callback) {
     if (!isOpen) {
       container.setAttribute('aria-expanded', 'true');
       toggle.setAttribute('aria-expanded', 'true');
-      getBackdrop().classList.add('show');
+      // No backdrop - dropdowns should not darken the background
     }
   });
   
@@ -232,7 +232,7 @@ function closeAllDropdowns() {
       toggle.setAttribute('aria-expanded', 'false');
     }
   });
-  getBackdrop().classList.remove('show');
+  // No backdrop to remove
 }
 
 function getBackdrop() {

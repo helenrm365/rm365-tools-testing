@@ -128,8 +128,10 @@ function renderTable() {
               </div>
             </td>
             <td>
-              <button class="action-btn save" style="background: #27ae60; color: white; margin-right: 8px;">Save</button>
-              <button class="action-btn del" style="background: #e74c3c; color: white;">Delete</button>
+              <div style="display: flex; gap: 0.75rem;">
+                <button class="action-btn save" style="background: #27ae60; color: white;">Save</button>
+                <button class="action-btn del" style="background: #e74c3c; color: white;">Delete</button>
+              </div>
             </td>
           </tr>
         `).join('')}

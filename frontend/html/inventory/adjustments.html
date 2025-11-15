@@ -97,14 +97,14 @@
               </label>
               <div class="c-select" id="fieldDropdown" aria-expanded="false">
                 <button type="button" class="c-select__button" id="fieldToggle" aria-haspopup="listbox" aria-expanded="false">
-                  <span class="c-select__label">Shelf &lt; 1</span>
+                  <span class="c-select__label">Shelf < 1</span>
                   <svg class="c-select__caret" width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                 </button>
                 <ul class="c-select__list" role="listbox">
-                  <li class="c-select__item" role="option" data-value="shelf_lt1_qty">Shelf &lt; 1 Year</li>
-                  <li class="c-select__item" role="option" data-value="shelf_gt1_qty">Shelf &gt; 1 Year</li>
+                  <li class="c-select__item" role="option" data-value="shelf_lt1_qty">Shelf < 1 Year</li>
+                  <li class="c-select__item" role="option" data-value="shelf_gt1_qty">Shelf > 1 Year</li>
                   <li class="c-select__item" role="option" data-value="top_floor_total">Top Floor</li>
                 </ul>
               </div>
@@ -113,7 +113,7 @@
 
           <!-- Action Buttons -->
           <div class="action-buttons">
-            <button id="submitBtn" class="primary-btn">
+            <button id="submitBtn" class="action-btn primary-btn">
               <i class="fas fa-check-circle"></i>
               Submit Adjustment
             </button>
@@ -150,12 +150,12 @@
           How It Works
         </h4>
         <ul>
-          <li><strong>Manual Selection Required:</strong> When scanning items, you must manually select which location to affect using the "Location" dropdown (Shelf &lt; 1 Year, Shelf &gt; 1 Year, or Top Floor).</li>
-          <li><strong>Best Practice:</strong> When picking/packing orders, prioritize taking from "Shelf &lt; 1 Year" first to ensure older stock is used before expiration.</li>
-          <li><strong>Smart Shelf Logic:</strong> When removing stock from Shelf &lt; 1 Year:
+          <li><strong>Manual Selection Required:</strong> When scanning items, you must manually select which location to affect using the "Location" dropdown (Shelf < 1 Year, Shelf > 1 Year, or Top Floor).</li>
+          <li><strong>Best Practice:</strong> When picking/packing orders, prioritize taking from "Shelf < 1 Year" first to ensure older stock is used before expiration.</li>
+          <li><strong>Smart Shelf Logic:</strong> When removing stock from Shelf < 1 Year:
             <ul style="margin-top: 0.5rem;">
-              <li>If Shelf &lt; 1 Year quantity is insufficient, the system automatically takes from Shelf &gt; 1 Year</li>
-              <li>If Shelf &gt; 1 Year is also insufficient, it takes from Top Floor</li>
+              <li>If Shelf < 1 Year quantity is insufficient, the system automatically takes from Shelf > 1 Year</li>
+              <li>If Shelf > 1 Year is also insufficient, it takes from Top Floor</li>
               <li>This ensures FIFO (First In, First Out) inventory management</li>
             </ul>
           </li>
