@@ -78,7 +78,10 @@ function updateReasonDisplay() {
     };
     
     state.adjustmentType = typeMap[state.selectedReason] || 'out';
-    reasonToggle.innerHTML = `${reasonMap[state.selectedReason] || 'Pick/Pack'} <span class="arrow">▼</span>`;
+    const label = reasonToggle.querySelector('.c-select__label');
+    if (label) {
+      label.textContent = reasonMap[state.selectedReason] || 'Pick/Pack';
+    }
   }
 }
 
@@ -91,7 +94,10 @@ function updateFieldDisplay() {
       'top_floor_total': 'Top Floor'
     };
     
-    fieldToggle.innerHTML = `${fieldMap[state.selectedField] || 'Shelf &lt; 1 Year'} <span class="arrow">▼</span>`;
+    const label = fieldToggle.querySelector('.c-select__label');
+    if (label) {
+      label.textContent = fieldMap[state.selectedField] || 'Shelf < 1 Year';
+    }
   }
 }
 
@@ -160,7 +166,11 @@ function setupDropdowns() {
       
       state.selectedReason = value;
       state.adjustmentType = type;
-      reasonToggle.innerHTML = `${text} <span class="arrow">▼</span>`;
+      
+      const label = reasonToggle.querySelector('.c-select__label');
+      if (label) {
+        label.textContent = text;
+      }
     });
   }
 
@@ -173,55 +183,69 @@ function setupDropdowns() {
       const text = item.textContent;
       
       state.selectedField = value;
-      fieldToggle.innerHTML = `${text} <span class="arrow">▼</span>`;
+      
+      const label = fieldToggle.querySelector('.c-select__label');
+      if (label) {
+        label.textContent = text;
+      }
     });
   }
 }
 
 function bindDropdown(container, toggle, callback) {
-  const content = container.querySelector('.dropdown-content');
+  const list = container.querySelector('.c-select__list');
+  
+  // Prevent duplicate bindings
+  if (toggle.hasAttribute('data-boundClick')) {
+    return;
+  }
+  toggle.setAttribute('data-boundClick', 'true');
   
   toggle.addEventListener('click', (e) => {
     e.stopPropagation();
-    const isOpen = container.classList.contains('open');
+    const isOpen = container.getAttribute('aria-expanded') === 'true';
     
     closeAllDropdowns();
     
     if (!isOpen) {
-      container.classList.add('open');
-      showBackdrop();
+      container.setAttribute('aria-expanded', 'true');
+      toggle.setAttribute('aria-expanded', 'true');
+      getBackdrop().classList.add('show');
     }
   });
   
-  content.addEventListener('click', (e) => {
-    if (e.target.classList.contains('dropdown-item')) {
+  list.addEventListener('click', (e) => {
+    if (e.target.classList.contains('c-select__item')) {
       e.stopPropagation();
       callback(e.target);
       closeAllDropdowns();
-      savePreferences(); // Save when user makes selection
+      savePreferences();
     }
   });
 }
 
 function closeAllDropdowns() {
-  document.querySelectorAll('.dropdown-container').forEach(container => {
-    container.classList.remove('open');
+  document.querySelectorAll('.c-select').forEach(container => {
+    container.setAttribute('aria-expanded', 'false');
+    const toggle = container.querySelector('.c-select__button');
+    if (toggle) {
+      toggle.setAttribute('aria-expanded', 'false');
+    }
   });
-  hideBackdrop();
+  getBackdrop().classList.remove('show');
 }
 
-function showBackdrop() {
-  const backdrop = document.getElementById('globalDropdownBackdrop');
-  if (backdrop) {
-    backdrop.classList.add('show');
+function getBackdrop() {
+  let backdrop = document.getElementById('globalDropdownBackdrop');
+  if (!backdrop) {
+    backdrop = document.createElement('div');
+    backdrop.id = 'globalDropdownBackdrop';
+    backdrop.className = 'dropdown-backdrop';
+    document.body.appendChild(backdrop);
+    
+    backdrop.addEventListener('click', closeAllDropdowns);
   }
-}
-
-function hideBackdrop() {
-  const backdrop = document.getElementById('globalDropdownBackdrop');
-  if (backdrop) {
-    backdrop.classList.remove('show');
-  }
+  return backdrop;
 }
 
 function setupFormHandlers() {

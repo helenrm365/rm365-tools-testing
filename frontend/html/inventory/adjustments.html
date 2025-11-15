@@ -70,19 +70,22 @@
                 <i class="fas fa-clipboard-list"></i>
                 Reason
               </label>
-              <div class="dropdown-container" id="reasonDropdown">
-                <button class="dropdown-toggle" id="reasonToggle">
-                  Pick/Pack <span class="arrow">▼</span>
+              <div class="c-select" id="reasonDropdown" aria-expanded="false">
+                <button type="button" class="c-select__button" id="reasonToggle" aria-haspopup="listbox" aria-expanded="false">
+                  <span class="c-select__label">Pick/Pack</span>
+                  <svg class="c-select__caret" width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
                 </button>
-                <div class="dropdown-content">
-                  <button class="dropdown-item" data-value="pick_pack" data-type="out">Pick/Pack</button>
-                  <button class="dropdown-item" data-value="received" data-type="in">Received</button>
-                  <button class="dropdown-item" data-value="damaged" data-type="out">Damaged</button>
-                  <button class="dropdown-item" data-value="returned" data-type="in">Returned</button>
-                  <button class="dropdown-item" data-value="lost" data-type="out">Lost</button>
-                  <button class="dropdown-item" data-value="found" data-type="in">Found</button>
-                  <button class="dropdown-item" data-value="correction" data-type="correction">Correction</button>
-                </div>
+                <ul class="c-select__list" role="listbox">
+                  <li class="c-select__item" role="option" data-value="pick_pack" data-type="out">Pick/Pack</li>
+                  <li class="c-select__item" role="option" data-value="received" data-type="in">Received</li>
+                  <li class="c-select__item" role="option" data-value="damaged" data-type="out">Damaged</li>
+                  <li class="c-select__item" role="option" data-value="returned" data-type="in">Returned</li>
+                  <li class="c-select__item" role="option" data-value="lost" data-type="out">Lost</li>
+                  <li class="c-select__item" role="option" data-value="found" data-type="in">Found</li>
+                  <li class="c-select__item" role="option" data-value="correction" data-type="correction">Correction</li>
+                </ul>
               </div>
             </div>
 
@@ -92,15 +95,18 @@
                 <i class="fas fa-map-marker-alt"></i>
                 Location
               </label>
-              <div class="dropdown-container" id="fieldDropdown">
-                <button class="dropdown-toggle" id="fieldToggle">
-                  Shelf &lt; 1 <span class="arrow">▼</span>
+              <div class="c-select" id="fieldDropdown" aria-expanded="false">
+                <button type="button" class="c-select__button" id="fieldToggle" aria-haspopup="listbox" aria-expanded="false">
+                  <span class="c-select__label">Shelf &lt; 1</span>
+                  <svg class="c-select__caret" width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
                 </button>
-                <div class="dropdown-content">
-                  <button class="dropdown-item" data-value="shelf_lt1_qty">Shelf &lt; 1 Year</button>
-                  <button class="dropdown-item" data-value="shelf_gt1_qty">Shelf &gt; 1 Year</button>
-                  <button class="dropdown-item" data-value="top_floor_total">Top Floor</button>
-                </div>
+                <ul class="c-select__list" role="listbox">
+                  <li class="c-select__item" role="option" data-value="shelf_lt1_qty">Shelf &lt; 1 Year</li>
+                  <li class="c-select__item" role="option" data-value="shelf_gt1_qty">Shelf &gt; 1 Year</li>
+                  <li class="c-select__item" role="option" data-value="top_floor_total">Top Floor</li>
+                </ul>
               </div>
             </div>
           </div>

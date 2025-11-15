@@ -976,7 +976,6 @@ html.dark-mode .inventory-management .empty-state h3 {
   background: rgba(0, 0, 0, 0.2);
   z-index: 999;
   display: none;
-  backdrop-filter: blur(2px);
 }
 
 .dropdown-backdrop.show {

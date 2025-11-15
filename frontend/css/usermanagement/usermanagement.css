@@ -136,14 +136,9 @@ html.dark-mode .usermanagement-management .tab-button.active:hover {
 
 /* Tab Group Collapsible Styles */
 .tab-group.collapsible .tab-header {
-  transition: background-color 0.2s;
-}
-
-.tab-group.collapsible .tab-header:hover {
-  background-color: rgba(0, 123, 255, 0.05);
-  border-radius: 4px;
-  margin: -4px;
-  padding: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .expand-icon {
@@ -243,8 +238,7 @@ html.dark-mode .expand-icon {
 }
 
 .tab-group:hover {
-  background: var(--tab-bg-hover, #e8f5e9);
-  box-shadow: 0 1px 3px rgba(118, 161, 43, 0.1);
+  box-shadow: 0 1px 4px rgba(118, 161, 43, 0.15);
 }
 
 .tab-header {
@@ -275,11 +269,22 @@ html.dark-mode .expand-icon {
 
 .expand-icon {
   margin-left: auto;
-  transition: transform 0.3s ease;
+  transition: transform 0.3s ease, background-color 0.2s ease;
   user-select: none;
   color: #76a12b;
   font-size: 0.9em;
   font-weight: bold;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.expand-icon:hover {
+  background-color: rgba(118, 161, 43, 0.1);
+}
+
+.expand-icon:active {
+  background-color: rgba(118, 161, 43, 0.2);
 }
 
 /* Subtabs container with animation */
@@ -319,7 +324,7 @@ html.dark-mode .expand-icon {
 }
 
 .subtab-label:hover {
-  background-color: rgba(118, 161, 43, 0.05);
+  background-color: rgba(118, 161, 43, 0.08);
 }
 
 .subtab-label input[type="checkbox"] {
@@ -355,7 +360,7 @@ html.dark-mode .modern-table .in {
 
 html.dark-mode {
   --tab-bg: #2d2d2d;
-  --tab-bg-hover: #1a3a1a;
+  --tab-bg-hover: #2d2d2d;
   --primary-color: #8bc34a;
   --text-color: #e0e0e0;
   --text-secondary: #b0b0b0;

@@ -150,7 +150,7 @@ function renderTabCheckboxes(allowedTabs) {
       <button type="button" class="expand-all-tabs-btn" style="padding: 6px 12px; background: linear-gradient(135deg, #76a12b, #5e8122); color: white; border: none; border-radius: 6px; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; font-weight: 500;">
         ▼ Expand All
       </button>
-      <span style="font-size: 0.85rem; color: var(--text-secondary, #666);">Click to expand/collapse all sections</span>
+      <span style="font-size: 0.85rem; color: var(--text-secondary, #666);">Click dropdown arrows to expand/collapse sections</span>
     </div>
   `;
   
@@ -164,11 +164,11 @@ function renderTabCheckboxes(allowedTabs) {
     html += `
       <div class="tab-group ${hasSubtabs ? 'collapsible' : ''}" data-tab-key="${tabKey}">
         <div class="tab-header" ${hasSubtabs ? 'data-has-subtabs="true"' : ''}>
-          <label class="checkbox-label" onclick="event.stopPropagation();">
+          <label class="checkbox-label">
             <input type="checkbox" class="tab-checkbox parent-tab" value="${tabKey}" ${mainTabAllowed ? 'checked' : ''}> 
             ${tabInfo.label}
           </label>
-          ${hasSubtabs ? `<span class="expand-icon">▼</span>` : ''}
+          ${hasSubtabs ? `<span class="expand-icon" role="button" tabindex="0" aria-label="Expand ${tabInfo.label}">▼</span>` : ''}
         </div>
         ${hasSubtabs ? `
           <div class="subtabs-container">
@@ -577,16 +577,11 @@ function wireTabCollapsibles(container) {
     const subtabsContainer = group.querySelector('.subtabs-container');
     const expandIcon = group.querySelector('.expand-icon');
     
-    if (header && subtabsContainer) {
-      header.addEventListener('click', (e) => {
-        // Only toggle if clicking on the header itself or the icon, not the checkbox/label
-        if (e.target.classList.contains('checkbox-label') || 
-            e.target.classList.contains('tab-checkbox') ||
-            e.target.tagName === 'INPUT') {
-          return;
-        }
-        
+    if (expandIcon && subtabsContainer) {
+      // Toggle function
+      const toggleExpand = (e) => {
         e.stopPropagation();
+        e.preventDefault();
         
         // Toggle visibility with animation
         const isExpanded = subtabsContainer.classList.contains('expanded');
@@ -594,14 +589,21 @@ function wireTabCollapsibles(container) {
         if (isExpanded) {
           subtabsContainer.classList.remove('expanded');
           subtabsContainer.classList.add('collapsed');
+          expandIcon.style.transform = 'rotate(0deg)';
+          expandIcon.setAttribute('aria-label', expandIcon.getAttribute('aria-label').replace('Collapse', 'Expand'));
         } else {
           subtabsContainer.classList.remove('collapsed');
           subtabsContainer.classList.add('expanded');
+          expandIcon.style.transform = 'rotate(180deg)';
+          expandIcon.setAttribute('aria-label', expandIcon.getAttribute('aria-label').replace('Expand', 'Collapse'));
         }
-        
-        // Rotate icon
-        if (expandIcon) {
-          expandIcon.style.transform = isExpanded ? 'rotate(0deg)' : 'rotate(180deg)';
+      };
+      
+      // Only toggle on expand icon click
+      expandIcon.addEventListener('click', toggleExpand);
+      expandIcon.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          toggleExpand(e);
         }
       });
     }
