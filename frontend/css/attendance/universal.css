@@ -124,22 +124,26 @@ html.dark-mode .filter-label i {
 
 .filter-select {
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%2394a3b8' d='M1.41 0L6 4.58L10.59 0L12 1.41l-6 6l-6-6z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 1rem center;
   padding-right: 2.5rem;
   cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.06);
 }
 
-.filter-select:focus {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2376a12b' d='M6 3L1 8h10z'/%3E%3C/svg%3E");
+.filter-input:hover,
+.filter-select:hover {
+  background: #f8f9fa;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+  border-color: rgba(118, 161, 43, 0.3);
 }
 
 .filter-input:focus,
 .filter-select:focus {
   outline: none;
   border-color: #76a12b;
-  box-shadow: 0 0 0 3px rgba(118, 161, 43, 0.1);
+  box-shadow: 0 0 0 2px rgba(118, 161, 43, 0.1), 0 3px 8px rgba(0,0,0,0.12);
 }
 
 html.dark-mode .filter-input,
@@ -150,17 +154,21 @@ html.dark-mode .filter-select {
 }
 
 html.dark-mode .filter-select {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23b0b0b0' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23b0b0b0' d='M1.41 0L6 4.58L10.59 0L12 1.41l-6 6l-6-6z'/%3E%3C/svg%3E");
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
 
-html.dark-mode .filter-select:focus {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238bc34a' d='M6 3L1 8h10z'/%3E%3C/svg%3E");
+html.dark-mode .filter-input:hover,
+html.dark-mode .filter-select:hover {
+  background: #2a2a2a;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.4);
+  border-color: rgba(139, 195, 74, 0.3);
 }
 
 html.dark-mode .filter-input:focus,
 html.dark-mode .filter-select:focus {
   border-color: #8bc34a;
-  box-shadow: 0 0 0 3px rgba(139, 195, 74, 0.15);
+  box-shadow: 0 0 0 2px rgba(139, 195, 74, 0.2), 0 3px 8px rgba(0,0,0,0.4);
 }
 
 .filter-actions {

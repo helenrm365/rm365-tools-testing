@@ -383,51 +383,56 @@ html.dark-mode .filter-label i {
 
 .filter-select {
   width: 100%;
-  padding: 0.9rem 1rem;
-  border: 2px solid rgba(0, 0, 0, 0.08);
-  border-radius: 12px;
+  padding: var(--input-padding-y, 0.75rem) var(--input-padding-x, 1rem);
+  min-height: var(--input-height, 44px);
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
   font-size: 0.95rem;
-  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  background: white;
   color: #2c3e50;
   cursor: pointer;
   transition: all 0.3s ease;
   font-weight: 500;
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%235a6c7d' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%2394a3b8' d='M1.41 0L6 4.58L10.59 0L12 1.41l-6 6l-6-6z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 1rem center;
   padding-right: 2.5rem;
   box-sizing: border-box;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.06);
 }
 
 .filter-select:hover {
   border-color: rgba(118, 161, 43, 0.3);
-  background: white;
+  background: #f8f9fa;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.1);
 }
 
 .filter-select:focus {
   outline: none;
   border-color: #76a12b;
-  box-shadow: 0 0 0 3px rgba(118, 161, 43, 0.1);
+  box-shadow: 0 0 0 2px rgba(118, 161, 43, 0.1), 0 3px 8px rgba(0,0,0,0.12);
   background: white;
 }
 
 html.dark-mode .filter-select {
-  background: linear-gradient(135deg, #1e1e1e, #2a2a2a);
-  border-color: rgba(255, 255, 255, 0.1);
+  background: #1e1e1e;
+  border-color: #404040;
   color: #ecf0f1;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23b0b0b0' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23b0b0b0' d='M1.41 0L6 4.58L10.59 0L12 1.41l-6 6l-6-6z'/%3E%3C/svg%3E");
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
 
 html.dark-mode .filter-select:hover {
   border-color: rgba(139, 195, 74, 0.3);
-  background: #1a1a1a;
+  background: #2a2a2a;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.4);
 }
 
 html.dark-mode .filter-select:focus {
   border-color: #8bc34a;
-  box-shadow: 0 0 0 3px rgba(139, 195, 74, 0.15);
-  background: #1a1a1a;
+  box-shadow: 0 0 0 2px rgba(139, 195, 74, 0.2), 0 3px 8px rgba(0,0,0,0.4);
+  background: #1e1e1e;
 }
 
 html.dark-mode .filter-select option {

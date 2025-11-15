@@ -51,11 +51,20 @@ html.dark-mode .form-label i {
 
 .form-select {
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%2394a3b8' d='M1.41 0L6 4.58L10.59 0L12 1.41l-6 6l-6-6z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 1rem center;
   padding-right: 2.5rem;
   cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+}
+
+.form-input:hover,
+.form-select:hover,
+.form-textarea:hover {
+  background: #f8f9fa;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+  border-color: rgba(118, 161, 43, 0.3);
 }
 
 html.dark-mode .form-input,
@@ -67,7 +76,16 @@ html.dark-mode .form-textarea {
 }
 
 html.dark-mode .form-select {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23b0b0b0' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23b0b0b0' d='M1.41 0L6 4.58L10.59 0L12 1.41l-6 6l-6-6z'/%3E%3C/svg%3E");
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+html.dark-mode .form-input:hover,
+html.dark-mode .form-select:hover,
+html.dark-mode .form-textarea:hover {
+  background: #2a2a2a;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.4);
+  border-color: rgba(139, 195, 74, 0.3);
 }
 
 .form-input:focus,
@@ -75,7 +93,7 @@ html.dark-mode .form-select {
 .form-textarea:focus {
   outline: none;
   border-color: #76a12b;
-  box-shadow: 0 0 0 3px rgba(118, 161, 43, 0.1);
+  box-shadow: 0 0 0 2px rgba(118, 161, 43, 0.1), 0 3px 8px rgba(0,0,0,0.12);
 }
 
 .form-select:focus {

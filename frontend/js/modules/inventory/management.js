@@ -336,23 +336,6 @@ function bindDropdown(containerId, toggleId, options, isColumnDropdown = false) 
   const toggle = document.getElementById(toggleId);
   
   if (!container || !toggle) return;
-  
-  // Prevent duplicate binding
-  if (container.dataset.bound === 'true') return;
-  container.dataset.bound = 'true';
-
-  toggle.addEventListener('click', e => {
-    e.stopPropagation();
-    const isOpen = container.getAttribute('aria-expanded') === 'true';
-    closeAllDropdowns();
-    if (!isOpen) {
-      container.setAttribute('aria-expanded', 'true');
-      container.classList.add('open');
-      const list = container.querySelector('.c-select__list');
-      if (list) list.setAttribute('aria-hidden', 'false');
-      getBackdrop().classList.add('show');
-    }
-  });
 
   let dropdownContent = container.querySelector('.c-select__list');
   if (!dropdownContent) {
@@ -363,7 +346,7 @@ function bindDropdown(containerId, toggleId, options, isColumnDropdown = false) 
     container.appendChild(dropdownContent);
   }
 
-  // Populate options
+  // Populate options (always update content)
   if (isColumnDropdown) {
     // Column visibility dropdown with checkboxes
     dropdownContent.innerHTML = options.map(opt => 
@@ -373,39 +356,62 @@ function bindDropdown(containerId, toggleId, options, isColumnDropdown = false) 
       </label>`
     ).join('');
 
-    // Handle column visibility changes
-    dropdownContent.addEventListener('change', e => {
-      if (e.target.type === 'checkbox') {
-        const column = e.target.dataset.column;
-        const isVisible = e.target.checked;
-        toggleColumn(column, isVisible);
-      }
-    });
+    // Handle column visibility changes (only bind once)
+    if (!dropdownContent.dataset.boundChange) {
+      dropdownContent.dataset.boundChange = 'true';
+      dropdownContent.addEventListener('change', e => {
+        if (e.target.type === 'checkbox') {
+          const column = e.target.dataset.column;
+          const isVisible = e.target.checked;
+          toggleColumn(column, isVisible);
+        }
+      });
+    }
   } else {
     // Regular dropdown (for stock status filter)
     dropdownContent.innerHTML = options.map(opt => 
       `<div class="c-select__item" data-value="${opt.value}" role="option">${opt.text}</div>`
     ).join('');
 
-    // Handle regular dropdown selection
-    dropdownContent.addEventListener('click', e => {
-      if (e.target.classList.contains('c-select__item')) {
-        const value = e.target.dataset.value;
-        const text = e.target.textContent;
-        
-        // Store the selected value in the container's data attribute
-        container.dataset.selectedValue = value;
-        
-        const labelSpan = toggle.querySelector('.c-select__label');
-        if (labelSpan) {
-          const icon = labelSpan.querySelector('i');
-          const iconHTML = icon ? icon.outerHTML : '';
-          labelSpan.innerHTML = `${iconHTML} ${text}`;
+    // Handle regular dropdown selection (only bind once)
+    if (!dropdownContent.dataset.boundClick) {
+      dropdownContent.dataset.boundClick = 'true';
+      dropdownContent.addEventListener('click', e => {
+        if (e.target.classList.contains('c-select__item')) {
+          const value = e.target.dataset.value;
+          const text = e.target.textContent;
+          
+          // Store the selected value in the container's data attribute
+          container.dataset.selectedValue = value;
+          
+          const labelSpan = toggle.querySelector('.c-select__label');
+          if (labelSpan) {
+            const icon = labelSpan.querySelector('i');
+            const iconHTML = icon ? icon.outerHTML : '';
+            labelSpan.innerHTML = `${iconHTML} ${text}`;
+          }
+          closeAllDropdowns();
+          
+          // Trigger stock status filter change
+          onStockStatusFilterChange();
         }
-        closeAllDropdowns();
-        
-        // Trigger stock status filter change
-        onStockStatusFilterChange();
+      });
+    }
+  }
+  
+  // Bind toggle click handler (only once)
+  if (!toggle.dataset.boundClick) {
+    toggle.dataset.boundClick = 'true';
+    toggle.addEventListener('click', e => {
+      e.stopPropagation();
+      const isOpen = container.getAttribute('aria-expanded') === 'true';
+      closeAllDropdowns();
+      if (!isOpen) {
+        container.setAttribute('aria-expanded', 'true');
+        container.classList.add('open');
+        const list = container.querySelector('.c-select__list');
+        if (list) list.setAttribute('aria-hidden', 'false');
+        getBackdrop().classList.add('show');
       }
     });
   }
@@ -459,26 +465,20 @@ function setupTable() {
   // Filter items based on discontinued status, stock status, and search
   inventoryData.forEach(item => {
     const sku = item.sku;
-    const metadata = metadataIndex.get(sku) || {};
+    const baseMetadata = metadataIndex.get(sku) || {};
     
-    // Merge sales data from item.custom_fields into metadata
+    // Create a merged metadata object without modifying the original
+    const metadata = { ...baseMetadata };
+    
+    // Merge sales data and stock quantities from item.custom_fields into metadata
     if (item.custom_fields) {
-      if (item.custom_fields.uk_6m_data !== undefined) {
-        metadata.uk_6m_data = item.custom_fields.uk_6m_data;
-      }
-      if (item.custom_fields.fr_6m_data !== undefined) {
-        metadata.fr_6m_data = item.custom_fields.fr_6m_data;
-      }
-      // Ensure stock quantities are available for status calculation
-      if (item.custom_fields.shelf_lt1_qty !== undefined) {
-        metadata.shelf_lt1_qty = item.custom_fields.shelf_lt1_qty;
-      }
-      if (item.custom_fields.shelf_gt1_qty !== undefined) {
-        metadata.shelf_gt1_qty = item.custom_fields.shelf_gt1_qty;
-      }
-      if (item.custom_fields.top_floor_total !== undefined) {
-        metadata.top_floor_total = item.custom_fields.top_floor_total;
-      }
+      Object.assign(metadata, {
+        uk_6m_data: item.custom_fields.uk_6m_data ?? metadata.uk_6m_data,
+        fr_6m_data: item.custom_fields.fr_6m_data ?? metadata.fr_6m_data,
+        shelf_lt1_qty: item.custom_fields.shelf_lt1_qty ?? metadata.shelf_lt1_qty,
+        shelf_gt1_qty: item.custom_fields.shelf_gt1_qty ?? metadata.shelf_gt1_qty,
+        top_floor_total: item.custom_fields.top_floor_total ?? metadata.top_floor_total
+      });
     }
     
     // Note: Discontinued status filtering is now done on the backend
