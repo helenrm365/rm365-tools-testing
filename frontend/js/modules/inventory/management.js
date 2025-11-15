@@ -871,6 +871,11 @@ async function saveRowData(row) {
       return;
     }
 
+    // Calculate stock status before and after to detect changes
+    const previousStockStatus = calculateStockStatus(previousSnapshot);
+    const nextStockStatus = calculateStockStatus(nextSnapshot);
+    const stockStatusChanged = previousStockStatus !== nextStockStatus;
+
     const patchPath = `/api/v1/inventory/management/metadata/${encodeURIComponent(sku)}`;
     console.log(`[Inventory Management] Updating SKU ${sku} with:`, updated);
     await patch(patchPath, updated);
@@ -879,6 +884,7 @@ async function saveRowData(row) {
     metadataIndex.set(sku, nextSnapshot);
 
     if (collaborationManager && collaborationManager.isInitialized) {
+      // Broadcast regular field changes
       changedFields.forEach(field => {
         collaborationManager.broadcastUpdate(
           sku,
@@ -887,6 +893,23 @@ async function saveRowData(row) {
           nextSnapshot[field]
         );
       });
+
+      // Broadcast stock status change ONLY if it actually changed to a different value
+      if (stockStatusChanged) {
+        const previousStatusDisplay = previousStockStatus === 'overstock' ? 'Over Stock' : 
+                                      previousStockStatus === 'lowstock' ? 'Low Stock' : 
+                                      previousStockStatus === 'normal' ? 'Normal Stock' : '';
+        const nextStatusDisplay = nextStockStatus === 'overstock' ? 'Over Stock' : 
+                                  nextStockStatus === 'lowstock' ? 'Low Stock' : 
+                                  nextStockStatus === 'normal' ? 'Normal Stock' : '';
+        
+        collaborationManager.broadcastUpdate(
+          sku,
+          'stock_status',
+          previousStatusDisplay,
+          nextStatusDisplay
+        );
+      }
     }
 
     console.log('[Inventory Management] Successfully updated:', sku);
