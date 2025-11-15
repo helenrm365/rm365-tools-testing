@@ -37,7 +37,8 @@ html.dark-mode .form-label i {
 .form-select,
 .form-textarea {
   width: 100%;
-  padding: 0.75rem 1rem;
+  padding: var(--input-padding-y, 0.75rem) var(--input-padding-x, 1rem);
+  min-height: var(--input-height, 44px);
   border: 2px solid #e5e7eb;
   border-radius: 8px;
   font-size: 0.95rem;
@@ -48,6 +49,15 @@ html.dark-mode .form-label i {
   box-sizing: border-box;
 }
 
+.form-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  padding-right: 2.5rem;
+  cursor: pointer;
+}
+
 html.dark-mode .form-input,
 html.dark-mode .form-select,
 html.dark-mode .form-textarea {
@@ -56,12 +66,24 @@ html.dark-mode .form-textarea {
   color: #e5e7eb;
 }
 
+html.dark-mode .form-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23b0b0b0' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+}
+
 .form-input:focus,
 .form-select:focus,
 .form-textarea:focus {
   outline: none;
   border-color: #76a12b;
   box-shadow: 0 0 0 3px rgba(118, 161, 43, 0.1);
+}
+
+.form-select:focus {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2376a12b' d='M6 3L1 8h10z'/%3E%3C/svg%3E");
+}
+
+html.dark-mode .form-select:focus {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238bc34a' d='M6 3L1 8h10z'/%3E%3C/svg%3E");
 }
 
 .form-input:disabled,

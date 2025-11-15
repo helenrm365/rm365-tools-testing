@@ -26,7 +26,7 @@ function renderLabelsTable() {
   if (state.labels.length === 0) {
     tableDiv.innerHTML = `
       <div style="text-align: center; padding: 3rem; color: #666;">
-        <div style="font-size: 3rem; margin-bottom: 1rem;">🏷️</div>
+        <div style="font-size: 3rem; margin-bottom: 1rem;"><i class="fas fa-tags"></i></div>
         <h3>No labels found</h3>
         <p>Create your first label to get started.</p>
       </div>
@@ -62,7 +62,7 @@ function renderLabelsTable() {
             </td>
             <td style="text-align: center;">
               <span class="status-badge ${label.is_active ? 'success' : 'warning'}">
-                ${label.is_active ? '✅ Active' : '⏸️ Inactive'}
+                ${label.is_active ? '<i class="fas fa-check-circle"></i> Active' : '<i class="fas fa-pause-circle"></i> Inactive'}
               </span>
             </td>
             <td style="text-align: center;">
@@ -74,7 +74,7 @@ function renderLabelsTable() {
                   📄
                 </button>
                 <button class="btn-icon danger" onclick="deleteSelectedLabel(${label.id})" title="Delete label">
-                  🗑️
+                  <i class="fas fa-trash-alt"></i>
                 </button>
               </div>
             </td>
@@ -112,7 +112,7 @@ function resetForm() {
   state.editMode = false;
   
   $('#formTitle').textContent = 'Create New Label';
-  $('#submitBtn').textContent = '💾 Create Label';
+  $('#submitBtn').innerHTML = '<i class="fas fa-save"></i> Create Label';
   $('#cancelBtn').style.display = 'none';
 }
 
@@ -128,7 +128,7 @@ function loadLabelForEdit(label) {
   state.editMode = true;
   
   $('#formTitle').textContent = 'Edit Label';
-  $('#submitBtn').textContent = '💾 Update Label';
+  $('#submitBtn').innerHTML = '<i class="fas fa-save"></i> Update Label';
   $('#cancelBtn').style.display = 'inline-block';
 }
 

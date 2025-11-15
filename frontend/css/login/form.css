@@ -36,7 +36,8 @@
 /* Input Fields */
 .form-input {
   width: 100%;
-  padding: 0.875rem 1rem;
+  padding: var(--input-padding-y, 0.75rem) var(--input-padding-x, 1rem);
+  min-height: var(--input-height, 44px);
   background: var(--login-input-bg);
   border: 1.5px solid var(--login-input-border);
   border-radius: 12px;
@@ -45,6 +46,7 @@
   font-family: 'Sora', system-ui, -apple-system, sans-serif;
   transition: var(--login-transition);
   outline: none;
+  box-sizing: border-box;
 }
 
 .form-input::placeholder {

@@ -50,7 +50,7 @@ function createFiltersModal(region) {
     overlay.innerHTML = `
         <div class="filters-modal" onclick="event.stopPropagation()">
             <div class="filters-modal-header">
-                <h2>📊 6M Condensed Sales Filters - ${region.toUpperCase()}</h2>
+                <h2><i class="fas fa-chart-bar"></i> 6M Condensed Sales Filters - ${region.toUpperCase()}</h2>
                 <button class="filters-modal-close" onclick="this.closest('.filters-modal-overlay').remove()">
                     ✕
                 </button>
@@ -123,7 +123,7 @@ function createFiltersModal(region) {
                 <!-- Quantity Threshold -->
                 <div class="filter-section">
                     <div class="filter-section-header">
-                        <span class="filter-section-icon">📦</span>
+                        <span class="filter-section-icon"><i class="fas fa-box"></i></span>
                         <h3 class="filter-section-title">Quantity Threshold</h3>
                     </div>
                     <p class="filter-section-description">

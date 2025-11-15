@@ -128,7 +128,7 @@ function renderTable() {
               </div>
             </td>
             <td>
-              <button class="action-btn save" style="background: #27ae60; color: white; margin-right: 4px;">Save</button>
+              <button class="action-btn save" style="background: #27ae60; color: white; margin-right: 8px;">Save</button>
               <button class="action-btn del" style="background: #e74c3c; color: white;">Delete</button>
             </td>
           </tr>
@@ -145,7 +145,15 @@ function renderTable() {
 }
 
 function renderTabCheckboxes(allowedTabs) {
-  let html = '';
+  let html = `
+    <div class="tabs-master-control" style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+      <button type="button" class="expand-all-tabs-btn" style="padding: 6px 12px; background: linear-gradient(135deg, #76a12b, #5e8122); color: white; border: none; border-radius: 6px; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; font-weight: 500;">
+        ▼ Expand All
+      </button>
+      <span style="font-size: 0.85rem; color: var(--text-secondary, #666);">Click to expand/collapse all sections</span>
+    </div>
+  `;
+  
   for (const [tabKey, tabInfo] of Object.entries(TAB_STRUCTURE)) {
     // Check if main tab is allowed (for backwards compatibility, check both 'tab' and any 'tab.*' pattern)
     const mainTabAllowed = allowedTabs.includes(tabKey) || 
@@ -154,22 +162,22 @@ function renderTabCheckboxes(allowedTabs) {
     const hasSubtabs = tabInfo.subtabs.length > 0;
     
     html += `
-      <div class="tab-group ${hasSubtabs ? 'collapsible' : ''}" data-tab-key="${tabKey}" style="margin-bottom: 12px; padding: 8px; border-left: 3px solid var(--primary-color, #007bff); padding-left: 12px; background: var(--tab-bg, #f8f9fa); border-radius: 4px;">
-        <div class="tab-header" style="display: flex; align-items: center; cursor: ${hasSubtabs ? 'pointer' : 'default'};">
-          <label class="checkbox-label" style="display: flex; align-items: center; font-weight: 500; color: var(--text-color, #333); flex: 1; margin: 0;">
-            <input type="checkbox" class="tab-checkbox parent-tab" value="${tabKey}" ${mainTabAllowed ? 'checked' : ''} style="margin-right: 6px;" onclick="event.stopPropagation();"> 
+      <div class="tab-group ${hasSubtabs ? 'collapsible' : ''}" data-tab-key="${tabKey}">
+        <div class="tab-header" ${hasSubtabs ? 'data-has-subtabs="true"' : ''}>
+          <label class="checkbox-label" onclick="event.stopPropagation();">
+            <input type="checkbox" class="tab-checkbox parent-tab" value="${tabKey}" ${mainTabAllowed ? 'checked' : ''}> 
             ${tabInfo.label}
           </label>
-          ${hasSubtabs ? `<span class="expand-icon" style="margin-left: auto; transition: transform 0.2s; user-select: none;">▼</span>` : ''}
+          ${hasSubtabs ? `<span class="expand-icon">▼</span>` : ''}
         </div>
         ${hasSubtabs ? `
-          <div class="subtabs-container" style="margin-left: 24px; margin-top: 8px; display: none; flex-direction: column; gap: 6px;">
+          <div class="subtabs-container">
             ${tabInfo.subtabs.map(sub => {
               const subtabValue = `${tabKey}.${sub.key}`;
               const isChecked = allowedTabs.includes(subtabValue);
               return `
-                <label class="checkbox-label" style="display: flex; align-items: center; font-size: 0.9em; color: var(--text-secondary, #666);">
-                  <input type="checkbox" class="tab-checkbox subtab-checkbox" data-parent="${tabKey}" value="${subtabValue}" ${isChecked ? 'checked' : ''} style="margin-right: 6px;">
+                <label class="checkbox-label subtab-label">
+                  <input type="checkbox" class="tab-checkbox subtab-checkbox" data-parent="${tabKey}" value="${subtabValue}" ${isChecked ? 'checked' : ''}>
                   ${sub.label}
                 </label>
               `;
@@ -449,7 +457,7 @@ function updateBulkDeleteButton() {
   const bulkDeleteBtn = $('#userBulkDeleteBtn');
   const count = state.selectedForDelete.size;
   if (bulkDeleteBtn) {
-    bulkDeleteBtn.textContent = count > 0 ? `🗑️ Delete (${count})` : '🗑️ Bulk Delete';
+    bulkDeleteBtn.innerHTML = count > 0 ? `<i class="fas fa-trash-alt"></i> Delete (${count})` : '<i class="fas fa-trash-alt"></i> Bulk Delete';
     bulkDeleteBtn.disabled = count === 0;
   }
 }
@@ -466,26 +474,34 @@ function populateCreateTabsCheckboxes() {
   const container = $('#tabsCheckboxGroup');
   if (!container) return;
 
-  let html = '';
+  let html = `
+    <div class="tabs-master-control" style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+      <button type="button" class="expand-all-tabs-btn" style="padding: 6px 12px; background: linear-gradient(135deg, #76a12b, #5e8122); color: white; border: none; border-radius: 6px; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; font-weight: 500;">
+        ▼ Expand All
+      </button>
+      <span style="font-size: 0.85rem; color: var(--text-secondary, #666);">Click to expand/collapse all sections</span>
+    </div>
+  `;
+  
   for (const [tabKey, tabInfo] of Object.entries(TAB_STRUCTURE)) {
     const hasSubtabs = tabInfo.subtabs.length > 0;
     
     html += `
-      <div class="tab-group ${hasSubtabs ? 'collapsible' : ''}" data-tab-key="${tabKey}" style="margin-bottom: 12px; padding: 8px; border-left: 3px solid var(--primary-color, #007bff); padding-left: 12px; background: var(--tab-bg, #f8f9fa); border-radius: 4px;">
-        <div class="tab-header" style="display: flex; align-items: center; cursor: ${hasSubtabs ? 'pointer' : 'default'};">
-          <label class="checkbox-label" style="display: flex; align-items: center; font-weight: 500; color: var(--text-color, #333); flex: 1; margin: 0;">
-            <input type="checkbox" class="parent-tab-create" name="allowed_tabs" value="${tabKey}" style="margin-right: 6px;" onclick="event.stopPropagation();"> 
+      <div class="tab-group ${hasSubtabs ? 'collapsible' : ''}" data-tab-key="${tabKey}">
+        <div class="tab-header" ${hasSubtabs ? 'data-has-subtabs="true"' : ''}>
+          <label class="checkbox-label" onclick="event.stopPropagation();">
+            <input type="checkbox" class="parent-tab-create" name="allowed_tabs" value="${tabKey}"> 
             ${tabInfo.label}
           </label>
-          ${hasSubtabs ? `<span class="expand-icon" style="margin-left: auto; transition: transform 0.2s; user-select: none;">▼</span>` : ''}
+          ${hasSubtabs ? `<span class="expand-icon">▼</span>` : ''}
         </div>
         ${hasSubtabs ? `
-          <div class="subtabs-container" style="margin-left: 24px; margin-top: 8px; display: none; flex-direction: column; gap: 6px;">
+          <div class="subtabs-container">
             ${tabInfo.subtabs.map(sub => {
               const subtabValue = `${tabKey}.${sub.key}`;
               return `
-                <label class="checkbox-label" style="display: flex; align-items: center; font-size: 0.9em; color: var(--text-secondary, #666);">
-                  <input type="checkbox" class="subtab-checkbox-create" data-parent="${tabKey}" name="allowed_tabs" value="${subtabValue}" style="margin-right: 6px;">
+                <label class="checkbox-label subtab-label">
+                  <input type="checkbox" class="subtab-checkbox-create" data-parent="${tabKey}" name="allowed_tabs" value="${subtabValue}">
                   ${sub.label}
                 </label>
               `;
@@ -563,9 +579,25 @@ function wireTabCollapsibles(container) {
     
     if (header && subtabsContainer) {
       header.addEventListener('click', (e) => {
-        // Toggle visibility
-        const isExpanded = subtabsContainer.style.display === 'flex';
-        subtabsContainer.style.display = isExpanded ? 'none' : 'flex';
+        // Only toggle if clicking on the header itself or the icon, not the checkbox/label
+        if (e.target.classList.contains('checkbox-label') || 
+            e.target.classList.contains('tab-checkbox') ||
+            e.target.tagName === 'INPUT') {
+          return;
+        }
+        
+        e.stopPropagation();
+        
+        // Toggle visibility with animation
+        const isExpanded = subtabsContainer.classList.contains('expanded');
+        
+        if (isExpanded) {
+          subtabsContainer.classList.remove('expanded');
+          subtabsContainer.classList.add('collapsed');
+        } else {
+          subtabsContainer.classList.remove('collapsed');
+          subtabsContainer.classList.add('expanded');
+        }
         
         // Rotate icon
         if (expandIcon) {
@@ -574,6 +606,35 @@ function wireTabCollapsibles(container) {
       });
     }
   });
+  
+  // Master expand/collapse button
+  const expandAllBtn = container.querySelector('.expand-all-tabs-btn');
+  if (expandAllBtn) {
+    let allExpanded = false;
+    expandAllBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      allExpanded = !allExpanded;
+      
+      tabGroups.forEach(group => {
+        const subtabsContainer = group.querySelector('.subtabs-container');
+        const expandIcon = group.querySelector('.expand-icon');
+        
+        if (subtabsContainer) {
+          if (allExpanded) {
+            subtabsContainer.classList.remove('collapsed');
+            subtabsContainer.classList.add('expanded');
+            if (expandIcon) expandIcon.style.transform = 'rotate(180deg)';
+          } else {
+            subtabsContainer.classList.remove('expanded');
+            subtabsContainer.classList.add('collapsed');
+            if (expandIcon) expandIcon.style.transform = 'rotate(0deg)';
+          }
+        }
+      });
+      
+      expandAllBtn.textContent = allExpanded ? '▲ Collapse All' : '▼ Expand All';
+    });
+  }
 }
 
 function autoPopulateTabsForRole(roleName) {

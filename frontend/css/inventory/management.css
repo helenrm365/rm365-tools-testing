@@ -185,16 +185,126 @@ html.dark-mode .inventory-management .section-subtitle {
   margin-bottom: 1.5rem;
   padding-bottom: 1.5rem;
   border-bottom: 2px solid #f1f5f9;
+  position: relative;
 }
 
 html.dark-mode .inventory-management .discontinued-filters {
   border-bottom-color: #404040;
 }
 
+/* Collapsible Header */
+.inventory-management .filter-collapse-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  padding: 1rem;
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  border-radius: 10px;
+  margin-bottom: 1rem;
+  transition: all 0.3s ease;
+  user-select: none;
+  border: 2px solid transparent;
+}
+
+.inventory-management .filter-collapse-header:hover {
+  background: linear-gradient(135deg, #e9ecef, #dee2e6);
+  border-color: rgba(118, 161, 43, 0.3);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+html.dark-mode .inventory-management .filter-collapse-header {
+  background: linear-gradient(135deg, #2a2a2a, #1e1e1e);
+}
+
+html.dark-mode .inventory-management .filter-collapse-header:hover {
+  background: linear-gradient(135deg, #333, #2a2a2a);
+  border-color: rgba(139, 195, 74, 0.3);
+}
+
+.inventory-management .filter-header-content {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex: 1;
+}
+
+.inventory-management .filter-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: #6b7280;
+  background: white;
+  padding: 0.4rem 0.9rem;
+  border-radius: 20px;
+  border: 1px solid #e5e7eb;
+}
+
+html.dark-mode .inventory-management .filter-summary {
+  background: #1e1e1e;
+  color: #9ca3af;
+  border-color: #404040;
+}
+
+.inventory-management .filter-count {
+  font-weight: 700;
+  color: #76a12b;
+  font-size: 1rem;
+}
+
+html.dark-mode .inventory-management .filter-count {
+  color: #8bc34a;
+}
+
+.inventory-management .filter-toggle-btn {
+  background: white;
+  border: 2px solid #e5e7eb;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: #6b7280;
+}
+
+.inventory-management .filter-toggle-btn:hover {
+  background: #f9fafb;
+  border-color: #76a12b;
+  color: #76a12b;
+}
+
+html.dark-mode .inventory-management .filter-toggle-btn {
+  background: #1e1e1e;
+  border-color: #404040;
+  color: #9ca3af;
+}
+
+html.dark-mode .inventory-management .filter-toggle-btn:hover {
+  background: #2a2a2a;
+  border-color: #8bc34a;
+  color: #8bc34a;
+}
+
+.inventory-management .filter-toggle-btn i {
+  transition: transform 0.3s ease;
+  font-size: 0.9rem;
+}
+
+.inventory-management .discontinued-filters.expanded .filter-toggle-btn i {
+  transform: rotate(180deg);
+}
+
 .inventory-management .filter-group-title {
   font-weight: 600;
-  margin-bottom: 1rem;
-  display: block;
+  margin-bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   color: #2c3e50;
   font-size: 1rem;
 }
@@ -203,11 +313,22 @@ html.dark-mode .inventory-management .filter-group-title {
   color: #ecf0f1;
 }
 
+/* Collapsible Content */
 .inventory-management .checkbox-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 1rem;
   align-items: center;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.4s ease, opacity 0.3s ease, margin-top 0.3s ease;
+}
+
+.inventory-management .discontinued-filters.expanded .checkbox-grid {
+  max-height: 500px;
+  opacity: 1;
+  margin-top: 0.5rem;
 }
 
 .inventory-management .checkbox-label {
@@ -329,7 +450,8 @@ html.dark-mode .inventory-management .sync-btn {
 }
 
 .inventory-management .search-input {
-  padding: 0.875rem 1.25rem;
+  padding: var(--input-padding-y, 0.75rem) var(--input-padding-x, 1rem);
+  min-height: var(--input-height, 44px);
   border: 2px solid #e5e7eb;
   border-radius: 10px;
   font-size: 0.95rem;
@@ -337,6 +459,7 @@ html.dark-mode .inventory-management .sync-btn {
   color: #2c3e50;
   transition: all 0.3s ease;
   font-weight: 500;
+  box-sizing: border-box;
 }
 
 .inventory-management .search-input:hover {
@@ -368,157 +491,46 @@ html.dark-mode .inventory-management .search-input:focus {
   background: #1a1a1a;
 }
 
-/* ===== Dropdown Buttons ===== */
-.inventory-management .dropdown-container {
-  position: relative;
-}
+/* ===== Dropdown Buttons (Using Universal c-select Component) ===== */
+/* Column visibility dropdown uses checkboxes, stock status uses standard items */
 
-.inventory-management .dropdown-toggle {
-  padding: 0.875rem 1.25rem;
-  background: white;
-  border: 2px solid #e5e7eb;
-  border-radius: 10px;
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #2c3e50;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  white-space: nowrap;
-}
-
-.inventory-management .dropdown-toggle:hover {
-  border-color: rgba(118, 161, 43, 0.3);
-  background: #f8f9fa;
-}
-
-.inventory-management .dropdown-toggle.open {
-  border-color: #76a12b;
-  background: #f8f9fa;
-}
-
-html.dark-mode .inventory-management .dropdown-toggle {
-  background: #1e1e1e;
-  border-color: rgba(255, 255, 255, 0.1);
-  color: #ecf0f1;
-}
-
-html.dark-mode .inventory-management .dropdown-toggle:hover {
-  border-color: rgba(139, 195, 74, 0.3);
-  background: #2a2a2a;
-}
-
-html.dark-mode .inventory-management .dropdown-toggle.open {
-  border-color: #8bc34a;
-  background: #2a2a2a;
-}
-
-.inventory-management .dropdown-toggle .arrow {
-  transition: transform 0.3s ease;
-  font-size: 0.75rem;
-}
-
-.inventory-management .dropdown-toggle.open .arrow {
-  transform: rotate(180deg);
-}
-
-.inventory-management .dropdown-content {
-  position: absolute;
-  top: calc(100% + 0.5rem);
-  left: 0;
-  background: white;
-  border: 2px solid #e5e7eb;
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-  z-index: 1000;
-  max-height: 400px;
-  overflow-y: auto;
-  min-width: 250px;
-  padding: 0.75rem;
-  display: none;
-}
-
-.inventory-management .dropdown-content.show {
-  display: block;
-  animation: dropdownSlideIn 0.2s ease;
-}
-
-@keyframes dropdownSlideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-html.dark-mode .inventory-management .dropdown-content {
-  background: #2a2a2a;
-  border-color: #404040;
-}
-
-.inventory-management .dropdown-content::-webkit-scrollbar {
-  width: 8px;
-}
-
-.inventory-management .dropdown-content::-webkit-scrollbar-track {
-  background: #f1f5f9;
-  border-radius: 4px;
-}
-
-html.dark-mode .inventory-management .dropdown-content::-webkit-scrollbar-track {
-  background: #1e1e1e;
-}
-
-.inventory-management .dropdown-content::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 4px;
-}
-
-html.dark-mode .inventory-management .dropdown-content::-webkit-scrollbar-thumb {
-  background: #3a3a3a;
-}
-
-.inventory-management .dropdown-item {
-  padding: 0.75rem;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
+/* Checkbox styling for column dropdown */
+.inventory-management .c-select__item.checkbox-item {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  cursor: pointer;
+  padding: 0.75rem;
 }
 
-.inventory-management .dropdown-item:hover {
-  background: #f1f5f9;
-}
-
-html.dark-mode .inventory-management .dropdown-item:hover {
-  background: #1e1e1e;
-}
-
-.inventory-management .dropdown-item input[type="checkbox"] {
+.inventory-management .c-select__item.checkbox-item input[type="checkbox"] {
   width: 18px;
   height: 18px;
   cursor: pointer;
   accent-color: #76a12b;
+  flex-shrink: 0;
 }
 
-.inventory-management .dropdown-item label {
-  cursor: pointer;
+.inventory-management .c-select__item.checkbox-item span {
   flex: 1;
   font-size: 0.9rem;
   color: #2c3e50;
   font-weight: 500;
 }
 
-html.dark-mode .inventory-management .dropdown-item label {
+html.dark-mode .inventory-management .c-select__item.checkbox-item span {
   color: #ecf0f1;
 }
+
+.inventory-management .c-select__item.checkbox-item:hover {
+  background: #f1f5f9;
+  transform: none; /* Override default c-select__item transform */
+}
+
+html.dark-mode .inventory-management .c-select__item.checkbox-item:hover {
+  background: #1e1e1e;
+}
+
 
 /* ===== Table Section ===== */
 .inventory-management .table-section {

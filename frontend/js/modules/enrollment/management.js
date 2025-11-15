@@ -75,16 +75,16 @@ function renderTable() {
         <div class="detail-row">
           <label class="detail-label">Location</label>
           <select class="detail-select location-select">
-            <option ${e.location === 'UK' ? 'selected' : ''} value="UK">🇬🇧 United Kingdom</option>
-            <option ${e.location === 'FR' ? 'selected' : ''} value="FR">🇫🇷 France</option>
+            <option ${e.location === 'UK' ? 'selected' : ''} value="UK">GB United Kingdom</option>
+            <option ${e.location === 'FR' ? 'selected' : ''} value="FR">FR France</option>
           </select>
         </div>
         
         <div class="detail-row">
           <label class="detail-label">Status</label>
           <select class="detail-select status-select">
-            <option ${!e.status || e.status === 'active' ? 'selected' : ''} value="active">✅ Active</option>
-            <option ${e.status === 'inactive' ? 'selected' : ''} value="inactive">⏸️ Inactive</option>
+            <option ${!e.status || e.status === 'active' ? 'selected' : ''} value="active">ACTIVE</option>
+            <option ${e.status === 'inactive' ? 'selected' : ''} value="inactive">INACTIVE</option>
           </select>
         </div>
         
@@ -104,11 +104,11 @@ function renderTable() {
       
       <div class="card-actions">
         <button class="btn-save">
-          <span class="btn-icon">💾</span>
-          <span>Save Changes</span>
+          <i class="fas fa-save"></i>
+          <span>Save</span>
         </button>
         <button class="btn-delete">
-          <span class="btn-icon">🗑️</span>
+          <i class="fas fa-trash-alt"></i>
           <span>Delete</span>
         </button>
       </div>
@@ -150,7 +150,7 @@ function wireCardEvents() {
 
       const originalText = btn.innerHTML;
       btn.disabled = true;
-      btn.innerHTML = '<span class="btn-icon">⏳</span><span>Saving...</span>';
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Saving...</span>';
       
       try {
         await updateEmployee(id, { name, location, status, card_uid });
@@ -176,7 +176,7 @@ function wireCardEvents() {
       
       const originalText = btn.innerHTML;
       btn.disabled = true;
-      btn.innerHTML = '<span class="btn-icon">⏳</span><span>Deleting...</span>';
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Deleting...</span>';
       
       try {
         await deleteEmployee(id);
@@ -198,10 +198,10 @@ function updateBulkDeleteButton() {
   
   const count = state.selectedIds.size;
   if (count > 0) {
-    bulkBtn.innerHTML = `<span class="btn-icon">🗑️</span><span>Delete Selected (${count})</span>`;
+    bulkBtn.innerHTML = `<i class="fas fa-trash-alt"></i><span>Delete Selected (${count})</span>`;
     bulkBtn.disabled = false;
   } else {
-    bulkBtn.innerHTML = '<span class="btn-icon">🗑️</span><span>Delete Selected</span>';
+    bulkBtn.innerHTML = '<i class="fas fa-trash-alt"></i><span>Delete Selected</span>';
     bulkBtn.disabled = true;
   }
 }
@@ -251,7 +251,7 @@ function wireToolbar() {
     
     const originalText = bulkBtn.innerHTML;
     bulkBtn.disabled = true;
-    bulkBtn.innerHTML = '<span class="btn-icon">⏳</span><span>Deleting...</span>';
+    bulkBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Deleting...</span>';
     
     try {
       const result = await bulkDeleteEmployees(ids);
@@ -417,7 +417,7 @@ function confirmBulkDelete(count, itemType = 'items') {
     confirmText: `Delete ${count} ${itemType}`,
     cancelText: 'Cancel',
     confirmVariant: 'danger',
-    icon: '🗑️'
+    icon: 'fas fa-trash-alt'
   });
 }
 
@@ -428,7 +428,7 @@ function confirmDelete(itemName, itemType = 'item') {
     confirmText: `Delete ${itemType}`,
     cancelText: 'Cancel',
     confirmVariant: 'danger',
-    icon: '🗑️'
+    icon: 'fas fa-trash-alt'
   });
 }
 

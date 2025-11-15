@@ -262,12 +262,14 @@ html.dark-mode .form-label i {
 }
 
 .modern-input {
-  padding: 0.75rem 1rem;
+  padding: var(--input-padding-y, 0.75rem) var(--input-padding-x, 1rem);
+  min-height: var(--input-height, 44px);
   border: 2px solid #e0e0e0;
   border-radius: 8px;
   font-size: 1rem;
   transition: all 0.3s ease;
   background: white;
+  box-sizing: border-box;
 }
 
 .modern-input:focus {
@@ -307,7 +309,9 @@ html.dark-mode .modern-input:focus {
 
 .dropdown-toggle {
   width: 100%;
-  padding: 0.75rem 1rem;
+  padding: var(--input-padding-y, 0.75rem) var(--input-padding-x, 1rem);
+  min-height: var(--input-height, 44px);
+  box-sizing: border-box;
   background: white;
   border: 2px solid #e0e0e0;
   border-radius: 8px;
@@ -764,7 +768,8 @@ html.dark-mode .sync-status {
 
 /* ===== Modern Input (from modern-ui.css) ===== */
 .modern-input {
-    padding: 10px 12px;
+    padding: var(--input-padding-y, 0.75rem) var(--input-padding-x, 1rem);
+    min-height: var(--input-height, 44px);
     font-size: 0.95rem;
     border: 1px solid #ccc;
     border-radius: 10px;
@@ -772,6 +777,7 @@ html.dark-mode .sync-status {
     transition: all 0.2s ease;
     margin-right: 10px;
     margin-bottom: 8px;
+    box-sizing: border-box;
 }
 .modern-input:focus {
     border-color: #007bff;

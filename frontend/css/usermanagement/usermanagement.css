@@ -215,6 +215,117 @@ html.dark-mode .expand-icon {
   margin-bottom: 8px;
 }
 
+/* Master control for expanding/collapsing */
+.tabs-master-control {
+  border-bottom: 1px solid #e0e0e0;
+  padding-bottom: 10px;
+}
+
+.expand-all-tabs-btn:hover {
+  background: linear-gradient(135deg, #8bc34a, #76a12b) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(118, 161, 43, 0.3);
+}
+
+.expand-all-tabs-btn:active {
+  transform: translateY(0);
+}
+
+/* Tab group styling */
+.tab-group {
+  margin-bottom: 10px;
+  padding: 10px;
+  border-left: 3px solid #76a12b;
+  padding-left: 12px;
+  background: var(--tab-bg, #f8f9fa);
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.tab-group:hover {
+  background: var(--tab-bg-hover, #e8f5e9);
+  box-shadow: 0 1px 3px rgba(118, 161, 43, 0.1);
+}
+
+.tab-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tab-header[data-has-subtabs="true"] {
+  cursor: pointer;
+  user-select: none;
+}
+
+.tab-header .checkbox-label {
+  display: flex;
+  align-items: center;
+  font-weight: 500;
+  color: var(--text-color, #333);
+  flex: 1;
+  margin: 0;
+  gap: 8px;
+  cursor: default;
+}
+
+.tab-header .checkbox-label input[type="checkbox"] {
+  cursor: pointer;
+}
+
+.expand-icon {
+  margin-left: auto;
+  transition: transform 0.3s ease;
+  user-select: none;
+  color: #76a12b;
+  font-size: 0.9em;
+  font-weight: bold;
+}
+
+/* Subtabs container with animation */
+.subtabs-container {
+  margin-left: 24px;
+  margin-top: 0;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.3s ease, opacity 0.3s ease, margin-top 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.subtabs-container.expanded {
+  max-height: 500px;
+  opacity: 1;
+  margin-top: 10px;
+}
+
+.subtabs-container.collapsed {
+  max-height: 0;
+  opacity: 0;
+  margin-top: 0;
+}
+
+.subtab-label {
+  display: flex;
+  align-items: center;
+  font-size: 0.9em;
+  color: var(--text-secondary, #666);
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+  gap: 8px;
+}
+
+.subtab-label:hover {
+  background-color: rgba(118, 161, 43, 0.05);
+}
+
+.subtab-label input[type="checkbox"] {
+  cursor: pointer;
+}
+
 /* Role dropdown styling */
 .role-dropdown-wrapper {
   position: relative;
@@ -236,24 +347,27 @@ html.dark-mode .modern-table .in {
 /* Tab checkbox styling with CSS variables */
 :root {
   --tab-bg: #f8f9fa;
-  --primary-color: #007bff;
+  --tab-bg-hover: #e8f5e9;
+  --primary-color: #76a12b;
   --text-color: #333;
   --text-secondary: #666;
 }
 
 html.dark-mode {
   --tab-bg: #2d2d2d;
-  --primary-color: #4a9eff;
+  --tab-bg-hover: #1a3a1a;
+  --primary-color: #8bc34a;
   --text-color: #e0e0e0;
   --text-secondary: #b0b0b0;
 }
 
-.tab-group {
-  transition: background-color 0.2s;
+html.dark-mode .tab-group {
+  background: var(--tab-bg);
+  border-left-color: var(--primary-color);
 }
 
-html.dark-mode .tab-group {
-  border-left-color: var(--primary-color);
+html.dark-mode .tab-group:hover {
+  background: var(--tab-bg-hover);
 }
 
 html.dark-mode .checkbox-label {
@@ -262,6 +376,14 @@ html.dark-mode .checkbox-label {
 
 html.dark-mode .subtabs-container .checkbox-label {
   color: var(--text-secondary);
+}
+
+html.dark-mode .expand-icon {
+  color: var(--primary-color);
+}
+
+html.dark-mode .tabs-master-control {
+  border-bottom-color: #444;
 }
 
 /* Notification styles */
@@ -327,6 +449,19 @@ html.dark-mode .subtabs-container .checkbox-label {
   box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
 }
 
+.modern-button.danger:not(:disabled) {
+  animation: danger-pulse 2s ease-in-out infinite;
+}
+
+@keyframes danger-pulse {
+  0%, 100% {
+    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3), 0 0 0 0 rgba(231, 76, 60, 0.4);
+  }
+  50% {
+    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3), 0 0 0 8px rgba(231, 76, 60, 0);
+  }
+}
+
 .modern-button.danger:hover:not(:disabled) {
   background: linear-gradient(135deg, #ff6b6b, #e74c3c);
   box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
@@ -351,7 +486,8 @@ html.dark-mode .modern-button.primary:hover:not(:disabled) {
 
 /* ===== Modern Inputs (from modern-ui.css) ===== */
 .modern-input {
-    padding: 10px 12px;
+    padding: var(--input-padding-y, 0.75rem) var(--input-padding-x, 1rem);
+    min-height: var(--input-height, 44px);
     font-size: 0.95rem;
     border: 1px solid #ccc;
     border-radius: 10px;
@@ -359,6 +495,7 @@ html.dark-mode .modern-button.primary:hover:not(:disabled) {
     transition: all 0.2s ease;
     margin-right: 10px;
     margin-bottom: 8px;
+    box-sizing: border-box;
 }
 .modern-input:focus {
     border-color: #007bff;

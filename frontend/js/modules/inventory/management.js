@@ -323,6 +323,12 @@ function setupDropdowns() {
     { value: 'overstock', text: 'Overstock' },
     { value: 'lowstock', text: 'Low Stock' }
   ]);
+  
+  // Set initial selected value for status dropdown (default: empty string for "All")
+  const statusContainer = document.getElementById('statusDropdown');
+  if (statusContainer) {
+    statusContainer.dataset.selectedValue = '';
+  }
 }
 
 function bindDropdown(containerId, toggleId, options, isColumnDropdown = false) {
@@ -330,24 +336,30 @@ function bindDropdown(containerId, toggleId, options, isColumnDropdown = false) 
   const toggle = document.getElementById(toggleId);
   
   if (!container || !toggle) return;
+  
+  // Prevent duplicate binding
+  if (container.dataset.bound === 'true') return;
+  container.dataset.bound = 'true';
 
   toggle.addEventListener('click', e => {
     e.stopPropagation();
-    const willOpen = !container.classList.contains('open');
+    const isOpen = container.getAttribute('aria-expanded') === 'true';
     closeAllDropdowns();
-    if (willOpen) {
+    if (!isOpen) {
+      container.setAttribute('aria-expanded', 'true');
       container.classList.add('open');
-      toggle.classList.add('open');
-      const content = container.querySelector('.dropdown-content');
-      if (content) content.classList.add('show');
+      const list = container.querySelector('.c-select__list');
+      if (list) list.setAttribute('aria-hidden', 'false');
       getBackdrop().classList.add('show');
     }
   });
 
-  let dropdownContent = container.querySelector('.dropdown-content');
+  let dropdownContent = container.querySelector('.c-select__list');
   if (!dropdownContent) {
     dropdownContent = document.createElement('div');
-    dropdownContent.className = 'dropdown-content';
+    dropdownContent.className = 'c-select__list';
+    dropdownContent.setAttribute('role', 'listbox');
+    dropdownContent.setAttribute('aria-hidden', 'true');
     container.appendChild(dropdownContent);
   }
 
@@ -355,7 +367,7 @@ function bindDropdown(containerId, toggleId, options, isColumnDropdown = false) 
   if (isColumnDropdown) {
     // Column visibility dropdown with checkboxes
     dropdownContent.innerHTML = options.map(opt => 
-      `<label class="dropdown-item checkbox-item" data-value="${opt.value}">
+      `<label class="c-select__item checkbox-item" data-value="${opt.value}" role="option">
         <input type="checkbox" ${opt.checked ? 'checked' : ''} data-column="${opt.value}">
         <span>${opt.text}</span>
       </label>`
@@ -372,17 +384,24 @@ function bindDropdown(containerId, toggleId, options, isColumnDropdown = false) 
   } else {
     // Regular dropdown (for stock status filter)
     dropdownContent.innerHTML = options.map(opt => 
-      `<button class="dropdown-item" data-value="${opt.value}">${opt.text}</button>`
+      `<div class="c-select__item" data-value="${opt.value}" role="option">${opt.text}</div>`
     ).join('');
 
     // Handle regular dropdown selection
     dropdownContent.addEventListener('click', e => {
-      if (e.target.classList.contains('dropdown-item')) {
+      if (e.target.classList.contains('c-select__item')) {
         const value = e.target.dataset.value;
         const text = e.target.textContent;
-        const icon = toggle.querySelector('i');
-        const iconHTML = icon ? icon.outerHTML : '';
-        toggle.innerHTML = `${iconHTML} ${text} <span class="arrow">▼</span>`;
+        
+        // Store the selected value in the container's data attribute
+        container.dataset.selectedValue = value;
+        
+        const labelSpan = toggle.querySelector('.c-select__label');
+        if (labelSpan) {
+          const icon = labelSpan.querySelector('i');
+          const iconHTML = icon ? icon.outerHTML : '';
+          labelSpan.innerHTML = `${iconHTML} ${text}`;
+        }
         closeAllDropdowns();
         
         // Trigger stock status filter change
@@ -449,6 +468,16 @@ function setupTable() {
       }
       if (item.custom_fields.fr_6m_data !== undefined) {
         metadata.fr_6m_data = item.custom_fields.fr_6m_data;
+      }
+      // Ensure stock quantities are available for status calculation
+      if (item.custom_fields.shelf_lt1_qty !== undefined) {
+        metadata.shelf_lt1_qty = item.custom_fields.shelf_lt1_qty;
+      }
+      if (item.custom_fields.shelf_gt1_qty !== undefined) {
+        metadata.shelf_gt1_qty = item.custom_fields.shelf_gt1_qty;
+      }
+      if (item.custom_fields.top_floor_total !== undefined) {
+        metadata.top_floor_total = item.custom_fields.top_floor_total;
       }
     }
     
@@ -814,7 +843,12 @@ function setupDiscontinuedStatusFilters() {
   
   checkboxes.forEach(checkbox => {
     checkbox.checked = savedFilters.includes(checkbox.value);
+    // Add listener to update count on change
+    checkbox.addEventListener('change', updateFilterCount);
   });
+  
+  // Initialize filter count
+  updateFilterCount();
   
   // Apply filters button
   const applyBtn = document.getElementById('applyStatusFilters');
@@ -828,7 +862,7 @@ function setupDiscontinuedStatusFilters() {
       
       // Immediate visual feedback - show loading state
       const originalText = applyBtn.textContent;
-      applyBtn.textContent = '⏳ Loading...';
+      applyBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
       applyBtn.disabled = true;
       applyBtn.style.opacity = '0.7';
       applyBtn.style.cursor = 'wait';
@@ -877,6 +911,18 @@ function setupDiscontinuedStatusFilters() {
   }
 }
 
+// Update filter count display
+function updateFilterCount() {
+  const checkboxes = document.querySelectorAll('.status-filter-checkbox');
+  const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+  const totalCount = checkboxes.length;
+  
+  const countElement = document.getElementById('activeFiltersCount');
+  if (countElement) {
+    countElement.textContent = checkedCount;
+  }
+}
+
 const searchHandler = debounce(async () => {
   // Reset to first page when search changes
   currentPage = 0;
@@ -899,12 +945,18 @@ function applyFilters() {
 
 function getSelectedValue(toggle) {
   if (!toggle) return '';
+  
+  // For c-select dropdowns, get the value from the container's data attribute
+  const container = toggle.closest('.c-select');
+  if (container && container.dataset.selectedValue !== undefined) {
+    return container.dataset.selectedValue;
+  }
+  
+  // Fallback for legacy dropdowns (if any)
   const text = toggle.textContent;
-  // Extract value from dropdown selections like "Overstock ▼" -> "Overstock"
   const match = text.match(/^(.+?)\s*▼?$/);
   const value = match ? match[1].trim() : text.trim();
   
-  // Map display text to actual filter values
   const valueMap = {
     'All Stock Status': '',
     'Over Stock': 'overstock',
@@ -1165,6 +1217,16 @@ function getBackdrop() {
 }
 
 function closeAllDropdowns() {
+  // Close c-select dropdowns
+  document.querySelectorAll('.c-select[aria-expanded="true"]').forEach(el => {
+    el.setAttribute('aria-expanded', 'false');
+    el.classList.remove('open');
+  });
+  document.querySelectorAll('.c-select__list[aria-hidden="false"]').forEach(el => {
+    el.setAttribute('aria-hidden', 'true');
+  });
+  
+  // Legacy support - close old dropdown-container style (if any remain)
   document.querySelectorAll('.dropdown-container.open').forEach(el => {
     el.classList.remove('open');
   });
@@ -1174,6 +1236,7 @@ function closeAllDropdowns() {
   document.querySelectorAll('.dropdown-content.show').forEach(el => {
     el.classList.remove('show');
   });
+  
   getBackdrop().classList.remove('show');
 }
 

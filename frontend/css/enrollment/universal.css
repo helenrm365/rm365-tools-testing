@@ -34,7 +34,9 @@ html.dark-mode .table-wrap {
 /* Modern Input Fields */
 .modern-input {
   font-size: 0.95rem;
-  padding: 0.5rem;
+  padding: var(--input-padding-y, 0.75rem) var(--input-padding-x, 1rem);
+  min-height: var(--input-height, 44px);
+  box-sizing: border-box;
 }
 
 html.dark-mode .modern-input {

@@ -361,10 +361,6 @@ html.dark-mode .enrollment-card .select-label {
   color: #95a5a6;
 }
 
-.enrollment-card .custom-select {
-  position: relative;
-}
-
 .enrollment-card .employee-dropdown {
   width: 100%;
   padding: 1rem 3rem 1rem 1rem;
@@ -377,6 +373,9 @@ html.dark-mode .enrollment-card .select-label {
   cursor: pointer;
   transition: all 0.3s ease;
   font-weight: 500;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%237f8c8d' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
 }
 
 .enrollment-card .employee-dropdown:hover {
@@ -389,12 +388,18 @@ html.dark-mode .enrollment-card .select-label {
   border-color: #76a12b;
   box-shadow: 0 0 0 3px rgba(118, 161, 43, 0.1);
   background: white;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2376a12b' d='M6 3L1 8h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
 }
 
 html.dark-mode .enrollment-card .employee-dropdown {
   background: linear-gradient(135deg, #1e1e1e, #2a2a2a);
   border-color: rgba(255, 255, 255, 0.1);
   color: #ecf0f1;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2395a5a6' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
 }
 
 html.dark-mode .enrollment-card .employee-dropdown:hover {
@@ -406,20 +411,9 @@ html.dark-mode .enrollment-card .employee-dropdown:focus {
   border-color: #8bc34a;
   box-shadow: 0 0 0 3px rgba(139, 195, 74, 0.15);
   background: #1a1a1a;
-}
-
-.enrollment-card .dropdown-arrow {
-  position: absolute;
-  right: 1rem;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #7f8c8d;
-  pointer-events: none;
-  font-size: 0.875rem;
-}
-
-html.dark-mode .enrollment-card .dropdown-arrow {
-  color: #95a5a6;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238bc34a' d='M6 3L1 8h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
 }
 
 /* Button styles are now in components/button.css */
@@ -725,3 +719,5 @@ html.dark-mode .enrollment-card .tip-item {
     font-size: 1rem;
   }
 }
+
+

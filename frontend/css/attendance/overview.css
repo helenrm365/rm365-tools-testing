@@ -298,7 +298,8 @@ html.dark-mode .attendance-overview .filter-label i {
 .attendance-overview .filter-input,
 .attendance-overview .filter-select {
   width: 100%;
-  padding: 0.75rem 1rem;
+  padding: var(--input-padding-y, 0.75rem) var(--input-padding-x, 1rem);
+  min-height: var(--input-height, 44px);
   border: 2px solid #e2e8f0;
   border-radius: 10px;
   font-size: 0.95rem;
@@ -307,6 +308,19 @@ html.dark-mode .attendance-overview .filter-label i {
   background: white;
   color: var(--text-color);
   box-sizing: border-box;
+}
+
+.attendance-overview .filter-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  padding-right: 2.5rem;
+  cursor: pointer;
+}
+
+.attendance-overview .filter-select:focus {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2376a12b' d='M6 3L1 8h10z'/%3E%3C/svg%3E");
 }
 
 .attendance-overview .filter-input:focus,
@@ -323,24 +337,18 @@ html.dark-mode .attendance-overview .filter-select {
   color: #e0e0e0;
 }
 
+html.dark-mode .attendance-overview .filter-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23b0b0b0' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+}
+
+html.dark-mode .attendance-overview .filter-select:focus {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238bc34a' d='M6 3L1 8h10z'/%3E%3C/svg%3E");
+}
+
 html.dark-mode .attendance-overview .filter-input:focus,
 html.dark-mode .attendance-overview .filter-select:focus {
   border-color: #8bc34a;
   box-shadow: 0 0 0 3px rgba(139, 195, 74, 0.15);
-}
-
-.attendance-overview .custom-select {
-  position: relative;
-}
-
-.attendance-overview .custom-select .dropdown-arrow {
-  position: absolute;
-  right: 1rem;
-  top: 50%;
-  transform: translateY(-50%);
-  pointer-events: none;
-  color: #94a3b8;
-  font-size: 0.75rem;
 }
 
 .attendance-overview .filter-actions {

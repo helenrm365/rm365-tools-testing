@@ -58,6 +58,18 @@ export async function initLabelGenerator() {
   updateUI();
 }
 
+// Update filter count display
+function updateFilterCount() {
+  const checkboxes = document.querySelectorAll('.status-filter-checkbox');
+  const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+  const totalCount = checkboxes.length;
+  
+  const countElement = document.getElementById('labelActiveFiltersCount');
+  if (countElement) {
+    countElement.textContent = checkedCount;
+  }
+}
+
 function setupStatusFilterCheckboxes() {
   const checkboxes = document.querySelectorAll('.status-filter-checkbox');
   
@@ -66,10 +78,14 @@ function setupStatusFilterCheckboxes() {
     
     // Add change listener for visual feedback AND auto-apply filters
     checkbox.addEventListener('change', handleStatusFilterChange);
+    // Add listener to update count
+    checkbox.addEventListener('change', updateFilterCount);
   });
   
   // Initial visual update
   updateStatusFilterVisuals();
+  // Initial count update
+  updateFilterCount();
 }
 
 async function handleStatusFilterChange() {

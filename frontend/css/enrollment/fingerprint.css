@@ -379,10 +379,6 @@ html.dark-mode .enrollment-fingerprint .select-label {
   color: #95a5a6;
 }
 
-.enrollment-fingerprint .custom-select {
-  position: relative;
-}
-
 .enrollment-fingerprint .employee-dropdown {
   width: 100%;
   padding: 1rem 3rem 1rem 1rem;
@@ -395,6 +391,9 @@ html.dark-mode .enrollment-fingerprint .select-label {
   cursor: pointer;
   transition: all 0.3s ease;
   font-weight: 500;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%237f8c8d' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
 }
 
 .enrollment-fingerprint .employee-dropdown:hover {
@@ -407,12 +406,18 @@ html.dark-mode .enrollment-fingerprint .select-label {
   border-color: #9b59b6;
   box-shadow: 0 0 0 3px rgba(155, 89, 182, 0.1);
   background: white;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%239b59b6' d='M6 3L1 8h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
 }
 
 html.dark-mode .enrollment-fingerprint .employee-dropdown {
   background: linear-gradient(135deg, #1e1e1e, #2a2a2a);
   border-color: rgba(255, 255, 255, 0.1);
   color: #ecf0f1;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2395a5a6' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
 }
 
 html.dark-mode .enrollment-fingerprint .employee-dropdown:hover {
@@ -424,20 +429,9 @@ html.dark-mode .enrollment-fingerprint .employee-dropdown:focus {
   border-color: #bb8fce;
   box-shadow: 0 0 0 3px rgba(187, 143, 206, 0.15);
   background: #1a1a1a;
-}
-
-.enrollment-fingerprint .dropdown-arrow {
-  position: absolute;
-  right: 1rem;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #7f8c8d;
-  pointer-events: none;
-  font-size: 0.875rem;
-}
-
-html.dark-mode .enrollment-fingerprint .dropdown-arrow {
-  color: #95a5a6;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23bb8fce' d='M6 3L1 8h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
 }
 
 /* Button styles are now in components/button.css */
@@ -818,3 +812,4 @@ html.dark-mode .enrollment-fingerprint .tech-value {
     opacity: 0.4;
   }
 }
+

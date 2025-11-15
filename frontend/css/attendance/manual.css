@@ -182,12 +182,6 @@ html.dark-mode .attendance-manual .manual-select-label i {
   color: #8bc34a;
 }
 
-.attendance-manual .manual-custom-select {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
 .attendance-manual .manual-employee-dropdown {
   width: 100%;
   padding: 1rem 3rem 1rem 1.25rem;
@@ -201,12 +195,18 @@ html.dark-mode .attendance-manual .manual-select-label i {
   transition: all 0.3s ease;
   font-weight: 500;
   font-family: inherit;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2376a12b' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1.25rem center;
 }
 
 html.dark-mode .attendance-manual .manual-employee-dropdown {
   background: #1a1a1a;
   border-color: #3a3a3a;
   color: #ecf0f1;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238bc34a' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1.25rem center;
 }
 
 .attendance-manual .manual-employee-dropdown:hover {
@@ -221,23 +221,19 @@ html.dark-mode .attendance-manual .manual-employee-dropdown:hover {
   outline: none;
   border-color: #76a12b;
   box-shadow: 0 0 0 3px rgba(118, 161, 43, 0.1);
+  background: white;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2376a12b' d='M6 3L1 8h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1.25rem center;
 }
 
 html.dark-mode .attendance-manual .manual-employee-dropdown:focus {
   border-color: #8bc34a;
   box-shadow: 0 0 0 3px rgba(139, 195, 74, 0.2);
-}
-
-.attendance-manual .manual-dropdown-arrow {
-  position: absolute;
-  right: 1.25rem;
-  color: #76a12b;
-  pointer-events: none;
-  transition: transform 0.3s ease;
-}
-
-html.dark-mode .attendance-manual .manual-dropdown-arrow {
-  color: #8bc34a;
+  background: #1a1a1a;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238bc34a' d='M6 3L1 8h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1.25rem center;
 }
 
 /* Clock Action Buttons */
@@ -530,3 +526,4 @@ html.dark-mode .attendance-manual .manual-status-badge.status-out {
     padding: 1.5rem;
   }
 }
+

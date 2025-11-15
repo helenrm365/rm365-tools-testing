@@ -33,7 +33,7 @@
         
         <!-- Loading State -->
         <div id="loadingIndicator" class="loading-state">
-          <div class="loading-spinner">⏳</div>
+          <div class="loading-spinner"><i class="fas fa-spinner fa-spin" style="font-size: 2rem;"></i></div>
           <p>Loading products...</p>
         </div>
 
@@ -41,11 +41,21 @@
         <div class="filters-section">
           <div class="filters-card">
             <!-- Status Filters -->
-            <div class="filter-group">
-              <h3 class="filter-title">
-                <i class="fas fa-filter"></i>
-                Product Status Filters
-              </h3>
+            <div class="filter-group collapsible-filter">
+              <div class="filter-collapse-header" onclick="this.parentElement.classList.toggle('expanded')">
+                <div class="filter-header-content">
+                  <h3 class="filter-title">
+                    <i class="fas fa-filter"></i>
+                    Product Status Filters
+                  </h3>
+                  <div class="filter-summary">
+                    <span class="filter-count" id="labelActiveFiltersCount">4</span> of 8 active
+                  </div>
+                </div>
+                <button type="button" class="filter-toggle-btn">
+                  <i class="fas fa-chevron-down"></i>
+                </button>
+              </div>
               <div class="status-filters">
                 <label class="status-filter">
                   <input type="checkbox" id="filter_Active" class="status-checkbox status-filter-checkbox" value="Active" checked>
@@ -193,7 +203,7 @@
             <tbody id="productsTableBody" class="table-body">
               <tr>
                 <td colspan="7" class="empty-state">
-                  <div class="empty-icon">📦</div>
+                  <div class="empty-icon"><i class="fas fa-box-open"></i></div>
                   <div class="empty-message">Loading products...</div>
                   <div class="empty-submessage">Please wait while we fetch your product data</div>
                 </td>

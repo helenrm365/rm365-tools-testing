@@ -140,7 +140,7 @@ export function confirmBulkDelete(count, itemType = 'items') {
     confirmText: `Delete ${count} ${itemType}`,
     cancelText: 'Cancel',
     confirmVariant: 'danger',
-    icon: '🗑️'
+    icon: 'fas fa-trash-alt'
   });
 }
 
@@ -157,6 +157,6 @@ export function confirmDelete(itemName, itemType = 'item') {
     confirmText: `Delete ${itemType}`,
     cancelText: 'Cancel',
     confirmVariant: 'danger',
-    icon: '🗑️'
+    icon: 'fas fa-trash-alt'
   });
 }

@@ -256,6 +256,11 @@ html.dark-mode .block-subtitle {
   gap: 1rem;
 }
 
+.action-buttons-grid .action-btn {
+  padding: 0.65rem 1.25rem;
+  font-size: 0.9rem;
+}
+
 /* Button styles are now in components/button.css */
 
 /* Action Divider */
@@ -294,7 +299,8 @@ html.dark-mode .divider-line {
 
 .search-box .search-input {
   width: 100%;
-  padding: 0.9rem 1rem 0.9rem 2.75rem;
+  padding: var(--input-padding-y, 0.75rem) var(--input-padding-x, 1rem) var(--input-padding-y, 0.75rem) 2.75rem;
+  min-height: var(--input-height, 44px);
   border: 2px solid rgba(0, 0, 0, 0.08);
   border-radius: 12px;
   font-size: 0.95rem;
@@ -537,14 +543,16 @@ html.dark-mode .card-header-section {
 .employee-name-input {
   flex: 1;
   min-width: 150px;
+  min-height: var(--input-height, 44px);
   font-size: 1.25rem;
   font-weight: 600;
   color: #2c3e50;
   border: 2px solid transparent;
   border-radius: 8px;
-  padding: 0.5rem;
+  padding: var(--input-padding-y, 0.75rem) var(--input-padding-x, 1rem);
   background: transparent;
   transition: all 0.3s ease;
+  box-sizing: border-box;
 }
 
 .employee-name-input:hover {
@@ -614,7 +622,9 @@ html.dark-mode .location-badge {
 .status-badge {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.35rem;
+  vertical-align: middle;
 }
 
 .status-badge.status-active {
@@ -755,10 +765,10 @@ html.dark-mode .card-actions {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0.75rem 1.25rem;
+  padding: 0.6rem 1rem;
   border: none;
   border-radius: 10px;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 600;
   font-family: 'Sora', system-ui, sans-serif;
   cursor: pointer;
@@ -864,8 +874,7 @@ html.dark-mode .loading-state p {
 .management-wrapper .instructions-card {
   padding: 2rem;
   height: fit-content;
-  position: sticky;
-  top: 2rem;
+  position: static;
 }
 
 .management-wrapper .instructions-header {

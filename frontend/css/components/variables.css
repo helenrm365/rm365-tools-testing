@@ -7,6 +7,11 @@
     --os-handle: rgba(0,0,0,.35);
     --os-handle-hover: rgba(0,0,0,.55);
     --os-handle-active: rgba(0,0,0,.75);
+    
+    /* Standardized input/select dimensions */
+    --input-height: 44px;
+    --input-padding-y: 0.75rem;
+    --input-padding-x: 1rem;
 }
 
 html.dark-mode {

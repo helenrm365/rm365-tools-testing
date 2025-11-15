@@ -34,10 +34,20 @@
 
       <!-- Discontinued Status Filters -->
       <div class="discontinued-filters">
-        <label class="filter-group-title">
-          <i class="fas fa-tags"></i>
-          Discontinued Status Filters
-        </label>
+        <div class="filter-collapse-header" onclick="this.parentElement.classList.toggle('expanded')">
+          <div class="filter-header-content">
+            <label class="filter-group-title">
+              <i class="fas fa-tags"></i>
+              Product Status Filters
+            </label>
+            <div class="filter-summary">
+              <span class="filter-count" id="activeFiltersCount">4</span> of 8 active
+            </div>
+          </div>
+          <button type="button" class="filter-toggle-btn">
+            <i class="fas fa-chevron-down"></i>
+          </button>
+        </div>
         <div class="checkbox-grid">
           <label class="checkbox-label">
             <input type="checkbox" id="filter_Active" class="status-filter-checkbox" value="Active" checked>
@@ -89,23 +99,27 @@
         </button>
         
         <!-- Column Filter Dropdown -->
-        <div class="dropdown-container" id="columnDropdown">
-          <button class="dropdown-toggle" id="columnToggle">
-            <i class="fas fa-columns"></i>
-            Show/Hide Columns
-            <span class="arrow">▼</span>
+        <div class="c-select" id="columnDropdown" role="combobox" aria-haspopup="listbox" aria-expanded="false">
+          <button type="button" class="c-select__button" id="columnToggle">
+            <span class="c-select__label">
+              <i class="fas fa-columns"></i>
+              Show/Hide Columns
+            </span>
+            <span class="c-select__caret">▾</span>
           </button>
-          <div class="dropdown-content"></div>
+          <div class="c-select__list" role="listbox" aria-hidden="true"></div>
         </div>
         
         <!-- Stock Status Dropdown -->
-        <div class="dropdown-container" id="statusDropdown">
-          <button class="dropdown-toggle" id="statusToggle">
-            <i class="fas fa-warehouse"></i>
-            All Stock Status
-            <span class="arrow">▼</span>
+        <div class="c-select" id="statusDropdown" role="combobox" aria-haspopup="listbox" aria-expanded="false">
+          <button type="button" class="c-select__button" id="statusToggle">
+            <span class="c-select__label">
+              <i class="fas fa-warehouse"></i>
+              All Stock Status
+            </span>
+            <span class="c-select__caret">▾</span>
           </button>
-          <div class="dropdown-content"></div>
+          <div class="c-select__list" role="listbox" aria-hidden="true"></div>
         </div>
       </div>
     </section>
