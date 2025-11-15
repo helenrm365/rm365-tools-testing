@@ -208,9 +208,9 @@ html.dark-mode .section-subtitle {
 }
 
 html.dark-mode .scanner-interface-card {
-  background: #1e1e1e;
-  border-color: rgba(255, 255, 255, 0.1);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
 }
 
 .scanner-status-badge {
@@ -528,29 +528,29 @@ html.dark-mode .recent-table tbody tr:hover {
 
 /* Tips Section */
 .tips-section {
-  background: linear-gradient(135deg, #fff9e6, #fff5cc);
-  border-left: 4px solid #ffc107;
+  background: linear-gradient(135deg, rgba(118, 161, 43, 0.1), rgba(94, 129, 34, 0.05));
+  border-left: 4px solid #76a12b;
 }
 
 html.dark-mode .tips-section {
-  background: linear-gradient(135deg, #3d3520, #4a401a);
-  border-left-color: #ffb300;
+  background: linear-gradient(135deg, rgba(118, 161, 43, 0.2), rgba(94, 129, 34, 0.1));
+  border-left-color: #5e8122;
 }
 
 .tips-section .info-card-title {
-  color: #856404;
+  color: #76a12b;
 }
 
 html.dark-mode .tips-section .info-card-title {
-  color: #ffd54f;
+  color: #8ec134;
 }
 
 .tips-section .info-card-title i {
-  color: #ffc107;
+  color: #76a12b;
 }
 
 html.dark-mode .tips-section .info-card-title i {
-  color: #ffb300;
+  color: #a5d461;
 }
 
 .tips-section ul {
