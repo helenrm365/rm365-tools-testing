@@ -4,7 +4,7 @@
     position: fixed;
     inset: 0;
     z-index: 2000;
-    background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+    background: linear-gradient(135deg, #1a1f1a 0%, #2d3d2d 50%, #1e2b1e 100%);
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -40,15 +40,11 @@
     animation: logoFloat 3s ease-in-out infinite;
 }
 
-.loader-logo-text {
-    font-size: 3.5rem;
-    font-weight: 700;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    text-shadow: 0 0 30px rgba(102, 126, 234, 0.5);
-    letter-spacing: 0.1em;
+.loader-logo-img {
+    max-width: 180px;
+    width: 100%;
+    height: auto;
+    filter: drop-shadow(0 0 20px rgba(118, 161, 43, 0.4));
     position: relative;
     z-index: 1;
 }
@@ -59,10 +55,10 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 150%;
-    height: 150%;
-    background: radial-gradient(circle, rgba(102, 126, 234, 0.3) 0%, transparent 70%);
-    border-radius: 50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(ellipse, rgba(118, 161, 43, 0.3) 0%, rgba(118, 161, 43, 0.15) 40%, transparent 70%);
+    filter: blur(20px);
     animation: glowPulse 2s ease-in-out infinite;
     z-index: 0;
 }
@@ -88,7 +84,7 @@
 }
 
 .loading-message {
-    color: #fff;
+    color: #a5d461;
     font-size: 1.1rem;
     font-weight: 500;
     margin-bottom: 2rem;
@@ -115,20 +111,20 @@
 
 .loader-ring:nth-child(1) {
     border: 4px solid transparent;
-    border-top-color: #667eea;
+    border-top-color: #76a12b;
     animation: spin 1.5s linear infinite;
 }
 
 .loader-ring:nth-child(2) {
     border: 4px solid transparent;
-    border-right-color: #764ba2;
+    border-right-color: #5e8122;
     animation: spin 2s linear infinite reverse;
     opacity: 0.7;
 }
 
 .loader-ring:nth-child(3) {
     border: 4px solid transparent;
-    border-bottom-color: #f093fb;
+    border-bottom-color: #a5d461;
     animation: spin 2.5s linear infinite;
     opacity: 0.5;
 }
@@ -156,10 +152,10 @@
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #76a12b 0%, #5e8122 100%);
     opacity: 0.3;
     animation: dotPulse 1.4s infinite ease-in-out;
-    box-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
+    box-shadow: 0 0 10px rgba(118, 161, 43, 0.5);
 }
 
 .loader-dots .dot:nth-child(1) {
@@ -215,8 +211,8 @@
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-    .loader-logo-text {
-        font-size: 2.5rem;
+    .loader-logo-img {
+        max-width: 140px;
     }
     
     .loader {
