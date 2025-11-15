@@ -213,7 +213,8 @@ async def update_cursor(sid, data):
             'username': cursor_update['username'],
             'color': cursor_update['color'],
             'cursor_position': cursor_update['cursor_position'],
-            'editing_row': cursor_update['editing_row']
+            'editing_row': cursor_update['editing_row'],
+            'editing_field': cursor_update['editing_field']
         }, room=room_id, skip_sid=sid)
 
 

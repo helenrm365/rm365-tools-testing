@@ -136,13 +136,50 @@
    Row Editing Indicators
    ============================================================================ */
 
-/* Cell being edited by another user */
+/* Container for multiple user indicators */
+td[data-field] {
+  position: relative;
+}
+
+/* Local user's own selection (green highlight) */
+td[contenteditable="true"]:focus {
+  outline: none;
+  background-color: rgba(118, 161, 43, 0.15) !important;
+  box-shadow: inset 0 0 0 2px #76a12b;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Cell being edited by another remote user */
 td.collab-cell-editing {
   position: relative;
   overflow: visible;
+}
+
+/* Support for multiple simultaneous editors */
+td.collab-cell-editing[data-collab-count="1"] {
   background-color: rgba(102, 126, 234, 0.1) !important;
-  box-shadow: inset 0 0 0 2px var(--collab-user-color, #667eea);
-  transition: background-color 0.2s ease;
+  box-shadow: inset 0 0 0 2px var(--collab-user-color-1, #667eea);
+}
+
+td.collab-cell-editing[data-collab-count="2"] {
+  background: linear-gradient(135deg, 
+    rgba(102, 126, 234, 0.1) 0%, 
+    rgba(102, 126, 234, 0.1) 50%,
+    rgba(255, 107, 107, 0.1) 50%,
+    rgba(255, 107, 107, 0.1) 100%) !important;
+  box-shadow: inset 0 0 0 2px var(--collab-user-color-1, #667eea);
+}
+
+td.collab-cell-editing[data-collab-count="3"],
+td.collab-cell-editing[data-collab-count="4"],
+td.collab-cell-editing[data-collab-count="5"] {
+  background: conic-gradient(
+    from 0deg,
+    rgba(102, 126, 234, 0.15) 0deg,
+    rgba(102, 126, 234, 0.15) calc(360deg / var(--collab-count, 3)),
+    transparent calc(360deg / var(--collab-count, 3))
+  ) !important;
+  box-shadow: inset 0 0 0 2px var(--collab-user-color-1, #667eea);
 }
 
 td.collab-cell-editing:focus-visible {
@@ -153,10 +190,9 @@ td.collab-cell-editing:focus-visible {
 .collab-user-indicator {
   position: absolute;
   top: 50%;
-  left: -12px;
-  transform: translate(-50%, -50%);
-  width: 22px;
-  height: 22px;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -170,6 +206,27 @@ td.collab-cell-editing:focus-visible {
   z-index: 15;
   animation: fadeInScale 0.3s ease;
   pointer-events: none;
+  cursor: default;
+}
+
+/* Stack indicators for multiple users */
+.collab-user-indicator:nth-of-type(1) {
+  left: -14px;
+}
+
+.collab-user-indicator:nth-of-type(2) {
+  left: -14px;
+  top: calc(50% + 20px);
+}
+
+.collab-user-indicator:nth-of-type(3) {
+  left: -14px;
+  top: calc(50% - 20px);
+}
+
+.collab-user-indicator:nth-of-type(4) {
+  left: -14px;
+  top: calc(50% + 40px);
 }
 
 @keyframes fadeInScale {

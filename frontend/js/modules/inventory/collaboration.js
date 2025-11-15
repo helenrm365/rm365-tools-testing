@@ -10,7 +10,8 @@ class CollaborationManager {
   constructor() {
     this.activeUsers = new Map();
     this.presenceContainer = null;
-    this.rowHighlights = new Map();
+    this.cellHighlights = new Map(); // Map of cell key -> Set of user_ids
+    this.userCellMap = new Map(); // Map of user_id -> {sku, field, cell}
     this.isInitialized = false;
     this.currentUserId = null;
     this.currentUsername = 'Guest';
@@ -31,8 +32,13 @@ class CollaborationManager {
     this.currentUsername = currentUser?.username || currentUser?.name || 'Guest';
 
     try {
-      // Connect to WebSocket
-      await wsService.connect(currentUser);
+      // Connect to WebSocket with timeout
+      const connectionPromise = wsService.connect(currentUser);
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Connection timeout')), 5000)
+      );
+      
+      await Promise.race([connectionPromise, timeoutPromise]);
 
       // Setup event handlers
       this._setupEventHandlers();
@@ -85,11 +91,13 @@ class CollaborationManager {
 
     // Room events
     wsService.on('room_joined', (data) => {
-      console.log('[Collaboration] Joined room with users:', data.users);
+      console.log('[Collaboration] Joined room with', data.users?.length || 0, 'users:', data.users);
+      console.log('[Collaboration] My user data:', data.user);
       this._registerSelfPresence(data.user);
       this._syncPresenceList(data.users || []);
       this._renderPresence();
       const count = this.activeUsers.size;
+      console.log('[Collaboration] Active users count after join:', count);
       showToast(`Collaboration enabled - ${count} user${count !== 1 ? 's' : ''} online`, 'success');
     });
 
@@ -100,6 +108,7 @@ class CollaborationManager {
         this.selfPresence = enriched;
       }
       this.activeUsers.set(enriched.user_id, enriched);
+      console.log('[Collaboration] Active users count after user joined:', this.activeUsers.size);
       this._renderPresence();
       if (!enriched.is_self) {
         this._showUserNotification(enriched.username, 'joined');
@@ -112,7 +121,7 @@ class CollaborationManager {
         return;
       }
       this.activeUsers.delete(data.user_id);
-      this._removeUserHighlights(data.user_id);
+      this._removeUserHighlight(data.user_id);
       this._renderPresence();
       this._showUserNotification(data.username, 'left');
     });
@@ -127,8 +136,9 @@ class CollaborationManager {
     });
 
     wsService.on('presence_update', (data) => {
-      console.log('[Collaboration] Presence update:', data);
+      console.log('[Collaboration] Presence update with', data.users?.length || 0, 'users:', data.users);
       this._syncPresenceList(data.users || []);
+      console.log('[Collaboration] Active users count after presence update:', this.activeUsers.size);
       this._renderPresence();
     });
   }
@@ -197,9 +207,11 @@ class CollaborationManager {
     const usersList = this.presenceContainer.querySelector('.collab-users-list');
     if (!usersList) return;
 
+    console.log('[Collaboration] Rendering presence for', this.activeUsers.size, 'users');
     usersList.innerHTML = '';
 
     if (this.activeUsers.size === 0) {
+      console.log('[Collaboration] No users to display');
       usersList.innerHTML = '<div class="collab-no-users">You\'re the only one here</div>';
       return;
     }
@@ -276,8 +288,10 @@ class CollaborationManager {
   _updateUserCursor(data) {
     const { user_id, username, color, editing_row, editing_field } = data;
 
-    // Always clear previous highlight first
-    this._removeUserHighlights(user_id);
+    console.log('[Collaboration] Cursor update:', { user_id, username, editing_row, editing_field });
+
+    // Always clear previous highlight for this user first
+    this._removeUserHighlight(user_id);
 
     if (!editing_row || !editing_field) {
       return;
@@ -286,47 +300,115 @@ class CollaborationManager {
     const escapedSku = CSS.escape(editing_row);
     const row = document.querySelector(`tr[data-sku="${escapedSku}"]`);
     if (!row) {
+      console.warn('[Collaboration] Row not found for SKU:', editing_row);
       return;
     }
 
     const cell = row.querySelector(`[data-field="${editing_field}"]`);
     if (!cell) {
+      console.warn('[Collaboration] Cell not found for field:', editing_field);
       return;
     }
 
-    cell.classList.add('collab-cell-editing');
-    cell.style.setProperty('--collab-user-color', this._sanitizeColor(color));
+    // Create cell key for tracking
+    const cellKey = `${editing_row}:${editing_field}`;
 
-    const indicator = document.createElement('div');
-    indicator.className = 'collab-user-indicator';
-    indicator.dataset.userId = user_id;
-    indicator.style.backgroundColor = this._sanitizeColor(color);
-    indicator.textContent = this._getInitials(username);
-    indicator.title = `${this._escapeHtml(username)} is editing this field`;
-
-    const existing = cell.querySelector(`.collab-user-indicator[data-user-id="${CSS.escape(user_id)}"]`);
-    if (existing) {
-      existing.remove();
+    // Initialize cellHighlights set for this cell if needed
+    if (!this.cellHighlights.has(cellKey)) {
+      this.cellHighlights.set(cellKey, new Set());
     }
 
-    cell.style.position = 'relative';
-    cell.appendChild(indicator);
+    // Add this user to the cell's highlight set
+    this.cellHighlights.get(cellKey).add(user_id);
 
-    this.rowHighlights.set(user_id, { cell, indicator });
+    // Store user's current cell
+    this.userCellMap.set(user_id, { sku: editing_row, field: editing_field, cell, color });
+
+    // Re-render all indicators for this cell
+    this._renderCellIndicators(cell, cellKey);
+  }
+
+  /**
+   * Render all user indicators for a specific cell
+   */
+  _renderCellIndicators(cell, cellKey) {
+    // Remove all existing indicators from this cell
+    const existingIndicators = cell.querySelectorAll('.collab-user-indicator');
+    existingIndicators.forEach(ind => ind.remove());
+
+    // Get all users editing this cell
+    const userIds = this.cellHighlights.get(cellKey);
+    if (!userIds || userIds.size === 0) {
+      cell.classList.remove('collab-cell-editing');
+      cell.removeAttribute('data-collab-count');
+      for (let i = 1; i <= 5; i++) {
+        cell.style.removeProperty(`--collab-user-color-${i}`);
+      }
+      return;
+    }
+
+    // Add editing class and set count
+    cell.classList.add('collab-cell-editing');
+    cell.setAttribute('data-collab-count', userIds.size);
+
+    // Set CSS variables for user colors
+    const userArray = Array.from(userIds);
+    userArray.forEach((userId, index) => {
+      const userData = this.userCellMap.get(userId);
+      if (userData && index < 5) {
+        cell.style.setProperty(`--collab-user-color-${index + 1}`, this._sanitizeColor(userData.color));
+      }
+    });
+
+    // Create indicator for each user
+    userArray.forEach((userId, index) => {
+      const userData = this.userCellMap.get(userId);
+      if (!userData) return;
+
+      const userInfo = this.activeUsers.get(userId);
+      const username = userInfo?.username || 'User';
+      const color = userData.color;
+
+      const indicator = document.createElement('div');
+      indicator.className = 'collab-user-indicator';
+      indicator.dataset.userId = userId;
+      indicator.style.backgroundColor = this._sanitizeColor(color);
+      indicator.textContent = this._getInitials(username);
+      indicator.title = `${this._escapeHtml(username)} is editing this field`;
+
+      cell.appendChild(indicator);
+    });
+
+    console.log('[Collaboration] Rendered', userIds.size, 'indicators for cell:', cellKey);
   }
 
   /**
    * Remove user highlights
    */
-  _removeUserHighlights(userId) {
-    const highlight = this.rowHighlights.get(userId);
-    if (highlight) {
-      highlight.cell.classList.remove('collab-cell-editing');
-      highlight.cell.style.removeProperty('--collab-user-color');
-      if (highlight.indicator && highlight.indicator.parentNode) {
-        highlight.indicator.remove();
+  _removeUserHighlight(userId) {
+    const userData = this.userCellMap.get(userId);
+    if (!userData) return;
+
+    const { sku, field, cell } = userData;
+    const cellKey = `${sku}:${field}`;
+
+    // Remove user from cell's highlight set
+    const cellUsers = this.cellHighlights.get(cellKey);
+    if (cellUsers) {
+      cellUsers.delete(userId);
+      
+      // If no users left, clean up
+      if (cellUsers.size === 0) {
+        this.cellHighlights.delete(cellKey);
       }
-      this.rowHighlights.delete(userId);
+    }
+
+    // Remove from user map
+    this.userCellMap.delete(userId);
+
+    // Re-render the cell to update indicators
+    if (cell && cell.isConnected) {
+      this._renderCellIndicators(cell, cellKey);
     }
   }
 
@@ -384,6 +466,7 @@ class CollaborationManager {
   }
 
   _syncPresenceList(users) {
+    console.log('[Collaboration] Syncing presence list with', users.length, 'users:', users);
     const nextMap = new Map();
 
     users.forEach(user => {
@@ -394,10 +477,13 @@ class CollaborationManager {
       nextMap.set(enriched.user_id, enriched);
     });
 
+    // Always ensure self is in the list
     if (this.selfPresence && !nextMap.has(this.selfPresence.user_id)) {
+      console.log('[Collaboration] Adding self to presence list');
       nextMap.set(this.selfPresence.user_id, this.selfPresence);
     }
 
+    console.log('[Collaboration] Updated activeUsers map size:', nextMap.size);
     this.activeUsers = nextMap;
   }
 
@@ -464,7 +550,8 @@ class CollaborationManager {
     }
     
     this.activeUsers.clear();
-    this.rowHighlights.clear();
+    this.cellHighlights.clear();
+    this.userCellMap.clear();
     this.selfPresence = null;
     
     if (this.presenceContainer && this.presenceContainer.parentNode) {

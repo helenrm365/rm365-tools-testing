@@ -47,7 +47,7 @@ class WebSocketService {
         reconnectionAttempts: this.maxReconnectAttempts,
         reconnectionDelay: 1000,
         reconnectionDelayMax: 5000,
-        timeout: 20000,
+        timeout: 3000, // Reduced from 20s to 3s for faster failure
         upgrade: true, // Allow upgrade from polling to websocket
       });
 

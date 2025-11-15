@@ -211,8 +211,10 @@ async function setupInventoryManagement() {
   // Auto sync
   await initAutoSync();
   
-  // Initialize collaboration features
-  await initCollaboration();
+  // Initialize collaboration features (non-blocking)
+  initCollaboration().catch(err => {
+    console.warn('[Inventory Management] Collaboration init failed:', err);
+  });
 }
 
 async function loadInventoryData() {
