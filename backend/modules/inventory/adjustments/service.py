@@ -35,7 +35,7 @@ class AdjustmentsService:
             if quantity == 0:
                 raise ValueError("Adjustment quantity cannot be zero")
             
-            if field not in ['shelf_lt1_qty', 'shelf_gt1_qty', 'top_floor_total']:
+            if field not in ['auto', 'shelf_lt1_qty', 'shelf_gt1_qty', 'top_floor_total']:
                 raise ValueError("Invalid field type")
             
             # Validate and sanitize barcode input
@@ -72,16 +72,25 @@ class AdjustmentsService:
             
             logger.info(f"Sanitized barcode from '{barcode[:50]}...' to '{sanitized_barcode}'")
             
-            # Apply smart shelf logic if removing stock
-            if quantity < 0:
-                adjustment_result = self._apply_smart_shelf_logic(sanitized_barcode, field, quantity)
+            # Determine the actual field to use
+            actual_field = 'shelf_lt1_qty' if field == 'auto' else field
+            
+            # Apply smart shelf logic ONLY if 'auto' is selected and removing stock
+            if field == 'auto' and quantity < 0:
+                adjustment_result = self._apply_smart_shelf_logic(sanitized_barcode, actual_field, quantity)
+                smart_shelf_message = self._build_smart_shelf_message(adjustment_result, quantity)
+            elif quantity < 0:
+                # Specific field selected - check if enough stock exists
+                adjustment_result = self._apply_specific_field_adjustment(sanitized_barcode, actual_field, quantity)
+                smart_shelf_message = None
             else:
                 # For adding stock, just update the specified field
                 adjustment_result = [{
-                    'field': field,
+                    'field': actual_field,
                     'delta': quantity,
                     'item_id': sanitized_barcode
                 }]
+                smart_shelf_message = None
             
             # Create adjustment log records for each field that was updated
             adjustments = []
@@ -115,7 +124,7 @@ class AdjustmentsService:
             
             return {
                 "status": "success", 
-                "message": f"Adjustment logged and inventory updated immediately.",
+                "message": smart_shelf_message or f"Adjustment logged and inventory updated immediately.",
                 "adjustment": adjustments[0] if len(adjustments) == 1 else adjustments,
                 "metadata_updated": adjustment_result,
                 "smart_shelf_applied": len(adjustment_result) > 1
@@ -198,6 +207,56 @@ class AdjustmentsService:
             updates = [{'field': initial_field, 'delta': quantity, 'item_id': item_id}]
         
         return updates
+    
+    def _apply_specific_field_adjustment(self, item_id: str, field: str, quantity: int) -> List[Dict[str, Any]]:
+        """
+        Apply adjustment to a specific field only - no smart logic.
+        Raises ValueError if insufficient stock.
+        """
+        # Get current inventory levels
+        metadata = self.repo.get_item_metadata(item_id)
+        if not metadata:
+            # Item doesn't exist yet, allow negative adjustment
+            return [{'field': field, 'delta': quantity, 'item_id': item_id}]
+        
+        current_value = metadata.get(field, 0) or 0
+        needed = abs(quantity)
+        
+        if current_value < needed:
+            field_names = {
+                'shelf_lt1_qty': 'Shelf < 1 Year',
+                'shelf_gt1_qty': 'Shelf > 1 Year',
+                'top_floor_total': 'Top Floor'
+            }
+            raise ValueError(
+                f"Insufficient stock in {field_names.get(field, field)}. "
+                f"Available: {current_value}, Requested: {needed}. "
+                f"Use 'Auto' mode to automatically take from other locations."
+            )
+        
+        return [{'field': field, 'delta': quantity, 'item_id': item_id}]
+    
+    def _build_smart_shelf_message(self, adjustment_result: List[Dict[str, Any]], original_quantity: int) -> str:
+        """
+        Build a descriptive message about what the smart shelf logic did.
+        """
+        if len(adjustment_result) <= 1:
+            return "Adjustment applied successfully."
+        
+        field_names = {
+            'shelf_lt1_qty': 'Shelf < 1 Year',
+            'shelf_gt1_qty': 'Shelf > 1 Year',
+            'top_floor_total': 'Top Floor'
+        }
+        
+        parts = []
+        for adj in adjustment_result:
+            qty = abs(adj['delta'])
+            field_name = field_names.get(adj['field'], adj['field'])
+            parts.append(f"{qty} from {field_name}")
+        
+        return f"Smart logic applied: Took {' + '.join(parts)} (total: {abs(original_quantity)})"
+
 
     def list_adjustments(self, *, limit: int = 50, item_id: Optional[str] = None) -> List[Dict[str, Any]]:
         """List inventory adjustments"""

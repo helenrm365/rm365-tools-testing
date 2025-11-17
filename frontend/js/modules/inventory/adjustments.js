@@ -4,7 +4,7 @@ import { config } from '../../config.js';
 const state = {
   recentAdjustments: [],
   selectedReason: 'pick_pack',
-  selectedField: 'shelf_lt1_qty',
+  selectedField: 'auto',
   adjustmentType: 'out' // Based on reason
 };
 
@@ -89,6 +89,7 @@ function updateFieldDisplay() {
   const fieldToggle = document.getElementById('fieldToggle');
   if (fieldToggle) {
     const fieldMap = {
+      'auto': 'Auto (Smart Logic)',
       'shelf_lt1_qty': 'Shelf < 1 Year',
       'shelf_gt1_qty': 'Shelf > 1 Year',
       'top_floor_total': 'Top Floor'
@@ -96,7 +97,7 @@ function updateFieldDisplay() {
     
     const label = fieldToggle.querySelector('.c-select__label');
     if (label) {
-      label.textContent = fieldMap[state.selectedField] || 'Shelf < 1 Year';
+      label.textContent = fieldMap[state.selectedField] || 'Auto (Smart Logic)';
     }
   }
 }
@@ -377,14 +378,17 @@ async function submitAdjustment() {
     });
 
     const adjustmentId = data.adjustment?.id || data.id || 'N/A';
-    showStatus(`✅ Adjustment logged successfully (ID: ${adjustmentId})`, 'success');
+    const message = data.message || 'Adjustment logged successfully';
+    
+    // Show success with smart shelf message if applicable
+    showStatus(`✅ ${message} (ID: ${adjustmentId})`, 'success');
     
     // Trigger inventory data refresh event for management table
     try {
       const event = new CustomEvent('inventory-data-changed', {
         detail: {
           sku: data.adjustment?.barcode || barcode,
-          field: state.selectedField,
+          field: state.selectedField === 'auto' ? 'shelf_lt1_qty' : state.selectedField,
           update_type: 'adjustment',
           new_value: quantity,
           reason: state.selectedReason
