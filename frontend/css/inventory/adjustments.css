@@ -564,8 +564,8 @@ html.dark-mode .guide-card {
 }
 
 .guide-card .instructions-icon.logic-icon {
-  background: linear-gradient(135deg, #76a12b, #5e8122);
-  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.3);
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
 }
 
 html.dark-mode .guide-card .instructions-icon {
@@ -573,7 +573,7 @@ html.dark-mode .guide-card .instructions-icon {
 }
 
 html.dark-mode .guide-card .instructions-icon.logic-icon {
-  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.5);
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.5);
 }
 
 .guide-card .instructions-title {
@@ -589,6 +589,7 @@ html.dark-mode .guide-card .instructions-title {
 
 /* Steps List */
 .guide-card .steps-list {
+  margin-top: 1.5rem;
   margin-bottom: 0;
 }
 
@@ -683,6 +684,7 @@ html.dark-mode .guide-card .step-desc {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  margin-top: 1.5rem;
   margin-bottom: 1.5rem;
 }
 
@@ -706,7 +708,7 @@ html.dark-mode .guide-card .logic-item {
 .guide-card .logic-icon-wrapper {
   width: 40px;
   height: 40px;
-  background: linear-gradient(135deg, #3498db, #2980b9);
+  background: linear-gradient(135deg, #76a12b, #5e8122);
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -714,11 +716,11 @@ html.dark-mode .guide-card .logic-item {
   font-size: 1.1rem;
   color: white;
   flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
+  box-shadow: 0 2px 8px rgba(118, 161, 43, 0.3);
 }
 
 html.dark-mode .guide-card .logic-icon-wrapper {
-  box-shadow: 0 2px 8px rgba(52, 152, 219, 0.5);
+  box-shadow: 0 2px 8px rgba(118, 161, 43, 0.5);
 }
 
 .guide-card .logic-content h5 {
