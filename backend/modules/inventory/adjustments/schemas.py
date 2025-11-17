@@ -30,6 +30,7 @@ class AdjustmentOut(BaseModel):
     field: str
     status: Optional[str] = None
     response_message: Optional[str] = None
+    adjusted_by: Optional[str] = None
     created_at: Optional[str] = None
 
 

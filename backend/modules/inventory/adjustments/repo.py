@@ -54,20 +54,21 @@ class AdjustmentsRepo:
             # PostgreSQL version with RETURNING
             cursor.execute("""
                 INSERT INTO inventory_logs 
-                (barcode, quantity, reason, field, status, response_message, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s, NOW())
-                RETURNING id, barcode, quantity, reason, field, status, response_message, created_at
+                (barcode, quantity, reason, field, status, response_message, adjusted_by, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+                RETURNING id, barcode, quantity, reason, field, status, response_message, adjusted_by, created_at
             """, (
                 adjustment_data['barcode'],
                 adjustment_data['quantity'],
                 adjustment_data['reason'],
                 adjustment_data['field'],
                 adjustment_data.get('status'),
-                adjustment_data.get('response_message')
+                adjustment_data.get('response_message'),
+                adjustment_data.get('adjusted_by')
             ))
             
             row = cursor.fetchone()
-            columns = ['id', 'barcode', 'quantity', 'reason', 'field', 'status', 'response_message', 'created_at']
+            columns = ['id', 'barcode', 'quantity', 'reason', 'field', 'status', 'response_message', 'adjusted_by', 'created_at']
             
             conn.commit()
             logger.info(f"Adjustment log created for barcode: {adjustment_data['barcode']}")
@@ -94,13 +95,13 @@ class AdjustmentsRepo:
         try:
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT id, barcode, quantity, reason, field, status, response_message, created_at
+                SELECT id, barcode, quantity, reason, field, status, response_message, adjusted_by, created_at
                 FROM inventory_logs
                 ORDER BY created_at DESC
                 LIMIT 100
             """)
             
-            columns = ['id', 'barcode', 'quantity', 'reason', 'field', 'status', 'response_message', 'created_at']
+            columns = ['id', 'barcode', 'quantity', 'reason', 'field', 'status', 'response_message', 'adjusted_by', 'created_at']
             rows = cursor.fetchall()
             
             adjustments = []
@@ -147,7 +148,7 @@ class AdjustmentsRepo:
             
             if item_id:
                 cursor.execute("""
-                    SELECT id, barcode, quantity, reason, field, status, response_message, created_at
+                    SELECT id, barcode, quantity, reason, field, status, response_message, adjusted_by, created_at
                     FROM inventory_logs
                     WHERE barcode = %s
                     ORDER BY created_at DESC
@@ -155,13 +156,13 @@ class AdjustmentsRepo:
                 """, (item_id, limit))
             else:
                 cursor.execute("""
-                    SELECT id, barcode, quantity, reason, field, status, response_message, created_at
+                    SELECT id, barcode, quantity, reason, field, status, response_message, adjusted_by, created_at
                     FROM inventory_logs
                     ORDER BY created_at DESC
                     LIMIT %s
                 """, (limit,))
             
-            columns = ['id', 'barcode', 'quantity', 'reason', 'field', 'status', 'response_message', 'created_at']
+            columns = ['id', 'barcode', 'quantity', 'reason', 'field', 'status', 'response_message', 'adjusted_by', 'created_at']
             rows = cursor.fetchall()
             
             adjustments = []
@@ -186,14 +187,14 @@ class AdjustmentsRepo:
         try:
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT id, barcode, quantity, reason, field, status, response_message, created_at
+                SELECT id, barcode, quantity, reason, field, status, response_message, adjusted_by, created_at
                 FROM inventory_logs
                 WHERE barcode = %s
                 ORDER BY created_at DESC
                 LIMIT %s
             """, (barcode, limit))
             
-            columns = ['id', 'barcode', 'quantity', 'reason', 'field', 'status', 'response_message', 'created_at']
+            columns = ['id', 'barcode', 'quantity', 'reason', 'field', 'status', 'response_message', 'adjusted_by', 'created_at']
             rows = cursor.fetchall()
             
             adjustments = []
@@ -401,6 +402,7 @@ class AdjustmentsRepo:
                     field VARCHAR(50) NOT NULL,
                     status VARCHAR(50),
                     response_message TEXT,
+                    adjusted_by VARCHAR(100),
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)

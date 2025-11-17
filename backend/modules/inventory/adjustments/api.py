@@ -126,11 +126,15 @@ async def log_inventory_adjustment(body: AdjustmentLogIn, user=Depends(get_curre
     Smart shelf logic automatically allocates stock across shelf_lt1, shelf_gt1, and top_floor.
     """
     try:
+        # Extract username from authenticated user
+        username = user.get('username') or user.get('email') or 'Unknown'
+        
         result = _svc().log_adjustment(
             barcode=body.barcode,
             quantity=body.quantity,
             reason=body.reason,
-            field=body.field
+            field=body.field,
+            adjusted_by=username
         )
         
         # Broadcast the adjustment to all connected users via WebSocket

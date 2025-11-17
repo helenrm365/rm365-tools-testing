@@ -22,7 +22,7 @@ class AdjustmentsService:
         """Get all adjustments (renamed from pending for backwards compatibility)"""
         return self.repo.get_pending_adjustments()
     
-    def log_adjustment(self, *, barcode: str, quantity: int, reason: str, field: str) -> Dict[str, Any]:
+    def log_adjustment(self, *, barcode: str, quantity: int, reason: str, field: str, adjusted_by: str = None) -> Dict[str, Any]:
         """
         Log an inventory adjustment to PostgreSQL and update inventory_metadata immediately.
         
@@ -30,6 +30,13 @@ class AdjustmentsService:
         local inventory tracking. Smart shelf logic is applied:
         - If shelf_lt1_qty would go negative, it automatically takes from shelf_gt1_qty
         - If shelf_gt1_qty would go negative, it automatically takes from top_floor_total
+        
+        Args:
+            barcode: The item barcode/ID
+            quantity: The quantity to adjust (positive or negative)
+            reason: The reason for the adjustment
+            field: The field to adjust (auto, shelf_lt1_qty, shelf_gt1_qty, top_floor_total)
+            adjusted_by: The username of the user making this adjustment
         """
         try:
             if quantity == 0:
@@ -101,7 +108,8 @@ class AdjustmentsService:
                     'reason': reason,
                     'field': adj['field'],
                     'status': 'Success',  # Immediate success since no external sync
-                    'response_message': 'Adjustment applied to inventory_metadata'
+                    'response_message': 'Adjustment applied to inventory_metadata',
+                    'adjusted_by': adjusted_by
                 }
                 
                 adjustment = self.repo.create_adjustment_log(adjustment_data)
