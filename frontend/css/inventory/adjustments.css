@@ -527,6 +527,170 @@ html.dark-mode .recent-table tbody tr:hover {
 }
 
 /* Tips Section */
+/* ===== Modern Guide Cards ===== */
+.guide-card {
+  background: linear-gradient(135deg, #2c3e50, #34495e);
+  border: none;
+  border-radius: 16px;
+  padding: 0;
+  overflow: hidden;
+}
+
+html.dark-mode .guide-card {
+  background: linear-gradient(135deg, #1a1a1a, #2a2a2a);
+}
+
+.guide-header {
+  background: rgba(0, 0, 0, 0.2);
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.guide-icon {
+  width: 50px;
+  height: 50px;
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  color: white;
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+}
+
+.guide-icon.logic-icon {
+  background: linear-gradient(135deg, #76a12b, #5e8122);
+  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.3);
+}
+
+.guide-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: white;
+  margin: 0;
+}
+
+/* Guide Steps */
+.guide-step {
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  transition: background 0.2s ease;
+}
+
+.guide-step:last-child {
+  border-bottom: none;
+}
+
+.guide-step:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.step-number {
+  width: 35px;
+  height: 35px;
+  background: linear-gradient(135deg, #76a12b, #5e8122);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: white;
+  flex-shrink: 0;
+}
+
+.step-content h5 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: white;
+}
+
+.step-content p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.5;
+}
+
+/* Logic Section */
+.logic-section {
+  padding: 1rem 1.5rem;
+}
+
+.logic-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.logic-item:last-child {
+  border-bottom: none;
+}
+
+.logic-icon-wrapper {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  color: white;
+  flex-shrink: 0;
+}
+
+.logic-content h5 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: white;
+}
+
+.logic-content p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.6;
+}
+
+.logic-content strong {
+  color: white;
+}
+
+/* Info Box */
+.info-box {
+  margin: 1.5rem;
+  padding: 1rem;
+  background: rgba(52, 152, 219, 0.15);
+  border-left: 4px solid #3498db;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.9rem;
+}
+
+.info-box i {
+  color: #3498db;
+  font-size: 1.2rem;
+}
+
+.info-box strong {
+  color: white;
+}
+
+/* Old tips section - keep for backwards compatibility */
 .tips-section {
   background: linear-gradient(135deg, rgba(118, 161, 43, 0.1), rgba(94, 129, 34, 0.05));
   border-left: 4px solid #76a12b;
@@ -567,6 +731,7 @@ html.dark-mode .tips-section ul {
 .tips-section li {
   margin-bottom: 0.75rem;
 }
+
 
 .tips-section strong {
   color: #856404;

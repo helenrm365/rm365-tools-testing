@@ -175,6 +175,9 @@ function setupDropdowns() {
       if (label) {
         label.textContent = text;
       }
+      
+      // Update field dropdown based on reason
+      updateFieldDropdownForReason(value);
     });
   }
 
@@ -339,6 +342,31 @@ function setDefaults() {
 
   updateReasonDisplay();
   updateFieldDisplay();
+  updateFieldDropdownForReason(state.selectedReason);
+}
+
+function updateFieldDropdownForReason(reason) {
+  const fieldDropdown = document.getElementById('fieldDropdown');
+  if (!fieldDropdown) return;
+  
+  const list = fieldDropdown.querySelector('.c-select__list');
+  if (!list) return;
+  
+  // Only allow Auto for Pick/Pack
+  const autoOption = list.querySelector('[data-value="auto"]');
+  if (autoOption) {
+    if (reason === 'pick_pack') {
+      autoOption.style.display = '';
+    } else {
+      autoOption.style.display = 'none';
+      
+      // If Auto is currently selected, switch to first specific location
+      if (state.selectedField === 'auto') {
+        state.selectedField = 'shelf_lt1_qty';
+        updateFieldDisplay();
+      }
+    }
+  }
 }
 
 async function submitAdjustment() {
@@ -366,6 +394,13 @@ async function submitAdjustment() {
     quantity = Math.abs(quantity); // Make positive for stock in
   }
   // For correction, use as-is
+
+  // Check if quantity is 0 - don't make adjustment
+  if (quantity === 0) {
+    showStatus('⚠️ Quantity is 0 - no adjustment made', 'warning');
+    autoClearBarcode();
+    return;
+  }
 
   showStatus('⏳ Submitting adjustment...', 'info');
 

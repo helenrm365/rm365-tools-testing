@@ -144,31 +144,113 @@
         </div>
       </div>
 
-      <!-- Tips Section -->
-      <div class="info-card tips-section">
-        <h4 class="info-card-title">
-          <i class="fas fa-lightbulb"></i>
-          How It Works
-        </h4>
-        <ul>
-          <li><strong>Manual Selection Required:</strong> When scanning items, you must manually select which location to affect using the "Location" dropdown (Shelf < 1 Year, Shelf > 1 Year, or Top Floor).</li>
-          <li><strong>Best Practice:</strong> When picking/packing orders, prioritize taking from "Shelf < 1 Year" first to ensure older stock is used before expiration.</li>
-          <li><strong>Smart Shelf Logic:</strong> When removing stock from Shelf < 1 Year:
-            <ul style="margin-top: 0.5rem;">
-              <li>If Shelf < 1 Year quantity is insufficient, the system automatically takes from Shelf > 1 Year</li>
-              <li>If Shelf > 1 Year is also insufficient, it takes from Top Floor</li>
-              <li>This ensures FIFO (First In, First Out) inventory management</li>
-            </ul>
-          </li>
-          <li><strong>Adjustment Types:</strong>
-            <ul style="margin-top: 0.5rem;">
-              <li><em>Outbound</em> (Pick/Pack, Damaged, Lost) will <strong>reduce</strong> inventory</li>
-              <li><em>Inbound</em> (Received, Returned, Found) will <strong>add</strong> to inventory</li>
-              <li><em>Correction</em> allows manual adjustment in either direction</li>
-            </ul>
-          </li>
-          <li><strong>Real-time Updates:</strong> All changes are applied immediately to the local inventory database.</li>
-        </ul>
+      <!-- How to Use Guide -->
+      <div class="info-card guide-card">
+        <div class="guide-header">
+          <div class="guide-icon">
+            <i class="fas fa-info-circle"></i>
+          </div>
+          <h4 class="guide-title">How to Use</h4>
+        </div>
+        
+        <div class="guide-step">
+          <div class="step-number">1</div>
+          <div class="step-content">
+            <h5>Select Reason</h5>
+            <p>Choose adjustment type (Pick/Pack, Received, etc.)</p>
+          </div>
+        </div>
+        
+        <div class="guide-step">
+          <div class="step-number">2</div>
+          <div class="step-content">
+            <h5>Choose Location</h5>
+            <p>Select specific shelf or Auto for smart logic</p>
+          </div>
+        </div>
+        
+        <div class="guide-step">
+          <div class="step-number">3</div>
+          <div class="step-content">
+            <h5>Scan Barcode</h5>
+            <p>Scan item or enter barcode manually</p>
+          </div>
+        </div>
+        
+        <div class="guide-step">
+          <div class="step-number">4</div>
+          <div class="step-content">
+            <h5>Set Quantity</h5>
+            <p>Enter amount to adjust (default: 1)</p>
+          </div>
+        </div>
+        
+        <div class="guide-step">
+          <div class="step-number">5</div>
+          <div class="step-content">
+            <h5>Submit</h5>
+            <p>Press Enter or click Submit to log adjustment</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- System Logic Guide -->
+      <div class="info-card guide-card">
+        <div class="guide-header">
+          <div class="guide-icon logic-icon">
+            <i class="fas fa-cogs"></i>
+          </div>
+          <h4 class="guide-title">System Logic</h4>
+        </div>
+        
+        <div class="logic-section">
+          <div class="logic-item">
+            <div class="logic-icon-wrapper">
+              <i class="fas fa-random"></i>
+            </div>
+            <div class="logic-content">
+              <h5>Auto Mode (Pick/Pack Only)</h5>
+              <p>Smart FIFO logic: Takes from Shelf &lt;1 → Shelf &gt;1 → Top Floor automatically</p>
+            </div>
+          </div>
+          
+          <div class="logic-item">
+            <div class="logic-icon-wrapper">
+              <i class="fas fa-crosshairs"></i>
+            </div>
+            <div class="logic-content">
+              <h5>Specific Location Mode</h5>
+              <p>Adjusts only the selected location. Fails if insufficient stock available.</p>
+            </div>
+          </div>
+          
+          <div class="logic-item">
+            <div class="logic-icon-wrapper">
+              <i class="fas fa-exchange-alt"></i>
+            </div>
+            <div class="logic-content">
+              <h5>Adjustment Types</h5>
+              <p><strong>Out:</strong> Pick/Pack, Damaged, Lost<br>
+              <strong>In:</strong> Received, Returned, Found<br>
+              <strong>Correction:</strong> Manual +/-</p>
+            </div>
+          </div>
+          
+          <div class="logic-item">
+            <div class="logic-icon-wrapper">
+              <i class="fas fa-sync-alt"></i>
+            </div>
+            <div class="logic-content">
+              <h5>Real-time Updates</h5>
+              <p>All adjustments update inventory immediately and sync live across all users.</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="info-box">
+          <i class="fas fa-exclamation-circle"></i>
+          <span><strong>Note:</strong> Zero quantity adjustments are ignored automatically.</span>
+        </div>
       </div>
     </div>
   </div>
