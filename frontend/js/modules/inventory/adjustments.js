@@ -553,6 +553,7 @@ function displayRecentAdjustments(adjustments) {
           <th>Qty</th>
           <th>Reason</th>
           <th>Location</th>
+          <th>User</th>
           <th>Status</th>
         </tr>
       </thead>
@@ -565,6 +566,7 @@ function displayRecentAdjustments(adjustments) {
           const statusIcon = status === 'Success' ? '✅' : 
                            status === 'Error' ? '❌' : '⏳';
           const qtyClass = adj.quantity > 0 ? 'positive' : 'negative';
+          const adjustedBy = adj.adjusted_by || 'Unknown';
           
           return `
             <tr>
@@ -573,6 +575,7 @@ function displayRecentAdjustments(adjustments) {
               <td style="text-align: center; font-weight: 600; color: ${adj.quantity > 0 ? '#28a745' : '#dc3545'};">${adj.quantity > 0 ? '+' : ''}${adj.quantity}</td>
               <td>${adj.reason.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</td>
               <td>${formatFieldName(adj.field)}</td>
+              <td style="font-size: 0.9em; color: #666;">${adjustedBy}</td>
               <td>${statusIcon} <span style="font-size: 0.85em;">${status}</span></td>
             </tr>
           `;
