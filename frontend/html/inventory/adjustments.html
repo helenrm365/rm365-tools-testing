@@ -146,110 +146,121 @@
 
       <!-- How to Use Guide -->
       <div class="info-card guide-card">
-        <div class="guide-header">
-          <div class="guide-icon">
+        <div class="instructions-header">
+          <div class="instructions-icon">
             <i class="fas fa-info-circle"></i>
           </div>
-          <h4 class="guide-title">How to Use</h4>
+          <h4 class="instructions-title">How to Use</h4>
         </div>
         
-        <div class="guide-step">
-          <div class="step-number">1</div>
-          <div class="step-content">
-            <h5>Select Reason</h5>
-            <p>Choose adjustment type (Pick/Pack, Received, etc.)</p>
+        <div class="steps-list">
+          <div class="step-item">
+            <div class="step-number">1</div>
+            <div class="step-info">
+              <div class="step-name">
+                <i class="fas fa-clipboard-list step-icon"></i>
+                Select Reason
+              </div>
+              <p class="step-desc">Choose adjustment type (Pick/Pack, Received, etc.)</p>
+            </div>
           </div>
-        </div>
-        
-        <div class="guide-step">
-          <div class="step-number">2</div>
-          <div class="step-content">
-            <h5>Choose Location</h5>
-            <p>Select specific shelf or Auto for smart logic</p>
+          
+          <div class="step-item">
+            <div class="step-number">2</div>
+            <div class="step-info">
+              <div class="step-name">
+                <i class="fas fa-map-marker-alt step-icon"></i>
+                Choose Location
+              </div>
+              <p class="step-desc">Select specific shelf or Auto for smart logic</p>
+            </div>
           </div>
-        </div>
-        
-        <div class="guide-step">
-          <div class="step-number">3</div>
-          <div class="step-content">
-            <h5>Scan Barcode</h5>
-            <p>Scan item or enter barcode manually</p>
+          
+          <div class="step-item">
+            <div class="step-number">3</div>
+            <div class="step-info">
+              <div class="step-name">
+                <i class="fas fa-barcode step-icon"></i>
+                Scan Barcode
+              </div>
+              <p class="step-desc">Scan item or enter barcode manually</p>
+            </div>
           </div>
-        </div>
-        
-        <div class="guide-step">
-          <div class="step-number">4</div>
-          <div class="step-content">
-            <h5>Set Quantity</h5>
-            <p>Enter amount to adjust (default: 1)</p>
+          
+          <div class="step-item">
+            <div class="step-number">4</div>
+            <div class="step-info">
+              <div class="step-name">
+                <i class="fas fa-hashtag step-icon"></i>
+                Set Quantity
+              </div>
+              <p class="step-desc">Enter amount to adjust (default: 1)</p>
+            </div>
           </div>
-        </div>
-        
-        <div class="guide-step">
-          <div class="step-number">5</div>
-          <div class="step-content">
-            <h5>Submit</h5>
-            <p>Press Enter or click Submit to log adjustment</p>
+          
+          <div class="step-item">
+            <div class="step-number">5</div>
+            <div class="step-info">
+              <div class="step-name">
+                <i class="fas fa-check-circle step-icon"></i>
+                Submit
+              </div>
+              <p class="step-desc">Press Enter or click Submit to log adjustment</p>
+            </div>
           </div>
         </div>
       </div>
 
       <!-- System Logic Guide -->
       <div class="info-card guide-card">
-        <div class="guide-header">
-          <div class="guide-icon logic-icon">
+        <div class="instructions-header">
+          <div class="instructions-icon logic-icon">
             <i class="fas fa-cogs"></i>
           </div>
-          <h4 class="guide-title">System Logic</h4>
+          <h4 class="instructions-title">System Logic</h4>
         </div>
         
-        <div class="logic-section">
-          <div class="logic-item">
-            <div class="logic-icon-wrapper">
+        <div class="info-boxes">
+          <div class="info-box">
+            <div class="info-header">
               <i class="fas fa-random"></i>
-            </div>
-            <div class="logic-content">
               <h5>Auto Mode (Pick/Pack Only)</h5>
-              <p>Smart FIFO logic: Takes from Shelf &lt;1 → Shelf &gt;1 → Top Floor automatically</p>
             </div>
+            <p>Smart FIFO logic: Takes from Shelf &lt;1 → Shelf &gt;1 → Top Floor automatically</p>
           </div>
           
-          <div class="logic-item">
-            <div class="logic-icon-wrapper">
+          <div class="info-box">
+            <div class="info-header">
               <i class="fas fa-crosshairs"></i>
-            </div>
-            <div class="logic-content">
               <h5>Specific Location Mode</h5>
-              <p>Adjusts only the selected location. Fails if insufficient stock available.</p>
             </div>
+            <p>Adjusts only the selected location. Fails if insufficient stock available.</p>
           </div>
           
-          <div class="logic-item">
-            <div class="logic-icon-wrapper">
+          <div class="info-box">
+            <div class="info-header">
               <i class="fas fa-exchange-alt"></i>
-            </div>
-            <div class="logic-content">
               <h5>Adjustment Types</h5>
-              <p><strong>Out:</strong> Pick/Pack, Damaged, Lost<br>
-              <strong>In:</strong> Received, Returned, Found<br>
-              <strong>Correction:</strong> Manual +/-</p>
             </div>
+            <p><strong>Out:</strong> Pick/Pack, Damaged, Lost<br>
+            <strong>In:</strong> Received, Returned, Found<br>
+            <strong>Correction:</strong> Manual +/-</p>
           </div>
           
-          <div class="logic-item">
-            <div class="logic-icon-wrapper">
+          <div class="info-box">
+            <div class="info-header">
               <i class="fas fa-sync-alt"></i>
-            </div>
-            <div class="logic-content">
               <h5>Real-time Updates</h5>
-              <p>All adjustments update inventory immediately and sync live across all users.</p>
             </div>
+            <p>All adjustments update inventory immediately and sync live across all users.</p>
           </div>
         </div>
         
-        <div class="info-box">
-          <i class="fas fa-exclamation-circle"></i>
-          <span><strong>Note:</strong> Zero quantity adjustments are ignored automatically.</span>
+        <div class="tips-section">
+          <div class="tip-item">
+            <i class="fas fa-exclamation-circle"></i>
+            <span><strong>Note:</strong> Zero quantity adjustments are ignored automatically.</span>
+          </div>
         </div>
       </div>
     </div>
