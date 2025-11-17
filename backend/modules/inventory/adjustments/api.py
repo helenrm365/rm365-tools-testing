@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from common.deps import get_current_user
 from common.dto import InventorySyncResult
+from core.websocket import sio
 from .schemas import AdjustmentLogIn, AdjustmentOut, AdjustmentHistoryResponse
 from .service import AdjustmentsService
 
@@ -117,7 +118,7 @@ def get_pending_adjustments_public():
     }
 
 @router.post("/log", response_model=AdjustmentOut)
-def log_inventory_adjustment(body: AdjustmentLogIn, user=Depends(get_current_user)):
+async def log_inventory_adjustment(body: AdjustmentLogIn, user=Depends(get_current_user)):
     """
     Log an inventory adjustment and update inventory_metadata immediately.
     
@@ -131,6 +132,26 @@ def log_inventory_adjustment(body: AdjustmentLogIn, user=Depends(get_current_use
             reason=body.reason,
             field=body.field
         )
+        
+        # Broadcast the adjustment to all connected users via WebSocket
+        try:
+            metadata_updates = result.get('metadata_updated', [])
+            for update in metadata_updates:
+                await sio.emit('inventory_changed', {
+                    'user_id': user.get('user_id'),
+                    'username': user.get('username', 'System'),
+                    'update_type': 'adjustment',
+                    'sku': update['item_id'],
+                    'field': update['field'],
+                    'old_value': None,  # Not tracked for adjustments
+                    'new_value': update['delta'],
+                    'reason': body.reason,
+                    'timestamp': datetime.utcnow().isoformat()
+                }, room='inventory_management')
+        except Exception as ws_error:
+            # Don't fail the adjustment if WebSocket broadcast fails
+            print(f"[Adjustments] WebSocket broadcast failed: {ws_error}")
+        
         return AdjustmentOut(**result["adjustment"])
     
     except ValueError as e:

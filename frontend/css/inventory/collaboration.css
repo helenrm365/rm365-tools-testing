@@ -209,8 +209,18 @@ td.collab-cell-editing:focus-visible {
   transition: opacity 0.3s ease;
 }
 
-/* Show indicator when parent cell is hovered or has class to show */
+/* Show indicator when hovering within ~4 cells in any direction */
+/* This uses adjacent sibling selectors to detect proximity */
 td[data-field]:hover .collab-user-indicator,
+td[data-field]:hover ~ td .collab-user-indicator,
+td[data-field]:hover ~ td ~ td .collab-user-indicator,
+td[data-field]:hover ~ td ~ td ~ td .collab-user-indicator,
+td[data-field]:hover ~ td ~ td ~ td ~ td .collab-user-indicator,
+tr:has(td[data-field]:hover) td .collab-user-indicator,
+tr:has(td[data-field]:hover) ~ tr td .collab-user-indicator,
+tr:has(td[data-field]:hover) ~ tr ~ tr td .collab-user-indicator,
+tr:has(td[data-field]:hover) ~ tr ~ tr ~ tr td .collab-user-indicator,
+tr:has(td[data-field]:hover) ~ tr ~ tr ~ tr ~ tr td .collab-user-indicator,
 td[data-field].show-collab-indicator .collab-user-indicator {
   opacity: 1;
 }

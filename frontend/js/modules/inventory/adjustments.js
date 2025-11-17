@@ -125,6 +125,9 @@ export async function init() {
   // Load user preferences
   loadPreferences();
   
+  // Setup real-time updates for adjustments list
+  setupRealtimeUpdates();
+  
   // Only try to load data if authenticated
   try {
     await loadRecentAdjustments();
@@ -376,6 +379,23 @@ async function submitAdjustment() {
     const adjustmentId = data.adjustment?.id || data.id || 'N/A';
     showStatus(`✅ Adjustment logged successfully (ID: ${adjustmentId})`, 'success');
     
+    // Trigger inventory data refresh event for management table
+    try {
+      const event = new CustomEvent('inventory-data-changed', {
+        detail: {
+          sku: data.adjustment?.barcode || barcode,
+          field: state.selectedField,
+          update_type: 'adjustment',
+          new_value: quantity,
+          reason: state.selectedReason
+        }
+      });
+      window.dispatchEvent(event);
+      console.log('[Adjustments] Dispatched inventory-data-changed event');
+    } catch (e) {
+      console.warn('[Adjustments] Failed to dispatch update event:', e);
+    }
+    
     // Auto-clear barcode for next scan
     autoClearBarcode();
     
@@ -481,37 +501,40 @@ function displayRecentAdjustments(adjustments) {
   if (!container) return;
 
   if (!adjustments.length) {
-    container.innerHTML = '<p class="muted" style="text-align: center; padding: 1rem; color: #999;">No recent adjustments</p>';
+    container.innerHTML = '<p style="padding: 2rem; text-align: center; color: #999; margin: 0;">No recent adjustments</p>';
     return;
   }
 
   const table = `
-    <table class="modern-table" style="width: 100%; font-size: 0.9rem;">
+    <table class="modern-table">
       <thead>
         <tr>
           <th>Time</th>
           <th>Barcode</th>
           <th>Qty</th>
           <th>Reason</th>
-          <th>Field</th>
+          <th>Location</th>
           <th>Status</th>
         </tr>
       </thead>
       <tbody>
-        ${adjustments.slice(0, 10).map(adj => {
+        ${adjustments.slice(0, 20).map(adj => {
           const createdAt = new Date(adj.created_at).toLocaleTimeString();
           const status = adj.status || 'Pending';
+          const statusClass = status === 'Success' ? 'success' : 
+                             status === 'Error' ? 'error' : 'pending';
           const statusIcon = status === 'Success' ? '✅' : 
                            status === 'Error' ? '❌' : '⏳';
+          const qtyClass = adj.quantity > 0 ? 'positive' : 'negative';
           
           return `
             <tr>
-              <td>${createdAt}</td>
-              <td style="font-family: monospace;">${adj.barcode}</td>
-              <td style="text-align: center;">${adj.quantity}</td>
-              <td>${adj.reason}</td>
+              <td style="white-space: nowrap;">${createdAt}</td>
+              <td style="font-family: 'Courier New', monospace; font-size: 0.9em;">${adj.barcode}</td>
+              <td style="text-align: center; font-weight: 600; color: ${adj.quantity > 0 ? '#28a745' : '#dc3545'};">${adj.quantity > 0 ? '+' : ''}${adj.quantity}</td>
+              <td>${adj.reason.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</td>
               <td>${formatFieldName(adj.field)}</td>
-              <td>${statusIcon} ${status}</td>
+              <td>${statusIcon} <span style="font-size: 0.85em;">${status}</span></td>
             </tr>
           `;
         }).join('')}
@@ -552,6 +575,30 @@ function formatFieldName(field) {
     'top_floor_total': 'Top Floor'
   };
   return fieldMap[field] || field.replace(/_/g, ' ');
+}
+
+/**
+ * Setup real-time updates for adjustments list
+ */
+function setupRealtimeUpdates() {
+  // Listen for inventory changes from WebSocket or local events
+  window.addEventListener('inventory-data-changed', async (event) => {
+    const change = event.detail || {};
+    
+    // Only reload if it's an adjustment-type update
+    if (change.update_type === 'adjustment') {
+      console.log('[Adjustments] Received adjustment update:', change);
+      
+      // Reload the adjustments list to show the new entry
+      try {
+        await loadRecentAdjustments();
+      } catch (error) {
+        console.warn('[Adjustments] Failed to reload adjustments:', error);
+      }
+    }
+  });
+
+  console.log('[Adjustments] Real-time updates enabled');
 }
 
 // Close dropdowns when clicking outside

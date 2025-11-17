@@ -1559,7 +1559,15 @@ function mergeMetadataChange(sku, change) {
   if (change.field === 'all' && typeof change.new_value === 'object') {
     merged = { ...current, ...change.new_value };
   } else if (change.field && change.field !== 'all') {
-    merged = { ...current, [change.field]: change.new_value };
+    // Handle adjustment-type updates (delta-based changes)
+    if (change.update_type === 'adjustment' && typeof change.new_value === 'number') {
+      const currentValue = Number(current[change.field]) || 0;
+      const newValue = currentValue + change.new_value;
+      merged = { ...current, [change.field]: newValue };
+      console.log(`[Management] Applied adjustment: ${change.field} ${currentValue} + ${change.new_value} = ${newValue}`);
+    } else {
+      merged = { ...current, [change.field]: change.new_value };
+    }
   }
 
   const normalized = normalizeMetadataRecord(merged);
