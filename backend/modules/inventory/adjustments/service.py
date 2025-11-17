@@ -192,19 +192,18 @@ class AdjustmentsService:
                 })
                 needed -= take_from_top
         
-        # If we couldn't fulfill the entire request, warn but allow it
+        # If we couldn't fulfill the entire request, raise an error
         if needed > 0:
-            logger.warning(f"Insufficient stock for {item_id}: requested {abs(quantity)}, only {abs(quantity) - needed} available")
-            # Still add a final adjustment for the shortfall to the originally requested field
-            updates.append({
-                'field': initial_field,
-                'delta': -needed,
-                'item_id': item_id
-            })
+            total_available = current_shelf_lt1 + current_shelf_gt1 + current_top_floor
+            raise ValueError(
+                f"Insufficient stock for item {item_id}. "
+                f"Requested: {abs(quantity)}, Available: {total_available} "
+                f"(Shelf <1: {current_shelf_lt1}, Shelf >1: {current_shelf_gt1}, Top Floor: {current_top_floor})"
+            )
         
-        # If no updates were generated, just apply to the requested field
+        # If no updates were generated, raise an error
         if not updates:
-            updates = [{'field': initial_field, 'delta': quantity, 'item_id': item_id}]
+            raise ValueError(f"No stock available for item {item_id}")
         
         return updates
     
