@@ -152,7 +152,13 @@ async def log_inventory_adjustment(body: AdjustmentLogIn, user=Depends(get_curre
             # Don't fail the adjustment if WebSocket broadcast fails
             print(f"[Adjustments] WebSocket broadcast failed: {ws_error}")
         
-        return AdjustmentOut(**result["adjustment"])
+        # Handle both single adjustment and multiple adjustments (smart shelf logic)
+        adjustment_data = result["adjustment"]
+        if isinstance(adjustment_data, list):
+            # Return the first adjustment (primary one requested)
+            return AdjustmentOut(**adjustment_data[0])
+        else:
+            return AdjustmentOut(**adjustment_data)
     
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
