@@ -589,6 +589,7 @@ html.dark-mode .enrollment-fingerprint .instructions-title {
 
 /* Steps List */
 .enrollment-fingerprint .steps-list {
+  margin-top: 1.5rem;
   margin-bottom: 2rem;
 }
 
@@ -650,6 +651,119 @@ html.dark-mode .enrollment-fingerprint .step-name {
 
 html.dark-mode .enrollment-fingerprint .step-desc {
   color: #95a5a6;
+}
+
+/* Logic Items (plain sections, not cards) */
+.enrollment-fingerprint .logic-items {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.enrollment-fingerprint .logic-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.enrollment-fingerprint .logic-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+html.dark-mode .enrollment-fingerprint .logic-item {
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+.enrollment-fingerprint .logic-icon-wrapper {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #76a12b, #5e8122);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  color: white;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(118, 161, 43, 0.3);
+}
+
+html.dark-mode .enrollment-fingerprint .logic-icon-wrapper {
+  box-shadow: 0 2px 8px rgba(118, 161, 43, 0.5);
+}
+
+.enrollment-fingerprint .logic-content h5 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+html.dark-mode .enrollment-fingerprint .logic-content h5 {
+  color: #ecf0f1;
+}
+
+.enrollment-fingerprint .logic-content p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #7f8c8d;
+  line-height: 1.6;
+}
+
+html.dark-mode .enrollment-fingerprint .logic-content p {
+  color: #95a5a6;
+}
+
+.enrollment-fingerprint .logic-content strong {
+  color: #2c3e50;
+}
+
+html.dark-mode .enrollment-fingerprint .logic-content strong {
+  color: #ecf0f1;
+}
+
+/* Note Card (blue card with left border highlight) */
+.enrollment-fingerprint .note-card {
+  padding: 1.25rem;
+  background: linear-gradient(135deg, rgba(52, 152, 219, 0.1), rgba(41, 128, 185, 0.05));
+  border-radius: 8px;
+  border-left: 4px solid #3498db;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.9rem;
+  color: #2c3e50;
+  line-height: 1.5;
+  margin-bottom: 1.5rem;
+}
+
+html.dark-mode .enrollment-fingerprint .note-card {
+  background: linear-gradient(135deg, rgba(52, 152, 219, 0.15), rgba(41, 128, 185, 0.08));
+  border-left-color: #5dade2;
+  color: #ecf0f1;
+}
+
+.enrollment-fingerprint .note-card i {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  color: #3498db;
+}
+
+html.dark-mode .enrollment-fingerprint .note-card i {
+  color: #5dade2;
+}
+
+.enrollment-fingerprint .note-card strong {
+  color: #2c3e50;
+}
+
+html.dark-mode .enrollment-fingerprint .note-card strong {
+  color: #ecf0f1;
 }
 
 /* Tips Section */
