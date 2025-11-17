@@ -413,6 +413,22 @@ class CollaborationManager {
   }
 
   /**
+   * Format field name for display (convert lt1/gt1 to < and >)
+   */
+  _formatFieldName(field) {
+    if (!field) return field;
+    
+    // Replace _lt1, _gt1, etc. with symbols
+    return field
+      .replace(/_lt1/g, ' <1')
+      .replace(/_gt1/g, ' >1')
+      .replace(/_lt/g, ' <')
+      .replace(/_gt/g, ' >')
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, l => l.toUpperCase()); // Capitalize words
+  }
+
+  /**
    * Handle inventory change from another user
    */
   _handleInventoryChange(data) {
@@ -420,8 +436,9 @@ class CollaborationManager {
 
     console.log('[Collaboration] Inventory changed by', username, ':', data);
 
-    // Show notification
-    showToast(`${username} updated ${field} for ${sku}`, 'info');
+    // Show notification with formatted field name
+    const formattedField = this._formatFieldName(field);
+    showToast(`${username} updated ${formattedField} for ${sku}`, 'info');
 
     // Trigger a data refresh
     this._triggerDataRefresh({ sku, field, new_value, update_type, username });

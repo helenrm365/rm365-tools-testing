@@ -142,14 +142,7 @@ td[data-field] {
   overflow: visible !important; /* Prevent avatar cutoff */
 }
 
-/* Local user's own selection (green highlight - sharp corners) */
-td[contenteditable="true"]:focus {
-  outline: none;
-  background-color: rgba(118, 161, 43, 0.15) !important;
-  box-shadow: inset 0 0 0 3px #76a12b !important;
-  border-radius: 0 !important; /* Sharp corners */
-  transition: background-color 0.2s ease, box-shadow 0.2s ease;
-}
+/* Local user's own selection styling is now handled in table.css to avoid duplication */
 
 /* Cell being edited by another remote user */
 td.collab-cell-editing {
@@ -192,60 +185,60 @@ td.collab-cell-editing:focus-visible {
   outline: none;
 }
 
-/* User indicator badge on field */
+/* User indicator badge on field - smaller size, positioned in bottom-right */
 .collab-user-indicator {
   position: absolute;
-  top: 50%;
-  left: -16px; /* Moved slightly further left to prevent cutoff */
-  transform: translateY(-50%);
-  width: 26px;
-  height: 26px;
+  bottom: 4px;
+  right: 4px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.65rem;
+  font-size: 0.55rem;
   font-weight: 700;
   color: #ffffff;
   background-color: #667eea;
   border: 2px solid #ffffff;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
-  z-index: 1000; /* Higher z-index to ensure visibility */
-  animation: fadeInScale 0.3s ease;
+  z-index: 1000;
   pointer-events: none;
   cursor: default;
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
-/* Stack indicators for multiple users */
+/* Show indicator when parent cell is hovered or has class to show */
+td[data-field]:hover .collab-user-indicator,
+td[data-field].show-collab-indicator .collab-user-indicator {
+  opacity: 1;
+}
+
+/* Stack indicators for multiple users - now in bottom-right corner */
 .collab-user-indicator:nth-of-type(1) {
-  left: -16px;
-  top: 50%;
+  bottom: 4px;
+  right: 4px;
 }
 
 .collab-user-indicator:nth-of-type(2) {
-  left: -16px;
-  top: calc(50% + 24px);
+  bottom: 4px;
+  right: 28px;
 }
 
 .collab-user-indicator:nth-of-type(3) {
-  left: -16px;
-  top: calc(50% - 24px);
+  bottom: 28px;
+  right: 4px;
 }
 
 .collab-user-indicator:nth-of-type(4) {
-  left: -16px;
-  top: calc(50% + 48px);
+  bottom: 28px;
+  right: 28px;
 }
 
-@keyframes fadeInScale {
-  from {
-    opacity: 0;
-    transform: scale(0.5);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+/* Always keep the editing border visible */
+td.collab-cell-editing {
+  /* Border stays visible even when indicator is hidden */
 }
 
 /* ============================================================================
