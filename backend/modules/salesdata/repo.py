@@ -630,28 +630,37 @@ class SalesDataRepo:
                 SELECT customer_email FROM condensed_sales_excluded_customers
                 WHERE region = %s
             """, (region,))
-            excluded_emails = {row[0] for row in cursor.fetchall()}
+            excluded_emails = {row[0].lower().strip() if row[0] else None for row in cursor.fetchall()}
+            excluded_emails.discard(None)  # Remove None if it was added
             
             # Get excluded customer groups
             cursor.execute("""
                 SELECT customer_group FROM condensed_sales_excluded_customer_groups
                 WHERE region = %s
             """, (region,))
-            excluded_groups = {row[0] for row in cursor.fetchall()}
+            excluded_groups = {row[0].strip() if row[0] else None for row in cursor.fetchall()}
+            excluded_groups.discard(None)  # Remove None if it was added
+            
+            logger.info(f"Excluded emails: {excluded_emails}")
+            logger.info(f"Excluded groups: {excluded_groups}")
             
             # Filter and aggregate in Python with currency conversion
             sku_aggregates = {}
             filtered_count = 0
+            customer_filtered_count = 0
+            group_filtered_count = 0
             
             for row in all_rows:
                 sku, name, qty, grand_total, currency, customer_email, customer_group, created_at = row
                 
-                # Skip excluded customers
-                if customer_email in excluded_emails:
+                # Skip excluded customers (case-insensitive comparison)
+                if customer_email and customer_email.lower().strip() in excluded_emails:
+                    customer_filtered_count += 1
                     continue
                 
-                # Skip excluded customer groups
-                if customer_group in excluded_groups:
+                # Skip excluded customer groups (exact match, but trimmed)
+                if customer_group and customer_group.strip() in excluded_groups:
+                    group_filtered_count += 1
                     continue
                 
                 # Apply quantity threshold filter
@@ -691,12 +700,18 @@ class SalesDataRepo:
             
             conn.commit()
             
-            logger.info(f"✅ Refreshed {condensed_table}: {rows_affected} SKUs aggregated (filtered {filtered_count} orders with thresholds)")
+            logger.info(f"✅ Refreshed {condensed_table}: {rows_affected} SKUs aggregated")
+            logger.info(f"   Filtered: {customer_filtered_count} by customer email, {group_filtered_count} by customer group, {filtered_count} by thresholds")
             
             return {
                 "success": True,
                 "rows_aggregated": rows_affected,
-                "table": condensed_table
+                "table": condensed_table,
+                "filters_applied": {
+                    "customers": customer_filtered_count,
+                    "customer_groups": group_filtered_count,
+                    "thresholds": filtered_count
+                }
             }
             
         except Exception as e:
@@ -1183,13 +1198,16 @@ class SalesDataRepo:
             conn = get_products_connection()
             cursor = conn.cursor()
             
+            # Normalize email to lowercase for consistent comparison
+            normalized_email = email.lower().strip()
+            
             cursor.execute("""
                 INSERT INTO condensed_sales_excluded_customers 
                 (region, customer_email, customer_full_name, added_by)
                 VALUES (%s, %s, %s, %s)
                 ON CONFLICT (region, customer_email) DO NOTHING
                 RETURNING id
-            """, (region, email, full_name, username))
+            """, (region, normalized_email, full_name, username))
             
             result = cursor.fetchone()
             conn.commit()
@@ -1390,7 +1408,12 @@ class SalesDataRepo:
             cursor.execute(query)
             rows = cursor.fetchall()
             
-            return [row[0] for row in rows]
+            # Return trimmed values
+            groups = [row[0].strip() for row in rows if row[0]]
+            
+            logger.info(f"Customer groups in {region}: {groups}")
+            
+            return groups
             
         except Exception as e:
             logger.error(f"Error getting customer groups: {e}")
@@ -1445,13 +1468,16 @@ class SalesDataRepo:
             conn = get_products_connection()
             cursor = conn.cursor()
             
+            # Trim whitespace for consistent comparison
+            normalized_group = customer_group.strip()
+            
             cursor.execute("""
                 INSERT INTO condensed_sales_excluded_customer_groups 
                 (region, customer_group, added_by)
                 VALUES (%s, %s, %s)
                 ON CONFLICT (region, customer_group) DO NOTHING
                 RETURNING id
-            """, (region, customer_group, username))
+            """, (region, normalized_group, username))
             
             result = cursor.fetchone()
             conn.commit()
