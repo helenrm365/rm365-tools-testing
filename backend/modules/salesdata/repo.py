@@ -101,6 +101,30 @@ class SalesDataRepo:
             else:
                 logger.info(f"ℹ️  Table already exists: condensed_sales_excluded_customers")
             
+            # Create excluded customer groups table for 6M condensed sales filters
+            cursor.execute("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_schema = 'public' 
+                    AND table_name = 'condensed_sales_excluded_customer_groups'
+                )
+            """)
+            
+            if not cursor.fetchone()[0]:
+                cursor.execute("""
+                    CREATE TABLE condensed_sales_excluded_customer_groups (
+                        id SERIAL PRIMARY KEY,
+                        region VARCHAR(10) NOT NULL,
+                        customer_group VARCHAR(255) NOT NULL,
+                        added_by VARCHAR(100),
+                        added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE(region, customer_group)
+                    )
+                """)
+                logger.info(f"✅ Created table: condensed_sales_excluded_customer_groups")
+            else:
+                logger.info(f"ℹ️  Table already exists: condensed_sales_excluded_customer_groups")
+            
             # Create grand total threshold table for 6M condensed sales filters
             cursor.execute("""
                 SELECT EXISTS (
@@ -574,6 +598,7 @@ class SalesDataRepo:
                     s.grand_total,
                     s.currency,
                     s.customer_email,
+                    s.customer_group_code,
                     s.created_at
                 FROM {sales_table} s
                 LEFT JOIN sku_aliases sa ON s.sku = sa.alias_sku
@@ -607,15 +632,26 @@ class SalesDataRepo:
             """, (region,))
             excluded_emails = {row[0] for row in cursor.fetchall()}
             
+            # Get excluded customer groups
+            cursor.execute("""
+                SELECT customer_group FROM condensed_sales_excluded_customer_groups
+                WHERE region = %s
+            """, (region,))
+            excluded_groups = {row[0] for row in cursor.fetchall()}
+            
             # Filter and aggregate in Python with currency conversion
             sku_aggregates = {}
             filtered_count = 0
             
             for row in all_rows:
-                sku, name, qty, grand_total, currency, customer_email, created_at = row
+                sku, name, qty, grand_total, currency, customer_email, customer_group, created_at = row
                 
                 # Skip excluded customers
                 if customer_email in excluded_emails:
+                    continue
+                
+                # Skip excluded customer groups
+                if customer_group in excluded_groups:
                     continue
                 
                 # Apply quantity threshold filter
@@ -1329,6 +1365,150 @@ class SalesDataRepo:
             if conn:
                 conn.rollback()
             logger.error(f"Error setting qty threshold: {e}")
+            raise
+        finally:
+            if conn:
+                cursor.close()
+                return_products_connection(conn)
+    
+    def get_customer_groups(self, region: str) -> List[str]:
+        """Get all distinct customer groups for a region"""
+        conn = None
+        try:
+            conn = get_products_connection()
+            cursor = conn.cursor()
+            
+            table_name = f"{region.lower()}_sales_data"
+            query = f"""
+                SELECT DISTINCT customer_group_code 
+                FROM {table_name}
+                WHERE customer_group_code IS NOT NULL 
+                AND customer_group_code != ''
+                ORDER BY customer_group_code
+            """
+            
+            cursor.execute(query)
+            rows = cursor.fetchall()
+            
+            return [row[0] for row in rows]
+            
+        except Exception as e:
+            logger.error(f"Error getting customer groups: {e}")
+            raise
+        finally:
+            if conn:
+                cursor.close()
+                return_products_connection(conn)
+    
+    def get_excluded_customer_groups(self, region: str) -> List[Dict[str, Any]]:
+        """Get list of excluded customer groups for a region"""
+        conn = None
+        try:
+            conn = get_products_connection()
+            cursor = conn.cursor()
+            
+            query = """
+                SELECT 
+                    id, customer_group, 
+                    added_by, added_at
+                FROM condensed_sales_excluded_customer_groups
+                WHERE region = %s
+                ORDER BY customer_group
+            """
+            
+            cursor.execute(query, (region,))
+            rows = cursor.fetchall()
+            
+            groups = []
+            for row in rows:
+                groups.append({
+                    "id": row[0],
+                    "customer_group": row[1],
+                    "added_by": row[2],
+                    "added_at": row[3].isoformat() if row[3] else None
+                })
+            
+            return groups
+            
+        except Exception as e:
+            logger.error(f"Error getting excluded customer groups: {e}")
+            raise
+        finally:
+            if conn:
+                cursor.close()
+                return_products_connection(conn)
+    
+    def add_excluded_customer_group(self, region: str, customer_group: str, username: str) -> Dict[str, Any]:
+        """Add a customer group to the exclusion list"""
+        conn = None
+        try:
+            conn = get_products_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                INSERT INTO condensed_sales_excluded_customer_groups 
+                (region, customer_group, added_by)
+                VALUES (%s, %s, %s)
+                ON CONFLICT (region, customer_group) DO NOTHING
+                RETURNING id
+            """, (region, customer_group, username))
+            
+            result = cursor.fetchone()
+            conn.commit()
+            
+            if result:
+                return {
+                    "success": True,
+                    "message": f"Customer group '{customer_group}' added to exclusion list",
+                    "id": result[0]
+                }
+            else:
+                return {
+                    "success": False,
+                    "message": f"Customer group '{customer_group}' already in exclusion list"
+                }
+            
+        except Exception as e:
+            if conn:
+                conn.rollback()
+            logger.error(f"Error adding excluded customer group: {e}")
+            raise
+        finally:
+            if conn:
+                cursor.close()
+                return_products_connection(conn)
+    
+    def remove_excluded_customer_group(self, group_id: int) -> Dict[str, Any]:
+        """Remove a customer group from the exclusion list"""
+        conn = None
+        try:
+            conn = get_products_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                DELETE FROM condensed_sales_excluded_customer_groups 
+                WHERE id = %s
+                RETURNING customer_group
+            """, (group_id,))
+            
+            result = cursor.fetchone()
+            conn.commit()
+            
+            if result:
+                return {
+                    "success": True,
+                    "message": f"Customer group '{result[0]}' removed from exclusion list"
+                }
+            else:
+                return {
+                    "success": False,
+                    "message": "Customer group not found"
+                }
+            
+        except Exception as e:
+            if conn:
+                conn.rollback()
+            logger.error(f"Error removing excluded customer group: {e}")
             raise
         finally:
             if conn:

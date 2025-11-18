@@ -8,10 +8,14 @@ const API = '/api/v1/salesdata';
 let currentRegion = null;
 let searchDebounceTimer = null;
 let excludedCustomers = [];
+let excludedCustomerGroups = [];
+let availableCustomerGroups = [];
 let currentThreshold = null;
 let currentQtyThreshold = null;
 let pendingCustomerAdds = []; // Customers to be added when Apply is clicked
 let pendingCustomerRemoves = []; // Customer IDs to be removed when Apply is clicked
+let pendingGroupAdds = []; // Customer groups to be added when Apply is clicked
+let pendingGroupRemoves = []; // Customer group IDs to be removed when Apply is clicked
 let exchangeRates = null; // Cached exchange rates
 let conversionDebounceTimer = null; // Debounce timer for currency conversion updates
 
@@ -24,12 +28,16 @@ export function showFiltersModal(region) {
     // Reset pending changes
     pendingCustomerAdds = [];
     pendingCustomerRemoves = [];
+    pendingGroupAdds = [];
+    pendingGroupRemoves = [];
     
     const modal = createFiltersModal(region);
     document.body.appendChild(modal);
     
     // Load initial data
     loadExcludedCustomers();
+    loadCustomerGroups();
+    loadExcludedCustomerGroups();
     loadThreshold();
     loadQtyThreshold();
     loadExchangeRates(region);
@@ -86,6 +94,40 @@ function createFiltersModal(region) {
                     
                     <div class="excluded-customers-list collapsed" id="excluded-list-${region}">
                         <div class="excluded-customers-empty">No customers excluded yet</div>
+                    </div>
+                </div>
+                
+                <!-- Customer Group Exclusions -->
+                <div class="filter-section">
+                    <div class="filter-section-header">
+                        <span class="filter-section-icon">👨‍👩‍👧‍👦</span>
+                        <h3 class="filter-section-title">Excluded Customer Groups</h3>
+                    </div>
+                    <p class="filter-section-description">
+                        Orders from these customer groups will not be included in the 6-month condensed sales data.
+                    </p>
+                    
+                    <div class="customer-group-select-container">
+                        <select 
+                            class="customer-group-select" 
+                            id="customer-group-select-${region}"
+                        >
+                            <option value="">Select a customer group to exclude...</option>
+                        </select>
+                        <button class="add-group-btn" id="add-group-btn-${region}">
+                            <i class="fas fa-plus"></i> Add
+                        </button>
+                    </div>
+                    
+                    <div class="excluded-groups-header" id="excluded-groups-header-${region}">
+                        <span class="excluded-groups-count" id="excluded-groups-count-${region}">0 groups excluded</span>
+                        <button class="excluded-groups-toggle" id="excluded-groups-toggle-${region}">
+                            <span class="toggle-icon">▼</span> Show List
+                        </button>
+                    </div>
+                    
+                    <div class="excluded-groups-list collapsed" id="excluded-groups-list-${region}">
+                        <div class="excluded-groups-empty">No customer groups excluded yet</div>
                     </div>
                 </div>
                 
@@ -208,6 +250,35 @@ function setupEventListeners(region) {
             } else {
                 excludedList.classList.add('collapsed');
                 toggleBtn.innerHTML = '<span class="toggle-icon">▼</span> Show List';
+            }
+        });
+    }
+    
+    // Customer group add button
+    const addGroupBtn = document.getElementById(`add-group-btn-${region}`);
+    const groupSelect = document.getElementById(`customer-group-select-${region}`);
+    if (addGroupBtn && groupSelect) {
+        addGroupBtn.addEventListener('click', () => {
+            const selectedGroup = groupSelect.value;
+            if (selectedGroup) {
+                addCustomerGroupToPending(selectedGroup);
+                groupSelect.value = '';
+            }
+        });
+    }
+    
+    // Excluded customer groups list toggle
+    const groupsToggleBtn = document.getElementById(`excluded-groups-toggle-${region}`);
+    const excludedGroupsList = document.getElementById(`excluded-groups-list-${region}`);
+    if (groupsToggleBtn && excludedGroupsList) {
+        groupsToggleBtn.addEventListener('click', () => {
+            const isCollapsed = excludedGroupsList.classList.contains('collapsed');
+            if (isCollapsed) {
+                excludedGroupsList.classList.remove('collapsed');
+                groupsToggleBtn.innerHTML = '<span class="toggle-icon">▲</span> Hide List';
+            } else {
+                excludedGroupsList.classList.add('collapsed');
+                groupsToggleBtn.innerHTML = '<span class="toggle-icon">▼</span> Show List';
             }
         });
     }
@@ -388,7 +459,36 @@ async function applyAllFilters(region) {
             }
         }
         
-        // 2. Save grand total threshold (or clear it if empty)
+        // 2. Save customer group exclusions (add and remove)
+        for (const customerGroup of pendingGroupAdds) {
+            try {
+                const response = await post(`${API}/filters/customer-groups/${region}?customer_group=${encodeURIComponent(customerGroup)}`);
+                if (response.status !== 'success' && response.status !== 'info') {
+                    errors.push(`Failed to add ${customerGroup}`);
+                    hasErrors = true;
+                }
+            } catch (error) {
+                console.error('Error adding customer group:', error);
+                errors.push(`Error adding ${customerGroup}`);
+                hasErrors = true;
+            }
+        }
+        
+        for (const groupId of pendingGroupRemoves) {
+            try {
+                const response = await del(`${API}/filters/customer-groups/${groupId}`);
+                if (response.status !== 'success') {
+                    errors.push(`Failed to remove customer group ID ${groupId}`);
+                    hasErrors = true;
+                }
+            } catch (error) {
+                console.error('Error removing customer group:', error);
+                errors.push(`Error removing customer group ID ${groupId}`);
+                hasErrors = true;
+            }
+        }
+        
+        // 3. Save grand total threshold (or clear it if empty)
         const thresholdInput = document.getElementById(`threshold-input-${region}`);
         if (thresholdInput) {
             const value = thresholdInput.value.trim();
@@ -418,7 +518,7 @@ async function applyAllFilters(region) {
             }
         }
         
-        // 3. Save qty threshold (or clear it if empty)
+        // 4. Save qty threshold (or clear it if empty)
         const qtyThresholdInput = document.getElementById(`qty-threshold-input-${region}`);
         if (qtyThresholdInput) {
             const value = qtyThresholdInput.value.trim();
@@ -448,7 +548,7 @@ async function applyAllFilters(region) {
             }
         }
         
-        // 4. Refresh 6M condensed data
+        // 5. Refresh 6M condensed data
         if (!hasErrors) {
             showToast('💾 Filters saved! Refreshing 6M condensed data...', 'info');
             
@@ -687,6 +787,177 @@ function removeExcludedCustomer(customerId) {
         
         // Refresh display to show pending change
         displayExcludedCustomers();
+    }
+}
+
+/**
+ * Load available customer groups for a region
+ */
+async function loadCustomerGroups() {
+    if (!currentRegion) return;
+    
+    try {
+        const response = await get(`${API}/filters/customer-groups/${currentRegion}`);
+        
+        if (response.status === 'success') {
+            availableCustomerGroups = response.customer_groups || [];
+            displayCustomerGroupsDropdown();
+        }
+    } catch (error) {
+        console.error('Error loading customer groups:', error);
+    }
+}
+
+/**
+ * Display customer groups in dropdown
+ */
+function displayCustomerGroupsDropdown() {
+    const select = document.getElementById(`customer-group-select-${currentRegion}`);
+    if (!select) return;
+    
+    // Clear existing options except the first one
+    select.innerHTML = '<option value="">Select a customer group to exclude...</option>';
+    
+    // Add options for each customer group
+    availableCustomerGroups.forEach(group => {
+        const option = document.createElement('option');
+        option.value = group;
+        option.textContent = group;
+        select.appendChild(option);
+    });
+}
+
+/**
+ * Load excluded customer groups list
+ */
+async function loadExcludedCustomerGroups() {
+    if (!currentRegion) return;
+    
+    try {
+        const response = await get(`${API}/filters/excluded-customer-groups/${currentRegion}`);
+        
+        if (response.status === 'success') {
+            excludedCustomerGroups = response.customer_groups || [];
+            displayExcludedCustomerGroups();
+        }
+    } catch (error) {
+        console.error('Error loading excluded customer groups:', error);
+    }
+}
+
+/**
+ * Display excluded customer groups list
+ */
+function displayExcludedCustomerGroups() {
+    if (!currentRegion) return;
+    
+    const listContainer = document.getElementById(`excluded-groups-list-${currentRegion}`);
+    const countDisplay = document.getElementById(`excluded-groups-count-${currentRegion}`);
+    
+    if (!listContainer || !countDisplay) return;
+    
+    // Combine current exclusions with pending adds, remove pending removes
+    const displayGroups = [
+        ...excludedCustomerGroups.filter(g => !pendingGroupRemoves.includes(g.id)),
+        ...pendingGroupAdds.map(group => ({ customer_group: group, isPending: true }))
+    ];
+    
+    // Update count
+    countDisplay.textContent = `${displayGroups.length} group${displayGroups.length !== 1 ? 's' : ''} excluded`;
+    
+    if (displayGroups.length === 0) {
+        listContainer.innerHTML = '<div class="excluded-groups-empty">No customer groups excluded yet</div>';
+        return;
+    }
+    
+    // Display list of excluded groups
+    listContainer.innerHTML = displayGroups.map(group => {
+        const isPendingRemove = group.id && pendingGroupRemoves.includes(group.id);
+        const itemClass = group.isPending ? 'excluded-group-item pending-add' : 
+                         isPendingRemove ? 'excluded-group-item pending-remove' : 
+                         'excluded-group-item';
+        
+        const groupId = group.isPending ? `pending-${pendingGroupAdds.indexOf(group.customer_group)}` : group.id;
+        
+        return `
+            <div class="${itemClass}">
+                <div class="excluded-group-info">
+                    <div class="excluded-group-name">${group.customer_group}</div>
+                    ${group.isPending ? 
+                        '<span class="badge badge-pending">Pending</span>' : 
+                        isPendingRemove ? 
+                        '<span class="badge badge-removing">Removing...</span>' : ''}
+                </div>
+                <button class="excluded-group-remove-btn" data-id="${groupId}">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+    }).join('');
+    
+    // Add click handlers for remove buttons
+    listContainer.querySelectorAll('.excluded-group-remove-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const groupId = btn.dataset.id;
+            if (groupId.startsWith('pending-')) {
+                // Remove from pending adds
+                const idx = parseInt(groupId.split('-')[1]);
+                const removed = pendingGroupAdds.splice(idx, 1)[0];
+                showToast(`📝 Cancelled excluding ${removed}`, 'info');
+                displayExcludedCustomerGroups();
+            } else {
+                const id = parseInt(groupId);
+                if (pendingGroupRemoves.includes(id)) {
+                    // Undo the pending remove
+                    const idx = pendingGroupRemoves.indexOf(id);
+                    pendingGroupRemoves.splice(idx, 1);
+                    const group = excludedCustomerGroups.find(g => g.id === id);
+                    showToast(`📝 Cancelled removing ${group?.customer_group || 'group'}`, 'info');
+                    displayExcludedCustomerGroups();
+                } else {
+                    // Stage for removal
+                    removeCustomerGroupFromPending(id);
+                }
+            }
+        });
+    });
+}
+
+/**
+ * Add customer group to pending list
+ */
+function addCustomerGroupToPending(customerGroup) {
+    // Check if already in current exclusions or pending adds
+    const alreadyExcluded = excludedCustomerGroups.some(g => g.customer_group === customerGroup);
+    const alreadyPending = pendingGroupAdds.includes(customerGroup);
+    
+    if (alreadyExcluded || alreadyPending) {
+        showToast(`ℹ️ ${customerGroup} is already in the exclusion list`, 'info');
+        return;
+    }
+    
+    // Add to pending adds
+    pendingGroupAdds.push(customerGroup);
+    showToast(`📝 ${customerGroup} will be excluded (click Apply to save)`, 'info');
+    
+    // Refresh display to show pending change
+    displayExcludedCustomerGroups();
+}
+
+/**
+ * Remove customer group from pending list
+ */
+function removeCustomerGroupFromPending(groupId) {
+    // Find the group in current exclusions
+    const group = excludedCustomerGroups.find(g => g.id === groupId);
+    
+    if (group) {
+        // Add to pending removes
+        pendingGroupRemoves.push(groupId);
+        showToast(`📝 ${group.customer_group} will be removed (click Apply to save)`, 'info');
+        
+        // Refresh display to show pending change
+        displayExcludedCustomerGroups();
     }
 }
 

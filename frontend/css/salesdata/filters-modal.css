@@ -306,6 +306,173 @@
     font-size: 0.875rem;
 }
 
+/* Customer Group Select */
+.customer-group-select-container {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.customer-group-select {
+    flex: 1;
+    padding: var(--input-padding-y, 0.75rem) var(--input-padding-x, 1rem);
+    min-height: var(--input-height, 44px);
+    background: var(--input-bg, #2a2a2a);
+    border: 1px solid var(--border-color, #333);
+    border-radius: 8px;
+    color: var(--text-primary, #fff);
+    font-size: 0.9375rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.customer-group-select:focus {
+    outline: none;
+    border-color: var(--accent-color, #0078d4);
+    box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.1);
+}
+
+.customer-group-select option {
+    background: var(--surface-color, #1e1e1e);
+    color: var(--text-primary, #fff);
+}
+
+.add-group-btn {
+    padding: 0 24px;
+    min-height: var(--input-height, 44px);
+    background: var(--primary-color, #2196f3);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+.add-group-btn:hover {
+    background: var(--primary-hover, #1976d2);
+    transform: translateY(-1px);
+}
+
+.add-group-btn:active {
+    transform: translateY(0);
+}
+
+/* Excluded Customer Groups Header */
+.excluded-groups-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    margin-bottom: 8px;
+}
+
+.excluded-groups-count {
+    font-size: 0.875rem;
+    color: var(--text-secondary, #999);
+    font-weight: 500;
+}
+
+.excluded-groups-toggle {
+    background: var(--input-bg, #2a2a2a);
+    border: 1px solid var(--border-color, #333);
+    color: var(--text-primary, #fff);
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+}
+
+.excluded-groups-toggle:hover {
+    background: var(--surface-color, #1e1e1e);
+    border-color: var(--primary-color, #2196f3);
+}
+
+/* Excluded Customer Groups List */
+.excluded-groups-list {
+    max-height: 200px;
+    overflow-y: auto;
+    background: var(--input-bg, #2a2a2a);
+    border-radius: 8px;
+    padding: 8px;
+    transition: all 0.3s ease;
+}
+
+.excluded-groups-list.collapsed {
+    max-height: 0;
+    padding: 0;
+    opacity: 0;
+    overflow: hidden;
+}
+
+.excluded-group-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    background: var(--surface-color, #1e1e1e);
+    border-radius: 6px;
+    margin-bottom: 6px;
+}
+
+.excluded-group-item:last-child {
+    margin-bottom: 0;
+}
+
+.excluded-group-info {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.excluded-group-name {
+    color: var(--text-primary, #fff);
+    font-weight: 500;
+    font-size: 0.875rem;
+}
+
+.excluded-group-remove-btn {
+    background: none;
+    border: none;
+    color: var(--danger-color, #f44336);
+    cursor: pointer;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    transition: all 0.2s;
+}
+
+.excluded-group-remove-btn:hover {
+    background: rgba(244, 67, 54, 0.1);
+}
+
+.excluded-groups-empty {
+    text-align: center;
+    padding: 24px;
+    color: var(--text-secondary, #999);
+    font-size: 0.875rem;
+}
+
+/* Pending states for customer groups */
+.excluded-group-item.pending-add {
+    border: 2px dashed var(--warning-color, #ff9800);
+    background: rgba(255, 152, 0, 0.05);
+}
+
+.excluded-group-item.pending-remove {
+    opacity: 0.5;
+    border: 2px dashed var(--danger-color, #f44336);
+}
+
 /* Grand Total & Qty Threshold */
 .threshold-input-wrapper {
     position: relative;
@@ -452,22 +619,26 @@
 
 /* Scrollbar styling */
 .excluded-customers-list::-webkit-scrollbar,
+.excluded-groups-list::-webkit-scrollbar,
 .customer-search-results::-webkit-scrollbar {
     width: 6px;
 }
 
 .excluded-customers-list::-webkit-scrollbar-track,
+.excluded-groups-list::-webkit-scrollbar-track,
 .customer-search-results::-webkit-scrollbar-track {
     background: transparent;
 }
 
 .excluded-customers-list::-webkit-scrollbar-thumb,
+.excluded-groups-list::-webkit-scrollbar-thumb,
 .customer-search-results::-webkit-scrollbar-thumb {
     background: var(--border-color, #333);
     border-radius: 3px;
 }
 
 .excluded-customers-list::-webkit-scrollbar-thumb:hover,
+.excluded-groups-list::-webkit-scrollbar-thumb:hover,
 .customer-search-results::-webkit-scrollbar-thumb:hover {
     background: var(--text-tertiary, #666);
 }

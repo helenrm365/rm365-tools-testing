@@ -509,3 +509,65 @@ class SalesDataService:
                 "status": "error",
                 "message": f"Failed to set qty threshold: {str(e)}"
             }
+    
+    def get_customer_groups(self, region: str) -> Dict[str, Any]:
+        """Get all customer groups for a region"""
+        try:
+            groups = self.repo.get_customer_groups(region)
+            return {
+                "status": "success",
+                "customer_groups": groups
+            }
+        except Exception as e:
+            logger.error(f"Error getting customer groups: {e}")
+            return {
+                "status": "error",
+                "message": f"Failed to get customer groups: {str(e)}",
+                "customer_groups": []
+            }
+    
+    def get_excluded_customer_groups(self, region: str) -> Dict[str, Any]:
+        """Get list of excluded customer groups for a region"""
+        try:
+            groups = self.repo.get_excluded_customer_groups(region)
+            return {
+                "status": "success",
+                "customer_groups": groups
+            }
+        except Exception as e:
+            logger.error(f"Error getting excluded customer groups: {e}")
+            return {
+                "status": "error",
+                "message": f"Failed to get excluded customer groups: {str(e)}",
+                "customer_groups": []
+            }
+    
+    def add_excluded_customer_group(self, region: str, customer_group: str, username: str) -> Dict[str, Any]:
+        """Add a customer group to the exclusion list"""
+        try:
+            result = self.repo.add_excluded_customer_group(region, customer_group, username)
+            return {
+                "status": "success",
+                **result
+            }
+        except Exception as e:
+            logger.error(f"Error adding excluded customer group: {e}")
+            return {
+                "status": "error",
+                "message": f"Failed to add customer group: {str(e)}"
+            }
+    
+    def remove_excluded_customer_group(self, group_id: int) -> Dict[str, Any]:
+        """Remove a customer group from the exclusion list"""
+        try:
+            result = self.repo.remove_excluded_customer_group(group_id)
+            return {
+                "status": "success",
+                **result
+            }
+        except Exception as e:
+            logger.error(f"Error removing excluded customer group: {e}")
+            return {
+                "status": "error",
+                "message": f"Failed to remove customer group: {str(e)}"
+            }

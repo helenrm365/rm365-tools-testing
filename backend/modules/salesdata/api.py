@@ -310,6 +310,43 @@ def set_qty_threshold(
     return svc.set_qty_threshold(region, qty_threshold, user.get("username", "unknown"))
 
 
+@router.get("/filters/customer-groups/{region}")
+def get_customer_groups(
+    region: str,
+    user=Depends(get_current_user)
+):
+    """Get all customer groups for a region"""
+    return svc.get_customer_groups(region)
+
+
+@router.get("/filters/excluded-customer-groups/{region}")
+def get_excluded_customer_groups(
+    region: str,
+    user=Depends(get_current_user)
+):
+    """Get list of excluded customer groups for a region"""
+    return svc.get_excluded_customer_groups(region)
+
+
+@router.post("/filters/customer-groups/{region}")
+def add_excluded_customer_group(
+    region: str,
+    customer_group: str,
+    user=Depends(get_current_user)
+):
+    """Add a customer group to the exclusion list"""
+    return svc.add_excluded_customer_group(region, customer_group, user.get("username", "unknown"))
+
+
+@router.delete("/filters/customer-groups/{group_id}")
+def remove_excluded_customer_group(
+    group_id: int,
+    user=Depends(get_current_user)
+):
+    """Remove a customer group from the exclusion list"""
+    return svc.remove_excluded_customer_group(group_id)
+
+
 @router.get("/currency/rates")
 def get_exchange_rates(user=Depends(get_current_user)):
     """Get current exchange rates for currency conversion"""
