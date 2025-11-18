@@ -298,7 +298,7 @@ window.initModernUI = initModernBoxes;
       closeAll();
       wrap.setAttribute('aria-expanded', 'true');
       wrap.classList.add('open');
-      list.setAttribute('aria-hidden', 'false');
+      list.removeAttribute('aria-hidden');
       
       // Force overflow visible on parent containers for attendance pages
       const isAttendancePage = document.querySelector('.attendance-overview, .attendance-manual');
@@ -311,17 +311,14 @@ window.initModernUI = initModernBoxes;
         }
       }
       
-      // No backdrop - dropdowns should not darken the background
-      if (!bd.dataset.bound) {
-        // For closing on outside click
-        const once = ev => {
-          if (!wrap.contains(ev.target)) {
-            document.removeEventListener('click', once, true);
-            closeAll();
-          }
-        };
-        setTimeout(() => document.addEventListener('click', once, true), 0);
-      }
+      // For closing on outside click
+      const once = ev => {
+        if (!wrap.contains(ev.target)) {
+          document.removeEventListener('click', once, true);
+          closeAll();
+        }
+      };
+      setTimeout(() => document.addEventListener('click', once, true), 0);
     }
 
     function updateLabel() {
