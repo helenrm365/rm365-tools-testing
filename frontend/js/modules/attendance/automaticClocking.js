@@ -15,15 +15,19 @@ let state = {
   lastScanTime: 0,
   lastFingerprintTime: 0,
   cardScanErrorCount: 0,
+  fingerprintScanErrorCount: 0,
   nextCardPollDelay: 3000,
   scanCount: 0,
-  recentScans: []
+  recentScans: [],
+  cardServiceAvailable: false,
+  fingerprintServiceAvailable: false
 };
 
 // ====== Constants ======
 const SCAN_COOLDOWN_MS = 2000;
 const FINGERPRINT_COOLDOWN_MS = 3000;
 const MAX_RECENT_SCANS = 10;
+const MAX_CONSECUTIVE_ERRORS = 5; // After this many errors, slow down polling
 
 // SecuGen endpoints to probe for fingerprint scanning
 const SGI_ENDPOINTS = [
@@ -136,6 +140,42 @@ function updateRecentScansTable() {
   tableEl.innerHTML = table;
 }
 
+function updateHardwareStatus() {
+  // Update fingerprint status
+  const fpStatusEl = $('#fingerprintStatus');
+  if (fpStatusEl) {
+    const iconEl = fpStatusEl.querySelector('i');
+    const textEl = fpStatusEl.querySelector('span');
+    
+    if (state.fingerprintServiceAvailable) {
+      if (iconEl) iconEl.className = 'fas fa-check-circle';
+      if (textEl) textEl.textContent = 'Ready';
+      fpStatusEl.style.color = '#28a745';
+    } else {
+      if (iconEl) iconEl.className = 'fas fa-exclamation-triangle';
+      if (textEl) textEl.textContent = 'Service Unavailable';
+      fpStatusEl.style.color = '#dc3545';
+    }
+  }
+  
+  // Update card status
+  const cardStatusEl = $('#cardStatus');
+  if (cardStatusEl) {
+    const iconEl = cardStatusEl.querySelector('i');
+    const textEl = cardStatusEl.querySelector('span');
+    
+    if (state.cardServiceAvailable) {
+      if (iconEl) iconEl.className = 'fas fa-check-circle';
+      if (textEl) textEl.textContent = 'Ready';
+      cardStatusEl.style.color = '#28a745';
+    } else {
+      if (iconEl) iconEl.className = 'fas fa-exclamation-triangle';
+      if (textEl) textEl.textContent = 'Service Unavailable';
+      cardStatusEl.style.color = '#dc3545';
+    }
+  }
+}
+
 // ====== Employee Data Loading ======
 async function loadEmployees() {
   try {
@@ -204,6 +244,11 @@ async function pollFingerprint() {
   try {
     const data = await captureFingerprint(1800);
 
+    // Reset error count on successful connection
+    state.fingerprintScanErrorCount = 0;
+    state.fingerprintServiceAvailable = true;
+    updateHardwareStatus();
+
     // No finger detected or timeout (ErrorCode 54)
     if (!data || typeof data.ErrorCode !== 'number') return;
     if (data.ErrorCode === 54) return;
@@ -211,7 +256,7 @@ async function pollFingerprint() {
     // Handle local errors
     if (data.ErrorCode !== 0) {
       if (data.ErrorCode === 10004) {
-        updateStatus('Fingerprint: Service access error', 'error');
+        console.warn('Fingerprint: Service access error');
       }
       return;
     }
@@ -257,8 +302,19 @@ async function pollFingerprint() {
     }
 
   } catch (error) {
-    // Service might be unavailable - don't spam errors
-    console.debug('Fingerprint scan error:', error);
+    // Track consecutive errors
+    state.fingerprintScanErrorCount++;
+    
+    // Only log errors periodically to avoid spam
+    if (state.fingerprintScanErrorCount === 1 || state.fingerprintScanErrorCount % 10 === 0) {
+      console.warn('Fingerprint service unavailable (attempt ' + state.fingerprintScanErrorCount + ')');
+    }
+    
+    // Update service status
+    if (state.fingerprintScanErrorCount >= MAX_CONSECUTIVE_ERRORS) {
+      state.fingerprintServiceAvailable = false;
+      updateHardwareStatus();
+    }
   } finally {
     state.isProcessingFingerprint = false;
   }
@@ -294,17 +350,13 @@ async function pollCardScan() {
   if (!response) return; // No local bridge available
 
   try {
+    // Reset error count on successful connection
+    state.cardScanErrorCount = 0;
+    state.cardServiceAvailable = true;
+    updateHardwareStatus();
 
     // Treat non-OK responses as "idle" (no card present)
     if (!response.ok) {
-      if (response.status !== 204 && response.status !== 404) {
-        state.cardScanErrorCount++;
-        if (state.cardScanErrorCount > 5) {
-          updateStatus('Card scanner unavailable', 'warning');
-        }
-      } else {
-        state.cardScanErrorCount = 0;
-      }
       state.nextCardPollDelay = 3000;
       return;
     }
@@ -364,15 +416,21 @@ async function pollCardScan() {
     }
 
   } catch (error) {
-    // Network/service errors
+    // Network/service errors - use exponential backoff
     state.cardScanErrorCount++;
-    const backoffMs = Math.min(15000, 3000 * state.cardScanErrorCount);
+    const backoffMs = Math.min(30000, 3000 * Math.pow(1.5, Math.min(state.cardScanErrorCount, 5)));
     state.nextCardPollDelay = backoffMs;
     
-    if (state.cardScanErrorCount > 3) {
-      updateStatus('⚠️ Card service unavailable - retrying...', 'warning');
+    // Only log errors periodically to avoid spam
+    if (state.cardScanErrorCount === 1 || state.cardScanErrorCount % 10 === 0) {
+      console.warn('Card service unavailable (attempt ' + state.cardScanErrorCount + ')');
     }
-    console.error('Card scan error:', error);
+    
+    // Update service status
+    if (state.cardScanErrorCount >= MAX_CONSECUTIVE_ERRORS) {
+      state.cardServiceAvailable = false;
+      updateHardwareStatus();
+    }
   } finally {
     state.isProcessingCard = false;
   }
@@ -401,11 +459,21 @@ function startScanning() {
   state.nextCardPollDelay = 3000;
   cardLoop();
 
-  // Start fingerprint polling
-  pollFingerprint();
-  state.fingerprintPollingInterval = setInterval(pollFingerprint, 1200);
+  // Start fingerprint polling with dynamic interval based on errors
+  const fingerprintLoop = async () => {
+    try {
+      await pollFingerprint();
+    } finally {
+      if (state.isScanning) {
+        // Use longer interval if service is unavailable
+        const interval = state.fingerprintScanErrorCount >= MAX_CONSECUTIVE_ERRORS ? 5000 : 1200;
+        state.fingerprintPollingInterval = setTimeout(fingerprintLoop, interval);
+      }
+    }
+  };
+  fingerprintLoop();
 
-  const startBtn = $('#scanFingerprintBtn');
+  const startBtn = $('#startScanBtn');
   const stopBtn = $('#stopScanBtn');
   
   if (startBtn) {
@@ -432,13 +500,13 @@ function stopScanning() {
   }
   
   if (state.fingerprintPollingInterval) {
-    clearInterval(state.fingerprintPollingInterval);
+    clearTimeout(state.fingerprintPollingInterval);
     state.fingerprintPollingInterval = null;
   }
 
-  updateStatus('Scanning stopped', 'warning');
+  updateHardwareStatus();
 
-  const startBtn = $('#scanFingerprintBtn');
+  const startBtn = $('#startScanBtn');
   const stopBtn = $('#stopScanBtn');
   
   if (startBtn) {
@@ -453,7 +521,7 @@ function stopScanning() {
 
 // ====== Event Handlers ======
 function setupEventHandlers() {
-  const startBtn = $('#scanFingerprintBtn');
+  const startBtn = $('#startScanBtn');
   const stopBtn = $('#stopScanBtn');
 
   if (startBtn) {
@@ -481,9 +549,12 @@ function cleanup() {
     lastScanTime: 0,
     lastFingerprintTime: 0,
     cardScanErrorCount: 0,
+    fingerprintScanErrorCount: 0,
     nextCardPollDelay: 3000,
     scanCount: 0,
-    recentScans: []
+    recentScans: [],
+    cardServiceAvailable: false,
+    fingerprintServiceAvailable: false
   };
 }
 
@@ -499,9 +570,10 @@ export async function init() {
   
   setupEventHandlers();
   
-  updateStatus('Ready to scan', 'info');
+  updateStatus('Checking hardware...', 'scanning');
   updateScanCount();
   updateRecentScansTable();
+  updateHardwareStatus();
   
   // Auto-start scanning
   startScanning();

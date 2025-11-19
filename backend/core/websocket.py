@@ -16,6 +16,10 @@ sio = socketio.AsyncServer(
     cors_allowed_origins='*',
     logger=True,
     engineio_logger=True,
+    ping_timeout=60,  # Increased from default 20s to prevent premature disconnects
+    ping_interval=25,  # Send ping every 25s
+    max_http_buffer_size=1000000,  # 1MB buffer for large messages
+    allow_upgrades=True,  # Allow upgrade from polling to WebSocket
     # Don't set socketio_path here - let the mount point handle it
 )
 

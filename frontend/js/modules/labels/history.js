@@ -41,6 +41,37 @@ async function loadHistory() {
   }
 }
 
+function setupActionHandlers() {
+  const container = $('#historyTable');
+  if (!container) return;
+  
+  // Use event delegation for dynamically created buttons
+  container.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.action-btn');
+    if (!btn) return;
+    
+    const action = btn.dataset.action;
+    const jobId = parseInt(btn.dataset.jobId);
+    
+    if (!jobId) return;
+    
+    switch (action) {
+      case 'view':
+        await viewJobDetails(jobId);
+        break;
+      case 'pdf':
+        await downloadJobPDF(jobId);
+        break;
+      case 'csv':
+        await downloadJobCSV(jobId);
+        break;
+      case 'delete':
+        await deleteJob(jobId);
+        break;
+    }
+  });
+}
+
 function renderJobsTable() {
   const container = $('#historyTable');
   
@@ -74,20 +105,20 @@ function renderJobsTable() {
             <td style="text-align: center;">${job.total_fr_6m || 0}</td>
             <td style="text-align: center;">
               <div style="display: flex; gap: 0.5rem; justify-content: center;">
-                <button class="modern-button" style="padding: 6px 12px; font-size: 0.9rem;" 
-                        onclick="viewJobDetails(${job.id})" title="View Details">
+                <button class="modern-button action-btn" style="padding: 6px 12px; font-size: 0.9rem;" 
+                        data-action="view" data-job-id="${job.id}" title="View Details">
                   👁️ View
                 </button>
-                <button class="modern-button" style="padding: 6px 12px; font-size: 0.9rem;" 
-                        onclick="downloadJobPDF(${job.id})" title="Download PDF">
+                <button class="modern-button action-btn" style="padding: 6px 12px; font-size: 0.9rem;" 
+                        data-action="pdf" data-job-id="${job.id}" title="Download PDF">
                   📄 PDF
                 </button>
-                <button class="modern-button" style="padding: 6px 12px; font-size: 0.9rem;" 
-                        onclick="downloadJobCSV(${job.id})" title="Download CSV">
+                <button class="modern-button action-btn" style="padding: 6px 12px; font-size: 0.9rem;" 
+                        data-action="csv" data-job-id="${job.id}" title="Download CSV">
                   📊 CSV
                 </button>
-                <button class="modern-button" style="padding: 6px 12px; font-size: 0.9rem; background: #e74c3c;" 
-                        onclick="deleteJob(${job.id})" title="Delete Job">
+                <button class="modern-button action-btn" style="padding: 6px 12px; font-size: 0.9rem; background: #e74c3c;" 
+                        data-action="delete" data-job-id="${job.id}" title="Delete Job">
                   🗑️
                 </button>
               </div>
@@ -116,8 +147,7 @@ function formatDateTime(isoString) {
   }
 }
 
-// Global functions
-window.viewJobDetails = async function(jobId) {
+async function viewJobDetails(jobId) {
   try {
     const detailsDiv = $('#historyDetails');
     const contentDiv = $('#runDetailsContent');
@@ -166,20 +196,24 @@ window.viewJobDetails = async function(jobId) {
         </div>
       </div>
       <div style="margin-top: 1rem; text-align: right;">
-        <button class="modern-button" onclick="closeJobDetails()">Close</button>
+        <button class="modern-button" id="closeDetailsBtn">Close</button>
       </div>
     `;
+    
+    // Add close button handler
+    const closeBtn = $('#closeDetailsBtn');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => {
+        $('#historyDetails').style.display = 'none';
+      });
+    }
   } catch (e) {
     console.error('Error loading job details:', e);
     showToast('❌ Failed to load job details', 'error');
   }
-};
+}
 
-window.closeJobDetails = function() {
-  $('#historyDetails').style.display = 'none';
-};
-
-window.downloadJobPDF = async function(jobId) {
+async function downloadJobPDF(jobId) {
   try {
     showToast('📄 Generating PDF...', 'info');
     await downloadPDF(jobId);
@@ -188,9 +222,9 @@ window.downloadJobPDF = async function(jobId) {
     console.error('Error downloading PDF:', e);
     showToast('❌ Failed to download PDF: ' + e.message, 'error');
   }
-};
+}
 
-window.downloadJobCSV = async function(jobId) {
+async function downloadJobCSV(jobId) {
   try {
     showToast('📊 Generating CSV...', 'info');
     await downloadCSV(jobId);
@@ -199,9 +233,9 @@ window.downloadJobCSV = async function(jobId) {
     console.error('Error downloading CSV:', e);
     showToast('❌ Failed to download CSV: ' + e.message, 'error');
   }
-};
+}
 
-window.deleteJob = async function(jobId) {
+async function deleteJob(jobId) {
   if (!confirm(`Are you sure you want to delete job #${jobId}? This action cannot be undone.`)) {
     return;
   }
@@ -214,7 +248,7 @@ window.deleteJob = async function(jobId) {
     console.error('Error deleting job:', e);
     showToast('❌ Failed to delete job: ' + e.message, 'error');
   }
-};
+}
 
 function wireControls() {
   const limitSelect = $('#limitSelect');
@@ -233,5 +267,6 @@ function wireControls() {
 
 export async function init() {
   wireControls();
+  setupActionHandlers();
   await loadHistory();
 }

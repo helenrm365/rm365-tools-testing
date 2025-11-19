@@ -1,5 +1,5 @@
-// js/modules/enrollment/api.js
-import { get, post, patch, del } from '../../services/api/http.js';
+// js/services/api/enrollmentApi.js
+import { get, post, patch, del } from './http.js';
 const API = '/api/v1/enrollment';   // relative, http.js adds BASE & headers
 
 // ----- Employees -----

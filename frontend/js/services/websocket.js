@@ -47,8 +47,12 @@ class WebSocketService {
         reconnectionAttempts: this.maxReconnectAttempts,
         reconnectionDelay: 1000,
         reconnectionDelayMax: 5000,
-        timeout: 3000, // Reduced from 20s to 3s for faster failure
+        timeout: 10000, // Increased to 10s to allow for slower connections
         upgrade: true, // Allow upgrade from polling to websocket
+        pingTimeout: 60000, // Match server ping_timeout (60s)
+        pingInterval: 25000, // Match server ping_interval (25s)
+        forceNew: false, // Reuse existing connections
+        multiplex: true, // Enable multiplexing
       });
 
       this._setupEventHandlers();
