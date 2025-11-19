@@ -362,7 +362,7 @@ try:
     socket_app = socketio.ASGIApp(
         socketio_server=sio,
         other_asgi_app=fastapi_app,
-        socketio_path='/ws/socket.io'
+        socketio_path='ws/socket.io'  # NOTE: ASGIApp prepends '/', so keep this bare
     )
 
     app = socket_app
