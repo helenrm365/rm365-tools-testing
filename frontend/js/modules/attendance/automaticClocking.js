@@ -39,6 +39,19 @@ const SGI_ENDPOINTS = [
   'http://127.0.0.1:8080/SGIFPCapture'
 ];
 
+const CARD_HEALTH_ENDPOINTS = [
+  'http://localhost:8080/health',
+  'http://127.0.0.1:8080/health'
+];
+
+const CARD_SCAN_ENDPOINTS = [
+  'http://localhost:8080/card/scan',
+  'http://127.0.0.1:8080/card/scan'
+];
+
+const HARDWARE_CHECK_TIMEOUT_MS = 1500;
+const FINGERPRINT_OK_CODES = new Set([0, 54]);
+
 // ====== Utility Functions ======
 function $(sel) { return document.querySelector(sel); }
 
@@ -174,6 +187,159 @@ function updateHardwareStatus() {
       cardStatusEl.style.color = '#dc3545';
     }
   }
+}
+
+function setScannerDisplayState(title, message, isActive) {
+  const titleEl = document.querySelector('.scanner-title');
+  const messageEl = document.querySelector('.scanner-message');
+  const animationEl = $('#scannerAnimation');
+
+  if (titleEl && title) titleEl.textContent = title;
+  if (messageEl && message) messageEl.textContent = message;
+  if (animationEl) {
+    animationEl.style.opacity = isActive ? '1' : '0.35';
+    animationEl.classList.toggle('scanner-active', Boolean(isActive));
+  }
+}
+
+function setStartButtonState({ disabled, label }) {
+  const btn = $('#startScanBtn');
+  if (!btn) return;
+  if (typeof disabled === 'boolean') {
+    btn.disabled = disabled;
+  }
+  if (label) {
+    const labelEl = btn.querySelector('span');
+    if (labelEl) labelEl.textContent = label;
+  }
+}
+
+function setStopButtonState({ disabled }) {
+  const btn = $('#stopScanBtn');
+  if (!btn) return;
+  if (typeof disabled === 'boolean') {
+    btn.disabled = disabled;
+  }
+}
+
+async function fetchJsonWithTimeout(url, options = {}, timeoutMs = HARDWARE_CHECK_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function detectCardAvailability() {
+  for (const endpoint of CARD_HEALTH_ENDPOINTS) {
+    const data = await fetchJsonWithTimeout(endpoint, { cache: 'no-store' });
+    if (data && typeof data.card_available === 'boolean') {
+      return data.card_available;
+    }
+  }
+
+  for (const endpoint of CARD_SCAN_ENDPOINTS) {
+    const data = await fetchJsonWithTimeout(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ timeout: 0 }),
+      cache: 'no-store'
+    }, 2000);
+
+    if (!data) continue;
+    if (data.status === 'success') return true;
+    if (data.status === 'error') {
+      if (data.error && /reader/i.test(data.error)) {
+        return false;
+      }
+      return true;
+    }
+  }
+
+  return false;
+}
+
+async function probeFingerprintEndpoint(endpoint) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), HARDWARE_CHECK_TIMEOUT_MS);
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ Timeout: 500, TemplateFormat: 'ANSI', FakeDetection: 0 }),
+      cache: 'no-store',
+      signal: controller.signal
+    });
+
+    if (!response.ok) return null;
+    const data = await response.json();
+    if (typeof data.ErrorCode !== 'number') return null;
+
+    if (FINGERPRINT_OK_CODES.has(data.ErrorCode)) {
+      return { reachable: true, device: true };
+    }
+
+    if (data.ErrorCode === 55) {
+      return { reachable: true, device: false };
+    }
+
+    return { reachable: true, device: false };
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function detectFingerprintAvailability() {
+  for (const endpoint of SGI_ENDPOINTS) {
+    const result = await probeFingerprintEndpoint(endpoint);
+    if (!result) continue;
+    if (result.device) return true;
+    if (result.reachable && !result.device) return false;
+  }
+
+  return false;
+}
+
+async function evaluateHardwareStatus({ showSpinner = false } = {}) {
+  if (showSpinner) {
+    updateStatus('Checking hardware...', 'scanning');
+  }
+
+  const [fingerprintReady, cardReady] = await Promise.all([
+    detectFingerprintAvailability(),
+    detectCardAvailability()
+  ]);
+
+  state.fingerprintServiceAvailable = fingerprintReady;
+  state.cardServiceAvailable = cardReady;
+  updateHardwareStatus();
+
+  const missing = [];
+  if (!fingerprintReady) missing.push('fingerprint scanner');
+  if (!cardReady) missing.push('card reader');
+  const allReady = missing.length === 0;
+
+  if (!allReady) {
+    setStartButtonState({ disabled: true, label: 'Connect scanners to start' });
+    setStopButtonState({ disabled: true });
+    setScannerDisplayState('Hardware Required', 'Connect both fingerprint and card devices before starting.', false);
+    updateStatus(`Hardware unavailable: ${missing.join(' and ')}`, 'warning');
+    return false;
+  }
+
+  setStartButtonState({ disabled: false, label: 'Start Scanning' });
+  setStopButtonState({ disabled: true });
+  setScannerDisplayState('Awaiting Start', 'Press "Start Scanning" once both scanners are connected.', false);
+  updateStatus('All scanners detected. Press "Start Scanning" to begin.', 'info');
+  return true;
 }
 
 // ====== Employee Data Loading ======
@@ -325,15 +491,10 @@ async function pollCardScan() {
   if (state.isProcessingCard || !state.isScanning) return;
 
   // Use local hardware bridge for card scanning
-  const localEndpoints = [
-    'http://localhost:8080/card/scan',
-    'http://127.0.0.1:8080/card/scan'
-  ];
-
   let response = null;
   
   // Try local endpoints first
-  for (const endpoint of localEndpoints) {
+  for (const endpoint of CARD_SCAN_ENDPOINTS) {
     try {
       response = await fetch(endpoint, {
         method: 'POST',
@@ -437,11 +598,21 @@ async function pollCardScan() {
 }
 
 // ====== Scanning Control ======
-function startScanning() {
+async function startScanning(options = {}) {
   if (state.isScanning) return;
 
+  if (!options.skipHardwareCheck) {
+    const hardwareReady = await evaluateHardwareStatus({ showSpinner: true });
+    if (!hardwareReady) {
+      return;
+    }
+  } else if (!state.fingerprintServiceAvailable || !state.cardServiceAvailable) {
+    return;
+  }
+
   state.isScanning = true;
-  updateStatus('Ready to scan...', 'scanning');
+  updateStatus('Scanning for employees...', 'scanning');
+  setScannerDisplayState('Scanning Active', 'Both methods will automatically clock employees in or out.', true);
 
   // Start card polling with backoff-aware logic
   const cardLoop = async () => {
@@ -465,7 +636,6 @@ function startScanning() {
       await pollFingerprint();
     } finally {
       if (state.isScanning) {
-        // Use longer interval if service is unavailable
         const interval = state.fingerprintScanErrorCount >= MAX_CONSECUTIVE_ERRORS ? 5000 : 1200;
         state.fingerprintPollingInterval = setTimeout(fingerprintLoop, interval);
       }
@@ -473,17 +643,8 @@ function startScanning() {
   };
   fingerprintLoop();
 
-  const startBtn = $('#startScanBtn');
-  const stopBtn = $('#stopScanBtn');
-  
-  if (startBtn) {
-    startBtn.disabled = true;
-    startBtn.textContent = '🔄 Scanning...';
-  }
-  
-  if (stopBtn) {
-    stopBtn.disabled = false;
-  }
+  setStartButtonState({ disabled: true, label: 'Scanning...' });
+  setStopButtonState({ disabled: false });
 }
 
 function stopScanning() {
@@ -505,18 +666,10 @@ function stopScanning() {
   }
 
   updateHardwareStatus();
-
-  const startBtn = $('#startScanBtn');
-  const stopBtn = $('#stopScanBtn');
-  
-  if (startBtn) {
-    startBtn.disabled = false;
-    startBtn.textContent = '🔍 Start Scanning';
-  }
-  
-  if (stopBtn) {
-    stopBtn.disabled = true;
-  }
+  setScannerDisplayState('Scanning Paused', 'Press "Start Scanning" once both scanners are connected.', false);
+  setStartButtonState({ disabled: false, label: 'Start Scanning' });
+  setStopButtonState({ disabled: true });
+  evaluateHardwareStatus({ showSpinner: false });
 }
 
 // ====== Event Handlers ======
@@ -525,7 +678,7 @@ function setupEventHandlers() {
   const stopBtn = $('#stopScanBtn');
 
   if (startBtn) {
-    startBtn.addEventListener('click', startScanning);
+    startBtn.addEventListener('click', () => startScanning());
   }
 
   if (stopBtn) {
@@ -575,8 +728,12 @@ export async function init() {
   updateRecentScansTable();
   updateHardwareStatus();
   
-  // Auto-start scanning
-  startScanning();
+  const hardwareReady = await evaluateHardwareStatus({ showSpinner: false });
+  if (hardwareReady) {
+    await startScanning({ skipHardwareCheck: true });
+  } else {
+    console.warn('Automatic clocking waiting for hardware before starting scans.');
+  }
   
   console.log("✅ Automatic clocking module initialized");
   
