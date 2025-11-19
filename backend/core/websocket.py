@@ -1,10 +1,10 @@
 """
-WebSocket Manager for Real-time Collaboration
+"""WebSocket Manager for Real-time Collaboration
 Handles user presence, cursor positions, and live data updates
 """
 import logging
 from typing import Dict, Optional, Any
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 import socketio
 
@@ -33,12 +33,46 @@ class PresenceManager:
             '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E2'
         ]
         self.color_index = 0
+        # Session timeout: remove inactive users after 1 hour
+        self.session_timeout = timedelta(hours=1)
     
     def get_user_color(self) -> str:
         """Get next available color for user"""
         color = self.user_colors[self.color_index]
         self.color_index = (self.color_index + 1) % len(self.user_colors)
         return color
+    
+    def cleanup_stale_sessions(self):
+        """Remove sessions that haven't been seen in over an hour"""
+        now = datetime.now(timezone.utc)
+        stale_sessions = []
+        
+        for room_id, users in list(self.rooms.items()):
+            for user_id, user_data in list(users.items()):
+                try:
+                    last_seen_str = user_data.get('last_seen')
+                    if last_seen_str:
+                        last_seen = datetime.fromisoformat(last_seen_str.replace('Z', '+00:00'))
+                        if now - last_seen > self.session_timeout:
+                            stale_sessions.append((room_id, user_id, user_data.get('sid')))
+                except Exception as e:
+                    logger.warning(f\"Error parsing last_seen for user {user_id}: {e}\")
+        
+        # Remove stale sessions
+        for room_id, user_id, sid in stale_sessions:
+            if room_id in self.rooms and user_id in self.rooms[room_id]:
+                del self.rooms[room_id][user_id]
+                logger.info(f\"Cleaned up stale session for user {user_id} in room {room_id}\")
+            
+            if sid and sid in self.sessions:
+                del self.sessions[sid]
+            
+            # Clean up empty rooms
+            if room_id in self.rooms and not self.rooms[room_id]:
+                del self.rooms[room_id]
+        
+        if stale_sessions:
+            logger.info(f\"Cleaned up {len(stale_sessions)} stale session(s)\")
     
     async def join_room(self, sid: str, room_id: str, user_id: str, username: str) -> Dict[str, Any]:
         """User joins a collaboration room"""
@@ -54,7 +88,7 @@ class PresenceManager:
             'cursor_position': None,
             'editing_row': None,
             'editing_field': None,
-            'last_seen': datetime.utcnow().isoformat()
+            'last_seen': datetime.now(timezone.utc).isoformat()
         }
         
         self.rooms[room_id][user_id] = user_data
@@ -137,7 +171,7 @@ class PresenceManager:
             self.rooms[room_id][user_id]['cursor_position'] = position
             self.rooms[room_id][user_id]['editing_row'] = editing_row
             self.rooms[room_id][user_id]['editing_field'] = editing_field
-            self.rooms[room_id][user_id]['last_seen'] = datetime.utcnow().isoformat()
+            self.rooms[room_id][user_id]['last_seen'] = datetime.now(timezone.utc).isoformat()
             
             return {
                 'room_id': room_id,
@@ -156,12 +190,30 @@ class PresenceManager:
 presence_manager = PresenceManager()
 
 
+# Periodic cleanup task to remove stale sessions
+async def cleanup_task():
+    """Background task to clean up stale sessions every 15 minutes"""
+    import asyncio
+    while True:
+        await asyncio.sleep(900)  # 15 minutes
+        try:
+            presence_manager.cleanup_stale_sessions()
+        except Exception as e:
+            logger.error(f"Error in cleanup task: {e}")
+
+
 # Socket.IO Event Handlers
 @sio.event
 async def connect(sid, environ):
     """Handle client connection"""
     logger.info(f"Client connected: {sid}")
     await sio.emit('connection_established', {'sid': sid}, room=sid)
+    
+    # Start cleanup task on first connection if not already running
+    if not hasattr(sio, '_cleanup_task_started'):
+        sio._cleanup_task_started = True
+        import asyncio
+        asyncio.create_task(cleanup_task())
 
 
 @sio.event
@@ -236,7 +288,7 @@ async def inventory_update(sid, data):
         'field': data.get('field'),
         'old_value': data.get('old_value'),
         'new_value': data.get('new_value'),
-        'timestamp': datetime.utcnow().isoformat()
+        'timestamp': datetime.now(timezone.utc).isoformat()
     }, room=room_id)
 
 

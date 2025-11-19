@@ -268,15 +268,32 @@ async function pollFingerprint() {
 async function pollCardScan() {
   if (state.isProcessingCard || !state.isScanning) return;
 
+  // Use local hardware bridge for card scanning
+  const localEndpoints = [
+    'http://localhost:8080/card/scan',
+    'http://127.0.0.1:8080/card/scan'
+  ];
+
+  let response = null;
+  
+  // Try local endpoints first
+  for (const endpoint of localEndpoints) {
+    try {
+      response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ timeout: 1 }), // Short timeout for polling
+        cache: 'no-store'
+      });
+      if (response.ok) break;
+    } catch (e) {
+      continue;
+    }
+  }
+  
+  if (!response) return; // No local bridge available
+
   try {
-    const response = await fetch('/api/v1/enrollment/scan/card', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}`
-      },
-      cache: 'no-store'
-    });
 
     // Treat non-OK responses as "idle" (no card present)
     if (!response.ok) {
@@ -294,7 +311,8 @@ async function pollCardScan() {
 
     const data = await response.json();
 
-    if (data && data.uid) {
+    // Local bridge returns: { status: 'success', uid: '...' } or { status: 'error', error: '...' }
+    if (data && data.status === 'success' && data.uid) {
       const uid = String(data.uid).toUpperCase();
       const now = Date.now();
 

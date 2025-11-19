@@ -254,7 +254,8 @@ class SalesDataRepo:
             raise
         finally:
             if conn:
-                cursor.close()
+                if 'cursor' in locals() and cursor:
+                    cursor.close()
                 return_products_connection(conn)
     
     def check_tables_exist(self) -> dict:
@@ -492,7 +493,7 @@ class SalesDataRepo:
                          shipping_address, customer_group_code, imported_at, updated_at)
                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """
-                    now = datetime.utcnow()
+                    now = datetime.now(timezone.utc)
                     cursor.execute(insert_query, (
                         order_number, created_at, sku, name, qty, price, status, currency, 
                         grand_total, customer_email, customer_full_name, billing_address, 
@@ -938,7 +939,8 @@ class SalesDataRepo:
                 if row_dict.get('errors'):
                     try:
                         row_dict['errors'] = json.loads(row_dict['errors'])
-                    except:
+                    except (json.JSONDecodeError, TypeError):
+                        # Keep as string if JSON parsing fails
                         pass
                 data.append(row_dict)
             

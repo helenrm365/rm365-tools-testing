@@ -95,7 +95,7 @@ def convert_to_gbp(amount: float, from_currency: str) -> float:
     
     from_currency = from_currency.upper().strip()
     
-    # Already in GBP
+    # Already in GBP - no conversion needed
     if from_currency == 'GBP':
         return amount
     

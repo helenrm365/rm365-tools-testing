@@ -5,16 +5,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1
 
-# System deps (build + runtime for pyscard, psycopg2-binary is prebuilt)
+# System dependencies for Railway deployment
+# Note: No hardware libraries needed - hardware handled by local-hardware-bridge
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     gcc \
     g++ \
-    libpcsclite1 \
-    libpcsclite-dev \
-    pcscd \
-    swig \
-    pkg-config \
     curl \
     && rm -rf /var/lib/apt/lists/*
 

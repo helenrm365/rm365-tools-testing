@@ -1,5 +1,6 @@
 from __future__ import annotations
 import base64
+import os
 from dataclasses import dataclass
 from datetime import date
 from typing import Any, Dict, List, Optional
@@ -8,8 +9,10 @@ import httpx
 
 from .repo import AttendanceRepo
 
-# Local SecuGen endpoints (same order you used previously)
-_SGI_ENDPOINTS = [
+# SecuGen fingerprint matching service endpoints
+# Can be overridden via SGI_ENDPOINTS environment variable (comma-separated list)
+# Default: local SecuGen service on various common ports
+_DEFAULT_SGI_ENDPOINTS = [
     "https://localhost:8443/SGIMatchScore",
     "https://127.0.0.1:8443/SGIMatchScore",
     "https://localhost:8080/SGIMatchScore",
@@ -17,6 +20,15 @@ _SGI_ENDPOINTS = [
     "http://localhost:8080/SGIMatchScore",
     "http://127.0.0.1:8080/SGIMatchScore",
 ]
+
+def _get_sgi_endpoints() -> List[str]:
+    """Get SGI endpoints from environment or use defaults"""
+    env_endpoints = os.getenv('SGI_ENDPOINTS', '').strip()
+    if env_endpoints:
+        return [e.strip() for e in env_endpoints.split(',') if e.strip()]
+    return _DEFAULT_SGI_ENDPOINTS
+
+_SGI_ENDPOINTS = _get_sgi_endpoints()
 
 @dataclass
 class Match:

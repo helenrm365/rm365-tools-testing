@@ -31,32 +31,77 @@ async function onScan() {
   }
   if (uidBox) uidBox.value = '';
 
-  try {
-    const res = await scanCard();
-    if (res.status === 'scanned' && res.uid) {
-      cache.scannedUid = res.uid;
-      if (uidBox) uidBox.value = res.uid;
-      if (uidDisplay) {
-        uidDisplay.textContent = res.uid;
-        uidDisplay.classList.add('has-value');
+  // Try local hardware bridge first
+  const localEndpoints = [
+    'http://localhost:8080/card/scan',
+    'http://127.0.0.1:8080/card/scan'
+  ];
+
+  let success = false;
+  
+  for (const endpoint of localEndpoints) {
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ timeout: 5 }),
+        cache: 'no-store'
+      });
+      
+      if (response.ok) {
+        const res = await response.json();
+        if (res.status === 'success' && res.uid) {
+          cache.scannedUid = res.uid;
+          if (uidBox) uidBox.value = res.uid;
+          if (uidDisplay) {
+            uidDisplay.textContent = res.uid;
+            uidDisplay.classList.add('has-value');
+          }
+          if (statusText) statusText.textContent = `Card scanned via ${endpoint}`;
+          if (status) status.setAttribute('data-status', 'success');
+          success = true;
+          break;
+        } else if (res.error) {
+          if (statusText) statusText.textContent = res.error;
+          if (status) status.setAttribute('data-status', 'error');
+          return;
+        }
       }
-      if (statusText) statusText.textContent = 'Card scanned successfully';
-      if (status) status.setAttribute('data-status', 'success');
-    } else {
+    } catch (e) {
+      // Try next endpoint
+      continue;
+    }
+  }
+  
+  if (!success) {
+    // Fallback to backend (will fail on Railway but keeps compatibility)
+    try {
+      const res = await scanCard();
+      if (res.status === 'scanned' && res.uid) {
+        cache.scannedUid = res.uid;
+        if (uidBox) uidBox.value = res.uid;
+        if (uidDisplay) {
+          uidDisplay.textContent = res.uid;
+          uidDisplay.classList.add('has-value');
+        }
+        if (statusText) statusText.textContent = 'Card scanned via backend';
+        if (status) status.setAttribute('data-status', 'success');
+      } else {
+        if (uidDisplay) {
+          uidDisplay.innerHTML = '<span class="placeholder-text">No card scanned yet</span>';
+          uidDisplay.classList.remove('has-value');
+        }
+        if (statusText) statusText.textContent = 'Card reader not available. Make sure local hardware bridge is running.';
+        if (status) status.setAttribute('data-status', 'error');
+      }
+    } catch (e) {
       if (uidDisplay) {
         uidDisplay.innerHTML = '<span class="placeholder-text">No card scanned yet</span>';
         uidDisplay.classList.remove('has-value');
       }
-      if (statusText) statusText.textContent = res.detail || 'Failed to read card UID';
+      if (statusText) statusText.textContent = 'Local hardware bridge not running on this PC';
       if (status) status.setAttribute('data-status', 'error');
     }
-  } catch (e) {
-    if (uidDisplay) {
-      uidDisplay.innerHTML = '<span class="placeholder-text">No card scanned yet</span>';
-      uidDisplay.classList.remove('has-value');
-    }
-    if (statusText) statusText.textContent = e.message;
-    if (status) status.setAttribute('data-status', 'error');
   }
 }
 

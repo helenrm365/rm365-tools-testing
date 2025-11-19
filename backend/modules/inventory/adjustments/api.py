@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import List
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 
@@ -150,7 +150,7 @@ async def log_inventory_adjustment(body: AdjustmentLogIn, user=Depends(get_curre
                     'old_value': None,  # Not tracked for adjustments
                     'new_value': update['delta'],
                     'reason': body.reason,
-                    'timestamp': datetime.utcnow().isoformat()
+                    'timestamp': datetime.now(timezone.utc).isoformat()
                 }, room='inventory_management')
         except Exception as ws_error:
             # Don't fail the adjustment if WebSocket broadcast fails

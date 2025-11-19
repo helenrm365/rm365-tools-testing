@@ -9,7 +9,7 @@ import re
 import tempfile
 import time
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, Generator, Iterable, List, Optional, Sequence, Tuple, TypeVar
 
 T = TypeVar("T")
@@ -20,7 +20,7 @@ T = TypeVar("T")
 
 def now_iso() -> str:
     """UTC timestamp in ISO8601 without timezone suffix (frontend-friendly)."""
-    return datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
 
 def today_dmy() -> str:
     """'dd/mm/yy' like your labels use."""

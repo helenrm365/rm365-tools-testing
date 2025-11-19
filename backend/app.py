@@ -224,7 +224,7 @@ def cors_config():
     return {
         'allow_origins': allow_origins,
         'allow_origin_regex': allow_origin_regex,
-        'allow_credentials': False,
+        'allow_credentials': True,  # Match actual CORS middleware setting
     }
 
 @app.get('/api/debug/inventory')
@@ -362,7 +362,7 @@ try:
     socket_app = socketio.ASGIApp(
         socketio_server=sio,
         other_asgi_app=fastapi_app,
-        socketio_path='ws/socket.io'
+        socketio_path='/ws/socket.io'
     )
 
     app = socket_app

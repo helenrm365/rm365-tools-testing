@@ -17,4 +17,4 @@ requests
 certifi
 httpx==0.27.*
 python-socketio
-aioredis
+redis>=4.2.0
