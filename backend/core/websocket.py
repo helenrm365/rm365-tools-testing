@@ -1,6 +1,5 @@
-"""
-"""WebSocket Manager for Real-time Collaboration
-Handles user presence, cursor positions, and live data updates
+"""WebSocket Manager for Real-time Collaboration.
+Handles user presence, cursor positions, and live data updates.
 """
 import logging
 from typing import Dict, Optional, Any
@@ -60,13 +59,13 @@ class PresenceManager:
                         if now - last_seen > self.session_timeout:
                             stale_sessions.append((room_id, user_id, user_data.get('sid')))
                 except Exception as e:
-                    logger.warning(f\"Error parsing last_seen for user {user_id}: {e}\")
+                    logger.warning(f"Error parsing last_seen for user {user_id}: {e}")
         
         # Remove stale sessions
         for room_id, user_id, sid in stale_sessions:
             if room_id in self.rooms and user_id in self.rooms[room_id]:
                 del self.rooms[room_id][user_id]
-                logger.info(f\"Cleaned up stale session for user {user_id} in room {room_id}\")
+                logger.info(f"Cleaned up stale session for user {user_id} in room {room_id}")
             
             if sid and sid in self.sessions:
                 del self.sessions[sid]
@@ -76,7 +75,7 @@ class PresenceManager:
                 del self.rooms[room_id]
         
         if stale_sessions:
-            logger.info(f\"Cleaned up {len(stale_sessions)} stale session(s)\")
+            logger.info(f"Cleaned up {len(stale_sessions)} stale session(s)")
     
     async def join_room(self, sid: str, room_id: str, user_id: str, username: str) -> Dict[str, Any]:
         """User joins a collaboration room"""
