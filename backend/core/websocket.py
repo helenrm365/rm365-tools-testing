@@ -193,6 +193,8 @@ class PresenceManager:
 # Global presence manager instance
 presence_manager = PresenceManager()
 
+# Flag to track if cleanup task has been started
+_cleanup_task_started = False
 
 # Periodic cleanup task to remove stale sessions
 async def cleanup_task():
@@ -210,14 +212,17 @@ async def cleanup_task():
 @sio.event
 async def connect(sid, environ):
     """Handle client connection"""
+    global _cleanup_task_started
+    
     logger.info(f"Client connected: {sid}")
     await sio.emit('connection_established', {'sid': sid}, room=sid)
     
     # Start cleanup task on first connection if not already running
-    if not hasattr(sio, '_cleanup_task_started'):
-        sio._cleanup_task_started = True
+    if not _cleanup_task_started:
+        _cleanup_task_started = True
         import asyncio
         asyncio.create_task(cleanup_task())
+        logger.info("Started background cleanup task")
 
 
 @sio.event
