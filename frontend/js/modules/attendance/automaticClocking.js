@@ -49,7 +49,7 @@ const CARD_SCAN_ENDPOINTS = [
   'http://127.0.0.1:8080/card/scan'
 ];
 
-const HARDWARE_CHECK_TIMEOUT_MS = 1500;
+const HARDWARE_CHECK_TIMEOUT_MS = 900;
 const FINGERPRINT_OK_CODES = new Set([0, 54]);
 
 // ====== Utility Functions ======
@@ -237,21 +237,34 @@ async function fetchJsonWithTimeout(url, options = {}, timeoutMs = HARDWARE_CHEC
 }
 
 async function detectCardAvailability() {
-  for (const endpoint of CARD_HEALTH_ENDPOINTS) {
-    const data = await fetchJsonWithTimeout(endpoint, { cache: 'no-store' });
-    if (data && typeof data.card_available === 'boolean') {
-      return data.card_available;
+  const healthPromise = Promise.allSettled(
+    CARD_HEALTH_ENDPOINTS.map((endpoint) =>
+      fetchJsonWithTimeout(endpoint, { cache: 'no-store' })
+    )
+  );
+
+  const scanPromise = Promise.allSettled(
+    CARD_SCAN_ENDPOINTS.map((endpoint) =>
+      fetchJsonWithTimeout(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ timeout: 0 }),
+        cache: 'no-store'
+      }, 1200)
+    )
+  );
+
+  const healthChecks = await healthPromise;
+  for (const result of healthChecks) {
+    const value = result.status === 'fulfilled' ? result.value : null;
+    if (typeof value?.card_available === 'boolean') {
+      return value.card_available;
     }
   }
 
-  for (const endpoint of CARD_SCAN_ENDPOINTS) {
-    const data = await fetchJsonWithTimeout(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ timeout: 0 }),
-      cache: 'no-store'
-    }, 2000);
-
+  const scanChecks = await scanPromise;
+  for (const result of scanChecks) {
+    const data = result.status === 'fulfilled' ? result.value : null;
     if (!data) continue;
     if (data.status === 'success') return true;
     if (data.status === 'error') {
@@ -298,11 +311,16 @@ async function probeFingerprintEndpoint(endpoint) {
 }
 
 async function detectFingerprintAvailability() {
-  for (const endpoint of SGI_ENDPOINTS) {
-    const result = await probeFingerprintEndpoint(endpoint);
+  const probes = await Promise.allSettled(
+    SGI_ENDPOINTS.map((endpoint) => probeFingerprintEndpoint(endpoint))
+  );
+
+  let reachableButMissing = false;
+  for (const probe of probes) {
+    const result = probe.status === 'fulfilled' ? probe.value : null;
     if (!result) continue;
     if (result.device) return true;
-    if (result.reachable && !result.device) return false;
+    if (result.reachable) reachableButMissing = true;
   }
 
   return false;
@@ -325,20 +343,28 @@ async function evaluateHardwareStatus({ showSpinner = false } = {}) {
   const missing = [];
   if (!fingerprintReady) missing.push('fingerprint scanner');
   if (!cardReady) missing.push('card reader');
-  const allReady = missing.length === 0;
+  const availableCount = 2 - missing.length;
 
-  if (!allReady) {
+  if (availableCount === 0) {
     setStartButtonState({ disabled: true, label: 'Connect scanners to start' });
     setStopButtonState({ disabled: true });
-    setScannerDisplayState('Hardware Required', 'Connect both fingerprint and card devices before starting.', false);
-    updateStatus(`Hardware unavailable: ${missing.join(' and ')}`, 'warning');
+    setScannerDisplayState('Hardware Required', 'Connect at least one fingerprint or card device to begin scanning.', false);
+    updateStatus('No scanners detected. Please connect a fingerprint scanner or card reader.', 'warning');
     return false;
   }
 
   setStartButtonState({ disabled: false, label: 'Start Scanning' });
   setStopButtonState({ disabled: true });
-  setScannerDisplayState('Awaiting Start', 'Press "Start Scanning" once both scanners are connected.', false);
-  updateStatus('All scanners detected. Press "Start Scanning" to begin.', 'info');
+
+  if (availableCount === 2) {
+    setScannerDisplayState('Awaiting Start', 'Press Start Scanning once both scanners are connected.', false);
+    updateStatus('Both scanners detected. Press Start Scanning to begin.', 'info');
+  } else {
+    const online = fingerprintReady ? 'Fingerprint scanner online; card reader offline.' : 'Card reader online; fingerprint scanner offline.';
+    setScannerDisplayState('Partial hardware ready', `${online} Scanning will continue with the available method.`, false);
+    updateStatus(`Partial availability: ${online}`, 'warning');
+  }
+
   return true;
 }
 
@@ -606,42 +632,61 @@ async function startScanning(options = {}) {
     if (!hardwareReady) {
       return;
     }
-  } else if (!state.fingerprintServiceAvailable || !state.cardServiceAvailable) {
+  }
+
+  const usingCard = state.cardServiceAvailable;
+  const usingFingerprint = state.fingerprintServiceAvailable;
+
+  if (!usingCard && !usingFingerprint) {
+    updateStatus('No scanners available to start scanning.', 'warning');
     return;
   }
 
   state.isScanning = true;
-  updateStatus('Scanning for employees...', 'scanning');
-  setScannerDisplayState('Scanning Active', 'Both methods will automatically clock employees in or out.', true);
+  const activeMessage = usingCard && usingFingerprint
+    ? 'Both methods will automatically clock employees in or out.'
+    : usingCard
+      ? 'Card reader will clock employees; fingerprint scanner offline.'
+      : 'Fingerprint scanner will clock employees; card reader offline.';
+  const scanningStatus = usingCard && usingFingerprint
+    ? 'Scanning via fingerprint and card readers...'
+    : usingCard
+      ? 'Scanning via card reader'
+      : 'Scanning via fingerprint reader';
+  updateStatus(scanningStatus, 'scanning');
+  setScannerDisplayState('Scanning Active', activeMessage, true);
 
   // Start card polling with backoff-aware logic
-  const cardLoop = async () => {
-    try {
-      await pollCardScan();
-    } finally {
-      if (state.isScanning) {
-        clearTimeout(state.cardPollingInterval);
-        state.cardPollingInterval = setTimeout(cardLoop, state.nextCardPollDelay);
+  if (usingCard) {
+    const cardLoop = async () => {
+      try {
+        await pollCardScan();
+      } finally {
+        if (state.isScanning && state.cardServiceAvailable) {
+          clearTimeout(state.cardPollingInterval);
+          state.cardPollingInterval = setTimeout(cardLoop, state.nextCardPollDelay);
+        }
       }
-    }
-  };
+    };
 
-  // Start immediately
-  state.nextCardPollDelay = 3000;
-  cardLoop();
+    state.nextCardPollDelay = 3000;
+    cardLoop();
+  }
 
   // Start fingerprint polling with dynamic interval based on errors
-  const fingerprintLoop = async () => {
-    try {
-      await pollFingerprint();
-    } finally {
-      if (state.isScanning) {
-        const interval = state.fingerprintScanErrorCount >= MAX_CONSECUTIVE_ERRORS ? 5000 : 1200;
-        state.fingerprintPollingInterval = setTimeout(fingerprintLoop, interval);
+  if (usingFingerprint) {
+    const fingerprintLoop = async () => {
+      try {
+        await pollFingerprint();
+      } finally {
+        if (state.isScanning && state.fingerprintServiceAvailable) {
+          const interval = state.fingerprintScanErrorCount >= MAX_CONSECUTIVE_ERRORS ? 5000 : 1200;
+          state.fingerprintPollingInterval = setTimeout(fingerprintLoop, interval);
+        }
       }
-    }
-  };
-  fingerprintLoop();
+    };
+    fingerprintLoop();
+  }
 
   setStartButtonState({ disabled: true, label: 'Scanning...' });
   setStopButtonState({ disabled: false });
@@ -666,7 +711,7 @@ function stopScanning() {
   }
 
   updateHardwareStatus();
-  setScannerDisplayState('Scanning Paused', 'Press "Start Scanning" once both scanners are connected.', false);
+  setScannerDisplayState('Scanning Paused', 'Press Start Scanning when you are ready.', false);
   setStartButtonState({ disabled: false, label: 'Start Scanning' });
   setStopButtonState({ disabled: true });
   evaluateHardwareStatus({ showSpinner: false });
