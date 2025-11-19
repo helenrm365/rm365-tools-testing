@@ -498,6 +498,12 @@ html.dark-mode .attendance-automatic .alert-close {
   color: #3b82f6;
 }
 
+/* Scanner status text adjustment for long messages */
+.attendance-automatic #scannerStatus {
+  font-size: 1.5rem;
+  line-height: 1.3;
+}
+
 .attendance-automatic .time-icon {
   background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(124, 58, 237, 0.15));
   color: #8b5cf6;
