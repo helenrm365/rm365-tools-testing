@@ -220,20 +220,27 @@ async def secugen_capture(payload: dict = None):
         sg = secugen.SGFPLib()
         if not sg.Init(secugen.SG_DEV_FDU09A):
              if not sg.Init(secugen.SG_DEV_AUTO):
+                logger.error("SecuGen Init failed: Device not found")
                 return {"ErrorCode": 55, "TemplateBase64": None, "BMPBase64": None}  # Device not found
+        
+        # Explicitly enable Smart Capture and Auto-On for Hamster Pro 30
+        sg.EnableSmartCapture(True)
+        sg.SetAutoOnIRLedTouchOn(True, True)
         
         try:
             # Capture fingerprint with image
+            logger.info("Starting CaptureTemplateWithImage...")
             template, image = sg.CaptureTemplateWithImage(timeout, template_format)
             
             if not template:
+                logger.warning("CaptureTemplateWithImage returned None (Timeout)")
                 return {"ErrorCode": 54, "TemplateBase64": None, "BMPBase64": None}  # Timeout
             
             # Encode as base64
             template_b64 = base64.b64encode(template).decode('utf-8')
             image_b64 = base64.b64encode(image).decode('utf-8') if image else None
             
-            logger.info("SecuGen capture successful")
+            logger.info(f"SecuGen capture successful! Template size: {len(template)}")
             return {
                 "ErrorCode": 0,  # Success
                 "TemplateBase64": template_b64,
