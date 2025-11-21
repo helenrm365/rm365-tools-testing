@@ -53,7 +53,7 @@ const CARD_SCAN_ENDPOINTS = [
   'http://127.0.0.1:8080/card/scan'
 ];
 
-const HARDWARE_CHECK_TIMEOUT_MS = 900;
+const HARDWARE_CHECK_TIMEOUT_MS = 3000;
 const FINGERPRINT_OK_CODES = new Set([0, 54]);
 
 // ====== Utility Functions ======
@@ -289,7 +289,7 @@ async function probeFingerprintEndpoint(endpoint) {
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ Timeout: 500, TemplateFormat: 'ANSI', FakeDetection: 0 }),
+      body: JSON.stringify({ Timeout: 2500, TemplateFormat: 'ANSI', FakeDetection: 0 }),
       cache: 'no-store',
       signal: controller.signal
     });
