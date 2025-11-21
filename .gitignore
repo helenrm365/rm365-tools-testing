@@ -10,6 +10,20 @@ __pycache__/
 *.env
 **/.env
 
+# SSL Certificates
+*.pem
+*.key
+*.crt
+*.cer
+
+# Hardware Config
+.sgfplib_config.ini
+
+# Proprietary SDK / Libraries
+local-hardware-bridge/lib/
+*.dll
+*.lib
+
 # Node/web build artifacts (if you add tooling later)
 dist/
 build/

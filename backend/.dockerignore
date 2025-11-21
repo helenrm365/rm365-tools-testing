@@ -7,6 +7,11 @@ __pycache__/
 .env.*
 venv/
 .venv/
+*.pem
+*.key
+*.dll
+*.lib
+local-hardware-bridge/lib/
 .git
 .gitignore
 .DS_Store

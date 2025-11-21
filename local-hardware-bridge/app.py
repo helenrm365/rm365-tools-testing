@@ -77,10 +77,12 @@ def check_fingerprint_hardware() -> bool:
     """Check if fingerprint reader hardware is available"""
     try:
         # Try to import SecuGen libraries
-        # This is a placeholder - actual implementation depends on SecuGen SDK
-        # import secugen  # Uncomment when SDK is installed
-        # return secugen.is_device_connected()
-        return False  # Return False until SDK is configured
+        import secugen
+        sg = secugen.SGFPLib()
+        if sg.Init():
+            sg.Close()
+            return True
+        return False
     except ImportError:
         return False
     except Exception as e:
@@ -122,63 +124,72 @@ def check_card_hardware() -> bool:
 async def scan_fingerprint(timeout: int = 8000):
     """
     Scan fingerprint using SecuGen reader
-    
-    Args:
-        timeout: Timeout in milliseconds (default: 8000)
-        
-    Returns:
-        FingerprintResponse with base64-encoded template or error
     """
+    print(f"--- Fingerprint scan requested (timeout: {timeout}ms) ---")
     logger.info(f"Fingerprint scan requested (timeout: {timeout}ms)")
     
     try:
-        # Import SecuGen SDK here (lazy import)
-        # Uncomment and modify when you have the SDK installed
-        """
-        from secugen import SGFPLib
+        import secugen
         
         # Initialize SecuGen device
-        sg = SGFPLib()
-        if not sg.Init():
-            raise Exception("Failed to initialize SecuGen device")
+        print("Initializing SecuGen device...")
+        sg = secugen.SGFPLib()
         
-        # Capture fingerprint
-        template = sg.CaptureTemplate(timeout)
+        # Try explicit init for Hamster Pro 30
+        print("Attempting Init with SG_DEV_FDU09A...")
+        if not sg.Init(secugen.SG_DEV_FDU09A): 
+             print("Init with SG_DEV_FDU09A failed. Attempting Init with SG_DEV_AUTO...")
+             if not sg.Init(secugen.SG_DEV_AUTO): # Fallback to Auto
+                print("Init with SG_DEV_AUTO failed.")
+                raise Exception("Failed to initialize SecuGen device")
         
-        if not template:
+        print("Device initialized successfully.")
+        
+        try:
+            # Capture fingerprint
+            print("Starting CaptureTemplate...")
+            print("Please place finger on the sensor now.")
+            
+            # Note: Hamster Pro 30 (U30) uses IR detection. 
+            # The light might not turn on until you place your finger.
+            # We use quality=0 to accept any quality image to avoid timeouts on dry fingers
+            template = sg.CaptureTemplate(timeout, quality=0)
+            
+            if not template:
+                print("CaptureTemplate returned None (Timeout or Error)")
+                return FingerprintResponse(
+                    status="error",
+                    error="No fingerprint detected within timeout period"
+                )
+            
+            print(f"Capture successful. Template size: {len(template)}")
+            
+            # Encode template as base64
+            template_b64 = base64.b64encode(template).decode('utf-8')
+            
+            logger.info("Fingerprint captured successfully")
             return FingerprintResponse(
-                status="error",
-                error="No fingerprint detected within timeout period"
+                status="success",
+                template_b64=template_b64
             )
+        finally:
+            print("Closing device...")
+            sg.Close()
+            print("Device closed.")
         
-        # Encode template as base64
-        template_b64 = base64.b64encode(template).decode('utf-8')
-        
-        logger.info("Fingerprint captured successfully")
-        return FingerprintResponse(
-            status="success",
-            template_b64=template_b64
-        )
-        """
-        
-        # Placeholder response until SDK is installed
+    except ImportError:
+        print("ImportError: secugen module not found or DLL missing")
         raise HTTPException(
             status_code=501,
             detail={
-                "error": "SecuGen SDK not installed",
+                "error": "SecuGen SDK not installed properly",
                 "instructions": [
-                    "1. Download SecuGen SDK from https://www.secugen.com/",
-                    "2. Install the SDK on this PC",
-                    "3. Connect your SecuGen fingerprint reader",
-                    "4. Uncomment the SecuGen integration code in this file",
-                    "5. Restart this service"
+                    "Ensure secugen.py and lib/sgfplib.dll are present"
                 ]
             }
         )
-        
-    except HTTPException:
-        raise
     except Exception as e:
+        print(f"Error scanning fingerprint: {e}")
         logger.error(f"Error scanning fingerprint: {e}")
         return FingerprintResponse(
             status="error",
@@ -204,40 +215,33 @@ async def secugen_capture(payload: dict = None):
     logger.info(f"SecuGen capture requested (timeout: {timeout}ms, format: {template_format})")
     
     try:
-        # Uncomment when SecuGen SDK is installed
-        """
-        from secugen import SGFPLib
+        import secugen
         
-        sg = SGFPLib()
-        if not sg.Init():
-            return {"ErrorCode": 55, "TemplateBase64": None, "BMPBase64": None}  # Device not found
+        sg = secugen.SGFPLib()
+        if not sg.Init(secugen.SG_DEV_FDU09A):
+             if not sg.Init(secugen.SG_DEV_AUTO):
+                return {"ErrorCode": 55, "TemplateBase64": None, "BMPBase64": None}  # Device not found
         
-        # Capture fingerprint with image
-        template, image = sg.CaptureTemplateWithImage(timeout, template_format)
-        
-        if not template:
-            return {"ErrorCode": 54, "TemplateBase64": None, "BMPBase64": None}  # Timeout
-        
-        # Encode as base64
-        template_b64 = base64.b64encode(template).decode('utf-8')
-        image_b64 = base64.b64encode(image).decode('utf-8') if image else None
-        
-        logger.info("SecuGen capture successful")
-        return {
-            "ErrorCode": 0,  # Success
-            "TemplateBase64": template_b64,
-            "BMPBase64": image_b64
-        }
-        """
-        
-        # Return timeout error until SDK is installed
-        return {
-            "ErrorCode": 55,  # Device not found
-            "TemplateBase64": None,
-            "BMPBase64": None,
-            "__note": "SecuGen SDK not installed. Install from https://www.secugen.com/"
-        }
-        
+        try:
+            # Capture fingerprint with image
+            template, image = sg.CaptureTemplateWithImage(timeout, template_format)
+            
+            if not template:
+                return {"ErrorCode": 54, "TemplateBase64": None, "BMPBase64": None}  # Timeout
+            
+            # Encode as base64
+            template_b64 = base64.b64encode(template).decode('utf-8')
+            image_b64 = base64.b64encode(image).decode('utf-8') if image else None
+            
+            logger.info("SecuGen capture successful")
+            return {
+                "ErrorCode": 0,  # Success
+                "TemplateBase64": template_b64,
+                "BMPBase64": image_b64
+            }
+        finally:
+            sg.Close()
+            
     except Exception as e:
         logger.error(f"SecuGen capture error: {e}")
         return {
@@ -362,32 +366,28 @@ async def match_fingerprint(template1_b64: str, template2_b64: str):
         Match score (0-100, higher is better match)
     """
     try:
-        # Uncomment when SecuGen SDK is installed
-        """
-        from secugen import SGFPLib
+        import secugen
         
-        sg = SGFPLib()
-        if not sg.Init():
-            raise Exception("Failed to initialize SecuGen device")
+        sg = secugen.SGFPLib()
+        if not sg.Init(secugen.SG_DEV_FDU09A):
+             if not sg.Init(secugen.SG_DEV_AUTO):
+                raise Exception("Failed to initialize SecuGen device")
         
-        # Decode templates
-        template1 = base64.b64decode(template1_b64)
-        template2 = base64.b64decode(template2_b64)
-        
-        # Match templates
-        score = sg.MatchTemplate(template1, template2)
-        
-        return {
-            "status": "success",
-            "score": score,
-            "matched": score >= 60  # Typical threshold
-        }
-        """
-        
-        raise HTTPException(
-            status_code=501,
-            detail="SecuGen SDK not installed. See /fingerprint/scan endpoint for setup instructions."
-        )
+        try:
+            # Decode templates
+            template1 = base64.b64decode(template1_b64)
+            template2 = base64.b64decode(template2_b64)
+            
+            # Match templates
+            score = sg.MatchTemplate(template1, template2)
+            
+            return {
+                "status": "success",
+                "score": score,
+                "matched": score >= 60  # Typical threshold
+            }
+        finally:
+            sg.Close()
         
     except HTTPException:
         raise
@@ -413,9 +413,25 @@ if __name__ == "__main__":
     logger.info("=" * 60)
     logger.info("")
     
-    uvicorn.run(
-        app,
-        host="127.0.0.1",  # Only accessible from this PC
-        port=8080,
-        log_level="info"
-    )
+    import os
+    ssl_keyfile = "key.pem"
+    ssl_certfile = "cert.pem"
+    
+    if os.path.exists(ssl_keyfile) and os.path.exists(ssl_certfile):
+        logger.info(f"SSL certificates found. Starting in HTTPS mode.")
+        uvicorn.run(
+            app,
+            host="127.0.0.1",
+            port=8080,
+            log_level="info",
+            ssl_keyfile=ssl_keyfile,
+            ssl_certfile=ssl_certfile
+        )
+    else:
+        logger.info("No SSL certificates found. Starting in HTTP mode.")
+        uvicorn.run(
+            app,
+            host="127.0.0.1",  # Only accessible from this PC
+            port=8080,
+            log_level="info"
+        )

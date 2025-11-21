@@ -40,11 +40,15 @@ const SGI_ENDPOINTS = [
 ];
 
 const CARD_HEALTH_ENDPOINTS = [
+  'https://localhost:8080/health',
+  'https://127.0.0.1:8080/health',
   'http://localhost:8080/health',
   'http://127.0.0.1:8080/health'
 ];
 
 const CARD_SCAN_ENDPOINTS = [
+  'https://localhost:8080/card/scan',
+  'https://127.0.0.1:8080/card/scan',
   'http://localhost:8080/card/scan',
   'http://127.0.0.1:8080/card/scan'
 ];

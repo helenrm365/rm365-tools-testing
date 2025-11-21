@@ -2,12 +2,15 @@
 echo Starting RM365 Local Hardware Bridge...
 echo.
 
-REM Activate virtual environment if it exists
-if exist venv\Scripts\activate.bat (
-    call venv\Scripts\activate.bat
-)
+cd /d "%~dp0"
 
-REM Run the service
-python app.py
+REM Check for venv
+if exist venv\Scripts\python.exe (
+    echo Using virtual environment...
+    venv\Scripts\python.exe app.py
+) else (
+    echo Virtual environment not found. Trying system python...
+    python app.py
+)
 
 pause
