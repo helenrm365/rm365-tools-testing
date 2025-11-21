@@ -33,10 +33,8 @@ function explain(code) {
   return map[code] || `code ${code}`;
 }
 
-async function tryLocalSecuGen(timeoutMs = 6000) {
+async function tryLocalSecuGen(timeoutMs = 11000) {
   const endpoints = [
-    'https://localhost:8443/SGIFPCapture',
-    'https://127.0.0.1:8443/SGIFPCapture',
     'https://localhost:8080/SGIFPCapture',
     'https://127.0.0.1:8080/SGIFPCapture',
     'http://localhost:8080/SGIFPCapture',
@@ -87,7 +85,7 @@ async function onScan() {
   if (placeholder) placeholder.style.display = 'flex';
 
   try {
-    const data = await tryLocalSecuGen(6000);
+    const data = await tryLocalSecuGen(11000);
     if (data && data.ErrorCode === 0) {
       state.templateB64 = data.TemplateBase64;
       if (templateBox) templateBox.value = data.TemplateBase64;

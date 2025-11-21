@@ -197,6 +197,34 @@ async def scan_fingerprint(timeout: int = 8000):
         )
 
 
+# Global SecuGen instance to keep device open
+_sg_device = None
+
+def get_secugen_device():
+    global _sg_device
+    try:
+        import secugen
+        if _sg_device is None:
+            _sg_device = secugen.SGFPLib()
+            
+            # Try specific device first (Hamster Pro 30)
+            if not _sg_device.Init(secugen.SG_DEV_FDU09A):
+                # Fallback to auto
+                if not _sg_device.Init(secugen.SG_DEV_AUTO):
+                    _sg_device = None
+                    return None
+            
+            # Configure once
+            _sg_device.EnableSmartCapture(True)
+            _sg_device.SetAutoOnIRLedTouchOn(True, True)
+            logger.info("SecuGen device initialized and kept open.")
+            
+        return _sg_device
+    except Exception as e:
+        logger.error(f"Failed to initialize SecuGen: {e}")
+        _sg_device = None
+        return None
+
 @app.post("/SGIFPCapture")
 async def secugen_capture(payload: dict = None):
     """
@@ -215,17 +243,10 @@ async def secugen_capture(payload: dict = None):
     logger.info(f"SecuGen capture requested (timeout: {timeout}ms, format: {template_format})")
     
     try:
-        import secugen
-        
-        sg = secugen.SGFPLib()
-        if not sg.Init(secugen.SG_DEV_FDU09A):
-             if not sg.Init(secugen.SG_DEV_AUTO):
-                logger.error("SecuGen Init failed: Device not found")
-                return {"ErrorCode": 55, "TemplateBase64": None, "BMPBase64": None}  # Device not found
-        
-        # Explicitly enable Smart Capture and Auto-On for Hamster Pro 30
-        sg.EnableSmartCapture(True)
-        sg.SetAutoOnIRLedTouchOn(True, True)
+        sg = get_secugen_device()
+        if not sg:
+            logger.error("SecuGen Init failed: Device not found")
+            return {"ErrorCode": 55, "TemplateBase64": None, "BMPBase64": None}  # Device not found
         
         try:
             # Capture fingerprint with image
@@ -246,8 +267,17 @@ async def secugen_capture(payload: dict = None):
                 "TemplateBase64": template_b64,
                 "BMPBase64": image_b64
             }
-        finally:
-            sg.Close()
+        except Exception as e:
+            # If capture fails (e.g. device disconnected), reset global instance
+            logger.error(f"Capture failed, resetting device: {e}")
+            global _sg_device
+            if _sg_device:
+                try:
+                    _sg_device.Close()
+                except:
+                    pass
+            _sg_device = None
+            return {"ErrorCode": 10004, "TemplateBase64": None, "BMPBase64": None}
             
     except Exception as e:
         logger.error(f"SecuGen capture error: {e}")

@@ -284,12 +284,12 @@ async function detectCardAvailability() {
 
 async function probeFingerprintEndpoint(endpoint) {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), HARDWARE_CHECK_TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), 11000); // 11s fetch timeout
   try {
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ Timeout: 2500, TemplateFormat: 'ANSI', FakeDetection: 0 }),
+      body: JSON.stringify({ Timeout: 10000, TemplateFormat: 'ANSI', FakeDetection: 0 }), // 10s device timeout
       cache: 'no-store',
       signal: controller.signal
     });
