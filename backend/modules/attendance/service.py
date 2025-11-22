@@ -77,7 +77,7 @@ class AttendanceService:
         return self.repo.get_employee_work_hours(from_date, to_date, location, name_search)
 
     # ---- Fingerprint matching ----
-    def identify_best_match(self, live_template_b64: str, threshold: int = 100, template_format: str = "ANSI") -> Optional[Match]:
+    def identify_best_match(self, live_template_b64: str, threshold: int = 20, template_format: str = "ANSI") -> Optional[Match]:
         """
         Ask the local SGIMatchScore service to compare the live probe with each stored template.
         Returns the best match if score >= threshold.
