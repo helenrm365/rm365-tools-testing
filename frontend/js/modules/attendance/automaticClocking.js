@@ -29,6 +29,17 @@ const FINGERPRINT_COOLDOWN_MS = 3000;
 const MAX_RECENT_SCANS = 10;
 const MAX_CONSECUTIVE_ERRORS = 5; // After this many errors, slow down polling
 
+// SecuGen endpoints to probe for fingerprint scanning
+const SGI_ENDPOINTS = [
+  'http://127.0.0.1:8080/SGIFPCapture',
+  'http://localhost:8080/SGIFPCapture'
+];
+
+const CARD_SCAN_ENDPOINTS = [
+  'http://127.0.0.1:8080/card/scan',
+  'http://localhost:8080/card/scan'
+];
+
 // ====== Utility Functions ======
 function $(sel) { return document.querySelector(sel); }
 
