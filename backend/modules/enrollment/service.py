@@ -103,7 +103,11 @@ class EnrollmentService:
         tpl_b64 = base64.b64encode(tpl).decode("ascii")
         return {"status": "scanned", "template_b64": tpl_b64}
 
-    def save_fingerprint(self, employee_id: int, template_b64: str):
+    def save_fingerprint(self, employee_id: int, template_b64: str, name: str = "Default"):
         tpl = base64.b64decode(template_b64.encode("ascii"))
-        self.repo.save_fingerprint(employee_id, tpl)
+        self.repo.save_fingerprint(employee_id, tpl, name)
         return {"status": "success", "employee_id": employee_id}
+
+    def delete_fingerprint(self, fingerprint_id: int):
+        self.repo.delete_fingerprint(fingerprint_id)
+        return {"status": "success", "fingerprint_id": fingerprint_id}

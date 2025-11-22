@@ -8,7 +8,7 @@ from common.dto import (
     EmployeeOut, EnrollResponse, ScanCardResponse, FingerprintScanResponse, BulkDeleteResult
 )
 from .schemas import (
-    EmployeeCreateIn, EmployeeUpdateIn, SaveCardIn, SaveFingerprintIn, BulkDeleteIn
+    EmployeeCreateIn, EmployeeUpdateIn, SaveCardIn, SaveFingerprintIn, BulkDeleteIn, DeleteFingerprintIn
 )
 from .service import EnrollmentService
 
@@ -75,4 +75,8 @@ def scan_fingerprint(user=Depends(get_current_user)):
 
 @router.post("/save/fingerprint")
 def save_fingerprint(body: SaveFingerprintIn, user=Depends(get_current_user)):
-    return _svc().save_fingerprint(body.employee_id, body.template_b64)
+    return _svc().save_fingerprint(body.employee_id, body.template_b64, body.name)
+
+@router.post("/delete/fingerprint")
+def delete_fingerprint(body: DeleteFingerprintIn, user=Depends(get_current_user)):
+    return _svc().delete_fingerprint(body.fingerprint_id)

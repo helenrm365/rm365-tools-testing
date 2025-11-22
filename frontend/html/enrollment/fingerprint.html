@@ -97,6 +97,14 @@
             </select>
           </div>
 
+          <div class="input-wrapper" style="margin-top: 1rem;">
+            <label class="select-label">
+              <i class="fas fa-tag"></i>
+              <span>Fingerprint Name</span>
+            </label>
+            <input type="text" id="fpName" class="form-input" placeholder="e.g. Right Index" value="Default" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem; background: var(--bg-secondary); color: var(--text-primary);">
+          </div>
+
           <button class="action-btn save-btn" id="saveFpBtn">
             <i class="fas fa-check-circle"></i>
             <span>Save Fingerprint</span>
@@ -178,6 +186,24 @@
             <span class="tech-value">10 seconds</span>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Existing Fingerprints Section -->
+    <div class="enrollment-fp-section secondary-section" id="existingFingerprintsSection" style="display: none; margin-top: 1.5rem; background: var(--bg-surface); border-radius: 1rem; padding: 1.5rem; border: 1px solid var(--border-color);">
+      <div class="block-header" style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+        <div class="block-icon list-icon" style="width: 3rem; height: 3rem; border-radius: 0.75rem; background: rgba(59, 130, 246, 0.1); color: #3b82f6; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+          <i class="fas fa-list"></i>
+        </div>
+        <div class="block-title-group">
+          <h3 class="block-title" style="font-size: 1.125rem; font-weight: 600; color: var(--text-primary); margin: 0;">Existing Fingerprints</h3>
+          <p class="block-subtitle" style="font-size: 0.875rem; color: var(--text-secondary); margin: 0.25rem 0 0 0;">Manage enrolled fingerprints</p>
+        </div>
+      </div>
+      <div class="block-content">
+        <ul id="fingerprintList" class="fingerprint-list" style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.75rem;">
+          <!-- List items will be injected here -->
+        </ul>
       </div>
     </div>
   </div>

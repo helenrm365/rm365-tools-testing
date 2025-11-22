@@ -3,12 +3,68 @@ import {
   getEmployees,
   scanFingerprintBackend,
   saveFingerprint,
+  deleteFingerprint,
 } from '../../services/api/enrollmentApi.js';
 import { playSuccessSound, playErrorSound, playScanSound } from '../../utils/sound.js';
 import { confirmModal } from '../../ui/confirmationModal.js';
 
 const state = { employees: [], templateB64: null };
 const $ = (sel) => document.querySelector(sel);
+
+function renderFingerprints(employee) {
+    const section = $('#existingFingerprintsSection');
+    const list = $('#fingerprintList');
+    if (!section || !list) return;
+
+    list.innerHTML = '';
+    
+    if (!employee || !employee.fingerprints || employee.fingerprints.length === 0) {
+        section.style.display = 'none';
+        return;
+    }
+
+    section.style.display = 'block';
+    
+    employee.fingerprints.forEach(fp => {
+        const li = document.createElement('li');
+        li.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: var(--bg-secondary); border-radius: 0.5rem; border: 1px solid var(--border-color);';
+        
+        const info = document.createElement('div');
+        info.style.display = 'flex; align-items: center; gap: 0.75rem;';
+        info.innerHTML = `
+            <i class="fas fa-fingerprint" style="color: var(--text-secondary);"></i>
+            <span style="font-weight: 500; color: var(--text-primary);">${fp.name}</span>
+            <span style="font-size: 0.75rem; color: var(--text-secondary);">(${new Date(fp.created_at).toLocaleDateString()})</span>
+        `;
+        
+        const delBtn = document.createElement('button');
+        delBtn.innerHTML = '<i class="fas fa-trash"></i>';
+        delBtn.style.cssText = 'background: none; border: none; color: #ef4444; cursor: pointer; padding: 0.5rem; border-radius: 0.25rem; transition: background 0.2s;';
+        delBtn.onmouseover = () => delBtn.style.background = 'rgba(239, 68, 68, 0.1)';
+        delBtn.onmouseout = () => delBtn.style.background = 'none';
+        delBtn.onclick = async () => {
+            if (confirm(`Delete fingerprint "${fp.name}"?`)) {
+                try {
+                    await deleteFingerprint(fp.id);
+                    // Refresh employee data
+                    state.employees = await getEmployees();
+                    // Re-render (find updated employee)
+                    const updatedEmp = state.employees.find(e => e.id === employee.id);
+                    renderFingerprints(updatedEmp);
+                    playSuccessSound();
+                } catch (err) {
+                    console.error(err);
+                    playErrorSound();
+                    alert('Failed to delete fingerprint');
+                }
+            }
+        };
+        
+        li.appendChild(info);
+        li.appendChild(delBtn);
+        list.appendChild(li);
+    });
+}
 
 function fillEmployeeSelect() {
   const sel = $('#fpEmployee');
@@ -20,6 +76,17 @@ function fillEmployeeSelect() {
     opt.value = String(employee.id);
     opt.textContent = `${employee.name} (${employee.employee_code || '-'})`;
     sel.appendChild(opt);
+  });
+
+  // Add change listener
+  sel.addEventListener('change', (e) => {
+      const empId = e.target.value;
+      if (empId) {
+          const emp = state.employees.find(e => String(e.id) === empId);
+          renderFingerprints(emp);
+      } else {
+          $('#existingFingerprintsSection').style.display = 'none';
+      }
   });
 }
 
@@ -214,7 +281,10 @@ async function onSave() {
 
   try {
     console.log('Saving fingerprint for employee:', empId);
-    await saveFingerprint(empId, state.templateB64);
+    const nameInput = $('#fpName');
+    const name = nameInput ? nameInput.value.trim() : "Default";
+    
+    await saveFingerprint(empId, state.templateB64, name);
     playSuccessSound();
     if (statusText) statusText.textContent = 'Fingerprint successfully assigned to employee';
     if (status) status.setAttribute('data-status', 'success');
@@ -225,9 +295,12 @@ async function onSave() {
       // Refresh employee list to update has_fingerprint status
       getEmployees().then(emps => {
         state.employees = emps;
-        // We don't necessarily need to refill the select if we just want to update state,
-        // but refilling ensures the UI is consistent if we added indicators later.
-        // For now, just updating state is enough for the next save check.
+        // Re-render fingerprints for the selected employee if still selected
+        const sel = $('#fpEmployee');
+        if (sel && sel.value) {
+             const emp = state.employees.find(e => String(e.id) === sel.value);
+             renderFingerprints(emp);
+        }
       });
     }, 2000);
   } catch (error) {

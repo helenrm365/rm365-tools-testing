@@ -392,10 +392,10 @@ class AttendanceRepo:
             with conn.cursor() as cur:
                 cur.execute(
                     """
-                    SELECT id, name, fingerprint_template
-                    FROM employees
-                    WHERE fingerprint_template IS NOT NULL
-                    ORDER BY name
+                    SELECT e.id, e.name, ef.template
+                    FROM employees e
+                    JOIN employee_fingerprints ef ON e.id = ef.employee_id
+                    ORDER BY e.name
                     """
                 )
                 out: List[Dict[str, Any]] = []

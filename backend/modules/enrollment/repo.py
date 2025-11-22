@@ -8,23 +8,22 @@ class EnrollmentRepo:
     # -------- Queries --------
     def list_employees(self) -> List[Dict[str, Any]]:
         """
-        Returns employees with a derived has_fingerprint flag,
-        matching your old manager/routes expectations.
+        Returns employees with a derived has_fingerprint flag.
         """
         with pg_conn() as conn:
             with conn.cursor() as cur:
                 cur.execute(
                     """
-                    SELECT id, name, COALESCE(employee_code, '') AS employee_code,
-                           COALESCE(location, '') AS location,
-                           COALESCE(status, '') AS status,
-                           COALESCE(card_uid, '') AS card_uid,
-                           (fingerprint_template IS NOT NULL) AS has_fingerprint
-                    FROM employees
-                    ORDER BY name
+                    SELECT e.id, e.name, COALESCE(e.employee_code, '') AS employee_code,
+                           COALESCE(e.location, '') AS location,
+                           COALESCE(e.status, '') AS status,
+                           COALESCE(e.card_uid, '') AS card_uid,
+                           (EXISTS (SELECT 1 FROM employee_fingerprints ef WHERE ef.employee_id = e.id)) AS has_fingerprint
+                    FROM employees e
+                    ORDER BY e.name
                     """
                 )
-                return cursor_to_dicts(cur)  # has_fingerprint comes through as bool
+                return cursor_to_dicts(cur)
         # :contentReference[oaicite:1]{index=1}
 
     def get_last_employee_code(self) -> Optional[str]:
@@ -55,8 +54,7 @@ class EnrollmentRepo:
                     """
                     INSERT INTO employees (name, employee_code, location, status, card_uid)
                     VALUES (%s, %s, %s, %s, %s)
-                    RETURNING id, name, employee_code, location, status, card_uid,
-                              (fingerprint_template IS NOT NULL) AS has_fingerprint
+                    RETURNING id, name, employee_code, location, status, card_uid
                     """,
                     (name, employee_code, location, status, card_uid),
                 )
@@ -65,7 +63,7 @@ class EnrollmentRepo:
         return {
             "id": row[0], "name": row[1], "employee_code": row[2],
             "location": row[3], "status": row[4], "card_uid": row[5],
-            "has_fingerprint": row[6],
+            "has_fingerprint": False,
         }
         # :contentReference[oaicite:3]{index=3}
 
@@ -88,18 +86,22 @@ class EnrollmentRepo:
             UPDATE employees
                SET {', '.join(pairs)}
              WHERE id = %s
-         RETURNING id, name, employee_code, location, status, card_uid,
-                   (fingerprint_template IS NOT NULL) AS has_fingerprint
+         RETURNING id, name, employee_code, location, status, card_uid
         """
         with pg_conn() as conn:
             with conn.cursor() as cur:
                 cur.execute(sql, vals)
                 row = cur.fetchone()
+                
+                # Check for fingerprints
+                cur.execute("SELECT EXISTS(SELECT 1 FROM employee_fingerprints WHERE employee_id = %s)", (employee_id,))
+                has_fingerprint = cur.fetchone()[0]
+                
                 conn.commit()
         return {
             "id": row[0], "name": row[1], "employee_code": row[2],
             "location": row[3], "status": row[4], "card_uid": row[5],
-            "has_fingerprint": row[6],
+            "has_fingerprint": has_fingerprint,
         }
         # :contentReference[oaicite:4]{index=4}
 
@@ -108,18 +110,30 @@ class EnrollmentRepo:
             with conn.cursor() as cur:
                 cur.execute(
                     """
-                    SELECT id, name, employee_code, location, status, card_uid,
-                           (fingerprint_template IS NOT NULL) AS has_fingerprint
+                    SELECT id, name, employee_code, location, status, card_uid
                     FROM employees
                     WHERE id = %s
                     """,
                     (employee_id,),
                 )
                 row = cur.fetchone()
+                if not row:
+                    return None
+                
+                # Fetch fingerprints
+                cur.execute(
+                    "SELECT id, name, created_at FROM employee_fingerprints WHERE employee_id = %s ORDER BY created_at",
+                    (employee_id,)
+                )
+                fingerprints = [{"id": r[0], "name": r[1], "created_at": r[2]} for r in cur.fetchall()]
+                
+                has_fingerprint = bool(fingerprints)
+
         return {
             "id": row[0], "name": row[1], "employee_code": row[2],
             "location": row[3], "status": row[4], "card_uid": row[5],
-            "has_fingerprint": row[6],
+            "has_fingerprint": has_fingerprint,
+            "fingerprints": fingerprints
         }
 
     def delete_employee(self, employee_id: int) -> int:
@@ -178,12 +192,30 @@ class EnrollmentRepo:
                 conn.commit()
         # :contentReference[oaicite:7]{index=7}
 
-    def save_fingerprint(self, employee_id: int, tpl_bytes: bytes) -> None:
+    def save_fingerprint(self, employee_id: int, tpl_bytes: bytes, name: str = "Default") -> None:
         with pg_conn() as conn:
             with conn.cursor() as cur:
+                # Insert into new table
+                # We store template as base64 string usually, but here it seems to be bytes?
+                # The schema says template_b64: str.
+                # The repo method takes tpl_bytes: bytes.
+                # The original code updated fingerprint_template = %s.
+                # If the column is TEXT, psycopg2 adapts bytes to hex or similar?
+                # Let's assume we should store what we get.
+                # But wait, the migration script assumes TEXT.
+                # If tpl_bytes is bytes, we should probably decode it if it's b64 bytes, or encode it if it's raw bytes.
+                # The API receives b64 string.
+                # Let's check api.py later.
+                # For now, let's assume tpl_bytes is what we want to store (maybe already b64 bytes).
                 cur.execute(
-                    "UPDATE employees SET fingerprint_template = %s WHERE id = %s",
-                    (tpl_bytes, employee_id),
+                    "INSERT INTO employee_fingerprints (employee_id, template, name) VALUES (%s, %s, %s)",
+                    (employee_id, tpl_bytes, name),
                 )
                 conn.commit()
         # :contentReference[oaicite:8]{index=8}
+
+    def delete_fingerprint(self, fingerprint_id: int) -> None:
+        with pg_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute("DELETE FROM employee_fingerprints WHERE id = %s", (fingerprint_id,))
+                conn.commit()

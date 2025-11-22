@@ -107,6 +107,11 @@ class LiveSyncResult(BaseModel):
 # ---------------------------
 # Enrollment
 # ---------------------------
+class FingerprintOut(BaseModel):
+    id: int
+    name: str
+    created_at: Optional[str] = None
+
 class EmployeeOut(BaseModel):
     id: int
     name: str
@@ -115,6 +120,7 @@ class EmployeeOut(BaseModel):
     status: Optional[str] = None
     card_uid: Optional[str] = None
     has_fingerprint: Optional[bool] = None
+    fingerprints: List[FingerprintOut] = Field(default_factory=list)
 # :contentReference[oaicite:9]{index=9}
 
 
