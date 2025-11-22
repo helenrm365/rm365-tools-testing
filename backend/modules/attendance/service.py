@@ -133,3 +133,16 @@ class AttendanceService:
                 print(f"Error matching against {ep}: {e}")
                 continue
         return None
+
+    def get_employee_templates(self) -> List[Dict[str, Any]]:
+        """Get all employee fingerprint templates for client-side matching."""
+        templates = self.repo.active_employee_templates()
+        # Convert bytes to base64 string for JSON response
+        return [
+            {
+                "id": t["id"],
+                "name": t["name"],
+                "template_b64": base64.b64encode(t["tpl_bytes"]).decode("ascii")
+            }
+            for t in templates
+        ]

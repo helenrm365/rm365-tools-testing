@@ -1,9 +1,10 @@
 // js/modules/attendance/automaticClocking.js - Automatic clocking with fingerprint and card support
-import { getEmployees, clockEmployee } from '../../services/api/attendanceApi.js';
+import { getEmployees, clockEmployee, getEmployeeTemplates } from '../../services/api/attendanceApi.js';
 
 // ====== State Management ======
 let state = {
   employees: [],
+  fingerprintTemplates: [],
   employeeNameToIdMap: {},
   cardUidToEmployee: {},
   isScanning: false,
@@ -270,8 +271,13 @@ async function evaluateHardwareStatus({ showSpinner = false } = {}) {
 // ====== Employee Data Loading ======
 async function loadEmployees() {
   try {
-    const employees = await getEmployees();
+    const [employees, templates] = await Promise.all([
+      getEmployees(),
+      getEmployeeTemplates()
+    ]);
+    
     state.employees = employees;
+    state.fingerprintTemplates = templates;
     
     // Reset mapping objects
     state.employeeNameToIdMap = {};
@@ -285,7 +291,7 @@ async function loadEmployees() {
       }
     });
 
-    console.log(`📋 Loaded ${employees.length} employees for automatic clocking`);
+    console.log(`📋 Loaded ${employees.length} employees and ${templates.length} fingerprint templates`);
     
   } catch (error) {
     console.error('Failed to load employees:', error);
@@ -365,32 +371,51 @@ async function pollFingerprint() {
 
     updateStatus('Fingerprint detected - matching...', 'scanning');
 
-    // Send fingerprint to backend for matching and clocking
-    // Use the http helper to ensure correct BASE URL and headers
-    const { http } = await import('../../services/api/http.js');
-    const result = await http('/api/v1/attendance/clock-by-fingerprint', {
-      method: 'POST',
-      body: JSON.stringify({ 
-        template_b64: data.TemplateBase64, 
-        threshold: 130, 
-        template_format: 'ANSI' 
-      })
-    });
-    
-    if (result?.status === 'success') {
-      const employee = result.employee || {};
-      updateStatus(`✅ ${employee.name || 'Employee'} clocked ${result.direction || 'in'} (score: ${employee.score || '-'})`, 'info');
-      
-      state.scanCount++;
-      updateScanCount();
-      updateLastScanTime();
-      
-      if (employee.name) {
-        addRecentScan(employee, 'fingerprint', result.direction || 'in');
+    // Perform client-side matching via local bridge
+    let bestMatch = null;
+    let bestScore = 0;
+    const MATCH_THRESHOLD = 100;
+
+    for (const tmpl of state.fingerprintTemplates) {
+      try {
+        const matchResponse = await fetch('http://127.0.0.1:8080/fingerprint/match', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            template1_b64: data.TemplateBase64,
+            template2_b64: tmpl.template_b64
+          })
+        });
+        
+        if (!matchResponse.ok) continue;
+        const matchData = await matchResponse.json();
+        
+        if (matchData.status === 'success' && matchData.score > bestScore) {
+          bestScore = matchData.score;
+          bestMatch = tmpl;
+        }
+      } catch (e) {
+        console.warn('Error matching template:', e);
       }
+    }
+
+    if (bestMatch && bestScore >= MATCH_THRESHOLD) {
+      // Clock the employee
+      const result = await clockEmployee(bestMatch.id);
       
+      if (result?.status === 'success') {
+        updateStatus(`✅ ${bestMatch.name} clocked ${result.direction || 'in'} (score: ${bestScore})`, 'info');
+        
+        state.scanCount++;
+        updateScanCount();
+        updateLastScanTime();
+        
+        addRecentScan({ name: bestMatch.name }, 'fingerprint', result.direction || 'in');
+      } else {
+        updateStatus(`❌ Clock failed for ${bestMatch.name}`, 'error');
+      }
     } else {
-      updateStatus(`❌ No fingerprint match${result?.detail ? ` (${result.detail})` : ''}`, 'error');
+      updateStatus(`❌ No fingerprint match (Best score: ${bestScore})`, 'error');
     }
 
   } catch (error) {

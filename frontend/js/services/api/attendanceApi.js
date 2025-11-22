@@ -141,3 +141,7 @@ export function getWorkHours(startDate, endDate, location = null, nameSearch = n
   if (nameSearch) params.append('name_search', nameSearch);
   return get(`${API}/work-hours?${params}`);
 }
+
+export function getEmployeeTemplates() {
+  return get(`${API}/employees/templates`);
+}

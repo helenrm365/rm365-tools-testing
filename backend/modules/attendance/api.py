@@ -31,6 +31,11 @@ def get_locations(user=Depends(get_current_user)):
     """Get all available employee locations."""
     return _svc().get_locations()
 
+@router.get("/employees/templates")
+def list_employee_templates(user=Depends(get_current_user)):
+    """Get all employee fingerprint templates for client-side matching."""
+    return _svc().get_employee_templates()
+
 # ---- Clocking ----
 @router.post("/clock")
 def clock(body: ClockRequest, user=Depends(get_current_user)):
