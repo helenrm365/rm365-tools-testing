@@ -728,13 +728,13 @@ fetch('http://localhost:8080/SGIFPCapture', {
 #### Option 1: Startup Folder (Simple)
 
 ```powershell
-# 1. Create batch file: local-hardware-bridge/start.bat
+# 1. Create batch file: local-hardware-bridge/Start-Hardware-Bridge.bat
 @echo off
 cd /d %~dp0
 python app.py
 pause
 
-# 2. Create shortcut to start.bat
+# 2. Create shortcut to Start-Hardware-Bridge.bat
 # 3. Press Win+R, type: shell:startup
 # 4. Copy shortcut to Startup folder
 ```

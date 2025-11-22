@@ -25,7 +25,7 @@ local-hardware-bridge/lib/
 *.lib
 
 # Local Bridge Setup
-local-hardware-bridge/install.bat
+local-hardware-bridge/Install-Hardware-Bridge.bat
 local-hardware-bridge/SETUP_GUIDE.md
 
 # Node/web build artifacts (if you add tooling later)
