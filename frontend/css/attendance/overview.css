@@ -82,14 +82,14 @@ html.dark-mode .attendance-overview .inner-tabs {
 }
 
 .attendance-overview .tab-button.active {
-  background: linear-gradient(135deg, #76a12b, #5e8122);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
   color: white;
-  box-shadow: 0 3px 10px rgba(118, 161, 43, 0.3);
+  box-shadow: 0 3px 10px rgba(139, 195, 74, 0.3);
   transform: translateY(-1px);
 }
 
 .attendance-overview .tab-button.active:hover {
-  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.4);
+  box-shadow: 0 4px 12px rgba(139, 195, 74, 0.4);
 }
 
 html.dark-mode .attendance-overview .tab-button {
@@ -105,7 +105,7 @@ html.dark-mode .attendance-overview .tab-button:hover {
 }
 
 html.dark-mode .attendance-overview .tab-button.active {
-  background: linear-gradient(135deg, #76a12b, #5e8122);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
   color: white;
   box-shadow: 0 3px 10px rgba(139, 195, 74, 0.3);
 }
@@ -170,7 +170,7 @@ html.dark-mode .attendance-overview .section-title {
 .attendance-overview .stat-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-  border-color: rgba(118, 161, 43, 0.2);
+  border-color: rgba(139, 195, 74, 0.2);
 }
 
 html.dark-mode .attendance-overview .stat-card {
@@ -251,7 +251,7 @@ html.dark-mode .attendance-overview .stat-label {
   border-radius: 16px;
   padding: 2rem;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  border: 2px solid rgba(118, 161, 43, 0.1);
+  border: 2px solid rgba(139, 195, 74, 0.1);
 }
 
 html.dark-mode .attendance-overview .filters-card {
@@ -288,7 +288,7 @@ html.dark-mode .attendance-overview .filter-label {
 
 .attendance-overview .filter-label i {
   font-size: 0.85rem;
-  color: #76a12b;
+  color: #8bc34a;
 }
 
 html.dark-mode .attendance-overview .filter-label i {
@@ -326,8 +326,8 @@ html.dark-mode .attendance-overview .filter-label i {
 .attendance-overview .filter-input:focus,
 .attendance-overview .filter-select:focus {
   outline: none;
-  border-color: #76a12b;
-  box-shadow: 0 0 0 3px rgba(118, 161, 43, 0.1);
+  border-color: #8bc34a;
+  box-shadow: 0 0 0 3px rgba(139, 195, 74, 0.1);
 }
 
 html.dark-mode .attendance-overview .filter-input,
@@ -372,15 +372,15 @@ html.dark-mode .attendance-overview .filter-select:focus {
 }
 
 .attendance-overview .primary-btn {
-  background: linear-gradient(135deg, #76a12b, #5e8122);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
   color: white;
-  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.3);
+  box-shadow: 0 4px 12px rgba(139, 195, 74, 0.3);
 }
 
 .attendance-overview .primary-btn:hover {
-  background: linear-gradient(135deg, #8bc34a, #76a12b);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.4);
+  box-shadow: 0 4px 12px rgba(139, 195, 74, 0.4);
 }
 
 /* ===== Data Sections (Summary & Work Hours) ===== */
@@ -421,7 +421,7 @@ html.dark-mode .attendance-overview .data-section h4 {
   border-radius: 16px;
   padding: 2rem;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  border: 2px solid rgba(118, 161, 43, 0.1);
+  border: 2px solid rgba(139, 195, 74, 0.1);
 }
 
 html.dark-mode .attendance-overview .chart-card {
@@ -470,7 +470,7 @@ html.dark-mode .attendance-overview .status-card {
 .attendance-overview .loading-state i {
   font-size: 2rem;
   margin-bottom: 1rem;
-  color: #76a12b;
+  color: #8bc34a;
 }
 
 html.dark-mode .attendance-overview .loading-state i {

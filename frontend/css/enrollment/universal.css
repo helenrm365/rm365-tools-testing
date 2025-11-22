@@ -76,18 +76,18 @@ html.dark-mode .employee-code-input {
 
 /* Instructions Box */
 .instructions {
-  border-left: 4px solid #76a12b;
-  background: linear-gradient(135deg, rgba(118, 161, 43, 0.1), rgba(94, 129, 34, 0.05));
+  border-left: 4px solid #8bc34a;
+  background: linear-gradient(135deg, rgba(139, 195, 74, 0.1), rgba(94, 129, 34, 0.05));
 }
 
 html.dark-mode .instructions {
-  background: linear-gradient(135deg, rgba(118, 161, 43, 0.2), rgba(94, 129, 34, 0.1));
-  border-left-color: #5e8122;
+  background: linear-gradient(135deg, rgba(139, 195, 74, 0.2), rgba(94, 129, 34, 0.1));
+  border-left-color: #7ab82d;
 }
 
 .instructions h4 {
   margin-top: 0;
-  color: #76a12b;
+  color: #8bc34a;
 }
 
 html.dark-mode .instructions h4 {
@@ -105,7 +105,7 @@ html.dark-mode .instructions h4 {
 /* Welcome Box */
 .welcome-box h3 {
   margin-top: 0;
-  color: #76a12b;
+  color: #8bc34a;
 }
 
 html.dark-mode .welcome-box h3 {
@@ -117,8 +117,8 @@ html.dark-mode .welcome-box h3 {
   display: inline-block;
   width: 16px;
   height: 16px;
-  border: 2px solid rgba(118, 161, 43, 0.3);
-  border-top: 2px solid #76a12b;
+  border: 2px solid rgba(139, 195, 74, 0.3);
+  border-top: 2px solid #8bc34a;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-right: 0.5rem;

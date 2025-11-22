@@ -24,7 +24,7 @@ html.dark-mode .form-label {
 }
 
 .form-label i {
-  color: #76a12b;
+  color: #8bc34a;
   font-size: 1rem;
 }
 
@@ -64,7 +64,7 @@ html.dark-mode .form-label i {
 .form-textarea:hover {
   background: #f8f9fa;
   box-shadow: 0 3px 8px rgba(0,0,0,0.1);
-  border-color: rgba(118, 161, 43, 0.3);
+  border-color: rgba(139, 195, 74, 0.3);
 }
 
 html.dark-mode .form-input,
@@ -92,8 +92,8 @@ html.dark-mode .form-textarea:hover {
 .form-select:focus,
 .form-textarea:focus {
   outline: none;
-  border-color: #76a12b;
-  box-shadow: 0 0 0 2px rgba(118, 161, 43, 0.1), 0 3px 8px rgba(0,0,0,0.12);
+  border-color: #8bc34a;
+  box-shadow: 0 0 0 2px rgba(139, 195, 74, 0.1), 0 3px 8px rgba(0,0,0,0.12);
 }
 
 .form-select:focus {
@@ -142,7 +142,7 @@ html.dark-mode .file-input {
 }
 
 .file-input:hover {
-  border-color: #76a12b;
+  border-color: #8bc34a;
   background: #f0f9ff;
 }
 
@@ -156,7 +156,7 @@ input[type="checkbox"],
 input[type="radio"] {
   width: 18px;
   height: 18px;
-  accent-color: #76a12b;
+  accent-color: #8bc34a;
   cursor: pointer;
 }
 
@@ -303,8 +303,8 @@ html.dark-mode .modern-input {
 
 .modern-input:focus {
   outline: none;
-  border-color: #76a12b;
-  box-shadow: 0 0 5px rgba(118, 161, 43, 0.3);
+  border-color: #8bc34a;
+  box-shadow: 0 0 5px rgba(139, 195, 74, 0.3);
 }
 
 html.dark-mode .modern-input:focus {

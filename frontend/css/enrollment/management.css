@@ -84,14 +84,14 @@ html.dark-mode .enrollment-management .inner-tabs {
 }
 
 .enrollment-management .tab-button.active {
-  background: linear-gradient(135deg, #76a12b, #5e8122);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
   color: white;
-  box-shadow: 0 3px 10px rgba(118, 161, 43, 0.3);
+  box-shadow: 0 3px 10px rgba(139, 195, 74, 0.3);
   transform: translateY(-1px);
 }
 
 .enrollment-management .tab-button.active:hover {
-  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.4);
+  box-shadow: 0 4px 12px rgba(139, 195, 74, 0.4);
 }
 
 html.dark-mode .enrollment-management .tab-button {
@@ -107,7 +107,7 @@ html.dark-mode .enrollment-management .tab-button:hover {
 }
 
 html.dark-mode .enrollment-management .tab-button.active {
-  background: linear-gradient(135deg, #76a12b, #5e8122);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
   color: white;
   box-shadow: 0 3px 10px rgba(139, 195, 74, 0.3);
 }
@@ -188,8 +188,8 @@ html.dark-mode .management-card-section {
 }
 
 .toolbar-icon {
-  background: linear-gradient(135deg, rgba(118, 161, 43, 0.15), rgba(94, 129, 34, 0.1));
-  color: #76a12b;
+  background: linear-gradient(135deg, rgba(139, 195, 74, 0.15), rgba(94, 129, 34, 0.1));
+  color: #8bc34a;
 }
 
 .filter-icon {
@@ -203,7 +203,7 @@ html.dark-mode .management-card-section {
 }
 
 html.dark-mode .toolbar-icon {
-  background: linear-gradient(135deg, rgba(139, 195, 74, 0.2), rgba(118, 161, 43, 0.15));
+  background: linear-gradient(135deg, rgba(139, 195, 74, 0.2), rgba(139, 195, 74, 0.15));
   color: #8bc34a;
 }
 
@@ -312,14 +312,14 @@ html.dark-mode .divider-line {
 }
 
 .search-box .search-input:hover {
-  border-color: rgba(118, 161, 43, 0.3);
+  border-color: rgba(139, 195, 74, 0.3);
   background: white;
 }
 
 .search-box .search-input:focus {
   outline: none;
-  border-color: #76a12b;
-  box-shadow: 0 0 0 3px rgba(118, 161, 43, 0.1);
+  border-color: #8bc34a;
+  box-shadow: 0 0 0 3px rgba(139, 195, 74, 0.1);
   background: white;
 }
 
@@ -403,15 +403,15 @@ html.dark-mode .filter-label i {
 }
 
 .filter-select:hover {
-  border-color: rgba(118, 161, 43, 0.3);
+  border-color: rgba(139, 195, 74, 0.3);
   background: #f8f9fa;
   box-shadow: 0 3px 8px rgba(0,0,0,0.1);
 }
 
 .filter-select:focus {
   outline: none;
-  border-color: #76a12b;
-  box-shadow: 0 0 0 2px rgba(118, 161, 43, 0.1), 0 3px 8px rgba(0,0,0,0.12);
+  border-color: #8bc34a;
+  box-shadow: 0 0 0 2px rgba(139, 195, 74, 0.1), 0 3px 8px rgba(0,0,0,0.12);
   background: white;
 }
 
@@ -530,7 +530,7 @@ html.dark-mode .card-header-section {
   width: 20px;
   height: 20px;
   cursor: pointer;
-  accent-color: #76a12b;
+  accent-color: #8bc34a;
 }
 
 .employee-info {
@@ -567,8 +567,8 @@ html.dark-mode .card-header-section {
 .employee-name-input:focus {
   outline: none;
   background: white;
-  border-color: #76a12b;
-  box-shadow: 0 0 0 3px rgba(118, 161, 43, 0.1);
+  border-color: #8bc34a;
+  box-shadow: 0 0 0 3px rgba(139, 195, 74, 0.1);
 }
 
 html.dark-mode .employee-name-input {
@@ -581,7 +581,7 @@ html.dark-mode .employee-name-input:hover {
 
 html.dark-mode .employee-name-input:focus {
   background: #3a3a3a;
-  border-color: #76a12b;
+  border-color: #8bc34a;
 }
 
 .employee-code {
@@ -692,9 +692,9 @@ html.dark-mode .detail-label {
 .detail-select:focus,
 .detail-input:focus {
   outline: none;
-  border-color: #76a12b;
+  border-color: #8bc34a;
   background: white;
-  box-shadow: 0 0 0 3px rgba(118, 161, 43, 0.1);
+  box-shadow: 0 0 0 3px rgba(139, 195, 74, 0.1);
 }
 
 html.dark-mode .detail-select,
@@ -707,7 +707,7 @@ html.dark-mode .detail-input {
 html.dark-mode .detail-select:focus,
 html.dark-mode .detail-input:focus {
   background: #404040;
-  border-color: #76a12b;
+  border-color: #8bc34a;
 }
 
 html.dark-mode .detail-select option {
@@ -781,14 +781,14 @@ html.dark-mode .card-actions {
 }
 
 .btn-save {
-  background: linear-gradient(135deg, #76a12b, #5e8122);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
   color: white;
-  box-shadow: 0 2px 8px rgba(118, 161, 43, 0.3);
+  box-shadow: 0 2px 8px rgba(139, 195, 74, 0.3);
 }
 
 .btn-save:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.4);
+  box-shadow: 0 4px 12px rgba(139, 195, 74, 0.4);
 }
 
 .btn-delete {
@@ -852,8 +852,8 @@ html.dark-mode .empty-state p {
   display: inline-block;
   width: 48px;
   height: 48px;
-  border: 4px solid rgba(118, 161, 43, 0.2);
-  border-top-color: #76a12b;
+  border: 4px solid rgba(139, 195, 74, 0.2);
+  border-top-color: #8bc34a;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 1rem;
@@ -942,7 +942,7 @@ html.dark-mode .management-wrapper .step-item {
   width: 36px;
   height: 36px;
   border-radius: 8px;
-  background: linear-gradient(135deg, #76a12b, #5e8122);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
   color: white;
   display: flex;
   align-items: center;
@@ -950,11 +950,11 @@ html.dark-mode .management-wrapper .step-item {
   font-weight: 700;
   font-size: 1rem;
   flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(118, 161, 43, 0.3);
+  box-shadow: 0 2px 8px rgba(139, 195, 74, 0.3);
 }
 
 html.dark-mode .management-wrapper .step-number {
-  box-shadow: 0 2px 8px rgba(118, 161, 43, 0.5);
+  box-shadow: 0 2px 8px rgba(139, 195, 74, 0.5);
 }
 
 .management-wrapper .step-info {
@@ -1012,7 +1012,7 @@ html.dark-mode .management-wrapper .logic-item {
 .management-wrapper .logic-icon-wrapper {
   width: 40px;
   height: 40px;
-  background: linear-gradient(135deg, #76a12b, #5e8122);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -1020,11 +1020,11 @@ html.dark-mode .management-wrapper .logic-item {
   font-size: 1.1rem;
   color: white;
   flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(118, 161, 43, 0.3);
+  box-shadow: 0 2px 8px rgba(139, 195, 74, 0.3);
 }
 
 html.dark-mode .management-wrapper .logic-icon-wrapper {
-  box-shadow: 0 2px 8px rgba(118, 161, 43, 0.5);
+  box-shadow: 0 2px 8px rgba(139, 195, 74, 0.5);
 }
 
 .management-wrapper .logic-content h5 {
@@ -1248,7 +1248,7 @@ html.dark-mode .modal-footer .btn-secondary:hover {
 }
 
 .modal-footer .btn-primary {
-  background: linear-gradient(135deg, #76a12b, #5e8122);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
   color: white;
   border: 2px solid rgba(255, 255, 255, 0.2);
   padding: 0.85rem 1.5rem;
@@ -1262,13 +1262,13 @@ html.dark-mode .modal-footer .btn-secondary:hover {
   justify-content: center;
   gap: 0.75rem;
   flex: 1;
-  box-shadow: 0 2px 8px rgba(118, 161, 43, 0.3);
+  box-shadow: 0 2px 8px rgba(139, 195, 74, 0.3);
 }
 
 .modal-footer .btn-primary:hover {
-  background: linear-gradient(135deg, #8bc34a, #76a12b);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
   transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(118, 161, 43, 0.4);
+  box-shadow: 0 4px 16px rgba(139, 195, 74, 0.4);
 }
 
 .modal-footer .btn-primary:active {

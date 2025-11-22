@@ -136,14 +136,14 @@ html.dark-mode .inner-tabs {
 }
 
 .tab-button.active {
-  background: linear-gradient(135deg, #76a12b, #5e8122);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
   color: white;
-  box-shadow: 0 3px 10px rgba(118, 161, 43, 0.3);
+  box-shadow: 0 3px 10px rgba(139, 195, 74, 0.3);
   transform: translateY(-1px);
 }
 
 .tab-button.active:hover {
-  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.4);
+  box-shadow: 0 4px 12px rgba(139, 195, 74, 0.4);
 }
 
 html.dark-mode .tab-button {
@@ -159,7 +159,7 @@ html.dark-mode .tab-button:hover {
 }
 
 html.dark-mode .tab-button.active {
-  background: linear-gradient(135deg, #76a12b, #5e8122);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
   color: white;
   box-shadow: 0 3px 10px rgba(139, 195, 74, 0.3);
 }
@@ -208,15 +208,15 @@ html.dark-mode .view-toggle {
 }
 
 .toggle-btn.active {
-  background: linear-gradient(135deg, #8bc34a, #76a12b);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
   color: white;
-  box-shadow: 0 3px 10px rgba(118, 161, 43, 0.3);
+  box-shadow: 0 3px 10px rgba(139, 195, 74, 0.3);
   border: none;
 }
 
 .toggle-btn.active:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.4);
+  box-shadow: 0 4px 12px rgba(139, 195, 74, 0.4);
 }
 
 html.dark-mode .toggle-btn {
@@ -232,7 +232,7 @@ html.dark-mode .toggle-btn:hover {
 }
 
 html.dark-mode .toggle-btn.active {
-  background: linear-gradient(135deg, #8bc34a, #76a12b);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
   color: white;
   box-shadow: 0 3px 10px rgba(139, 195, 74, 0.3);
 }

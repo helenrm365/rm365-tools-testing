@@ -82,14 +82,14 @@ html.dark-mode .attendance-manual .manual-inner-tabs {
 }
 
 .attendance-manual .manual-tab-button.active {
-  background: linear-gradient(135deg, #76a12b, #5e8122);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
   color: white;
-  box-shadow: 0 3px 10px rgba(118, 161, 43, 0.3);
+  box-shadow: 0 3px 10px rgba(139, 195, 74, 0.3);
   transform: translateY(-1px);
 }
 
 .attendance-manual .manual-tab-button.active:hover {
-  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.4);
+  box-shadow: 0 4px 12px rgba(139, 195, 74, 0.4);
 }
 
 html.dark-mode .attendance-manual .manual-tab-button {
@@ -105,7 +105,7 @@ html.dark-mode .attendance-manual .manual-tab-button:hover {
 }
 
 html.dark-mode .attendance-manual .manual-tab-button.active {
-  background: linear-gradient(135deg, #76a12b, #5e8122);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
   color: white;
   box-shadow: 0 3px 10px rgba(139, 195, 74, 0.3);
 }
@@ -174,7 +174,7 @@ html.dark-mode .attendance-manual .manual-select-label {
 }
 
 .attendance-manual .manual-select-label i {
-  color: #76a12b;
+  color: #8bc34a;
   font-size: 1.25rem;
 }
 
@@ -210,7 +210,7 @@ html.dark-mode .attendance-manual .manual-employee-dropdown {
 }
 
 .attendance-manual .manual-employee-dropdown:hover {
-  border-color: #76a12b;
+  border-color: #8bc34a;
 }
 
 html.dark-mode .attendance-manual .manual-employee-dropdown:hover {
@@ -219,8 +219,8 @@ html.dark-mode .attendance-manual .manual-employee-dropdown:hover {
 
 .attendance-manual .manual-employee-dropdown:focus {
   outline: none;
-  border-color: #76a12b;
-  box-shadow: 0 0 0 3px rgba(118, 161, 43, 0.1);
+  border-color: #8bc34a;
+  box-shadow: 0 0 0 3px rgba(139, 195, 74, 0.1);
   background: white;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2376a12b' d='M6 3L1 8h10z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
@@ -379,7 +379,7 @@ html.dark-mode .attendance-manual .manual-status-details p {
 }
 
 .attendance-manual .manual-status-details strong {
-  color: #76a12b;
+  color: #8bc34a;
   font-weight: 600;
 }
 

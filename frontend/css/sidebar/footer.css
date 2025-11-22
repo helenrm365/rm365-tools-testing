@@ -194,7 +194,7 @@ html.dark-mode .dark-mode-toggle:hover {
 }
 
 input:checked + .toggle-slider {
-  background: linear-gradient(135deg, #76a12b, #5e8122);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
 }
 
 input:checked + .toggle-slider::before {
@@ -202,5 +202,5 @@ input:checked + .toggle-slider::before {
 }
 
 input:focus + .toggle-slider {
-  box-shadow: 0 0 0 3px rgba(118, 161, 43, 0.2);
+  box-shadow: 0 0 0 3px rgba(139, 195, 74, 0.2);
 }

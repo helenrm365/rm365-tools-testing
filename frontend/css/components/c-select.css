@@ -33,7 +33,7 @@
 .c-select__button:hover { 
     background: #f8f9fa;
     box-shadow: 0 3px 8px rgba(0,0,0,0.1);
-    border-color: rgba(118, 161, 43, 0.3);
+    border-color: rgba(139, 195, 74, 0.3);
 }
 
 .c-select__button:active { 
@@ -41,13 +41,13 @@
 }
 
 .c-select__button:focus-visible { 
-    outline: 2px solid #76a12b; 
+    outline: 2px solid #8bc34a; 
     outline-offset: 2px; 
 }
 
 .c-select[aria-expanded='true'] .c-select__button {
-    border-color: #76a12b;
-    box-shadow: 0 0 0 2px rgba(118, 161, 43, 0.1), 0 3px 8px rgba(0,0,0,0.12);
+    border-color: #8bc34a;
+    box-shadow: 0 0 0 2px rgba(139, 195, 74, 0.1), 0 3px 8px rgba(0,0,0,0.12);
     background: #f8f9fa;
 }
 
@@ -63,13 +63,13 @@
     opacity: 0.7; 
     transition: transform 0.2s ease;
     font-size: 0.8rem;
-    color: #76a12b;
+    color: #8bc34a;
     font-weight: bold;
 }
 
 .c-select[aria-expanded='true'] .c-select__caret { 
     transform: rotate(180deg);
-    color: #76a12b;
+    color: #8bc34a;
 }
 
 .c-select__list {
@@ -94,7 +94,7 @@
     pointer-events: none;
     transition: all 0.2s ease;
     scrollbar-width: thin;
-    scrollbar-color: rgba(118, 161, 43, 0.4) transparent;
+    scrollbar-color: rgba(139, 195, 74, 0.4) transparent;
     width: 100%;
     box-sizing: border-box;
 }
@@ -115,12 +115,12 @@
 }
 
 .c-select__list::-webkit-scrollbar-thumb {
-    background: rgba(118, 161, 43, 0.4);
+    background: rgba(139, 195, 74, 0.4);
     border-radius: 3px;
 }
 
 .c-select__list::-webkit-scrollbar-thumb:hover {
-    background: rgba(118, 161, 43, 0.6);
+    background: rgba(139, 195, 74, 0.6);
 }
 
 .c-select__item { 
@@ -168,7 +168,7 @@
 }
 
 .c-select__item[data-active='true'] { 
-    outline: 2px solid #76a12b; 
+    outline: 2px solid #8bc34a; 
     outline-offset: -2px; 
 }
 
@@ -230,9 +230,9 @@ html.dark-mode .c-select__item[data-active='true'] {
 }
 
 html.dark-mode .c-select__list::-webkit-scrollbar-thumb {
-    background: rgba(118, 161, 43, 0.4);
+    background: rgba(139, 195, 74, 0.4);
 }
 
 html.dark-mode .c-select__list::-webkit-scrollbar-thumb:hover {
-    background: rgba(118, 161, 43, 0.6);
+    background: rgba(139, 195, 74, 0.6);
 }

@@ -82,14 +82,14 @@ html.dark-mode .attendance-automatic .inner-tabs {
 }
 
 .attendance-automatic .tab-button.active {
-  background: linear-gradient(135deg, #76a12b, #5e8122);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
   color: white;
-  box-shadow: 0 3px 10px rgba(118, 161, 43, 0.3);
+  box-shadow: 0 3px 10px rgba(139, 195, 74, 0.3);
   transform: translateY(-1px);
 }
 
 .attendance-automatic .tab-button.active:hover {
-  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.4);
+  box-shadow: 0 4px 12px rgba(139, 195, 74, 0.4);
 }
 
 html.dark-mode .attendance-automatic .tab-button {
@@ -105,7 +105,7 @@ html.dark-mode .attendance-automatic .tab-button:hover {
 }
 
 html.dark-mode .attendance-automatic .tab-button.active {
-  background: linear-gradient(135deg, #76a12b, #5e8122);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
   color: white;
   box-shadow: 0 3px 10px rgba(139, 195, 74, 0.3);
 }
@@ -263,7 +263,7 @@ html.dark-mode .attendance-automatic .method-divider {
   border-radius: 20px;
   padding: 3rem;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  border: 2px solid rgba(118, 161, 43, 0.1);
+  border: 2px solid rgba(139, 195, 74, 0.1);
 }
 
 html.dark-mode .attendance-automatic .control-card {
@@ -290,7 +290,7 @@ html.dark-mode .attendance-automatic .control-card {
   left: 50%;
   width: 100%;
   height: 100%;
-  border: 3px solid #76a12b;
+  border: 3px solid #8bc34a;
   border-radius: 50%;
   transform: translate(-50%, -50%);
   animation: pulse 2s ease-out infinite;
@@ -315,14 +315,14 @@ html.dark-mode .attendance-automatic .control-card {
   transform: translate(-50%, -50%);
   width: 140px;
   height: 140px;
-  background: linear-gradient(135deg, #76a12b, #5e8122);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 4rem;
   color: white;
-  box-shadow: 0 8px 32px rgba(118, 161, 43, 0.3);
+  box-shadow: 0 8px 32px rgba(139, 195, 74, 0.3);
 }
 
 html.dark-mode .attendance-automatic .scanner-icon {
@@ -377,13 +377,13 @@ html.dark-mode .attendance-automatic .scanner-message {
 }
 
 .attendance-automatic .start-btn {
-  background: linear-gradient(135deg, #76a12b, #5e8122);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
   color: white;
 }
 
 .attendance-automatic .start-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(118, 161, 43, 0.4);
+  box-shadow: 0 6px 20px rgba(139, 195, 74, 0.4);
 }
 
 .attendance-automatic .stop-btn {

@@ -82,14 +82,14 @@ html.dark-mode .attendance-logs .inner-tabs {
 }
 
 .attendance-logs .tab-button.active {
-  background: linear-gradient(135deg, #76a12b, #5e8122);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
   color: white;
-  box-shadow: 0 3px 10px rgba(118, 161, 43, 0.3);
+  box-shadow: 0 3px 10px rgba(139, 195, 74, 0.3);
   transform: translateY(-1px);
 }
 
 .attendance-logs .tab-button.active:hover {
-  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.4);
+  box-shadow: 0 4px 12px rgba(139, 195, 74, 0.4);
 }
 
 html.dark-mode .attendance-logs .tab-button {
@@ -105,7 +105,7 @@ html.dark-mode .attendance-logs .tab-button:hover {
 }
 
 html.dark-mode .attendance-logs .tab-button.active {
-  background: linear-gradient(135deg, #76a12b, #5e8122);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
   color: white;
   box-shadow: 0 3px 10px rgba(139, 195, 74, 0.3);
 }
@@ -162,7 +162,7 @@ html.dark-mode .attendance-logs .tab-button.active:hover {
   border-radius: 16px;
   padding: 2rem;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  border: 2px solid rgba(118, 161, 43, 0.1);
+  border: 2px solid rgba(139, 195, 74, 0.1);
 }
 
 html.dark-mode .attendance-logs .filter-card {
@@ -197,8 +197,8 @@ html.dark-mode .attendance-logs .filter-card {
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
-  background: rgba(118, 161, 43, 0.1);
-  color: #5e8122;
+  background: rgba(139, 195, 74, 0.1);
+  color: #7ab82d;
   border-radius: 20px;
   font-size: 0.9rem;
   font-weight: 600;
@@ -427,7 +427,7 @@ html.dark-mode .attendance-logs .export-subtitle {
 .attendance-logs .loading-state i {
   font-size: 3rem;
   margin-bottom: 1rem;
-  color: #76a12b;
+  color: #8bc34a;
 }
 
 html.dark-mode .attendance-logs .loading-state i {

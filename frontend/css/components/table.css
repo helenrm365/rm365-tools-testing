@@ -230,7 +230,7 @@ html.dark-mode .modern-table select {
 .modern-table input:focus,
 .modern-table select:focus {
   outline: none;
-  border-color: #76a12b;
+  border-color: #8bc34a;
 }
 
 /* Table wrapper (alternative to table-container) */
@@ -261,7 +261,7 @@ html.dark-mode .table-wrap {
 .loading-state i {
   font-size: 2rem;
   margin-bottom: 1rem;
-  color: #76a12b;
+  color: #8bc34a;
 }
 
 html.dark-mode .loading-state i {

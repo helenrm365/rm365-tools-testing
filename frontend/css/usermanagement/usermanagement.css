@@ -87,14 +87,14 @@ html.dark-mode .usermanagement-management .inner-tabs {
 }
 
 .usermanagement-management .tab-button.active {
-  background: linear-gradient(135deg, #76a12b, #5e8122);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
   color: white;
-  box-shadow: 0 3px 10px rgba(118, 161, 43, 0.3);
+  box-shadow: 0 3px 10px rgba(139, 195, 74, 0.3);
   transform: translateY(-1px);
 }
 
 .usermanagement-management .tab-button.active:hover {
-  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.4);
+  box-shadow: 0 4px 12px rgba(139, 195, 74, 0.4);
 }
 
 html.dark-mode .usermanagement-management .tab-button {
@@ -110,7 +110,7 @@ html.dark-mode .usermanagement-management .tab-button:hover {
 }
 
 html.dark-mode .usermanagement-management .tab-button.active {
-  background: linear-gradient(135deg, #76a12b, #5e8122);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
   color: white;
   box-shadow: 0 3px 10px rgba(139, 195, 74, 0.3);
 }
@@ -217,9 +217,9 @@ html.dark-mode .expand-icon {
 }
 
 .expand-all-tabs-btn:hover {
-  background: linear-gradient(135deg, #8bc34a, #76a12b) !important;
+  background: linear-gradient(135deg, #8bc34a, #7ab82d) !important;
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(118, 161, 43, 0.3);
+  box-shadow: 0 2px 8px rgba(139, 195, 74, 0.3);
 }
 
 .expand-all-tabs-btn:active {
@@ -230,7 +230,7 @@ html.dark-mode .expand-icon {
 .tab-group {
   margin-bottom: 10px;
   padding: 10px;
-  border-left: 3px solid #76a12b;
+  border-left: 3px solid #8bc34a;
   padding-left: 12px;
   background: var(--tab-bg, #f8f9fa);
   border-radius: 6px;
@@ -238,7 +238,7 @@ html.dark-mode .expand-icon {
 }
 
 .tab-group:hover {
-  box-shadow: 0 1px 4px rgba(118, 161, 43, 0.15);
+  box-shadow: 0 1px 4px rgba(139, 195, 74, 0.15);
 }
 
 /* Main tabs container - collapsible wrapper for all tabs */
@@ -294,7 +294,7 @@ html.dark-mode .expand-icon {
   margin-left: auto;
   transition: transform 0.3s ease, background-color 0.2s ease;
   user-select: none;
-  color: #76a12b;
+  color: #8bc34a;
   font-size: 0.9em;
   font-weight: bold;
   cursor: pointer;
@@ -303,11 +303,11 @@ html.dark-mode .expand-icon {
 }
 
 .expand-icon:hover {
-  background-color: rgba(118, 161, 43, 0.1);
+  background-color: rgba(139, 195, 74, 0.1);
 }
 
 .expand-icon:active {
-  background-color: rgba(118, 161, 43, 0.2);
+  background-color: rgba(139, 195, 74, 0.2);
 }
 
 /* Subtabs container with animation */
@@ -347,7 +347,7 @@ html.dark-mode .expand-icon {
 }
 
 .subtab-label:hover {
-  background-color: rgba(118, 161, 43, 0.08);
+  background-color: rgba(139, 195, 74, 0.08);
 }
 
 .subtab-label input[type="checkbox"] {
@@ -376,7 +376,7 @@ html.dark-mode .modern-table .in {
 :root {
   --tab-bg: #f8f9fa;
   --tab-bg-hover: #e8f5e9;
-  --primary-color: #76a12b;
+  --primary-color: #8bc34a;
   --text-color: #333;
   --text-secondary: #666;
 }
@@ -451,13 +451,13 @@ html.dark-mode .tabs-master-control {
 
 /* Modern-button with primary modifier - green like primary-btn */
 .modern-button.primary {
-  background: linear-gradient(135deg, #76a12b, #5e8122);
-  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.3);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
+  box-shadow: 0 4px 12px rgba(139, 195, 74, 0.3);
 }
 
 .modern-button.primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, #8bc34a, #76a12b);
-  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.4);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
+  box-shadow: 0 4px 12px rgba(139, 195, 74, 0.4);
 }
 
 /* Modern-button with secondary modifier - same as base modern-button */
@@ -505,11 +505,11 @@ html.dark-mode .modern-button:hover:not(:disabled) {
 }
 
 html.dark-mode .modern-button.primary {
-  background: linear-gradient(135deg, #76a12b, #5e8122);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
 }
 
 html.dark-mode .modern-button.primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, #8bc34a, #76a12b);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
 }
 
 html.dark-mode .modern-button.danger {

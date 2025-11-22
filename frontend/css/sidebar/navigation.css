@@ -68,7 +68,7 @@ html.dark-mode .sidebar-nav::-webkit-scrollbar-thumb {
   top: 0;
   bottom: 0;
   width: 4px;
-  background: linear-gradient(135deg, #76a12b, #5e8122);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
   opacity: 0;
   transform: scaleY(0);
   transition: all 0.3s ease;
@@ -77,7 +77,7 @@ html.dark-mode .sidebar-nav::-webkit-scrollbar-thumb {
 }
 
 .nav-item:hover {
-  background: rgba(118, 161, 43, 0.08);
+  background: rgba(139, 195, 74, 0.08);
   color: #2c3e50;
 }
 
@@ -92,10 +92,10 @@ html.dark-mode .sidebar-nav::-webkit-scrollbar-thumb {
 
 /* Active state */
 .sidebar-nav li.active .nav-item {
-  background: linear-gradient(135deg, rgba(118, 161, 43, 0.15), rgba(94, 129, 34, 0.1));
-  color: #76a12b;
+  background: linear-gradient(135deg, rgba(139, 195, 74, 0.15), rgba(94, 129, 34, 0.1));
+  color: #8bc34a;
   font-weight: 600;
-  box-shadow: 0 2px 8px rgba(118, 161, 43, 0.15);
+  box-shadow: 0 2px 8px rgba(139, 195, 74, 0.15);
 }
 
 .sidebar-nav li.active .nav-item::before {
@@ -109,12 +109,12 @@ html.dark-mode .nav-item {
 }
 
 html.dark-mode .nav-item:hover {
-  background: rgba(118, 161, 43, 0.15);
+  background: rgba(139, 195, 74, 0.15);
   color: #ecf0f1;
 }
 
 html.dark-mode .sidebar-nav li.active .nav-item {
-  background: linear-gradient(135deg, rgba(118, 161, 43, 0.25), rgba(94, 129, 34, 0.15));
+  background: linear-gradient(135deg, rgba(139, 195, 74, 0.25), rgba(94, 129, 34, 0.15));
   color: #8ec134;
 }
 

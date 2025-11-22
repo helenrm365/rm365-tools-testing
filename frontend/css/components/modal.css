@@ -57,12 +57,12 @@ html.dark-mode .modal-content {
   align-items: center;
   gap: 1rem;
   padding: 1.5rem 2rem;
-  background: linear-gradient(135deg, rgba(118, 161, 43, 0.1), rgba(94, 129, 34, 0.05));
+  background: linear-gradient(135deg, rgba(139, 195, 74, 0.1), rgba(94, 129, 34, 0.05));
   border-bottom: 2px solid rgba(0, 0, 0, 0.06);
 }
 
 html.dark-mode .modal-header {
-  background: linear-gradient(135deg, rgba(139, 195, 74, 0.15), rgba(118, 161, 43, 0.08));
+  background: linear-gradient(135deg, rgba(139, 195, 74, 0.15), rgba(139, 195, 74, 0.08));
   border-bottom-color: rgba(255, 255, 255, 0.1);
 }
 
@@ -72,11 +72,11 @@ html.dark-mode .modal-header {
   justify-content: center;
   width: 48px;
   height: 48px;
-  background: linear-gradient(135deg, #76a12b, #5e8122);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
   border-radius: 12px;
   color: white;
   font-size: 1.5rem;
-  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.3);
+  box-shadow: 0 4px 12px rgba(139, 195, 74, 0.3);
 }
 
 .modal-title {
@@ -93,14 +93,14 @@ html.dark-mode .modal-title {
 
 /* Optional: Apply gradient text effect when modal-title is used with modal-header-icon */
 .modal-header-icon + .modal-title {
-  background: linear-gradient(135deg, #76a12b, #5e8122);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 html.dark-mode .modal-header-icon + .modal-title {
-  background: linear-gradient(135deg, #8bc34a, #76a12b);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

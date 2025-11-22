@@ -4,8 +4,8 @@
 
 /* CSS Variables */
 :root {
-  --login-primary: #76a12b;
-  --login-primary-dark: #5e8122;
+  --login-primary: #8bc34a;
+  --login-primary-dark: #7ab82d;
   --login-card-bg: rgba(255, 255, 255, 0.03);
   --login-card-border: rgba(255, 255, 255, 0.08);
   --login-text: #ffffff;

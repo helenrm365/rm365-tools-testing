@@ -38,15 +38,15 @@
 
 /* Primary Button - Green gradient (main actions) */
 .primary-btn {
-  background: linear-gradient(135deg, #76a12b, #5e8122);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
   color: white;
-  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.3);
+  box-shadow: 0 4px 12px rgba(139, 195, 74, 0.3);
 }
 
 .primary-btn:hover:not(:disabled) {
-  background: linear-gradient(135deg, #8bc34a, #76a12b);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.4);
+  box-shadow: 0 4px 12px rgba(139, 195, 74, 0.4);
 }
 
 .primary-btn:active {
@@ -207,12 +207,12 @@ html.dark-mode .secondary-btn:hover:not(:disabled) {
 }
 
 .btn-outline.primary-btn {
-  color: #76a12b;
-  border-color: #76a12b;
+  color: #8bc34a;
+  border-color: #8bc34a;
 }
 
 .btn-outline.primary-btn:hover:not(:disabled) {
-  background: #76a12b;
+  background: #8bc34a;
   color: white;
 }
 
@@ -288,15 +288,15 @@ html.dark-mode .btn-outline.danger-btn:hover:not(:disabled) {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #76a12b, #5e8122);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
   color: white;
-  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.3);
+  box-shadow: 0 4px 12px rgba(139, 195, 74, 0.3);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, #8bc34a, #76a12b);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.4);
+  box-shadow: 0 4px 12px rgba(139, 195, 74, 0.4);
 }
 
 .btn-primary:active {

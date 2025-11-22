@@ -11,37 +11,37 @@
 }
 
 ::-webkit-scrollbar-thumb {
-    background: rgba(118, 161, 43, 0.4);
+    background: rgba(139, 195, 74, 0.4);
     border-radius: 10px;
     transition: background 0.2s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: rgba(118, 161, 43, 0.6);
+    background: rgba(139, 195, 74, 0.6);
 }
 
 ::-webkit-scrollbar-thumb:active {
-    background: rgba(118, 161, 43, 0.8);
+    background: rgba(139, 195, 74, 0.8);
 }
 
 html.dark-mode ::-webkit-scrollbar-thumb {
-    background: rgba(118, 161, 43, 0.4);
+    background: rgba(139, 195, 74, 0.4);
 }
 
 html.dark-mode ::-webkit-scrollbar-thumb:hover {
-    background: rgba(118, 161, 43, 0.6);
+    background: rgba(139, 195, 74, 0.6);
 }
 
 html.dark-mode ::-webkit-scrollbar-thumb:active {
-    background: rgba(118, 161, 43, 0.8);
+    background: rgba(139, 195, 74, 0.8);
 }
 
 /* Firefox */
 * {
     scrollbar-width: thin;
-    scrollbar-color: rgba(118, 161, 43, 0.4) transparent;
+    scrollbar-color: rgba(139, 195, 74, 0.4) transparent;
 }
 
 html.dark-mode * {
-    scrollbar-color: rgba(118, 161, 43, 0.4) transparent;
+    scrollbar-color: rgba(139, 195, 74, 0.4) transparent;
 }

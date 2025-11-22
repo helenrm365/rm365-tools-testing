@@ -55,8 +55,8 @@
 
 .form-input:focus {
   border-color: var(--login-input-focus);
-  background: rgba(118, 161, 43, 0.05);
-  box-shadow: 0 0 0 3px rgba(118, 161, 43, 0.1);
+  background: rgba(139, 195, 74, 0.05);
+  box-shadow: 0 0 0 3px rgba(139, 195, 74, 0.1);
 }
 
 .form-input:hover:not(:focus) {
@@ -76,7 +76,7 @@
   font-family: 'Sora', system-ui, -apple-system, sans-serif;
   cursor: pointer;
   transition: var(--login-transition);
-  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.3);
+  box-shadow: 0 4px 12px rgba(139, 195, 74, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -85,12 +85,12 @@
 
 .login-button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(118, 161, 43, 0.4);
+  box-shadow: 0 6px 20px rgba(139, 195, 74, 0.4);
 }
 
 .login-button:active {
   transform: translateY(0);
-  box-shadow: 0 2px 8px rgba(118, 161, 43, 0.3);
+  box-shadow: 0 2px 8px rgba(139, 195, 74, 0.3);
 }
 
 .button-arrow {

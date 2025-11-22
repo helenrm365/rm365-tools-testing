@@ -82,14 +82,14 @@ html.dark-mode .enrollment-fingerprint .inner-tabs {
 }
 
 .enrollment-fingerprint .tab-button.active {
-  background: linear-gradient(135deg, #76a12b, #5e8122);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
   color: white;
-  box-shadow: 0 3px 10px rgba(118, 161, 43, 0.3);
+  box-shadow: 0 3px 10px rgba(139, 195, 74, 0.3);
   transform: translateY(-1px);
 }
 
 .enrollment-fingerprint .tab-button.active:hover {
-  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.4);
+  box-shadow: 0 4px 12px rgba(139, 195, 74, 0.4);
 }
 
 html.dark-mode .enrollment-fingerprint .tab-button {
@@ -105,7 +105,7 @@ html.dark-mode .enrollment-fingerprint .tab-button:hover {
 }
 
 html.dark-mode .enrollment-fingerprint .tab-button.active {
-  background: linear-gradient(135deg, #76a12b, #5e8122);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
   color: white;
   box-shadow: 0 3px 10px rgba(139, 195, 74, 0.3);
 }
@@ -171,9 +171,9 @@ html.dark-mode .enrollment-fingerprint .enrollment-fp-section {
 }
 
 .enrollment-fingerprint .scan-icon {
-  background: linear-gradient(135deg, #76a12b, #5e8122);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
   color: white;
-  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.3);
+  box-shadow: 0 4px 12px rgba(139, 195, 74, 0.3);
 }
 
 .enrollment-fingerprint .assign-icon {
@@ -183,7 +183,7 @@ html.dark-mode .enrollment-fingerprint .enrollment-fp-section {
 }
 
 html.dark-mode .enrollment-fingerprint .scan-icon {
-  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.5);
+  box-shadow: 0 4px 12px rgba(139, 195, 74, 0.5);
 }
 
 html.dark-mode .enrollment-fingerprint .assign-icon {
@@ -445,14 +445,14 @@ html.dark-mode .enrollment-fingerprint .employee-dropdown:focus {
 
 /* Special button colors for enrollment fingerprint */
 .enrollment-fingerprint .scan-btn {
-  background: linear-gradient(135deg, #76a12b, #5e8122);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
   color: white;
-  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.3);
+  box-shadow: 0 4px 12px rgba(139, 195, 74, 0.3);
 }
 
 .enrollment-fingerprint .scan-btn:hover:not(:disabled) {
-  background: linear-gradient(135deg, #8bc34a, #76a12b);
-  box-shadow: 0 4px 16px rgba(118, 161, 43, 0.4);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
+  box-shadow: 0 4px 16px rgba(139, 195, 74, 0.4);
 }
 
 .enrollment-fingerprint .save-btn {
@@ -487,15 +487,15 @@ html.dark-mode .enrollment-fingerprint .employee-dropdown:focus {
 }
 
 .enrollment-fingerprint .status-bar[data-status="scanning"] {
-  background: linear-gradient(135deg, rgba(118, 161, 43, 0.1), rgba(94, 129, 34, 0.05));
-  border: 2px solid rgba(118, 161, 43, 0.3);
-  color: #5e8122;
+  background: linear-gradient(135deg, rgba(139, 195, 74, 0.1), rgba(94, 129, 34, 0.05));
+  border: 2px solid rgba(139, 195, 74, 0.3);
+  color: #7ab82d;
 }
 
 .enrollment-fingerprint .status-bar[data-status="success"] {
-  background: linear-gradient(135deg, rgba(118, 161, 43, 0.1), rgba(94, 129, 34, 0.05));
-  border: 2px solid rgba(118, 161, 43, 0.3);
-  color: #5e8122;
+  background: linear-gradient(135deg, rgba(139, 195, 74, 0.1), rgba(94, 129, 34, 0.05));
+  border: 2px solid rgba(139, 195, 74, 0.3);
+  color: #7ab82d;
 }
 
 .enrollment-fingerprint .status-bar[data-status="error"] {
@@ -517,13 +517,13 @@ html.dark-mode .enrollment-fingerprint .status-bar[data-status="ready"] {
 }
 
 html.dark-mode .enrollment-fingerprint .status-bar[data-status="scanning"] {
-  background: linear-gradient(135deg, rgba(139, 195, 74, 0.15), rgba(118, 161, 43, 0.08));
+  background: linear-gradient(135deg, rgba(139, 195, 74, 0.15), rgba(139, 195, 74, 0.08));
   border-color: rgba(139, 195, 74, 0.3);
   color: #8bc34a;
 }
 
 html.dark-mode .enrollment-fingerprint .status-bar[data-status="success"] {
-  background: linear-gradient(135deg, rgba(139, 195, 74, 0.15), rgba(118, 161, 43, 0.08));
+  background: linear-gradient(135deg, rgba(139, 195, 74, 0.15), rgba(139, 195, 74, 0.08));
   border-color: rgba(139, 195, 74, 0.3);
   color: #8bc34a;
 }
@@ -623,7 +623,7 @@ html.dark-mode .enrollment-fingerprint .step-item {
   width: 36px;
   height: 36px;
   border-radius: 8px;
-  background: linear-gradient(135deg, #76a12b, #5e8122);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
   color: white;
   display: flex;
   align-items: center;
@@ -631,11 +631,11 @@ html.dark-mode .enrollment-fingerprint .step-item {
   font-weight: 700;
   font-size: 1rem;
   flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(118, 161, 43, 0.3);
+  box-shadow: 0 2px 8px rgba(139, 195, 74, 0.3);
 }
 
 html.dark-mode .enrollment-fingerprint .step-number {
-  box-shadow: 0 2px 8px rgba(118, 161, 43, 0.5);
+  box-shadow: 0 2px 8px rgba(139, 195, 74, 0.5);
 }
 
 .enrollment-fingerprint .step-info {
@@ -693,7 +693,7 @@ html.dark-mode .enrollment-fingerprint .logic-item {
 .enrollment-fingerprint .logic-icon-wrapper {
   width: 40px;
   height: 40px;
-  background: linear-gradient(135deg, #76a12b, #5e8122);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -701,11 +701,11 @@ html.dark-mode .enrollment-fingerprint .logic-item {
   font-size: 1.1rem;
   color: white;
   flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(118, 161, 43, 0.3);
+  box-shadow: 0 2px 8px rgba(139, 195, 74, 0.3);
 }
 
 html.dark-mode .enrollment-fingerprint .logic-icon-wrapper {
-  box-shadow: 0 2px 8px rgba(118, 161, 43, 0.5);
+  box-shadow: 0 2px 8px rgba(139, 195, 74, 0.5);
 }
 
 .enrollment-fingerprint .logic-content h5 {
@@ -780,14 +780,14 @@ html.dark-mode .enrollment-fingerprint .note-card strong {
 /* Tips Section */
 .enrollment-fingerprint .tips-section {
   padding: 1.5rem;
-  background: linear-gradient(135deg, rgba(118, 161, 43, 0.1), rgba(94, 129, 34, 0.05));
+  background: linear-gradient(135deg, rgba(139, 195, 74, 0.1), rgba(94, 129, 34, 0.05));
   border-radius: 12px;
-  border: 2px solid rgba(118, 161, 43, 0.2);
+  border: 2px solid rgba(139, 195, 74, 0.2);
   margin-bottom: 1.5rem;
 }
 
 html.dark-mode .enrollment-fingerprint .tips-section {
-  background: linear-gradient(135deg, rgba(139, 195, 74, 0.15), rgba(118, 161, 43, 0.08));
+  background: linear-gradient(135deg, rgba(139, 195, 74, 0.15), rgba(139, 195, 74, 0.08));
   border-color: rgba(139, 195, 74, 0.3);
 }
 
@@ -796,7 +796,7 @@ html.dark-mode .enrollment-fingerprint .tips-section {
   align-items: center;
   gap: 0.75rem;
   font-size: 0.9rem;
-  color: #5e8122;
+  color: #7ab82d;
   margin-bottom: 0.75rem;
   line-height: 1.5;
 }

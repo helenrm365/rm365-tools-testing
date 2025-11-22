@@ -83,14 +83,14 @@ html.dark-mode .inventory-adjustments .inner-tabs {
 }
 
 .inventory-adjustments .tab-button.active {
-  background: linear-gradient(135deg, #76a12b, #5e8122);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
   color: white;
-  box-shadow: 0 3px 10px rgba(118, 161, 43, 0.3);
+  box-shadow: 0 3px 10px rgba(139, 195, 74, 0.3);
   transform: translateY(-1px);
 }
 
 .inventory-adjustments .tab-button.active:hover {
-  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.4);
+  box-shadow: 0 4px 12px rgba(139, 195, 74, 0.4);
 }
 
 html.dark-mode .inventory-adjustments .tab-button {
@@ -106,7 +106,7 @@ html.dark-mode .inventory-adjustments .tab-button:hover {
 }
 
 html.dark-mode .inventory-adjustments .tab-button.active {
-  background: linear-gradient(135deg, #76a12b, #5e8122);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
   color: white;
   box-shadow: 0 3px 10px rgba(139, 195, 74, 0.3);
 }
@@ -163,13 +163,13 @@ html.dark-mode .adjustments-section {
   justify-content: center;
   font-size: 1.5rem;
   flex-shrink: 0;
-  background: linear-gradient(135deg, #76a12b, #5e8122);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
   color: white;
-  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.3);
+  box-shadow: 0 4px 12px rgba(139, 195, 74, 0.3);
 }
 
 html.dark-mode .section-icon {
-  box-shadow: 0 4px 12px rgba(118, 161, 43, 0.5);
+  box-shadow: 0 4px 12px rgba(139, 195, 74, 0.5);
 }
 
 .section-title-group {
@@ -218,13 +218,13 @@ html.dark-mode .scanner-interface-card {
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
-  background: linear-gradient(135deg, #76a12b, #5e8122);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
   color: white;
   border-radius: 20px;
   font-weight: 600;
   font-size: 0.95rem;
   margin-bottom: 1rem;
-  box-shadow: 0 2px 8px rgba(118, 161, 43, 0.3);
+  box-shadow: 0 2px 8px rgba(139, 195, 74, 0.3);
 }
 
 /* Form Grid */
@@ -255,7 +255,7 @@ html.dark-mode .form-label {
 }
 
 .form-label i {
-  color: #76a12b;
+  color: #8bc34a;
   font-size: 0.875rem;
 }
 
@@ -277,8 +277,8 @@ html.dark-mode .form-label i {
 
 .modern-input:focus {
   outline: none;
-  border-color: #76a12b;
-  box-shadow: 0 0 0 3px rgba(118, 161, 43, 0.1);
+  border-color: #8bc34a;
+  box-shadow: 0 0 0 3px rgba(139, 195, 74, 0.1);
 }
 
 html.dark-mode .modern-input {
@@ -352,8 +352,8 @@ html.dark-mode .dropdown-backdrop {
 }
 
 .tertiary-btn:hover {
-  border-color: #76a12b;
-  color: #5e8122;
+  border-color: #8bc34a;
+  color: #7ab82d;
   background: #fafafa;
 }
 
@@ -463,7 +463,7 @@ html.dark-mode .info-card-title {
 }
 
 .info-card-title i {
-  color: #76a12b;
+  color: #8bc34a;
 }
 
 html.dark-mode .info-card-title i {
@@ -512,11 +512,11 @@ html.dark-mode .recent-table td {
 }
 
 .recent-table tbody tr:hover {
-  background: rgba(118, 161, 43, 0.05);
+  background: rgba(139, 195, 74, 0.05);
 }
 
 html.dark-mode .recent-table tbody tr:hover {
-  background: rgba(118, 161, 43, 0.15);
+  background: rgba(139, 195, 74, 0.15);
 }
 
 .empty-state {
@@ -613,7 +613,7 @@ html.dark-mode .guide-card .step-item {
   width: 36px;
   height: 36px;
   border-radius: 8px;
-  background: linear-gradient(135deg, #76a12b, #5e8122);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
   color: white;
   display: flex;
   align-items: center;
@@ -621,11 +621,11 @@ html.dark-mode .guide-card .step-item {
   font-weight: 700;
   font-size: 1rem;
   flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(118, 161, 43, 0.3);
+  box-shadow: 0 2px 8px rgba(139, 195, 74, 0.3);
 }
 
 html.dark-mode .guide-card .step-number {
-  box-shadow: 0 2px 8px rgba(118, 161, 43, 0.5);
+  box-shadow: 0 2px 8px rgba(139, 195, 74, 0.5);
 }
 
 .guide-card .step-info {
@@ -647,7 +647,7 @@ html.dark-mode .guide-card .step-name {
 }
 
 .guide-card .step-name .step-icon {
-  color: #76a12b;
+  color: #8bc34a;
   font-size: 0.9rem;
 }
 
@@ -708,7 +708,7 @@ html.dark-mode .guide-card .logic-item {
 .guide-card .logic-icon-wrapper {
   width: 40px;
   height: 40px;
-  background: linear-gradient(135deg, #76a12b, #5e8122);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -716,11 +716,11 @@ html.dark-mode .guide-card .logic-item {
   font-size: 1.1rem;
   color: white;
   flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(118, 161, 43, 0.3);
+  box-shadow: 0 2px 8px rgba(139, 195, 74, 0.3);
 }
 
 html.dark-mode .guide-card .logic-icon-wrapper {
-  box-shadow: 0 2px 8px rgba(118, 161, 43, 0.5);
+  box-shadow: 0 2px 8px rgba(139, 195, 74, 0.5);
 }
 
 .guide-card .logic-content h5 {
@@ -802,17 +802,17 @@ html.dark-mode .guide-card .note-card strong {
 
 /* Old tips section - keep for backwards compatibility */
 .tips-section {
-  background: linear-gradient(135deg, rgba(118, 161, 43, 0.1), rgba(94, 129, 34, 0.05));
-  border-left: 4px solid #76a12b;
+  background: linear-gradient(135deg, rgba(139, 195, 74, 0.1), rgba(94, 129, 34, 0.05));
+  border-left: 4px solid #8bc34a;
 }
 
 html.dark-mode .tips-section {
-  background: linear-gradient(135deg, rgba(118, 161, 43, 0.2), rgba(94, 129, 34, 0.1));
-  border-left-color: #5e8122;
+  background: linear-gradient(135deg, rgba(139, 195, 74, 0.2), rgba(94, 129, 34, 0.1));
+  border-left-color: #7ab82d;
 }
 
 .tips-section .info-card-title {
-  color: #76a12b;
+  color: #8bc34a;
 }
 
 html.dark-mode .tips-section .info-card-title {
@@ -820,7 +820,7 @@ html.dark-mode .tips-section .info-card-title {
 }
 
 .tips-section .info-card-title i {
-  color: #76a12b;
+  color: #8bc34a;
 }
 
 html.dark-mode .tips-section .info-card-title i {
@@ -894,16 +894,16 @@ html.dark-mode .connection-status.offline {
 
 .sync-status {
   padding: 0.75rem;
-  background: rgba(118, 161, 43, 0.1);
+  background: rgba(139, 195, 74, 0.1);
   border-radius: 8px;
   font-size: 0.95rem;
   font-weight: 600;
-  color: #5e8122;
+  color: #7ab82d;
   text-align: center;
 }
 
 html.dark-mode .sync-status {
-  background: rgba(118, 161, 43, 0.2);
+  background: rgba(139, 195, 74, 0.2);
   color: #8ec134;
 }
 

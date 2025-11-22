@@ -100,7 +100,7 @@ html.dark-mode .filter-label {
 
 .filter-label i {
   font-size: 0.85rem;
-  color: #76a12b;
+  color: #8bc34a;
 }
 
 html.dark-mode .filter-label i {
@@ -136,14 +136,14 @@ html.dark-mode .filter-label i {
 .filter-select:hover {
   background: #f8f9fa;
   box-shadow: 0 3px 8px rgba(0,0,0,0.1);
-  border-color: rgba(118, 161, 43, 0.3);
+  border-color: rgba(139, 195, 74, 0.3);
 }
 
 .filter-input:focus,
 .filter-select:focus {
   outline: none;
-  border-color: #76a12b;
-  box-shadow: 0 0 0 2px rgba(118, 161, 43, 0.1), 0 3px 8px rgba(0,0,0,0.12);
+  border-color: #8bc34a;
+  box-shadow: 0 0 0 2px rgba(139, 195, 74, 0.1), 0 3px 8px rgba(0,0,0,0.12);
 }
 
 html.dark-mode .filter-input,
@@ -217,7 +217,7 @@ html.dark-mode .data-section h4 {
   border-radius: 16px;
   padding: 2rem;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  border: 2px solid rgba(118, 161, 43, 0.1);
+  border: 2px solid rgba(139, 195, 74, 0.1);
 }
 
 html.dark-mode .chart-card {
@@ -266,7 +266,7 @@ html.dark-mode .status-card {
 .loading-state i {
   font-size: 2rem;
   margin-bottom: 1rem;
-  color: #76a12b;
+  color: #8bc34a;
 }
 
 html.dark-mode .loading-state i {
