@@ -31,8 +31,16 @@ function selectFinger(fingerName) {
     const statusText = status?.querySelector('.status-message');
     const empId = $('#fpEmployee')?.value;
     
-    if (empId && statusText && status.getAttribute('data-status') === 'ready') {
-        statusText.textContent = `${fingerName} selected. Click Scan to capture fingerprint.`;
+    if (empId && statusText) {
+        statusText.textContent = `${fingerName} selected. Place finger on scanner.`;
+        // If we were showing a success message from previous scan, maybe we should reset it?
+        // But if we just selected a new finger, we probably haven't scanned it yet.
+        // Unless we are switching fingers after a scan but before save?
+        // If we have a template, switching fingers is dangerous if we don't clear the template.
+        // But the user might want to save the *current* template to the *newly selected* finger?
+        // "then they can save to the finger they want to."
+        // So if I scan (Right Thumb), then click "Left Index", then click "Save", it should save the scan as Left Index.
+        // So I should NOT clear the template on finger selection change.
     }
 }
 
@@ -121,11 +129,13 @@ function fillEmployeeSelect() {
       const status = $('#fpStatus');
       const statusText = status?.querySelector('.status-message');
       if (emp) {
-        if (statusText) statusText.textContent = `Employee selected: ${emp.name}. Select a finger and click Scan.`;
+        if (statusText) statusText.textContent = `Employee selected: ${emp.name}. Place finger on scanner.`;
         if (status) status.setAttribute('data-status', 'ready');
+        startScanningLoop();
       } else {
         if (statusText) statusText.textContent = 'Please select an employee to begin enrollment';
         if (status) status.setAttribute('data-status', 'ready');
+        stopScanningLoop();
       }
   });
 }
@@ -142,14 +152,18 @@ function explain(code) {
   return map[code] || `code ${code}`;
 }
 
-async function tryLocalSecuGen(timeoutMs = 11000) {
+async function tryLocalSecuGen(timeoutMs = 11000, signal = null) {
   // We are forcing HTTP in the local bridge to avoid SSL certificate issues.
   // Prioritize 127.0.0.1 as it is often treated more favorably by browsers for PNA.
   const endpoint = 'http://127.0.0.1:8080/SGIFPCapture';
-  const payload = { Timeout: 10000, TemplateFormat: 'ANSI', FakeDetection: 1 };
+  const payload = { Timeout: Math.max(1000, timeoutMs - 500), TemplateFormat: 'ANSI', FakeDetection: 1 };
 
   const ac = new AbortController();
   const timeoutId = setTimeout(() => ac.abort(), timeoutMs);
+  
+  if (signal) {
+      signal.addEventListener('abort', () => ac.abort());
+  }
 
   try {
     const response = await fetch(endpoint, {
@@ -170,6 +184,86 @@ async function tryLocalSecuGen(timeoutMs = 11000) {
   } finally {
     clearTimeout(timeoutId);
   }
+}
+
+let scanLoopActive = false;
+let currentScanAbort = null;
+
+async function startScanningLoop() {
+    if (scanLoopActive) return;
+    scanLoopActive = true;
+    
+    const status = $('#fpStatus');
+    const statusText = status?.querySelector('.status-message');
+    const scanBtn = $('#scanFpBtn');
+    if (scanBtn) scanBtn.style.display = 'none';
+    
+    console.log('Starting scan loop...');
+
+    while (scanLoopActive) {
+        const empId = $('#fpEmployee')?.value;
+        if (!empId) {
+            stopScanningLoop();
+            break;
+        }
+
+        if (statusText && !state.templateB64) {
+             statusText.textContent = `Scanning ${state.selectedFinger}... Place finger on sensor.`;
+             if (status) status.setAttribute('data-status', 'scanning');
+        }
+
+        try {
+            currentScanAbort = new AbortController();
+            const result = await tryLocalSecuGen(5000, currentScanAbort.signal);
+            
+            if (!scanLoopActive) break;
+
+            if (result && result.ErrorCode === 0) {
+                playScanSound();
+                state.templateB64 = result.TemplateBase64;
+                
+                const templateBox = $('#fpTemplate');
+                if (templateBox) templateBox.value = result.TemplateBase64;
+                
+                const preview = $('#fingerprintPreview');
+                const placeholder = $('#fpPreviewPlaceholder');
+                
+                if (result.BMPBase64) {
+                    if (preview) {
+                        const cleanB64 = result.BMPBase64.replace(/[\r\n\s]+/g, '');
+                        const prefix = cleanB64.startsWith('data:image') ? '' : 'data:image/bmp;base64,';
+                        preview.src = `${prefix}${cleanB64}`;
+                        preview.style.display = 'block';
+                        preview.classList.add('visible');
+                    }
+                    if (placeholder) placeholder.style.display = 'none';
+                }
+                
+                if (statusText) statusText.textContent = `Fingerprint captured! Place again to re-scan or click Save.`;
+                if (status) status.setAttribute('data-status', 'success');
+                
+                await new Promise(r => setTimeout(r, 1000));
+            } else {
+                await new Promise(r => setTimeout(r, 500));
+            }
+        } catch (err) {
+            if (err.name !== 'AbortError') {
+                console.error('Scan loop error:', err);
+                await new Promise(r => setTimeout(r, 2000));
+            }
+        }
+    }
+    
+    if (scanBtn) scanBtn.style.display = 'inline-block';
+}
+
+function stopScanningLoop() {
+    console.log('Stopping scan loop...');
+    scanLoopActive = false;
+    if (currentScanAbort) {
+        currentScanAbort.abort();
+        currentScanAbort = null;
+    }
 }
 
 async function onScan() {
@@ -334,6 +428,10 @@ async function onSave() {
   if (statusText) statusText.textContent = `Saving ${state.selectedFinger} fingerprint to database...`;
   if (status) status.setAttribute('data-status', 'scanning');
 
+  // Pause scanning
+  const wasScanning = scanLoopActive;
+  if (wasScanning) stopScanningLoop();
+
   try {
     console.log('Saving fingerprint for employee:', empId);
     
@@ -347,7 +445,7 @@ async function onSave() {
     
     // Reset everything after successful save
     setTimeout(() => {
-      resetForm();
+      resetForm(true);
       // Refresh employee list to update has_fingerprint status
       getEmployees().then(emps => {
         state.employees = emps;
@@ -358,16 +456,22 @@ async function onSave() {
              renderFingerprints(emp);
         }
       });
+      
+      // Restart scanning if it was active
+      if (wasScanning) startScanningLoop();
     }, 2000);
   } catch (error) {
     console.error('Save failed:', error);
     playErrorSound();
     if (statusText) statusText.textContent = error.message;
     if (status) status.setAttribute('data-status', 'error');
+    
+    // Restart scanning if it was active
+    if (wasScanning) startScanningLoop();
   }
 }
 
-function resetForm() {
+function resetForm(keepEmployee = false) {
   const status = $('#fpStatus');
   const statusText = status?.querySelector('.status-message');
   const preview = $('#fingerprintPreview');
@@ -377,7 +481,7 @@ function resetForm() {
 
   // Clear state
   state.templateB64 = null;
-  selectFinger("Right Thumb"); // Reset selection
+  // selectFinger("Right Thumb"); // Don't reset finger selection, user might want to enroll same finger again or move to next manually
 
   // Reset preview
   if (preview) {
@@ -389,15 +493,20 @@ function resetForm() {
   if (templateBox) templateBox.value = '';
 
   // Reset employee selection
-  if (employeeSelect) {
+  if (!keepEmployee && employeeSelect) {
     employeeSelect.value = '';
     // Dispatch change event so c-select updates its UI
     employeeSelect.dispatchEvent(new Event('change', { bubbles: true }));
   }
 
   // Reset status
-  if (statusText) statusText.textContent = 'Please select an employee to begin enrollment';
-  if (status) status.setAttribute('data-status', 'ready');
+  if (!keepEmployee) {
+      if (statusText) statusText.textContent = 'Please select an employee to begin enrollment';
+      if (status) status.setAttribute('data-status', 'ready');
+  } else {
+      if (statusText) statusText.textContent = `Ready for next scan. Place finger on scanner.`;
+      if (status) status.setAttribute('data-status', 'ready');
+  }
 
   // Reload employees to update fingerprint status
   window.dispatchEvent(new Event('reloadEmployees'));
