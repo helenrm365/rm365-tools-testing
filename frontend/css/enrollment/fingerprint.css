@@ -148,7 +148,7 @@ html.dark-mode .enrollment-fingerprint .enrollment-fp-section {
 
 /* Action Blocks */
 .enrollment-fingerprint .action-block {
-  margin-bottom: 2rem;
+  margin-bottom: 0.5rem;
 }
 
 .enrollment-fingerprint .block-header {
@@ -183,9 +183,9 @@ html.dark-mode .enrollment-fingerprint .enrollment-fp-section {
 }
 
 .enrollment-fingerprint .save-icon {
-  background: linear-gradient(135deg, #9b59b6, #8e44ad);
+  background: linear-gradient(135deg, #3498db, #2980b9);
   color: white;
-  box-shadow: 0 4px 12px rgba(155, 89, 182, 0.3);
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
 }
 
 html.dark-mode .enrollment-fingerprint .scan-icon {
@@ -197,7 +197,7 @@ html.dark-mode .enrollment-fingerprint .assign-icon {
 }
 
 html.dark-mode .enrollment-fingerprint .save-icon {
-  box-shadow: 0 4px 12px rgba(155, 89, 182, 0.5);
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.5);
 }
 
 .enrollment-fingerprint .block-title-group {
@@ -335,7 +335,7 @@ html.dark-mode .enrollment-fingerprint .preview-container.has-image {
   display: flex;
   align-items: center;
   gap: 1rem;
-  margin: 2rem 0;
+  margin: 1rem 0;
   padding: 0 72px;
 }
 
@@ -370,7 +370,7 @@ html.dark-mode .enrollment-fingerprint .divider-icon {
 
 /* Employee Select */
 .enrollment-fingerprint .employee-select-wrapper {
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.5rem;
 }
 
 .enrollment-fingerprint .select-label {

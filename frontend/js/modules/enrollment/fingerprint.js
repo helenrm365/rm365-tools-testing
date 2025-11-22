@@ -357,7 +357,7 @@ async function onScan() {
       if (status) status.setAttribute('data-status', 'error');
     }
   } catch (error) {
-    if (statusText) statusText.textContent = error.message;
+    if (statusText) statusText.textContent = error.message || String(error);
     if (status) status.setAttribute('data-status', 'error');
   }
 }
@@ -463,7 +463,7 @@ async function onSave() {
   } catch (error) {
     console.error('Save failed:', error);
     playErrorSound();
-    if (statusText) statusText.textContent = error.message;
+    if (statusText) statusText.textContent = error.message || String(error);
     if (status) status.setAttribute('data-status', 'error');
     
     // Restart scanning if it was active
