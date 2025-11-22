@@ -445,7 +445,7 @@ async function onSave() {
     
     // Reset everything after successful save
     setTimeout(() => {
-      resetForm(true);
+      resetForm();
       // Refresh employee list to update has_fingerprint status
       getEmployees().then(emps => {
         state.employees = emps;
@@ -458,7 +458,7 @@ async function onSave() {
       });
       
       // Restart scanning if it was active
-      if (wasScanning) startScanningLoop();
+      // if (wasScanning) startScanningLoop();
     }, 2000);
   } catch (error) {
     console.error('Save failed:', error);
@@ -481,7 +481,7 @@ function resetForm(keepEmployee = false) {
 
   // Clear state
   state.templateB64 = null;
-  // selectFinger("Right Thumb"); // Don't reset finger selection, user might want to enroll same finger again or move to next manually
+  selectFinger("Right Thumb"); // Reset finger selection
 
   // Reset preview
   if (preview) {
