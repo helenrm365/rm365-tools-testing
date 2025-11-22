@@ -28,61 +28,15 @@
   <div class="fingerprint-enrollment-wrapper">
     <!-- Primary Actions Card -->
     <div class="enrollment-fp-section primary-section">
-      <!-- Scan Fingerprint Area -->
-      <div class="action-block scan-block">
-        <div class="block-header">
-          <div class="block-icon scan-icon">
-            <i class="fas fa-fingerprint"></i>
-          </div>
-          <div class="block-title-group">
-            <h3 class="block-title">Scan Fingerprint</h3>
-            <p class="block-subtitle">Place finger on scanner</p>
-          </div>
-        </div>
-
-        <div class="block-content">
-          <!-- Fingerprint Preview -->
-          <div class="fingerprint-preview-area">
-            <div class="preview-label">
-              <i class="fas fa-image"></i>
-              <span>Fingerprint Preview</span>
-            </div>
-            <div class="preview-container" id="fpPreviewContainer">
-              <div class="preview-placeholder" id="fpPreviewPlaceholder">
-                <i class="fas fa-fingerprint preview-placeholder-icon"></i>
-                <span class="preview-placeholder-text">Fingerprint will appear here</span>
-              </div>
-              <img id="fingerprintPreview" class="fingerprint-image" alt="Fingerprint Preview">
-            </div>
-          </div>
-
-          <button class="action-btn scan-btn" id="scanFpBtn">
-            <i class="fas fa-scan"></i>
-            <span>Scan Fingerprint</span>
-          </button>
-
-          <input type="hidden" id="fpTemplate">
-        </div>
-      </div>
-
-      <!-- Divider -->
-      <div class="action-divider">
-        <div class="divider-line"></div>
-        <div class="divider-icon">
-          <i class="fas fa-arrow-down"></i>
-        </div>
-        <div class="divider-line"></div>
-      </div>
-
-      <!-- Assign Employee Area -->
+      <!-- Assign Employee Area - NOW FIRST -->
       <div class="action-block assign-block">
         <div class="block-header">
           <div class="block-icon assign-icon">
             <i class="fas fa-user-check"></i>
           </div>
           <div class="block-title-group">
-            <h3 class="block-title">Assign to Employee</h3>
-            <p class="block-subtitle">Link fingerprint to team member</p>
+            <h3 class="block-title">1. Select Employee</h3>
+            <p class="block-subtitle">Choose employee to enroll fingerprint</p>
           </div>
         </div>
 
@@ -96,8 +50,33 @@
               <option value="">Loading employees...</option>
             </select>
           </div>
+        </div>
+      </div>
 
-          <div class="hand-selection-wrapper" style="margin-top: 1.5rem;">
+      <!-- Divider -->
+      <div class="action-divider">
+        <div class="divider-line"></div>
+        <div class="divider-icon">
+          <i class="fas fa-arrow-down"></i>
+        </div>
+        <div class="divider-line"></div>
+      </div>
+
+      <!-- Scan Fingerprint Area - NOW SECOND -->
+      <div class="action-block scan-block">
+        <div class="block-header">
+          <div class="block-icon scan-icon">
+            <i class="fas fa-fingerprint"></i>
+          </div>
+          <div class="block-title-group">
+            <h3 class="block-title">2. Scan Fingerprint</h3>
+            <p class="block-subtitle">Select finger and place on scanner</p>
+          </div>
+        </div>
+
+        <div class="block-content">
+          <!-- Hand Selection -->
+          <div class="hand-selection-wrapper">
             <label class="select-label">
               <i class="fas fa-hand-paper"></i>
               <span>Select Finger</span>
@@ -156,6 +135,52 @@
             </div>
           </div>
 
+          <!-- Fingerprint Preview -->
+          <div class="fingerprint-preview-area" style="margin-top: 1.5rem;">
+            <div class="preview-label">
+              <i class="fas fa-image"></i>
+              <span>Fingerprint Preview</span>
+            </div>
+            <div class="preview-container" id="fpPreviewContainer">
+              <div class="preview-placeholder" id="fpPreviewPlaceholder">
+                <i class="fas fa-fingerprint preview-placeholder-icon"></i>
+                <span class="preview-placeholder-text">Fingerprint will appear here</span>
+              </div>
+              <img id="fingerprintPreview" class="fingerprint-image" alt="Fingerprint Preview">
+            </div>
+          </div>
+
+          <button class="action-btn scan-btn" id="scanFpBtn">
+            <i class="fas fa-scan"></i>
+            <span>Scan Fingerprint</span>
+          </button>
+
+          <input type="hidden" id="fpTemplate">
+        </div>
+      </div>
+
+      <!-- Divider -->
+      <div class="action-divider">
+        <div class="divider-line"></div>
+        <div class="divider-icon">
+          <i class="fas fa-arrow-down"></i>
+        </div>
+        <div class="divider-line"></div>
+      </div>
+
+      <!-- Save Fingerprint Area - NOW THIRD -->
+      <div class="action-block save-block">
+        <div class="block-header">
+          <div class="block-icon save-icon">
+            <i class="fas fa-save"></i>
+          </div>
+          <div class="block-title-group">
+            <h3 class="block-title">3. Save Fingerprint</h3>
+            <p class="block-subtitle">Complete enrollment process</p>
+          </div>
+        </div>
+
+        <div class="block-content">
           <button class="action-btn save-btn" id="saveFpBtn">
             <i class="fas fa-check-circle"></i>
             <span>Save Fingerprint</span>
@@ -183,32 +208,32 @@
         <div class="step-item">
           <div class="step-number">1</div>
           <div class="step-info">
-            <h4 class="step-name">Scan Fingerprint</h4>
-            <p class="step-desc">Click "Scan Fingerprint" and place finger on scanner</p>
+            <h4 class="step-name">Select Employee</h4>
+            <p class="step-desc">Choose the employee from the dropdown menu</p>
           </div>
         </div>
 
         <div class="step-item">
           <div class="step-number">2</div>
           <div class="step-info">
-            <h4 class="step-name">Verify Capture</h4>
-            <p class="step-desc">Fingerprint image will appear in preview area</p>
+            <h4 class="step-name">Choose Finger</h4>
+            <p class="step-desc">Click on a finger in the hand diagram to select it</p>
           </div>
         </div>
 
         <div class="step-item">
           <div class="step-number">3</div>
           <div class="step-info">
-            <h4 class="step-name">Select Employee</h4>
-            <p class="step-desc">Choose team member from dropdown</p>
+            <h4 class="step-name">Scan Fingerprint</h4>
+            <p class="step-desc">Click "Scan Fingerprint" and place finger on scanner</p>
           </div>
         </div>
 
         <div class="step-item">
           <div class="step-number">4</div>
           <div class="step-info">
-            <h4 class="step-name">Save</h4>
-            <p class="step-desc">Click "Save Fingerprint" to complete</p>
+            <h4 class="step-name">Verify & Save</h4>
+            <p class="step-desc">Check the preview, then click "Save Fingerprint" to complete</p>
           </div>
         </div>
       </div>

@@ -182,12 +182,22 @@ html.dark-mode .enrollment-fingerprint .enrollment-fp-section {
   box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
 }
 
+.enrollment-fingerprint .save-icon {
+  background: linear-gradient(135deg, #9b59b6, #8e44ad);
+  color: white;
+  box-shadow: 0 4px 12px rgba(155, 89, 182, 0.3);
+}
+
 html.dark-mode .enrollment-fingerprint .scan-icon {
   box-shadow: 0 4px 12px rgba(139, 195, 74, 0.5);
 }
 
 html.dark-mode .enrollment-fingerprint .assign-icon {
   box-shadow: 0 4px 12px rgba(52, 152, 219, 0.5);
+}
+
+html.dark-mode .enrollment-fingerprint .save-icon {
+  box-shadow: 0 4px 12px rgba(155, 89, 182, 0.5);
 }
 
 .enrollment-fingerprint .block-title-group {
@@ -557,6 +567,8 @@ html.dark-mode .enrollment-fingerprint .status-bar[data-status="warning"] {
 .enrollment-fingerprint .status-message {
   flex: 1;
   line-height: 1.5;
+  font-size: 1rem;
+  font-weight: 500;
 }
 
 /* Instructions Card */
