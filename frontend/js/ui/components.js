@@ -278,6 +278,10 @@ window.initModernUI = initModernBoxes;
           native.selectedIndex = idx;
           native.dispatchEvent(new Event('change', { bubbles: true }));
           updateLabel();
+          
+          // Return focus to button before closing to avoid aria-hidden/inert issues
+          btn.focus();
+          
           closeAll();
         });
         

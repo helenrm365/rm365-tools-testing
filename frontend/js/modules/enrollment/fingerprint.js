@@ -103,7 +103,8 @@ async function onScan() {
 
       if (data.BMPBase64) {
         if (preview) {
-          preview.src = `data:image/bmp;base64,${data.BMPBase64}`;
+          const prefix = data.BMPBase64.startsWith('data:image') ? '' : 'data:image/bmp;base64,';
+          preview.src = `${prefix}${data.BMPBase64}`;
           preview.style.display = 'block';
           preview.classList.add('visible');
         }
@@ -132,7 +133,8 @@ async function onScan() {
       if (templateBox) templateBox.value = fallback.template_b64;
 
       if (fallback.image_base64 && preview) {
-        preview.src = `data:image/png;base64,${fallback.image_base64}`;
+        const prefix = fallback.image_base64.startsWith('data:image') ? '' : 'data:image/png;base64,';
+        preview.src = `${prefix}${fallback.image_base64}`;
         preview.style.display = 'block';
         preview.classList.add('visible');
       }
@@ -153,7 +155,21 @@ async function onScan() {
 async function onSave() {
   const status = $('#fpStatus');
   const statusText = status?.querySelector('.status-message');
-  const empId = Number($('#fpEmployee')?.value || 0);
+  let empId = Number($('#fpEmployee')?.value || 0);
+
+  // Fallback: check if c-select has a value if native is empty
+  if (!empId) {
+    const cSelect = $('#fpEmployee')?.closest('.c-select');
+    if (cSelect) {
+       const selectedItem = cSelect.querySelector('.c-select__item[aria-selected="true"]');
+       if (selectedItem && selectedItem.dataset.value) {
+         empId = Number(selectedItem.dataset.value);
+         // Sync back to native
+         const native = $('#fpEmployee');
+         if (native) native.value = empId;
+       }
+    }
+  }
 
   if (!empId) {
     if (statusText) statusText.textContent = 'Please select an employee first';
