@@ -32,7 +32,7 @@ html.dark-mode .enrollment-management .page-title {
 
 .enrollment-management .page-subtitle {
   font-size: 1.1rem;
-  color: #7f8c8d;
+  color: #546e7a;
   margin: 0;
   font-weight: 400;
 }
@@ -230,7 +230,7 @@ html.dark-mode .employees-icon {
 
 .block-subtitle {
   font-size: 0.9rem;
-  color: #7f8c8d;
+  color: #546e7a;
   margin: 0;
   font-weight: 500;
 }
@@ -292,7 +292,7 @@ html.dark-mode .divider-line {
   left: 1rem;
   top: 50%;
   transform: translateY(-50%);
-  color: #7f8c8d;
+  color: #546e7a;
   font-size: 1rem;
   pointer-events: none;
 }
@@ -370,7 +370,7 @@ html.dark-mode .search-box .search-icon {
 
 .filter-label i {
   font-size: 0.9rem;
-  color: #7f8c8d;
+  color: #546e7a;
 }
 
 html.dark-mode .filter-label {
@@ -587,7 +587,7 @@ html.dark-mode .employee-name-input:focus {
 .employee-code {
   font-size: 0.9rem;
   font-weight: 600;
-  color: #7f8c8d;
+  color: #546e7a;
   background: rgba(127, 140, 141, 0.1);
   padding: 0.25rem 0.75rem;
   border-radius: 6px;
@@ -669,7 +669,7 @@ html.dark-mode .status-badge.status-inactive {
 .detail-label {
   font-size: 0.85rem;
   font-weight: 600;
-  color: #7f8c8d;
+  color: #546e7a;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -829,7 +829,7 @@ html.dark-mode .card-actions {
 
 .empty-state p {
   font-size: 1rem;
-  color: #7f8c8d;
+  color: #546e7a;
   margin: 0;
 }
 

@@ -43,7 +43,7 @@ html.dark-mode .card-title {
 
 .card-subtitle {
   font-size: 0.95rem;
-  color: #7f8c8d;
+  color: #546e7a;
   margin: 0.5rem 0 0 0;
   font-weight: 400;
 }
@@ -110,7 +110,7 @@ html.dark-mode .card-animated .card-title {
 
 .card-animated .card-subtitle {
   font-size: 0.95rem;
-  color: #7f8c8d;
+  color: #546e7a;
   margin: 0.5rem 0 0 0;
   font-weight: 400;
 }

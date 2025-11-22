@@ -30,7 +30,7 @@ html.dark-mode .labels-history .page-title {
 
 .labels-history .page-subtitle {
   font-size: 1.1rem;
-  color: #7f8c8d;
+  color: #546e7a;
   margin: 0;
   font-weight: 400;
 }
@@ -194,7 +194,7 @@ html.dark-mode .labels-history .history-table-container {
 .labels-history .loading-message {
   text-align: center;
   padding: 3rem;
-  color: #7f8c8d;
+  color: #546e7a;
 }
 
 html.dark-mode .labels-history .loading-message {

@@ -89,7 +89,7 @@
 
 .profile-role {
   font-size: 0.875rem;
-  color: #7f8c8d;
+  color: #546e7a;
   font-weight: 400;
 }
 
@@ -152,7 +152,7 @@ html.dark-mode .sidebar-header .search-container:focus-within {
 .sidebar-header .search-icon {
   flex-shrink: 0;
   font-size: 1.1rem;
-  color: #7f8c8d;
+  color: #546e7a;
   transition: color 0.3s ease, margin 0.3s ease;
   width: 28px;
   height: 28px;
@@ -212,7 +212,7 @@ html.dark-mode .sidebar-header .search-icon {
 .sidebar-header .search-input::placeholder,
 .sidebar #searchInput::placeholder,
 .sidebar-header #searchInput::placeholder {
-  color: #95a5a6;
+  color: #546e7a;
 }
 
 html.dark-mode .sidebar .search-input,

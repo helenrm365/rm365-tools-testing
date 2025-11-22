@@ -30,7 +30,7 @@ html.dark-mode .labels-generator .page-title {
 
 .labels-generator .page-subtitle {
   font-size: 1.1rem;
-  color: #7f8c8d;
+  color: #546e7a;
   margin: 0;
   font-weight: 400;
 }
@@ -60,7 +60,7 @@ html.dark-mode .labels-generator .page-subtitle {
   display: none;
   text-align: center;
   padding: 3rem;
-  color: #7f8c8d;
+  color: #546e7a;
 }
 
 .labels-generator .loading-spinner {

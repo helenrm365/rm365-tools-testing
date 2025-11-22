@@ -31,7 +31,7 @@ html.dark-mode .inventory-management .page-title {
 
 .inventory-management .page-subtitle {
   font-size: 1.1rem;
-  color: #7f8c8d;
+  color: #546e7a;
   margin: 0;
   font-weight: 400;
 }
@@ -171,7 +171,7 @@ html.dark-mode .inventory-management .section-title {
 
 .inventory-management .section-subtitle {
   font-size: 1rem;
-  color: #7f8c8d;
+  color: #546e7a;
   margin: 0;
   font-weight: 400;
 }
@@ -881,7 +881,7 @@ html.dark-mode .inventory-management .pagination-btn:hover:not(:disabled) {
 .inventory-management .loading-state {
   text-align: center;
   padding: 4rem 2rem;
-  color: #7f8c8d;
+  color: #546e7a;
 }
 
 html.dark-mode .inventory-management .loading-state {
@@ -913,7 +913,7 @@ html.dark-mode .inventory-management .loading-spinner {
 .inventory-management .empty-state {
   text-align: center;
   padding: 4rem 2rem;
-  color: #7f8c8d;
+  color: #546e7a;
 }
 
 html.dark-mode .inventory-management .empty-state {

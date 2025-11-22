@@ -39,7 +39,7 @@ html.dark-mode .sidebar-nav::-webkit-scrollbar-thumb {
   padding: 0.85rem;
   border-radius: 12px;
   text-decoration: none;
-  color: #5a6c7d;
+  color: #2c3e50;
   font-weight: 500;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
@@ -105,7 +105,7 @@ html.dark-mode .sidebar-nav::-webkit-scrollbar-thumb {
 
 /* Dark mode */
 html.dark-mode .nav-item {
-  color: #b0b0b0;
+  color: #d0d0d0;
 }
 
 html.dark-mode .nav-item:hover {

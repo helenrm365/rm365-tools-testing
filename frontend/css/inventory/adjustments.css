@@ -31,7 +31,7 @@ html.dark-mode .inventory-adjustments .page-title {
 
 .inventory-adjustments .page-subtitle {
   font-size: 1.1rem;
-  color: #7f8c8d;
+  color: #546e7a;
   margin: 0;
   font-weight: 400;
 }
@@ -189,7 +189,7 @@ html.dark-mode .section-title {
 
 .section-subtitle {
   font-size: 0.95rem;
-  color: #7f8c8d;
+  color: #546e7a;
   margin: 0;
 }
 
@@ -339,7 +339,7 @@ html.dark-mode .dropdown-backdrop {
 .tertiary-btn {
   padding: 0.75rem 1.5rem;
   background: white;
-  color: #7f8c8d;
+  color: #546e7a;
   border: 2px solid #e0e0e0;
   border-radius: 10px;
   font-size: 0.95rem;
@@ -657,7 +657,7 @@ html.dark-mode .guide-card .step-name .step-icon {
 
 .guide-card .step-desc {
   font-size: 0.9rem;
-  color: #7f8c8d;
+  color: #546e7a;
   margin: 0;
   line-height: 1.5;
 }
@@ -737,7 +737,7 @@ html.dark-mode .guide-card .logic-content h5 {
 .guide-card .logic-content p {
   margin: 0;
   font-size: 0.9rem;
-  color: #7f8c8d;
+  color: #546e7a;
   line-height: 1.6;
 }
 
