@@ -12,6 +12,8 @@ venv/
 *.dll
 *.lib
 local-hardware-bridge/lib/
+local-hardware-bridge/install.bat
+local-hardware-bridge/SETUP_GUIDE.md
 .git
 .gitignore
 .DS_Store
