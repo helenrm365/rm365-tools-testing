@@ -296,7 +296,7 @@ async function loadEmployees() {
 }
 
 // ====== Fingerprint Scanning ======
-async function captureFingerprint(timeoutMs = 1800) {
+async function captureFingerprint(timeoutMs = 2500) {
   const payload = { 
     Timeout: 2000, 
     TemplateFormat: 'ANSI', 
@@ -335,7 +335,7 @@ async function pollFingerprint() {
   if (state.isProcessingFingerprint || !state.isScanning) return;
 
   try {
-    const data = await captureFingerprint(1800);
+    const data = await captureFingerprint(2500);
 
     // Reset error count on successful connection
     state.fingerprintScanErrorCount = 0;
