@@ -77,8 +77,8 @@ html.dark-mode .sidebar-nav::-webkit-scrollbar-thumb {
 }
 
 .nav-item:hover {
-  background: rgba(139, 195, 74, 0.08);
-  color: #2c3e50;
+  background: rgba(139, 195, 74, 0.12);
+  color: #1a252f;
 }
 
 .sidebar:hover .nav-item:hover {

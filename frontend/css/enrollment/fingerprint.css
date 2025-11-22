@@ -545,6 +545,9 @@ html.dark-mode .enrollment-fingerprint .status-bar[data-status="warning"] {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+  width: 1.25rem;
+  height: 1.25rem;
 }
 
 .enrollment-fingerprint .status-bar[data-status="scanning"] .status-icon {

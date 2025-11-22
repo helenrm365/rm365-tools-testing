@@ -464,8 +464,28 @@ html.dark-mode .inventory-management .sync-btn {
   align-items: center;
 }
 
+.inventory-management .search-box {
+  position: relative;
+  width: 100%;
+}
+
+.inventory-management .search-box .search-icon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #546e7a;
+  font-size: 1rem;
+  pointer-events: none;
+}
+
+html.dark-mode .inventory-management .search-box .search-icon {
+  color: #95a5a6;
+}
+
 .inventory-management .search-input {
-  padding: var(--input-padding-y, 0.75rem) var(--input-padding-x, 1rem);
+  width: 100%;
+  padding: var(--input-padding-y, 0.75rem) var(--input-padding-x, 1rem) var(--input-padding-y, 0.75rem) 2.75rem;
   min-height: var(--input-height, 44px);
   border: 2px solid #e5e7eb;
   border-radius: 10px;

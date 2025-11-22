@@ -248,6 +248,31 @@ html.dark-mode .toggle-btn.active:hover {
   align-items: center;
 }
 
+.search-box {
+  position: relative;
+  flex: 1;
+  min-width: 300px;
+}
+
+.search-box .search-icon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #546e7a;
+  font-size: 1rem;
+  pointer-events: none;
+}
+
+html.dark-mode .search-box .search-icon {
+  color: #95a5a6;
+}
+
+.search-box .search-input {
+  width: 100%;
+  padding-left: 2.75rem;
+}
+
 .search-input {
   flex: 1;
   min-width: 300px;

@@ -107,6 +107,30 @@ html.dark-mode .filter-label i {
   color: #8bc34a;
 }
 
+/* Search Box */
+.search-box {
+  position: relative;
+  width: 100%;
+}
+
+.search-box .search-icon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #546e7a;
+  font-size: 1rem;
+  pointer-events: none;
+}
+
+html.dark-mode .search-box .search-icon {
+  color: #95a5a6;
+}
+
+.search-box .filter-input {
+  padding-left: 2.75rem;
+}
+
 .filter-input,
 .filter-select {
   width: 100%;

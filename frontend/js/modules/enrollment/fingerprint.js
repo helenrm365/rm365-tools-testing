@@ -25,6 +25,15 @@ function selectFinger(fingerName) {
     
     const label = $('#selectedFingerName');
     if (label) label.textContent = fingerName;
+    
+    // Update status message
+    const status = $('#fpStatus');
+    const statusText = status?.querySelector('.status-message');
+    const empId = $('#fpEmployee')?.value;
+    
+    if (empId && statusText && status.getAttribute('data-status') === 'ready') {
+        statusText.textContent = `${fingerName} selected. Click Scan to capture fingerprint.`;
+    }
 }
 
 function renderFingerprints(employee) {
@@ -107,6 +116,17 @@ function fillEmployeeSelect() {
       const empId = e.target.value;
       const emp = empId ? state.employees.find(e => String(e.id) === empId) : null;
       renderFingerprints(emp);
+      
+      // Update status when employee is selected/deselected
+      const status = $('#fpStatus');
+      const statusText = status?.querySelector('.status-message');
+      if (emp) {
+        if (statusText) statusText.textContent = `Employee selected: ${emp.name}. Select a finger and click Scan.`;
+        if (status) status.setAttribute('data-status', 'ready');
+      } else {
+        if (statusText) statusText.textContent = 'Please select an employee to begin enrollment';
+        if (status) status.setAttribute('data-status', 'ready');
+      }
   });
 }
 
@@ -159,6 +179,15 @@ async function onScan() {
   const placeholder = $('#fpPreviewPlaceholder');
   const templateBox = $('#fpTemplate');
   const scanBtn = $('#scanFpBtn');
+  
+  // Check if employee is selected
+  const empId = $('#fpEmployee')?.value;
+  if (!empId) {
+    if (statusText) statusText.textContent = 'Please select an employee first';
+    if (status) status.setAttribute('data-status', 'error');
+    playErrorSound();
+    return;
+  }
 
   if (scanBtn) scanBtn.disabled = true;
 
@@ -172,7 +201,7 @@ async function onScan() {
   }
   if (placeholder) placeholder.style.display = 'flex';
 
-  if (statusText) statusText.textContent = 'Scanning fingerprint...';
+  if (statusText) statusText.textContent = `Scanning ${state.selectedFinger}... Please place finger on scanner.`;
   if (status) status.setAttribute('data-status', 'scanning');
 
   try {
@@ -194,7 +223,7 @@ async function onScan() {
         if (placeholder) placeholder.style.display = 'none';
       }
 
-      if (statusText) statusText.textContent = `Captured via ${data.__endpoint}`;
+      if (statusText) statusText.textContent = `Fingerprint captured successfully! Click Save to assign to employee.`;
       if (status) status.setAttribute('data-status', 'success');
       return;
     }
@@ -227,7 +256,7 @@ async function onScan() {
       }
       if (placeholder) placeholder.style.display = 'none';
 
-      if (statusText) statusText.textContent = 'Captured via backend fallback';
+      if (statusText) statusText.textContent = 'Fingerprint captured successfully! Click Save to assign to employee.';
       if (status) status.setAttribute('data-status', 'success');
     } else {
       if (statusText) statusText.textContent = fallback.detail || 'Backend fallback failed';
@@ -265,14 +294,15 @@ async function onSave() {
 
   if (!empId) {
     console.warn('No employee selected');
-    if (statusText) statusText.textContent = 'Please select an employee first';
+    if (statusText) statusText.textContent = 'Error: Please select an employee first';
     if (status) status.setAttribute('data-status', 'error');
+    playErrorSound();
     return;
   }
 
   if (!state.templateB64) {
     console.warn('No template scanned');
-    if (statusText) statusText.textContent = 'Please scan a fingerprint first';
+    if (statusText) statusText.textContent = 'Error: Please scan a fingerprint first';
     if (status) status.setAttribute('data-status', 'error');
     playErrorSound();
     return;
@@ -301,7 +331,7 @@ async function onSave() {
     }
   }
 
-  if (statusText) statusText.textContent = 'Saving fingerprint...';
+  if (statusText) statusText.textContent = `Saving ${state.selectedFinger} fingerprint to database...`;
   if (status) status.setAttribute('data-status', 'scanning');
 
   try {
@@ -309,7 +339,10 @@ async function onSave() {
     
     await saveFingerprint(empId, state.templateB64, name);
     playSuccessSound();
-    if (statusText) statusText.textContent = 'Fingerprint successfully assigned to employee';
+    
+    const employee = state.employees.find(e => e.id === empId);
+    const empName = employee ? employee.name : 'employee';
+    if (statusText) statusText.textContent = `Success! ${name} fingerprint saved for ${empName}.`;
     if (status) status.setAttribute('data-status', 'success');
     
     // Reset everything after successful save
@@ -363,7 +396,7 @@ function resetForm() {
   }
 
   // Reset status
-  if (statusText) statusText.textContent = 'Ready to scan';
+  if (statusText) statusText.textContent = 'Please select an employee to begin enrollment';
   if (status) status.setAttribute('data-status', 'ready');
 
   // Reload employees to update fingerprint status
