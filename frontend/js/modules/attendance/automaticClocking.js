@@ -44,10 +44,6 @@ const CARD_SCAN_ENDPOINTS = [
   'http://127.0.0.1:8080/card/scan',
   'http://localhost:8080/card/scan'
 ];
-  'https://127.0.0.1:8080/card/scan',
-  'http://localhost:8080/card/scan',
-  'http://127.0.0.1:8080/card/scan'
-];
 
 const HARDWARE_CHECK_TIMEOUT_MS = 3000;
 const FINGERPRINT_OK_CODES = new Set([0, 54]);
