@@ -25,15 +25,17 @@ function createConfirmationModal(options) {
     icon = '⚠️'
   } = options;
 
+  const headerStyle = getHeaderStyle(confirmVariant);
+
   const modalHtml = `
     <div class="modal-overlay active" id="confirmationModal">
       <div class="modal-content" style="max-width: 450px; animation: modalSlideIn 0.3s ease-out;">
-        <div class="modal-header">
-          <h3 class="modal-title">${icon} ${title}</h3>
-          <button class="modal-close" id="confirmModalClose">&times;</button>
+        <div class="modal-header" style="${headerStyle}">
+          <h3 class="modal-title" style="color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.1);">${icon} ${title}</h3>
+          <button class="modal-close" id="confirmModalClose" style="color: rgba(255,255,255,0.8); background: rgba(255,255,255,0.1);">&times;</button>
         </div>
         <div class="modal-body">
-          <p style="margin: 0 0 1.5rem 0; font-size: 1rem; line-height: 1.5; color: #555;">
+          <p class="modal-message">
             ${message}
           </p>
         </div>
@@ -50,6 +52,19 @@ function createConfirmationModal(options) {
   `;
 
   return modalHtml;
+}
+
+function getHeaderStyle(variant) {
+  switch (variant) {
+    case 'danger':
+      return 'background: linear-gradient(to right, #e74c3c, #c0392b); border-bottom: none;';
+    case 'warning':
+      return 'background: linear-gradient(to right, #f39c12, #e67e22); border-bottom: none;';
+    case 'primary':
+      return 'background: linear-gradient(to right, #3498db, #2980b9); border-bottom: none;';
+    default:
+      return 'background: linear-gradient(to right, #e74c3c, #c0392b); border-bottom: none;';
+  }
 }
 
 function getVariantColor(variant) {

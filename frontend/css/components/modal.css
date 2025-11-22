@@ -165,6 +165,18 @@ html.dark-mode .modal-footer {
   justify-content: center;
 }
 
+/* Modal Message */
+.modal-message {
+  margin: 0 0 1.5rem 0;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #555;
+}
+
+html.dark-mode .modal-message {
+  color: #d1d5db;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .modal-content {
