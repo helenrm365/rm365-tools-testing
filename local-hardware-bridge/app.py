@@ -11,7 +11,7 @@ from pydantic import BaseModel
 import uvicorn
 import base64
 import logging
-from typing import Optional
+from typing import Optional, List
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -69,6 +69,18 @@ class CardResponse(BaseModel):
 class MatchRequest(BaseModel):
     template1_b64: str
     template2_b64: str
+
+
+class CandidateTemplate(BaseModel):
+    id: str
+    template_b64: str
+    name: Optional[str] = None
+
+
+class BatchMatchRequest(BaseModel):
+    probe_template_b64: str
+    candidates: List[CandidateTemplate]
+    threshold: Optional[int] = 60
 
 
 @app.get("/")
@@ -517,6 +529,62 @@ async def match_fingerprint(request: MatchRequest):
         raise
     except Exception as e:
         logger.error(f"Error matching fingerprints: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/fingerprint/match_batch")
+async def match_fingerprint_batch(request: BatchMatchRequest):
+    """
+    Match a probe fingerprint against a list of candidates efficiently.
+    Initializes the matcher once and iterates through candidates.
+    
+    Args:
+        request: BatchMatchRequest containing probe template and list of candidates
+        
+    Returns:
+        Best match result
+    """
+    try:
+        import secugen
+        
+        sg = secugen.SGFPLib()
+        if not sg.Init(secugen.SG_DEV_FDU09A):
+             if not sg.Init(secugen.SG_DEV_AUTO):
+                raise Exception("Failed to initialize SecuGen device")
+        
+        try:
+            # Decode probe template
+            probe_template = base64.b64decode(request.probe_template_b64)
+            
+            best_score = 0
+            best_match = None
+            
+            for candidate in request.candidates:
+                try:
+                    candidate_template = base64.b64decode(candidate.template_b64)
+                    score = sg.MatchTemplate(probe_template, candidate_template)
+                    
+                    if score > best_score:
+                        best_score = score
+                        best_match = candidate
+                except Exception:
+                    continue
+            
+            threshold = request.threshold or 60
+            
+            return {
+                "status": "success",
+                "best_score": best_score,
+                "matched": best_score >= threshold,
+                "match": best_match if best_score >= threshold else None
+            }
+        finally:
+            sg.Close()
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error matching fingerprints batch: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

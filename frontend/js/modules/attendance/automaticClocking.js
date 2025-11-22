@@ -378,31 +378,65 @@ async function pollFingerprint() {
     let bestScore = 0;
     const MATCH_THRESHOLD = 20; // Lowered to match legacy server-side threshold
 
-    for (const tmpl of state.fingerprintTemplates) {
-      try {
-        const matchResponse = await fetch('http://127.0.0.1:8080/fingerprint/match', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            template1_b64: data.TemplateBase64,
-            template2_b64: tmpl.template_b64
-          })
-        });
-        
-        if (!matchResponse.ok) continue;
+    try {
+      // Try batch matching first (much faster)
+      const candidates = state.fingerprintTemplates.map(t => ({
+        id: String(t.id),
+        template_b64: t.template_b64,
+        name: t.name
+      }));
+
+      const matchResponse = await fetch('http://127.0.0.1:8080/fingerprint/match_batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          probe_template_b64: data.TemplateBase64,
+          candidates: candidates,
+          threshold: MATCH_THRESHOLD
+        })
+      });
+      
+      if (matchResponse.ok) {
         const matchData = await matchResponse.json();
-        
-        // Log scores for debugging
-        if (matchData.score > 0) {
-            console.log(`Match score for ${tmpl.name}: ${matchData.score}`);
+        if (matchData.status === 'success') {
+          bestScore = matchData.best_score;
+          if (matchData.matched && matchData.match) {
+             bestMatch = state.fingerprintTemplates.find(t => String(t.id) === matchData.match.id);
+          }
         }
-        
-        if (matchData.status === 'success' && matchData.score > bestScore) {
-          bestScore = matchData.score;
-          bestMatch = tmpl;
+      } else {
+        throw new Error('Batch matching endpoint not available');
+      }
+    } catch (e) {
+      console.warn('Batch matching failed, falling back to individual matching:', e);
+      
+      // Fallback to individual matching
+      for (const tmpl of state.fingerprintTemplates) {
+        try {
+          const matchResponse = await fetch('http://127.0.0.1:8080/fingerprint/match', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              template1_b64: data.TemplateBase64,
+              template2_b64: tmpl.template_b64
+            })
+          });
+          
+          if (!matchResponse.ok) continue;
+          const matchData = await matchResponse.json();
+          
+          // Log scores for debugging
+          if (matchData.score > 0) {
+              console.log(`Match score for ${tmpl.name}: ${matchData.score}`);
+          }
+          
+          if (matchData.status === 'success' && matchData.score > bestScore) {
+            bestScore = matchData.score;
+            bestMatch = tmpl;
+          }
+        } catch (e) {
+          console.warn('Error matching template:', e);
         }
-      } catch (e) {
-        console.warn('Error matching template:', e);
       }
     }
 

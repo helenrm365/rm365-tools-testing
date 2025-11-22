@@ -105,12 +105,8 @@ function fillEmployeeSelect() {
   // Add change listener
   sel.addEventListener('change', (e) => {
       const empId = e.target.value;
-      if (empId) {
-          const emp = state.employees.find(e => String(e.id) === empId);
-          renderFingerprints(emp);
-      } else {
-          $('#existingFingerprintsSection').style.display = 'none';
-      }
+      const emp = empId ? state.employees.find(e => String(e.id) === empId) : null;
+      renderFingerprints(emp);
   });
 }
 
