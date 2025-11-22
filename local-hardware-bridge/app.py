@@ -80,7 +80,7 @@ class CandidateTemplate(BaseModel):
 class BatchMatchRequest(BaseModel):
     probe_template_b64: str
     candidates: List[CandidateTemplate]
-    threshold: Optional[int] = 130
+    threshold: Optional[int] = 80
 
 
 @app.get("/")
