@@ -463,7 +463,7 @@ html.dark-mode .enrollment-fingerprint .employee-dropdown:focus {
 
 .enrollment-fingerprint .save-btn:hover:not(:disabled) {
   background: linear-gradient(135deg, #60a5fa, #3b82f6);
-  box-shadow: 0 4px 16px rgba59, 130, 246, 0.4);
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
 }
 
 /* Status Bar */
@@ -885,6 +885,57 @@ html.dark-mode .enrollment-fingerprint .tech-label {
 html.dark-mode .enrollment-fingerprint .tech-value {
   color: #ecf0f1;
 }
+
+/* Hand Diagram Styles */
+.hand-diagram-container {
+  background: var(--bg-secondary);
+  border-radius: 1rem;
+  padding: 1rem;
+  margin-top: 0.5rem;
+  border: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.hand-svg {
+  width: 100%;
+  max-width: 500px;
+  height: auto;
+  user-select: none;
+}
+
+.finger-dot {
+  fill: var(--bg-surface);
+  stroke: var(--text-secondary);
+  stroke-width: 2px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.finger-dot:hover {
+  fill: rgba(76, 175, 80, 0.3);
+  stroke: #4caf50;
+}
+
+.finger-dot.selected {
+  fill: #4caf50;
+  stroke: #2e7d32;
+  r: 16; /* Slightly larger */
+}
+
+.finger-dot.enrolled {
+  fill: #2196f3;
+  stroke: #1565c0;
+}
+
+.finger-dot.enrolled.selected {
+  fill: #4caf50; /* Selection overrides enrolled color for fill, but maybe keep stroke? */
+  stroke: #2e7d32;
+  stroke-width: 3px;
+}
+
+/* Dark mode adjustments if needed, using variables should handle most */
 
 /* Responsive Design */
 @media (max-width: 968px) {

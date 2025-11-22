@@ -97,12 +97,68 @@
             </select>
           </div>
 
-          <div class="input-wrapper" style="margin-top: 1rem;">
+          <div class="hand-selection-wrapper" style="margin-top: 1.5rem;">
             <label class="select-label">
-              <i class="fas fa-tag"></i>
-              <span>Fingerprint Name</span>
+              <i class="fas fa-hand-paper"></i>
+              <span>Select Finger</span>
             </label>
-            <input type="text" id="fpName" class="form-input" placeholder="e.g. Right Index" value="Default" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem; background: var(--bg-secondary); color: var(--text-primary);">
+            
+            <div class="hand-diagram-container">
+              <svg viewBox="0 0 500 220" class="hand-svg">
+                <!-- Left Hand Group -->
+                <g class="hand-group left-hand" transform="translate(20, 10)">
+                  <!-- Hand Outline (Simplified) -->
+                  <path d="M60,200 L40,150 L10,110 Q0,100 10,90 L30,70 Q40,60 50,80 L60,120 L60,80 L60,40 Q60,20 80,20 L90,20 Q110,20 110,40 L110,120 L110,30 Q110,10 130,10 L140,10 Q160,10 160,30 L160,120 L160,40 Q160,20 180,20 L190,20 Q210,20 210,40 L210,130 L210,70 Q210,50 230,50 L240,50 Q260,50 260,70 L260,140 L240,200 Z" 
+                        fill="none" stroke="var(--text-secondary)" stroke-width="2" opacity="0.3" style="display:none;"/> 
+                  <!-- Using a simpler visual: just dots arranged in hand shape with connecting lines to a 'palm' base -->
+                  
+                  <!-- Palm Base Visual -->
+                  <path d="M70,180 Q125,220 180,180" fill="none" stroke="var(--border-color)" stroke-width="2" />
+                  
+                  <!-- Fingers (Lines) -->
+                  <line x1="40" y1="100" x2="90" y2="160" stroke="var(--border-color)" stroke-width="2" /> <!-- Thumb -->
+                  <line x1="80" y1="50" x2="110" y2="150" stroke="var(--border-color)" stroke-width="2" /> <!-- Index -->
+                  <line x1="125" y1="30" x2="125" y2="150" stroke="var(--border-color)" stroke-width="2" /> <!-- Middle -->
+                  <line x1="170" y1="50" x2="140" y2="150" stroke="var(--border-color)" stroke-width="2" /> <!-- Ring -->
+                  <line x1="210" y1="90" x2="160" y2="160" stroke="var(--border-color)" stroke-width="2" /> <!-- Pinky -->
+
+                  <!-- Finger Dots -->
+                  <circle cx="40" cy="100" r="14" class="finger-dot" data-finger="Left Thumb" />
+                  <circle cx="80" cy="50" r="14" class="finger-dot" data-finger="Left Index" />
+                  <circle cx="125" cy="30" r="14" class="finger-dot" data-finger="Left Middle" />
+                  <circle cx="170" cy="50" r="14" class="finger-dot" data-finger="Left Ring" />
+                  <circle cx="210" cy="90" r="14" class="finger-dot" data-finger="Left Pinky" />
+                  
+                  <text x="125" y="210" text-anchor="middle" fill="var(--text-secondary)" font-size="12">Left Hand</text>
+                </g>
+
+                <!-- Right Hand Group -->
+                <g class="hand-group right-hand" transform="translate(250, 10)">
+                  <!-- Palm Base Visual -->
+                  <path d="M70,180 Q125,220 180,180" fill="none" stroke="var(--border-color)" stroke-width="2" />
+                  
+                  <!-- Fingers (Lines) -->
+                  <line x1="210" y1="100" x2="160" y2="160" stroke="var(--border-color)" stroke-width="2" /> <!-- Thumb -->
+                  <line x1="170" y1="50" x2="140" y2="150" stroke="var(--border-color)" stroke-width="2" /> <!-- Index -->
+                  <line x1="125" y1="30" x2="125" y2="150" stroke="var(--border-color)" stroke-width="2" /> <!-- Middle -->
+                  <line x1="80" y1="50" x2="110" y2="150" stroke="var(--border-color)" stroke-width="2" /> <!-- Ring -->
+                  <line x1="40" y1="90" x2="90" y2="160" stroke="var(--border-color)" stroke-width="2" /> <!-- Pinky -->
+
+                  <!-- Finger Dots -->
+                  <circle cx="210" cy="100" r="14" class="finger-dot" data-finger="Right Thumb" />
+                  <circle cx="170" cy="50" r="14" class="finger-dot" data-finger="Right Index" />
+                  <circle cx="125" cy="30" r="14" class="finger-dot" data-finger="Right Middle" />
+                  <circle cx="80" cy="50" r="14" class="finger-dot" data-finger="Right Ring" />
+                  <circle cx="40" cy="90" r="14" class="finger-dot" data-finger="Right Pinky" />
+
+                  <text x="125" y="210" text-anchor="middle" fill="var(--text-secondary)" font-size="12">Right Hand</text>
+                </g>
+              </svg>
+              
+              <div class="selected-finger-display" style="text-align: center; margin-top: 0.5rem; font-weight: 600; color: var(--primary-color);">
+                <span id="selectedFingerName">Right Thumb</span>
+              </div>
+            </div>
           </div>
 
           <button class="action-btn save-btn" id="saveFpBtn">

@@ -8,12 +8,32 @@ import {
 import { playSuccessSound, playErrorSound, playScanSound } from '../../utils/sound.js';
 import { confirmModal } from '../../ui/confirmationModal.js';
 
-const state = { employees: [], templateB64: null };
+const state = { employees: [], templateB64: null, selectedFinger: "Right Thumb" };
 const $ = (sel) => document.querySelector(sel);
+
+function selectFinger(fingerName) {
+    state.selectedFinger = fingerName;
+    
+    // Update UI
+    document.querySelectorAll('.finger-dot').forEach(dot => {
+        if (dot.dataset.finger === fingerName) {
+            dot.classList.add('selected');
+        } else {
+            dot.classList.remove('selected');
+        }
+    });
+    
+    const label = $('#selectedFingerName');
+    if (label) label.textContent = fingerName;
+}
 
 function renderFingerprints(employee) {
     const section = $('#existingFingerprintsSection');
     const list = $('#fingerprintList');
+    
+    // Reset enrolled status on diagram
+    document.querySelectorAll('.finger-dot').forEach(dot => dot.classList.remove('enrolled'));
+
     if (!section || !list) return;
 
     list.innerHTML = '';
@@ -26,6 +46,10 @@ function renderFingerprints(employee) {
     section.style.display = 'block';
     
     employee.fingerprints.forEach(fp => {
+        // Mark on diagram
+        const dot = document.querySelector(`.finger-dot[data-finger="${fp.name}"]`);
+        if (dot) dot.classList.add('enrolled');
+
         const li = document.createElement('li');
         li.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: var(--bg-secondary); border-radius: 0.5rem; border: 1px solid var(--border-color);';
         
@@ -258,21 +282,26 @@ async function onSave() {
     return;
   }
 
-  // Check for existing fingerprint
+  // Check for existing fingerprint with the same name
   const employee = state.employees.find(e => e.id === empId);
-  if (employee && employee.has_fingerprint) {
-    const confirmOverwrite = await confirmModal({
-      title: 'Overwrite Fingerprint',
-      message: `Employee "${employee.name}" already has a fingerprint enrolled.\n\nDo you want to overwrite it?`,
-      confirmText: 'Overwrite',
-      cancelText: 'Cancel',
-      confirmVariant: 'warning',
-      icon: '⚠️'
-    });
-    if (!confirmOverwrite) {
-      if (statusText) statusText.textContent = 'Enrollment cancelled';
-      if (status) status.setAttribute('data-status', 'ready');
-      return;
+  const name = state.selectedFinger;
+
+  if (employee && employee.fingerprints) {
+    const existingFp = employee.fingerprints.find(fp => fp.name === name);
+    if (existingFp) {
+      const confirmOverwrite = await confirmModal({
+        title: 'Overwrite Fingerprint',
+        message: `Employee "${employee.name}" already has a fingerprint for "${name}".\n\nDo you want to overwrite it?`,
+        confirmText: 'Overwrite',
+        cancelText: 'Cancel',
+        confirmVariant: 'warning',
+        icon: '⚠️'
+      });
+      if (!confirmOverwrite) {
+        if (statusText) statusText.textContent = 'Enrollment cancelled';
+        if (status) status.setAttribute('data-status', 'ready');
+        return;
+      }
     }
   }
 
@@ -281,8 +310,6 @@ async function onSave() {
 
   try {
     console.log('Saving fingerprint for employee:', empId);
-    const nameInput = $('#fpName');
-    const name = nameInput ? nameInput.value.trim() : "Default";
     
     await saveFingerprint(empId, state.templateB64, name);
     playSuccessSound();
@@ -321,6 +348,7 @@ function resetForm() {
 
   // Clear state
   state.templateB64 = null;
+  selectFinger("Right Thumb"); // Reset selection
 
   // Reset preview
   if (preview) {
@@ -356,4 +384,17 @@ export async function init() {
 
   $('#scanFpBtn')?.addEventListener('click', onScan);
   $('#saveFpBtn')?.addEventListener('click', onSave);
+
+  // Finger selection listeners
+  document.querySelectorAll('.finger-dot').forEach(dot => {
+      dot.addEventListener('click', (e) => {
+          const fingerName = e.target.dataset.finger;
+          if (fingerName) {
+              selectFinger(fingerName);
+          }
+      });
+  });
+  
+  // Initial selection
+  selectFinger("Right Thumb");
 }

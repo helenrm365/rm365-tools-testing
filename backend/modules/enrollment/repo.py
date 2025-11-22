@@ -195,22 +195,25 @@ class EnrollmentRepo:
     def save_fingerprint(self, employee_id: int, tpl_bytes: bytes, name: str = "Default") -> None:
         with pg_conn() as conn:
             with conn.cursor() as cur:
-                # Insert into new table
-                # We store template as base64 string usually, but here it seems to be bytes?
-                # The schema says template_b64: str.
-                # The repo method takes tpl_bytes: bytes.
-                # The original code updated fingerprint_template = %s.
-                # If the column is TEXT, psycopg2 adapts bytes to hex or similar?
-                # Let's assume we should store what we get.
-                # But wait, the migration script assumes TEXT.
-                # If tpl_bytes is bytes, we should probably decode it if it's b64 bytes, or encode it if it's raw bytes.
-                # The API receives b64 string.
-                # Let's check api.py later.
-                # For now, let's assume tpl_bytes is what we want to store (maybe already b64 bytes).
+                # Check if exists
                 cur.execute(
-                    "INSERT INTO employee_fingerprints (employee_id, template, name) VALUES (%s, %s, %s)",
-                    (employee_id, tpl_bytes, name),
+                    "SELECT id FROM employee_fingerprints WHERE employee_id = %s AND name = %s",
+                    (employee_id, name)
                 )
+                row = cur.fetchone()
+                
+                if row:
+                    # Update
+                    cur.execute(
+                        "UPDATE employee_fingerprints SET template = %s, created_at = CURRENT_TIMESTAMP WHERE id = %s",
+                        (tpl_bytes, row[0])
+                    )
+                else:
+                    # Insert
+                    cur.execute(
+                        "INSERT INTO employee_fingerprints (employee_id, template, name) VALUES (%s, %s, %s)",
+                        (employee_id, tpl_bytes, name),
+                    )
                 conn.commit()
         # :contentReference[oaicite:8]{index=8}
 
