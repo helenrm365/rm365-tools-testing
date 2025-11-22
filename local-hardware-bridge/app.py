@@ -249,6 +249,65 @@ def get_secugen_device():
         _sg_device = None
         return None
 
+import struct
+
+def create_bmp_from_raw(raw_data, width, height):
+    """
+    Wraps raw grayscale pixel data in a BMP container
+    """
+    # BMP File Header (14 bytes)
+    # 0-1: 'BM'
+    # 2-5: File size
+    # 6-9: Reserved (0)
+    # 10-13: Offset to pixel data (14 + 40 + 1024 = 1078)
+    
+    # BMP Info Header (40 bytes)
+    # 14-17: Header size (40)
+    # 18-21: Width
+    # 22-25: Height (negative for top-down)
+    # 26-27: Planes (1)
+    # 28-29: Bits per pixel (8)
+    # 30-33: Compression (0)
+    # 34-37: Image size
+    # 38-41: X pixels per meter
+    # 42-45: Y pixels per meter
+    # 46-49: Colors used (256)
+    # 50-53: Important colors (256)
+    
+    # Color Palette (1024 bytes)
+    # 256 entries of (B, G, R, A)
+    
+    file_size = 14 + 40 + 1024 + len(raw_data)
+    offset = 1078
+    
+    # File Header
+    bmp = b'BM'
+    bmp += struct.pack('<I', file_size)
+    bmp += b'\x00\x00\x00\x00'
+    bmp += struct.pack('<I', offset)
+    
+    # Info Header
+    bmp += struct.pack('<I', 40)
+    bmp += struct.pack('<i', width)
+    bmp += struct.pack('<i', -height) # Negative height for top-down
+    bmp += struct.pack('<H', 1)
+    bmp += struct.pack('<H', 8)
+    bmp += struct.pack('<I', 0)
+    bmp += struct.pack('<I', len(raw_data))
+    bmp += struct.pack('<i', 0)
+    bmp += struct.pack('<i', 0)
+    bmp += struct.pack('<I', 256)
+    bmp += struct.pack('<I', 256)
+    
+    # Color Palette (Grayscale)
+    for i in range(256):
+        bmp += struct.pack('BBBB', i, i, i, 0)
+        
+    # Pixel Data
+    bmp += raw_data
+    
+    return bmp
+
 @app.post("/SGIFPCapture")
 async def secugen_capture(payload: dict = None):
     """
@@ -276,7 +335,7 @@ async def secugen_capture(payload: dict = None):
             # Capture fingerprint with image
             logger.info("Starting CaptureTemplateWithImage...")
             # Use quality=0 to accept any image (prevents timeouts on dry fingers)
-            template, image = sg.CaptureTemplateWithImage(timeout, template_format, quality=0)
+            template, image, width, height = sg.CaptureTemplateWithImage(timeout, template_format, quality=0)
             
             if not template:
                 logger.warning("CaptureTemplateWithImage returned None (Timeout)")
@@ -284,7 +343,11 @@ async def secugen_capture(payload: dict = None):
             
             # Encode as base64
             template_b64 = base64.b64encode(template).decode('utf-8')
-            image_b64 = base64.b64encode(image).decode('utf-8') if image else None
+            
+            image_b64 = None
+            if image and width > 0 and height > 0:
+                bmp_data = create_bmp_from_raw(image, width, height)
+                image_b64 = base64.b64encode(bmp_data).decode('utf-8')
             
             logger.info(f"SecuGen capture successful! Template size: {len(template)}")
             return {

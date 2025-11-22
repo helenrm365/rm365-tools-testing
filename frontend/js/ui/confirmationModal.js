@@ -31,8 +31,11 @@ function createConfirmationModal(options) {
     <div class="modal-overlay active" id="confirmationModal">
       <div class="modal-content" style="max-width: 450px; animation: modalSlideIn 0.3s ease-out;">
         <div class="modal-header" style="${headerStyle}">
-          <h3 class="modal-title" style="color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.1);">${icon} ${title}</h3>
-          <button class="modal-close" id="confirmModalClose" style="color: rgba(255,255,255,0.8); background: rgba(255,255,255,0.1);">&times;</button>
+          <h3 class="modal-title" style="color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 0.75rem;">
+            <span style="background: rgba(255,255,255,0.2); border-radius: 8px; width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; font-size: 1.2rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 1px solid rgba(255,255,255,0.2);">${icon}</span>
+            <span>${title}</span>
+          </h3>
+          <button class="modal-close modal-close-contrast" id="confirmModalClose">&times;</button>
         </div>
         <div class="modal-body">
           <p class="modal-message">

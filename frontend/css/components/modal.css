@@ -139,6 +139,21 @@ html.dark-mode .modal-close:hover {
   color: #ff6b6b;
 }
 
+/* Contrast Close Button (for colored headers) */
+.modal-close-contrast {
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.modal-close-contrast:hover {
+  background: rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: rotate(90deg);
+}
+
 /* Modal Body */
 .modal-body {
   padding: 2rem;

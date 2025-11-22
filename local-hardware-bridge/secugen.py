@@ -342,7 +342,7 @@ class SGFPLib:
         info = self.GetDeviceInfo()
         if not info:
             print("GetDeviceInfo failed")
-            return None, None
+            return None, None, 0, 0
             
         img_width = info.ImageWidth
         img_height = info.ImageHeight
@@ -363,7 +363,7 @@ class SGFPLib:
         res = self.dll.SGFPM_GetImageEx(self.hFPM, img_buf, timeout, None, quality)
         if res != SGFDX_ERROR_NONE:
             print(f"SGFPM_GetImageEx failed with error: {res}")
-            return None, None
+            return None, None, 0, 0
             
         # 3. Create Template
         max_template_size = ctypes.c_ulong(0)
@@ -380,9 +380,9 @@ class SGFPLib:
         res = self.dll.SGFPM_CreateTemplate(self.hFPM, ctypes.byref(finger_info), img_buf, template_buf)
         if res != SGFDX_ERROR_NONE:
             print(f"SGFPM_CreateTemplate failed with error: {res}")
-            return None, bytes(img_buf)
+            return None, bytes(img_buf), img_width, img_height
             
-        return bytes(template_buf), bytes(img_buf)
+        return bytes(template_buf), bytes(img_buf), img_width, img_height
 
     def MatchTemplate(self, template1, template2):
         if not template1 or not template2:
