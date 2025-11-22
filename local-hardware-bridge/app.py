@@ -4,8 +4,9 @@ Runs on local PC to interface with fingerprint readers and RFID card readers
 Allows cloud-hosted frontend to access local USB hardware
 """
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 from pydantic import BaseModel
 import uvicorn
 import base64
@@ -35,6 +36,22 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.middleware("http")
+async def add_private_network_header(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["Access-Control-Allow-Private-Network"] = "true"
+    return response
+
+@app.options("/{rest_of_path:path}")
+async def preflight_handler(request: Request, rest_of_path: str):
+    response = Response()
+    response.headers["Access-Control-Allow-Origin"] = request.headers.get("Origin", "*")
+    response.headers["Access-Control-Allow-Methods"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    response.headers["Access-Control-Allow-Private-Network"] = "true"
+    return response
+
 
 
 class FingerprintResponse(BaseModel):
@@ -454,21 +471,22 @@ if __name__ == "__main__":
     ssl_keyfile = "key.pem"
     ssl_certfile = "cert.pem"
     
-    if os.path.exists(ssl_keyfile) and os.path.exists(ssl_certfile):
-        logger.info(f"SSL certificates found. Starting in HTTPS mode.")
-        uvicorn.run(
-            app,
-            host="127.0.0.1",
-            port=8080,
-            log_level="info",
-            ssl_keyfile=ssl_keyfile,
-            ssl_certfile=ssl_certfile
-        )
-    else:
-        logger.info("No SSL certificates found. Starting in HTTP mode.")
-        uvicorn.run(
-            app,
-            host="127.0.0.1",  # Only accessible from this PC
-            port=8080,
-            log_level="info"
-        )
+    # Force HTTP mode to avoid certificate issues and simplify PNA
+    # if os.path.exists(ssl_keyfile) and os.path.exists(ssl_certfile):
+    #     logger.info(f"SSL certificates found. Starting in HTTPS mode.")
+    #     uvicorn.run(
+    #         app,
+    #         host="127.0.0.1",
+    #         port=8080,
+    #         log_level="info",
+    #         ssl_keyfile=ssl_keyfile,
+    #         ssl_certfile=ssl_certfile
+    #     )
+    # else:
+    logger.info("Starting in HTTP mode (Forced).")
+    uvicorn.run(
+        app,
+        host="127.0.0.1",  # Only accessible from this PC
+        port=8080,
+        log_level="info"
+    )

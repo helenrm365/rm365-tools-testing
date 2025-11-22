@@ -34,11 +34,11 @@ function explain(code) {
 }
 
 async function tryLocalSecuGen(timeoutMs = 11000) {
+  // We are forcing HTTP in the local bridge to avoid SSL certificate issues.
+  // Prioritize 127.0.0.1 as it is often treated more favorably by browsers for PNA.
   const endpoints = [
-    'https://localhost:8080/SGIFPCapture',
-    'https://127.0.0.1:8080/SGIFPCapture',
-    'http://localhost:8080/SGIFPCapture',
     'http://127.0.0.1:8080/SGIFPCapture',
+    'http://localhost:8080/SGIFPCapture',
   ];
   const payload = { Timeout: 10000, TemplateFormat: 'ANSI', FakeDetection: 1 };
 
