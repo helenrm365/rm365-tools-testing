@@ -167,6 +167,10 @@ class SGFPLib:
         self.dll.SGFPM_MatchTemplate.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_ubyte), ctypes.POINTER(ctypes.c_ubyte), ctypes.c_ulong, ctypes.POINTER(ctypes.c_int)]
         self.dll.SGFPM_MatchTemplate.restype = ctypes.c_ulong
         
+        self.dll.SGFPM_GetMatchingScore = self.dll.SGFPM_GetMatchingScore
+        self.dll.SGFPM_GetMatchingScore.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_ubyte), ctypes.POINTER(ctypes.c_ubyte), ctypes.POINTER(ctypes.c_ulong)]
+        self.dll.SGFPM_GetMatchingScore.restype = ctypes.c_ulong
+
         self.dll.SGFPM_EnumerateDevice.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_ulong), ctypes.POINTER(ctypes.POINTER(SGDeviceList))]
         self.dll.SGFPM_EnumerateDevice.restype = ctypes.c_ulong
 
@@ -384,18 +388,25 @@ class SGFPLib:
         if not template1 or not template2:
             return 0
             
+        # Set Template Format to ANSI378 (Critical for matching ANSI templates)
+        self.dll.SGFPM_SetTemplateFormat(self.hFPM, TEMPLATE_FORMAT_ANSI378)
+            
         t1_buf = (ctypes.c_ubyte * len(template1)).from_buffer_copy(template1)
         t2_buf = (ctypes.c_ubyte * len(template2)).from_buffer_copy(template2)
         
-        matched = ctypes.c_int(0)
-        # Security Level: SL_NORMAL = 5
-        res = self.dll.SGFPM_MatchTemplate(self.hFPM, t1_buf, t2_buf, 5, ctypes.byref(matched))
+        score = ctypes.c_ulong(0)
         
-        if res != SGFDX_ERROR_NONE:
+        # Use GetMatchingScore for a granular score instead of boolean MatchTemplate
+        try:
+            res = self.dll.SGFPM_GetMatchingScore(self.hFPM, t1_buf, t2_buf, ctypes.byref(score))
+            if res != SGFDX_ERROR_NONE:
+                # Fallback to MatchTemplate if GetMatchingScore fails
+                matched = ctypes.c_int(0)
+                res = self.dll.SGFPM_MatchTemplate(self.hFPM, t1_buf, t2_buf, 5, ctypes.byref(matched))
+                return 100 if matched.value else 0
+                
+            return score.value
+        except Exception as e:
+            print(f"Match error: {e}")
             return 0
-            
-        # The MatchTemplate function returns boolean matched, but we might want a score.
-        # SGFPM_GetMatchingScore is better for score.
-        
-        return 100 if matched.value else 0
 

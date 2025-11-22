@@ -4,6 +4,7 @@ import {
   scanFingerprintBackend,
   saveFingerprint,
 } from '../../services/api/enrollmentApi.js';
+import { playSuccessSound, playErrorSound, playScanSound } from '../../utils/sound.js';
 
 const state = { employees: [], templateB64: null };
 const $ = (sel) => document.querySelector(sel);
@@ -87,6 +88,7 @@ async function onScan() {
   try {
     const data = await tryLocalSecuGen(11000);
     if (data && data.ErrorCode === 0) {
+      playScanSound();
       state.templateB64 = data.TemplateBase64;
       if (templateBox) templateBox.value = data.TemplateBase64;
 
@@ -151,7 +153,21 @@ async function onSave() {
   if (!state.templateB64) {
     if (statusText) statusText.textContent = 'Please scan a fingerprint first';
     if (status) status.setAttribute('data-status', 'error');
+    playErrorSound();
     return;
+  }
+
+  // Check for existing fingerprint
+  const employee = state.employees.find(e => e.id === empId);
+  if (employee && employee.has_fingerprint) {
+    const confirmOverwrite = confirm(
+      `Employee "${employee.name}" already has a fingerprint enrolled.\n\nDo you want to overwrite it?`
+    );
+    if (!confirmOverwrite) {
+      if (statusText) statusText.textContent = 'Enrollment cancelled';
+      if (status) status.setAttribute('data-status', 'ready');
+      return;
+    }
   }
 
   if (statusText) statusText.textContent = 'Saving fingerprint...';
@@ -159,6 +175,7 @@ async function onSave() {
 
   try {
     await saveFingerprint(empId, state.templateB64);
+    playSuccessSound();
     if (statusText) statusText.textContent = 'Fingerprint successfully assigned to employee';
     if (status) status.setAttribute('data-status', 'success');
     state.templateB64 = null;
@@ -182,6 +199,7 @@ async function onSave() {
       if (status) status.setAttribute('data-status', 'ready');
     }, 3000);
   } catch (error) {
+    playErrorSound();
     if (statusText) statusText.textContent = error.message;
     if (status) status.setAttribute('data-status', 'error');
   }

@@ -1,5 +1,6 @@
 // js/modules/attendance/automaticClocking.js - Automatic clocking with fingerprint and card support
 import { getEmployees, clockEmployee, getEmployeeTemplates } from '../../services/api/attendanceApi.js';
+import { playSuccessSound, playErrorSound, playScanSound } from '../../utils/sound.js';
 
 // ====== State Management ======
 let state = {
@@ -369,6 +370,7 @@ async function pollFingerprint() {
     state.lastFingerprintTime = now;
     state.isProcessingFingerprint = true;
 
+    playScanSound(); // Sound feedback for scan
     updateStatus('Fingerprint detected - matching...', 'scanning');
 
     // Perform client-side matching via local bridge
@@ -409,6 +411,7 @@ async function pollFingerprint() {
       const result = await clockEmployee(bestMatch.id);
       
       if (result?.status === 'success') {
+        playSuccessSound();
         updateStatus(`✅ ${bestMatch.name} clocked ${result.direction || 'in'} (score: ${bestScore})`, 'info');
         
         state.scanCount++;
@@ -417,9 +420,11 @@ async function pollFingerprint() {
         
         addRecentScan({ name: bestMatch.name }, 'fingerprint', result.direction || 'in');
       } else {
+        playErrorSound();
         updateStatus(`❌ Clock failed for ${bestMatch.name}`, 'error');
       }
     } else {
+      playErrorSound();
       updateStatus(`❌ No fingerprint match (Best score: ${bestScore})`, 'error');
     }
 
@@ -494,12 +499,14 @@ async function pollCardScan() {
       state.lastScanTime = now;
       state.isProcessingCard = true;
 
+      playScanSound();
       updateStatus(`Card scanned: ${uid}`, 'scanning');
 
       // Find employee by card UID
       const employee = state.cardUidToEmployee[uid];
 
       if (!employee) {
+        playErrorSound();
         updateStatus('⚠️ Card not registered to any employee', 'warning');
         return;
       }
@@ -509,6 +516,7 @@ async function pollCardScan() {
         const clockResult = await clockEmployee(employee.id);
         
         if (clockResult) {
+          playSuccessSound();
           updateStatus(`✅ ${employee.name} clocked ${clockResult.direction || 'in'}`, 'info');
           
           state.scanCount++;
@@ -519,10 +527,12 @@ async function pollCardScan() {
           state.cardScanErrorCount = 0;
           state.nextCardPollDelay = 3000;
         } else {
+          playErrorSound();
           updateStatus('❌ Clocking failed', 'error');
         }
       } catch (clockError) {
         console.error('Clock error:', clockError);
+        playErrorSound();
         updateStatus('❌ Clocking failed', 'error');
       }
 
