@@ -458,22 +458,18 @@ async function pollFingerprint() {
     updateStatus('Fingerprint detected - matching...', 'scanning');
 
     // Send fingerprint to backend for matching and clocking
-    const response = await fetch('/api/v1/attendance/clock-by-fingerprint', {
+    // Use the http helper to ensure correct BASE URL and headers
+    const { http } = await import('../../services/api/http.js');
+    const result = await http('/api/v1/attendance/clock-by-fingerprint', {
       method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}`
-      },
       body: JSON.stringify({ 
         template_b64: data.TemplateBase64, 
         threshold: 130, 
         template_format: 'ANSI' 
       })
     });
-
-    const result = await response.json();
     
-    if (response.ok && result?.status === 'success') {
+    if (result?.status === 'success') {
       const employee = result.employee || {};
       updateStatus(`✅ ${employee.name || 'Employee'} clocked ${result.direction || 'in'} (score: ${employee.score || '-'})`, 'info');
       
@@ -770,11 +766,9 @@ export async function init() {
   updateHardwareStatus();
   
   const hardwareReady = await evaluateHardwareStatus({ showSpinner: false });
-  if (hardwareReady) {
-    await startScanning({ skipHardwareCheck: true });
-  } else {
-    console.warn('Automatic clocking waiting for hardware before starting scans.');
-  }
+  // Always start scanning if hardware is ready OR if we want to poll for it
+  // The polling loop handles the "waiting for hardware" logic gracefully now
+  await startScanning({ skipHardwareCheck: true });
   
   console.log("✅ Automatic clocking module initialized");
   
