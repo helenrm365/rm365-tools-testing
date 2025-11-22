@@ -31,13 +31,11 @@ const MAX_CONSECUTIVE_ERRORS = 5; // After this many errors, slow down polling
 
 // SecuGen endpoints to probe for fingerprint scanning
 const SGI_ENDPOINTS = [
-  'http://127.0.0.1:8080/SGIFPCapture',
-  'http://localhost:8080/SGIFPCapture'
+  'http://127.0.0.1:8080/SGIFPCapture'
 ];
 
 const CARD_SCAN_ENDPOINTS = [
-  'http://127.0.0.1:8080/card/scan',
-  'http://localhost:8080/card/scan'
+  'http://127.0.0.1:8080/card/scan'
 ];
 
 // ====== Utility Functions ======
@@ -296,7 +294,7 @@ async function loadEmployees() {
 }
 
 // ====== Fingerprint Scanning ======
-async function captureFingerprint(timeoutMs = 2500) {
+async function captureFingerprint(timeoutMs = 3000) {
   const payload = { 
     Timeout: 2000, 
     TemplateFormat: 'ANSI', 
@@ -307,27 +305,32 @@ async function captureFingerprint(timeoutMs = 2500) {
   const timeout = setTimeout(() => abortController.abort(), timeoutMs);
 
   const promises = SGI_ENDPOINTS.map(url => (async () => {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-      signal: abortController.signal,
-      cache: 'no-store'
-    });
-    
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status} @ ${url}`);
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        signal: abortController.signal,
+        cache: 'no-store'
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status} @ ${url}`);
+      }
+      
+      const data = await response.json();
+      data.__endpoint = url;
+      return data;
+    } catch (e) {
+      throw e;
     }
-    
-    const data = await response.json();
-    data.__endpoint = url;
-    return data;
   })());
 
   try {
     return await Promise.any(promises);
   } finally {
     clearTimeout(timeout);
+    abortController.abort(); // Ensure all other requests are cancelled
   }
 }
 
@@ -335,7 +338,7 @@ async function pollFingerprint() {
   if (state.isProcessingFingerprint || !state.isScanning) return;
 
   try {
-    const data = await captureFingerprint(2500);
+    const data = await captureFingerprint(3000);
 
     // Reset error count on successful connection
     state.fingerprintScanErrorCount = 0;
