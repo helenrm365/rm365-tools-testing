@@ -97,8 +97,10 @@ async function onScan() {
 
       if (data.BMPBase64) {
         if (preview) {
-          const prefix = data.BMPBase64.startsWith('data:image') ? '' : 'data:image/bmp;base64,';
-          preview.src = `${prefix}${data.BMPBase64}`;
+          // Clean base64 string - remove newlines and whitespace
+          const cleanB64 = data.BMPBase64.replace(/[\r\n\s]+/g, '');
+          const prefix = cleanB64.startsWith('data:image') ? '' : 'data:image/bmp;base64,';
+          preview.src = `${prefix}${cleanB64}`;
           preview.style.display = 'block';
           preview.classList.add('visible');
         }
@@ -129,8 +131,10 @@ async function onScan() {
       if (templateBox) templateBox.value = fallback.template_b64;
 
       if (fallback.image_base64 && preview) {
-        const prefix = fallback.image_base64.startsWith('data:image') ? '' : 'data:image/png;base64,';
-        preview.src = `${prefix}${fallback.image_base64}`;
+        // Clean base64 string - remove newlines and whitespace
+        const cleanB64 = fallback.image_base64.replace(/[\r\n\s]+/g, '');
+        const prefix = cleanB64.startsWith('data:image') ? '' : 'data:image/png;base64,';
+        preview.src = `${prefix}${cleanB64}`;
         preview.style.display = 'block';
         preview.classList.add('visible');
       }
