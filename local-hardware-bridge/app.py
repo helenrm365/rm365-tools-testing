@@ -66,6 +66,11 @@ class CardResponse(BaseModel):
     error: Optional[str] = None
 
 
+class MatchRequest(BaseModel):
+    template1_b64: str
+    template2_b64: str
+
+
 @app.get("/")
 def root():
     return {
@@ -411,13 +416,12 @@ async def scan_card(timeout: int = 5):
 
 
 @app.post("/fingerprint/match")
-async def match_fingerprint(template1_b64: str, template2_b64: str):
+async def match_fingerprint(request: MatchRequest):
     """
     Match two fingerprint templates using SecuGen matcher
     
     Args:
-        template1_b64: First template (base64 encoded)
-        template2_b64: Second template (base64 encoded)
+        request: MatchRequest containing two base64 encoded templates
         
     Returns:
         Match score (0-100, higher is better match)
@@ -432,8 +436,8 @@ async def match_fingerprint(template1_b64: str, template2_b64: str):
         
         try:
             # Decode templates
-            template1 = base64.b64decode(template1_b64)
-            template2 = base64.b64decode(template2_b64)
+            template1 = base64.b64decode(request.template1_b64)
+            template2 = base64.b64decode(request.template2_b64)
             
             # Match templates
             score = sg.MatchTemplate(template1, template2)

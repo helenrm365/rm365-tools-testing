@@ -374,7 +374,7 @@ async function pollFingerprint() {
     // Perform client-side matching via local bridge
     let bestMatch = null;
     let bestScore = 0;
-    const MATCH_THRESHOLD = 100;
+    const MATCH_THRESHOLD = 20; // Lowered to match legacy server-side threshold
 
     for (const tmpl of state.fingerprintTemplates) {
       try {
@@ -389,6 +389,11 @@ async function pollFingerprint() {
         
         if (!matchResponse.ok) continue;
         const matchData = await matchResponse.json();
+        
+        // Log scores for debugging
+        if (matchData.score > 0) {
+            console.log(`Match score for ${tmpl.name}: ${matchData.score}`);
+        }
         
         if (matchData.status === 'success' && matchData.score > bestScore) {
           bestScore = matchData.score;
