@@ -469,14 +469,15 @@ html.dark-mode .enrollment-fingerprint .employee-dropdown:focus {
 /* Status Bar */
 .enrollment-fingerprint .status-bar {
   margin-top: 2rem;
-  padding: 1rem 1.5rem;
+  padding: 1.25rem 1.75rem;
   border-radius: 12px;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  font-size: 0.95rem;
+  gap: 1rem;
+  font-size: 1rem;
   font-weight: 500;
   transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .enrollment-fingerprint .status-bar[data-status="ready"] {
@@ -540,11 +541,19 @@ html.dark-mode .enrollment-fingerprint .status-bar[data-status="warning"] {
 }
 
 .enrollment-fingerprint .status-icon {
-  font-size: 0.625rem;
+  font-size: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .enrollment-fingerprint .status-bar[data-status="scanning"] .status-icon {
   animation: pulse 1.5s ease-in-out infinite;
+}
+
+.enrollment-fingerprint .status-message {
+  flex: 1;
+  line-height: 1.5;
 }
 
 /* Instructions Card */

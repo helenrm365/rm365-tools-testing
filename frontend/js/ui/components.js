@@ -185,7 +185,11 @@ window.initModernUI = initModernBoxes;
     document.querySelectorAll('.c-select[aria-expanded="true"]').forEach(w => {
       w.setAttribute('aria-expanded', 'false');
       w.classList.remove('open');
-      w.querySelector('.c-select__list')?.setAttribute('aria-hidden', 'true');
+      const listEl = w.querySelector('.c-select__list');
+      if (listEl) {
+        listEl.setAttribute('aria-hidden', 'true');
+        listEl.setAttribute('inert', '');
+      }
       
       // Reset any forced overflow styles on attendance pages
       const isAttendancePage = document.querySelector('.attendance-overview, .attendance-manual');
@@ -233,6 +237,7 @@ window.initModernUI = initModernBoxes;
     list.className = 'c-select__list';
     list.setAttribute('role', 'listbox');
     list.setAttribute('aria-hidden', 'true');
+    list.setAttribute('inert', '');
     list.tabIndex = -1;
 
     btn.append(labelSpan, caret);
@@ -254,6 +259,7 @@ window.initModernUI = initModernBoxes;
         item.setAttribute('role', 'option');
         item.dataset.value = opt.value;
         item.textContent = opt.textContent;
+        item.tabIndex = -1; // Prevent focus when list is hidden
         if (opt.disabled) item.setAttribute('aria-disabled', 'true');
         if (opt.selected) item.setAttribute('aria-selected', 'true');
         
@@ -299,6 +305,7 @@ window.initModernUI = initModernBoxes;
       wrap.setAttribute('aria-expanded', 'true');
       wrap.classList.add('open');
       list.removeAttribute('aria-hidden');
+      list.removeAttribute('inert');
       
       // Force overflow visible on parent containers for attendance pages
       const isAttendancePage = document.querySelector('.attendance-overview, .attendance-manual');

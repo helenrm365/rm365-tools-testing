@@ -5,6 +5,7 @@ import {
   saveFingerprint,
 } from '../../services/api/enrollmentApi.js';
 import { playSuccessSound, playErrorSound, playScanSound } from '../../utils/sound.js';
+import { confirmModal } from '../../ui/confirmationModal.js';
 
 const state = { employees: [], templateB64: null };
 const $ = (sel) => document.querySelector(sel);
@@ -80,10 +81,18 @@ async function onScan() {
   const placeholder = $('#fpPreviewPlaceholder');
   const templateBox = $('#fpTemplate');
 
-  if (statusText) statusText.textContent = 'Scanning via local WebAPI...';
-  if (status) status.setAttribute('data-status', 'scanning');
-  if (preview) preview.style.display = 'none';
+  // Reset any previous scan data
+  state.templateB64 = null;
+  if (templateBox) templateBox.value = '';
+  if (preview) {
+    preview.style.display = 'none';
+    preview.classList.remove('visible');
+    preview.src = '';
+  }
   if (placeholder) placeholder.style.display = 'flex';
+
+  if (statusText) statusText.textContent = 'Scanning fingerprint...';
+  if (status) status.setAttribute('data-status', 'scanning');
 
   try {
     const data = await tryLocalSecuGen(11000);
@@ -96,6 +105,7 @@ async function onScan() {
         if (preview) {
           preview.src = `data:image/bmp;base64,${data.BMPBase64}`;
           preview.style.display = 'block';
+          preview.classList.add('visible');
         }
         if (placeholder) placeholder.style.display = 'none';
       }
@@ -124,6 +134,7 @@ async function onScan() {
       if (fallback.image_base64 && preview) {
         preview.src = `data:image/png;base64,${fallback.image_base64}`;
         preview.style.display = 'block';
+        preview.classList.add('visible');
       }
       if (placeholder) placeholder.style.display = 'none';
 
@@ -160,9 +171,14 @@ async function onSave() {
   // Check for existing fingerprint
   const employee = state.employees.find(e => e.id === empId);
   if (employee && employee.has_fingerprint) {
-    const confirmOverwrite = confirm(
-      `Employee "${employee.name}" already has a fingerprint enrolled.\n\nDo you want to overwrite it?`
-    );
+    const confirmOverwrite = await confirmModal({
+      title: 'Overwrite Fingerprint',
+      message: `Employee "${employee.name}" already has a fingerprint enrolled.\n\nDo you want to overwrite it?`,
+      confirmText: 'Overwrite',
+      cancelText: 'Cancel',
+      confirmVariant: 'warning',
+      icon: '⚠️'
+    });
     if (!confirmOverwrite) {
       if (statusText) statusText.textContent = 'Enrollment cancelled';
       if (status) status.setAttribute('data-status', 'ready');
@@ -178,31 +194,47 @@ async function onSave() {
     playSuccessSound();
     if (statusText) statusText.textContent = 'Fingerprint successfully assigned to employee';
     if (status) status.setAttribute('data-status', 'success');
-    state.templateB64 = null;
-
-    const preview = $('#fingerprintPreview');
-    const placeholder = $('#fpPreviewPlaceholder');
-    const templateBox = $('#fpTemplate');
-
-    if (preview) {
-      preview.style.display = 'none';
-      preview.src = '';
-    }
-    if (placeholder) placeholder.style.display = 'flex';
-    if (templateBox) templateBox.value = '';
-
-    $('#fpEmployee').value = '';
-    window.dispatchEvent(new Event('reloadEmployees'));
-
+    
+    // Reset everything after successful save
     setTimeout(() => {
-      if (statusText) statusText.textContent = 'Ready to scan';
-      if (status) status.setAttribute('data-status', 'ready');
-    }, 3000);
+      resetForm();
+    }, 2000);
   } catch (error) {
     playErrorSound();
     if (statusText) statusText.textContent = error.message;
     if (status) status.setAttribute('data-status', 'error');
   }
+}
+
+function resetForm() {
+  const status = $('#fpStatus');
+  const statusText = status?.querySelector('.status-message');
+  const preview = $('#fingerprintPreview');
+  const placeholder = $('#fpPreviewPlaceholder');
+  const templateBox = $('#fpTemplate');
+  const employeeSelect = $('#fpEmployee');
+
+  // Clear state
+  state.templateB64 = null;
+
+  // Reset preview
+  if (preview) {
+    preview.style.display = 'none';
+    preview.classList.remove('visible');
+    preview.src = '';
+  }
+  if (placeholder) placeholder.style.display = 'flex';
+  if (templateBox) templateBox.value = '';
+
+  // Reset employee selection
+  if (employeeSelect) employeeSelect.value = '';
+
+  // Reset status
+  if (statusText) statusText.textContent = 'Ready to scan';
+  if (status) status.setAttribute('data-status', 'ready');
+
+  // Reload employees to update fingerprint status
+  window.dispatchEvent(new Event('reloadEmployees'));
 }
 
 export async function init() {
