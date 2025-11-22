@@ -13,11 +13,6 @@ from .repo import AttendanceRepo
 # Can be overridden via SGI_ENDPOINTS environment variable (comma-separated list)
 # Default: local SecuGen service on various common ports
 _DEFAULT_SGI_ENDPOINTS = [
-    "https://localhost:8443/SGIMatchScore",
-    "https://127.0.0.1:8443/SGIMatchScore",
-    "https://localhost:8080/SGIMatchScore",
-    "https://127.0.0.1:8080/SGIMatchScore",
-    "http://localhost:8080/SGIMatchScore",
     "http://127.0.0.1:8080/SGIMatchScore",
 ]
 
@@ -82,7 +77,7 @@ class AttendanceService:
         return self.repo.get_employee_work_hours(from_date, to_date, location, name_search)
 
     # ---- Fingerprint matching ----
-    def identify_best_match(self, live_template_b64: str, threshold: int = 130, template_format: str = "ANSI") -> Optional[Match]:
+    def identify_best_match(self, live_template_b64: str, threshold: int = 100, template_format: str = "ANSI") -> Optional[Match]:
         """
         Ask the local SGIMatchScore service to compare the live probe with each stored template.
         Returns the best match if score >= threshold.
@@ -134,6 +129,7 @@ class AttendanceService:
                     score = data.get("Score")
                     if isinstance(score, int):
                         return score
-            except Exception:
+            except Exception as e:
+                print(f"Error matching against {ep}: {e}")
                 continue
         return None
