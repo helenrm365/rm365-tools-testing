@@ -84,7 +84,16 @@ function renderFingerprints(employee) {
         delBtn.onmouseover = () => delBtn.style.background = 'rgba(239, 68, 68, 0.1)';
         delBtn.onmouseout = () => delBtn.style.background = 'none';
         delBtn.onclick = async () => {
-            if (confirm(`Delete fingerprint "${fp.name}"?`)) {
+            const confirmDelete = await confirmModal({
+                title: 'Delete Fingerprint',
+                message: `Are you sure you want to delete the fingerprint "${fp.name}"?`,
+                confirmText: 'Delete',
+                cancelText: 'Cancel',
+                confirmVariant: 'danger',
+                icon: '🗑️'
+            });
+
+            if (confirmDelete) {
                 try {
                     await deleteFingerprint(fp.id);
                     // Refresh employee data
