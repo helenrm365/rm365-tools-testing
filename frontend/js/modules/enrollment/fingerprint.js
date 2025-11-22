@@ -38,37 +38,28 @@ function explain(code) {
 async function tryLocalSecuGen(timeoutMs = 11000) {
   // We are forcing HTTP in the local bridge to avoid SSL certificate issues.
   // Prioritize 127.0.0.1 as it is often treated more favorably by browsers for PNA.
-  const endpoints = [
-    'http://127.0.0.1:8080/SGIFPCapture',
-    'http://localhost:8080/SGIFPCapture',
-  ];
+  const endpoint = 'http://127.0.0.1:8080/SGIFPCapture';
   const payload = { Timeout: 10000, TemplateFormat: 'ANSI', FakeDetection: 1 };
 
   const ac = new AbortController();
   const timeoutId = setTimeout(() => ac.abort(), timeoutMs);
 
   try {
-    const result = await Promise.any(
-      endpoints.map((endpoint) => (async () => {
-        const response = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-          signal: ac.signal,
-          cache: 'no-store',
-        });
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: ac.signal,
+      cache: 'no-store',
+    });
 
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
 
-        const json = await response.json();
-        json.__endpoint = endpoint;
-        return json;
-      })()),
-    );
-
-    return result;
+    const json = await response.json();
+    json.__endpoint = endpoint;
+    return json;
   } finally {
     clearTimeout(timeoutId);
   }
@@ -80,6 +71,9 @@ async function onScan() {
   const preview = $('#fingerprintPreview');
   const placeholder = $('#fpPreviewPlaceholder');
   const templateBox = $('#fpTemplate');
+  const scanBtn = $('#scanFpBtn');
+
+  if (scanBtn) scanBtn.disabled = true;
 
   // Reset any previous scan data
   state.templateB64 = null;
@@ -124,6 +118,8 @@ async function onScan() {
   } catch {
     if (statusText) statusText.textContent = 'Local capture unavailable. Falling back...';
     if (status) status.setAttribute('data-status', 'scanning');
+  } finally {
+    if (scanBtn) scanBtn.disabled = false;
   }
 
   try {
@@ -153,31 +149,38 @@ async function onScan() {
 }
 
 async function onSave() {
+  console.log('onSave called');
   const status = $('#fpStatus');
   const statusText = status?.querySelector('.status-message');
   let empId = Number($('#fpEmployee')?.value || 0);
+  console.log('Initial empId:', empId);
 
   // Fallback: check if c-select has a value if native is empty
   if (!empId) {
-    const cSelect = $('#fpEmployee')?.closest('.c-select');
-    if (cSelect) {
-       const selectedItem = cSelect.querySelector('.c-select__item[aria-selected="true"]');
-       if (selectedItem && selectedItem.dataset.value) {
-         empId = Number(selectedItem.dataset.value);
-         // Sync back to native
-         const native = $('#fpEmployee');
-         if (native) native.value = empId;
-       }
+    const native = $('#fpEmployee');
+    if (native) {
+      const cSelect = native.closest('.c-select');
+      if (cSelect) {
+         const selectedItem = cSelect.querySelector('.c-select__item[aria-selected="true"]');
+         if (selectedItem && selectedItem.dataset.value) {
+           empId = Number(selectedItem.dataset.value);
+           // Sync back to native
+           native.value = empId;
+           console.log('Recovered empId from c-select:', empId);
+         }
+      }
     }
   }
 
   if (!empId) {
+    console.warn('No employee selected');
     if (statusText) statusText.textContent = 'Please select an employee first';
     if (status) status.setAttribute('data-status', 'error');
     return;
   }
 
   if (!state.templateB64) {
+    console.warn('No template scanned');
     if (statusText) statusText.textContent = 'Please scan a fingerprint first';
     if (status) status.setAttribute('data-status', 'error');
     playErrorSound();
@@ -206,6 +209,7 @@ async function onSave() {
   if (status) status.setAttribute('data-status', 'scanning');
 
   try {
+    console.log('Saving fingerprint for employee:', empId);
     await saveFingerprint(empId, state.templateB64);
     playSuccessSound();
     if (statusText) statusText.textContent = 'Fingerprint successfully assigned to employee';
@@ -216,6 +220,7 @@ async function onSave() {
       resetForm();
     }, 2000);
   } catch (error) {
+    console.error('Save failed:', error);
     playErrorSound();
     if (statusText) statusText.textContent = error.message;
     if (status) status.setAttribute('data-status', 'error');
