@@ -111,10 +111,19 @@ class SGFPLib:
     def load_dll(self):
         # Determine the path to the DLL
         base_path = os.path.dirname(os.path.abspath(__file__))
-        dll_path = os.path.join(base_path, "lib", "sgfplib.dll")
+        lib_path = os.path.join(base_path, "lib")
+        dll_path = os.path.join(lib_path, "sgfplib.dll")
         
         if not os.path.exists(dll_path):
             raise FileNotFoundError(f"DLL not found at {dll_path}")
+
+        # CRITICAL FIX: Add lib directory to DLL search path
+        # This allows sgfplib.dll to find sgfpamx.dll (Algorithm) and others
+        if hasattr(os, 'add_dll_directory'):
+            os.add_dll_directory(lib_path)
+        
+        # Also add to PATH for compatibility
+        os.environ['PATH'] = lib_path + os.pathsep + os.environ['PATH']
             
         try:
             self.dll = ctypes.WinDLL(dll_path)
@@ -324,10 +333,11 @@ class SGFPLib:
         # Return the template as bytes
         return bytes(template_buf)
 
-    def CaptureTemplateWithImage(self, timeout=5000, format="ANSI"):
+    def CaptureTemplateWithImage(self, timeout=5000, format="ANSI", quality=50):
         # 1. Get Device Info to know image size
         info = self.GetDeviceInfo()
         if not info:
+            print("GetDeviceInfo failed")
             return None, None
             
         img_width = info.ImageWidth
@@ -335,10 +345,20 @@ class SGFPLib:
         img_buf_size = img_width * img_height
         
         img_buf = (ctypes.c_ubyte * img_buf_size)()
+
+        # Set Template Format
+        if format == "ANSI":
+            self.dll.SGFPM_SetTemplateFormat(self.hFPM, TEMPLATE_FORMAT_ANSI378)
+        elif format == "ISO":
+            self.dll.SGFPM_SetTemplateFormat(self.hFPM, TEMPLATE_FORMAT_ISO19794)
+        else:
+            self.dll.SGFPM_SetTemplateFormat(self.hFPM, TEMPLATE_FORMAT_SG400)
         
         # 2. Capture Image
-        res = self.dll.SGFPM_GetImageEx(self.hFPM, img_buf, timeout, None, 50)
+        # print(f"Calling GetImageEx with timeout={timeout}, quality={quality}")
+        res = self.dll.SGFPM_GetImageEx(self.hFPM, img_buf, timeout, None, quality)
         if res != SGFDX_ERROR_NONE:
+            print(f"SGFPM_GetImageEx failed with error: {res}")
             return None, None
             
         # 3. Create Template
@@ -351,13 +371,11 @@ class SGFPLib:
         finger_info.FingerNumber = 1
         finger_info.ViewNumber = 1
         finger_info.ImpressionType = SG_IMPTYPE_LP
-        finger_info.ImageQuality = 0
-        
-        # Set format if needed (default is usually ANSI or SG400 depending on Init)
-        # self.dll.SGFPM_SetTemplateFormat(self.hFPM, TEMPLATE_FORMAT_ANSI378)
+        finger_info.ImageQuality = quality # Pass the quality we asked for, or 0
         
         res = self.dll.SGFPM_CreateTemplate(self.hFPM, ctypes.byref(finger_info), img_buf, template_buf)
         if res != SGFDX_ERROR_NONE:
+            print(f"SGFPM_CreateTemplate failed with error: {res}")
             return None, bytes(img_buf)
             
         return bytes(template_buf), bytes(img_buf)

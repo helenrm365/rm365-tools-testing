@@ -31,23 +31,19 @@ const MAX_CONSECUTIVE_ERRORS = 5; // After this many errors, slow down polling
 
 // SecuGen endpoints to probe for fingerprint scanning
 const SGI_ENDPOINTS = [
-  'https://localhost:8443/SGIFPCapture',
-  'https://127.0.0.1:8443/SGIFPCapture', 
-  'https://localhost:8080/SGIFPCapture',
-  'https://127.0.0.1:8080/SGIFPCapture',
-  'http://localhost:8080/SGIFPCapture',
-  'http://127.0.0.1:8080/SGIFPCapture'
+  'http://127.0.0.1:8080/SGIFPCapture',
+  'http://localhost:8080/SGIFPCapture'
 ];
 
 const CARD_HEALTH_ENDPOINTS = [
-  'https://localhost:8080/health',
-  'https://127.0.0.1:8080/health',
-  'http://localhost:8080/health',
-  'http://127.0.0.1:8080/health'
+  'http://127.0.0.1:8080/health',
+  'http://localhost:8080/health'
 ];
 
 const CARD_SCAN_ENDPOINTS = [
-  'https://localhost:8080/card/scan',
+  'http://127.0.0.1:8080/card/scan',
+  'http://localhost:8080/card/scan'
+];
   'https://127.0.0.1:8080/card/scan',
   'http://localhost:8080/card/scan',
   'http://127.0.0.1:8080/card/scan'

@@ -233,7 +233,9 @@ def get_secugen_device():
             
             # Configure once
             _sg_device.EnableSmartCapture(True)
-            _sg_device.SetAutoOnIRLedTouchOn(True, True)
+            # Disable AutoOn to ensure the sensor is active during capture
+            # This fixes issues with dry fingers not triggering the touch sensor
+            _sg_device.SetAutoOnIRLedTouchOn(False, False)
             logger.info("SecuGen device initialized and kept open.")
             
         return _sg_device
@@ -268,7 +270,8 @@ async def secugen_capture(payload: dict = None):
         try:
             # Capture fingerprint with image
             logger.info("Starting CaptureTemplateWithImage...")
-            template, image = sg.CaptureTemplateWithImage(timeout, template_format)
+            # Use quality=0 to accept any image (prevents timeouts on dry fingers)
+            template, image = sg.CaptureTemplateWithImage(timeout, template_format, quality=0)
             
             if not template:
                 logger.warning("CaptureTemplateWithImage returned None (Timeout)")
