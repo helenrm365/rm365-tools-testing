@@ -29,25 +29,6 @@ const FINGERPRINT_COOLDOWN_MS = 3000;
 const MAX_RECENT_SCANS = 10;
 const MAX_CONSECUTIVE_ERRORS = 5; // After this many errors, slow down polling
 
-// SecuGen endpoints to probe for fingerprint scanning
-const SGI_ENDPOINTS = [
-  'http://127.0.0.1:8080/SGIFPCapture',
-  'http://localhost:8080/SGIFPCapture'
-];
-
-const CARD_HEALTH_ENDPOINTS = [
-  'http://127.0.0.1:8080/health',
-  'http://localhost:8080/health'
-];
-
-const CARD_SCAN_ENDPOINTS = [
-  'http://127.0.0.1:8080/card/scan',
-  'http://localhost:8080/card/scan'
-];
-
-const HARDWARE_CHECK_TIMEOUT_MS = 3000;
-const FINGERPRINT_OK_CODES = new Set([0, 54]);
-
 // ====== Utility Functions ======
 function $(sel) { return document.querySelector(sel); }
 
@@ -218,119 +199,32 @@ function setStopButtonState({ disabled }) {
   }
 }
 
-async function fetchJsonWithTimeout(url, options = {}, timeoutMs = HARDWARE_CHECK_TIMEOUT_MS) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+
+async function checkBridgeHealth() {
   try {
-    const response = await fetch(url, { ...options, signal: controller.signal });
-    if (!response.ok) return null;
-    return await response.json();
-  } catch {
-    return null;
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-async function detectCardAvailability() {
-  const healthPromise = Promise.allSettled(
-    CARD_HEALTH_ENDPOINTS.map((endpoint) =>
-      fetchJsonWithTimeout(endpoint, { cache: 'no-store' })
-    )
-  );
-
-  const scanPromise = Promise.allSettled(
-    CARD_SCAN_ENDPOINTS.map((endpoint) =>
-      fetchJsonWithTimeout(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ timeout: 0 }),
-        cache: 'no-store'
-      }, 1200)
-    )
-  );
-
-  const healthChecks = await healthPromise;
-  for (const result of healthChecks) {
-    const value = result.status === 'fulfilled' ? result.value : null;
-    if (typeof value?.card_available === 'boolean') {
-      return value.card_available;
-    }
-  }
-
-  const scanChecks = await scanPromise;
-  for (const result of scanChecks) {
-    const data = result.status === 'fulfilled' ? result.value : null;
-    if (!data) continue;
-    if (data.status === 'success') return true;
-    if (data.status === 'error') {
-      if (data.error && /reader/i.test(data.error)) {
-        return false;
-      }
-      return true;
-    }
-  }
-
-  return false;
-}
-
-async function probeFingerprintEndpoint(endpoint) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 11000); // 11s fetch timeout
-  try {
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ Timeout: 10000, TemplateFormat: 'ANSI', FakeDetection: 0 }), // 10s device timeout
-      cache: 'no-store',
-      signal: controller.signal
-    });
-
-    if (!response.ok) return null;
+    const response = await fetch('http://127.0.0.1:8080/health');
+    if (!response.ok) return { fingerprint: false, card: false };
     const data = await response.json();
-    if (typeof data.ErrorCode !== 'number') return null;
-
-    if (FINGERPRINT_OK_CODES.has(data.ErrorCode)) {
-      return { reachable: true, device: true };
-    }
-
-    if (data.ErrorCode === 55) {
-      return { reachable: true, device: false };
-    }
-
-    return { reachable: true, device: false };
-  } catch {
-    return null;
-  } finally {
-    clearTimeout(timer);
+    return {
+      fingerprint: data.fingerprint_available === true,
+      card: data.card_available === true
+    };
+  } catch (e) {
+    return { fingerprint: false, card: false };
   }
 }
 
-async function detectFingerprintAvailability() {
-  const probes = await Promise.allSettled(
-    SGI_ENDPOINTS.map((endpoint) => probeFingerprintEndpoint(endpoint))
-  );
 
-  let reachableButMissing = false;
-  for (const probe of probes) {
-    const result = probe.status === 'fulfilled' ? probe.value : null;
-    if (!result) continue;
-    if (result.device) return true;
-    if (result.reachable) reachableButMissing = true;
-  }
-
-  return false;
-}
 
 async function evaluateHardwareStatus({ showSpinner = false } = {}) {
   if (showSpinner) {
     updateStatus('Checking hardware...', 'scanning');
   }
 
-  const [fingerprintReady, cardReady] = await Promise.all([
-    detectFingerprintAvailability(),
-    detectCardAvailability()
-  ]);
+  const status = await checkBridgeHealth();
+  const fingerprintReady = status.fingerprint;
+  const cardReady = status.card;
 
   state.fingerprintServiceAvailable = fingerprintReady;
   state.cardServiceAvailable = cardReady;
