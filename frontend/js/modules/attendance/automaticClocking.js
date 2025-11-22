@@ -376,7 +376,7 @@ async function pollFingerprint() {
     // Perform client-side matching via local bridge
     let bestMatch = null;
     let bestScore = 0;
-    const MATCH_THRESHOLD = 20; // Lowered to match legacy server-side threshold
+    const MATCH_THRESHOLD = 130; // Increased for better security (was 20)
 
     try {
       // Try batch matching first (much faster)
