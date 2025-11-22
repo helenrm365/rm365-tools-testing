@@ -8,7 +8,7 @@ class EnrollmentRepo:
     # -------- Queries --------
     def list_employees(self) -> List[Dict[str, Any]]:
         """
-        Returns employees with a derived has_fingerprint flag.
+        Returns employees with a derived has_fingerprint flag and list of fingerprints.
         """
         with pg_conn() as conn:
             with conn.cursor() as cur:
@@ -18,7 +18,15 @@ class EnrollmentRepo:
                            COALESCE(e.location, '') AS location,
                            COALESCE(e.status, '') AS status,
                            COALESCE(e.card_uid, '') AS card_uid,
-                           (EXISTS (SELECT 1 FROM employee_fingerprints ef WHERE ef.employee_id = e.id)) AS has_fingerprint
+                           (EXISTS (SELECT 1 FROM employee_fingerprints ef WHERE ef.employee_id = e.id)) AS has_fingerprint,
+                           COALESCE(
+                               (
+                                   SELECT json_agg(json_build_object('id', ef.id, 'name', ef.name, 'created_at', ef.created_at))
+                                   FROM employee_fingerprints ef
+                                   WHERE ef.employee_id = e.id
+                               ),
+                               '[]'::json
+                           ) AS fingerprints
                     FROM employees e
                     ORDER BY e.name
                     """
