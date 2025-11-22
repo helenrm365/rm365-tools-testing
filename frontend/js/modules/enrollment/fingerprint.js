@@ -218,6 +218,13 @@ async function onSave() {
     // Reset everything after successful save
     setTimeout(() => {
       resetForm();
+      // Refresh employee list to update has_fingerprint status
+      getEmployees().then(emps => {
+        state.employees = emps;
+        // We don't necessarily need to refill the select if we just want to update state,
+        // but refilling ensures the UI is consistent if we added indicators later.
+        // For now, just updating state is enough for the next save check.
+      });
     }, 2000);
   } catch (error) {
     console.error('Save failed:', error);
@@ -248,7 +255,11 @@ function resetForm() {
   if (templateBox) templateBox.value = '';
 
   // Reset employee selection
-  if (employeeSelect) employeeSelect.value = '';
+  if (employeeSelect) {
+    employeeSelect.value = '';
+    // Dispatch change event so c-select updates its UI
+    employeeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+  }
 
   // Reset status
   if (statusText) statusText.textContent = 'Ready to scan';
