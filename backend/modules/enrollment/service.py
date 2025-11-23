@@ -9,7 +9,7 @@ from .repo import EnrollmentRepo
 
 # Optional hardware imports - gracefully handle missing hardware modules
 try:
-    from backend.modules.enrollment.hardware.card_reader import read_card_uid
+    from .hardware.card_reader import read_card_uid
     CARD_READER_AVAILABLE = True
 except ImportError:
     CARD_READER_AVAILABLE = False
@@ -17,7 +17,7 @@ except ImportError:
         raise RuntimeError("Card reader hardware not available in this environment")
 
 try:
-    from backend.modules.enrollment.hardware.fingerprint_reader import read_fingerprint_template, FingerprintCaptureError
+    from .hardware.fingerprint_reader import read_fingerprint_template, FingerprintCaptureError
     FINGERPRINT_READER_AVAILABLE = True
 except ImportError:
     FINGERPRINT_READER_AVAILABLE = False

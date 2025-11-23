@@ -132,7 +132,9 @@ def _resolve_allow_origins():
     # Fallback to settings
     if settings.ALLOW_ORIGINS:
         print(f"⚠️  No env origins found, using settings")
-        return [settings.ALLOW_ORIGINS] if isinstance(settings.ALLOW_ORIGINS, str) else list(settings.ALLOW_ORIGINS)
+        if isinstance(settings.ALLOW_ORIGINS, str):
+            return [o.strip() for o in settings.ALLOW_ORIGINS.split(',') if o.strip()]
+        return list(settings.ALLOW_ORIGINS)
     
     return []
 
