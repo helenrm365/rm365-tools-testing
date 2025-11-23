@@ -32,3 +32,5 @@ local-hardware-bridge/SETUP_GUIDE.md
 dist/
 build/
 .cache/
+
+local-hardware-bridge/
