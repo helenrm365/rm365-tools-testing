@@ -1,2 +1,34 @@
-
 local-hardware-bridge/
+
+# Git
+.git
+.gitignore
+
+# Editor directories
+.vscode/
+
+# Python
+venv/
+.venv/
+.venv-*/
+__pycache__/
+*.pyc
+
+# Env files
+.env
+.env.*
+*.env
+**/.env
+
+# Compiled files
+*.pyo
+*.pyd
+
+# Secrets
+*.pem
+*.key
+
+# OS/Misc
+.DS_Store
+*.dll
+*.lib

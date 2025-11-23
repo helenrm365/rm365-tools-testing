@@ -7,16 +7,13 @@ __pycache__/
 .env.*
 venv/
 .venv/
+.venv-*/
+.vscode/
 *.pem
 *.key
 *.dll
 *.lib
-local-hardware-bridge/lib/
-local-hardware-bridge/Install-Hardware-Bridge.bat
-local-hardware-bridge/SETUP_GUIDE.md
 .git
 .gitignore
 .DS_Store
 
-# don’t send the frontend to this image
-../frontend

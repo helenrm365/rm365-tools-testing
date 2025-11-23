@@ -34,3 +34,9 @@ build/
 .cache/
 
 local-hardware-bridge/
+
+# Editor directories
+.vscode/
+
+# Additional venvs
+.venv-*/
