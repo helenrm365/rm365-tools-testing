@@ -55,7 +55,9 @@ export function getDefaultAllowedPath(allowed = null) {
   if (isAllowed('inventory', allowedTabs)) return '/inventory';
   // Then user management
   if (isAllowed('usermanagement', allowedTabs)) return '/usermanagement';
-  return '/login';
+  
+  // Always fallback to home as it is accessible to everyone
+  return '/home';
 }
 
 // Enforce that a given pathname is allowed; return { allowed, redirect }
@@ -69,6 +71,9 @@ export function enforceRoutePermission(pathname) {
 
   // Only enforce for known app sections
   if (!section) return { allowed: true, redirect: null };
+
+  // Always allow home
+  if (section === 'home') return { allowed: true, redirect: null };
 
   const key = sub ? `${section}.${sub}` : section;
   if (isAllowed(key)) return { allowed: true, redirect: null };
@@ -104,7 +109,8 @@ export function filterSidebarByPermissions() {
     }
     
     // If authenticated, check permissions
-    const ok = isAllowed(section, allowedTabs);
+    // Always allow home
+    const ok = (section === 'home' || section === '') || isAllowed(section, allowedTabs);
     
     if (ok) {
       li.style.display = '';
