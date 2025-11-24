@@ -3,7 +3,8 @@
 
 export const config = {
   // Backend API URL - Auto-detects environment
-  API: window.API || 
+  API: new URLSearchParams(window.location.search).get('api') ||
+       window.API || 
        (typeof process !== 'undefined' && process.env?.API) ||
        // Production: Use Railway backend ONLY if explicitly on Cloudflare Pages
        (window.location.hostname.includes('pages.dev') 
