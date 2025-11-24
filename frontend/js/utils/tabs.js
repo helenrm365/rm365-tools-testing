@@ -119,8 +119,9 @@ export function filterSidebarByPermissions() {
 // Inside the currently loaded view, hide inner tabs the user can't access.
 export function applyInnerTabPermissions(root = document) {
   const allowedTabs = getAllowedTabs();
-  // Buttons or links with data-nav that route to /section/sub
-  const candidates = root.querySelectorAll('.inner-tabs a[data-nav], .inner-tabs button[data-nav]');
+  // Buttons or links that route to /section/sub
+  // We look for data-nav OR just buttons/links inside .inner-tabs OR module feature cards
+  const candidates = root.querySelectorAll('.inner-tabs a, .inner-tabs button, .module-feature-card');
   candidates.forEach(el => {
     const href = el.getAttribute('href') || el.getAttribute('onclick') || '';
     // If it's a button with inline location.href, try to parse
@@ -131,6 +132,18 @@ export function applyInnerTabPermissions(root = document) {
       const m = href.match(/'\/(.*?)'/);
       path = m ? '/' + m[1] : '';
     }
+    
+    // Also check data-nav if present (overrides href/onclick parsing)
+    if (el.hasAttribute('data-nav')) {
+       // data-nav might be "attendance.overview" or "/attendance/overview"
+       // If it's a path, use it. If it's a key, we need to handle that.
+       // But usually data-nav is used for routing.
+       // Let's assume the existing logic relied on href/onclick mostly or data-nav was a path.
+       // If data-nav is present, let's try to use it as path if it starts with /
+       const dn = el.getAttribute('data-nav');
+       if (dn && dn.startsWith('/')) path = dn;
+    }
+
     if (!path) return;
     const parts = path.replace(/^\/+/, '').split('/');
     if (parts.length < 2) return;
@@ -143,10 +156,28 @@ export function applyInnerTabPermissions(root = document) {
   });
 }
 
+export function filterHomeCardsByPermissions() {
+  const allowedTabs = getAllowedTabs();
+  const cards = document.querySelectorAll('.feature-card[data-module]');
+  
+  cards.forEach(card => {
+    const module = card.getAttribute('data-module');
+    if (!module) return;
+    
+    // Check if the module (e.g. "enrollment") is allowed
+    if (isAllowed(module, allowedTabs)) {
+      card.style.display = '';
+    } else {
+      card.style.display = 'none';
+    }
+  });
+}
+
 export function setupTabsForUser() {
   try {
     filterSidebarByPermissions();
     applyInnerTabPermissions(document);
+    filterHomeCardsByPermissions();
   } catch (e) {
     console.warn('[tabs] setup error:', e);
   }

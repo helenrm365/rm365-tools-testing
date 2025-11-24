@@ -1,5 +1,6 @@
 // frontend/js/modules/home/index.js
 import { isAuthed } from '../../services/state/sessionStore.js';
+import { filterHomeCardsByPermissions } from '../../utils/tabs.js';
 
 export async function init() {
   console.log('[Home] Initializing home page');
@@ -28,6 +29,7 @@ export async function init() {
     if (featuresGrid) {
       featuresGrid.style.display = 'grid';
       console.log('[Home] Feature cards shown for authenticated user');
+      filterHomeCardsByPermissions();
     }
     
     // Enable feature cards navigation for authenticated users
