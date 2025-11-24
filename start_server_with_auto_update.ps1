@@ -4,12 +4,51 @@ if (!(Test-Path "backend\app.py")) {
     exit 1
 }
 
-# Activate Python Environment
-if (Test-Path ".venv-2\Scripts\Activate.ps1") {
-    . .venv-2\Scripts\Activate.ps1
-} else {
-    Write-Host "Warning: .venv-2 not found. Assuming Python is in PATH." -ForegroundColor Yellow
+# --- SETUP & INSTALLATION ---
+
+Write-Host "Checking system requirements..." -ForegroundColor Cyan
+
+# 1. Find Python
+$pythonCmd = "python"
+try {
+    $null = Get-Command $pythonCmd -ErrorAction Stop
+} catch {
+    try {
+        $pythonCmd = "python3"
+        $null = Get-Command $pythonCmd -ErrorAction Stop
+    } catch {
+        Write-Host "Error: Python is not installed or not in PATH." -ForegroundColor Red
+        Write-Host "Please install Python from https://www.python.org/downloads/" -ForegroundColor Yellow
+        Pause
+        exit 1
+    }
 }
+
+# 2. Setup Virtual Environment
+$venvPath = ".venv"
+if (!(Test-Path $venvPath)) {
+    Write-Host "Creating virtual environment in $venvPath..." -ForegroundColor Cyan
+    & $pythonCmd -m venv $venvPath
+}
+
+# 3. Activate Virtual Environment
+$activateScript = "$venvPath\Scripts\Activate.ps1"
+if (Test-Path $activateScript) {
+    # Write-Host "Activating virtual environment..." -ForegroundColor Cyan
+    . $activateScript
+} else {
+    Write-Host "Error: Could not find activation script at $activateScript" -ForegroundColor Red
+    Pause
+    exit 1
+}
+
+# 4. Install Dependencies
+if (Test-Path "backend\requirements.txt") {
+    Write-Host "Installing/Updating dependencies..." -ForegroundColor Cyan
+    pip install -r backend\requirements.txt
+}
+
+# --- RUNTIME ---
 
 # Start the Git Auto-Updater in a background job
 Write-Host "Starting Git Auto-Updater (checks every 60 seconds)..." -ForegroundColor Cyan
