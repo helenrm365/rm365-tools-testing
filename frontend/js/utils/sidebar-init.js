@@ -304,7 +304,7 @@
       const profileSubtitle = document.getElementById('profileSubtitle');
       
       if (profileName && user.username) {
-        profileName.textContent = user.username;
+        profileName.textContent = `${user.username}'s`;
       }
       if (profileSubtitle) {
         profileSubtitle.textContent = 'Dashboard';

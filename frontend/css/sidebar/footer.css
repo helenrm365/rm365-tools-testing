@@ -28,8 +28,9 @@
 
 /* Collapsed state */
 .sidebar:not(:hover) .footer-button {
-  padding: 0.85rem 0;
-  justify-content: center;
+  padding: 0.85rem 1rem;
+  justify-content: flex-start;
+  gap: 0;
 }
 
 /* Expanded state */
@@ -68,15 +69,15 @@
   font-size: 0.95rem;
   white-space: nowrap;
   opacity: 0;
-  width: 0;
+  max-width: 0;
   overflow: hidden;
-  transition: opacity 0.3s ease 0.1s, width 0.3s ease;
+  transition: opacity 0.3s ease 0.1s, max-width 0.3s ease;
   pointer-events: none;
 }
 
 .sidebar:hover .footer-button .nav-label {
   opacity: 1;
-  width: auto;
+  max-width: 200px;
   pointer-events: auto;
 }
 
@@ -100,8 +101,9 @@ html.dark-mode .footer-button:hover {
 
 /* Collapsed state */
 .sidebar:not(:hover) .dark-mode-toggle {
-  padding: 0.85rem 0;
-  justify-content: center;
+  padding: 0.85rem 1rem;
+  justify-content: flex-start;
+  gap: 0;
 }
 
 /* Expanded state */
@@ -140,29 +142,35 @@ html.dark-mode .dark-mode-toggle:hover {
   font-size: 0.95rem;
   white-space: nowrap;
   opacity: 0;
-  width: 0;
+  max-width: 0;
   overflow: hidden;
-  transition: opacity 0.3s ease 0.1s, width 0.3s ease;
+  transition: opacity 0.3s ease 0.1s, max-width 0.3s ease;
   pointer-events: none;
 }
 
 .sidebar:hover .dark-mode-toggle .nav-label {
   opacity: 1;
-  width: auto;
+  max-width: 200px;
   pointer-events: auto;
 }
 
 /* === Toggle Switch === */
 .toggle-switch {
   position: relative;
-  display: none;
   width: 44px;
   height: 24px;
   flex-shrink: 0;
+  opacity: 0;
+  max-width: 0;
+  transform: translateX(-10px);
+  transition: opacity 0.3s ease 0.1s, max-width 0.3s ease, transform 0.3s ease 0.1s;
+  overflow: hidden;
 }
 
 .sidebar:hover .toggle-switch {
-  display: inline-block;
+  opacity: 1;
+  max-width: 44px;
+  transform: translateX(0);
 }
 
 .toggle-switch input {

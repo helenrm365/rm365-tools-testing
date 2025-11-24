@@ -49,8 +49,8 @@
 }
 
 .sidebar-logo {
-  width: 100%;
-  height: 100%;
+  width: 70%;
+  height: 70%;
   object-fit: contain;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -61,19 +61,23 @@
 }
 
 .profile-info {
-  flex: 1;
+  flex: 0;
   min-width: 0;
   opacity: 0;
   transform: translateY(-10px);
-  transition: opacity 0.3s ease 0.1s, transform 0.3s ease 0.1s;
+  max-height: 0;
+  overflow: hidden;
+  transition: opacity 0.3s ease 0.1s, transform 0.3s ease 0.1s, max-height 0.3s ease, flex 0.3s ease;
   pointer-events: none;
   text-align: center;
   width: 100%;
 }
 
 .sidebar:hover .profile-info {
+  flex: 1;
   opacity: 1;
   transform: translateY(0);
+  max-height: 100px;
   pointer-events: auto;
 }
 
@@ -176,7 +180,7 @@ html.dark-mode .sidebar-header .search-icon {
 .sidebar-header .search-input,
 .sidebar #searchInput,
 .sidebar-header #searchInput {
-  flex: 1;
+  flex: 0;
   min-width: 0;
   border: none;
   background: transparent;
@@ -187,7 +191,7 @@ html.dark-mode .sidebar-header .search-icon {
   opacity: 0;
   width: 0;
   transform: translateX(-10px);
-  transition: opacity 0.3s ease 0.1s, transform 0.3s ease 0.1s, width 0.3s ease, padding 0.3s ease;
+  transition: opacity 0.3s ease 0.1s, transform 0.3s ease 0.1s, width 0.3s ease, padding 0.3s ease, flex 0.3s ease;
 }
 
 .sidebar .search-input:focus,
@@ -203,6 +207,7 @@ html.dark-mode .sidebar-header .search-icon {
 .sidebar:hover .sidebar-header .search-input,
 .sidebar:hover #searchInput,
 .sidebar:hover .sidebar-header #searchInput {
+  flex: 1;
   opacity: 1;
   width: auto;
   transform: translateX(0);
