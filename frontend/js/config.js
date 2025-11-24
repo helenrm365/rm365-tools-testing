@@ -1,17 +1,52 @@
 // frontend/js/config.js
 // Configuration for different environments
 
+// Helper to manage API URL persistence
+function resolveApiUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const queryApi = params.get('api');
+  
+  // 1. If 'api' param is provided, save it and use it (unless it's 'reset')
+  if (queryApi) {
+    if (queryApi === 'reset') {
+      localStorage.removeItem('debug_api_url');
+      console.log('[Config] API URL override cleared');
+    } else {
+      localStorage.setItem('debug_api_url', queryApi);
+      console.log('[Config] API URL override saved:', queryApi);
+      return queryApi;
+    }
+  }
+
+  // 2. Check LocalStorage for previously saved override
+  const storedApi = localStorage.getItem('debug_api_url');
+  if (storedApi) {
+    console.log('[Config] Using saved API URL:', storedApi);
+    return storedApi;
+  }
+
+  // 3. Check global/env variables
+  if (window.API) return window.API;
+  if (typeof process !== 'undefined' && process.env?.API) return process.env.API;
+
+  // 4. Default Environment Logic
+  // Production: Use Railway backend ONLY if explicitly on Cloudflare Pages
+  if (window.location.hostname.includes('pages.dev')) {
+    return 'https://rm365-tools-testing-production.up.railway.app';
+  }
+  
+  // Local development
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    return 'http://127.0.0.1:8000';
+  }
+
+  // Self-hosted (Tunnel/Port Forward): Use same origin
+  return window.location.origin;
+}
+
 export const config = {
   // Backend API URL - Auto-detects environment
-  API: new URLSearchParams(window.location.search).get('api') ||
-       window.API || 
-       (typeof process !== 'undefined' && process.env?.API) ||
-       // Production: Use Railway backend ONLY if explicitly on Cloudflare Pages
-       (window.location.hostname.includes('pages.dev') 
-         ? 'https://rm365-tools-testing-production.up.railway.app'
-         : window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-            ? 'http://127.0.0.1:8000' // Local development
-            : window.location.origin), // Self-hosted (Tunnel/Port Forward): Use same origin
+  API: resolveApiUrl(),
   
   // Debug mode
   DEBUG: window.location.hostname === 'localhost' || 
