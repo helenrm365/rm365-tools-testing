@@ -478,9 +478,9 @@ html.dark-mode .enrollment-fingerprint .employee-dropdown:focus {
 
 /* Status Bar */
 .enrollment-fingerprint .status-bar {
-  margin-top: 1.5rem;
-  padding: 0.75rem 1.25rem;
-  border-radius: 10px;
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -488,7 +488,7 @@ html.dark-mode .enrollment-fingerprint .employee-dropdown:focus {
   font-weight: 500;
   transition: all 0.3s ease;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  min-height: 48px;
+  min-height: auto;
 }
 
 .enrollment-fingerprint .status-bar[data-status="ready"] {

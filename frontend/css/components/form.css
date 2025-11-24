@@ -323,6 +323,22 @@ html.dark-mode .modern-input:disabled {
   border-color: #333;
 }
 
+/* Placeholder styling */
+.form-input::placeholder,
+.form-select::placeholder,
+.form-textarea::placeholder,
+.search-input::placeholder {
+  color: #6b7280;
+  opacity: 1;
+}
+
+html.dark-mode .form-input::placeholder,
+html.dark-mode .form-select::placeholder,
+html.dark-mode .form-textarea::placeholder,
+html.dark-mode .search-input::placeholder {
+  color: #9ca3af;
+}
+
 /* Responsive Design */
 @media (max-width: 968px) {
   .form-grid {
