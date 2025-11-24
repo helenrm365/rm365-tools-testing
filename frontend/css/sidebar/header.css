@@ -56,8 +56,8 @@
 }
 
 .sidebar:hover .sidebar-logo {
-  width: 100%;
-  height: 100%;
+  width: 85%;
+  height: 85%;
 }
 
 .profile-info {
@@ -180,14 +180,14 @@ html.dark-mode .sidebar-header .search-icon {
   min-width: 0;
   border: none;
   background: transparent;
-  padding: 0.5rem 0 0.5rem 0.5rem;
+  padding: 0;
   font-size: 0.95rem;
   color: #2c3e50;
   outline: none;
   opacity: 0;
   width: 0;
   transform: translateX(-10px);
-  transition: opacity 0.3s ease 0.1s, transform 0.3s ease 0.1s, width 0.3s ease;
+  transition: opacity 0.3s ease 0.1s, transform 0.3s ease 0.1s, width 0.3s ease, padding 0.3s ease;
 }
 
 .sidebar .search-input:focus,
@@ -206,6 +206,7 @@ html.dark-mode .sidebar-header .search-icon {
   opacity: 1;
   width: auto;
   transform: translateX(0);
+  padding: 0.5rem 0 0.5rem 0.5rem;
 }
 
 .sidebar .search-input::placeholder,

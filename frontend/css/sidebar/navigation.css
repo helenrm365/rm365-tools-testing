@@ -49,8 +49,9 @@ html.dark-mode .sidebar-nav::-webkit-scrollbar-thumb {
 
 /* Collapsed state - center the icon */
 .sidebar:not(:hover) .nav-item {
-  padding: 0.85rem 0;
-  justify-content: center;
+  padding: 0.85rem 1rem;
+  justify-content: flex-start;
+  gap: 0;
 }
 
 /* Expanded state - align items to the left */
@@ -150,15 +151,15 @@ html.dark-mode .sidebar-nav li.active .nav-item {
   font-size: 0.95rem;
   white-space: nowrap;
   opacity: 0;
-  width: 0;
+  max-width: 0;
   overflow: hidden;
-  transition: opacity 0.2s ease, width 0.3s ease 0.2s;
+  transition: opacity 0.2s ease, max-width 0.3s ease 0.2s;
   pointer-events: none;
 }
 
 .sidebar:hover .nav-label {
   opacity: 1;
-  width: auto;
+  max-width: 200px;
   pointer-events: auto;
-  transition: opacity 0.3s ease 0.1s, width 0.3s ease;
+  transition: opacity 0.3s ease 0.1s, max-width 0.3s ease;
 }
