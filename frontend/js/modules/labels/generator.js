@@ -1,5 +1,5 @@
 // js/modules/labels/generator.js
-import { getProductsToPrint, createPrintJob, downloadPDF, downloadCSV } from '../../services/api/labelsApi.js';
+import { getProductsToPrint, createPrintJob, downloadPDF, downloadCSV, initDependencies } from '../../services/api/labelsApi.js';
 import { showToast } from '../../ui/toast.js';
 import { getToken } from '../../services/state/sessionStore.js';
 
@@ -291,15 +291,7 @@ async function initSalesDataFromLabels() {
   }
   
   try {
-    const response = await fetch('/api/v1/labels/init-dependencies', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${getToken()}`
-      }
-    });
-    
-    const result = await response.json();
+    const result = await initDependencies();
     
     if (result.status === 'success') {
       showToast('Sales data initialized successfully! Reloading products...', 'success');

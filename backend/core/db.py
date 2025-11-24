@@ -14,8 +14,8 @@ def _conn_common_kwargs():
     """Common connection kwargs with sane defaults for cloud envs."""
     # Keep startup snappy; let app boot even if DB is slow/unreachable
     timeout = int(os.getenv("DB_CONNECT_TIMEOUT", "5"))
-    # Railway proxy endpoints usually require SSL
-    sslmode = os.getenv("DB_SSLMODE", "require")
+    # Allow overriding SSL mode, default to 'prefer' or 'disable' for local
+    sslmode = os.getenv("DB_SSLMODE", "prefer")
     return {"connect_timeout": timeout, "sslmode": sslmode}
 
 
@@ -157,7 +157,7 @@ def initialize_database():
         # Test database connection
         conn = get_psycopg_connection()
         return_attendance_connection(conn)
-        print("✅ Database connection successful - Railway database is ready")
+        print("✅ Database connection successful")
         
         try:
             from modules.roles.service import RolesService

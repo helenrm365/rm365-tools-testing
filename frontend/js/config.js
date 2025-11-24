@@ -5,10 +5,12 @@ export const config = {
   // Backend API URL - Auto-detects environment
   API: window.API || 
        (typeof process !== 'undefined' && process.env?.API) ||
-       // Production: Use Railway backend
-       (window.location.hostname.includes('pages.dev') || window.location.hostname.includes('cloudflare') 
+       // Production: Use Railway backend ONLY if explicitly on Cloudflare Pages
+       (window.location.hostname.includes('pages.dev') 
          ? 'https://rm365-tools-testing-production.up.railway.app'
-         : 'http://127.0.0.1:8000'), // Local development
+         : window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? 'http://127.0.0.1:8000' // Local development
+            : window.location.origin), // Self-hosted (Tunnel/Port Forward): Use same origin
   
   // Debug mode
   DEBUG: window.location.hostname === 'localhost' || 

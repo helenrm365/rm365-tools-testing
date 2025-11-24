@@ -136,3 +136,10 @@ export async function downloadCSV(jobId) {
   window.URL.revokeObjectURL(downloadUrl);
   document.body.removeChild(a);
 }
+
+/**
+ * Initialize label dependencies (sync sales data)
+ */
+export async function initDependencies() {
+  return await post(`${API}/init-dependencies`);
+}
