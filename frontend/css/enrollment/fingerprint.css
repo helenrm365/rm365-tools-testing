@@ -561,7 +561,7 @@ html.dark-mode .enrollment-fingerprint .status-bar[data-status="warning"] {
 }
 
 .enrollment-fingerprint .status-bar[data-status="scanning"] .status-icon {
-  animation: pulse 1.5s ease-in-out infinite;
+  animation: fingerprint-status-pulse 1.5s ease-in-out infinite;
 }
 
 .enrollment-fingerprint .status-message {
@@ -569,6 +569,7 @@ html.dark-mode .enrollment-fingerprint .status-bar[data-status="warning"] {
   line-height: 1.5;
   font-size: 1rem;
   font-weight: 500;
+  display: block;
 }
 
 /* Instructions Card */
@@ -995,7 +996,7 @@ html.dark-mode .enrollment-fingerprint .tech-value {
 }
 
 /* Pulse Animation for Scanning Status */
-@keyframes pulse {
+@keyframes fingerprint-status-pulse {
   0%, 100% {
     opacity: 1;
   }
