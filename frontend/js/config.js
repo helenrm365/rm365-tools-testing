@@ -3,6 +3,13 @@
 
 // Helper to manage API URL persistence
 function resolveApiUrl() {
+  // 0. CRITICAL: If we are on a Cloudflare Tunnel (trycloudflare.com), ALWAYS use the current origin.
+  // This prevents 'debug_api_url' or other settings from breaking the tunnel.
+  if (window.location.hostname.endsWith('trycloudflare.com')) {
+    console.log('[Config] Detected Cloudflare Tunnel, forcing origin as API');
+    return window.location.origin;
+  }
+
   const params = new URLSearchParams(window.location.search);
   const queryApi = params.get('api');
   
