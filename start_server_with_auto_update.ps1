@@ -139,6 +139,26 @@ while ($true) {
                     $fileCount = ($changedFiles | Measure-Object -Line).Lines
                     if ($fileCount -gt 0) {
                         Write-Host "[*] Files changed: $fileCount" -ForegroundColor Cyan
+                        
+                        # Show which areas were updated
+                        $backendChanged = $false
+                        $frontendChanged = $false
+                        
+                        foreach ($file in $changedFiles) {
+                            if ($file -like "backend/*") {
+                                $backendChanged = $true
+                            }
+                            if ($file -like "frontend/*") {
+                                $frontendChanged = $true
+                            }
+                        }
+                        
+                        if ($backendChanged) {
+                            Write-Host "[*] Backend files updated" -ForegroundColor Cyan
+                        }
+                        if ($frontendChanged) {
+                            Write-Host "[*] Frontend files updated" -ForegroundColor Cyan
+                        }
                     }
                     
                     # Check if requirements.txt changed
