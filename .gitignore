@@ -20,13 +20,10 @@ __pycache__/
 .sgfplib_config.ini
 
 # Proprietary SDK / Libraries
-local-hardware-bridge/lib/
 *.dll
 *.lib
 
 # Local Bridge Setup
-local-hardware-bridge/Install-Hardware-Bridge.bat
-local-hardware-bridge/SETUP_GUIDE.md
 
 # Node/web build artifacts (if you add tooling later)
 dist/
