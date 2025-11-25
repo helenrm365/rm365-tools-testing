@@ -1209,10 +1209,72 @@ function updateConversionDisplay(region, value) {
     infoElement.style.color = '#27ae60';
 }
 
+// Add helper functions to window for the inline handlers
+window.updateRangeInputs = function(radio) {
+    const daysInput = document.getElementById('rangeDays');
+    const monthsInput = document.getElementById('rangeMonths');
+    const sinceInput = document.getElementById('rangeSince');
+    
+    if (!daysInput || !monthsInput || !sinceInput) return;
+    
+    daysInput.disabled = true;
+    monthsInput.disabled = true;
+    sinceInput.disabled = true;
+    
+    daysInput.style.opacity = '0.5';
+    monthsInput.style.opacity = '0.5';
+    sinceInput.style.opacity = '0.5';
+    
+    if (radio.value === 'days') {
+        daysInput.disabled = false;
+        daysInput.style.opacity = '1';
+        daysInput.focus();
+    } else if (radio.value === 'months') {
+        monthsInput.disabled = false;
+        monthsInput.style.opacity = '1';
+        monthsInput.focus();
+    } else if (radio.value === 'since') {
+        sinceInput.disabled = false;
+        sinceInput.style.opacity = '1';
+        sinceInput.focus();
+    }
+};
+
+window.runCustomAnalysis = function(region) {
+    const rangeType = document.querySelector('input[name="rangeType"]:checked').value;
+    const useExclusions = document.getElementById('useExclusions').checked;
+    let rangeValue;
+    
+    if (rangeType === 'days') {
+        rangeValue = document.getElementById('rangeDays').value;
+    } else if (rangeType === 'months') {
+        rangeValue = document.getElementById('rangeMonths').value;
+    } else if (rangeType === 'since') {
+        rangeValue = document.getElementById('rangeSince').value;
+    }
+    
+    if (!rangeValue) {
+        alert('Please enter a valid range value');
+        return;
+    }
+    
+    console.log('Running custom analysis:', { region, rangeType, rangeValue, useExclusions });
+    
+    // Close modal
+    const overlay = document.querySelector('.filters-modal-overlay');
+    if (overlay) overlay.remove();
+    
+    // Show toast
+    import('../../ui/toast.js').then(module => {
+        module.showToast(`Custom analysis started: ${rangeType} ${rangeValue} (Exclusions: ${useExclusions})`, 'info');
+    });
+};
+
 /**
  * Show the custom range modal for a specific region
  */
 export function showCustomRangeModal(region) {
+    console.log('[Filters] showCustomRangeModal called for', region);
     const modal = createCustomRangeModal(region);
     document.body.appendChild(modal);
 }
@@ -1287,64 +1349,6 @@ function createCustomRangeModal(region) {
             </div>
         </div>
     `;
-    
-    // Add helper function to window for the inline onchange handlers
-    window.updateRangeInputs = function(radio) {
-        const daysInput = document.getElementById('rangeDays');
-        const monthsInput = document.getElementById('rangeMonths');
-        const sinceInput = document.getElementById('rangeSince');
-        
-        daysInput.disabled = true;
-        monthsInput.disabled = true;
-        sinceInput.disabled = true;
-        
-        daysInput.style.opacity = '0.5';
-        monthsInput.style.opacity = '0.5';
-        sinceInput.style.opacity = '0.5';
-        
-        if (radio.value === 'days') {
-            daysInput.disabled = false;
-            daysInput.style.opacity = '1';
-            daysInput.focus();
-        } else if (radio.value === 'months') {
-            monthsInput.disabled = false;
-            monthsInput.style.opacity = '1';
-            monthsInput.focus();
-        } else if (radio.value === 'since') {
-            sinceInput.disabled = false;
-            sinceInput.style.opacity = '1';
-            sinceInput.focus();
-        }
-    };
-    
-    window.runCustomAnalysis = function(region) {
-        const rangeType = document.querySelector('input[name="rangeType"]:checked').value;
-        const useExclusions = document.getElementById('useExclusions').checked;
-        let rangeValue;
-        
-        if (rangeType === 'days') {
-            rangeValue = document.getElementById('rangeDays').value;
-        } else if (rangeType === 'months') {
-            rangeValue = document.getElementById('rangeMonths').value;
-        } else if (rangeType === 'since') {
-            rangeValue = document.getElementById('rangeSince').value;
-        }
-        
-        if (!rangeValue) {
-            alert('Please enter a valid range value');
-            return;
-        }
-        
-        console.log('Running custom analysis:', { region, rangeType, rangeValue, useExclusions });
-        
-        // Close modal
-        document.querySelector('.filters-modal-overlay').remove();
-        
-        // Show toast
-        import('../../ui/toast.js').then(module => {
-            module.showToast(`Custom analysis started: ${rangeType} ${rangeValue} (Exclusions: ${useExclusions})`, 'info');
-        });
-    };
     
     return overlay;
 }

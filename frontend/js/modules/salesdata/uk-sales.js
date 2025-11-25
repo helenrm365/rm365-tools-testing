@@ -259,10 +259,14 @@ function setupEventListeners() {
   
   // Custom Range button
   const customRangeBtn = document.getElementById('customRangeBtn');
+  console.log('[UK Sales] Custom Range Button found:', !!customRangeBtn);
   if (customRangeBtn) {
     customRangeBtn.addEventListener('click', () => {
+      console.log('[UK Sales] Custom Range Button clicked');
       showCustomRangeModal('uk');
     });
+  } else {
+      console.error('[UK Sales] Custom Range Button NOT found');
   }
 
   // Filters button

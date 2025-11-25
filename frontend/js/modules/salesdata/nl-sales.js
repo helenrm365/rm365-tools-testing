@@ -207,10 +207,14 @@ function setupEventListeners() {
   
   // Custom Range button
   const customRangeBtn = document.getElementById('customRangeBtn');
+  console.log('[NL Sales] Custom Range Button found:', !!customRangeBtn);
   if (customRangeBtn) {
     customRangeBtn.addEventListener('click', () => {
+      console.log('[NL Sales] Custom Range Button clicked');
       showCustomRangeModal('nl');
     });
+  } else {
+      console.error('[NL Sales] Custom Range Button NOT found');
   }
 
   // Filters button
