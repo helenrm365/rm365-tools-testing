@@ -68,7 +68,7 @@
 }
 
 .filters-modal-close:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--close-hover-bg, rgba(255, 255, 255, 0.1));
     color: var(--text-primary, #fff);
 }
 
@@ -176,7 +176,7 @@
 }
 
 .customer-search-result-item:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--hover-bg, rgba(255, 255, 255, 0.05));
 }
 
 .customer-result-email {

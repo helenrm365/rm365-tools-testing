@@ -14,6 +14,7 @@ except ImportError:
     print("⚠️  python-dotenv not installed, using system environment variables")
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -348,8 +349,23 @@ _mount_if_exists('/assets', ASSETS_DIR, html=False, name='assets')
 
 # 2) SPA fallback at root
 if FRONTEND_DIR.is_dir():
-    app.mount('/', StaticFiles(directory=str(FRONTEND_DIR), html=True), name='frontend')
-    print(f'[boot] mounted / -> {FRONTEND_DIR}')
+    # We use a custom route instead of StaticFiles at root to handle SPA routing (fallback to index.html)
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def serve_spa(full_path: str):
+        # 1. Check if it's a file in frontend dir
+        file_path = FRONTEND_DIR / full_path
+        if file_path.is_file():
+            return FileResponse(file_path)
+        
+        # 2. If not found, and it's not an API call (API calls are handled by routers above),
+        # serve index.html for SPA routing
+        index_path = FRONTEND_DIR / "index.html"
+        if index_path.is_file():
+            return FileResponse(index_path)
+        
+        raise HTTPException(status_code=404, detail="Frontend not found")
+    
+    print(f'[boot] mounted SPA catch-all -> {FRONTEND_DIR}')
 else:
     print('[boot] frontend dir not found:', FRONTEND_DIR)
 

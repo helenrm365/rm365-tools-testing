@@ -1209,4 +1209,144 @@ function updateConversionDisplay(region, value) {
     infoElement.style.color = '#27ae60';
 }
 
+/**
+ * Show the custom range modal for a specific region
+ */
+export function showCustomRangeModal(region) {
+    const modal = createCustomRangeModal(region);
+    document.body.appendChild(modal);
+}
+
+function createCustomRangeModal(region) {
+    const overlay = document.createElement('div');
+    overlay.className = 'filters-modal-overlay';
+    
+    overlay.innerHTML = `
+        <div class="filters-modal" onclick="event.stopPropagation()" style="max-width: 500px;">
+            <div class="filters-modal-header">
+                <h2><i class="fas fa-calendar-day"></i> Custom Range Analysis - ${region.toUpperCase()}</h2>
+                <button class="filters-modal-close" onclick="this.closest('.filters-modal-overlay').remove()">
+                    ✕
+                </button>
+            </div>
+            
+            <div class="filters-modal-body">
+                <div class="filter-section">
+                    <div class="filter-section-header">
+                        <span class="filter-section-icon">📅</span>
+                        <h3 class="filter-section-title">Select Time Range</h3>
+                    </div>
+                    
+                    <div style="display: flex; flex-direction: column; gap: 16px; margin-top: 16px;">
+                        <!-- Last X Days -->
+                        <label style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
+                            <input type="radio" name="rangeType" value="days" checked onchange="updateRangeInputs(this)">
+                            <span style="color: var(--text-primary, #fff);">Last</span>
+                            <input type="number" id="rangeDays" value="30" min="1" style="width: 80px; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color, #333); background: var(--input-bg, #2a2a2a); color: var(--text-primary, #fff);">
+                            <span style="color: var(--text-primary, #fff);">Days</span>
+                        </label>
+                        
+                        <!-- Last X Months -->
+                        <label style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
+                            <input type="radio" name="rangeType" value="months" onchange="updateRangeInputs(this)">
+                            <span style="color: var(--text-primary, #fff);">Last</span>
+                            <input type="number" id="rangeMonths" value="6" min="1" disabled style="width: 80px; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color, #333); background: var(--input-bg, #2a2a2a); color: var(--text-primary, #fff); opacity: 0.5;">
+                            <span style="color: var(--text-primary, #fff);">Months</span>
+                        </label>
+                        
+                        <!-- Since Date -->
+                        <label style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
+                            <input type="radio" name="rangeType" value="since" onchange="updateRangeInputs(this)">
+                            <span style="color: var(--text-primary, #fff);">Since</span>
+                            <input type="date" id="rangeSince" disabled style="padding: 8px; border-radius: 4px; border: 1px solid var(--border-color, #333); background: var(--input-bg, #2a2a2a); color: var(--text-primary, #fff); opacity: 0.5;">
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="filter-section" style="margin-top: 24px; border-top: 1px solid var(--border-color, #333); padding-top: 24px;">
+                    <div class="filter-section-header">
+                        <span class="filter-section-icon">🛡️</span>
+                        <h3 class="filter-section-title">Exclusions</h3>
+                    </div>
+                    
+                    <label style="display: flex; align-items: center; gap: 12px; cursor: pointer; margin-top: 12px;">
+                        <input type="checkbox" id="useExclusions" checked style="width: 18px; height: 18px;">
+                        <span style="color: var(--text-primary, #fff);">Apply configured customer & group exclusions</span>
+                    </label>
+                    <p class="filter-section-description" style="margin-top: 8px; margin-left: 30px;">
+                        If checked, customers and groups in the exclusion list will be filtered out.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="filters-modal-footer">
+                <button class="filters-cancel-btn" onclick="this.closest('.filters-modal-overlay').remove()">Cancel</button>
+                <button class="filters-apply-btn" onclick="runCustomAnalysis('${region}')">
+                    <i class="fas fa-play"></i> Run Analysis
+                </button>
+            </div>
+        </div>
+    `;
+    
+    // Add helper function to window for the inline onchange handlers
+    window.updateRangeInputs = function(radio) {
+        const daysInput = document.getElementById('rangeDays');
+        const monthsInput = document.getElementById('rangeMonths');
+        const sinceInput = document.getElementById('rangeSince');
+        
+        daysInput.disabled = true;
+        monthsInput.disabled = true;
+        sinceInput.disabled = true;
+        
+        daysInput.style.opacity = '0.5';
+        monthsInput.style.opacity = '0.5';
+        sinceInput.style.opacity = '0.5';
+        
+        if (radio.value === 'days') {
+            daysInput.disabled = false;
+            daysInput.style.opacity = '1';
+            daysInput.focus();
+        } else if (radio.value === 'months') {
+            monthsInput.disabled = false;
+            monthsInput.style.opacity = '1';
+            monthsInput.focus();
+        } else if (radio.value === 'since') {
+            sinceInput.disabled = false;
+            sinceInput.style.opacity = '1';
+            sinceInput.focus();
+        }
+    };
+    
+    window.runCustomAnalysis = function(region) {
+        const rangeType = document.querySelector('input[name="rangeType"]:checked').value;
+        const useExclusions = document.getElementById('useExclusions').checked;
+        let rangeValue;
+        
+        if (rangeType === 'days') {
+            rangeValue = document.getElementById('rangeDays').value;
+        } else if (rangeType === 'months') {
+            rangeValue = document.getElementById('rangeMonths').value;
+        } else if (rangeType === 'since') {
+            rangeValue = document.getElementById('rangeSince').value;
+        }
+        
+        if (!rangeValue) {
+            alert('Please enter a valid range value');
+            return;
+        }
+        
+        console.log('Running custom analysis:', { region, rangeType, rangeValue, useExclusions });
+        
+        // Close modal
+        document.querySelector('.filters-modal-overlay').remove();
+        
+        // Show toast
+        import('../../ui/toast.js').then(module => {
+            module.showToast(`Custom analysis started: ${rangeType} ${rangeValue} (Exclusions: ${useExclusions})`, 'info');
+        });
+    };
+    
+    return overlay;
+}
+
 

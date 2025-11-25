@@ -23,33 +23,29 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS configuration - allow your Cloudflare frontend
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "https://rm365-tools-testing.pages.dev",
-        "https://*.pages.dev",  # Cloudflare preview deployments
-        "http://localhost:5000",
-        "http://127.0.0.1:5000",
-    ],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
+# Custom CORS and Private Network Access (PNA) Middleware
+# This replaces standard CORSMiddleware to ensure PNA headers are always present
+# and to handle preflight requests correctly for local hardware access from public origins.
 @app.middleware("http")
-async def add_private_network_header(request: Request, call_next):
-    response = await call_next(request)
-    response.headers["Access-Control-Allow-Private-Network"] = "true"
-    return response
+async def cors_pna_middleware(request: Request, call_next):
+    # Handle preflight OPTIONS requests
+    if request.method == "OPTIONS":
+        response = Response()
+    else:
+        response = await call_next(request)
 
-@app.options("/{rest_of_path:path}")
-async def preflight_handler(request: Request, rest_of_path: str):
-    response = Response()
-    response.headers["Access-Control-Allow-Origin"] = request.headers.get("Origin", "*")
+    # Set CORS headers
+    origin = request.headers.get("Origin")
+    if origin:
+        response.headers["Access-Control-Allow-Origin"] = origin
+    
+    response.headers["Access-Control-Allow-Credentials"] = "true"
     response.headers["Access-Control-Allow-Methods"] = "*"
     response.headers["Access-Control-Allow-Headers"] = "*"
+    
+    # Critical for accessing localhost from public HTTPS sites (Cloudflare Tunnel)
     response.headers["Access-Control-Allow-Private-Network"] = "true"
+    
     return response
 
 
@@ -609,22 +605,30 @@ if __name__ == "__main__":
     ssl_keyfile = "key.pem"
     ssl_certfile = "cert.pem"
     
-    # Force HTTP mode to avoid certificate issues and simplify PNA
-    # if os.path.exists(ssl_keyfile) and os.path.exists(ssl_certfile):
-    #     logger.info(f"SSL certificates found. Starting in HTTPS mode.")
-    #     uvicorn.run(
-    #         app,
-    #         host="127.0.0.1",
-    #         port=8080,
-    #         log_level="info",
-    #         ssl_keyfile=ssl_keyfile,
-    #         ssl_certfile=ssl_certfile
-    #     )
-    # else:
-    logger.info("Starting in HTTP mode (Forced).")
-    uvicorn.run(
-        app,
-        host="127.0.0.1",  # Only accessible from this PC
-        port=8080,
-        log_level="info"
-    )
+    # Check for SSL certificates
+    # We default to HTTP because the frontend is hardcoded to use http://127.0.0.1:8080
+    # and using HTTPS with self-signed certs causes trust issues in the browser.
+    # If you really need HTTPS, set USE_HTTPS=true environment variable.
+    use_https = os.environ.get("USE_HTTPS", "false").lower() == "true"
+    
+    if use_https and os.path.exists(ssl_keyfile) and os.path.exists(ssl_certfile):
+        logger.info(f"SSL certificates found and USE_HTTPS=true. Starting in HTTPS mode.")
+        uvicorn.run(
+            app,
+            host="127.0.0.1",
+            port=8080,
+            log_level="info",
+            ssl_keyfile=ssl_keyfile,
+            ssl_certfile=ssl_certfile
+        )
+    else:
+        if os.path.exists(ssl_keyfile) and os.path.exists(ssl_certfile):
+             logger.info("SSL certificates found but ignoring them to force HTTP mode (match frontend).")
+        
+        logger.info("Starting in HTTP mode.")
+        uvicorn.run(
+            app,
+            host="127.0.0.1",  # Only accessible from this PC
+            port=8080,
+            log_level="info"
+        )
