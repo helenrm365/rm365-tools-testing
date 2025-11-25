@@ -1381,6 +1381,13 @@ function createCustomRangeModal(region) {
         </div>
     `;
     
+    // Close on overlay click
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+            overlay.remove();
+        }
+    });
+    
     return overlay;
 }
 
