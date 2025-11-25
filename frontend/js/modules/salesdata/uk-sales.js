@@ -263,10 +263,16 @@ function setupEventListeners() {
   // Custom Range button
   const customRangeBtn = document.getElementById('customRangeBtn');
   console.log('[UK Sales] Custom Range Button found:', !!customRangeBtn);
+  console.log('[UK Sales] customRangeBtn element:', customRangeBtn);
   if (customRangeBtn) {
     customRangeBtn.addEventListener('click', () => {
-      console.log('[UK Sales] Custom Range Button clicked');
-      showCustomRangeModal('uk');
+      console.log('[UK Sales] ========== Custom Range Button clicked ==========');
+      try {
+        showCustomRangeModal('uk');
+        console.log('[UK Sales] showCustomRangeModal call completed successfully');
+      } catch (error) {
+        console.error('[UK Sales] Error calling showCustomRangeModal:', error);
+      }
     });
   } else {
       console.error('[UK Sales] Custom Range Button NOT found');

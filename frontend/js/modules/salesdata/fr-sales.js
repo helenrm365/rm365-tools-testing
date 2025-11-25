@@ -211,10 +211,16 @@ function setupEventListeners() {
   // Custom Range button
   const customRangeBtn = document.getElementById('customRangeBtn');
   console.log('[FR Sales] Custom Range Button found:', !!customRangeBtn);
+  console.log('[FR Sales] customRangeBtn element:', customRangeBtn);
   if (customRangeBtn) {
     customRangeBtn.addEventListener('click', () => {
-      console.log('[FR Sales] Custom Range Button clicked');
-      showCustomRangeModal('fr');
+      console.log('[FR Sales] ========== Custom Range Button clicked ==========');
+      try {
+        showCustomRangeModal('fr');
+        console.log('[FR Sales] showCustomRangeModal call completed successfully');
+      } catch (error) {
+        console.error('[FR Sales] Error calling showCustomRangeModal:', error);
+      }
     });
   } else {
       console.error('[FR Sales] Custom Range Button NOT found');

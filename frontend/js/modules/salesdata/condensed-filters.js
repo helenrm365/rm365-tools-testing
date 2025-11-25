@@ -1307,7 +1307,10 @@ window.runCustomAnalysis = async function(region) {
 export function showCustomRangeModal(region) {
     console.log('[Filters] showCustomRangeModal called for', region);
     const modal = createCustomRangeModal(region);
+    console.log('[Filters] Modal created:', modal);
+    console.log('[Filters] Appending modal to body');
     document.body.appendChild(modal);
+    console.log('[Filters] Modal appended, should be visible now');
 }
 
 function createCustomRangeModal(region) {
