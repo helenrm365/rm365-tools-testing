@@ -211,22 +211,37 @@ function setupEventListeners() {
   }
   
   // Custom Range button
-  const customRangeBtn = document.getElementById('customRangeBtn');
-  console.log('[NL Sales] Custom Range Button found:', !!customRangeBtn);
-  console.log('[NL Sales] customRangeBtn element:', customRangeBtn);
-  if (customRangeBtn) {
-    customRangeBtn.addEventListener('click', () => {
-      console.log('[NL Sales] ========== Custom Range Button clicked ==========');
-      try {
-        showCustomRangeModal('nl');
-        console.log('[NL Sales] showCustomRangeModal call completed successfully');
-      } catch (error) {
-        console.error('[NL Sales] Error calling showCustomRangeModal:', error);
-      }
-    });
-  } else {
+  let retryCount = 0;
+  const setupCustomRangeButton = () => {
+    const customRangeBtn = document.getElementById('customRangeBtn');
+    console.log('[NL Sales] Custom Range Button found:', !!customRangeBtn);
+    console.log('[NL Sales] customRangeBtn element:', customRangeBtn);
+    if (customRangeBtn) {
+      // Remove any existing listener
+      const newBtn = customRangeBtn.cloneNode(true);
+      customRangeBtn.parentNode.replaceChild(newBtn, customRangeBtn);
+      
+      newBtn.addEventListener('click', () => {
+        console.log('[NL Sales] ========== Custom Range Button clicked ==========');
+        try {
+          showCustomRangeModal('nl');
+          console.log('[NL Sales] showCustomRangeModal call completed successfully');
+        } catch (error) {
+          console.error('[NL Sales] Error calling showCustomRangeModal:', error);
+        }
+      });
+      console.log('[NL Sales] Custom Range button listener attached successfully');
+    } else {
       console.error('[NL Sales] Custom Range Button NOT found');
-  }
+      // Try again after a short delay (max 5 retries)
+      if (retryCount < 5) {
+        retryCount++;
+        setTimeout(setupCustomRangeButton, 100);
+      }
+    }
+  };
+  
+  setupCustomRangeButton();
 
   // Filters button
   const filtersBtn = document.getElementById('filtersBtn');

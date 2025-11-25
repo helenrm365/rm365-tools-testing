@@ -266,22 +266,39 @@ function setupEventListeners() {
   console.log('[UK Sales] Searching for customRangeBtn...');
   console.log('[UK Sales] All buttons with id containing "Btn":', 
     Array.from(document.querySelectorAll('[id*="Btn"]')).map(el => ({ id: el.id, classes: el.className })));
-  const customRangeBtn = document.getElementById('customRangeBtn');
-  console.log('[UK Sales] Custom Range Button found:', !!customRangeBtn);
-  console.log('[UK Sales] customRangeBtn element:', customRangeBtn);
-  if (customRangeBtn) {
-    customRangeBtn.addEventListener('click', () => {
-      console.log('[UK Sales] ========== Custom Range Button clicked ==========');
-      try {
-        showCustomRangeModal('uk');
-        console.log('[UK Sales] showCustomRangeModal call completed successfully');
-      } catch (error) {
-        console.error('[UK Sales] Error calling showCustomRangeModal:', error);
-      }
-    });
-  } else {
+  
+  // Use a more defensive approach with a slight delay to ensure DOM is ready
+  let retryCount = 0;
+  const setupCustomRangeButton = () => {
+    const customRangeBtn = document.getElementById('customRangeBtn');
+    console.log('[UK Sales] Custom Range Button found:', !!customRangeBtn);
+    console.log('[UK Sales] customRangeBtn element:', customRangeBtn);
+    if (customRangeBtn) {
+      // Remove any existing listener
+      const newBtn = customRangeBtn.cloneNode(true);
+      customRangeBtn.parentNode.replaceChild(newBtn, customRangeBtn);
+      
+      newBtn.addEventListener('click', () => {
+        console.log('[UK Sales] ========== Custom Range Button clicked ==========');
+        try {
+          showCustomRangeModal('uk');
+          console.log('[UK Sales] showCustomRangeModal call completed successfully');
+        } catch (error) {
+          console.error('[UK Sales] Error calling showCustomRangeModal:', error);
+        }
+      });
+      console.log('[UK Sales] Custom Range button listener attached successfully');
+    } else {
       console.error('[UK Sales] Custom Range Button NOT found');
-  }
+      // Try again after a short delay (max 5 retries)
+      if (retryCount < 5) {
+        retryCount++;
+        setTimeout(setupCustomRangeButton, 100);
+      }
+    }
+  };
+  
+  setupCustomRangeButton();
 
   // Filters button
   const filtersBtn = document.getElementById('filtersBtn');

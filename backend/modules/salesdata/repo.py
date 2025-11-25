@@ -896,19 +896,23 @@ class SalesDataRepo:
                     (
                         -- Try ISO format: YYYY-MM-DD or YYYY-MM-DD HH:MI:SS
                         (s.created_at ~ '^[0-9]{{4}}-[0-9]{{2}}-[0-9]{{2}}' AND 
-                         TO_TIMESTAMP(s.created_at, 'YYYY-MM-DD HH24:MI:SS') >= %s)
+                         CASE 
+                            WHEN s.created_at ~ '^[0-9]{{4}}-[0-9]{{2}}-[0-9]{{2}} ' 
+                            THEN TO_TIMESTAMP(s.created_at, 'YYYY-MM-DD HH24:MI:SS')::date >= %s
+                            ELSE TO_DATE(s.created_at, 'YYYY-MM-DD') >= %s
+                         END)
                         OR
                         -- Try DD/MM/YYYY format
                         (s.created_at ~ '^[0-9]{{2}}/[0-9]{{2}}/[0-9]{{4}}' AND 
                          TO_DATE(s.created_at, 'DD/MM/YYYY') >= %s)
                         OR
-                        -- Try MM/DD/YYYY format
+                        -- Try MM/DD/YYYY format (fallback for ambiguous dates)
                         (s.created_at ~ '^[0-9]{{2}}/[0-9]{{2}}/[0-9]{{4}}' AND 
                          TO_DATE(s.created_at, 'MM/DD/YYYY') >= %s)
                     )
             """
             
-            cursor.execute(fetch_query, (date_threshold, date_threshold, date_threshold))
+            cursor.execute(fetch_query, (date_threshold, date_threshold, date_threshold, date_threshold))
             all_rows = cursor.fetchall()
             
             # Filter and aggregate in Python with currency conversion
