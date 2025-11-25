@@ -140,7 +140,7 @@ function createFiltersModal(region) {
                     <p class="filter-section-description">
                         Orders with a grand total above this amount will be excluded from 6-month condensed sales.
                         <strong>All currencies are automatically converted</strong> to ${region === 'uk' ? 'GBP (£)' : 'EUR (€)'} at current exchange rates for comparison.
-                        <span id="currency-conversion-info-${region}" style="display: block; margin-top: 0.5rem; font-size: 0.9em; color: var(--accent-color, #3498db);">
+                        <span id="currency-conversion-info-${region}" style="display: block; margin-top: 0.5rem; font-size: 0.9em; color: var(--accent-color);">
                             <i class="fas fa-sync fa-spin"></i> Loading exchange rates...
                         </span>
                     </p>
@@ -322,8 +322,8 @@ function showConfirmDialog(message) {
         // Create dialog
         const dialog = document.createElement('div');
         dialog.style.cssText = `
-            background: var(--surface-color, #1e1e1e);
-            border: 1px solid var(--border-color, #333);
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
             border-radius: 12px;
             padding: 24px;
             max-width: 400px;
@@ -333,10 +333,10 @@ function showConfirmDialog(message) {
         
         dialog.innerHTML = `
             <div style="margin-bottom: 20px;">
-                <div style="font-size: 1.25rem; font-weight: 600; color: var(--text-primary, #fff); margin-bottom: 12px;">
+                <div style="font-size: 1.25rem; font-weight: 600; color: var(--text-primary); margin-bottom: 12px;">
                     Confirm Filter Changes
                 </div>
-                <div style="color: var(--text-secondary, #999); line-height: 1.5;">
+                <div style="color: var(--text-secondary); line-height: 1.5;">
                     ${message}
                 </div>
             </div>
@@ -344,16 +344,16 @@ function showConfirmDialog(message) {
                 <button id="confirm-cancel" style="
                     padding: 10px 20px;
                     background: transparent;
-                    border: 1px solid var(--border-color, #333);
+                    border: 1px solid var(--border-color);
                     border-radius: 6px;
-                    color: var(--text-primary, #fff);
+                    color: var(--text-primary);
                     cursor: pointer;
                     font-size: 0.9375rem;
                     transition: all 0.2s;
                 ">Cancel</button>
                 <button id="confirm-ok" style="
                     padding: 10px 20px;
-                    background: var(--accent-color, #0078d4);
+                    background: var(--accent-color);
                     border: none;
                     border-radius: 6px;
                     color: white;
@@ -373,17 +373,17 @@ function showConfirmDialog(message) {
         const okBtn = dialog.querySelector('#confirm-ok');
         
         cancelBtn.addEventListener('mouseenter', () => {
-            cancelBtn.style.background = 'var(--hover-bg, #2a2a2a)';
+            cancelBtn.style.background = 'var(--hover-bg)';
         });
         cancelBtn.addEventListener('mouseleave', () => {
             cancelBtn.style.background = 'transparent';
         });
         
         okBtn.addEventListener('mouseenter', () => {
-            okBtn.style.background = 'var(--accent-hover, #106ebe)';
+            okBtn.style.background = 'var(--primary-hover)';
         });
         okBtn.addEventListener('mouseleave', () => {
-            okBtn.style.background = 'var(--accent-color, #0078d4)';
+            okBtn.style.background = 'var(--accent-color)';
         });
         
         // Handle buttons
