@@ -17,6 +17,9 @@ let isSearchMode = false; // Whether we're in search mode (all matching results 
 export async function initNLSalesData() {
   console.log('[NL Sales] Initializing page...');
   
+  // Wait for DOM to be ready before setting up event listeners
+  await new Promise(resolve => setTimeout(resolve, 0));
+  
   // Set up event listeners
   setupEventListeners();
   
