@@ -1274,24 +1274,32 @@ window.runCustomAnalysis = async function(region) {
         const response = await getCustomRangeCondensedData(region, rangeType, rangeValue, useExclusions, 1000, 0, '');
         
         if (response.status === 'success' && response.data) {
-            // Store the custom range results in window for the page to access
-            window.customRangeResults = {
+            // Store the custom range parameters globally
+            window.customRangeActive = {
                 region,
                 rangeType,
                 rangeValue,
-                useExclusions,
-                data: response.data,
-                totalCount: response.total_count
+                useExclusions
             };
             
-            // Show success message
-            const rangeLabel = rangeType === 'days' ? `${rangeValue} days` :
-                              rangeType === 'months' ? `${rangeValue} months` :
-                              `since ${rangeValue}`;
-            showToast(`Custom analysis complete: ${response.total_count} SKUs found for ${rangeLabel}`, 'success');
+            // Dispatch event to notify the page to switch to custom range view
+            const rangeLabel = rangeType === 'days' ? `Last ${rangeValue} Days` :
+                              rangeType === 'months' ? `Last ${rangeValue} Months` :
+                              `Since ${rangeValue}`;
             
-            // Display results in modal
-            showCustomRangeResults(window.customRangeResults);
+            window.dispatchEvent(new CustomEvent('customRangeApplied', {
+                detail: {
+                    region,
+                    rangeType,
+                    rangeValue,
+                    useExclusions,
+                    rangeLabel,
+                    data: response.data,
+                    totalCount: response.total_count
+                }
+            }));
+            
+            showToast(`Custom range applied: ${rangeLabel}`, 'success');
         } else {
             showToast(`Error: ${response.message || 'Failed to load custom range data'}`, 'error');
         }
