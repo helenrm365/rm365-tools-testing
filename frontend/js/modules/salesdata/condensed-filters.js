@@ -1306,11 +1306,22 @@ window.runCustomAnalysis = async function(region) {
  */
 export function showCustomRangeModal(region) {
     console.log('[Filters] showCustomRangeModal called for', region);
+    
+    // Remove any existing modal first
+    const existingModal = document.querySelector('.filters-modal-overlay');
+    if (existingModal) {
+        console.log('[Filters] Removing existing modal');
+        existingModal.remove();
+    }
+    
     const modal = createCustomRangeModal(region);
     console.log('[Filters] Modal created:', modal);
     console.log('[Filters] Appending modal to body');
     document.body.appendChild(modal);
     console.log('[Filters] Modal appended, should be visible now');
+    console.log('[Filters] Modal in DOM:', document.body.contains(modal));
+    console.log('[Filters] Modal classes:', modal.className);
+    console.log('[Filters] Modal style:', window.getComputedStyle(modal).display);
 }
 
 function createCustomRangeModal(region) {

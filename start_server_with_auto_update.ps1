@@ -115,20 +115,27 @@ while ($true) {
                 Write-Host "========================================" -ForegroundColor Yellow
                 Write-Host "[<] Pulling changes..." -ForegroundColor Cyan
                 
-                # Pull the changes
-                $pullOutput = git pull origin main 2>&1
+                # Store current HEAD before pulling
+                $beforePull = Get-CurrentCommit
                 
-                # Show what changed
-                if ($pullOutput -match "Already up to date") {
-                    # False alarm, already up to date
-                    Write-Host "[=] Already up to date (false alarm)" -ForegroundColor Gray
+                # Pull the changes
+                $pullOutput = git pull origin main 2>&1 | Out-String
+                
+                # Get new HEAD after pulling
+                $afterPull = Get-CurrentCommit
+                
+                # Check if actual changes were pulled
+                if ($beforePull -eq $afterPull) {
+                    # No actual changes (shouldn't happen, but safety check)
+                    Write-Host "[=] No changes applied (syncing state...)" -ForegroundColor Gray
                     Write-Host "========================================" -ForegroundColor Yellow
-                    $currentCommit = Get-CurrentCommit
+                    # Update to remote commit to avoid re-triggering
+                    $currentCommit = $remoteCommit
                 } else {
                     Write-Host "[+] CHANGES PULLED SUCCESSFULLY!" -ForegroundColor Green
                     
                     # Show number of files changed
-                    $changedFiles = git diff --name-only HEAD@{1} HEAD
+                    $changedFiles = git diff --name-only $beforePull $afterPull
                     $fileCount = ($changedFiles | Measure-Object -Line).Lines
                     if ($fileCount -gt 0) {
                         Write-Host "[*] Files changed: $fileCount" -ForegroundColor Cyan
