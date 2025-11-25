@@ -7,13 +7,6 @@ cd /d "%~dp0"
 REM Check for venv
 if exist venv\Scripts\python.exe (
     echo Using virtual environment...
-    
-    REM Generate certificates if they don't exist
-    if not exist key.pem (
-        echo Generating SSL certificates...
-        venv\Scripts\python.exe generate_cert.py
-    )
-    
     venv\Scripts\python.exe app.py
 ) else (
     echo [WARNING] Virtual environment not found.

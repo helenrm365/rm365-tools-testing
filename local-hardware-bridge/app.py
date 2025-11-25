@@ -24,12 +24,18 @@ app = FastAPI(
 )
 
 <<<<<<< HEAD
-# CORS configuration
-# Allow all origins via regex to support local network IPs and various hosting environments
-# This is safe because this service runs locally on the client machine and only exposes hardware access
+# CORS configuration - allow your Cloudflare frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"https?://.*",
+    allow_origins=[
+        "https://rm365-tools-testing.pages.dev",
+        "https://*.pages.dev",  # Cloudflare preview deployments
+        "http://localhost:5000",
+        "http://127.0.0.1:5000",
+        "https://rm365-toolbox.com",
+        "https://*.up.railway.app",
+        "https://*.railway.app",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -619,39 +625,22 @@ if __name__ == "__main__":
     ssl_keyfile = "key.pem"
     ssl_certfile = "cert.pem"
     
-    # Check for SSL certificates
-<<<<<<< HEAD
-    if os.path.exists(ssl_keyfile) and os.path.exists(ssl_certfile):
-        logger.info(f"SSL certificates found. Starting in HTTPS mode.")
-=======
-    # We default to HTTP because the frontend is hardcoded to use http://127.0.0.1:8080
-    # and using HTTPS with self-signed certs causes trust issues in the browser.
-    # If you really need HTTPS, set USE_HTTPS=true environment variable.
-    use_https = os.environ.get("USE_HTTPS", "false").lower() == "true"
-    
-    if use_https and os.path.exists(ssl_keyfile) and os.path.exists(ssl_certfile):
-        logger.info(f"SSL certificates found and USE_HTTPS=true. Starting in HTTPS mode.")
->>>>>>> 8d43a90cbf42a62a7d3d47913be32e95131551e7
-        uvicorn.run(
-            app,
-            host="127.0.0.1",
-            port=8080,
-            log_level="info",
-            ssl_keyfile=ssl_keyfile,
-            ssl_certfile=ssl_certfile
-        )
-    else:
-<<<<<<< HEAD
-        logger.info("SSL certificates not found. Starting in HTTP mode.")
-=======
-        if os.path.exists(ssl_keyfile) and os.path.exists(ssl_certfile):
-             logger.info("SSL certificates found but ignoring them to force HTTP mode (match frontend).")
-        
-        logger.info("Starting in HTTP mode.")
->>>>>>> 8d43a90cbf42a62a7d3d47913be32e95131551e7
-        uvicorn.run(
-            app,
-            host="127.0.0.1",  # Only accessible from this PC
-            port=8080,
-            log_level="info"
-        )
+    # Force HTTP mode to avoid certificate issues and simplify PNA
+    # if os.path.exists(ssl_keyfile) and os.path.exists(ssl_certfile):
+    #     logger.info(f"SSL certificates found. Starting in HTTPS mode.")
+    #     uvicorn.run(
+    #         app,
+    #         host="127.0.0.1",
+    #         port=8080,
+    #         log_level="info",
+    #         ssl_keyfile=ssl_keyfile,
+    #         ssl_certfile=ssl_certfile
+    #     )
+    # else:
+    logger.info("Starting in HTTP mode (Forced).")
+    uvicorn.run(
+        app,
+        host="127.0.0.1",  # Only accessible from this PC
+        port=8080,
+        log_level="info"
+    )

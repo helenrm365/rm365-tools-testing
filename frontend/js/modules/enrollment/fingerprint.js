@@ -162,10 +162,9 @@ function explain(code) {
 }
 
 async function tryLocalSecuGen(timeoutMs = 11000, signal = null) {
-  // Determine protocol based on current page to avoid Mixed Content issues
-  const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
-  const endpoint = `${protocol}//127.0.0.1:8080/SGIFPCapture`;
-  
+  // We are forcing HTTP in the local bridge to avoid SSL certificate issues.
+  // Prioritize 127.0.0.1 as it is often treated more favorably by browsers for PNA.
+  const endpoint = 'http://127.0.0.1:8080/SGIFPCapture';
   const payload = { Timeout: Math.max(1000, timeoutMs - 500), TemplateFormat: 'ANSI', FakeDetection: 1 };
 
   const ac = new AbortController();

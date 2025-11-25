@@ -31,16 +31,13 @@ const FINGERPRINT_COOLDOWN_MS = 3000;
 const MAX_RECENT_SCANS = 10;
 const MAX_CONSECUTIVE_ERRORS = 5; // After this many errors, slow down polling
 
-// Determine protocol based on current page
-const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
-
 // SecuGen endpoints to probe for fingerprint scanning
 const SGI_ENDPOINTS = [
-  `${protocol}//127.0.0.1:8080/SGIFPCapture`
+  'http://127.0.0.1:8080/SGIFPCapture'
 ];
 
 const CARD_SCAN_ENDPOINTS = [
-  `${protocol}//127.0.0.1:8080/card/scan`
+  'http://127.0.0.1:8080/card/scan'
 ];
 
 // ====== Utility Functions ======
@@ -217,7 +214,7 @@ function setStopButtonState({ disabled }) {
 
 async function checkBridgeHealth() {
   try {
-    const response = await fetch(`${protocol}//127.0.0.1:8080/health`);
+    const response = await fetch('http://127.0.0.1:8080/health');
     if (!response.ok) return { fingerprint: false, card: false };
     const data = await response.json();
     return {
@@ -389,7 +386,7 @@ async function pollFingerprint() {
         name: t.name
       }));
 
-      const matchResponse = await fetch(`${protocol}//127.0.0.1:8080/fingerprint/match_batch`, {
+      const matchResponse = await fetch('http://127.0.0.1:8080/fingerprint/match_batch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -416,7 +413,7 @@ async function pollFingerprint() {
       // Fallback to individual matching
       for (const tmpl of state.fingerprintTemplates) {
         try {
-          const matchResponse = await fetch(`${protocol}//127.0.0.1:8080/fingerprint/match`, {
+          const matchResponse = await fetch('http://127.0.0.1:8080/fingerprint/match', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
