@@ -31,6 +31,8 @@ export async function initFRSalesData() {
  * Set up event listeners for the page
  */
 function setupEventListeners() {
+  console.log('[FR Sales] ===== setupEventListeners called =====');
+  
   // Upload form
   const uploadForm = document.getElementById('uploadForm');
   if (uploadForm) {

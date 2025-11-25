@@ -31,6 +31,8 @@ export async function initUKSalesData() {
  * Set up event listeners for the page
  */
 function setupEventListeners() {
+  console.log('[UK Sales] ===== setupEventListeners called =====');
+  
   // Upload form
   const uploadForm = document.getElementById('uploadForm');
   if (uploadForm) {
@@ -261,6 +263,9 @@ function setupEventListeners() {
   }
   
   // Custom Range button
+  console.log('[UK Sales] Searching for customRangeBtn...');
+  console.log('[UK Sales] All buttons with id containing "Btn":', 
+    Array.from(document.querySelectorAll('[id*="Btn"]')).map(el => ({ id: el.id, classes: el.className })));
   const customRangeBtn = document.getElementById('customRangeBtn');
   console.log('[UK Sales] Custom Range Button found:', !!customRangeBtn);
   console.log('[UK Sales] customRangeBtn element:', customRangeBtn);
