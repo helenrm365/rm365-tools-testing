@@ -110,7 +110,9 @@ while ($true) {
             
             if ($remoteCommit -and $remoteCommit -ne $currentCommit) {
                 Write-Host ""
-                Write-Host "[!] New update detected on GitHub!" -ForegroundColor Yellow
+                Write-Host "========================================" -ForegroundColor Yellow
+                Write-Host "[!] NEW UPDATE DETECTED ON GITHUB!" -ForegroundColor Yellow
+                Write-Host "========================================" -ForegroundColor Yellow
                 Write-Host "[<] Pulling changes..." -ForegroundColor Cyan
                 
                 # Pull the changes
@@ -119,18 +121,28 @@ while ($true) {
                 # Show what changed
                 if ($pullOutput -match "Already up to date") {
                     # False alarm, already up to date
+                    Write-Host "[=] Already up to date (false alarm)" -ForegroundColor Gray
+                    Write-Host "========================================" -ForegroundColor Yellow
                     $currentCommit = Get-CurrentCommit
                 } else {
-                    Write-Host "[+] Changes pulled successfully!" -ForegroundColor Green
+                    Write-Host "[+] CHANGES PULLED SUCCESSFULLY!" -ForegroundColor Green
+                    
+                    # Show number of files changed
+                    $changedFiles = git diff --name-only HEAD@{1} HEAD
+                    $fileCount = ($changedFiles | Measure-Object -Line).Lines
+                    if ($fileCount -gt 0) {
+                        Write-Host "[*] Files changed: $fileCount" -ForegroundColor Cyan
+                    }
                     
                     # Check if requirements.txt changed
-                    $changedFiles = git diff --name-only HEAD@{1} HEAD
                     if ($changedFiles -match "requirements\.txt") {
                         Write-Host "[*] requirements.txt changed - updating dependencies..." -ForegroundColor Yellow
                         pip install -r backend\requirements.txt --quiet
+                        Write-Host "[+] Dependencies updated!" -ForegroundColor Green
                     }
                     
-                    Write-Host "[~] Restarting server with new changes..." -ForegroundColor Yellow
+                    Write-Host "[~] RESTARTING SERVER WITH NEW CHANGES..." -ForegroundColor Yellow
+                    Write-Host "========================================" -ForegroundColor Yellow
                     $shouldRestart = $true
                     break
                 }
