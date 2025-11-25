@@ -68,7 +68,7 @@ export const config = {
   // Environment detection
   get ENVIRONMENT() {
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      return 'development-with-railway-backend';
+      return 'development-local';
     }
     if (window.location.hostname.includes('pages.dev') || window.location.hostname.includes('cloudflare')) {
       return 'production';
