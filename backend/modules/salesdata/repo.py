@@ -791,6 +791,196 @@ class SalesDataRepo:
                 cursor.close()
                 return_products_connection(conn)
     
+    def get_condensed_data_custom_range(self, region: str, range_type: str, range_value: str, 
+                                       use_exclusions: bool, limit: int = 100, offset: int = 0, 
+                                       search: str = "") -> Dict[str, Any]:
+        """
+        Get condensed sales data with custom date range.
+        Aggregates data on-the-fly based on the specified date range.
+        
+        Args:
+            region: 'uk', 'fr', or 'nl'
+            range_type: 'days', 'months', or 'since'
+            range_value: Number of days/months, or date string (YYYY-MM-DD)
+            use_exclusions: Whether to apply customer/group exclusions
+            limit: Max results to return
+            offset: Pagination offset
+            search: Optional SKU/name search filter
+        """
+        from common.currency import convert_to_gbp, convert_to_eur
+        from datetime import datetime, timedelta
+        
+        # Map region to table names and base currency
+        region_mapping = {
+            'uk': ('uk_sales_data', 'GBP', convert_to_gbp),
+            'fr': ('fr_sales_data', 'EUR', convert_to_eur),
+            'nl': ('nl_sales_data', 'EUR', convert_to_eur)
+        }
+        
+        if region not in region_mapping:
+            raise ValueError(f"Invalid region: {region}")
+        
+        sales_table, base_currency, converter_func = region_mapping[region]
+        
+        # Calculate the date threshold based on range_type
+        if range_type == 'days':
+            try:
+                days = int(range_value)
+                date_threshold = datetime.now().date() - timedelta(days=days)
+            except ValueError:
+                raise ValueError(f"Invalid days value: {range_value}")
+        elif range_type == 'months':
+            try:
+                months = int(range_value)
+                date_threshold = datetime.now().date() - timedelta(days=months * 30)  # Approximate
+            except ValueError:
+                raise ValueError(f"Invalid months value: {range_value}")
+        elif range_type == 'since':
+            try:
+                date_threshold = datetime.strptime(range_value, '%Y-%m-%d').date()
+            except ValueError:
+                raise ValueError(f"Invalid date format: {range_value}. Expected YYYY-MM-DD")
+        else:
+            raise ValueError(f"Invalid range_type: {range_type}")
+        
+        conn = None
+        try:
+            conn = get_products_connection()
+            cursor = conn.cursor()
+            
+            # Get exclusions if requested
+            excluded_emails = set()
+            excluded_groups = set()
+            if use_exclusions:
+                cursor.execute("""
+                    SELECT customer_email FROM condensed_sales_excluded_customers
+                    WHERE region = %s
+                """, (region,))
+                excluded_emails = {row[0] for row in cursor.fetchall()}
+                
+                cursor.execute("""
+                    SELECT customer_group FROM condensed_sales_excluded_customer_groups
+                    WHERE region = %s
+                """, (region,))
+                excluded_groups = {row[0] for row in cursor.fetchall()}
+            
+            # Get the thresholds for this region (if set)
+            cursor.execute("""
+                SELECT threshold, qty_threshold FROM condensed_sales_grand_total_threshold 
+                WHERE region = %s
+            """, (region,))
+            threshold_row = cursor.fetchone()
+            grand_total_threshold = threshold_row[0] if threshold_row else None
+            qty_threshold = threshold_row[1] if threshold_row and len(threshold_row) > 1 else None
+            
+            # Fetch sales data with SKU aliases for the custom date range
+            fetch_query = f"""
+                SELECT 
+                    COALESCE(
+                        sa.unified_sku,
+                        CASE 
+                            WHEN s.sku ~* '-MD(-|$)' THEN REGEXP_REPLACE(s.sku, '-MD(-.*)?$', '', 'i')
+                            ELSE s.sku
+                        END
+                    ) as sku,
+                    s.name,
+                    s.qty,
+                    s.grand_total,
+                    s.currency,
+                    s.customer_email,
+                    s.customer_group_code,
+                    s.created_at
+                FROM {sales_table} s
+                LEFT JOIN sku_aliases sa ON s.sku = sa.alias_sku
+                WHERE 
+                    (
+                        -- Try ISO format: YYYY-MM-DD or YYYY-MM-DD HH:MI:SS
+                        (s.created_at ~ '^[0-9]{{4}}-[0-9]{{2}}-[0-9]{{2}}' AND 
+                         TO_TIMESTAMP(s.created_at, 'YYYY-MM-DD HH24:MI:SS') >= %s)
+                        OR
+                        -- Try DD/MM/YYYY format
+                        (s.created_at ~ '^[0-9]{{2}}/[0-9]{{2}}/[0-9]{{4}}' AND 
+                         TO_DATE(s.created_at, 'DD/MM/YYYY') >= %s)
+                        OR
+                        -- Try MM/DD/YYYY format
+                        (s.created_at ~ '^[0-9]{{2}}/[0-9]{{2}}/[0-9]{{4}}' AND 
+                         TO_DATE(s.created_at, 'MM/DD/YYYY') >= %s)
+                    )
+            """
+            
+            cursor.execute(fetch_query, (date_threshold, date_threshold, date_threshold))
+            all_rows = cursor.fetchall()
+            
+            # Filter and aggregate in Python with currency conversion
+            sku_aggregates = {}
+            
+            for row in all_rows:
+                sku, name, qty, grand_total, currency, customer_email, customer_group, created_at = row
+                
+                # Skip excluded customers
+                if use_exclusions and customer_email in excluded_emails:
+                    continue
+                
+                # Skip excluded customer groups
+                if use_exclusions and customer_group in excluded_groups:
+                    continue
+                
+                # Apply quantity threshold filter
+                if qty_threshold is not None and qty is not None and qty > qty_threshold:
+                    continue
+                
+                # Apply grand total threshold filter with currency conversion
+                if grand_total_threshold is not None and grand_total is not None:
+                    converted_total = converter_func(float(grand_total), currency or base_currency)
+                    if converted_total > float(grand_total_threshold):
+                        continue
+                
+                # Aggregate by SKU
+                if sku not in sku_aggregates:
+                    sku_aggregates[sku] = {'name': name, 'total_qty': 0}
+                sku_aggregates[sku]['total_qty'] += (qty or 0)
+                sku_aggregates[sku]['name'] = name  # Keep the latest name
+            
+            # Convert to list and sort by total_qty
+            aggregated_list = [
+                {'sku': sku, 'name': data['name'], 'total_qty': data['total_qty']}
+                for sku, data in sku_aggregates.items()
+            ]
+            aggregated_list.sort(key=lambda x: x['total_qty'], reverse=True)
+            
+            # Apply search filter if provided
+            if search:
+                search_lower = search.lower()
+                aggregated_list = [
+                    item for item in aggregated_list
+                    if search_lower in item['sku'].lower() or search_lower in item['name'].lower()
+                ]
+            
+            total_count = len(aggregated_list)
+            
+            # Apply pagination
+            paginated_data = aggregated_list[offset:offset + limit]
+            
+            # Add IDs for consistency with regular condensed data
+            for i, item in enumerate(paginated_data):
+                item['id'] = offset + i + 1
+                item['last_updated'] = datetime.now().isoformat()
+            
+            return {
+                "data": paginated_data,
+                "total_count": total_count,
+                "limit": limit,
+                "offset": offset
+            }
+            
+        except Exception as e:
+            logger.error(f"Error fetching custom range data for {region}: {e}")
+            raise
+        finally:
+            if conn:
+                cursor.close()
+                return_products_connection(conn)
+    
     def get_sku_aliases(self) -> List[Dict[str, Any]]:
         """Get all SKU aliases"""
         conn = None

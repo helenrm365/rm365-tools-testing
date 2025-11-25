@@ -1240,7 +1240,7 @@ window.updateRangeInputs = function(radio) {
     }
 };
 
-window.runCustomAnalysis = function(region) {
+window.runCustomAnalysis = async function(region) {
     const rangeType = document.querySelector('input[name="rangeType"]:checked').value;
     const useExclusions = document.getElementById('useExclusions').checked;
     let rangeValue;
@@ -1264,10 +1264,41 @@ window.runCustomAnalysis = function(region) {
     const overlay = document.querySelector('.filters-modal-overlay');
     if (overlay) overlay.remove();
     
-    // Show toast
-    import('../../ui/toast.js').then(module => {
-        module.showToast(`Custom analysis started: ${rangeType} ${rangeValue} (Exclusions: ${useExclusions})`, 'info');
-    });
+    // Show loading toast
+    const { showToast } = await import('../../ui/toast.js');
+    showToast(`Loading custom range data...`, 'info');
+    
+    try {
+        // Call the custom range API
+        const { getCustomRangeCondensedData } = await import('../../services/api/salesDataApi.js');
+        const response = await getCustomRangeCondensedData(region, rangeType, rangeValue, useExclusions, 1000, 0, '');
+        
+        if (response.status === 'success' && response.data) {
+            // Store the custom range results in window for the page to access
+            window.customRangeResults = {
+                region,
+                rangeType,
+                rangeValue,
+                useExclusions,
+                data: response.data,
+                totalCount: response.total_count
+            };
+            
+            // Show success message
+            const rangeLabel = rangeType === 'days' ? `${rangeValue} days` :
+                              rangeType === 'months' ? `${rangeValue} months` :
+                              `since ${rangeValue}`;
+            showToast(`Custom analysis complete: ${response.total_count} SKUs found for ${rangeLabel}`, 'success');
+            
+            // Display results in modal
+            showCustomRangeResults(window.customRangeResults);
+        } else {
+            showToast(`Error: ${response.message || 'Failed to load custom range data'}`, 'error');
+        }
+    } catch (error) {
+        console.error('Error running custom analysis:', error);
+        showToast(`Error: ${error.message}`, 'error');
+    }
 };
 
 /**
@@ -1352,5 +1383,77 @@ function createCustomRangeModal(region) {
     
     return overlay;
 }
+
+/**
+ * Show custom range results in a modal
+ */
+function showCustomRangeResults(results) {
+    const { region, rangeType, rangeValue, data, totalCount } = results;
+    
+    const rangeLabel = rangeType === 'days' ? `Last ${rangeValue} Days` :
+                      rangeType === 'months' ? `Last ${rangeValue} Months` :
+                      `Since ${rangeValue}`;
+    
+    const overlay = document.createElement('div');
+    overlay.className = 'filters-modal-overlay';
+    
+    // Create table rows
+    const tableRows = data.map((item, index) => `
+        <tr>
+            <td>${index + 1}</td>
+            <td>${item.sku || 'N/A'}</td>
+            <td>${item.name || 'N/A'}</td>
+            <td>${item.total_qty || 0}</td>
+        </tr>
+    `).join('');
+    
+    overlay.innerHTML = `
+        <div class="filters-modal" onclick="event.stopPropagation()" style="max-width: 900px; max-height: 80vh;">
+            <div class="filters-modal-header">
+                <h2><i class="fas fa-chart-line"></i> Custom Range Analysis Results - ${region.toUpperCase()}</h2>
+                <button class="filters-modal-close" onclick="this.closest('.filters-modal-overlay').remove()">
+                    ✕
+                </button>
+            </div>
+            
+            <div class="filters-modal-body" style="max-height: 60vh; overflow-y: auto;">
+                <div style="margin-bottom: 20px; padding: 16px; background: var(--surface-secondary, #2a2a2a); border-radius: 8px;">
+                    <h3 style="margin: 0 0 8px 0; color: var(--text-primary, #fff);">
+                        <i class="fas fa-info-circle"></i> Analysis Details
+                    </h3>
+                    <p style="margin: 4px 0; color: var(--text-secondary, #aaa);">
+                        <strong>Range:</strong> ${rangeLabel}<br>
+                        <strong>Total SKUs:</strong> ${totalCount}<br>
+                        <strong>Showing:</strong> Top ${data.length} results
+                    </p>
+                </div>
+                
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; color: var(--text-primary, #fff);">
+                        <thead>
+                            <tr style="background: var(--surface-secondary, #2a2a2a); border-bottom: 2px solid var(--border-color, #333);">
+                                <th style="padding: 12px; text-align: left; font-weight: 600;">#</th>
+                                <th style="padding: 12px; text-align: left; font-weight: 600;">SKU</th>
+                                <th style="padding: 12px; text-align: left; font-weight: 600;">Name</th>
+                                <th style="padding: 12px; text-align: left; font-weight: 600;">Total Qty</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${tableRows || '<tr><td colspan="4" style="padding: 20px; text-align: center;">No data found</td></tr>'}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="filters-modal-footer">
+                <button class="filters-cancel-btn" onclick="this.closest('.filters-modal-overlay').remove()">Close</button>
+            </div>
+        </div>
+    `;
+    
+    overlay.addEventListener('click', () => overlay.remove());
+    document.body.appendChild(overlay);
+}
+
 
 
