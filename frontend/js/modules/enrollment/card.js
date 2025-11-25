@@ -32,11 +32,10 @@ async function onScan() {
   if (uidBox) uidBox.value = '';
 
   // Try local hardware bridge first
+  // Determine protocol based on current page to avoid Mixed Content issues
+  const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
   const localEndpoints = [
-    'https://localhost:8080/card/scan',
-    'https://127.0.0.1:8080/card/scan',
-    'http://localhost:8080/card/scan',
-    'http://127.0.0.1:8080/card/scan'
+    `${protocol}//127.0.0.1:8080/card/scan`
   ];
 
   let success = false;

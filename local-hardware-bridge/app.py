@@ -23,15 +23,12 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS configuration - allow your Cloudflare frontend
+# CORS configuration
+# Allow all origins via regex to support local network IPs and various hosting environments
+# This is safe because this service runs locally on the client machine and only exposes hardware access
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://rm365-tools-testing.pages.dev",
-        "https://*.pages.dev",  # Cloudflare preview deployments
-        "http://localhost:5000",
-        "http://127.0.0.1:5000",
-    ],
+    allow_origin_regex=r"https?://.*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -609,22 +606,22 @@ if __name__ == "__main__":
     ssl_keyfile = "key.pem"
     ssl_certfile = "cert.pem"
     
-    # Force HTTP mode to avoid certificate issues and simplify PNA
-    # if os.path.exists(ssl_keyfile) and os.path.exists(ssl_certfile):
-    #     logger.info(f"SSL certificates found. Starting in HTTPS mode.")
-    #     uvicorn.run(
-    #         app,
-    #         host="127.0.0.1",
-    #         port=8080,
-    #         log_level="info",
-    #         ssl_keyfile=ssl_keyfile,
-    #         ssl_certfile=ssl_certfile
-    #     )
-    # else:
-    logger.info("Starting in HTTP mode (Forced).")
-    uvicorn.run(
-        app,
-        host="127.0.0.1",  # Only accessible from this PC
-        port=8080,
-        log_level="info"
-    )
+    # Check for SSL certificates
+    if os.path.exists(ssl_keyfile) and os.path.exists(ssl_certfile):
+        logger.info(f"SSL certificates found. Starting in HTTPS mode.")
+        uvicorn.run(
+            app,
+            host="127.0.0.1",
+            port=8080,
+            log_level="info",
+            ssl_keyfile=ssl_keyfile,
+            ssl_certfile=ssl_certfile
+        )
+    else:
+        logger.info("SSL certificates not found. Starting in HTTP mode.")
+        uvicorn.run(
+            app,
+            host="127.0.0.1",  # Only accessible from this PC
+            port=8080,
+            log_level="info"
+        )
