@@ -140,7 +140,7 @@ function createFiltersModal(region) {
                     <p class="filter-section-description">
                         Orders with a grand total above this amount will be excluded from 6-month condensed sales.
                         <strong>All currencies are automatically converted</strong> to ${region === 'uk' ? 'GBP (£)' : 'EUR (€)'} at current exchange rates for comparison.
-                        <span id="currency-conversion-info-${region}" style="display: block; margin-top: 0.5rem; font-size: 0.9em; color: #3498db;">
+                        <span id="currency-conversion-info-${region}" style="display: block; margin-top: 0.5rem; font-size: 0.9em; color: var(--accent-color, #3498db);">
                             <i class="fas fa-sync fa-spin"></i> Loading exchange rates...
                         </span>
                     </p>
@@ -1334,29 +1334,29 @@ function createCustomRangeModal(region) {
                         <!-- Last X Days -->
                         <label style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
                             <input type="radio" name="rangeType" value="days" checked onchange="updateRangeInputs(this)">
-                            <span style="color: var(--text-primary, #fff);">Last</span>
-                            <input type="number" id="rangeDays" value="30" min="1" style="width: 80px; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color, #333); background: var(--input-bg, #2a2a2a); color: var(--text-primary, #fff);">
-                            <span style="color: var(--text-primary, #fff);">Days</span>
+                            <span style="color: var(--text-primary);">Last</span>
+                            <input type="number" id="rangeDays" value="30" min="1" style="width: 80px; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-primary);">
+                            <span style="color: var(--text-primary);">Days</span>
                         </label>
                         
                         <!-- Last X Months -->
                         <label style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
                             <input type="radio" name="rangeType" value="months" onchange="updateRangeInputs(this)">
-                            <span style="color: var(--text-primary, #fff);">Last</span>
-                            <input type="number" id="rangeMonths" value="6" min="1" disabled style="width: 80px; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color, #333); background: var(--input-bg, #2a2a2a); color: var(--text-primary, #fff); opacity: 0.5;">
-                            <span style="color: var(--text-primary, #fff);">Months</span>
+                            <span style="color: var(--text-primary);">Last</span>
+                            <input type="number" id="rangeMonths" value="6" min="1" disabled style="width: 80px; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-primary); opacity: 0.5;">
+                            <span style="color: var(--text-primary);">Months</span>
                         </label>
                         
                         <!-- Since Date -->
                         <label style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
                             <input type="radio" name="rangeType" value="since" onchange="updateRangeInputs(this)">
-                            <span style="color: var(--text-primary, #fff);">Since</span>
-                            <input type="date" id="rangeSince" disabled style="padding: 8px; border-radius: 4px; border: 1px solid var(--border-color, #333); background: var(--input-bg, #2a2a2a); color: var(--text-primary, #fff); opacity: 0.5;">
+                            <span style="color: var(--text-primary);">Since</span>
+                            <input type="date" id="rangeSince" disabled style="padding: 8px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-primary); opacity: 0.5;">
                         </label>
                     </div>
                 </div>
                 
-                <div class="filter-section" style="margin-top: 24px; border-top: 1px solid var(--border-color, #333); padding-top: 24px;">
+                <div class="filter-section" style="margin-top: 24px; border-top: 1px solid var(--border-color); padding-top: 24px;">
                     <div class="filter-section-header">
                         <span class="filter-section-icon">🛡️</span>
                         <h3 class="filter-section-title">Exclusions</h3>
@@ -1364,7 +1364,7 @@ function createCustomRangeModal(region) {
                     
                     <label style="display: flex; align-items: center; gap: 12px; cursor: pointer; margin-top: 12px;">
                         <input type="checkbox" id="useExclusions" checked style="width: 18px; height: 18px;">
-                        <span style="color: var(--text-primary, #fff);">Apply configured customer & group exclusions</span>
+                        <span style="color: var(--text-primary);">Apply configured customer & group exclusions</span>
                     </label>
                     <p class="filter-section-description" style="margin-top: 8px; margin-left: 30px;">
                         If checked, customers and groups in the exclusion list will be filtered out.
@@ -1417,11 +1417,11 @@ function showCustomRangeResults(results) {
             </div>
             
             <div class="filters-modal-body" style="max-height: 60vh; overflow-y: auto;">
-                <div style="margin-bottom: 20px; padding: 16px; background: var(--surface-secondary, #2a2a2a); border-radius: 8px;">
-                    <h3 style="margin: 0 0 8px 0; color: var(--text-primary, #fff);">
+                <div style="margin-bottom: 20px; padding: 16px; background: var(--input-bg); border-radius: 8px; border: 1px solid var(--border-color);">
+                    <h3 style="margin: 0 0 8px 0; color: var(--text-primary);">
                         <i class="fas fa-info-circle"></i> Analysis Details
                     </h3>
-                    <p style="margin: 4px 0; color: var(--text-secondary, #aaa);">
+                    <p style="margin: 4px 0; color: var(--text-secondary);">
                         <strong>Range:</strong> ${rangeLabel}<br>
                         <strong>Total SKUs:</strong> ${totalCount}<br>
                         <strong>Showing:</strong> Top ${data.length} results
@@ -1429,9 +1429,9 @@ function showCustomRangeResults(results) {
                 </div>
                 
                 <div style="overflow-x: auto;">
-                    <table style="width: 100%; border-collapse: collapse; color: var(--text-primary, #fff);">
+                    <table style="width: 100%; border-collapse: collapse; color: var(--text-primary);">
                         <thead>
-                            <tr style="background: var(--surface-secondary, #2a2a2a); border-bottom: 2px solid var(--border-color, #333);">
+                            <tr style="background: var(--input-bg); border-bottom: 2px solid var(--border-color);">
                                 <th style="padding: 12px; text-align: left; font-weight: 600;">#</th>
                                 <th style="padding: 12px; text-align: left; font-weight: 600;">SKU</th>
                                 <th style="padding: 12px; text-align: left; font-weight: 600;">Name</th>
