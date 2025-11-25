@@ -2,6 +2,7 @@
 import { getUKSalesData, uploadUKSalesCSV, getUKCondensedData, refreshCondensedDataForRegion } from '../../services/api/salesDataApi.js';
 import { showToast } from '../../ui/toast.js';
 import { showFiltersModal, showCustomRangeModal } from './condensed-filters.js';
+import { exportToPDF } from '../../utils/pdfExport.js';
 
 let currentPage = 0;
 const pageSize = 100; // Display 100 records per page
@@ -311,6 +312,14 @@ function setupEventListeners() {
     });
   }
   
+  // Export PDF button
+  const exportPdfBtn = document.getElementById('exportPdfBtn');
+  if (exportPdfBtn) {
+    exportPdfBtn.addEventListener('click', async () => {
+      await handleExportPDF();
+    });
+  }
+  
   // Listen for condensed data refresh events from filter modal
   document.addEventListener('condensed-data-refreshed', (e) => {
     if (e.detail.region === 'uk' && viewMode === 'condensed') {
@@ -506,6 +515,16 @@ function displayCurrentPage() {
     displaySalesData(pageData);
   }
   
+  // Show/hide export PDF button based on view mode
+  const exportPdfBtn = document.getElementById('exportPdfBtn');
+  if (exportPdfBtn) {
+    if (viewMode === 'condensed' || viewMode === 'custom') {
+      exportPdfBtn.style.display = '';
+    } else {
+      exportPdfBtn.style.display = 'none';
+    }
+  }
+  
   // Update pagination info
   if (pageInfo) {
     let viewLabel;
@@ -692,6 +711,33 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+/**
+ * Handle PDF export
+ */
+async function handleExportPDF() {
+  if (viewMode !== 'condensed' && viewMode !== 'custom') {
+    showToast('PDF export is only available for condensed and custom range views', 'warning');
+    return;
+  }
+  
+  if (!allData || allData.length === 0) {
+    showToast('No data to export', 'warning');
+    return;
+  }
+  
+  try {
+    showToast('Generating PDF...', 'info');
+    
+    const viewLabel = viewMode === 'custom' ? customRangeLabel : '6-Month';
+    await exportToPDF(allData, 'uk', viewLabel, currentSearch);
+    
+    showToast('PDF exported successfully!', 'success');
+  } catch (error) {
+    console.error('Error exporting PDF:', error);
+    showToast(`Failed to export PDF: ${error.message}`, 'error');
+  }
 }
 
 /**
