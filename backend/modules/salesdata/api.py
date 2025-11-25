@@ -209,6 +209,24 @@ def refresh_condensed_data_for_region(
     return svc.refresh_condensed_data_for_region(region)
 
 
+@router.get("/{region}/condensed/custom-range")
+def get_custom_range_condensed_data(
+    region: str,
+    range_type: str = Query(..., description="Type of range: 'days', 'months', or 'since'"),
+    range_value: str = Query(..., description="Value for the range (number for days/months, date string for since)"),
+    use_exclusions: bool = Query(True, description="Apply customer and group exclusions"),
+    limit: int = Query(100, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+    search: str = Query(""),
+    user=Depends(get_current_user)
+):
+    """Get condensed sales data with custom date range"""
+    result = svc.get_condensed_data_custom_range(
+        region, range_type, range_value, use_exclusions, limit, offset, search
+    )
+    return SalesDataResponse(**result)
+
+
 @router.post("/create-md-aliases")
 def create_md_aliases(user=Depends(get_current_user)):
     """Manually trigger MD variant alias creation"""

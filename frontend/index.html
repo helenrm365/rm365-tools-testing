@@ -187,8 +187,7 @@
   <script>
     // Backend URL configuration - supports environment variables or defaults
     window.API = window.API || 
-                        (typeof process !== 'undefined' && process.env?.API) ||
-                        'https://rm365-tools-testing-production.up.railway.app';
+                        (typeof process !== 'undefined' && process.env?.API);
     
     window.IS_TAURI = !!(window.__TAURI__ && (window.__TAURI__.invoke || (window.__TAURI__.fs && (window.__TAURI__.fs.readTextFile || window.__TAURI__.fs.exists))));
     

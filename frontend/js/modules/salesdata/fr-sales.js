@@ -1,21 +1,26 @@
 // frontend/js/modules/salesdata/fr-sales.js
 import { getFRSalesData, uploadFRSalesCSV, getFRCondensedData, refreshCondensedDataForRegion } from '../../services/api/salesDataApi.js';
 import { showToast } from '../../ui/toast.js';
-import { showFiltersModal } from './condensed-filters.js';
+import { showFiltersModal, showCustomRangeModal } from './condensed-filters.js';
+import { exportToPDF } from '../../utils/pdfExport.js';
 
 let currentPage = 0;
 const pageSize = 100; // Display 100 records per page
 let currentSearch = '';
-let viewMode = 'full'; // 'full' or 'condensed'
+let viewMode = 'full'; // 'full', 'condensed', or 'custom'
 let allData = []; // Store loaded data
 let totalRecords = 0; // Total records available (from server count)
 let isSearchMode = false; // Whether we're in search mode (all matching results loaded) or pagination mode
+let customRangeLabel = ''; // Label for custom range (e.g., "Last 30 Days")
 
 /**
  * Initialize FR sales page
  */
 export async function initFRSalesData() {
   console.log('[FR Sales] Initializing page...');
+  
+  // Wait for DOM to be ready before setting up event listeners
+  await new Promise(resolve => setTimeout(resolve, 0));
   
   // Set up event listeners
   setupEventListeners();
@@ -28,6 +33,8 @@ export async function initFRSalesData() {
  * Set up event listeners for the page
  */
 function setupEventListeners() {
+  console.log('[FR Sales] ===== setupEventListeners called =====');
+  
   // Upload form
   const uploadForm = document.getElementById('uploadForm');
   if (uploadForm) {
@@ -44,6 +51,7 @@ function setupEventListeners() {
       viewFullBtn.classList.add('active');
       viewCondensedBtn?.classList.remove('active');
       currentPage = 0;
+      customRangeLabel = ''; // Clear custom range
       
       // Check if there's an active search and preserve it
       const searchInput = document.getElementById('salesSearchInput');
@@ -63,6 +71,7 @@ function setupEventListeners() {
       viewCondensedBtn.classList.add('active');
       viewFullBtn?.classList.remove('active');
       currentPage = 0;
+      customRangeLabel = ''; // Clear custom range
       
       // Check if there's an active search and preserve it
       const searchInput = document.getElementById('salesSearchInput');
@@ -205,11 +214,52 @@ function setupEventListeners() {
     refreshCondensedBtn.addEventListener('click', handleRefreshCondensedData);
   }
   
+  // Custom Range button
+  let retryCount = 0;
+  const setupCustomRangeButton = () => {
+    const customRangeBtn = document.getElementById('customRangeBtn');
+    console.log('[FR Sales] Custom Range Button found:', !!customRangeBtn);
+    console.log('[FR Sales] customRangeBtn element:', customRangeBtn);
+    if (customRangeBtn) {
+      // Remove any existing listener
+      const newBtn = customRangeBtn.cloneNode(true);
+      customRangeBtn.parentNode.replaceChild(newBtn, customRangeBtn);
+      
+      newBtn.addEventListener('click', () => {
+        console.log('[FR Sales] ========== Custom Range Button clicked ==========');
+        try {
+          showCustomRangeModal('fr');
+          console.log('[FR Sales] showCustomRangeModal call completed successfully');
+        } catch (error) {
+          console.error('[FR Sales] Error calling showCustomRangeModal:', error);
+        }
+      });
+      console.log('[FR Sales] Custom Range button listener attached successfully');
+    } else {
+      console.error('[FR Sales] Custom Range Button NOT found');
+      // Try again after a short delay (max 5 retries)
+      if (retryCount < 5) {
+        retryCount++;
+        setTimeout(setupCustomRangeButton, 100);
+      }
+    }
+  };
+  
+  setupCustomRangeButton();
+
   // Filters button
   const filtersBtn = document.getElementById('filtersBtn');
   if (filtersBtn) {
     filtersBtn.addEventListener('click', () => {
       showFiltersModal('fr');
+    });
+  }
+  
+  // Export PDF button
+  const exportPdfBtn = document.getElementById('exportPdfBtn');
+  if (exportPdfBtn) {
+    exportPdfBtn.addEventListener('click', async () => {
+      await handleExportPDF();
     });
   }
   
@@ -228,6 +278,37 @@ function setupEventListeners() {
       }
     }
   });
+  
+  // Listen for custom range applied event
+  window.addEventListener('customRangeApplied', (e) => {
+    if (e.detail.region === 'fr') {
+      console.log('[FR Sales] Custom range applied:', e.detail);
+      
+      // Switch to custom view mode
+      viewMode = 'custom';
+      customRangeLabel = e.detail.rangeLabel;
+      
+      // Update view buttons
+      const viewFullBtn = document.getElementById('viewFullBtn');
+      const viewCondensedBtn = document.getElementById('viewCondensedBtn');
+      viewFullBtn?.classList.remove('active');
+      viewCondensedBtn?.classList.remove('active');
+      
+      // Load the custom range data
+      allData = e.detail.data;
+      totalRecords = e.detail.totalCount;
+      currentPage = 0;
+      isSearchMode = false;
+      currentSearch = '';
+      
+      // Clear search input
+      const searchInput = document.getElementById('salesSearchInput');
+      if (searchInput) searchInput.value = '';
+      
+      // Render the data
+      renderData();
+    }
+  });
 }
 
 /**
@@ -240,7 +321,7 @@ async function loadSalesData() {
   if (!tbody) return;
   
   // Show loading state
-  const colSpan = viewMode === 'condensed' ? '4' : '14';
+  const colSpan = viewMode === 'condensed' || viewMode === 'custom' ? '4' : '14';
   tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem;">
     <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
       <div class="loader" style="margin: 0;">
@@ -253,6 +334,13 @@ async function loadSalesData() {
   
   try {
     console.log(`[FR Sales] Loading data - Mode: ${viewMode}, Page: ${currentPage + 1}`);
+    
+    // Custom mode doesn't reload from server - data is already loaded
+    if (viewMode === 'custom') {
+      console.log('[FR Sales] Custom mode - data already loaded');
+      displayCurrentPage();
+      return;
+    }
     
     // Both full and condensed views now use server-side pagination (100 records at a time)
     const offset = currentPage * pageSize;
@@ -413,7 +501,7 @@ function displayCurrentPage() {
   
   // Check if data is loaded
   if (!allData || allData.length === 0) {
-    const colSpan = viewMode === 'condensed' ? '4' : '14';
+    const colSpan = viewMode === 'condensed' || viewMode === 'custom' ? '4' : '14';
     tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem;">No data available</td></tr>`;
     if (pageInfo) {
       pageInfo.textContent = 'No data loaded';
@@ -430,20 +518,37 @@ function displayCurrentPage() {
   console.log(`[FR Sales] Server-side pagination - Page ${currentPage + 1} of ${totalPages} (showing ${allData.length} of ${totalRecords} total)`);
   
   // Display the data
-  if (viewMode === 'condensed') {
+  if (viewMode === 'condensed' || viewMode === 'custom') {
     displayCondensedData(pageData);
   } else {
     displaySalesData(pageData);
   }
   
+  // Show/hide export PDF button based on view mode
+  const exportPdfBtn = document.getElementById('exportPdfBtn');
+  if (exportPdfBtn) {
+    if (viewMode === 'condensed' || viewMode === 'custom') {
+      exportPdfBtn.style.display = '';
+    } else {
+      exportPdfBtn.style.display = 'none';
+    }
+  }
+  
   // Update pagination info
   if (pageInfo) {
-    const viewLabel = viewMode === 'condensed' ? 'Condensed (6-Month)' : 'Full Sales';
+    let viewLabel;
+    if (viewMode === 'custom') {
+      viewLabel = `Custom Range (${customRangeLabel})`;
+    } else if (viewMode === 'condensed') {
+      viewLabel = 'Condensed (6-Month)';
+    } else {
+      viewLabel = 'Full Sales';
+    }
     const searchLabel = currentSearch ? ` (search: "${currentSearch}")` : '';
     
     if (isSearchMode) {
       pageInfo.textContent = `${viewLabel}${searchLabel} - Page ${currentPage + 1} of ${totalPages} (${totalRecords} matching records)`;
-    } else if (viewMode === 'condensed') {
+    } else if (viewMode === 'condensed' || viewMode === 'custom') {
       pageInfo.textContent = `${viewLabel} - Page ${currentPage + 1} of ${totalPages} (${totalRecords} total SKUs)`;
     } else {
       pageInfo.textContent = `${viewLabel} - Page ${currentPage + 1} of ${totalPages} (${totalRecords} total records)`;
@@ -536,10 +641,11 @@ function displayCondensedData(data) {
   
   // Update table headers for condensed view
   if (thead) {
+    const headerLabel = viewMode === 'custom' ? customRangeLabel : '6 Months';
     thead.innerHTML = `
       <th>SKU</th>
       <th>Product Name</th>
-      <th>Total Quantity (6 Months)</th>
+      <th>Total Quantity (${headerLabel})</th>
       <th>Last Updated</th>
     `;
   }
@@ -614,6 +720,33 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+/**
+ * Handle PDF export
+ */
+async function handleExportPDF() {
+  if (viewMode !== 'condensed' && viewMode !== 'custom') {
+    showToast('PDF export is only available for condensed and custom range views', 'warning');
+    return;
+  }
+  
+  if (!allData || allData.length === 0) {
+    showToast('No data to export', 'warning');
+    return;
+  }
+  
+  try {
+    showToast('Generating PDF...', 'info');
+    
+    const viewLabel = viewMode === 'custom' ? customRangeLabel : '6-Month';
+    await exportToPDF(allData, 'fr', viewLabel, currentSearch);
+    
+    showToast('PDF exported successfully!', 'success');
+  } catch (error) {
+    console.error('Error exporting PDF:', error);
+    showToast(`Failed to export PDF: ${error.message}`, 'error');
+  }
 }
 
 /**

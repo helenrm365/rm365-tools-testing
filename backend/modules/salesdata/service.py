@@ -246,6 +246,38 @@ class SalesDataService:
                 "message": f"Failed to refresh condensed data: {str(e)}"
             }
     
+    def get_condensed_data_custom_range(self, region: str, range_type: str, range_value: str, 
+                                       use_exclusions: bool, limit: int = 100, offset: int = 0, 
+                                       search: str = "") -> Dict[str, Any]:
+        """Get condensed sales data with custom date range"""
+        try:
+            result = self.repo.get_condensed_data_custom_range(
+                region, range_type, range_value, use_exclusions, limit, offset, search
+            )
+            return {
+                "status": "success",
+                "region": region,
+                "range_type": range_type,
+                "range_value": range_value,
+                **result
+            }
+        except ValueError as e:
+            logger.error(f"Invalid parameters: {e}")
+            return {
+                "status": "error",
+                "message": str(e),
+                "data": [],
+                "total_count": 0
+            }
+        except Exception as e:
+            logger.error(f"Error getting custom range data for {region}: {e}")
+            return {
+                "status": "error",
+                "message": f"Failed to get custom range data: {str(e)}",
+                "data": [],
+                "total_count": 0
+            }
+    
     def create_md_variant_aliases(self) -> Dict[str, Any]:
         """Manually trigger MD variant alias creation"""
         try:

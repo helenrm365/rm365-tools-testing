@@ -140,7 +140,7 @@ function createFiltersModal(region) {
                     <p class="filter-section-description">
                         Orders with a grand total above this amount will be excluded from 6-month condensed sales.
                         <strong>All currencies are automatically converted</strong> to ${region === 'uk' ? 'GBP (£)' : 'EUR (€)'} at current exchange rates for comparison.
-                        <span id="currency-conversion-info-${region}" style="display: block; margin-top: 0.5rem; font-size: 0.9em; color: #3498db;">
+                        <span id="currency-conversion-info-${region}" style="display: block; margin-top: 0.5rem; font-size: 0.9em; color: var(--accent-color);">
                             <i class="fas fa-sync fa-spin"></i> Loading exchange rates...
                         </span>
                     </p>
@@ -322,8 +322,8 @@ function showConfirmDialog(message) {
         // Create dialog
         const dialog = document.createElement('div');
         dialog.style.cssText = `
-            background: var(--surface-color, #1e1e1e);
-            border: 1px solid var(--border-color, #333);
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
             border-radius: 12px;
             padding: 24px;
             max-width: 400px;
@@ -333,10 +333,10 @@ function showConfirmDialog(message) {
         
         dialog.innerHTML = `
             <div style="margin-bottom: 20px;">
-                <div style="font-size: 1.25rem; font-weight: 600; color: var(--text-primary, #fff); margin-bottom: 12px;">
+                <div style="font-size: 1.25rem; font-weight: 600; color: var(--text-primary); margin-bottom: 12px;">
                     Confirm Filter Changes
                 </div>
-                <div style="color: var(--text-secondary, #999); line-height: 1.5;">
+                <div style="color: var(--text-secondary); line-height: 1.5;">
                     ${message}
                 </div>
             </div>
@@ -344,16 +344,16 @@ function showConfirmDialog(message) {
                 <button id="confirm-cancel" style="
                     padding: 10px 20px;
                     background: transparent;
-                    border: 1px solid var(--border-color, #333);
+                    border: 1px solid var(--border-color);
                     border-radius: 6px;
-                    color: var(--text-primary, #fff);
+                    color: var(--text-primary);
                     cursor: pointer;
                     font-size: 0.9375rem;
                     transition: all 0.2s;
                 ">Cancel</button>
                 <button id="confirm-ok" style="
                     padding: 10px 20px;
-                    background: var(--accent-color, #0078d4);
+                    background: var(--accent-color);
                     border: none;
                     border-radius: 6px;
                     color: white;
@@ -373,17 +373,17 @@ function showConfirmDialog(message) {
         const okBtn = dialog.querySelector('#confirm-ok');
         
         cancelBtn.addEventListener('mouseenter', () => {
-            cancelBtn.style.background = 'var(--hover-bg, #2a2a2a)';
+            cancelBtn.style.background = 'var(--hover-bg)';
         });
         cancelBtn.addEventListener('mouseleave', () => {
             cancelBtn.style.background = 'transparent';
         });
         
         okBtn.addEventListener('mouseenter', () => {
-            okBtn.style.background = 'var(--accent-hover, #106ebe)';
+            okBtn.style.background = 'var(--primary-hover)';
         });
         okBtn.addEventListener('mouseleave', () => {
-            okBtn.style.background = 'var(--accent-color, #0078d4)';
+            okBtn.style.background = 'var(--accent-color)';
         });
         
         // Handle buttons
@@ -1208,5 +1208,281 @@ function updateConversionDisplay(region, value) {
     infoElement.innerHTML = conversionHtml;
     infoElement.style.color = '#27ae60';
 }
+
+// Add helper functions to window for the inline handlers
+window.updateRangeInputs = function(radio) {
+    const daysInput = document.getElementById('rangeDays');
+    const monthsInput = document.getElementById('rangeMonths');
+    const sinceInput = document.getElementById('rangeSince');
+    
+    if (!daysInput || !monthsInput || !sinceInput) return;
+    
+    daysInput.disabled = true;
+    monthsInput.disabled = true;
+    sinceInput.disabled = true;
+    
+    daysInput.style.opacity = '0.5';
+    monthsInput.style.opacity = '0.5';
+    sinceInput.style.opacity = '0.5';
+    
+    if (radio.value === 'days') {
+        daysInput.disabled = false;
+        daysInput.style.opacity = '1';
+        daysInput.focus();
+    } else if (radio.value === 'months') {
+        monthsInput.disabled = false;
+        monthsInput.style.opacity = '1';
+        monthsInput.focus();
+    } else if (radio.value === 'since') {
+        sinceInput.disabled = false;
+        sinceInput.style.opacity = '1';
+        sinceInput.focus();
+    }
+};
+
+window.runCustomAnalysis = async function(region) {
+    const rangeType = document.querySelector('input[name="rangeType"]:checked').value;
+    const useExclusions = document.getElementById('useExclusions').checked;
+    let rangeValue;
+    
+    if (rangeType === 'days') {
+        rangeValue = document.getElementById('rangeDays').value;
+    } else if (rangeType === 'months') {
+        rangeValue = document.getElementById('rangeMonths').value;
+    } else if (rangeType === 'since') {
+        rangeValue = document.getElementById('rangeSince').value;
+    }
+    
+    if (!rangeValue) {
+        alert('Please enter a valid range value');
+        return;
+    }
+    
+    console.log('Running custom analysis:', { region, rangeType, rangeValue, useExclusions });
+    
+    // Close modal
+    const overlay = document.querySelector('.filters-modal-overlay');
+    if (overlay) overlay.remove();
+    
+    // Show loading toast
+    const { showToast } = await import('../../ui/toast.js');
+    showToast(`Loading custom range data...`, 'info');
+    
+    try {
+        // Call the custom range API
+        const { getCustomRangeCondensedData } = await import('../../services/api/salesDataApi.js');
+        const response = await getCustomRangeCondensedData(region, rangeType, rangeValue, useExclusions, 1000, 0, '');
+        
+        if (response.status === 'success' && response.data) {
+            // Store the custom range parameters globally
+            window.customRangeActive = {
+                region,
+                rangeType,
+                rangeValue,
+                useExclusions
+            };
+            
+            // Dispatch event to notify the page to switch to custom range view
+            const rangeLabel = rangeType === 'days' ? `Last ${rangeValue} Days` :
+                              rangeType === 'months' ? `Last ${rangeValue} Months` :
+                              `Since ${rangeValue}`;
+            
+            window.dispatchEvent(new CustomEvent('customRangeApplied', {
+                detail: {
+                    region,
+                    rangeType,
+                    rangeValue,
+                    useExclusions,
+                    rangeLabel,
+                    data: response.data,
+                    totalCount: response.total_count
+                }
+            }));
+            
+            showToast(`Custom range applied: ${rangeLabel}`, 'success');
+        } else {
+            showToast(`Error: ${response.message || 'Failed to load custom range data'}`, 'error');
+        }
+    } catch (error) {
+        console.error('Error running custom analysis:', error);
+        showToast(`Error: ${error.message}`, 'error');
+    }
+};
+
+/**
+ * Show the custom range modal for a specific region
+ */
+export function showCustomRangeModal(region) {
+    console.log('[Filters] showCustomRangeModal called for', region);
+    
+    // Remove any existing modal first
+    const existingModal = document.querySelector('.filters-modal-overlay');
+    if (existingModal) {
+        console.log('[Filters] Removing existing modal');
+        existingModal.remove();
+    }
+    
+    const modal = createCustomRangeModal(region);
+    console.log('[Filters] Modal created:', modal);
+    console.log('[Filters] Appending modal to body');
+    document.body.appendChild(modal);
+    console.log('[Filters] Modal appended, should be visible now');
+    console.log('[Filters] Modal in DOM:', document.body.contains(modal));
+    console.log('[Filters] Modal classes:', modal.className);
+    console.log('[Filters] Modal style:', window.getComputedStyle(modal).display);
+}
+
+function createCustomRangeModal(region) {
+    const overlay = document.createElement('div');
+    overlay.className = 'filters-modal-overlay';
+    
+    overlay.innerHTML = `
+        <div class="filters-modal" onclick="event.stopPropagation()" style="max-width: 500px;">
+            <div class="filters-modal-header">
+                <h2><i class="fas fa-calendar-day"></i> Custom Range Analysis - ${region.toUpperCase()}</h2>
+                <button class="filters-modal-close" onclick="this.closest('.filters-modal-overlay').remove()">
+                    ✕
+                </button>
+            </div>
+            
+            <div class="filters-modal-body">
+                <div class="filter-section">
+                    <div class="filter-section-header">
+                        <span class="filter-section-icon">📅</span>
+                        <h3 class="filter-section-title">Select Time Range</h3>
+                    </div>
+                    
+                    <div style="display: flex; flex-direction: column; gap: 16px; margin-top: 16px;">
+                        <!-- Last X Days -->
+                        <label style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
+                            <input type="radio" name="rangeType" value="days" checked onchange="updateRangeInputs(this)">
+                            <span style="color: var(--text-primary);">Last</span>
+                            <input type="number" id="rangeDays" value="30" min="1" style="width: 80px; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-primary);">
+                            <span style="color: var(--text-primary);">Days</span>
+                        </label>
+                        
+                        <!-- Last X Months -->
+                        <label style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
+                            <input type="radio" name="rangeType" value="months" onchange="updateRangeInputs(this)">
+                            <span style="color: var(--text-primary);">Last</span>
+                            <input type="number" id="rangeMonths" value="6" min="1" disabled style="width: 80px; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-primary); opacity: 0.5;">
+                            <span style="color: var(--text-primary);">Months</span>
+                        </label>
+                        
+                        <!-- Since Date -->
+                        <label style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
+                            <input type="radio" name="rangeType" value="since" onchange="updateRangeInputs(this)">
+                            <span style="color: var(--text-primary);">Since</span>
+                            <input type="date" id="rangeSince" disabled style="padding: 8px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-primary); opacity: 0.5;">
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="filter-section" style="margin-top: 24px; border-top: 1px solid var(--border-color); padding-top: 24px;">
+                    <div class="filter-section-header">
+                        <span class="filter-section-icon">🛡️</span>
+                        <h3 class="filter-section-title">Exclusions</h3>
+                    </div>
+                    
+                    <label style="display: flex; align-items: center; gap: 12px; cursor: pointer; margin-top: 12px;">
+                        <input type="checkbox" id="useExclusions" checked style="width: 18px; height: 18px;">
+                        <span style="color: var(--text-primary);">Apply configured customer & group exclusions</span>
+                    </label>
+                    <p class="filter-section-description" style="margin-top: 8px; margin-left: 30px;">
+                        If checked, customers and groups in the exclusion list will be filtered out.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="filters-modal-footer">
+                <button class="filters-cancel-btn" onclick="this.closest('.filters-modal-overlay').remove()">Cancel</button>
+                <button class="filters-apply-btn" onclick="runCustomAnalysis('${region}')">
+                    <i class="fas fa-play"></i> Run Analysis
+                </button>
+            </div>
+        </div>
+    `;
+    
+    // Close on overlay click
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+            overlay.remove();
+        }
+    });
+    
+    return overlay;
+}
+
+/**
+ * Show custom range results in a modal
+ */
+function showCustomRangeResults(results) {
+    const { region, rangeType, rangeValue, data, totalCount } = results;
+    
+    const rangeLabel = rangeType === 'days' ? `Last ${rangeValue} Days` :
+                      rangeType === 'months' ? `Last ${rangeValue} Months` :
+                      `Since ${rangeValue}`;
+    
+    const overlay = document.createElement('div');
+    overlay.className = 'filters-modal-overlay';
+    
+    // Create table rows
+    const tableRows = data.map((item, index) => `
+        <tr>
+            <td>${index + 1}</td>
+            <td>${item.sku || 'N/A'}</td>
+            <td>${item.name || 'N/A'}</td>
+            <td>${item.total_qty || 0}</td>
+        </tr>
+    `).join('');
+    
+    overlay.innerHTML = `
+        <div class="filters-modal" onclick="event.stopPropagation()" style="max-width: 900px; max-height: 80vh;">
+            <div class="filters-modal-header">
+                <h2><i class="fas fa-chart-line"></i> Custom Range Analysis Results - ${region.toUpperCase()}</h2>
+                <button class="filters-modal-close" onclick="this.closest('.filters-modal-overlay').remove()">
+                    ✕
+                </button>
+            </div>
+            
+            <div class="filters-modal-body" style="max-height: 60vh; overflow-y: auto;">
+                <div style="margin-bottom: 20px; padding: 16px; background: var(--input-bg); border-radius: 8px; border: 1px solid var(--border-color);">
+                    <h3 style="margin: 0 0 8px 0; color: var(--text-primary);">
+                        <i class="fas fa-info-circle"></i> Analysis Details
+                    </h3>
+                    <p style="margin: 4px 0; color: var(--text-secondary);">
+                        <strong>Range:</strong> ${rangeLabel}<br>
+                        <strong>Total SKUs:</strong> ${totalCount}<br>
+                        <strong>Showing:</strong> Top ${data.length} results
+                    </p>
+                </div>
+                
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; color: var(--text-primary);">
+                        <thead>
+                            <tr style="background: var(--input-bg); border-bottom: 2px solid var(--border-color);">
+                                <th style="padding: 12px; text-align: left; font-weight: 600;">#</th>
+                                <th style="padding: 12px; text-align: left; font-weight: 600;">SKU</th>
+                                <th style="padding: 12px; text-align: left; font-weight: 600;">Name</th>
+                                <th style="padding: 12px; text-align: left; font-weight: 600;">Total Qty</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${tableRows || '<tr><td colspan="4" style="padding: 20px; text-align: center;">No data found</td></tr>'}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="filters-modal-footer">
+                <button class="filters-cancel-btn" onclick="this.closest('.filters-modal-overlay').remove()">Close</button>
+            </div>
+        </div>
+    `;
+    
+    overlay.addEventListener('click', () => overlay.remove());
+    document.body.appendChild(overlay);
+}
+
 
 

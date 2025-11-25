@@ -12,6 +12,24 @@
     --input-height: 44px;
     --input-padding-y: 0.75rem;
     --input-padding-x: 1rem;
+
+    /* Theme Colors - Light Mode */
+    --surface-color: #ffffff;
+    --border-color: #e0e0e0;
+    --text-primary: #333333;
+    --text-secondary: #666666;
+    --text-tertiary: #999999;
+    --input-bg: #ffffff;
+    --hover-bg: rgba(0, 0, 0, 0.05);
+    --close-hover-bg: rgba(0, 0, 0, 0.1);
+    
+    /* Shared Colors */
+    --accent-color: #0078d4;
+    --primary-color: #2196f3;
+    --primary-hover: #1976d2;
+    --danger-color: #f44336;
+    --success-color: #4caf50;
+    --warning-color: #ff9800;
 }
 
 html.dark-mode {
@@ -24,4 +42,14 @@ html.dark-mode {
     --input-border: rgba(255,255,255,.14);
     --menu-bg: rgba(22,22,26,.95);
     --focus: #8fb0ff;
+
+    /* Theme Colors - Dark Mode */
+    --surface-color: #1e1e1e;
+    --border-color: #333333;
+    --text-primary: #ffffff;
+    --text-secondary: #999999;
+    --text-tertiary: #666666;
+    --input-bg: #2a2a2a;
+    --hover-bg: rgba(255, 255, 255, 0.05);
+    --close-hover-bg: rgba(255, 255, 255, 0.1);
 }

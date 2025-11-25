@@ -248,6 +248,18 @@ export async function getNLCondensedData(limit = 100, offset = 0, search = '') {
   return await get(`${API}/nl/condensed?${params.toString()}`);
 }
 
+export async function getCustomRangeCondensedData(region, rangeType, rangeValue, useExclusions, limit = 100, offset = 0, search = '') {
+  const params = new URLSearchParams({
+    range_type: rangeType,
+    range_value: rangeValue,
+    use_exclusions: useExclusions.toString(),
+    limit: limit.toString(),
+    offset: offset.toString(),
+    search: search
+  });
+  return await get(`${API}/${region}/condensed/custom-range?${params.toString()}`);
+}
+
 // Import History operations
 export async function getImportHistory(limit = 100, offset = 0, region = null) {
   const params = new URLSearchParams({
