@@ -13,6 +13,26 @@
             <p class="subtitle">Monitor and manage all pick & pack sessions</p>
         </div>
 
+        <!-- Navigation Tabs -->
+        <div class="inner-tabs">
+            <button class="tab-button" onclick="location.href='/inventory/management'">
+                <i class="fas fa-boxes"></i>
+                <span>Management</span>
+            </button>
+            <button class="tab-button" onclick="location.href='/inventory/adjustments'">
+                <i class="fas fa-sliders-h"></i>
+                <span>Adjustments</span>
+            </button>
+            <button class="tab-button" onclick="location.href='/inventory/magento'">
+                <i class="fas fa-shopping-cart"></i>
+                <span>Pick & Pack</span>
+            </button>
+            <button class="tab-button active" onclick="location.href='/inventory/order-progress'">
+                <i class="fas fa-chart-line"></i>
+                <span>Order Progress</span>
+            </button>
+        </div>
+
         <div class="dashboard-controls">
             <div class="filter-controls">
                 <label>
@@ -21,7 +41,7 @@
                 </label>
                 
                 <button class="btn btn-refresh" id="refreshBtn">
-                    <span class="icon">🔄</span> Refresh
+                    <i class="fas fa-sync-alt"></i> Refresh
                 </button>
             </div>
 

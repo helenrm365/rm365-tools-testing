@@ -403,18 +403,28 @@ function wireToolbar() {
     return;
   }
   
+  // Prevent duplicate search inputs
+  if (searchContainer.querySelector('input[placeholder="Search users..."]')) {
+    return;
+  }
+  
   const searchInput = document.createElement('input');
   searchInput.type = 'text';
   searchInput.placeholder = 'Search users...';
   searchInput.className = 'modern-input';
   searchInput.style.marginLeft = 'auto';
   searchInput.style.width = '200px';
-  searchContainer.appendChild(searchInput);
+  
+  try {
+    searchContainer.appendChild(searchInput);
 
-  searchInput.addEventListener('input', (e) => {
-    state.query = e.target.value;
-    renderTable();
-  });
+    searchInput.addEventListener('input', (e) => {
+      state.query = e.target.value;
+      renderTable();
+    });
+  } catch (e) {
+    console.error('[User Management] Failed to append search input:', e);
+  }
 }
 
 function updateBulkDeleteButton() {

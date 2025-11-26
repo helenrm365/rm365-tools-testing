@@ -88,10 +88,24 @@ html.dark-mode .magento-pickpack .inner-tabs {
   transform: translateY(-1px);
 }
 
+.magento-pickpack .tab-button.active:hover {
+  box-shadow: 0 4px 12px rgba(139, 195, 74, 0.4);
+}
+
 html.dark-mode .magento-pickpack .tab-button {
   background: linear-gradient(135deg, #1e1e1e, #2a2a2a);
   color: #d1d5db;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+html.dark-mode .magento-pickpack .tab-button.active {
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
+  color: white;
+  box-shadow: 0 3px 10px rgba(139, 195, 74, 0.3);
+}
+
+html.dark-mode .magento-pickpack .tab-button.active:hover {
+  box-shadow: 0 4px 12px rgba(139, 195, 74, 0.4);
 }
 
 /* ===== Main Wrapper ===== */

@@ -151,8 +151,8 @@ function renderSessionCard(session) {
                 </div>
                 <div class="session-status">
                     <span class="status-badge ${session.status}">${session.status.replace('_', ' ')}</span>
-                    ${session.current_owner ? `<div class="session-owner">👤 ${session.current_owner}</div>` : ''}
-                    ${session.created_by ? `<div class="session-owner">Created by: ${session.created_by}</div>` : ''}
+                    ${session.current_owner ? `<div class="session-owner"><i class="fas fa-user"></i> ${session.current_owner}</div>` : ''}
+                    ${session.created_by ? `<div class="session-owner"><i class="fas fa-user-plus"></i> Created by: ${session.created_by}</div>` : ''}
                 </div>
             </div>
             
