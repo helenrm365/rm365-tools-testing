@@ -398,6 +398,11 @@ function wireToolbar() {
 
   // Search functionality
   const searchContainer = $('.toolbar');
+  if (!searchContainer) {
+    console.warn('[User Management] Toolbar element not found - skipping search input');
+    return;
+  }
+  
   const searchInput = document.createElement('input');
   searchInput.type = 'text';
   searchInput.placeholder = 'Search users...';

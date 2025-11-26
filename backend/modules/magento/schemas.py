@@ -77,3 +77,72 @@ class CompleteSessionSchema(BaseModel):
     """Schema to complete a session"""
     session_id: str
     force_complete: bool = False  # Allow completing even if not all items scanned
+
+
+class SessionOwnershipSchema(BaseModel):
+    """Session ownership information"""
+    session_id: str
+    current_owner: Optional[str] = None
+    created_by: Optional[str] = None
+    status: str  # draft, in_progress, completed, cancelled
+    can_access: bool
+    can_take_over: bool
+    message: Optional[str] = None
+
+
+class TakeoverRequestSchema(BaseModel):
+    """Request to take over a session"""
+    session_id: str
+
+
+class TakeoverResponseSchema(BaseModel):
+    """Response to takeover request"""
+    request_id: str
+    accept: bool  # True to accept, False to decline
+
+
+class SessionUserSchema(BaseModel):
+    """Active user in a session context"""
+    username: str
+    session_id: Optional[str] = None
+    is_online: bool = True
+    last_seen: datetime = Field(default_factory=datetime.now)
+
+
+class SessionAuditLogSchema(BaseModel):
+    """Audit log entry for session actions"""
+    timestamp: datetime
+    action: str  # started, drafted, cancelled, completed, claimed, transferred, forced_takeover
+    user: str
+    details: Optional[str] = None
+
+
+class DashboardSessionSchema(BaseModel):
+    """Session information for dashboard view"""
+    session_id: str
+    order_number: str
+    invoice_number: str
+    status: str  # draft, in_progress, completed, cancelled
+    session_type: str
+    current_owner: Optional[str] = None
+    created_by: str
+    created_at: datetime
+    last_modified_by: Optional[str] = None
+    last_modified_at: Optional[datetime] = None
+    progress_percentage: float
+    items_expected: int
+    items_scanned: int
+    audit_logs: List[SessionAuditLogSchema] = []
+
+
+class ForceAssignSchema(BaseModel):
+    """Force assign a session to another user"""
+    session_id: str
+    target_user_id: str
+
+
+class ForceCancelSchema(BaseModel):
+    """Force cancel a session"""
+    session_id: str
+    reason: Optional[str] = None
+

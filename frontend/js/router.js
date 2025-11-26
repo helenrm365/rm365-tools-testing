@@ -32,6 +32,7 @@ const routes = {
   '/inventory/management':  '/html/inventory/management.html',
   '/inventory/adjustments': '/html/inventory/adjustments.html',
   '/inventory/magento':     '/html/inventory/magento.html',
+  '/inventory/order-progress': '/html/inventory/order-progress.html',
   
   '/usermanagement':            '/html/usermanagement/home.html',
   '/usermanagement/management': '/html/usermanagement/management.html',
@@ -75,7 +76,8 @@ export function generateTabStructure() {
     'upload': 'Upload',
     // Inventory
     'adjustments': 'Adjustments',
-    'magento': 'Pick & Pack'
+    'magento': 'Pick & Pack',
+    'order-progress': 'Order Progress'
   };
   
   console.log('[generateTabStructure] Starting with routes:', routes);

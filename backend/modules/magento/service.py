@@ -49,16 +49,54 @@ class MagentoService:
     def start_session(self, request: StartSessionSchema, user_id: Optional[str] = None) -> SessionStatusSchema:
         """
         Start a new pick/pack or return session
+        First checks if there's an existing session for this order and returns appropriate response
         """
-        # Lookup the invoice
+        # Lookup the invoice first
         invoice = self.lookup_invoice(request.order_number)
         
         if not invoice:
             raise ValueError(f"No invoice found for order number: {request.order_number}")
         
-        print(f"[MagentoService] Starting session with invoice:")
+        print(f"[MagentoService] Checking for existing sessions for invoice {invoice.invoice_number}")
+        
+        # Check for any existing session for this invoice (any status)
+        existing_session = self._get_any_session_for_invoice(invoice.invoice_number)
+        
+        if existing_session:
+            print(f"  Found existing session: {existing_session.session_id} (status: {existing_session.status})")
+            
+            if existing_session.status == "completed":
+                # Block completely - order already completed
+                raise ValueError(
+                    f"Order #{invoice.order_increment_id} is already completed by {existing_session.user_id or existing_session.created_by}. "
+                    "Cannot start a new session."
+                )
+            
+            elif existing_session.status == "in_progress":
+                # In progress by another user - cannot start
+                owner = existing_session.user_id or "Unknown"
+                raise ValueError(
+                    f"Order #{invoice.order_increment_id} is currently in progress by {owner}. "
+                    "You cannot start a new session while it's being processed."
+                )
+            
+            elif existing_session.status == "draft":
+                # Draft exists - warn user but they can take over by claiming
+                created_by = existing_session.created_by or existing_session.last_modified_by or "Unknown"
+                raise ValueError(
+                    f"Order #{invoice.order_increment_id} has a draft session started by {created_by}. "
+                    "Use the claim endpoint to take over this draft session, or cancel it first to start fresh."
+                )
+            
+            elif existing_session.status == "cancelled":
+                # Cancelled - warn user but allow to continue
+                cancelled_by = existing_session.last_modified_by or existing_session.created_by or "Unknown"
+                print(f"  Warning: Previous session was cancelled by {cancelled_by}, allowing new session")
+                # Continue to create new session
+        
+        print(f"[MagentoService] Starting new session for invoice:")
         print(f"  Invoice number: {invoice.invoice_number}")
-        print(f"  Order number: {invoice.order_number}")
+        print(f"  Order number: {invoice.order_increment_id}")
         print(f"  Items: {len(invoice.items)}")
         
         # Prepare expected items
@@ -74,19 +112,39 @@ class MagentoService:
         
         print(f"  Expected items prepared: {len(items_expected)}")
         
-        # Create session
+        # Create session - starts in_progress and locked to user
         session = self.repo.create_session(
             invoice_id=invoice.invoice_number,
-            order_number=invoice.order_number,
+            order_number=invoice.order_increment_id,
             session_type=request.session_type,
             items_expected=items_expected,
             user_id=user_id
         )
         
-        print(f"  Session created: {session.session_id}")
+        # Immediately claim it for the user
+        if user_id:
+            self.repo.claim_session(session.session_id, user_id)
+        
+        print(f"  Session created: {session.session_id} (status: in_progress, owner: {user_id})")
         
         # Convert to status schema
         return self._session_to_status(session, invoice)
+    
+    def _get_any_session_for_invoice(self, invoice_id: str) -> Optional:
+        """Get the most recent session for an invoice, regardless of status"""
+        from .models import ScanSession
+        sessions = [
+            s for s in self.repo._sessions.values()
+            if s.invoice_id == invoice_id
+        ]
+        
+        if not sessions:
+            return None
+        
+        # Sort by started_at descending to get most recent
+        sessions.sort(key=lambda s: s.started_at, reverse=True)
+        return sessions[0]
+
     
     def scan_product(self, request: ScanRequestSchema) -> ScanResultSchema:
         """
@@ -228,8 +286,23 @@ class MagentoService:
         return self.repo.cancel_session(session_id)
     
     def get_active_sessions(self, user_id: Optional[str] = None) -> List[SessionStatusSchema]:
-        """Get all active sessions"""
+        """Get all active (in_progress) sessions"""
         sessions = self.repo.get_active_sessions(user_id)
+        
+        result = []
+        for session in sessions:
+            try:
+                invoice = self.lookup_invoice(session.order_number)
+                if invoice:
+                    result.append(self._session_to_status(session, invoice))
+            except:
+                pass  # Skip sessions we can't look up
+        
+        return result
+    
+    def get_draft_sessions(self) -> List[SessionStatusSchema]:
+        """Get all draft sessions available to claim"""
+        sessions = self.repo.get_draft_sessions()
         
         result = []
         for session in sessions:
@@ -457,3 +530,253 @@ class MagentoService:
         except Exception as e:
             print(f"[MagentoService] Error deducting inventory: {e}")
             raise
+    
+    # Collaborative session management methods
+    
+    def check_session_access(self, session_id: str, user_id: str):
+        """Check if user can access a session and return ownership info"""
+        from .schemas import SessionOwnershipSchema
+        
+        session = self.repo.get_session(session_id)
+        if not session:
+            return SessionOwnershipSchema(
+                session_id=session_id,
+                status="not_found",
+                can_access=False,
+                can_take_over=False,
+                message="Session not found"
+            )
+        
+        can_access, message = self.repo.can_access_session(session_id, user_id)
+        
+        return SessionOwnershipSchema(
+            session_id=session_id,
+            current_owner=session.user_id,
+            created_by=session.created_by,
+            status=session.status,
+            can_access=can_access,
+            can_take_over=(session.status == "in_progress" and session.user_id != user_id),
+            message=message
+        )
+    
+    def claim_session(self, session_id: str, user_id: str) -> bool:
+        """Claim a draft session"""
+        return self.repo.claim_session(session_id, user_id)
+    
+    def release_session(self, session_id: str) -> bool:
+        """Release a session back to draft"""
+        return self.repo.release_session(session_id)
+    
+    def request_takeover(self, session_id: str, user_id: str):
+        """Request to take over an in-progress session"""
+        request = self.repo.create_takeover_request(session_id, user_id)
+        if not request:
+            raise ValueError("Cannot create takeover request for this session")
+        
+        # Send WebSocket notification to current owner
+        self._send_takeover_notification(request, 'requested')
+        return request
+    
+    def respond_to_takeover(self, request_id: str, accept: bool, user_id: str):
+        """Respond to a takeover request"""
+        request = self.repo.get_takeover_request(request_id)
+        if not request:
+            raise ValueError("Takeover request not found")
+        
+        if request.current_owner != user_id:
+            raise ValueError("You are not the owner of this session")
+        
+        updated_request = self.repo.respond_to_takeover_request(request_id, accept)
+        
+        # Send WebSocket notification to requester
+        self._send_takeover_notification(updated_request, 'accepted' if accept else 'declined')
+        return updated_request
+    
+    def get_pending_requests(self, user_id: str):
+        """Get all pending takeover requests for user's sessions"""
+        return self.repo.get_pending_takeover_requests(user_id)
+    
+    def _send_takeover_notification(self, request, action: str):
+        """Send WebSocket notification for takeover request"""
+        try:
+            from core.websocket import sio
+            import asyncio
+            
+            if action == 'requested':
+                # Notify current owner
+                asyncio.create_task(
+                    sio.emit('takeover_request', {
+                        'request_id': request.request_id,
+                        'session_id': request.session_id,
+                        'requested_by': request.requested_by,
+                        'message': f"{request.requested_by} wants to take over your session"
+                    }, room=request.current_owner)
+                )
+            elif action in ['accepted', 'declined']:
+                # Notify requester
+                asyncio.create_task(
+                    sio.emit('takeover_response', {
+                        'request_id': request.request_id,
+                        'session_id': request.session_id,
+                        'status': action,
+                        'message': f"Your takeover request was {action}"
+                    }, room=request.requested_by)
+                )
+                
+                if action == 'accepted':
+                    # Also notify old owner they've been transferred out
+                    asyncio.create_task(
+                        sio.emit('session_transferred', {
+                            'session_id': request.session_id,
+                            'transferred_to': request.requested_by,
+                            'message': f"Session transferred to {request.requested_by}"
+                        }, room=request.current_owner)
+                    )
+        except Exception as e:
+            print(f"[MagentoService] Failed to send WebSocket notification: {e}")
+            # Don't fail the operation if WebSocket fails
+    
+    # Dashboard methods
+    
+    def get_all_sessions_for_dashboard(self, include_completed: bool = False) -> List:
+        """Get all sessions for dashboard view with full details"""
+        from .schemas import DashboardSessionSchema, SessionAuditLogSchema
+        
+        sessions = []
+        
+        # Get all sessions based on filters
+        for session in self.repo._sessions.values():
+            # Skip completed/cancelled unless explicitly requested
+            if not include_completed and session.status in ["completed", "cancelled"]:
+                # Only include recently completed/cancelled (last 24 hours)
+                if session.completed_at:
+                    hours_ago = (datetime.now() - session.completed_at).total_seconds() / 3600
+                    if hours_ago > 24:
+                        continue
+            
+            # Calculate progress
+            items_expected = len(session.items_expected)
+            items_scanned = len([item for item in session.items_scanned if item.get('qty_scanned', 0) > 0])
+            progress = (items_scanned / items_expected * 100) if items_expected > 0 else 0
+            
+            # Convert audit logs
+            audit_logs = []
+            for log_entry in session.audit_logs:
+                if isinstance(log_entry, dict):
+                    audit_logs.append(SessionAuditLogSchema(
+                        timestamp=datetime.fromisoformat(log_entry['timestamp']) if isinstance(log_entry['timestamp'], str) else log_entry['timestamp'],
+                        action=log_entry['action'],
+                        user=log_entry['user'],
+                        details=log_entry.get('details')
+                    ))
+            
+            dashboard_session = DashboardSessionSchema(
+                session_id=session.session_id,
+                order_number=session.order_number,
+                invoice_number=session.invoice_id,
+                status=session.status,
+                session_type=session.session_type,
+                current_owner=session.user_id,
+                created_by=session.created_by or "Unknown",
+                created_at=session.started_at,
+                last_modified_by=session.last_modified_by,
+                last_modified_at=session.last_modified_at,
+                progress_percentage=round(progress, 1),
+                items_expected=items_expected,
+                items_scanned=items_scanned,
+                audit_logs=audit_logs
+            )
+            
+            sessions.append(dashboard_session)
+        
+        # Sort by last modified (most recent first)
+        sessions.sort(key=lambda s: s.last_modified_at or s.created_at, reverse=True)
+        
+        return sessions
+    
+    def force_cancel_session(self, session_id: str, admin_user_id: str, reason: Optional[str] = None) -> bool:
+        """Admin force cancel a session"""
+        session = self.repo.get_session(session_id)
+        if not session:
+            return False
+        
+        previous_owner = session.user_id
+        
+        # Cancel the session
+        success = self.repo.cancel_session(session_id, user_id=admin_user_id)
+        
+        if success and previous_owner:
+            # Send WebSocket notification to the user who was working on it
+            try:
+                from core.websocket import sio
+                import asyncio
+                
+                message = f"Your session was cancelled by administrator {admin_user_id}"
+                if reason:
+                    message += f": {reason}"
+                
+                asyncio.create_task(
+                    sio.emit('session_forced_cancel', {
+                        'session_id': session_id,
+                        'cancelled_by': admin_user_id,
+                        'reason': reason,
+                        'message': message
+                    }, room=previous_owner)
+                )
+            except Exception as e:
+                print(f"[MagentoService] Failed to send WebSocket notification: {e}")
+        
+        return success
+    
+    def force_assign_session(self, session_id: str, target_user_id: str, admin_user_id: str) -> bool:
+        """Admin force assign/transfer session to another user"""
+        session = self.repo.get_session(session_id)
+        if not session:
+            return False
+        
+        previous_owner = session.user_id
+        
+        # Transfer with forced flag
+        success = self.repo.transfer_session(
+            session_id, 
+            new_owner=target_user_id,
+            transferred_by=admin_user_id,
+            forced=True
+        )
+        
+        if success:
+            # Send WebSocket notifications
+            try:
+                from core.websocket import sio
+                import asyncio
+                
+                # Notify previous owner (if any)
+                if previous_owner and previous_owner != target_user_id:
+                    asyncio.create_task(
+                        sio.emit('session_forced_takeover', {
+                            'session_id': session_id,
+                            'transferred_to': target_user_id,
+                            'transferred_by': admin_user_id,
+                            'message': f"Administrator {admin_user_id} transferred your session to {target_user_id}. Please check with them."
+                        }, room=previous_owner)
+                    )
+                
+                # Notify new owner
+                asyncio.create_task(
+                    sio.emit('session_assigned', {
+                        'session_id': session_id,
+                        'order_number': session.order_number,
+                        'assigned_by': admin_user_id,
+                        'message': f"Administrator {admin_user_id} assigned order {session.order_number} to you"
+                    }, room=target_user_id)
+                )
+            except Exception as e:
+                print(f"[MagentoService] Failed to send WebSocket notification: {e}")
+        
+        return success
+    
+    def admin_takeover_session(self, session_id: str, admin_user_id: str) -> bool:
+        """Admin forcefully takes over a session themselves"""
+        return self.force_assign_session(session_id, admin_user_id, admin_user_id)
+
+

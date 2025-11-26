@@ -53,5 +53,28 @@ class ScanSession(BaseModel):
     completed_at: Optional[datetime] = None
     items_expected: List[dict] = []
     items_scanned: List[dict] = []
-    status: str = "in_progress"  # in_progress, completed, cancelled
-    user_id: Optional[str] = None
+    status: str = "draft"  # draft, in_progress, completed, cancelled
+    user_id: Optional[str] = None  # Current owner of the session
+    created_by: Optional[str] = None  # Original creator
+    last_modified_by: Optional[str] = None  # Last user to modify
+    last_modified_at: Optional[datetime] = None  # Last modification time
+    audit_logs: List[dict] = []  # List of audit log entries
+
+
+class SessionAuditLog(BaseModel):
+    """Audit log entry for session actions"""
+    timestamp: datetime
+    action: str  # started, drafted, cancelled, completed, claimed, transferred, forced_takeover, forced_cancel
+    user: str
+    details: Optional[str] = None
+
+
+class TakeoverRequest(BaseModel):
+    """Request to take over an in-progress session"""
+    request_id: str
+    session_id: str
+    requested_by: str  # Username requesting takeover
+    current_owner: str  # Current session owner
+    requested_at: datetime
+    status: str = "pending"  # pending, accepted, declined, expired
+    responded_at: Optional[datetime] = None

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Progress Dashboard</title>
+    <link rel="stylesheet" href="/css/inventory/order-progress.css">
+</head>
+<body>
+    <div class="order-progress-container">
+        <div class="page-header">
+            <h1>Order Progress Dashboard</h1>
+            <p class="subtitle">Monitor and manage all pick & pack sessions</p>
+        </div>
+
+        <div class="dashboard-controls">
+            <div class="filter-controls">
+                <label>
+                    <input type="checkbox" id="showCompleted" />
+                    Show all completed/cancelled orders
+                </label>
+                
+                <button class="btn btn-refresh" id="refreshBtn">
+                    <span class="icon">🔄</span> Refresh
+                </button>
+            </div>
+
+            <div class="stats-bar">
+                <div class="stat-card">
+                    <div class="stat-label">In Progress</div>
+                    <div class="stat-value" id="statInProgress">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Draft</div>
+                    <div class="stat-value" id="statDraft">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Completed (24h)</div>
+                    <div class="stat-value" id="statCompleted">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Cancelled (24h)</div>
+                    <div class="stat-value" id="statCancelled">0</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="sessions-list" id="sessionsList">
+            <!-- Sessions will be loaded here dynamically -->
+        </div>
+
+        <!-- Session Detail Modal -->
+        <div class="modal" id="sessionDetailModal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Session Details</h2>
+                    <button class="modal-close" id="closeModalBtn">&times;</button>
+                </div>
+                <div class="modal-body" id="modalBody">
+                    <!-- Session details will be loaded here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Confirmation Modal -->
+        <div class="modal" id="confirmModal" style="display: none;">
+            <div class="modal-content modal-small">
+                <div class="modal-header">
+                    <h2 id="confirmTitle">Confirm Action</h2>
+                    <button class="modal-close" id="closeConfirmBtn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p id="confirmMessage"></p>
+                    <div class="input-group" id="reasonGroup" style="display: none;">
+                        <label for="actionReason">Reason (optional):</label>
+                        <input type="text" id="actionReason" placeholder="Enter reason...">
+                    </div>
+                    <div class="input-group" id="userSelectGroup" style="display: none;">
+                        <label for="targetUser">Assign to user:</label>
+                        <input type="text" id="targetUser" placeholder="Enter username...">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" id="cancelActionBtn">Cancel</button>
+                    <button class="btn btn-primary" id="confirmActionBtn">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="/js/modules/inventory/order-progress.js"></script>
+</body>
+</html>
