@@ -4,8 +4,11 @@ export async function init(path) {
   
   switch (path) {
     case '/usermanagement':
+      // Home page - no module needed
+      console.log('[UserManagement] Home page loaded');
+      break;
     case '/usermanagement/management':
-      // Load and initialize the user management module for both home and management pages
+      // Load and initialize the user management module
       console.log('[UserManagement] Loading management module...');
       try {
         const { init: managementInit } = await import('./management.js');
