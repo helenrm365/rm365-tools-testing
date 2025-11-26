@@ -68,7 +68,7 @@ class MagentoService:
             if existing_session.status == "completed":
                 # Block completely - order already completed
                 raise ValueError(
-                    f"Order #{invoice.order_increment_id} is already completed by {existing_session.user_id or existing_session.created_by}. "
+                    f"Order #{invoice.order_number} is already completed by {existing_session.user_id or existing_session.created_by}. "
                     "Cannot start a new session."
                 )
             
@@ -76,7 +76,7 @@ class MagentoService:
                 # In progress by another user - cannot start
                 owner = existing_session.user_id or "Unknown"
                 raise ValueError(
-                    f"Order #{invoice.order_increment_id} is currently in progress by {owner}. "
+                    f"Order #{invoice.order_number} is currently in progress by {owner}. "
                     "You cannot start a new session while it's being processed."
                 )
             
@@ -84,7 +84,7 @@ class MagentoService:
                 # Draft exists - warn user but they can take over by claiming
                 created_by = existing_session.created_by or existing_session.last_modified_by or "Unknown"
                 raise ValueError(
-                    f"Order #{invoice.order_increment_id} has a draft session started by {created_by}. "
+                    f"Order #{invoice.order_number} has a draft session started by {created_by}. "
                     "Use the claim endpoint to take over this draft session, or cancel it first to start fresh."
                 )
             
@@ -96,7 +96,7 @@ class MagentoService:
         
         print(f"[MagentoService] Starting new session for invoice:")
         print(f"  Invoice number: {invoice.invoice_number}")
-        print(f"  Order number: {invoice.order_increment_id}")
+        print(f"  Order number: {invoice.order_number}")
         print(f"  Items: {len(invoice.items)}")
         
         # Prepare expected items
@@ -115,7 +115,7 @@ class MagentoService:
         # Create session - starts in_progress and locked to user
         session = self.repo.create_session(
             invoice_id=invoice.invoice_number,
-            order_number=invoice.order_increment_id,
+            order_number=invoice.order_number,
             session_type=request.session_type,
             items_expected=items_expected,
             user_id=user_id
@@ -563,9 +563,9 @@ class MagentoService:
         """Claim a draft session"""
         return self.repo.claim_session(session_id, user_id)
     
-    def release_session(self, session_id: str) -> bool:
+    def release_session(self, session_id: str, user_id: Optional[str] = None) -> bool:
         """Release a session back to draft"""
-        return self.repo.release_session(session_id)
+        return self.repo.release_session(session_id, user_id=user_id)
     
     def request_takeover(self, session_id: str, user_id: str):
         """Request to take over an in-progress session"""

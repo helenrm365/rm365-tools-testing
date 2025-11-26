@@ -1,0 +1,32 @@
+{
+  "163d6116-02fa-4db8-8c3c-4946cd4c17d2": {
+    "session_id": "163d6116-02fa-4db8-8c3c-4946cd4c17d2",
+    "invoice_id": "1003208891",
+    "order_number": "1045325118",
+    "session_type": "pick",
+    "started_at": "2025-11-26T16:11:59.319639",
+    "completed_at": null,
+    "items_expected": [
+      {
+        "sku": "PO001",
+        "name": "Profhilo H+L (1 x 2ml)",
+        "qty_expected": 3.0,
+        "price": 63.0
+      }
+    ],
+    "items_scanned": [],
+    "status": "in_progress",
+    "user_id": "superadminuser",
+    "created_by": "superadminuser",
+    "last_modified_by": "superadminuser",
+    "last_modified_at": "2025-11-26T16:11:59.319644",
+    "audit_logs": [
+      {
+        "timestamp": "2025-11-26T16:11:59.320995",
+        "action": "started",
+        "user": "superadminuser",
+        "details": "Started pick session"
+      }
+    ]
+  }
+}

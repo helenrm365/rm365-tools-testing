@@ -426,7 +426,8 @@ def release_session(
     Release a session back to draft status
     """
     try:
-        success = service.release_session(session_id)
+        user_id = current_user.get('user_id') or current_user.get('username')
+        success = service.release_session(session_id, user_id=user_id)
         
         if not success:
             raise HTTPException(

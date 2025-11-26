@@ -193,6 +193,9 @@ class MagentoPickPackManager {
       console.log('[MagentoPickPack] Session started:', session);
       this.currentSession = session;
       this.currentSessionId = session.session_id;
+      
+      // Store session ID globally for cleanup
+      window.__currentMagentoSession = session.session_id;
 
       // Switch to active session view
       this.showActiveSession();
@@ -434,6 +437,7 @@ class MagentoPickPackManager {
 
       // Return to order lookup
       this.showOrderLookup();
+      window.__currentMagentoSession = null;
 
     } catch (error) {
       console.error('Error completing session:', error);
@@ -463,6 +467,7 @@ class MagentoPickPackManager {
 
       // Return to order lookup
       this.showOrderLookup();
+      window.__currentMagentoSession = null;
 
     } catch (error) {
       console.error('Error cancelling session:', error);
@@ -580,6 +585,32 @@ function ensureTabHighlighted() {
 // Cleanup on navigation away
 export function cleanup() {
   console.log('[MagentoPickPack] Cleanup called');
+  
+  // If there's an active session, save it as draft
+  if (window.__currentMagentoSession) {
+    const sessionId = window.__currentMagentoSession;
+    console.log('[MagentoPickPack] Saving active session as draft:', sessionId);
+    
+    // Release session (save as draft) - fire and forget
+    fetch(`${getApiUrl()}/magento/sessions/${sessionId}/release`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
+      }
+    }).then(response => {
+      if (response.ok) {
+        console.log('[MagentoPickPack] Session saved as draft');
+      } else {
+        console.warn('[MagentoPickPack] Failed to save session as draft');
+      }
+    }).catch(error => {
+      console.error('[MagentoPickPack] Error saving session as draft:', error);
+    });
+    
+    window.__currentMagentoSession = null;
+  }
+  
   window.__magentoPickPackInitialized = false;
 }
 
