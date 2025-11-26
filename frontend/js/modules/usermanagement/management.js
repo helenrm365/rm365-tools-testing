@@ -5,6 +5,7 @@ import { generateTabStructure } from '../../router.js';
 
 // Get the tab structure dynamically from the router
 const TAB_STRUCTURE = generateTabStructure();
+console.log('[User Management] TAB_STRUCTURE loaded:', TAB_STRUCTURE);
 
 let state = {
   users: [],

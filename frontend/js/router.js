@@ -78,6 +78,8 @@ export function generateTabStructure() {
     'magento': 'Pick & Pack'
   };
   
+  console.log('[generateTabStructure] Starting with routes:', routes);
+  
   // Parse routes to build structure
   Object.keys(routes).forEach(route => {
     // Skip root, home, and login routes
@@ -110,6 +112,8 @@ export function generateTabStructure() {
       }
     }
   });
+  
+  console.log('[generateTabStructure] Generated structure:', structure);
   
   return structure;
 }
