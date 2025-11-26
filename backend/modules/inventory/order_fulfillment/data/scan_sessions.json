@@ -5,7 +5,7 @@
     "order_number": "1045325118",
     "session_type": "pick",
     "started_at": "2025-11-26T16:57:32.555782",
-    "completed_at": null,
+    "completed_at": "2025-11-26T21:04:48.697260",
     "items_expected": [
       {
         "sku": "PO001",
@@ -15,11 +15,11 @@
       }
     ],
     "items_scanned": [],
-    "status": "draft",
+    "status": "cancelled",
     "user_id": null,
     "created_by": "superadminuser",
     "last_modified_by": "superadminuser",
-    "last_modified_at": "2025-11-26T20:40:27.323286",
+    "last_modified_at": "2025-11-26T21:04:48.697314",
     "audit_logs": [
       {
         "timestamp": "2025-11-26T16:57:32.555829",
@@ -986,6 +986,24 @@
         "action": "drafted",
         "user": "superadminuser",
         "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T21:04:38.758319",
+        "action": "claimed",
+        "user": "superadminuser",
+        "details": "Claimed draft session from superadminuser"
+      },
+      {
+        "timestamp": "2025-11-26T21:04:44.447210",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T21:04:48.697341",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
       }
     ]
   }
