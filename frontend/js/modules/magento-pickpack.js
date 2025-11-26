@@ -45,6 +45,7 @@ class MagentoPickPackManager {
     this.scannerStatus = document.getElementById('scannerStatus');
     this.skuInput = document.getElementById('skuInput');
     this.scanQuantityInput = document.getElementById('scanQuantityInput');
+    this.shelfFieldSelect = document.getElementById('shelfFieldSelect');
     this.scanBtn = document.getElementById('scanBtn');
     this.scanMessage = document.getElementById('scanMessage');
     this.itemsList = document.getElementById('itemsList');
@@ -210,9 +211,13 @@ class MagentoPickPackManager {
     this.orderLookupSection.style.display = 'none';
     this.activeSessionSection.style.display = 'block';
     
+    // Ensure tab stays highlighted
+    ensureTabHighlighted();
+    
     // Enable scanner inputs
     this.skuInput.disabled = false;
     this.scanQuantityInput.disabled = false;
+    this.shelfFieldSelect.disabled = false;
     this.scanBtn.disabled = false;
     
     // Focus on SKU input
@@ -222,6 +227,10 @@ class MagentoPickPackManager {
   showOrderLookup() {
     this.activeSessionSection.style.display = 'none';
     this.orderLookupSection.style.display = 'block';
+    
+    // Ensure tab stays highlighted
+    ensureTabHighlighted();
+    
     this.orderNumberInput.value = '';
     this.currentSession = null;
     this.currentSessionId = null;
@@ -312,6 +321,7 @@ class MagentoPickPackManager {
   async scanProduct() {
     const sku = this.skuInput.value.trim();
     const quantity = parseFloat(this.scanQuantityInput.value) || 1;
+    const field = this.shelfFieldSelect.value || 'auto';
 
     if (!sku) {
       this.showScanMessage('Please enter a SKU', 'error');
@@ -336,7 +346,8 @@ class MagentoPickPackManager {
         body: JSON.stringify({
           session_id: this.currentSessionId,
           sku: sku,
-          quantity: quantity
+          quantity: quantity,
+          field: field
         })
       });
 
@@ -544,7 +555,26 @@ export function init() {
     return;
   }
   window.__magentoPickPackInitialized = true;
+  
+  // Ensure the Pick & Pack tab is highlighted
+  ensureTabHighlighted();
+  
   new MagentoPickPackManager();
+}
+
+// Helper function to ensure tab highlighting
+function ensureTabHighlighted() {
+  // Find all tab buttons in the inner-tabs
+  const tabButtons = document.querySelectorAll('.inner-tabs .tab-button');
+  tabButtons.forEach(btn => {
+    // Remove active class from all tabs
+    btn.classList.remove('active');
+    
+    // Add active to the Pick & Pack tab
+    if (btn.textContent.includes('Pick & Pack')) {
+      btn.classList.add('active');
+    }
+  });
 }
 
 // Cleanup on navigation away

@@ -36,6 +36,7 @@ class ScanRequestSchema(BaseModel):
     session_id: str
     sku: str
     quantity: float = 1.0
+    field: str = "auto"  # auto, shelf_lt1_qty, shelf_gt1_qty, top_floor_total
 
 
 class ScanResultSchema(BaseModel):

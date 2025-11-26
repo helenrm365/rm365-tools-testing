@@ -148,6 +148,21 @@ class MagentoService:
         # Add the scanned item (use the actual SKU)
         self.repo.add_scanned_item(request.session_id, lookup_sku, request.quantity)
         
+        # Update inventory_metadata to deduct stock (like inventory adjustments)
+        try:
+            # Look up item_id for this SKU
+            item_id = self._get_item_id_by_sku(lookup_sku)
+            if item_id:
+                # Apply shelf logic to deduct stock (auto or specific field)
+                self._deduct_inventory_stock(item_id, request.quantity, request.field)
+            else:
+                print(f"[MagentoService] Warning: No item_id found for SKU {lookup_sku}, skipping inventory deduction")
+        except ValueError as e:
+            # Insufficient stock - but allow the scan to succeed with a warning
+            print(f"[MagentoService] Warning: {e}")
+        except Exception as e:
+            print(f"[MagentoService] Error deducting inventory: {e}")
+        
         # Determine result
         is_complete = new_qty >= expected_qty
         is_overpicked = new_qty > expected_qty
@@ -318,3 +333,127 @@ class MagentoService:
                 return False
         
         return True
+
+
+    def _get_item_id_by_sku(self, sku: str) -> Optional[str]:
+        """Get item_id for a SKU from inventory_metadata"""
+        try:
+            from core.db import get_psycopg_connection
+            conn = get_psycopg_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute(
+                "SELECT item_id FROM inventory_metadata WHERE sku = %s",
+                (sku,)
+            )
+            result = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            
+            return result[0] if result else None
+        except Exception as e:
+            print(f"[MagentoService] Error looking up item_id: {e}")
+            return None
+    
+    def _deduct_inventory_stock(self, item_id: str, quantity: int, field: str = "auto"):
+        """
+        Deduct stock from inventory_metadata
+        field: 'auto' (smart shelf logic), 'shelf_lt1_qty', 'shelf_gt1_qty', or 'top_floor_total'
+        """
+        try:
+            from core.db import get_psycopg_connection
+            conn = get_psycopg_connection()
+            cursor = conn.cursor()
+            
+            # Get current inventory levels
+            cursor.execute(
+                """
+                SELECT shelf_lt1_qty, shelf_gt1_qty, top_floor_total
+                FROM inventory_metadata
+                WHERE item_id = %s
+                """,
+                (item_id,)
+            )
+            result = cursor.fetchone()
+            
+            if not result:
+                print(f"[MagentoService] Item {item_id} not found in inventory_metadata")
+                cursor.close()
+                conn.close()
+                return
+            
+            shelf_lt1, shelf_gt1, top_floor = result
+            shelf_lt1 = shelf_lt1 or 0
+            shelf_gt1 = shelf_gt1 or 0
+            top_floor = top_floor or 0
+            
+            needed = quantity
+            updates = []
+            
+            # If specific field selected, only deduct from that field
+            if field != "auto":
+                current_value = {
+                    'shelf_lt1_qty': shelf_lt1,
+                    'shelf_gt1_qty': shelf_gt1,
+                    'top_floor_total': top_floor
+                }.get(field, 0)
+                
+                if current_value < needed:
+                    cursor.close()
+                    conn.close()
+                    raise ValueError(
+                        f"Insufficient stock in {field} for item {item_id}. "
+                        f"Requested: {quantity}, Available: {current_value}"
+                    )
+                
+                updates.append((field, -needed))
+            else:
+                # Auto mode: Use smart shelf priority
+                # Priority 1: Take from shelf_lt1_qty first
+                if shelf_lt1 > 0:
+                    take_from_lt1 = min(needed, shelf_lt1)
+                    updates.append(('shelf_lt1_qty', -take_from_lt1))
+                    needed -= take_from_lt1
+                
+                # Priority 2: Take from shelf_gt1_qty if needed
+                if needed > 0 and shelf_gt1 > 0:
+                    take_from_gt1 = min(needed, shelf_gt1)
+                    updates.append(('shelf_gt1_qty', -take_from_gt1))
+                    needed -= take_from_gt1
+                
+                # Priority 3: Take from top_floor_total if still needed
+                if needed > 0 and top_floor > 0:
+                    take_from_top = min(needed, top_floor)
+                    updates.append(('top_floor_total', -take_from_top))
+                    needed -= take_from_top
+                
+                # If we couldn't fulfill the entire request, raise an error
+                if needed > 0:
+                    cursor.close()
+                    conn.close()
+                    total_available = shelf_lt1 + shelf_gt1 + top_floor
+                    raise ValueError(
+                        f"Insufficient stock for item {item_id}. "
+                        f"Requested: {quantity}, Available: {total_available} "
+                        f"(Shelf <1: {shelf_lt1}, Shelf >1: {shelf_gt1}, Top Floor: {top_floor})"
+                    )
+            
+            # Apply the updates
+            for update_field, delta in updates:
+                cursor.execute(
+                    f"""
+                    UPDATE inventory_metadata
+                    SET {update_field} = {update_field} + %s
+                    WHERE item_id = %s
+                    """,
+                    (delta, item_id)
+                )
+                print(f"[MagentoService] Updated {update_field} by {delta} for item_id {item_id}")
+            
+            conn.commit()
+            cursor.close()
+            conn.close()
+            
+        except Exception as e:
+            print(f"[MagentoService] Error deducting inventory: {e}")
+            raise

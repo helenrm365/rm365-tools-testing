@@ -170,6 +170,20 @@
               <input type="number" id="scanQuantityInput" class="modern-input qty-input" value="1" min="1" disabled>
             </div>
 
+            <!-- Shelf Field Selector -->
+            <div class="form-field">
+              <label class="form-label">
+                <i class="fas fa-layer-group"></i>
+                Take From
+              </label>
+              <select id="shelfFieldSelect" class="modern-input" disabled>
+                <option value="auto">Auto (Smart Logic)</option>
+                <option value="shelf_lt1_qty">Shelf &lt;1 Year</option>
+                <option value="shelf_gt1_qty">Shelf &gt;1 Year</option>
+                <option value="top_floor_total">Top Floor</option>
+              </select>
+            </div>
+
             <!-- Scan Button -->
             <div class="form-field">
               <label class="form-label">&nbsp;</label>

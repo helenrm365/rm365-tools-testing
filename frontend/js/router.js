@@ -37,6 +37,83 @@ const routes = {
   '/usermanagement/management': '/html/usermanagement/management.html',
 };
 
+/**
+ * Generate tab structure dynamically from routes
+ * Returns an object mapping section keys to their metadata and subtabs
+ */
+export function generateTabStructure() {
+  const structure = {};
+  
+  // Map of section keys to their display labels
+  const sectionLabels = {
+    'attendance': 'Attendance',
+    'enrollment': 'Enrollment',
+    'labels': 'Labels',
+    'salesdata': 'Sales Data',
+    'inventory': 'Inventory',
+    'usermanagement': 'User Management'
+  };
+  
+  // Map of subtab keys to their display labels
+  const subtabLabels = {
+    // Attendance
+    'automatic': 'Automatic',
+    'manual': 'Manual',
+    'logs': 'Logs',
+    'overview': 'Overview',
+    // Enrollment
+    'management': 'Management',
+    'card': 'Card',
+    'fingerprint': 'Fingerprint',
+    // Labels
+    'generator': 'Generator',
+    'history': 'History',
+    // Sales Data
+    'uk-sales': 'UK Sales',
+    'fr-sales': 'FR Sales',
+    'nl-sales': 'NL Sales',
+    'upload': 'Upload',
+    // Inventory
+    'adjustments': 'Adjustments',
+    'magento': 'Pick & Pack'
+  };
+  
+  // Parse routes to build structure
+  Object.keys(routes).forEach(route => {
+    // Skip root, home, and login routes
+    if (route === '/' || route === '/home' || route === '/login') return;
+    
+    const parts = route.split('/').filter(p => p);
+    
+    // We need at least one part (the section)
+    if (parts.length === 0) return;
+    
+    const section = parts[0];
+    const subtab = parts[1];
+    
+    // Initialize section if not exists
+    if (!structure[section]) {
+      structure[section] = {
+        label: sectionLabels[section] || section.charAt(0).toUpperCase() + section.slice(1),
+        subtabs: []
+      };
+    }
+    
+    // Add subtab if it exists and isn't 'home' and hasn't been added yet
+    if (subtab && subtab !== 'home') {
+      const subtabExists = structure[section].subtabs.some(st => st.key === subtab);
+      if (!subtabExists) {
+        structure[section].subtabs.push({
+          key: subtab,
+          label: subtabLabels[subtab] || subtab.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+        });
+      }
+    }
+  });
+  
+  return structure;
+}
+
 // Show loading overlay
 function showLoading(message = 'Loading...') {
   const overlay = document.getElementById('loadingOverlay');

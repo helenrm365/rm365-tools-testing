@@ -1,54 +1,10 @@
 // js/modules/usermanagement/management.js
 import { getUsers, createUser, updateUser, deleteUser } from '../../services/api/usersApi.js';
 import { getRoles } from '../../services/api/rolesApi.js';
+import { generateTabStructure } from '../../router.js';
 
-// Define tab structure with sub-tabs
-const TAB_STRUCTURE = {
-  'attendance': {
-    label: 'Attendance',
-    subtabs: [
-      { key: 'automatic', label: 'Automatic' },
-      { key: 'manual', label: 'Manual' },
-      { key: 'logs', label: 'Logs' },
-      { key: 'overview', label: 'Overview' }
-    ]
-  },
-  'enrollment': {
-    label: 'Enrollment',
-    subtabs: [
-      { key: 'management', label: 'Management' },
-      { key: 'card', label: 'Card' },
-      { key: 'fingerprint', label: 'Fingerprint' }
-    ]
-  },
-  'labels': {
-    label: 'Labels',
-    subtabs: [
-      { key: 'generator', label: 'Generator' },
-      { key: 'history', label: 'History' }
-    ]
-  },
-  'salesdata': {
-    label: 'Sales Data',
-    subtabs: [
-      { key: 'uk-sales', label: 'UK Sales' },
-      { key: 'fr-sales', label: 'FR Sales' },
-      { key: 'nl-sales', label: 'NL Sales' },
-      { key: 'history', label: 'History' }
-    ]
-  },
-  'inventory': {
-    label: 'Inventory',
-    subtabs: [
-      { key: 'management', label: 'Management' },
-      { key: 'adjustments', label: 'Adjustments' }
-    ]
-  },
-  'usermanagement': {
-    label: 'User Management',
-    subtabs: []
-  }
-};
+// Get the tab structure dynamically from the router
+const TAB_STRUCTURE = generateTabStructure();
 
 let state = {
   users: [],
