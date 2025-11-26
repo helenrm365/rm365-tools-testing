@@ -54,6 +54,18 @@ async def get_current_user(authorization: str = Header(...)):
     if not username:
         raise HTTPException(status_code=401, detail="Invalid token payload")
 
+    # Check if this is the built-in superadmin (bypasses database)
+    if username == settings.SUPERADMIN_USERNAME:
+        all_tabs = [
+            "attendance", "attendance.overview", "attendance.logs", "attendance.manual", "attendance.automatic",
+            "enrollment", "enrollment.management", "enrollment.card", "enrollment.fingerprint",
+            "labels", "labels.generator", "labels.history",
+            "salesdata", "salesdata.uk-sales", "salesdata.fr-sales", "salesdata.nl-sales", "salesdata.upload", "salesdata.history",
+            "inventory", "inventory.management", "inventory.adjustments", "inventory.magento",
+            "usermanagement", "usermanagement.management"
+        ]
+        return {"username": username, "role": "superadmin", "allowed_tabs": all_tabs}
+
     conn = get_psycopg_connection()
     try:
         cur = conn.cursor()

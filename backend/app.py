@@ -315,6 +315,7 @@ working_modules = [
     ('modules.inventory.adjustments.api', 'router', f'{API}/inventory/adjustments', ['inventory-adjustments']),
     ('modules.inventory.management.api', 'router', f'{API}/inventory/management', ['inventory-management']),
     ('modules.inventory.collaboration', 'router', f'{API}/inventory/collaboration', ['inventory-collaboration']),
+    ('modules.magento.api', 'router', f'{API}/magento', ['magento']),
 ]
 
 for mod, attr, prefix, tags in working_modules:

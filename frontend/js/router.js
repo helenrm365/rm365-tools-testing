@@ -31,6 +31,7 @@ const routes = {
   '/inventory':             '/html/inventory/home.html',
   '/inventory/management':  '/html/inventory/management.html',
   '/inventory/adjustments': '/html/inventory/adjustments.html',
+  '/inventory/magento':     '/html/inventory/magento.html',
   
   '/usermanagement':            '/html/usermanagement/home.html',
   '/usermanagement/management': '/html/usermanagement/management.html',

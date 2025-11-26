@@ -24,6 +24,10 @@ export async function init(path) {
       const mod = await import('./adjustments.js');
       currentInventoryModule = mod;
       await mod.init();
+    } else if (path === '/inventory/magento') {
+      const mod = await import('../magento-pickpack.js');
+      currentInventoryModule = mod;
+      if (mod.init) await mod.init();
     } else {
       console.warn('[Inventory] Unknown inventory path:', path);
     }

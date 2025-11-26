@@ -17,6 +17,14 @@ class Settings(BaseSettings):
     AUTH_SECRET_KEY: str = "change-me"       # set via ENV in production
     AUTH_ALGORITHM: str = "HS256"
     AUTH_ACCESS_TTL_DAYS: int = 7
+    
+    # Built-in superadmin account (bypasses database, full access)
+    SUPERADMIN_USERNAME: str = "superadmin"
+    SUPERADMIN_PASSWORD: str = "admin123"  # Change this in production!
+    
+    # Magento API credentials
+    MAGENTO_BASE_URL: str | None = None
+    MAGENTO_ACCESS_TOKEN: str | None = None
 
     # DB: attendance (psycopg2)
     ATTENDANCE_DB_HOST: str | None = None
