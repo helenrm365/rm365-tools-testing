@@ -1,6 +1,50 @@
 // frontend/js/router.js
-import { isAuthed } from './services/state/sessionStore.js';
+import { getApiUrl } from './config.js';
+import { getToken, isAuthed } from './services/state/sessionStore.js';
+import { wsService } from './services/websocket.js';
 import { enforceRoutePermission, applyInnerTabPermissions, getDefaultAllowedPath } from './utils/tabs.js';
+
+// Track the current module for cleanup
+let currentModule = null;
+let currentModulePath = null;
+let currentRoutePath = null; // Track the actual current route including session URLs
+
+// Session auto-draft is now only driven by explicit unload/connection events.
+
+/**
+ * Update the browser URL and track the current route
+ * This should be used instead of directly calling history.pushState/replaceState
+ */
+export function updateRoute(path, replace = false, state = {}) {
+  if (replace) {
+    history.replaceState({ ...state, path }, '', path);
+  } else {
+    history.pushState({ ...state, path }, '', path);
+  }
+  currentRoutePath = path;
+  console.log('[Router] Route updated to:', path);
+}
+
+// Check if we're navigating away from an active session
+function checkSessionCleanup(oldPath, newPath) {
+  console.log('[Router] checkSessionCleanup - oldPath:', oldPath, 'newPath:', newPath);
+  
+  // Check if we're leaving the order fulfillment module entirely
+  const wasInOrderFulfillment = oldPath && oldPath.startsWith('/inventory/order-fulfillment');
+  const stillInOrderFulfillment = newPath && newPath.startsWith('/inventory/order-fulfillment');
+  
+  console.log('[Router] wasInOrderFulfillment:', wasInOrderFulfillment, 'stillInOrderFulfillment:', stillInOrderFulfillment);
+  console.log('[Router] Current session ID:', window.__currentMagentoSession);
+  
+  // Only draft if we're leaving the order fulfillment module completely
+  if (wasInOrderFulfillment && !stillInOrderFulfillment) {
+    console.log('[Router] Leaving order fulfillment module, saving session as draft');
+    if (window.__currentMagentoSession) {
+      saveSessionAsDraft(window.__currentMagentoSession);
+      window.__currentMagentoSession = null;
+    }
+  }
+}
 
 const routes = {
   '/':                      '/html/home.html',
@@ -30,13 +74,43 @@ const routes = {
 
   '/inventory':             '/html/inventory/home.html',
   '/inventory/management':  '/html/inventory/management.html',
-  '/inventory/adjustments': '/html/inventory/adjustments.html',
-  '/inventory/magento':     '/html/inventory/magento.html',
+  '/inventory/order-fulfillment': '/html/inventory/order-fulfillment.html',
   '/inventory/order-progress': '/html/inventory/order-progress.html',
   
   '/usermanagement':            '/html/usermanagement/home.html',
   '/usermanagement/management': '/html/usermanagement/management.html',
 };
+
+function shouldRedirectAfterAutoDraft(reason) {
+  if (!reason) {
+    return false;
+  }
+
+  const normalized = String(reason).toLowerCase();
+  if (normalized === 'beforeunload' || normalized === 'pagehide') {
+    return false;
+  }
+
+  if (normalized.startsWith('ws_')) {
+    return true;
+  }
+
+  return normalized === 'offline' || normalized === 'freeze';
+}
+
+function redirectToOrderFulfillmentHome(reason) {
+  const currentPath = currentRoutePath || window.location.pathname;
+  if (!currentPath || !currentPath.startsWith('/inventory/order-fulfillment')) {
+    return;
+  }
+
+  if (currentPath === '/inventory/order-fulfillment') {
+    return;
+  }
+
+  console.log(`[Router] Redirecting to default order fulfillment page due to ${reason}`);
+  navigate('/inventory/order-fulfillment', true);
+}
 
 /**
  * Generate tab structure dynamically from routes
@@ -75,8 +149,8 @@ export function generateTabStructure() {
     'nl-sales': 'NL Sales',
     'upload': 'Upload',
     // Inventory
-    'adjustments': 'Adjustments',
-    'magento': 'Pick & Pack',
+    'management': 'Management',
+    'order-fulfillment': 'Order Fulfillment',
     'order-progress': 'Order Progress'
   };
   
@@ -144,6 +218,10 @@ export async function navigate(path, replace = false) {
   console.log('[Router] Navigating to:', path, { replace });
   
   try {
+    // Check if we're leaving an active session
+    const oldPath = currentRoutePath || window.location.pathname;
+    checkSessionCleanup(oldPath, path);
+    
     // Show loading overlay
     showLoading('Loading...');
 
@@ -164,7 +242,14 @@ export async function navigate(path, replace = false) {
       }
     }
 
-    const url = routes[path];
+    // Check if this is a session-specific URL and map to base template
+    let url = routes[path];
+    if (!url && path.match(/^\/inventory\/order-fulfillment\/session-/)) {
+      // Session-specific URL, use the base order fulfillment template
+      url = routes['/inventory/order-fulfillment'];
+      console.log('[Router] Session URL detected, using order fulfillment template');
+    }
+    
     if (!url) {
       console.warn('[Router] No route defined for:', path);
       // Fallback to home page
@@ -212,6 +297,9 @@ export async function navigate(path, replace = false) {
     } else {
       history.pushState({ path }, '', path);
     }
+    
+    // Track the current route path for session cleanup detection
+    currentRoutePath = path;
 
     const pageTitle = document.getElementById('pageTitle');
     if (pageTitle) {
@@ -243,16 +331,35 @@ export async function navigate(path, replace = false) {
     }
 
     // Lazy-load tab-specific JavaScript
+    // First, cleanup the previous module if it exists and we're changing sections
+    const newSection = path.split('/')[1];
+    if (currentModule && currentModule.cleanup && currentModulePath !== newSection) {
+      console.log('[Router] Cleaning up previous module:', currentModulePath);
+      try {
+        currentModule.cleanup();
+      } catch (e) {
+        console.warn('[Router] Cleanup error:', e);
+      }
+      currentModule = null;
+      currentModulePath = null;
+    }
+    
     if (path === '/login') {
       const mod = await import('./modules/auth/login.js');
       await mod.init();
+      currentModule = mod;
+      currentModulePath = 'login';
     } else if (path === '/home' || path === '/') {
       const mod = await import('./modules/home/index.js');
       await mod.init();
+      currentModule = mod;
+      currentModulePath = 'home';
     } else if (path.startsWith('/attendance')) {
       try {
         const mod = await import('./modules/attendance/index.js');
         await mod.init(path);
+        currentModule = mod;
+        currentModulePath = 'attendance';
       } catch (e) {
         console.warn('[Router] Attendance module not implemented yet:', e);
       }
@@ -260,6 +367,8 @@ export async function navigate(path, replace = false) {
       try {
         const mod = await import('./modules/enrollment/index.js');
         await mod.init(path);
+        currentModule = mod;
+        currentModulePath = 'enrollment';
       } catch (e) {
         console.warn('[Router] Enrollment module error:', e);
       }
@@ -267,6 +376,8 @@ export async function navigate(path, replace = false) {
       try {
         const mod = await import('./modules/labels/index.js');
         await mod.init(path);
+        currentModule = mod;
+        currentModulePath = 'labels';
       } catch (e) {
         console.warn('[Router] Labels module error:', e);
       }
@@ -274,13 +385,17 @@ export async function navigate(path, replace = false) {
       try {
         const mod = await import('./modules/salesdata/index.js');
         await mod.init(path);
+        currentModule = mod;
+        currentModulePath = 'salesdata';
       } catch (e) {
         console.warn('[Router] Sales data module error:', e);
       }
     } else if (path.startsWith('/inventory')) {
       try {
         const mod = await import('./modules/inventory/index.js');
-        await mod.init(path);
+        await mod.init(path); // Pass full path for session URL detection
+        currentModule = mod;
+        currentModulePath = 'inventory';
       } catch (e) {
         console.warn('[Router] Inventory module error:', e);
       }
@@ -288,6 +403,8 @@ export async function navigate(path, replace = false) {
       try {
         const mod = await import('./modules/usermanagement/index.js');
         await mod.init(path);
+        currentModule = mod;
+        currentModulePath = 'usermanagement';
       } catch (e) {
         console.warn('[Router] User management module error:', e);
       }
@@ -331,6 +448,9 @@ export function setupRouter() {
   // Expose navigate globally for components like the sidebar
   window.navigate = navigate;
   
+  // Setup session auto-drafting on page unload/close
+  setupSessionAutoDraft();
+  
   // Intercept clicks on <a data-nav href="/...">
   document.addEventListener('click', (e) => {
     const a = e.target.closest('a[data-nav]');
@@ -356,6 +476,84 @@ export function setupRouter() {
   
   // Navigate to initial route
   navigate(currentPath, true);
+}
+
+/**
+ * Setup auto-drafting for sessions whenever the user abandons an active order.
+ * Handles browser unload events, offline/connection loss, BFCache freezes, and
+ * long-lived tab hides (with a grace window so quick tab switches stay safe).
+ */
+function setupSessionAutoDraft() {
+  if (window.__sessionAutoDraftSetup) {
+    return;
+  }
+
+  window.__sessionAutoDraftSetup = true;
+
+  const ensureSessionDrafted = (reason) => {
+    if (!window.__currentMagentoSession) {
+      return;
+    }
+
+    const sessionId = window.__currentMagentoSession;
+    window.__currentMagentoSession = null;
+
+    console.log(`[Router] Auto-drafting session because ${reason}`);
+    saveSessionAsDraft(sessionId, reason);
+
+    if (shouldRedirectAfterAutoDraft(reason)) {
+      redirectToOrderFulfillmentHome(reason);
+    }
+  };
+
+  window.addEventListener('beforeunload', () => ensureSessionDrafted('beforeunload'));
+
+  window.addEventListener('pagehide', (event) => {
+    if (event.persisted) {
+      // Browser is parking this page in BFCache; leave session intact so the user can resume
+      return;
+    }
+    ensureSessionDrafted('pagehide');
+  });
+
+  document.addEventListener('freeze', () => ensureSessionDrafted('freeze'));
+  window.addEventListener('offline', () => ensureSessionDrafted('offline'));
+
+  wsService.on('disconnected', (payload) => {
+    const reason = payload?.reason || 'socket_disconnect';
+    ensureSessionDrafted(`ws_${reason}`);
+  });
+}
+
+/**
+ * Save session as draft via release endpoint
+ */
+function saveSessionAsDraft(sessionId, reason = 'unspecified') {
+  if (!sessionId) return;
+  
+  const url = `${getApiUrl()}/v1/magento/sessions/${sessionId}/release`;
+  const token = getToken();
+  
+  console.log(`[Router] Saving session ${sessionId} as draft (reason: ${reason})`);
+  
+  // Use fetch with keepalive flag to ensure request completes even during page unload
+  fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+    },
+    body: JSON.stringify({}),
+    keepalive: true  // Critical: ensures request completes even during page unload
+  }).then(response => {
+    if (response.ok) {
+      console.log('[Router] Session draft saved successfully');
+    } else {
+      console.warn('[Router] Failed to save session draft:', response.status);
+    }
+  }).catch(error => {
+    console.error('[Router] Error saving session draft:', error);
+  });
 }
 
 function highlightActive(path) {

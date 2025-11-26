@@ -137,12 +137,10 @@ class DashboardSessionSchema(BaseModel):
 
 class ForceAssignSchema(BaseModel):
     """Force assign a session to another user"""
-    session_id: str
     target_user_id: str
 
 
 class ForceCancelSchema(BaseModel):
     """Force cancel a session"""
-    session_id: str
     reason: Optional[str] = None
 

@@ -362,11 +362,19 @@ html.dark-mode .session-meta {
     margin-bottom: 5px;
 }
 
+html.dark-mode .progress-label {
+    color: #bbb;
+}
+
 .progress-bar-container {
     height: 8px;
     background: #e0e0e0;
     border-radius: 4px;
     overflow: hidden;
+}
+
+html.dark-mode .progress-bar-container {
+    background: #444;
 }
 
 .progress-bar-fill {
@@ -473,6 +481,10 @@ html.dark-mode .btn-secondary:hover {
     color: #666;
 }
 
+html.dark-mode .audit-log h4 {
+    color: #bbb;
+}
+
 .audit-log-entries {
     display: flex;
     flex-direction: column;
@@ -491,13 +503,25 @@ html.dark-mode .btn-secondary:hover {
     gap: 10px;
 }
 
+html.dark-mode .audit-entry {
+    background: #2a2a2a;
+}
+
 .audit-timestamp {
     color: #666;
+}
+
+html.dark-mode .audit-timestamp {
+    color: #999;
 }
 
 .audit-action {
     font-weight: 600;
     color: #333;
+}
+
+html.dark-mode .audit-action {
+    color: #ddd;
 }
 
 .audit-action.started { color: #2196F3; }
@@ -511,6 +535,10 @@ html.dark-mode .btn-secondary:hover {
 
 .audit-details {
     color: #666;
+}
+
+html.dark-mode .audit-details {
+    color: #aaa;
 }
 
 /* Modal */
@@ -693,6 +721,58 @@ html.dark-mode .empty-state {
     height: 80px;
     margin-bottom: 20px;
     opacity: 0.3;
+}
+
+/* ===== Notification Icon Styles (for modals) ===== */
+.notification-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 2rem;
+}
+
+.notification-icon.success {
+  background: #d4edda;
+  color: #155724;
+}
+
+.notification-icon.error {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.notification-icon.warning {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.notification-icon.info {
+  background: #d1ecf1;
+  color: #0c5460;
+}
+
+html.dark-mode .notification-icon.success {
+  background: rgba(139, 195, 74, 0.2);
+  color: #8bc34a;
+}
+
+html.dark-mode .notification-icon.error {
+  background: rgba(231, 76, 60, 0.2);
+  color: #e74c3c;
+}
+
+html.dark-mode .notification-icon.warning {
+  background: rgba(241, 196, 15, 0.2);
+  color: #f1c40f;
+}
+
+html.dark-mode .notification-icon.info {
+  background: rgba(52, 152, 219, 0.2);
+  color: #3498db;
 }
 
 /* Responsive */

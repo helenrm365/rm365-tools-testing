@@ -1,8 +1,13 @@
-// frontend/js/modules/magento-pickpack.js
-// Magento Pick & Pack / Returns Module
+// frontend/js/modules/inventory/order-fulfillment.js
+// Order Fulfillment Module - Process orders and returns
 
-import { getApiUrl } from '../config.js';
-import { getToken } from '../services/state/sessionStore.js';
+import { getApiUrl } from '../../config.js';
+import { getToken } from '../../services/state/sessionStore.js';
+import { getUserData, setUserData } from '../../services/state/userStore.js';
+import { me as fetchCurrentUser } from '../../services/api/authApi.js';
+import { wsService } from '../../services/websocket.js';
+import { showNotification, showConfirm, showError, showSuccess, showWarning, showInfo } from '../../ui/modal.js';
+import { updateRoute } from '../../router.js';
 
 // Helper to get auth headers
 function getAuthHeaders() {
@@ -11,13 +16,187 @@ function getAuthHeaders() {
 }
 
 class MagentoPickPackManager {
-  constructor() {
+  constructor(initialPath) {
     this.currentSession = null;
     this.currentSessionId = null;
+    this.currentPath = initialPath || '/inventory/order-fulfillment';
     this.initializeElements();
     this.attachEventListeners();
+    this.setupWebSocket();
+    this.ensureRealtimeConnection();
+    // Check if we're loading a specific session from URL
+    this.checkSessionFromPath(initialPath);
     // TODO: Implement active sessions endpoint on backend
     // this.loadActiveSessions();
+  }
+
+  async ensureRealtimeConnection() {
+    try {
+      let user = getUserData();
+      if (!user?.username) {
+        try {
+          user = await fetchCurrentUser();
+          if (user?.username) {
+            setUserData(user);
+          }
+        } catch (error) {
+          console.warn('[MagentoPickPack] Failed to fetch current user for WebSocket connection:', error);
+        }
+      }
+
+      if (!user?.username) {
+        console.warn('[MagentoPickPack] Cannot initialize WebSocket — no user data available');
+        return;
+      }
+
+      if (!wsService.isConnected()) {
+        console.log('[MagentoPickPack] Connecting to WebSocket for realtime session events');
+        await wsService.connect(user);
+      }
+
+      wsService.joinRoom('inventory_management');
+    } catch (error) {
+      console.warn('[MagentoPickPack] Failed to ensure realtime connection:', error);
+    }
+  }
+
+  setupWebSocket() {
+    console.log('[MagentoPickPack] Setting up WebSocket listeners');
+    
+    // Bind methods to this instance
+    this.handleTakeoverRequest = this.handleTakeoverRequest.bind(this);
+    this.handleTakeoverResponse = this.handleTakeoverResponse.bind(this);
+    this.handleSessionTransferred = this.handleSessionTransferred.bind(this);
+    this.handleSessionForcedCancel = this.handleSessionForcedCancel.bind(this);
+    this.handleSessionForcedTakeover = this.handleSessionForcedTakeover.bind(this);
+    
+    // Listen for takeover and session events
+    wsService.on('takeover_request', this.handleTakeoverRequest);
+    wsService.on('takeover_response', this.handleTakeoverResponse);
+    wsService.on('session_transferred', this.handleSessionTransferred);
+    wsService.on('session_forced_cancel', this.handleSessionForcedCancel);
+    wsService.on('session_forced_takeover', this.handleSessionForcedTakeover);
+    
+    console.log('[MagentoPickPack] WebSocket listeners registered');
+  }
+
+  cleanupWebSocket() {
+    console.log('[MagentoPickPack] Cleaning up WebSocket listeners');
+    
+    wsService.off('takeover_request', this.handleTakeoverRequest);
+    wsService.off('takeover_response', this.handleTakeoverResponse);
+    wsService.off('session_transferred', this.handleSessionTransferred);
+    wsService.off('session_forced_cancel', this.handleSessionForcedCancel);
+    wsService.off('session_forced_takeover', this.handleSessionForcedTakeover);
+  }
+
+  async handleTakeoverRequest(data) {
+    console.log('[MagentoPickPack] Takeover request received:', data);
+    
+    // Only show if this is our session
+    if (this.currentSessionId === data.session_id) {
+      const requester = data.requester_username || data.requester;
+      const confirmed = await showConfirm(
+        `${requester} is requesting to take over your session for order ${data.order_number}.\n\nDo you want to allow this takeover?`,
+        'Takeover Request',
+        'Allow',
+        'Deny'
+      );
+      
+      // TODO: Send response to backend
+      // For now, just log it
+      console.log('[MagentoPickPack] Takeover request response:', confirmed ? 'accepted' : 'rejected');
+    }
+  }
+
+  handleTakeoverResponse(data) {
+    console.log('[MagentoPickPack] Takeover response received:', data);
+    
+    if (data.accepted) {
+      showSuccess(`Your takeover request for order ${data.order_number} was accepted!`);
+    } else {
+      showWarning(`Your takeover request for order ${data.order_number} was rejected.`);
+    }
+  }
+
+  async handleSessionTransferred(data) {
+    console.log('[MagentoPickPack] Session transferred:', data);
+    
+    // If our session was transferred away, return to lookup
+    if (this.currentSessionId === data.session_id) {
+      await showWarning(`This session has been transferred to ${data.new_owner}.`);
+      this.showOrderLookup();
+      window.__currentMagentoSession = null;
+    }
+  }
+
+  async handleSessionForcedCancel(data) {
+    console.log('[MagentoPickPack] Session force cancelled:', data);
+    
+    // If our session was forcefully cancelled, return to lookup
+    if (this.currentSessionId === data.session_id) {
+      const reason = data.reason ? `\n\nReason: ${data.reason}` : '';
+      await showWarning(`This session has been cancelled by an administrator.${reason}`);
+      this.currentSession = null;
+      this.currentSessionId = null;
+      window.__currentMagentoSession = null;
+      this.showOrderLookup();
+    }
+  }
+
+  async handleSessionForcedTakeover(data) {
+    console.log('[MagentoPickPack] Session force taken over:', data);
+    
+    // If our session was forcefully taken over, return to lookup
+    if (this.currentSessionId === data.session_id) {
+      await showWarning(`This session has been taken over by ${data.new_owner}.`);
+      window.__currentMagentoSession = null;
+      this.showOrderLookup();
+    }
+  }
+
+  async checkSessionFromPath(path) {
+    if (!path || path === '/inventory/order-fulfillment') {
+      // Base path, show order lookup
+      this.showOrderLookup();
+      return;
+    }
+
+    // Check if path matches session URL pattern: /inventory/order-fulfillment/session-{order}-{invoice}
+    const sessionMatch = path.match(/\/inventory\/order-fulfillment\/session-([^-]+)-(.+)/);
+    if (sessionMatch) {
+      const orderNumber = sessionMatch[1];
+      const invoiceNumber = sessionMatch[2];
+      console.log('[MagentoPickPack] Detected session URL:', { orderNumber, invoiceNumber });
+
+      // Try to find and load this session
+      try {
+        const url = `${getApiUrl()}/v1/magento/sessions?order_number=${orderNumber}`;
+        const response = await fetch(url, {
+          headers: getAuthHeaders()
+        });
+
+        if (response.ok) {
+          const sessions = await response.json();
+          const session = sessions.find(s => s.order_number === orderNumber && s.invoice_number === invoiceNumber);
+          
+          if (session && session.status === 'in_progress') {
+            // Load the session
+            this.currentSession = session;
+            this.currentSessionId = session.session_id;
+            window.__currentMagentoSession = session.session_id;
+            this.showActiveSession();
+            this.updateSessionDisplay();
+            return;
+          }
+        }
+      } catch (error) {
+        console.error('[MagentoPickPack] Error loading session from path:', error);
+      }
+
+      // If we couldn't load the session, redirect to base path
+      this.showOrderLookup();
+    }
   }
 
   initializeElements() {
@@ -164,7 +343,84 @@ class MagentoPickPackManager {
 
     try {
       this.startSessionBtn.disabled = true;
-      this.startSessionBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+      this.startSessionBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
+
+      // First, check the order status
+      const checkUrl = `${getApiUrl()}/v1/magento/session/check/${encodeURIComponent(orderNumber)}`;
+      console.log('[MagentoPickPack] Checking order status:', checkUrl);
+
+      const checkResponse = await fetch(checkUrl, {
+        method: 'GET',
+        headers: getAuthHeaders()
+      });
+
+      if (!checkResponse.ok) {
+        const error = await checkResponse.json().catch(() => ({ detail: `HTTP ${checkResponse.status}` }));
+        console.error('[MagentoPickPack] Check API Error:', error);
+        throw new Error(error.detail || 'Failed to check order status');
+      }
+
+      const statusData = await checkResponse.json();
+      console.log('[MagentoPickPack] Order status:', statusData);
+
+      // Handle different statuses
+      if (statusData.status === 'in_progress') {
+        const message = statusData.can_claim 
+          ? `This order is currently being worked on by ${statusData.user}.\n\nWould you like to request to take it over?`
+          : `This order is being worked on by you in another session.\n\nPlease complete or cancel that session first.`;
+        
+        if (!(await showConfirm(message, 'Order In Progress', 'Yes', 'No'))) {
+          this.showLookupMessage('Session start cancelled', 'info');
+          this.startSessionBtn.disabled = false;
+          this.startSessionBtn.innerHTML = '<i class="fas fa-play"></i> Start Session';
+          return;
+        }
+        
+        // TODO: Implement takeover request
+        await showInfo('Takeover requests are not yet implemented. Please contact an administrator.');
+        this.startSessionBtn.disabled = false;
+        this.startSessionBtn.innerHTML = '<i class="fas fa-play"></i> Start Session';
+        return;
+      }
+
+      if (statusData.status === 'draft') {
+        const message = statusData.can_claim
+          ? `There is a draft session for this order started by ${statusData.user}.\n\nWould you like to claim it and continue?`
+          : `You have a draft session for this order.\n\nWould you like to continue where you left off?`;
+        
+        if (!(await showConfirm(message, 'Draft Session Available', 'Continue', 'Cancel'))) {
+          this.showLookupMessage('Session start cancelled', 'info');
+          this.startSessionBtn.disabled = false;
+          this.startSessionBtn.innerHTML = '<i class="fas fa-play"></i> Start Session';
+          return;
+        }
+        
+        // Claim the draft session
+        await this.claimSession(statusData.session_id);
+        return;
+      }
+
+      if (statusData.status === 'completed') {
+        await showError(`This order has already been completed.\n\nCompleted by: ${statusData.user}\n\nYou cannot start a new session for completed orders.`, 'Order Completed');
+        this.showLookupMessage('Order already completed', 'error');
+        this.startSessionBtn.disabled = false;
+        this.startSessionBtn.innerHTML = '<i class="fas fa-play"></i> Start Session';
+        return;
+      }
+
+      if (statusData.status === 'cancelled') {
+        const message = `There is a cancelled session for this order.\n\nWould you like to start a fresh session?`;
+        
+        if (!(await showConfirm(message, 'Cancelled Session', 'Start Fresh', 'Cancel'))) {
+          this.showLookupMessage('Session start cancelled', 'info');
+          this.startSessionBtn.disabled = false;
+          this.startSessionBtn.innerHTML = '<i class="fas fa-play"></i> Start Session';
+          return;
+        }
+      }
+
+      // Proceed with starting a new session
+      this.startSessionBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Starting...';
 
       const url = `${getApiUrl()}/v1/magento/session/start`;
       console.log('[MagentoPickPack] Calling API:', url);
@@ -197,12 +453,68 @@ class MagentoPickPackManager {
       // Store session ID globally for cleanup
       window.__currentMagentoSession = session.session_id;
 
+      // Navigate to session-specific URL
+      const sessionUrl = `/inventory/order-fulfillment/session-${session.order_number}-${session.invoice_number}`;
+      updateRoute(sessionUrl, false, { sessionId: session.session_id });
+      this.currentPath = sessionUrl;
+
       // Switch to active session view
       this.showActiveSession();
       this.updateSessionDisplay();
 
     } catch (error) {
       console.error('Error starting session:', error);
+      this.showLookupMessage(error.message, 'error');
+    } finally {
+      this.startSessionBtn.disabled = false;
+      this.startSessionBtn.innerHTML = '<i class="fas fa-play"></i> Start Session';
+    }
+  }
+
+  async claimSession(sessionId) {
+    try {
+      this.startSessionBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Claiming...';
+
+      const url = `${getApiUrl()}/v1/magento/sessions/${sessionId}/claim`;
+      console.log('[MagentoPickPack] Claiming session:', url);
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ detail: `HTTP ${response.status}` }));
+        throw new Error(error.detail || 'Failed to claim session');
+      }
+
+      const result = await response.json();
+      console.log('[MagentoPickPack] Session claimed:', result);
+
+      const claimedSessionId = result.session_id;
+      this.currentSessionId = claimedSessionId;
+      window.__currentMagentoSession = claimedSessionId;
+
+      // Load the full session payload so UI fields (order, items, etc.) populate correctly
+      await this.refreshSessionStatus();
+
+      if (!this.currentSession) {
+        throw new Error('Failed to load claimed session data');
+      }
+
+      const sessionUrl = `/inventory/order-fulfillment/session-${this.currentSession.order_number}-${this.currentSession.invoice_number}`;
+      updateRoute(sessionUrl, false, { sessionId: claimedSessionId });
+      this.currentPath = sessionUrl;
+
+      this.showActiveSession();
+      // refreshSessionStatus already called updateSessionDisplay, but ensure the latest data renders
+      this.updateSessionDisplay();
+
+    } catch (error) {
+      console.error('Error claiming session:', error);
       this.showLookupMessage(error.message, 'error');
     } finally {
       this.startSessionBtn.disabled = false;
@@ -230,6 +542,13 @@ class MagentoPickPackManager {
   showOrderLookup() {
     this.activeSessionSection.style.display = 'none';
     this.orderLookupSection.style.display = 'block';
+    
+    // Navigate back to base order fulfillment URL
+    const baseUrl = '/inventory/order-fulfillment';
+    if (this.currentPath !== baseUrl) {
+      updateRoute(baseUrl, false, {});
+      this.currentPath = baseUrl;
+    }
     
     // Ensure tab stays highlighted
     ensureTabHighlighted();
@@ -408,7 +727,7 @@ class MagentoPickPackManager {
   async completeSession() {
     if (!this.currentSessionId) return;
 
-    const confirmed = confirm('Are you sure you want to complete this session?');
+    const confirmed = await showConfirm('Are you sure you want to complete this session?', 'Complete Session', 'Complete', 'Cancel');
     if (!confirmed) return;
 
     try {
@@ -433,15 +752,17 @@ class MagentoPickPackManager {
       }
 
       // Show success message
-      alert('Session completed successfully!');
+      await showSuccess('Session completed successfully!');
 
+      // Clear global session tracking
+      window.__currentMagentoSession = null;
+      
       // Return to order lookup
       this.showOrderLookup();
-      window.__currentMagentoSession = null;
 
     } catch (error) {
       console.error('Error completing session:', error);
-      alert('Error: ' + error.message);
+      await showError('Error: ' + error.message);
     } finally {
       this.completeSessionBtn.disabled = false;
       this.completeSessionBtn.innerHTML = '<i class="fas fa-check"></i> Complete';
@@ -451,7 +772,7 @@ class MagentoPickPackManager {
   async cancelSession() {
     if (!this.currentSessionId) return;
 
-    const confirmed = confirm('Are you sure you want to cancel this session? All progress will be lost.');
+    const confirmed = await showConfirm('Are you sure you want to cancel this session? All progress will be lost.', 'Cancel Session', 'Cancel Session', 'Keep Working');
     if (!confirmed) return;
 
     try {
@@ -465,13 +786,15 @@ class MagentoPickPackManager {
         throw new Error(error.detail || 'Failed to cancel session');
       }
 
+      // Clear global session tracking
+      window.__currentMagentoSession = null;
+      
       // Return to order lookup
       this.showOrderLookup();
-      window.__currentMagentoSession = null;
 
     } catch (error) {
       console.error('Error cancelling session:', error);
-      alert('Error: ' + error.message);
+      await showError('Error: ' + error.message);
     }
   }
 
@@ -487,7 +810,7 @@ class MagentoPickPackManager {
         // If there's an active session, ask if user wants to resume
         if (sessions.length > 0) {
           const session = sessions[0];
-          const resume = confirm(`You have an active session for order ${session.order_number}. Resume?`);
+          const resume = await showConfirm(`You have an active session for order ${session.order_number}. Resume?`, 'Resume Session', 'Resume', 'Start New');
           
           if (resume) {
             this.currentSession = session;
@@ -551,20 +874,25 @@ class MagentoPickPackManager {
   }
 }
 
-// Export init function for router integration
-export function init() {
-  console.log('[MagentoPickPack] Init function called');
-  // Prevent double initialization
-  if (window.__magentoPickPackInitialized) {
-    console.log('[MagentoPickPack] Already initialized, skipping');
-    return;
+// Module initialization and export
+export async function init(path) {
+  console.log('[OrderFulfillment] Initializing Order Fulfillment module with path:', path);
+  
+  if (!window.__magentoPickPackInitialized) {
+    // Wait for DOM to be ready
+    if (document.readyState === 'loading') {
+      await new Promise(resolve => {
+        document.addEventListener('DOMContentLoaded', resolve);
+      });
+    }
+    
+    const manager = new MagentoPickPackManager(path);
+    window.__magentoPickPackManager = manager;
+    window.__magentoPickPackInitialized = true;
+  } else if (window.__magentoPickPackManager) {
+    // Module already initialized, just check if we need to load a session from path
+    window.__magentoPickPackManager.checkSessionFromPath(path);
   }
-  window.__magentoPickPackInitialized = true;
-  
-  // Ensure the Pick & Pack tab is highlighted
-  ensureTabHighlighted();
-  
-  new MagentoPickPackManager();
 }
 
 // Helper function to ensure tab highlighting
@@ -575,8 +903,8 @@ function ensureTabHighlighted() {
     // Remove active class from all tabs
     btn.classList.remove('active');
     
-    // Add active to the Pick & Pack tab
-    if (btn.textContent.includes('Pick & Pack')) {
+    // Add active to the Order Fulfillment tab
+    if (btn.textContent.includes('Order Fulfillment')) {
       btn.classList.add('active');
     }
   });
@@ -586,32 +914,18 @@ function ensureTabHighlighted() {
 export function cleanup() {
   console.log('[MagentoPickPack] Cleanup called');
   
-  // If there's an active session, save it as draft
-  if (window.__currentMagentoSession) {
-    const sessionId = window.__currentMagentoSession;
-    console.log('[MagentoPickPack] Saving active session as draft:', sessionId);
-    
-    // Release session (save as draft) - fire and forget
-    fetch(`${getApiUrl()}/magento/sessions/${sessionId}/release`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...getAuthHeaders()
-      }
-    }).then(response => {
-      if (response.ok) {
-        console.log('[MagentoPickPack] Session saved as draft');
-      } else {
-        console.warn('[MagentoPickPack] Failed to save session as draft');
-      }
-    }).catch(error => {
-      console.error('[MagentoPickPack] Error saving session as draft:', error);
-    });
-    
-    window.__currentMagentoSession = null;
+  // Cleanup WebSocket listeners if manager exists
+  if (window.__magentoPickPackManager) {
+    window.__magentoPickPackManager.cleanupWebSocket();
   }
   
+  // NOTE: We do NOT clear window.__currentMagentoSession or call release here
+  // The router-level auto-draft manager handles unload, navigation, connection
+  // drops, and long-lived tab hides so that legitimate tab switches stay safe.
+  // This cleanup is only for when navigating between inventory sub-modules.
+  
   window.__magentoPickPackInitialized = false;
+  window.__magentoPickPackManager = null;
 }
 
 // Also support direct script inclusion (fallback) - but this shouldn't run when using router
@@ -621,13 +935,13 @@ if (document.readyState === 'loading') {
     // Only init if not already initialized by router
     if (!window.__magentoPickPackInitialized) {
       window.__magentoPickPackInitialized = true;
-      new MagentoPickPackManager();
+      window.__magentoPickPackManager = new MagentoPickPackManager();
     }
   });
 } else {
   console.log('[MagentoPickPack] Document already loaded - checking if already initialized');
   if (!window.__magentoPickPackInitialized) {
     window.__magentoPickPackInitialized = true;
-    new MagentoPickPackManager();
+    window.__magentoPickPackManager = new MagentoPickPackManager();
   }
 }

@@ -23,7 +23,7 @@ def login(body: LoginIn):
                 "enrollment", "enrollment.management", "enrollment.card", "enrollment.fingerprint",
                 "labels", "labels.generator", "labels.history",
                 "salesdata", "salesdata.uk-sales", "salesdata.fr-sales", "salesdata.nl-sales", "salesdata.upload", "salesdata.history",
-                "inventory", "inventory.management", "inventory.adjustments", "inventory.magento", "inventory.order-progress",
+                "inventory", "inventory.management", "inventory.order-fulfillment", "inventory.order-progress",
                 "usermanagement", "usermanagement.management"
             ]
             return {"access_token": token, "role": "superadmin", "allowed_tabs": all_tabs}

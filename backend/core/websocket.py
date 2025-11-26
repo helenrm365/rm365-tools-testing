@@ -245,6 +245,11 @@ async def join_inventory_room(sid, data):
     
     # Join Socket.IO room
     await sio.enter_room(sid, room_id)
+
+    # Also join a personal room so server can send targeted events (e.g. force cancel notices)
+    personal_room = user_id or username
+    if personal_room:
+        await sio.enter_room(sid, str(personal_room))
     
     # Update presence
     room_state = await presence_manager.join_room(sid, room_id, user_id, username)

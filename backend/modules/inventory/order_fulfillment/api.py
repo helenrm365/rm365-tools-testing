@@ -108,8 +108,8 @@ def check_order_status(
         if not existing_session:
             return {
                 "status": "available",
-                "message": f"Order #{invoice.order_increment_id} is available to start",
-                "order_number": invoice.order_increment_id,
+                "message": f"Order #{invoice.order_number} is available to start",
+                "order_number": invoice.order_number,
                 "invoice_id": invoice.invoice_number
             }
         
@@ -117,32 +117,32 @@ def check_order_status(
         response = {
             "status": existing_session.status,
             "session_id": existing_session.session_id,
-            "order_number": invoice.order_increment_id,
+            "order_number": invoice.order_number,
             "invoice_id": invoice.invoice_number
         }
         
         if existing_session.status == "completed":
             user = existing_session.user_id or existing_session.created_by or "Unknown"
-            response["message"] = f"Order #{invoice.order_increment_id} is already completed by {user}"
+            response["message"] = f"Order #{invoice.order_number} is already completed by {user}"
             response["user"] = user
             response["can_start"] = False
             
         elif existing_session.status == "in_progress":
             user = existing_session.user_id or "Unknown"
-            response["message"] = f"Order #{invoice.order_increment_id} is currently in progress by {user}"
+            response["message"] = f"Order #{invoice.order_number} is currently in progress by {user}"
             response["user"] = user
             response["can_start"] = False
             
         elif existing_session.status == "draft":
             user = existing_session.created_by or existing_session.last_modified_by or "Unknown"
-            response["message"] = f"Order #{invoice.order_increment_id} has a draft session started by {user}"
+            response["message"] = f"Order #{invoice.order_number} has a draft session started by {user}"
             response["user"] = user
             response["can_start"] = False
             response["can_claim"] = True
             
         elif existing_session.status == "cancelled":
             user = existing_session.last_modified_by or existing_session.created_by or "Unknown"
-            response["message"] = f"Order #{invoice.order_increment_id} was cancelled by {user}. You can start a new session."
+            response["message"] = f"Order #{invoice.order_number} was cancelled by {user}. You can start a new session."
             response["user"] = user
             response["can_start"] = True
         
@@ -267,7 +267,8 @@ def complete_session(
     Validates all items are scanned unless force_complete is True
     """
     try:
-        success = service.complete_session(request)
+        user_id = current_user.get('user_id') or current_user.get('username')
+        success = service.complete_session(request, user_id=user_id)
         
         return {
             "success": success,
@@ -297,7 +298,8 @@ def cancel_session(
     Cancel a scanning session
     """
     try:
-        success = service.cancel_session(session_id)
+        user_id = current_user.get('user_id') or current_user.get('username')
+        success = service.cancel_session(session_id, user_id=user_id)
         
         if not success:
             raise HTTPException(

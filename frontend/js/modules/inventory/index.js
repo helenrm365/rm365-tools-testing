@@ -20,12 +20,12 @@ export async function init(path) {
       const mod = await import('./management.js');
       currentInventoryModule = mod;
       await mod.init();
-    } else if (path === '/inventory/adjustments') {
-      const mod = await import('./adjustments.js');
+    } else if (path === '/inventory/order-fulfillment' || path.startsWith('/inventory/order-fulfillment/')) {
+      const mod = await import('./order-fulfillment.js');
       currentInventoryModule = mod;
-      await mod.init();
-    } else if (path === '/inventory/magento') {
-      const mod = await import('../magento-pickpack.js');
+      if (mod.init) await mod.init(path);
+    } else if (path === '/inventory/order-progress') {
+      const mod = await import('./order-progress.js');
       currentInventoryModule = mod;
       if (mod.init) await mod.init();
     } else {

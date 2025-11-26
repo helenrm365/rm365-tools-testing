@@ -61,7 +61,7 @@ async def get_current_user(authorization: str = Header(...)):
             "enrollment", "enrollment.management", "enrollment.card", "enrollment.fingerprint",
             "labels", "labels.generator", "labels.history",
             "salesdata", "salesdata.uk-sales", "salesdata.fr-sales", "salesdata.nl-sales", "salesdata.upload", "salesdata.history",
-            "inventory", "inventory.management", "inventory.adjustments", "inventory.magento",
+            "inventory", "inventory.management", "inventory.order-fulfillment", "inventory.order-progress",
             "usermanagement", "usermanagement.management"
         ]
         return {"username": username, "role": "superadmin", "allowed_tabs": all_tabs}

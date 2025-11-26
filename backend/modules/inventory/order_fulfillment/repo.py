@@ -273,6 +273,27 @@ class MagentoRepo:
         self._save_sessions()
         return True
     
+    def restart_cancelled_session(self, session_id: str, user_id: Optional[str] = None) -> Optional[ScanSession]:
+        """Restart a cancelled session by changing status back to in_progress"""
+        session = self._sessions.get(session_id)
+        if not session:
+            return None
+        
+        if session.status != "cancelled":
+            return None  # Can only restart cancelled sessions
+        
+        restarting_user = user_id or "Unknown"
+        session.status = "in_progress"
+        session.user_id = restarting_user
+        session.last_modified_by = restarting_user
+        session.last_modified_at = datetime.now()
+        session.completed_at = None  # Clear the completion timestamp
+        # items_scanned are already cleared from cancellation, so it starts fresh
+        
+        self._add_audit_log(session_id, "restarted", restarting_user, "Restarted cancelled session")
+        self._save_sessions()
+        return session
+    
     def get_active_sessions(self, user_id: Optional[str] = None) -> List[ScanSession]:
         """Get all active (in_progress) sessions, optionally filtered by user"""
         sessions = [

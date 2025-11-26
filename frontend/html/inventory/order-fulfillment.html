@@ -1,10 +1,10 @@
-<!-- Magento Pick & Pack Page -->
-<div class="magento-pickpack">
+<!-- Order Fulfillment Page -->
+<div class="order-fulfillment">
   <!-- Page Header -->
   <div class="page-header">
-    <div class="header-content">
-      <h1 class="page-title">Pick & Pack / Returns</h1>
-      <p class="page-subtitle">Scan products against Magento invoices for order fulfillment and returns</p>
+    <div class="page-header-content">
+      <h1 class="page-title">Order Fulfillment</h1>
+      <p class="page-subtitle">Process orders and returns with invoice-based scanning</p>
     </div>
   </div>
 
@@ -14,13 +14,9 @@
       <i class="fas fa-boxes"></i>
       <span>Management</span>
     </button>
-    <button class="tab-button" onclick="location.href='/inventory/adjustments'">
-      <i class="fas fa-sliders-h"></i>
-      <span>Adjustments</span>
-    </button>
-    <button class="tab-button active" onclick="location.href='/inventory/magento'">
+    <button class="tab-button active" onclick="location.href='/inventory/order-fulfillment'">
       <i class="fas fa-shopping-cart"></i>
-      <span>Pick & Pack</span>
+      <span>Order Fulfillment</span>
     </button>
     <button class="tab-button" onclick="location.href='/inventory/order-progress'">
       <i class="fas fa-chart-line"></i>
@@ -62,13 +58,13 @@
             </label>
             <div class="c-select" id="sessionTypeDropdown" aria-expanded="false">
               <button type="button" class="c-select__button" id="sessionTypeToggle" aria-haspopup="listbox" aria-expanded="false">
-                <span class="c-select__label">Pick & Pack</span>
+                <span class="c-select__label">Fulfillment</span>
                 <svg class="c-select__caret" width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
               </button>
               <ul class="c-select__list" role="listbox">
-                <li class="c-select__item" role="option" data-value="pick">Pick & Pack</li>
+                <li class="c-select__item" role="option" data-value="pick">Fulfillment</li>
                 <li class="c-select__item" role="option" data-value="return">Returns</li>
               </ul>
             </div>
@@ -226,6 +222,45 @@
 
     </div>
 
+  </div>
+
+  <!-- Notification Modal -->
+  <div class="modal" id="notificationModal" style="display: none;">
+    <div class="modal-content modal-small">
+      <div class="modal-header">
+        <h2 id="notificationTitle">Notification</h2>
+        <button class="modal-close" id="closeNotificationBtn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="notification-icon" id="notificationIcon">
+          <i class="fas fa-info-circle"></i>
+        </div>
+        <p id="notificationMessage"></p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="notificationOkBtn">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirmation Modal -->
+  <div class="modal" id="confirmationModal" style="display: none;">
+    <div class="modal-content modal-small">
+      <div class="modal-header">
+        <h2 id="confirmationTitle">Confirm</h2>
+        <button class="modal-close" id="closeConfirmationBtn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="notification-icon warning" id="confirmationIcon">
+          <i class="fas fa-question-circle"></i>
+        </div>
+        <p id="confirmationMessage"></p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="confirmationCancelBtn">Cancel</button>
+        <button class="btn btn-primary" id="confirmationOkBtn">OK</button>
+      </div>
+    </div>
   </div>
 </div>
 

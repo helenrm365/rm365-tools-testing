@@ -3,12 +3,21 @@
  * Monitor and manage all pick & pack sessions
  */
 
-import { apiCall } from '../../services/api.js';
-import { showNotification } from '../../ui/notifications.js';
+import { getApiUrl } from '../../config.js';
+import { getToken } from '../../services/state/sessionStore.js';
+import { wsService } from '../../services/websocket.js';
+import { showNotification, showError } from '../../ui/modal.js';
+
+// Helper to get auth headers
+function getAuthHeaders() {
+    const token = getToken();
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+}
 
 let currentSessions = [];
 let selectedSessionId = null;
 let pendingAction = null;
+let wsConnected = false;
 
 /**
  * Initialize dashboard
@@ -18,11 +27,68 @@ export async function init() {
     
     wireEventHandlers();
     await loadSessions();
+    setupWebSocket();
     
-    // Auto-refresh every 30 seconds
+    // Auto-refresh every 30 seconds as fallback
     setInterval(async () => {
-        await loadSessions(false); // Silent refresh
+        if (!wsConnected) {
+            await loadSessions(false); // Silent refresh if WebSocket not connected
+        }
     }, 30000);
+}
+
+/**
+ * Setup WebSocket for live updates
+ */
+function setupWebSocket() {
+    console.log('[OrderProgress] Setting up WebSocket listeners');
+    
+    // Listen for session events
+    wsService.on('session_started', handleSessionUpdate);
+    wsService.on('session_updated', handleSessionUpdate);
+    wsService.on('session_completed', handleSessionUpdate);
+    wsService.on('session_cancelled', handleSessionUpdate);
+    wsService.on('session_drafted', handleSessionUpdate);
+    wsService.on('session_transferred', handleSessionUpdate);
+    wsService.on('session_forced_cancel', handleSessionUpdate);
+    wsService.on('session_forced_takeover', handleSessionUpdate);
+    wsService.on('session_assigned', handleSessionUpdate);
+    
+    // Check connection status
+    if (wsService.connected) {
+        wsConnected = true;
+        console.log('[OrderProgress] WebSocket connected');
+    }
+}
+
+/**
+ * Handle session update from WebSocket
+ */
+function handleSessionUpdate(data) {
+    console.log('[OrderProgress] Received session update:', data);
+    wsConnected = true;
+    
+    // Reload sessions to get fresh data
+    loadSessions(false);
+}
+
+/**
+ * Cleanup WebSocket listeners
+ */
+export function cleanup() {
+    console.log('[OrderProgress] Cleaning up WebSocket listeners');
+    
+    wsService.off('session_started', handleSessionUpdate);
+    wsService.off('session_updated', handleSessionUpdate);
+    wsService.off('session_completed', handleSessionUpdate);
+    wsService.off('session_cancelled', handleSessionUpdate);
+    wsService.off('session_drafted', handleSessionUpdate);
+    wsService.off('session_transferred', handleSessionUpdate);
+    wsService.off('session_forced_cancel', handleSessionUpdate);
+    wsService.off('session_forced_takeover', handleSessionUpdate);
+    wsService.off('session_assigned', handleSessionUpdate);
+    
+    wsConnected = false;
 }
 
 /**
@@ -57,6 +123,13 @@ function wireEventHandlers() {
     document.getElementById('confirmActionBtn')?.addEventListener('click', () => {
         executeAction();
     });
+
+    const reasonInput = document.getElementById('actionReason');
+    reasonInput?.addEventListener('keydown', (event) => {
+        // Prevent keystrokes inside the reason box from bubbling up and accidentally
+        // triggering global shortcuts (like Enter submitting the modal automatically).
+        event.stopPropagation();
+    });
     
     // Close modal on background click
     document.getElementById('sessionDetailModal')?.addEventListener('click', (e) => {
@@ -85,12 +158,22 @@ async function loadSessions(showLoading = true) {
     }
     
     try {
-        const response = await apiCall('/magento/dashboard/sessions', {
+        const url = `${getApiUrl()}/v1/magento/dashboard/sessions?include_completed=${includeCompleted}`;
+        const response = await fetch(url, {
             method: 'GET',
-            params: { include_completed: includeCompleted }
+            headers: {
+                'Content-Type': 'application/json',
+                ...getAuthHeaders()
+            }
         });
         
-        currentSessions = response.sessions || [];
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Failed to load sessions');
+        }
+        
+        const data = await response.json();
+        currentSessions = data.sessions || [];
         renderSessions();
         updateStats();
     } catch (error) {
@@ -292,6 +375,7 @@ function confirmAction(action, title, message, showReason = false, showUserSelec
     
     if (showReason) {
         document.getElementById('actionReason').value = '';
+        setTimeout(() => document.getElementById('actionReason').focus(), 0);
     }
     if (showUserSelect) {
         document.getElementById('targetUser').value = '';
@@ -319,11 +403,16 @@ async function executeAction() {
         
         switch (pendingAction) {
             case 'force-cancel':
-                response = await apiCall(`/magento/dashboard/sessions/${selectedSessionId}/force-cancel`, {
+                response = await fetch(`${getApiUrl()}/v1/magento/dashboard/sessions/${selectedSessionId}/force-cancel`, {
                     method: 'POST',
-                    body: { reason: reason || undefined }
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...getAuthHeaders()
+                    },
+                    body: JSON.stringify({ reason: reason || undefined })
                 });
-                showNotification('success', 'Session cancelled successfully');
+                if (!response.ok) throw new Error('Failed to cancel session');
+                // No notification here - WebSocket event will update the list
                 break;
                 
             case 'force-assign':
@@ -331,17 +420,27 @@ async function executeAction() {
                     showNotification('error', 'Please enter a username');
                     return;
                 }
-                response = await apiCall(`/magento/dashboard/sessions/${selectedSessionId}/force-assign`, {
+                response = await fetch(`${getApiUrl()}/v1/magento/dashboard/sessions/${selectedSessionId}/force-assign`, {
                     method: 'POST',
-                    body: { target_user_id: targetUser }
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...getAuthHeaders()
+                    },
+                    body: JSON.stringify({ target_user_id: targetUser })
                 });
+                if (!response.ok) throw new Error('Failed to assign session');
                 showNotification('success', `Session assigned to ${targetUser}`);
                 break;
                 
             case 'takeover':
-                response = await apiCall(`/magento/dashboard/sessions/${selectedSessionId}/takeover`, {
-                    method: 'POST'
+                response = await fetch(`${getApiUrl()}/v1/magento/dashboard/sessions/${selectedSessionId}/takeover`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...getAuthHeaders()
+                    }
                 });
+                if (!response.ok) throw new Error('Failed to takeover session');
                 showNotification('success', 'You have taken over the session');
                 break;
         }
@@ -351,7 +450,7 @@ async function executeAction() {
         
     } catch (error) {
         console.error('[OrderProgress] Action failed:', error);
-        showNotification('error', `Action failed: ${error.message}`);
+        showError(`Action failed: ${error.message}`);
     }
     
     pendingAction = null;

@@ -1,17 +1,17 @@
-/* ===== Magento Pick & Pack Page Styles ===== */
+﻿/* ===== Magento Pick & Pack Page Styles ===== */
 /* Styles for invoice-based order fulfillment and returns */
 
 /* ===== Page Header ===== */
-.magento-pickpack .page-header {
+.order-fulfillment .page-header {
   margin-bottom: 2rem;
   padding: 2rem 0 1rem 0;
 }
 
-.magento-pickpack .header-content {
+.order-fulfillment .header-content {
   max-width: 800px;
 }
 
-.magento-pickpack .page-title {
+.order-fulfillment .page-title {
   font-size: 2.5rem;
   font-weight: 700;
   margin: 0 0 0.5rem 0;
@@ -22,26 +22,26 @@
   background-clip: text;
 }
 
-html.dark-mode .magento-pickpack .page-title {
+html.dark-mode .order-fulfillment .page-title {
   background: linear-gradient(135deg, #ecf0f1, #8bc34a);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-.magento-pickpack .page-subtitle {
+.order-fulfillment .page-subtitle {
   font-size: 1.1rem;
   color: #546e7a;
   margin: 0;
   font-weight: 400;
 }
 
-html.dark-mode .magento-pickpack .page-subtitle {
+html.dark-mode .order-fulfillment .page-subtitle {
   color: #95a5a6;
 }
 
 /* ===== Navigation Tabs ===== */
-.magento-pickpack .inner-tabs {
+.order-fulfillment .inner-tabs {
   display: flex;
   gap: 1rem;
   margin-bottom: 2rem;
@@ -51,11 +51,11 @@ html.dark-mode .magento-pickpack .page-subtitle {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
-html.dark-mode .magento-pickpack .inner-tabs {
+html.dark-mode .order-fulfillment .inner-tabs {
   background: #2a2a2a;
 }
 
-.magento-pickpack .tab-button {
+.order-fulfillment .tab-button {
   flex: 1;
   padding: 1rem 1.5rem;
   background: linear-gradient(135deg, #f8f9fa, #e9ecef);
@@ -74,37 +74,37 @@ html.dark-mode .magento-pickpack .inner-tabs {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-.magento-pickpack .tab-button:hover {
+.order-fulfillment .tab-button:hover {
   background: white;
   color: #4a6e1a;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.magento-pickpack .tab-button.active {
+.order-fulfillment .tab-button.active {
   background: linear-gradient(135deg, #8bc34a, #7ab82d);
   color: white;
   box-shadow: 0 3px 10px rgba(139, 195, 74, 0.3);
   transform: translateY(-1px);
 }
 
-.magento-pickpack .tab-button.active:hover {
+.order-fulfillment .tab-button.active:hover {
   box-shadow: 0 4px 12px rgba(139, 195, 74, 0.4);
 }
 
-html.dark-mode .magento-pickpack .tab-button {
+html.dark-mode .order-fulfillment .tab-button {
   background: linear-gradient(135deg, #1e1e1e, #2a2a2a);
   color: #d1d5db;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
-html.dark-mode .magento-pickpack .tab-button.active {
+html.dark-mode .order-fulfillment .tab-button.active {
   background: linear-gradient(135deg, #8bc34a, #7ab82d);
   color: white;
   box-shadow: 0 3px 10px rgba(139, 195, 74, 0.3);
 }
 
-html.dark-mode .magento-pickpack .tab-button.active:hover {
+html.dark-mode .order-fulfillment .tab-button.active:hover {
   box-shadow: 0 4px 12px rgba(139, 195, 74, 0.4);
 }
 
@@ -850,6 +850,240 @@ html.dark-mode .c-select__item:hover {
   color: #8bc34a;
 }
 
+/* ===== Modal Styles ===== */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 10000;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modal-content {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  max-width: 600px;
+  width: 90%;
+  max-height: 85vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(-30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+html.dark-mode .modal-content {
+  background: #2c3e50;
+}
+
+.modal-content.modal-small {
+  max-width: 450px;
+}
+
+.modal-header {
+  padding: 1.5rem;
+  border-bottom: 2px solid #ecf0f1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(135deg, #f8f9fa, #ecf0f1);
+}
+
+html.dark-mode .modal-header {
+  background: linear-gradient(135deg, #34495e, #2c3e50);
+  border-bottom: 2px solid #34495e;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #2c3e50;
+  font-weight: 600;
+}
+
+html.dark-mode .modal-header h2 {
+  color: #ecf0f1;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  color: #7f8c8d;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: #2c3e50;
+}
+
+html.dark-mode .modal-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ecf0f1;
+}
+
+.modal-body {
+  padding: 2rem 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+html.dark-mode .modal-body {
+  color: #ecf0f1;
+}
+
+.modal-body p {
+  margin: 0;
+  line-height: 1.6;
+  color: #546e7a;
+  font-size: 1.05rem;
+}
+
+html.dark-mode .modal-body p {
+  color: #bdc3c7;
+}
+
+.notification-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 2rem;
+}
+
+.notification-icon.success {
+  background: #d4edda;
+  color: #155724;
+}
+
+.notification-icon.error {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.notification-icon.warning {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.notification-icon.info {
+  background: #d1ecf1;
+  color: #0c5460;
+}
+
+html.dark-mode .notification-icon.success {
+  background: rgba(139, 195, 74, 0.2);
+  color: #8bc34a;
+}
+
+html.dark-mode .notification-icon.error {
+  background: rgba(231, 76, 60, 0.2);
+  color: #e74c3c;
+}
+
+html.dark-mode .notification-icon.warning {
+  background: rgba(241, 196, 15, 0.2);
+  color: #f1c40f;
+}
+
+html.dark-mode .notification-icon.info {
+  background: rgba(52, 152, 219, 0.2);
+  color: #3498db;
+}
+
+.modal-footer {
+  padding: 1rem 1.5rem;
+  border-top: 2px solid #ecf0f1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  background: #f8f9fa;
+}
+
+html.dark-mode .modal-footer {
+  background: #34495e;
+  border-top: 2px solid #34495e;
+}
+
+.modal-footer .btn {
+  padding: 0.625rem 1.5rem;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.modal-footer .btn-primary {
+  background: linear-gradient(135deg, #8bc34a, #6a9e34);
+  color: white;
+}
+
+.modal-footer .btn-primary:hover {
+  background: linear-gradient(135deg, #9ccc65, #7cb342);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(139, 195, 74, 0.3);
+}
+
+.modal-footer .btn-secondary {
+  background: #ecf0f1;
+  color: #546e7a;
+}
+
+.modal-footer .btn-secondary:hover {
+  background: #bdc3c7;
+  color: #2c3e50;
+}
+
+html.dark-mode .modal-footer .btn-secondary {
+  background: #546e7a;
+  color: #ecf0f1;
+}
+
+html.dark-mode .modal-footer .btn-secondary:hover {
+  background: #7f8c8d;
+}
+
 /* ===== Responsive Design ===== */
 @media (max-width: 1024px) {
   .lookup-form {
@@ -869,3 +1103,4 @@ html.dark-mode .c-select__item:hover {
     gap: 1rem;
   }
 }
+

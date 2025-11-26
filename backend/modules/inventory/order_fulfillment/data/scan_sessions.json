@@ -1,0 +1,554 @@
+{
+  "56ec176d-35ac-431c-9f8a-af4198cf44ab": {
+    "session_id": "56ec176d-35ac-431c-9f8a-af4198cf44ab",
+    "invoice_id": "1003208891",
+    "order_number": "1045325118",
+    "session_type": "pick",
+    "started_at": "2025-11-26T16:57:32.555782",
+    "completed_at": "2025-11-26T18:49:05.327228",
+    "items_expected": [
+      {
+        "sku": "PO001",
+        "name": "Profhilo H+L (1 x 2ml)",
+        "qty_expected": 3.0,
+        "price": 63.0
+      }
+    ],
+    "items_scanned": [],
+    "status": "cancelled",
+    "user_id": null,
+    "created_by": "superadminuser",
+    "last_modified_by": "superadminuser",
+    "last_modified_at": "2025-11-26T18:49:05.327235",
+    "audit_logs": [
+      {
+        "timestamp": "2025-11-26T16:57:32.555829",
+        "action": "started",
+        "user": "superadminuser",
+        "details": "Started pick session"
+      },
+      {
+        "timestamp": "2025-11-26T17:23:48.548759",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T17:28:36.249069",
+        "action": "restarted",
+        "user": "superadminuser",
+        "details": "Restarted cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T17:35:37.033756",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T17:35:53.508405",
+        "action": "restarted",
+        "user": "superadminuser",
+        "details": "Restarted cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T17:38:25.579531",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T17:41:35.874793",
+        "action": "restarted",
+        "user": "superadminuser",
+        "details": "Restarted cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T17:42:19.944758",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T17:52:03.582024",
+        "action": "restarted",
+        "user": "superadminuser",
+        "details": "Restarted cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T17:55:02.745120",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T17:55:23.227187",
+        "action": "restarted",
+        "user": "superadminuser",
+        "details": "Restarted cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T17:58:59.294232",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T18:04:00.479560",
+        "action": "restarted",
+        "user": "superadminuser",
+        "details": "Restarted cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T18:04:49.070938",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T18:05:15.640656",
+        "action": "restarted",
+        "user": "superadminuser",
+        "details": "Restarted cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T18:06:30.637296",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T18:07:15.695170",
+        "action": "restarted",
+        "user": "superadminuser",
+        "details": "Restarted cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T18:07:25.969997",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T18:07:52.212681",
+        "action": "claimed",
+        "user": "superadminuser",
+        "details": "Claimed draft session from superadminuser"
+      },
+      {
+        "timestamp": "2025-11-26T18:07:59.691537",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T18:07:59.714443",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T18:08:14.959207",
+        "action": "claimed",
+        "user": "superadminuser",
+        "details": "Claimed draft session from superadminuser"
+      },
+      {
+        "timestamp": "2025-11-26T18:08:28.630656",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T18:08:28.669300",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T18:10:43.499495",
+        "action": "claimed",
+        "user": "superadminuser",
+        "details": "Claimed draft session from superadminuser"
+      },
+      {
+        "timestamp": "2025-11-26T18:10:48.399571",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T18:11:08.827046",
+        "action": "restarted",
+        "user": "superadminuser",
+        "details": "Restarted cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T18:11:19.125626",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T18:11:19.141987",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T18:11:31.793100",
+        "action": "claimed",
+        "user": "superadminuser",
+        "details": "Claimed draft session from superadminuser"
+      },
+      {
+        "timestamp": "2025-11-26T18:11:42.582838",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T18:11:42.613351",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T18:11:56.313764",
+        "action": "claimed",
+        "user": "superadminuser",
+        "details": "Claimed draft session from superadminuser"
+      },
+      {
+        "timestamp": "2025-11-26T18:12:51.618364",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T18:12:53.974095",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T18:12:53.981812",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T18:13:06.618829",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T18:13:06.642478",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T18:17:21.996808",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T18:18:24.457373",
+        "action": "restarted",
+        "user": "superadminuser",
+        "details": "Restarted cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T18:18:43.636429",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T18:18:47.453985",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T18:18:53.341876",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T18:18:53.365668",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T18:19:05.433468",
+        "action": "claimed",
+        "user": "superadminuser",
+        "details": "Claimed draft session from superadminuser"
+      },
+      {
+        "timestamp": "2025-11-26T18:19:11.626383",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T18:19:15.285020",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T18:19:25.630511",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T18:19:34.432577",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T18:19:34.471781",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T18:20:20.109216",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T18:25:50.595343",
+        "action": "restarted",
+        "user": "superadminuser",
+        "details": "Restarted cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T18:25:59.627342",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T18:26:04.417328",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T18:26:40.628290",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T18:27:11.619143",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T18:28:02.322185",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T18:28:02.369088",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T18:28:08.464595",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T18:32:10.967024",
+        "action": "restarted",
+        "user": "superadminuser",
+        "details": "Restarted cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T18:32:19.624161",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T18:32:33.626755",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T18:32:34.645830",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T18:32:40.537458",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T18:32:40.578583",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T18:32:49.427380",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T18:33:04.125001",
+        "action": "restarted",
+        "user": "superadminuser",
+        "details": "Restarted cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T18:33:15.619505",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T18:33:24.629215",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T18:34:05.073785",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T18:34:10.701115",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T18:34:10.745004",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T18:34:21.108203",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T18:34:30.391526",
+        "action": "restarted",
+        "user": "superadminuser",
+        "details": "Restarted cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T18:34:54.741931",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T18:36:07.270204",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T18:36:07.305845",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T18:36:12.311634",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T18:36:50.444282",
+        "action": "restarted",
+        "user": "superadminuser",
+        "details": "Restarted cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T18:37:05.533049",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T18:38:05.622249",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T18:38:47.113345",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T18:38:47.170376",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T18:38:55.752367",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T18:44:29.001252",
+        "action": "restarted",
+        "user": "superadminuser",
+        "details": "Restarted cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T18:44:35.913246",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T18:48:42.388960",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T18:49:05.327241",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      }
+    ]
+  }
+}

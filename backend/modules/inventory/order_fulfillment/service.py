@@ -89,10 +89,20 @@ class MagentoService:
                 )
             
             elif existing_session.status == "cancelled":
-                # Cancelled - warn user but allow to continue
+                # Cancelled - reuse the existing session instead of creating new
                 cancelled_by = existing_session.last_modified_by or existing_session.created_by or "Unknown"
-                print(f"  Warning: Previous session was cancelled by {cancelled_by}, allowing new session")
-                # Continue to create new session
+                print(f"  Reusing cancelled session {existing_session.session_id}, previously cancelled by {cancelled_by}")
+                
+                # Reset the session to in_progress
+                session = self.repo.restart_cancelled_session(
+                    session_id=existing_session.session_id,
+                    user_id=user_id
+                )
+                
+                print(f"  Session restarted: {session.session_id} (status: in_progress, owner: {user_id})")
+                
+                # Convert to status schema and return
+                return self._session_to_status(session, invoice)
         
         print(f"[MagentoService] Starting new session for invoice:")
         print(f"  Invoice number: {invoice.invoice_number}")
@@ -264,7 +274,7 @@ class MagentoService:
         
         return self._session_to_status(session, invoice)
     
-    def complete_session(self, request: CompleteSessionSchema) -> bool:
+    def complete_session(self, request: CompleteSessionSchema, user_id: Optional[str] = None) -> bool:
         """
         Complete a scanning session
         Validates all items are scanned unless force_complete is True
@@ -274,16 +284,19 @@ class MagentoService:
         if not session:
             raise ValueError("Session not found")
         
+        if session.status != "in_progress":
+            raise ValueError(f"Cannot complete a session that is {session.status}")
+        
         if not request.force_complete:
             # Check if all items are complete
             if not self._check_all_items_complete(session):
                 raise ValueError("Not all items have been scanned. Use force_complete=true to override")
         
-        return self.repo.complete_session(request.session_id)
+        return self.repo.complete_session(request.session_id, user_id=user_id)
     
-    def cancel_session(self, session_id: str) -> bool:
+    def cancel_session(self, session_id: str, user_id: Optional[str] = None) -> bool:
         """Cancel a session"""
-        return self.repo.cancel_session(session_id)
+        return self.repo.cancel_session(session_id, user_id=user_id)
     
     def get_active_sessions(self, user_id: Optional[str] = None) -> List[SessionStatusSchema]:
         """Get all active (in_progress) sessions"""
@@ -722,6 +735,15 @@ class MagentoService:
                         'reason': reason,
                         'message': message
                     }, room=previous_owner)
+                )
+                # Also broadcast to the inventory room so dashboards refresh immediately
+                asyncio.create_task(
+                    sio.emit('session_forced_cancel', {
+                        'session_id': session_id,
+                        'cancelled_by': admin_user_id,
+                        'reason': reason,
+                        'message': message
+                    }, room='inventory_management')
                 )
             except Exception as e:
                 print(f"[MagentoService] Failed to send WebSocket notification: {e}")
