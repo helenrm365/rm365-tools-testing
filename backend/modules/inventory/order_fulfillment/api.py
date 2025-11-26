@@ -674,16 +674,25 @@ def admin_takeover_session(
         admin_user_id = current_user.get('user_id') or current_user.get('username')
         success = service.admin_takeover_session(session_id, admin_user_id)
         
+        if success is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="You cannot take over your own session"
+            )
+        
         if not success:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Session not found: {session_id}"
             )
-        
+        # Include order and invoice to enable frontend redirect into the active session
+        session_status = service.get_session_status(session_id)
         return {
             "success": True,
             "message": f"You have taken over session {session_id}",
-            "session_id": session_id
+            "session_id": session_id,
+            "order_number": session_status.order_number if session_status else None,
+            "invoice_number": session_status.invoice_number if session_status else None
         }
     
     except HTTPException:

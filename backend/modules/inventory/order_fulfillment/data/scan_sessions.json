@@ -5,7 +5,7 @@
     "order_number": "1045325118",
     "session_type": "pick",
     "started_at": "2025-11-26T16:57:32.555782",
-    "completed_at": "2025-11-26T18:49:05.327228",
+    "completed_at": null,
     "items_expected": [
       {
         "sku": "PO001",
@@ -15,11 +15,11 @@
       }
     ],
     "items_scanned": [],
-    "status": "cancelled",
+    "status": "draft",
     "user_id": null,
     "created_by": "superadminuser",
     "last_modified_by": "superadminuser",
-    "last_modified_at": "2025-11-26T18:49:05.327235",
+    "last_modified_at": "2025-11-26T20:40:27.323286",
     "audit_logs": [
       {
         "timestamp": "2025-11-26T16:57:32.555829",
@@ -548,6 +548,444 @@
         "action": "cancelled",
         "user": "superadminuser",
         "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T19:45:01.299472",
+        "action": "restarted",
+        "user": "superadminuser",
+        "details": "Restarted cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T19:45:08.877578",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T19:45:21.058143",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T19:45:34.663470",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T19:48:07.879894",
+        "action": "restarted",
+        "user": "superadminuser",
+        "details": "Restarted cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T19:48:21.000403",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T19:49:28.396829",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T19:49:33.247220",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T19:50:49.626682",
+        "action": "restarted",
+        "user": "superadminuser",
+        "details": "Restarted cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T19:50:59.413576",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T19:52:17.305572",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T19:53:19.649836",
+        "action": "restarted",
+        "user": "superadminuser",
+        "details": "Restarted cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T19:53:29.331237",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T19:54:03.247391",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T19:54:09.915331",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T19:54:59.840802",
+        "action": "restarted",
+        "user": "superadminuser",
+        "details": "Restarted cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T19:55:08.141215",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T19:55:49.371088",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T19:55:58.913024",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T19:56:20.205381",
+        "action": "restarted",
+        "user": "superadminuser",
+        "details": "Restarted cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T19:56:36.500586",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T19:58:04.603408",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T19:58:49.311010",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T19:59:14.080889",
+        "action": "restarted",
+        "user": "superadminuser",
+        "details": "Restarted cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T19:59:27.469128",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T20:00:29.699542",
+        "action": "restarted",
+        "user": "superadminuser",
+        "details": "Restarted cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T20:00:48.695713",
+        "action": "forced_takeover",
+        "user": "superadminuser",
+        "details": "Forcefully transferred from superadminuser to superadminuser"
+      },
+      {
+        "timestamp": "2025-11-26T20:04:08.648944",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T20:04:29.915675",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T20:05:13.215628",
+        "action": "restarted",
+        "user": "superadminuser",
+        "details": "Restarted cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T20:05:28.448336",
+        "action": "forced_takeover",
+        "user": "superadminuser",
+        "details": "Forcefully transferred from superadminuser to superadminuser"
+      },
+      {
+        "timestamp": "2025-11-26T20:05:39.862296",
+        "action": "forced_takeover",
+        "user": "superadminuser",
+        "details": "Forcefully transferred from superadminuser to superadminuser"
+      },
+      {
+        "timestamp": "2025-11-26T20:06:06.840249",
+        "action": "forced_takeover",
+        "user": "superadminuser",
+        "details": "Forcefully transferred from superadminuser to superadminuser"
+      },
+      {
+        "timestamp": "2025-11-26T20:08:06.111850",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T20:08:12.481929",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T20:08:12.500778",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T20:08:40.430099",
+        "action": "restarted",
+        "user": "superadminuser",
+        "details": "Restarted cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T20:08:46.538956",
+        "action": "forced_takeover",
+        "user": "superadminuser",
+        "details": "Forcefully transferred from superadminuser to superadminuser"
+      },
+      {
+        "timestamp": "2025-11-26T20:09:26.339368",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T20:09:50.274791",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T20:10:27.421235",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T20:11:03.210125",
+        "action": "restarted",
+        "user": "superadminuser",
+        "details": "Restarted cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T20:11:18.083810",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T20:11:49.331635",
+        "action": "restarted",
+        "user": "superadminuser",
+        "details": "Restarted cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T20:11:56.915397",
+        "action": "forced_takeover",
+        "user": "superadminuser",
+        "details": "Forcefully transferred from superadminuser to superadminuser"
+      },
+      {
+        "timestamp": "2025-11-26T20:14:29.491917",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T20:14:36.644220",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T20:15:04.296215",
+        "action": "restarted",
+        "user": "superadminuser",
+        "details": "Restarted cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T20:15:11.515078",
+        "action": "forced_takeover",
+        "user": "superadminuser",
+        "details": "Forcefully transferred from superadminuser to superadminuser"
+      },
+      {
+        "timestamp": "2025-11-26T20:17:21.251487",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T20:18:03.876827",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T20:19:44.970612",
+        "action": "restarted",
+        "user": "superadminuser",
+        "details": "Restarted cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T20:19:54.599075",
+        "action": "forced_takeover",
+        "user": "superadminuser",
+        "details": "Forcefully transferred from superadminuser to superadminuser"
+      },
+      {
+        "timestamp": "2025-11-26T20:20:12.308402",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T20:20:18.992861",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T20:20:49.096558",
+        "action": "restarted",
+        "user": "superadminuser",
+        "details": "Restarted cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T20:21:10.126320",
+        "action": "forced_takeover",
+        "user": "superadminuser",
+        "details": "Forcefully transferred from superadminuser to superadminuser"
+      },
+      {
+        "timestamp": "2025-11-26T20:21:27.799026",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T20:21:34.360848",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T20:23:53.846506",
+        "action": "restarted",
+        "user": "superadminuser",
+        "details": "Restarted cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T20:24:07.434966",
+        "action": "forced_takeover",
+        "user": "superadminuser",
+        "details": "Forcefully transferred from superadminuser to superadminuser"
+      },
+      {
+        "timestamp": "2025-11-26T20:25:28.862454",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T20:25:47.953943",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T20:27:54.010470",
+        "action": "restarted",
+        "user": "superadminuser",
+        "details": "Restarted cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T20:28:00.675445",
+        "action": "forced_takeover",
+        "user": "superadminuser",
+        "details": "Forcefully transferred from superadminuser to superadminuser"
+      },
+      {
+        "timestamp": "2025-11-26T20:29:54.335615",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T20:33:49.900289",
+        "action": "restarted",
+        "user": "superadminuser",
+        "details": "Restarted cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T20:34:01.104466",
+        "action": "forced_takeover",
+        "user": "superadminuser",
+        "details": "Forcefully transferred from superadminuser to superadminuser"
+      },
+      {
+        "timestamp": "2025-11-26T20:34:22.476801",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-26T20:34:27.036655",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T20:34:48.717855",
+        "action": "restarted",
+        "user": "superadminuser",
+        "details": "Restarted cancelled session"
+      },
+      {
+        "timestamp": "2025-11-26T20:35:01.480636",
+        "action": "forced_takeover",
+        "user": "superadminuser",
+        "details": "Forcefully transferred from superadminuser to superadminuser"
+      },
+      {
+        "timestamp": "2025-11-26T20:40:27.323336",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
       }
     ]
   }

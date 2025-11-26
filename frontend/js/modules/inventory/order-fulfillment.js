@@ -69,6 +69,7 @@ class MagentoPickPackManager {
     this.handleSessionTransferred = this.handleSessionTransferred.bind(this);
     this.handleSessionForcedCancel = this.handleSessionForcedCancel.bind(this);
     this.handleSessionForcedTakeover = this.handleSessionForcedTakeover.bind(this);
+    this.handleSessionAssigned = this.handleSessionAssigned.bind(this);
     
     // Listen for takeover and session events
     wsService.on('takeover_request', this.handleTakeoverRequest);
@@ -76,6 +77,7 @@ class MagentoPickPackManager {
     wsService.on('session_transferred', this.handleSessionTransferred);
     wsService.on('session_forced_cancel', this.handleSessionForcedCancel);
     wsService.on('session_forced_takeover', this.handleSessionForcedTakeover);
+    wsService.on('session_assigned', this.handleSessionAssigned);
     
     console.log('[MagentoPickPack] WebSocket listeners registered');
   }
@@ -88,6 +90,7 @@ class MagentoPickPackManager {
     wsService.off('session_transferred', this.handleSessionTransferred);
     wsService.off('session_forced_cancel', this.handleSessionForcedCancel);
     wsService.off('session_forced_takeover', this.handleSessionForcedTakeover);
+    wsService.off('session_assigned', this.handleSessionAssigned);
   }
 
   async handleTakeoverRequest(data) {
@@ -155,6 +158,42 @@ class MagentoPickPackManager {
     }
   }
 
+  async handleSessionAssigned(data) {
+    console.log('[MagentoPickPack] Session assigned to me:', data);
+    // When an admin assigns/takes over to this user, navigate into the active session
+    const orderNumber = data.order_number;
+    const sessionId = data.session_id;
+    if (orderNumber && sessionId) {
+      try {
+        // Check if we're already on this session page - avoid re-navigation
+        const currentPath = window.location.pathname;
+        const targetPath = `/inventory/order-fulfillment/session-${orderNumber}-`;
+        if (currentPath && currentPath.startsWith(targetPath)) {
+          console.log('[MagentoPickPack] Already on the assigned session page, skipping redirect');
+          return;
+        }
+        
+        // Load session status to retrieve invoice_number for deep-link
+        const url = `${getApiUrl()}/v1/magento/session/status/${sessionId}`;
+        const response = await fetch(url, { headers: getAuthHeaders() });
+        if (response.ok) {
+          const status = await response.json();
+          if (status?.order_number && status?.invoice_number) {
+            const path = `/inventory/order-fulfillment/session-${status.order_number}-${status.invoice_number}`;
+            if (window.navigate) {
+              window.navigate(path);
+            } else {
+              history.pushState({ path }, '', path);
+              location.reload();
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('[MagentoPickPack] Failed to navigate to assigned session:', err);
+      }
+    }
+  }
+
   async checkSessionFromPath(path) {
     if (!path || path === '/inventory/order-fulfillment') {
       // Base path, show order lookup
@@ -171,27 +210,27 @@ class MagentoPickPackManager {
 
       // Try to find and load this session
       try {
-        const url = `${getApiUrl()}/v1/magento/sessions?order_number=${orderNumber}`;
-        const response = await fetch(url, {
-          headers: getAuthHeaders()
-        });
-
+        // Prefer status endpoint by matching session URL after module loads
+        // Fallback: attempt to get status by known pattern or ignore if not available
+        // If this fetch returns HTML (e.g., due to auth redirect), catch and fallback gracefully
+        const statusUrl = `${getApiUrl()}/v1/magento/session/check/${orderNumber}`;
+        const response = await fetch(statusUrl, { headers: getAuthHeaders() });
         if (response.ok) {
-          const sessions = await response.json();
-          const session = sessions.find(s => s.order_number === orderNumber && s.invoice_number === invoiceNumber);
-          
-          if (session && session.status === 'in_progress') {
-            // Load the session
-            this.currentSession = session;
-            this.currentSessionId = session.session_id;
-            window.__currentMagentoSession = session.session_id;
-            this.showActiveSession();
-            this.updateSessionDisplay();
+          let info = null;
+          try {
+            info = await response.json();
+          } catch (e) {
+            console.warn('[MagentoPickPack] Non-JSON response while checking session; showing lookup', e);
+            this.showOrderLookup();
             return;
           }
+          // If an in-progress session exists for this order, we still rely on websocket-assigned event to inject session_id
+          // Here just keep UI stable on order lookup if not in progress
         }
       } catch (error) {
         console.error('[MagentoPickPack] Error loading session from path:', error);
+        // Avoid crashing the module; show lookup view
+        this.showOrderLookup();
       }
 
       // If we couldn't load the session, redirect to base path

@@ -166,6 +166,45 @@ class WebSocketService {
     this.socket.on('presence_update', (data) => {
       this._emit('presence_update', data);
     });
+
+    // Session management events (order fulfillment lifecycle)
+    this.socket.on('session_started', (data) => {
+      this._emit('session_started', data);
+    });
+    this.socket.on('session_updated', (data) => {
+      this._emit('session_updated', data);
+    });
+    this.socket.on('session_completed', (data) => {
+      this._emit('session_completed', data);
+    });
+    this.socket.on('session_cancelled', (data) => {
+      this._emit('session_cancelled', data);
+    });
+    this.socket.on('session_drafted', (data) => {
+      this._emit('session_drafted', data);
+    });
+    this.socket.on('session_transferred', (data) => {
+      this._emit('session_transferred', data);
+    });
+    this.socket.on('session_forced_cancel', (data) => {
+      console.log('[WebSocket] Received session_forced_cancel:', data);
+      this._emit('session_forced_cancel', data);
+    });
+    this.socket.on('session_forced_takeover', (data) => {
+      console.log('[WebSocket] Received session_forced_takeover:', data);
+      this._emit('session_forced_takeover', data);
+    });
+    this.socket.on('session_assigned', (data) => {
+      console.log('[WebSocket] Received session_assigned:', data);
+      this._emit('session_assigned', data);
+    });
+    // Takeover request/response events
+    this.socket.on('takeover_request', (data) => {
+      this._emit('takeover_request', data);
+    });
+    this.socket.on('takeover_response', (data) => {
+      this._emit('takeover_response', data);
+    });
   }
 
   /**
@@ -311,7 +350,8 @@ class WebSocketService {
     console.log('[WebSocket] Joining room:', roomToJoin);
 
     this.socket.emit('join_inventory_room', {
-      user_id: this.currentUser?.username || 'unknown',
+      // Use real user_id when available; fall back to username
+      user_id: this.currentUser?.user_id || this.currentUser?.username || 'unknown',
       username: this.currentUser?.username || 'Guest',
       room: roomToJoin,
     });

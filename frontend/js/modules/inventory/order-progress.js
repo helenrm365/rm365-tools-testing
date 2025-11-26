@@ -18,6 +18,8 @@ let currentSessions = [];
 let selectedSessionId = null;
 let pendingAction = null;
 let wsConnected = false;
+let actionInFlight = false; // prevent double submissions
+let refreshTimer = null; // track auto-refresh interval
 
 /**
  * Initialize dashboard
@@ -30,7 +32,7 @@ export async function init() {
     setupWebSocket();
     
     // Auto-refresh every 30 seconds as fallback
-    setInterval(async () => {
+    refreshTimer = setInterval(async () => {
         if (!wsConnected) {
             await loadSessions(false); // Silent refresh if WebSocket not connected
         }
@@ -87,6 +89,12 @@ export function cleanup() {
     wsService.off('session_forced_cancel', handleSessionUpdate);
     wsService.off('session_forced_takeover', handleSessionUpdate);
     wsService.off('session_assigned', handleSessionUpdate);
+    
+    // Stop auto-refresh timer
+    if (refreshTimer) {
+        clearInterval(refreshTimer);
+        refreshTimer = null;
+    }
     
     wsConnected = false;
 }
@@ -150,7 +158,8 @@ function wireEventHandlers() {
  * Load all sessions from API
  */
 async function loadSessions(showLoading = true) {
-    const includeCompleted = document.getElementById('showCompleted').checked;
+    const showCompletedEl = document.getElementById('showCompleted');
+    const includeCompleted = showCompletedEl ? showCompletedEl.checked : false;
     const listContainer = document.getElementById('sessionsList');
     
     if (showLoading) {
@@ -172,18 +181,26 @@ async function loadSessions(showLoading = true) {
             throw new Error(error.detail || 'Failed to load sessions');
         }
         
-        const data = await response.json();
+        let data;
+        try {
+            data = await response.json();
+        } catch (e) {
+            console.error('[OrderProgress] Non-JSON response when loading sessions:', e);
+            throw new Error('Failed to parse sessions response');
+        }
         currentSessions = data.sessions || [];
         renderSessions();
         updateStats();
     } catch (error) {
         console.error('[OrderProgress] Failed to load sessions:', error);
-        listContainer.innerHTML = `
-            <div class="empty-state">
-                <p>Failed to load sessions: ${error.message}</p>
-                <button class="btn btn-primary" onclick="location.reload()">Retry</button>
-            </div>
-        `;
+        if (listContainer) {
+            listContainer.innerHTML = `
+                <div class="empty-state">
+                    <p>Failed to load sessions: ${error.message}</p>
+                    <button class="btn btn-primary" onclick="location.reload()">Retry</button>
+                </div>
+            `;
+        }
     }
 }
 
@@ -192,6 +209,7 @@ async function loadSessions(showLoading = true) {
  */
 function renderSessions() {
     const listContainer = document.getElementById('sessionsList');
+    if (!listContainer) return; // Exit if DOM doesn't exist (navigated away)
     
     if (currentSessions.length === 0) {
         listContainer.innerHTML = `
@@ -382,6 +400,8 @@ function confirmAction(action, title, message, showReason = false, showUserSelec
     }
     
     document.getElementById('confirmModal').style.display = 'flex';
+    // Reset in-flight flag when opening the modal
+    actionInFlight = false;
 }
 
 /**
@@ -391,6 +411,10 @@ async function executeAction() {
     if (!pendingAction || !selectedSessionId) {
         return;
     }
+    if (actionInFlight) {
+        return; // ignore duplicate clicks
+    }
+    actionInFlight = true;
     
     const reason = document.getElementById('actionReason').value;
     const targetUser = document.getElementById('targetUser').value;
@@ -411,7 +435,11 @@ async function executeAction() {
                     },
                     body: JSON.stringify({ reason: reason || undefined })
                 });
-                if (!response.ok) throw new Error('Failed to cancel session');
+                if (!response.ok) {
+                    let detail = 'Failed to cancel session';
+                    try { const err = await response.json(); detail = err.detail || detail; } catch {}
+                    throw new Error(detail);
+                }
                 // No notification here - WebSocket event will update the list
                 break;
                 
@@ -428,11 +456,16 @@ async function executeAction() {
                     },
                     body: JSON.stringify({ target_user_id: targetUser })
                 });
-                if (!response.ok) throw new Error('Failed to assign session');
+                if (!response.ok) {
+                    let detail = 'Failed to assign session';
+                    try { const err = await response.json(); detail = err.detail || detail; } catch {}
+                    throw new Error(detail);
+                }
                 showNotification('success', `Session assigned to ${targetUser}`);
                 break;
                 
             case 'takeover':
+                console.log('[OrderProgress] Executing takeover for session:', selectedSessionId);
                 response = await fetch(`${getApiUrl()}/v1/magento/dashboard/sessions/${selectedSessionId}/takeover`, {
                     method: 'POST',
                     headers: {
@@ -440,8 +473,32 @@ async function executeAction() {
                         ...getAuthHeaders()
                     }
                 });
-                if (!response.ok) throw new Error('Failed to takeover session');
-                showNotification('success', 'You have taken over the session');
+                console.log('[OrderProgress] Takeover response status:', response.status);
+                if (!response.ok) {
+                    let detail = 'Failed to takeover session';
+                    try { const err = await response.json(); detail = err.detail || detail; } catch {}
+                    throw new Error(detail);
+                }
+                {
+                    const result = await response.json();
+                    console.log('[OrderProgress] Takeover result:', result);
+                    showNotification('success', 'You have taken over the session');
+                    // If the backend returned order/invoice, redirect into the active session page
+                    if (result.order_number && result.invoice_number) {
+                        const path = `/inventory/order-fulfillment/session-${result.order_number}-${result.invoice_number}`;
+                        console.log('[OrderProgress] Redirecting to session:', path);
+                        // Navigate using the app router so the template and module load correctly
+                        if (window.navigate) {
+                            window.navigate(path);
+                        } else {
+                            // Fallback: update history and reload
+                            history.pushState({ path }, '', path);
+                            location.reload();
+                        }
+                    } else {
+                        console.warn('[OrderProgress] No order/invoice in takeover result, staying on dashboard');
+                    }
+                }
                 break;
         }
         
@@ -455,6 +512,7 @@ async function executeAction() {
     
     pendingAction = null;
     selectedSessionId = null;
+    actionInFlight = false;
 }
 
 /**
@@ -542,10 +600,18 @@ function updateStats() {
         }
     });
     
-    document.getElementById('statInProgress').textContent = stats.inProgress;
-    document.getElementById('statDraft').textContent = stats.draft;
-    document.getElementById('statCompleted').textContent = stats.completed;
-    document.getElementById('statCancelled').textContent = stats.cancelled;
+    const inProgressEl = document.getElementById('statInProgress');
+    const draftEl = document.getElementById('statDraft');
+    const completedEl = document.getElementById('statCompleted');
+    const cancelledEl = document.getElementById('statCancelled');
+    
+    // Exit if DOM elements don't exist (navigated away)
+    if (!inProgressEl || !draftEl || !completedEl || !cancelledEl) return;
+    
+    inProgressEl.textContent = stats.inProgress;
+    draftEl.textContent = stats.draft;
+    completedEl.textContent = stats.completed;
+    cancelledEl.textContent = stats.cancelled;
 }
 
 // Initialize on module load

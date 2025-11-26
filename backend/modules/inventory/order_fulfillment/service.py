@@ -721,30 +721,25 @@ class MagentoService:
         if success and previous_owner:
             # Send WebSocket notification to the user who was working on it
             try:
-                from core.websocket import sio
-                import asyncio
+                from core.websocket import emit_background
                 
                 message = f"Your session was cancelled by administrator {admin_user_id}"
                 if reason:
                     message += f": {reason}"
                 
-                asyncio.create_task(
-                    sio.emit('session_forced_cancel', {
-                        'session_id': session_id,
-                        'cancelled_by': admin_user_id,
-                        'reason': reason,
-                        'message': message
-                    }, room=previous_owner)
-                )
+                emit_background('session_forced_cancel', {
+                    'session_id': session_id,
+                    'cancelled_by': admin_user_id,
+                    'reason': reason,
+                    'message': message
+                }, room=previous_owner)
                 # Also broadcast to the inventory room so dashboards refresh immediately
-                asyncio.create_task(
-                    sio.emit('session_forced_cancel', {
-                        'session_id': session_id,
-                        'cancelled_by': admin_user_id,
-                        'reason': reason,
-                        'message': message
-                    }, room='inventory_management')
-                )
+                emit_background('session_forced_cancel', {
+                    'session_id': session_id,
+                    'cancelled_by': admin_user_id,
+                    'reason': reason,
+                    'message': message
+                }, room='inventory_management')
             except Exception as e:
                 print(f"[MagentoService] Failed to send WebSocket notification: {e}")
         
@@ -769,29 +764,24 @@ class MagentoService:
         if success:
             # Send WebSocket notifications
             try:
-                from core.websocket import sio
-                import asyncio
+                from core.websocket import emit_background
                 
                 # Notify previous owner (if any)
                 if previous_owner and previous_owner != target_user_id:
-                    asyncio.create_task(
-                        sio.emit('session_forced_takeover', {
-                            'session_id': session_id,
-                            'transferred_to': target_user_id,
-                            'transferred_by': admin_user_id,
-                            'message': f"Administrator {admin_user_id} transferred your session to {target_user_id}. Please check with them."
-                        }, room=previous_owner)
-                    )
+                    emit_background('session_forced_takeover', {
+                        'session_id': session_id,
+                        'transferred_to': target_user_id,
+                        'transferred_by': admin_user_id,
+                        'message': f"Administrator {admin_user_id} transferred your session to {target_user_id}. Please check with them."
+                    }, room=previous_owner)
                 
                 # Notify new owner
-                asyncio.create_task(
-                    sio.emit('session_assigned', {
-                        'session_id': session_id,
-                        'order_number': session.order_number,
-                        'assigned_by': admin_user_id,
-                        'message': f"Administrator {admin_user_id} assigned order {session.order_number} to you"
-                    }, room=target_user_id)
-                )
+                emit_background('session_assigned', {
+                    'session_id': session_id,
+                    'order_number': session.order_number,
+                    'assigned_by': admin_user_id,
+                    'message': f"Administrator {admin_user_id} assigned order {session.order_number} to you"
+                }, room=target_user_id)
             except Exception as e:
                 print(f"[MagentoService] Failed to send WebSocket notification: {e}")
         
@@ -799,6 +789,32 @@ class MagentoService:
     
     def admin_takeover_session(self, session_id: str, admin_user_id: str) -> bool:
         """Admin forcefully takes over a session themselves"""
-        return self.force_assign_session(session_id, admin_user_id, admin_user_id)
+        session = self.repo.get_session(session_id)
+        if not session:
+            return False
+        
+        previous_owner = session.user_id
+        
+        # Prevent users from taking over their own session
+        if previous_owner == admin_user_id:
+            return None  # Special return value to indicate self-takeover attempt
+        
+        # Use force_assign to transfer ownership
+        success = self.force_assign_session(session_id, admin_user_id, admin_user_id)
+        
+        # Additionally emit forced_takeover to the previous owner so they get kicked
+        if success and previous_owner and previous_owner != admin_user_id:
+            try:
+                from core.websocket import emit_background
+                emit_background('session_forced_takeover', {
+                    'session_id': session_id,
+                    'new_owner': admin_user_id,
+                    'transferred_by': admin_user_id,
+                    'message': f'{admin_user_id} has taken over your session'
+                }, room=previous_owner)
+            except Exception as e:
+                print(f"[MagentoService] Failed to send takeover kick notification: {e}")
+        
+        return success
 
 

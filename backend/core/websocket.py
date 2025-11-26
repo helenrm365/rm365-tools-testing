@@ -250,6 +250,7 @@ async def join_inventory_room(sid, data):
     personal_room = user_id or username
     if personal_room:
         await sio.enter_room(sid, str(personal_room))
+        logger.info(f"[WebSocket] User {username} (sid: {sid}) joined personal room: {personal_room}")
     
     # Update presence
     room_state = await presence_manager.join_room(sid, room_id, user_id, username)
@@ -320,3 +321,26 @@ async def request_presence(sid):
 
 # Export the presence manager for use in other modules
 __all__ = ['sio', 'presence_manager']
+
+# Helper to emit events safely from non-async contexts
+async def _emit_async(event: str, data: dict, room: Optional[str] = None):
+    logger.info(f"[WebSocket] Emitting event '{event}' to room '{room}': {data}")
+    await sio.emit(event, data, room=room)
+
+def emit_background(event: str, data: dict, room: Optional[str] = None):
+    """Emit a Socket.IO event using a background task, safe to call from sync code.
+    This avoids 'no running event loop' errors when called outside async handlers.
+    """
+    try:
+        # Try AnyIO bridge first (works in FastAPI thread contexts)
+        import anyio
+        try:
+            anyio.from_thread.run(_emit_async, event, data, room)
+            return
+        except RuntimeError:
+            # If not in a thread or no portal, fall back to socketio background task
+            pass
+
+        sio.start_background_task(_emit_async, event, data, room)
+    except Exception as e:
+        logger.error(f"Failed to start background emit for {event}: {e}")
