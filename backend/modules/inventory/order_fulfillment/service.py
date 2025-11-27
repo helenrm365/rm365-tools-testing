@@ -356,6 +356,12 @@ class MagentoService:
                     invoice.billing_postcode, invoice.billing_country]
             billing_address = ', '.join([p for p in parts if p])
         
+        shipping_address = None
+        if invoice.shipping_street:
+            parts = [invoice.shipping_street, invoice.shipping_city, 
+                    invoice.shipping_postcode, invoice.shipping_country]
+            shipping_address = ', '.join([p for p in parts if p])
+        
         schema = InvoiceDetailSchema(
             invoice_number=invoice.increment_id,
             order_number=invoice.order_increment_id,
@@ -363,10 +369,22 @@ class MagentoService:
             order_id=invoice.order_id,
             state=invoice.state,
             grand_total=invoice.grand_total,
+            subtotal=invoice.subtotal,
+            tax_amount=invoice.tax_amount,
+            order_currency_code=invoice.order_currency_code,
             created_at=invoice.created_at,
+            order_date=invoice.order_date,
             items=items,
             billing_name=invoice.billing_name,
-            billing_address=billing_address
+            billing_address=billing_address,
+            billing_postcode=invoice.billing_postcode,
+            billing_phone=invoice.billing_phone,
+            shipping_name=invoice.shipping_name,
+            shipping_address=shipping_address,
+            shipping_postcode=invoice.shipping_postcode,
+            shipping_phone=invoice.shipping_phone,
+            payment_method=invoice.payment_method,
+            shipping_method=invoice.shipping_method
         )
         
         print(f"  Schema created with order_number: {schema.order_number}, items: {len(schema.items)}")
@@ -395,7 +413,9 @@ class MagentoService:
         completed_items = sum(1 for item in items if item.is_complete)
         progress = (completed_items / total_items * 100) if total_items > 0 else 0
         
-        return SessionStatusSchema(
+        print(f"[Currency Debug Service] invoice.order_currency_code = {invoice.order_currency_code}")
+        
+        status_schema = SessionStatusSchema(
             session_id=session.session_id,
             order_number=session.order_number,
             invoice_number=invoice.invoice_number,
@@ -405,8 +425,24 @@ class MagentoService:
             items=items,
             total_items=total_items,
             completed_items=completed_items,
-            progress_percentage=round(progress, 1)
+            progress_percentage=round(progress, 1),
+            grand_total=invoice.grand_total,
+            subtotal=invoice.subtotal,
+            tax_amount=invoice.tax_amount,
+            order_currency_code=invoice.order_currency_code,
+            order_date=invoice.order_date,
+            billing_name=invoice.billing_name,
+            billing_postcode=invoice.billing_postcode,
+            billing_phone=invoice.billing_phone,
+            shipping_name=invoice.shipping_name,
+            shipping_postcode=invoice.shipping_postcode,
+            shipping_phone=invoice.shipping_phone,
+            payment_method=invoice.payment_method,
+            shipping_method=invoice.shipping_method
         )
+        
+        print(f"[Currency Debug Service] status_schema.order_currency_code = {status_schema.order_currency_code}")
+        return status_schema
     
     def _check_all_items_complete(self, session) -> bool:
         """Check if all expected items have been scanned"""

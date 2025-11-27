@@ -6,8 +6,32 @@ import { getToken } from '../../services/state/sessionStore.js';
 import { getUserData, setUserData } from '../../services/state/userStore.js';
 import { me as fetchCurrentUser } from '../../services/api/authApi.js';
 import { wsService } from '../../services/websocket.js';
-import { showNotification, showConfirm, showError, showSuccess, showWarning, showInfo } from '../../ui/modal.js';
+import { showNotification } from '../../ui/modal.js';
+import * as orderModals from '../../ui/orderFulfillmentModals.js';
 import { updateRoute } from '../../router.js';
+
+// Currency symbol mapping
+function getCurrencySymbol(currencyCode) {
+  const symbols = {
+    'GBP': '£',
+    'EUR': '€',
+    'USD': '$',
+    'CAD': 'C$',
+    'AUD': 'A$',
+    'JPY': '¥',
+    'CNY': '¥',
+    'CHF': 'Fr',
+    'SEK': 'kr',
+    'NOK': 'kr',
+    'DKK': 'kr',
+    'PLN': 'zł',
+    'CZK': 'Kč',
+    'HUF': 'Ft'
+  };
+  
+  const code = currencyCode?.toUpperCase();
+  return symbols[code] || code || '';
+}
 
 // Helper to get auth headers
 function getAuthHeaders() {
@@ -99,12 +123,7 @@ class MagentoPickPackManager {
     // Only show if this is our session
     if (this.currentSessionId === data.session_id) {
       const requester = data.requester_username || data.requester;
-      const confirmed = await showConfirm(
-        `${requester} is requesting to take over your session for order ${data.order_number}.\n\nDo you want to allow this takeover?`,
-        'Takeover Request',
-        'Allow',
-        'Deny'
-      );
+      const confirmed = await orderModals.confirmAllowTakeover(requester, data.order_number);
       
       // TODO: Send response to backend
       // For now, just log it
@@ -112,13 +131,13 @@ class MagentoPickPackManager {
     }
   }
 
-  handleTakeoverResponse(data) {
+  async handleTakeoverResponse(data) {
     console.log('[MagentoPickPack] Takeover response received:', data);
     
     if (data.accepted) {
-      showSuccess(`Your takeover request for order ${data.order_number} was accepted!`);
+      await orderModals.alertTakeoverAccepted(data.order_number);
     } else {
-      showWarning(`Your takeover request for order ${data.order_number} was rejected.`);
+      await orderModals.alertTakeoverRejected(data.order_number);
     }
   }
 
@@ -127,7 +146,7 @@ class MagentoPickPackManager {
     
     // If our session was transferred away, return to lookup
     if (this.currentSessionId === data.session_id) {
-      await showWarning(`This session has been transferred to ${data.new_owner}.`);
+      await orderModals.alertSessionTransferred(data.new_owner);
       this.showOrderLookup();
       window.__currentMagentoSession = null;
     }
@@ -138,8 +157,7 @@ class MagentoPickPackManager {
     
     // If our session was forcefully cancelled, return to lookup
     if (this.currentSessionId === data.session_id) {
-      const reason = data.reason ? `\n\nReason: ${data.reason}` : '';
-      await showWarning(`This session has been cancelled by an administrator.${reason}`);
+      await orderModals.alertSessionForceCancelled(data.reason);
       this.currentSession = null;
       this.currentSessionId = null;
       window.__currentMagentoSession = null;
@@ -152,7 +170,7 @@ class MagentoPickPackManager {
     
     // If our session was forcefully taken over, return to lookup
     if (this.currentSessionId === data.session_id) {
-      await showWarning(`This session has been taken over by ${data.new_owner}.`);
+      await orderModals.alertSessionForceTakeover(data.new_owner);
       window.__currentMagentoSession = null;
       this.showOrderLookup();
     }
@@ -255,11 +273,30 @@ class MagentoPickPackManager {
     // Active Session Elements
     this.sessionOrderNumber = document.getElementById('sessionOrderNumber');
     this.sessionInvoiceNumber = document.getElementById('sessionInvoiceNumber');
-    this.sessionCustomer = document.getElementById('sessionCustomer');
+    this.sessionOrderDate = document.getElementById('sessionOrderDate');
+    this.sessionPaymentMethod = document.getElementById('sessionPaymentMethod');
+    this.sessionShippingMethod = document.getElementById('sessionShippingMethod');
+    this.sessionBillingName = document.getElementById('sessionBillingName');
+    this.sessionBillingPostcode = document.getElementById('sessionBillingPostcode');
+    this.sessionBillingPhone = document.getElementById('sessionBillingPhone');
+    this.sessionShippingName = document.getElementById('sessionShippingName');
+    this.sessionShippingPostcode = document.getElementById('sessionShippingPostcode');
+    this.sessionShippingPhone = document.getElementById('sessionShippingPhone');
+    this.sessionSubtotal = document.getElementById('sessionSubtotal');
+    this.sessionTax = document.getElementById('sessionTax');
+    this.sessionGrandTotal = document.getElementById('sessionGrandTotal');
     this.sessionTypeBadge = document.getElementById('sessionTypeBadge');
-    this.progressText = document.getElementById('progressText');
-    this.progressPercent = document.getElementById('progressPercent');
-    this.progressFill = document.getElementById('progressFill');
+    
+    // Progress bar elements - Items completed
+    this.itemsProgressText = document.getElementById('itemsProgressText');
+    this.itemsProgressPercent = document.getElementById('itemsProgressPercent');
+    this.itemsProgressFill = document.getElementById('itemsProgressFill');
+    
+    // Progress bar elements - Quantity scanned
+    this.qtyProgressText = document.getElementById('qtyProgressText');
+    this.qtyProgressPercent = document.getElementById('qtyProgressPercent');
+    this.qtyProgressFill = document.getElementById('qtyProgressFill');
+    
     this.scannerStatus = document.getElementById('scannerStatus');
     this.skuInput = document.getElementById('skuInput');
     this.scanQuantityInput = document.getElementById('scanQuantityInput');
@@ -404,11 +441,18 @@ class MagentoPickPackManager {
 
       // Handle different statuses
       if (statusData.status === 'in_progress') {
-        const message = statusData.can_claim 
-          ? `This order is currently being worked on by ${statusData.user}.\n\nWould you like to request to take it over?`
-          : `This order is being worked on by you in another session.\n\nPlease complete or cancel that session first.`;
+        let confirmed;
+        if (statusData.can_claim) {
+          confirmed = await orderModals.confirmTakeoverRequest(orderNumber, statusData.user);
+        } else {
+          await orderModals.confirmOwnOrderInProgress();
+          this.showLookupMessage('Session start cancelled', 'info');
+          this.startSessionBtn.disabled = false;
+          this.startSessionBtn.innerHTML = '<i class="fas fa-play"></i> Start Session';
+          return;
+        }
         
-        if (!(await showConfirm(message, 'Order In Progress', 'Yes', 'No'))) {
+        if (!confirmed) {
           this.showLookupMessage('Session start cancelled', 'info');
           this.startSessionBtn.disabled = false;
           this.startSessionBtn.innerHTML = '<i class="fas fa-play"></i> Start Session';
@@ -416,18 +460,17 @@ class MagentoPickPackManager {
         }
         
         // TODO: Implement takeover request
-        await showInfo('Takeover requests are not yet implemented. Please contact an administrator.');
+        await orderModals.alertInfo('Takeover requests are not yet implemented. Please contact an administrator.');
         this.startSessionBtn.disabled = false;
         this.startSessionBtn.innerHTML = '<i class="fas fa-play"></i> Start Session';
         return;
       }
 
       if (statusData.status === 'draft') {
-        const message = statusData.can_claim
-          ? `There is a draft session for this order started by ${statusData.user}.\n\nWould you like to claim it and continue?`
-          : `You have a draft session for this order.\n\nWould you like to continue where you left off?`;
+        const isOwnDraft = !statusData.can_claim;
+        const confirmed = await orderModals.confirmClaimDraft(orderNumber, statusData.user, isOwnDraft);
         
-        if (!(await showConfirm(message, 'Draft Session Available', 'Continue', 'Cancel'))) {
+        if (!confirmed) {
           this.showLookupMessage('Session start cancelled', 'info');
           this.startSessionBtn.disabled = false;
           this.startSessionBtn.innerHTML = '<i class="fas fa-play"></i> Start Session';
@@ -440,7 +483,7 @@ class MagentoPickPackManager {
       }
 
       if (statusData.status === 'completed') {
-        await showError(`This order has already been completed.\n\nCompleted by: ${statusData.user}\n\nYou cannot start a new session for completed orders.`, 'Order Completed');
+        await orderModals.alertOrderCompleted(orderNumber, statusData.user);
         this.showLookupMessage('Order already completed', 'error');
         this.startSessionBtn.disabled = false;
         this.startSessionBtn.innerHTML = '<i class="fas fa-play"></i> Start Session';
@@ -448,9 +491,9 @@ class MagentoPickPackManager {
       }
 
       if (statusData.status === 'cancelled') {
-        const message = `There is a cancelled session for this order.\n\nWould you like to start a fresh session?`;
+        const confirmed = await orderModals.confirmStartAfterCancelled(orderNumber);
         
-        if (!(await showConfirm(message, 'Cancelled Session', 'Start Fresh', 'Cancel'))) {
+        if (!confirmed) {
           this.showLookupMessage('Session start cancelled', 'info');
           this.startSessionBtn.disabled = false;
           this.startSessionBtn.innerHTML = '<i class="fas fa-play"></i> Start Session';
@@ -603,24 +646,80 @@ class MagentoPickPackManager {
     // Update header info
     this.sessionOrderNumber.textContent = this.currentSession.order_number;
     this.sessionInvoiceNumber.textContent = this.currentSession.invoice_number;
-    this.sessionCustomer.textContent = 'Customer'; // Can be enhanced with billing info
+    
+    // Format and display order date
+    if (this.currentSession.order_date) {
+      const orderDate = new Date(this.currentSession.order_date);
+      this.sessionOrderDate.textContent = orderDate.toLocaleDateString();
+    } else {
+      this.sessionOrderDate.textContent = '-';
+    }
+
+    // Update payment and shipping methods
+    this.sessionPaymentMethod.textContent = this.currentSession.payment_method || '-';
+    this.sessionShippingMethod.textContent = this.currentSession.shipping_method || '-';
+
+    // Update billing (Sold To) information
+    this.sessionBillingName.textContent = this.currentSession.billing_name || '-';
+    this.sessionBillingPostcode.textContent = this.currentSession.billing_postcode || '-';
+    this.sessionBillingPhone.textContent = this.currentSession.billing_phone || '-';
+
+    // Update shipping (Ship To) information
+    this.sessionShippingName.textContent = this.currentSession.shipping_name || '-';
+    this.sessionShippingPostcode.textContent = this.currentSession.shipping_postcode || '-';
+    this.sessionShippingPhone.textContent = this.currentSession.shipping_phone || '-';
+
+    // Format currency helper
+    const formatCurrency = (value) => {
+      if (value == null) return '-';
+      const currencyCode = this.currentSession.order_currency_code;
+      console.log('[Currency Debug] Currency code from session:', currencyCode);
+      console.log('[Currency Debug] Full session object:', this.currentSession);
+      const symbol = getCurrencySymbol(currencyCode);
+      console.log('[Currency Debug] Symbol returned:', symbol);
+      return `${symbol}${parseFloat(value).toFixed(2)}`;
+    };
+
+    // Update financial information
+    this.sessionSubtotal.textContent = formatCurrency(this.currentSession.subtotal);
+    this.sessionTax.textContent = formatCurrency(this.currentSession.tax_amount);
+    this.sessionGrandTotal.textContent = formatCurrency(this.currentSession.grand_total);
 
     // Update session type badge
     const badgeIcon = this.currentSession.session_type === 'pick' ? 'fa-box' : 'fa-undo';
     const badgeText = this.currentSession.session_type === 'pick' ? 'PICK & PACK' : 'RETURNS';
     this.sessionTypeBadge.innerHTML = `<i class="fas ${badgeIcon}"></i><span>${badgeText}</span>`;
 
-    // Update progress
-    const completed = this.currentSession.completed_items;
-    const total = this.currentSession.total_items;
-    const percent = this.currentSession.progress_percentage;
+    // Calculate progress metrics
+    const completedItems = this.currentSession.completed_items;
+    const totalItems = this.currentSession.total_items;
+    const itemsPercent = this.currentSession.progress_percentage;
 
-    this.progressText.textContent = `${completed} of ${total} items scanned`;
-    this.progressPercent.textContent = `${percent}%`;
-    this.progressFill.style.width = `${percent}%`;
+    // Calculate quantity progress
+    let totalQtyExpected = 0;
+    let totalQtyScanned = 0;
+    
+    if (this.currentSession.items && this.currentSession.items.length > 0) {
+      this.currentSession.items.forEach(item => {
+        totalQtyExpected += item.qty_invoiced || 0;
+        totalQtyScanned += item.qty_scanned || 0;
+      });
+    }
+    
+    const qtyPercent = totalQtyExpected > 0 ? Math.round((totalQtyScanned / totalQtyExpected) * 100) : 0;
 
-    // Enable/disable complete button
-    this.completeSessionBtn.disabled = completed !== total;
+    // Update Items Completed Progress
+    this.itemsProgressText.textContent = `${completedItems} of ${totalItems} items`;
+    this.itemsProgressPercent.textContent = `${itemsPercent}%`;
+    this.itemsProgressFill.style.width = `${itemsPercent}%`;
+
+    // Update Quantity Scanned Progress
+    this.qtyProgressText.textContent = `${totalQtyScanned} of ${totalQtyExpected} units`;
+    this.qtyProgressPercent.textContent = `${qtyPercent}%`;
+    this.qtyProgressFill.style.width = `${qtyPercent}%`;
+
+    // Enable/disable complete button - all items must be complete
+    this.completeSessionBtn.disabled = completedItems !== totalItems;
 
     // Update items list
     this.updateItemsList();
@@ -766,7 +865,7 @@ class MagentoPickPackManager {
   async completeSession() {
     if (!this.currentSessionId) return;
 
-    const confirmed = await showConfirm('Are you sure you want to complete this session?', 'Complete Session', 'Complete', 'Cancel');
+    const confirmed = await orderModals.confirmCompleteSession(this.currentSession?.order_number);
     if (!confirmed) return;
 
     try {
@@ -791,7 +890,7 @@ class MagentoPickPackManager {
       }
 
       // Show success message
-      await showSuccess('Session completed successfully!');
+      await orderModals.alertSessionCompleted();
 
       // Clear global session tracking
       window.__currentMagentoSession = null;
@@ -801,7 +900,7 @@ class MagentoPickPackManager {
 
     } catch (error) {
       console.error('Error completing session:', error);
-      await showError('Error: ' + error.message);
+      await orderModals.alertError('Error: ' + error.message);
     } finally {
       this.completeSessionBtn.disabled = false;
       this.completeSessionBtn.innerHTML = '<i class="fas fa-check"></i> Complete';
@@ -811,7 +910,7 @@ class MagentoPickPackManager {
   async cancelSession() {
     if (!this.currentSessionId) return;
 
-    const confirmed = await showConfirm('Are you sure you want to cancel this session? All progress will be lost.', 'Cancel Session', 'Cancel Session', 'Keep Working');
+    const confirmed = await orderModals.confirmCancelSession(this.currentSession?.order_number);
     if (!confirmed) return;
 
     try {
@@ -833,7 +932,7 @@ class MagentoPickPackManager {
 
     } catch (error) {
       console.error('Error cancelling session:', error);
-      await showError('Error: ' + error.message);
+      await orderModals.alertError('Error: ' + error.message);
     }
   }
 
@@ -849,7 +948,7 @@ class MagentoPickPackManager {
         // If there's an active session, ask if user wants to resume
         if (sessions.length > 0) {
           const session = sessions[0];
-          const resume = await showConfirm(`You have an active session for order ${session.order_number}. Resume?`, 'Resume Session', 'Resume', 'Start New');
+          const resume = await orderModals.confirmResumeSession(session.order_number);
           
           if (resume) {
             this.currentSession = session;

@@ -6,7 +6,7 @@
 import { getApiUrl } from '../../config.js';
 import { getToken } from '../../services/state/sessionStore.js';
 import { wsService } from '../../services/websocket.js';
-import { showNotification, showError } from '../../ui/modal.js';
+import * as progressModals from '../../ui/orderProgressModals.js';
 
 // Helper to get auth headers
 function getAuthHeaders() {
@@ -15,10 +15,7 @@ function getAuthHeaders() {
 }
 
 let currentSessions = [];
-let selectedSessionId = null;
-let pendingAction = null;
 let wsConnected = false;
-let actionInFlight = false; // prevent double submissions
 let refreshTimer = null; // track auto-refresh interval
 
 /**
@@ -112,46 +109,6 @@ function wireEventHandlers() {
     document.getElementById('showCompleted').addEventListener('change', (e) => {
         loadSessions();
     });
-    
-    // Modal close buttons
-    document.getElementById('closeModalBtn')?.addEventListener('click', () => {
-        document.getElementById('sessionDetailModal').style.display = 'none';
-    });
-    
-    document.getElementById('closeConfirmBtn')?.addEventListener('click', () => {
-        document.getElementById('confirmModal').style.display = 'none';
-        pendingAction = null;
-    });
-    
-    document.getElementById('cancelActionBtn')?.addEventListener('click', () => {
-        document.getElementById('confirmModal').style.display = 'none';
-        pendingAction = null;
-    });
-    
-    document.getElementById('confirmActionBtn')?.addEventListener('click', () => {
-        executeAction();
-    });
-
-    const reasonInput = document.getElementById('actionReason');
-    reasonInput?.addEventListener('keydown', (event) => {
-        // Prevent keystrokes inside the reason box from bubbling up and accidentally
-        // triggering global shortcuts (like Enter submitting the modal automatically).
-        event.stopPropagation();
-    });
-    
-    // Close modal on background click
-    document.getElementById('sessionDetailModal')?.addEventListener('click', (e) => {
-        if (e.target.id === 'sessionDetailModal') {
-            e.target.style.display = 'none';
-        }
-    });
-    
-    document.getElementById('confirmModal')?.addEventListener('click', (e) => {
-        if (e.target.id === 'confirmModal') {
-            e.target.style.display = 'none';
-            pendingAction = null;
-        }
-    });
 }
 
 /**
@@ -240,6 +197,19 @@ function renderSessionCard(session) {
     
     const actions = getActionsForSession(session);
     
+    // Calculate quantity progress
+    let totalQtyExpected = 0;
+    let totalQtyScanned = 0;
+    
+    if (session.items && session.items.length > 0) {
+        session.items.forEach(item => {
+            totalQtyExpected += item.qty_invoiced || 0;
+            totalQtyScanned += item.qty_scanned || 0;
+        });
+    }
+    
+    const qtyPercent = totalQtyExpected > 0 ? Math.round((totalQtyScanned / totalQtyExpected) * 100) : 0;
+    
     return `
         <div class="session-card" data-session-id="${session.session_id}">
             <div class="session-header">
@@ -264,6 +234,16 @@ function renderSessionCard(session) {
                 </div>
                 <div class="progress-bar-container">
                     <div class="progress-bar-fill" style="width: ${session.progress_percentage}%"></div>
+                </div>
+            </div>
+            
+            <div class="session-progress">
+                <div class="progress-label">
+                    <span>Total Qty: ${totalQtyScanned} / ${totalQtyExpected} units</span>
+                    <span>${qtyPercent}%</span>
+                </div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill" style="width: ${qtyPercent}%"></div>
                 </div>
             </div>
             
@@ -351,199 +331,137 @@ function wireSessionActions(session) {
 /**
  * Handle action button click
  */
-function handleAction(action, sessionId, session) {
-    selectedSessionId = sessionId;
+async function handleAction(action, sessionId, session) {
+    let result;
     
     switch (action) {
         case 'view-details':
-            showSessionDetails(session);
+            await progressModals.showSessionDetails(session);
             break;
         case 'force-cancel':
-            confirmAction('force-cancel', 'Force Cancel Session', 
-                `Are you sure you want to cancel the session for Order #${session.order_number}? ${session.current_owner ? `This will stop ${session.current_owner} from continuing.` : ''}`,
-                true); // Show reason input
+            result = await progressModals.confirmForceCancel(session.order_number, session.current_owner);
+            if (result.confirmed) {
+                await executeForceCancel(sessionId, result.reason);
+            }
             break;
         case 'force-assign':
-            confirmAction('force-assign', 'Reassign Session',
-                `Enter the username to assign Order #${session.order_number} to:`,
-                false, true); // Show user input
+            result = await progressModals.confirmForceAssign(session.order_number, session.current_owner);
+            if (result.confirmed && result.user) {
+                await executeForceAssign(sessionId, result.user);
+            } else if (result.confirmed && !result.user) {
+                await progressModals.alertValidationError('username');
+            }
             break;
         case 'takeover':
-            confirmAction('takeover', 'Take Over Session',
-                `Are you sure you want to take over Order #${session.order_number}? ${session.current_owner ? `${session.current_owner} will be notified.` : ''}`,
-                false);
+            result = await progressModals.confirmTakeover(session.order_number, session.current_owner);
+            if (result.confirmed) {
+                await executeTakeover(sessionId, session);
+            }
             break;
     }
 }
 
 /**
- * Show confirmation modal
+ * Execute force cancel action
  */
-function confirmAction(action, title, message, showReason = false, showUserSelect = false) {
-    pendingAction = action;
-    
-    document.getElementById('confirmTitle').textContent = title;
-    document.getElementById('confirmMessage').textContent = message;
-    
-    const reasonGroup = document.getElementById('reasonGroup');
-    const userSelectGroup = document.getElementById('userSelectGroup');
-    
-    reasonGroup.style.display = showReason ? 'block' : 'none';
-    userSelectGroup.style.display = showUserSelect ? 'block' : 'none';
-    
-    if (showReason) {
-        document.getElementById('actionReason').value = '';
-        setTimeout(() => document.getElementById('actionReason').focus(), 0);
-    }
-    if (showUserSelect) {
-        document.getElementById('targetUser').value = '';
-    }
-    
-    document.getElementById('confirmModal').style.display = 'flex';
-    // Reset in-flight flag when opening the modal
-    actionInFlight = false;
-}
-
-/**
- * Execute confirmed action
- */
-async function executeAction() {
-    if (!pendingAction || !selectedSessionId) {
-        return;
-    }
-    if (actionInFlight) {
-        return; // ignore duplicate clicks
-    }
-    actionInFlight = true;
-    
-    const reason = document.getElementById('actionReason').value;
-    const targetUser = document.getElementById('targetUser').value;
-    
-    // Close modal
-    document.getElementById('confirmModal').style.display = 'none';
-    
+async function executeForceCancel(sessionId, reason) {
     try {
-        let response;
+        const response = await fetch(`${getApiUrl()}/v1/magento/dashboard/sessions/${sessionId}/force-cancel`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...getAuthHeaders()
+            },
+            body: JSON.stringify({ reason: reason || undefined })
+        });
         
-        switch (pendingAction) {
-            case 'force-cancel':
-                response = await fetch(`${getApiUrl()}/v1/magento/dashboard/sessions/${selectedSessionId}/force-cancel`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...getAuthHeaders()
-                    },
-                    body: JSON.stringify({ reason: reason || undefined })
-                });
-                if (!response.ok) {
-                    let detail = 'Failed to cancel session';
-                    try { const err = await response.json(); detail = err.detail || detail; } catch {}
-                    throw new Error(detail);
-                }
-                // No notification here - WebSocket event will update the list
-                break;
-                
-            case 'force-assign':
-                if (!targetUser) {
-                    showNotification('error', 'Please enter a username');
-                    return;
-                }
-                response = await fetch(`${getApiUrl()}/v1/magento/dashboard/sessions/${selectedSessionId}/force-assign`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...getAuthHeaders()
-                    },
-                    body: JSON.stringify({ target_user_id: targetUser })
-                });
-                if (!response.ok) {
-                    let detail = 'Failed to assign session';
-                    try { const err = await response.json(); detail = err.detail || detail; } catch {}
-                    throw new Error(detail);
-                }
-                showNotification('success', `Session assigned to ${targetUser}`);
-                break;
-                
-            case 'takeover':
-                console.log('[OrderProgress] Executing takeover for session:', selectedSessionId);
-                response = await fetch(`${getApiUrl()}/v1/magento/dashboard/sessions/${selectedSessionId}/takeover`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...getAuthHeaders()
-                    }
-                });
-                console.log('[OrderProgress] Takeover response status:', response.status);
-                if (!response.ok) {
-                    let detail = 'Failed to takeover session';
-                    try { const err = await response.json(); detail = err.detail || detail; } catch {}
-                    throw new Error(detail);
-                }
-                {
-                    const result = await response.json();
-                    console.log('[OrderProgress] Takeover result:', result);
-                    showNotification('success', 'You have taken over the session');
-                    // If the backend returned order/invoice, redirect into the active session page
-                    if (result.order_number && result.invoice_number) {
-                        const path = `/inventory/order-fulfillment/session-${result.order_number}-${result.invoice_number}`;
-                        console.log('[OrderProgress] Redirecting to session:', path);
-                        // Navigate using the app router so the template and module load correctly
-                        if (window.navigate) {
-                            window.navigate(path);
-                        } else {
-                            // Fallback: update history and reload
-                            history.pushState({ path }, '', path);
-                            location.reload();
-                        }
-                    } else {
-                        console.warn('[OrderProgress] No order/invoice in takeover result, staying on dashboard');
-                    }
-                }
-                break;
+        if (!response.ok) {
+            let detail = 'Failed to cancel session';
+            try { const err = await response.json(); detail = err.detail || detail; } catch {}
+            throw new Error(detail);
         }
         
-        // Reload sessions
+        // WebSocket event will update the list
         await loadSessions(false);
-        
     } catch (error) {
-        console.error('[OrderProgress] Action failed:', error);
-        showError(`Action failed: ${error.message}`);
+        console.error('[OrderProgress] Force cancel failed:', error);
+        await progressModals.alertError(`Action failed: ${error.message}`);
     }
-    
-    pendingAction = null;
-    selectedSessionId = null;
-    actionInFlight = false;
 }
 
 /**
- * Show session details modal
+ * Execute force assign action
  */
-function showSessionDetails(session) {
-    const modal = document.getElementById('sessionDetailModal');
-    const modalBody = document.getElementById('modalBody');
-    
-    const createdAt = new Date(session.created_at).toLocaleString();
-    const lastModified = session.last_modified_at 
-        ? new Date(session.last_modified_at).toLocaleString()
-        : 'N/A';
-    
-    modalBody.innerHTML = `
-        <div style="margin-bottom: 20px;">
-            <h3>Order #${session.order_number}</h3>
-            <p><strong>Invoice:</strong> ${session.invoice_number}</p>
-            <p><strong>Session Type:</strong> ${session.session_type}</p>
-            <p><strong>Status:</strong> <span class="status-badge ${session.status}">${session.status.replace('_', ' ')}</span></p>
-            <p><strong>Created:</strong> ${createdAt} by ${session.created_by}</p>
-            <p><strong>Last Modified:</strong> ${lastModified}${session.last_modified_by ? ' by ' + session.last_modified_by : ''}</p>
-            ${session.current_owner ? `<p><strong>Current Owner:</strong> ${session.current_owner}</p>` : ''}
-            <p><strong>Progress:</strong> ${session.items_scanned} / ${session.items_expected} items (${session.progress_percentage}%)</p>
-        </div>
+async function executeForceAssign(sessionId, targetUser) {
+    try {
+        const response = await fetch(`${getApiUrl()}/v1/magento/dashboard/sessions/${sessionId}/force-assign`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...getAuthHeaders()
+            },
+            body: JSON.stringify({ target_user_id: targetUser })
+        });
         
-        <h4>Full Activity Log</h4>
-        ${renderFullAuditLog(session.audit_logs)}
-    `;
-    
-    modal.style.display = 'flex';
+        if (!response.ok) {
+            let detail = 'Failed to assign session';
+            try { const err = await response.json(); detail = err.detail || detail; } catch {}
+            throw new Error(detail);
+        }
+        
+        await progressModals.alertActionCompleted('assigned', 'session');
+        await loadSessions(false);
+    } catch (error) {
+        console.error('[OrderProgress] Force assign failed:', error);
+        await progressModals.alertError(`Action failed: ${error.message}`);
+    }
+}
+
+/**
+ * Execute takeover action
+ */
+async function executeTakeover(sessionId, session) {
+    try {
+        console.log('[OrderProgress] Executing takeover for session:', sessionId);
+        const response = await fetch(`${getApiUrl()}/v1/magento/dashboard/sessions/${sessionId}/takeover`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...getAuthHeaders()
+            }
+        });
+        
+        console.log('[OrderProgress] Takeover response status:', response.status);
+        if (!response.ok) {
+            let detail = 'Failed to takeover session';
+            try { const err = await response.json(); detail = err.detail || detail; } catch {}
+            throw new Error(detail);
+        }
+        
+        const result = await response.json();
+        console.log('[OrderProgress] Takeover result:', result);
+        
+        await progressModals.alertActionCompleted('takeover', session.order_number);
+        
+        // If the backend returned order/invoice, redirect into the active session page
+        if (result.order_number && result.invoice_number) {
+            const path = `/inventory/order-fulfillment/session-${result.order_number}-${result.invoice_number}`;
+            console.log('[OrderProgress] Redirecting to session:', path);
+            
+            if (window.navigate) {
+                window.navigate(path);
+            } else {
+                history.pushState({ path }, '', path);
+                location.reload();
+            }
+        } else {
+            console.warn('[OrderProgress] No order/invoice in takeover result, staying on dashboard');
+            await loadSessions(false);
+        }
+    } catch (error) {
+        console.error('[OrderProgress] Takeover failed:', error);
+        await progressModals.alertError(`Action failed: ${error.message}`);
+    }
 }
 
 /**

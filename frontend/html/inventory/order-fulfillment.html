@@ -97,16 +97,61 @@
           </div>
           <div class="order-details">
             <div class="order-number">
-              <span class="label">Order:</span>
+              <span class="label">Order Number:</span>
               <span class="value" id="sessionOrderNumber">-</span>
             </div>
             <div class="invoice-number">
-              <span class="label">Invoice:</span>
+              <span class="label">Invoice Number:</span>
               <span class="value" id="sessionInvoiceNumber">-</span>
             </div>
+            <div class="order-date">
+              <span class="label">Order Date:</span>
+              <span class="value" id="sessionOrderDate">-</span>
+            </div>
+          </div>
+          
+          <div class="order-details">
+            <div class="payment-method">
+              <span class="label">Payment Method:</span>
+              <span class="value" id="sessionPaymentMethod">-</span>
+            </div>
+            <div class="shipping-method">
+              <span class="label">Shipping Method:</span>
+              <span class="value" id="sessionShippingMethod">-</span>
+            </div>
+          </div>
+          
+          <div class="order-details">
             <div class="billing-info">
-              <span class="label">Customer:</span>
-              <span class="value" id="sessionCustomer">-</span>
+              <span class="label">Sold to:</span>
+              <div class="value" id="sessionBillingInfo">
+                <div id="sessionBillingName">-</div>
+                <div id="sessionBillingPostcode">-</div>
+                <div id="sessionBillingPhone">-</div>
+              </div>
+            </div>
+            <div class="shipping-info">
+              <span class="label">Ship to:</span>
+              <div class="value" id="sessionShippingInfo">
+                <div id="sessionShippingName">-</div>
+                <div id="sessionShippingPostcode">-</div>
+                <div id="sessionShippingPhone">-</div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="order-details">
+            <div class="subtotal-info">
+              <span class="label">Subtotal:</span>
+              <span class="value" id="sessionSubtotal">-</span>
+            </div>
+            <div class="tax-info">
+              <span class="label">Tax:</span>
+              <span class="value" id="sessionTax">-</span>
+            </div>
+            <div class="total-info">
+              <span class="label">Grand Total:</span>
+              <span class="value" id="sessionGrandTotal">-</span>
             </div>
           </div>
         </div>
@@ -122,14 +167,36 @@
         </div>
       </div>
 
-      <!-- Progress Bar -->
+      <!-- Progress Bars -->
       <div class="progress-container">
-        <div class="progress-info">
-          <span id="progressText">0 of 0 items scanned</span>
-          <span id="progressPercent">0%</span>
+        <!-- Items Completed Progress -->
+        <div class="progress-section">
+          <div class="progress-info">
+            <span class="progress-label">
+              <i class="fas fa-check-circle"></i>
+              Items Completed
+            </span>
+            <span id="itemsProgressText">0 of 0 items</span>
+            <span id="itemsProgressPercent">0%</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="itemsProgressFill" style="width: 0%;"></div>
+          </div>
         </div>
-        <div class="progress-bar">
-          <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
+
+        <!-- Quantity Scanned Progress -->
+        <div class="progress-section">
+          <div class="progress-info">
+            <span class="progress-label">
+              <i class="fas fa-boxes"></i>
+              Total Quantity
+            </span>
+            <span id="qtyProgressText">0 of 0 units</span>
+            <span id="qtyProgressPercent">0%</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill quantity-fill" id="qtyProgressFill" style="width: 0%;"></div>
+          </div>
         </div>
       </div>
 

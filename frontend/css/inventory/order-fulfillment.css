@@ -98,6 +98,12 @@ html.dark-mode .order-fulfillment .tab-button {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
+html.dark-mode .order-fulfillment .tab-button:hover {
+  background: #1a1a1a;
+  color: #a5d461;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
 html.dark-mode .order-fulfillment .tab-button.active {
   background: linear-gradient(135deg, #8bc34a, #7ab82d);
   color: white;
@@ -245,24 +251,48 @@ html.dark-mode .session-header-card {
   grid-template-columns: repeat(3, 1fr);
   gap: 1.5rem;
   color: white;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.order-details:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+  margin-bottom: 0;
 }
 
 .order-details > div {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  backdrop-filter: blur(5px);
 }
 
 .order-details .label {
   font-size: 0.85rem;
   opacity: 0.9;
-  font-weight: 500;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.25rem;
 }
 
 .order-details .value {
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   font-weight: 700;
   letter-spacing: 0.5px;
+}
+
+/* Multi-line value styling for addresses */
+.order-details .value > div {
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.5;
+  opacity: 0.95;
 }
 
 .session-actions {
@@ -270,36 +300,62 @@ html.dark-mode .session-header-card {
   gap: 1rem;
 }
 
-/* ===== Progress Bar ===== */
+/* ===== Progress Bars ===== */
 .progress-container {
   background: white;
   border-radius: 12px;
   padding: 1.5rem;
   margin-bottom: 2rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
 html.dark-mode .progress-container {
   background: #2a2a2a;
 }
 
+.progress-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
 .progress-info {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.75rem;
   font-weight: 600;
   color: #2c3e50;
+  gap: 1rem;
 }
 
 html.dark-mode .progress-info {
   color: #ecf0f1;
 }
 
+.progress-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  color: #5a6c7d;
+  font-weight: 600;
+}
+
+html.dark-mode .progress-label {
+  color: #95a5a6;
+}
+
+.progress-label i {
+  font-size: 1rem;
+}
+
 .progress-bar {
-  height: 12px;
+  height: 14px;
   background: #e9ecef;
-  border-radius: 6px;
+  border-radius: 7px;
   overflow: hidden;
   position: relative;
 }
@@ -311,10 +367,15 @@ html.dark-mode .progress-bar {
 .progress-fill {
   height: 100%;
   background: linear-gradient(90deg, #8bc34a, #7ab82d);
-  border-radius: 6px;
+  border-radius: 7px;
   transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
+}
+
+/* Different color for quantity progress */
+.progress-fill.quantity-fill {
+  background: linear-gradient(90deg, #4CAF50, #45a049);
 }
 
 .progress-fill::after {
@@ -1032,16 +1093,16 @@ html.dark-mode .notification-icon.info {
 
 .modal-footer {
   padding: 1rem 1.5rem;
-  border-top: 2px solid #ecf0f1;
+  border-top: 2px solid rgba(0, 0, 0, 0.06);
   display: flex;
   justify-content: flex-end;
   gap: 0.75rem;
-  background: #f8f9fa;
+  background: rgba(0, 0, 0, 0.02);
 }
 
 html.dark-mode .modal-footer {
-  background: #34495e;
-  border-top: 2px solid #34495e;
+  background: rgba(255, 255, 255, 0.02);
+  border-top: 2px solid rgba(255, 255, 255, 0.1);
 }
 
 .modal-footer .btn {

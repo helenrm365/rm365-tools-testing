@@ -88,8 +88,8 @@ class MagentoClient:
         invoice_id = invoice_data['entity_id']
         full_invoice = self._make_request(f'invoices/{invoice_id}')
         
-        # Pass the order_increment_id to ensure it's populated
-        return self._parse_invoice(full_invoice, order_increment_id=order_increment_id)
+        # Pass the order data for address extraction and order_increment_id
+        return self._parse_invoice(full_invoice, order_increment_id=order_increment_id, order_data=order)
     
     def get_invoice_by_invoice_number(self, invoice_number: str) -> Optional[MagentoInvoice]:
         """
@@ -113,19 +113,20 @@ class MagentoClient:
         # Fetch full invoice details
         full_invoice = self._make_request(f'invoices/{invoice_id}')
         
-        # Fetch order details to get order_increment_id
+        # Fetch order details to get order_increment_id and addresses
         order_increment_id = None
+        order_data = None
         if order_id:
             try:
-                order = self._make_request(f'orders/{order_id}')
-                order_increment_id = order.get('increment_id')
+                order_data = self._make_request(f'orders/{order_id}')
+                order_increment_id = order_data.get('increment_id')
                 print(f"[Magento Client] Fetched order {order_increment_id} for invoice {invoice_number}")
             except Exception as e:
                 print(f"[Magento Client] Could not fetch order details: {e}")
         
-        return self._parse_invoice(full_invoice, order_increment_id=order_increment_id)
+        return self._parse_invoice(full_invoice, order_increment_id=order_increment_id, order_data=order_data)
     
-    def _parse_invoice(self, invoice_data: Dict[str, Any], order_increment_id: Optional[str] = None) -> MagentoInvoice:
+    def _parse_invoice(self, invoice_data: Dict[str, Any], order_increment_id: Optional[str] = None, order_data: Optional[Dict[str, Any]] = None) -> MagentoInvoice:
         """Parse raw Magento invoice data into our model"""
         
         print(f"[Magento Client] Parsing invoice data:")
@@ -160,16 +161,133 @@ class MagentoClient:
             else:
                 print(f"      ✗ Skipped (qty={qty}, sku={item.get('sku')})")
         
-        # Parse billing address
-        billing = invoice_data.get('billing_address', {})
-        billing_name = f"{billing.get('firstname', '')} {billing.get('lastname', '')}".strip()
-        billing_street = ', '.join(billing.get('street', []))
+        # Parse billing and shipping addresses from order data (more reliable than invoice)
+        billing_name = None
+        billing_street = None
+        billing_city = None
+        billing_postcode = None
+        billing_country = None
+        billing_phone = None
+        shipping_name = None
+        shipping_street = None
+        shipping_city = None
+        shipping_postcode = None
+        shipping_country = None
+        shipping_phone = None
+        payment_method = None
+        shipping_method = None
+        
+        if order_data:
+            # Get payment method - try multiple Magento fields
+            payment_info = order_data.get('payment', {})
+            payment_method = None
+            
+            # Credit card type mapping
+            cc_type_map = {
+                'VI': 'Visa',
+                'MC': 'Mastercard',
+                'AE': 'American Express',
+                'DI': 'Discover',
+                'JCB': 'JCB',
+                'DN': 'Diners Club',
+                'MI': 'Maestro',
+                'SM': 'Switch/Maestro',
+                'SO': 'Solo'
+            }
+            
+            # Try cc_type and map it to readable name
+            cc_type = payment_info.get('cc_type')
+            if cc_type:
+                payment_method = cc_type_map.get(cc_type, cc_type)
+            
+            # If not found, try additional_information array
+            if not payment_method:
+                additional_info = payment_info.get('additional_information')
+                if isinstance(additional_info, list) and len(additional_info) > 0:
+                    for i, item in enumerate(additional_info):
+                        if isinstance(item, str) and 'method_title' in item.lower():
+                            if i + 1 < len(additional_info):
+                                payment_method = additional_info[i + 1]
+                                break
+            
+            # Try extension_attributes
+            if not payment_method and 'extension_attributes' in payment_info:
+                ext = payment_info.get('extension_attributes', {})
+                payment_method = ext.get('payment_method_title')
+            
+            # Fallback to method code
+            if not payment_method:
+                payment_method = payment_info.get('method')
+            
+            print(f"[Magento Client] Payment extracted: {payment_method} (cc_type={cc_type})")
+            
+            ext_attrs = order_data.get('extension_attributes', {})
+            shipping_method = None
+            if ext_attrs.get('shipping_assignments'):
+                shipping_assignment = ext_attrs['shipping_assignments'][0]
+                if shipping_assignment.get('shipping'):
+                    # Get shipping description - try multiple fields
+                    shipping_info = shipping_assignment['shipping']
+                    shipping_method = (
+                        shipping_info.get('shipping_description') or
+                        order_data.get('shipping_description') or
+                        shipping_info.get('method')
+                    )
+            
+            # Get billing address from order
+            billing = order_data.get('billing_address', {})
+            if billing:
+                billing_name = f"{billing.get('firstname', '')} {billing.get('lastname', '')}".strip()
+                billing_street = ', '.join(billing.get('street', [])) if billing.get('street') else None
+                billing_city = billing.get('city')
+                billing_postcode = billing.get('postcode')
+                billing_country = billing.get('country_id')
+                billing_phone = billing.get('telephone')
+            
+            # Get shipping address from order extension_attributes
+            ext_attrs = order_data.get('extension_attributes', {})
+            if ext_attrs.get('shipping_assignments'):
+                shipping_assignment = ext_attrs['shipping_assignments'][0]
+                if shipping_assignment.get('shipping'):
+                    shipping_addr = shipping_assignment['shipping'].get('address', {})
+                    if shipping_addr:
+                        shipping_name = f"{shipping_addr.get('firstname', '')} {shipping_addr.get('lastname', '')}".strip()
+                        shipping_street = ', '.join(shipping_addr.get('street', [])) if shipping_addr.get('street') else None
+                        shipping_city = shipping_addr.get('city')
+                        shipping_postcode = shipping_addr.get('postcode')
+                        shipping_country = shipping_addr.get('country_id')
+                        shipping_phone = shipping_addr.get('telephone')
+        
+        # Fallback to invoice billing_address if order_data not available
+        if not billing_name:
+            billing = invoice_data.get('billing_address', {})
+            if billing:
+                billing_name = f"{billing.get('firstname', '')} {billing.get('lastname', '')}".strip()
+                billing_street = ', '.join(billing.get('street', [])) if billing.get('street') else None
+                billing_city = billing.get('city')
+                billing_postcode = billing.get('postcode')
+                billing_country = billing.get('country_id')
+                billing_phone = billing.get('telephone')
         
         # Use provided order_increment_id or fall back to what's in invoice_data
         final_order_increment_id = order_increment_id or invoice_data.get('order_increment_id', '')
         
+        # Extract currency code
+        order_currency_code = None
+        print(f"[Currency Debug] Extracting currency code...")
+        print(f"[Currency Debug] order_data available: {order_data is not None}")
+        if order_data:
+            print(f"[Currency Debug] order_data keys: {list(order_data.keys())}")
+            order_currency_code = order_data.get('order_currency_code') or order_data.get('base_currency_code')
+            print(f"[Currency Debug] From order_data: {order_currency_code}")
+        if not order_currency_code:
+            print(f"[Currency Debug] invoice_data keys: {list(invoice_data.keys())}")
+            order_currency_code = invoice_data.get('order_currency_code') or invoice_data.get('base_currency_code')
+            print(f"[Currency Debug] From invoice_data: {order_currency_code}")
+        
         print(f"  Final parsed items count: {len(items)}")
         print(f"  Final order_increment_id: {final_order_increment_id}")
+        print(f"  Currency code: {order_currency_code}")
         
         return MagentoInvoice(
             entity_id=invoice_data['entity_id'],
@@ -178,13 +296,26 @@ class MagentoClient:
             order_increment_id=final_order_increment_id,
             state=invoice_data.get('state', ''),
             grand_total=float(invoice_data.get('grand_total', 0)),
+            subtotal=float(invoice_data.get('subtotal', 0)),
+            tax_amount=float(invoice_data.get('tax_amount', 0)),
+            order_currency_code=order_currency_code,
             created_at=invoice_data.get('created_at', ''),
+            order_date=invoice_data.get('created_at', ''),
             items=items,
             billing_name=billing_name,
             billing_street=billing_street,
-            billing_city=billing.get('city'),
-            billing_postcode=billing.get('postcode'),
-            billing_country=billing.get('country_id')
+            billing_city=billing_city,
+            billing_postcode=billing_postcode,
+            billing_country=billing_country,
+            billing_phone=billing_phone,
+            shipping_name=shipping_name,
+            shipping_street=shipping_street,
+            shipping_city=shipping_city,
+            shipping_postcode=shipping_postcode,
+            shipping_country=shipping_country,
+            shipping_phone=shipping_phone,
+            payment_method=payment_method,
+            shipping_method=shipping_method
         )
     
     def search_invoices(self, 

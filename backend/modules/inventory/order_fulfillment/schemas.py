@@ -25,10 +25,25 @@ class InvoiceDetailSchema(BaseModel):
     order_id: int
     state: str
     grand_total: float
+    subtotal: Optional[float] = None
+    tax_amount: Optional[float] = None
+    order_currency_code: Optional[str] = None
     created_at: str
+    order_date: Optional[str] = None
     items: List[InvoiceItemSchema]
+    # Billing (Sold To)
     billing_name: Optional[str] = None
     billing_address: Optional[str] = None
+    billing_postcode: Optional[str] = None
+    billing_phone: Optional[str] = None
+    # Shipping (Ship To)
+    shipping_name: Optional[str] = None
+    shipping_address: Optional[str] = None
+    shipping_postcode: Optional[str] = None
+    shipping_phone: Optional[str] = None
+    # Order details
+    payment_method: Optional[str] = None
+    shipping_method: Optional[str] = None
 
 
 class ScanRequestSchema(BaseModel):
@@ -71,6 +86,20 @@ class SessionStatusSchema(BaseModel):
     total_items: int
     completed_items: int
     progress_percentage: float
+    # Order details for display
+    grand_total: Optional[float] = None
+    subtotal: Optional[float] = None
+    tax_amount: Optional[float] = None
+    order_currency_code: Optional[str] = None
+    order_date: Optional[str] = None
+    billing_name: Optional[str] = None
+    billing_postcode: Optional[str] = None
+    billing_phone: Optional[str] = None
+    shipping_name: Optional[str] = None
+    shipping_postcode: Optional[str] = None
+    shipping_phone: Optional[str] = None
+    payment_method: Optional[str] = None
+    shipping_method: Optional[str] = None
 
 
 class CompleteSessionSchema(BaseModel):

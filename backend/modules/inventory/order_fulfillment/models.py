@@ -23,15 +23,32 @@ class MagentoInvoice(BaseModel):
     order_increment_id: str  # Order number
     state: Union[str, int]  # Magento returns this as int (1=pending, 2=paid, etc.) or string
     grand_total: float
+    subtotal: Optional[float] = None
+    tax_amount: Optional[float] = None
+    order_currency_code: Optional[str] = None
     created_at: str
+    order_date: Optional[str] = None
     items: List[MagentoProduct] = []
     
-    # Billing address
+    # Billing address (Sold To)
     billing_name: Optional[str] = None
     billing_street: Optional[str] = None
     billing_city: Optional[str] = None
     billing_postcode: Optional[str] = None
     billing_country: Optional[str] = None
+    billing_phone: Optional[str] = None
+    
+    # Shipping address (Ship To)
+    shipping_name: Optional[str] = None
+    shipping_street: Optional[str] = None
+    shipping_city: Optional[str] = None
+    shipping_postcode: Optional[str] = None
+    shipping_country: Optional[str] = None
+    shipping_phone: Optional[str] = None
+    
+    # Order details
+    payment_method: Optional[str] = None
+    shipping_method: Optional[str] = None
     
     @field_validator('state')
     @classmethod
