@@ -1,27 +1,61 @@
-# RM365 Toolbox
+<div align="center">
 
-**A comprehensive enterprise management platform for RM365**
+# 🚀 RM365 Toolbox
 
-Modern, full-stack business management solution featuring attendance tracking, inventory management with Zoho Creator sync, label generation, sales data processing, Magento integration, hardware integration, real-time collaboration, and advanced performance optimizations. Built with FastAPI and vanilla JavaScript for maximum performance and reliability.
+### *Enterprise Management Platform*
 
-[![Python](https://img.shields.io/badge/Python-3.x+-blue.svg)](https://www.python.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-Latest-green.svg)](https://fastapi.tiangolo.com/)
-[![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-yellow.svg)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Latest-blue.svg)](https://www.postgresql.org/)
-[![License](https://img.shields.io/badge/License-Proprietary-red.svg)](LICENSE)
+**Modern, full-stack business management solution built for speed and reliability**
 
-## 🚀 Live Application
+</div>
 
-- **Application**: Access via custom domain (configured through Cloudflare Tunnel)
-- **API Documentation**: `/api/docs` endpoint on your domain
-- **Hosting**: 
-  - **Backend**: Self-hosted (runs locally, exposed via Cloudflare Tunnel)
-  - **Frontend**: Served by backend at port 8000 (same server)
-  - **Deployment**: Automatic GitHub sync with auto-restart monitoring
+<div align="center">
+
+Featuring attendance tracking • inventory management • label generation • sales analytics  
+Real-time collaboration • hardware integration • Magento fulfillment • Zoho sync
+
+Built with **FastAPI** ⚡ and **Vanilla JavaScript** 🎯
+
+</div>
 
 ---
 
+<div align="center">
+
+[![Python](https://img.shields.io/badge/Python-3.x+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-Latest-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Latest-336791?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Socket.IO](https://img.shields.io/badge/Socket.IO-Real--time-010101?style=for-the-badge&logo=socket.io&logoColor=white)](https://socket.io/)
+
+![Status](https://img.shields.io/badge/Status-Production_Ready-success?style=for-the-badge)
+![License](https://img.shields.io/badge/License-Proprietary-red?style=for-the-badge)
+
+</div>
+
+<div align="center">
+
+## 🌐 Live Application
+
+</div>
+
+| Component | Details |
+|-----------|---------|
+| 🌍 **Application** | Access via custom domain (Cloudflare Tunnel) |
+| 📚 **API Docs** | Interactive Swagger UI at `/api/docs` |
+| 🖥️ **Backend** | Self-hosted (exposed via Cloudflare Tunnel) |
+| 🎨 **Frontend** | Served by backend on port `8000` |
+| 🔄 **Deployment** | Auto-sync from GitHub + instant restart |
+
+<br>
+
+<div align="center">
+
 ## 📋 Table of Contents
+
+</div>
+
+<details open>
+<summary><b>Navigation</b></summary>
 
 - [Quick Start](#-quick-start)
 - [Features](#-features)
@@ -38,20 +72,34 @@ Modern, full-stack business management solution featuring attendance tracking, i
 - [Troubleshooting](#-troubleshooting)
 - [Support](#-support)
 
+</details>
+
+<br>
+
 ---
 
-## 🚀 Quick Start
+<div align="center">
 
-### For End Users
+## ⚡ Quick Start
 
-1. **Access the Application**
-   - Navigate to your custom domain (configured by administrator)
-   - Login with your credentials
-   - Start using the features you have permissions for
+</div>
 
-### For Developers
+> **For End Users** 🎯
 
-**Everything is automated!** Just push to `main` branch and the server auto-updates.
+```bash
+1️⃣  Navigate to your custom domain
+2️⃣  Login with your credentials  
+3️⃣  Start using available features
+```
+
+> **For Developers** 💻
+
+<div align="center">
+
+### 🔥 **Zero-Config Deployment**
+*Just push to `main` — everything else is automatic!*
+
+</div>
 
 ```bash
 # 1. Make your changes
@@ -74,137 +122,232 @@ git push origin main
 #    - No manual deployment needed
 ```
 
-### Quick Start (Windows)
-```bash
-# Double-click to start:
+<table>
+<tr>
+<td width="50%">
+
+### 🪟 **Windows**
+
+```powershell
+# Simply double-click:
 start-windows\start.bat
 ```
 
-### Quick Start (macOS)
+✅ Auto-detects Python  
+✅ Creates virtual environment  
+✅ Installs dependencies  
+✅ Starts server on port 8000  
+
+</td>
+<td width="50%">
+
+### 🍎 **macOS**
+
 ```bash
-# First time only - make executable:
+# First time only:
 chmod +x start-macos/start.command
 
-# Double-click to start:
+# Then double-click:
 start-macos/start.command
 ```
 
----
+✅ Auto-detects Python  
+✅ Creates virtual environment  
+✅ Installs dependencies  
+✅ Starts server on port 8000  
 
-## ✨ Features
+</td>
+</tr>
+</table>
 
-### 🎯 Core Modules
-
-#### 👥 Attendance Management
-- **Real-time clock in/out** with automatic logging
-- **Hardware integration** for fingerprint and card readers
-- **Automatic clocking** with presence detection
-- **Weekly and daily reports** with analytics
-- **Work hours calculation** with overtime tracking
-- **Location-based filtering** for multi-site operations
-- **Employee status dashboard** showing current availability
-
-#### 📦 Inventory Management
-- **Real-time stock tracking** across multiple locations
-- **Zoho Creator integration** for external synchronization
-- **Stock adjustments** with full audit trails
-- **Barcode scanning support** for quick updates
-- **Automated sync** with external systems
-- **Low stock alerts** and notifications
-- **Multi-location support** with transfer tracking
-- **Inventory history** and change tracking
-
-#### 🏷️ Label Generation
-- **PDF label creation** with barcode support
-- **Batch printing** for multiple items
-- **Print history tracking** for audit purposes
-- **Custom templates** for different label types
-- **Barcode generation** (various formats)
-- **Automated label queue management**
-
-#### 📊 Sales Data Management
-- **CSV file upload** and processing
-- **Flexible column mapping** (5, 7, or 8 column formats)
-- **UK date format support** (DD/MM/YYYY)
-- **Data validation** with error reporting
-- **Bulk import** functionality
-- **Import history** tracking
-- **Multi-country support** (UK, FR, NL sales data)
-
-#### 🛒 Magento Integration
-- **Invoice-based order fulfillment** (pick & pack)
-- **Real-time order lookup** by order or invoice number
-- **Barcode scanning** for product validation
-- **Progress tracking** with visual indicators
-- **Session management** for picking workflows
-- **Overpick detection** and warnings
-- **Returns processing** support
-- **Complete audit trail**
-
-#### 👤 User & Role Management
-- **JWT-based authentication** with secure tokens
-- **Role-based access control (RBAC)** 
-- **Permission management** per module
-- **User creation** and administration
-- **Password security** with hashing
-- **Session management**
-
-#### 🎓 Enrollment System
-- **Student/employee registration**
-- **Hardware device assignment** (fingerprint/card readers)
-- **Biometric enrollment** (fingerprint templates)
-- **Card association** with employees
-- **Profile management**
-- **Device tracking** and audit logs
-
-### 🚀 Advanced Features
-
-#### 🔄 Real-Time Collaboration
-- **Google Sheets-style live presence** indicators
-- **See who's viewing** inventory items in real-time
-- **Cursor tracking** at row level
-- **Live data updates** with flash notifications
-- **Color-coded users** for easy identification
-- **Automatic conflict prevention**
-- **WebSocket-powered** for instant updates
-
-#### ⚡ Performance Optimizations
-- **40-80% faster** across all metrics
-- **Connection pooling** for database efficiency
-- **GZip compression** (70-80% bandwidth reduction)
-- **Database indexing** (5-10x query speedup)
-- **Frontend caching** with configurable TTL
-- **Parallel API fetching** (3-5x faster page loads)
-- **Field selection API** for reduced payloads
-
-#### 🔌 Hardware Integration
-- **Local hardware bridge** for USB device access
-- **SecuGen fingerprint scanner** support
-- **RFID card reader** integration
-- **Automatic device detection**
-- **Hybrid cloud + local** architecture
-- **Multi-location deployment** support
-- **Cross-browser compatibility**
-
-### 🎨 Frontend Features
-
-- **Universal Sidebar**: Animated navigation with role-based permissions
-- **Dark Mode**: Full dark theme support with persistence
-- **Responsive Design**: Mobile-first, works on all devices
-- **Progressive Web App (PWA)**: Installable, offline-capable
-- **Real-time Updates**: Live data synchronization via WebSocket
-- **Modern UI/UX**: Clean, intuitive Material Design-inspired interface
-- **Dropdown System**: Custom enhanced select components
-- **Tab Management**: Dynamic content loading
-- **Debug Mode**: Built-in debugging tools (`?debug=true`)
-- **Connection Status**: Live/offline indicator
-- **Toast Notifications**: User-friendly feedback
+<br>
 
 ---
+
+<div align="center">
+
+## ✨ Features Overview
+
+### *Comprehensive business management in one platform*
+
+</div>
+
+<br>
+
+## 🎯 Core Modules
+
+<table>
+<tr>
+<td width="50%" valign="top">
+
+### 👥 **Attendance Management**
+
+```
+✓ Real-time clock in/out with auto-logging
+✓ Hardware integration (fingerprint/RFID)
+✓ Automatic presence detection
+✓ Weekly & daily analytics reports
+✓ Overtime calculation & tracking
+✓ Multi-location support
+✓ Live employee status dashboard
+```
+
+### 📦 **Inventory Management**
+
+```
+✓ Real-time stock tracking
+✓ Zoho Creator synchronization
+✓ Full audit trail for adjustments
+✓ Barcode scanning support
+✓ Automated external sync
+✓ Low stock alerts
+✓ Multi-location transfers
+✓ Complete change history
+```
+
+### 🏷️ **Label Generation**
+
+```
+✓ PDF labels with barcodes
+✓ Batch printing workflows
+✓ Print history & auditing
+✓ Custom label templates
+✓ Multiple barcode formats
+✓ Automated queue management
+```
+
+### 📊 **Sales Data Management**
+
+```
+✓ CSV upload & processing
+✓ Flexible column mapping (5/7/8 cols)
+✓ UK date format (DD/MM/YYYY)
+✓ Data validation & error reports
+✓ Bulk import functionality
+✓ Import history tracking
+✓ Multi-country support (UK/FR/NL)
+```
+
+</td>
+<td width="50%" valign="top">
+
+### 🛒 **Magento Integration**
+
+```
+✓ Invoice-based fulfillment (pick & pack)
+✓ Real-time order lookup
+✓ Barcode product validation
+✓ Visual progress tracking
+✓ Session management
+✓ Overpick detection & warnings
+✓ Returns processing
+✓ Complete audit trail
+```
+
+### 👤 **User & Role Management**
+
+```
+✓ JWT authentication (secure tokens)
+✓ Role-based access control (RBAC)
+✓ Granular permission management
+✓ User administration
+✓ Password hashing (bcrypt)
+✓ Session management
+```
+
+### 🎓 **Enrollment System**
+
+```
+✓ Student/employee registration
+✓ Hardware device assignment
+✓ Biometric enrollment (fingerprints)
+✓ RFID card association
+✓ Profile management
+✓ Device tracking & audit logs
+```
+
+### 🔄 **Real-Time Collaboration**
+
+```
+✓ Google Sheets-style presence
+✓ Live user indicators
+✓ Row-level cursor tracking
+✓ Instant data updates
+✓ Flash notifications
+✓ Automatic conflict prevention
+✓ WebSocket-powered
+```
+
+</td>
+</tr>
+</table>
+
+<br>
+
+## 🚀 Advanced Features
+
+<table>
+<tr>
+<td width="33%" align="center" valign="top">
+
+### ⚡ **Performance**
+
+**40-80% Faster**
+
+🔹 Connection pooling  
+🔹 GZip compression (70-80% reduction)  
+🔹 Database indexing (5-10x speedup)  
+🔹 Frontend caching (TTL-based)  
+🔹 Parallel API fetching (3-5x faster)  
+🔹 Field selection API  
+
+</td>
+<td width="33%" align="center" valign="top">
+
+### 🔌 **Hardware**
+
+**USB Device Access**
+
+🔹 SecuGen fingerprint scanners  
+🔹 RFID card readers  
+🔹 Automatic device detection  
+🔹 Hybrid cloud + local architecture  
+🔹 Multi-location deployment  
+🔹 Cross-browser compatible  
+
+</td>
+<td width="33%" align="center" valign="top">
+
+### 🎨 **Frontend**
+
+**Modern UI/UX**
+
+🔹 Universal animated sidebar  
+🔹 Dark mode support  
+🔹 Progressive Web App (PWA)  
+🔹 Responsive design  
+🔹 Real-time updates  
+🔹 Debug mode (`?debug=true`)  
+
+</td>
+</tr>
+</table>
+
+<br>
+
+---
+
+<div align="center">
 
 ## 🛠 Technology Stack
 
-### Backend
+*Built with industry-leading technologies*
+
+</div>
+
+<br>
+
+### 🔧 Backend
 
 | Technology | Purpose |
 |-----------|---------|
@@ -239,7 +382,7 @@ start-macos/start.command
 | **Fetch API** | Modern HTTP client |
 | **Socket.IO Client** | WebSocket client for real-time features |
 
-### Deployment & DevOps
+### 🚀 Deployment & DevOps
 
 | Technology | Purpose |
 |---------|---------|
@@ -248,7 +391,7 @@ start-macos/start.command
 | **Git Auto-Sync** | Monitors GitHub, auto-pulls and restarts (every 5s) |
 | **PostgreSQL** | Multiple database instances (local) |
 
-### Hardware
+### 🔌 Hardware
 
 | Device | Purpose |
 |--------|---------|
@@ -931,11 +1074,15 @@ Shows:
 
 ---
 
-## ⚡ Performance
+<div align="center">
 
-### Optimizations Implemented
+## ⚡ Performance Metrics
 
-**40-80% performance improvement** across all metrics.
+### *40-80% performance improvement across all metrics*
+
+</div>
+
+<br>
 
 #### Connection Pooling
 - 3 PostgreSQL connection pools (2-20 connections each)
@@ -967,15 +1114,19 @@ Shows:
 - Client-selectable fields
 - Reduced bandwidth usage
 
-### Performance Metrics
+<div align="center">
 
-| Metric | Before | After | Improvement |
-|--------|--------|-------|-------------|
-| Attendance overview | 2400ms | 800ms | **3x faster** |
-| Cached API calls | 300ms | 10-50ms | **6-30x faster** |
-| Sales queries (indexed) | 500ms | 50-100ms | **5-10x faster** |
-| API response size | 500KB | 100KB | **80% smaller** |
-| Connection overhead | 200-300ms | 0ms | **Eliminated** |
+### 📊 **Benchmark Results**
+
+| 🎯 Metric | ⏱️ Before | ⚡ After | 📈 Improvement |
+|-----------|-----------|---------|----------------|
+| Attendance overview | `2400ms` | `800ms` | **3x faster** ⚡ |
+| Cached API calls | `300ms` | `10-50ms` | **6-30x faster** 🚀 |
+| Sales queries (indexed) | `500ms` | `50-100ms` | **5-10x faster** 📊 |
+| API response size | `500KB` | `100KB` | **80% smaller** 📦 |
+| Connection overhead | `200-300ms` | `0ms` | **Eliminated** ✅ |
+
+</div>
 
 ---
 
@@ -1206,31 +1357,56 @@ Built with modern technologies and best practices:
 
 ---
 
-**Built with ❤️ for RM365 team productivity**
+<div align="center">
 
-**Last Updated**: November 27, 2025  
-**Version**: 2.1.1  
-**Status**: Production Ready ✅
+### Built with ❤️ for RM365 team productivity
 
-### Recent Updates (v2.1.1)
+<br>
 
-✨ **Platform-Specific Startup Scripts**
-- Reorganized startup files into `start-windows/` and `start-macos/` folders
-- Added double-clickable launchers for both platforms (`.bat` and `.command`)
-- Unified virtual environment (`.venv`) shared by backend and hardware bridge
-- Auto-restart monitoring with GitHub sync (checks every 5 seconds)
-- Visual status indicators with colored console output
+**📅 Last Updated**: November 27, 2025  
+**🏷️ Version**: 2.1.1  
+**✅ Status**: Production Ready
 
-✨ **Hardware Bridge Enhancements**
-- Platform detection with graceful fallbacks
-- macOS compatibility layer for SecuGen API (stub implementation)
-- Cross-platform RFID card reader support via `pyserial`
-- Organized hardware bridge startup scripts into platform-specific folders
-- Shared dependencies with main backend (no duplication)
+<br>
 
-✨ **Improved Documentation**
-- Comprehensive [START-README.md](START-README.md) for all startup scenarios
-- Platform-specific hardware setup guides
-- Updated main README with 100% accurate project structure and configuration
-- Detailed API endpoint documentation
-- Troubleshooting guides for common issues
+## 🎉 Recent Updates (v2.1.1)
+
+<table>
+<tr>
+<td width="33%" valign="top">
+
+### ✨ **Startup Scripts**
+
+- Platform-specific folders (`start-windows/`, `start-macos/`)
+- Double-clickable launchers (`.bat`, `.command`)
+- Unified virtual environment (`.venv`)
+- Auto-restart monitoring (every 5s)
+- Visual colored console output
+
+</td>
+<td width="33%" valign="top">
+
+### 🔌 **Hardware Bridge**
+
+- Platform detection with fallbacks
+- macOS compatibility layer
+- Cross-platform RFID support (`pyserial`)
+- Organized startup scripts
+- Shared dependencies (no duplication)
+
+</td>
+<td width="33%" valign="top">
+
+### 📚 **Documentation**
+
+- Comprehensive [START-README.md](START-README.md)
+- Platform-specific guides
+- 100% accurate project structure
+- Detailed API endpoints
+- Troubleshooting guides
+
+</td>
+</tr>
+</table>
+
+</div>
