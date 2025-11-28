@@ -57,13 +57,11 @@ class MagentoService:
         if not invoice:
             raise ValueError(f"No invoice found for order number: {request.order_number}")
         
-        print(f"[MagentoService] Checking for existing sessions for invoice {invoice.invoice_number}")
         
         # Check for any existing session for this invoice (any status)
         existing_session = self._get_any_session_for_invoice(invoice.invoice_number)
         
         if existing_session:
-            print(f"  Found existing session: {existing_session.session_id} (status: {existing_session.status})")
             
             if existing_session.status == "completed":
                 # Block completely - order already completed
@@ -91,7 +89,6 @@ class MagentoService:
             elif existing_session.status == "cancelled":
                 # Cancelled - reuse the existing session instead of creating new
                 cancelled_by = existing_session.last_modified_by or existing_session.created_by or "Unknown"
-                print(f"  Reusing cancelled session {existing_session.session_id}, previously cancelled by {cancelled_by}")
                 
                 # Reset the session to in_progress
                 session = self.repo.restart_cancelled_session(
@@ -99,15 +96,10 @@ class MagentoService:
                     user_id=user_id
                 )
                 
-                print(f"  Session restarted: {session.session_id} (status: in_progress, owner: {user_id})")
                 
                 # Convert to status schema and return
                 return self._session_to_status(session, invoice)
         
-        print(f"[MagentoService] Starting new session for invoice:")
-        print(f"  Invoice number: {invoice.invoice_number}")
-        print(f"  Order number: {invoice.order_number}")
-        print(f"  Items: {len(invoice.items)}")
         
         # Prepare expected items
         items_expected = [
@@ -120,7 +112,6 @@ class MagentoService:
             for item in invoice.items
         ]
         
-        print(f"  Expected items prepared: {len(items_expected)}")
         
         # Create session - starts in_progress and locked to user
         session = self.repo.create_session(
@@ -135,7 +126,6 @@ class MagentoService:
         if user_id:
             self.repo.claim_session(session.session_id, user_id)
         
-        print(f"  Session created: {session.session_id} (status: in_progress, owner: {user_id})")
         
         # Convert to status schema
         return self._session_to_status(session, invoice)
@@ -192,7 +182,6 @@ class MagentoService:
                     message=f"Item ID {scanned_value} not found in inventory",
                     sku=scanned_value
                 )
-            print(f"[MagentoService] Scanned item_id {scanned_value}, resolved to SKU {lookup_sku}")
         
         # Find the expected item by SKU
         expected_item = None
@@ -330,10 +319,6 @@ class MagentoService:
     
     def _convert_to_schema(self, invoice: MagentoInvoice) -> InvoiceDetailSchema:
         """Convert Magento invoice model to schema"""
-        print(f"[MagentoService] Converting invoice to schema:")
-        print(f"  Invoice ID: {invoice.increment_id}")
-        print(f"  Order Number: {invoice.order_increment_id}")
-        print(f"  Items count: {len(invoice.items)}")
         
         items = [
             InvoiceItemSchema(
@@ -348,7 +333,6 @@ class MagentoService:
             for item in invoice.items
         ]
         
-        print(f"  Converted items: {[item.sku for item in items]}")
         
         billing_address = None
         if invoice.billing_street:
@@ -387,7 +371,6 @@ class MagentoService:
             shipping_method=invoice.shipping_method
         )
         
-        print(f"  Schema created with order_number: {schema.order_number}, items: {len(schema.items)}")
         return schema
     
     def _session_to_status(self, session, invoice: InvoiceDetailSchema) -> SessionStatusSchema:
@@ -413,7 +396,6 @@ class MagentoService:
         completed_items = sum(1 for item in items if item.is_complete)
         progress = (completed_items / total_items * 100) if total_items > 0 else 0
         
-        print(f"[Currency Debug Service] invoice.order_currency_code = {invoice.order_currency_code}")
         
         status_schema = SessionStatusSchema(
             session_id=session.session_id,
@@ -441,7 +423,6 @@ class MagentoService:
             shipping_method=invoice.shipping_method
         )
         
-        print(f"[Currency Debug Service] status_schema.order_currency_code = {status_schema.order_currency_code}")
         return status_schema
     
     def _check_all_items_complete(self, session) -> bool:
@@ -499,7 +480,6 @@ class MagentoService:
             result = cursor.fetchone()
             
             if not result:
-                print(f"[MagentoService] Item {item_id} not found in inventory_metadata")
                 cursor.close()
                 conn.close()
                 return
@@ -570,7 +550,6 @@ class MagentoService:
                     """,
                     (delta, item_id)
                 )
-                print(f"[MagentoService] Updated {update_field} by {delta} for item_id {item_id}")
             
             conn.commit()
             cursor.close()
@@ -682,8 +661,8 @@ class MagentoService:
                         }, room=request.current_owner)
                     )
         except Exception as e:
-            print(f"[MagentoService] Failed to send WebSocket notification: {e}")
             # Don't fail the operation if WebSocket fails
+            pass
     
     # Dashboard methods
     
@@ -777,7 +756,7 @@ class MagentoService:
                     'message': message
                 }, room='inventory_management')
             except Exception as e:
-                print(f"[MagentoService] Failed to send WebSocket notification: {e}")
+                pass
         
         return success
     
@@ -819,7 +798,7 @@ class MagentoService:
                     'message': f"Administrator {admin_user_id} assigned order {session.order_number} to you"
                 }, room=target_user_id)
             except Exception as e:
-                print(f"[MagentoService] Failed to send WebSocket notification: {e}")
+                logger.warning(f"Failed to send WebSocket notification: {e}")
         
         return success
     
@@ -849,7 +828,7 @@ class MagentoService:
                     'message': f'{admin_user_id} has taken over your session'
                 }, room=previous_owner)
             except Exception as e:
-                print(f"[MagentoService] Failed to send takeover kick notification: {e}")
+                logger.warning(f"Failed to send WebSocket notification: {e}")
         
         return success
 

@@ -26,8 +26,6 @@ class UniversalSidebar {
       
       const html = await response.text();
       targetElement.innerHTML = html;
-      
-      console.log('[UniversalSidebar] Sidebar loaded successfully');
       return true;
     } catch (error) {
       console.error('[UniversalSidebar] Failed to load sidebar:', error);
@@ -61,7 +59,6 @@ class UniversalSidebar {
 
     // Don't load if already present
     if (this.isPresent()) {
-      console.log('[UniversalSidebar] Sidebar already present');
       return true;
     }
 

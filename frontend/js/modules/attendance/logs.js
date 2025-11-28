@@ -501,8 +501,6 @@ function setupEventHandlers() {
 
 // ====== Main Init Function ======
 export async function init() {
-  console.log("📋 Initializing attendance logs module");
-  
   setDateDefaults();
   
   setupSearch();
@@ -510,11 +508,8 @@ export async function init() {
   
   // Auto-load logs for the last week
   try {
-    console.log("🔄 Auto-loading logs for the last week...");
     await loadLogs();
-    console.log("✅ Attendance logs module initialized with auto-loaded data");
   } catch (error) {
     console.warn("⚠️ Could not auto-load logs:", error);
-    console.log("✅ Attendance logs module initialized (manual load required)");
   }
 }

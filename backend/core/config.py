@@ -8,7 +8,7 @@ import os
 class Settings(BaseSettings):
     # CORS – keep env parsing simple: store raw string, parse in app.py
     # This avoids pydantic-settings trying to JSON-decode LIST values and crashing
-    # when Railway stores comma-separated strings or '*'.
+    # when environment stores comma-separated strings or '*'.
     ALLOW_ORIGINS: str | None = None
     # Allow all Cloudflare Pages preview deployments by default
     ALLOW_ORIGIN_REGEX: str = r"https://.*\.pages\.dev"
@@ -43,19 +43,8 @@ class Settings(BaseSettings):
     INVENTORY_LOGS_USER: str | None = None
     INVENTORY_LOGS_PASSWORD: str | None = None
 
-    # Zoho credentials (token manager uses these)
-    ZC_CLIENT_ID: str | None = None
-    ZC_CLIENT_SECRET: str | None = None
-    ZC_REFRESH_TOKEN: str | None = None
-    
-    # Extra Zoho settings
-    ZC_APP_LINK: str | None = None
-    ZC_LOG_FORM: str | None = None
-    ZC_ORG_ID: str | None = None
-    ZOHO_ACCOUNTS_BASE: str | None = None
-
     class Config:
-        # Railway provides environment variables directly - no .env file needed in production
+        # Environment variables provided directly - no .env file needed in production
         case_sensitive = False
 
 settings = Settings()

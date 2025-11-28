@@ -8,5 +8,4 @@ def install_middleware(app: FastAPI):
         resp = await call_next(request)
         dt = time.time() - t0
         # Keep logs short and useful
-        print(f"[{request.method}] {request.url.path} -> {resp.status_code} in {dt:.3f}s")
         return resp

@@ -131,7 +131,6 @@ def start_print_job(
     # Create a new label print job with optional line_date values.
     """
     try:
-        print(f"[Labels API] Creating print job with payload: {payload}")
         
         with inventory_conn() as conn:
             job_id = start_label_job(conn, payload)
@@ -141,7 +140,6 @@ def start_print_job(
                 cur.execute("SELECT COUNT(*) FROM label_print_items WHERE job_id = %s", (job_id,))
                 item_count = cur.fetchone()[0]
             
-            print(f"[Labels API] Created job {job_id} with {item_count} items")
             
             return {
                 "status": "ok", 

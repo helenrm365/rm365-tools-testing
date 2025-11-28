@@ -150,21 +150,18 @@ class EnrollmentRepo:
                 # First delete related attendance logs to avoid foreign key constraint violation
                 cur.execute("DELETE FROM attendance_logs WHERE employee_id = %s", (employee_id,))
                 logs_deleted = cur.rowcount
-                print(f"[Repo] Deleted {logs_deleted} attendance logs for employee {employee_id}")
                 
                 # Then delete the employee
                 cur.execute("DELETE FROM employees WHERE id = %s", (employee_id,))
                 deleted = cur.rowcount
                 conn.commit()
                 
-                print(f"[Repo] Successfully deleted employee {employee_id} and {logs_deleted} related attendance logs")
         return deleted
 
     def bulk_delete(self, ids: list[int]) -> int:
         if not ids:
             return 0
         
-        print(f"[Repo] Bulk delete called with IDs: {ids}")
         
         try:
             with pg_conn() as conn:
@@ -172,22 +169,18 @@ class EnrollmentRepo:
                     # First delete related attendance logs for all employees to avoid foreign key constraint violations
                     placeholders_logs = ','.join(['%s'] * len(ids))
                     logs_query = f"DELETE FROM attendance_logs WHERE employee_id IN ({placeholders_logs})"
-                    print(f"[Repo] Executing logs cleanup query: {logs_query} with params: {ids}")
                     
                     cur.execute(logs_query, ids)
                     logs_deleted = cur.rowcount
-                    print(f"[Repo] Deleted {logs_deleted} attendance logs for employees {ids}")
                     
                     # Then delete the employees
                     placeholders = ','.join(['%s'] * len(ids))
                     query = f"DELETE FROM employees WHERE id IN ({placeholders})"
-                    print(f"[Repo] Executing employees query: {query} with params: {ids}")
                     
                     cur.execute(query, ids)
                     deleted = cur.rowcount
                     conn.commit()
                     
-                    print(f"[Repo] Successfully deleted {deleted} employees and {logs_deleted} related attendance logs")
                     return deleted
         except Exception as e:
             print(f"[Repo] Database error during bulk delete: {e}")

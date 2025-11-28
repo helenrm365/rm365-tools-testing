@@ -17,9 +17,6 @@ class MagentoClient:
         self.access_token = settings.MAGENTO_ACCESS_TOKEN or ''
         
         # Debug logging
-        print(f'[Magento Client] Initializing with:')
-        print(f'  Base URL: {self.base_url}')
-        print(f'  Access Token: {"***" + self.access_token[-4:] if self.access_token and len(self.access_token) > 4 else "NOT SET"}')
         
         if not self.base_url:
             raise ValueError("MAGENTO_BASE_URL environment variable not set")
@@ -120,22 +117,14 @@ class MagentoClient:
             try:
                 order_data = self._make_request(f'orders/{order_id}')
                 order_increment_id = order_data.get('increment_id')
-                print(f"[Magento Client] Fetched order {order_increment_id} for invoice {invoice_number}")
             except Exception as e:
-                print(f"[Magento Client] Could not fetch order details: {e}")
+                logger.warning(f"Failed to fetch order data: {e}")
         
         return self._parse_invoice(full_invoice, order_increment_id=order_increment_id, order_data=order_data)
     
     def _parse_invoice(self, invoice_data: Dict[str, Any], order_increment_id: Optional[str] = None, order_data: Optional[Dict[str, Any]] = None) -> MagentoInvoice:
         """Parse raw Magento invoice data into our model"""
         
-        print(f"[Magento Client] Parsing invoice data:")
-        print(f"  Invoice entity_id: {invoice_data.get('entity_id')}")
-        print(f"  Invoice increment_id: {invoice_data.get('increment_id')}")
-        print(f"  Order ID: {invoice_data.get('order_id')}")
-        print(f"  Order increment_id from data: {invoice_data.get('order_increment_id')}")
-        print(f"  Order increment_id passed: {order_increment_id}")
-        print(f"  Raw items count: {len(invoice_data.get('items', []))}")
         
         # Parse invoice items
         items = []
@@ -143,7 +132,6 @@ class MagentoClient:
             # Get quantity - try multiple fields as Magento API might use different names
             qty = item.get('qty') or item.get('qty_invoiced') or item.get('qty_ordered', 0)
             
-            print(f"    Item: SKU={item.get('sku')}, qty={item.get('qty')}, qty_invoiced={item.get('qty_invoiced')}, qty_ordered={item.get('qty_ordered')}, name={item.get('name')}")
             
             # Skip if no quantity or SKU is missing
             if qty > 0 and item.get('sku'):
@@ -157,9 +145,8 @@ class MagentoClient:
                     product_id=item.get('product_id')
                 )
                 items.append(product)
-                print(f"      ✓ Added to items list (qty={qty})")
             else:
-                print(f"      ✗ Skipped (qty={qty}, sku={item.get('sku')})")
+                logger.debug(f"Skipping item with qty={qty}, sku={item.get('sku')}")
         
         # Parse billing and shipping addresses from order data (more reliable than invoice)
         billing_name = None
@@ -219,7 +206,6 @@ class MagentoClient:
             if not payment_method:
                 payment_method = payment_info.get('method')
             
-            print(f"[Magento Client] Payment extracted: {payment_method} (cc_type={cc_type})")
             
             ext_attrs = order_data.get('extension_attributes', {})
             shipping_method = None
@@ -274,20 +260,11 @@ class MagentoClient:
         
         # Extract currency code
         order_currency_code = None
-        print(f"[Currency Debug] Extracting currency code...")
-        print(f"[Currency Debug] order_data available: {order_data is not None}")
         if order_data:
-            print(f"[Currency Debug] order_data keys: {list(order_data.keys())}")
             order_currency_code = order_data.get('order_currency_code') or order_data.get('base_currency_code')
-            print(f"[Currency Debug] From order_data: {order_currency_code}")
         if not order_currency_code:
-            print(f"[Currency Debug] invoice_data keys: {list(invoice_data.keys())}")
             order_currency_code = invoice_data.get('order_currency_code') or invoice_data.get('base_currency_code')
-            print(f"[Currency Debug] From invoice_data: {order_currency_code}")
         
-        print(f"  Final parsed items count: {len(items)}")
-        print(f"  Final order_increment_id: {final_order_increment_id}")
-        print(f"  Currency code: {order_currency_code}")
         
         return MagentoInvoice(
             entity_id=invoice_data['entity_id'],

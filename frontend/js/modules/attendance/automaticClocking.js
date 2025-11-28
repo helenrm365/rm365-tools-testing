@@ -291,9 +291,6 @@ async function loadEmployees() {
         state.cardUidToEmployee[emp.card_uid.toUpperCase()] = emp;
       }
     });
-
-    console.log(`📋 Loaded ${employees.length} employees and ${templates.length} fingerprint templates`);
-    
   } catch (error) {
     console.error('Failed to load employees:', error);
     updateStatus('Failed to load employees', 'error');
@@ -427,7 +424,6 @@ async function pollFingerprint() {
           
           // Log scores for debugging
           if (matchData.score > 0) {
-              console.log(`Match score for ${tmpl.name}: ${matchData.score}`);
           }
           
           if (matchData.status === 'success' && matchData.score > bestScore) {
@@ -732,8 +728,6 @@ function cleanup() {
 
 // ====== Main Init Function ======
 export async function init() {
-  console.log("🔍 Initializing automatic clocking module");
-  
   // Cleanup any previous instances
   cleanup();
   
@@ -751,9 +745,6 @@ export async function init() {
   // Always start scanning if hardware is ready OR if we want to poll for it
   // The polling loop handles the "waiting for hardware" logic gracefully now
   await startScanning({ skipHardwareCheck: true });
-  
-  console.log("✅ Automatic clocking module initialized");
-  
   // Return cleanup function for module unloading
   return cleanup;
 }

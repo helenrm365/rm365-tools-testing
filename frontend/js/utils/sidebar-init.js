@@ -138,17 +138,10 @@
   
   function initDarkMode() {
     const toggle = document.getElementById('darkModeToggle');
-    if (!toggle) {
-      console.warn('[Sidebar] Dark mode toggle not found');
-      return;
-    }
-    
-    console.log('[Sidebar] Initializing dark mode');
+    if (!toggle) return;
     
     // Check the actual current state of the HTML element (already set by index.html)
     const currentlyDark = document.documentElement.classList.contains('dark-mode');
-    
-    console.log('[Sidebar] Dark mode current state:', currentlyDark);
     
     // Sync the toggle with the actual current state
     toggle.checked = currentlyDark;
@@ -160,7 +153,6 @@
     // Add change event listener
     toggle.addEventListener('change', (e) => {
       const enabled = e.target.checked;
-      console.log('[Sidebar] Dark mode toggled:', enabled);
       document.documentElement.classList.toggle('dark-mode', enabled);
       localStorage.setItem(THEME_KEY, String(enabled));
       toggle.setAttribute('aria-checked', String(enabled));
@@ -226,17 +218,12 @@
       console.warn('[Sidebar] Logout button not found');
       return;
     }
-    
-    console.log('[Sidebar] Initializing logout/login button');
     updateLogoutButton();
   }
   
   function updateLogoutButton() {
     const logoutBtn = document.getElementById('logoutBtn');
-    if (!logoutBtn) {
-      console.warn('[Sidebar] Logout button not found for update');
-      return;
-    }
+    if (!logoutBtn) return;
     
     // Check if user is authenticated
     const isAuthenticated = sessionStorage.getItem('access_token') || localStorage.getItem('access_token');
@@ -252,8 +239,6 @@
       newLogoutBtn.setAttribute('aria-label', 'Logout');
       
       newLogoutBtn.addEventListener('click', (e) => {
-        console.log('[Sidebar] Logout button clicked');
-        
         showLogoutConfirmation().then((confirmed) => {
           if (!confirmed) return;
           
@@ -271,9 +256,6 @@
           
           // Clear everything in sessionStorage to be safe
           sessionStorage.clear();
-          
-          console.log('[Sidebar] All auth data cleared, redirecting to home');
-          
           // Redirect to home page instead of login
           window.location.href = '/home';
         });
@@ -285,8 +267,6 @@
       newLogoutBtn.setAttribute('aria-label', 'Login');
       
       newLogoutBtn.addEventListener('click', (e) => {
-        console.log('[Sidebar] Login button clicked');
-        
         // Navigate to login page
         if (window.navigate) {
           window.navigate('/login');
@@ -321,7 +301,6 @@
     if (logoContainer) {
       logoContainer.style.cursor = 'pointer';
       logoContainer.addEventListener('click', () => {
-        console.log('[Sidebar] Logo clicked, navigating to home');
         if (window.navigate) {
           window.navigate('/home');
         } else {
@@ -373,7 +352,6 @@
   }
   
   function init() {
-    console.log('[Sidebar] Starting initialization...');
     initDarkMode();
     initSearch();
     initNavigation();
@@ -392,8 +370,6 @@
     } catch (e) {
       console.warn('[Sidebar] Could not apply permission filtering:', e);
     }
-    
-    console.log('[Sidebar] Initialized successfully');
   }
   
   // Export init function globally so it can be called after sidebar HTML is loaded

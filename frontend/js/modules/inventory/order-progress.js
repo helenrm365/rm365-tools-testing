@@ -22,8 +22,6 @@ let refreshTimer = null; // track auto-refresh interval
  * Initialize dashboard
  */
 export async function init() {
-    console.log('[OrderProgress] Initializing dashboard');
-    
     wireEventHandlers();
     await loadSessions();
     setupWebSocket();
@@ -40,8 +38,6 @@ export async function init() {
  * Setup WebSocket for live updates
  */
 function setupWebSocket() {
-    console.log('[OrderProgress] Setting up WebSocket listeners');
-    
     // Listen for session events
     wsService.on('session_started', handleSessionUpdate);
     wsService.on('session_updated', handleSessionUpdate);
@@ -56,7 +52,6 @@ function setupWebSocket() {
     // Check connection status
     if (wsService.connected) {
         wsConnected = true;
-        console.log('[OrderProgress] WebSocket connected');
     }
 }
 
@@ -64,7 +59,6 @@ function setupWebSocket() {
  * Handle session update from WebSocket
  */
 function handleSessionUpdate(data) {
-    console.log('[OrderProgress] Received session update:', data);
     wsConnected = true;
     
     // Reload sessions to get fresh data
@@ -75,8 +69,6 @@ function handleSessionUpdate(data) {
  * Cleanup WebSocket listeners
  */
 export function cleanup() {
-    console.log('[OrderProgress] Cleaning up WebSocket listeners');
-    
     wsService.off('session_started', handleSessionUpdate);
     wsService.off('session_updated', handleSessionUpdate);
     wsService.off('session_completed', handleSessionUpdate);
@@ -422,7 +414,6 @@ async function executeForceAssign(sessionId, targetUser) {
  */
 async function executeTakeover(sessionId, session) {
     try {
-        console.log('[OrderProgress] Executing takeover for session:', sessionId);
         const response = await fetch(`${getApiUrl()}/v1/magento/dashboard/sessions/${sessionId}/takeover`, {
             method: 'POST',
             headers: {
@@ -430,8 +421,6 @@ async function executeTakeover(sessionId, session) {
                 ...getAuthHeaders()
             }
         });
-        
-        console.log('[OrderProgress] Takeover response status:', response.status);
         if (!response.ok) {
             let detail = 'Failed to takeover session';
             try { const err = await response.json(); detail = err.detail || detail; } catch {}
@@ -439,15 +428,11 @@ async function executeTakeover(sessionId, session) {
         }
         
         const result = await response.json();
-        console.log('[OrderProgress] Takeover result:', result);
-        
         await progressModals.alertActionCompleted('takeover', session.order_number);
         
         // If the backend returned order/invoice, redirect into the active session page
         if (result.order_number && result.invoice_number) {
             const path = `/inventory/order-fulfillment/session-${result.order_number}-${result.invoice_number}`;
-            console.log('[OrderProgress] Redirecting to session:', path);
-            
             if (window.navigate) {
                 window.navigate(path);
             } else {

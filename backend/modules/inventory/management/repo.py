@@ -338,7 +338,7 @@ class InventoryManagementRepo:
     def sync_items_to_magento_product_list(self, items: List[Dict[str, Any]]) -> Dict[str, int]:
         """
         Sync inventory items to magento_product_list table.
-        Can be used to import items from any source (Zoho, CSV, etc.)
+        Can be used to import items from any source (CSV, etc.)
         Returns stats about sync operation.
         """
         conn = self.get_metadata_connection()

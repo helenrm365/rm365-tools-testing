@@ -8,13 +8,10 @@ const API = '/api/v1/roles';
 const ROLES_CACHE_TTL = 5 * 60 * 1000; // 5 minutes (roles rarely change)
 
 export const getRoles = async () => {
-    console.log('[Roles API] Fetching roles from:', API);
-    
     // Use cache with 5-minute TTL
     return apiCache.getOrFetch('roles-list', async () => {
         try {
             const result = await get(API);
-            console.log('[Roles API] Received result:', result);
             return result;
         } catch (error) {
             console.error('[Roles API] Error fetching roles:', error);

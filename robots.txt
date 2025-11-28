@@ -1,0 +1,138 @@
+# robots.txt for RM365 Toolbox - Enterprise Management Platform
+# Generated: 2025-11-27
+# Purpose: Prevent search engine indexing while allowing normal application operation
+#
+# IMPORTANT: This file only controls search engine crawlers (polite request).
+# It does NOT block legitimate application requests or API calls.
+# Your APIs, WebSockets, and file access continue to work normally.
+# Real security is provided by JWT authentication, RBAC, CORS, and Cloudflare Tunnel.
+
+# =============================================================================
+# USER-AGENT SPECIFIC RULES
+# =============================================================================
+
+# --- Default Rules for All Bots ---
+User-agent: *
+
+# Allow public assets
+Allow: /index.html
+Allow: /manifest.webmanifest
+Allow: /assets/
+Allow: /css/
+Allow: /js/
+
+# Block application pages from being indexed (but they still work for authenticated users)
+Disallow: /html/
+Disallow: /components/
+
+# Block API documentation from search results (APIs still work for your app)
+Disallow: /api/docs
+Disallow: /api/redoc
+Disallow: /api/openapi.json
+
+# Block everything else from search engines (your app's API calls still work)
+# This prevents search engines from discovering and indexing:
+# - API endpoints
+# - WebSocket connections  
+# - User data
+# - Business data
+# But your JavaScript app, hardware bridge, and Magento integration continue to function normally
+Disallow: /api/
+Disallow: /ws/
+
+# --- Aggressive SEO Crawlers (Block Completely) ---
+User-agent: AhrefsBot
+User-agent: SemrushBot
+User-agent: DotBot
+User-agent: MJ12bot
+User-agent: BLEXBot
+User-agent: SEOkicks
+User-agent: DataForSeoBot
+User-agent: PetalBot
+Disallow: /
+
+# --- AI Training Bots (Prevent Data Scraping) ---
+# These bots crawl to train AI models - block them from your enterprise data
+User-agent: GPTBot
+User-agent: ChatGPT-User
+User-agent: CCBot
+User-agent: anthropic-ai
+User-agent: Claude-Web
+User-agent: cohere-ai
+User-agent: Google-Extended
+User-agent: Amazonbot
+User-agent: PerplexityBot
+User-agent: Bytespider
+User-agent: Diffbot
+User-agent: FacebookBot
+User-agent: Omgilibot
+User-agent: Omgili
+Disallow: /
+
+# --- Social Media Crawlers (Allow for Link Previews Only) ---
+User-agent: facebookexternalhit
+User-agent: Twitterbot
+User-agent: LinkedInBot
+User-agent: Slackbot
+User-agent: WhatsApp
+Allow: /index.html
+Allow: /manifest.webmanifest
+Allow: /assets/
+Disallow: /
+
+# --- Search Engine Image Bots ---
+User-agent: Googlebot-Image
+User-agent: Bingbot-Media
+Allow: /assets/
+Disallow: /
+
+# =============================================================================
+# SITEMAP REFERENCE
+# =============================================================================
+
+# Sitemap: https://your-domain.com/sitemap.xml
+# Note: Add sitemap when creating public marketing pages
+
+
+# =============================================================================
+# CRAWL DELAY (Prevent Server Overload)
+# =============================================================================
+
+# Apply crawl delay to prevent aggressive scraping
+Crawl-delay: 10
+
+
+# =============================================================================
+# IMPORTANT NOTES
+# =============================================================================
+
+# WHAT THIS FILE DOES:
+# - Tells search engines (Google, Bing, etc.) not to index your enterprise app
+# - Blocks AI bots from scraping your data for training
+# - Blocks aggressive SEO crawlers
+# - This is a POLITE REQUEST - compliant bots will honor it
+#
+# WHAT THIS FILE DOES NOT DO:
+# - Does NOT block your JavaScript application from making API calls
+# - Does NOT block your hardware bridge from connecting (localhost:8080)
+# - Does NOT block Magento integration API requests
+# - Does NOT block WebSocket connections from your authenticated users
+# - Does NOT block file downloads (PDFs, CSVs) for authenticated users
+# - Does NOT provide security (bad actors can ignore robots.txt)
+#
+# YOUR ACTUAL SECURITY:
+# 1. JWT authentication - All API endpoints require valid tokens
+# 2. Role-based access control (RBAC) - Permission enforcement
+# 3. CORS protection - Only allowed origins can make requests
+# 4. Cloudflare Tunnel - Secure access with DDoS protection
+# 5. Input validation - Pydantic schemas validate all data
+#
+# YOUR APP CONTINUES TO WORK NORMALLY:
+# ✅ Frontend JavaScript makes API calls (authenticated)
+# ✅ Hardware bridge connects to localhost:8080 (local, no search engines involved)
+# ✅ Magento API integration works (server-to-server, authenticated)
+# ✅ WebSocket real-time collaboration works (authenticated users)
+# ✅ PDF/CSV downloads work (authenticated users with permissions)
+# ✅ All application functionality is unaffected
+#
+# robots.txt only affects search engine crawlers, not your application!

@@ -1,5 +1,5 @@
 # Apply Database Performance Indexes
-# This script helps you apply the performance indexes to your Railway databases
+# This script helps you apply the performance indexes to your PostgreSQL databases
 
 Write-Host "================================" -ForegroundColor Cyan
 Write-Host "Database Performance Index Setup" -ForegroundColor Cyan
@@ -13,7 +13,6 @@ if (-not $psqlInstalled) {
     Write-Host ""
     Write-Host "Please install PostgreSQL client tools:" -ForegroundColor Yellow
     Write-Host "  - Windows: Download from https://www.postgresql.org/download/windows/" -ForegroundColor Yellow
-    Write-Host "  - Or use Railway CLI to run commands directly" -ForegroundColor Yellow
     Write-Host ""
     exit 1
 }
@@ -64,52 +63,18 @@ function Invoke-IndexMigration {
 
 Write-Host "🔧 Database Index Setup Options:" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "1. Use Railway CLI (recommended)" -ForegroundColor White
-Write-Host "2. Provide database URLs manually" -ForegroundColor White
-Write-Host "3. Exit" -ForegroundColor White
+Write-Host "1. Provide database URLs manually" -ForegroundColor White
+Write-Host "2. Exit" -ForegroundColor White
 Write-Host ""
 
-$choice = Read-Host "Select option (1-3)"
+$choice = Read-Host "Select option (1-2)"
 
 switch ($choice) {
     "1" {
         Write-Host ""
-        Write-Host "Using Railway CLI..." -ForegroundColor Cyan
-        Write-Host ""
-        
-        # Check if railway CLI is installed
-        $railwayInstalled = Get-Command railway -ErrorAction SilentlyContinue
-        if (-not $railwayInstalled) {
-            Write-Host "❌ Error: Railway CLI is not installed" -ForegroundColor Red
-            Write-Host ""
-            Write-Host "Install Railway CLI:" -ForegroundColor Yellow
-            Write-Host "  npm install -g @railway/cli" -ForegroundColor Yellow
-            Write-Host "  or visit: https://docs.railway.app/develop/cli" -ForegroundColor Yellow
-            exit 1
-        }
-        
-        Write-Host "📋 Available Railway databases:" -ForegroundColor Cyan
-        railway variables | Select-String "DB_HOST|DATABASE_URL"
-        Write-Host ""
-        
-        Write-Host "To apply indexes, run these commands in your terminal:" -ForegroundColor Yellow
-        Write-Host ""
-        Write-Host "# Products/Sales Database:" -ForegroundColor Green
-        Write-Host 'railway run psql $PRODUCTS_DB_URL -f backend/migrations/add_performance_indexes.sql' -ForegroundColor White
-        Write-Host ""
-        Write-Host "# Attendance Database:" -ForegroundColor Green
-        Write-Host 'railway run psql $ATTENDANCE_DB_URL -f backend/migrations/add_performance_indexes.sql' -ForegroundColor White
-        Write-Host ""
-        Write-Host "# Inventory Database:" -ForegroundColor Green
-        Write-Host 'railway run psql $INVENTORY_DB_URL -f backend/migrations/add_performance_indexes.sql' -ForegroundColor White
-        Write-Host ""
-    }
-    
-    "2" {
-        Write-Host ""
         Write-Host "Manual Database URL Setup" -ForegroundColor Cyan
         Write-Host ""
-        Write-Host "Enter your Railway database URLs (or press Enter to skip):" -ForegroundColor Yellow
+        Write-Host "Enter your PostgreSQL database URLs (or press Enter to skip):" -ForegroundColor Yellow
         Write-Host ""
         
         # Products DB
@@ -155,9 +120,8 @@ Write-Host "================================================" -ForegroundColor C
 Write-Host "Next Steps:" -ForegroundColor Cyan
 Write-Host "================================================" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "1. ✅ Deploy updated backend to Railway" -ForegroundColor White
-Write-Host "2. ✅ Deploy updated frontend" -ForegroundColor White
-Write-Host "3. 🔍 Monitor performance improvements" -ForegroundColor White
+Write-Host "1. ✅ Indexes applied successfully" -ForegroundColor White
+Write-Host "2. 🔍 Monitor performance improvements" -ForegroundColor White
 Write-Host ""
 Write-Host "For more details, see: PERFORMANCE_OPTIMIZATIONS.md" -ForegroundColor Yellow
 Write-Host ""

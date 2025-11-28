@@ -3,12 +3,12 @@
 Inventory module for rm365-tools
 
 This module handles:
-- Inventory management: Metadata stored in PostgreSQL, synced with Zoho Inventory
-- Inventory adjustments: Logged to PostgreSQL and synced to Zoho as inventory adjustments
+- Inventory management: Metadata stored in PostgreSQL
+- Inventory adjustments: Logged to PostgreSQL
 - Collaboration: Real-time collaboration features for inventory management
 
 Sub-modules:
-- management: CRUD for inventory metadata, live sync with Zoho
+- management: CRUD for inventory metadata, live sync support
 - adjustments: Log and sync inventory adjustments
 - collaboration: Real-time collaboration and presence
 """

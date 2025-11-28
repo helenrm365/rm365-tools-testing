@@ -206,9 +206,6 @@ async function startScanningLoop() {
     const statusText = status?.querySelector('.status-message');
     const scanBtn = $('#scanFpBtn');
     if (scanBtn) scanBtn.style.display = 'none';
-    
-    console.log('Starting scan loop...');
-
     while (scanLoopActive) {
         const empId = $('#fpEmployee')?.value;
         if (!empId) {
@@ -267,7 +264,6 @@ async function startScanningLoop() {
 }
 
 function stopScanningLoop() {
-    console.log('Stopping scan loop...');
     scanLoopActive = false;
     if (currentScanAbort) {
         currentScanAbort.abort();
@@ -372,12 +368,9 @@ async function onScan() {
 }
 
 async function onSave() {
-  console.log('onSave called');
   const status = $('#fpStatus');
   const statusText = status?.querySelector('.status-message');
   let empId = Number($('#fpEmployee')?.value || 0);
-  console.log('Initial empId:', empId);
-
   // Fallback: check if c-select has a value if native is empty
   if (!empId) {
     const native = $('#fpEmployee');
@@ -389,7 +382,6 @@ async function onSave() {
            empId = Number(selectedItem.dataset.value);
            // Sync back to native
            native.value = empId;
-           console.log('Recovered empId from c-select:', empId);
          }
       }
     }
@@ -442,8 +434,6 @@ async function onSave() {
   if (wasScanning) stopScanningLoop();
 
   try {
-    console.log('Saving fingerprint for employee:', empId);
-    
     await saveFingerprint(empId, state.templateB64, name);
     playSuccessSound();
     

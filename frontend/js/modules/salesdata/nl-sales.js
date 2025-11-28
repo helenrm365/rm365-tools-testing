@@ -17,8 +17,6 @@ let customRangeLabel = ''; // Label for custom range (e.g., "Last 30 Days")
  * Initialize NL sales page
  */
 export async function initNLSalesData() {
-  console.log('[NL Sales] Initializing page...');
-  
   // Wait for DOM to be ready before setting up event listeners
   await new Promise(resolve => setTimeout(resolve, 0));
   
@@ -33,8 +31,6 @@ export async function initNLSalesData() {
  * Set up event listeners for the page
  */
 function setupEventListeners() {
-  console.log('[NL Sales] ===== setupEventListeners called =====');
-  
   // Upload form
   const uploadForm = document.getElementById('uploadForm');
   if (uploadForm) {
@@ -101,19 +97,15 @@ function setupEventListeners() {
     }
     
     const searchValue = inputElement.value.trim();
-    console.log('[NL Sales] Performing search:', searchValue, '| Length:', searchValue.length);
-    
     currentSearch = searchValue;
     currentPage = 0;
     
     if (searchValue.length > 0) {
       // Enter search mode - load ALL matching records from server
-      console.log('[NL Sales] Entering search mode for:', searchValue);
       isSearchMode = true;
       await loadSearchResults(searchValue);
     } else {
       // No search - return to pagination mode
-      console.log('[NL Sales] Empty search, returning to pagination mode');
       isSearchMode = false;
       await loadSalesData();
     }
@@ -133,8 +125,6 @@ function setupEventListeners() {
     if (inputElement) {
       inputElement.value = '';
     }
-    
-    console.log('[NL Sales] Clearing search - returning to pagination mode');
     currentSearch = '';
     currentPage = 0;
     isSearchMode = false;
@@ -218,23 +208,18 @@ function setupEventListeners() {
   let retryCount = 0;
   const setupCustomRangeButton = () => {
     const customRangeBtn = document.getElementById('customRangeBtn');
-    console.log('[NL Sales] Custom Range Button found:', !!customRangeBtn);
-    console.log('[NL Sales] customRangeBtn element:', customRangeBtn);
     if (customRangeBtn) {
       // Remove any existing listener
       const newBtn = customRangeBtn.cloneNode(true);
       customRangeBtn.parentNode.replaceChild(newBtn, customRangeBtn);
       
       newBtn.addEventListener('click', () => {
-        console.log('[NL Sales] ========== Custom Range Button clicked ==========');
         try {
           showCustomRangeModal('nl');
-          console.log('[NL Sales] showCustomRangeModal call completed successfully');
         } catch (error) {
           console.error('[NL Sales] Error calling showCustomRangeModal:', error);
         }
       });
-      console.log('[NL Sales] Custom Range button listener attached successfully');
     } else {
       console.error('[NL Sales] Custom Range Button NOT found');
       // Try again after a short delay (max 5 retries)
@@ -282,8 +267,6 @@ function setupEventListeners() {
   // Listen for custom range applied event
   window.addEventListener('customRangeApplied', (e) => {
     if (e.detail.region === 'nl') {
-      console.log('[NL Sales] Custom range applied:', e.detail);
-      
       // Switch to custom view mode
       viewMode = 'custom';
       customRangeLabel = e.detail.rangeLabel;
@@ -333,11 +316,8 @@ async function loadSalesData() {
   </td></tr>`;
   
   try {
-    console.log(`[NL Sales] Loading data - Mode: ${viewMode}, Page: ${currentPage + 1}`);
-    
     // Custom mode doesn't reload from server - data is already loaded
     if (viewMode === 'custom') {
-      console.log('[NL Sales] Custom mode - data already loaded');
       displayCurrentPage();
       return;
     }
@@ -356,7 +336,6 @@ async function loadSalesData() {
       allData = result.data;
       totalRecords = result.total_count || 0;
       
-      console.log(`[NL Sales] Loaded ${allData.length} records (offset: ${offset}, total: ${totalRecords})`);
       
       // Display the data
       displayCurrentPage();
@@ -388,8 +367,6 @@ async function loadSearchResults(searchTerm) {
   tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem;">Searching for "${searchTerm}"...</td></tr>`;
   
   try {
-    console.log(`[NL Sales] Searching for: "${searchTerm}" - Page: ${currentPage + 1}`);
-    
     // Fetch 100 matching records at a time, just like regular pagination
     const offset = currentPage * pageSize;
     
@@ -404,7 +381,6 @@ async function loadSearchResults(searchTerm) {
       allData = result.data;
       totalRecords = result.total_count || 0;
       
-      console.log(`[NL Sales] Search results: ${allData.length} records on this page (offset: ${offset}, total matches: ${totalRecords})`);
       
       displayCurrentPage();
     } else {
@@ -471,9 +447,6 @@ async function loadAllDataForCondensed() {
         hasMore = false;
       }
     }
-    
-    console.log(`[NL Sales] Loaded ${allData.length} condensed records`);
-    
     // Reset to first page and display
     currentPage = 0;
     totalRecords = allData.length;
@@ -489,8 +462,6 @@ async function loadAllDataForCondensed() {
  * Display current page of data (works for both pagination and search modes)
  */
 function displayCurrentPage() {
-  console.log('[NL Sales] Displaying current page:', currentPage + 1, '| Search mode:', isSearchMode);
-  
   const tbody = document.getElementById('salesTableBody');
   const pageInfo = document.getElementById('pageInfo');
   
@@ -515,7 +486,6 @@ function displayCurrentPage() {
   const pageData = allData;
   const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize));
   
-  console.log(`[NL Sales] Server-side pagination - Page ${currentPage + 1} of ${totalPages} (showing ${allData.length} of ${totalRecords} total)`);
   
   // Display the data
   if (viewMode === 'condensed' || viewMode === 'custom') {

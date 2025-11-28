@@ -85,7 +85,7 @@ class InventoryMetadataRecord(BaseModel):
 
 
 class InventoryMetadataUpsertIn(BaseModel):
-    item_id: str  # Changed from int to str to match Zoho item IDs
+    item_id: str
     location: Optional[str] = None
     date: Optional[str] = None  # ISO string as used now
     shelf_lt1: Optional[str] = None

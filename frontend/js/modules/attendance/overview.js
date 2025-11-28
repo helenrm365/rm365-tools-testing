@@ -675,12 +675,9 @@ function populateLocationFilter() {
   
   // Reinitialize c-select for the updated dropdown
   if (window.initCSelects) {
-    console.log('📍 Reinitializing location dropdown c-select system');
-    
     // Remove the existing c-select wrapper if it exists
     const existingWrapper = locationFilter.closest('.c-select');
     if (existingWrapper) {
-      console.log('🔄 Removing existing c-select wrapper');
       const parent = existingWrapper.parentNode;
       const nextSibling = existingWrapper.nextSibling;
       parent.insertBefore(locationFilter, nextSibling);
@@ -691,13 +688,11 @@ function populateLocationFilter() {
     }
     
     // Re-enhance the select element
-    console.log('✨ Re-enhancing location dropdown');
     window.initCSelects(locationFilter.parentElement);
     
     // Verify the enhancement worked
     const newWrapper = locationFilter.closest('.c-select');
     if (newWrapper) {
-      console.log('✅ Location dropdown successfully enhanced');
     } else {
       console.warn('⚠️ Location dropdown enhancement may have failed');
     }
@@ -712,9 +707,6 @@ function applyFilters() {
   
   state.filters.location = locationFilter?.value || '';
   state.filters.nameSearch = nameFilter?.value?.trim() || '';
-  
-  console.log('Applying unified filters:', state.filters);
-  
   // Reload ALL data with filters
   loadAllData();
 }
@@ -728,9 +720,6 @@ function clearFilters() {
   
   state.filters.location = '';
   state.filters.nameSearch = '';
-  
-  console.log('All filters cleared');
-  
   // Reload ALL data without filters
   loadAllData();
 }
@@ -740,7 +729,6 @@ async function loadAllData() {
   const toDate = $("#toDate")?.value;
 
   if (!fromDate || !toDate) {
-    console.log("Missing date range, skipping data load");
     return;
   }
 
@@ -763,7 +751,6 @@ async function loadAllData() {
       fetchCurrentStatus()
     ]);
     const loadTime = performance.now() - startTime;
-    console.log(`⚡ Parallel data fetch completed in ${loadTime.toFixed(0)}ms`);
 
     // Extract results, using fallbacks for failed requests
     const [dailyStats, summaryData, chartData, workHoursData, currentStatus] = results.map((result, index) => {

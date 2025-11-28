@@ -11,7 +11,7 @@
 <div align="center">
 
 Featuring attendance tracking • inventory management • label generation • sales analytics  
-Real-time collaboration • hardware integration • Magento fulfillment • Zoho sync
+Real-time collaboration • hardware integration • Magento fulfillment
 
 Built with **FastAPI** ⚡ and **Vanilla JavaScript** 🎯
 
@@ -196,7 +196,6 @@ start-macos/start.command
 
 ```
 ✓ Real-time stock tracking
-✓ Zoho Creator synchronization
 ✓ Full audit trail for adjustments
 ✓ Barcode scanning support
 ✓ Automated external sync
@@ -357,7 +356,7 @@ start-macos/start.command
 | **Pydantic** | Data validation and serialization |
 | **Pydantic Settings** | Environment configuration management |
 | **PostgreSQL** | Primary database (multiple instances) |
-| **Zoho Creator** | External inventory database integration |
+
 | **JWT (PyJWT)** | Secure token-based authentication |
 | **psycopg2-binary** | PostgreSQL database adapter with connection pooling |
 | **Uvicorn** | ASGI server for production with websocket support |
@@ -441,7 +440,7 @@ rm365-tools-testing/
 │   │   ├── salesdata/          # Sales data import
 │   │   ├── users/              # User management
 │   │   └── _integrations/      # External services
-│   │       └── zoho/           # Zoho Creator client
+
 │   │
 │   └── migrations/              # Database migrations
 │       └── add_performance_indexes.sql
@@ -746,10 +745,7 @@ INVENTORY_LOGS_PASSWORD=***
 # Database - Labels (Local PostgreSQL)
 LABELS_DB_URI=postgresql://postgres:password@localhost:5432/labels
 
-# Zoho Integration
-ZC_CLIENT_ID=your-zoho-client-id
-ZC_CLIENT_SECRET=your-zoho-client-secret
-ZC_REFRESH_TOKEN=your-zoho-refresh-token
+
 ZC_ORG_ID=your-org-id
 
 # Magento Integration
@@ -998,7 +994,7 @@ class Settings(BaseSettings):
     PRODUCTS_DB_HOST: str
     
     # Integrations
-    ZC_CLIENT_ID: str          # Zoho
+
     ZC_CLIENT_SECRET: str
     MAGENTO_BASE_URL: str      # Magento
     MAGENTO_ACCESS_TOKEN: str

@@ -72,12 +72,8 @@
         
         // Only use fallback if CSS transitions aren't supported or working
         if (supportsTransitions()) {
-            console.log('[SidebarFallback] CSS transitions supported, using CSS animations');
             return;
         }
-        
-        console.log('[SidebarFallback] CSS transitions not supported, using JavaScript fallback');
-        
         let isExpanded = false;
         let animating = false;
         
@@ -124,8 +120,6 @@
         // Add event listeners
         sidebar.addEventListener('mouseenter', expandSidebar);
         sidebar.addEventListener('mouseleave', collapseSidebar);
-        
-        console.log('[SidebarFallback] JavaScript animation fallback initialized');
     }
     
     // Force enable fallback for testing
@@ -139,8 +133,6 @@
         labels.forEach(label => {
             label.style.transition = 'none';
         });
-        
-        console.log('[SidebarFallback] Forcing JavaScript animation mode for testing');
         initSidebarFallback();
     }
     

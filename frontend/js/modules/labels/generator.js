@@ -42,8 +42,6 @@ function saveStatusFilters(filters) {
 }
 
 export async function initLabelGenerator() {
-  console.log('[Labels] Initializing label generator');
-  
   // Load saved filters
   state.statusFilters = getSavedStatusFilters();
   
@@ -97,9 +95,6 @@ async function handleStatusFilterChange() {
   const selectedFilters = Array.from(checkboxes)
     .filter(cb => cb.checked)
     .map(cb => cb.value);
-  
-  console.log('[Labels] Status filter changed, new filters:', selectedFilters);
-  
   // Save preferences
   state.statusFilters = selectedFilters;
   saveStatusFilters(selectedFilters);
@@ -168,7 +163,6 @@ function setupRegionSelection() {
     radio.addEventListener('change', (e) => {
       if (e.target.checked) {
         state.region = e.target.value;
-        console.log('[Labels] Region preference changed to:', state.region);
         // Reload products with new region preference
         loadProducts();
       }
@@ -185,19 +179,10 @@ async function loadProducts() {
   
   try {
     // Debug: Log what filters are being sent
-    console.log(`[Labels] Loading products with filters:`, {
-      statusFilters: state.statusFilters,
-      region: state.region,
-      filterCount: state.statusFilters.length
-    });
-    
     // Fetch products with current status filters and region preference
     state.allProducts = await getProductsToPrint(state.statusFilters, state.region);
     state.filteredProducts = [...state.allProducts];
     state.displayedProducts = [...state.allProducts];
-    
-    console.log(`[Labels] Successfully loaded ${state.allProducts.length} products with filters:`, state.statusFilters, 'Region:', state.region);
-    
     // Auto-select all products when using default filters
     const isDefaultFilters = 
       state.statusFilters.length === 4 &&
@@ -207,7 +192,6 @@ async function loadProducts() {
       state.statusFilters.includes('Samples');
     
     if (isDefaultFilters) {
-      console.log('[Labels] Auto-selecting all products with default filters');
       state.selectedProducts.clear();
       state.allProducts.forEach(p => state.selectedProducts.add(p.item_id));
       
@@ -367,9 +351,6 @@ async function handleApplyStatusFilters() {
   const selectedFilters = Array.from(checkboxes)
     .filter(cb => cb.checked)
     .map(cb => cb.value);
-  
-  console.log('[Labels] Manually applying filters:', selectedFilters);
-  
   // Save preferences
   state.statusFilters = selectedFilters;
   saveStatusFilters(selectedFilters);
@@ -569,15 +550,9 @@ async function handleGeneratePdf() {
       created_by: 'user@example.com', // TODO: Get from session
       item_ids: Array.from(state.selectedProducts)
     };
-    
-    console.log('[Labels] Creating print job with', payload.item_ids.length, 'items');
-    
     const result = await createPrintJob(payload);
     const jobId = result.job_id;
     const itemCount = result.item_count || state.selectedProducts.size;
-    
-    console.log(`[Labels] Created job ${jobId} with ${itemCount} items`);
-    
     if (itemCount === 0) {
       showToast('Warning: Print job created but no items were added', 'warning');
       return;
@@ -586,8 +561,6 @@ async function handleGeneratePdf() {
     showToast(`Print job created with ${itemCount} labels!`, 'success');
     
     // Automatically start PDF download
-    console.log('[Labels] Automatically downloading PDF for job:', jobId);
-    
     try {
       if (generatePdfBtn) {
         generatePdfBtn.textContent = '⏳ Generating PDF...';
@@ -597,7 +570,6 @@ async function handleGeneratePdf() {
       showToast('PDF downloaded successfully!', 'success');
       
       // Show modal for additional downloads (CSV) if needed
-      console.log('[Labels] Opening modal for additional options');
       showPdfPreviewModal(jobId, itemCount);
       
     } catch (pdfError) {
@@ -620,8 +592,6 @@ async function handleGeneratePdf() {
 }
 
 function showPdfPreviewModal(jobId, itemCount) {
-  console.log('[Labels] showPdfPreviewModal called with jobId:', jobId, 'itemCount:', itemCount);
-  
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
   modal.style.display = 'flex'; // Ensure it's visible
@@ -654,8 +624,6 @@ function showPdfPreviewModal(jobId, itemCount) {
   `;
   
   document.body.appendChild(modal);
-  console.log('[Labels] Modal appended to body');
-  
   // Ensure modal is visible
   setTimeout(() => {
     modal.style.display = 'flex';
@@ -670,7 +638,6 @@ function showPdfPreviewModal(jobId, itemCount) {
     btn.disabled = true;
     
     try {
-      console.log('[Labels] Attempting to download PDF for job:', jobId);
       await downloadPDF(jobId);
       showToast('PDF downloaded successfully!', 'success');
       // Keep modal open so user can download CSV too if needed

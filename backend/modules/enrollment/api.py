@@ -47,9 +47,7 @@ def bulk_delete(body: BulkDeleteIn, user=Depends(get_current_user)):
         if not body.ids:
             return BulkDeleteResult(status="noop", deleted=0)
         
-        print(f"[Bulk Delete] Received request to delete IDs: {body.ids}")
         result = _svc().bulk_delete(body.ids)
-        print(f"[Bulk Delete] Service result: {result}")
         
         return BulkDeleteResult(status=result["status"], deleted=result["deleted"])
     except Exception as e:

@@ -17,8 +17,6 @@ let customRangeLabel = ''; // Label for custom range (e.g., "Last 30 Days")
  * Initialize UK sales page
  */
 export async function initUKSalesData() {
-  console.log('[UK Sales] Initializing page...');
-  
   // Wait for DOM to be ready before setting up event listeners
   await new Promise(resolve => setTimeout(resolve, 0));
   
@@ -33,8 +31,6 @@ export async function initUKSalesData() {
  * Set up event listeners for the page
  */
 function setupEventListeners() {
-  console.log('[UK Sales] ===== setupEventListeners called =====');
-  
   // Upload form
   const uploadForm = document.getElementById('uploadForm');
   if (uploadForm) {
@@ -93,16 +89,7 @@ function setupEventListeners() {
   // Check for duplicate elements with same ID
   const allSearchInputs = document.querySelectorAll('#salesSearchInput');
   const allSearchInputsByClass = document.querySelectorAll('.search-input');
-  
-  console.log('[UK Sales] Search elements:', {
-    searchInput: searchInput ? 'FOUND' : 'NOT FOUND',
-    searchBtn: searchBtn ? 'FOUND' : 'NOT FOUND',
-    clearSearchBtn: clearSearchBtn ? 'FOUND' : 'NOT FOUND'
-  });
-  console.log('[UK Sales] DUPLICATE CHECK - Elements with id="salesSearchInput":', allSearchInputs.length);
-  console.log('[UK Sales] DUPLICATE CHECK - Elements with class="search-input":', allSearchInputsByClass.length);
   allSearchInputs.forEach((el, idx) => {
-    console.log(`[UK Sales] searchInput #${idx}:`, el, 'Parent:', el.parentElement);
   });
   
   let searchTimeout = null;
@@ -115,24 +102,16 @@ function setupEventListeners() {
       return;
     }
     
-    console.log('[UK Sales] performSearch called. Input element:', inputElement);
-    console.log('[UK Sales] Input element value attribute:', inputElement.value);
-    console.log('[UK Sales] Input element actual value:', inputElement.getAttribute('value'));
-    
     const searchValue = inputElement.value.trim();
-    console.log('[UK Sales] Performing search:', searchValue, '| Length:', searchValue.length);
-    
     currentSearch = searchValue;
     currentPage = 0;
     
     if (searchValue.length > 0) {
       // Enter search mode - load ALL matching records from server
-      console.log('[UK Sales] Entering search mode for:', searchValue);
       isSearchMode = true;
       await loadSearchResults(searchValue);
     } else {
       // No search - return to pagination mode
-      console.log('[UK Sales] Empty search, returning to pagination mode');
       isSearchMode = false;
       await loadSalesData();
     }
@@ -140,10 +119,8 @@ function setupEventListeners() {
   
   // Debounced search for real-time filtering
   const debouncedSearch = () => {
-    console.log('[UK Sales] Debounced search triggered, will execute in 400ms');
     if (searchTimeout) clearTimeout(searchTimeout);
     searchTimeout = setTimeout(() => {
-      console.log('[UK Sales] Debounced search executing now...');
       performSearch();
     }, 400); // Wait 400ms after user stops typing
   };
@@ -154,8 +131,6 @@ function setupEventListeners() {
     if (inputElement) {
       inputElement.value = '';
     }
-    
-    console.log('[UK Sales] Clearing search - returning to pagination mode');
     currentSearch = '';
     currentPage = 0;
     isSearchMode = false;
@@ -172,26 +147,18 @@ function setupEventListeners() {
   
   // Add event listeners
   if (searchInput) {
-    console.log('[UK Sales] Adding input event listener to search field');
-    console.log('[UK Sales] Search input element ID:', searchInput.id);
-    console.log('[UK Sales] Search input initial value:', searchInput.value);
-    
     // Test: Can we set the value programmatically?
     searchInput.value = 'TEST';
-    console.log('[UK Sales] After setting to TEST, value is:', searchInput.value);
     searchInput.value = '';
     
     // Debounced real-time search as user types
     searchInput.addEventListener('input', (e) => {
-      console.log('[UK Sales] Input event fired! Current value:', e.target.value);
-      console.log('[UK Sales] Input event - searchInput.value:', searchInput.value);
       debouncedSearch();
     });
     
     // Enter key to search immediately
     searchInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
-        console.log('[UK Sales] Enter key pressed in search');
         e.preventDefault();
         if (searchTimeout) clearTimeout(searchTimeout);
         performSearch();
@@ -202,10 +169,7 @@ function setupEventListeners() {
   }
   
   if (searchBtn) {
-    console.log('[UK Sales] Adding click event listener to search button');
     searchBtn.addEventListener('click', (e) => {
-      console.log('[UK Sales] Search button clicked');
-      console.log('[UK Sales] At button click, searchInput.value is:', document.getElementById('salesSearchInput').value);
       e.preventDefault();
       if (searchTimeout) clearTimeout(searchTimeout);
       performSearch();
@@ -215,9 +179,7 @@ function setupEventListeners() {
   }
   
   if (clearSearchBtn) {
-    console.log('[UK Sales] Adding click event listener to clear button');
     clearSearchBtn.addEventListener('click', (e) => {
-      console.log('[UK Sales] Clear button clicked');
       e.preventDefault();
       clearSearch();
     });
@@ -267,31 +229,24 @@ function setupEventListeners() {
   }
   
   // Custom Range button
-  console.log('[UK Sales] Searching for customRangeBtn...');
-  console.log('[UK Sales] All buttons with id containing "Btn":', 
     Array.from(document.querySelectorAll('[id*="Btn"]')).map(el => ({ id: el.id, classes: el.className })));
   
   // Use a more defensive approach with a slight delay to ensure DOM is ready
   let retryCount = 0;
   const setupCustomRangeButton = () => {
     const customRangeBtn = document.getElementById('customRangeBtn');
-    console.log('[UK Sales] Custom Range Button found:', !!customRangeBtn);
-    console.log('[UK Sales] customRangeBtn element:', customRangeBtn);
     if (customRangeBtn) {
       // Remove any existing listener
       const newBtn = customRangeBtn.cloneNode(true);
       customRangeBtn.parentNode.replaceChild(newBtn, customRangeBtn);
       
       newBtn.addEventListener('click', () => {
-        console.log('[UK Sales] ========== Custom Range Button clicked ==========');
         try {
           showCustomRangeModal('uk');
-          console.log('[UK Sales] showCustomRangeModal call completed successfully');
         } catch (error) {
           console.error('[UK Sales] Error calling showCustomRangeModal:', error);
         }
       });
-      console.log('[UK Sales] Custom Range button listener attached successfully');
     } else {
       console.error('[UK Sales] Custom Range Button NOT found');
       // Try again after a short delay (max 5 retries)
@@ -339,8 +294,6 @@ function setupEventListeners() {
   // Listen for custom range applied event
   window.addEventListener('customRangeApplied', (e) => {
     if (e.detail.region === 'uk') {
-      console.log('[UK Sales] Custom range applied:', e.detail);
-      
       // Switch to custom view mode
       viewMode = 'custom';
       customRangeLabel = e.detail.rangeLabel;
@@ -390,11 +343,8 @@ async function loadSalesData() {
   </td></tr>`;
   
   try {
-    console.log(`[UK Sales] Loading data - Mode: ${viewMode}, Page: ${currentPage + 1}`);
-    
     // Custom mode doesn't reload from server - data is already loaded
     if (viewMode === 'custom') {
-      console.log('[UK Sales] Custom mode - data already loaded');
       displayCurrentPage();
       return;
     }
@@ -413,7 +363,6 @@ async function loadSalesData() {
       allData = result.data;
       totalRecords = result.total_count || 0;
       
-      console.log(`[UK Sales] Loaded ${allData.length} records (offset: ${offset}, total: ${totalRecords})`);
       
       // Display the data
       displayCurrentPage();
@@ -445,8 +394,6 @@ async function loadSearchResults(searchTerm) {
   tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem;">Searching for "${searchTerm}"...</td></tr>`;
   
   try {
-    console.log(`[UK Sales] Searching for: "${searchTerm}" - Page: ${currentPage + 1}`);
-    
     // Fetch 100 matching records at a time, just like regular pagination
     const offset = currentPage * pageSize;
     
@@ -461,7 +408,6 @@ async function loadSearchResults(searchTerm) {
       allData = result.data;
       totalRecords = result.total_count || 0;
       
-      console.log(`[UK Sales] Search results: ${allData.length} records on this page (offset: ${offset}, total matches: ${totalRecords})`);
       
       displayCurrentPage();
     } else {
@@ -480,8 +426,6 @@ async function loadSearchResults(searchTerm) {
  * Display current page of data (works for both pagination and search modes)
  */
 function displayCurrentPage() {
-  console.log('[UK Sales] Displaying current page:', currentPage + 1, '| Search mode:', isSearchMode);
-  
   const tbody = document.getElementById('salesTableBody');
   const pageInfo = document.getElementById('pageInfo');
   
@@ -506,7 +450,6 @@ function displayCurrentPage() {
   const pageData = allData;
   const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize));
   
-  console.log(`[UK Sales] Server-side pagination - Page ${currentPage + 1} of ${totalPages} (showing ${allData.length} of ${totalRecords} total)`);
   
   // Display the data
   if (viewMode === 'condensed' || viewMode === 'custom') {

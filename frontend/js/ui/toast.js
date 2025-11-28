@@ -1,7 +1,5 @@
 // Toast notification system
 export function showToast(message, type = 'info') {
-    console.log(`[Toast] ${type.toUpperCase()}: ${message}`);
-    
     // Create toast container if it doesn't exist
     let container = document.getElementById('toast-container');
     if (!container) {

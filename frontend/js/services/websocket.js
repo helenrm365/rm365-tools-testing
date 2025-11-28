@@ -23,7 +23,6 @@ class WebSocketService {
    */
   async connect(user) {
     if (this.connected) {
-      console.log('[WebSocket] Already connected');
       return;
     }
 
@@ -31,8 +30,6 @@ class WebSocketService {
 
     // Determine WebSocket URL
     const wsUrl = this._getWebSocketUrl();
-    console.log('[WebSocket] Connecting to:', wsUrl);
-
     try {
       // Load Socket.IO client library
       if (!window.io) {
@@ -91,7 +88,6 @@ class WebSocketService {
       script.integrity = 'sha384-c79GN5VsunZvi+Q/WObgk2in0CbZsHnjEqvFxC5DxHn9lTfNce2WW6h2pH6u/kF+';
       script.crossOrigin = 'anonymous';
       script.onload = () => {
-        console.log('[WebSocket] Socket.IO client loaded');
         resolve();
       };
       script.onerror = (error) => {
@@ -107,7 +103,6 @@ class WebSocketService {
    */
   _setupEventHandlers() {
     this.socket.on('connect', () => {
-      console.log('[WebSocket] Connected with ID:', this.socket.id);
       this.connected = true;
       this.reconnectAttempts = 0;
       this._emit('connected', { sid: this.socket.id });
@@ -115,7 +110,6 @@ class WebSocketService {
     });
 
     this.socket.on('disconnect', (reason) => {
-      console.log('[WebSocket] Disconnected:', reason);
       this.connected = false;
        // remember the last room so we can rejoin once back online
       if (this.activeRoom && !this.pendingRoom) {
@@ -133,23 +127,19 @@ class WebSocketService {
     });
 
     this.socket.on('connection_established', (data) => {
-      console.log('[WebSocket] Connection established:', data);
     });
 
     // Room-specific events
     this.socket.on('room_joined', (data) => {
-      console.log('[WebSocket] Joined room:', data);
       this.roomState = data;
       this._emit('room_joined', data);
     });
 
     this.socket.on('user_joined', (data) => {
-      console.log('[WebSocket] User joined:', data);
       this._emit('user_joined', data);
     });
 
     this.socket.on('user_left', (data) => {
-      console.log('[WebSocket] User left:', data);
       this._emit('user_left', data);
     });
 
@@ -159,7 +149,6 @@ class WebSocketService {
     });
 
     this.socket.on('inventory_changed', (data) => {
-      console.log('[WebSocket] Inventory changed:', data);
       this._emit('inventory_changed', data);
     });
 
@@ -187,15 +176,12 @@ class WebSocketService {
       this._emit('session_transferred', data);
     });
     this.socket.on('session_forced_cancel', (data) => {
-      console.log('[WebSocket] Received session_forced_cancel:', data);
       this._emit('session_forced_cancel', data);
     });
     this.socket.on('session_forced_takeover', (data) => {
-      console.log('[WebSocket] Received session_forced_takeover:', data);
       this._emit('session_forced_takeover', data);
     });
     this.socket.on('session_assigned', (data) => {
-      console.log('[WebSocket] Received session_assigned:', data);
       this._emit('session_assigned', data);
     });
     // Takeover request/response events
@@ -327,7 +313,6 @@ class WebSocketService {
       this.activeRoom = null;
       this.pendingRoom = null;
       this.roomState = null;
-      console.log('[WebSocket] Disconnected');
     }
   }
 
@@ -346,9 +331,6 @@ class WebSocketService {
     const roomToJoin = this.pendingRoom;
     this.pendingRoom = null;
     this.activeRoom = roomToJoin;
-
-    console.log('[WebSocket] Joining room:', roomToJoin);
-
     this.socket.emit('join_inventory_room', {
       // Use real user_id when available; fall back to username
       user_id: this.currentUser?.user_id || this.currentUser?.username || 'unknown',

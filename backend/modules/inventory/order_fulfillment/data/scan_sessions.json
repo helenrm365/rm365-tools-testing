@@ -1327,7 +1327,7 @@
     "user_id": null,
     "created_by": "superadminuser",
     "last_modified_by": "superadminuser",
-    "last_modified_at": "2025-11-27T00:41:40.618143",
+    "last_modified_at": "2025-11-27T22:25:47.804214",
     "audit_logs": [
       {
         "timestamp": "2025-11-26T23:47:15.222708",
@@ -1619,6 +1619,18 @@
       },
       {
         "timestamp": "2025-11-27T00:41:40.618158",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-27T22:25:17.662538",
+        "action": "claimed",
+        "user": "superadminuser",
+        "details": "Claimed draft session from superadminuser"
+      },
+      {
+        "timestamp": "2025-11-27T22:25:47.804232",
         "action": "drafted",
         "user": "superadminuser",
         "details": "Released session as draft"

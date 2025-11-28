@@ -4,10 +4,6 @@ import { showToast } from '../../ui/toast.js';
 import { collaborationManager } from './collaboration.js';
 
 const API = config.API;
-
-console.log('[Inventory Management] Using API:', API);
-console.log('[Inventory Management] Window location:', window.location.href);
-
 // Discontinued status filter preferences key (for checkboxes)
 const DISCONTINUED_STATUS_FILTERS_KEY = 'inventory_discontinued_status_filters';
 
@@ -38,17 +34,10 @@ function saveDiscontinuedStatusFilters(filters) {
 
 // Test backend connectivity
 async function testBackendConnectivity() {
-  console.log('[Test] Testing backend connectivity...');
-  console.log('[Test] Config API:', config.API);
-  console.log('[Test] Window location:', window.location.origin);
-  
   try {
     // Test with a simple fetch to check CORS - use the http service
     const testPath = `/api/health`;
-    console.log('[Test] Testing path:', testPath);
-    
     const data = await get(testPath);
-    console.log('[Test] Backend is accessible:', data);
   } catch (error) {
     console.error('[Test] Backend connectivity test failed:', error);
   }
@@ -71,7 +60,7 @@ let discontinuedFilterSet = new Set(DEFAULT_DISCONTINUED_STATUS_FILTERS);
 const ITEMS_PER_PAGE = 100;
 let currentPage = 0;
 let totalFilteredItems = 0;
-let totalItemsFromAPI = 0; // Total items from Zoho (not filtered)
+let totalItemsFromAPI = 0; // Total items from API (not filtered)
 
 // Fast search helpers
 const rowEntryByEl = new WeakMap();
@@ -183,8 +172,6 @@ function formatMultilineText(text) {
 }
 
 export async function init() {
-  console.log('[Inventory Management] Initializing management module');
-  
   try {
     await setupInventoryManagement();
   } catch (error) {
@@ -196,9 +183,6 @@ export async function init() {
 async function setupInventoryManagement() {
   const view = document.querySelector('#view');
   if (!view) return;
-
-  console.log('[Inventory Management] Setting up interface');
-  
   // Load initial data
   await loadInventoryData();
   
@@ -218,8 +202,6 @@ async function setupInventoryManagement() {
 }
 
 async function loadInventoryData() {
-  console.log('[Inventory Management] Loading paginated data from Zoho and PostgreSQL');
-  
   try {
     // Try multiple possible API paths
     const possiblePaths = [
@@ -235,8 +217,6 @@ async function loadInventoryData() {
     
     for (const pathSet of possiblePaths) {
       try {
-        console.log(`[Inventory Management] Trying paths: ${pathSet.items}, ${pathSet.metadata}`);
-        
         // Get search query
         const searchInput = document.getElementById('inventorySearch');
         const searchQuery = searchInput?.value?.trim() || '';
@@ -261,11 +241,9 @@ async function loadInventoryData() {
           itemsData = itemsResponse;
           metadata = metadataResponse;
           workingPath = pathSet;
-          console.log(`[Inventory Management] Successfully connected using: ${pathSet.items}`);
           break;
         }
       } catch (err) {
-        console.log(`[Inventory Management] Failed with ${pathSet.items}: ${err.message}`);
         continue;
       }
     }
@@ -284,7 +262,6 @@ async function loadInventoryData() {
             magentoProductsIndex.set(product.sku, product);
           }
         });
-        console.log(`[Inventory Management] Loaded ${magentoProducts.length} magento products`);
       }
     } catch (err) {
       console.warn('[Inventory Management] Could not load magento products:', err);
@@ -294,13 +271,10 @@ async function loadInventoryData() {
     if (itemsData && itemsData.items) {
       inventoryData = Array.isArray(itemsData.items) ? itemsData.items : [];
       totalItemsFromAPI = itemsData.total || inventoryData.length;
-      console.log(`[Inventory Management] Loaded page ${itemsData.page} with ${inventoryData.length} items (total: ${totalItemsFromAPI}, total_pages: ${itemsData.total_pages})`);
-      console.log(`[Inventory Management] API Response:`, itemsData);
     } else {
       // Fallback for old non-paginated API
       inventoryData = Array.isArray(itemsData) ? itemsData : [];
       totalItemsFromAPI = inventoryData.length;
-      console.log(`[Inventory Management] Loaded ${inventoryData.length} items (non-paginated)`);
     }
     
     // Index metadata by SKU (primary key is now SKU)
@@ -313,14 +287,10 @@ async function loadInventoryData() {
         }
       });
     }
-    
-    console.log(`[Inventory Management] Indexed ${metadata.length} metadata records by SKU`);
-    
   } catch (error) {
     console.error('[Inventory Management] Error loading data:', error);
     
     // Fallback: create some sample data for testing
-    console.log('[Inventory Management] Using fallback sample data');
     inventoryData = [
       {
         item_id: "sample_001",
@@ -517,12 +487,6 @@ function setupTable() {
   const searchInput = document.getElementById('inventorySearch');
   const searchQuery = searchInput?.value?.toLowerCase().trim() || '';
   
-  console.log('[Inventory Management] Active discontinued status filters:', Array.from(discontinuedFilterSet));
-  console.log('[Inventory Management] Active stock status filter:', stockStatusFilter);
-  console.log('[Inventory Management] Search query:', searchQuery);
-  console.log('[Inventory Management] Current page inventory items:', inventoryData.length);
-  console.log('[Inventory Management] Magento products indexed:', magentoProductsIndex.size);
-  
   let filteredItems = [];
   let skippedCount = 0;
   let noMagentoDataCount = 0;
@@ -568,14 +532,6 @@ function setupTable() {
   // For now, use the filtered items count as total (server-side filtering would be better)
   // In a full implementation, we'd send filter params to API and get total_filtered from server
   totalFilteredItems = totalItemsFromAPI;
-
-  console.log(`[Inventory Management] Filter results:`);
-  console.log(`  - Total items in API: ${totalItemsFromAPI}`);
-  console.log(`  - Displaying on this page: ${filteredItems.length} items`);
-  console.log(`  - Current page: ${currentPage + 1}`);
-  console.log(`  - Filtered out on this page: ${skippedCount} rows`);
-  console.log(`  - No magento data: ${noMagentoDataCount} rows`);
-
   // Populate table with filtered items from current page
   filteredItems.forEach(({ item, metadata }) => {
     const row = createTableRow(item, metadata);
@@ -671,9 +627,6 @@ function updatePaginationControls() {
   const totalPages = Math.ceil(totalFilteredItems / ITEMS_PER_PAGE);
   const startItem = totalFilteredItems > 0 ? (currentPage * ITEMS_PER_PAGE) + 1 : 0;
   const endItem = Math.min((currentPage + 1) * ITEMS_PER_PAGE, totalFilteredItems);
-  
-  console.log(`[Pagination] totalFilteredItems: ${totalFilteredItems}, totalPages: ${totalPages}, currentPage: ${currentPage}`);
-  
   // Show pagination section if there are items
   if (totalFilteredItems > 0) {
     paginationSection.style.display = 'flex';
@@ -699,7 +652,6 @@ function updatePaginationControls() {
   
   if (nextBtn) {
     nextBtn.disabled = currentPage >= totalPages - 1 || totalFilteredItems === 0;
-    console.log(`[Pagination] Next button disabled: ${nextBtn.disabled}, condition: currentPage (${currentPage}) >= totalPages - 1 (${totalPages - 1})`);
   }
 }
 
@@ -867,7 +819,6 @@ async function saveRowData(row) {
     const changedFields = diffMetadataFields(previousSnapshot, nextSnapshot);
 
     if (changedFields.length === 0) {
-      console.log('[Inventory Management] No changes detected for', sku);
       return;
     }
 
@@ -877,10 +828,7 @@ async function saveRowData(row) {
     const stockStatusChanged = previousStockStatus !== nextStockStatus;
 
     const patchPath = `/api/v1/inventory/management/metadata/${encodeURIComponent(sku)}`;
-    console.log(`[Inventory Management] Updating SKU ${sku} with:`, updated);
     await patch(patchPath, updated);
-    console.log(`[Inventory Management] Successfully updated via PATCH: ${patchPath}`);
-
     metadataIndex.set(sku, nextSnapshot);
 
     if (collaborationManager && collaborationManager.isInitialized) {
@@ -911,9 +859,6 @@ async function saveRowData(row) {
         );
       }
     }
-
-    console.log('[Inventory Management] Successfully updated:', sku);
-    
   } catch (err) {
     console.error('[Inventory Management] Update failed:', err);
     
@@ -963,9 +908,6 @@ function setupDiscontinuedStatusFilters() {
       const selectedFilters = Array.from(checkboxes)
         .filter(cb => cb.checked)
         .map(cb => cb.value);
-      
-      console.log('[Inventory] Applying discontinued status filters:', selectedFilters);
-      
       // Immediate visual feedback - show loading state
       const originalText = applyBtn.textContent;
       applyBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
@@ -989,8 +931,6 @@ function setupDiscontinuedStatusFilters() {
         
         // Count visible rows
         const visibleRows = document.querySelectorAll('#inventoryManagementBody tr:not([style*="display: none"])').length;
-        console.log(`[Inventory] Now showing ${visibleRows} products after applying filters`);
-        
         // Show success toast
         showToast(`Filters applied! Showing ${visibleRows} products`, 'success');
         
@@ -1046,7 +986,6 @@ async function onStockStatusFilterChange() {
 function applyFilters() {
   // Deprecated - search is now handled by rebuilding the table
   // This function is kept for compatibility but does nothing
-  console.log('[Inventory Management] applyFilters called (deprecated)');
 }
 
 function getSelectedValue(toggle) {
@@ -1292,9 +1231,6 @@ async function handleUpdate(row) {
     await post(`/api/v1/inventory/management/metadata`, updated);
     
     metadataIndex.set(sku, updated);
-    
-    console.log('[Inventory Management] Successfully updated:', sku);
-    
   } catch (err) {
     console.error('[Inventory Management] Update failed:', err);
     throw err;
@@ -1366,7 +1302,6 @@ async function syncSalesData(showNotification = true) {
     });
     if (res && res.status === 'success') {
       const updated = res.stats?.updated_records ?? 0;
-      console.log(`[Sync] Success: ${updated} records updated`);
       if (showNotification) {
         showToast(`Sales data synced! ${updated} records updated`, 'success');
       }
@@ -1403,12 +1338,9 @@ async function initAutoSync() {
   if (lastSync) {
     const diffMins = (new Date() - new Date(lastSync)) / 60000;
     if (diffMins < 5) {
-      console.log('[Sync] Skipping sync (recently synced)');
       return;
     }
   }
-
-  console.log('[Sync] Running auto-sync...');
   await syncSalesData(false); // false = don’t show alert
   localStorage.setItem('lastSalesSync', new Date().toISOString());
 }
@@ -1429,8 +1361,6 @@ async function initCollaboration() {
     }
 
     const user = JSON.parse(userStr);
-    console.log('[Collaboration] Initializing with user:', user);
-
     // Initialize collaboration manager
     await collaborationManager.init(user);
 
@@ -1438,8 +1368,6 @@ async function initCollaboration() {
     window.addEventListener('inventory-data-changed', async (event) => {
       const change = event.detail || {};
       const { sku } = change;
-      console.log('[Collaboration] Refreshing data for SKU:', sku, change);
-
       try {
         const patched = applyRemoteInventoryPatch(change);
         if (patched) {
@@ -1564,7 +1492,6 @@ function mergeMetadataChange(sku, change) {
       const currentValue = Number(current[change.field]) || 0;
       const newValue = currentValue + change.new_value;
       merged = { ...current, [change.field]: newValue };
-      console.log(`[Management] Applied adjustment: ${change.field} ${currentValue} + ${change.new_value} = ${newValue}`);
     } else {
       merged = { ...current, [change.field]: change.new_value };
     }
@@ -1610,8 +1537,6 @@ function escapeSkuForSelector(sku) {
 }
 
 export function cleanup() {
-  console.log('[Inventory Management] Cleaning up');
-  
   // Cleanup collaboration
   if (collaborationManager) {
     collaborationManager.destroy();

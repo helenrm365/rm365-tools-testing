@@ -66,7 +66,7 @@ class LabelsRepo:
 
     # DEPRECATED: No longer used - 6M data now comes from inventory_metadata table
     # def _load_six_month_data_psycopg(self, conn, resolved_data: Dict[str, Tuple[str, str, str]]) -> Dict[str, Tuple[str, str]]:
-    #     """Old method that loaded 6M data from condensed_sales tables using Zoho item_ids"""
+    #     """Old method that loaded 6M data from condensed_sales tables using item_ids"""
     #     pass
 
     def _load_inventory_metadata_map(self, inventory_conn) -> Dict[str, Tuple[str, str, str]]:

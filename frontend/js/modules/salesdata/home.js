@@ -6,8 +6,6 @@ import { showToast } from '../../ui/toast.js';
  * Initialize the sales data home page
  */
 export async function initSalesDataHome() {
-  console.log('[Sales Data] Initializing home page...');
-  
   try {
     // Set up event listeners
     setupEventListeners();
@@ -16,7 +14,6 @@ export async function initSalesDataHome() {
     const result = await initializeTables();
     
     if (result.status === 'success') {
-      console.log('[Sales Data] Tables initialized:', result.tables);
       showToast(`✅ Database Ready - Tables initialized: ${result.tables.join(', ')}`, 'success');
     } else {
       console.error('[Sales Data] Failed to initialize tables:', result.message);

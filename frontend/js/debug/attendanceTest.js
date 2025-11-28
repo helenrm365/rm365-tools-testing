@@ -1,6 +1,4 @@
 // Simple test for attendance overview without authentication
-console.log('🧪 Testing attendance overview APIs without auth...');
-
 import { config } from '../config.js';
 
 // Test the APIs directly without auth
@@ -20,7 +18,6 @@ async function testAPI(endpoint, name) {
     }
     
     const data = await response.json();
-    console.log(`✅ ${name}:`, data);
     return data;
   } catch (error) {
     console.error(`❌ ${name}:`, error.message);
@@ -30,8 +27,6 @@ async function testAPI(endpoint, name) {
 
 // Test all the endpoints the overview page uses
 async function runTests() {
-  console.log('Starting API tests...');
-  
   const today = new Date().toISOString().slice(0, 10);
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
   

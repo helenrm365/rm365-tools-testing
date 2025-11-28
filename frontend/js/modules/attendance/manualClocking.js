@@ -34,12 +34,9 @@ function fillEmployeeSelect() {
   
   // Reinitialize c-select for the updated dropdown
   if (window.initCSelects) {
-    console.log('👤 Reinitializing employee dropdown c-select system');
-    
     // Remove the existing c-select wrapper if it exists
     const existingWrapper = select.closest('.c-select');
     if (existingWrapper) {
-      console.log('🔄 Removing existing c-select wrapper');
       const parent = existingWrapper.parentNode;
       const nextSibling = existingWrapper.nextSibling;
       parent.insertBefore(select, nextSibling);
@@ -50,13 +47,11 @@ function fillEmployeeSelect() {
     }
     
     // Re-enhance the select element
-    console.log('✨ Re-enhancing employee dropdown');
     window.initCSelects(select.parentElement);
     
     // Verify the enhancement worked
     const newWrapper = select.closest('.c-select');
     if (newWrapper) {
-      console.log('✅ Employee dropdown successfully enhanced');
     } else {
       console.warn('⚠️ Employee dropdown enhancement may have failed');
     }
@@ -203,7 +198,6 @@ function attachEmployeeSelectListener() {
 
   if (employeeSelect && !employeeSelect._listenerAttached) {
     employeeSelect.addEventListener('change', () => {
-      console.log('👤 Employee selection changed:', employeeSelect.value);
       const hasSelection = employeeSelect.value !== '';
       if (clockInBtn) clockInBtn.disabled = !hasSelection;
       if (clockOutBtn) clockOutBtn.disabled = !hasSelection;
@@ -211,7 +205,6 @@ function attachEmployeeSelectListener() {
     });
     
     employeeSelect._listenerAttached = true;
-    console.log('🔗 Employee select listener attached');
   }
 }
 
@@ -260,12 +253,9 @@ function notify(msg, isErr = false) {
 }
 
 export async function init() {
-  console.log("👤 Initializing attendance manual clocking module");
-  
   // Ensure global dropdown backdrop exists
   let backdrop = document.getElementById('globalDropdownBackdrop');
   if (!backdrop) {
-    console.log('🎭 Creating global dropdown backdrop for manual page');
     backdrop = document.createElement('div');
     backdrop.id = 'globalDropdownBackdrop';
     backdrop.className = 'dropdown-backdrop';
@@ -282,6 +272,4 @@ export async function init() {
   const clockOutBtn = $('#clockOutBtn');
   if (clockInBtn) clockInBtn.disabled = true;
   if (clockOutBtn) clockOutBtn.disabled = true;
-  
-  console.log("✅ Attendance manual clocking module initialized");
 }

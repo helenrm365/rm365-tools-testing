@@ -71,19 +71,23 @@ def _parse_origins_env():
     # Debug logging
     print(f"🔍 Raw ALLOW_ORIGINS: {raw}")
     
-    try:
-        # Handle Railway's JSON array format
-        val = json.loads(raw)
-        if isinstance(val, list):
-            origins = [_normalize_origin(str(x)) for x in val]
-            origins = [o for o in origins if o]
-            print(f"✅ Parsed JSON origins: {origins}")
-            return origins
-        # If someone set ALLOW_ORIGINS='null' or object, fall back
-    except json.JSONDecodeError as e:
-        print(f"⚠️  JSON parse error: {e}, falling back to comma-separated")
-    except Exception as e:
-        print(f"⚠️  Unexpected error parsing origins: {e}")
+    # First check if it looks like JSON (starts with '[')
+    if raw.startswith('['):
+        try:
+            # Handle JSON array format
+            val = json.loads(raw)
+            if isinstance(val, list):
+                origins = [_normalize_origin(str(x)) for x in val]
+                origins = [o for o in origins if o]
+                print(f"✅ Parsed JSON origins: {origins}")
+                return origins
+            # If someone set ALLOW_ORIGINS='null' or object, fall back
+        except json.JSONDecodeError as e:
+            print(f"⚠️  JSON parse error: {e}, falling back to comma-separated")
+        except Exception as e:
+            print(f"⚠️  Unexpected error parsing origins: {e}")
+    else:
+        print(f"ℹ️  ALLOW_ORIGINS is not JSON array, using comma-separated format")
 
     # Fallback: comma-separated
     fallback = [_normalize_origin(p) for p in raw.split(',')]
@@ -176,10 +180,6 @@ if not allow_origin_regex:
     print("🔧 Applying default Cloudflare Pages CORS regex")
 
 print(f"🌍 CORS Configuration:")
-print(f"   Allow Origins: {allow_origins}")
-print(f"   Allow Origin Regex: {allow_origin_regex}")
-
-# Additional debug info
 if allow_origins:
     print(f"   📝 Origins list has {len(allow_origins)} entries")
 if allow_origin_regex:
@@ -212,6 +212,23 @@ install_handlers(app)     # AppError → JSON
 def health():
     return {'status': 'ok', 'uptime': round(time.time() - BOOT_T0, 2)}
 
+@app.get('/robots.txt', include_in_schema=False)
+async def serve_robots():
+    """Serve robots.txt file for search engine crawlers"""
+    robots_path = Path(__file__).resolve().parent.parent / 'robots.txt'
+    if robots_path.is_file():
+        return FileResponse(
+            robots_path,
+            media_type='text/plain',
+            headers={
+                'Cache-Control': 'public, max-age=86400',  # Cache for 24 hours
+            }
+        )
+    return Response(
+        content="User-agent: *\nDisallow: /",
+        media_type='text/plain'
+    )
+
 @app.get('/api/cors-test')
 def cors_test():
     """Simple CORS test endpoint"""
@@ -236,8 +253,6 @@ def debug_inventory():
     try:
         # Test environment variables
         env_status = {
-            'zoho_client_id': '✅' if os.getenv('ZC_CLIENT_ID') else '❌',
-            'zoho_org_id': '✅' if os.getenv('ZC_ORG_ID') else '❌',
             'inventory_db_host': '✅' if os.getenv('INVENTORY_LOGS_HOST') else '❌',
         }
         
@@ -254,20 +269,10 @@ def debug_inventory():
         except Exception as e:
             db_status = f'❌ {str(e)}'
         
-        # Test Zoho token
-        zoho_status = 'unknown'
-        try:
-            from modules._integrations.zoho.client import get_cached_inventory_token
-            token = get_cached_inventory_token()
-            zoho_status = '✅ token obtained' if token else '❌ no token'
-        except Exception as e:
-            zoho_status = f'❌ {str(e)}'
-        
         return {
             'status': 'debug',
             'environment': env_status,
             'database': db_status,
-            'zoho': zoho_status,
             'cors_origins': allow_origins,
             'cors_regex': allow_origin_regex,
             'timestamp': time.time()
@@ -289,7 +294,7 @@ def scan():
         raise HTTPException(status_code=501, detail=str(e))
 
 # --- Optional DB smoke test --------------------------------------------------
-# Removed test-db endpoint - not needed for production Railway deployment
+# Removed test-db endpoint - not needed for production deployment
 
 # Replace the router composition section in backend/app.py with this:
 
@@ -300,9 +305,8 @@ try:
     from core.auth import router as auth_router
     app.include_router(auth_router, prefix=f'{API}/auth', tags=['auth'])
     app.include_router(auth_router, prefix='/auth', tags=['auth-legacy'])
-    print('[boot] SUCCESS: mounted auth router')
 except Exception as e:
-    print('[boot] auth router failed:', e)
+    print(f'[boot] ERROR: {mod} failed to mount at {prefix}:', e)
 
 # Only mount modules that are complete and working
 working_modules = [
@@ -319,11 +323,9 @@ working_modules = [
 
 for mod, attr, prefix, tags in working_modules:
     try:
-        print(f'[boot] Attempting to mount {mod} at {prefix}...')
         module = __import__(mod, fromlist=[attr])
         router = getattr(module, attr)
         app.include_router(router, prefix=prefix, tags=tags)
-        print(f'[boot] SUCCESS: mounted {mod} at {prefix}')
     except Exception as e:
         print(f'[boot] ERROR: {mod} failed to mount at {prefix}:', e)
 
@@ -338,9 +340,8 @@ COMPONENTS_DIR = FRONTEND_DIR / 'components'
 def _mount_if_exists(prefix: str, path: Path, *, html: bool = False, name: str = ''):
     if path.is_dir():
         app.mount(prefix, StaticFiles(directory=str(path), html=html), name=name or prefix.strip('/'))
-        print(f'[boot] mounted {prefix} -> {path}')
     else:
-        print(f'[boot] SKIP mount {prefix} (not found): {path}')
+        pass
 
 # 1) Explicit asset mounts
 _mount_if_exists('/js',         JS_DIR,         html=False, name='js')
@@ -366,11 +367,9 @@ if FRONTEND_DIR.is_dir():
     # This must be registered AFTER all API routers are mounted
     @app.exception_handler(404)
     async def custom_404_handler(request: Request, exc: HTTPException):
-        print(f"[404 Handler] Path: {request.url.path} | Method: {request.method}")
         
         # If it's an API request, return JSON 404
         if request.url.path.startswith('/api/'):
-            print(f"[404 Handler] Returning JSON 404 for API path")
             return JSONResponse(
                 status_code=404,
                 content={"detail": "API endpoint not found"}
@@ -379,14 +378,12 @@ if FRONTEND_DIR.is_dir():
         # If it's a request for static assets that don't exist, return 404
         # Note: /components/ is handled by StaticFiles mount, but if file doesn't exist, return 404
         if any(request.url.path.startswith(prefix) for prefix in ['/js/', '/css/', '/html/', '/assets/', '/components/', '/ws/']):
-            print(f"[404 Handler] Returning JSON 404 for static asset")
             return JSONResponse(
                 status_code=404,
                 content={"detail": "File not found"}
             )
         
         # For all other paths (SPA routes), serve index.html
-        print(f"[404 Handler] Serving index.html for SPA route")
         index_path = FRONTEND_DIR / "index.html"
         if index_path.is_file():
             response = FileResponse(index_path)
@@ -399,15 +396,13 @@ if FRONTEND_DIR.is_dir():
             status_code=404,
             content={"detail": "Not found"}
         )
-    
-    print(f'[boot] mounted SPA catch-all -> {FRONTEND_DIR}')
 else:
-    print('[boot] frontend dir not found:', FRONTEND_DIR)
+    pass
 
 fastapi_app = app  # Keep reference for wrapping/testing
 
 # --- WebSocket Integration (After All Middleware) ---------------------------
-# Wrap the FastAPI app with Socket.IO so /ws/socket.io works on Railway
+# Wrap the FastAPI app with Socket.IO for real-time communication
 try:
     from core.websocket import sio
     import socketio
@@ -421,11 +416,9 @@ try:
     app = socket_app
 
     print("✅ WebSocket support enabled at /ws/socket.io")
-    print("   Railway WebSocket connections supported!")
 except ImportError as e:
     app = fastapi_app
     print(f"⚠️  WebSocket dependencies not installed: {e}")
-    print("   Run: pip install python-socketio aioredis")
 except Exception as e:
     app = fastapi_app
     print(f"⚠️  WebSocket initialization failed: {e}")
@@ -439,5 +432,4 @@ if __name__ == "__main__":
     port = int(os.getenv("PORT", "8000"))
     reload = os.getenv("RELOAD", "false").lower() == "true"
 
-    print(f"[boot] Running app via __main__ on {host}:{port} (reload={reload})")
     uvicorn.run("app:app", host=host, port=port, reload=reload)

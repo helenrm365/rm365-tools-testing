@@ -96,10 +96,8 @@ def test_card_reader() -> bool:
 if __name__ == "__main__":
     # Test the card reader
     if test_card_reader():
-        print("Card reader is available")
         try:
             uid = read_card_uid(timeout=10)
-            print(f"Card UID: {uid}")
         except CardReaderError as e:
             print(f"Error reading card: {e}")
     else:

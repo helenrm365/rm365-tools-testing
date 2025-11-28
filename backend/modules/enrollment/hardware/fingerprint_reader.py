@@ -163,13 +163,11 @@ def get_fingerprint_info() -> dict:
 if __name__ == "__main__":
     # Test the fingerprint reader
     info = get_fingerprint_info()
-    print(f"Fingerprint reader info: {info}")
     
     if info["available"]:
         try:
             template = read_fingerprint_template(timeout=10000)
-            print(f"Captured template: {len(template)} bytes")
         except FingerprintCaptureError as e:
             print(f"Error capturing fingerprint: {e}")
     else:
-        print("Fingerprint reader is not available")
+        pass

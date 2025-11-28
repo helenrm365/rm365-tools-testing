@@ -6,7 +6,6 @@ from collections import defaultdict
 
 import requests
 
-from core.config import settings
 from core.db import (
     get_products_connection, 
     get_inventory_log_connection,
@@ -14,18 +13,7 @@ from core.db import (
     return_inventory_connection
 )
 
-# ✅ Import Zoho helpers from client.py
-from modules._integrations.zoho.client import (
-    get_zoho_items_with_skus,
-    _resolve_zoho_item,
-    _base_of,
-   # zoho_auth_header,  # keep this if used elsewhere for requests
-)
-
 logger = logging.getLogger(__name__)
-
-ZOHO_INVENTORY_BASE = "https://www.zohoapis.eu/inventory/v1"
-ZOHO_ORG_ID = settings.ZC_ORG_ID
 
 def get_regional_sales() -> Tuple[Dict[str, int], Dict[str, int], Dict[str, int]]:
     conn = get_products_connection()
@@ -118,7 +106,7 @@ def sync_sales_to_inventory_metadata(dry_run: bool = False) -> Dict[str, any]:
                 stats["skipped_no_sales"] += 1
                 continue
 
-            # Use the base SKU directly (no need to resolve via Zoho)
+            # Use the base SKU directly (no external resolution needed)
             sku_to_use = base_sku
             
             if dry_run:

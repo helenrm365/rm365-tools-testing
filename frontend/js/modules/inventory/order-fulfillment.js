@@ -74,7 +74,6 @@ class MagentoPickPackManager {
       }
 
       if (!wsService.isConnected()) {
-        console.log('[MagentoPickPack] Connecting to WebSocket for realtime session events');
         await wsService.connect(user);
       }
 
@@ -85,8 +84,6 @@ class MagentoPickPackManager {
   }
 
   setupWebSocket() {
-    console.log('[MagentoPickPack] Setting up WebSocket listeners');
-    
     // Bind methods to this instance
     this.handleTakeoverRequest = this.handleTakeoverRequest.bind(this);
     this.handleTakeoverResponse = this.handleTakeoverResponse.bind(this);
@@ -102,13 +99,9 @@ class MagentoPickPackManager {
     wsService.on('session_forced_cancel', this.handleSessionForcedCancel);
     wsService.on('session_forced_takeover', this.handleSessionForcedTakeover);
     wsService.on('session_assigned', this.handleSessionAssigned);
-    
-    console.log('[MagentoPickPack] WebSocket listeners registered');
   }
 
   cleanupWebSocket() {
-    console.log('[MagentoPickPack] Cleaning up WebSocket listeners');
-    
     wsService.off('takeover_request', this.handleTakeoverRequest);
     wsService.off('takeover_response', this.handleTakeoverResponse);
     wsService.off('session_transferred', this.handleSessionTransferred);
@@ -118,8 +111,6 @@ class MagentoPickPackManager {
   }
 
   async handleTakeoverRequest(data) {
-    console.log('[MagentoPickPack] Takeover request received:', data);
-    
     // Only show if this is our session
     if (this.currentSessionId === data.session_id) {
       const requester = data.requester_username || data.requester;
@@ -127,13 +118,10 @@ class MagentoPickPackManager {
       
       // TODO: Send response to backend
       // For now, just log it
-      console.log('[MagentoPickPack] Takeover request response:', confirmed ? 'accepted' : 'rejected');
     }
   }
 
   async handleTakeoverResponse(data) {
-    console.log('[MagentoPickPack] Takeover response received:', data);
-    
     if (data.accepted) {
       await orderModals.alertTakeoverAccepted(data.order_number);
     } else {
@@ -142,8 +130,6 @@ class MagentoPickPackManager {
   }
 
   async handleSessionTransferred(data) {
-    console.log('[MagentoPickPack] Session transferred:', data);
-    
     // If our session was transferred away, return to lookup
     if (this.currentSessionId === data.session_id) {
       await orderModals.alertSessionTransferred(data.new_owner);
@@ -153,8 +139,6 @@ class MagentoPickPackManager {
   }
 
   async handleSessionForcedCancel(data) {
-    console.log('[MagentoPickPack] Session force cancelled:', data);
-    
     // If our session was forcefully cancelled, return to lookup
     if (this.currentSessionId === data.session_id) {
       await orderModals.alertSessionForceCancelled(data.reason);
@@ -166,8 +150,6 @@ class MagentoPickPackManager {
   }
 
   async handleSessionForcedTakeover(data) {
-    console.log('[MagentoPickPack] Session force taken over:', data);
-    
     // If our session was forcefully taken over, return to lookup
     if (this.currentSessionId === data.session_id) {
       await orderModals.alertSessionForceTakeover(data.new_owner);
@@ -177,7 +159,6 @@ class MagentoPickPackManager {
   }
 
   async handleSessionAssigned(data) {
-    console.log('[MagentoPickPack] Session assigned to me:', data);
     // When an admin assigns/takes over to this user, navigate into the active session
     const orderNumber = data.order_number;
     const sessionId = data.session_id;
@@ -187,7 +168,6 @@ class MagentoPickPackManager {
         const currentPath = window.location.pathname;
         const targetPath = `/inventory/order-fulfillment/session-${orderNumber}-`;
         if (currentPath && currentPath.startsWith(targetPath)) {
-          console.log('[MagentoPickPack] Already on the assigned session page, skipping redirect');
           return;
         }
         
@@ -224,8 +204,6 @@ class MagentoPickPackManager {
     if (sessionMatch) {
       const orderNumber = sessionMatch[1];
       const invoiceNumber = sessionMatch[2];
-      console.log('[MagentoPickPack] Detected session URL:', { orderNumber, invoiceNumber });
-
       // Try to find and load this session
       try {
         // Prefer status endpoint by matching session URL after module loads
@@ -257,8 +235,6 @@ class MagentoPickPackManager {
   }
 
   initializeElements() {
-    console.log('[MagentoPickPack] Initializing elements...');
-    
     // Sections
     this.orderLookupSection = document.getElementById('orderLookupSection');
     this.activeSessionSection = document.getElementById('activeSessionSection');
@@ -306,23 +282,14 @@ class MagentoPickPackManager {
     this.itemsList = document.getElementById('itemsList');
     this.cancelSessionBtn = document.getElementById('cancelSessionBtn');
     this.completeSessionBtn = document.getElementById('completeSessionBtn');
-
-    console.log('[MagentoPickPack] Elements found:', {
-      orderNumberInput: !!this.orderNumberInput,
-      sessionTypeDropdown: !!this.sessionTypeDropdown,
-      startSessionBtn: !!this.startSessionBtn
-    });
-
     // Initialize custom dropdowns
     this.initializeDropdowns();
   }
 
   initializeDropdowns() {
-    console.log('[MagentoPickPack] Initializing dropdowns...');
     // Session Type Dropdown
     this.selectedSessionType = 'pick';
     this.initDropdown('sessionTypeDropdown', (value) => {
-      console.log('[MagentoPickPack] Session type changed to:', value);
       this.selectedSessionType = value;
     });
   }
@@ -333,9 +300,6 @@ class MagentoPickPackManager {
       console.warn(`Dropdown not found: ${dropdownId}`);
       return;
     }
-
-    console.log('[MagentoPickPack] Initializing dropdown:', dropdownId);
-
     const toggle = dropdown.querySelector('.c-select__button');
     const list = dropdown.querySelector('.c-select__list');
     const label = dropdown.querySelector('.c-select__label');
@@ -345,18 +309,13 @@ class MagentoPickPackManager {
       console.warn(`Dropdown elements not found for: ${dropdownId}`, { toggle: !!toggle, label: !!label, itemsCount: items.length });
       return;
     }
-
-    console.log('[MagentoPickPack] Dropdown elements found:', { toggle: !!toggle, label: !!label, itemsCount: items.length });
-
     // Prevent button from submitting or triggering other actions
     toggle.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      console.log('[MagentoPickPack] Dropdown toggle clicked');
       const isExpanded = dropdown.getAttribute('aria-expanded') === 'true';
       dropdown.setAttribute('aria-expanded', !isExpanded);
       toggle.setAttribute('aria-expanded', !isExpanded);
-      console.log('[MagentoPickPack] Dropdown expanded:', !isExpanded);
     });
 
     items.forEach(item => {
@@ -365,7 +324,6 @@ class MagentoPickPackManager {
         e.stopPropagation();
         const value = item.getAttribute('data-value');
         const text = item.textContent.trim();
-        console.log('[MagentoPickPack] Dropdown item selected:', { value, text });
         label.textContent = text;
         dropdown.setAttribute('aria-expanded', 'false');
         toggle.setAttribute('aria-expanded', 'false');
@@ -407,24 +365,18 @@ class MagentoPickPackManager {
   }
 
   async startSession() {
-    console.log('[MagentoPickPack] startSession called');
     const orderNumber = this.orderNumberInput.value.trim();
     
     if (!orderNumber) {
       this.showLookupMessage('Please enter an order number', 'error');
       return;
     }
-
-    console.log('[MagentoPickPack] Starting session with:', { orderNumber, sessionType: this.selectedSessionType });
-
     try {
       this.startSessionBtn.disabled = true;
       this.startSessionBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
 
       // First, check the order status
       const checkUrl = `${getApiUrl()}/v1/magento/session/check/${encodeURIComponent(orderNumber)}`;
-      console.log('[MagentoPickPack] Checking order status:', checkUrl);
-
       const checkResponse = await fetch(checkUrl, {
         method: 'GET',
         headers: getAuthHeaders()
@@ -437,8 +389,6 @@ class MagentoPickPackManager {
       }
 
       const statusData = await checkResponse.json();
-      console.log('[MagentoPickPack] Order status:', statusData);
-
       // Handle different statuses
       if (statusData.status === 'in_progress') {
         let confirmed;
@@ -505,8 +455,6 @@ class MagentoPickPackManager {
       this.startSessionBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Starting...';
 
       const url = `${getApiUrl()}/v1/magento/session/start`;
-      console.log('[MagentoPickPack] Calling API:', url);
-
       const response = await fetch(url, {
         method: 'POST',
         headers: {
@@ -518,9 +466,6 @@ class MagentoPickPackManager {
           session_type: this.selectedSessionType
         })
       });
-
-      console.log('[MagentoPickPack] Response status:', response.status);
-
       if (!response.ok) {
         const error = await response.json().catch(() => ({ detail: `HTTP ${response.status}` }));
         console.error('[MagentoPickPack] API Error:', error);
@@ -528,7 +473,6 @@ class MagentoPickPackManager {
       }
 
       const session = await response.json();
-      console.log('[MagentoPickPack] Session started:', session);
       this.currentSession = session;
       this.currentSessionId = session.session_id;
       
@@ -558,8 +502,6 @@ class MagentoPickPackManager {
       this.startSessionBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Claiming...';
 
       const url = `${getApiUrl()}/v1/magento/sessions/${sessionId}/claim`;
-      console.log('[MagentoPickPack] Claiming session:', url);
-
       const response = await fetch(url, {
         method: 'POST',
         headers: {
@@ -574,8 +516,6 @@ class MagentoPickPackManager {
       }
 
       const result = await response.json();
-      console.log('[MagentoPickPack] Session claimed:', result);
-
       const claimedSessionId = result.session_id;
       this.currentSessionId = claimedSessionId;
       window.__currentMagentoSession = claimedSessionId;
@@ -673,10 +613,7 @@ class MagentoPickPackManager {
     const formatCurrency = (value) => {
       if (value == null) return '-';
       const currencyCode = this.currentSession.order_currency_code;
-      console.log('[Currency Debug] Currency code from session:', currencyCode);
-      console.log('[Currency Debug] Full session object:', this.currentSession);
       const symbol = getCurrencySymbol(currencyCode);
-      console.log('[Currency Debug] Symbol returned:', symbol);
       return `${symbol}${parseFloat(value).toFixed(2)}`;
     };
 
@@ -1014,8 +951,6 @@ class MagentoPickPackManager {
 
 // Module initialization and export
 export async function init(path) {
-  console.log('[OrderFulfillment] Initializing Order Fulfillment module with path:', path);
-  
   if (!window.__magentoPickPackInitialized) {
     // Wait for DOM to be ready
     if (document.readyState === 'loading') {
@@ -1050,8 +985,6 @@ function ensureTabHighlighted() {
 
 // Cleanup on navigation away
 export function cleanup() {
-  console.log('[MagentoPickPack] Cleanup called');
-  
   // Cleanup WebSocket listeners if manager exists
   if (window.__magentoPickPackManager) {
     window.__magentoPickPackManager.cleanupWebSocket();
@@ -1069,7 +1002,6 @@ export function cleanup() {
 // Also support direct script inclusion (fallback) - but this shouldn't run when using router
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
-    console.log('[MagentoPickPack] DOMContentLoaded - checking if already initialized');
     // Only init if not already initialized by router
     if (!window.__magentoPickPackInitialized) {
       window.__magentoPickPackInitialized = true;
@@ -1077,7 +1009,6 @@ if (document.readyState === 'loading') {
     }
   });
 } else {
-  console.log('[MagentoPickPack] Document already loaded - checking if already initialized');
   if (!window.__magentoPickPackInitialized) {
     window.__magentoPickPackInitialized = true;
     window.__magentoPickPackManager = new MagentoPickPackManager();

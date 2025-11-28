@@ -22,23 +22,16 @@ export function updateRoute(path, replace = false, state = {}) {
     history.pushState({ ...state, path }, '', path);
   }
   currentRoutePath = path;
-  console.log('[Router] Route updated to:', path);
 }
 
 // Check if we're navigating away from an active session
 function checkSessionCleanup(oldPath, newPath) {
-  console.log('[Router] checkSessionCleanup - oldPath:', oldPath, 'newPath:', newPath);
-  
   // Check if we're leaving the order fulfillment module entirely
   const wasInOrderFulfillment = oldPath && oldPath.startsWith('/inventory/order-fulfillment');
   const stillInOrderFulfillment = newPath && newPath.startsWith('/inventory/order-fulfillment');
   
-  console.log('[Router] wasInOrderFulfillment:', wasInOrderFulfillment, 'stillInOrderFulfillment:', stillInOrderFulfillment);
-  console.log('[Router] Current session ID:', window.__currentMagentoSession);
-  
   // Only draft if we're leaving the order fulfillment module completely
   if (wasInOrderFulfillment && !stillInOrderFulfillment) {
-    console.log('[Router] Leaving order fulfillment module, saving session as draft');
     if (window.__currentMagentoSession) {
       saveSessionAsDraft(window.__currentMagentoSession);
       window.__currentMagentoSession = null;
@@ -108,7 +101,6 @@ function redirectToOrderFulfillmentHome(reason) {
     return;
   }
 
-  console.log(`[Router] Redirecting to default order fulfillment page due to ${reason}`);
   navigate('/inventory/order-fulfillment', true);
 }
 
@@ -154,8 +146,6 @@ export function generateTabStructure() {
     'order-progress': 'Order Progress'
   };
   
-  console.log('[generateTabStructure] Starting with routes:', routes);
-  
   // Parse routes to build structure
   Object.keys(routes).forEach(route => {
     // Skip root, home, and login routes
@@ -189,8 +179,6 @@ export function generateTabStructure() {
     }
   });
   
-  console.log('[generateTabStructure] Generated structure:', structure);
-  
   return structure;
 }
 
@@ -215,8 +203,6 @@ function hideLoading() {
 }
 
 export async function navigate(path, replace = false) {
-  console.log('[Router] Navigating to:', path, { replace });
-  
   try {
     // Check if we're leaving an active session
     const oldPath = currentRoutePath || window.location.pathname;
@@ -227,7 +213,6 @@ export async function navigate(path, replace = false) {
 
     // Auth gate: everything except /login and /home requires a token
     if (path !== '/login' && path !== '/home' && path !== '/' && !isAuthed()) {
-      console.log('[Router] Not authenticated, redirecting to home');
       path = '/home';
       replace = true;
     }
@@ -236,7 +221,6 @@ export async function navigate(path, replace = false) {
     if (path !== '/login' && path !== '/home' && path !== '/') {
       const perm = enforceRoutePermission(path);
       if (!perm.allowed && perm.redirect && perm.redirect !== path) {
-        console.log('[Router] Not allowed, redirecting to:', perm.redirect);
         path = perm.redirect;
         replace = true;
       }
@@ -247,7 +231,6 @@ export async function navigate(path, replace = false) {
     if (!url && path.match(/^\/inventory\/order-fulfillment\/session-/)) {
       // Session-specific URL, use the base order fulfillment template
       url = routes['/inventory/order-fulfillment'];
-      console.log('[Router] Session URL detected, using order fulfillment template');
     }
     
     if (!url) {
@@ -255,13 +238,11 @@ export async function navigate(path, replace = false) {
       // Fallback to home page
       const fallbackPath = '/home';
       if (path !== fallbackPath) {
-        console.log('[Router] Using fallback path:', fallbackPath);
         return navigate(fallbackPath, replace);
       }
     }
 
     // Fetch the HTML content
-    console.log('[Router] Fetching:', url);
     const res = await fetch(url, { 
       credentials: 'same-origin',
       cache: 'no-cache' // Ensure we get fresh content 
@@ -273,15 +254,6 @@ export async function navigate(path, replace = false) {
 
     const html = await res.text();
     
-    // Check if we got empty content
-    if (!html || html.trim().length === 0) {
-      console.warn('[Router] Empty HTML received for:', url);
-      // For login page, we need actual content
-      if (path === '/login') {
-        console.error('[Router] Login page is empty! This will prevent login.');
-      }
-    }
-
     const view = document.querySelector('#view');
     if (view) {
       view.innerHTML = html;
@@ -334,7 +306,6 @@ export async function navigate(path, replace = false) {
     // First, cleanup the previous module if it exists and we're changing sections
     const newSection = path.split('/')[1];
     if (currentModule && currentModule.cleanup && currentModulePath !== newSection) {
-      console.log('[Router] Cleaning up previous module:', currentModulePath);
       try {
         currentModule.cleanup();
       } catch (e) {
@@ -355,66 +326,41 @@ export async function navigate(path, replace = false) {
       currentModule = mod;
       currentModulePath = 'home';
     } else if (path.startsWith('/attendance')) {
-      try {
-        const mod = await import('./modules/attendance/index.js');
-        await mod.init(path);
-        currentModule = mod;
-        currentModulePath = 'attendance';
-      } catch (e) {
-        console.warn('[Router] Attendance module not implemented yet:', e);
-      }
+      const mod = await import('./modules/attendance/index.js');
+      await mod.init(path);
+      currentModule = mod;
+      currentModulePath = 'attendance';
     } else if (path.startsWith('/enrollment')) {
-      try {
-        const mod = await import('./modules/enrollment/index.js');
-        await mod.init(path);
-        currentModule = mod;
-        currentModulePath = 'enrollment';
-      } catch (e) {
-        console.warn('[Router] Enrollment module error:', e);
-      }
+      const mod = await import('./modules/enrollment/index.js');
+      await mod.init(path);
+      currentModule = mod;
+      currentModulePath = 'enrollment';
     } else if (path.startsWith('/labels')) {
-      try {
-        const mod = await import('./modules/labels/index.js');
-        await mod.init(path);
-        currentModule = mod;
-        currentModulePath = 'labels';
-      } catch (e) {
-        console.warn('[Router] Labels module error:', e);
-      }
+      const mod = await import('./modules/labels/index.js');
+      await mod.init(path);
+      currentModule = mod;
+      currentModulePath = 'labels';
     } else if (path.startsWith('/salesdata')) {
-      try {
-        const mod = await import('./modules/salesdata/index.js');
-        await mod.init(path);
-        currentModule = mod;
-        currentModulePath = 'salesdata';
-      } catch (e) {
-        console.warn('[Router] Sales data module error:', e);
-      }
+      const mod = await import('./modules/salesdata/index.js');
+      await mod.init(path);
+      currentModule = mod;
+      currentModulePath = 'salesdata';
     } else if (path.startsWith('/inventory')) {
-      try {
-        const mod = await import('./modules/inventory/index.js');
-        await mod.init(path); // Pass full path for session URL detection
-        currentModule = mod;
-        currentModulePath = 'inventory';
-      } catch (e) {
-        console.warn('[Router] Inventory module error:', e);
-      }
+      const mod = await import('./modules/inventory/index.js');
+      await mod.init(path); // Pass full path for session URL detection
+      currentModule = mod;
+      currentModulePath = 'inventory';
     } else if (path.startsWith('/usermanagement')) {
-      try {
-        const mod = await import('./modules/usermanagement/index.js');
-        await mod.init(path);
-        currentModule = mod;
-        currentModulePath = 'usermanagement';
-      } catch (e) {
-        console.warn('[Router] User management module error:', e);
-      }
+      const mod = await import('./modules/usermanagement/index.js');
+      await mod.init(path);
+      currentModule = mod;
+      currentModulePath = 'usermanagement';
     }
 
     // Highlight active nav item
     highlightActive(path);
 
     // Success - hide loading overlay
-    console.log('[Router] Navigation complete');
     hideLoading();
 
   } catch (error) {
@@ -443,8 +389,6 @@ export async function navigate(path, replace = false) {
 }
 
 export function setupRouter() {
-  console.log('[Router] Setting up router');
-  
   // Expose navigate globally for components like the sidebar
   window.navigate = navigate;
   
@@ -472,8 +416,6 @@ export function setupRouter() {
     ? location.pathname
     : '/home';
   
-  console.log('[Router] Initial route:', currentPath);
-  
   // Navigate to initial route
   navigate(currentPath, true);
 }
@@ -498,7 +440,6 @@ function setupSessionAutoDraft() {
     const sessionId = window.__currentMagentoSession;
     window.__currentMagentoSession = null;
 
-    console.log(`[Router] Auto-drafting session because ${reason}`);
     saveSessionAsDraft(sessionId, reason);
 
     if (shouldRedirectAfterAutoDraft(reason)) {
@@ -534,8 +475,6 @@ function saveSessionAsDraft(sessionId, reason = 'unspecified') {
   const url = `${getApiUrl()}/v1/magento/sessions/${sessionId}/release`;
   const token = getToken();
   
-  console.log(`[Router] Saving session ${sessionId} as draft (reason: ${reason})`);
-  
   // Use fetch with keepalive flag to ensure request completes even during page unload
   fetch(url, {
     method: 'POST',
@@ -546,10 +485,8 @@ function saveSessionAsDraft(sessionId, reason = 'unspecified') {
     body: JSON.stringify({}),
     keepalive: true  // Critical: ensures request completes even during page unload
   }).then(response => {
-    if (response.ok) {
-      console.log('[Router] Session draft saved successfully');
-    } else {
-      console.warn('[Router] Failed to save session draft:', response.status);
+    if (!response.ok) {
+      console.error('[Router] Failed to save session draft:', response.status);
     }
   }).catch(error => {
     console.error('[Router] Error saving session draft:', error);

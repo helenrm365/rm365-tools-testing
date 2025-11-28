@@ -16,20 +16,25 @@ FastAPI backend service providing REST APIs for the RM365 Toolbox application.
 
 The backend is built with FastAPI and provides RESTful APIs for:
 - **User authentication and authorization** (JWT-based)
-- **Attendance tracking** (clock in/out, reports, analytics)
-- **Inventory management** (stock tracking, adjustments, Zoho sync)
+- **Attendance tracking** (clock in/out, reports, analytics, hardware integration)
+- **Inventory management** (stock tracking, adjustments, real-time collaboration)
 - **Label generation** (PDF labels with barcodes)
-- **Sales data import** (CSV processing)
+- **Sales data import** (CSV processing, multi-country support)
 - **User and role management** (RBAC system)
-- **Enrollment** (student/employee registration)
+- **Enrollment** (student/employee registration, biometric/card enrollment)
+- **Magento integration** (invoice-based order fulfillment, pick & pack)
+- **Real-time collaboration** (WebSocket-powered live presence and updates)
 
 ### Key Technologies
 - **FastAPI**: Modern, fast web framework
-- **SQLAlchemy**: ORM for database operations
+- **SQLAlchemy**: ORM for database operations with connection pooling
 - **Pydantic**: Data validation and serialization
-- **PostgreSQL**: Multiple database instances (hosted on Railway)
+- **PostgreSQL**: Multiple database instances (self-hosted)
 - **JWT**: Secure authentication
-- **Uvicorn**: ASGI server
+- **Uvicorn**: ASGI server for production
+- **Socket.IO**: WebSocket server for real-time features
+- **Requests**: HTTP client for Magento API integration
+- **psycopg2**: PostgreSQL adapter with connection pooling
 
 ## Architecture
 
@@ -58,10 +63,11 @@ The backend is built with FastAPI and provides RESTful APIs for:
 2. **`core/`**: Foundation services
    - `auth.py`: JWT authentication
    - `config.py`: Environment configuration
-   - `db.py`: Database connections
+   - `db.py`: Database connections with connection pooling
    - `errors.py`: Error handling
-   - `middleware.py`: Request/response middleware
+   - `middleware.py`: Request/response middleware (includes GZip compression)
    - `security.py`: Security utilities
+   - `websocket.py`: WebSocket server for real-time collaboration
 
 3. **`modules/`**: Feature modules
    - Each module follows the same pattern (api → service → repo)
@@ -78,9 +84,7 @@ The backend is built with FastAPI and provides RESTful APIs for:
 ```
 backend/
 ├── app.py                      # Main application
-├── start_server.py             # Production server starter
-├── serve_frontend.py           # Frontend serving utility
-├── Dockerfile                  # Container configuration
+├── apply-indexes.ps1           # Database index setup script
 ├── requirements.txt            # Python dependencies
 │
 ├── core/                       # Core functionality
@@ -90,7 +94,8 @@ backend/
 │   ├── errors.py              # Error handlers
 │   ├── middleware.py          # Custom middleware
 │   ├── pagination.py          # Pagination helpers
-│   └── security.py            # Security utilities
+│   ├── security.py            # Security utilities
+│   └── websocket.py           # WebSocket server (Socket.IO)
 │
 ├── common/                    # Shared utilities
 │   ├── deps.py               # Dependency injection
@@ -98,8 +103,7 @@ backend/
 │   └── utils.py              # Helper functions
 │
 └── modules/                   # Feature modules
-    ├── _integrations/        # External services
-    │   └── zoho/            # Zoho Creator client
+    ├── _integrations/        # External services (reserved)
     │
     ├── attendance/          # Attendance tracking
     │   ├── api.py          # REST endpoints
@@ -116,18 +120,28 @@ backend/
     │   └── hardware/       # Device integrations
     │
     ├── inventory/          # Stock management
+    │   ├── collaboration.py  # Real-time features
     │   ├── adjustments/   # Stock adjustments
-    │   └── management/    # Item CRUD
+    │   ├── management/    # Item CRUD
+    │   └── order_fulfillment/  # Magento integration
+    │       ├── api.py
+    │       ├── client.py      # Magento REST API
+    │       ├── models.py
+    │       ├── repo.py
+    │       ├── schemas.py
+    │       ├── service.py
+    │       └── data/          # Session storage
     │
     ├── labels/            # Label generation
     │   ├── api.py
     │   ├── generator.py   # PDF generation
+    │   ├── jobs.py        # Background jobs
     │   ├── repo.py
     │   ├── schemas.py
     │   └── service.py
     │
     ├── roles/             # Role management
-    ├── salesdata/         # Sales data management
+    ├── salesdata/         # Sales data import
     └── users/             # User management
 ```
 
@@ -135,15 +149,16 @@ backend/
 
 ### Multiple Database Architecture
 
-The application uses **three separate PostgreSQL databases** hosted on Railway:
+The application uses **four separate PostgreSQL databases**:
 
 1. **Attendance Database**: Employee attendance records
 2. **Labels Database**: Inventory items and label history
 3. **Inventory Logs Database**: Stock adjustments and sync logs
+4. **Products Database**: Sales data and analytics
 
 ### Environment Variables
 
-All database credentials and configuration are set in Railway's environment variables dashboard:
+All database credentials and configuration are set in your `.env` file:
 
 ```bash
 # Authentication
@@ -151,40 +166,79 @@ AUTH_SECRET_KEY=your-secret-key
 AUTH_ALGORITHM=HS256
 
 # Database - Attendance
-ATTENDANCE_DB_HOST=railway-host.railway.internal
+ATTENDANCE_DB_HOST=localhost
 ATTENDANCE_DB_PORT=5432
-ATTENDANCE_DB_NAME=railway
+ATTENDANCE_DB_NAME=rm365
 ATTENDANCE_DB_USER=postgres
 ATTENDANCE_DB_PASSWORD=***
 
 # Database - Labels
-LABELS_DB_URI=postgresql+psycopg2://postgres:***@host:5432/labels
+LABELS_DB_URI=postgresql+psycopg2://postgres:***@localhost:5432/labels
 
 # Database - Inventory Logs
-INVENTORY_LOGS_HOST=railway-host.railway.internal
+INVENTORY_LOGS_HOST=localhost
 INVENTORY_LOGS_PORT=5432
 INVENTORY_LOGS_NAME=inventory
 INVENTORY_LOGS_USER=postgres
 INVENTORY_LOGS_PASSWORD=***
 
-# Zoho Integration
+# Database - Products/Sales Data
+PRODUCTS_DB_HOST=localhost
+PRODUCTS_DB_PORT=5432
+PRODUCTS_DB_NAME=products
+PRODUCTS_DB_USER=postgres
+PRODUCTS_DB_PASSWORD=***
+
+# Zoho Creator Integration (Optional)
 ZC_CLIENT_ID=***
 ZC_CLIENT_SECRET=***
 ZC_REFRESH_TOKEN=***
 ZC_ORG_ID=***
 
-# CORS (for Cloudflare Pages)
-ALLOW_ORIGINS=["https://rm365-tools-testing.pages.dev"]
-ALLOW_ORIGIN_REGEX=^https:\/\/([a-z0-9-]+\.)?rm365-tools-testing\.pages\.dev
+# Magento Integration
+MAGENTO_BASE_URL=https://your-magento-store.com
+MAGENTO_ACCESS_TOKEN=your_magento_api_token
+
+# CORS (for your frontend domain)
+ALLOW_ORIGINS=["http://localhost:3000"]
 ```
 
 ## Development Workflow
+
+### Starting the Server
+
+**Windows:**
+```bash
+cd start-windows
+start.bat
+```
+
+**macOS:**
+```bash
+cd start-macos
+chmod +x start.command  # First time only
+./start.command
+```
+
+**What the startup scripts do:**
+- ✅ Detect and verify Python installation
+- ✅ Create/activate shared virtual environment (`.venv` in repository root)
+- ✅ Install/update dependencies from `backend/requirements.txt`
+- ✅ Start FastAPI server (backend + frontend on port 8000)
+- ✅ Monitor GitHub for updates every 5 seconds
+- ✅ Auto-restart on new commits
+
+**Shared Virtual Environment:**
+- Located at repository root: `.venv/`
+- Shared between backend and hardware bridge
+- Platform-specific scripts (Windows/macOS) use the same environment
+- No duplicate installations
 
 ### Making Changes
 
 1. **Edit Your Code**
    - Make changes to files in the `backend/` directory
-   - Test your logic and syntax
+   - Test your logic and syntax locally
 
 2. **Commit Your Changes**
    ```bash
@@ -197,41 +251,43 @@ ALLOW_ORIGIN_REGEX=^https:\/\/([a-z0-9-]+\.)?rm365-tools-testing\.pages\.dev
    git push origin main
    ```
 
-4. **Railway Auto-Deploys**
-   - Railway detects the push to `main` branch
-   - Automatically builds and deploys your changes
-   - Deployment takes approximately 2-5 minutes
+4. **Auto-Restart**
+   - Platform-specific startup script detects changes (~5 seconds)
+   - Pulls new code from GitHub
+   - Restarts server automatically
+   - Updates dependencies if `requirements.txt` changed
 
 5. **View Your Changes**
-   - Backend URL: `https://rm365-tools-testing-production.up.railway.app`
-   - API Documentation: `https://rm365-tools-testing-production.up.railway.app/api/docs`
-   - Check Railway dashboard for deployment logs and status
+   - Backend URL: `http://localhost:8000`
+   - API Documentation: `http://localhost:8000/api/docs`
+   - Check server console for logs
 
-### Monitoring Deployment
+### Monitoring Server
 
-**Railway Dashboard:**
-1. Go to [Railway Dashboard](https://railway.app)
-2. Select the `rm365-tools-testing` project
-3. View deployment logs in real-time
-4. Check for errors or successful deployment
+**Server Console:**
+- View output from startup script window (`start.bat` on Windows, `start.command` on macOS)
+- Real-time logs with emoji formatting (✅❌⚠️)
+- GitHub fetch activity every 5 seconds
+- File change detection and restart notifications
 
-**Deployment Status:**
-- ✅ **Success**: Your changes are live
-- ❌ **Failed**: Check logs for errors, fix code, and push again
-- 🔄 **Building**: Wait for deployment to complete
+**Server Status:**
+- ✅ **Running**: Server is live and accepting requests
+- ❌ **Error**: Check console for stack traces
+- 🔄 **Restarting**: Auto-restart triggered by code changes
+- 📦 **Dependencies Updated**: requirements.txt changed
 
 ## API Documentation
 
 ### Interactive Documentation
 
-Once deployed, access the interactive API documentation:
+Once the server is running, access the interactive API documentation:
 
-- **Swagger UI**: `https://rm365-tools-testing-production.up.railway.app/api/docs`
+- **Swagger UI**: `http://localhost:8000/api/docs`
   - Test endpoints directly
   - View request/response schemas
   - Try API calls with authentication
 
-- **ReDoc**: `https://rm365-tools-testing-production.up.railway.app/api/redoc`
+- **ReDoc**: `http://localhost:8000/api/redoc`
   - Alternative documentation view
   - Better for reading and understanding APIs
 
@@ -247,6 +303,7 @@ All endpoints are prefixed with `/api/v1`:
 - **Inventory**: `/api/v1/inventory/*`
 - **Labels**: `/api/v1/labels/*`
 - **Sales Data**: `/api/v1/salesdata/*`
+- **Magento**: `/api/v1/magento/*` (Order fulfillment)
 
 ### Testing Endpoints
 
@@ -345,41 +402,52 @@ def check_permission(user: dict, required_tab: str):
    git push origin main
    ```
 
-7. **View in Production**
-   - Wait for Railway to deploy
-   - Check `/api/docs` for your new endpoint
+7. **Automatic Restart**
+   - Platform-specific startup script detects changes (~5 seconds)
+   - Pulls new code from GitHub
+   - Restarts server automatically
+   - Check `http://localhost:8000/api/docs` for your new endpoint
 
 ## Troubleshooting
 
-### Deployment Failed
+### Server Issues
 
-1. **Check Railway Logs**
-   - View deployment logs in Railway dashboard
-   - Look for error messages
+1. **Check Server Console**
+   - View output from startup script (`start.bat` on Windows, `start.command` on macOS)
+   - Look for error messages and stack traces
 
 2. **Common Issues**
    - Syntax errors in Python code
    - Missing dependencies in `requirements.txt`
-   - Database connection issues
-   - Environment variable misconfiguration
+   - Database connection issues (check PostgreSQL is running)
+   - Environment variable misconfiguration in `.env`
+   - Port 8000 already in use
+   - Python version mismatch (requires 3.x)
 
-3. **Fix and Redeploy**
+3. **Fix and Restart**
    - Fix the issue in your code
-   - Commit and push again
-   - Railway will automatically retry deployment
+   - Push to GitHub (auto-restarts)
+   - Or manually restart the startup script:
+     - **Windows**: Stop with Ctrl+C, run `start-windows\start.bat`
+     - **macOS**: Stop with Ctrl+C, run `start-macos/start.command`
+
+4. **Virtual Environment Issues**
+   - If dependencies fail, delete `.venv` folder from repository root
+   - Restart the appropriate startup script (it will recreate the environment)
+   - Shared `.venv` is used by both backend and hardware bridge
 
 ### API Errors
 
-1. **Check Logs in Railway Dashboard**
-   - Runtime errors appear in application logs
+1. **Check Server Console**
+   - Runtime errors appear in console output
    - Database errors show connection issues
 
 2. **Test in Swagger UI**
-   - Use `/api/docs` to test endpoints
+   - Use `http://localhost:8000/api/docs` to test endpoints
    - Check request/response format
 
 3. **Verify Environment Variables**
-   - Ensure all required variables are set in Railway
+   - Ensure all required variables are set in `.env`
    - Check database credentials are correct
 
 ## Best Practices
@@ -410,12 +478,19 @@ def check_permission(user: dict, required_tab: str):
 
 ## Getting Help
 
-- **API Documentation**: Check `/api/docs` for endpoint details
-- **Railway Logs**: View deployment and runtime logs
+- **API Documentation**: Check `http://localhost:8000/api/docs` for endpoint details
+- **Server Console**: View real-time logs with emoji formatting
+- **Main README**: See [../README.md](../README.md) for overall project documentation
+- **Startup Guide**: See [../START-README.md](../START-README.md) for platform-specific startup details
+- **Hardware Bridge**: See `local-hardware-bridge/` directory for hardware integration setup
 - **Team Lead**: Contact for database credentials or access issues
 
 ---
 
-**Deployment URL**: https://rm365-tools-testing-production.up.railway.app
+**Local Server**: http://localhost:8000
 
-**API Docs**: https://rm365-tools-testing-production.up.railway.app/api/docs
+**API Docs**: http://localhost:8000/api/docs
+
+**Startup Scripts**:
+- Windows: `start-windows/start.bat`
+- macOS: `start-macos/start.command`

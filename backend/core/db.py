@@ -25,7 +25,7 @@ def _get_attendance_pool():
     if _attendance_pool is None:
         host = os.getenv("ATTENDANCE_DB_HOST")
         port = os.getenv("ATTENDANCE_DB_PORT", "5432")
-        database = os.getenv("ATTENDANCE_DB_NAME", "railway")
+        database = os.getenv("ATTENDANCE_DB_NAME", "rm365")
         user = os.getenv("ATTENDANCE_DB_USER", "postgres")
         password = os.getenv("ATTENDANCE_DB_PASSWORD")
         
@@ -69,7 +69,7 @@ def _get_inventory_pool():
     if _inventory_pool is None:
         host = os.getenv("INVENTORY_LOGS_HOST")
         port = os.getenv("INVENTORY_LOGS_PORT", "5432")
-        database = os.getenv("INVENTORY_LOGS_NAME", "railway")
+        database = os.getenv("INVENTORY_LOGS_NAME", "rm365")
         user = os.getenv("INVENTORY_LOGS_USER", "postgres")
         password = os.getenv("INVENTORY_LOGS_PASSWORD")
         
@@ -109,7 +109,7 @@ def _get_products_pool():
     if _products_pool is None:
         host = os.getenv("PRODUCTS_DB_HOST")
         port = os.getenv("PRODUCTS_DB_PORT", "5432")
-        database = os.getenv("PRODUCTS_DB_NAME", "railway")
+        database = os.getenv("PRODUCTS_DB_NAME", "rm365")
         user = os.getenv("PRODUCTS_DB_USER", "postgres")
         password = os.getenv("PRODUCTS_DB_PASSWORD")
         
@@ -178,7 +178,7 @@ def initialize_database():
         return True
     except Exception as e:
         print(f"❌ Database connection failed: {e}")
-        print("⚠️  Check Railway database configuration and environment variables")
+        print("⚠️  Check database configuration and environment variables")
         return False
 
 def inventory_conn():

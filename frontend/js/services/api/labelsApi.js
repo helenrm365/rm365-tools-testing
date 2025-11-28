@@ -70,9 +70,6 @@ export async function deletePrintJob(jobId) {
 export async function downloadPDF(jobId) {
   const BASE = config.API.replace(/\/+$/, '');
   const url = `${BASE}${API}/job/${jobId}/pdf`;
-  
-  console.log('[Labels API] Downloading PDF from:', url);
-  
   const token = getToken();
   const headers = {};
   if (token) {
@@ -88,8 +85,6 @@ export async function downloadPDF(jobId) {
   }
   
   const blob = await response.blob();
-  console.log('[Labels API] PDF blob received, size:', blob.size, 'bytes');
-  
   if (blob.size === 0) {
     throw new Error('Received empty PDF file');
   }
@@ -102,8 +97,6 @@ export async function downloadPDF(jobId) {
   a.click();
   window.URL.revokeObjectURL(downloadUrl);
   document.body.removeChild(a);
-  
-  console.log('[Labels API] PDF download completed');
 }
 
 /**

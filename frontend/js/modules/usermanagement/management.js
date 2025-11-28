@@ -5,8 +5,6 @@ import { generateTabStructure } from '../../router.js';
 
 // Get the tab structure dynamically from the router
 const TAB_STRUCTURE = generateTabStructure();
-console.log('[User Management] TAB_STRUCTURE loaded:', TAB_STRUCTURE);
-
 let state = {
   users: [],
   roles: [],
@@ -1026,10 +1024,8 @@ function notify(msg, isErr = false) {
 
 async function loadRoles() {
   try {
-    console.log('[User Management] Loading roles...');
     const rolesData = await getRoles();
     state.roles = Array.isArray(rolesData) ? rolesData : [];
-    console.log('[User Management] Loaded roles:', state.roles);
   } catch (e) {
     console.error('[User Management] Failed to load roles:', e);
     // Fallback to default roles if API fails
@@ -1043,12 +1039,9 @@ async function loadRoles() {
 
 export async function refresh() {
   try {
-    console.log('[User Management] Starting refresh...');
     await loadRoles(); // Load roles first
     const data = await getUsers();
-    console.log('[User Management] Received data:', data);
     state.users = Array.isArray(data) ? data : [];
-    console.log('[User Management] State users:', state.users);
     renderTable();
     updateBulkDeleteButton();
   } catch (e) {
@@ -1067,6 +1060,5 @@ export async function init() {
   
   // Load debug utilities in development
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    console.log('🧪 [Debug] User management loaded');
   }
 }

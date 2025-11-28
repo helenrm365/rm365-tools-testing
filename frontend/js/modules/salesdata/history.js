@@ -13,8 +13,6 @@ let filterRegion = null;
  * Initialize the import history page
  */
 export async function initSalesDataHistory() {
-  console.log('[Sales Data History] Initializing import history page');
-  
   // Set up region filter
   setupRegionFilter();
   

@@ -3,8 +3,6 @@ import { navigate } from '../../router.js';
 let currentInventoryModule = null;
 
 export async function init(path) {
-  console.log('[Inventory] Initializing inventory module for path:', path);
-  
   // Clean up previous module if exists
   if (currentInventoryModule?.cleanup) {
     currentInventoryModule.cleanup();
@@ -14,7 +12,6 @@ export async function init(path) {
   try {
     if (path === '/inventory' || path === '/inventory/') {
       // Main inventory home page - no module to load, just display landing page
-      console.log('[Inventory] Loading main inventory home page');
       return;
     } else if (path === '/inventory/management') {
       const mod = await import('./management.js');

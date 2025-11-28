@@ -181,7 +181,7 @@ class InventoryManagementService:
     
     def _fetch_all_items_legacy(self) -> List[Dict[str, Any]]:
         """
-        DEPRECATED: Legacy method for fetching items from Zoho API.
+        DEPRECATED: Legacy method for fetching items from external API.
         This method is no longer used. Use get_inventory_items_from_magento() instead.
         Kept for reference only.
         """
@@ -238,7 +238,7 @@ class InventoryManagementService:
                 metadata.get('top_floor_total', 0)
             )
 
-            # Note: Zoho sync is removed as we now use magento_product_list
+            # Note: Live sync is removed as we now use magento_product_list
             logger.info(f"Metadata saved for SKU {sku}, total_stock: {total_stock}")
 
             return {
@@ -254,7 +254,7 @@ class InventoryManagementService:
 
     def _sync_shelf_total_legacy(self, item_id: str, total_stock: int) -> None:
         """
-        DEPRECATED: Legacy method to sync shelf total to Zoho.
+        DEPRECATED: Legacy method to sync shelf total to external system.
         No longer used as we now use magento_product_list.
         Kept for reference only.
         """
@@ -263,7 +263,7 @@ class InventoryManagementService:
 
     def live_inventory_sync_legacy(self, item_id: str, new_quantity: int, reason: str = "Inventory Re-evaluation") -> Dict[str, Any]:
         """
-        DEPRECATED: Legacy method to perform live inventory sync with Zoho.
+        DEPRECATED: Legacy method to perform live inventory sync with external system.
         No longer used as we now use magento_product_list.
         Kept for reference only.
         """

@@ -49,9 +49,7 @@ class EnrollmentService:
 
     def delete_employee(self, employee_id: int):
         try:
-            print(f"[Service] Delete employee called for ID: {employee_id}")
             deleted = self.repo.delete_employee(employee_id)
-            print(f"[Service] Deleted employee {employee_id} (and related attendance logs)")
             
             return {"status": "success" if deleted else "noop", "deleted": deleted}
         except Exception as e:
@@ -63,9 +61,7 @@ class EnrollmentService:
             if not ids:
                 return {"status": "noop", "deleted": 0}
             
-            print(f"[Service] Bulk delete called with IDs: {ids}")
             deleted = self.repo.bulk_delete(ids)
-            print(f"[Service] Deleted {deleted} employees (and related attendance logs)")
             
             return {"status": "success", "deleted": deleted}
         except Exception as e:

@@ -6,8 +6,6 @@ const BASE = config.API.replace(/\/+$/, '');
 const ORIGIN = typeof location !== 'undefined' ? location.origin : '';
 const SAME_ORIGIN = !BASE || BASE.startsWith(ORIGIN);
 
-console.log('[HTTP] Configuration:', { BASE, ORIGIN, SAME_ORIGIN, IS_CROSS_ORIGIN: config.IS_CROSS_ORIGIN });
-
 function authHeader() {
   const token = getToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
@@ -19,17 +17,6 @@ export async function http(path, { method = 'GET', headers = {}, body, retry = 0
   // Check if body is FormData (for file uploads)
   const isFormData = body instanceof FormData;
   
-  console.log(`[HTTP] ${method} ${url}`, { 
-    BASE,
-    path,
-    fullUrl: url,
-    crossOrigin: !SAME_ORIGIN,
-    hasAuth: !!getToken(),
-    isFormData,
-    headers: { ...authHeader(), ...headers },
-    body: body && !isFormData ? (typeof body === 'string' ? JSON.parse(body) : body) : undefined
-  });
-
   try {
     const fetchOptions = {
       method,
@@ -61,12 +48,6 @@ export async function http(path, { method = 'GET', headers = {}, body, retry = 0
       const res = await fetch(url, fetchOptions);
       clearTimeout(timeoutId);
 
-      console.log(`[HTTP] Response ${res.status}`, { 
-        ok: res.ok, 
-        url: res.url,
-        headers: Object.fromEntries(res.headers.entries()) 
-      });
-
       const text = await res.text();
       let data = null;
       try { data = text ? JSON.parse(text) : null; } catch { data = text; }
@@ -74,29 +55,23 @@ export async function http(path, { method = 'GET', headers = {}, body, retry = 0
       if (!res.ok) {
         // simple retry on 5xx if requested
         if (retry > 0 && res.status >= 500) {
-          console.log(`[HTTP] Retrying ${method} ${url} (${retry} retries left)`);
           return http(path, { method, headers, body, retry: retry - 1 });
         }
         const msg = (data && (data.detail || data.error)) || `HTTP ${res.status}`;
-        console.error(`[HTTP] Error: ${msg}`, { status: res.status, data, url });
+        console.error(`[HTTP] ${method} ${url} failed:`, msg);
         throw new Error(msg);
       }
       
-      if (method !== 'GET') {
-        console.log(`[HTTP] Success:`, data);
-      }
       return data;
     } catch (fetchError) {
       clearTimeout(timeoutId);
       if (fetchError.name === 'AbortError') {
-        console.error(`[HTTP] Request timeout after ${timeout}ms for ${method} ${url}`);
         throw new Error(`Request timeout after ${timeout}ms`);
       }
       throw fetchError;
     }
     
   } catch (error) {
-    console.error(`[HTTP] Fetch failed for ${method} ${url}:`, error);
     throw error;
   }
 }

@@ -3,7 +3,6 @@ import { get } from '../services/api/http.js';
 import { getToken } from '../services/state/sessionStore.js';
 
 export function testAllAPIs() {
-  console.log('🧪 Starting API tests...');
   console.log('Current auth token:', getToken() ? 'Present' : 'Missing');
   
   const tests = [
@@ -26,9 +25,7 @@ export function testAllAPIs() {
   tests.forEach(async (test, index) => {
     setTimeout(async () => {
       try {
-        console.log(`🔄 Testing ${test.name}...`);
         const result = await get(test.endpoint);
-        console.log(`✅ ${test.name}:`, result);
       } catch (error) {
         console.error(`❌ ${test.name}:`, error.message);
       }

@@ -18,17 +18,6 @@ from core.pagination import get_page_params, PageParams  # re-export
 from sqlalchemy.orm import sessionmaker, Session
 
 
-# If you adopted the inline Zoho client (recommended)
-try:
-    from modules._integrations.zoho.client import (
-        get_cached_inventory_token as _get_zoho_token,
-        zoho_auth_header as _zoho_auth_header,
-    )
-except Exception:
-    _get_zoho_token = None
-    _zoho_auth_header = None
-
-
 # ---------------------------
 # Auth
 # ---------------------------
@@ -102,28 +91,6 @@ def labels_engine():
         with engine.begin() as conn: ...
     """
     return get_sqlalchemy_engine()
-
-
-# ---------------------------
-# Zoho auth helpers
-# ---------------------------
-def get_zoho_token() -> str:
-    """
-    Returns a Zoho Inventory/Creator OAuth token (Authorization value).
-    Your routes currently pass this straight to headers. 
-    """
-    if not _get_zoho_token:
-        raise HTTPException(status_code=500, detail="Zoho token helper isn't configured")
-    return _get_zoho_token()
-
-
-def zoho_auth_header() -> Dict[str, str]:
-    """
-    Convenience header dict for Zoho calls: {"Authorization": "Zoho-oauthtoken ..."}
-    """
-    if not _zoho_auth_header:
-        raise HTTPException(status_code=500, detail="Zoho header helper isn't configured")
-    return _zoho_auth_header()
 
 
 # ---------------------------

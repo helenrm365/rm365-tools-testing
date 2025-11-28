@@ -5,12 +5,9 @@
  * Loads the appropriate page based on the path
  */
 export async function init(path) {
-  console.log('[Sales Data] Initializing module for path:', path);
-  
   try {
     if (path === '/salesdata' || path === '/salesdata/home') {
       // Load home page and initialize tables
-      console.log('[Sales Data] Loading home page');
       const { initSalesDataHome } = await import('./home.js');
       await initSalesDataHome();
     } else if (path === '/salesdata/uk-sales') {

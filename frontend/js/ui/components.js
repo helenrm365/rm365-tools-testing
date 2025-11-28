@@ -318,7 +318,6 @@ window.initModernUI = initModernBoxes;
         if (modernBox) {
           modernBox.style.overflow = 'visible';
           modernBox.style.zIndex = '9990';
-          console.log('📍 Applied overflow fix for attendance dropdown container');
         }
       }
       

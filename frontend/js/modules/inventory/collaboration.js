@@ -23,11 +23,8 @@ class CollaborationManager {
    */
   async init(currentUser) {
     if (this.isInitialized) {
-      console.log('[Collaboration] Already initialized');
       return;
     }
-
-    console.log('[Collaboration] Initializing for user:', currentUser);
     this.currentUserId = currentUser?.username || 'unknown';
     this.currentUsername = currentUser?.username || 'Guest';
 
@@ -50,8 +47,6 @@ class CollaborationManager {
       wsService.joinRoom('inventory_management');
 
       this.isInitialized = true;
-      console.log('[Collaboration] Initialized successfully');
-
     } catch (error) {
       console.error('[Collaboration] Initialization failed:', error);
       // Only show error on localhost - fail silently in production
@@ -70,12 +65,10 @@ class CollaborationManager {
   _setupEventHandlers() {
     // Connection events
     wsService.on('connected', () => {
-      console.log('[Collaboration] Connected to collaboration server');
       this._updateConnectionStatus(true);
     });
 
     wsService.on('disconnected', () => {
-      console.log('[Collaboration] Disconnected from collaboration server');
       this._updateConnectionStatus(false);
       this.activeUsers.clear();
       this.selfPresence = null;
@@ -91,24 +84,19 @@ class CollaborationManager {
 
     // Room events
     wsService.on('room_joined', (data) => {
-      console.log('[Collaboration] Joined room with', data.users?.length || 0, 'users:', data.users);
-      console.log('[Collaboration] My user data:', data.user);
       this._registerSelfPresence(data.user);
       this._syncPresenceList(data.users || []);
       this._renderPresence();
       const count = this.activeUsers.size;
-      console.log('[Collaboration] Active users count after join:', count);
       showToast(`Collaboration enabled - ${count} user${count !== 1 ? 's' : ''} online`, 'success');
     });
 
     wsService.on('user_joined', (data) => {
-      console.log('[Collaboration] User joined:', data);
       const enriched = { ...data, is_self: this._isSelf(data) };
       if (enriched.is_self) {
         this.selfPresence = enriched;
       }
       this.activeUsers.set(enriched.user_id, enriched);
-      console.log('[Collaboration] Active users count after user joined:', this.activeUsers.size);
       this._renderPresence();
       if (!enriched.is_self) {
         this._showUserNotification(enriched.username, 'joined');
@@ -116,7 +104,6 @@ class CollaborationManager {
     });
 
     wsService.on('user_left', (data) => {
-      console.log('[Collaboration] User left:', data);
       if (this._isSelf(data)) {
         return;
       }
@@ -136,9 +123,7 @@ class CollaborationManager {
     });
 
     wsService.on('presence_update', (data) => {
-      console.log('[Collaboration] Presence update with', data.users?.length || 0, 'users:', data.users);
       this._syncPresenceList(data.users || []);
-      console.log('[Collaboration] Active users count after presence update:', this.activeUsers.size);
       this._renderPresence();
     });
   }
@@ -206,12 +191,9 @@ class CollaborationManager {
 
     const usersList = this.presenceContainer.querySelector('.collab-users-list');
     if (!usersList) return;
-
-    console.log('[Collaboration] Rendering presence for', this.activeUsers.size, 'users');
     usersList.innerHTML = '';
 
     if (this.activeUsers.size === 0) {
-      console.log('[Collaboration] No users to display');
       usersList.innerHTML = '<div class="collab-no-users">You\'re the only one here</div>';
       return;
     }
@@ -287,9 +269,6 @@ class CollaborationManager {
    */
   _updateUserCursor(data) {
     const { user_id, username, color, editing_row, editing_field } = data;
-
-    console.log('[Collaboration] Cursor update:', { user_id, username, editing_row, editing_field });
-
     // Always clear previous highlight for this user first
     this._removeUserHighlight(user_id);
 
@@ -378,8 +357,6 @@ class CollaborationManager {
 
       cell.appendChild(indicator);
     });
-
-    console.log('[Collaboration] Rendered', userIds.size, 'indicators for cell:', cellKey);
   }
 
   /**
@@ -433,9 +410,6 @@ class CollaborationManager {
    */
   _handleInventoryChange(data) {
     const { username, sku, field, new_value, update_type } = data;
-
-    console.log('[Collaboration] Inventory changed by', username, ':', data);
-
     // Show notification with formatted field name
     const formattedField = this._formatFieldName(field);
     showToast(`${username} updated ${formattedField} for ${sku}`, 'info');
@@ -483,7 +457,6 @@ class CollaborationManager {
   }
 
   _syncPresenceList(users) {
-    console.log('[Collaboration] Syncing presence list with', users.length, 'users:', users);
     const nextMap = new Map();
 
     users.forEach(user => {
@@ -496,11 +469,8 @@ class CollaborationManager {
 
     // Always ensure self is in the list
     if (this.selfPresence && !nextMap.has(this.selfPresence.user_id)) {
-      console.log('[Collaboration] Adding self to presence list');
       nextMap.set(this.selfPresence.user_id, this.selfPresence);
     }
-
-    console.log('[Collaboration] Updated activeUsers map size:', nextMap.size);
     this.activeUsers = nextMap;
   }
 

@@ -39,8 +39,6 @@ export function clockEmployee(employeeId) {
 }
 
 export function getLogs(fromDate, toDate, location = null, nameSearch = null, search = null) {
-  console.log("📡 getLogs called with:", { fromDate, toDate, location, nameSearch, search });
-  
   const params = new URLSearchParams({
     from_date: fromDate,
     to_date: toDate
@@ -120,15 +118,6 @@ export function getWeeklyChart(startDate = null, endDate = null, location = null
   });
   if (location) params.append('location', location);
   if (nameSearch) params.append('name_search', nameSearch);
-  
-  console.log('📡 getWeeklyChart API call:', {
-    startDate,
-    endDate,
-    location,
-    nameSearch,
-    url: `${API}/weekly-chart?${params}`
-  });
-  
   return get(`${API}/weekly-chart?${params}`);
 }
 

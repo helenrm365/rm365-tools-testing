@@ -83,11 +83,9 @@ class ApiCache {
   async getOrFetch(key, fetchFn, ttl = 60000) {
     const cached = this.get(key);
     if (cached !== null) {
-      console.log(`[Cache] HIT: ${key}`);
       return cached;
     }
 
-    console.log(`[Cache] MISS: ${key}`);
     const data = await fetchFn();
     this.set(key, data, ttl);
     return data;
@@ -104,6 +102,5 @@ setInterval(() => {
 
 // Clear all cache when user logs out (listen for custom event)
 window.addEventListener('user-logout', () => {
-  console.log('[Cache] Clearing all cache on logout');
   apiCache.clearAll();
 });
