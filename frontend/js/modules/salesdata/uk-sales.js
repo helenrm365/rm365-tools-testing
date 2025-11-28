@@ -229,8 +229,6 @@ function setupEventListeners() {
   }
   
   // Custom Range button
-    Array.from(document.querySelectorAll('[id*="Btn"]')).map(el => ({ id: el.id, classes: el.className })));
-  
   // Use a more defensive approach with a slight delay to ensure DOM is ready
   let retryCount = 0;
   const setupCustomRangeButton = () => {
