@@ -8,8 +8,10 @@ from typing import Optional
 # Load environment variables from .env file for local development
 try:
     from dotenv import load_dotenv
-    load_dotenv()
-    print("🔧 Environment variables loaded from .env file")
+    # Load .env from project root (one directory up from backend/)
+    env_path = Path(__file__).resolve().parent.parent / '.env'
+    load_dotenv(dotenv_path=env_path)
+    print(f"🔧 Environment variables loaded from {env_path}")
 except ImportError:
     print("⚠️  python-dotenv not installed, using system environment variables")
 
