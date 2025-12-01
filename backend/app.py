@@ -170,7 +170,8 @@ if not allow_origins and not allow_origin_regex:
         "http://localhost:5000",
         "http://127.0.0.1:3000",
         "http://127.0.0.1:5000",
-        "https://rm365-tools-testing.pages.dev",  # Production Cloudflare Pages
+        "https://rm365-toolbox.com",  # Custom domain
+        "http://rm365-toolbox.com",   # Custom domain (HTTP)
     ]
     print("🔧 Using default CORS origins for development")
 
