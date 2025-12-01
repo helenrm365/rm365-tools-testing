@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict
+from typing import Any, Dict, List
 import jwt
 from passlib.context import CryptContext
 from fastapi import Header, HTTPException, status, Depends
@@ -7,6 +7,29 @@ from core.config import settings
 from core.db import get_psycopg_connection, return_attendance_connection
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def get_all_tabs() -> List[str]:
+    """
+    Centralized function to get all available tabs in the system.
+    This ensures consistency across login, token validation, and other auth flows.
+    
+    IMPORTANT: When adding new tabs/sub-tabs to the application:
+    1. Add them to this list to make them available to superadmin automatically
+    2. Use dot notation for sub-tabs (e.g., "orders.order-tracking")
+    3. Include both the parent tab and sub-tabs for proper permission inheritance
+    
+    The superadmin user (localhost) will always have access to ALL tabs listed here.
+    Regular users will have their allowed_tabs filtered based on their role/permissions.
+    """
+    return [
+        "attendance", "attendance.overview", "attendance.logs", "attendance.manual", "attendance.automatic",
+        "enrollment", "enrollment.management", "enrollment.card", "enrollment.fingerprint",
+        "labels", "labels.generator", "labels.history",
+        "salesdata", "salesdata.uk-sales", "salesdata.fr-sales", "salesdata.nl-sales", "salesdata.upload", "salesdata.history",
+        "inventory", "inventory.management",
+        "orders", "orders.order-fulfillment", "orders.order-progress", "orders.order-tracking", "orders.order-approval",
+        "usermanagement", "usermanagement.management"
+    ]
 
 def hash_password(raw: str) -> str:
     return pwd_context.hash(raw)
@@ -56,14 +79,7 @@ async def get_current_user(authorization: str = Header(...)):
 
     # Check if this is the built-in superadmin (bypasses database)
     if username == settings.SUPERADMIN_USERNAME:
-        all_tabs = [
-            "attendance", "attendance.overview", "attendance.logs", "attendance.manual", "attendance.automatic",
-            "enrollment", "enrollment.management", "enrollment.card", "enrollment.fingerprint",
-            "labels", "labels.generator", "labels.history",
-            "salesdata", "salesdata.uk-sales", "salesdata.fr-sales", "salesdata.nl-sales", "salesdata.upload", "salesdata.history",
-            "inventory", "inventory.management", "inventory.order-fulfillment", "inventory.order-progress",
-            "usermanagement", "usermanagement.management"
-        ]
+        all_tabs = get_all_tabs()
         return {"username": username, "role": "superadmin", "allowed_tabs": all_tabs}
 
     conn = get_psycopg_connection()

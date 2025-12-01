@@ -71,6 +71,8 @@ const routes = {
   '/orders':                    '/html/orders/home.html',
   '/orders/order-fulfillment':  '/html/orders/order-fulfillment.html',
   '/orders/order-progress':     '/html/orders/order-progress.html',
+  '/orders/order-tracking':     '/html/orders/order-tracking.html',
+  '/orders/order-approval':     '/html/orders/order-approval.html',
   
   '/usermanagement':            '/html/usermanagement/home.html',
   '/usermanagement/management': '/html/usermanagement/management.html',

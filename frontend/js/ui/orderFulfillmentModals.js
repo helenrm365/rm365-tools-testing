@@ -395,3 +395,31 @@ export function alertInfo(infoMessage, title = 'Information') {
     icon: 'ℹ️'
   });
 }
+
+/**
+ * Generic confirm dialog
+ */
+export function confirm(title, message) {
+  return confirmModal({
+    title,
+    message,
+    confirmText: 'Confirm',
+    cancelText: 'Cancel',
+    confirmVariant: 'primary',
+    icon: '❓'
+  });
+}
+
+/**
+ * Generic alert dialog
+ */
+export function alert(title, message) {
+  return confirmModal({
+    title,
+    message,
+    confirmText: 'OK',
+    cancelText: '',
+    confirmVariant: 'primary',
+    icon: 'ℹ️'
+  });
+}

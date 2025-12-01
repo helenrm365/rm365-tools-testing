@@ -2,11 +2,14 @@
 Magento API Client for fetching invoices and order data
 """
 import requests
+import logging
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
 from core.config import settings
 from .models import MagentoInvoice, MagentoProduct
+
+logger = logging.getLogger(__name__)
 
 
 class MagentoClient:
@@ -329,6 +332,28 @@ class MagentoClient:
             invoices.append(self._parse_invoice(full_invoice))
         
         return invoices
+    
+    def get_processing_orders(self, limit: int = 50) -> List[Dict[str, Any]]:
+        """
+        Get orders that are in 'processing' status from Magento
+        These orders need approval before they can be picked
+        """
+        try:
+            params = {
+                'searchCriteria[filterGroups][0][filters][0][field]': 'status',
+                'searchCriteria[filterGroups][0][filters][0][value]': 'processing',
+                'searchCriteria[filterGroups][0][filters][0][conditionType]': 'eq',
+                'searchCriteria[pageSize]': str(limit),
+                'searchCriteria[currentPage]': '1',
+                'searchCriteria[sortOrders][0][field]': 'created_at',
+                'searchCriteria[sortOrders][0][direction]': 'DESC'
+            }
+            
+            result = self._make_request('orders', params=params)
+            return result.get('items', [])
+        except Exception as e:
+            logger.error(f"Failed to get processing orders: {e}")
+            return []
 
 
 # Singleton instance
@@ -341,3 +366,4 @@ def get_magento_client() -> MagentoClient:
     if _client is None:
         _client = MagentoClient()
     return _client
+

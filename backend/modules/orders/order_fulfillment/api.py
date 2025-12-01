@@ -18,7 +18,11 @@ from .schemas import (
     TakeoverResponseSchema,
     DashboardSessionSchema,
     ForceAssignSchema,
-    ForceCancelSchema
+    ForceCancelSchema,
+    OrderTrackingBoardSchema,
+    MarkReadyToCheckSchema,
+    ApproveOrderSchema,
+    PendingMagentoOrderSchema
 )
 
 
@@ -702,4 +706,136 @@ def admin_takeover_session(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to take over session: {str(e)}"
         )
+
+
+# Order Tracking Endpoints
+
+@router.get("/tracking/board")
+def get_order_tracking_board(
+    current_user: dict = Depends(get_current_user),
+    service: MagentoService = Depends(_service)
+):
+    """
+    Get the full order tracking board with all columns
+    Returns orders organized by status: ready_to_pick, ready_to_check, completed
+    """
+    try:
+        board = service.get_order_tracking_board()
+        return board
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get order tracking board: {str(e)}"
+        )
+
+
+@router.post("/tracking/mark-ready-to-check")
+def mark_order_ready_to_check(
+    request: dict,
+    current_user: dict = Depends(get_current_user),
+    service: MagentoService = Depends(_service)
+):
+    """
+    Mark an order as ready to check instead of completing it
+    Used during order fulfillment when items need verification
+    """
+    try:
+        session_id = request.get('session_id')
+        user_id = current_user.get('user_id') or current_user.get('username')
+        
+        if not session_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="session_id is required"
+            )
+        
+        success = service.mark_ready_to_check(session_id, user_id)
+        
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Session not found: {session_id}"
+            )
+        
+        return {
+            "success": True,
+            "message": "Order marked as ready to check",
+            "session_id": session_id
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to mark order as ready to check: {str(e)}"
+        )
+
+
+@router.get("/tracking/pending-orders")
+def get_pending_magento_orders(
+    current_user: dict = Depends(get_current_user),
+    service: MagentoService = Depends(_service)
+):
+    """
+    Get all pending Magento orders that are in 'processing' status
+    These orders need approval before they can be picked
+    """
+    try:
+        orders = service.get_pending_magento_orders()
+        return {
+            "orders": orders,
+            "count": len(orders)
+        }
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get pending orders: {str(e)}"
+        )
+
+
+@router.post("/tracking/approve-order")
+def approve_order_for_picking(
+    request: dict,
+    current_user: dict = Depends(get_current_user),
+    service: MagentoService = Depends(_service)
+):
+    """
+    Approve a Magento order for picking
+    Creates a session in 'approved' status ready for a picker to claim
+    """
+    try:
+        order_number = request.get('order_number')
+        user_id = current_user.get('user_id') or current_user.get('username')
+        
+        if not order_number:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="order_number is required"
+            )
+        
+        session_id = service.approve_order_for_picking(order_number, user_id)
+        
+        return {
+            "success": True,
+            "message": f"Order {order_number} approved for picking",
+            "session_id": session_id,
+            "order_number": order_number
+        }
+    
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to approve order: {str(e)}"
+        )
+
 

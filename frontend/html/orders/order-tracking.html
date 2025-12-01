@@ -1,0 +1,123 @@
+<!-- Order Tracking Page -->
+<div class="order-tracking">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="page-header-content">
+      <h1 class="page-title">Order Tracking</h1>
+      <p class="page-subtitle">Track orders through picking, checking, and completion stages</p>
+    </div>
+  </div>
+
+  <!-- Navigation Tabs -->
+  <div class="inner-tabs">
+    <button class="tab-button" onclick="location.href='/orders/order-fulfillment'">
+      <i class="fas fa-shopping-cart"></i>
+      <span>Order Fulfillment</span>
+    </button>
+    <button class="tab-button" onclick="location.href='/orders/order-progress'">
+      <i class="fas fa-chart-line"></i>
+      <span>Order Progress</span>
+    </button>
+    <button class="tab-button active" onclick="location.href='/orders/order-tracking'">
+      <i class="fas fa-tasks"></i>
+      <span>Order Tracking</span>
+    </button>
+    <button class="tab-button" onclick="location.href='/orders/order-approval'">
+      <i class="fas fa-check-circle"></i>
+      <span>Order Approval</span>
+    </button>
+  </div>
+
+  <!-- Main Content -->
+  <div class="tracking-board-wrapper">
+    
+    <!-- Action Buttons -->
+    <div class="tracking-actions">
+      <button class="primary-button" id="refreshBoardBtn">
+        <i class="fas fa-sync-alt"></i>
+        Refresh
+      </button>
+    </div>
+
+    <!-- Tracking Board - 3 Columns -->
+    <div class="tracking-board">
+      
+      <!-- Ready to Pick Column -->
+      <div class="tracking-column">
+        <div class="column-header ready-to-pick">
+          <div class="column-icon">
+            <i class="fas fa-clipboard-list"></i>
+          </div>
+          <div class="column-title-group">
+            <h3 class="column-title">Ready to Pick</h3>
+            <span class="column-count" id="readyToPickCount">0</span>
+          </div>
+        </div>
+        <div class="column-content" id="readyToPickColumn">
+          <!-- Order cards will be inserted here -->
+        </div>
+      </div>
+
+      <!-- Ready to Check Column -->
+      <div class="tracking-column">
+        <div class="column-header ready-to-check">
+          <div class="column-icon">
+            <i class="fas fa-search"></i>
+          </div>
+          <div class="column-title-group">
+            <h3 class="column-title">Ready to Check</h3>
+            <span class="column-count" id="readyToCheckCount">0</span>
+          </div>
+        </div>
+        <div class="column-content" id="readyToCheckColumn">
+          <!-- Order cards will be inserted here -->
+        </div>
+      </div>
+
+      <!-- Completed Column -->
+      <div class="tracking-column">
+        <div class="column-header completed">
+          <div class="column-icon">
+            <i class="fas fa-check-double"></i>
+          </div>
+          <div class="column-title-group">
+            <h3 class="column-title">Completed</h3>
+            <span class="column-count" id="completedCount">0</span>
+          </div>
+        </div>
+        <div class="column-content" id="completedColumn">
+          <!-- Order cards will be inserted here -->
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Order Details Modal -->
+<div id="orderDetailsModal" class="modal" style="display: none;">
+  <div class="modal-content large-modal">
+    <div class="modal-header">
+      <h2 class="modal-title" id="orderDetailsTitle">
+        <i class="fas fa-box"></i>
+        Order Details
+      </h2>
+      <button class="close-button" onclick="document.getElementById('orderDetailsModal').style.display='none'">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    
+    <div class="modal-body" id="orderDetailsBody">
+      <!-- Order details will be inserted here -->
+    </div>
+    
+    <div class="modal-footer">
+      <button class="secondary-button" onclick="document.getElementById('orderDetailsModal').style.display='none'">
+        Close
+      </button>
+      <button class="primary-button" id="orderDetailsActionBtn">
+        <!-- Action button text will be set dynamically -->
+      </button>
+    </div>
+  </div>
+</div>

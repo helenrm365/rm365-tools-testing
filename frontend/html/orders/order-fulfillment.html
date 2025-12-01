@@ -18,6 +18,14 @@
       <i class="fas fa-chart-line"></i>
       <span>Order Progress</span>
     </button>
+    <button class="tab-button" onclick="location.href='/orders/order-tracking'">
+      <i class="fas fa-tasks"></i>
+      <span>Order Tracking</span>
+    </button>
+    <button class="tab-button" onclick="location.href='/orders/order-approval'">
+      <i class="fas fa-check-circle"></i>
+      <span>Order Approval</span>
+    </button>
   </div>
 
   <!-- Main Content Wrapper -->
@@ -155,6 +163,10 @@
           <button id="cancelSessionBtn" class="secondary-button">
             <i class="fas fa-times"></i>
             Cancel
+          </button>
+          <button id="markReadyToCheckBtn" class="warning-button" style="display: none;">
+            <i class="fas fa-clipboard-check"></i>
+            Ready to Check
           </button>
           <button id="completeSessionBtn" class="success-button" disabled>
             <i class="fas fa-check"></i>

@@ -282,6 +282,7 @@ class MagentoPickPackManager {
     this.itemsList = document.getElementById('itemsList');
     this.cancelSessionBtn = document.getElementById('cancelSessionBtn');
     this.completeSessionBtn = document.getElementById('completeSessionBtn');
+    this.markReadyToCheckBtn = document.getElementById('markReadyToCheckBtn');
     // Initialize custom dropdowns
     this.initializeDropdowns();
   }
@@ -362,6 +363,7 @@ class MagentoPickPackManager {
     // Session Actions
     this.cancelSessionBtn?.addEventListener('click', () => this.cancelSession());
     this.completeSessionBtn?.addEventListener('click', () => this.completeSession());
+    this.markReadyToCheckBtn?.addEventListener('click', () => this.markReadyToCheck());
   }
 
   async startSession() {
@@ -657,6 +659,11 @@ class MagentoPickPackManager {
 
     // Enable/disable complete button - all items must be complete
     this.completeSessionBtn.disabled = completedItems !== totalItems;
+    
+    // Show "Mark Ready to Check" button if at least one item is scanned
+    if (this.markReadyToCheckBtn) {
+      this.markReadyToCheckBtn.style.display = totalQtyScanned > 0 ? 'inline-flex' : 'none';
+    }
 
     // Update items list
     this.updateItemsList();
@@ -841,6 +848,54 @@ class MagentoPickPackManager {
     } finally {
       this.completeSessionBtn.disabled = false;
       this.completeSessionBtn.innerHTML = '<i class="fas fa-check"></i> Complete';
+    }
+  }
+
+  async markReadyToCheck() {
+    if (!this.currentSessionId) return;
+
+    const confirmed = await orderModals.confirm(
+      'Mark Ready to Check?',
+      `Are you sure you want to mark order #${this.currentSession?.order_number} as ready to check? This will move it to the checking queue instead of completing it.`
+    );
+    
+    if (!confirmed) return;
+
+    try {
+      this.markReadyToCheckBtn.disabled = true;
+      this.markReadyToCheckBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Marking...';
+
+      const response = await fetch(`${getApiUrl()}/v1/magento/tracking/mark-ready-to-check`, {
+        method: 'POST',
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          session_id: this.currentSessionId
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to mark as ready to check');
+      }
+
+      // Show success message
+      await orderModals.alert('Success', `Order #${this.currentSession?.order_number} has been marked as ready to check.`);
+
+      // Clear global session tracking
+      window.__currentMagentoSession = null;
+      
+      // Return to order lookup
+      this.showOrderLookup();
+
+    } catch (error) {
+      console.error('Error marking ready to check:', error);
+      await orderModals.alertError('Error: ' + error.message);
+    } finally {
+      this.markReadyToCheckBtn.disabled = false;
+      this.markReadyToCheckBtn.innerHTML = '<i class="fas fa-clipboard-check"></i> Ready to Check';
     }
   }
 

@@ -1,7 +1,7 @@
 # backend/core/auth.py
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
-from core.security import verify_password, create_access_token, get_current_user, parse_allowed_tabs
+from core.security import verify_password, create_access_token, get_current_user, parse_allowed_tabs, get_all_tabs
 from core.db import get_psycopg_connection, return_attendance_connection
 from core.config import settings
 
@@ -17,15 +17,8 @@ def login(body: LoginIn):
     if body.username == settings.SUPERADMIN_USERNAME:
         if body.password == settings.SUPERADMIN_PASSWORD:
             token = create_access_token(sub=body.username)
-            # Grant full access to all tabs (using dot notation for sub-tabs)
-            all_tabs = [
-                "attendance", "attendance.overview", "attendance.logs", "attendance.manual", "attendance.automatic",
-                "enrollment", "enrollment.management", "enrollment.card", "enrollment.fingerprint",
-                "labels", "labels.generator", "labels.history",
-                "salesdata", "salesdata.uk-sales", "salesdata.fr-sales", "salesdata.nl-sales", "salesdata.upload", "salesdata.history",
-                "inventory", "inventory.management", "inventory.order-fulfillment", "inventory.order-progress",
-                "usermanagement", "usermanagement.management"
-            ]
+            # Grant full access to all tabs (dynamically retrieved)
+            all_tabs = get_all_tabs()
             return {"access_token": token, "role": "superadmin", "allowed_tabs": all_tabs}
         else:
             raise HTTPException(status_code=401, detail="Invalid credentials")

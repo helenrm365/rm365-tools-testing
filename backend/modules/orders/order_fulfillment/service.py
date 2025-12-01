@@ -3,6 +3,7 @@ Service layer for Magento invoice pick/pack operations
 """
 from typing import Optional, List
 from datetime import datetime
+import logging
 
 from .client import get_magento_client
 from .repo import MagentoRepo
@@ -16,6 +17,8 @@ from .schemas import (
     ScanRequestSchema,
     CompleteSessionSchema
 )
+
+logger = logging.getLogger(__name__)
 
 
 class MagentoService:
@@ -831,5 +834,155 @@ class MagentoService:
                 logger.warning(f"Failed to send WebSocket notification: {e}")
         
         return success
+    
+    # Order Tracking methods
+    
+    def get_order_tracking_board(self):
+        """Get all orders organized by status for the order tracking board"""
+        from .schemas import OrderTrackingBoardSchema, OrderTrackingColumnSchema
+        
+        # Get sessions for each column
+        # Ready to Pick: cancelled, drafted, approved, in-progress
+        ready_to_pick_sessions = self.repo.get_sessions_by_status(
+            ["cancelled", "draft", "approved", "in_progress"]
+        )
+        
+        # Ready to Check
+        ready_to_check_sessions = self.repo.get_sessions_by_status(["ready_to_check"])
+        
+        # Completed
+        completed_sessions = self.repo.get_sessions_by_status(["completed"])
+        
+        # Convert to column schemas
+        ready_to_pick = [self._session_to_column_schema(s) for s in ready_to_pick_sessions]
+        ready_to_check = [self._session_to_column_schema(s) for s in ready_to_check_sessions]
+        completed = [self._session_to_column_schema(s) for s in completed_sessions]
+        
+        return OrderTrackingBoardSchema(
+            ready_to_pick=ready_to_pick,
+            ready_to_check=ready_to_check,
+            completed=completed
+        )
+    
+    def _session_to_column_schema(self, session):
+        """Convert a session to column schema for order tracking"""
+        from .schemas import OrderTrackingColumnSchema
+        
+        # Calculate progress
+        total_items = len(session.items_expected)
+        completed_items = sum(1 for item in session.items_expected if item.get('is_complete', False))
+        progress_percentage = (completed_items / total_items * 100) if total_items > 0 else 0
+        
+        # Get invoice details for customer name and total
+        invoice = self.lookup_invoice(session.order_number)
+        customer_name = invoice.billing_name if invoice else None
+        grand_total = invoice.grand_total if invoice else None
+        
+        return OrderTrackingColumnSchema(
+            session_id=session.session_id,
+            order_number=session.order_number,
+            invoice_number=session.invoice_id,
+            status=session.status,
+            session_type=session.session_type,
+            created_by=session.created_by or "Unknown",
+            created_at=session.started_at,
+            last_modified_at=session.last_modified_at,
+            progress_percentage=progress_percentage,
+            total_items=total_items,
+            completed_items=completed_items,
+            grand_total=grand_total,
+            customer_name=customer_name
+        )
+    
+    def mark_ready_to_check(self, session_id: str, user_id: Optional[str] = None) -> bool:
+        """Mark a session as ready to check instead of completing it"""
+        return self.repo.mark_session_ready_to_check(session_id, user_id)
+    
+    def approve_order_for_picking(self, order_number: str, user_id: str):
+        """Approve a Magento order for picking by creating an approved session"""
+        # Lookup the invoice
+        invoice = self.lookup_invoice(order_number)
+        if not invoice:
+            raise ValueError(f"No invoice found for order number: {order_number}")
+        
+        # Check if session already exists
+        existing_session = self._get_any_session_for_invoice(invoice.invoice_number)
+        if existing_session:
+            # Just approve the existing session
+            self.repo.approve_session(existing_session.session_id, user_id)
+            return existing_session.session_id
+        
+        # Create new session in approved status
+        session = self.repo.create_session(
+            invoice_id=invoice.invoice_number,
+            order_number=invoice.order_number,
+            session_type="pick",
+            items_expected=[item.model_dump() for item in invoice.items],
+            user_id=None,  # No user assigned yet
+            created_by=user_id
+        )
+        
+        # Set status to approved
+        self.repo.approve_session(session.session_id, user_id)
+        
+        return session.session_id
+    
+    def get_pending_magento_orders(self):
+        """Get all pending Magento orders that need approval"""
+        from .schemas import PendingMagentoOrderSchema
+        
+        try:
+            # Get processing orders from Magento
+            processing_orders = self.client.get_processing_orders()
+            
+            # Get all order numbers that already have sessions (approved or in progress)
+            existing_sessions = self.repo.get_sessions_by_status(['approved', 'in_progress', 'ready_to_check', 'completed'])
+            existing_order_numbers = {session.order_number for session in existing_sessions}
+            
+            # Filter out orders that already have sessions
+            pending_orders = []
+            for order in processing_orders:
+                order_number = order.get('increment_id')
+                
+                # Skip if this order already has a session
+                if order_number in existing_order_numbers:
+                    continue
+                
+                # Build customer name
+                customer_firstname = order.get('customer_firstname', '')
+                customer_lastname = order.get('customer_lastname', '')
+                customer_name = f"{customer_firstname} {customer_lastname}".strip() if customer_firstname or customer_lastname else None
+                
+                # Get customer email
+                customer_email = order.get('customer_email')
+                
+                # Get total quantity ordered
+                total_qty = order.get('total_qty_ordered', 0)
+                
+                # Get payment method if available
+                payment = order.get('payment', {})
+                payment_method = payment.get('method') if isinstance(payment, dict) else None
+                
+                pending_orders.append(
+                    PendingMagentoOrderSchema(
+                        order_id=order.get('entity_id'),
+                        order_number=order_number,
+                        created_at=order.get('created_at'),
+                        grand_total=float(order.get('grand_total', 0)),
+                        status=order.get('status'),
+                        customer_name=customer_name,
+                        customer_email=customer_email,
+                        total_qty_ordered=total_qty,
+                        payment_method=payment_method,
+                        items=order.get('items', [])
+                    )
+                )
+            
+            return pending_orders
+            
+        except Exception as e:
+            logger.error(f"Failed to get pending Magento orders: {e}")
+            return []
+
 
 

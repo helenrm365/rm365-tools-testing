@@ -1,0 +1,129 @@
+<!-- Order Approval Page -->
+<div class="order-approval">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="page-header-content">
+      <h1 class="page-title">Order Approval</h1>
+      <p class="page-subtitle">Review and approve pending Magento orders for picking</p>
+    </div>
+  </div>
+
+  <!-- Navigation Tabs -->
+  <div class="inner-tabs">
+    <button class="tab-button" onclick="location.href='/orders/order-fulfillment'">
+      <i class="fas fa-shopping-cart"></i>
+      <span>Order Fulfillment</span>
+    </button>
+    <button class="tab-button" onclick="location.href='/orders/order-progress'">
+      <i class="fas fa-chart-line"></i>
+      <span>Order Progress</span>
+    </button>
+    <button class="tab-button" onclick="location.href='/orders/order-tracking'">
+      <i class="fas fa-tasks"></i>
+      <span>Order Tracking</span>
+    </button>
+    <button class="tab-button active" onclick="location.href='/orders/order-approval'">
+      <i class="fas fa-check-circle"></i>
+      <span>Order Approval</span>
+    </button>
+  </div>
+
+  <!-- Main Content -->
+  <div class="approval-content-wrapper">
+    
+    <!-- Action Buttons -->
+    <div class="approval-actions">
+      <button class="primary-button" id="refreshOrdersBtn">
+        <i class="fas fa-sync-alt"></i>
+        Refresh Orders
+      </button>
+      <button class="secondary-button" id="approveAllBtn" style="display: none;">
+        <i class="fas fa-check-double"></i>
+        Approve All
+      </button>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="stats-cards">
+      <div class="stat-card">
+        <div class="stat-icon pending">
+          <i class="fas fa-clock"></i>
+        </div>
+        <div class="stat-info">
+          <div class="stat-value" id="pendingCount">0</div>
+          <div class="stat-label">Pending Orders</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon approved">
+          <i class="fas fa-check"></i>
+        </div>
+        <div class="stat-info">
+          <div class="stat-value" id="approvedTodayCount">0</div>
+          <div class="stat-label">Approved Today</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon total">
+          <i class="fas fa-dollar-sign"></i>
+        </div>
+        <div class="stat-info">
+          <div class="stat-value" id="totalValue">$0.00</div>
+          <div class="stat-label">Total Value</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pending Orders List -->
+    <div class="pending-orders-section">
+      <div class="section-header-bar">
+        <h2 class="section-title">
+          <i class="fas fa-list"></i>
+          Pending Orders
+        </h2>
+        <div class="section-actions">
+          <input type="text" id="searchOrders" class="search-input" placeholder="Search orders...">
+          <select id="sortOrders" class="sort-select">
+            <option value="date-desc">Newest First</option>
+            <option value="date-asc">Oldest First</option>
+            <option value="value-desc">Highest Value</option>
+            <option value="value-asc">Lowest Value</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="pending-orders-list" id="pendingOrdersList">
+        <!-- Pending orders will be inserted here -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Order Details Modal -->
+<div id="orderDetailsModal" class="modal" style="display: none;">
+  <div class="modal-content large-modal">
+    <div class="modal-header">
+      <h2 class="modal-title" id="orderDetailsTitle">
+        <i class="fas fa-box"></i>
+        Order Details
+      </h2>
+      <button class="close-button" onclick="document.getElementById('orderDetailsModal').style.display='none'">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    
+    <div class="modal-body" id="orderDetailsBody">
+      <!-- Order details will be inserted here -->
+    </div>
+    
+    <div class="modal-footer">
+      <button class="secondary-button" onclick="document.getElementById('orderDetailsModal').style.display='none'">
+        Close
+      </button>
+      <button class="primary-button" id="approveFromModalBtn">
+        <i class="fas fa-check"></i>
+        Approve Order
+      </button>
+    </div>
+  </div>
+</div>

@@ -498,7 +498,7 @@ html.dark-mode .modern-input:focus {
 }
 
 /* ===== Buttons ===== */
-.primary-button, .secondary-button, .success-button {
+.primary-button, .secondary-button, .success-button, .warning-button {
   padding: 0.875rem 1.5rem;
   font-size: 1rem;
   font-weight: 600;
@@ -547,9 +547,21 @@ html.dark-mode .modern-input:focus {
   box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
 }
 
+.warning-button {
+  background: linear-gradient(135deg, #ffa726, #ff9800);
+  color: white;
+  box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3);
+}
+
+.warning-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 152, 0, 0.4);
+}
+
 .primary-button:disabled,
 .secondary-button:disabled,
-.success-button:disabled {
+.success-button:disabled,
+.warning-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   transform: none;
