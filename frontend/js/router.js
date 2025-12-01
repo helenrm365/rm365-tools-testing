@@ -27,8 +27,8 @@ export function updateRoute(path, replace = false, state = {}) {
 // Check if we're navigating away from an active session
 function checkSessionCleanup(oldPath, newPath) {
   // Check if we're leaving the order fulfillment module entirely
-  const wasInOrderFulfillment = oldPath && oldPath.startsWith('/inventory/order-fulfillment');
-  const stillInOrderFulfillment = newPath && newPath.startsWith('/inventory/order-fulfillment');
+  const wasInOrderFulfillment = oldPath && oldPath.startsWith('/orders/order-fulfillment');
+  const stillInOrderFulfillment = newPath && newPath.startsWith('/orders/order-fulfillment');
   
   // Only draft if we're leaving the order fulfillment module completely
   if (wasInOrderFulfillment && !stillInOrderFulfillment) {
@@ -67,8 +67,10 @@ const routes = {
 
   '/inventory':             '/html/inventory/home.html',
   '/inventory/management':  '/html/inventory/management.html',
-  '/inventory/order-fulfillment': '/html/inventory/order-fulfillment.html',
-  '/inventory/order-progress': '/html/inventory/order-progress.html',
+  
+  '/orders':                    '/html/orders/home.html',
+  '/orders/order-fulfillment':  '/html/orders/order-fulfillment.html',
+  '/orders/order-progress':     '/html/orders/order-progress.html',
   
   '/usermanagement':            '/html/usermanagement/home.html',
   '/usermanagement/management': '/html/usermanagement/management.html',
@@ -93,15 +95,15 @@ function shouldRedirectAfterAutoDraft(reason) {
 
 function redirectToOrderFulfillmentHome(reason) {
   const currentPath = currentRoutePath || window.location.pathname;
-  if (!currentPath || !currentPath.startsWith('/inventory/order-fulfillment')) {
+  if (!currentPath || !currentPath.startsWith('/orders/order-fulfillment')) {
     return;
   }
 
-  if (currentPath === '/inventory/order-fulfillment') {
+  if (currentPath === '/orders/order-fulfillment') {
     return;
   }
 
-  navigate('/inventory/order-fulfillment', true);
+  navigate('/orders/order-fulfillment', true);
 }
 
 /**
@@ -118,6 +120,7 @@ export function generateTabStructure() {
     'labels': 'Labels',
     'salesdata': 'Sales Data',
     'inventory': 'Inventory',
+    'orders': 'Orders',
     'usermanagement': 'User Management'
   };
   
@@ -142,6 +145,7 @@ export function generateTabStructure() {
     'upload': 'Upload',
     // Inventory
     'management': 'Management',
+    // Orders
     'order-fulfillment': 'Order Fulfillment',
     'order-progress': 'Order Progress'
   };
@@ -228,9 +232,9 @@ export async function navigate(path, replace = false) {
 
     // Check if this is a session-specific URL and map to base template
     let url = routes[path];
-    if (!url && path.match(/^\/inventory\/order-fulfillment\/session-/)) {
+    if (!url && path.match(/^\/orders\/order-fulfillment\/session-/)) {
       // Session-specific URL, use the base order fulfillment template
-      url = routes['/inventory/order-fulfillment'];
+      url = routes['/orders/order-fulfillment'];
     }
     
     if (!url) {
@@ -347,9 +351,14 @@ export async function navigate(path, replace = false) {
       currentModulePath = 'salesdata';
     } else if (path.startsWith('/inventory')) {
       const mod = await import('./modules/inventory/index.js');
-      await mod.init(path); // Pass full path for session URL detection
+      await mod.init(path);
       currentModule = mod;
       currentModulePath = 'inventory';
+    } else if (path.startsWith('/orders')) {
+      const mod = await import('./modules/orders/index.js');
+      await mod.init(path); // Pass full path for session URL detection
+      currentModule = mod;
+      currentModulePath = 'orders';
     } else if (path.startsWith('/usermanagement')) {
       const mod = await import('./modules/usermanagement/index.js');
       await mod.init(path);

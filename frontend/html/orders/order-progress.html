@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Order Progress Dashboard</title>
-    <link rel="stylesheet" href="/css/inventory/order-progress.css">
+    <link rel="stylesheet" href="/css/orders/order-progress.css">
 </head>
 <body>
     <div class="order-progress-container">
@@ -15,15 +15,11 @@
 
         <!-- Navigation Tabs -->
         <div class="inner-tabs">
-            <button class="tab-button" onclick="location.href='/inventory/management'">
-                <i class="fas fa-boxes"></i>
-                <span>Management</span>
-            </button>
-            <button class="tab-button" onclick="location.href='/inventory/order-fulfillment'">
+            <button class="tab-button" onclick="location.href='/orders/order-fulfillment'">
                 <i class="fas fa-shopping-cart"></i>
                 <span>Order Fulfillment</span>
             </button>
-            <button class="tab-button active" onclick="location.href='/inventory/order-progress'">
+            <button class="tab-button active" onclick="location.href='/orders/order-progress'">
                 <i class="fas fa-chart-line"></i>
                 <span>Order Progress</span>
             </button>
@@ -143,6 +139,6 @@
         </div>
     </div>
 
-    <script type="module" src="/js/modules/inventory/order-progress.js"></script>
+    <script type="module" src="/js/modules/orders/order-progress.js"></script>
 </body>
 </html>

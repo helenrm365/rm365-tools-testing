@@ -321,7 +321,7 @@ working_modules = [
     ('modules.salesdata.api', 'router', f'{API}/salesdata', ['salesdata']),
     ('modules.inventory.management.api', 'router', f'{API}/inventory/management', ['inventory-management']),
     ('modules.inventory.collaboration', 'router', f'{API}/inventory/collaboration', ['inventory-collaboration']),
-    ('modules.inventory.order_fulfillment.api', 'router', f'{API}/magento', ['magento']),
+    ('modules.orders.order_fulfillment.api', 'router', f'{API}/magento', ['magento']),
 ]
 
 for mod, attr, prefix, tags in working_modules:

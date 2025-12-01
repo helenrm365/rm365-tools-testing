@@ -1,4 +1,4 @@
-// frontend/js/modules/inventory/order-fulfillment.js
+// frontend/js/modules/orders/order-fulfillment.js
 // Order Fulfillment Module - Process orders and returns
 
 import { getApiUrl } from '../../config.js';
@@ -43,7 +43,7 @@ class MagentoPickPackManager {
   constructor(initialPath) {
     this.currentSession = null;
     this.currentSessionId = null;
-    this.currentPath = initialPath || '/inventory/order-fulfillment';
+    this.currentPath = initialPath || '/orders/order-fulfillment';
     this.initializeElements();
     this.attachEventListeners();
     this.setupWebSocket();
@@ -166,7 +166,7 @@ class MagentoPickPackManager {
       try {
         // Check if we're already on this session page - avoid re-navigation
         const currentPath = window.location.pathname;
-        const targetPath = `/inventory/order-fulfillment/session-${orderNumber}-`;
+        const targetPath = `/orders/order-fulfillment/session-${orderNumber}-`;
         if (currentPath && currentPath.startsWith(targetPath)) {
           return;
         }
@@ -177,7 +177,7 @@ class MagentoPickPackManager {
         if (response.ok) {
           const status = await response.json();
           if (status?.order_number && status?.invoice_number) {
-            const path = `/inventory/order-fulfillment/session-${status.order_number}-${status.invoice_number}`;
+            const path = `/orders/order-fulfillment/session-${status.order_number}-${status.invoice_number}`;
             if (window.navigate) {
               window.navigate(path);
             } else {
@@ -193,14 +193,14 @@ class MagentoPickPackManager {
   }
 
   async checkSessionFromPath(path) {
-    if (!path || path === '/inventory/order-fulfillment') {
+    if (!path || path === '/orders/order-fulfillment') {
       // Base path, show order lookup
       this.showOrderLookup();
       return;
     }
 
-    // Check if path matches session URL pattern: /inventory/order-fulfillment/session-{order}-{invoice}
-    const sessionMatch = path.match(/\/inventory\/order-fulfillment\/session-([^-]+)-(.+)/);
+    // Check if path matches session URL pattern: /orders/order-fulfillment/session-{order}-{invoice}
+    const sessionMatch = path.match(/\/orders\/order-fulfillment\/session-([^-]+)-(.+)/);
     if (sessionMatch) {
       const orderNumber = sessionMatch[1];
       const invoiceNumber = sessionMatch[2];
@@ -480,7 +480,7 @@ class MagentoPickPackManager {
       window.__currentMagentoSession = session.session_id;
 
       // Navigate to session-specific URL
-      const sessionUrl = `/inventory/order-fulfillment/session-${session.order_number}-${session.invoice_number}`;
+      const sessionUrl = `/orders/order-fulfillment/session-${session.order_number}-${session.invoice_number}`;
       updateRoute(sessionUrl, false, { sessionId: session.session_id });
       this.currentPath = sessionUrl;
 
@@ -527,7 +527,7 @@ class MagentoPickPackManager {
         throw new Error('Failed to load claimed session data');
       }
 
-      const sessionUrl = `/inventory/order-fulfillment/session-${this.currentSession.order_number}-${this.currentSession.invoice_number}`;
+      const sessionUrl = `/orders/order-fulfillment/session-${this.currentSession.order_number}-${this.currentSession.invoice_number}`;
       updateRoute(sessionUrl, false, { sessionId: claimedSessionId });
       this.currentPath = sessionUrl;
 
@@ -566,7 +566,7 @@ class MagentoPickPackManager {
     this.orderLookupSection.style.display = 'block';
     
     // Navigate back to base order fulfillment URL
-    const baseUrl = '/inventory/order-fulfillment';
+    const baseUrl = '/orders/order-fulfillment';
     if (this.currentPath !== baseUrl) {
       updateRoute(baseUrl, false, {});
       this.currentPath = baseUrl;

@@ -984,7 +984,7 @@ POST   /api/v1/magento/session/scan         - Scan product
 POST   /api/v1/magento/session/complete     - Complete pick session
 ```
 
-**Note**: Magento integration is located in `backend/modules/inventory/order_fulfillment/`
+**Note**: Magento integration is located in `backend/modules/orders/order_fulfillment/`
 
 ---
 

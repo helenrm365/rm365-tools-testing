@@ -53,6 +53,8 @@ export function getDefaultAllowedPath(allowed = null) {
   if (isAllowed('salesdata', allowedTabs)) return '/salesdata';
   // Then inventory
   if (isAllowed('inventory', allowedTabs)) return '/inventory';
+  // Then orders
+  if (isAllowed('orders', allowedTabs)) return '/orders';
   // Then user management
   if (isAllowed('usermanagement', allowedTabs)) return '/usermanagement';
   
