@@ -25,6 +25,10 @@ export async function init(path) {
       const mod = await import('./order-tracking.js');
       currentOrdersModule = mod;
       if (mod.init) await mod.init();
+    } else if (path === '/orders/order-approval') {
+      const mod = await import('./order-approval.js');
+      currentOrdersModule = mod;
+      if (mod.init) await mod.init();
     } else {
       console.warn('[Orders] Unknown orders path:', path);
     }

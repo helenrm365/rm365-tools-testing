@@ -29,7 +29,7 @@
 }
 
 .stat-card {
-  background: white;
+  background: var(--surface-color);
   border-radius: 12px;
   padding: 1.5rem;
   display: flex;
@@ -89,7 +89,7 @@
 
 /* Pending Orders Section */
 .pending-orders-section {
-  background: white;
+  background: var(--surface-color);
   border-radius: 12px;
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border-color);
@@ -128,6 +128,8 @@
   font-size: 0.875rem;
   min-width: 200px;
   transition: all 0.2s ease;
+  background: var(--input-bg);
+  color: var(--text-primary);
 }
 
 .search-input:focus {
@@ -141,7 +143,8 @@
   border: 1px solid var(--border-color);
   border-radius: 6px;
   font-size: 0.875rem;
-  background: white;
+  background: var(--input-bg);
+  color: var(--text-primary);
   cursor: pointer;
 }
 
@@ -168,7 +171,7 @@
 }
 
 .pending-order-card:hover {
-  background: var(--background);
+  background: var(--hover-bg);
 }
 
 .pending-order-info {
@@ -196,8 +199,8 @@
   font-size: 0.75rem;
   font-weight: 500;
   text-transform: uppercase;
-  background: #fef3c7;
-  color: #92400e;
+  background: rgba(255, 193, 7, 0.2);
+  color: var(--warning-color);
 }
 
 .pending-order-details {
@@ -259,7 +262,7 @@
 
 .view-details-btn {
   padding: 0.75rem 1rem;
-  background: white;
+  background: var(--surface-color);
   border: 1px solid var(--border-color);
   border-radius: 8px;
   font-size: 0.875rem;
@@ -269,9 +272,9 @@
 }
 
 .view-details-btn:hover {
-  border-color: var(--primary);
-  color: var(--primary);
-  background: var(--background);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  background: var(--hover-bg);
 }
 
 /* Empty State */
@@ -376,7 +379,7 @@
   display: flex;
   justify-content: space-between;
   padding: 0.75rem;
-  background: var(--background);
+  background: var(--hover-bg);
   border-radius: 6px;
   font-size: 0.875rem;
 }
@@ -425,4 +428,25 @@
   .view-details-btn {
     flex: 1;
   }
+}
+
+/* Dark Mode Specific Overrides */
+html.dark-mode .pending-order-card {
+  background: var(--surface-color);
+}
+
+html.dark-mode .pending-order-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+html.dark-mode .order-item {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+html.dark-mode .view-details-btn {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+html.dark-mode .view-details-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
 }

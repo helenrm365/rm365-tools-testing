@@ -1,5 +1,32 @@
 """
 Service layer for Magento invoice pick/pack operations
+
+ARCHITECTURE OVERVIEW:
+======================
+This system integrates with Magento in a READ-ONLY manner:
+
+1. READ from Magento:
+   - Fetch orders in 'processing' status
+   - Fetch invoice details
+   - Fetch product information
+   
+2. NEVER WRITE to Magento:
+   - Order approvals are tracked locally only
+   - Order status changes are tracked locally only
+   - Picking/packing progress is tracked locally only
+   - Orders remain in their original Magento status (typically 'processing')
+
+3. Local State Management:
+   - Sessions are created locally when orders are approved
+   - Session status tracks: approved → in_progress → ready_to_check → completed
+   - All state changes are persisted in local JSON files (could be database)
+   - Magento is queried only to fetch initial order/invoice data
+
+This architecture ensures:
+- Magento remains the source of truth for order data
+- We don't interfere with Magento's order management
+- We can track our fulfillment process independently
+- No risk of corrupting Magento data
 """
 from typing import Optional, List
 from datetime import datetime
@@ -899,7 +926,19 @@ class MagentoService:
         return self.repo.mark_session_ready_to_check(session_id, user_id)
     
     def approve_order_for_picking(self, order_number: str, user_id: str):
-        """Approve a Magento order for picking by creating an approved session"""
+        """
+        Approve a Magento order for picking by creating an approved session.
+        
+        IMPORTANT: This does NOT modify Magento. The order remains in 'processing' status
+        in Magento. We only track the approval state locally in our database.
+        
+        Args:
+            order_number: The Magento order number
+            user_id: The user approving the order
+            
+        Returns:
+            session_id: The ID of the created/approved session
+        """
         # Lookup the invoice
         invoice = self.lookup_invoice(order_number)
         if not invoice:
@@ -932,20 +971,27 @@ class MagentoService:
         from .schemas import PendingMagentoOrderSchema
         
         try:
+            logger.info("Starting to fetch pending Magento orders")
+            
             # Get processing orders from Magento
             processing_orders = self.client.get_processing_orders()
+            logger.info(f"Retrieved {len(processing_orders)} orders from Magento with 'processing' status")
             
             # Get all order numbers that already have sessions (approved or in progress)
             existing_sessions = self.repo.get_sessions_by_status(['approved', 'in_progress', 'ready_to_check', 'completed'])
             existing_order_numbers = {session.order_number for session in existing_sessions}
+            logger.info(f"Found {len(existing_order_numbers)} orders that already have sessions: {existing_order_numbers}")
             
             # Filter out orders that already have sessions
             pending_orders = []
+            filtered_count = 0
             for order in processing_orders:
                 order_number = order.get('increment_id')
                 
                 # Skip if this order already has a session
                 if order_number in existing_order_numbers:
+                    logger.debug(f"Skipping order {order_number} - already has a session")
+                    filtered_count += 1
                     continue
                 
                 # Build customer name
@@ -978,10 +1024,17 @@ class MagentoService:
                     )
                 )
             
+            logger.info(f"Returning {len(pending_orders)} pending orders (filtered out {filtered_count} with existing sessions)")
+            if pending_orders:
+                pending_order_numbers = [o.order_number for o in pending_orders]
+                logger.info(f"Pending order numbers: {pending_order_numbers}")
+            else:
+                logger.warning("No pending orders found - check if Magento has orders in 'processing' status")
+            
             return pending_orders
             
         except Exception as e:
-            logger.error(f"Failed to get pending Magento orders: {e}")
+            logger.error(f"Failed to get pending Magento orders: {e}", exc_info=True)
             return []
 
 

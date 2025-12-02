@@ -499,7 +499,12 @@ class MagentoRepo:
         return True
     
     def approve_session(self, session_id: str, user_id: str) -> bool:
-        """Approve a session for picking"""
+        """
+        Approve a session for picking.
+        
+        IMPORTANT: This only updates the local session state. No changes are made to Magento.
+        The order remains in its original Magento status (typically 'processing').
+        """
         session = self._sessions.get(session_id)
         if not session:
             return False

@@ -189,7 +189,7 @@ export function generateTabStructure() {
 }
 
 // Show loading overlay
-function showLoading(message = 'Loading...') {
+export function showLoading(message = 'Loading...') {
   const overlay = document.getElementById('loadingOverlay');
   const msg = document.getElementById('loadingMessage');
   if (overlay) {
@@ -200,7 +200,7 @@ function showLoading(message = 'Loading...') {
 }
 
 // Hide loading overlay
-function hideLoading() {
+export function hideLoading() {
   const overlay = document.getElementById('loadingOverlay');
   if (overlay) {
     overlay.setAttribute('hidden', 'true');

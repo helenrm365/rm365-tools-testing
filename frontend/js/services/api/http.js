@@ -1,8 +1,8 @@
 // frontend/js/services/api/http.js
 import { getToken } from '../state/sessionStore.js';
-import { config } from '../../config.js';
+import { getApiUrl } from '../../config.js';
 
-const BASE = config.API.replace(/\/+$/, '');
+const BASE = getApiUrl().replace(/\/+$/, '');
 const ORIGIN = typeof location !== 'undefined' ? location.origin : '';
 const SAME_ORIGIN = !BASE || BASE.startsWith(ORIGIN);
 
@@ -13,6 +13,8 @@ function authHeader() {
 
 export async function http(path, { method = 'GET', headers = {}, body, retry = 0, timeout = 60000 } = {}) {
   const url = `${BASE}${path}`;
+  console.log(`[HTTP] ${method} ${url}`);
+  console.log(`[HTTP] BASE: ${BASE}, path: ${path}`);
   
   // Check if body is FormData (for file uploads)
   const isFormData = body instanceof FormData;

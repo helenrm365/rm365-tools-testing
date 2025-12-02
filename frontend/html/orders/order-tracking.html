@@ -33,10 +33,25 @@
     
     <!-- Action Buttons -->
     <div class="tracking-actions">
+      <!-- Live Status Indicator -->
+      <div class="live-status" id="liveStatus">
+        <span class="status-dot"></span>
+        <span class="status-text">Connecting...</span>
+      </div>
+      
       <button class="primary-button" id="refreshBoardBtn">
         <i class="fas fa-sync-alt"></i>
         Refresh
       </button>
+      
+      <!-- Minimal Mode Toggle -->
+      <div class="minimal-mode-toggle">
+        <label class="minimal-mode-switch" for="minimalModeToggle">
+          <input type="checkbox" id="minimalModeToggle">
+          <span class="minimal-mode-slider" role="presentation"></span>
+        </label>
+        <span class="toggle-label">Minimal Mode</span>
+      </div>
     </div>
 
     <!-- Tracking Board - 3 Columns -->

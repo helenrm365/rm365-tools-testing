@@ -1,5 +1,5 @@
-import { get, post } from '../../services/http.js';
-import { showMessage } from '../../ui/message.js';
+import { get, post } from '../../services/api/http.js';
+import { showToast } from '../../ui/toast.js';
 
 class OrderApprovalManager {
   constructor() {
@@ -50,6 +50,9 @@ class OrderApprovalManager {
 
   async loadPendingOrders() {
     try {
+      console.log('[Order Approval] Loading pending orders...');
+      console.log('[Order Approval] API endpoint: /v1/magento/tracking/pending-orders');
+      
       const refreshBtn = document.getElementById('refreshOrdersBtn');
       if (refreshBtn) {
         refreshBtn.disabled = true;
@@ -57,9 +60,20 @@ class OrderApprovalManager {
       }
 
       const response = await get('/v1/magento/tracking/pending-orders');
+      console.log('[Order Approval] API Response:', response);
+      console.log('[Order Approval] Response type:', typeof response);
       
       if (response && response.orders) {
         this.pendingOrders = response.orders;
+        console.log(`[Order Approval] Loaded ${this.pendingOrders.length} pending orders`);
+        
+        if (this.pendingOrders.length === 0) {
+          console.warn('[Order Approval] No pending orders found. Check backend logs for details.');
+        } else {
+          const orderNumbers = this.pendingOrders.map(o => o.order_number);
+          console.log('[Order Approval] Order numbers:', orderNumbers);
+        }
+        
         this.approvedToday = response.approved_today || 0;
         this.updateStatistics();
         this.filterAndRenderOrders();
@@ -71,8 +85,8 @@ class OrderApprovalManager {
         }
       }
     } catch (error) {
-      console.error('Error loading pending orders:', error);
-      showMessage('Failed to load pending orders', 'error');
+      console.error('[Order Approval] Error loading pending orders:', error);
+      showToast('Failed to load pending orders', 'error');
       this.renderEmptyState('Failed to load orders. Please try again.');
     } finally {
       const refreshBtn = document.getElementById('refreshOrdersBtn');
@@ -324,7 +338,7 @@ class OrderApprovalManager {
       // Find the order to get its order_number
       const order = this.pendingOrders.find(o => o.order_id === orderId);
       if (!order) {
-        showMessage('Order not found', 'error');
+        showToast('Order not found', 'error');
         return;
       }
 
@@ -333,7 +347,7 @@ class OrderApprovalManager {
       });
 
       if (response && response.session_id) {
-        showMessage('Order approved successfully', 'success');
+        showToast('Order approved successfully', 'success');
         
         // Close modal if open
         const modal = document.getElementById('orderDetailsModal');
@@ -345,14 +359,14 @@ class OrderApprovalManager {
         await this.loadPendingOrders();
       }
     } catch (error) {
-      console.error('Error approving order:', error);
-      showMessage(error.detail || 'Failed to approve order', 'error');
+      console.error('[Order Approval] Error approving order:', error);
+      showToast(error.detail || 'Failed to approve order', 'error');
     }
   }
 
   async approveAllOrders() {
     if (this.pendingOrders.length === 0) {
-      showMessage('No orders to approve', 'info');
+      showToast('No orders to approve', 'info');
       return;
     }
 
@@ -384,11 +398,11 @@ class OrderApprovalManager {
     }
 
     if (successCount > 0) {
-      showMessage(`Successfully approved ${successCount} order${successCount !== 1 ? 's' : ''}`, 'success');
+      showToast(`Successfully approved ${successCount} order${successCount !== 1 ? 's' : ''}`, 'success');
     }
 
     if (failCount > 0) {
-      showMessage(`Failed to approve ${failCount} order${failCount !== 1 ? 's' : ''}`, 'error');
+      showToast(`Failed to approve ${failCount} order${failCount !== 1 ? 's' : ''}`, 'error');
     }
 
     // Reload orders
@@ -414,19 +428,29 @@ class OrderApprovalManager {
   }
 }
 
-// Initialize when DOM is ready
+// Module instance
 let approvalManager;
 
-document.addEventListener('DOMContentLoaded', () => {
-  approvalManager = new OrderApprovalManager();
-  approvalManager.initialize();
-});
-
-// Cleanup on page unload
-window.addEventListener('beforeunload', () => {
+// Initialize the module
+export async function init() {
+  console.log('[Order Approval] Initializing module...');
+  
+  // Clean up previous instance if exists
   if (approvalManager) {
     approvalManager.cleanup();
   }
-});
+  
+  approvalManager = new OrderApprovalManager();
+  await approvalManager.initialize();
+}
+
+// Cleanup function
+export function cleanup() {
+  console.log('[Order Approval] Cleaning up module...');
+  if (approvalManager) {
+    approvalManager.cleanup();
+    approvalManager = null;
+  }
+}
 
 export default OrderApprovalManager;

@@ -1,7 +1,10 @@
 import { get, post } from '../../services/api/http.js';
 import { navigate } from '../../router.js';
+import { wsService } from '../../services/websocket.js';
+import { getUserData } from '../../services/state/userStore.js';
 
 let refreshInterval = null;
+let isMinimalMode = false;
 
 export async function init() {
   console.log('[Order Tracking] Initializing...');
@@ -12,7 +15,10 @@ export async function init() {
   // Load the tracking board
   await loadTrackingBoard();
   
-  // Set up auto-refresh every 30 seconds
+  // Initialize WebSocket for real-time updates
+  initializeWebSocket();
+  
+  // Set up auto-refresh every 30 seconds (as backup to WebSocket)
   refreshInterval = setInterval(loadTrackingBoard, 30000);
 }
 
@@ -23,6 +29,11 @@ export function cleanup() {
   if (refreshInterval) {
     clearInterval(refreshInterval);
     refreshInterval = null;
+  }
+  
+  // Leave WebSocket room (if connected)
+  if (wsService.isConnected()) {
+    wsService.leaveRoom('order-tracking');
   }
 }
 
@@ -37,6 +48,107 @@ function setupEventListeners() {
       refreshBtn.disabled = false;
       refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
     };
+  }
+  
+  // Minimal mode toggle
+  const minimalModeToggle = document.getElementById('minimalModeToggle');
+  if (minimalModeToggle) {
+    // Restore saved preference
+    const savedMode = localStorage.getItem('orderTrackingMinimalMode');
+    if (savedMode === 'true') {
+      minimalModeToggle.checked = true;
+      toggleMinimalMode(true);
+    }
+    
+    minimalModeToggle.onchange = (e) => {
+      const enabled = e.target.checked;
+      toggleMinimalMode(enabled);
+      localStorage.setItem('orderTrackingMinimalMode', enabled);
+    };
+  }
+}
+
+function toggleMinimalMode(enabled) {
+  isMinimalMode = enabled;
+  if (enabled) {
+    document.body.classList.add('minimal-mode');
+  } else {
+    document.body.classList.remove('minimal-mode');
+  }
+}
+
+function initializeWebSocket() {
+  const liveStatus = document.getElementById('liveStatus');
+  
+  // Update status indicator on connection state changes
+  wsService.on('connected', () => {
+    console.log('[Order Tracking] WebSocket connected');
+    if (liveStatus) {
+      liveStatus.className = 'live-status connected';
+      liveStatus.querySelector('.status-text').textContent = 'Live';
+    }
+  });
+  
+  wsService.on('disconnected', () => {
+    console.log('[Order Tracking] WebSocket disconnected');
+    if (liveStatus) {
+      liveStatus.className = 'live-status disconnected';
+      liveStatus.querySelector('.status-text').textContent = 'Disconnected';
+    }
+  });
+  
+  wsService.on('connection_error', () => {
+    console.log('[Order Tracking] WebSocket connection error');
+    if (liveStatus) {
+      liveStatus.className = 'live-status connecting';
+      liveStatus.querySelector('.status-text').textContent = 'Connecting...';
+    }
+  });
+  
+  // Listen for order status changes
+  wsService.on('order_status_changed', async (data) => {
+    console.log('[Order Tracking] Order status changed:', data);
+    // Refresh the board to show the updated order
+    await loadTrackingBoard();
+  });
+  
+  // Listen for new orders
+  wsService.on('order_created', async (data) => {
+    console.log('[Order Tracking] New order created:', data);
+    await loadTrackingBoard();
+  });
+  
+  // Listen for deleted orders
+  wsService.on('order_deleted', async (data) => {
+    console.log('[Order Tracking] Order deleted:', data);
+    await loadTrackingBoard();
+  });
+  
+  // Connect to WebSocket and join room
+  const currentUser = getUserData();
+  if (currentUser && currentUser.username) {
+    wsService.connect(currentUser).then(() => {
+      console.log('[Order Tracking] WebSocket connected, joining room');
+      wsService.joinRoom('order-tracking');
+      
+      // Update status indicator
+      if (liveStatus) {
+        liveStatus.className = 'live-status connected';
+        liveStatus.querySelector('.status-text').textContent = 'Live';
+      }
+    }).catch(error => {
+      console.error('[Order Tracking] WebSocket connection failed:', error);
+      if (liveStatus) {
+        liveStatus.className = 'live-status disconnected';
+        liveStatus.querySelector('.status-text').textContent = 'Offline';
+      }
+    });
+  } else {
+    console.warn('[Order Tracking] No user found, WebSocket not initialized');
+    if (liveStatus) {
+      liveStatus.className = 'live-status disconnected';
+      liveStatus.querySelector('.status-text').textContent = 'Offline';
+    }
   }
 }
 
@@ -225,7 +337,7 @@ function showOrderDetails(order) {
       navigate(`/orders/order-fulfillment/session-${order.session_id}`);
     };
     actionBtn.style.display = 'block';
-  } else if (order.status === 'approved' || order.status === 'draft') {
+  } else if (order.status === 'approved' || order.status === 'draft' || order.status === 'cancelled') {
     actionBtn.innerHTML = '<i class="fas fa-play"></i> Start Picking';
     actionBtn.onclick = () => {
       modal.style.display = 'none';

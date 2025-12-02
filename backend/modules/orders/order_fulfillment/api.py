@@ -5,6 +5,7 @@ from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from common.deps import get_current_user
+from core.websocket import sio
 from .service import MagentoService
 from .schemas import (
     InvoiceDetailSchema,
@@ -162,7 +163,7 @@ def check_order_status(
 
 
 @router.post("/session/start")
-def start_session(
+async def start_session(
     request: StartSessionSchema,
     current_user: dict = Depends(get_current_user),
     service: MagentoService = Depends(_service)
@@ -180,6 +181,19 @@ def start_session(
     try:
         user_id = current_user.get('user_id') or current_user.get('username')
         session = service.start_session(request, user_id=user_id)
+        
+        # Emit WebSocket event for real-time updates
+        await sio.emit(
+            'order_status_changed',
+            {
+                'session_id': session.session_id,
+                'order_number': session.order_number,
+                'status': 'in_progress',
+                'user_id': user_id
+            },
+            room='order-tracking'
+        )
+        
         return session
     
     except ValueError as e:
@@ -261,7 +275,7 @@ def get_session_status(
 
 
 @router.post("/session/complete")
-def complete_session(
+async def complete_session(
     request: CompleteSessionSchema,
     current_user: dict = Depends(get_current_user),
     service: MagentoService = Depends(_service)
@@ -273,6 +287,17 @@ def complete_session(
     try:
         user_id = current_user.get('user_id') or current_user.get('username')
         success = service.complete_session(request, user_id=user_id)
+        
+        # Emit WebSocket event for real-time updates
+        await sio.emit(
+            'order_status_changed',
+            {
+                'session_id': request.session_id,
+                'status': 'completed',
+                'completed_by': user_id
+            },
+            room='order-tracking'
+        )
         
         return {
             "success": success,
@@ -731,7 +756,7 @@ def get_order_tracking_board(
 
 
 @router.post("/tracking/mark-ready-to-check")
-def mark_order_ready_to_check(
+async def mark_order_ready_to_check(
     request: dict,
     current_user: dict = Depends(get_current_user),
     service: MagentoService = Depends(_service)
@@ -757,6 +782,17 @@ def mark_order_ready_to_check(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Session not found: {session_id}"
             )
+        
+        # Emit WebSocket event for real-time updates
+        await sio.emit(
+            'order_status_changed',
+            {
+                'session_id': session_id,
+                'status': 'ready_to_check',
+                'changed_by': user_id
+            },
+            room='order-tracking'
+        )
         
         return {
             "success": True,
@@ -796,15 +832,72 @@ def get_pending_magento_orders(
         )
 
 
+@router.get("/tracking/pending-orders/debug")
+def debug_pending_orders(
+    current_user: dict = Depends(get_current_user),
+    service: MagentoService = Depends(_service)
+):
+    """
+    Debug endpoint to see what's happening with pending orders
+    Shows all processing orders and which ones are filtered out
+    """
+    try:
+        # Get raw processing orders from Magento
+        processing_orders = service.client.get_processing_orders()
+        
+        # Get existing sessions
+        existing_sessions = service.repo.get_sessions_by_status(['approved', 'in_progress', 'ready_to_check', 'completed'])
+        existing_order_numbers = {session.order_number for session in existing_sessions}
+        
+        # Categorize orders
+        pending_orders = []
+        filtered_orders = []
+        
+        for order in processing_orders:
+            order_number = order.get('increment_id')
+            order_info = {
+                'order_number': order_number,
+                'order_id': order.get('entity_id'),
+                'status': order.get('status'),
+                'created_at': order.get('created_at'),
+                'grand_total': order.get('grand_total')
+            }
+            
+            if order_number in existing_order_numbers:
+                filtered_orders.append(order_info)
+            else:
+                pending_orders.append(order_info)
+        
+        return {
+            "summary": {
+                "total_processing_orders": len(processing_orders),
+                "pending_orders_count": len(pending_orders),
+                "filtered_orders_count": len(filtered_orders)
+            },
+            "pending_orders": pending_orders,
+            "filtered_orders": filtered_orders,
+            "existing_session_order_numbers": list(existing_order_numbers)
+        }
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to debug pending orders: {str(e)}"
+        )
+
+
 @router.post("/tracking/approve-order")
-def approve_order_for_picking(
+async def approve_order_for_picking(
     request: dict,
     current_user: dict = Depends(get_current_user),
     service: MagentoService = Depends(_service)
 ):
     """
-    Approve a Magento order for picking
-    Creates a session in 'approved' status ready for a picker to claim
+    Approve a Magento order for picking.
+    Creates a session in 'approved' status ready for a picker to claim.
+    
+    IMPORTANT: This does NOT modify the order in Magento. The order remains in
+    'processing' status in Magento. We only track the approval locally.
     """
     try:
         order_number = request.get('order_number')
@@ -817,6 +910,18 @@ def approve_order_for_picking(
             )
         
         session_id = service.approve_order_for_picking(order_number, user_id)
+        
+        # Emit WebSocket event for real-time updates
+        await sio.emit(
+            'order_status_changed',
+            {
+                'session_id': session_id,
+                'order_number': order_number,
+                'status': 'approved',
+                'approved_by': user_id
+            },
+            room='order-tracking'
+        )
         
         return {
             "success": True,
