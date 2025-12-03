@@ -281,15 +281,16 @@ async function loadEmployees() {
       getEmployeeTemplates()
     ]);
     
-    state.employees = employees;
-    state.fingerprintTemplates = templates;
+    // Handle cases where API returns wrapped data
+    state.employees = Array.isArray(employees) ? employees : (employees?.employees || []);
+    state.fingerprintTemplates = Array.isArray(templates) ? templates : (templates?.templates || []);
     
     // Reset mapping objects
     state.employeeNameToIdMap = {};
     state.cardUidToEmployee = {};
 
     // Build lookup maps
-    employees.forEach(emp => {
+    state.employees.forEach(emp => {
       state.employeeNameToIdMap[emp.name] = emp.id;
       if (emp.nfc_uid) {
         state.cardUidToEmployee[emp.nfc_uid.toUpperCase()] = emp;
