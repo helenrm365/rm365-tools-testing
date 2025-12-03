@@ -1,12 +1,12 @@
 // js/services/api/enrollmentApi.js
 import { get, post, patch, del } from './http.js';
-const API = '/api/v1/enrollment';   // relative, http.js adds BASE & headers
+const API = '/v1/enrollment';   // relative, http.js adds BASE (which already includes /api) & headers
 
 // ----- Employees -----
 export const getEmployees = () => get(`${API}/employees`);
 
-export const createEmployee = ({ name, location, status = 'active', card_uid = null }) =>
-    post(`${API}/employees`, { name, location, status, card_uid });
+export const createEmployee = ({ name, location, status = 'active', nfc_uid = null }) =>
+    post(`${API}/employees`, { name, location, status, nfc_uid });
 
 export const updateEmployee = (id, payload) =>
     patch(`${API}/employees/${id}`, payload);
@@ -16,11 +16,14 @@ export const deleteEmployee = (id) => del(`${API}/employees/${id}`);
 export const bulkDeleteEmployees = (ids) =>
     post(`${API}/employees/bulk-delete`, { ids });
 
-// ----- Card -----
-export const scanCard = () => post(`${API}/scan/card`);
+// ----- NFC -----
+export const scanNFC = () => post(`${API}/scan/nfc`);
 
-export const saveCard = (employee_id, uid) =>
-    post(`${API}/save/card`, { employee_id, uid });
+export const saveNFC = (employee_id, uid) =>
+    post(`${API}/save/nfc`, { employee_id, uid });
+
+export const deleteNFC = (employee_id) =>
+    post(`${API}/delete/nfc`, { employee_id });
 
 // ----- Fingerprint -----
 export const scanFingerprintBackend = () => post(`${API}/scan/fingerprint`);

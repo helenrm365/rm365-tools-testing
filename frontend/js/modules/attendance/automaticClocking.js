@@ -18,7 +18,7 @@ let state = {
   lastFingerprintTime: 0,
   cardScanErrorCount: 0,
   fingerprintScanErrorCount: 0,
-  nextCardPollDelay: 3000,
+  nextCardPollDelay: 500,
   scanCount: 0,
   recentScans: [],
   cardServiceAvailable: false,
@@ -26,8 +26,8 @@ let state = {
 };
 
 // ====== Constants ======
-const SCAN_COOLDOWN_MS = 2000;
-const FINGERPRINT_COOLDOWN_MS = 3000;
+const SCAN_COOLDOWN_MS = 1000;
+const FINGERPRINT_COOLDOWN_MS = 1000;
 const MAX_RECENT_SCANS = 10;
 const MAX_CONSECUTIVE_ERRORS = 5; // After this many errors, slow down polling
 
@@ -219,7 +219,7 @@ async function checkBridgeHealth() {
     const data = await response.json();
     return {
       fingerprint: data.fingerprint_available === true,
-      card: data.card_available === true
+      card: data.nfc_available === true  // Updated from card_available to nfc_available
     };
   } catch (e) {
     return { fingerprint: false, card: false };
@@ -287,8 +287,8 @@ async function loadEmployees() {
     // Build lookup maps
     employees.forEach(emp => {
       state.employeeNameToIdMap[emp.name] = emp.id;
-      if (emp.card_uid) {
-        state.cardUidToEmployee[emp.card_uid.toUpperCase()] = emp;
+      if (emp.nfc_uid) {
+        state.cardUidToEmployee[emp.nfc_uid.toUpperCase()] = emp;
       }
     });
   } catch (error) {
@@ -298,9 +298,9 @@ async function loadEmployees() {
 }
 
 // ====== Fingerprint Scanning ======
-async function captureFingerprint(timeoutMs = 3000) {
+async function captureFingerprint(timeoutMs = 1000) {
   const payload = { 
-    Timeout: 2000, 
+    Timeout: 500, 
     TemplateFormat: 'ANSI', 
     FakeDetection: 1 
   };
@@ -342,7 +342,7 @@ async function pollFingerprint() {
   if (state.isProcessingFingerprint || !state.isScanning) return;
 
   try {
-    const data = await captureFingerprint(3000);
+    const data = await captureFingerprint(1000);
 
     // Reset error count on successful connection
     state.fingerprintScanErrorCount = 0;
@@ -490,7 +490,7 @@ async function pollCardScan() {
       response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ timeout: 1 }), // Short timeout for polling
+        body: JSON.stringify({ timeout: 1 }), // 1 second timeout for card check
         cache: 'no-store'
       });
       if (response.ok) break;
@@ -515,7 +515,7 @@ async function pollCardScan() {
 
     const data = await response.json();
 
-    // Local bridge returns: { status: 'success', uid: '...' } or { status: 'error', error: '...' }
+    // Local bridge returns: { status: 'success', uid: '...' } or { status: 'waiting', error: '...' } or { status: 'error', error: '...' }
     if (data && data.status === 'success' && data.uid) {
       const uid = String(data.uid).toUpperCase();
       const now = Date.now();
@@ -555,7 +555,7 @@ async function pollCardScan() {
           addRecentScan(employee, 'card', clockResult.direction || 'in');
           
           state.cardScanErrorCount = 0;
-          state.nextCardPollDelay = 3000;
+          state.nextCardPollDelay = 500;
         } else {
           playErrorSound();
           updateStatus('❌ Clocking failed', 'error');
@@ -566,10 +566,15 @@ async function pollCardScan() {
         updateStatus('❌ Clocking failed', 'error');
       }
 
-    } else {
-      // No card present - this is normal
+    } else if (data && data.status === 'waiting') {
+      // No card present - this is normal during polling
       state.cardScanErrorCount = 0;
-      state.nextCardPollDelay = 3000;
+      state.nextCardPollDelay = 500;
+    } else {
+      // Actual error (reader not found, etc.)
+      state.cardScanErrorCount++;
+      const backoffMs = Math.min(10000, 1000 * Math.pow(1.5, Math.min(state.cardScanErrorCount, 3)));
+      state.nextCardPollDelay = backoffMs;
     }
 
   } catch (error) {
@@ -639,7 +644,7 @@ async function startScanning(options = {}) {
       }
     };
 
-    state.nextCardPollDelay = 3000;
+    state.nextCardPollDelay = 500;
     cardLoop();
   }
 
@@ -650,7 +655,7 @@ async function startScanning(options = {}) {
         await pollFingerprint();
       } finally {
         if (state.isScanning && state.fingerprintServiceAvailable) {
-          const interval = state.fingerprintScanErrorCount >= MAX_CONSECUTIVE_ERRORS ? 5000 : 1200;
+          const interval = state.fingerprintScanErrorCount >= MAX_CONSECUTIVE_ERRORS ? 5000 : 600;
           state.fingerprintPollingInterval = setTimeout(fingerprintLoop, interval);
         }
       }
@@ -718,7 +723,7 @@ function cleanup() {
     lastFingerprintTime: 0,
     cardScanErrorCount: 0,
     fingerprintScanErrorCount: 0,
-    nextCardPollDelay: 3000,
+    nextCardPollDelay: 500,
     scanCount: 0,
     recentScans: [],
     cardServiceAvailable: false,

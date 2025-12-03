@@ -5,8 +5,8 @@ export async function init(path) {
     await mod.init();
     return;
   }
-  if (path === '/enrollment/card') {
-    const mod = await import('./card.js');
+  if (path === '/enrollment/card' || path === '/enrollment/nfc') {
+    const mod = await import('./nfc.js');
     await mod.init();
     return;
   }

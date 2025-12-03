@@ -17,7 +17,7 @@ class EnrollmentRepo:
                     SELECT e.id, e.name, COALESCE(e.employee_code, '') AS employee_code,
                            COALESCE(e.location, '') AS location,
                            COALESCE(e.status, '') AS status,
-                           COALESCE(e.card_uid, '') AS card_uid,
+                           COALESCE(e.nfc_uid, '') AS nfc_uid,
                            (EXISTS (SELECT 1 FROM employee_fingerprints ef WHERE ef.employee_id = e.id)) AS has_fingerprint,
                            COALESCE(
                                (
@@ -55,22 +55,22 @@ class EnrollmentRepo:
 
     # -------- Mutations --------
     def create_employee(self, *, name: str, location: Optional[str], status: Optional[str],
-                        employee_code: str, card_uid: Optional[str]) -> Dict[str, Any]:
+                        employee_code: str, nfc_uid: Optional[str]) -> Dict[str, Any]:
         with pg_conn() as conn:
             with conn.cursor() as cur:
                 cur.execute(
                     """
-                    INSERT INTO employees (name, employee_code, location, status, card_uid)
+                    INSERT INTO employees (name, employee_code, location, status, nfc_uid)
                     VALUES (%s, %s, %s, %s, %s)
-                    RETURNING id, name, employee_code, location, status, card_uid
+                    RETURNING id, name, employee_code, location, status, nfc_uid
                     """,
-                    (name, employee_code, location, status, card_uid),
+                    (name, employee_code, location, status, nfc_uid),
                 )
                 row = cur.fetchone()
                 conn.commit()
         return {
             "id": row[0], "name": row[1], "employee_code": row[2],
-            "location": row[3], "status": row[4], "card_uid": row[5],
+            "location": row[3], "status": row[4], "nfc_uid": row[5],
             "has_fingerprint": False,
         }
         # :contentReference[oaicite:3]{index=3}
@@ -82,7 +82,7 @@ class EnrollmentRepo:
         pairs = []
         vals = []
         for k, v in fields.items():
-            if v is not None and k in {"name", "location", "status", "card_uid"}:
+            if v is not None and k in {"name", "location", "status", "nfc_uid"}:
                 pairs.append(f"{k} = %s")
                 vals.append(v)
         if not pairs:
@@ -94,7 +94,7 @@ class EnrollmentRepo:
             UPDATE employees
                SET {', '.join(pairs)}
              WHERE id = %s
-         RETURNING id, name, employee_code, location, status, card_uid
+         RETURNING id, name, employee_code, location, status, nfc_uid
         """
         with pg_conn() as conn:
             with conn.cursor() as cur:
@@ -108,7 +108,7 @@ class EnrollmentRepo:
                 conn.commit()
         return {
             "id": row[0], "name": row[1], "employee_code": row[2],
-            "location": row[3], "status": row[4], "card_uid": row[5],
+            "location": row[3], "status": row[4], "nfc_uid": row[5],
             "has_fingerprint": has_fingerprint,
         }
         # :contentReference[oaicite:4]{index=4}
@@ -118,7 +118,7 @@ class EnrollmentRepo:
             with conn.cursor() as cur:
                 cur.execute(
                     """
-                    SELECT id, name, employee_code, location, status, card_uid
+                    SELECT id, name, employee_code, location, status, nfc_uid
                     FROM employees
                     WHERE id = %s
                     """,
@@ -139,7 +139,7 @@ class EnrollmentRepo:
 
         return {
             "id": row[0], "name": row[1], "employee_code": row[2],
-            "location": row[3], "status": row[4], "card_uid": row[5],
+            "location": row[3], "status": row[4], "nfc_uid": row[5],
             "has_fingerprint": has_fingerprint,
             "fingerprints": fingerprints
         }
@@ -186,7 +186,7 @@ class EnrollmentRepo:
             print(f"[Repo] Database error during bulk delete: {e}")
             raise
 
-    def save_card_uid(self, employee_id: int, uid: str) -> None:
+    def save_nfc_uid(self, employee_id: int, uid: str) -> None:
         with pg_conn() as conn:
             with conn.cursor() as cur:
                 # First verify the employee exists
@@ -194,12 +194,35 @@ class EnrollmentRepo:
                 if not cur.fetchone():
                     raise ValueError(f"Employee with ID {employee_id} not found")
                 
-                # Update the card_uid
-                cur.execute("UPDATE employees SET card_uid = %s WHERE id = %s", (uid, employee_id))
+                # Remove this UID from any other employee who has it
+                cur.execute(
+                    "UPDATE employees SET nfc_uid = NULL WHERE nfc_uid = %s AND id != %s",
+                    (uid, employee_id)
+                )
+                
+                # Update the nfc_uid for the selected employee
+                cur.execute("UPDATE employees SET nfc_uid = %s WHERE id = %s", (uid, employee_id))
                 
                 # Verify the update was successful
                 if cur.rowcount == 0:
-                    raise ValueError(f"Failed to update card_uid for employee {employee_id}")
+                    raise ValueError(f"Failed to update nfc_uid for employee {employee_id}")
+                
+                conn.commit()
+
+    def delete_nfc_uid(self, employee_id: int) -> None:
+        with pg_conn() as conn:
+            with conn.cursor() as cur:
+                # Verify the employee exists
+                cur.execute("SELECT id FROM employees WHERE id = %s", (employee_id,))
+                if not cur.fetchone():
+                    raise ValueError(f"Employee with ID {employee_id} not found")
+                
+                # Remove the nfc_uid
+                cur.execute("UPDATE employees SET nfc_uid = NULL WHERE id = %s", (employee_id,))
+                
+                # Verify the update was successful
+                if cur.rowcount == 0:
+                    raise ValueError(f"Failed to delete nfc_uid for employee {employee_id}")
                 
                 conn.commit()
 

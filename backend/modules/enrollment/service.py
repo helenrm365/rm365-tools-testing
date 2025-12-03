@@ -9,12 +9,12 @@ from .repo import EnrollmentRepo
 
 # Optional hardware imports - gracefully handle missing hardware modules
 try:
-    from .hardware.card_reader import read_card_uid
-    CARD_READER_AVAILABLE = True
+    from .hardware.nfc_reader import read_nfc_uid
+    NFC_READER_AVAILABLE = True
 except ImportError:
-    CARD_READER_AVAILABLE = False
-    def read_card_uid():
-        raise RuntimeError("Card reader hardware not available in this environment")
+    NFC_READER_AVAILABLE = False
+    def read_nfc_uid():
+        raise RuntimeError("NFC reader hardware not available in this environment")
 
 try:
     from .hardware.fingerprint_reader import read_fingerprint_template, FingerprintCaptureError
@@ -36,11 +36,11 @@ class EnrollmentService:
         return self.repo.list_employees()
 
     # ---- Create/Update/Delete ----
-    def create_employee(self, *, name: str, location: str | None, status: str | None, card_uid: str | None):
+    def create_employee(self, *, name: str, location: str | None, status: str | None, nfc_uid: str | None):
         last = self.repo.get_last_employee_code()
         code = next_employee_code(last)
         row = self.repo.create_employee(name=name, location=location, status=status,
-                                        employee_code=code, card_uid=card_uid)
+                                        employee_code=code, nfc_uid=nfc_uid)
         return {"status": "success", "employee": row}
 
     def update_employee(self, employee_id: int, **fields):
@@ -68,25 +68,34 @@ class EnrollmentService:
             print(f"[Service] Bulk delete error: {e}")
             raise
 
-    # ---- Card ----
-    def scan_card(self) -> Dict[str, Any]:
-        if not CARD_READER_AVAILABLE:
-            return {"status": "error", "uid": None, "detail": "Card reader hardware not available in this environment"}
+    # ---- NFC ----
+    def scan_nfc(self) -> Dict[str, Any]:
+        if not NFC_READER_AVAILABLE:
+            return {"status": "error", "uid": None, "detail": "NFC reader hardware not available in this environment"}
         
         try:
-            uid = read_card_uid()
+            uid = read_nfc_uid()
         except Exception as e:
             return {"status": "error", "uid": None, "detail": str(e)}
         return {"status": "scanned", "uid": uid}
 
-    def save_card(self, employee_id: int, uid: str):
+    def save_nfc(self, employee_id: int, uid: str):
         try:
-            self.repo.save_card_uid(employee_id, uid)
+            self.repo.save_nfc_uid(employee_id, uid)
             return {"status": "success", "employee_id": employee_id, "uid": uid}
         except ValueError as e:
             return {"status": "error", "detail": str(e)}
         except Exception as e:
             return {"status": "error", "detail": f"Failed to save NFC: {str(e)}"}
+
+    def delete_nfc(self, employee_id: int):
+        try:
+            self.repo.delete_nfc_uid(employee_id)
+            return {"status": "success", "employee_id": employee_id}
+        except ValueError as e:
+            return {"status": "error", "detail": str(e)}
+        except Exception as e:
+            return {"status": "error", "detail": f"Failed to delete NFC: {str(e)}"}
 
     # ---- Fingerprint ----
     def scan_fingerprint(self) -> Dict[str, Any]:

@@ -6,17 +6,20 @@ class EmployeeCreateIn(BaseModel):
     name: str
     location: Optional[str] = None
     status: Optional[str] = None
-    card_uid: Optional[str] = None  # optional at creation
+    nfc_uid: Optional[str] = None  # optional at creation
 
 class EmployeeUpdateIn(BaseModel):
     name: Optional[str] = None
     location: Optional[str] = None
     status: Optional[str] = None
-    card_uid: Optional[str] = None
+    nfc_uid: Optional[str] = None
 
-class SaveCardIn(BaseModel):
+class SaveNFCIn(BaseModel):
     employee_id: int
     uid: str
+
+class DeleteNFCIn(BaseModel):
+    employee_id: int
 
 class SaveFingerprintIn(BaseModel):
     employee_id: int
@@ -31,6 +34,6 @@ class BulkDeleteIn(BaseModel):
 
 # Outputs (use common/dto for shapes the frontend already expects)
 from common.dto import (
-    EmployeeOut, EnrollResponse, ScanCardResponse, FingerprintScanResponse,
+    EmployeeOut, EnrollResponse, ScanNFCResponse, FingerprintScanResponse,
     BulkDeleteResult
 )

@@ -170,8 +170,10 @@ if not allow_origins and not allow_origin_regex:
     allow_origins = [
         "http://localhost:3000",
         "http://localhost:5000",
+        "http://localhost:8000",
         "http://127.0.0.1:3000",
         "http://127.0.0.1:5000",
+        "http://127.0.0.1:8000",
         "https://rm365-toolbox.com",  # Custom domain
         "http://rm365-toolbox.com",   # Custom domain (HTTP)
     ]

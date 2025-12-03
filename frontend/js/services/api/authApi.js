@@ -1,7 +1,7 @@
 // frontend/js/services/api/authApi.js
 import { post, get } from './http.js';
 
-const API = '/api/v1/auth';
+const API = '/v1/auth';
 
 export function login({ username, password }) {
   return post(`${API}/login`, { username, password });

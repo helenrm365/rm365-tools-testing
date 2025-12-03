@@ -2,7 +2,7 @@
 import { get, post } from './http.js';
 import { apiCache } from '../../utils/cache.js';
 
-const API = '/api/v1/attendance';
+const API = '/v1/attendance';  // http.js adds BASE which already includes /api
 
 // Cache TTLs
 const LOCATIONS_CACHE_TTL = 10 * 60 * 1000; // 10 minutes (locations rarely change)

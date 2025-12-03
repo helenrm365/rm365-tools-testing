@@ -51,7 +51,8 @@ const routes = {
 
   '/enrollment':            '/html/enrollment/home.html',
   '/enrollment/management': '/html/enrollment/management.html',
-  '/enrollment/card':       '/html/enrollment/card.html',
+  '/enrollment/card':       '/html/enrollment/nfc.html',
+  '/enrollment/nfc':        '/html/enrollment/nfc.html',
   '/enrollment/fingerprint':'/html/enrollment/fingerprint.html',
 
   '/labels':                '/html/labels/home.html',
@@ -135,7 +136,8 @@ export function generateTabStructure() {
     'overview': 'Overview',
     // Enrollment
     'management': 'Management',
-    'card': 'Card',
+    'card': 'NFC',
+    'nfc': 'NFC',
     'fingerprint': 'Fingerprint',
     // Labels
     'generator': 'Generator',

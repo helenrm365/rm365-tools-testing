@@ -25,7 +25,7 @@ function renderTable() {
     .filter(e => {
       const q = state.query.trim().toLowerCase();
       if (!q) return true;
-      const hay = `${e.name} ${e.employee_code} ${e.location || ''} ${e.card_uid || ''}`.toLowerCase();
+      const hay = `${e.name} ${e.employee_code} ${e.location || ''} ${e.nfc_uid || ''}`.toLowerCase();
       return hay.includes(q);
     });
 
@@ -88,9 +88,9 @@ function renderTable() {
           </select>
         </div>
         
-        <div class="detail-row">
-          <label class="detail-label">Card UID</label>
-          <input class="detail-input card-input" value="${e.card_uid || ''}" placeholder="No card assigned">
+        <div class="detail-item">
+          <label class="detail-label">NFC UID</label>
+          <input class="detail-input nfc-input" value="${e.nfc_uid || ''}" placeholder="No NFC assigned">
         </div>
         
         <div class="detail-row">
@@ -141,7 +141,7 @@ function wireCardEvents() {
       const name = card.querySelector('.employee-name-input').value.trim();
       const location = card.querySelector('.location-select').value;
       const status = card.querySelector('.status-select').value;
-      const card_uid = card.querySelector('.card-input').value.trim() || null;
+      const nfc_uid = card.querySelector('.nfc-input').value.trim() || null;
 
       if (!name) {
         notify('❌ Employee name is required', true);
@@ -153,7 +153,7 @@ function wireCardEvents() {
       btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Saving...</span>';
       
       try {
-        await updateEmployee(id, { name, location, status, card_uid });
+        await updateEmployee(id, { name, location, status, nfc_uid });
         notify('✅ Changes saved successfully');
         await refresh();
       } catch (e) {

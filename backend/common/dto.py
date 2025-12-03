@@ -118,7 +118,7 @@ class EmployeeOut(BaseModel):
     employee_code: Optional[str] = None
     location: Optional[str] = None
     status: Optional[str] = None
-    card_uid: Optional[str] = None
+    nfc_uid: Optional[str] = None
     has_fingerprint: Optional[bool] = None
     fingerprints: List[FingerprintOut] = Field(default_factory=list)
 # :contentReference[oaicite:9]{index=9}
@@ -130,7 +130,7 @@ class EnrollResponse(BaseModel):
 # :contentReference[oaicite:10]{index=10}
 
 
-class ScanCardResponse(Status):
+class ScanNFCResponse(Status):
     uid: Optional[str] = None  # status: 'scanned'
 # :contentReference[oaicite:11]{index=11}
 
@@ -144,7 +144,7 @@ class UpdateEmployeeIn(BaseModel):
     name: Optional[str] = None
     location: Optional[str] = None
     status: Optional[str] = None
-    card_uid: Optional[str] = None
+    nfc_uid: Optional[str] = None
 # :contentReference[oaicite:13]{index=13}
 
 
@@ -176,7 +176,7 @@ class FingerClockResult(Status):
 class AttendanceEmployeeBrief(BaseModel):
     id: int
     name: str
-    card_uid: Optional[str] = None
+    nfc_uid: Optional[str] = None
 # :contentReference[oaicite:16]{index=16}
 
 

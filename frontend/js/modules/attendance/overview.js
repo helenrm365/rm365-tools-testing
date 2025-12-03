@@ -605,7 +605,7 @@ function displayCurrentStatus(employees) {
             <tr>
               <td>${emp.name || 'Unknown'}</td>
               <td><span class="status-badge secondary">${emp.location || 'N/A'}</span></td>
-              <td><code>${emp.card_uid || 'N/A'}</code></td>
+              <td><code>${emp.nfc_uid || 'N/A'}</code></td>
               <td><span class="status-badge ${statusClass}">${statusDisplay}</span></td>
               <td>${lastActivity}</td>
             </tr>

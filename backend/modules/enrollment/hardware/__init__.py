@@ -2,7 +2,7 @@
 Hardware module initialization for enrollment devices.
 """
 
-from .card_reader import read_card_uid, CardReaderError, test_card_reader
+from .nfc_reader import read_nfc_uid, NFCReaderError, test_nfc_reader
 from .fingerprint_reader import (
     read_fingerprint_template, 
     FingerprintCaptureError, 
@@ -11,9 +11,9 @@ from .fingerprint_reader import (
 )
 
 __all__ = [
-    'read_card_uid',
-    'CardReaderError', 
-    'test_card_reader',
+    'read_nfc_uid',
+    'NFCReaderError', 
+    'test_nfc_reader',
     'read_fingerprint_template',
     'FingerprintCaptureError',
     'test_fingerprint_reader',

@@ -23,7 +23,7 @@ def get_all_tabs() -> List[str]:
     """
     return [
         "attendance", "attendance.overview", "attendance.logs", "attendance.manual", "attendance.automatic",
-        "enrollment", "enrollment.management", "enrollment.card", "enrollment.fingerprint",
+        "enrollment", "enrollment.management", "enrollment.nfc", "enrollment.card", "enrollment.fingerprint",
         "labels", "labels.generator", "labels.history",
         "salesdata", "salesdata.uk-sales", "salesdata.fr-sales", "salesdata.nl-sales", "salesdata.upload", "salesdata.history",
         "inventory", "inventory.management",

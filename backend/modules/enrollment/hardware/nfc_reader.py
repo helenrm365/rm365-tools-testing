@@ -1,6 +1,6 @@
 """
-Card Reader Module for RM365-Toolbox
-Provides RFID card reading functionality.
+NFC Reader Module for RM365-Toolbox
+Provides RFID NFC reading functionality.
 """
 
 import time
@@ -9,31 +9,31 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-class CardReaderError(Exception):
-    """Raised when card reader operations fail."""
+class NFCReaderError(Exception):
+    """Raised when NFC reader operations fail."""
     pass
 
-def read_card_uid(timeout: int = 5) -> str:
+def read_nfc_uid(timeout: int = 5) -> str:
     """
-    Read a card UID from the connected RFID reader.
+    Read an NFC UID from the connected RFID reader.
     
     Args:
-        timeout: Maximum time to wait for a card in seconds
+        timeout: Maximum time to wait for an NFC in seconds
         
     Returns:
-        str: The card UID as a hex string
+        str: The NFC UID as a hex string
         
     Raises:
-        CardReaderError: If no card reader is available or card reading fails
+        NFCReaderError: If no NFC reader is available or NFC reading fails
     """
     try:
         # Try to import and use the actual hardware library
         # This would be replaced with actual RFID library imports
         # For now, we'll simulate the behavior
         
-        logger.info(f"Attempting to read card UID with {timeout}s timeout")
+        logger.info(f"Attempting to read NFC UID with {timeout}s timeout")
         
-        # Simulate card reading - replace with actual hardware code
+        # Simulate NFC reading - replace with actual hardware code
         # Example for common RFID libraries:
         # import serial
         # import nfc
@@ -41,7 +41,7 @@ def read_card_uid(timeout: int = 5) -> str:
         
         # For development/testing purposes, we'll raise an error
         # indicating hardware is not available
-        raise CardReaderError("RFID hardware not available in development environment")
+        raise NFCReaderError("RFID hardware not available in development environment")
         
         # Example implementation (commented out):
         """
@@ -60,22 +60,22 @@ def read_card_uid(timeout: int = 5) -> str:
             time.sleep(0.1)
         
         ser.close()
-        raise CardReaderError("No card detected within timeout period")
+        raise NFCReaderError("No NFC detected within timeout period")
         """
         
     except ImportError as e:
-        logger.warning(f"Card reader library not available: {e}")
-        raise CardReaderError("Card reader hardware library not installed")
+        logger.warning(f"NFC reader library not available: {e}")
+        raise NFCReaderError("NFC reader hardware library not installed")
     except Exception as e:
-        logger.error(f"Card reader error: {e}")
-        raise CardReaderError(f"Failed to read card: {str(e)}")
+        logger.error(f"NFC reader error: {e}")
+        raise NFCReaderError(f"Failed to read NFC: {str(e)}")
 
-def test_card_reader() -> bool:
+def test_nfc_reader() -> bool:
     """
-    Test if the card reader is available and working.
+    Test if the NFC reader is available and working.
     
     Returns:
-        bool: True if card reader is available, False otherwise
+        bool: True if NFC reader is available, False otherwise
     """
     try:
         # This would test the actual hardware connection
@@ -94,10 +94,10 @@ def test_card_reader() -> bool:
         return False
 
 if __name__ == "__main__":
-    # Test the card reader
-    if test_card_reader():
+    # Test the NFC reader
+    if test_nfc_reader():
         try:
-            uid = read_card_uid(timeout=10)
+            uid = read_nfc_uid(timeout=10)
         except CardReaderError as e:
             print(f"Error reading card: {e}")
     else:

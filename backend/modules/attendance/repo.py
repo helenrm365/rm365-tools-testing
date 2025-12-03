@@ -12,10 +12,10 @@ class AttendanceRepo:
     def list_employees_brief(self) -> List[Dict[str, Any]]:
         with pg_conn() as conn:
             with conn.cursor() as cur:
-                # card_uid is optional; safe to select if present
-                cur.execute("SELECT id, name, COALESCE(card_uid, NULL) AS card_uid FROM employees ORDER BY name")
+                # nfc_uid is optional; safe to select if present
+                cur.execute("SELECT id, name, COALESCE(nfc_uid, NULL) AS nfc_uid FROM employees ORDER BY name")
                 rows = cur.fetchall()
-                return [{"id": r[0], "name": r[1], "card_uid": r[2]} for r in rows]
+                return [{"id": r[0], "name": r[1], "nfc_uid": r[2]} for r in rows]
 
     def list_employees_with_status(self, location: Optional[str] = None, name_search: Optional[str] = None) -> List[Dict[str, Any]]:
         """Get employees with their current attendance status for overview display"""
@@ -41,7 +41,7 @@ class AttendanceRepo:
                     SELECT 
                         e.id,
                         e.name,
-                        COALESCE(e.card_uid, NULL) AS card_uid,
+                        COALESCE(e.nfc_uid, NULL) AS nfc_uid,
                         COALESCE(e.location, NULL) AS location,
                         latest_log.direction AS status,
                         latest_log.log_time,
@@ -71,7 +71,7 @@ class AttendanceRepo:
                     employee = {
                         "id": r[0],
                         "name": r[1], 
-                        "card_uid": r[2],
+                        "nfc_uid": r[2],
                         "location": r[3],
                         "status": r[4] or "unknown",
                         "last_activity": r[5].strftime("%H:%M") if r[5] else None,

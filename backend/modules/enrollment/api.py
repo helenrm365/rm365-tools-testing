@@ -5,10 +5,10 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from common.deps import get_current_user
 from common.dto import (
-    EmployeeOut, EnrollResponse, ScanCardResponse, FingerprintScanResponse, BulkDeleteResult
+    EmployeeOut, EnrollResponse, ScanNFCResponse, FingerprintScanResponse, BulkDeleteResult
 )
 from .schemas import (
-    EmployeeCreateIn, EmployeeUpdateIn, SaveCardIn, SaveFingerprintIn, BulkDeleteIn, DeleteFingerprintIn
+    EmployeeCreateIn, EmployeeUpdateIn, SaveNFCIn, DeleteNFCIn, SaveFingerprintIn, BulkDeleteIn, DeleteFingerprintIn
 )
 from .service import EnrollmentService
 
@@ -27,7 +27,7 @@ def list_employees(user=Depends(get_current_user)):
 @router.post("/employees", response_model=EnrollResponse)
 def create_employee(body: EmployeeCreateIn, user=Depends(get_current_user)):
     result = _svc().create_employee(
-        name=body.name, location=body.location, status=body.status, card_uid=body.card_uid
+        name=body.name, location=body.location, status=body.status, nfc_uid=body.nfc_uid
     )
     return EnrollResponse(employee=EmployeeOut(**result["employee"]))
 
@@ -54,16 +54,20 @@ def bulk_delete(body: BulkDeleteIn, user=Depends(get_current_user)):
         print(f"[Bulk Delete] Error: {e}")
         raise HTTPException(status_code=500, detail=f"Bulk delete failed: {str(e)}")
 
-# ---- Card ----
-@router.post("/scan/card", response_model=ScanCardResponse)
-def scan_card(user=Depends(get_current_user)):
-    result = _svc().scan_card()
+# ---- NFC ----
+@router.post("/scan/nfc", response_model=ScanNFCResponse)
+def scan_nfc(user=Depends(get_current_user)):
+    result = _svc().scan_nfc()
     # status: 'scanned' or 'error'; uid may be None
-    return ScanCardResponse(status=result["status"], uid=result.get("uid"))
+    return ScanNFCResponse(status=result["status"], uid=result.get("uid"))
 
-@router.post("/save/card")
-def save_card(body: SaveCardIn, user=Depends(get_current_user)):
-    return _svc().save_card(body.employee_id, body.uid)
+@router.post("/save/nfc")
+def save_nfc(body: SaveNFCIn, user=Depends(get_current_user)):
+    return _svc().save_nfc(body.employee_id, body.uid)
+
+@router.post("/delete/nfc")
+def delete_nfc(body: DeleteNFCIn, user=Depends(get_current_user)):
+    return _svc().delete_nfc(body.employee_id)
 
 # ---- Fingerprint ----
 @router.post("/scan/fingerprint", response_model=FingerprintScanResponse)
