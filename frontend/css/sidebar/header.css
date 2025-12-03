@@ -8,7 +8,7 @@
 }
 
 .sidebar:hover .sidebar-header {
-  padding-top: 1.5rem;
+  padding-top: 2.25rem;
 }
 
 /* === Profile Section === */
@@ -19,13 +19,20 @@
   gap: 0;
   margin-bottom: 0.75rem;
   min-height: 48px;
+  position: relative;
   transition: min-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), margin-bottom 0.4s cubic-bezier(0.4, 0, 0.2, 1), gap 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sidebar:hover .profile-section {
-  min-height: 120px;
-  gap: 1rem;
-  margin-bottom: 1rem;
+  min-height: 48px;
+  gap: 0;
+  margin-bottom: 3rem;
+}
+
+/* Adjust divider inside header to span full width */
+.sidebar-header .sidebar-divider {
+  margin: 1.25rem -1rem;
+  width: calc(100% + 2rem);
 }
 
 .logo-container {
@@ -35,17 +42,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 12px;
-  background: linear-gradient(135deg, rgba(139, 195, 74, 0.1), rgba(94, 129, 34, 0.05));
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sidebar:hover .logo-container {
   width: 200px;
-  height: 80px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, rgba(139, 195, 74, 0.15), rgba(94, 129, 34, 0.1));
-  box-shadow: 0 8px 24px rgba(139, 195, 74, 0.2);
+  height: 40px;
 }
 
 .sidebar-logo {
@@ -61,48 +63,53 @@
 }
 
 .profile-info {
-  flex: 0;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
   min-width: 0;
   opacity: 0;
-  transform: translateY(-10px);
-  max-height: 0;
+  transform: translateY(-12px) scale(0.85);
   overflow: hidden;
-  transition: opacity 0.3s ease 0.1s, transform 0.3s ease 0.1s, max-height 0.3s ease, flex 0.3s ease;
+  transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1) 0s, 
+              transform 0.2s cubic-bezier(0.4, 0, 0.2, 1) 0s;
   pointer-events: none;
   text-align: center;
   width: 100%;
 }
 
 .sidebar:hover .profile-info {
-  flex: 1;
   opacity: 1;
-  transform: translateY(0);
-  max-height: 100px;
+  transform: translateY(-26px) scale(1);
   pointer-events: auto;
+  transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1) 0.25s, 
+              transform 0.4s cubic-bezier(0.4, 0, 0.2, 1) 0.25s;
 }
 
-.profile-name {
-  margin: 0 0 0.25rem 0;
-  font-size: 1.1rem;
-  font-weight: 600;
+.welcome-message {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 500;
   color: #2c3e50;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  word-spacing: 0.15em;
+  transform-origin: center;
 }
 
-.profile-role {
-  font-size: 0.875rem;
-  color: #546e7a;
-  font-weight: 400;
+.welcome-message #profileName {
+  font-weight: 600;
+  color: #8bc34a;
+  margin-left: 0.2em;
 }
 
-html.dark-mode .profile-name {
+html.dark-mode .welcome-message {
   color: #ecf0f1;
 }
 
-html.dark-mode .profile-role {
-  color: #95a5a6;
+html.dark-mode .welcome-message #profileName {
+  color: #8bc34a;
 }
 
 /* === Search Container === */
@@ -145,9 +152,9 @@ html.dark-mode .sidebar:hover .sidebar-header .search-container {
   background: rgba(255, 255, 255, 0.08);
 }
 
-html.dark-mode .sidebar .search-container:focus-within,
-html.dark-mode .sidebar-header .search-container:focus-within {
+.sidebar:hover .search-container:focus-within {
   background: rgba(255, 255, 255, 0.08);
+
   border-color: rgba(139, 195, 74, 0.5);
   box-shadow: 0 0 0 3px rgba(139, 195, 74, 0.15);
 }
@@ -233,4 +240,59 @@ html.dark-mode .sidebar-header .search-input::placeholder,
 html.dark-mode .sidebar #searchInput::placeholder,
 html.dark-mode .sidebar-header #searchInput::placeholder {
   color: #7f8c8d;
+}
+
+/* === Mobile Search Improvements === */
+@media (max-width: 768px) {
+  /* Always show search input on mobile when sidebar is open */
+  .sidebar.mobile-open .search-input,
+  .sidebar.mobile-open .sidebar-header .search-input,
+  .sidebar.mobile-open #searchInput,
+  .sidebar.mobile-open .sidebar-header #searchInput {
+    flex: 1;
+    opacity: 1;
+    width: auto;
+    transform: translateX(0);
+    padding: 0.5rem 0 0.5rem 0.5rem;
+  }
+  
+  .sidebar.mobile-open .search-container,
+  .sidebar.mobile-open .sidebar-header .search-container {
+    justify-content: flex-start;
+    padding: 0 1rem;
+    background: rgba(0, 0, 0, 0.06);
+  }
+  
+  html.dark-mode .sidebar.mobile-open .search-container,
+  html.dark-mode .sidebar.mobile-open .sidebar-header .search-container {
+    background: rgba(255, 255, 255, 0.08);
+  }
+  
+  /* Show profile info on mobile */
+  .sidebar.mobile-open .profile-info {
+    flex: 1;
+    opacity: 1;
+    transform: translateY(0);
+    max-height: 100px;
+    pointer-events: auto;
+  }
+  
+  .sidebar.mobile-open .profile-section {
+    min-height: 120px;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+  
+  .sidebar.mobile-open .logo-container {
+    width: 200px;
+    height: 80px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, rgba(139, 195, 74, 0.15), rgba(94, 129, 34, 0.1));
+    box-shadow: 0 8px 24px rgba(139, 195, 74, 0.2);
+  }
+  
+  .sidebar.mobile-open .sidebar-logo {
+    width: 85%;
+    height: 85%;
+  }
 }

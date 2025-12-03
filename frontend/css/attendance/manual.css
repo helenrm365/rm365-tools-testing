@@ -35,6 +35,28 @@ html.dark-mode .attendance-manual .manual-page-subtitle {
   color: #95a5a6;
 }
 
+/* Modern divider between title and subtitle */
+.attendance-manual .page-divider {
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    rgba(0, 0, 0, 0.08) 0%,
+    transparent 100%
+  );
+  border: none;
+  margin: 1.25rem 0;
+  max-width: 800px;
+  transition: all 0.3s ease;
+}
+
+html.dark-mode .attendance-manual .page-divider {
+  background: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0.1) 0%,
+    transparent 100%
+  );
+}
+
 /* Navigation Tabs - Fixed to match other attendance pages */
 .attendance-manual .manual-inner-tabs {
   display: flex;

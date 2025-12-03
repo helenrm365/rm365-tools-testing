@@ -284,7 +284,7 @@
       const profileSubtitle = document.getElementById('profileSubtitle');
       
       if (profileName && user.username) {
-        profileName.textContent = `${user.username}'s`;
+        profileName.textContent = user.username;
       }
       if (profileSubtitle) {
         profileSubtitle.textContent = 'Dashboard';
@@ -311,32 +311,93 @@
   }
   
   function initMobileToggle() {
+    let backdrop = null;
+    
+    const createBackdrop = () => {
+      if (backdrop) return backdrop;
+      
+      backdrop = document.createElement('div');
+      backdrop.className = 'mobile-sidebar-backdrop';
+      backdrop.addEventListener('click', closeSidebar);
+      document.body.appendChild(backdrop);
+      
+      return backdrop;
+    };
+    
+    const closeSidebar = () => {
+      const sidebar = document.getElementById('sidebar');
+      const toggle = document.querySelector('.mobile-sidebar-toggle');
+      
+      if (sidebar) {
+        sidebar.classList.remove('mobile-open');
+      }
+      if (toggle) {
+        toggle.classList.remove('active');
+        toggle.setAttribute('aria-expanded', 'false');
+      }
+      if (backdrop) {
+        backdrop.classList.remove('active');
+      }
+      document.body.classList.remove('sidebar-open');
+    };
+    
+    const openSidebar = () => {
+      const sidebar = document.getElementById('sidebar');
+      const toggle = document.querySelector('.mobile-sidebar-toggle');
+      
+      if (sidebar) {
+        sidebar.classList.add('mobile-open');
+      }
+      if (toggle) {
+        toggle.classList.add('active');
+        toggle.setAttribute('aria-expanded', 'true');
+      }
+      
+      const bdrop = createBackdrop();
+      // Use setTimeout to ensure backdrop is in DOM before adding active class
+      setTimeout(() => bdrop.classList.add('active'), 10);
+      
+      document.body.classList.add('sidebar-open');
+    };
+    
+    const toggleSidebar = () => {
+      const sidebar = document.getElementById('sidebar');
+      const isOpen = sidebar?.classList.contains('mobile-open');
+      
+      if (isOpen) {
+        closeSidebar();
+      } else {
+        openSidebar();
+      }
+    };
+    
     const createToggle = () => {
       if (document.querySelector('.mobile-sidebar-toggle')) return;
       
       const toggle = document.createElement('button');
       toggle.className = 'mobile-sidebar-toggle';
-      toggle.innerHTML = '☰';
+      toggle.innerHTML = '<i class="fas fa-bars"></i>';
       toggle.setAttribute('aria-label', 'Toggle Sidebar');
       toggle.setAttribute('aria-expanded', 'false');
       
-      toggle.addEventListener('click', () => {
-        const sidebar = document.getElementById('sidebar');
-        if (sidebar) {
-          const isOpen = sidebar.classList.toggle('mobile-open');
-          toggle.setAttribute('aria-expanded', String(isOpen));
-        }
-      });
+      toggle.addEventListener('click', toggleSidebar);
       
       document.body.appendChild(toggle);
+      createBackdrop();
     };
     
     const removeToggle = () => {
       const toggle = document.querySelector('.mobile-sidebar-toggle');
       toggle?.remove();
       
+      if (backdrop) {
+        backdrop.remove();
+        backdrop = null;
+      }
+      
       const sidebar = document.getElementById('sidebar');
       sidebar?.classList.remove('mobile-open');
+      document.body.classList.remove('sidebar-open');
     };
     
     const handleResize = () => {
@@ -346,6 +407,18 @@
         removeToggle();
       }
     };
+    
+    // Close sidebar when clicking navigation links on mobile
+    const handleNavClick = (e) => {
+      if (window.innerWidth <= 768) {
+        const link = e.target.closest('a[data-nav]');
+        if (link) {
+          closeSidebar();
+        }
+      }
+    };
+    
+    document.addEventListener('click', handleNavClick);
     
     handleResize();
     window.addEventListener('resize', handleResize);

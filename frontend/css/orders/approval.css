@@ -52,6 +52,28 @@ html.dark-mode .order-approval .page-subtitle {
   color: #95a5a6;
 }
 
+/* Modern divider between title and subtitle */
+.order-approval .page-divider {
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    rgba(0, 0, 0, 0.08) 0%,
+    transparent 100%
+  );
+  border: none;
+  margin: 1.25rem 0;
+  max-width: 800px;
+  transition: all 0.3s ease;
+}
+
+html.dark-mode .order-approval .page-divider {
+  background: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0.1) 0%,
+    transparent 100%
+  );
+}
+
 /* ===== Navigation Tabs ===== */
 .order-approval .inner-tabs {
   display: flex;
@@ -194,11 +216,11 @@ html.dark-mode .order-approval .tab-button.active:hover {
 }
 
 .stat-icon.pending {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
 }
 
 .stat-icon.approved {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  background: linear-gradient(135deg, #66BB6A 0%, #43A047 100%);
 }
 
 .stat-icon.total {

@@ -13,7 +13,8 @@
   flex-direction: column;
   transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 1000;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   box-shadow: 4px 0 24px rgba(0, 0, 0, 0.06);
 }
 
@@ -37,7 +38,7 @@ html.dark-mode .sidebar {
     transparent 100%
   );
   border: none;
-  margin: 0.75rem 0;
+  margin: 1.25rem 0;
   transition: all 0.3s ease;
 }
 
@@ -48,4 +49,16 @@ html.dark-mode .sidebar-divider {
     rgba(255, 255, 255, 0.1) 50%,
     transparent 100%
   );
+}
+
+/* Adjust spacing for the middle divider (between header and nav) */
+.sidebar-header + .sidebar-divider {
+  margin-top: 0.5rem; /* 0.75rem header padding + 0.5rem = 1.25rem visual gap */
+  margin-bottom: 0; /* Allow nav to scroll up to the divider */
+}
+
+/* Adjust spacing for the bottom divider (between nav and footer) */
+.sidebar-nav + .sidebar-divider {
+  margin-top: 0; /* Maximize nav space */
+  margin-bottom: 0.25rem; /* 0.25rem + 1rem footer padding = 1.25rem visual gap */
 }

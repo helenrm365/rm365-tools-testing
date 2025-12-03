@@ -212,3 +212,38 @@ input:checked + .toggle-slider::before {
 input:focus + .toggle-slider {
   box-shadow: 0 0 0 3px rgba(139, 195, 74, 0.2);
 }
+
+/* === Mobile Footer Improvements === */
+@media (max-width: 768px) {
+  /* Show labels on mobile when sidebar is open */
+  .sidebar.mobile-open .footer-button .nav-label,
+  .sidebar.mobile-open .dark-mode-toggle .nav-label {
+    opacity: 1;
+    max-width: 200px;
+    pointer-events: auto;
+  }
+  
+  .sidebar.mobile-open .footer-button,
+  .sidebar.mobile-open .dark-mode-toggle {
+    justify-content: flex-start;
+    gap: 1rem;
+  }
+  
+  .sidebar.mobile-open .toggle-switch {
+    opacity: 1;
+    max-width: 44px;
+    transform: translateX(0);
+  }
+  
+  /* Larger touch targets */
+  .sidebar.mobile-open .footer-button,
+  .sidebar.mobile-open .dark-mode-toggle {
+    min-height: 52px;
+    padding: 1rem;
+  }
+  
+  /* Remove hover transform on mobile */
+  .sidebar.mobile-open .footer-button:hover {
+    transform: none;
+  }
+}

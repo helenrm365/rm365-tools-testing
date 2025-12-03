@@ -39,6 +39,28 @@ html.dark-mode .order-tracking .page-subtitle {
   color: #95a5a6;
 }
 
+/* Modern divider between title and subtitle */
+.order-tracking .page-divider {
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    rgba(0, 0, 0, 0.08) 0%,
+    transparent 100%
+  );
+  border: none;
+  margin: 1.25rem 0;
+  max-width: 800px;
+  transition: all 0.3s ease;
+}
+
+html.dark-mode .order-tracking .page-divider {
+  background: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0.1) 0%,
+    transparent 100%
+  );
+}
+
 .order-tracking {
   padding: 0;
   height: 100%;
@@ -332,19 +354,19 @@ body.minimal-mode .tracking-board {
 }
 
 .column-header.ready-to-pick {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
   color: white;
   border-bottom-color: rgba(255, 255, 255, 0.2);
 }
 
 .column-header.ready-to-check {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
   color: white;
   border-bottom-color: rgba(255, 255, 255, 0.2);
 }
 
 .column-header.completed {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  background: linear-gradient(135deg, #66BB6A 0%, #43A047 100%);
   color: white;
   border-bottom-color: rgba(255, 255, 255, 0.2);
 }

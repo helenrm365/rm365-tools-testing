@@ -49,6 +49,31 @@ html.dark-mode .hero-subtitle {
   color: #c0c0c0;
 }
 
+/* Modern divider between title and subtitle */
+.hero-divider {
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    rgba(0, 0, 0, 0.08) 50%,
+    transparent 100%
+  );
+  border: none;
+  margin: 1.5rem auto;
+  max-width: 600px;
+  width: 100%;
+  transition: all 0.3s ease;
+}
+
+html.dark-mode .hero-divider {
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    transparent 100%
+  );
+}
+
 /* ===== Feature Cards Grid ===== */
 .module-cards-grid {
   display: grid;

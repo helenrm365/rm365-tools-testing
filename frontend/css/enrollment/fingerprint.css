@@ -39,6 +39,28 @@ html.dark-mode .enrollment-fingerprint .page-subtitle {
   color: #95a5a6;
 }
 
+/* Modern divider between title and subtitle */
+.enrollment-fingerprint .page-divider {
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    rgba(0, 0, 0, 0.08) 0%,
+    transparent 100%
+  );
+  border: none;
+  margin: 1.25rem 0;
+  max-width: 800px;
+  transition: all 0.3s ease;
+}
+
+html.dark-mode .enrollment-fingerprint .page-divider {
+  background: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0.1) 0%,
+    transparent 100%
+  );
+}
+
 /* Navigation Tabs */
 .enrollment-fingerprint .inner-tabs {
   display: flex;

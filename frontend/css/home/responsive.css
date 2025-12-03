@@ -34,15 +34,15 @@
   }
   
   .home-logo-compact {
-    max-width: 100px;
+    max-width: 70px;
   }
   
   .home-title {
-    font-size: 2rem;
+    font-size: 1.5rem;
   }
   
   .home-subtitle {
-    font-size: 1rem;
+    font-size: 0.9rem;
   }
   
   .prompt-card,
@@ -71,15 +71,15 @@
   }
   
   .home-title {
-    font-size: 1.75rem;
+    font-size: 1.35rem;
   }
   
   .home-subtitle {
-    font-size: 0.95rem;
+    font-size: 0.85rem;
   }
   
   .home-logo-compact {
-    max-width: 80px;
+    max-width: 60px;
   }
   
   .prompt-card,

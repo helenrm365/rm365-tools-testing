@@ -109,15 +109,6 @@ class OrderApprovalManager {
     if (approvedTodayCount) {
       approvedTodayCount.textContent = this.approvedToday;
     }
-
-    // Total value
-    const totalValue = this.pendingOrders.reduce((sum, order) => {
-      return sum + parseFloat(order.grand_total || 0);
-    }, 0);
-    const totalValueEl = document.getElementById('totalValue');
-    if (totalValueEl) {
-      totalValueEl.textContent = `$${totalValue.toFixed(2)}`;
-    }
   }
 
   filterAndRenderOrders() {
