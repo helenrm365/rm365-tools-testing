@@ -31,8 +31,8 @@ const FINGERPRINT_COOLDOWN_MS = 1000;
 const MAX_RECENT_SCANS = 10;
 const MAX_CONSECUTIVE_ERRORS = 5; // After this many errors, slow down polling
 
-// Determine protocol for hardware bridge based on current page protocol
-const BRIDGE_PROTOCOL = window.location.protocol === 'https:' ? 'https:' : 'http:';
+// Hardware bridge always runs on HTTPS
+const BRIDGE_PROTOCOL = 'https:';
 const BRIDGE_BASE = `${BRIDGE_PROTOCOL}//127.0.0.1:8080`;
 
 // SecuGen endpoints to probe for fingerprint scanning
@@ -388,7 +388,7 @@ async function pollFingerprint() {
         name: t.name
       }));
 
-      const matchResponse = await fetch('http://127.0.0.1:8080/fingerprint/match_batch', {
+      const matchResponse = await fetch('https://127.0.0.1:8080/fingerprint/match_batch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -415,7 +415,7 @@ async function pollFingerprint() {
       // Fallback to individual matching
       for (const tmpl of state.fingerprintTemplates) {
         try {
-          const matchResponse = await fetch('http://127.0.0.1:8080/fingerprint/match', {
+          const matchResponse = await fetch('https://127.0.0.1:8080/fingerprint/match', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

@@ -136,8 +136,8 @@ async function onDeleteCard() {
 }
 
 async function tryLocalCardScan(timeoutSeconds = 1) {
-  // Determine protocol for hardware bridge based on current page protocol
-  const bridgeProtocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
+  // Hardware bridge always runs on HTTPS
+  const bridgeProtocol = 'https:';
   
   const localEndpoints = [
     `${bridgeProtocol}//127.0.0.1:8080/nfc/scan`,
