@@ -70,7 +70,7 @@ class ScanSession(BaseModel):
     completed_at: Optional[datetime] = None
     items_expected: List[dict] = []
     items_scanned: List[dict] = []
-    status: str = "draft"  # draft, in_progress, completed, cancelled
+    status: str = "draft"  # draft, approved, in_progress, ready_to_check, completed, cancelled
     user_id: Optional[str] = None  # Current owner of the session
     created_by: Optional[str] = None  # Original creator
     last_modified_by: Optional[str] = None  # Last user to modify
@@ -81,7 +81,7 @@ class ScanSession(BaseModel):
 class SessionAuditLog(BaseModel):
     """Audit log entry for session actions"""
     timestamp: datetime
-    action: str  # started, drafted, cancelled, completed, claimed, transferred, forced_takeover, forced_cancel
+    action: str  # started, drafted, approved, cancelled, completed, ready_to_check, claimed, transferred, forced_takeover, forced_cancel
     user: str
     details: Optional[str] = None
 

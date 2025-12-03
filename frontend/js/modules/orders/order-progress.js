@@ -432,7 +432,7 @@ async function executeTakeover(sessionId, session) {
         
         // If the backend returned order/invoice, redirect into the active session page
         if (result.order_number && result.invoice_number) {
-            const path = `/inventory/order-fulfillment/session-${result.order_number}-${result.invoice_number}`;
+            const path = `/orders/order-fulfillment/session-${result.order_number}-${result.invoice_number}`;
             if (window.navigate) {
                 window.navigate(path);
             } else {

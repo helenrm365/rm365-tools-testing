@@ -473,3 +473,47 @@ class MagentoRepo:
         
         self._save_takeover_requests()
         return request
+    
+    # Order Tracking methods
+    
+    def get_sessions_by_status(self, statuses: List[str]) -> List[ScanSession]:
+        """Get all sessions matching any of the given statuses"""
+        return [
+            s for s in self._sessions.values()
+            if s.status in statuses
+        ]
+    
+    def mark_session_ready_to_check(self, session_id: str, user_id: Optional[str] = None) -> bool:
+        """Mark a session as ready to check instead of completed"""
+        session = self._sessions.get(session_id)
+        if not session:
+            return False
+        
+        marking_user = user_id or session.user_id or session.last_modified_by or "Unknown"
+        session.status = "ready_to_check"
+        session.last_modified_by = marking_user
+        session.last_modified_at = datetime.now()
+        
+        self._add_audit_log(session_id, "ready_to_check", marking_user, "Marked as ready to check")
+        self._save_sessions()
+        return True
+    
+    def approve_session(self, session_id: str, user_id: str) -> bool:
+        """
+        Approve a session for picking.
+        
+        IMPORTANT: This only updates the local session state. No changes are made to Magento.
+        The order remains in its original Magento status (typically 'processing').
+        """
+        session = self._sessions.get(session_id)
+        if not session:
+            return False
+        
+        session.status = "approved"
+        session.last_modified_by = user_id
+        session.last_modified_at = datetime.now()
+        
+        self._add_audit_log(session_id, "approved", user_id, "Approved for picking")
+        self._save_sessions()
+        return True
+

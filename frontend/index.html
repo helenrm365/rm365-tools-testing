@@ -103,8 +103,10 @@
   <link rel="stylesheet" href="/css/inventory/management.css">
   <link rel="stylesheet" href="/css/inventory/table.css">
   <link rel="stylesheet" href="/css/inventory/collaboration.css">
-  <link rel="stylesheet" href="/css/inventory/order-fulfillment.css">
-  <link rel="stylesheet" href="/css/inventory/order-progress.css">
+  <link rel="stylesheet" href="/css/orders/order-fulfillment.css">
+  <link rel="stylesheet" href="/css/orders/order-progress.css">
+  <link rel="stylesheet" href="/css/orders/tracking.css">
+  <link rel="stylesheet" href="/css/orders/approval.css">
   <link rel="stylesheet" href="/css/usermanagement/usermanagement.css">
 
   <link rel="manifest" href="/manifest.webmanifest">
@@ -190,15 +192,18 @@
   <!-- Global config available to modules -->
   <script>
     // Backend URL configuration - supports environment variables or defaults
+    // Note: The actual API URL is determined by config.js module
     window.API = window.API || 
-                        (typeof process !== 'undefined' && process.env?.API);
+                        (typeof process !== 'undefined' && process.env?.API) ||
+                        undefined; // Don't log false, let config.js handle it
     
     window.IS_TAURI = !!(window.__TAURI__ && (window.__TAURI__.invoke || (window.__TAURI__.fs && (window.__TAURI__.fs.readTextFile || window.__TAURI__.fs.exists))));
     
-    // Debug logging for configuration
-    console.log('[Config] Backend URL:', window.API);
+    // Debug logging for configuration (actual API URL logged by config.js)
+    if (window.API) {
+      console.log('[Config] Backend URL (from window.API):', window.API);
+    }
     console.log('[Config] Frontend Origin:', window.location.origin);
-    console.log('[Config] Cross-origin setup:', window.API !== window.location.origin);
     
     // Mark body as loaded once DOM is ready
     document.addEventListener('DOMContentLoaded', () => {

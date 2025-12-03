@@ -103,6 +103,7 @@ class WebSocketService {
    */
   _setupEventHandlers() {
     this.socket.on('connect', () => {
+      console.log('[WebSocket] Connected with socket ID:', this.socket.id);
       this.connected = true;
       this.reconnectAttempts = 0;
       this._emit('connected', { sid: this.socket.id });
@@ -131,6 +132,7 @@ class WebSocketService {
 
     // Room-specific events
     this.socket.on('room_joined', (data) => {
+      console.log('[WebSocket] Successfully joined room:', data);
       this.roomState = data;
       this._emit('room_joined', data);
     });
@@ -331,6 +333,7 @@ class WebSocketService {
     const roomToJoin = this.pendingRoom;
     this.pendingRoom = null;
     this.activeRoom = roomToJoin;
+    console.log('[WebSocket] Attempting to join room:', roomToJoin, 'as user:', this.currentUser?.username);
     this.socket.emit('join_inventory_room', {
       // Use real user_id when available; fall back to username
       user_id: this.currentUser?.user_id || this.currentUser?.username || 'unknown',

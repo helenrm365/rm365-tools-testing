@@ -1,4 +1,4 @@
-// frontend/js/modules/inventory/order-fulfillment.js
+// frontend/js/modules/orders/order-fulfillment.js
 // Order Fulfillment Module - Process orders and returns
 
 import { getApiUrl } from '../../config.js';
@@ -8,7 +8,7 @@ import { me as fetchCurrentUser } from '../../services/api/authApi.js';
 import { wsService } from '../../services/websocket.js';
 import { showNotification } from '../../ui/modal.js';
 import * as orderModals from '../../ui/orderFulfillmentModals.js';
-import { updateRoute } from '../../router.js';
+import { updateRoute, showLoading, hideLoading } from '../../router.js';
 
 // Currency symbol mapping
 function getCurrencySymbol(currencyCode) {
@@ -43,13 +43,21 @@ class MagentoPickPackManager {
   constructor(initialPath) {
     this.currentSession = null;
     this.currentSessionId = null;
-    this.currentPath = initialPath || '/inventory/order-fulfillment';
+    this.currentPath = initialPath || '/orders/order-fulfillment';
+    this.refreshInterval = null;
+    this.initialLoadPromise = null;
     this.initializeElements();
     this.attachEventListeners();
     this.setupWebSocket();
     this.ensureRealtimeConnection();
     // Check if we're loading a specific session from URL
-    this.checkSessionFromPath(initialPath);
+    this.initialLoadPromise = this.checkSessionFromPath(initialPath);
+    // Set up auto-refresh every 30 seconds (as backup to WebSocket)
+    this.refreshInterval = setInterval(() => {
+      if (!this.currentSession) {
+        this.loadTrackingBoard();
+      }
+    }, 30000);
     // TODO: Implement active sessions endpoint on backend
     // this.loadActiveSessions();
   }
@@ -73,11 +81,16 @@ class MagentoPickPackManager {
         return;
       }
 
+      console.log('[MagentoPickPack] Initializing WebSocket connection for user:', user.username);
       if (!wsService.isConnected()) {
         await wsService.connect(user);
+        console.log('[MagentoPickPack] WebSocket connection initiated');
+      } else {
+        console.log('[MagentoPickPack] WebSocket already connected');
       }
 
       wsService.joinRoom('inventory_management');
+      console.log('[MagentoPickPack] Requested to join inventory_management room');
     } catch (error) {
       console.warn('[MagentoPickPack] Failed to ensure realtime connection:', error);
     }
@@ -91,6 +104,10 @@ class MagentoPickPackManager {
     this.handleSessionForcedCancel = this.handleSessionForcedCancel.bind(this);
     this.handleSessionForcedTakeover = this.handleSessionForcedTakeover.bind(this);
     this.handleSessionAssigned = this.handleSessionAssigned.bind(this);
+    this.handleOrderStatusChanged = this.handleOrderStatusChanged.bind(this);
+    this.handleOrderCreated = this.handleOrderCreated.bind(this);
+    this.handleOrderDeleted = this.handleOrderDeleted.bind(this);
+    this.updateLiveStatus = this.updateLiveStatus.bind(this);
     
     // Listen for takeover and session events
     wsService.on('takeover_request', this.handleTakeoverRequest);
@@ -99,15 +116,37 @@ class MagentoPickPackManager {
     wsService.on('session_forced_cancel', this.handleSessionForcedCancel);
     wsService.on('session_forced_takeover', this.handleSessionForcedTakeover);
     wsService.on('session_assigned', this.handleSessionAssigned);
+    
+    // Listen for tracking board updates
+    wsService.on('order_status_changed', this.handleOrderStatusChanged);
+    wsService.on('order_created', this.handleOrderCreated);
+    wsService.on('order_deleted', this.handleOrderDeleted);
+    
+    // Listen for connection status
+    wsService.on('connected', this.updateLiveStatus);
+    wsService.on('disconnected', this.updateLiveStatus);
+    wsService.on('connection_error', this.updateLiveStatus);
   }
 
   cleanupWebSocket() {
+    // Clear refresh interval
+    if (this.refreshInterval) {
+      clearInterval(this.refreshInterval);
+      this.refreshInterval = null;
+    }
+    
     wsService.off('takeover_request', this.handleTakeoverRequest);
     wsService.off('takeover_response', this.handleTakeoverResponse);
     wsService.off('session_transferred', this.handleSessionTransferred);
     wsService.off('session_forced_cancel', this.handleSessionForcedCancel);
     wsService.off('session_forced_takeover', this.handleSessionForcedTakeover);
     wsService.off('session_assigned', this.handleSessionAssigned);
+    wsService.off('order_status_changed', this.handleOrderStatusChanged);
+    wsService.off('order_created', this.handleOrderCreated);
+    wsService.off('order_deleted', this.handleOrderDeleted);
+    wsService.off('connected', this.updateLiveStatus);
+    wsService.off('disconnected', this.updateLiveStatus);
+    wsService.off('connection_error', this.updateLiveStatus);
   }
 
   async handleTakeoverRequest(data) {
@@ -166,7 +205,7 @@ class MagentoPickPackManager {
       try {
         // Check if we're already on this session page - avoid re-navigation
         const currentPath = window.location.pathname;
-        const targetPath = `/inventory/order-fulfillment/session-${orderNumber}-`;
+        const targetPath = `/orders/order-fulfillment/session-${orderNumber}-`;
         if (currentPath && currentPath.startsWith(targetPath)) {
           return;
         }
@@ -177,7 +216,7 @@ class MagentoPickPackManager {
         if (response.ok) {
           const status = await response.json();
           if (status?.order_number && status?.invoice_number) {
-            const path = `/inventory/order-fulfillment/session-${status.order_number}-${status.invoice_number}`;
+            const path = `/orders/order-fulfillment/session-${status.order_number}-${status.invoice_number}`;
             if (window.navigate) {
               window.navigate(path);
             } else {
@@ -192,15 +231,50 @@ class MagentoPickPackManager {
     }
   }
 
+  async handleOrderStatusChanged(data) {
+    console.log('[MagentoPickPack] Order status changed:', data);
+    // Only reload tracking board if we're not in an active session
+    if (!this.currentSession) {
+      await this.loadTrackingBoard();
+    }
+  }
+
+  async handleOrderCreated(data) {
+    console.log('[MagentoPickPack] New order created:', data);
+    if (!this.currentSession) {
+      await this.loadTrackingBoard();
+    }
+  }
+
+  async handleOrderDeleted(data) {
+    console.log('[MagentoPickPack] Order deleted:', data);
+    if (!this.currentSession) {
+      await this.loadTrackingBoard();
+    }
+  }
+
+  updateLiveStatus() {
+    const liveStatus = document.getElementById('liveStatus');
+    if (!liveStatus) return;
+    
+    if (wsService.isConnected()) {
+      liveStatus.className = 'live-status connected';
+      liveStatus.querySelector('.status-text').textContent = 'Live';
+    } else {
+      liveStatus.className = 'live-status disconnected';
+      liveStatus.querySelector('.status-text').textContent = 'Offline';
+    }
+  }
+
   async checkSessionFromPath(path) {
-    if (!path || path === '/inventory/order-fulfillment') {
-      // Base path, show order lookup
-      this.showOrderLookup();
+    if (!path || path === '/orders/order-fulfillment') {
+      // Base path, show order lookup (this is initial load)
+      await this.showOrderLookup(true);
       return;
     }
 
-    // Check if path matches session URL pattern: /inventory/order-fulfillment/session-{order}-{invoice}
-    const sessionMatch = path.match(/\/inventory\/order-fulfillment\/session-([^-]+)-(.+)/);
+    // Check if path matches session URL pattern: /orders/order-fulfillment/session-{order}-{invoice}
+    const sessionMatch = path.match(/\/orders\/order-fulfillment\/session-([^-]+)-(.+)/);
     if (sessionMatch) {
       const orderNumber = sessionMatch[1];
       const invoiceNumber = sessionMatch[2];
@@ -217,7 +291,7 @@ class MagentoPickPackManager {
             info = await response.json();
           } catch (e) {
             console.warn('[MagentoPickPack] Non-JSON response while checking session; showing lookup', e);
-            this.showOrderLookup();
+            await this.showOrderLookup();
             return;
           }
           // If an in-progress session exists for this order, we still rely on websocket-assigned event to inject session_id
@@ -226,11 +300,11 @@ class MagentoPickPackManager {
       } catch (error) {
         console.error('[MagentoPickPack] Error loading session from path:', error);
         // Avoid crashing the module; show lookup view
-        this.showOrderLookup();
+        await this.showOrderLookup();
       }
 
       // If we couldn't load the session, redirect to base path
-      this.showOrderLookup();
+      await this.showOrderLookup();
     }
   }
 
@@ -282,6 +356,7 @@ class MagentoPickPackManager {
     this.itemsList = document.getElementById('itemsList');
     this.cancelSessionBtn = document.getElementById('cancelSessionBtn');
     this.completeSessionBtn = document.getElementById('completeSessionBtn');
+    this.markReadyToCheckBtn = document.getElementById('markReadyToCheckBtn');
     // Initialize custom dropdowns
     this.initializeDropdowns();
   }
@@ -347,6 +422,18 @@ class MagentoPickPackManager {
   }
 
   attachEventListeners() {
+    // Refresh Button
+    const refreshBtn = document.getElementById('refreshBoardBtn');
+    if (refreshBtn) {
+      refreshBtn.addEventListener('click', async () => {
+        refreshBtn.disabled = true;
+        refreshBtn.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i> Refreshing...';
+        await this.loadTrackingBoard();
+        refreshBtn.disabled = false;
+        refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
+      });
+    }
+    
     // Start Session
     this.startSessionBtn?.addEventListener('click', () => this.startSession());
     this.orderNumberInput?.addEventListener('keypress', (e) => {
@@ -362,6 +449,7 @@ class MagentoPickPackManager {
     // Session Actions
     this.cancelSessionBtn?.addEventListener('click', () => this.cancelSession());
     this.completeSessionBtn?.addEventListener('click', () => this.completeSession());
+    this.markReadyToCheckBtn?.addEventListener('click', () => this.markReadyToCheck());
   }
 
   async startSession() {
@@ -480,7 +568,7 @@ class MagentoPickPackManager {
       window.__currentMagentoSession = session.session_id;
 
       // Navigate to session-specific URL
-      const sessionUrl = `/inventory/order-fulfillment/session-${session.order_number}-${session.invoice_number}`;
+      const sessionUrl = `/orders/order-fulfillment/session-${session.order_number}-${session.invoice_number}`;
       updateRoute(sessionUrl, false, { sessionId: session.session_id });
       this.currentPath = sessionUrl;
 
@@ -527,7 +615,7 @@ class MagentoPickPackManager {
         throw new Error('Failed to load claimed session data');
       }
 
-      const sessionUrl = `/inventory/order-fulfillment/session-${this.currentSession.order_number}-${this.currentSession.invoice_number}`;
+      const sessionUrl = `/orders/order-fulfillment/session-${this.currentSession.order_number}-${this.currentSession.invoice_number}`;
       updateRoute(sessionUrl, false, { sessionId: claimedSessionId });
       this.currentPath = sessionUrl;
 
@@ -548,6 +636,12 @@ class MagentoPickPackManager {
     this.orderLookupSection.style.display = 'none';
     this.activeSessionSection.style.display = 'block';
     
+    // Hide tracking board section when in active session
+    const trackingBoardSection = document.getElementById('trackingBoardSection');
+    if (trackingBoardSection) {
+      trackingBoardSection.style.display = 'none';
+    }
+    
     // Ensure tab stays highlighted
     ensureTabHighlighted();
     
@@ -561,12 +655,21 @@ class MagentoPickPackManager {
     setTimeout(() => this.skuInput.focus(), 100);
   }
 
-  showOrderLookup() {
+  async showOrderLookup(isInitialLoad = false) {
     this.activeSessionSection.style.display = 'none';
     this.orderLookupSection.style.display = 'block';
     
+    // Show tracking board section
+    const trackingBoardSection = document.getElementById('trackingBoardSection');
+    if (trackingBoardSection) {
+      trackingBoardSection.style.display = 'block';
+    }
+    
+    // Load the tracking board and wait for it
+    await this.loadTrackingBoard(isInitialLoad);
+    
     // Navigate back to base order fulfillment URL
-    const baseUrl = '/inventory/order-fulfillment';
+    const baseUrl = '/orders/order-fulfillment';
     if (this.currentPath !== baseUrl) {
       updateRoute(baseUrl, false, {});
       this.currentPath = baseUrl;
@@ -578,6 +681,174 @@ class MagentoPickPackManager {
     this.orderNumberInput.value = '';
     this.currentSession = null;
     this.currentSessionId = null;
+  }
+  
+  async loadTrackingBoard(isInitialLoad = false) {
+    // Show global loading screen (unless it's already showing from navigation)
+    if (!isInitialLoad) {
+      showLoading('Loading orders...');
+    }
+    
+    try {
+      const url = `${getApiUrl()}/v1/magento/tracking/board`;
+      const response = await fetch(url, { headers: getAuthHeaders() });
+      
+      if (!response.ok) {
+        throw new Error('Failed to load tracking board');
+      }
+      
+      const data = await response.json();
+      
+      // Small delay to ensure smooth transition
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Update each column
+      this.updateColumn('readyToPick', data.ready_to_pick || []);
+      this.updateColumn('readyToCheck', data.ready_to_check || []);
+      this.updateColumn('completed', data.completed || []);
+    } catch (error) {
+      console.error('[Order Fulfillment] Error loading tracking board:', error);
+    } finally {
+      // Always hide the loading screen when done
+      hideLoading();
+    }
+  }
+  
+  updateColumn(columnName, orders) {
+    const columnMap = {
+      readyToPick: { id: 'readyToPickColumn', count: 'readyToPickCount' },
+      readyToCheck: { id: 'readyToCheckColumn', count: 'readyToCheckCount' },
+      completed: { id: 'completedColumn', count: 'completedCount' }
+    };
+    
+    const column = columnMap[columnName];
+    const columnEl = document.getElementById(column.id);
+    const countEl = document.getElementById(column.count);
+    
+    if (!columnEl || !countEl) return;
+    
+    // Update count
+    countEl.textContent = orders.length;
+    
+    // Clear column
+    columnEl.innerHTML = '';
+    
+    // Add orders
+    if (orders.length === 0) {
+      columnEl.innerHTML = `
+        <div class="column-empty">
+          <i class="fas fa-inbox"></i>
+          <p>No orders in this column</p>
+        </div>
+      `;
+    } else {
+      orders.forEach(order => {
+        const card = this.createOrderCard(order, columnName);
+        columnEl.appendChild(card);
+      });
+    }
+  }
+  
+  createOrderCard(order, columnName) {
+    const card = document.createElement('div');
+    card.className = 'order-card';
+    
+    const statusBadgeClass = order.status.replace('_', '-');
+    const statusLabel = order.status.replace(/_/g, ' ').toUpperCase();
+    
+    const createdDate = new Date(order.created_at);
+    const formattedDate = createdDate.toLocaleDateString() + ' ' + createdDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    
+    card.innerHTML = `
+      <div class="order-card-header">
+        <div class="order-number">#${order.order_number}</div>
+        <span class="order-status-badge ${statusBadgeClass}">${statusLabel}</span>
+      </div>
+      
+      <div class="order-card-info">
+        <div class="order-info-row">
+          <i class="fas fa-receipt"></i>
+          <span>Invoice: ${order.invoice_number}</span>
+        </div>
+        ${order.customer_name ? `
+          <div class="order-info-row">
+            <i class="fas fa-user"></i>
+            <span>${order.customer_name}</span>
+          </div>
+        ` : ''}
+        ${order.grand_total ? `
+          <div class="order-info-row">
+            <i class="fas fa-dollar-sign"></i>
+            <span>$${order.grand_total.toFixed(2)}</span>
+          </div>
+        ` : ''}
+        <div class="order-info-row">
+          <i class="fas fa-user-circle"></i>
+          <span>${order.created_by}</span>
+        </div>
+      </div>
+      
+      <div class="order-card-footer">
+        <div class="order-progress">
+          <div>${order.completed_items} / ${order.total_items} items</div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width: ${order.progress_percentage}%"></div>
+          </div>
+        </div>
+        <div class="order-timestamp">${formattedDate}</div>
+      </div>
+    `;
+    
+    // Add click handler based on column
+    card.onclick = () => {
+      if (columnName === 'readyToPick') {
+        // Start picking session (only if not in_progress)
+        if (order.status !== 'in_progress') {
+          this.startSessionFromCard(order.order_number, 'pick');
+        } else {
+          // View the session
+          this.navigateToSession(order);
+        }
+      } else if (columnName === 'readyToCheck') {
+        // Start checking session
+        this.startSessionFromCard(order.order_number, 'check');
+      } else {
+        // Just view the completed order (read-only)
+        this.navigateToSession(order);
+      }
+    };
+    
+    return card;
+  }
+  
+  async startSessionFromCard(orderNumber, sessionType = 'pick') {
+    try {
+      // Navigate to the session by order number
+      const url = `${getApiUrl()}/v1/magento/invoice/lookup/${orderNumber}`;
+      const response = await fetch(url, { headers: getAuthHeaders() });
+      
+      if (!response.ok) {
+        throw new Error('Failed to lookup order');
+      }
+      
+      const invoice = await response.json();
+      
+      // Start the session
+      await this.startSession(orderNumber, sessionType);
+    } catch (error) {
+      console.error('[Order Fulfillment] Error starting session from card:', error);
+      showNotification(`Failed to start session: ${error.message}`, 'error');
+    }
+  }
+  
+  navigateToSession(order) {
+    const path = `/orders/order-fulfillment/session-${order.order_number}-${order.invoice_number}`;
+    if (window.navigate) {
+      window.navigate(path);
+    } else {
+      history.pushState({ path }, '', path);
+      location.reload();
+    }
   }
 
   updateSessionDisplay() {
@@ -657,6 +928,11 @@ class MagentoPickPackManager {
 
     // Enable/disable complete button - all items must be complete
     this.completeSessionBtn.disabled = completedItems !== totalItems;
+    
+    // Show "Mark Ready to Check" button if at least one item is scanned
+    if (this.markReadyToCheckBtn) {
+      this.markReadyToCheckBtn.style.display = totalQtyScanned > 0 ? 'inline-flex' : 'none';
+    }
 
     // Update items list
     this.updateItemsList();
@@ -844,6 +1120,54 @@ class MagentoPickPackManager {
     }
   }
 
+  async markReadyToCheck() {
+    if (!this.currentSessionId) return;
+
+    const confirmed = await orderModals.confirm(
+      'Mark Ready to Check?',
+      `Are you sure you want to mark order #${this.currentSession?.order_number} as ready to check? This will move it to the checking queue instead of completing it.`
+    );
+    
+    if (!confirmed) return;
+
+    try {
+      this.markReadyToCheckBtn.disabled = true;
+      this.markReadyToCheckBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Marking...';
+
+      const response = await fetch(`${getApiUrl()}/v1/magento/tracking/mark-ready-to-check`, {
+        method: 'POST',
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          session_id: this.currentSessionId
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to mark as ready to check');
+      }
+
+      // Show success message
+      await orderModals.alert('Success', `Order #${this.currentSession?.order_number} has been marked as ready to check.`);
+
+      // Clear global session tracking
+      window.__currentMagentoSession = null;
+      
+      // Return to order lookup
+      this.showOrderLookup();
+
+    } catch (error) {
+      console.error('Error marking ready to check:', error);
+      await orderModals.alertError('Error: ' + error.message);
+    } finally {
+      this.markReadyToCheckBtn.disabled = false;
+      this.markReadyToCheckBtn.innerHTML = '<i class="fas fa-clipboard-check"></i> Ready to Check';
+    }
+  }
+
   async cancelSession() {
     if (!this.currentSessionId) return;
 
@@ -962,9 +1286,14 @@ export async function init(path) {
     const manager = new MagentoPickPackManager(path);
     window.__magentoPickPackManager = manager;
     window.__magentoPickPackInitialized = true;
+    
+    // Wait for initial load to complete
+    if (manager.initialLoadPromise) {
+      await manager.initialLoadPromise;
+    }
   } else if (window.__magentoPickPackManager) {
     // Module already initialized, just check if we need to load a session from path
-    window.__magentoPickPackManager.checkSessionFromPath(path);
+    await window.__magentoPickPackManager.checkSessionFromPath(path);
   }
 }
 

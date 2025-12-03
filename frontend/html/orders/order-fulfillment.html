@@ -10,22 +10,96 @@
 
   <!-- Navigation Tabs -->
   <div class="inner-tabs">
-    <button class="tab-button" onclick="location.href='/inventory/management'">
-      <i class="fas fa-boxes"></i>
-      <span>Management</span>
-    </button>
-    <button class="tab-button active" onclick="location.href='/inventory/order-fulfillment'">
+    <button class="tab-button active" onclick="location.href='/orders/order-fulfillment'">
       <i class="fas fa-shopping-cart"></i>
       <span>Order Fulfillment</span>
     </button>
-    <button class="tab-button" onclick="location.href='/inventory/order-progress'">
+    <button class="tab-button" onclick="location.href='/orders/order-progress'">
       <i class="fas fa-chart-line"></i>
       <span>Order Progress</span>
+    </button>
+    <button class="tab-button" onclick="location.href='/orders/order-tracking'">
+      <i class="fas fa-tasks"></i>
+      <span>Order Tracking</span>
+    </button>
+    <button class="tab-button" onclick="location.href='/orders/order-approval'">
+      <i class="fas fa-check-circle"></i>
+      <span>Order Approval</span>
     </button>
   </div>
 
   <!-- Main Content Wrapper -->
   <div class="pickpack-wrapper">
+    
+    <!-- Tracking Board Section (3 columns) -->
+    <div class="tracking-board-section" id="trackingBoardSection">
+      
+      <!-- Action Buttons -->
+      <div class="tracking-actions">
+        <!-- Live Status Indicator -->
+        <div class="live-status" id="liveStatus">
+          <span class="status-dot"></span>
+          <span class="status-text">Connecting...</span>
+        </div>
+
+        <button class="primary-button" id="refreshBoardBtn">
+          <i class="fas fa-sync-alt"></i>
+          Refresh
+        </button>
+      </div>
+      
+      <div class="tracking-board">
+        
+        <!-- Ready to Pick Column -->
+        <div class="tracking-column">
+          <div class="column-header ready-to-pick">
+            <div class="column-icon">
+              <i class="fas fa-clipboard-list"></i>
+            </div>
+            <div class="column-title-group">
+              <h3 class="column-title">Ready to Pick</h3>
+              <span class="column-count" id="readyToPickCount">0</span>
+            </div>
+          </div>
+          <div class="column-content" id="readyToPickColumn">
+            <!-- Order cards will be inserted here -->
+          </div>
+        </div>
+
+        <!-- Ready to Check Column -->
+        <div class="tracking-column">
+          <div class="column-header ready-to-check">
+            <div class="column-icon">
+              <i class="fas fa-search"></i>
+            </div>
+            <div class="column-title-group">
+              <h3 class="column-title">Ready to Check</h3>
+              <span class="column-count" id="readyToCheckCount">0</span>
+            </div>
+          </div>
+          <div class="column-content" id="readyToCheckColumn">
+            <!-- Order cards will be inserted here -->
+          </div>
+        </div>
+
+        <!-- Completed Column -->
+        <div class="tracking-column">
+          <div class="column-header completed">
+            <div class="column-icon">
+              <i class="fas fa-check-double"></i>
+            </div>
+            <div class="column-title-group">
+              <h3 class="column-title">Completed</h3>
+              <span class="column-count" id="completedCount">0</span>
+            </div>
+          </div>
+          <div class="column-content" id="completedColumn">
+            <!-- Order cards will be inserted here -->
+          </div>
+        </div>
+
+      </div>
+    </div>
     
     <!-- Order Lookup Section (shown when no active session) -->
     <div class="order-lookup-section" id="orderLookupSection">
@@ -159,6 +233,10 @@
           <button id="cancelSessionBtn" class="secondary-button">
             <i class="fas fa-times"></i>
             Cancel
+          </button>
+          <button id="markReadyToCheckBtn" class="warning-button" style="display: none;">
+            <i class="fas fa-clipboard-check"></i>
+            Ready to Check
           </button>
           <button id="completeSessionBtn" class="success-button" disabled>
             <i class="fas fa-check"></i>

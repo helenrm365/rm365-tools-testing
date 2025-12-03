@@ -392,11 +392,13 @@ start-macos/start.command
 
 ### 🔌 Hardware
 
-| Device | Purpose |
-|--------|---------|
-| **SecuGen Fingerprint Reader** | Biometric authentication |
-| **USB RFID Card Reader** | Card-based attendance |
-| **Local Hardware Bridge** | USB device access from browser |
+| Device | Purpose | Status |
+|--------|---------|--------|
+| **SecuGen Fingerprint Reader** | Biometric authentication | Windows only |
+| **ACR1252U USB NFC Reader III** | NFC card reading | ✅ Supported |
+| **ACR122U NFC Reader** | NFC card reading | ✅ Supported |
+| **Serial RFID Card Readers** | Card-based attendance | ✅ Supported |
+| **Local Hardware Bridge** | USB device access via native API | Pure Python |
 
 ---
 
@@ -828,15 +830,17 @@ This creates 30+ indexes for faster queries.
 **Local hardware bridge** enables browser access to USB devices.
 
 **Supported Devices:**
-- SecuGen fingerprint scanners
-- USB RFID card readers
+- SecuGen fingerprint scanners (Windows)
+- **ACR1252U USB NFC Reader III** ⭐ NEW
+- ACR122U and other PC/SC NFC readers
+- Serial-based RFID card readers
 - Automatic device detection
 
 **Architecture:**
 - Main server (local) - Serves web application
-- Hardware bridge (local) - USB device access
+- Hardware bridge (local) - USB device access via native Windows API
 - Runs on same machine or office network
-- HTTPS with self-signed certificates
+- HTTPS with self-signed certificates (optional)
 
 **Setup:**
 ```bash
@@ -845,11 +849,20 @@ pip install -r requirements.txt
 python app.py
 ```
 
+**ACR1252U Quick Start:**
+1. Plug in ACR1252U (Windows auto-installs drivers)
+2. Test: `python acr_reader.py`
+3. Start bridge: `python app.py`
+4. Scan cards at `http://127.0.0.1:8080/card/scan`
+
+See `local-hardware-bridge/ACR1252U-SETUP.md` for complete documentation.
+
 **Features:**
 - Fingerprint enrollment and verification
-- RFID card reading
+- NFC/RFID card reading (PC/SC and serial)
 - Device health monitoring
 - Automatic reconnection
+- Pure Python implementation (no compilation needed)
 
 ### Magento Integration
 
@@ -971,7 +984,7 @@ POST   /api/v1/magento/session/scan         - Scan product
 POST   /api/v1/magento/session/complete     - Complete pick session
 ```
 
-**Note**: Magento integration is located in `backend/modules/inventory/order_fulfillment/`
+**Note**: Magento integration is located in `backend/modules/orders/order_fulfillment/`
 
 ---
 

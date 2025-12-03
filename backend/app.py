@@ -8,8 +8,10 @@ from typing import Optional
 # Load environment variables from .env file for local development
 try:
     from dotenv import load_dotenv
-    load_dotenv()
-    print("🔧 Environment variables loaded from .env file")
+    # Load .env from project root (one directory up from backend/)
+    env_path = Path(__file__).resolve().parent.parent / '.env'
+    load_dotenv(dotenv_path=env_path)
+    print(f"🔧 Environment variables loaded from {env_path}")
 except ImportError:
     print("⚠️  python-dotenv not installed, using system environment variables")
 
@@ -170,7 +172,8 @@ if not allow_origins and not allow_origin_regex:
         "http://localhost:5000",
         "http://127.0.0.1:3000",
         "http://127.0.0.1:5000",
-        "https://rm365-tools-testing.pages.dev",  # Production Cloudflare Pages
+        "https://rm365-toolbox.com",  # Custom domain
+        "http://rm365-toolbox.com",   # Custom domain (HTTP)
     ]
     print("🔧 Using default CORS origins for development")
 
@@ -318,7 +321,7 @@ working_modules = [
     ('modules.salesdata.api', 'router', f'{API}/salesdata', ['salesdata']),
     ('modules.inventory.management.api', 'router', f'{API}/inventory/management', ['inventory-management']),
     ('modules.inventory.collaboration', 'router', f'{API}/inventory/collaboration', ['inventory-collaboration']),
-    ('modules.inventory.order_fulfillment.api', 'router', f'{API}/magento', ['magento']),
+    ('modules.orders.order_fulfillment.api', 'router', f'{API}/magento', ['magento']),
 ]
 
 for mod, attr, prefix, tags in working_modules:

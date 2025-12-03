@@ -5,7 +5,11 @@
     "order_number": "1045325118",
     "session_type": "pick",
     "started_at": "2025-11-26T16:57:32.555782",
+<<<<<<< HEAD:backend/modules/inventory/order_fulfillment/data/scan_sessions.json
     "completed_at": "2025-12-01T15:53:59.941130",
+=======
+    "completed_at": null,
+>>>>>>> 88d0e24595d725f5d2af4a3bd8ae616d3333d91e:backend/modules/orders/order_fulfillment/data/scan_sessions.json
     "items_expected": [
       {
         "sku": "PO001",
@@ -15,11 +19,16 @@
       }
     ],
     "items_scanned": [],
-    "status": "cancelled",
+    "status": "draft",
     "user_id": null,
     "created_by": "superadminuser",
+<<<<<<< HEAD:backend/modules/inventory/order_fulfillment/data/scan_sessions.json
     "last_modified_by": "ian",
     "last_modified_at": "2025-12-01T15:53:59.941138",
+=======
+    "last_modified_by": "superadminuser",
+    "last_modified_at": "2025-11-30T20:05:26.822056",
+>>>>>>> 88d0e24595d725f5d2af4a3bd8ae616d3333d91e:backend/modules/orders/order_fulfillment/data/scan_sessions.json
     "audit_logs": [
       {
         "timestamp": "2025-11-26T16:57:32.555829",
@@ -1258,6 +1267,7 @@
         "details": "Cancelled session"
       },
       {
+<<<<<<< HEAD:backend/modules/inventory/order_fulfillment/data/scan_sessions.json
         "timestamp": "2025-12-01T15:50:21.161318",
         "action": "restarted",
         "user": "ian",
@@ -1274,6 +1284,54 @@
         "action": "cancelled",
         "user": "ian",
         "details": "Cancelled session"
+=======
+        "timestamp": "2025-11-30T19:48:48.903734",
+        "action": "restarted",
+        "user": "superadminuser",
+        "details": "Restarted cancelled session"
+      },
+      {
+        "timestamp": "2025-11-30T19:48:54.584441",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-30T19:49:29.752687",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-30T19:51:51.221728",
+        "action": "restarted",
+        "user": "superadminuser",
+        "details": "Restarted cancelled session"
+      },
+      {
+        "timestamp": "2025-11-30T19:52:14.682001",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-11-30T19:53:44.541688",
+        "action": "cancelled",
+        "user": "superadminuser",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-11-30T19:53:55.375163",
+        "action": "restarted",
+        "user": "superadminuser",
+        "details": "Restarted cancelled session"
+      },
+      {
+        "timestamp": "2025-11-30T20:05:26.822068",
+        "action": "drafted",
+        "user": "superadminuser",
+        "details": "Released session as draft"
+>>>>>>> 88d0e24595d725f5d2af4a3bd8ae616d3333d91e:backend/modules/orders/order_fulfillment/data/scan_sessions.json
       }
     ]
   },
@@ -1325,7 +1383,11 @@
     "order_number": "1045285584",
     "session_type": "pick",
     "started_at": "2025-11-26T23:47:15.222650",
+<<<<<<< HEAD:backend/modules/inventory/order_fulfillment/data/scan_sessions.json
     "completed_at": "2025-12-01T15:54:02.905234",
+=======
+    "completed_at": "2025-11-30T19:49:32.419938",
+>>>>>>> 88d0e24595d725f5d2af4a3bd8ae616d3333d91e:backend/modules/orders/order_fulfillment/data/scan_sessions.json
     "items_expected": [
       {
         "sku": "EL002-MD",
@@ -1344,8 +1406,13 @@
     "status": "cancelled",
     "user_id": null,
     "created_by": "superadminuser",
+<<<<<<< HEAD:backend/modules/inventory/order_fulfillment/data/scan_sessions.json
     "last_modified_by": "ian",
     "last_modified_at": "2025-12-01T15:54:02.905243",
+=======
+    "last_modified_by": "superadminuser",
+    "last_modified_at": "2025-11-30T19:49:32.419953",
+>>>>>>> 88d0e24595d725f5d2af4a3bd8ae616d3333d91e:backend/modules/orders/order_fulfillment/data/scan_sessions.json
     "audit_logs": [
       {
         "timestamp": "2025-11-26T23:47:15.222708",
@@ -1654,9 +1721,15 @@
         "details": "Released session as draft"
       },
       {
+<<<<<<< HEAD:backend/modules/inventory/order_fulfillment/data/scan_sessions.json
         "timestamp": "2025-12-01T15:54:02.905249",
         "action": "cancelled",
         "user": "ian",
+=======
+        "timestamp": "2025-11-30T19:49:32.419962",
+        "action": "cancelled",
+        "user": "superadminuser",
+>>>>>>> 88d0e24595d725f5d2af4a3bd8ae616d3333d91e:backend/modules/orders/order_fulfillment/data/scan_sessions.json
         "details": "Cancelled session"
       }
     ]

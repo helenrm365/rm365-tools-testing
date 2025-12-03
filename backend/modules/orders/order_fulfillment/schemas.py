@@ -1,6 +1,6 @@
 from __future__ import annotations
 from datetime import datetime
-from typing import List, Optional, Literal
+from typing import List, Optional, Literal, Dict, Any
 from pydantic import BaseModel, Field
 
 
@@ -172,4 +172,53 @@ class ForceAssignSchema(BaseModel):
 class ForceCancelSchema(BaseModel):
     """Force cancel a session"""
     reason: Optional[str] = None
+
+
+class OrderTrackingColumnSchema(BaseModel):
+    """Schema for order tracking column data"""
+    session_id: str
+    order_number: str
+    invoice_number: str
+    status: str
+    session_type: str
+    created_by: str
+    created_at: datetime
+    last_modified_at: Optional[datetime] = None
+    progress_percentage: float
+    total_items: int
+    completed_items: int
+    grand_total: Optional[float] = None
+    customer_name: Optional[str] = None
+
+
+class OrderTrackingBoardSchema(BaseModel):
+    """Schema for full order tracking board with all columns"""
+    ready_to_pick: List[OrderTrackingColumnSchema]
+    ready_to_check: List[OrderTrackingColumnSchema]
+    completed: List[OrderTrackingColumnSchema]
+
+
+class ApproveOrderSchema(BaseModel):
+    """Schema to approve a Magento order for picking"""
+    order_number: str
+
+
+class MarkReadyToCheckSchema(BaseModel):
+    """Schema to mark an order as ready to check"""
+    session_id: str
+
+
+class PendingMagentoOrderSchema(BaseModel):
+    """Schema for pending Magento orders awaiting approval"""
+    order_id: int
+    order_number: str
+    created_at: str
+    grand_total: float
+    status: str
+    customer_name: Optional[str] = None
+    customer_email: Optional[str] = None
+    total_qty_ordered: float = 0
+    payment_method: Optional[str] = None
+    items: List[Dict[str, Any]] = []
+
 

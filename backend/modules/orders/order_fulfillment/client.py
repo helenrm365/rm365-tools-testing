@@ -1,12 +1,20 @@
 """
 Magento API Client for fetching invoices and order data
+
+⚠️ READ-ONLY CLIENT ⚠️
+This client ONLY reads data from Magento. It never modifies Magento data.
+All order management (approvals, status changes, picking, packing) happens
+in the local database only. Orders remain in their original Magento status.
 """
 import requests
+import logging
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
 from core.config import settings
 from .models import MagentoInvoice, MagentoProduct
+
+logger = logging.getLogger(__name__)
 
 
 class MagentoClient:
@@ -29,7 +37,20 @@ class MagentoClient:
         }
     
     def _make_request(self, endpoint: str, method: str = 'GET', params: Optional[Dict] = None) -> Any:
-        """Make a request to Magento API"""
+        """
+        Make a request to Magento API
+        
+        IMPORTANT: This client is READ-ONLY. All order management (approvals, status changes, etc.)
+        happens in the local database only. We never modify Magento data.
+        """
+        # Safety guard: Only allow GET requests to Magento
+        if method.upper() != 'GET':
+            raise ValueError(
+                f"Write operations to Magento are not allowed. "
+                f"Attempted method: {method}. "
+                f"All order state changes must be tracked locally only."
+            )
+        
         url = f"{self.base_url}/rest/V1/{endpoint}"
         
         try:
@@ -329,6 +350,41 @@ class MagentoClient:
             invoices.append(self._parse_invoice(full_invoice))
         
         return invoices
+    
+    def get_processing_orders(self, limit: int = 50, status: str = 'processing') -> List[Dict[str, Any]]:
+        """
+        Get orders by status from Magento
+        Default is 'processing' status which needs approval before picking
+        
+        Args:
+            limit: Maximum number of orders to retrieve
+            status: Order status to filter by (default: 'processing')
+        """
+        try:
+            params = {
+                'searchCriteria[filterGroups][0][filters][0][field]': 'status',
+                'searchCriteria[filterGroups][0][filters][0][value]': status,
+                'searchCriteria[filterGroups][0][filters][0][conditionType]': 'eq',
+                'searchCriteria[pageSize]': str(limit),
+                'searchCriteria[currentPage]': '1',
+                'searchCriteria[sortOrders][0][field]': 'created_at',
+                'searchCriteria[sortOrders][0][direction]': 'DESC'
+            }
+            
+            logger.info(f"Fetching Magento orders with status='{status}', limit={limit}")
+            result = self._make_request('orders', params=params)
+            items = result.get('items', [])
+            logger.info(f"Retrieved {len(items)} orders with status '{status}' from Magento")
+            
+            # Log order numbers for debugging
+            if items:
+                order_numbers = [order.get('increment_id') for order in items]
+                logger.debug(f"Order numbers retrieved: {order_numbers}")
+            
+            return items
+        except Exception as e:
+            logger.error(f"Failed to get orders with status '{status}': {e}")
+            return []
 
 
 # Singleton instance
@@ -341,3 +397,4 @@ def get_magento_client() -> MagentoClient:
     if _client is None:
         _client = MagentoClient()
     return _client
+
