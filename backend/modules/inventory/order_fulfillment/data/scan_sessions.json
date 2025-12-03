@@ -5,7 +5,7 @@
     "order_number": "1045325118",
     "session_type": "pick",
     "started_at": "2025-11-26T16:57:32.555782",
-    "completed_at": "2025-11-26T23:47:42.879434",
+    "completed_at": "2025-12-01T15:53:59.941130",
     "items_expected": [
       {
         "sku": "PO001",
@@ -18,8 +18,8 @@
     "status": "cancelled",
     "user_id": null,
     "created_by": "superadminuser",
-    "last_modified_by": "superadminuser",
-    "last_modified_at": "2025-11-26T23:47:42.879440",
+    "last_modified_by": "ian",
+    "last_modified_at": "2025-12-01T15:53:59.941138",
     "audit_logs": [
       {
         "timestamp": "2025-11-26T16:57:32.555829",
@@ -1256,6 +1256,24 @@
         "action": "cancelled",
         "user": "superadminuser",
         "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-12-01T15:50:21.161318",
+        "action": "restarted",
+        "user": "ian",
+        "details": "Restarted cancelled session"
+      },
+      {
+        "timestamp": "2025-12-01T15:50:26.855783",
+        "action": "drafted",
+        "user": "ian",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-12-01T15:53:59.941205",
+        "action": "cancelled",
+        "user": "ian",
+        "details": "Cancelled session"
       }
     ]
   },
@@ -1307,7 +1325,7 @@
     "order_number": "1045285584",
     "session_type": "pick",
     "started_at": "2025-11-26T23:47:15.222650",
-    "completed_at": null,
+    "completed_at": "2025-12-01T15:54:02.905234",
     "items_expected": [
       {
         "sku": "EL002-MD",
@@ -1323,11 +1341,11 @@
       }
     ],
     "items_scanned": [],
-    "status": "draft",
+    "status": "cancelled",
     "user_id": null,
     "created_by": "superadminuser",
-    "last_modified_by": "superadminuser",
-    "last_modified_at": "2025-11-27T22:25:47.804214",
+    "last_modified_by": "ian",
+    "last_modified_at": "2025-12-01T15:54:02.905243",
     "audit_logs": [
       {
         "timestamp": "2025-11-26T23:47:15.222708",
@@ -1634,6 +1652,12 @@
         "action": "drafted",
         "user": "superadminuser",
         "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-12-01T15:54:02.905249",
+        "action": "cancelled",
+        "user": "ian",
+        "details": "Cancelled session"
       }
     ]
   }

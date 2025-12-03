@@ -1,10 +1,10 @@
-<!-- Card Enrollment Page -->
+<!-- NFC Enrollment Page -->
 <div class="enrollment-card">
   <!-- Page Header -->
   <div class="page-header">
     <div class="header-content">
-      <h1 class="page-title">Card Enrollment</h1>
-      <p class="page-subtitle">Register RFID cards and assign them to employees</p>
+      <h1 class="page-title">NFC Enrollment</h1>
+      <p class="page-subtitle">Register NFC cards/fobs and assign them to employees</p>
     </div>
   </div>
 
@@ -16,7 +16,7 @@
     </button>
     <button class="tab-button active" onclick="location.href='/enrollment/card'">
       <i class="fas fa-id-card"></i>
-      <span>Card</span>
+      <span>NFC</span>
     </button>
     <button class="tab-button" onclick="location.href='/enrollment/fingerprint'">
       <i class="fas fa-fingerprint"></i>
@@ -28,55 +28,15 @@
   <div class="card-enrollment-wrapper">
     <!-- Primary Actions Card -->
     <div class="enrollment-card-section primary-section">
-      <!-- Scan Card Area -->
-      <div class="action-block scan-block">
-        <div class="block-header">
-          <div class="block-icon scan-icon">
-            <i class="fas fa-credit-card"></i>
-          </div>
-          <div class="block-title-group">
-            <h3 class="block-title">Scan RFID Card</h3>
-            <p class="block-subtitle">Hold card near the reader</p>
-          </div>
-        </div>
-
-        <div class="block-content">
-          <div class="uid-display-area">
-            <div class="uid-label">
-              <i class="fas fa-barcode"></i>
-              <span>Card UID</span>
-            </div>
-            <div class="uid-value" id="cardUidDisplay">
-              <span class="placeholder-text">No card scanned yet</span>
-            </div>
-            <input type="hidden" id="cardUid">
-          </div>
-
-          <button class="action-btn scan-btn" id="scanCardBtn">
-            <i class="fas fa-search"></i>
-            <span>Scan Card</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Divider -->
-      <div class="action-divider">
-        <div class="divider-line"></div>
-        <div class="divider-icon">
-          <i class="fas fa-arrow-down"></i>
-        </div>
-        <div class="divider-line"></div>
-      </div>
-
-      <!-- Assign Employee Area -->
+      <!-- Select Employee Area - NOW FIRST -->
       <div class="action-block assign-block">
         <div class="block-header">
           <div class="block-icon assign-icon">
-            <i class="fas fa-user-tag"></i>
+            <i class="fas fa-user-check"></i>
           </div>
           <div class="block-title-group">
-            <h3 class="block-title">Assign to Employee</h3>
-            <p class="block-subtitle">Link card to team member</p>
+            <h3 class="block-title">1. Select Employee</h3>
+            <p class="block-subtitle">Choose employee to enroll NFC</p>
           </div>
         </div>
 
@@ -90,10 +50,69 @@
               <option value="">Loading employees...</option>
             </select>
           </div>
+        </div>
+      </div>
 
+      <!-- Divider -->
+      <div class="action-divider">
+        <div class="divider-line"></div>
+        <div class="divider-icon">
+          <i class="fas fa-arrow-down"></i>
+        </div>
+        <div class="divider-line"></div>
+      </div>
+
+      <!-- Scan Card Area - NOW SECOND -->
+      <div class="action-block scan-block">
+        <div class="block-header">
+          <div class="block-icon scan-icon">
+            <i class="fas fa-credit-card"></i>
+          </div>
+          <div class="block-title-group">
+            <h3 class="block-title">2. Scan NFC</h3>
+            <p class="block-subtitle">Tap NFC card/fob on reader when ready</p>
+          </div>
+        </div>
+
+        <div class="block-content">
+          <div class="uid-display-area">
+            <div class="uid-label">
+              <i class="fas fa-barcode"></i>
+              <span>NFC UID</span>
+            </div>
+            <div class="uid-value" id="cardUidDisplay">
+              <span class="placeholder-text">No NFC scanned yet</span>
+            </div>
+            <input type="hidden" id="cardUid">
+          </div>
+        </div>
+      </div>
+
+      <!-- Divider -->
+      <div class="action-divider">
+        <div class="divider-line"></div>
+        <div class="divider-icon">
+          <i class="fas fa-arrow-down"></i>
+        </div>
+        <div class="divider-line"></div>
+      </div>
+
+      <!-- Save Card Area - NOW THIRD -->
+      <div class="action-block save-block">
+        <div class="block-header">
+          <div class="block-icon save-icon">
+            <i class="fas fa-save"></i>
+          </div>
+          <div class="block-title-group">
+            <h3 class="block-title">3. Save NFC</h3>
+            <p class="block-subtitle">Complete enrollment process</p>
+          </div>
+        </div>
+
+        <div class="block-content">
           <button class="action-btn save-btn" id="saveCardBtn">
             <i class="fas fa-check-circle"></i>
-            <span>Save Assignment</span>
+            <span>Save NFC</span>
           </button>
         </div>
       </div>
@@ -101,7 +120,7 @@
       <!-- Status Bar -->
       <div class="status-bar" id="cardStatus" data-status="ready">
         <i class="fas fa-circle status-icon"></i>
-        <span class="status-message">Ready to scan</span>
+        <span class="status-message">Please select an employee to begin enrollment</span>
       </div>
     </div>
 
@@ -118,39 +137,31 @@
         <div class="step-item">
           <div class="step-number">1</div>
           <div class="step-info">
-            <h4 class="step-name">Scan Card</h4>
-            <p class="step-desc">Click "Scan Card" and hold RFID card near reader</p>
-          </div>
-        </div>
-
-        <div class="step-item">
-          <div class="step-number">2</div>
-          <div class="step-info">
-            <h4 class="step-name">Verify UID</h4>
-            <p class="step-desc">Card's unique ID will appear above</p>
-          </div>
-        </div>
-
-        <div class="step-item">
-          <div class="step-number">3</div>
-          <div class="step-info">
             <h4 class="step-name">Select Employee</h4>
             <p class="step-desc">Choose team member from dropdown</p>
           </div>
         </div>
 
         <div class="step-item">
-          <div class="step-number">4</div>
+          <div class="step-number">2</div>
+          <div class="step-info">
+            <h4 class="step-name">Scan NFC</h4>
+            <p class="step-desc">Tap NFC card/fob on reader (auto-scans when employee selected)</p>
+          </div>
+        </div>
+
+        <div class="step-item">
+          <div class="step-number">3</div>
           <div class="step-info">
             <h4 class="step-name">Save</h4>
-            <p class="step-desc">Click "Save Assignment" to complete</p>
+            <p class="step-desc">Click "Save NFC" to complete enrollment</p>
           </div>
         </div>
       </div>
 
       <div class="note-card">
         <i class="fas fa-exclamation-circle"></i>
-        <span><strong>Note:</strong> Card must be within 2-3cm of reader. Each card can only be assigned to one employee.</span>
+        <span><strong>Note:</strong> NFC card/fob must be within 2-3cm of reader. Scanning starts automatically when employee is selected. Tap again to re-scan.</span>
       </div>
     </div>
   </div>

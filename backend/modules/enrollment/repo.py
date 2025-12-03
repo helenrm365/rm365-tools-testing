@@ -189,9 +189,19 @@ class EnrollmentRepo:
     def save_card_uid(self, employee_id: int, uid: str) -> None:
         with pg_conn() as conn:
             with conn.cursor() as cur:
+                # First verify the employee exists
+                cur.execute("SELECT id FROM employees WHERE id = %s", (employee_id,))
+                if not cur.fetchone():
+                    raise ValueError(f"Employee with ID {employee_id} not found")
+                
+                # Update the card_uid
                 cur.execute("UPDATE employees SET card_uid = %s WHERE id = %s", (uid, employee_id))
+                
+                # Verify the update was successful
+                if cur.rowcount == 0:
+                    raise ValueError(f"Failed to update card_uid for employee {employee_id}")
+                
                 conn.commit()
-        # :contentReference[oaicite:7]{index=7}
 
     def save_fingerprint(self, employee_id: int, tpl_bytes: bytes, name: str = "Default") -> None:
         with pg_conn() as conn:

@@ -80,8 +80,13 @@ class EnrollmentService:
         return {"status": "scanned", "uid": uid}
 
     def save_card(self, employee_id: int, uid: str):
-        self.repo.save_card_uid(employee_id, uid)
-        return {"status": "success", "employee_id": employee_id, "uid": uid}
+        try:
+            self.repo.save_card_uid(employee_id, uid)
+            return {"status": "success", "employee_id": employee_id, "uid": uid}
+        except ValueError as e:
+            return {"status": "error", "detail": str(e)}
+        except Exception as e:
+            return {"status": "error", "detail": f"Failed to save NFC: {str(e)}"}
 
     # ---- Fingerprint ----
     def scan_fingerprint(self) -> Dict[str, Any]:

@@ -1,7 +1,10 @@
 // js/modules/enrollment/card.js
 import { getEmployees, scanCard, saveCard } from '../../services/api/enrollmentApi.js';
+import { playSuccessSound, playErrorSound, playScanSound } from '../../utils/sound.js';
 
 let cache = { employees: [], scannedUid: null };
+let scanLoopActive = false;
+let currentScanAbort = null;
 
 function $(sel) { return document.querySelector(sel); }
 
@@ -15,59 +18,57 @@ function fillEmployeeSelect() {
     opt.textContent = `${e.name} (${e.employee_code || '—'})`;
     sel.appendChild(opt);
   });
+  
+  // Add change listener to start/stop scanning loop
+  sel.addEventListener('change', (e) => {
+    const empId = e.target.value;
+    const status = $('#cardStatus');
+    const statusText = status?.querySelector('.status-message');
+    
+  if (!empId) {
+      const emp = cache.employees.find(em => String(em.id) === empId);
+      if (statusText) statusText.textContent = `Employee selected: ${emp?.name || 'Unknown'}. Waiting for NFC tap...`;
+      if (status) status.setAttribute('data-status', 'ready');
+      startScanningLoop();
+    } else {
+      if (statusText) statusText.textContent = 'Please select an employee to begin enrollment';
+      if (status) status.setAttribute('data-status', 'ready');
+      stopScanningLoop();
+      // Clear scanned NFC when deselecting employee
+      resetCardDisplay();
+    }
+  });
 }
 
-async function onScan() {
-  const status = $('#cardStatus');
-  const statusText = status?.querySelector('.status-message');
+function resetCardDisplay() {
+  cache.scannedUid = null;
   const uidDisplay = $('#cardUidDisplay');
   const uidBox = $('#cardUid');
-  
-  if (statusText) statusText.textContent = 'Waiting for card tap...';
-  if (status) status.setAttribute('data-status', 'scanning');
   if (uidDisplay) {
-    uidDisplay.innerHTML = '<span class="placeholder-text">Scanning...</span>';
+    uidDisplay.innerHTML = '<span class="placeholder-text">No NFC scanned yet</span>';
     uidDisplay.classList.remove('has-value');
   }
   if (uidBox) uidBox.value = '';
+}
 
-  // Try local hardware bridge first
+async function tryLocalCardScan(timeoutSeconds = 1) {
   const localEndpoints = [
-    'https://localhost:8080/card/scan',
-    'https://127.0.0.1:8080/card/scan',
-    'http://localhost:8080/card/scan',
-    'http://127.0.0.1:8080/card/scan'
+    'http://127.0.0.1:8080/card/scan',
+    'http://localhost:8080/card/scan'
   ];
 
-  let success = false;
-  
   for (const endpoint of localEndpoints) {
     try {
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ timeout: 5 }),
+        body: JSON.stringify({ timeout: timeoutSeconds }),
         cache: 'no-store'
       });
       
       if (response.ok) {
         const res = await response.json();
-        if (res.status === 'success' && res.uid) {
-          cache.scannedUid = res.uid;
-          if (uidBox) uidBox.value = res.uid;
-          if (uidDisplay) {
-            uidDisplay.textContent = res.uid;
-            uidDisplay.classList.add('has-value');
-          }
-          if (statusText) statusText.textContent = `Card scanned via ${endpoint}`;
-          if (status) status.setAttribute('data-status', 'success');
-          success = true;
-          break;
-        } else if (res.error) {
-          if (statusText) statusText.textContent = res.error;
-          if (status) status.setAttribute('data-status', 'error');
-          return;
-        }
+        return res;
       }
     } catch (e) {
       // Try next endpoint
@@ -75,35 +76,68 @@ async function onScan() {
     }
   }
   
-  if (!success) {
-    // Fallback to backend (will fail on Railway but keeps compatibility)
+  return null;
+}
+
+async function startScanningLoop() {
+  if (scanLoopActive) return;
+  scanLoopActive = true;
+  
+  const status = $('#cardStatus');
+  const statusText = status?.querySelector('.status-message');
+  
+  while (scanLoopActive) {
+    const empId = $('#cardEmployee')?.value;
+    if (!empId) {
+      stopScanningLoop();
+      break;
+    }
+
+    // Update status if we don't have an NFC yet
+    if (!cache.scannedUid) {
+      if (statusText) statusText.textContent = 'Waiting for NFC tap... Place NFC card/fob on reader.';
+      if (status) status.setAttribute('data-status', 'scanning');
+    }
+
     try {
-      const res = await scanCard();
-      if (res.status === 'scanned' && res.uid) {
-        cache.scannedUid = res.uid;
-        if (uidBox) uidBox.value = res.uid;
+      const result = await tryLocalCardScan(1);
+      
+      if (!scanLoopActive) break;
+
+      if (result && result.status === 'success' && result.uid) {
+        playScanSound();
+        cache.scannedUid = result.uid;
+        
+        const uidBox = $('#cardUid');
+        const uidDisplay = $('#cardUidDisplay');
+        
+        if (uidBox) uidBox.value = result.uid;
         if (uidDisplay) {
-          uidDisplay.textContent = res.uid;
+          uidDisplay.textContent = result.uid;
           uidDisplay.classList.add('has-value');
         }
-        if (statusText) statusText.textContent = 'Card scanned via backend';
+        
+        if (statusText) statusText.textContent = 'NFC scanned! Tap again to re-scan or click Save.';
         if (status) status.setAttribute('data-status', 'success');
+        
+        // Brief pause after successful scan
+        await new Promise(r => setTimeout(r, 1000));
       } else {
-        if (uidDisplay) {
-          uidDisplay.innerHTML = '<span class="placeholder-text">No card scanned yet</span>';
-          uidDisplay.classList.remove('has-value');
-        }
-        if (statusText) statusText.textContent = 'Card reader not available. Make sure local hardware bridge is running.';
-        if (status) status.setAttribute('data-status', 'error');
+        // No card detected or error - continue polling
+        await new Promise(r => setTimeout(r, 300));
       }
-    } catch (e) {
-      if (uidDisplay) {
-        uidDisplay.innerHTML = '<span class="placeholder-text">No card scanned yet</span>';
-        uidDisplay.classList.remove('has-value');
-      }
-      if (statusText) statusText.textContent = 'Local hardware bridge not running on this PC';
-      if (status) status.setAttribute('data-status', 'error');
+    } catch (err) {
+      console.error('Card scan loop error:', err);
+      await new Promise(r => setTimeout(r, 2000));
     }
+  }
+}
+
+function stopScanningLoop() {
+  scanLoopActive = false;
+  if (currentScanAbort) {
+    currentScanAbort.abort();
+    currentScanAbort = null;
   }
 }
 
@@ -113,55 +147,74 @@ async function onSave() {
   const empId = Number($('#cardEmployee')?.value || 0);
   
   if (!empId) { 
-    if (statusText) statusText.textContent = 'Please select an employee first';
+    if (statusText) statusText.textContent = 'Error: Please select an employee first';
     if (status) status.setAttribute('data-status', 'error');
+    playErrorSound();
     return;
   }
   if (!cache.scannedUid) { 
-    if (statusText) statusText.textContent = 'Please scan a card first';
+    if (statusText) statusText.textContent = 'Error: Please scan NFC first';
     if (status) status.setAttribute('data-status', 'error');
+    playErrorSound();
     return;
   }
 
-  if (statusText) statusText.textContent = 'Saving assignment...';
+  if (statusText) statusText.textContent = 'Saving NFC assignment...';
   if (status) status.setAttribute('data-status', 'scanning');
 
   try {
-    await saveCard(empId, cache.scannedUid);
-    if (statusText) statusText.textContent = 'Card successfully assigned to employee';
-    if (status) status.setAttribute('data-status', 'success');
-    cache.scannedUid = null;
+    const result = await saveCard(empId, cache.scannedUid);
     
-    const uidDisplay = $('#cardUidDisplay');
-    const uidBox = $('#cardUid');
-    if (uidDisplay) {
-      uidDisplay.innerHTML = '<span class="placeholder-text">No card scanned yet</span>';
-      uidDisplay.classList.remove('has-value');
+    // Check if the backend returned an error
+    if (result && result.status === 'error') {
+      playErrorSound();
+      if (statusText) statusText.textContent = `Error: ${result.detail || 'Failed to save NFC'}`;
+      if (status) status.setAttribute('data-status', 'error');
+      return;
     }
-    if (uidBox) uidBox.value = '';
     
+    playSuccessSound();
+    if (statusText) statusText.textContent = 'NFC successfully assigned to employee!';
+    if (status) status.setAttribute('data-status', 'success');
+    
+    // Stop scanning loop
+    stopScanningLoop();
+    
+    // Reset all fields
+    cache.scannedUid = null;
+    resetCardDisplay();
     $('#cardEmployee').value = '';
+    
+    // Reload employee data
     window.dispatchEvent(new Event('reloadEmployees'));
     
-    // Reset to ready after 3 seconds
+    // Reset to ready state after brief delay
     setTimeout(() => {
-      if (statusText) statusText.textContent = 'Ready to scan';
+      if (statusText) statusText.textContent = 'Please select an employee to begin enrollment';
       if (status) status.setAttribute('data-status', 'ready');
-    }, 3000);
+    }, 2000);
   } catch (e) {
-    if (statusText) statusText.textContent = e.message;
+    playErrorSound();
+    if (statusText) statusText.textContent = `Error: ${e.message}`;
     if (status) status.setAttribute('data-status', 'error');
   }
 }
 
 export async function init() {
-  // load employees
+  // Load employees
   try {
     cache.employees = await getEmployees();
     fillEmployeeSelect();
-  } catch {
-    // ignore
+  } catch (err) {
+    console.error('Failed to load employees:', err);
   }
-  $('#scanCardBtn')?.addEventListener('click', onScan);
+  
+  // Only save button needed now (no manual scan button)
   $('#saveCardBtn')?.addEventListener('click', onSave);
+  
+  // Set initial status
+  const status = $('#cardStatus');
+  const statusText = status?.querySelector('.status-message');
+  if (statusText) statusText.textContent = 'Please select an employee to begin enrollment';
+  if (status) status.setAttribute('data-status', 'ready');
 }
