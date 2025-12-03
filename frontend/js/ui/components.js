@@ -214,6 +214,11 @@ window.initModernUI = initModernBoxes;
 
   function buildCSelect(native) {
     if (!native || native.dataset.enhanced === '1') return;
+    
+    // Check if the element is still in the DOM
+    const parent = native.parentNode;
+    if (!parent) return;
+    
     native.dataset.enhanced = '1';
 
     const wrap = document.createElement('div');
@@ -244,7 +249,6 @@ window.initModernUI = initModernBoxes;
 
     // Insert wrapper in DOM where the native select lives,
     // then move the native select *into* the wrapper.
-    const parent = native.parentNode;
     const next = native.nextSibling;
     parent.insertBefore(wrap, next);
     native.classList.add('select-hidden');
