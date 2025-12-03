@@ -2,7 +2,7 @@
 import { get, post, patch, del } from './http.js';
 import { apiCache } from '../../utils/cache.js';
 
-const API = '/api/v1/roles';
+const API = '/v1/roles';  // http.js adds BASE which already includes /api
 
 // Cache TTLs
 const ROLES_CACHE_TTL = 5 * 60 * 1000; // 5 minutes (roles rarely change)

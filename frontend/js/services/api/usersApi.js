@@ -1,7 +1,7 @@
 // frontend/js/services/api/usersApi.js
 import { get, post, patch, del } from './http.js';
 
-const API = '/api/v1/users';
+const API = '/v1/users';  // http.js adds BASE which already includes /api
 
 export const getUsers = async () => {
     try {

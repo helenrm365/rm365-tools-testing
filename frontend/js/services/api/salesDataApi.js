@@ -3,7 +3,7 @@ import { get, post, http } from './http.js';
 import { getToken } from '../state/sessionStore.js';
 import { config } from '../../config.js';
 
-const API = '/api/v1/salesdata';
+const API = '/v1/salesdata';  // http.js adds BASE which already includes /api
 
 // Initialize tables
 export async function initializeTables() {
