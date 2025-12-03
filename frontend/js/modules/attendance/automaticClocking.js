@@ -31,13 +31,17 @@ const FINGERPRINT_COOLDOWN_MS = 1000;
 const MAX_RECENT_SCANS = 10;
 const MAX_CONSECUTIVE_ERRORS = 5; // After this many errors, slow down polling
 
+// Determine protocol for hardware bridge based on current page protocol
+const BRIDGE_PROTOCOL = window.location.protocol === 'https:' ? 'https:' : 'http:';
+const BRIDGE_BASE = `${BRIDGE_PROTOCOL}//127.0.0.1:8080`;
+
 // SecuGen endpoints to probe for fingerprint scanning
 const SGI_ENDPOINTS = [
-  'http://127.0.0.1:8080/SGIFPCapture'
+  `${BRIDGE_BASE}/SGIFPCapture`
 ];
 
 const CARD_SCAN_ENDPOINTS = [
-  'http://127.0.0.1:8080/card/scan'
+  `${BRIDGE_BASE}/card/scan`
 ];
 
 // ====== Utility Functions ======
@@ -214,7 +218,7 @@ function setStopButtonState({ disabled }) {
 
 async function checkBridgeHealth() {
   try {
-    const response = await fetch('http://127.0.0.1:8080/health');
+    const response = await fetch(`${BRIDGE_BASE}/health`);
     if (!response.ok) return { fingerprint: false, card: false };
     const data = await response.json();
     return {

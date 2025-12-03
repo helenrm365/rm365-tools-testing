@@ -136,9 +136,12 @@ async function onDeleteCard() {
 }
 
 async function tryLocalCardScan(timeoutSeconds = 1) {
+  // Determine protocol for hardware bridge based on current page protocol
+  const bridgeProtocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
+  
   const localEndpoints = [
-    'http://127.0.0.1:8080/nfc/scan',
-    'http://localhost:8080/nfc/scan'
+    `${bridgeProtocol}//127.0.0.1:8080/nfc/scan`,
+    `${bridgeProtocol}//localhost:8080/nfc/scan`
   ];
 
   for (const endpoint of localEndpoints) {
