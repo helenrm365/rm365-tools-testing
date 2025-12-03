@@ -50,6 +50,28 @@ html.dark-mode .enrollment-management .page-subtitle {
   padding: 1rem;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(139, 195, 74, 0.3) transparent;
+}
+
+.enrollment-management .inner-tabs::-webkit-scrollbar {
+  height: 6px;
+}
+
+.enrollment-management .inner-tabs::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.enrollment-management .inner-tabs::-webkit-scrollbar-thumb {
+  background: rgba(139, 195, 74, 0.3);
+  border-radius: 3px;
+}
+
+.enrollment-management .inner-tabs::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 195, 74, 0.5);
 }
 
 html.dark-mode .enrollment-management .inner-tabs {
@@ -58,7 +80,8 @@ html.dark-mode .enrollment-management .inner-tabs {
 
 /* Tab Button - Flat color secondary UI control */
 .enrollment-management .tab-button {
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 180px;
   padding: 1rem 1.5rem;
   background: linear-gradient(135deg, #f8f9fa, #e9ecef);
   border: none;
@@ -74,6 +97,7 @@ html.dark-mode .enrollment-management .inner-tabs {
   justify-content: center;
   gap: 0.75rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  white-space: nowrap;
 }
 
 .enrollment-management .tab-button:hover {
@@ -1281,10 +1305,62 @@ html.dark-mode .modal-footer .btn-secondary:hover {
   transform: none !important;
 }
 
-/* Responsive Design */
+/* ===== Responsive Design ===== */
+
+/* Large desktop */
+@media (min-width: 1400px) {
+  .management-wrapper {
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+}
+
+/* Desktop to tablet transition */
+@media (max-width: 1200px) {
+  .enrollment-management .tab-button {
+    min-width: 160px;
+    padding: 0.875rem 1.25rem;
+    font-size: 0.95rem;
+  }
+
+  .management-wrapper {
+    grid-template-columns: 1fr 380px;
+    gap: 1.5rem;
+  }
+
+  .employee-grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+}
+
+/* Tablet and smaller */
 @media (max-width: 1024px) {
+  .enrollment-management .page-title {
+    font-size: 2rem;
+  }
+
+  .enrollment-management .page-subtitle {
+    font-size: 1rem;
+  }
+
+  .enrollment-management .tab-button {
+    min-width: 140px;
+    padding: 0.875rem 1rem;
+    font-size: 0.9rem;
+    gap: 0.5rem;
+  }
+
+  .enrollment-management .inner-tabs {
+    scrollbar-width: none;
+  }
+
+  .enrollment-management .inner-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
   .management-wrapper {
     grid-template-columns: 1fr;
+    gap: 1.5rem;
   }
 
   .management-wrapper .instructions-card {
@@ -1295,9 +1371,27 @@ html.dark-mode .modal-footer .btn-secondary:hover {
   .employee-grid {
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   }
+
+  .management-card-section {
+    padding: 1.75rem;
+  }
+
+  .action-buttons-grid {
+    gap: 1rem;
+  }
+
+  .filter-controls {
+    gap: 1rem;
+  }
 }
 
-@media (max-width: 968px) {
+/* Medium tablet */
+@media (max-width: 900px) {
+  .enrollment-management .tab-button {
+    min-width: 130px;
+    font-size: 0.875rem;
+  }
+
   .filter-controls {
     gap: 0.75rem;
   }
@@ -1305,35 +1399,145 @@ html.dark-mode .modal-footer .btn-secondary:hover {
   .employee-grid {
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   }
+
+  .action-block {
+    padding: 1.25rem 0;
+  }
 }
 
+/* Tablet portrait mode */
+@media (max-width: 1024px) and (orientation: portrait) {
+  .management-wrapper {
+    grid-template-columns: 1fr;
+  }
+
+  .employee-grid {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  }
+
+  .filter-controls {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Mobile devices */
 @media (max-width: 768px) {
-  .enrollment-management {
-    padding: 0.75rem;
+  /* Page header */
+  .enrollment-management .page-header {
+    padding: 1.5rem 0 1rem 0;
+    margin-bottom: 1rem;
   }
 
   .enrollment-management .page-title {
-    font-size: 2rem;
+    font-size: 1.75rem;
   }
 
   .enrollment-management .page-subtitle {
-    font-size: 1rem;
+    font-size: 0.95rem;
+  }
+
+  /* Navigation tabs - horizontal scroll */
+  .enrollment-management .inner-tabs {
+    padding: 0.75rem;
+    gap: 0.75rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    flex-wrap: nowrap;
+  }
+
+  .enrollment-management .inner-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .enrollment-management .tab-button {
+    padding: 0.875rem 1.25rem;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+    min-width: fit-content;
+  }
+
+  .enrollment-management .tab-button span {
+    display: inline;
+  }
+
+  /* Main wrapper */
+  .enrollment-management {
+    padding: 0;
   }
 
   .management-wrapper {
     gap: 1rem;
   }
 
+  /* Cards */
   .management-card-section {
-    padding: 1.5rem;
+    padding: 1.25rem;
+    border-radius: 12px;
   }
 
+  .action-block {
+    padding: 1rem 0;
+  }
+
+  .action-block:first-child {
+    padding-top: 0;
+  }
+
+  .action-block:last-child {
+    padding-bottom: 0;
+  }
+
+  .block-header {
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .block-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 1.125rem;
+  }
+
+  .block-title {
+    font-size: 1rem;
+  }
+
+  .block-subtitle {
+    font-size: 0.85rem;
+  }
+
+  /* Action buttons */
   .action-buttons-grid {
     grid-template-columns: 1fr;
+    gap: 0.75rem;
   }
 
   .action-btn {
     justify-content: center;
+    padding: 1rem 1.25rem;
+    font-size: 1rem;
+    min-height: 48px;
+  }
+
+  /* Search and filters */
+  .search-box {
+    width: 100%;
+    margin-bottom: 1rem;
+  }
+
+  .search-input {
+    padding: 1rem 1.125rem;
+    padding-left: 3rem;
+    font-size: 1rem;
+    min-height: 48px;
+  }
+
+  .search-icon {
+    font-size: 1.125rem;
   }
 
   .filter-controls {
@@ -1341,15 +1545,19 @@ html.dark-mode .modal-footer .btn-secondary:hover {
     gap: 1rem;
   }
 
-  .search-box {
-    width: 100%;
-  }
-
   .filter-select {
     flex: 1;
     min-width: 0;
+    padding: 1rem 1.125rem;
+    font-size: 1rem;
+    min-height: 48px;
   }
 
+  .filter-label {
+    font-size: 0.875rem;
+  }
+
+  /* Employee grid */
   .employee-grid {
     grid-template-columns: 1fr;
     gap: 1rem;
@@ -1359,44 +1567,212 @@ html.dark-mode .modal-footer .btn-secondary:hover {
     padding: 1.25rem;
   }
 
+  .employee-name {
+    font-size: 1rem;
+  }
+
+  .employee-code {
+    font-size: 0.875rem;
+  }
+
+  .employee-info {
+    font-size: 0.85rem;
+    gap: 0.375rem;
+  }
+
   .card-actions {
     flex-direction: column;
+    gap: 0.75rem;
   }
 
   .btn-delete {
     width: 100%;
+    padding: 1rem 1.25rem;
+    font-size: 1rem;
+    min-height: 48px;
+  }
+
+  /* Instructions card */
+  .instructions-card {
+    padding: 1.25rem;
+  }
+
+  .instructions-title {
+    font-size: 1.125rem;
+  }
+
+  .instructions-list li {
+    font-size: 0.9rem;
+  }
+
+  /* Modals */
+  .modal-content {
+    width: 95%;
+    max-height: 90vh;
+    border-radius: 16px;
+  }
+
+  .modal-content.modal-small {
+    max-width: 95%;
+  }
+
+  .modal-header {
+    padding: 1.25rem;
+  }
+
+  .modal-header h2 {
+    font-size: 1.25rem;
+  }
+
+  .modal-close {
+    width: 40px;
+    height: 40px;
+    font-size: 1.75rem;
+  }
+
+  .modal-body {
+    padding: 1.5rem 1.25rem;
+  }
+
+  .modal-body p {
+    font-size: 0.95rem;
+  }
+
+  .modal-footer {
+    padding: 0.875rem 1.25rem;
+    flex-direction: column-reverse;
+  }
+
+  .modal-footer .btn {
+    width: 100%;
+    padding: 0.875rem 1.5rem;
+  }
+
+  /* Form inputs */
+  .form-input {
+    padding: 1rem 1.125rem;
+    font-size: 1rem;
+    min-height: 48px;
+  }
+
+  /* Empty state */
+  .empty-state {
+    padding: 2rem 1rem;
+  }
+
+  .empty-state i {
+    font-size: 3rem;
+  }
+
+  .empty-state p {
+    font-size: 1rem;
   }
 }
 
+/* Small mobile devices */
 @media (max-width: 480px) {
   .enrollment-management .page-header {
     padding: 1rem 0 0.5rem 0;
   }
 
   .enrollment-management .page-title {
-    font-size: 1.75rem;
+    font-size: 1.5rem;
   }
 
-  .tab-button {
-    padding: 0.65rem 1rem;
+  .enrollment-management .page-subtitle {
+    font-size: 0.875rem;
+  }
+
+  .enrollment-management .inner-tabs {
+    padding: 0.5rem;
+    gap: 0.5rem;
+  }
+
+  .enrollment-management .tab-button {
+    padding: 0.75rem 1rem;
+    font-size: 0.85rem;
+    gap: 0.5rem;
+  }
+
+  .enrollment-management .tab-button i {
     font-size: 0.9rem;
   }
 
-  .tab-button i {
+  .block-icon {
+    width: 36px;
+    height: 36px;
     font-size: 1rem;
   }
 
-  .management-container {
+  .block-title {
+    font-size: 0.95rem;
+  }
+
+  .block-subtitle {
+    font-size: 0.8rem;
+  }
+
+  .management-card-section {
     padding: 1rem;
   }
 
   .employee-card {
     padding: 1rem;
   }
-  
+
+  .action-btn {
+    padding: 0.875rem 1rem;
+  }
+}
+
+/* Landscape orientation optimization */
+@media (max-width: 768px) and (orientation: landscape) {
+  .employee-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
   .modal-content {
-    margin: 1rem;
-    min-width: unset;
-    width: calc(100% - 2rem);
+    max-height: 85vh;
+  }
+
+  .management-wrapper {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+  /* Increase touch targets */
+  .enrollment-management .tab-button,
+  .action-btn,
+  .btn-delete,
+  .search-input,
+  .filter-select,
+  .form-input {
+    min-height: 44px;
+  }
+
+  /* Remove hover effects on touch devices */
+  .enrollment-management .tab-button:hover,
+  .action-btn:hover:not(:disabled),
+  .btn-delete:hover:not(:disabled) {
+    transform: none;
+  }
+
+  /* Active state for touch feedback */
+  .enrollment-management .tab-button:active,
+  .action-btn:active:not(:disabled),
+  .btn-delete:active:not(:disabled) {
+    transform: scale(0.98);
+    opacity: 0.9;
+  }
+
+  .employee-card:active {
+    transform: scale(0.99);
+  }
+
+  .filter-select:active,
+  .search-input:active {
+    transform: scale(0.995);
   }
 }

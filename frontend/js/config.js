@@ -35,7 +35,7 @@ function resolveApiUrl() {
   // 4. Default Environment Logic
   // Self-hosted with Cloudflare Tunnel or local development
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    return 'http://127.0.0.1:8000';
+    return `http://${window.location.hostname}:8000`;
   }
 
   // Self-hosted (Cloudflare Tunnel or custom domain): Use same origin

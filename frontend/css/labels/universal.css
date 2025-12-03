@@ -395,3 +395,484 @@ html.dark-mode .page-btn:hover {
 html.dark-mode .page-btn.active {
     background: #007bff;
 }
+
+/* ===== Responsive Design ===== */
+
+/* Large desktop */
+@media (min-width: 1400px) {
+  .section-title {
+    font-size: 1.6rem;
+  }
+
+  .section-subtitle {
+    font-size: 1.05rem;
+  }
+}
+
+/* Desktop to tablet transition */
+@media (max-width: 1200px) {
+  .section-title {
+    font-size: 1.4rem;
+  }
+
+  .section-subtitle {
+    font-size: 0.975rem;
+  }
+
+  .inner-tabs {
+    gap: 0.875rem;
+  }
+
+  .tab-button {
+    padding: 0.875rem 1.25rem;
+    font-size: 0.95rem;
+  }
+
+  .error-card {
+    padding: 1.75rem;
+  }
+
+  .error-header i {
+    font-size: 2.75rem;
+  }
+
+  .error-header h3 {
+    font-size: 1.4rem;
+  }
+}
+
+/* Tablet and smaller */
+@media (max-width: 1024px) {
+  .section-header {
+    margin-bottom: 1.25rem;
+  }
+
+  .section-title {
+    font-size: 1.3rem;
+    gap: 0.4rem;
+  }
+
+  .section-title i {
+    font-size: 1.2rem;
+  }
+
+  .section-subtitle {
+    font-size: 0.95rem;
+  }
+
+  .inner-tabs {
+    padding: 0.875rem;
+    gap: 0.75rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(139, 195, 74, 0.3) transparent;
+  }
+
+  .inner-tabs::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  .inner-tabs::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .inner-tabs::-webkit-scrollbar-thumb {
+    background: rgba(139, 195, 74, 0.3);
+    border-radius: 3px;
+  }
+
+  .inner-tabs::-webkit-scrollbar-thumb:hover {
+    background: rgba(139, 195, 74, 0.5);
+  }
+
+  .tab-button {
+    flex: 1 1 auto;
+    min-width: 140px;
+    padding: 0.875rem 1rem;
+    font-size: 0.9rem;
+    gap: 0.5rem;
+    white-space: nowrap;
+  }
+
+  .error-card {
+    padding: 1.5rem;
+  }
+
+  .error-header i {
+    font-size: 2.5rem;
+  }
+
+  .error-header h3 {
+    font-size: 1.3rem;
+  }
+
+  .error-body p {
+    font-size: 0.95rem;
+  }
+
+  .error-actions {
+    gap: 0.875rem;
+  }
+
+  .region-toggle {
+    gap: 0.625rem;
+  }
+
+  .region-option {
+    padding: 0.75rem 1rem;
+  }
+
+  .region-label {
+    font-size: 0.9rem;
+  }
+
+  .region-help {
+    font-size: 0.8rem;
+  }
+
+  .pagination {
+    gap: 0.375rem;
+    margin: 1.75rem 0;
+  }
+
+  .page-btn {
+    padding: 7px 10px;
+    font-size: 0.85rem;
+  }
+}
+
+/* Medium tablet */
+@media (max-width: 900px) {
+  .section-title {
+    font-size: 1.2rem;
+  }
+
+  .section-subtitle {
+    font-size: 0.9rem;
+  }
+
+  .tab-button {
+    min-width: 130px;
+    font-size: 0.875rem;
+  }
+
+  .region-toggle {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .region-option {
+    flex: 1;
+  }
+
+  .error-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .error-actions .action-btn {
+    width: 100%;
+  }
+}
+
+/* Tablet portrait mode */
+@media (max-width: 1024px) and (orientation: portrait) {
+  .inner-tabs {
+    scrollbar-width: none;
+  }
+
+  .inner-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .region-toggle {
+    flex-direction: column;
+  }
+}
+
+/* Mobile devices */
+@media (max-width: 768px) {
+  /* Section headers */
+  .section-header {
+    margin-bottom: 1rem;
+  }
+
+  .section-title {
+    font-size: 1.125rem;
+    gap: 0.375rem;
+  }
+
+  .section-title i {
+    font-size: 1.1rem;
+  }
+
+  .section-subtitle {
+    font-size: 0.875rem;
+  }
+
+  /* Navigation tabs - horizontal scroll */
+  .inner-tabs {
+    padding: 0.75rem;
+    gap: 0.75rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    flex-wrap: nowrap;
+    margin-bottom: 1rem;
+  }
+
+  .inner-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tab-button {
+    padding: 0.875rem 1.25rem;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+    min-width: fit-content;
+  }
+
+  .tab-button span {
+    display: inline;
+  }
+
+  .tab-button i {
+    font-size: 0.95rem;
+  }
+
+  /* Sales data error card */
+  .sales-data-error {
+    margin: 1.5rem 0;
+  }
+
+  .error-card {
+    padding: 1.25rem;
+    border-radius: 10px;
+  }
+
+  .error-header i {
+    font-size: 2.25rem;
+  }
+
+  .error-header h3 {
+    font-size: 1.2rem;
+  }
+
+  .error-body p {
+    font-size: 0.9rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .error-actions {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .error-actions .action-btn {
+    width: 100%;
+    padding: 1rem;
+    font-size: 1rem;
+    min-height: 48px;
+  }
+
+  /* Region selection */
+  .region-toggle {
+    flex-direction: column;
+    gap: 0.625rem;
+  }
+
+  .region-option {
+    padding: 0.75rem 1rem;
+  }
+
+  .region-label {
+    font-size: 0.9rem;
+  }
+
+  .region-label i {
+    font-size: 1rem;
+  }
+
+  .region-help {
+    font-size: 0.8rem;
+  }
+
+  /* Button groups */
+  .btn-group {
+    gap: 0.375rem;
+    flex-wrap: wrap;
+  }
+
+  .btn-icon {
+    padding: 8px 10px;
+    font-size: 0.95rem;
+    min-height: 36px;
+    min-width: 36px;
+  }
+
+  /* Pagination */
+  .pagination {
+    gap: 0.375rem;
+    margin: 1.5rem 0;
+    flex-wrap: wrap;
+  }
+
+  .page-btn {
+    padding: 0.625rem 0.875rem;
+    font-size: 0.85rem;
+    min-height: 36px;
+  }
+
+  .page-ellipsis {
+    padding: 0.625rem 0.25rem;
+  }
+
+  /* Status badges */
+  .status-badge {
+    font-size: 0.75rem;
+    padding: 3px 8px;
+  }
+}
+
+/* Small mobile devices */
+@media (max-width: 480px) {
+  .section-title {
+    font-size: 1rem;
+  }
+
+  .section-title i {
+    font-size: 1rem;
+  }
+
+  .section-subtitle {
+    font-size: 0.8rem;
+  }
+
+  .inner-tabs {
+    padding: 0.5rem;
+    gap: 0.5rem;
+  }
+
+  .tab-button {
+    padding: 0.75rem 1rem;
+    font-size: 0.85rem;
+    gap: 0.5rem;
+  }
+
+  .tab-button i {
+    font-size: 0.9rem;
+  }
+
+  .error-card {
+    padding: 1rem;
+  }
+
+  .error-header i {
+    font-size: 2rem;
+  }
+
+  .error-header h3 {
+    font-size: 1.1rem;
+  }
+
+  .error-body p {
+    font-size: 0.85rem;
+  }
+
+  .error-actions .action-btn {
+    padding: 0.875rem;
+    font-size: 0.9rem;
+  }
+
+  .region-option {
+    padding: 0.625rem 0.875rem;
+  }
+
+  .region-label {
+    font-size: 0.85rem;
+  }
+
+  .region-label i {
+    font-size: 0.95rem;
+  }
+
+  .region-help {
+    font-size: 0.75rem;
+  }
+
+  .btn-icon {
+    padding: 6px 8px;
+    font-size: 0.9rem;
+    min-height: 32px;
+    min-width: 32px;
+  }
+
+  .page-btn {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+    min-height: 32px;
+  }
+
+  .status-badge {
+    font-size: 0.7rem;
+    padding: 2px 6px;
+  }
+}
+
+/* Landscape orientation optimization */
+@media (max-width: 768px) and (orientation: landscape) {
+  .inner-tabs {
+    margin-bottom: 0.875rem;
+  }
+
+  .region-toggle {
+    flex-direction: row;
+    gap: 0.5rem;
+  }
+
+  .error-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .error-actions .action-btn {
+    flex: 1;
+    min-width: 140px;
+  }
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+  /* Increase touch targets */
+  .tab-button,
+  .region-option,
+  .btn-icon,
+  .page-btn {
+    min-height: 44px;
+  }
+
+  /* Remove hover effects on touch devices */
+  .tab-button:hover,
+  .region-option:hover,
+  .btn-icon:hover,
+  .page-btn:hover {
+    transform: none;
+  }
+
+  /* Active state for touch feedback */
+  .tab-button:active,
+  .btn-icon:active,
+  .page-btn:active {
+    transform: scale(0.98);
+    opacity: 0.9;
+  }
+
+  .region-option:active {
+    transform: scale(0.99);
+  }
+}

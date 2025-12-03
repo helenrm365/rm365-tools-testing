@@ -48,6 +48,28 @@ html.dark-mode .enrollment-fingerprint .page-subtitle {
   padding: 1rem;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(139, 195, 74, 0.3) transparent;
+}
+
+.enrollment-fingerprint .inner-tabs::-webkit-scrollbar {
+  height: 6px;
+}
+
+.enrollment-fingerprint .inner-tabs::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.enrollment-fingerprint .inner-tabs::-webkit-scrollbar-thumb {
+  background: rgba(139, 195, 74, 0.3);
+  border-radius: 3px;
+}
+
+.enrollment-fingerprint .inner-tabs::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 195, 74, 0.5);
 }
 
 html.dark-mode .enrollment-fingerprint .inner-tabs {
@@ -56,7 +78,8 @@ html.dark-mode .enrollment-fingerprint .inner-tabs {
 
 /* Tab Button - Flat color secondary UI control */
 .enrollment-fingerprint .tab-button {
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 180px;
   padding: 1rem 1.5rem;
   background: linear-gradient(135deg, #f8f9fa, #e9ecef);
   border: none;
@@ -72,6 +95,7 @@ html.dark-mode .enrollment-fingerprint .inner-tabs {
   justify-content: center;
   gap: 0.75rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  white-space: nowrap;
 }
 
 .enrollment-fingerprint .tab-button:hover {
@@ -954,45 +978,466 @@ html.dark-mode .enrollment-fingerprint .tech-value {
 
 /* Dark mode adjustments if needed, using variables should handle most */
 
-/* Responsive Design */
-@media (max-width: 968px) {
+/* ===== Responsive Design ===== */
+
+/* Large desktop */
+@media (min-width: 1400px) {
+  .enrollment-fingerprint .fingerprint-enrollment-wrapper {
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+}
+
+/* Desktop to tablet transition */
+@media (max-width: 1200px) {
+  .enrollment-fingerprint .tab-button {
+    min-width: 160px;
+    padding: 0.875rem 1.25rem;
+    font-size: 0.95rem;
+  }
+
+  .enrollment-fingerprint .fingerprint-enrollment-wrapper {
+    grid-template-columns: 1.3fr 1fr;
+    gap: 1.5rem;
+  }
+
+  .enrollment-fingerprint .primary-section {
+    padding: 1.75rem;
+  }
+}
+
+/* Tablet and smaller */
+@media (max-width: 1024px) {
+  .enrollment-fingerprint .page-title {
+    font-size: 2rem;
+  }
+
+  .enrollment-fingerprint .page-subtitle {
+    font-size: 1rem;
+  }
+
+  .enrollment-fingerprint .tab-button {
+    min-width: 140px;
+    padding: 0.875rem 1rem;
+    font-size: 0.9rem;
+    gap: 0.5rem;
+  }
+
+  .enrollment-fingerprint .inner-tabs {
+    scrollbar-width: none;
+  }
+
+  .enrollment-fingerprint .inner-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .enrollment-fingerprint .fingerprint-enrollment-wrapper {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .enrollment-fingerprint .primary-section {
+    padding: 1.75rem;
+  }
+
+  .enrollment-fingerprint .action-block {
+    padding: 1.25rem 0;
+  }
+}
+
+/* Medium tablet */
+@media (max-width: 900px) {
+  .enrollment-fingerprint .tab-button {
+    min-width: 130px;
+    font-size: 0.875rem;
+  }
+
+  .enrollment-fingerprint .block-header {
+    gap: 0.75rem;
+  }
+
+  .enrollment-fingerprint .action-block {
+    padding: 1rem 0;
+  }
+}
+
+/* Tablet portrait mode */
+@media (max-width: 1024px) and (orientation: portrait) {
   .enrollment-fingerprint .fingerprint-enrollment-wrapper {
     grid-template-columns: 1fr;
   }
 
-  .enrollment-fingerprint .instructions-card {
-    order: -1;
+  .hand-diagram-container {
+    max-width: 500px;
+    margin: 0 auto;
   }
 }
 
+/* Mobile devices */
 @media (max-width: 768px) {
-  .enrollment-fingerprint .primary-section,
-  .enrollment-fingerprint .instructions-card {
-    padding: 1.5rem;
+  /* Page header */
+  .enrollment-fingerprint .page-header {
+    padding: 1.5rem 0 1rem 0;
+    margin-bottom: 1rem;
   }
 
+  .enrollment-fingerprint .page-title {
+    font-size: 1.75rem;
+  }
+
+  .enrollment-fingerprint .page-subtitle {
+    font-size: 0.95rem;
+  }
+
+  /* Navigation tabs - horizontal scroll */
+  .enrollment-fingerprint .inner-tabs {
+    padding: 0.75rem;
+    gap: 0.75rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    flex-wrap: nowrap;
+  }
+
+  .enrollment-fingerprint .inner-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .enrollment-fingerprint .tab-button {
+    padding: 0.875rem 1.25rem;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+    min-width: fit-content;
+  }
+
+  .enrollment-fingerprint .tab-button span {
+    display: inline;
+  }
+
+  /* Main wrapper */
+  .enrollment-fingerprint {
+    padding: 0;
+  }
+
+  .enrollment-fingerprint .fingerprint-enrollment-wrapper {
+    gap: 1rem;
+  }
+
+  /* Cards */
+  .enrollment-fingerprint .primary-section,
+  .enrollment-fingerprint .instructions-card {
+    padding: 1.25rem;
+    border-radius: 12px;
+  }
+
+  .enrollment-fingerprint .action-block {
+    padding: 1rem 0;
+  }
+
+  .enrollment-fingerprint .action-block:first-child {
+    padding-top: 0;
+  }
+
+  .enrollment-fingerprint .action-block:last-child {
+    padding-bottom: 0;
+  }
+
+  /* Block headers */
+  .enrollment-fingerprint .block-header {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .enrollment-fingerprint .block-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 1.125rem;
+  }
+
+  .enrollment-fingerprint .block-title {
+    font-size: 1rem;
+  }
+
+  .enrollment-fingerprint .block-subtitle {
+    font-size: 0.85rem;
+  }
+
+  /* Block content */
   .enrollment-fingerprint .block-content {
     padding-left: 0;
   }
 
+  /* Dividers */
   .enrollment-fingerprint .action-divider {
     padding: 0;
+    margin: 1rem 0;
   }
 
-  .enrollment-fingerprint .block-header {
+  /* Employee select */
+  .employee-select-wrapper {
+    width: 100%;
+  }
+
+  .select-label {
+    font-size: 0.875rem;
+    margin-bottom: 0.625rem;
+  }
+
+  .employee-dropdown {
+    padding: 1rem 1.125rem;
+    font-size: 1rem;
+    min-height: 48px;
+  }
+
+  /* Hand diagram */
+  .hand-diagram-container {
+    max-width: 100%;
+    margin: 1rem 0;
+  }
+
+  .hand-svg {
+    max-height: 200px;
+  }
+
+  .finger-dot {
+    r: 16;
+  }
+
+  .finger-label {
+    font-size: 0.7rem;
+  }
+
+  /* Preview container */
+  .enrollment-fingerprint .preview-container {
+    min-height: 200px;
+    padding: 1.25rem;
+  }
+
+  .preview-placeholder {
+    font-size: 0.9rem;
+  }
+
+  .preview-placeholder i {
+    font-size: 2.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  /* Fingerprint image */
+  .fingerprint-preview-img {
+    max-width: 150px;
+    max-height: 150px;
+  }
+
+  /* Status badge */
+  .status-badge {
+    padding: 0.625rem 1rem;
+    font-size: 0.85rem;
+  }
+
+  /* Action buttons */
+  .action-buttons {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 1rem;
+    gap: 0.75rem;
   }
 
-  .enrollment-fingerprint .block-icon {
-    width: 48px;
-    height: 48px;
+  .action-btn {
+    width: 100%;
+    padding: 1rem 1.25rem;
+    font-size: 1rem;
+    min-height: 48px;
+  }
+
+  /* Instructions */
+  .instructions-card {
+    padding: 1.25rem;
+  }
+
+  .instructions-title {
+    font-size: 1.125rem;
+  }
+
+  .instructions-list li {
+    font-size: 0.9rem;
+  }
+
+  /* Modals */
+  .modal-content {
+    width: 95%;
+    max-height: 90vh;
+    border-radius: 16px;
+  }
+
+  .modal-content.modal-small {
+    max-width: 95%;
+  }
+
+  .modal-header {
+    padding: 1.25rem;
+  }
+
+  .modal-header h2 {
     font-size: 1.25rem;
   }
 
+  .modal-close {
+    width: 40px;
+    height: 40px;
+    font-size: 1.75rem;
+  }
+
+  .modal-body {
+    padding: 1.5rem 1.25rem;
+  }
+
+  .modal-body p {
+    font-size: 0.95rem;
+  }
+
+  .modal-footer {
+    padding: 0.875rem 1.25rem;
+    flex-direction: column-reverse;
+  }
+
+  .modal-footer .btn {
+    width: 100%;
+    padding: 0.875rem 1.5rem;
+  }
+}
+
+/* Small mobile devices */
+@media (max-width: 480px) {
+  .enrollment-fingerprint .page-header {
+    padding: 1rem 0 0.5rem 0;
+  }
+
+  .enrollment-fingerprint .page-title {
+    font-size: 1.5rem;
+  }
+
+  .enrollment-fingerprint .page-subtitle {
+    font-size: 0.875rem;
+  }
+
+  .enrollment-fingerprint .inner-tabs {
+    padding: 0.5rem;
+    gap: 0.5rem;
+  }
+
+  .enrollment-fingerprint .tab-button {
+    padding: 0.75rem 1rem;
+    font-size: 0.85rem;
+    gap: 0.5rem;
+  }
+
+  .enrollment-fingerprint .tab-button i {
+    font-size: 0.9rem;
+  }
+
+  .enrollment-fingerprint .block-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 1rem;
+  }
+
+  .enrollment-fingerprint .block-title {
+    font-size: 0.95rem;
+  }
+
+  .enrollment-fingerprint .block-subtitle {
+    font-size: 0.8rem;
+  }
+
+  .enrollment-fingerprint .primary-section,
+  .enrollment-fingerprint .instructions-card {
+    padding: 1rem;
+  }
+
+  .hand-svg {
+    max-height: 180px;
+  }
+
+  .finger-dot {
+    r: 14;
+  }
+
   .enrollment-fingerprint .preview-container {
-    min-height: 220px;
+    min-height: 180px;
+    padding: 1rem;
+  }
+
+  .fingerprint-preview-img {
+    max-width: 120px;
+    max-height: 120px;
+  }
+
+  .action-btn {
+    padding: 0.875rem 1rem;
+  }
+}
+
+/* Landscape orientation optimization */
+@media (max-width: 768px) and (orientation: landscape) {
+  .enrollment-fingerprint .fingerprint-enrollment-wrapper {
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .enrollment-fingerprint .instructions-card {
+    order: 0;
+  }
+
+  .hand-svg {
+    max-height: 150px;
+  }
+
+  .enrollment-fingerprint .preview-container {
+    min-height: 150px;
+  }
+
+  .modal-content {
+    max-height: 85vh;
+  }
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+  /* Increase touch targets */
+  .enrollment-fingerprint .tab-button,
+  .action-btn,
+  .employee-dropdown,
+  .finger-dot {
+    min-height: 44px;
+  }
+
+  .finger-dot {
+    r: 18;
+  }
+
+  /* Remove hover effects on touch devices */
+  .enrollment-fingerprint .tab-button:hover,
+  .action-btn:hover:not(:disabled),
+  .finger-dot:hover {
+    transform: none;
+  }
+
+  /* Active state for touch feedback */
+  .enrollment-fingerprint .tab-button:active,
+  .action-btn:active:not(:disabled) {
+    transform: scale(0.98);
+    opacity: 0.9;
+  }
+
+  .finger-dot:active {
+    transform: scale(1.1);
+  }
+
+  .employee-dropdown:active {
+    transform: scale(0.995);
   }
 }
 
@@ -1005,4 +1450,3 @@ html.dark-mode .enrollment-fingerprint .tech-value {
     opacity: 0.4;
   }
 }
-

@@ -20,9 +20,18 @@ def _svc() -> EnrollmentService:
 # ---- Employees ----
 @router.get("/employees", response_model=List[EmployeeOut])
 def list_employees(user=Depends(get_current_user)):
-    rows = _svc().list_employees()
-    # map rows (dicts) into EmployeeOut; unknown keys are ignored
-    return [EmployeeOut(**row) for row in rows]
+    try:
+        rows = _svc().list_employees()
+        # map rows (dicts) into EmployeeOut; unknown keys are ignored
+        return [EmployeeOut(**row) for row in rows]
+    except ValueError as e:
+        # Database not configured - return empty list for demo mode
+        print(f"[Enrollment] Database not configured: {e}")
+        return []
+    except Exception as e:
+        # Database connection failed - return empty list for demo mode
+        print(f"[Enrollment] Database error: {e}")
+        return []
 
 @router.post("/employees", response_model=EnrollResponse)
 def create_employee(body: EmployeeCreateIn, user=Depends(get_current_user)):

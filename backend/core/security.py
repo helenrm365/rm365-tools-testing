@@ -82,17 +82,26 @@ async def get_current_user(authorization: str = Header(...)):
         all_tabs = get_all_tabs()
         return {"username": username, "role": "superadmin", "allowed_tabs": all_tabs}
 
-    conn = get_psycopg_connection()
+    # Regular database authentication
     try:
-        cur = conn.cursor()
-        cur.execute("SELECT COALESCE(NULLIF(role, ''), 'user') as role, allowed_tabs FROM login_users WHERE username = %s", (username,))
-        row = cur.fetchone()
-    finally:
-        return_attendance_connection(conn)
+        conn = get_psycopg_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute("SELECT COALESCE(NULLIF(role, ''), 'user') as role, allowed_tabs FROM login_users WHERE username = %s", (username,))
+            row = cur.fetchone()
+        finally:
+            return_attendance_connection(conn)
 
-    if not row:
-        raise HTTPException(status_code=404, detail="User not found")
+        if not row:
+            raise HTTPException(status_code=404, detail="User not found")
 
-    role = row[0] if row[0] else 'user'
-    allowed_tabs = parse_allowed_tabs(row[1])
-    return {"username": username, "role": role, "allowed_tabs": allowed_tabs}
+        role = row[0] if row[0] else 'user'
+        allowed_tabs = parse_allowed_tabs(row[1])
+        return {"username": username, "role": role, "allowed_tabs": allowed_tabs}
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
+    except Exception as e:
+        # Database not available - reject non-superadmin users
+        print(f"[Auth] Database error for user {username}: {e}")
+        raise HTTPException(status_code=503, detail="Database not available - authentication failed")

@@ -487,8 +487,94 @@ html.dark-mode .attendance-logs .action-badge.clock-out {
   }
 }
 
-/* Responsive Design */
-@media (max-width: 968px) {
+/* ===== Responsive Design ===== */
+
+/* Large desktop */
+@media (min-width: 1400px) {
+  .attendance-logs .logs-content {
+    max-width: 1600px;
+  }
+}
+
+/* Desktop to tablet transition */
+@media (max-width: 1200px) {
+  .attendance-logs .tab-button {
+    min-width: 160px;
+    padding: 0.875rem 1.25rem;
+    font-size: 0.95rem;
+  }
+
+  .attendance-logs .filter-grid {
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 0.875rem;
+  }
+
+  .attendance-logs .export-grid {
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 1.25rem;
+  }
+}
+
+/* Tablet and smaller */
+@media (max-width: 1024px) {
+  .attendance-logs .page-title {
+    font-size: 2rem;
+  }
+
+  .attendance-logs .page-subtitle {
+    font-size: 1rem;
+  }
+
+  .attendance-logs .tab-button {
+    min-width: 140px;
+    padding: 0.875rem 1rem;
+    font-size: 0.9rem;
+    gap: 0.5rem;
+  }
+
+  .attendance-logs .inner-tabs {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(139, 195, 74, 0.3) transparent;
+  }
+
+  .attendance-logs .inner-tabs::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  .attendance-logs .inner-tabs::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .attendance-logs .inner-tabs::-webkit-scrollbar-thumb {
+    background: rgba(139, 195, 74, 0.3);
+    border-radius: 3px;
+  }
+
+  .attendance-logs .inner-tabs::-webkit-scrollbar-thumb:hover {
+    background: rgba(139, 195, 74, 0.5);
+  }
+
+  .attendance-logs .filter-card,
+  .attendance-logs .results-card,
+  .attendance-logs .export-card {
+    padding: 1.75rem;
+  }
+
+  .attendance-logs .table-wrapper {
+    max-height: 450px;
+  }
+}
+
+/* Medium tablet */
+@media (max-width: 900px) {
+  .attendance-logs .tab-button {
+    min-width: 130px;
+    font-size: 0.875rem;
+  }
+
   .attendance-logs .filter-grid {
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
     gap: 0.75rem;
@@ -497,11 +583,83 @@ html.dark-mode .attendance-logs .action-badge.clock-out {
   .attendance-logs .export-grid {
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   }
+
+  .attendance-logs .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 
+/* Tablet portrait mode */
+@media (max-width: 1024px) and (orientation: portrait) {
+  .attendance-logs .filter-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .attendance-logs .export-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .attendance-logs .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* Mobile devices */
 @media (max-width: 768px) {
+  /* Page header */
+  .attendance-logs .page-header {
+    padding: 1.5rem 0 1rem 0;
+    margin-bottom: 1rem;
+  }
+
   .attendance-logs .page-title {
-    font-size: 2rem;
+    font-size: 1.75rem;
+  }
+
+  .attendance-logs .page-subtitle {
+    font-size: 0.95rem;
+  }
+
+  /* Navigation tabs - horizontal scroll */
+  .attendance-logs .inner-tabs {
+    padding: 0.75rem;
+    gap: 0.75rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    flex-wrap: nowrap;
+  }
+
+  .attendance-logs .inner-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .attendance-logs .tab-button {
+    padding: 0.875rem 1.25rem;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+    min-width: fit-content;
+  }
+
+  .attendance-logs .tab-button span {
+    display: inline;
+  }
+
+  /* Main content */
+  .attendance-logs .logs-content {
+    padding: 0;
+  }
+
+  /* Filter section */
+  .attendance-logs .filter-card {
+    padding: 1.25rem;
+    border-radius: 12px;
   }
 
   .attendance-logs .filter-grid {
@@ -509,42 +667,183 @@ html.dark-mode .attendance-logs .action-badge.clock-out {
     gap: 1rem;
   }
 
+  /* Results section */
+  .attendance-logs .results-card {
+    padding: 1.25rem;
+    border-radius: 12px;
+  }
+
   .attendance-logs .section-header {
     flex-direction: column;
     align-items: flex-start;
+    gap: 0.75rem;
   }
 
-  .attendance-logs .export-grid {
-    grid-template-columns: 1fr;
+  .attendance-logs .results-info {
+    font-size: 0.875rem;
+    padding: 0.4rem 0.875rem;
   }
 
   .attendance-logs .table-wrapper {
     max-height: 400px;
   }
-}
 
-@media (max-width: 480px) {
-  .attendance-logs .page-title {
-    font-size: 1.75rem;
+  .attendance-logs .modern-table {
+    font-size: 0.85rem;
   }
 
-  .attendance-logs .page-subtitle {
-    font-size: 1rem;
+  .attendance-logs .modern-table thead th,
+  .attendance-logs .modern-table tbody td {
+    padding: 0.75rem 0.5rem;
   }
 
-  .attendance-logs .filter-card,
-  .attendance-logs .results-card,
+  /* Export section */
   .attendance-logs .export-card {
-    padding: 1.5rem;
+    padding: 1.25rem;
+    border-radius: 12px;
+  }
+
+  .attendance-logs .export-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
   }
 
   .attendance-logs .export-btn {
-    padding: 1.25rem;
+    padding: 1.125rem;
   }
 
   .attendance-logs .export-icon {
     width: 48px;
     height: 48px;
     font-size: 1.5rem;
+  }
+
+  /* Larger touch targets for mobile */
+  .attendance-logs .primary-button,
+  .attendance-logs .secondary-button,
+  .attendance-logs .success-button,
+  .attendance-logs .warning-button {
+    padding: 1rem 1.25rem;
+    font-size: 1rem;
+    min-height: 48px;
+  }
+
+  /* Input fields */
+  .attendance-logs .modern-input,
+  .attendance-logs .c-select__button {
+    padding: 1rem 1.125rem;
+    font-size: 1rem;
+    min-height: 48px;
+  }
+}
+
+/* Small mobile devices */
+@media (max-width: 480px) {
+  .attendance-logs .page-title {
+    font-size: 1.5rem;
+  }
+
+  .attendance-logs .page-subtitle {
+    font-size: 0.875rem;
+  }
+
+  .attendance-logs .inner-tabs {
+    padding: 0.5rem;
+    gap: 0.5rem;
+  }
+
+  .attendance-logs .tab-button {
+    padding: 0.75rem 1rem;
+    font-size: 0.85rem;
+    gap: 0.5rem;
+  }
+
+  .attendance-logs .tab-button i {
+    font-size: 0.9rem;
+  }
+
+  .attendance-logs .filter-card,
+  .attendance-logs .results-card,
+  .attendance-logs .export-card {
+    padding: 1rem;
+  }
+
+  .attendance-logs .export-btn {
+    padding: 1rem;
+  }
+
+  .attendance-logs .export-icon {
+    width: 44px;
+    height: 44px;
+    font-size: 1.375rem;
+  }
+
+  .attendance-logs .modern-table {
+    font-size: 0.8rem;
+  }
+
+  .attendance-logs .modern-table thead th,
+  .attendance-logs .modern-table tbody td {
+    padding: 0.625rem 0.375rem;
+  }
+}
+
+/* Landscape orientation optimization */
+@media (max-width: 768px) and (orientation: landscape) {
+  .attendance-logs .filter-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.875rem;
+  }
+
+  .attendance-logs .export-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .attendance-logs .table-wrapper {
+    max-height: 50vh;
+  }
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+  /* Increase touch targets */
+  .attendance-logs .tab-button,
+  .attendance-logs .primary-button,
+  .attendance-logs .secondary-button,
+  .attendance-logs .success-button,
+  .attendance-logs .warning-button,
+  .attendance-logs .modern-input,
+  .attendance-logs .c-select__button,
+  .attendance-logs .export-btn {
+    min-height: 44px;
+  }
+
+  /* Remove hover effects on touch devices */
+  .attendance-logs .tab-button:hover,
+  .attendance-logs .primary-button:hover:not(:disabled),
+  .attendance-logs .secondary-button:hover:not(:disabled),
+  .attendance-logs .success-button:hover:not(:disabled),
+  .attendance-logs .warning-button:hover:not(:disabled),
+  .attendance-logs .export-btn:hover {
+    transform: none;
+  }
+
+  /* Active state for touch feedback */
+  .attendance-logs .tab-button:active,
+  .attendance-logs .primary-button:active:not(:disabled),
+  .attendance-logs .secondary-button:active:not(:disabled),
+  .attendance-logs .success-button:active:not(:disabled),
+  .attendance-logs .warning-button:active:not(:disabled),
+  .attendance-logs .export-btn:active {
+    transform: scale(0.98);
+    opacity: 0.9;
+  }
+
+  .attendance-logs .modern-table tbody tr:active {
+    background: rgba(139, 195, 74, 0.1);
+  }
+
+  html.dark-mode .attendance-logs .modern-table tbody tr:active {
+    background: rgba(139, 195, 74, 0.15);
   }
 }

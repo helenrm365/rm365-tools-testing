@@ -255,22 +255,337 @@ html.dark-mode .labels-history .history-table {
 }
 
 /* ===== Responsive Design ===== */
+
+/* Large desktop */
+@media (min-width: 1400px) {
+  .labels-history .history-content {
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+}
+
+/* Desktop to tablet transition */
+@media (max-width: 1200px) {
+  .labels-history .page-title {
+    font-size: 2.25rem;
+  }
+
+  .labels-history .page-subtitle {
+    font-size: 1.05rem;
+  }
+
+  .labels-history .history-controls {
+    padding: 1.25rem;
+  }
+
+  .labels-history .controls-group {
+    gap: 1.25rem;
+  }
+}
+
+/* Tablet and smaller */
+@media (max-width: 1024px) {
+  .labels-history .page-title {
+    font-size: 2rem;
+  }
+
+  .labels-history .page-subtitle {
+    font-size: 1rem;
+  }
+
+  .labels-history .inner-tabs {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .labels-history .inner-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .labels-history .tab-button {
+    flex: 1 1 auto;
+    min-width: 140px;
+    padding: 0.875rem 1rem;
+    font-size: 0.9rem;
+    gap: 0.5rem;
+    white-space: nowrap;
+  }
+
+  .labels-history .history-controls {
+    padding: 1.25rem;
+  }
+
+  .labels-history .controls-group {
+    gap: 1rem;
+  }
+
+  .labels-history .control-label {
+    font-size: 0.9rem;
+  }
+
+  .labels-history .control-select {
+    font-size: 0.9rem;
+  }
+}
+
+/* Medium tablet */
+@media (max-width: 900px) {
+  .labels-history .tab-button {
+    min-width: 130px;
+    font-size: 0.875rem;
+  }
+
+  .labels-history .controls-group {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .labels-history .control-item {
+    justify-content: space-between;
+  }
+
+  .labels-history .filter-button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Tablet portrait mode */
+@media (max-width: 1024px) and (orientation: portrait) {
+  .labels-history .controls-group {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .labels-history .control-item {
+    width: 100%;
+  }
+
+  .labels-history .control-select {
+    flex: 1;
+  }
+}
+
+/* Mobile devices */
 @media (max-width: 768px) {
+  /* Page header */
+  .labels-history .page-header {
+    padding: 1.5rem 0 1rem 0;
+    margin-bottom: 1rem;
+  }
+
+  .labels-history .page-title {
+    font-size: 1.75rem;
+  }
+
+  .labels-history .page-subtitle {
+    font-size: 0.95rem;
+  }
+
+  /* Navigation tabs - horizontal scroll */
+  .labels-history .inner-tabs {
+    padding: 0.75rem;
+    gap: 0.75rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    flex-wrap: nowrap;
+    margin-bottom: 1rem;
+  }
+
+  .labels-history .inner-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .labels-history .tab-button {
+    padding: 0.875rem 1.25rem;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+    min-width: fit-content;
+  }
+
+  .labels-history .tab-button span {
+    display: inline;
+  }
+
+  /* History controls */
+  .labels-history .history-controls {
+    padding: 1rem;
+    border-radius: 10px;
+    margin-bottom: 1rem;
+  }
+
   .labels-history .controls-group {
     flex-direction: column;
     align-items: stretch;
     gap: 1rem;
   }
-  
+
   .labels-history .control-item {
     justify-content: space-between;
+    flex-wrap: wrap;
   }
-  
+
+  .labels-history .control-label {
+    font-size: 0.875rem;
+  }
+
+  .labels-history .control-select {
+    min-width: 140px;
+    flex: 1;
+    font-size: 1rem;
+    min-height: 48px;
+  }
+
+  /* Larger touch targets for mobile */
+  .labels-history .filter-button {
+    width: 100%;
+    justify-content: center;
+    padding: 1rem 1.25rem;
+    font-size: 1rem;
+    min-height: 48px;
+  }
+
+  /* History table container */
+  .labels-history .history-table-container {
+    border-radius: 10px;
+    margin-bottom: 1rem;
+    overflow-x: auto;
+  }
+
+  .labels-history .loading-message {
+    padding: 2rem 1rem;
+  }
+
+  .labels-history .loading-message i {
+    font-size: 1.75rem;
+  }
+
+  .labels-history .loading-message p {
+    font-size: 1rem;
+  }
+
+  /* History details */
+  .labels-history .history-details {
+    padding: 1rem;
+    border-radius: 10px;
+  }
+
+  .labels-history .history-details h4 {
+    font-size: 1.1rem;
+  }
+}
+
+/* Small mobile devices */
+@media (max-width: 480px) {
+  .labels-history .page-title {
+    font-size: 1.5rem;
+  }
+
+  .labels-history .page-subtitle {
+    font-size: 0.875rem;
+  }
+
+  .labels-history .inner-tabs {
+    padding: 0.5rem;
+    gap: 0.5rem;
+  }
+
+  .labels-history .tab-button {
+    padding: 0.75rem 1rem;
+    font-size: 0.85rem;
+    gap: 0.5rem;
+  }
+
+  .labels-history .tab-button i {
+    font-size: 0.9rem;
+  }
+
+  .labels-history .history-controls {
+    padding: 0.875rem;
+  }
+
+  .labels-history .control-label {
+    font-size: 0.8rem;
+  }
+
   .labels-history .control-select {
     min-width: 120px;
+    font-size: 0.9rem;
   }
-  
+
   .labels-history .filter-button {
-    justify-content: center;
+    padding: 0.875rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  .labels-history .history-details {
+    padding: 0.875rem;
+  }
+
+  .labels-history .history-details h4 {
+    font-size: 1rem;
+  }
+
+  .labels-history .loading-message {
+    padding: 1.5rem 0.875rem;
+  }
+
+  .labels-history .loading-message i {
+    font-size: 1.5rem;
+  }
+
+  .labels-history .loading-message p {
+    font-size: 0.95rem;
+  }
+}
+
+/* Landscape orientation optimization */
+@media (max-width: 768px) and (orientation: landscape) {
+  .labels-history .controls-group {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .labels-history .control-item {
+    flex: 1 1 auto;
+  }
+
+  .labels-history .filter-button {
+    width: auto;
+    min-width: 140px;
+  }
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+  /* Increase touch targets */
+  .labels-history .tab-button,
+  .labels-history .filter-button,
+  .labels-history .control-select {
+    min-height: 44px;
+  }
+
+  /* Remove hover effects on touch devices */
+  .labels-history .tab-button:hover,
+  .labels-history .filter-button:hover:not(:disabled),
+  .labels-history .control-select:hover {
+    transform: none;
+  }
+
+  /* Active state for touch feedback */
+  .labels-history .tab-button:active,
+  .labels-history .filter-button:active:not(:disabled) {
+    transform: scale(0.98);
+    opacity: 0.9;
+  }
+
+  .labels-history .control-select:active {
+    transform: scale(0.99);
   }
 }

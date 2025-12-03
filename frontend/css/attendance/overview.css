@@ -549,18 +549,108 @@ html.dark-mode .attendance-overview .status-unknown {
 }
 
 /* ===== Responsive Design ===== */
-@media (max-width: 968px) {
-  .attendance-overview .filters-grid {
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 0.75rem;
+
+/* Large desktop */
+@media (min-width: 1400px) {
+  .attendance-overview-content {
+    max-width: 1600px;
+    margin: 0 auto;
   }
 }
 
-@media (max-width: 768px) {
+/* Desktop to tablet transition */
+@media (max-width: 1200px) {
+  .attendance-overview .tab-button {
+    min-width: 160px;
+    padding: 0.875rem 1.25rem;
+    font-size: 0.95rem;
+  }
+
+  .attendance-overview .stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .attendance-overview .filters-grid {
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 0.875rem;
+  }
+}
+
+/* Tablet and smaller */
+@media (max-width: 1024px) {
   .attendance-overview .page-title {
     font-size: 2rem;
   }
 
+  .attendance-overview .page-subtitle {
+    font-size: 1rem;
+  }
+
+  .attendance-overview .tab-button {
+    min-width: 140px;
+    padding: 0.875rem 1rem;
+    font-size: 0.9rem;
+    gap: 0.5rem;
+  }
+
+  .attendance-overview .inner-tabs {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(139, 195, 74, 0.3) transparent;
+  }
+
+  .attendance-overview .inner-tabs::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  .attendance-overview .inner-tabs::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .attendance-overview .inner-tabs::-webkit-scrollbar-thumb {
+    background: rgba(139, 195, 74, 0.3);
+    border-radius: 3px;
+  }
+
+  .attendance-overview .inner-tabs::-webkit-scrollbar-thumb:hover {
+    background: rgba(139, 195, 74, 0.5);
+  }
+
+  .attendance-overview .stat-card,
+  .attendance-overview .filters-card,
+  .attendance-overview .chart-card,
+  .attendance-overview .status-card,
+  .attendance-overview .data-section {
+    padding: 1.5rem;
+  }
+
+  .attendance-overview .chart-container {
+    height: 320px;
+  }
+}
+
+/* Medium tablet */
+@media (max-width: 900px) {
+  .attendance-overview .tab-button {
+    min-width: 130px;
+    font-size: 0.875rem;
+  }
+
+  .attendance-overview .filters-grid {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 0.75rem;
+  }
+
+  .attendance-overview .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Tablet portrait mode */
+@media (max-width: 1024px) and (orientation: portrait) {
   .attendance-overview .stats-grid {
     grid-template-columns: 1fr;
   }
@@ -578,28 +668,66 @@ html.dark-mode .attendance-overview .status-unknown {
     width: 100%;
     justify-content: center;
   }
-
-  .attendance-overview .chart-container {
-    height: 300px;
-  }
-
-  .attendance-overview .modern-table {
-    font-size: 0.85rem;
-  }
-
-  .attendance-overview .modern-table thead th,
-  .attendance-overview .modern-table tbody td {
-    padding: 0.75rem 0.5rem;
-  }
 }
 
-@media (max-width: 480px) {
+/* Mobile devices */
+@media (max-width: 768px) {
+  /* Page header */
+  .attendance-overview .page-header {
+    padding: 1.5rem 0 1rem 0;
+    margin-bottom: 1rem;
+  }
+
   .attendance-overview .page-title {
     font-size: 1.75rem;
   }
 
   .attendance-overview .page-subtitle {
-    font-size: 1rem;
+    font-size: 0.95rem;
+  }
+
+  /* Navigation tabs - horizontal scroll */
+  .attendance-overview .inner-tabs {
+    padding: 0.75rem;
+    gap: 0.75rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    flex-wrap: nowrap;
+  }
+
+  .attendance-overview .inner-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .attendance-overview .tab-button {
+    padding: 0.875rem 1.25rem;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+    min-width: fit-content;
+  }
+
+  .attendance-overview .tab-button span {
+    display: inline;
+  }
+
+  /* Main content */
+  .attendance-overview-content {
+    padding: 0;
+  }
+
+  /* Section headers */
+  .attendance-overview .section-title {
+    font-size: 1.25rem;
+  }
+
+  /* Stats section */
+  .attendance-overview .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
   }
 
   .attendance-overview .stat-card {
@@ -616,10 +744,212 @@ html.dark-mode .attendance-overview .status-unknown {
     font-size: 1.75rem;
   }
 
+  /* Filters section */
+  .attendance-overview .filters-card {
+    padding: 1.25rem;
+    border-radius: 12px;
+  }
+
+  .attendance-overview .filters-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .attendance-overview .filter-actions {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .attendance-overview .action-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Chart section */
+  .attendance-overview .chart-card {
+    padding: 1.25rem;
+    border-radius: 12px;
+  }
+
+  .attendance-overview .chart-container {
+    height: 300px;
+  }
+
+  /* Status section */
+  .attendance-overview .status-card {
+    padding: 1.25rem;
+    border-radius: 12px;
+  }
+
+  /* Data table section */
+  .attendance-overview .data-section {
+    padding: 1.25rem;
+    border-radius: 12px;
+  }
+
+  .attendance-overview .modern-table {
+    font-size: 0.85rem;
+  }
+
+  .attendance-overview .modern-table thead th,
+  .attendance-overview .modern-table tbody td {
+    padding: 0.75rem 0.5rem;
+  }
+
+  /* Larger touch targets for mobile */
+  .attendance-overview .primary-button,
+  .attendance-overview .secondary-button,
+  .attendance-overview .success-button,
+  .attendance-overview .warning-button,
+  .attendance-overview .action-btn {
+    padding: 1rem 1.25rem;
+    font-size: 1rem;
+    min-height: 48px;
+  }
+
+  /* Input fields */
+  .attendance-overview .modern-input,
+  .attendance-overview .c-select__button {
+    padding: 1rem 1.125rem;
+    font-size: 1rem;
+    min-height: 48px;
+  }
+}
+
+/* Small mobile devices */
+@media (max-width: 480px) {
+  .attendance-overview .page-title {
+    font-size: 1.5rem;
+  }
+
+  .attendance-overview .page-subtitle {
+    font-size: 0.875rem;
+  }
+
+  .attendance-overview .inner-tabs {
+    padding: 0.5rem;
+    gap: 0.5rem;
+  }
+
+  .attendance-overview .tab-button {
+    padding: 0.75rem 1rem;
+    font-size: 0.85rem;
+    gap: 0.5rem;
+  }
+
+  .attendance-overview .tab-button i {
+    font-size: 0.9rem;
+  }
+
+  .attendance-overview .section-title {
+    font-size: 1.125rem;
+  }
+
+  .attendance-overview .stat-card {
+    padding: 1rem;
+  }
+
+  .attendance-overview .stat-icon {
+    width: 44px;
+    height: 44px;
+    font-size: 1.125rem;
+  }
+
+  .attendance-overview .stat-value {
+    font-size: 1.5rem;
+  }
+
   .attendance-overview .filters-card,
   .attendance-overview .chart-card,
   .attendance-overview .status-card,
   .attendance-overview .data-section {
-    padding: 1.5rem;
+    padding: 1rem;
+  }
+
+  .attendance-overview .chart-container {
+    height: 280px;
+  }
+
+  .attendance-overview .modern-table {
+    font-size: 0.8rem;
+  }
+
+  .attendance-overview .modern-table thead th,
+  .attendance-overview .modern-table tbody td {
+    padding: 0.625rem 0.375rem;
+  }
+}
+
+/* Landscape orientation optimization */
+@media (max-width: 768px) and (orientation: landscape) {
+  .attendance-overview .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+
+  .attendance-overview .filters-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.875rem;
+  }
+
+  .attendance-overview .filter-actions {
+    flex-direction: row;
+  }
+
+  .attendance-overview .action-btn {
+    width: auto;
+  }
+
+  .attendance-overview .chart-container {
+    height: 50vh;
+  }
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+  /* Increase touch targets */
+  .attendance-overview .tab-button,
+  .attendance-overview .primary-button,
+  .attendance-overview .secondary-button,
+  .attendance-overview .success-button,
+  .attendance-overview .warning-button,
+  .attendance-overview .action-btn,
+  .attendance-overview .modern-input,
+  .attendance-overview .c-select__button {
+    min-height: 44px;
+  }
+
+  /* Remove hover effects on touch devices */
+  .attendance-overview .tab-button:hover,
+  .attendance-overview .primary-button:hover:not(:disabled),
+  .attendance-overview .secondary-button:hover:not(:disabled),
+  .attendance-overview .success-button:hover:not(:disabled),
+  .attendance-overview .warning-button:hover:not(:disabled),
+  .attendance-overview .action-btn:hover,
+  .attendance-overview .stat-card:hover {
+    transform: none;
+  }
+
+  /* Active state for touch feedback */
+  .attendance-overview .tab-button:active,
+  .attendance-overview .primary-button:active:not(:disabled),
+  .attendance-overview .secondary-button:active:not(:disabled),
+  .attendance-overview .success-button:active:not(:disabled),
+  .attendance-overview .warning-button:active:not(:disabled),
+  .attendance-overview .action-btn:active {
+    transform: scale(0.98);
+    opacity: 0.9;
+  }
+
+  .attendance-overview .stat-card:active {
+    transform: scale(0.99);
+  }
+
+  .attendance-overview .modern-table tbody tr:active {
+    background: rgba(139, 195, 74, 0.1);
+  }
+
+  html.dark-mode .attendance-overview .modern-table tbody tr:active {
+    background: rgba(139, 195, 74, 0.15);
   }
 }
