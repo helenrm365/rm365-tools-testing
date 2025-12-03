@@ -10,7 +10,12 @@ function $(sel) { return document.querySelector(sel); }
 
 function fillEmployeeSelect() {
   const sel = $('#cardEmployee');
-  if (!sel) return;
+  if (!sel) {
+    console.error('❌ Employee select element not found (#cardEmployee)');
+    return;
+  }
+  
+  console.log('📋 Filling employee select with', cache.employees.length, 'employees');
   sel.innerHTML = '<option value="">Select an employee...</option>';
   cache.employees.forEach(e => {
     const opt = document.createElement('option');
@@ -19,18 +24,26 @@ function fillEmployeeSelect() {
     sel.appendChild(opt);
   });
   
+  // Remove any existing listener to prevent duplicates
+  const newSelect = sel.cloneNode(true);
+  sel.parentNode.replaceChild(newSelect, sel);
+  
   // Add change listener to start/stop scanning loop
-  sel.addEventListener('change', (e) => {
+  newSelect.addEventListener('change', (e) => {
     const empId = e.target.value;
     const status = $('#cardStatus');
     const statusText = status?.querySelector('.status-message');
     
-  if (!empId) {
+    console.log('👤 Employee selection changed:', empId);
+    
+    if (empId) {
       const emp = cache.employees.find(em => String(em.id) === empId);
+      console.log('✅ Employee selected:', emp?.name);
       if (statusText) statusText.textContent = `Employee selected: ${emp?.name || 'Unknown'}. Waiting for NFC tap...`;
       if (status) status.setAttribute('data-status', 'ready');
       startScanningLoop();
     } else {
+      console.log('ℹ️ Employee deselected');
       if (statusText) statusText.textContent = 'Please select an employee to begin enrollment';
       if (status) status.setAttribute('data-status', 'ready');
       stopScanningLoop();
@@ -80,8 +93,12 @@ async function tryLocalCardScan(timeoutSeconds = 1) {
 }
 
 async function startScanningLoop() {
-  if (scanLoopActive) return;
+  if (scanLoopActive) {
+    console.log('⚠️ NFC scan loop already active');
+    return;
+  }
   scanLoopActive = true;
+  console.log('🔄 Starting NFC scan loop');
   
   const status = $('#cardStatus');
   const statusText = status?.querySelector('.status-message');
@@ -89,6 +106,7 @@ async function startScanningLoop() {
   while (scanLoopActive) {
     const empId = $('#cardEmployee')?.value;
     if (!empId) {
+      console.log('⚠️ No employee selected, stopping scan loop');
       stopScanningLoop();
       break;
     }
@@ -100,11 +118,14 @@ async function startScanningLoop() {
     }
 
     try {
+      console.log('🎫 Attempting NFC scan...');
       const result = await tryLocalCardScan(1);
+      console.log('📡 NFC scan result:', result);
       
       if (!scanLoopActive) break;
 
       if (result && result.status === 'success' && result.uid) {
+        console.log('✅ NFC card detected:', result.uid);
         playScanSound();
         cache.scannedUid = result.uid;
         
@@ -127,13 +148,15 @@ async function startScanningLoop() {
         await new Promise(r => setTimeout(r, 300));
       }
     } catch (err) {
-      console.error('Card scan loop error:', err);
+      console.error('❌ Card scan loop error:', err);
       await new Promise(r => setTimeout(r, 2000));
     }
   }
+  console.log('⏹️ NFC scan loop stopped');
 }
 
 function stopScanningLoop() {
+  console.log('🛑 Stopping NFC scan loop');
   scanLoopActive = false;
   if (currentScanAbort) {
     currentScanAbort.abort();
@@ -201,20 +224,37 @@ async function onSave() {
 }
 
 export async function init() {
+  console.log('🎫 Initializing NFC enrollment page');
+  
   // Load employees
   try {
+    console.log('📡 Fetching employees...');
     cache.employees = await getEmployees();
+    console.log('✅ Loaded', cache.employees.length, 'employees');
     fillEmployeeSelect();
   } catch (err) {
-    console.error('Failed to load employees:', err);
+    console.error('❌ Failed to load employees:', err);
   }
   
   // Only save button needed now (no manual scan button)
-  $('#saveCardBtn')?.addEventListener('click', onSave);
+  const saveBtn = $('#saveCardBtn');
+  if (saveBtn) {
+    console.log('✅ Save button found, attaching listener');
+    saveBtn.addEventListener('click', onSave);
+  } else {
+    console.error('❌ Save button not found (#saveCardBtn)');
+  }
   
   // Set initial status
   const status = $('#cardStatus');
   const statusText = status?.querySelector('.status-message');
-  if (statusText) statusText.textContent = 'Please select an employee to begin enrollment';
+  if (statusText) {
+    statusText.textContent = 'Please select an employee to begin enrollment';
+    console.log('✅ Initial status set');
+  } else {
+    console.error('❌ Status elements not found');
+  }
   if (status) status.setAttribute('data-status', 'ready');
+  
+  console.log('✅ NFC enrollment page initialization complete');
 }
