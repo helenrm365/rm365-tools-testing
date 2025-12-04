@@ -314,6 +314,53 @@ html.dark-mode .order-approval .tab-button.active:hover {
   overflow-y: auto;
 }
 
+/* Shipping Method Group Headers */
+.shipping-method-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 0;
+  margin: 0;
+  border-left: 4px solid #8bc34a;
+  border-bottom: 1px solid var(--border-color);
+}
+
+html.dark-mode .shipping-method-header {
+  background: linear-gradient(135deg, #2c2c2c 0%, #252525 100%);
+  border-left-color: #8bc34a;
+}
+
+.shipping-method-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #495057;
+}
+
+html.dark-mode .shipping-method-title {
+  color: #e0e0e0;
+}
+
+.shipping-method-title i {
+  color: #8bc34a;
+  font-size: 0.9rem;
+}
+
+.shipping-method-count {
+  background: #8bc34a;
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  min-width: 28px;
+  text-align: center;
+}
+
 /* Pending Order Card */
 .pending-order-card {
   padding: 1.5rem;

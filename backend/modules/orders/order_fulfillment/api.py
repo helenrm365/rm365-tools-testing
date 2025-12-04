@@ -51,7 +51,7 @@ def magento_health():
         }
 
 
-@router.get("/invoice/lookup")
+@router.get("/invoice/lookup/{order_number}")
 def lookup_invoice(
     order_number: str,
     current_user: dict = Depends(get_current_user),

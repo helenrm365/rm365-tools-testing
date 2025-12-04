@@ -189,6 +189,7 @@ class OrderTrackingColumnSchema(BaseModel):
     completed_items: int
     grand_total: Optional[float] = None
     customer_name: Optional[str] = None
+    shipping_method: Optional[str] = None
 
 
 class OrderTrackingBoardSchema(BaseModel):
@@ -219,6 +220,7 @@ class PendingMagentoOrderSchema(BaseModel):
     customer_email: Optional[str] = None
     total_qty_ordered: float = 0
     payment_method: Optional[str] = None
+    shipping_method: Optional[str] = None
     items: List[Dict[str, Any]] = []
 
 

@@ -46,8 +46,11 @@ class MagentoPickPackManager {
     this.currentPath = initialPath || '/orders/order-fulfillment';
     this.refreshInterval = null;
     this.initialLoadPromise = null;
+    this.isMobileMode = false;
+    this.activeColumn = 'ready-to-pick';
     this.initializeElements();
     this.attachEventListeners();
+    this.setupMobileMode();
     this.setupWebSocket();
     this.ensureRealtimeConnection();
     // Check if we're loading a specific session from URL
@@ -320,6 +323,14 @@ class MagentoPickPackManager {
     this.startSessionBtn = document.getElementById('startSessionBtn');
     this.lookupMessage = document.getElementById('lookupMessage');
 
+    // Order Preview Modal Elements
+    this.orderPreviewModal = document.getElementById('orderPreviewModal');
+    this.closeOrderPreviewBtn = document.getElementById('closeOrderPreviewBtn');
+    this.cancelOrderPreviewBtn = document.getElementById('cancelOrderPreviewBtn');
+    this.startSessionFromPreviewBtn = document.getElementById('startSessionFromPreviewBtn');
+    this.pendingPreviewOrder = null;
+    this.pendingPreviewSessionType = null;
+
     // Active Session Elements
     this.sessionOrderNumber = document.getElementById('sessionOrderNumber');
     this.sessionInvoiceNumber = document.getElementById('sessionInvoiceNumber');
@@ -327,14 +338,13 @@ class MagentoPickPackManager {
     this.sessionPaymentMethod = document.getElementById('sessionPaymentMethod');
     this.sessionShippingMethod = document.getElementById('sessionShippingMethod');
     this.sessionBillingName = document.getElementById('sessionBillingName');
+    this.sessionBillingAddress = document.getElementById('sessionBillingAddress');
     this.sessionBillingPostcode = document.getElementById('sessionBillingPostcode');
     this.sessionBillingPhone = document.getElementById('sessionBillingPhone');
     this.sessionShippingName = document.getElementById('sessionShippingName');
+    this.sessionShippingAddress = document.getElementById('sessionShippingAddress');
     this.sessionShippingPostcode = document.getElementById('sessionShippingPostcode');
     this.sessionShippingPhone = document.getElementById('sessionShippingPhone');
-    this.sessionSubtotal = document.getElementById('sessionSubtotal');
-    this.sessionTax = document.getElementById('sessionTax');
-    this.sessionGrandTotal = document.getElementById('sessionGrandTotal');
     this.sessionTypeBadge = document.getElementById('sessionTypeBadge');
     
     // Progress bar elements - Items completed
@@ -440,6 +450,11 @@ class MagentoPickPackManager {
       if (e.key === 'Enter') this.startSession();
     });
 
+    // Order Preview Modal
+    this.closeOrderPreviewBtn?.addEventListener('click', () => this.hideOrderPreview());
+    this.cancelOrderPreviewBtn?.addEventListener('click', () => this.hideOrderPreview());
+    this.startSessionFromPreviewBtn?.addEventListener('click', () => this.confirmStartSessionFromPreview());
+
     // Scanning
     this.scanBtn?.addEventListener('click', () => this.scanProduct());
     this.skuInput?.addEventListener('keypress', (e) => {
@@ -452,19 +467,113 @@ class MagentoPickPackManager {
     this.markReadyToCheckBtn?.addEventListener('click', () => this.markReadyToCheck());
   }
 
-  async startSession() {
-    const orderNumber = this.orderNumberInput.value.trim();
+  setupMobileMode() {
+    const mobileModeToggle = document.getElementById('mobileModeToggle');
+    const mobileColumnTabs = document.getElementById('mobileColumnTabs');
     
-    if (!orderNumber) {
+    if (!mobileModeToggle) return;
+    
+    // Check if on mobile device
+    const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
+    
+    // Restore saved preference or default to on for mobile devices
+    const savedMode = localStorage.getItem('orderFulfillmentMobileMode');
+    if (savedMode !== null) {
+      this.isMobileMode = savedMode === 'true';
+    } else {
+      this.isMobileMode = isMobileDevice;
+    }
+    
+    mobileModeToggle.checked = this.isMobileMode;
+    this.toggleMobileMode(this.isMobileMode);
+    
+    // Toggle listener
+    mobileModeToggle.addEventListener('change', (e) => {
+      this.isMobileMode = e.target.checked;
+      this.toggleMobileMode(this.isMobileMode);
+      localStorage.setItem('orderFulfillmentMobileMode', this.isMobileMode);
+    });
+    
+    // Mobile tab listeners
+    if (mobileColumnTabs) {
+      const tabButtons = mobileColumnTabs.querySelectorAll('.mobile-tab-button');
+      tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+          this.activeColumn = button.getAttribute('data-column');
+          this.updateMobileTabs();
+          this.updateMobileColumnVisibility();
+        });
+      });
+    }
+  }
+
+  toggleMobileMode(enabled) {
+    const mobileColumnTabs = document.getElementById('mobileColumnTabs');
+    const trackingBoard = document.getElementById('trackingBoard');
+    
+    if (enabled) {
+      document.body.classList.add('mobile-mode');
+      if (mobileColumnTabs) mobileColumnTabs.style.display = 'flex';
+      this.updateMobileColumnVisibility();
+    } else {
+      document.body.classList.remove('mobile-mode');
+      if (mobileColumnTabs) mobileColumnTabs.style.display = 'none';
+      // Show all columns
+      if (trackingBoard) {
+        const columns = trackingBoard.querySelectorAll('.tracking-column');
+        columns.forEach(col => col.style.display = 'flex');
+      }
+    }
+  }
+
+  updateMobileTabs() {
+    const mobileColumnTabs = document.getElementById('mobileColumnTabs');
+    if (!mobileColumnTabs) return;
+    
+    const tabButtons = mobileColumnTabs.querySelectorAll('.mobile-tab-button');
+    tabButtons.forEach(button => {
+      if (button.getAttribute('data-column') === this.activeColumn) {
+        button.classList.add('active');
+      } else {
+        button.classList.remove('active');
+      }
+    });
+  }
+
+  updateMobileColumnVisibility() {
+    if (!this.isMobileMode) return;
+    
+    const columnMap = {
+      'ready-to-pick': 'readyToPickColumn',
+      'ready-to-check': 'readyToCheckColumn',
+      'completed': 'completedColumn'
+    };
+    
+    Object.entries(columnMap).forEach(([key, _]) => {
+      const column = document.querySelector(`[id="${columnMap[key]}"]`)?.closest('.tracking-column');
+      if (column) {
+        column.style.display = key === this.activeColumn ? 'flex' : 'none';
+      }
+    });
+  }
+
+  async startSession(orderNumber = null, sessionType = null) {
+    // Use provided parameters or fall back to input values
+    const order = orderNumber || this.orderNumberInput?.value?.trim();
+    const type = sessionType || this.selectedSessionType;
+    
+    if (!order) {
       this.showLookupMessage('Please enter an order number', 'error');
       return;
     }
     try {
-      this.startSessionBtn.disabled = true;
-      this.startSessionBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
+      if (this.startSessionBtn) {
+        this.startSessionBtn.disabled = true;
+        this.startSessionBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
+      }
 
       // First, check the order status
-      const checkUrl = `${getApiUrl()}/v1/magento/session/check/${encodeURIComponent(orderNumber)}`;
+      const checkUrl = `${getApiUrl()}/v1/magento/session/check/${encodeURIComponent(order)}`;
       const checkResponse = await fetch(checkUrl, {
         method: 'GET',
         headers: getAuthHeaders()
@@ -481,37 +590,45 @@ class MagentoPickPackManager {
       if (statusData.status === 'in_progress') {
         let confirmed;
         if (statusData.can_claim) {
-          confirmed = await orderModals.confirmTakeoverRequest(orderNumber, statusData.user);
+          confirmed = await orderModals.confirmTakeoverRequest(order, statusData.user);
         } else {
           await orderModals.confirmOwnOrderInProgress();
           this.showLookupMessage('Session start cancelled', 'info');
-          this.startSessionBtn.disabled = false;
-          this.startSessionBtn.innerHTML = '<i class="fas fa-play"></i> Start Session';
+          if (this.startSessionBtn) {
+            this.startSessionBtn.disabled = false;
+            this.startSessionBtn.innerHTML = '<i class="fas fa-play"></i> Start Session';
+          }
           return;
         }
         
         if (!confirmed) {
           this.showLookupMessage('Session start cancelled', 'info');
-          this.startSessionBtn.disabled = false;
-          this.startSessionBtn.innerHTML = '<i class="fas fa-play"></i> Start Session';
+          if (this.startSessionBtn) {
+            this.startSessionBtn.disabled = false;
+            this.startSessionBtn.innerHTML = '<i class="fas fa-play"></i> Start Session';
+          }
           return;
         }
         
         // TODO: Implement takeover request
         await orderModals.alertInfo('Takeover requests are not yet implemented. Please contact an administrator.');
-        this.startSessionBtn.disabled = false;
-        this.startSessionBtn.innerHTML = '<i class="fas fa-play"></i> Start Session';
+        if (this.startSessionBtn) {
+          this.startSessionBtn.disabled = false;
+          this.startSessionBtn.innerHTML = '<i class="fas fa-play"></i> Start Session';
+        }
         return;
       }
 
       if (statusData.status === 'draft') {
         const isOwnDraft = !statusData.can_claim;
-        const confirmed = await orderModals.confirmClaimDraft(orderNumber, statusData.user, isOwnDraft);
+        const confirmed = await orderModals.confirmClaimDraft(order, statusData.user, isOwnDraft);
         
         if (!confirmed) {
           this.showLookupMessage('Session start cancelled', 'info');
-          this.startSessionBtn.disabled = false;
-          this.startSessionBtn.innerHTML = '<i class="fas fa-play"></i> Start Session';
+          if (this.startSessionBtn) {
+            this.startSessionBtn.disabled = false;
+            this.startSessionBtn.innerHTML = '<i class="fas fa-play"></i> Start Session';
+          }
           return;
         }
         
@@ -521,26 +638,32 @@ class MagentoPickPackManager {
       }
 
       if (statusData.status === 'completed') {
-        await orderModals.alertOrderCompleted(orderNumber, statusData.user);
+        await orderModals.alertOrderCompleted(order, statusData.user);
         this.showLookupMessage('Order already completed', 'error');
-        this.startSessionBtn.disabled = false;
-        this.startSessionBtn.innerHTML = '<i class="fas fa-play"></i> Start Session';
+        if (this.startSessionBtn) {
+          this.startSessionBtn.disabled = false;
+          this.startSessionBtn.innerHTML = '<i class="fas fa-play"></i> Start Session';
+        }
         return;
       }
 
       if (statusData.status === 'cancelled') {
-        const confirmed = await orderModals.confirmStartAfterCancelled(orderNumber);
+        const confirmed = await orderModals.confirmStartAfterCancelled(order);
         
         if (!confirmed) {
           this.showLookupMessage('Session start cancelled', 'info');
-          this.startSessionBtn.disabled = false;
-          this.startSessionBtn.innerHTML = '<i class="fas fa-play"></i> Start Session';
+          if (this.startSessionBtn) {
+            this.startSessionBtn.disabled = false;
+            this.startSessionBtn.innerHTML = '<i class="fas fa-play"></i> Start Session';
+          }
           return;
         }
       }
 
       // Proceed with starting a new session
-      this.startSessionBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Starting...';
+      if (this.startSessionBtn) {
+        this.startSessionBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Starting...';
+      }
 
       const url = `${getApiUrl()}/v1/magento/session/start`;
       const response = await fetch(url, {
@@ -550,8 +673,8 @@ class MagentoPickPackManager {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          order_number: orderNumber,
-          session_type: this.selectedSessionType
+          order_number: order,
+          session_type: type
         })
       });
       if (!response.ok) {
@@ -579,9 +702,12 @@ class MagentoPickPackManager {
     } catch (error) {
       console.error('Error starting session:', error);
       this.showLookupMessage(error.message, 'error');
+      showNotification(error.message, 'error');
     } finally {
-      this.startSessionBtn.disabled = false;
-      this.startSessionBtn.innerHTML = '<i class="fas fa-play"></i> Start Session';
+      if (this.startSessionBtn) {
+        this.startSessionBtn.disabled = false;
+        this.startSessionBtn.innerHTML = '<i class="fas fa-play"></i> Start Session';
+      }
     }
   }
 
@@ -716,19 +842,21 @@ class MagentoPickPackManager {
   
   updateColumn(columnName, orders) {
     const columnMap = {
-      readyToPick: { id: 'readyToPickColumn', count: 'readyToPickCount' },
-      readyToCheck: { id: 'readyToCheckColumn', count: 'readyToCheckCount' },
-      completed: { id: 'completedColumn', count: 'completedCount' }
+      readyToPick: { id: 'readyToPickColumn', count: 'readyToPickCount', mobileCount: 'mobileReadyToPickCount' },
+      readyToCheck: { id: 'readyToCheckColumn', count: 'readyToCheckCount', mobileCount: 'mobileReadyToCheckCount' },
+      completed: { id: 'completedColumn', count: 'completedCount', mobileCount: 'mobileCompletedCount' }
     };
     
     const column = columnMap[columnName];
     const columnEl = document.getElementById(column.id);
     const countEl = document.getElementById(column.count);
+    const mobileCountEl = document.getElementById(column.mobileCount);
     
     if (!columnEl || !countEl) return;
     
     // Update count
     countEl.textContent = orders.length;
+    if (mobileCountEl) mobileCountEl.textContent = orders.length;
     
     // Clear column
     columnEl.innerHTML = '';
@@ -742,11 +870,59 @@ class MagentoPickPackManager {
         </div>
       `;
     } else {
-      orders.forEach(order => {
-        const card = this.createOrderCard(order, columnName);
-        columnEl.appendChild(card);
+      // Group orders by shipping method
+      const groupedOrders = this.groupOrdersByShippingMethod(orders);
+      
+      // Render each shipping method group
+      groupedOrders.forEach(group => {
+        // Add shipping method header
+        const headerDiv = document.createElement('div');
+        headerDiv.className = 'shipping-method-header';
+        headerDiv.innerHTML = `
+          <div class="shipping-method-title">
+            <i class="fas fa-shipping-fast"></i>
+            <span>${group.shippingMethod}</span>
+          </div>
+          <span class="shipping-method-count">${group.orders.length}</span>
+        `;
+        columnEl.appendChild(headerDiv);
+        
+        // Add orders in this group
+        group.orders.forEach(order => {
+          const card = this.createOrderCard(order, columnName);
+          columnEl.appendChild(card);
+        });
       });
     }
+  }
+  
+  groupOrdersByShippingMethod(orders) {
+    // Group orders by shipping method
+    const groups = {};
+    
+    orders.forEach(order => {
+      const shippingMethod = order.shipping_method || 'Unknown Shipping Method';
+      if (!groups[shippingMethod]) {
+        groups[shippingMethod] = [];
+      }
+      groups[shippingMethod].push(order);
+    });
+    
+    // Convert to array and sort - "Shipping - Free Standard Delivery" first
+    const groupArray = Object.entries(groups).map(([shippingMethod, orders]) => ({
+      shippingMethod,
+      orders
+    }));
+    
+    groupArray.sort((a, b) => {
+      // "Shipping - Free Standard Delivery" always first
+      if (a.shippingMethod === 'Shipping - Free Standard Delivery') return -1;
+      if (b.shippingMethod === 'Shipping - Free Standard Delivery') return 1;
+      // Then alphabetically
+      return a.shippingMethod.localeCompare(b.shippingMethod);
+    });
+    
+    return groupArray;
   }
   
   createOrderCard(order, columnName) {
@@ -756,9 +932,6 @@ class MagentoPickPackManager {
     const statusBadgeClass = order.status.replace('_', '-');
     const statusLabel = order.status.replace(/_/g, ' ').toUpperCase();
     
-    const createdDate = new Date(order.created_at);
-    const formattedDate = createdDate.toLocaleDateString() + ' ' + createdDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    
     card.innerHTML = `
       <div class="order-card-header">
         <div class="order-number">#${order.order_number}</div>
@@ -766,36 +939,21 @@ class MagentoPickPackManager {
       </div>
       
       <div class="order-card-info">
-        <div class="order-info-row">
-          <i class="fas fa-receipt"></i>
-          <span>Invoice: ${order.invoice_number}</span>
-        </div>
         ${order.customer_name ? `
           <div class="order-info-row">
             <i class="fas fa-user"></i>
             <span>${order.customer_name}</span>
           </div>
         ` : ''}
-        ${order.grand_total ? `
-          <div class="order-info-row">
-            <i class="fas fa-dollar-sign"></i>
-            <span>$${order.grand_total.toFixed(2)}</span>
-          </div>
-        ` : ''}
-        <div class="order-info-row">
-          <i class="fas fa-user-circle"></i>
-          <span>${order.created_by}</span>
-        </div>
       </div>
       
       <div class="order-card-footer">
         <div class="order-progress">
-          <div>${order.completed_items} / ${order.total_items} items</div>
           <div class="progress-bar">
             <div class="progress-fill" style="width: ${order.progress_percentage}%"></div>
           </div>
+          <div class="progress-text">${order.completed_items} / ${order.total_items}</div>
         </div>
-        <div class="order-timestamp">${formattedDate}</div>
       </div>
     `;
     
@@ -833,10 +991,104 @@ class MagentoPickPackManager {
       
       const invoice = await response.json();
       
-      // Start the session
-      await this.startSession(orderNumber, sessionType);
+      // Show preview modal before starting session
+      this.showOrderPreview(invoice, sessionType);
     } catch (error) {
       console.error('[Order Fulfillment] Error starting session from card:', error);
+      showNotification(`Failed to start session: ${error.message}`, 'error');
+    }
+  }
+
+  showOrderPreview(invoice, sessionType = 'pick') {
+    // Store pending order and session type
+    this.pendingPreviewOrder = invoice;
+    this.pendingPreviewSessionType = sessionType;
+
+    // Populate order information
+    document.getElementById('previewOrderNumber').textContent = invoice.order_number || '-';
+    document.getElementById('previewInvoiceNumber').textContent = invoice.invoice_number || '-';
+    document.getElementById('previewOrderDate').textContent = invoice.order_date 
+      ? new Date(invoice.order_date).toLocaleDateString() 
+      : (invoice.created_at ? new Date(invoice.created_at).toLocaleDateString() : '-');
+    document.getElementById('previewStatus').textContent = invoice.state || '-';
+
+    // Populate billing address
+    document.getElementById('previewBillingName').textContent = invoice.billing_name || '-';
+    document.getElementById('previewBillingAddress').textContent = invoice.billing_address || '-';
+    document.getElementById('previewBillingPostcode').textContent = invoice.billing_postcode || '-';
+    document.getElementById('previewBillingPhone').textContent = invoice.billing_phone || '-';
+
+    // Populate shipping address
+    document.getElementById('previewShippingName').textContent = invoice.shipping_name || '-';
+    document.getElementById('previewShippingAddress').textContent = invoice.shipping_address || '-';
+    document.getElementById('previewShippingPostcode').textContent = invoice.shipping_postcode || '-';
+    document.getElementById('previewShippingPhone').textContent = invoice.shipping_phone || '-';
+
+    // Populate items table
+    const itemsList = document.getElementById('previewItemsList');
+    const currencySymbol = getCurrencySymbol(invoice.order_currency_code);
+    
+    if (invoice.items && invoice.items.length > 0) {
+      itemsList.innerHTML = invoice.items.map(item => `
+        <tr>
+          <td><strong>${item.sku}</strong></td>
+          <td>${item.name}</td>
+          <td class="text-center">${item.qty_ordered || item.qty_invoiced}</td>
+          <td class="text-right">${currencySymbol}${(item.price || 0).toFixed(2)}</td>
+          <td class="text-right">${currencySymbol}${(item.row_total || 0).toFixed(2)}</td>
+        </tr>
+      `).join('');
+    } else {
+      itemsList.innerHTML = '<tr><td colspan="5" class="text-center">No items</td></tr>';
+    }
+
+    // Populate totals
+    document.getElementById('previewSubtotal').textContent = invoice.subtotal != null 
+      ? `${currencySymbol}${invoice.subtotal.toFixed(2)}` 
+      : '-';
+    document.getElementById('previewTax').textContent = invoice.tax_amount != null 
+      ? `${currencySymbol}${invoice.tax_amount.toFixed(2)}` 
+      : '-';
+    document.getElementById('previewGrandTotal').textContent = invoice.grand_total != null 
+      ? `${currencySymbol}${invoice.grand_total.toFixed(2)}` 
+      : '-';
+
+    // Update button text based on session type
+    const startBtn = document.getElementById('startSessionFromPreviewBtn');
+    startBtn.innerHTML = sessionType === 'pick' 
+      ? '<i class="fas fa-play"></i> Start Picking' 
+      : '<i class="fas fa-play"></i> Start Checking';
+
+    // Show modal
+    if (this.orderPreviewModal) {
+      this.orderPreviewModal.style.display = 'flex';
+    }
+  }
+
+  hideOrderPreview() {
+    if (this.orderPreviewModal) {
+      this.orderPreviewModal.style.display = 'none';
+    }
+    this.pendingPreviewOrder = null;
+    this.pendingPreviewSessionType = null;
+  }
+
+  async confirmStartSessionFromPreview() {
+    if (!this.pendingPreviewOrder || !this.pendingPreviewSessionType) {
+      return;
+    }
+
+    const orderNumber = this.pendingPreviewOrder.order_number;
+    const sessionType = this.pendingPreviewSessionType;
+
+    // Hide the preview modal
+    this.hideOrderPreview();
+
+    // Start the session
+    try {
+      await this.startSession(orderNumber, sessionType);
+    } catch (error) {
+      console.error('[Order Fulfillment] Error starting session:', error);
       showNotification(`Failed to start session: ${error.message}`, 'error');
     }
   }
@@ -872,26 +1124,15 @@ class MagentoPickPackManager {
 
     // Update billing (Sold To) information
     this.sessionBillingName.textContent = this.currentSession.billing_name || '-';
+    this.sessionBillingAddress.textContent = this.currentSession.billing_address || '-';
     this.sessionBillingPostcode.textContent = this.currentSession.billing_postcode || '-';
     this.sessionBillingPhone.textContent = this.currentSession.billing_phone || '-';
 
     // Update shipping (Ship To) information
     this.sessionShippingName.textContent = this.currentSession.shipping_name || '-';
+    this.sessionShippingAddress.textContent = this.currentSession.shipping_address || '-';
     this.sessionShippingPostcode.textContent = this.currentSession.shipping_postcode || '-';
     this.sessionShippingPhone.textContent = this.currentSession.shipping_phone || '-';
-
-    // Format currency helper
-    const formatCurrency = (value) => {
-      if (value == null) return '-';
-      const currencyCode = this.currentSession.order_currency_code;
-      const symbol = getCurrencySymbol(currencyCode);
-      return `${symbol}${parseFloat(value).toFixed(2)}`;
-    };
-
-    // Update financial information
-    this.sessionSubtotal.textContent = formatCurrency(this.currentSession.subtotal);
-    this.sessionTax.textContent = formatCurrency(this.currentSession.tax_amount);
-    this.sessionGrandTotal.textContent = formatCurrency(this.currentSession.grand_total);
 
     // Update session type badge
     const badgeIcon = this.currentSession.session_type === 'pick' ? 'fa-box' : 'fa-undo';

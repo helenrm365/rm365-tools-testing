@@ -157,7 +157,28 @@ class OrderApprovalManager {
       return;
     }
 
-    container.innerHTML = orders.map(order => this.createOrderCard(order)).join('');
+    // Group orders by shipping method
+    const groupedOrders = this.groupOrdersByShippingMethod(orders);
+    
+    // Build HTML with shipping method sections
+    let html = '';
+    groupedOrders.forEach(group => {
+      // Add shipping method header
+      html += `
+        <div class="shipping-method-header">
+          <div class="shipping-method-title">
+            <i class="fas fa-shipping-fast"></i>
+            <span>${group.shippingMethod}</span>
+          </div>
+          <span class="shipping-method-count">${group.orders.length}</span>
+        </div>
+      `;
+      
+      // Add orders in this group
+      html += group.orders.map(order => this.createOrderCard(order)).join('');
+    });
+    
+    container.innerHTML = html;
 
     // Add event listeners to approve buttons
     orders.forEach(order => {
@@ -184,6 +205,35 @@ class OrderApprovalManager {
         });
       }
     });
+  }
+
+  groupOrdersByShippingMethod(orders) {
+    // Group orders by shipping method
+    const groups = {};
+    
+    orders.forEach(order => {
+      const shippingMethod = order.shipping_method || 'Unknown Shipping Method';
+      if (!groups[shippingMethod]) {
+        groups[shippingMethod] = [];
+      }
+      groups[shippingMethod].push(order);
+    });
+    
+    // Convert to array and sort - "Shipping - Free Standard Delivery" first
+    const groupArray = Object.entries(groups).map(([shippingMethod, orders]) => ({
+      shippingMethod,
+      orders
+    }));
+    
+    groupArray.sort((a, b) => {
+      // "Shipping - Free Standard Delivery" always first
+      if (a.shippingMethod === 'Shipping - Free Standard Delivery') return -1;
+      if (b.shippingMethod === 'Shipping - Free Standard Delivery') return 1;
+      // Then alphabetically
+      return a.shippingMethod.localeCompare(b.shippingMethod);
+    });
+    
+    return groupArray;
   }
 
   createOrderCard(order) {

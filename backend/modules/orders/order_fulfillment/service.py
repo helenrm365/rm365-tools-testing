@@ -900,10 +900,11 @@ class MagentoService:
         completed_items = sum(1 for item in session.items_expected if item.get('is_complete', False))
         progress_percentage = (completed_items / total_items * 100) if total_items > 0 else 0
         
-        # Get invoice details for customer name and total
+        # Get invoice details for customer name, total, and shipping method
         invoice = self.lookup_invoice(session.order_number)
         customer_name = invoice.billing_name if invoice else None
         grand_total = invoice.grand_total if invoice else None
+        shipping_method = invoice.shipping_method if invoice else None
         
         return OrderTrackingColumnSchema(
             session_id=session.session_id,
@@ -918,7 +919,8 @@ class MagentoService:
             total_items=total_items,
             completed_items=completed_items,
             grand_total=grand_total,
-            customer_name=customer_name
+            customer_name=customer_name,
+            shipping_method=shipping_method
         )
     
     def mark_ready_to_check(self, session_id: str, user_id: Optional[str] = None) -> bool:
@@ -957,8 +959,7 @@ class MagentoService:
             order_number=invoice.order_number,
             session_type="pick",
             items_expected=[item.model_dump() for item in invoice.items],
-            user_id=None,  # No user assigned yet
-            created_by=user_id
+            user_id=None  # No user assigned yet
         )
         
         # Set status to approved
@@ -1009,6 +1010,19 @@ class MagentoService:
                 payment = order.get('payment', {})
                 payment_method = payment.get('method') if isinstance(payment, dict) else None
                 
+                # Get shipping method from order
+                shipping_method = None
+                ext_attrs = order.get('extension_attributes', {})
+                if ext_attrs.get('shipping_assignments'):
+                    shipping_assignment = ext_attrs['shipping_assignments'][0]
+                    if shipping_assignment.get('shipping'):
+                        shipping_info = shipping_assignment['shipping']
+                        shipping_method = (
+                            shipping_info.get('shipping_description') or
+                            order.get('shipping_description') or
+                            shipping_info.get('method')
+                        )
+                
                 pending_orders.append(
                     PendingMagentoOrderSchema(
                         order_id=order.get('entity_id'),
@@ -1020,6 +1034,7 @@ class MagentoService:
                         customer_email=customer_email,
                         total_qty_ordered=total_qty,
                         payment_method=payment_method,
+                        shipping_method=shipping_method,
                         items=order.get('items', [])
                     )
                 )

@@ -195,11 +195,59 @@ function updateColumn(columnName, orders) {
       </div>
     `;
   } else {
-    orders.forEach(order => {
-      const card = createOrderCard(order);
-      columnEl.appendChild(card);
+    // Group orders by shipping method
+    const groupedOrders = groupOrdersByShippingMethod(orders);
+    
+    // Render each shipping method group
+    groupedOrders.forEach(group => {
+      // Add shipping method header
+      const headerDiv = document.createElement('div');
+      headerDiv.className = 'shipping-method-header';
+      headerDiv.innerHTML = `
+        <div class="shipping-method-title">
+          <i class="fas fa-shipping-fast"></i>
+          <span>${group.shippingMethod}</span>
+        </div>
+        <span class="shipping-method-count">${group.orders.length}</span>
+      `;
+      columnEl.appendChild(headerDiv);
+      
+      // Add orders in this group
+      group.orders.forEach(order => {
+        const card = createOrderCard(order);
+        columnEl.appendChild(card);
+      });
     });
   }
+}
+
+function groupOrdersByShippingMethod(orders) {
+  // Group orders by shipping method
+  const groups = {};
+  
+  orders.forEach(order => {
+    const shippingMethod = order.shipping_method || 'Unknown Shipping Method';
+    if (!groups[shippingMethod]) {
+      groups[shippingMethod] = [];
+    }
+    groups[shippingMethod].push(order);
+  });
+  
+  // Convert to array and sort - "Shipping - Free Standard Delivery" first
+  const groupArray = Object.entries(groups).map(([shippingMethod, orders]) => ({
+    shippingMethod,
+    orders
+  }));
+  
+  groupArray.sort((a, b) => {
+    // "Shipping - Free Standard Delivery" always first
+    if (a.shippingMethod === 'Shipping - Free Standard Delivery') return -1;
+    if (b.shippingMethod === 'Shipping - Free Standard Delivery') return 1;
+    // Then alphabetically
+    return a.shippingMethod.localeCompare(b.shippingMethod);
+  });
+  
+  return groupArray;
 }
 
 function createOrderCard(order) {
@@ -210,9 +258,6 @@ function createOrderCard(order) {
   const statusBadgeClass = order.status.replace('_', '-');
   const statusLabel = order.status.replace(/_/g, ' ').toUpperCase();
   
-  const createdDate = new Date(order.created_at);
-  const formattedDate = createdDate.toLocaleDateString() + ' ' + createdDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  
   card.innerHTML = `
     <div class="order-card-header">
       <div class="order-number">#${order.order_number}</div>
@@ -220,36 +265,12 @@ function createOrderCard(order) {
     </div>
     
     <div class="order-card-info">
-      <div class="order-info-row">
-        <i class="fas fa-receipt"></i>
-        <span>Invoice: ${order.invoice_number}</span>
-      </div>
       ${order.customer_name ? `
         <div class="order-info-row">
           <i class="fas fa-user"></i>
           <span>${order.customer_name}</span>
         </div>
       ` : ''}
-      ${order.grand_total ? `
-        <div class="order-info-row">
-          <i class="fas fa-dollar-sign"></i>
-          <span>$${order.grand_total.toFixed(2)}</span>
-        </div>
-      ` : ''}
-      <div class="order-info-row">
-        <i class="fas fa-user-circle"></i>
-        <span>${order.created_by}</span>
-      </div>
-    </div>
-    
-    <div class="order-card-footer">
-      <div class="order-progress">
-        <div>${order.completed_items} / ${order.total_items} items</div>
-        <div class="progress-bar">
-          <div class="progress-fill" style="width: ${order.progress_percentage}%"></div>
-        </div>
-      </div>
-      <div class="order-timestamp">${formattedDate}</div>
     </div>
   `;
   

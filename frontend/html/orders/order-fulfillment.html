@@ -47,9 +47,37 @@
           <i class="fas fa-sync-alt"></i>
           Refresh
         </button>
+        
+        <!-- Mobile Mode Toggle -->
+        <div class="mobile-mode-toggle">
+          <label class="mobile-mode-switch" for="mobileModeToggle">
+            <input type="checkbox" id="mobileModeToggle">
+            <span class="mobile-mode-slider" role="presentation"></span>
+          </label>
+          <span class="toggle-label">Mobile Mode</span>
+        </div>
       </div>
       
-      <div class="tracking-board">
+      <!-- Mobile Column Tabs (only visible in mobile mode) -->
+      <div class="mobile-column-tabs" id="mobileColumnTabs" style="display: none;">
+        <button class="mobile-tab-button active" data-column="ready-to-pick">
+          <i class="fas fa-clipboard-list"></i>
+          <span>Ready to Pick</span>
+          <span class="mobile-tab-count" id="mobileReadyToPickCount">0</span>
+        </button>
+        <button class="mobile-tab-button" data-column="ready-to-check">
+          <i class="fas fa-search"></i>
+          <span>Ready to Check</span>
+          <span class="mobile-tab-count" id="mobileReadyToCheckCount">0</span>
+        </button>
+        <button class="mobile-tab-button" data-column="completed">
+          <i class="fas fa-check-double"></i>
+          <span>Completed</span>
+          <span class="mobile-tab-count" id="mobileCompletedCount">0</span>
+        </button>
+      </div>
+      
+      <div class="tracking-board" id="trackingBoard">
         
         <!-- Ready to Pick Column -->
         <div class="tracking-column">
@@ -165,71 +193,65 @@
       
       <!-- Session Header with Order Info -->
       <div class="session-header-card">
-        <div class="session-info">
-          <div class="session-type-badge" id="sessionTypeBadge">
-            <i class="fas fa-box"></i>
-            <span>PICK & PACK</span>
-          </div>
-          <div class="order-details">
-            <div class="order-number">
-              <span class="label">Order Number:</span>
-              <span class="value" id="sessionOrderNumber">-</span>
-            </div>
-            <div class="invoice-number">
-              <span class="label">Invoice Number:</span>
-              <span class="value" id="sessionInvoiceNumber">-</span>
-            </div>
-            <div class="order-date">
-              <span class="label">Order Date:</span>
-              <span class="value" id="sessionOrderDate">-</span>
-            </div>
-          </div>
-          
-          <div class="order-details">
-            <div class="payment-method">
-              <span class="label">Payment Method:</span>
-              <span class="value" id="sessionPaymentMethod">-</span>
-            </div>
-            <div class="shipping-method">
-              <span class="label">Shipping Method:</span>
-              <span class="value" id="sessionShippingMethod">-</span>
-            </div>
-          </div>
-          
-          <div class="order-details">
-            <div class="billing-info">
-              <span class="label">Sold to:</span>
-              <div class="value" id="sessionBillingInfo">
-                <div id="sessionBillingName">-</div>
-                <div id="sessionBillingPostcode">-</div>
-                <div id="sessionBillingPhone">-</div>
+        <div class="session-type-badge" id="sessionTypeBadge">
+          <i class="fas fa-box"></i>
+          <span>PICK & PACK</span>
+        </div>
+
+        <!-- Order Information Grid -->
+        <div class="session-info-grid">
+          <!-- Top Section: Order/Invoice/Date in gray header -->
+          <div class="info-card header-card">
+            <div class="header-content">
+              <div class="header-item">
+                <div class="info-label">Invoice #</div>
+                <div class="info-value" id="sessionInvoiceNumber">-</div>
               </div>
-            </div>
-            <div class="shipping-info">
-              <span class="label">Ship to:</span>
-              <div class="value" id="sessionShippingInfo">
-                <div id="sessionShippingName">-</div>
-                <div id="sessionShippingPostcode">-</div>
-                <div id="sessionShippingPhone">-</div>
+              <div class="header-item">
+                <div class="info-label">Order #</div>
+                <div class="info-value" id="sessionOrderNumber">-</div>
+              </div>
+              <div class="header-item">
+                <div class="info-label">Order Date:</div>
+                <div class="info-value" id="sessionOrderDate">-</div>
               </div>
             </div>
           </div>
+
+          <!-- Sold To and Ship To - Two Column -->
+          <div class="info-card address-card">
+            <div class="info-label">Sold to:</div>
+            <div class="info-value address-info">
+              <div id="sessionBillingName">-</div>
+              <div id="sessionBillingAddress">-</div>
+              <div id="sessionBillingPostcode">-</div>
+              <div>T: <span id="sessionBillingPhone">-</span></div>
+            </div>
+          </div>
           
-          <div class="order-details">
-            <div class="subtotal-info">
-              <span class="label">Subtotal:</span>
-              <span class="value" id="sessionSubtotal">-</span>
+          <div class="info-card address-card">
+            <div class="info-label">Ship to:</div>
+            <div class="info-value address-info">
+              <div id="sessionShippingName">-</div>
+              <div id="sessionShippingAddress">-</div>
+              <div id="sessionShippingPostcode">-</div>
+              <div>T: <span id="sessionShippingPhone">-</span></div>
             </div>
-            <div class="tax-info">
-              <span class="label">Tax:</span>
-              <span class="value" id="sessionTax">-</span>
-            </div>
-            <div class="total-info">
-              <span class="label">Grand Total:</span>
-              <span class="value" id="sessionGrandTotal">-</span>
-            </div>
+          </div>
+
+          <!-- Payment Method and Shipping Method - Two Column -->
+          <div class="info-card">
+            <div class="info-label">Payment Method:</div>
+            <div class="info-value" id="sessionPaymentMethod">-</div>
+          </div>
+          
+          <div class="info-card">
+            <div class="info-label">Shipping Method:</div>
+            <div class="info-value" id="sessionShippingMethod">-</div>
           </div>
         </div>
+
+        <!-- Session Action Buttons -->
         <div class="session-actions">
           <button id="cancelSessionBtn" class="secondary-button">
             <i class="fas fa-times"></i>
@@ -405,6 +427,114 @@
       <div class="modal-footer">
         <button class="btn btn-secondary" id="confirmationCancelBtn">Cancel</button>
         <button class="btn btn-primary" id="confirmationOkBtn">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Order Preview Modal -->
+  <div class="modal" id="orderPreviewModal" style="display: none;">
+    <div class="modal-content modal-large">
+      <div class="modal-header">
+        <h2>Order Preview</h2>
+        <button class="modal-close" id="closeOrderPreviewBtn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="order-preview-container">
+          <!-- Order Summary -->
+          <div class="preview-section">
+            <h3><i class="fas fa-info-circle"></i> Order Information</h3>
+            <div class="preview-grid">
+              <div class="preview-item">
+                <label>Order Number:</label>
+                <span id="previewOrderNumber">-</span>
+              </div>
+              <div class="preview-item">
+                <label>Invoice Number:</label>
+                <span id="previewInvoiceNumber">-</span>
+              </div>
+              <div class="preview-item">
+                <label>Order Date:</label>
+                <span id="previewOrderDate">-</span>
+              </div>
+              <div class="preview-item">
+                <label>Status:</label>
+                <span id="previewStatus">-</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Customer Information -->
+          <div class="preview-section">
+            <h3><i class="fas fa-user"></i> Customer Information</h3>
+            <div class="preview-grid two-column">
+              <div class="preview-column">
+                <h4>Billing Address</h4>
+                <div class="preview-address">
+                  <div id="previewBillingName" class="address-name">-</div>
+                  <div id="previewBillingAddress" class="address-line">-</div>
+                  <div id="previewBillingPostcode" class="address-line">-</div>
+                  <div id="previewBillingPhone" class="address-line">-</div>
+                </div>
+              </div>
+              <div class="preview-column">
+                <h4>Shipping Address</h4>
+                <div class="preview-address">
+                  <div id="previewShippingName" class="address-name">-</div>
+                  <div id="previewShippingAddress" class="address-line">-</div>
+                  <div id="previewShippingPostcode" class="address-line">-</div>
+                  <div id="previewShippingPhone" class="address-line">-</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Order Items -->
+          <div class="preview-section">
+            <h3><i class="fas fa-box"></i> Order Items</h3>
+            <div class="preview-items-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>SKU</th>
+                    <th>Product Name</th>
+                    <th class="text-center">Qty</th>
+                    <th class="text-right">Price</th>
+                    <th class="text-right">Total</th>
+                  </tr>
+                </thead>
+                <tbody id="previewItemsList">
+                  <tr>
+                    <td colspan="5" class="text-center">No items</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Order Totals -->
+          <div class="preview-section">
+            <div class="preview-totals">
+              <div class="preview-total-row">
+                <label>Subtotal:</label>
+                <span id="previewSubtotal">-</span>
+              </div>
+              <div class="preview-total-row">
+                <label>Tax:</label>
+                <span id="previewTax">-</span>
+              </div>
+              <div class="preview-total-row grand-total">
+                <label>Grand Total:</label>
+                <span id="previewGrandTotal">-</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="cancelOrderPreviewBtn">Cancel</button>
+        <button class="btn btn-primary" id="startSessionFromPreviewBtn">
+          <i class="fas fa-play"></i> Start Session
+        </button>
       </div>
     </div>
   </div>
