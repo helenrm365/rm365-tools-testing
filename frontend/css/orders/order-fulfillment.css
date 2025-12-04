@@ -2053,6 +2053,7 @@ html.dark-mode .order-card {
 }
 
 /* Mobile Mode Styles */
+body.mobile-mode .header,
 body.mobile-mode .page-header,
 body.mobile-mode .inner-tabs {
   display: none;
@@ -2115,6 +2116,335 @@ body.mobile-mode .tracking-board {
 
 body.mobile-mode .tracking-column {
   height: 100%;
+}
+
+/* Mobile Mode - Order Info Styling */
+body.mobile-mode .session-header-card {
+  padding: 0.75rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+body.mobile-mode .session-type-badge {
+  font-size: 0.7rem;
+  padding: 0.3rem 0.6rem;
+  margin-bottom: 0.75rem;
+  border-radius: 12px;
+  gap: 0.3rem;
+}
+
+body.mobile-mode .session-type-badge i {
+  font-size: 0.7rem;
+}
+
+body.mobile-mode .session-info-grid {
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+body.mobile-mode .info-card {
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+}
+
+body.mobile-mode .info-card.header-card {
+  padding: 0.6rem 0.75rem;
+}
+
+body.mobile-mode .header-content {
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+}
+
+body.mobile-mode .header-card .info-label {
+  font-size: 0.6rem;
+  margin-bottom: 0.15rem;
+}
+
+body.mobile-mode .header-card .info-value {
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+body.mobile-mode .info-label {
+  font-size: 0.65rem;
+  margin-bottom: 0.25rem;
+}
+
+body.mobile-mode .info-value {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+body.mobile-mode .info-value.address-info {
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+body.mobile-mode .info-card.address-card {
+  min-height: auto;
+}
+
+body.mobile-mode .session-actions {
+  gap: 0.5rem;
+}
+
+body.mobile-mode .session-actions button {
+  padding: 0.6rem 0.75rem;
+  font-size: 0.8rem;
+  min-height: auto;
+}
+
+body.mobile-mode .session-actions button i {
+  font-size: 0.8rem;
+}
+
+body.mobile-mode .progress-container {
+  padding: 0.75rem;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  border-radius: 8px;
+}
+
+body.mobile-mode .progress-label {
+  font-size: 0.7rem;
+}
+
+body.mobile-mode .progress-label i {
+  font-size: 0.7rem;
+}
+
+body.mobile-mode #itemsProgressText,
+body.mobile-mode #qtyProgressText,
+body.mobile-mode #itemsProgressPercent,
+body.mobile-mode #qtyProgressPercent {
+  font-size: 0.7rem;
+}
+
+body.mobile-mode .progress-bar {
+  height: 6px;
+}
+
+/* Mobile Mode - Scanner Section */
+body.mobile-mode .scanner-section {
+  margin-bottom: 1rem;
+}
+
+body.mobile-mode .scanner-interface-card {
+  padding: 0.75rem;
+  border-radius: 8px;
+}
+
+body.mobile-mode .scanner-status-badge {
+  font-size: 0.7rem;
+  padding: 0.3rem 0.6rem;
+  margin-bottom: 0.75rem;
+  border-radius: 12px;
+  gap: 0.3rem;
+}
+
+body.mobile-mode .scanner-status-badge i {
+  font-size: 0.7rem;
+}
+
+body.mobile-mode .form-grid {
+  gap: 0.75rem;
+}
+
+body.mobile-mode .form-label {
+  font-size: 0.7rem;
+  gap: 0.3rem;
+}
+
+body.mobile-mode .form-label i {
+  font-size: 0.7rem;
+}
+
+body.mobile-mode .modern-input {
+  padding: 0.6rem 0.75rem;
+  font-size: 0.85rem;
+  border-radius: 6px;
+  min-height: auto;
+}
+
+body.mobile-mode .barcode-input {
+  font-size: 0.9rem;
+}
+
+body.mobile-mode .qty-input {
+  font-size: 0.85rem;
+}
+
+body.mobile-mode select.modern-input {
+  font-size: 0.75rem;
+}
+
+/* Mobile Mode - Buttons */
+body.mobile-mode .primary-button,
+body.mobile-mode .secondary-button,
+body.mobile-mode .success-button,
+body.mobile-mode .warning-button {
+  padding: 0.6rem 0.75rem;
+  font-size: 0.8rem;
+  border-radius: 6px;
+  gap: 0.3rem;
+  min-height: auto;
+}
+
+body.mobile-mode .primary-button i,
+body.mobile-mode .secondary-button i,
+body.mobile-mode .success-button i,
+body.mobile-mode .warning-button i {
+  font-size: 0.8rem;
+}
+
+/* Mobile Mode - Items Section */
+body.mobile-mode .items-section {
+  margin-bottom: 1rem;
+}
+
+body.mobile-mode .items-list {
+  padding: 0.75rem;
+  border-radius: 8px;
+}
+
+body.mobile-mode .item-card {
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.75rem;
+  border-radius: 6px;
+  border-left-width: 3px;
+}
+
+body.mobile-mode .item-status-icon {
+  width: 28px;
+  height: 28px;
+  font-size: 0.9rem;
+}
+
+body.mobile-mode .item-details {
+  gap: 0.2rem;
+}
+
+body.mobile-mode .item-name {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+body.mobile-mode .item-sku {
+  font-size: 0.7rem;
+}
+
+body.mobile-mode .item-quantity {
+  gap: 0.15rem;
+}
+
+body.mobile-mode .qty-numbers {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+body.mobile-mode .qty-label {
+  font-size: 0.6rem;
+}
+
+body.mobile-mode .item-badge {
+  padding: 0.3rem 0.6rem;
+  font-size: 0.7rem;
+  border-radius: 10px;
+}
+
+/* Mobile Mode - Section Headers */
+body.mobile-mode .section-header {
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+body.mobile-mode .section-icon {
+  width: 28px;
+  height: 28px;
+  font-size: 0.9rem;
+}
+
+body.mobile-mode .section-title {
+  font-size: 0.95rem;
+}
+
+body.mobile-mode .section-subtitle {
+  font-size: 0.7rem;
+}
+
+/* Mobile Mode - Empty State */
+body.mobile-mode .empty-state {
+  padding: 2rem 1rem;
+}
+
+body.mobile-mode .empty-state i {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+}
+
+body.mobile-mode .empty-state p {
+  font-size: 0.85rem;
+}
+
+/* Mobile Mode - Custom Select */
+body.mobile-mode .c-select__button {
+  padding: 0.6rem 0.75rem;
+  font-size: 0.85rem;
+  border-radius: 6px;
+}
+
+body.mobile-mode .c-select__caret {
+  width: 8px;
+  height: 5px;
+}
+
+body.mobile-mode .c-select__list {
+  font-size: 0.85rem;
+  border-radius: 6px;
+}
+
+body.mobile-mode .c-select__item {
+  padding: 0.6rem 0.75rem;
+}
+
+/* Mobile Mode - Order Lookup Section */
+body.mobile-mode .order-lookup-section {
+  padding: 0.75rem;
+}
+
+body.mobile-mode .lookup-card {
+  padding: 0.75rem;
+  border-radius: 8px;
+}
+
+body.mobile-mode .lookup-form {
+  gap: 0.75rem;
+}
+
+/* Mobile Mode - Scan Message */
+body.mobile-mode .scan-message {
+  padding: 0.6rem;
+  font-size: 0.8rem;
+  border-radius: 6px;
+}
+
+body.mobile-mode .message-area {
+  padding: 0.6rem;
+  font-size: 0.8rem;
+  border-radius: 6px;
+}
+
+/* Mobile Mode - Active Session Section */
+body.mobile-mode .active-session-section {
+  padding: 0;
+}
+
+body.mobile-mode .pickpack-wrapper {
+  padding: 0;
 }
 
 /* ===== Responsive Design ===== */

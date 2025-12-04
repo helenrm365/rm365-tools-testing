@@ -1,5 +1,39 @@
 /* Sidebar Responsive Styles */
 
+/* === Mobile Hamburger Menu - Always at Top-Left of Page === */
+.mobile-sidebar-toggle {
+  position: absolute !important;
+  top: 1rem !important;
+  left: 1rem !important;
+  z-index: 1060 !important;
+}
+
+/* === Global Header Content Fix === */
+/* Ensure header content always stacks vertically */
+.header-content,
+.page-header-content,
+.content-header {
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100% !important;
+  gap: 0 !important;
+}
+
+/* Reduce margins on header elements */
+.page-title,
+.hero-title {
+  margin-bottom: 0rem !important;
+}
+
+.page-divider {
+  margin: 0.25rem 0 0.5rem 0 !important;
+}
+
+.page-subtitle,
+.hero-subtitle {
+  margin-top: 0 !important;
+}
+
 /* === Layout Adjustments === */
 body.has-sidebar {
   padding-left: 0;
@@ -41,6 +75,12 @@ html.dark-mode #content {
 
 /* === Mobile Responsiveness === */
 @media (max-width: 768px) {
+  /* Add padding for hamburger menu on mobile */
+  body,
+  body.has-sidebar {
+    padding-top: 80px !important;
+  }
+
   .sidebar {
     transform: translateX(-100%);
     transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -86,17 +126,25 @@ html.dark-mode #content {
     margin-left: 0 !important;
   }
   
-  /* Add padding to various header elements to accommodate hamburger button */
+  /* Remove extra padding - hamburger is absolute positioned */
   .header,
-  .page-header,
+  .page-header {
+    padding-left: 0 !important;
+  }
+  
+  /* Keep these centered/normal */
   .page-header-content,
   .header-content,
-  .content-header,
+  .content-header {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+  
   .section-header,
   .module-header,
   .hero-header,
   .home-hero {
-    padding-left: 80px !important;
+    padding-left: 0 !important;
   }
   
   /* Specific override for home page elements */
@@ -126,10 +174,10 @@ html.dark-mode #content {
   
   /* Position hamburger button at top-left */
   .mobile-sidebar-toggle {
-    position: fixed;
-    top: 1rem;
-    left: 1rem;
-    z-index: 1060;
+    position: absolute !important;
+    top: 1rem !important;
+    left: 1rem !important;
+    z-index: 1060 !important;
     width: 56px;
     height: 56px;
     border-radius: 12px;
