@@ -7,10 +7,6 @@
     
     <!-- Admin Actions -->
     <div class="admin-actions">
-      <button class="action-btn primary-btn" id="testSyncBtnNew" title="Syncs 10 orders to test_magento_data table">
-        <i class="fas fa-vial"></i>
-        Test Sync (10 Orders)
-      </button>
       <button class="action-btn secondary-btn" id="refreshAllCondensedBtn" title="Refresh condensed data for all regions">
         <i class="fas fa-sync-alt"></i>
         Refresh All 6M Data
@@ -57,6 +53,20 @@
       <div class="card-content">
         <h3 class="card-title">NL Magento</h3>
         <p class="card-description">Import and manage Netherlands magento data with advanced filtering and search</p>
+      </div>
+      <div class="card-arrow">→</div>
+    </div>
+
+    <div class="module-feature-card" onclick="location.href='/magentodata/test-magento'">
+      <div class="card-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 11l3 3L22 4"></path>
+          <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>
+        </svg>
+      </div>
+      <div class="card-content">
+        <h3 class="card-title">Test Sync</h3>
+        <p class="card-description">Test Magento integration with 10 sample orders to verify connection and data sync</p>
       </div>
       <div class="card-arrow">→</div>
     </div>

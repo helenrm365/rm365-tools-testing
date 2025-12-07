@@ -70,6 +70,7 @@ const routes = {
   '/magentodata/uk-magento':'/html/magentodata/uk-magento.html',
   '/magentodata/fr-magento':'/html/magentodata/fr-magento.html',
   '/magentodata/nl-magento':'/html/magentodata/nl-magento.html',
+  '/magentodata/test-magento':'/html/magentodata/test-magento.html',
   '/magentodata/history': '/html/magentodata/history.html',
 
   '/inventory':             '/html/inventory/home.html',

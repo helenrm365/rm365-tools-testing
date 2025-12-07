@@ -28,6 +28,18 @@ def check_tables_status(user=Depends(get_current_user)):
     return svc.check_tables_status()
 
 
+@router.get("/test", response_model=MagentoDataResponse)
+def get_test_magento_data(
+    limit: int = Query(100, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+    search: str = Query(""),
+    user=Depends(get_current_user)
+):
+    """Get test magento data with pagination and search"""
+    result = svc.get_region_data("test", limit, offset, search, None)
+    return MagentoDataResponse(**result)
+
+
 @router.post("/test-sync", response_model=MagentoSyncResponse)
 async def test_sync_magento_data(user=Depends(get_current_user)):
     """

@@ -27,6 +27,10 @@ export async function init(path) {
       // Load NL magento page
       const { initNLMagentoData } = await import('./nl-magento.js');
       await initNLMagentoData();
+    } else if (path === '/magentodata/test-magento') {
+      // Load test magento page
+      const { initTestMagentoData } = await import('./test-magento.js');
+      await initTestMagentoData();
     } else if (path === '/magentodata/history') {
       // Load history page
       const { initMagentoDataHistory } = await import('./history.js');

@@ -1,5 +1,5 @@
 // frontend/js/modules/magentodata/home.js
-import { initializeTables, checkTablesStatus, refreshAllCondensedData, testSyncMagentoData } from '../../services/api/magentoDataApi.js';
+import { initializeTables, checkTablesStatus, refreshAllCondensedData } from '../../services/api/magentoDataApi.js';
 import { showToast } from '../../ui/toast.js';
 
 /**
@@ -45,15 +45,6 @@ function setupEventListeners() {
   } else {
     console.warn('[Magento Data] Refresh all button not found');
   }
-  
-  // Test sync button - New implementation
-  const testSyncBtn = document.getElementById('testSyncBtnNew');
-  if (testSyncBtn) {
-    testSyncBtn.addEventListener('click', (e) => handleTestSync(e, testSyncBtn));
-    console.warn('[Magento Data] Test sync button (new) found and listener attached');
-  } else {
-    console.warn('[Magento Data] Test sync button (new) not found during setup');
-  }
 }
 
 /**
@@ -74,77 +65,5 @@ async function handleRefreshAllCondensedData() {
   } catch (error) {
     console.error('[Magento Data] Refresh all error:', error);
     showToast('Refresh error: ' + error.message, 'error');
-  }
-}
-
-// State for test sync
-let testSyncRunning = false;
-let testSyncController = null;
-
-/**
- * Handle test sync button click
- */
-async function handleTestSync(e, btn) {
-  if (e) {
-    e.preventDefault();
-    e.stopPropagation();
-  }
-
-  if (!btn) {
-    console.warn('[Magento Data] Test sync click detected but no button element was resolved');
-    return;
-  }
-  
-  // If currently running, cancel instead
-  if (testSyncRunning) {
-    if (testSyncController) {
-      testSyncController.abort();
-      showToast('Cancelling test sync...', 'info');
-    }
-    return;
-  }
-  
-  console.log('[Magento Data] Test sync button clicked!');
-  
-  try {
-    testSyncRunning = true;
-    testSyncController = new AbortController();
-    
-    // Change to cancel mode
-    btn.innerHTML = '<i class="fas fa-times"></i> Cancel Test';
-    btn.classList.remove('primary-btn');
-    btn.classList.add('danger-btn'); // Use danger style for cancel
-    
-    showToast('Starting test sync (10 orders)...', 'info');
-    
-    console.log('[Magento Data] Calling testSyncMagentoData API...');
-    const result = await testSyncMagentoData(testSyncController.signal);
-    console.log('[Magento Data] Test sync result:', result);
-    
-    if (result.status === 'success') {
-      showToast(
-        `✅ Test sync complete! Synced ${result.rows_synced} product rows from ${result.orders_processed} orders to test_magento_data table`,
-        'success',
-        5000
-      );
-    } else {
-      showToast('❌ Test sync failed: ' + result.message, 'error');
-    }
-  } catch (error) {
-    if (error.name === 'AbortError') {
-      console.log('[Test Sync] Cancelled by user');
-      showToast('⚠️ Test sync cancelled', 'warning');
-    } else {
-      console.error('[Test Sync] Error:', error);
-      showToast('❌ Test sync error: ' + error.message, 'error');
-    }
-  } finally {
-    testSyncRunning = false;
-    testSyncController = null;
-    
-    // Reset button state
-    btn.innerHTML = '<i class="fas fa-vial"></i> Test Sync (10 Orders)';
-    btn.classList.remove('danger-btn');
-    btn.classList.add('primary-btn');
   }
 }

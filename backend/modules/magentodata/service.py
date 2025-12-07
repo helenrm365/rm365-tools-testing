@@ -16,7 +16,8 @@ class MagentoDataService:
     VALID_REGIONS = {
         'uk': 'uk_magento_data',
         'fr': 'fr_magento_data',
-        'nl': 'nl_magento_data'
+        'nl': 'nl_magento_data',
+        'test': 'test_magento_data'
     }
     
     def _get_table_name(self, region: str) -> str:

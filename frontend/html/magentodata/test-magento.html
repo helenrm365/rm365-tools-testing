@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FR Magento Data</title>
+    <title>Test Magento Data</title>
     
     <!-- Magentodata CSS -->
     <link rel="stylesheet" href="/css/magentodata/universal.css">
@@ -17,7 +17,7 @@
                 <i class="fas fa-flag"></i>
                 <span>UK Magento</span>
             </button>
-            <button class="tab-button active" onclick="location.href='/magentodata/fr-magento'">
+            <button class="tab-button" onclick="location.href='/magentodata/fr-magento'">
                 <i class="fas fa-flag"></i>
                 <span>FR Magento</span>
             </button>
@@ -25,7 +25,7 @@
                 <i class="fas fa-flag"></i>
                 <span>NL Magento</span>
             </button>
-            <button class="tab-button" onclick="location.href='/magentodata/test-magento'">
+            <button class="tab-button active" onclick="location.href='/magentodata/test-magento'">
                 <i class="fas fa-vial"></i>
                 <span>Test Sync</span>
             </button>
@@ -40,10 +40,10 @@
             <!-- Page Header -->
             <section class="section-header">
                 <h2 class="section-title">
-                    <i class="fas fa-flag"></i>
-                    FR Magento Data
+                    <i class="fas fa-vial"></i>
+                    Test Magento Sync
                 </h2>
-                <p class="section-subtitle">Sync and manage French magento data from live Magento API</p>
+                <p class="section-subtitle">Test sync with 10 sample orders to verify Magento integration</p>
             </section>
 
             <!-- Sync Section -->
@@ -52,23 +52,19 @@
                     <div class="card-header">
                         <h3 class="card-title">
                             <i class="fas fa-sync-alt"></i>
-                            Live Data Sync
+                            Test Data Sync
                         </h3>
-                        <p class="card-subtitle">Sync product-level sales data directly from Magento</p>
+                        <p class="card-subtitle">Sync 10 orders to test_magento_data table for testing purposes</p>
                     </div>
                     <div class="card-body">
                         <div class="sync-controls">
-                            <button type="button" id="syncDataBtn" class="action-btn primary-btn" style="display: none;">
-                                <i class="fas fa-sync-alt"></i>
-                                Sync from Magento
+                            <button type="button" id="syncDataBtn" class="action-btn primary-btn">
+                                <i class="fas fa-vial"></i>
+                                Test Sync (10 Orders)
                             </button>
-                            <div class="info-message" style="padding: 15px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; color: #856404;">
-                                <i class="fas fa-info-circle" style="margin-right: 8px;"></i>
-                                <strong>FR Magento sync is currently disabled.</strong> Only UK Magento data can be synced at this time.
-                            </div>
-                            <p class="sync-info" style="display: none;">
+                            <p class="sync-info">
                                 <i class="fas fa-info-circle"></i>
-                                This will fetch recent orders from Magento and break them down into product-level rows (using UK connection until FR is configured)
+                                This will fetch 10 recent orders from Magento and store them in test_magento_data table
                             </p>
                         </div>
                     </div>
@@ -81,30 +77,7 @@
                     <div class="card-body">
                         <div class="controls-grid">
                             <div class="view-toggle">
-                                <button class="toggle-btn active" id="viewFullBtn">
-                                    <i class="fas fa-list"></i>
-                                    Full Data
-                                </button>
-                                <button class="toggle-btn" id="viewCondensedBtn">
-                                    <i class="fas fa-calendar-alt"></i>
-                                    6-Month
-                                </button>
-                                <button class="action-btn secondary-btn" id="refreshCondensedBtn" title="Refresh condensed data">
-                                    <i class="fas fa-sync-alt"></i>
-                                    Refresh 6M
-                                </button>
-                                <button class="action-btn secondary-btn" id="customRangeBtn" title="Custom Range Analysis">
-                                    <i class="fas fa-calendar-day"></i>
-                                    Custom Range
-                                </button>
-                                <button class="action-btn secondary-btn" id="filtersBtn" title="Configure 6M filters">
-                                    <i class="fas fa-filter"></i>
-                                    Filters
-                                </button>
-                                <button class="action-btn secondary-btn" id="exportPdfBtn" title="Export to PDF" style="display: none;">
-                                    <i class="fas fa-file-pdf"></i>
-                                    Export PDF
-                                </button>
+                                <!-- No view modes for test data - just show raw data -->
                             </div>
                             <div class="search-controls">
                                 <div class="search-box">
@@ -156,7 +129,7 @@
                                     Product Qty
                                 </th>
                                 <th>
-                                    <i class="fas fa-euro-sign"></i>
+                                    <i class="fas fa-pound-sign"></i>
                                     Product Price
                                 </th>
                                 <th>
@@ -196,9 +169,9 @@
                         <tbody id="magentoTableBody" class="table-body">
                             <tr>
                                 <td colspan="14" class="empty-state">
-                                    <div class="empty-icon"><i class="fas fa-chart-bar"></i></div>
-                                    <div class="empty-message">No data available</div>
-                                    <div class="empty-submessage">Upload a CSV file to view magento data</div>
+                                    <div class="empty-icon"><i class="fas fa-vial"></i></div>
+                                    <div class="empty-message">No test data available</div>
+                                    <div class="empty-submessage">Click "Test Sync" to fetch 10 sample orders from Magento</div>
                                 </td>
                             </tr>
                         </tbody>

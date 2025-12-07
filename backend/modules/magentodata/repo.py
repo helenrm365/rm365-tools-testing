@@ -724,7 +724,7 @@ class MagentoDataRepo:
     def get_magento_data(self, table_name: str, limit: int = 100, offset: int = 0, search: str = "", fields: list = None) -> Dict[str, Any]:
         """Get magento data from a specific table with pagination, search, and optional field selection"""
         # Validate table name to prevent SQL injection
-        valid_tables = ['uk_magento_data', 'fr_magento_data', 'nl_magento_data']
+        valid_tables = ['uk_magento_data', 'fr_magento_data', 'nl_magento_data', 'test_magento_data']
         if table_name not in valid_tables:
             raise ValueError(f"Invalid table name: {table_name}")
         
@@ -829,7 +829,7 @@ class MagentoDataRepo:
         NOTE: This method is deprecated. Use import_magento_product_rows() for live Magento data.
         """
         # Validate table name to prevent SQL injection
-        valid_tables = ['uk_magento_data', 'fr_magento_data', 'nl_magento_data']
+        valid_tables = ['uk_magento_data', 'fr_magento_data', 'nl_magento_data', 'test_magento_data']
         if table_name not in valid_tables:
             raise ValueError(f"Invalid table name: {table_name}")
         

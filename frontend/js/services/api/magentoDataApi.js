@@ -5,9 +5,23 @@ import { config } from '../../config.js';
 
 const API = '/v1/magentodata';  // http.js adds BASE which already includes /api
 
-// Test sync - syncs 10 orders to test_magento_data table
-export async function testSyncMagentoData(signal = null) {
+// Test Magento Data operations
+export async function getTestMagentoData(limit = 100, offset = 0, search = '') {
+  const params = new URLSearchParams({
+    limit: limit.toString(),
+    offset: offset.toString(),
+    search: search
+  });
+  return await get(`${API}/test?${params.toString()}`);
+}
+
+export async function syncTestMagentoData(signal = null) {
   return await post(`${API}/test-sync`, {}, { signal });
+}
+
+// Legacy alias for backward compatibility
+export async function testSyncMagentoData(signal = null) {
+  return await syncTestMagentoData(signal);
 }
 
 // Initialize tables
