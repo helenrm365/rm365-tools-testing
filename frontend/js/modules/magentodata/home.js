@@ -46,15 +46,14 @@ function setupEventListeners() {
     console.warn('[Magento Data] Refresh all button not found');
   }
   
-  // Test sync button - rely on delegated handler to survive DOM mutations
-  const testSyncBtn = document.getElementById('testSyncBtn');
+  // Test sync button - New implementation
+  const testSyncBtn = document.getElementById('testSyncBtnNew');
   if (testSyncBtn) {
-    console.warn('[Magento Data] Test sync button found, delegated handler will manage clicks');
+    testSyncBtn.addEventListener('click', (e) => handleTestSync(e, testSyncBtn));
+    console.warn('[Magento Data] Test sync button (new) found and listener attached');
   } else {
-    console.warn('[Magento Data] Test sync button not found during setup');
+    console.warn('[Magento Data] Test sync button (new) not found during setup');
   }
-
-  ensureDelegatedTestSyncHandler();
 }
 
 /**
@@ -81,36 +80,16 @@ async function handleRefreshAllCondensedData() {
 // State for test sync
 let testSyncRunning = false;
 let testSyncController = null;
-let delegatedHandlerAttached = false;
-
-function ensureDelegatedTestSyncHandler() {
-  if (delegatedHandlerAttached) {
-    return;
-  }
-
-  const handler = (event) => {
-    const button = event.target?.closest?.('#testSyncBtn');
-    if (!button) {
-      return;
-    }
-    handleTestSync(event, button);
-  };
-
-  document.addEventListener('click', handler);
-  delegatedHandlerAttached = true;
-  console.warn('[Magento Data] Delegated test sync handler attached to document');
-}
 
 /**
  * Handle test sync button click
  */
-async function handleTestSync(e, providedBtn = null) {
+async function handleTestSync(e, btn) {
   if (e) {
     e.preventDefault();
     e.stopPropagation();
   }
 
-  const btn = providedBtn || e?.target?.closest('#testSyncBtn');
   if (!btn) {
     console.warn('[Magento Data] Test sync click detected but no button element was resolved');
     return;
