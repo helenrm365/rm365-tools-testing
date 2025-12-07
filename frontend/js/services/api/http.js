@@ -11,7 +11,7 @@ function authHeader() {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-export async function http(path, { method = 'GET', headers = {}, body, retry = 0, timeout = 60000 } = {}) {
+export async function http(path, { method = 'GET', headers = {}, body, retry = 0, timeout = 60000, signal = null } = {}) {
   const url = `${BASE}${path}`;
   console.log(`[HTTP] ${method} ${url}`);
   console.log(`[HTTP] BASE: ${BASE}, path: ${path}`);
@@ -41,14 +41,14 @@ export async function http(path, { method = 'GET', headers = {}, body, retry = 0
       }
     });
 
-    // Add timeout to prevent hanging
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeout);
-    fetchOptions.signal = controller.signal;
+    // Add timeout to prevent hanging (unless custom signal provided)
+    const controller = signal ? null : new AbortController();
+    const timeoutId = controller ? setTimeout(() => controller.abort(), timeout) : null;
+    fetchOptions.signal = signal || (controller ? controller.signal : undefined);
 
     try {
       const res = await fetch(url, fetchOptions);
-      clearTimeout(timeoutId);
+      if (timeoutId) clearTimeout(timeoutId);
 
       const text = await res.text();
       let data = null;
@@ -57,7 +57,7 @@ export async function http(path, { method = 'GET', headers = {}, body, retry = 0
       if (!res.ok) {
         // simple retry on 5xx if requested
         if (retry > 0 && res.status >= 500) {
-          return http(path, { method, headers, body, retry: retry - 1 });
+          return http(path, { method, headers, body, retry: retry - 1, signal });
         }
         const msg = (data && (data.detail || data.error)) || `HTTP ${res.status}`;
         console.error(`[HTTP] ${method} ${url} failed:`, msg);
@@ -66,8 +66,12 @@ export async function http(path, { method = 'GET', headers = {}, body, retry = 0
       
       return data;
     } catch (fetchError) {
-      clearTimeout(timeoutId);
+      if (timeoutId) clearTimeout(timeoutId);
       if (fetchError.name === 'AbortError') {
+        if (signal) {
+          // User cancelled
+          throw fetchError;
+        }
         throw new Error(`Request timeout after ${timeout}ms`);
       }
       throw fetchError;
@@ -79,7 +83,7 @@ export async function http(path, { method = 'GET', headers = {}, body, retry = 0
 }
 
 // sugar helpers
-export const get  = (p)        => http(p);
-export const del  = (p)        => http(p, { method: 'DELETE' });
-export const post = (p, json)  => http(p, { method: 'POST',  headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(json) });
-export const patch= (p, json)  => http(p, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(json) });
+export const get  = (p, opts={})        => http(p, opts);
+export const del  = (p, opts={})        => http(p, { method: 'DELETE', ...opts });
+export const post = (p, json, opts={})  => http(p, { method: 'POST',  headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(json), ...opts });
+export const patch= (p, json, opts={})  => http(p, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(json), ...opts });

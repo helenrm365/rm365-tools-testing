@@ -376,7 +376,11 @@
       
       const toggle = document.createElement('button');
       toggle.className = 'mobile-sidebar-toggle';
-      toggle.innerHTML = '<i class="fas fa-bars"></i>';
+      toggle.innerHTML = `
+        <span class="hamburger-bar"></span>
+        <span class="hamburger-bar"></span>
+        <span class="hamburger-bar"></span>
+      `;
       toggle.setAttribute('aria-label', 'Toggle Sidebar');
       toggle.setAttribute('aria-expanded', 'false');
       

@@ -270,29 +270,30 @@ html.dark-mode .sidebar-header #searchInput::placeholder {
   
   /* Show profile info on mobile */
   .sidebar.mobile-open .profile-info {
-    flex: 1;
+    position: absolute;
     opacity: 1;
-    transform: translateY(0);
-    max-height: 100px;
+    transform: translateY(-26px) scale(1);
     pointer-events: auto;
   }
   
   .sidebar.mobile-open .profile-section {
-    min-height: 120px;
-    gap: 1rem;
-    margin-bottom: 1rem;
+    min-height: 48px;
+    gap: 0;
+    margin-bottom: 3rem;
   }
   
   .sidebar.mobile-open .logo-container {
     width: 200px;
-    height: 80px;
-    border-radius: 16px;
-    background: linear-gradient(135deg, rgba(139, 195, 74, 0.15), rgba(94, 129, 34, 0.1));
-    box-shadow: 0 8px 24px rgba(139, 195, 74, 0.2);
+    height: 40px;
   }
   
   .sidebar.mobile-open .sidebar-logo {
     width: 85%;
     height: 85%;
+  }
+  
+  /* Ensure header padding matches hover state */
+  .sidebar.mobile-open .sidebar-header {
+    padding-top: 2.25rem;
   }
 }

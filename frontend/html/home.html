@@ -1,13 +1,16 @@
 <!-- Home Page -->
-<div class="home-container">
-  <div class="home-hero">
-    <div class="hero-header">
-      <img src="/assets/RM365_Logo_New.png" alt="RM365 Logo" class="home-logo-compact">
-      <div class="hero-text">
-        <h1 class="home-title">RM365 Toolbox</h1>
-        <hr class="hero-divider">
-        <p class="home-subtitle">Reliable Medicare's Business Management Platform</p>
-      </div>
+<div class="module-home-hero">
+  <div class="hero-content">
+    <h1 class="hero-title"><img src="/assets/RM365_Logo_New.png" alt="RM365" class="home-title-logo"> Toolbox</h1>
+    <hr class="hero-divider">
+    <p class="hero-subtitle">Reliable Medicare's Business Management Platform</p>
+    
+    <!-- Test Sync Button (visible only when authenticated) -->
+    <div id="testSyncContainer" class="test-sync-container" style="margin: 20px 0; text-align: center;" hidden>
+      <button id="testSyncBtn" class="test-sync-button" style="padding: 12px 24px; background: #4CAF50; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.3s;">
+        <i class="fas fa-vial" style="margin-right: 8px;"></i>Test Sync (10 Orders)
+      </button>
+      <p style="font-size: 12px; color: #666; margin-top: 8px;">Syncs 10 orders to test_magento_data table</p>
     </div>
     
     <!-- Login prompt for unauthenticated users -->
@@ -45,10 +48,9 @@
       </div>
     </div>
   </div>
-  
-  <!-- Feature Cards Grid -->
-  <div class="features-grid">
-    <div class="feature-card" data-module="enrollment">
+
+  <div class="module-cards-grid">
+    <div class="module-feature-card" data-module="enrollment">
       <div class="card-icon">
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -58,36 +60,42 @@
           <polyline points="10 9 9 9 8 9"></polyline>
         </svg>
       </div>
-      <h3 class="card-title">Enrollment</h3>
-      <p class="card-description">Manage student and staff enrollment</p>
+      <div class="card-content">
+        <h3 class="card-title">Enrollment</h3>
+        <p class="card-description">Manage student and staff enrollment</p>
+      </div>
       <div class="card-arrow">→</div>
     </div>
     
-    <div class="feature-card" data-module="attendance">
+    <div class="module-feature-card" data-module="attendance">
       <div class="card-icon">
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="10"></circle>
           <polyline points="12 6 12 12 16 14"></polyline>
         </svg>
       </div>
-      <h3 class="card-title">Attendance</h3>
-      <p class="card-description">Track and monitor attendance records</p>
+      <div class="card-content">
+        <h3 class="card-title">Attendance</h3>
+        <p class="card-description">Track and monitor attendance records</p>
+      </div>
       <div class="card-arrow">→</div>
     </div>
     
-    <div class="feature-card" data-module="labels">
+    <div class="module-feature-card" data-module="labels">
       <div class="card-icon">
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
           <line x1="7" y1="7" x2="7.01" y2="7"></line>
         </svg>
       </div>
-      <h3 class="card-title">Labels</h3>
-      <p class="card-description">Generate and print custom labels</p>
+      <div class="card-content">
+        <h3 class="card-title">Labels</h3>
+        <p class="card-description">Generate and print custom labels</p>
+      </div>
       <div class="card-arrow">→</div>
     </div>
     
-    <div class="feature-card" data-module="salesdata">
+    <div class="module-feature-card" data-module="salesdata">
       <div class="card-icon">
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="18" y1="20" x2="18" y2="10"></line>
@@ -95,12 +103,29 @@
           <line x1="6" y1="20" x2="6" y2="14"></line>
         </svg>
       </div>
-      <h3 class="card-title">Sales Data</h3>
-      <p class="card-description">View and analyze sales information</p>
+      <div class="card-content">
+        <h3 class="card-title">Sales Data</h3>
+        <p class="card-description">View and analyze sales information</p>
+      </div>
       <div class="card-arrow">→</div>
     </div>
     
-    <div class="feature-card" data-module="inventory">
+    <div class="module-feature-card" data-module="magentodata">
+      <div class="card-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+          <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+          <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+        </svg>
+      </div>
+      <div class="card-content">
+        <h3 class="card-title">Magento Data</h3>
+        <p class="card-description">View and analyze magento information</p>
+      </div>
+      <div class="card-arrow">→</div>
+    </div>
+    
+    <div class="module-feature-card" data-module="inventory">
       <div class="card-icon">
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
@@ -108,12 +133,14 @@
           <line x1="12" y1="22.08" x2="12" y2="12"></line>
         </svg>
       </div>
-      <h3 class="card-title">Inventory</h3>
-      <p class="card-description">Manage inventory and stock levels</p>
+      <div class="card-content">
+        <h3 class="card-title">Inventory</h3>
+        <p class="card-description">Manage inventory and stock levels</p>
+      </div>
       <div class="card-arrow">→</div>
     </div>
     
-    <div class="feature-card" data-module="orders">
+    <div class="module-feature-card" data-module="orders">
       <div class="card-icon">
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="9" cy="21" r="1"></circle>
@@ -121,12 +148,14 @@
           <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
         </svg>
       </div>
-      <h3 class="card-title">Orders</h3>
-      <p class="card-description">Process and track order fulfillment</p>
+      <div class="card-content">
+        <h3 class="card-title">Orders</h3>
+        <p class="card-description">Process and track order fulfillment</p>
+      </div>
       <div class="card-arrow">→</div>
     </div>
     
-    <div class="feature-card" data-module="usermanagement">
+    <div class="module-feature-card" data-module="usermanagement">
       <div class="card-icon">
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
@@ -135,8 +164,10 @@
           <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
         </svg>
       </div>
-      <h3 class="card-title">User Management</h3>
-      <p class="card-description">Manage users and permissions</p>
+      <div class="card-content">
+        <h3 class="card-title">User Management</h3>
+        <p class="card-description">Manage users and permissions</p>
+      </div>
       <div class="card-arrow">→</div>
     </div>
   </div>

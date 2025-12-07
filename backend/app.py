@@ -57,6 +57,26 @@ except Exception as e:
     print("⚠️  Application will continue but may not function properly")
 
 
+# --- Scheduler Initialization ------------------------------------------------
+try:
+    from core.scheduler import start_scheduler, shutdown_scheduler
+    
+    # Start scheduler on application startup
+    @app.on_event("startup")
+    async def startup_scheduler():
+        start_scheduler()
+    
+    # Shutdown scheduler on application shutdown
+    @app.on_event("shutdown")
+    async def shutdown_scheduler_event():
+        shutdown_scheduler()
+    
+    print("✅ Background scheduler configured")
+except Exception as e:
+    print(f"⚠️  Scheduler initialization failed: {e}")
+    print("⚠️  Daily order resets will not run automatically")
+
+
 # --- CORS (From working Label Printer #7 configuration) ---------------------
 def _parse_origins_env():
     """
@@ -321,6 +341,7 @@ working_modules = [
     ('modules.enrollment.api', 'router', f'{API}/enrollment', ['enrollment']),
     ('modules.labels.api', 'router', f'{API}/labels', ['labels']),
     ('modules.salesdata.api', 'router', f'{API}/salesdata', ['salesdata']),
+    ('modules.magentodata.api', 'router', f'{API}/magentodata', ['magentodata']),
     ('modules.inventory.management.api', 'router', f'{API}/inventory/management', ['inventory-management']),
     ('modules.inventory.collaboration', 'router', f'{API}/inventory/collaboration', ['inventory-collaboration']),
     ('modules.orders.order_fulfillment.api', 'router', f'{API}/magento', ['magento']),

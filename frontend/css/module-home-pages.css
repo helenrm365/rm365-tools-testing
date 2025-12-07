@@ -26,8 +26,20 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
   letter-spacing: -0.02em;
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.home-title-logo {
+  height: 0.82em;
+  width: auto;
+  display: inline-block;
+  margin: 0;
+  transform: translateY(0.05em);
 }
 
 html.dark-mode .hero-title {
@@ -59,7 +71,7 @@ html.dark-mode .hero-subtitle {
     transparent 100%
   );
   border: none;
-  margin: 1.5rem auto;
+  margin: 0.25rem 0 0.5rem 0;
   max-width: 600px;
   width: 100%;
   transition: all 0.3s ease;
@@ -77,22 +89,35 @@ html.dark-mode .hero-divider {
 /* ===== Feature Cards Grid ===== */
 .module-cards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 2rem;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(1rem, 2vw, 2.25rem);
   width: 100%;
-  max-width: 1100px;
+  max-width: 1400px;
   animation: fadeInUp 0.6s ease-out 0.2s backwards;
+  justify-content: center;
+}
+
+/* Single card - centered */
+.module-cards-grid:has(.module-feature-card:nth-child(1):nth-last-child(1)) {
+  grid-template-columns: clamp(280px, 25vw, 380px);
+  justify-content: center;
 }
 
 .module-feature-card {
   position: relative;
   background: white;
-  border-radius: 20px;
-  padding: 2.5rem;
+  border-radius: clamp(14px, 2vw, 26px);
+  padding: clamp(1.25rem, 2.5vw, 2.75rem);
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border: 2px solid rgba(139, 195, 74, 0.1);
   overflow: hidden;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 0;
+  min-width: 0;
 }
 
 .module-feature-card::before {
@@ -129,16 +154,23 @@ html.dark-mode .module-feature-card:hover {
 }
 
 .card-icon {
-  width: 72px;
-  height: 72px;
+  width: clamp(48px, 7vw, 80px);
+  height: clamp(48px, 7vw, 80px);
   background: linear-gradient(135deg, rgba(139, 195, 74, 0.1), rgba(94, 129, 34, 0.1));
-  border-radius: 16px;
+  border-radius: clamp(12px, 1.5vw, 20px);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: clamp(0.5rem, 1.2vw, 1.5rem);
   color: #8bc34a;
   transition: all 0.3s ease;
+  flex-shrink: 0;
+  container-type: normal;
+}
+
+.card-icon svg {
+  width: clamp(26px, 4vw, 44px);
+  height: clamp(26px, 4vw, 44px);
 }
 
 .module-feature-card:hover .card-icon {
@@ -152,16 +184,24 @@ html.dark-mode .card-icon {
   color: #8ec134;
 }
 
+.card-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
 .card-title {
-  font-size: 1.5rem;
+  font-size: clamp(0.95rem, 1.8vw, 1.65rem);
   font-weight: 600;
   color: var(--header-color);
-  margin-bottom: 0.75rem;
+  margin-bottom: clamp(0.4rem, 0.8vw, 0.875rem);
   margin-top: 0;
+  line-height: 1.2;
 }
 
 .card-description {
-  font-size: 1rem;
+  font-size: clamp(0.75rem, 1.2vw, 1.1rem);
   color: #555;
   line-height: 1.6;
   margin: 0;
@@ -173,9 +213,9 @@ html.dark-mode .card-description {
 
 .card-arrow {
   position: absolute;
-  bottom: 2rem;
-  right: 2rem;
-  font-size: 1.5rem;
+  bottom: clamp(1rem, 2vw, 2.25rem);
+  right: clamp(1rem, 2vw, 2.25rem);
+  font-size: clamp(1rem, 1.8vw, 1.65rem);
   color: #8bc34a;
   opacity: 0;
   transform: translateX(-10px);
@@ -203,55 +243,236 @@ html.dark-mode .card-arrow {
   }
 }
 
-/* ===== Responsive Design ===== */
-@media (max-width: 768px) {
-  .module-home-hero {
-    padding: 2rem 1rem;
-    min-height: auto;
-  }
-  
-  .hero-title {
-    font-size: 2.5rem;
-  }
-  
-  .hero-subtitle {
-    font-size: 1.1rem;
-  }
-  
-  .hero-content {
-    margin-bottom: 2.5rem;
-  }
-  
+/* ===== Responsive Design - Single Breakpoint ===== */
+
+/* Switch from 3 columns to 2 columns at ~640px (1/3rd of 1920px) */
+@media (max-width: 640px) {
   .module-cards-grid {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
-  }
-  
-  .module-feature-card {
-    padding: 2rem;
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
-@media (max-width: 600px) {
-  .hero-title {
-    font-size: 2rem;
+/* ===== Home Page Specific Styles ===== */
+/* Login prompt and welcome message for main home page */
+
+.login-prompt {
+  display: flex;
+  justify-content: center;
+  margin: 2rem 0 0 0;
+  animation: slideUp 0.6s ease-out;
+}
+
+.prompt-card {
+  background: white;
+  border: 2px solid rgba(139, 195, 74, 0.2);
+  border-radius: 20px;
+  padding: 2.5rem;
+  max-width: 500px;
+  width: 100%;
+  text-align: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.prompt-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #8bc34a, #7ab82d);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s ease;
+}
+
+.prompt-card:hover::before {
+  transform: scaleX(1);
+}
+
+.prompt-card:hover {
+  border-color: rgba(139, 195, 74, 0.4);
+  box-shadow: 0 20px 40px rgba(139, 195, 74, 0.15);
+}
+
+html.dark-mode .prompt-card {
+  background: #2a2a2a;
+  border-color: rgba(139, 195, 74, 0.3);
+}
+
+html.dark-mode .prompt-card:hover {
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  border-color: rgba(139, 195, 74, 0.5);
+}
+
+.prompt-icon-wrapper {
+  width: 72px;
+  height: 72px;
+  background: linear-gradient(135deg, rgba(139, 195, 74, 0.1), rgba(94, 129, 34, 0.1));
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.prompt-card:hover .prompt-icon-wrapper {
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
+}
+
+.prompt-icon {
+  width: 36px;
+  height: 36px;
+  color: #8bc34a;
+  transition: color 0.3s ease;
+}
+
+.prompt-card:hover .prompt-icon {
+  color: white;
+}
+
+html.dark-mode .prompt-icon-wrapper {
+  background: linear-gradient(135deg, rgba(139, 195, 74, 0.2), rgba(94, 129, 34, 0.15));
+}
+
+html.dark-mode .prompt-icon {
+  color: #8ec134;
+}
+
+.prompt-card h2 {
+  font-size: 1.75rem;
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+  color: var(--header-color);
+}
+
+.prompt-card p {
+  font-size: 1.05rem;
+  margin-bottom: 1.5rem;
+  color: #555;
+  line-height: 1.6;
+}
+
+html.dark-mode .prompt-card p {
+  color: #b8b8b8;
+}
+
+.primary-button {
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
+  color: white;
+  padding: 0.875rem 2rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  font-family: 'Sora', system-ui, sans-serif;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: 0 4px 12px rgba(139, 195, 74, 0.3);
+}
+
+.primary-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(139, 195, 74, 0.4);
+}
+
+.primary-button:active {
+  transform: translateY(0);
+}
+
+.button-arrow {
+  width: 20px;
+  height: 20px;
+  transition: transform 0.3s ease;
+}
+
+.primary-button:hover .button-arrow {
+  transform: translateX(4px);
+}
+
+.welcome-message {
+  display: flex;
+  justify-content: center;
+  margin: 2rem 0 0 0;
+  animation: slideUp 0.6s ease-out;
+}
+
+.welcome-card {
+  background: white;
+  border: 2px solid rgba(139, 195, 74, 0.2);
+  border-radius: 20px;
+  padding: 2.5rem;
+  max-width: 500px;
+  width: 100%;
+  text-align: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.welcome-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #8bc34a, #7ab82d);
+}
+
+html.dark-mode .welcome-card {
+  background: #2a2a2a;
+  border-color: rgba(139, 195, 74, 0.3);
+}
+
+.welcome-icon-wrapper {
+  width: 72px;
+  height: 72px;
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem;
+}
+
+.welcome-icon {
+  width: 36px;
+  height: 36px;
+  color: white;
+}
+
+.welcome-card h2 {
+  font-size: 1.75rem;
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+  color: var(--header-color);
+}
+
+.welcome-card p {
+  font-size: 1.05rem;
+  color: #555;
+  line-height: 1.6;
+}
+
+html.dark-mode .welcome-card p {
+  color: #b8b8b8;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
   }
-  
-  .hero-subtitle {
-    font-size: 1rem;
-  }
-  
-  .module-feature-card {
-    padding: 1.5rem;
-  }
-  
-  .card-icon {
-    width: 60px;
-    height: 60px;
-  }
-  
-  .card-icon svg {
-    width: 40px;
-    height: 40px;
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

@@ -16,7 +16,6 @@ function getAuthHeaders() {
 
 let currentSessions = [];
 let wsConnected = false;
-let refreshTimer = null; // track auto-refresh interval
 
 /**
  * Initialize dashboard
@@ -25,13 +24,7 @@ export async function init() {
     wireEventHandlers();
     await loadSessions();
     setupWebSocket();
-    
-    // Auto-refresh every 30 seconds as fallback
-    refreshTimer = setInterval(async () => {
-        if (!wsConnected) {
-            await loadSessions(false); // Silent refresh if WebSocket not connected
-        }
-    }, 30000);
+    // WebSocket handles all real-time updates, no polling needed
 }
 
 /**
@@ -78,12 +71,6 @@ export function cleanup() {
     wsService.off('session_forced_cancel', handleSessionUpdate);
     wsService.off('session_forced_takeover', handleSessionUpdate);
     wsService.off('session_assigned', handleSessionUpdate);
-    
-    // Stop auto-refresh timer
-    if (refreshTimer) {
-        clearInterval(refreshTimer);
-        refreshTimer = null;
-    }
     
     wsConnected = false;
 }

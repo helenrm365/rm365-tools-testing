@@ -18,8 +18,8 @@ class RolesRepo:
             # Insert default roles
             cur.execute("""
                 INSERT INTO roles (role_name, allowed_tabs) VALUES
-                ('admin', 'enrollment,inventory,attendance,labels,salesdata,usermanagement'),
-                ('manager', 'enrollment,inventory,attendance,labels,salesdata'),
+                ('admin', 'enrollment,inventory,attendance,labels,salesdata,magentodata,usermanagement'),
+                ('manager', 'enrollment,inventory,attendance,labels,salesdata,magentodata'),
                 ('user', 'enrollment,attendance')
                 ON CONFLICT (role_name) DO NOTHING
             """)

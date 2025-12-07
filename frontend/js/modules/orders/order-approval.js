@@ -1,5 +1,6 @@
 import { get, post } from '../../services/api/http.js';
 import { showToast } from '../../ui/toast.js';
+import { wsService } from '../../services/websocket.js';
 
 class OrderApprovalManager {
   constructor() {
@@ -8,13 +9,12 @@ class OrderApprovalManager {
     this.currentOrderId = null;
     this.searchTerm = '';
     this.sortBy = 'date-desc';
-    this.autoRefreshInterval = null;
   }
 
   async initialize() {
     this.setupEventListeners();
     await this.loadPendingOrders();
-    this.startAutoRefresh();
+    this.setupWebSocket();
   }
 
   setupEventListeners() {
@@ -455,17 +455,26 @@ class OrderApprovalManager {
     }
   }
 
-  startAutoRefresh() {
-    // Refresh every 60 seconds
-    this.autoRefreshInterval = setInterval(() => {
-      this.loadPendingOrders();
-    }, 60000);
+  setupWebSocket() {
+    // Listen for order events to refresh pending orders
+    wsService.on('order_status_changed', this.handleOrderUpdate.bind(this));
+    wsService.on('order_created', this.handleOrderUpdate.bind(this));
+    wsService.on('order_deleted', this.handleOrderUpdate.bind(this));
+    
+    console.log('[Order Approval] WebSocket listeners set up for real-time updates');
+  }
+
+  handleOrderUpdate(data) {
+    console.log('[Order Approval] Order update received:', data);
+    // Reload pending orders without showing loading state
+    this.loadPendingOrders();
   }
 
   cleanup() {
-    if (this.autoRefreshInterval) {
-      clearInterval(this.autoRefreshInterval);
-    }
+    // Clean up WebSocket listeners
+    wsService.off('order_status_changed', this.handleOrderUpdate);
+    wsService.off('order_created', this.handleOrderUpdate);
+    wsService.off('order_deleted', this.handleOrderUpdate);
   }
 }
 

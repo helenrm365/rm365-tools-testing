@@ -3,7 +3,6 @@ import { navigate } from '../../router.js';
 import { wsService } from '../../services/websocket.js';
 import { getUserData } from '../../services/state/userStore.js';
 
-let refreshInterval = null;
 let isMinimalMode = false;
 
 export async function init() {
@@ -17,19 +16,10 @@ export async function init() {
   
   // Initialize WebSocket for real-time updates
   initializeWebSocket();
-  
-  // Set up auto-refresh every 30 seconds (as backup to WebSocket)
-  refreshInterval = setInterval(loadTrackingBoard, 30000);
 }
 
 export function cleanup() {
   console.log('[Order Tracking] Cleaning up...');
-  
-  // Clear refresh interval
-  if (refreshInterval) {
-    clearInterval(refreshInterval);
-    refreshInterval = null;
-  }
   
   // Leave WebSocket room (if connected)
   if (wsService.isConnected()) {

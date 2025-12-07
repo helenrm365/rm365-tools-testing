@@ -66,6 +66,12 @@ const routes = {
   '/salesdata/upload':  '/html/salesdata/upload.html',
   '/salesdata/history': '/html/salesdata/history.html',
 
+  '/magentodata':         '/html/magentodata/home.html',
+  '/magentodata/uk-magento':'/html/magentodata/uk-magento.html',
+  '/magentodata/fr-magento':'/html/magentodata/fr-magento.html',
+  '/magentodata/nl-magento':'/html/magentodata/nl-magento.html',
+  '/magentodata/history': '/html/magentodata/history.html',
+
   '/inventory':             '/html/inventory/home.html',
   '/inventory/management':  '/html/inventory/management.html',
   
@@ -122,6 +128,7 @@ export function generateTabStructure() {
     'enrollment': 'Enrollment',
     'labels': 'Labels',
     'salesdata': 'Sales Data',
+    'magentodata': 'Magento Data',
     'inventory': 'Inventory',
     'orders': 'Orders',
     'usermanagement': 'User Management'
@@ -272,6 +279,9 @@ export async function navigate(path, replace = false) {
       try { applyInnerTabPermissions(view); } catch {}
     }
 
+    // Scroll to top when navigating to a new page
+    window.scrollTo(0, 0);
+
     if (replace) {
       history.replaceState({ path }, '', path);
     } else {
@@ -286,14 +296,10 @@ export async function navigate(path, replace = false) {
       const tabName = path.split('/')[1] || 'home';
       const subPath = path.split('/')[2];
       
-      // Hide header on home pages (no subpath or subpath is 'home' or path is root)
+      // Always hide the header - user requested removal of main tab name display
       const header = pageTitle.closest('.header');
       if (header) {
-        if (!subPath || subPath === 'home' || path === '/' || path === '/home') {
-          header.style.display = 'none';
-        } else {
-          header.style.display = '';
-        }
+        header.style.display = 'none';
       }
       
       // Map for proper title casing
@@ -301,6 +307,7 @@ export async function navigate(path, replace = false) {
         'home': 'Home',
         'usermanagement': 'User Management',
         'salesdata': 'Sales Data',
+        'magentodata': 'Magento Data',
         'attendance': 'Attendance',
         'enrollment': 'Enrollment',
         'labels': 'Labels',
@@ -353,6 +360,11 @@ export async function navigate(path, replace = false) {
       await mod.init(path);
       currentModule = mod;
       currentModulePath = 'salesdata';
+    } else if (path.startsWith('/magentodata')) {
+      const mod = await import('./modules/magentodata/index.js');
+      await mod.init(path);
+      currentModule = mod;
+      currentModulePath = 'magentodata';
     } else if (path.startsWith('/inventory')) {
       const mod = await import('./modules/inventory/index.js');
       await mod.init(path);

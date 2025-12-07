@@ -6,8 +6,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 3rem 2rem;
+  justify-content: flex-start;
+  padding: 6rem 2rem 3rem 2rem;
   max-width: 1400px;
   margin: 0 auto;
   animation: fadeIn 0.5s ease-in;
@@ -16,7 +16,8 @@
 /* ===== Hero Section ===== */
 .home-hero {
   text-align: center;
-  margin-bottom: 4rem;
+  margin-bottom: 2rem;
+  margin-top: 1rem;
   width: 100%;
   animation: fadeInUp 0.6s ease-out;
 }
@@ -27,35 +28,40 @@
   align-items: center;
   justify-content: center;
   gap: 1.5rem;
-  margin-bottom: 3rem;
+  margin-bottom: 1rem;
   flex-wrap: wrap;
 }
 
-.home-logo-compact {
-  max-width: 120px;
-  width: 100%;
-  height: auto;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.08));
-}
-
 .hero-text {
-  text-align: left;
+  text-align: center;
 }
 
 .home-title {
-  font-size: 3rem;
+  font-size: 3.5rem;
   font-weight: 700;
   background: linear-gradient(135deg, #8bc34a, #6a9e34);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  margin: 0 0 0.25rem 0;
-  line-height: 1.2;
+  margin: 0 0 0.5rem 0;
+  line-height: 1;
   letter-spacing: -0.02em;
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.home-title-logo {
+  height: 0.82em;
+  width: auto;
+  display: inline-block;
+  margin: 0;
+  transform: translateY(0.05em);
 }
 
 .home-subtitle {
-  font-size: 1.15rem;
+  font-size: 1.25rem;
   color: #4a4a4a;
   margin: 0;
   font-weight: 400;
@@ -95,7 +101,7 @@ html.dark-mode .hero-divider {
 .login-prompt {
   display: flex;
   justify-content: center;
-  margin: 2rem 0;
+  margin: 1rem 0;
   animation: slideUp 0.6s ease-out;
 }
 
@@ -310,11 +316,12 @@ html.dark-mode .welcome-card p {
 /* ===== Features Grid ===== */
 .features-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 2rem;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 320px));
+  gap: 1.5rem;
   width: 100%;
-  max-width: 1100px;
+  max-width: 1400px;
   animation: fadeInUp 0.6s ease-out 0.2s backwards;
+  justify-content: center;
 }
 
 .feature-card {
@@ -326,6 +333,12 @@ html.dark-mode .welcome-card p {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border: 2px solid rgba(139, 195, 74, 0.1);
   overflow: hidden;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 0;
+  min-width: 0;
 }
 
 .feature-card::before {
@@ -369,9 +382,10 @@ html.dark-mode .feature-card:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
   color: #8bc34a;
   transition: all 0.3s ease;
+  flex-shrink: 0;
 }
 
 .feature-card:hover .card-icon {
@@ -429,4 +443,191 @@ html.dark-mode .card-arrow {
   opacity: 0.5;
   cursor: not-allowed;
   pointer-events: none;
+}
+
+/* ===== Responsive Design ===== */
+
+/* Tablets and smaller desktops */
+@media (max-width: 768px) {
+  .home-container {
+    padding: 5rem 1.5rem 2rem 1.5rem;
+  }
+  
+  .home-title {
+    font-size: 2.5rem;
+  }
+  
+  .home-subtitle {
+    font-size: 1.1rem;
+  }
+  
+  .home-hero {
+    margin-bottom: 2.5rem;
+  }
+  
+  .features-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 240px));
+    gap: 1rem;
+    max-width: 100%;
+  }
+  
+  .feature-card {
+    padding: 1.75rem;
+  }
+  
+  .card-icon {
+    width: 56px;
+    height: 56px;
+  }
+  
+  .card-icon svg {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .card-title {
+    font-size: 1.25rem;
+  }
+  
+  .card-description {
+    font-size: 0.9rem;
+  }
+}
+
+/* Mobile devices (phones) */
+@media (max-width: 600px) {
+  .home-container {
+    padding: 4rem 1rem 1.5rem 1rem;
+  }
+  
+  .home-title {
+    font-size: 2rem;
+  }
+  
+  .home-subtitle {
+    font-size: 1rem;
+  }
+  
+  .home-hero {
+    margin-bottom: 2rem;
+  }
+  
+  .features-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 0.875rem;
+  }
+  
+  .feature-card {
+    padding: 1.25rem;
+    aspect-ratio: auto;
+  }
+  
+  .card-icon {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 0.75rem;
+  }
+  
+  .card-icon svg {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .card-title {
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .card-description {
+    font-size: 0.8rem;
+    line-height: 1.4;
+  }
+  
+  .card-arrow {
+    bottom: 1.25rem;
+    right: 1.25rem;
+    font-size: 1.25rem;
+  }
+  
+  .prompt-card,
+  .welcome-card {
+    padding: 2rem;
+  }
+  
+  .prompt-card h2,
+  .welcome-card h2 {
+    font-size: 1.5rem;
+  }
+  
+  .prompt-card p,
+  .welcome-card p {
+    font-size: 0.9rem;
+  }
+}
+
+/* Small mobile devices (portrait phones) */
+@media (max-width: 400px) {
+  .home-container {
+    padding: 3.5rem 0.75rem 1.25rem 0.75rem;
+  }
+  
+  .home-title {
+    font-size: 1.75rem;
+  }
+  
+  .home-subtitle {
+    font-size: 0.9rem;
+  }
+  
+  .features-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 0.75rem;
+  }
+  
+  .feature-card {
+    padding: 1rem;
+    aspect-ratio: auto;
+  }
+  
+  .card-icon {
+    width: 44px;
+    height: 44px;
+    margin-bottom: 0.5rem;
+  }
+  
+  .card-icon svg {
+    width: 24px;
+    height: 24px;
+  }
+  
+  .card-title {
+    font-size: 1rem;
+    margin-bottom: 0.4rem;
+  }
+  
+  .card-description {
+    font-size: 0.75rem;
+    line-height: 1.3;
+  }
+  
+  .card-arrow {
+    bottom: 1rem;
+    right: 1rem;
+    font-size: 1.1rem;
+  }
+  
+  .prompt-card,
+  .welcome-card {
+    padding: 1.5rem;
+  }
+  
+  .prompt-card h2,
+  .welcome-card h2 {
+    font-size: 1.25rem;
+  }
+  
+  .prompt-card p,
+  .welcome-card p {
+    font-size: 0.85rem;
+  }
 }

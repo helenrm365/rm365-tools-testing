@@ -44,7 +44,6 @@ class MagentoPickPackManager {
     this.currentSession = null;
     this.currentSessionId = null;
     this.currentPath = initialPath || '/orders/order-fulfillment';
-    this.refreshInterval = null;
     this.initialLoadPromise = null;
     this.isMobileMode = false;
     this.activeColumn = 'ready-to-pick';
@@ -55,12 +54,7 @@ class MagentoPickPackManager {
     this.ensureRealtimeConnection();
     // Check if we're loading a specific session from URL
     this.initialLoadPromise = this.checkSessionFromPath(initialPath);
-    // Set up auto-refresh every 30 seconds (as backup to WebSocket)
-    this.refreshInterval = setInterval(() => {
-      if (!this.currentSession) {
-        this.loadTrackingBoard();
-      }
-    }, 30000);
+    // WebSocket handles all real-time updates, no auto-refresh needed
     // TODO: Implement active sessions endpoint on backend
     // this.loadActiveSessions();
   }
@@ -132,12 +126,6 @@ class MagentoPickPackManager {
   }
 
   cleanupWebSocket() {
-    // Clear refresh interval
-    if (this.refreshInterval) {
-      clearInterval(this.refreshInterval);
-      this.refreshInterval = null;
-    }
-    
     wsService.off('takeover_request', this.handleTakeoverRequest);
     wsService.off('takeover_response', this.handleTakeoverResponse);
     wsService.off('session_transferred', this.handleSessionTransferred);
@@ -792,7 +780,7 @@ class MagentoPickPackManager {
     }
     
     // Load the tracking board and wait for it
-    await this.loadTrackingBoard(isInitialLoad);
+    await this.loadTrackingBoard();
     
     // Navigate back to base order fulfillment URL
     const baseUrl = '/orders/order-fulfillment';
@@ -809,12 +797,8 @@ class MagentoPickPackManager {
     this.currentSessionId = null;
   }
   
-  async loadTrackingBoard(isInitialLoad = false) {
-    // Show global loading screen (unless it's already showing from navigation)
-    if (!isInitialLoad) {
-      showLoading('Loading orders...');
-    }
-    
+  async loadTrackingBoard() {
+    // No loading screen - router handles initial load, WebSocket handles updates
     try {
       const url = `${getApiUrl()}/v1/magento/tracking/board`;
       const response = await fetch(url, { headers: getAuthHeaders() });
@@ -825,18 +809,12 @@ class MagentoPickPackManager {
       
       const data = await response.json();
       
-      // Small delay to ensure smooth transition
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
       // Update each column
       this.updateColumn('readyToPick', data.ready_to_pick || []);
       this.updateColumn('readyToCheck', data.ready_to_check || []);
       this.updateColumn('completed', data.completed || []);
     } catch (error) {
       console.error('[Order Fulfillment] Error loading tracking board:', error);
-    } finally {
-      // Always hide the loading screen when done
-      hideLoading();
     }
   }
   

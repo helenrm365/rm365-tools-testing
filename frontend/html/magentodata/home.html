@@ -1,0 +1,85 @@
+<!-- Magento Data Home Page -->
+<div class="module-home-hero">
+  <div class="hero-content">
+    <h1 class="hero-title">Magento Data</h1>
+    <hr class="hero-divider">
+    <p class="hero-subtitle">Comprehensive magento analytics and data management</p>
+    
+    <!-- Admin Actions -->
+    <div class="admin-actions">
+      <button class="action-btn secondary-btn" id="refreshAllCondensedBtn" title="Refresh condensed data for all regions">
+        <i class="fas fa-sync-alt"></i>
+        Refresh All 6M Data
+      </button>
+    </div>
+  </div>
+
+  <div class="module-cards-grid">
+    <div class="module-feature-card" onclick="location.href='/magentodata/uk-magento'">
+      <div class="card-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 3v18h18"></path>
+          <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"></path>
+        </svg>
+      </div>
+      <div class="card-content">
+        <h3 class="card-title">UK Magento</h3>
+        <p class="card-description">Import and manage United Kingdom magento data with comprehensive tracking and analytics</p>
+      </div>
+      <div class="card-arrow">→</div>
+    </div>
+
+    <div class="module-feature-card" onclick="location.href='/magentodata/fr-magento'">
+      <div class="card-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 3v18h18"></path>
+          <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"></path>
+        </svg>
+      </div>
+      <div class="card-content">
+        <h3 class="card-title">FR Magento</h3>
+        <p class="card-description">Import and manage France magento data with detailed reporting and insights</p>
+      </div>
+      <div class="card-arrow">→</div>
+    </div>
+
+    <div class="module-feature-card" onclick="location.href='/magentodata/nl-magento'">
+      <div class="card-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 3v18h18"></path>
+          <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"></path>
+        </svg>
+      </div>
+      <div class="card-content">
+        <h3 class="card-title">NL Magento</h3>
+        <p class="card-description">Import and manage Netherlands magento data with advanced filtering and search</p>
+      </div>
+      <div class="card-arrow">→</div>
+    </div>
+
+    <div class="module-feature-card" onclick="location.href='/magentodata/history'">
+      <div class="card-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <polyline points="12,6 12,12 16,14"></polyline>
+        </svg>
+      </div>
+      <div class="card-content">
+        <h3 class="card-title">Import History</h3>
+        <p class="card-description">View comprehensive import logs, error tracking, and data validation reports</p>
+      </div>
+      <div class="card-arrow">→</div>
+    </div>
+  </div>
+</div><!-- Universal Footer -->
+<div id="footerPlaceholder"></div>
+<script>
+  if (!document.getElementById('universalFooter')) {
+    fetch('/components/universal-footer.html')
+      .then(response => response.text())
+      .then(html => {
+        document.getElementById('footerPlaceholder').innerHTML = html;
+      })
+      .catch(error => console.error('Error loading footer:', error));
+  }
+</script>

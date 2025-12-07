@@ -166,7 +166,7 @@ export function applyInnerTabPermissions(root = document) {
 
 export function filterHomeCardsByPermissions() {
   const allowedTabs = getAllowedTabs();
-  const cards = document.querySelectorAll('.feature-card[data-module]');
+  const cards = document.querySelectorAll('.module-feature-card[data-module]');
   
   cards.forEach(card => {
     const module = card.getAttribute('data-module');

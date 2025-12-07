@@ -1,0 +1,330 @@
+{
+  "7b863f9f-df77-4d7b-aa63-13042105889d": {
+    "session_id": "7b863f9f-df77-4d7b-aa63-13042105889d",
+    "invoice_id": "1003210333",
+    "order_number": "1045327745",
+    "session_type": "pick",
+    "started_at": "2025-12-04T12:35:14.125529",
+    "completed_at": null,
+    "items_expected": [
+      {
+        "sku": "DC002",
+        "name": "Dr. CYJ Hair Filler (2 x 1ml)",
+        "qty_ordered": 1.0,
+        "qty_invoiced": 1.0,
+        "qty_scanned": 0,
+        "price": 59.5,
+        "row_total": 59.5,
+        "product_id": 1994,
+        "is_complete": false
+      },
+      {
+        "sku": "PO004",
+        "name": "Profhilo Structura (1 x 2ml)",
+        "qty_ordered": 1.0,
+        "qty_invoiced": 1.0,
+        "qty_scanned": 0,
+        "price": 126.0,
+        "row_total": 126.0,
+        "product_id": 3380,
+        "is_complete": false
+      }
+    ],
+    "items_scanned": [],
+    "status": "approved",
+    "user_id": null,
+    "created_by": null,
+    "last_modified_by": "superadmin",
+    "last_modified_at": "2025-12-04T12:35:14.126823",
+    "audit_logs": [
+      {
+        "timestamp": "2025-12-04T12:35:14.126844",
+        "action": "approved",
+        "user": "superadmin",
+        "details": "Approved for picking"
+      }
+    ],
+    "archived_at": "2025-12-05T12:03:37.283393"
+  },
+  "d5a042cf-d802-4e36-acbe-690e82febd6f": {
+    "session_id": "d5a042cf-d802-4e36-acbe-690e82febd6f",
+    "invoice_id": "1003210332",
+    "order_number": "1045327744",
+    "session_type": "pick",
+    "started_at": "2025-12-04T12:36:01.188112",
+    "completed_at": null,
+    "items_expected": [
+      {
+        "sku": "PO001",
+        "name": "Profhilo H+L (1 x 2ml)",
+        "qty_ordered": 2.0,
+        "qty_invoiced": 2.0,
+        "qty_scanned": 0,
+        "price": 69.5,
+        "row_total": 139.0,
+        "product_id": 172,
+        "is_complete": false
+      },
+      {
+        "sku": "ADRRS001",
+        "name": "Aesthetic Dermal RRS HA Long Lasting (1 x 3ml)",
+        "qty_ordered": 2.0,
+        "qty_invoiced": 2.0,
+        "qty_scanned": 0,
+        "price": 48.0,
+        "row_total": 96.0,
+        "product_id": 3610,
+        "is_complete": false
+      },
+      {
+        "sku": "JA006",
+        "name": "Jalupro Super Hydro (1 x 2.5ml)",
+        "qty_ordered": 1.0,
+        "qty_invoiced": 1.0,
+        "qty_scanned": 0,
+        "price": 63.0,
+        "row_total": 63.0,
+        "product_id": 2030,
+        "is_complete": false
+      },
+      {
+        "sku": "JU004",
+        "name": "Juvederm Ultra 3 (2 x 1ml)",
+        "qty_ordered": 1.0,
+        "qty_invoiced": 1.0,
+        "qty_scanned": 0,
+        "price": 138.0,
+        "row_total": 138.0,
+        "product_id": 20,
+        "is_complete": false
+      }
+    ],
+    "items_scanned": [],
+    "status": "approved",
+    "user_id": null,
+    "created_by": null,
+    "last_modified_by": "superadmin",
+    "last_modified_at": "2025-12-04T12:36:01.188830",
+    "audit_logs": [
+      {
+        "timestamp": "2025-12-04T12:36:01.188835",
+        "action": "approved",
+        "user": "superadmin",
+        "details": "Approved for picking"
+      }
+    ],
+    "archived_at": "2025-12-05T12:03:37.283408"
+  },
+  "4c320675-0319-44fb-b50d-2b6ee19659fa": {
+    "session_id": "4c320675-0319-44fb-b50d-2b6ee19659fa",
+    "invoice_id": "1003210333",
+    "order_number": "1045327745",
+    "session_type": "pick",
+    "started_at": "2025-12-04T12:56:52.357046",
+    "completed_at": null,
+    "items_expected": [
+      {
+        "sku": "DC002",
+        "name": "Dr. CYJ Hair Filler (2 x 1ml)",
+        "qty_expected": 1.0,
+        "price": 59.5
+      },
+      {
+        "sku": "PO004",
+        "name": "Profhilo Structura (1 x 2ml)",
+        "qty_expected": 1.0,
+        "price": 126.0
+      }
+    ],
+    "items_scanned": [],
+    "status": "draft",
+    "user_id": null,
+    "created_by": "superadmin",
+    "last_modified_by": "superadmin",
+    "last_modified_at": "2025-12-04T15:07:39.994621",
+    "audit_logs": [
+      {
+        "timestamp": "2025-12-04T12:56:52.357108",
+        "action": "started",
+        "user": "superadmin",
+        "details": "Started pick session"
+      },
+      {
+        "timestamp": "2025-12-04T12:56:59.121410",
+        "action": "cancelled",
+        "user": "superadmin",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-12-04T12:57:16.855291",
+        "action": "restarted",
+        "user": "superadmin",
+        "details": "Restarted cancelled session"
+      },
+      {
+        "timestamp": "2025-12-04T13:03:16.960082",
+        "action": "drafted",
+        "user": "superadmin",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-12-04T13:03:22.295603",
+        "action": "claimed",
+        "user": "superadmin",
+        "details": "Claimed draft session from superadmin"
+      },
+      {
+        "timestamp": "2025-12-04T13:10:14.200850",
+        "action": "drafted",
+        "user": "superadmin",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-12-04T13:10:20.725486",
+        "action": "claimed",
+        "user": "superadmin",
+        "details": "Claimed draft session from superadmin"
+      },
+      {
+        "timestamp": "2025-12-04T13:14:59.078816",
+        "action": "drafted",
+        "user": "superadmin",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-12-04T13:15:03.504489",
+        "action": "claimed",
+        "user": "superadmin",
+        "details": "Claimed draft session from superadmin"
+      },
+      {
+        "timestamp": "2025-12-04T13:15:35.624343",
+        "action": "cancelled",
+        "user": "superadmin",
+        "details": "Cancelled session"
+      },
+      {
+        "timestamp": "2025-12-04T13:15:42.773072",
+        "action": "restarted",
+        "user": "superadmin",
+        "details": "Restarted cancelled session"
+      },
+      {
+        "timestamp": "2025-12-04T13:16:44.540388",
+        "action": "drafted",
+        "user": "superadmin",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-12-04T13:16:49.219224",
+        "action": "claimed",
+        "user": "superadmin",
+        "details": "Claimed draft session from superadmin"
+      },
+      {
+        "timestamp": "2025-12-04T13:21:05.510990",
+        "action": "drafted",
+        "user": "superadmin",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-12-04T13:21:12.093407",
+        "action": "claimed",
+        "user": "superadmin",
+        "details": "Claimed draft session from superadmin"
+      },
+      {
+        "timestamp": "2025-12-04T13:25:47.642941",
+        "action": "drafted",
+        "user": "superadmin",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-12-04T13:40:05.171570",
+        "action": "claimed",
+        "user": "superadmin",
+        "details": "Claimed draft session from superadmin"
+      },
+      {
+        "timestamp": "2025-12-04T13:40:15.320293",
+        "action": "drafted",
+        "user": "superadmin",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-12-04T15:01:47.985992",
+        "action": "claimed",
+        "user": "superadmin",
+        "details": "Claimed draft session from superadmin"
+      },
+      {
+        "timestamp": "2025-12-04T15:04:10.505141",
+        "action": "drafted",
+        "user": "superadmin",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-12-04T15:04:20.894321",
+        "action": "claimed",
+        "user": "superadmin",
+        "details": "Claimed draft session from superadmin"
+      },
+      {
+        "timestamp": "2025-12-04T15:05:43.514990",
+        "action": "drafted",
+        "user": "superadmin",
+        "details": "Released session as draft"
+      },
+      {
+        "timestamp": "2025-12-04T15:05:53.285975",
+        "action": "claimed",
+        "user": "superadmin",
+        "details": "Claimed draft session from superadmin"
+      },
+      {
+        "timestamp": "2025-12-04T15:07:39.994637",
+        "action": "drafted",
+        "user": "superadmin",
+        "details": "Released session as draft"
+      }
+    ],
+    "archived_at": "2025-12-05T12:03:37.283431"
+  },
+  "18494f47-5046-43a2-be70-154abe0512e5": {
+    "session_id": "18494f47-5046-43a2-be70-154abe0512e5",
+    "invoice_id": "1003209239",
+    "order_number": "1045325789",
+    "session_type": "pick",
+    "started_at": "2025-12-04T13:26:33.646360",
+    "completed_at": null,
+    "items_expected": [
+      {
+        "sku": "DS003",
+        "name": "Desirial Plus (2 x 2ml)",
+        "qty_expected": 1.0,
+        "price": 233.0
+      }
+    ],
+    "items_scanned": [],
+    "status": "draft",
+    "user_id": null,
+    "created_by": "superadmin",
+    "last_modified_by": "superadmin",
+    "last_modified_at": "2025-12-04T13:26:39.671710",
+    "audit_logs": [
+      {
+        "timestamp": "2025-12-04T13:26:33.646419",
+        "action": "started",
+        "user": "superadmin",
+        "details": "Started pick session"
+      },
+      {
+        "timestamp": "2025-12-04T13:26:39.671725",
+        "action": "drafted",
+        "user": "superadmin",
+        "details": "Released session as draft"
+      }
+    ],
+    "archived_at": "2025-12-05T12:03:37.283441"
+  }
+}

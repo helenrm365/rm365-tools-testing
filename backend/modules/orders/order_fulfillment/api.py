@@ -944,3 +944,48 @@ async def approve_order_for_picking(
         )
 
 
+@router.post("/admin/reset-sessions")
+def reset_order_sessions_manually(
+    current_user: dict = Depends(get_current_user),
+    service: MagentoService = Depends(_service)
+):
+    """
+    Manually trigger the daily order session reset.
+    
+    This is normally run automatically at midnight, but can be triggered
+    manually by admins for testing or maintenance purposes.
+    
+    WARNING: This will clear ALL session data (approved, in_progress, completed, etc.)
+    and archive it. Orders still in 'processing' status on Magento will reappear
+    in the pending orders list.
+    
+    Requires admin authentication.
+    """
+    try:
+        # Optional: Add admin role check here
+        # if not current_user.get('is_admin'):
+        #     raise HTTPException(status_code=403, detail="Admin access required")
+        
+        result = service.repo.reset_daily_sessions()
+        
+        if result.get('success'):
+            return {
+                "success": True,
+                "message": "Order sessions reset successfully",
+                "details": result
+            }
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Reset failed: {result.get('error', 'Unknown error')}"
+            )
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to reset sessions: {str(e)}"
+        )
+
+

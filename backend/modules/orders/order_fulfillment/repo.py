@@ -516,4 +516,77 @@ class MagentoRepo:
         self._add_audit_log(session_id, "approved", user_id, "Approved for picking")
         self._save_sessions()
         return True
+    
+    def reset_daily_sessions(self) -> dict:
+        """
+        Reset all order sessions daily.
+        
+        This allows orders that are still in 'processing' status on Magento to 
+        reappear in the pending orders list, even if they were previously 
+        approved/in-progress/completed.
+        
+        Process:
+        1. Archive all current sessions to a history file
+        2. Clear the active sessions
+        3. Orders still in 'processing' on Magento will appear in pending list again
+        
+        Returns a summary of what was reset.
+        """
+        try:
+            # Count sessions by status before reset
+            status_counts = {}
+            for session in self._sessions.values():
+                status_counts[session.status] = status_counts.get(session.status, 0) + 1
+            
+            total_sessions = len(self._sessions)
+            
+            # Archive to history file with timestamp
+            history_file = self.data_dir / f'session_history_{datetime.now().strftime("%Y%m%d_%H%M%S")}.json'
+            
+            if self._sessions:
+                # Save current sessions to history
+                data = {}
+                for session_id, session in self._sessions.items():
+                    session_dict = session.model_dump()
+                    session_dict['started_at'] = session.started_at.isoformat()
+                    if session.completed_at:
+                        session_dict['completed_at'] = session.completed_at.isoformat()
+                    if session.last_modified_at:
+                        session_dict['last_modified_at'] = session.last_modified_at.isoformat()
+                    # Add archive timestamp
+                    session_dict['archived_at'] = datetime.now().isoformat()
+                    data[session_id] = session_dict
+                
+                with open(history_file, 'w') as f:
+                    json.dump(data, f, indent=2)
+                
+                logger.info(f"✅ Archived {total_sessions} sessions to {history_file}")
+            
+            # Clear all active sessions
+            self._sessions.clear()
+            
+            # Clear takeover requests
+            self._takeover_requests.clear()
+            
+            # Save empty state
+            self._save_sessions()
+            self._save_takeover_requests()
+            
+            logger.info(f"✅ Daily reset completed - cleared {total_sessions} sessions")
+            
+            return {
+                'success': True,
+                'total_sessions_reset': total_sessions,
+                'sessions_by_status': status_counts,
+                'archived_to': str(history_file),
+                'reset_at': datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            logger.error(f"❌ Error during daily reset: {e}", exc_info=True)
+            return {
+                'success': False,
+                'error': str(e),
+                'reset_at': datetime.now().isoformat()
+            }
 

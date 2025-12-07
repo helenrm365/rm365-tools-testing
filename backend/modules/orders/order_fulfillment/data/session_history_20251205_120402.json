@@ -1,0 +1,38 @@
+{
+  "33ace247-2564-418d-8688-37693d2cda93": {
+    "session_id": "33ace247-2564-418d-8688-37693d2cda93",
+    "invoice_id": "1003210413",
+    "order_number": "1045327853",
+    "session_type": "pick",
+    "started_at": "2025-12-05T12:03:56.502806",
+    "completed_at": null,
+    "items_expected": [
+      {
+        "sku": "AGAM001",
+        "name": "Ameela Eyes (1 x 2ml)",
+        "qty_ordered": 1.0,
+        "qty_invoiced": 1.0,
+        "qty_scanned": 0,
+        "price": 84.5,
+        "row_total": 84.5,
+        "product_id": 3722,
+        "is_complete": false
+      }
+    ],
+    "items_scanned": [],
+    "status": "approved",
+    "user_id": null,
+    "created_by": null,
+    "last_modified_by": "superadmin",
+    "last_modified_at": "2025-12-05T12:03:56.503791",
+    "audit_logs": [
+      {
+        "timestamp": "2025-12-05T12:03:56.503807",
+        "action": "approved",
+        "user": "superadmin",
+        "details": "Approved for picking"
+      }
+    ],
+    "archived_at": "2025-12-05T12:04:02.170474"
+  }
+}

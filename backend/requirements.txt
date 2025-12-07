@@ -19,3 +19,5 @@ httpx==0.27.*
 python-socketio
 redis>=4.2.0
 python-dotenv
+apscheduler
+
