@@ -123,12 +123,12 @@ function setupTestSync(testSyncBtn) {
       }
     } finally {
       testAbortController = null;
+      testSyncBtn.onclick = handleTestSync;
+      testSyncBtn.style.background = '#4CAF50';
+      testSyncBtn.innerHTML = '<i class="fas fa-vial" style="margin-right: 8px;"></i>Test Sync (10 Orders)';
+    }
+  };
+  
   testSyncBtn.addEventListener('click', handleTestSync);
   console.log('[Magento Data] Test sync button event listener attached');
-}   // Check if we're on the magento data home page
-    if (window.location.pathname.includes('/magentodata') && 
-        (window.location.pathname.endsWith('/home') || window.location.pathname === '/magentodata')) {
-      initMagentoDataHome();
-    }
-  });
 }
