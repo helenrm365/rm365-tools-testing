@@ -5,11 +5,15 @@
  * Loads the appropriate page based on the path
  */
 export async function init(path) {
+  console.log('[Magento Data Module] init() called with path:', path);
   try {
     if (path === '/magentodata' || path === '/magentodata/home') {
       // Load home page and initialize tables
+      console.log('[Magento Data Module] Loading home.js...');
       const { initMagentoDataHome } = await import('./home.js');
+      console.log('[Magento Data Module] home.js loaded, calling initMagentoDataHome()...');
       await initMagentoDataHome();
+      console.log('[Magento Data Module] initMagentoDataHome() completed');
     } else if (path === '/magentodata/uk-magento') {
       // Load UK magento page
       const { initUKMagentoData } = await import('./uk-magento.js');
