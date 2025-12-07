@@ -460,6 +460,47 @@ class MagentoDataRepo:
                     cursor.close()
                 return_products_connection(conn)
     
+    def get_all_sync_metadata(self) -> List[Dict[str, Any]]:
+        """Get sync metadata for all regions (UK, FR, NL)"""
+        conn = None
+        try:
+            conn = get_products_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                SELECT region, last_synced_order_date, last_sync_time, 
+                       total_orders_synced, total_rows_synced, last_synced_by,
+                       created_at, updated_at
+                FROM magento_sync_metadata
+                ORDER BY region
+            """)
+            
+            rows = cursor.fetchall()
+            result = []
+            
+            for row in rows:
+                result.append({
+                    'region': row[0],
+                    'last_synced_order_date': row[1].isoformat() if row[1] else None,
+                    'last_sync_time': row[2].isoformat() if row[2] else None,
+                    'total_orders_synced': row[3],
+                    'total_rows_synced': row[4],
+                    'last_synced_by': row[5],
+                    'created_at': row[6].isoformat() if row[6] else None,
+                    'updated_at': row[7].isoformat() if row[7] else None
+                })
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error getting all sync metadata: {e}")
+            return []
+        finally:
+            if conn:
+                if 'cursor' in locals() and cursor:
+                    cursor.close()
+                return_products_connection(conn)
+    
     def update_sync_metadata(
         self, 
         region: str, 

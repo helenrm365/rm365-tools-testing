@@ -903,3 +903,19 @@ class MagentoDataService:
                 "status": "error",
                 "message": f"Failed to remove customer group: {str(e)}"
             }
+    
+    def get_all_sync_metadata(self) -> Dict[str, Any]:
+        """Get sync metadata for all regions"""
+        try:
+            metadata = self.repo.get_all_sync_metadata()
+            return {
+                "status": "success",
+                "data": metadata
+            }
+        except Exception as e:
+            logger.error(f"Error getting sync metadata: {e}")
+            return {
+                "status": "error",
+                "message": f"Failed to get sync metadata: {str(e)}",
+                "data": []
+            }
