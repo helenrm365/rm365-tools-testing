@@ -10,7 +10,8 @@ export async function init(path) {
     if (path === '/magentodata' || path === '/magentodata/home') {
       // Load home page and initialize tables
       console.log('[Magento Data Module] Loading home.js...');
-      const { initMagentoDataHome } = await import('./home.js');
+      // Add timestamp to force reload of the module
+      const { initMagentoDataHome } = await import(`./home.js?t=${Date.now()}`);
       console.log('[Magento Data Module] home.js loaded, calling initMagentoDataHome()...');
       await initMagentoDataHome();
       console.log('[Magento Data Module] initMagentoDataHome() completed');

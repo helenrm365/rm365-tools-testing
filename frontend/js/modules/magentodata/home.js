@@ -7,15 +7,16 @@ import { showToast } from '../../ui/toast.js';
  */
 export async function initMagentoDataHome() {
   try {
-    console.log('[Magento Data] Initializing home page...');
+    console.warn('[Magento Data] Initializing home page (v2)...');
     
     // Wait a tick to ensure DOM is fully rendered
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise(resolve => setTimeout(resolve, 200));
     
     // Set up event listeners
     setupEventListeners();
     
     // Call the backend to initialize tables
+    console.warn('[Magento Data] Calling initializeTables()...');
     const result = await initializeTables();
     
     if (result.status === 'success') {
@@ -34,6 +35,7 @@ export async function initMagentoDataHome() {
  * Set up event listeners for the home page
  */
 function setupEventListeners() {
+  console.warn('[Magento Data] Setting up event listeners...');
   // Refresh all condensed data button
   const refreshAllBtn = document.getElementById('refreshAllCondensedBtn');
   if (refreshAllBtn) {
@@ -46,7 +48,7 @@ function setupEventListeners() {
   // Test sync button
   const testSyncBtn = document.getElementById('testSyncBtn');
   if (testSyncBtn) {
-    console.log('[Magento Data] Test sync button found, setting up...');
+    console.warn('[Magento Data] Test sync button found immediately, setting up...');
     setupTestSync(testSyncBtn);
   } else {
     console.warn('[Magento Data] Test sync button not found in DOM. Retrying...');
@@ -56,7 +58,7 @@ function setupEventListeners() {
       attempts++;
       const btn = document.getElementById('testSyncBtn');
       if (btn) {
-        console.log('[Magento Data] Test sync button found on retry, setting up...');
+        console.warn('[Magento Data] Test sync button found on retry ' + attempts + ', setting up...');
         setupTestSync(btn);
         clearInterval(interval);
       } else if (attempts >= 10) {
