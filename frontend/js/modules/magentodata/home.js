@@ -46,14 +46,15 @@ function setupEventListeners() {
     console.warn('[Magento Data] Refresh all button not found');
   }
   
-  // Test sync button
+  // Test sync button - rely on delegated handler to survive DOM mutations
   const testSyncBtn = document.getElementById('testSyncBtn');
   if (testSyncBtn) {
-    testSyncBtn.addEventListener('click', handleTestSync);
-    console.warn('[Magento Data] Test sync button event listener attached');
+    console.warn('[Magento Data] Test sync button found, delegated handler will manage clicks');
   } else {
-    console.warn('[Magento Data] Test sync button not found');
+    console.warn('[Magento Data] Test sync button not found during setup');
   }
+
+  ensureDelegatedTestSyncHandler();
 }
 
 /**
@@ -80,13 +81,40 @@ async function handleRefreshAllCondensedData() {
 // State for test sync
 let testSyncRunning = false;
 let testSyncController = null;
+let delegatedHandlerAttached = false;
+
+function ensureDelegatedTestSyncHandler() {
+  if (delegatedHandlerAttached) {
+    return;
+  }
+
+  const handler = (event) => {
+    const button = event.target?.closest?.('#testSyncBtn');
+    if (!button) {
+      return;
+    }
+    handleTestSync(event, button);
+  };
+
+  document.addEventListener('click', handler);
+  delegatedHandlerAttached = true;
+  console.warn('[Magento Data] Delegated test sync handler attached to document');
+}
 
 /**
  * Handle test sync button click
  */
-async function handleTestSync(e) {
-  e.preventDefault();
-  const btn = e.currentTarget;
+async function handleTestSync(e, providedBtn = null) {
+  if (e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
+  const btn = providedBtn || e?.target?.closest('#testSyncBtn');
+  if (!btn) {
+    console.warn('[Magento Data] Test sync click detected but no button element was resolved');
+    return;
+  }
   
   // If currently running, cancel instead
   if (testSyncRunning) {
@@ -104,7 +132,6 @@ async function handleTestSync(e) {
     testSyncController = new AbortController();
     
     // Change to cancel mode
-    const originalContent = btn.innerHTML;
     btn.innerHTML = '<i class="fas fa-times"></i> Cancel Test';
     btn.classList.remove('primary-btn');
     btn.classList.add('danger-btn'); // Use danger style for cancel
