@@ -36,6 +36,7 @@ export async function initMagentoDataHome() {
  */
 function setupEventListeners() {
   console.warn('[Magento Data] Setting up event listeners...');
+  
   // Refresh all condensed data button
   const refreshAllBtn = document.getElementById('refreshAllCondensedBtn');
   if (refreshAllBtn) {
@@ -48,24 +49,10 @@ function setupEventListeners() {
   // Test sync button
   const testSyncBtn = document.getElementById('testSyncBtn');
   if (testSyncBtn) {
-    console.warn('[Magento Data] Test sync button found immediately, setting up...');
-    setupTestSync(testSyncBtn);
+    testSyncBtn.addEventListener('click', handleTestSync);
+    console.warn('[Magento Data] Test sync button event listener attached');
   } else {
-    console.warn('[Magento Data] Test sync button not found in DOM. Retrying...');
-    // Retry finding the button for a few seconds
-    let attempts = 0;
-    const interval = setInterval(() => {
-      attempts++;
-      const btn = document.getElementById('testSyncBtn');
-      if (btn) {
-        console.warn('[Magento Data] Test sync button found on retry ' + attempts + ', setting up...');
-        setupTestSync(btn);
-        clearInterval(interval);
-      } else if (attempts >= 10) {
-        console.error('[Magento Data] Test sync button could not be found after 5 seconds');
-        clearInterval(interval);
-      }
-    }, 500);
+    console.warn('[Magento Data] Test sync button not found');
   }
 }
 
@@ -90,77 +77,68 @@ async function handleRefreshAllCondensedData() {
   }
 }
 
-/**
- * Set up test sync functionality
- */
-function setupTestSync(testSyncBtn) {
-  // Prevent duplicate listeners
-  if (testSyncBtn.dataset.listenerAttached) {
-    console.log('[Magento Data] Test sync button listener already attached');
-    return;
-  }
+// State for test sync
+let testSyncRunning = false;
+let testSyncController = null;
 
-  let testAbortController = null;
-  let isRunning = false;
+/**
+ * Handle test sync button click
+ */
+async function handleTestSync(e) {
+  e.preventDefault();
+  const btn = e.currentTarget;
   
-  const handleCancel = () => {
-    if (testAbortController) {
-      testAbortController.abort();
+  // If currently running, cancel instead
+  if (testSyncRunning) {
+    if (testSyncController) {
+      testSyncController.abort();
       showToast('Cancelling test sync...', 'info');
     }
-  };
+    return;
+  }
   
-  const handleClick = async (e) => {
-    if (e) e.preventDefault();
-    
-    // If currently running, cancel instead
-    if (isRunning) {
-      handleCancel();
-      return;
-    }
-    
-    console.log('[Magento Data] Test sync button clicked!');
-    try {
-      isRunning = true;
-      testAbortController = new AbortController();
-      
-      // Change to cancel mode
-      testSyncBtn.innerHTML = '<i class="fas fa-times" style="margin-right: 8px;"></i>Cancel Test';
-      testSyncBtn.style.background = '#f44336';
-      
-      showToast('Starting test sync (10 orders)...', 'info');
-      
-      console.log('[Magento Data] Calling testSyncMagentoData API...');
-      // Call test sync API with proper authentication via http service
-      const result = await testSyncMagentoData(testAbortController.signal);
-      console.log('[Magento Data] Test sync result:', result);
-      
-      if (result.status === 'success') {
-        showToast(
-          `✅ Test sync complete! Synced ${result.rows_synced} product rows from ${result.orders_processed} orders to test_magento_data table`,
-          'success',
-          5000
-        );
-      } else {
-        showToast('❌ Test sync failed: ' + result.message, 'error');
-      }
-    } catch (error) {
-      if (error.name === 'AbortError') {
-        console.log('[Test Sync] Cancelled by user');
-        showToast('⚠️ Test sync cancelled', 'warning');
-      } else {
-        console.error('[Test Sync] Error:', error);
-        showToast('❌ Test sync error: ' + error.message, 'error');
-      }
-    } finally {
-      isRunning = false;
-      testAbortController = null;
-      testSyncBtn.style.background = '#4CAF50';
-      testSyncBtn.innerHTML = '<i class="fas fa-vial" style="margin-right: 8px;"></i>Test Sync (10 Orders)';
-    }
-  };
+  console.log('[Magento Data] Test sync button clicked!');
   
-  testSyncBtn.addEventListener('click', handleClick);
-  testSyncBtn.dataset.listenerAttached = 'true';
-  console.log('[Magento Data] Test sync button event listener attached');
+  try {
+    testSyncRunning = true;
+    testSyncController = new AbortController();
+    
+    // Change to cancel mode
+    const originalContent = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-times"></i> Cancel Test';
+    btn.classList.remove('primary-btn');
+    btn.classList.add('danger-btn'); // Use danger style for cancel
+    
+    showToast('Starting test sync (10 orders)...', 'info');
+    
+    console.log('[Magento Data] Calling testSyncMagentoData API...');
+    const result = await testSyncMagentoData(testSyncController.signal);
+    console.log('[Magento Data] Test sync result:', result);
+    
+    if (result.status === 'success') {
+      showToast(
+        `✅ Test sync complete! Synced ${result.rows_synced} product rows from ${result.orders_processed} orders to test_magento_data table`,
+        'success',
+        5000
+      );
+    } else {
+      showToast('❌ Test sync failed: ' + result.message, 'error');
+    }
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      console.log('[Test Sync] Cancelled by user');
+      showToast('⚠️ Test sync cancelled', 'warning');
+    } else {
+      console.error('[Test Sync] Error:', error);
+      showToast('❌ Test sync error: ' + error.message, 'error');
+    }
+  } finally {
+    testSyncRunning = false;
+    testSyncController = null;
+    
+    // Reset button state
+    btn.innerHTML = '<i class="fas fa-vial"></i> Test Sync (10 Orders)';
+    btn.classList.remove('danger-btn');
+    btn.classList.add('primary-btn');
+  }
 }
