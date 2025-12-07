@@ -10,7 +10,7 @@ export async function initMagentoDataHome() {
     console.log('[Magento Data] Initializing home page...');
     
     // Wait a tick to ensure DOM is fully rendered
-    await new Promise(resolve => setTimeout(resolve, 10));
+    await new Promise(resolve => setTimeout(resolve, 100));
     
     // Set up event listeners
     setupEventListeners();
@@ -49,7 +49,21 @@ function setupEventListeners() {
     console.log('[Magento Data] Test sync button found, setting up...');
     setupTestSync(testSyncBtn);
   } else {
-    console.warn('[Magento Data] Test sync button not found in DOM');
+    console.warn('[Magento Data] Test sync button not found in DOM. Retrying...');
+    // Retry finding the button for a few seconds
+    let attempts = 0;
+    const interval = setInterval(() => {
+      attempts++;
+      const btn = document.getElementById('testSyncBtn');
+      if (btn) {
+        console.log('[Magento Data] Test sync button found on retry, setting up...');
+        setupTestSync(btn);
+        clearInterval(interval);
+      } else if (attempts >= 10) {
+        console.error('[Magento Data] Test sync button could not be found after 5 seconds');
+        clearInterval(interval);
+      }
+    }, 500);
   }
 }
 
@@ -78,6 +92,12 @@ async function handleRefreshAllCondensedData() {
  * Set up test sync functionality
  */
 function setupTestSync(testSyncBtn) {
+  // Prevent duplicate listeners
+  if (testSyncBtn.dataset.listenerAttached) {
+    console.log('[Magento Data] Test sync button listener already attached');
+    return;
+  }
+
   let testAbortController = null;
   let isRunning = false;
   
@@ -88,7 +108,9 @@ function setupTestSync(testSyncBtn) {
     }
   };
   
-  const handleClick = async () => {
+  const handleClick = async (e) => {
+    if (e) e.preventDefault();
+    
     // If currently running, cancel instead
     if (isRunning) {
       handleCancel();
@@ -137,5 +159,6 @@ function setupTestSync(testSyncBtn) {
   };
   
   testSyncBtn.addEventListener('click', handleClick);
+  testSyncBtn.dataset.listenerAttached = 'true';
   console.log('[Magento Data] Test sync button event listener attached');
 }
