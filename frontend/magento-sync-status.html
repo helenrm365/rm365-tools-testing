@@ -260,13 +260,10 @@
         const API_BASE = window.location.origin;
         let authToken = null;
 
-        // Check authentication
+        // Check authentication (optional - will try to load data regardless)
         async function checkAuth() {
             authToken = localStorage.getItem('authToken');
-            if (!authToken) {
-                window.location.href = '/login.html';
-                return false;
-            }
+            // Don't redirect - just note if we have a token or not
             return true;
         }
 
@@ -286,18 +283,34 @@
             try {
                 console.log('Fetching sync metadata from:', `${API_BASE}/api/magentodata/sync-metadata`);
                 
+                // Build headers - include auth token if available, but don't require it
+                const headers = {};
+                if (authToken) {
+                    headers['Authorization'] = `Bearer ${authToken}`;
+                }
+                
                 const response = await fetch(`${API_BASE}/api/magentodata/sync-metadata`, {
-                    headers: {
-                        'Authorization': `Bearer ${authToken}`
-                    }
+                    headers: headers
                 });
 
                 console.log('Response status:', response.status);
 
-                if (response.status === 401) {
-                    console.warn('Unauthorized - redirecting to login');
+                // If 401 and we have a token, it's expired - try without auth
+                if (response.status === 401 && authToken) {
+                    console.warn('Token expired or invalid - trying without authentication');
                     localStorage.removeItem('authToken');
-                    window.location.href = '/login.html';
+                    authToken = null;
+                    // Retry without token
+                    const retryResponse = await fetch(`${API_BASE}/api/magentodata/sync-metadata`);
+                    const result = await retryResponse.json();
+                    console.log('Retry result:', result);
+                    
+                    if (result.status === 'success' && result.data) {
+                        displaySyncMetadata(result.data);
+                        updateLastUpdated();
+                    } else {
+                        showError(result.message || 'Failed to load sync metadata');
+                    }
                     return;
                 }
 
@@ -454,11 +467,10 @@
         // Make loadSyncMetadata available globally
         window.loadSyncMetadata = loadSyncMetadata;
 
-        // Initialize on load
+        // Initialize on load - no auth check required
         (async () => {
-            if (await checkAuth()) {
-                await loadSyncMetadata();
-            }
+            await checkAuth(); // Just sets authToken if available
+            await loadSyncMetadata();
         })();
 
         // Auto-refresh every 30 seconds
