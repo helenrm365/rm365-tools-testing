@@ -5,6 +5,11 @@ import { config } from '../../config.js';
 
 const API = '/v1/magentodata';  // http.js adds BASE which already includes /api
 
+// Test sync - syncs 10 orders to test_magento_data table
+export async function testSyncMagentoData(signal = null) {
+  return await post(`${API}/test-sync`, {}, { signal });
+}
+
 // Initialize tables
 export async function initializeTables() {
   return await http(`${API}/init`, { timeout: 120000 }); // 2 minutes for slow init
