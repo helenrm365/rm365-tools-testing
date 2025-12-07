@@ -421,11 +421,13 @@ export function setupRouter() {
   // Setup session auto-drafting on page unload/close
   setupSessionAutoDraft();
   
-  // Intercept clicks on <a data-nav href="/...">
+  // Intercept clicks on <a data-nav href="/..."> and <button data-nav data-href="/...">
   document.addEventListener('click', (e) => {
-    const a = e.target.closest('a[data-nav]');
-    if (!a) return;
-    const href = a.getAttribute('href');
+    const navElement = e.target.closest('[data-nav]');
+    if (!navElement) return;
+    
+    // Support both <a href="..."> and <button data-href="...">
+    const href = navElement.getAttribute('href') || navElement.getAttribute('data-href');
     if (href?.startsWith('/')) {
       e.preventDefault();
       navigate(href);

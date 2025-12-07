@@ -21,6 +21,8 @@ export function isAllowed(key, allowed = null) {
   if (!key.includes('.')) {
     return allowedTabs.some(t => t === section || t.startsWith(section + '.'));
   }
+  // If asked for a sub-route (has dot), also check if parent section is allowed
+  if (allowedTabs.includes(section)) return true;
   return false;
 }
 
@@ -51,6 +53,8 @@ export function getDefaultAllowedPath(allowed = null) {
   if (isAllowed('labels', allowedTabs)) return '/labels';
   // Then salesdata
   if (isAllowed('salesdata', allowedTabs)) return '/salesdata';
+  // Then magentodata
+  if (isAllowed('magentodata', allowedTabs)) return '/magentodata';
   // Then inventory
   if (isAllowed('inventory', allowedTabs)) return '/inventory';
   // Then orders
