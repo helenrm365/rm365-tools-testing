@@ -1,6 +1,6 @@
 // frontend/js/index.js
 import { setupShellUI } from './shell-ui.js';
-import { setupRouter } from './router.js?v=1.1';
+import { setupRouter } from './router.js';
 import { config } from './config.js';
 
 // Import debug utilities in development
