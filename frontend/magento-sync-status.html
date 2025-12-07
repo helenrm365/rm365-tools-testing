@@ -295,6 +295,47 @@
 
                 console.log('Response status:', response.status);
 
+                // If endpoint not found or server error, show mock data as fallback
+                if (response.status === 404 || response.status >= 500) {
+                    console.warn('API not available, showing example data');
+                    const mockData = [
+                        {
+                            region: 'uk',
+                            last_synced_order_date: new Date().toISOString(),
+                            last_sync_time: new Date().toISOString(),
+                            total_orders_synced: 0,
+                            total_rows_synced: 0,
+                            last_synced_by: 'N/A',
+                            created_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString()
+                        },
+                        {
+                            region: 'fr',
+                            last_synced_order_date: null,
+                            last_sync_time: null,
+                            total_orders_synced: 0,
+                            total_rows_synced: 0,
+                            last_synced_by: 'N/A',
+                            created_at: null,
+                            updated_at: null
+                        },
+                        {
+                            region: 'nl',
+                            last_synced_order_date: null,
+                            last_sync_time: null,
+                            total_orders_synced: 0,
+                            total_rows_synced: 0,
+                            last_synced_by: 'N/A',
+                            created_at: null,
+                            updated_at: null
+                        }
+                    ];
+                    displaySyncMetadata(mockData);
+                    updateLastUpdated();
+                    showError('⚠️ API not available - showing example data. Sync metadata will appear when the database is connected.');
+                    return;
+                }
+
                 // If 401 and we have a token, it's expired - try without auth
                 if (response.status === 401 && authToken) {
                     console.warn('Token expired or invalid - trying without authentication');
