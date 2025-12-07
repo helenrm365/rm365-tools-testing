@@ -88,8 +88,10 @@ class MagentoDataService:
         progress_callback: callable = None
     ) -> Dict[str, Any]:
         """
-        Test sync: Sync a small number of orders to test_magento_data table.
-        Now uses metadata tracking for resumable syncs.
+        Test sync: Sync the latest 10 orders to test_magento_data table.
+        First sync gets the 10 most recent orders.
+        Subsequent syncs get the next 10 orders before the oldest synced order.
+        This allows incremental testing with different batches of orders.
         
         Args:
             max_orders: Number of orders to sync (default 10)
@@ -103,37 +105,35 @@ class MagentoDataService:
             # Initialize test table if it doesn't exist
             self.repo.init_test_table()
             
-            # Get last sync metadata for resumable test syncs
-            start_date = None
+            # Get last sync metadata for test syncs
+            # For test syncs, we use end_date to get orders BEFORE the oldest synced order
+            end_date = None
             metadata = self.repo.get_sync_metadata('test')
             if metadata and metadata.get('last_synced_order_date'):
-                # Convert timestamp to string format for Magento API
+                # The last_synced_order_date represents the OLDEST order from the previous sync
+                # We want orders created BEFORE this date
                 last_date = metadata['last_synced_order_date']
-                start_date = last_date.strftime('%Y-%m-%d %H:%M:%S')
-                logger.info(f"Resuming test sync from last synced order: {start_date}")
+                end_date = last_date.strftime('%Y-%m-%d %H:%M:%S')
+                logger.info(f"Getting next 10 orders before: {end_date}")
                 if progress_callback:
-                    progress_callback(f"Resuming test from {start_date}...")
-            
-            # Verify last order was completely saved before continuing
-            if start_date:
-                completeness_check = self.repo.verify_order_completeness('test_magento_data', start_date, region='test')
-                if not completeness_check['is_complete']:
-                    logger.warning(f"Last order incomplete: {completeness_check['message']}")
-                    # Re-sync the incomplete order by using the date before it
-                    if completeness_check.get('suggested_start_date'):
-                        start_date = completeness_check['suggested_start_date']
-                        logger.info(f"Re-syncing from {start_date} to complete partial order")
+                    progress_callback(f"Getting next 10 orders before {end_date}...")
+            else:
+                logger.info(f"First test sync - getting latest {max_orders} orders")
+                if progress_callback:
+                    progress_callback(f"Getting latest {max_orders} orders...")
             
             # Initialize Magento client (uses UK credentials)
             logger.info(f"Initializing Magento client for test sync")
             client = MagentoDataClient(region="uk")
             
             # Fetch product-level rows from Magento
+            # Use DESC order to get latest first, with end_date to get orders before last batch
             logger.info(f"Fetching {max_orders} orders from Magento for test")
             product_rows = client.fetch_orders_product_breakdown(
-                start_date=start_date,
+                end_date=end_date,
                 max_orders=max_orders,
-                progress_callback=progress_callback
+                progress_callback=progress_callback,
+                sort_desc=True  # Get latest orders first
             )
             
             if not product_rows:
@@ -147,7 +147,8 @@ class MagentoDataService:
             # Count unique orders
             unique_orders = len(set(row['order_number'] for row in product_rows))
             
-            # Find the most recent order date for metadata tracking
+            # Find the OLDEST order date for metadata tracking (for test syncs)
+            # This allows us to get orders before this date in the next sync
             # Filter out any rows without created_at to avoid errors
             order_dates = [row['created_at'] for row in product_rows if row.get('created_at')]
             if not order_dates:
@@ -158,7 +159,8 @@ class MagentoDataService:
                     "rows_synced": 0,
                     "orders_processed": 0
                 }
-            most_recent_order_date = max(order_dates)
+            # For test syncs, track the OLDEST order date so next sync gets orders before this
+            oldest_order_date = min(order_dates)
             
             # Import the product rows into the test table atomically with metadata
             logger.info(f"Importing {len(product_rows)} product rows from {unique_orders} orders to test table")
@@ -167,7 +169,7 @@ class MagentoDataService:
                     table_name='test_magento_data',
                     product_rows=product_rows,
                     region='test',
-                    last_order_date=most_recent_order_date,
+                    last_order_date=oldest_order_date,  # Track oldest for next batch
                     orders_count=unique_orders,
                     username=username
                 )

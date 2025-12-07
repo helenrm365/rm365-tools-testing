@@ -58,10 +58,16 @@ function setupBeforeUnloadHandler() {
  * Set up event listeners for the page
  */
 function setupEventListeners() {
-  // Sync button
+  // Sync button - unified handler that checks state
   const syncDataBtn = document.getElementById('syncDataBtn');
   if (syncDataBtn) {
-    syncDataBtn.addEventListener('click', handleSync);
+    syncDataBtn.addEventListener('click', () => {
+      if (isSyncing) {
+        handleCancelSync();
+      } else {
+        handleSync();
+      }
+    });
   }
   
   // View toggle buttons
@@ -552,7 +558,8 @@ function displayMagentoData(data) {
       <th><i class="fas fa-barcode"></i> Product SKU</th>
       <th><i class="fas fa-box"></i> Product Name</th>
       <th><i class="fas fa-sort-numeric-up"></i> Product Qty</th>
-      <th><i class="fas fa-pound-sign"></i> Product Price</th>
+      <th><i class="fas fa-pound-sign"></i> Original Price</th>
+      <th><i class="fas fa-tag"></i> Special Price</th>
       <th><i class="fas fa-info-circle"></i> Status</th>
       <th><i class="fas fa-money-bill"></i> Currency</th>
       <th><i class="fas fa-calculator"></i> Grand Total</th>
@@ -565,7 +572,7 @@ function displayMagentoData(data) {
   }
   
   if (!data || data.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="14" style="text-align: center; padding: 2rem;">No data found</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="15" style="text-align: center; padding: 2rem;">No data found</td></tr>';
     return;
   }
   
@@ -576,7 +583,8 @@ function displayMagentoData(data) {
       <td>${escapeHtml(row.sku || '')}</td>
       <td>${escapeHtml(row.name || '')}</td>
       <td>${row.qty || 0}</td>
-      <td>${getCurrencySymbol(row.currency)}${parseFloat(row.price || 0).toFixed(2)}</td>
+      <td>${row.original_price ? getCurrencySymbol(row.currency) + parseFloat(row.original_price).toFixed(2) : ''}</td>
+      <td>${row.special_price ? getCurrencySymbol(row.currency) + parseFloat(row.special_price).toFixed(2) : ''}</td>
       <td>${escapeHtml(row.status || '')}</td>
       <td>${escapeHtml(row.currency || '')}</td>
       <td>${row.grand_total ? getCurrencySymbol(row.currency) + parseFloat(row.grand_total).toFixed(2) : ''}</td>
@@ -640,7 +648,6 @@ async function handleSync() {
   
   try {
     // Change button to cancel mode
-    syncBtn.onclick = handleCancelSync;
     syncBtn.classList.add('syncing');
     syncBtn.innerHTML = '<i class="fas fa-times"></i> Cancel Sync';
     syncBtn.style.background = '#f44336';
@@ -684,7 +691,6 @@ async function handleSync() {
     syncAbortController = null;
     if (syncBtn) {
       syncBtn.classList.remove('syncing');
-      syncBtn.onclick = handleSync;
       syncBtn.style.background = '';
       syncBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Sync from Magento';
     }

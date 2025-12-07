@@ -67,7 +67,7 @@ def get_uk_magento_data(
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0),
     search: str = Query(""),
-    fields: str = Query(None, description="Comma-separated list of fields to return (e.g., 'sku,name,qty,price')"),
+    fields: str = Query(None, description="Comma-separated list of fields to return (e.g., 'sku,name,qty,original_price,special_price')"),
     user=Depends(get_current_user)
 ):
     """Get UK magento data with pagination, search, and optional field selection"""

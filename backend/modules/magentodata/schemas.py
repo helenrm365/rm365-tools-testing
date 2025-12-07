@@ -11,7 +11,8 @@ class MagentoDataRow(BaseModel):
     sku: str
     name: str
     qty: int
-    price: float
+    original_price: Optional[float] = None
+    special_price: Optional[float] = None
     status: str
     currency: Optional[str] = None
     grand_total: Optional[float] = None

@@ -303,7 +303,7 @@ function renderTable(data) {
   if (!data || data.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="14" class="empty-state">
+        <td colspan="15" class="empty-state">
           <div class="empty-icon"><i class="fas fa-vial"></i></div>
           <div class="empty-message">No test data available</div>
           <div class="empty-submessage">Click "Test Sync" to fetch 10 sample orders from Magento</div>
@@ -321,7 +321,8 @@ function renderTable(data) {
       <td>${escapeHtml(row.sku || '')}</td>
       <td>${escapeHtml(row.name || '')}</td>
       <td>${row.qty || 0}</td>
-      <td>${formatCurrency(row.price, row.currency)}</td>
+      <td>${formatCurrency(row.original_price, row.currency)}</td>
+      <td>${formatCurrency(row.special_price, row.currency)}</td>
       <td>${escapeHtml(row.status || '')}</td>
       <td>${escapeHtml(row.currency || '')}</td>
       <td>${formatCurrency(row.grand_total, row.currency)}</td>

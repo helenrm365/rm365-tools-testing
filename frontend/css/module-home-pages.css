@@ -118,6 +118,8 @@ html.dark-mode .hero-divider {
   justify-content: space-between;
   min-height: 0;
   min-width: 0;
+  text-decoration: none;
+  color: inherit;
 }
 
 .module-feature-card::before {

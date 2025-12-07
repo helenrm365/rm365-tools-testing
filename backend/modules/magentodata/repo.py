@@ -219,7 +219,8 @@ class MagentoDataRepo:
                             sku VARCHAR(255) NOT NULL,
                             name TEXT NOT NULL,
                             qty INTEGER NOT NULL,
-                            price DECIMAL(10, 2) NOT NULL,
+                            original_price DECIMAL(10, 2),
+                            special_price DECIMAL(10, 2),
                             status VARCHAR(100) NOT NULL,
                             currency VARCHAR(10),
                             grand_total DECIMAL(10, 2),
@@ -349,7 +350,8 @@ class MagentoDataRepo:
                         sku VARCHAR(255) NOT NULL,
                         name TEXT NOT NULL,
                         qty INTEGER NOT NULL,
-                        price DECIMAL(10, 2) NOT NULL,
+                        original_price DECIMAL(10, 2),
+                        special_price DECIMAL(10, 2),
                         status VARCHAR(100) NOT NULL,
                         currency VARCHAR(10),
                         grand_total DECIMAL(10, 2),
@@ -729,7 +731,7 @@ class MagentoDataRepo:
             raise ValueError(f"Invalid table name: {table_name}")
         
         # Define all available columns
-        all_columns = ['id', 'order_number', 'created_at', 'sku', 'name', 'qty', 'price', 'status', 
+        all_columns = ['id', 'order_number', 'created_at', 'sku', 'name', 'qty', 'original_price', 'special_price', 'status', 
                       'currency', 'grand_total', 'customer_email', 'customer_full_name', 
                       'billing_address', 'shipping_address', 'customer_group_code',
                       'imported_at', 'updated_at']
@@ -866,18 +868,19 @@ class MagentoDataRepo:
                     # 2: sku (Product SKU)
                     # 3: name (Product Name)
                     # 4: qty (Product Qty)
-                    # 5: price (Product Price)
-                    # 6: status
-                    # 7: currency
-                    # 8: grand_total
-                    # 9: customer_email
-                    # 10: customer_full_name
-                    # 11: billing_address
-                    # 12: shipping_address
-                    # 13: customer_group_code
+                    # 5: original_price (Original Product Price)
+                    # 6: special_price (Special/Discounted Price)
+                    # 7: status
+                    # 8: currency
+                    # 9: grand_total
+                    # 10: customer_email
+                    # 11: customer_full_name
+                    # 12: billing_address
+                    # 13: shipping_address
+                    # 14: customer_group_code
                     
-                    if len(row) < 14:
-                        errors.append(f"Row {row_num}: Not enough columns (expected 14, got {len(row)})")
+                    if len(row) < 15:
+                        errors.append(f"Row {row_num}: Not enough columns (expected 15, got {len(row)})")
                         continue
                     
                     order_number = row[0].strip() if len(row) > 0 else ''
@@ -885,31 +888,43 @@ class MagentoDataRepo:
                     sku = row[2].strip() if len(row) > 2 else ''
                     name = row[3].strip() if len(row) > 3 else ''
                     qty_str = row[4].strip() if len(row) > 4 else '0'
-                    price_str = row[5].strip() if len(row) > 5 else '0'
-                    status = row[6].strip() if len(row) > 6 else ''
-                    currency = row[7].strip() if len(row) > 7 and row[7].strip() else None
-                    grand_total_str = row[8].strip() if len(row) > 8 and row[8].strip() else ''
-                    customer_email = row[9].strip() if len(row) > 9 and row[9].strip() else None
-                    customer_full_name = row[10].strip() if len(row) > 10 and row[10].strip() else None
-                    billing_address = row[11].strip() if len(row) > 11 and row[11].strip() else None
-                    shipping_address = row[12].strip() if len(row) > 12 and row[12].strip() else None
-                    customer_group_code = row[13].strip() if len(row) > 13 and row[13].strip() else None
+                    original_price_str = row[5].strip() if len(row) > 5 else ''
+                    special_price_str = row[6].strip() if len(row) > 6 else ''
+                    status = row[7].strip() if len(row) > 7 else ''
+                    currency = row[8].strip() if len(row) > 8 and row[8].strip() else None
+                    grand_total_str = row[9].strip() if len(row) > 9 and row[9].strip() else ''
+                    customer_email = row[10].strip() if len(row) > 10 and row[10].strip() else None
+                    customer_full_name = row[11].strip() if len(row) > 11 and row[11].strip() else None
+                    billing_address = row[12].strip() if len(row) > 12 and row[12].strip() else None
+                    shipping_address = row[13].strip() if len(row) > 13 and row[13].strip() else None
+                    customer_group_code = row[14].strip() if len(row) > 14 and row[14].strip() else None
                     
                     # Validate required fields
                     if not order_number or not sku:
                         errors.append(f"Row {row_num}: Missing order_number or SKU")
                         continue
                     
-                    # Convert qty and price to appropriate types
+                    # Convert qty and prices to appropriate types
                     try:
                         qty = int(float(qty_str))
                     except (ValueError, TypeError):
                         qty = 0
                     
-                    try:
-                        price = float(price_str)
-                    except (ValueError, TypeError):
-                        price = 0.0
+                    # Convert original_price - allow it to be None if empty
+                    original_price = None
+                    if original_price_str:
+                        try:
+                            original_price = float(original_price_str)
+                        except (ValueError, TypeError):
+                            pass
+                    
+                    # Convert special_price - allow it to be None if empty
+                    special_price = None
+                    if special_price_str:
+                        try:
+                            special_price = float(special_price_str)
+                        except (ValueError, TypeError):
+                            pass
                     
                     # Convert grand_total - allow it to be None if empty
                     grand_total = None
@@ -923,14 +938,14 @@ class MagentoDataRepo:
                     # Insert into database
                     insert_query = f"""
                         INSERT INTO {table_name} 
-                        (order_number, created_at, sku, name, qty, price, status, currency, 
+                        (order_number, created_at, sku, name, qty, original_price, special_price, status, currency, 
                          grand_total, customer_email, customer_full_name, billing_address, 
                          shipping_address, customer_group_code, imported_at, updated_at)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """
                     now = datetime.now(timezone.utc)
                     cursor.execute(insert_query, (
-                        order_number, created_at, sku, name, qty, price, status, currency, 
+                        order_number, created_at, sku, name, qty, original_price, special_price, status, currency, 
                         grand_total, customer_email, customer_full_name, billing_address, 
                         shipping_address, customer_group_code, now, now
                     ))
@@ -1019,7 +1034,8 @@ class MagentoDataRepo:
                     sku = row.get('sku', '').strip()
                     name = row.get('name', '').strip()
                     qty = int(row.get('qty', 0))
-                    price = float(row.get('price', 0))
+                    original_price = row.get('original_price')
+                    special_price = row.get('special_price')
                     status = row.get('status', '').strip()
                     currency = row.get('currency')
                     grand_total = row.get('grand_total')
@@ -1037,15 +1053,15 @@ class MagentoDataRepo:
                     # Insert into database with ON CONFLICT DO NOTHING to skip duplicates
                     insert_query = f"""
                         INSERT INTO {table_name} 
-                        (order_number, created_at, sku, name, qty, price, status, currency, 
+                        (order_number, created_at, sku, name, qty, original_price, special_price, status, currency, 
                          grand_total, customer_email, customer_full_name, billing_address, 
                          shipping_address, customer_group_code, imported_at, updated_at)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         ON CONFLICT (order_number, sku) DO NOTHING
                     """
                     now = datetime.now(timezone.utc)
                     cursor.execute(insert_query, (
-                        order_number, created_at, sku, name, qty, price, status, currency, 
+                        order_number, created_at, sku, name, qty, original_price, special_price, status, currency, 
                         grand_total, customer_email, customer_full_name, billing_address, 
                         shipping_address, customer_group_code, now, now
                     ))
@@ -1159,7 +1175,8 @@ class MagentoDataRepo:
                     sku = row.get('sku', '').strip()
                     name = row.get('name', '').strip()
                     qty = int(row.get('qty', 0))
-                    price = float(row.get('price', 0))
+                    original_price = row.get('original_price')
+                    special_price = row.get('special_price')
                     status = row.get('status', '').strip()
                     currency = row.get('currency')
                     grand_total = row.get('grand_total')
@@ -1175,15 +1192,15 @@ class MagentoDataRepo:
                     
                     insert_query = f"""
                         INSERT INTO {table_name} 
-                        (order_number, created_at, sku, name, qty, price, status, currency, 
+                        (order_number, created_at, sku, name, qty, original_price, special_price, status, currency, 
                          grand_total, customer_email, customer_full_name, billing_address, 
                          shipping_address, customer_group_code, imported_at, updated_at)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         ON CONFLICT (order_number, sku) DO NOTHING
                     """
                     now = datetime.now(timezone.utc)
                     cursor.execute(insert_query, (
-                        order_number, created_at, sku, name, qty, price, status, currency, 
+                        order_number, created_at, sku, name, qty, original_price, special_price, status, currency, 
                         grand_total, customer_email, customer_full_name, billing_address, 
                         shipping_address, customer_group_code, now, now
                     ))

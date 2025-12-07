@@ -13,6 +13,14 @@ from core.config import settings
 
 logger = logging.getLogger(__name__)
 
+# Magento customer group ID to code mapping
+CUSTOMER_GROUP_MAP = {
+    0: "NOT LOGGED IN",
+    1: "General",
+    2: "Wholesale",
+    3: "Retailer"
+}
+
 
 class MagentoDataClient:
     """Client to interact with Magento REST API for sales data extraction"""
@@ -67,7 +75,8 @@ class MagentoDataClient:
         end_date: Optional[str] = None,
         page_size: int = 100,
         max_orders: Optional[int] = None,
-        progress_callback: Optional[callable] = None
+        progress_callback: Optional[callable] = None,
+        sort_desc: bool = False
     ) -> List[Dict[str, Any]]:
         """
         Fetch orders from Magento and break them down into product-level rows.
@@ -83,6 +92,7 @@ class MagentoDataClient:
             page_size: Number of orders to fetch per page
             max_orders: Maximum number of orders to fetch (None for all)
             progress_callback: Optional callback function to report progress
+            sort_desc: Sort by created_at DESC to get latest orders first (default False for ASC)
         
         Returns:
             List of product-level rows
@@ -93,27 +103,29 @@ class MagentoDataClient:
         
         while True:
             # Build search criteria
+            sort_direction = 'DESC' if sort_desc else 'ASC'
             params = {
                 'searchCriteria[pageSize]': str(page_size),
                 'searchCriteria[currentPage]': str(current_page),
                 'searchCriteria[sortOrders][0][field]': 'created_at',
-                'searchCriteria[sortOrders][0][direction]': 'ASC'  # Changed to ASC to get oldest first
+                'searchCriteria[sortOrders][0][direction]': sort_direction
             }
             
             filter_index = 0
             
             # Add date filters if provided
             if start_date:
-                # Use 'gt' (greater than) instead of 'gteq' to exclude already-synced orders
+                # Use 'gt' (greater than) to exclude already-synced orders
                 params[f'searchCriteria[filterGroups][{filter_index}][filters][0][field]'] = 'created_at'
                 params[f'searchCriteria[filterGroups][{filter_index}][filters][0][value]'] = start_date
                 params[f'searchCriteria[filterGroups][{filter_index}][filters][0][conditionType]'] = 'gt'
                 filter_index += 1
             
             if end_date:
+                # Use 'lt' (less than) to get orders before the specified date
                 params[f'searchCriteria[filterGroups][{filter_index}][filters][0][field]'] = 'created_at'
                 params[f'searchCriteria[filterGroups][{filter_index}][filters][0][value]'] = end_date
-                params[f'searchCriteria[filterGroups][{filter_index}][filters][0][conditionType]'] = 'lteq'
+                params[f'searchCriteria[filterGroups][{filter_index}][filters][0][conditionType]'] = 'lt'
                 filter_index += 1
             
             # Fetch orders
@@ -173,7 +185,8 @@ class MagentoDataClient:
         - sku: Product SKU
         - name: Product name
         - qty: Invoiced quantity (0 if not invoiced/cancelled)
-        - price: Unit price
+        - original_price: Original unit price
+        - special_price: Special/discounted price (if applicable)
         - status: Order status
         - currency: Order currency
         - grand_total: Order grand total
@@ -202,8 +215,14 @@ class MagentoDataClient:
         if 'extension_attributes' in order and 'customer_group_code' in order['extension_attributes']:
             customer_group_code = order['extension_attributes']['customer_group_code']
         elif 'customer_group_id' in order:
-            # Map group ID to code if needed
-            customer_group_code = str(order.get('customer_group_id', ''))
+            # Map group ID to code using standard Magento mapping
+            group_id = order.get('customer_group_id')
+            if group_id is not None:
+                try:
+                    group_id_int = int(group_id)
+                    customer_group_code = CUSTOMER_GROUP_MAP.get(group_id_int, f"Group {group_id_int}")
+                except (ValueError, TypeError):
+                    customer_group_code = str(group_id)
         
         # Billing address
         billing_address = self._format_address(order.get('billing_address'))
@@ -245,7 +264,19 @@ class MagentoDataClient:
             
             sku = item.get('sku', '')
             name = item.get('name', '')
+            
+            # Extract price information
+            original_price = float(item.get('original_price', 0)) if item.get('original_price') else None
             price = float(item.get('price', 0))
+            
+            # Determine special_price
+            # If the actual price is different from original_price, use it as special_price
+            special_price = None
+            if original_price and price < original_price:
+                special_price = price
+            elif not original_price:
+                # If no original_price, treat the current price as original
+                original_price = price
             
             # Get invoiced quantity for this SKU
             # If order is cancelled or not invoiced, qty will be 0
@@ -259,7 +290,8 @@ class MagentoDataClient:
                     'sku': sku,
                     'name': name,
                     'qty': int(qty_invoiced),  # invoiced quantity
-                    'price': price,
+                    'original_price': original_price,
+                    'special_price': special_price,
                     'status': status,
                     'currency': currency,
                     'grand_total': grand_total,
