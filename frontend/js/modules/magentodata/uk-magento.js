@@ -634,6 +634,7 @@ function displayCondensedData(data) {
 
 /**
  * Handle Magento data sync with progress tracking
+ * Automatically restarts sync when complete to continuously sync new orders
  */
 async function handleSync() {
   const syncBtn = document.getElementById('syncDataBtn');
@@ -672,6 +673,21 @@ async function handleSync() {
       // Reload the data
       currentPage = 0;
       await loadMagentoData();
+      
+      // Auto-restart sync to continue syncing new orders
+      // Only restart if not cancelled and still on this page
+      if (isSyncing && syncAbortController && !syncAbortController.signal.aborted) {
+        console.log('[UK Magento] Sync batch complete. Checking for more orders...');
+        showToast('✅ Batch complete. Checking for new orders...', 'info', 3000);
+        // Small delay before restarting
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Check again if still syncing (user might have cancelled during delay)
+        if (isSyncing && syncAbortController && !syncAbortController.signal.aborted) {
+          // Recursively call handleSync to continue
+          await handleSync();
+        }
+      }
     } else if (result.status === 'cancelled') {
       showToast('⚠️ Sync cancelled. Progress has been saved - next sync will resume from where it left off.', 'warning', 5000);
     } else if (result.status === 'error') {
@@ -700,13 +716,16 @@ async function handleSync() {
       }
     }
   } finally {
-    // Restore button to sync mode
-    isSyncing = false;
-    syncAbortController = null;
-    if (syncBtn) {
-      syncBtn.classList.remove('syncing');
-      syncBtn.style.background = '';
-      syncBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Sync from Magento';
+    // Only restore button if we're not auto-restarting
+    if (!isSyncing || (syncAbortController && syncAbortController.signal.aborted)) {
+      // Restore button to sync mode
+      isSyncing = false;
+      syncAbortController = null;
+      if (syncBtn) {
+        syncBtn.classList.remove('syncing');
+        syncBtn.style.background = '';
+        syncBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Sync from Magento';
+      }
     }
   }
 }
