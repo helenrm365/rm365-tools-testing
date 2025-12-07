@@ -79,6 +79,7 @@ async function handleRefreshAllCondensedData() {
  */
 function setupTestSync(testSyncBtn) {
   let testAbortController = null;
+  let isRunning = false;
   
   const handleCancel = () => {
     if (testAbortController) {
@@ -87,13 +88,19 @@ function setupTestSync(testSyncBtn) {
     }
   };
   
-  const handleTestSync = async () => {
+  const handleClick = async () => {
+    // If currently running, cancel instead
+    if (isRunning) {
+      handleCancel();
+      return;
+    }
+    
     console.log('[Magento Data] Test sync button clicked!');
     try {
+      isRunning = true;
       testAbortController = new AbortController();
       
       // Change to cancel mode
-      testSyncBtn.onclick = handleCancel;
       testSyncBtn.innerHTML = '<i class="fas fa-times" style="margin-right: 8px;"></i>Cancel Test';
       testSyncBtn.style.background = '#f44336';
       
@@ -122,13 +129,13 @@ function setupTestSync(testSyncBtn) {
         showToast('❌ Test sync error: ' + error.message, 'error');
       }
     } finally {
+      isRunning = false;
       testAbortController = null;
-      testSyncBtn.onclick = handleTestSync;
       testSyncBtn.style.background = '#4CAF50';
       testSyncBtn.innerHTML = '<i class="fas fa-vial" style="margin-right: 8px;"></i>Test Sync (10 Orders)';
     }
   };
   
-  testSyncBtn.addEventListener('click', handleTestSync);
+  testSyncBtn.addEventListener('click', handleClick);
   console.log('[Magento Data] Test sync button event listener attached');
 }
