@@ -376,6 +376,7 @@ class MagentoDataClient:
         total_orders_processed = 0
         current_page = 1
         was_cancelled = False
+        error_occurred = None  # Track if an error occurred and what it was
         
         while True:
             # Check if cancelled
@@ -467,7 +468,8 @@ class MagentoDataClient:
                     except Exception as e:
                         logger.error(f"Failed to import batch atomically: {e}")
                         # If atomic import fails, the entire batch is rolled back
-                        # Break the loop and return partial progress - next sync will retry this batch
+                        # Track the error and break - next sync will retry this batch
+                        error_occurred = f"Database error: {str(e)}"
                         break
                 elif batch_order_dates and not batch_product_rows:
                     # No products but we still processed orders (e.g., all cancelled)
@@ -487,7 +489,9 @@ class MagentoDataClient:
                         # Continue anyway - this is not critical
                 elif batch_product_rows and not batch_order_dates:
                     # This shouldn't happen - we have products but no order dates
-                    logger.error(f"Batch has {len(batch_product_rows)} products but no order dates - skipping batch")
+                    error_msg = f"Batch has {len(batch_product_rows)} products but no order dates - skipping batch"
+                    logger.error(error_msg)
+                    error_occurred = error_msg
                     break
                 
                 # Check if we should stop
@@ -507,7 +511,9 @@ class MagentoDataClient:
                 current_page += 1
                 
             except Exception as e:
-                logger.error(f"Error fetching orders on page {current_page}: {e}")
+                error_msg = f"Error fetching orders on page {current_page}: {str(e)}"
+                logger.error(error_msg)
+                error_occurred = error_msg
                 break
         
         logger.info(f"Batch sync complete: {total_rows_imported} rows from {total_orders_processed} orders")
@@ -515,5 +521,6 @@ class MagentoDataClient:
         return {
             'rows_imported': total_rows_imported,
             'orders_processed': total_orders_processed,
-            'was_cancelled': was_cancelled
+            'was_cancelled': was_cancelled,
+            'error': error_occurred
         }

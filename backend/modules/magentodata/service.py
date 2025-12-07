@@ -381,10 +381,30 @@ class MagentoDataService:
             if batch_result['was_cancelled']:
                 return {
                     "status": "cancelled",
-                    "message": f"Sync cancelled after processing {batch_result['orders_processed']} orders",
+                    "message": f"Sync cancelled after processing {batch_result['orders_processed']} orders. Progress has been saved.",
                     "rows_synced": batch_result['rows_imported'],
                     "orders_processed": batch_result['orders_processed']
                 }
+            
+            # Check if an error occurred during sync
+            if batch_result.get('error'):
+                error_msg = batch_result['error']
+                if batch_result['orders_processed'] > 0:
+                    # Partial progress was made before error
+                    return {
+                        "status": "error",
+                        "message": f"Sync stopped due to error after {batch_result['orders_processed']} orders: {error_msg}. Progress has been saved - next sync will resume.",
+                        "rows_synced": batch_result['rows_imported'],
+                        "orders_processed": batch_result['orders_processed']
+                    }
+                else:
+                    # No progress was made
+                    return {
+                        "status": "error",
+                        "message": f"Sync failed: {error_msg}",
+                        "rows_synced": 0,
+                        "orders_processed": 0
+                    }
             
             if batch_result['orders_processed'] == 0:
                 return {

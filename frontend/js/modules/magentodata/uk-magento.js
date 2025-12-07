@@ -674,8 +674,16 @@ async function handleSync() {
       await loadMagentoData();
     } else if (result.status === 'cancelled') {
       showToast('⚠️ Sync cancelled. Progress has been saved - next sync will resume from where it left off.', 'warning', 5000);
+    } else if (result.status === 'error') {
+      // Show error with any partial progress info
+      const errorMsg = result.message || 'Sync failed';
+      if (result.orders_processed > 0) {
+        showToast(`❌ ${errorMsg} (${result.rows_synced} rows from ${result.orders_processed} orders were saved)`, 'error', 7000);
+      } else {
+        showToast(`❌ ${errorMsg}`, 'error');
+      }
     } else {
-      showToast('❌ Sync failed: ' + result.message, 'error');
+      showToast('❌ Sync failed: ' + (result.message || 'Unknown error'), 'error');
     }
   } catch (error) {
     if (error.name === 'AbortError') {
@@ -683,7 +691,13 @@ async function handleSync() {
       showToast('⚠️ Sync cancelled. Progress has been saved.', 'warning', 5000);
     } else {
       console.error('[UK Magento] Sync error:', error);
-      showToast('❌ Sync error: ' + error.message, 'error');
+      // Check if it's a network error
+      const isNetworkError = error.message.includes('timeout') || error.message.includes('fetch') || error.message.includes('network');
+      if (isNetworkError) {
+        showToast('❌ Network error during sync. Any progress made has been saved - next sync will resume.', 'error', 7000);
+      } else {
+        showToast('❌ Sync error: ' + error.message + '. Any progress made has been saved.', 'error', 7000);
+      }
     }
   } finally {
     // Restore button to sync mode
