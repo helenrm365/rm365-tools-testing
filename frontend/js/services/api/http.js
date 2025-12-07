@@ -55,6 +55,31 @@ export async function http(path, { method = 'GET', headers = {}, body, retry = 0
       try { data = text ? JSON.parse(text) : null; } catch { data = text; }
 
       if (!res.ok) {
+        // Handle token expiration (401 Unauthorized)
+        if (res.status === 401) {
+          const msg = (data && (data.detail || data.error)) || 'Unauthorized';
+          
+          // Check if it's a token expiration
+          if (msg.toLowerCase().includes('token') || msg.toLowerCase().includes('expired') || msg.toLowerCase().includes('unauthorized')) {
+            console.warn(`[HTTP] Token expired or invalid, redirecting to login...`);
+            
+            // Clear the expired token
+            sessionStorage.removeItem('access_token');
+            localStorage.removeItem('access_token');
+            
+            // Dispatch logout event for any listeners
+            window.dispatchEvent(new CustomEvent('user-logout'));
+            
+            // Redirect to login page
+            if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+              window.location.href = '/login';
+            }
+          }
+          
+          console.error(`[HTTP] ${method} ${url} failed:`, msg);
+          throw new Error(msg);
+        }
+        
         // simple retry on 5xx if requested
         if (retry > 0 && res.status >= 500) {
           return http(path, { method, headers, body, retry: retry - 1, signal });
