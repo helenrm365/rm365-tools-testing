@@ -679,9 +679,29 @@ async function handleSync() {
     return;
   }
   
-  // Create abort controller for this sync
-  syncAbortController = new AbortController();
-  isSyncing = true;
+  // If this is the very first call (no abort controller exists), initialize everything
+  if (!syncAbortController) {
+    console.log('[FR Magento] Initializing new sync session');
+    syncAbortController = new AbortController();
+    isSyncing = true;
+    
+    // Change button to cancel mode
+    syncBtn.classList.add('syncing');
+    syncBtn.innerHTML = '<i class="fas fa-times"></i> Cancel Sync';
+    syncBtn.style.background = '#f44336';
+  }
+  
+  // Early exit if sync was cancelled
+  if (!isSyncing) {
+    console.log('[FR Magento] Sync is not active, not starting');
+    return;
+  }
+  
+  // Check if abort signal is active (user cancelled)
+  if (syncAbortController.signal.aborted) {
+    console.log('[FR Magento] Sync was cancelled, exiting');
+    return;
+  }
   
   try {
     // Change button to cancel mode
@@ -751,6 +771,8 @@ async function handleSync() {
 function handleCancelSync() {
   if (syncAbortController) {
     console.log('[FR Magento] Cancelling sync... Progress will be saved.');
+    // Immediately set isSyncing to false to prevent auto-restart
+    isSyncing = false;
     syncAbortController.abort();
     showToast('Cancelling sync... Your progress has been saved.', 'info');
   }
