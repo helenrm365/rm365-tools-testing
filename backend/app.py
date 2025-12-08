@@ -378,6 +378,17 @@ _mount_if_exists('/components', COMPONENTS_DIR, html=False, name='components')
 
 # 2) SPA fallback - serve index.html at root and for SPA routes only (not API paths)
 if FRONTEND_DIR.is_dir():
+    # Serve standalone HTML files from frontend root (like magento-sync-status.html)
+    @app.get("/magento-sync-status.html", include_in_schema=False)
+    async def serve_magento_sync_status(response: Response):
+        file_path = FRONTEND_DIR / "magento-sync-status.html"
+        if file_path.is_file():
+            response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["Expires"] = "0"
+            return FileResponse(file_path)
+        raise HTTPException(status_code=404, detail="File not found")
+    
     # Serve index.html at root
     @app.get("/", include_in_schema=False)
     async def serve_root(response: Response):

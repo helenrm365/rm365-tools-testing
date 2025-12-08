@@ -935,3 +935,29 @@ html.dark-mode .status-info {
   background: rgba(59, 130, 246, 0.2);
   color: #60a5fa;
 }
+
+/* ===== Sortable Table Headers ===== */
+.table-header th {
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  transition: background-color 0.2s ease;
+}
+
+.table-header th:hover {
+  background: rgba(0, 120, 212, 0.05);
+}
+
+html.dark-mode .table-header th:hover {
+  background: rgba(0, 120, 212, 0.1);
+}
+
+.table-header th .sort-indicator {
+  margin-left: 5px;
+  font-size: 0.8em;
+  color: var(--accent-color, #0078d4);
+}
+
+html.dark-mode .table-header th .sort-indicator {
+  color: #4a9eff;
+}

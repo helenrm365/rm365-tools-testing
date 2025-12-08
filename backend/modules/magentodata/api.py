@@ -512,3 +512,9 @@ def get_exchange_rates(user=Depends(get_current_user)):
             "USD_to_EUR": get_rate_for_display("USD", "EUR"),
         }
     }
+
+
+@router.get("/sync-metadata")
+def get_sync_metadata():
+    """Get sync metadata for all regions (UK, FR, NL) - Public endpoint, no auth required"""
+    return svc.get_all_sync_metadata()

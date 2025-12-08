@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+    Magento Sync Status Page
+    
+    This is a standalone page that displays the sync metadata for UK, FR, and NL Magento data.
+    It shows the last synced order date, total orders synced, and other sync statistics.
+    
+    Access this page directly via: /magento-sync-status.html
+    (Not linked in the main navigation - direct access only)
+-->
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Magento Sync Status</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            color: #2d3748;
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .header p {
+            color: #718096;
+            font-size: 1rem;
+        }
+
+        .refresh-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .refresh-btn:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .refresh-btn:disabled {
+            background: #a0aec0;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .refresh-btn i {
+            transition: transform 0.6s ease;
+        }
+
+        .refresh-btn.spinning i {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .region-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.25rem;
+            font-weight: 600;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            color: white;
+        }
+
+        .region-badge.uk {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .region-badge.fr {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .region-badge.nl {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #f7fafc;
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            color: #718096;
+            font-size: 0.875rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .info-value {
+            color: #2d3748;
+            font-weight: 600;
+            text-align: right;
+            font-size: 0.95rem;
+        }
+
+        .info-value.large {
+            font-size: 1.5rem;
+            color: #667eea;
+        }
+
+        .timestamp {
+            font-family: 'Courier New', monospace;
+            background: #f7fafc;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 3rem;
+            color: #a0aec0;
+            font-size: 1.1rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: white;
+            font-size: 1.2rem;
+        }
+
+        .error {
+            background: #fed7d7;
+            color: #c53030;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .last-updated {
+            text-align: center;
+            color: white;
+            font-size: 0.9rem;
+            margin-top: 1rem;
+            opacity: 0.9;
+        }
+
+        @media (max-width: 768px) {
+            .cards-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>
+                <i class="fas fa-sync-alt"></i>
+                Magento Sync Status
+            </h1>
+            <p>Last synced order tracking for UK, FR, and NL Magento data</p>
+            <button class="refresh-btn" id="refreshBtn" onclick="loadSyncMetadata()">
+                <i class="fas fa-sync-alt"></i>
+                Refresh Data
+            </button>
+        </div>
+
+        <div id="content">
+            <div class="loading">
+                <i class="fas fa-spinner fa-spin"></i>
+                Loading sync metadata...
+            </div>
+        </div>
+
+        <div class="last-updated" id="lastUpdated"></div>
+    </div>
+
+    <script type="module">
+        const API_BASE = window.location.origin;
+        let authToken = null;
+
+        // Check authentication (optional - will try to load data regardless)
+        async function checkAuth() {
+            authToken = localStorage.getItem('authToken');
+            // Don't redirect - just note if we have a token or not
+            return true;
+        }
+
+        // Load sync metadata
+        async function loadSyncMetadata() {
+            const refreshBtn = document.getElementById('refreshBtn');
+            const content = document.getElementById('content');
+            
+            if (!refreshBtn || !content) {
+                console.error('Required elements not found');
+                return;
+            }
+            
+            refreshBtn.disabled = true;
+            refreshBtn.classList.add('spinning');
+            
+            try {
+                console.log('Fetching sync metadata from:', `${API_BASE}/api/magentodata/sync-metadata`);
+                
+                // Build headers - include auth token if available, but don't require it
+                const headers = {};
+                if (authToken) {
+                    headers['Authorization'] = `Bearer ${authToken}`;
+                }
+                
+                const response = await fetch(`${API_BASE}/api/magentodata/sync-metadata`, {
+                    headers: headers
+                });
+
+                console.log('Response status:', response.status);
+
+                // If endpoint not found or server error, show mock data as fallback
+                if (response.status === 404 || response.status >= 500) {
+                    console.warn('API not available, showing example data');
+                    const mockData = [
+                        {
+                            region: 'uk',
+                            last_synced_order_date: new Date().toISOString(),
+                            last_sync_time: new Date().toISOString(),
+                            total_orders_synced: 0,
+                            total_rows_synced: 0,
+                            last_synced_by: 'N/A',
+                            created_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString()
+                        },
+                        {
+                            region: 'fr',
+                            last_synced_order_date: null,
+                            last_sync_time: null,
+                            total_orders_synced: 0,
+                            total_rows_synced: 0,
+                            last_synced_by: 'N/A',
+                            created_at: null,
+                            updated_at: null
+                        },
+                        {
+                            region: 'nl',
+                            last_synced_order_date: null,
+                            last_sync_time: null,
+                            total_orders_synced: 0,
+                            total_rows_synced: 0,
+                            last_synced_by: 'N/A',
+                            created_at: null,
+                            updated_at: null
+                        }
+                    ];
+                    displaySyncMetadata(mockData);
+                    updateLastUpdated();
+                    showError('⚠️ API not available - showing example data. Sync metadata will appear when the database is connected.');
+                    return;
+                }
+
+                // If 401 and we have a token, it's expired - try without auth
+                if (response.status === 401 && authToken) {
+                    console.warn('Token expired or invalid - trying without authentication');
+                    localStorage.removeItem('authToken');
+                    authToken = null;
+                    // Retry without token
+                    const retryResponse = await fetch(`${API_BASE}/api/magentodata/sync-metadata`);
+                    const result = await retryResponse.json();
+                    console.log('Retry result:', result);
+                    
+                    if (result.status === 'success' && result.data) {
+                        displaySyncMetadata(result.data);
+                        updateLastUpdated();
+                    } else {
+                        showError(result.message || 'Failed to load sync metadata');
+                    }
+                    return;
+                }
+
+                const result = await response.json();
+                console.log('Sync metadata result:', result);
+
+                if (result.status === 'success' && result.data) {
+                    displaySyncMetadata(result.data);
+                    updateLastUpdated();
+                } else {
+                    showError(result.message || 'Failed to load sync metadata');
+                }
+            } catch (error) {
+                console.error('Error loading sync metadata:', error);
+                showError(`Error: ${error.message}`);
+            } finally {
+                refreshBtn.disabled = false;
+                refreshBtn.classList.remove('spinning');
+            }
+        }
+
+        // Display sync metadata
+        function displaySyncMetadata(data) {
+            const content = document.getElementById('content');
+            
+            if (!content) {
+                console.error('Content element not found');
+                return;
+            }
+            
+            if (!data || data.length === 0) {
+                console.log('No sync metadata available');
+                content.innerHTML = '<div class="no-data">No sync metadata available</div>';
+                return;
+            }
+
+            console.log(`Displaying ${data.length} region(s):`, data);
+            const cards = data.map(region => createRegionCard(region)).join('');
+            content.innerHTML = `<div class="cards-grid">${cards}</div>`;
+        }
+
+        // Create a card for each region
+        function createRegionCard(region) {
+            const regionName = region.region.toUpperCase();
+            const regionClass = region.region.toLowerCase();
+            
+            return `
+                <div class="card">
+                    <div class="card-header">
+                        <div class="region-badge ${regionClass}">
+                            <i class="fas fa-flag"></i>
+                            ${regionName} Magento
+                        </div>
+                    </div>
+                    
+                    <div class="info-row">
+                        <div class="info-label">
+                            <i class="fas fa-calendar-check"></i>
+                            Last Synced Order Date
+                        </div>
+                        <div class="info-value timestamp">
+                            ${formatTimestamp(region.last_synced_order_date) || 'N/A'}
+                        </div>
+                    </div>
+                    
+                    <div class="info-row">
+                        <div class="info-label">
+                            <i class="fas fa-clock"></i>
+                            Last Sync Time
+                        </div>
+                        <div class="info-value timestamp">
+                            ${formatTimestamp(region.last_sync_time) || 'N/A'}
+                        </div>
+                    </div>
+                    
+                    <div class="info-row">
+                        <div class="info-label">
+                            <i class="fas fa-shopping-cart"></i>
+                            Total Orders Synced
+                        </div>
+                        <div class="info-value large">
+                            ${(region.total_orders_synced || 0).toLocaleString()}
+                        </div>
+                    </div>
+                    
+                    <div class="info-row">
+                        <div class="info-label">
+                            <i class="fas fa-database"></i>
+                            Total Rows Synced
+                        </div>
+                        <div class="info-value large">
+                            ${(region.total_rows_synced || 0).toLocaleString()}
+                        </div>
+                    </div>
+                    
+                    <div class="info-row">
+                        <div class="info-label">
+                            <i class="fas fa-user"></i>
+                            Last Synced By
+                        </div>
+                        <div class="info-value">
+                            ${region.last_synced_by || 'N/A'}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Format timestamp
+        function formatTimestamp(timestamp) {
+            if (!timestamp) return null;
+            
+            try {
+                const date = new Date(timestamp);
+                return date.toLocaleString('en-GB', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: false
+                });
+            } catch (error) {
+                return timestamp;
+            }
+        }
+
+        // Show error
+        function showError(message) {
+            const content = document.getElementById('content');
+            content.innerHTML = `
+                <div class="error">
+                    <i class="fas fa-exclamation-circle"></i>
+                    ${message}
+                </div>
+            `;
+        }
+
+        // Update last updated timestamp
+        function updateLastUpdated() {
+            const lastUpdated = document.getElementById('lastUpdated');
+            const now = new Date();
+            lastUpdated.textContent = `Last updated: ${now.toLocaleString('en-GB', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            })}`;
+        }
+
+        // Make loadSyncMetadata available globally
+        window.loadSyncMetadata = loadSyncMetadata;
+
+        // Initialize on load - no auth check required
+        (async () => {
+            await checkAuth(); // Just sets authToken if available
+            await loadSyncMetadata();
+        })();
+
+        // Auto-refresh every 30 seconds
+        setInterval(loadSyncMetadata, 30000);
+    </script>
+</body>
+</html>
