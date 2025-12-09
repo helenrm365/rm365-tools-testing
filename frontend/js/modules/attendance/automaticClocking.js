@@ -320,7 +320,10 @@ async function captureFingerprint(timeoutMs = 1000) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
         signal: abortController.signal,
-        cache: 'no-store'
+        cache: 'no-store',
+        keepalive: false, // Prevent connection pooling interference with main API
+        mode: 'cors',
+        credentials: 'omit'
       });
       
       if (!response.ok) {
@@ -496,7 +499,10 @@ async function pollCardScan() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ timeout: 1 }), // 1 second timeout for card check
-        cache: 'no-store'
+        cache: 'no-store',
+        keepalive: false, // Prevent connection pooling interference with main API
+        mode: 'cors',
+        credentials: 'omit'
       });
       if (response.ok) break;
     } catch (e) {

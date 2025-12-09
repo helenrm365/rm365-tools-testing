@@ -181,6 +181,9 @@ async function tryLocalSecuGen(timeoutMs = 11000, signal = null) {
       body: JSON.stringify(payload),
       signal: ac.signal,
       cache: 'no-store',
+      keepalive: false, // Prevent connection pooling interference with main API
+      mode: 'cors',
+      credentials: 'omit'
     });
 
     if (!response.ok) {

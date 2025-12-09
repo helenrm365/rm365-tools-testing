@@ -150,7 +150,10 @@ async function tryLocalCardScan(timeoutSeconds = 1) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ timeout: timeoutSeconds }),
-        cache: 'no-store'
+        cache: 'no-store',
+        keepalive: false, // Prevent connection pooling interference with main API
+        mode: 'cors',
+        credentials: 'omit'
       });
       
       if (response.ok) {
