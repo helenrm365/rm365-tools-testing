@@ -240,22 +240,6 @@ class MagentoDataClient:
         if not shipping_address:
             shipping_address = billing_address
         
-        # Get invoiced quantities for each product
-        # Build a map of SKU -> invoiced quantity
-        invoiced_qtys = {}
-        
-        # Check if order has invoices
-        if 'extension_attributes' in order and 'invoices' in order['extension_attributes']:
-            for invoice in order['extension_attributes']['invoices']:
-                # Only count invoices that are in state 2 (paid) or 1 (pending)
-                invoice_state = invoice.get('state', 0)
-                if invoice_state in [1, 2]:  # 1=pending, 2=paid
-                    for item in invoice.get('items', []):
-                        sku = item.get('sku')
-                        qty = float(item.get('qty', 0))
-                        if sku:
-                            invoiced_qtys[sku] = invoiced_qtys.get(sku, 0) + qty
-        
         # Process order items
         for item in order.get('items', []):
             # Skip parent/configurable items, only process simple products
@@ -278,9 +262,9 @@ class MagentoDataClient:
                 # If no original_price, treat the current price as original
                 original_price = price
             
-            # Get invoiced quantity for this SKU
-            # If order is cancelled or not invoiced, qty will be 0
-            qty_invoiced = invoiced_qtys.get(sku, 0)
+            # Get invoiced quantity from the order item
+            # qty_invoiced will be 0 for cancelled orders, and the actual invoiced qty for others
+            qty_invoiced = float(item.get('qty_invoiced', 0))
             
             # Only include items with a valid SKU
             if sku:
@@ -289,7 +273,7 @@ class MagentoDataClient:
                     'created_at': created_at,
                     'sku': sku,
                     'name': name,
-                    'qty': int(qty_invoiced),  # invoiced quantity
+                    'qty': int(qty_invoiced),  # invoiced quantity from order item
                     'original_price': original_price,
                     'special_price': special_price,
                     'status': status,

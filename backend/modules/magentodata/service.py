@@ -313,6 +313,7 @@ class MagentoDataService:
         start_date: str = None, 
         end_date: str = None,
         max_orders: int = None,
+        resync_days: int = 7,
         username: str = None,
         progress_callback: callable = None,
         cancelled: callable = None
@@ -329,6 +330,7 @@ class MagentoDataService:
             start_date: Optional start date filter (YYYY-MM-DD HH:MM:SS) - overrides metadata
             end_date: Optional end date filter (YYYY-MM-DD HH:MM:SS)
             max_orders: Optional maximum number of orders to fetch
+            resync_days: Number of days to re-sync to catch status/qty changes (default: 7)
             username: User performing the sync
             progress_callback: Optional callback for progress updates
             cancelled: Optional callable that returns True if sync should be cancelled
@@ -345,10 +347,14 @@ class MagentoDataService:
                 if metadata and metadata.get('last_synced_order_date'):
                     # Convert timestamp to string format for Magento API
                     last_date = metadata['last_synced_order_date']
-                    start_date = last_date.strftime('%Y-%m-%d %H:%M:%S')
-                    logger.info(f"Resuming sync from last synced order: {start_date}")
+                    
+                    # Go back resync_days to catch status/qty changes on recent orders
+                    from datetime import timedelta
+                    resync_from_date = last_date - timedelta(days=resync_days)
+                    start_date = resync_from_date.strftime('%Y-%m-%d %H:%M:%S')
+                    logger.info(f"Re-syncing last {resync_days} days from {start_date} to catch order updates")
                     if progress_callback:
-                        progress_callback(f"Resuming from {start_date}...")
+                        progress_callback(f"Re-syncing from {start_date} (last {resync_days} days)...")
             
             # Verify last order was completely saved before continuing
             if start_date:

@@ -92,6 +92,7 @@ async def sync_uk_magento_data(
     start_date = request.start_date if request else None
     end_date = request.end_date if request else None
     max_orders = request.max_orders if request else None
+    resync_days = request.resync_days if request and request.resync_days is not None else 7
     
     # Progress tracking (simple in-memory for now)
     progress_info = {"message": "Starting sync..."}
@@ -100,7 +101,7 @@ async def sync_uk_magento_data(
         progress_info["message"] = msg
         logger.info(f"[UK Sync Progress] {msg}")
     
-    result = svc.sync_magento_data("uk", start_date, end_date, max_orders, username, progress_callback)
+    result = svc.sync_magento_data("uk", start_date, end_date, max_orders, resync_days, username, progress_callback)
     result["progress"] = progress_info["message"]
     result["is_complete"] = True
     return MagentoSyncResponse(**result)
@@ -151,6 +152,7 @@ async def sync_fr_magento_data(
     start_date = request.start_date if request else None
     end_date = request.end_date if request else None
     max_orders = request.max_orders if request else None
+    resync_days = request.resync_days if request and request.resync_days is not None else 7
     
     progress_info = {"message": "Starting sync..."}
     
@@ -158,7 +160,7 @@ async def sync_fr_magento_data(
         progress_info["message"] = msg
         logger.info(f"[FR Sync Progress] {msg}")
     
-    result = svc.sync_magento_data("fr", start_date, end_date, max_orders, username, progress_callback)
+    result = svc.sync_magento_data("fr", start_date, end_date, max_orders, resync_days, username, progress_callback)
     result["progress"] = progress_info["message"]
     result["is_complete"] = True
     return MagentoSyncResponse(**result)
@@ -209,6 +211,7 @@ async def sync_nl_magento_data(
     start_date = request.start_date if request else None
     end_date = request.end_date if request else None
     max_orders = request.max_orders if request else None
+    resync_days = request.resync_days if request and request.resync_days is not None else 7
     
     progress_info = {"message": "Starting sync..."}
     
@@ -216,7 +219,7 @@ async def sync_nl_magento_data(
         progress_info["message"] = msg
         logger.info(f"[NL Sync Progress] {msg}")
     
-    result = svc.sync_magento_data("nl", start_date, end_date, max_orders, username, progress_callback)
+    result = svc.sync_magento_data("nl", start_date, end_date, max_orders, resync_days, username, progress_callback)
     result["progress"] = progress_info["message"]
     result["is_complete"] = True
     return MagentoSyncResponse(**result)

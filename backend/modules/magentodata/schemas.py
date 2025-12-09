@@ -56,6 +56,7 @@ class MagentoSyncRequest(BaseModel):
     start_date: Optional[str] = None
     end_date: Optional[str] = None
     max_orders: Optional[int] = None
+    resync_days: Optional[int] = 7  # Number of days to re-sync to catch status/qty changes
 
 
 class MagentoSyncResponse(BaseModel):

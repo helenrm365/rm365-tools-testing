@@ -1091,14 +1091,17 @@ class MagentoDataRepo:
                         errors.append(f"Row {idx}: Missing order_number or SKU")
                         continue
                     
-                    # Insert into database with ON CONFLICT DO NOTHING to skip duplicates
+                    # Insert or update on conflict to handle status/qty changes
                     insert_query = f"""
                         INSERT INTO {table_name} 
                         (order_number, created_at, sku, name, qty, original_price, special_price, status, currency, 
                          grand_total, customer_email, customer_full_name, billing_address, 
                          shipping_address, customer_group_code, imported_at, updated_at)
                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                        ON CONFLICT (order_number, sku) DO NOTHING
+                        ON CONFLICT (order_number, sku) DO UPDATE SET
+                            qty = EXCLUDED.qty,
+                            status = EXCLUDED.status,
+                            updated_at = EXCLUDED.updated_at
                     """
                     now = datetime.now(timezone.utc)
                     cursor.execute(insert_query, (
@@ -1106,7 +1109,7 @@ class MagentoDataRepo:
                         grand_total, customer_email, customer_full_name, billing_address, 
                         shipping_address, customer_group_code, now, now
                     ))
-                    # Only count as imported if a row was actually inserted
+                    # Count as imported if a row was inserted or updated
                     if cursor.rowcount > 0:
                         rows_imported += 1
                     
@@ -1237,7 +1240,10 @@ class MagentoDataRepo:
                          grand_total, customer_email, customer_full_name, billing_address, 
                          shipping_address, customer_group_code, imported_at, updated_at)
                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                        ON CONFLICT (order_number, sku) DO NOTHING
+                        ON CONFLICT (order_number, sku) DO UPDATE SET
+                            qty = EXCLUDED.qty,
+                            status = EXCLUDED.status,
+                            updated_at = EXCLUDED.updated_at
                     """
                     now = datetime.now(timezone.utc)
                     cursor.execute(insert_query, (
