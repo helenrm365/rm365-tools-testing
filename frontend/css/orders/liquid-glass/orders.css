@@ -1,0 +1,111 @@
+/* Liquid Glass Overrides for Orders Module */
+
+/* Card Backgrounds */
+body.liquid-glass-mode .module-feature-card,
+body.liquid-glass-mode .card,
+body.liquid-glass-mode .stats-card,
+body.liquid-glass-mode .filter-card,
+body.liquid-glass-mode .results-card,
+body.liquid-glass-mode .lookup-card,
+body.liquid-glass-mode .tracking-column,
+body.liquid-glass-mode .inner-tabs {
+    background: rgba(255, 255, 255, 0.45) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.6) !important;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.04) !important;
+    border-radius: 16px;
+}
+
+/* Hover Effects */
+body.liquid-glass-mode .module-feature-card:hover,
+body.liquid-glass-mode .card:hover {
+    background: rgba(255, 255, 255, 0.55) !important;
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.08) !important;
+}
+
+/* Icon Styling - Remove Boxes */
+body.liquid-glass-mode .card-icon,
+body.liquid-glass-mode .icon-wrapper,
+body.liquid-glass-mode .section-icon,
+body.liquid-glass-mode .column-icon {
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+}
+
+/* Icon SVG Styling */
+body.liquid-glass-mode .card-icon svg,
+body.liquid-glass-mode .icon-wrapper svg,
+body.liquid-glass-mode .section-icon i,
+body.liquid-glass-mode .column-icon i {
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+    transform: scale(1.1);
+    transition: stroke 0.3s ease, color 0.3s ease;
+}
+
+/* Icon Hover Color (Light Mode) */
+body.liquid-glass-mode .module-feature-card:hover .card-icon svg {
+    stroke: #2c3e50 !important;
+}
+
+/* Tracking Actions */
+body.liquid-glass-mode .tracking-actions {
+    background: rgba(255, 255, 255, 0.3) !important;
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.4) !important;
+}
+
+/* Tab Buttons */
+body.liquid-glass-mode .tab-button {
+    background: rgba(255, 255, 255, 0.3) !important;
+    border: 1px solid rgba(255, 255, 255, 0.4) !important;
+}
+
+body.liquid-glass-mode .tab-button.active {
+    background: rgba(139, 195, 74, 0.2) !important;
+    border-color: rgba(139, 195, 74, 0.5) !important;
+    color: #2c3e50 !important;
+}
+
+/* Dark Mode Adjustments */
+html.dark-mode body.liquid-glass-mode .module-feature-card,
+html.dark-mode body.liquid-glass-mode .card,
+html.dark-mode body.liquid-glass-mode .stats-card,
+html.dark-mode body.liquid-glass-mode .filter-card,
+html.dark-mode body.liquid-glass-mode .results-card,
+html.dark-mode body.liquid-glass-mode .lookup-card,
+html.dark-mode body.liquid-glass-mode .tracking-column,
+html.dark-mode body.liquid-glass-mode .inner-tabs {
+    background: rgba(30, 30, 30, 0.45) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2) !important;
+}
+
+html.dark-mode body.liquid-glass-mode .tracking-actions {
+    background: rgba(0, 0, 0, 0.2) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+html.dark-mode body.liquid-glass-mode .tab-button {
+    background: rgba(0, 0, 0, 0.2) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    color: #e0e0e0 !important;
+}
+
+html.dark-mode body.liquid-glass-mode .tab-button.active {
+    background: rgba(139, 195, 74, 0.2) !important;
+    border-color: rgba(139, 195, 74, 0.5) !important;
+    color: #fff !important;
+}
+
+html.dark-mode body.liquid-glass-mode .module-feature-card:hover,
+html.dark-mode body.liquid-glass-mode .card:hover {
+    background: rgba(40, 40, 40, 0.55) !important;
+}
+
+/* Icon Hover Color (Dark Mode) - Keep White */
+html.dark-mode body.liquid-glass-mode .module-feature-card:hover .card-icon svg {
+    stroke: white !important;
+}

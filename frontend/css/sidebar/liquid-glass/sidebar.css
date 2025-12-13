@@ -1,0 +1,88 @@
+/* Liquid Glass Overrides for Sidebar */
+
+body.liquid-glass-mode .sidebar {
+    background: rgba(255, 255, 255, 0.4);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-right: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+}
+
+body.liquid-glass-mode .sidebar-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+body.liquid-glass-mode .search-container {
+    background: rgba(255, 255, 255, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    backdrop-filter: blur(4px);
+}
+
+body.liquid-glass-mode .search-input {
+    background: transparent;
+}
+
+body.liquid-glass-mode .nav-item {
+    color: #555;
+    transition: all 0.2s ease;
+}
+
+body.liquid-glass-mode .nav-item:hover {
+    background: rgba(255, 255, 255, 0.4);
+    color: #7ab82d;
+    transform: translateX(4px);
+}
+
+body.liquid-glass-mode .nav-item.active {
+    background: rgba(255, 255, 255, 0.6);
+    color: #7ab82d;
+    border-right: 3px solid #8bc34a;
+    font-weight: 600;
+}
+
+body.liquid-glass-mode .sidebar-divider {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* Dark Mode Sidebar */
+html.dark-mode body.liquid-glass-mode .sidebar {
+    background: rgba(30, 30, 30, 0.4);
+    border-right-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+}
+
+html.dark-mode body.liquid-glass-mode .sidebar-header {
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+html.dark-mode body.liquid-glass-mode .search-container {
+    background: rgba(0, 0, 0, 0.2);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+html.dark-mode body.liquid-glass-mode .search-input {
+    color: #fff;
+}
+
+html.dark-mode body.liquid-glass-mode .nav-item {
+    color: #b0b0b0;
+}
+
+html.dark-mode body.liquid-glass-mode .nav-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+}
+
+html.dark-mode body.liquid-glass-mode .nav-item.active {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    border-right-color: #8bc34a;
+}
+
+html.dark-mode body.liquid-glass-mode .sidebar-divider {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+html.dark-mode body.liquid-glass-mode .welcome-message {
+    color: #fff;
+}

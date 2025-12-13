@@ -1,0 +1,40 @@
+/* Liquid Glass Overrides for Login Page */
+
+/* Login Card */
+body.liquid-glass-mode .login-card {
+    background: rgba(255, 255, 255, 0.45) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.6) !important;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.04) !important;
+    border-radius: 24px;
+}
+
+/* Form Inputs */
+body.liquid-glass-mode .form-input {
+    background: rgba(255, 255, 255, 0.5) !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    backdrop-filter: blur(4px);
+}
+
+body.liquid-glass-mode .form-input:focus {
+    background: rgba(255, 255, 255, 0.8) !important;
+    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Dark Mode Adjustments */
+html.dark-mode body.liquid-glass-mode .login-card {
+    background: rgba(30, 30, 30, 0.45) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2) !important;
+}
+
+html.dark-mode body.liquid-glass-mode .form-input {
+    background: rgba(0, 0, 0, 0.2) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    color: white !important;
+}
+
+html.dark-mode body.liquid-glass-mode .form-input:focus {
+    background: rgba(0, 0, 0, 0.4) !important;
+}

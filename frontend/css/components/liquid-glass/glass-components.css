@@ -1,0 +1,394 @@
+/* LIQUID BACKGROUND ANIMATION 
+   Creates the moving gradient blobs behind the glass
+*/
+.liquid-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: -1;
+    background: #f7f9f5;
+    overflow: hidden;
+}
+
+.blob {
+    position: absolute;
+    filter: blur(90px);
+    opacity: 0.3; /* Very subtle opacity for "less exaggerated" look */
+    animation: float 20s infinite ease-in-out alternate;
+    border-radius: 50%;
+    display: block;
+}
+
+.blob-1 {
+    top: -10%;
+    left: -10%;
+    width: 50vw;
+    height: 50vw;
+    background: linear-gradient(135deg, #8bc34a, #aed581);
+    animation-duration: 25s;
+}
+
+.blob-2 {
+    bottom: -10%;
+    right: -10%;
+    width: 60vw;
+    height: 60vw;
+    background: linear-gradient(135deg, #9ccc65, #7ab82d);
+    animation-duration: 30s;
+    animation-delay: -5s;
+}
+
+.blob-3 {
+    top: 40%;
+    left: 40%;
+    width: 40vw;
+    height: 40vw;
+    background: linear-gradient(135deg, #7ab82d, #558b2f);
+    animation-duration: 22s;
+    animation-delay: -10s;
+}
+
+/* Dark Mode Background Overrides */
+html.dark-mode .liquid-bg {
+    background: #121212;
+}
+
+html.dark-mode .blob {
+    opacity: 0.15; /* Lower opacity for dark mode to avoid being too distracting */
+}
+
+html.dark-mode .blob-1 {
+    background: linear-gradient(135deg, #2e7d32, #1b5e20);
+}
+
+html.dark-mode .blob-2 {
+    background: linear-gradient(135deg, #33691e, #558b2f);
+}
+
+html.dark-mode .blob-3 {
+    background: linear-gradient(135deg, #1b5e20, #2e7d32);
+}
+
+@keyframes float {
+    0% { transform: translate(0, 0) rotate(0deg); }
+    100% { transform: translate(100px, 50px) rotate(20deg); }
+}
+
+/* GLASSMORPHISM UTILITIES 
+   Clean, light glass effect that works well on subtle backgrounds
+*/
+.glass-panel {
+    background: rgba(255, 255, 255, 0.45);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.04);
+}
+
+/* Dark Mode Glass Panel */
+html.dark-mode .glass-panel {
+    background: rgba(30, 30, 30, 0.45);
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+}
+
+/* Dark Mode Text Visibility */
+html.dark-mode body.liquid-glass-mode {
+    color: #e0e0e0;
+}
+
+html.dark-mode body.liquid-glass-mode h1,
+html.dark-mode body.liquid-glass-mode h2,
+html.dark-mode body.liquid-glass-mode h3,
+html.dark-mode body.liquid-glass-mode h4,
+html.dark-mode body.liquid-glass-mode h5,
+html.dark-mode body.liquid-glass-mode h6 {
+    color: #ffffff;
+}
+
+html.dark-mode body.liquid-glass-mode p,
+html.dark-mode body.liquid-glass-mode span,
+html.dark-mode body.liquid-glass-mode label {
+    color: #e0e0e0;
+}
+
+html.dark-mode body.liquid-glass-mode .text-muted,
+html.dark-mode body.liquid-glass-mode .hero-subtitle,
+html.dark-mode body.liquid-glass-mode .page-subtitle,
+html.dark-mode body.liquid-glass-mode .card-description {
+    color: #b0b0b0 !important;
+}
+
+/* Overrides for existing components in Liquid Glass Mode */
+
+/* Global Input Styles for Liquid Glass Mode */
+body.liquid-glass-mode input[type="text"],
+body.liquid-glass-mode input[type="search"],
+body.liquid-glass-mode input[type="email"],
+body.liquid-glass-mode input[type="password"],
+body.liquid-glass-mode input[type="number"],
+body.liquid-glass-mode .form-input,
+body.liquid-glass-mode .search-input,
+body.liquid-glass-mode .form-select,
+body.liquid-glass-mode .form-textarea {
+    background: rgba(255, 255, 255, 0.4) !important;
+    border: 1px solid rgba(255, 255, 255, 0.5) !important;
+    backdrop-filter: blur(8px);
+    color: #2c3e50;
+    transition: all 0.3s ease;
+}
+
+/* Focus State */
+body.liquid-glass-mode input:focus,
+body.liquid-glass-mode .form-input:focus,
+body.liquid-glass-mode .search-input:focus,
+body.liquid-glass-mode .form-select:focus,
+body.liquid-glass-mode .form-textarea:focus {
+    background: rgba(255, 255, 255, 0.8) !important;
+    border-color: #8bc34a !important;
+    box-shadow: 0 0 0 4px rgba(139, 195, 74, 0.1) !important;
+    outline: none;
+}
+
+/* Sidebar Search Specifics */
+body.liquid-glass-mode .sidebar .search-container {
+    background: rgba(255, 255, 255, 0.2) !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    backdrop-filter: blur(4px);
+}
+
+body.liquid-glass-mode .sidebar .search-input {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+}
+
+body.liquid-glass-mode .action-btn {
+    backdrop-filter: blur(4px);
+}
+
+body.liquid-glass-mode .primary-btn {
+    background: rgba(139, 195, 74, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 4px 12px rgba(139, 195, 74, 0.2);
+}
+
+body.liquid-glass-mode .primary-btn:hover {
+    background: rgba(139, 195, 74, 0.95);
+}
+
+/* Dark Mode Form Elements */
+html.dark-mode body.liquid-glass-mode input[type="text"],
+html.dark-mode body.liquid-glass-mode input[type="search"],
+html.dark-mode body.liquid-glass-mode input[type="email"],
+html.dark-mode body.liquid-glass-mode input[type="password"],
+html.dark-mode body.liquid-glass-mode input[type="number"],
+html.dark-mode body.liquid-glass-mode .form-input,
+html.dark-mode body.liquid-glass-mode .search-input,
+html.dark-mode body.liquid-glass-mode .form-select,
+html.dark-mode body.liquid-glass-mode .form-textarea {
+    background: rgba(0, 0, 0, 0.2) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    color: #fff !important;
+}
+
+html.dark-mode body.liquid-glass-mode input:focus,
+html.dark-mode body.liquid-glass-mode .form-input:focus,
+html.dark-mode body.liquid-glass-mode .search-input:focus,
+html.dark-mode body.liquid-glass-mode .form-select:focus,
+html.dark-mode body.liquid-glass-mode .form-textarea:focus {
+    background: rgba(0, 0, 0, 0.4) !important;
+    border-color: #8bc34a !important;
+}
+
+/* Dark Mode Sidebar Search */
+html.dark-mode body.liquid-glass-mode .sidebar .search-container {
+    background: rgba(0, 0, 0, 0.3) !important;
+    border-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+html.dark-mode body.liquid-glass-mode .sidebar .search-input {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* Custom Scrollbar for sleek look */
+body.liquid-glass-mode ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+body.liquid-glass-mode ::-webkit-scrollbar-track {
+    background: rgba(0,0,0,0.02);
+}
+body.liquid-glass-mode ::-webkit-scrollbar-thumb {
+    background: rgba(0,0,0,0.1);
+    border-radius: 10px;
+}
+body.liquid-glass-mode ::-webkit-scrollbar-thumb:hover {
+    background: rgba(0,0,0,0.2);
+}
+
+/* Placeholder Styles */
+body.liquid-glass-mode ::placeholder {
+    color: rgba(44, 62, 80, 0.5) !important;
+}
+
+html.dark-mode body.liquid-glass-mode ::placeholder {
+    color: rgba(255, 255, 255, 0.5) !important;
+}
+
+/* Status Badge Animations */
+body.liquid-glass-mode .status-badge {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body.liquid-glass-mode .fade-in-up {
+    animation: fadeInUp 0.5s ease-out forwards;
+    opacity: 0;
+    transform: translateY(10px);
+}
+
+@keyframes fadeInUp {
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Global Background Overrides */
+html:has(body.liquid-glass-mode),
+body.liquid-glass-mode {
+    background-color: transparent !important;
+    background: transparent !important;
+}
+
+/* Generic Card Overrides */
+body.liquid-glass-mode .card,
+body.liquid-glass-mode .table-wrap {
+    background: rgba(255, 255, 255, 0.45);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.04);
+}
+
+body.liquid-glass-mode .card-header {
+    background: rgba(255, 255, 255, 0.3);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+/* Global Tab Styles */
+body.liquid-glass-mode .inner-tabs .tab-button {
+    background: rgba(255, 255, 255, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    backdrop-filter: blur(4px);
+    border-radius: 12px;
+    margin-right: 8px;
+    transition: all 0.2s ease;
+}
+
+body.liquid-glass-mode .inner-tabs .tab-button:hover {
+    background: rgba(255, 255, 255, 0.5);
+    transform: translateY(-1px);
+}
+
+body.liquid-glass-mode .inner-tabs .tab-button.active {
+    background: rgba(255, 255, 255, 0.8);
+    border-color: #8bc34a;
+    color: #558b2f;
+    box-shadow: 0 4px 12px rgba(139, 195, 74, 0.15);
+}
+
+/* Content Container Overrides */
+body.liquid-glass-mode #content,
+body.liquid-glass-mode .header {
+    background-color: transparent !important;
+    background: transparent !important;
+}
+
+/* Dark Mode Generic Component Overrides */
+html.dark-mode body.liquid-glass-mode .card,
+html.dark-mode body.liquid-glass-mode .table-wrap,
+html.dark-mode body.liquid-glass-mode .data-section,
+html.dark-mode body.liquid-glass-mode .filter-card,
+html.dark-mode body.liquid-glass-mode .results-card,
+html.dark-mode body.liquid-glass-mode .stats-card,
+html.dark-mode body.liquid-glass-mode .modal-content {
+    background: rgba(30, 30, 30, 0.45) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2) !important;
+}
+
+html.dark-mode body.liquid-glass-mode .card-header {
+    background: rgba(0, 0, 0, 0.2) !important;
+    border-bottom-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+html.dark-mode body.liquid-glass-mode .inner-tabs .tab-button {
+    background: rgba(0, 0, 0, 0.2) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    color: #e0e0e0 !important;
+}
+
+html.dark-mode body.liquid-glass-mode .inner-tabs .tab-button:hover {
+    background: rgba(0, 0, 0, 0.3) !important;
+}
+
+html.dark-mode body.liquid-glass-mode .inner-tabs .tab-button.active {
+    background: rgba(139, 195, 74, 0.2) !important;
+    border-color: rgba(139, 195, 74, 0.5) !important;
+    color: #fff !important;
+}
+
+/* Dark Mode Scrollbar */
+html.dark-mode body.liquid-glass-mode ::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+html.dark-mode body.liquid-glass-mode ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+html.dark-mode body.liquid-glass-mode ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* Global Liquid Glass Table Styles (Excluding Inventory Management) */
+body.liquid-glass-mode:not(:has(.inventory-management)) .modern-table {
+    background: transparent !important;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+body.liquid-glass-mode:not(:has(.inventory-management)) .modern-table th {
+    background: rgba(255, 255, 255, 0.3) !important;
+    backdrop-filter: blur(4px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.4) !important;
+    color: #2c3e50;
+}
+
+body.liquid-glass-mode:not(:has(.inventory-management)) .modern-table td {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
+    color: #4a4a4a;
+}
+
+body.liquid-glass-mode:not(:has(.inventory-management)) .modern-table tr:hover td {
+    background: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Dark Mode Table Styles */
+html.dark-mode body.liquid-glass-mode:not(:has(.inventory-management)) .modern-table th {
+    background: rgba(0, 0, 0, 0.3) !important;
+    border-bottom-color: rgba(255, 255, 255, 0.1) !important;
+    color: #fff !important;
+}
+
+html.dark-mode body.liquid-glass-mode:not(:has(.inventory-management)) .modern-table td {
+    border-bottom-color: rgba(255, 255, 255, 0.05) !important;
+    color: #e0e0e0 !important;
+}
+
+html.dark-mode body.liquid-glass-mode:not(:has(.inventory-management)) .modern-table tr:hover td {
+    background: rgba(255, 255, 255, 0.05) !important;
+}

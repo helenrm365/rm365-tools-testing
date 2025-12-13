@@ -1,0 +1,73 @@
+/* Liquid Glass Overrides for Home Module */
+
+/* Card Backgrounds */
+body.liquid-glass-mode .module-feature-card,
+body.liquid-glass-mode .card,
+body.liquid-glass-mode .stats-card,
+body.liquid-glass-mode .filter-card,
+body.liquid-glass-mode .results-card,
+body.liquid-glass-mode .prompt-card,
+body.liquid-glass-mode .welcome-card {
+    background: rgba(255, 255, 255, 0.45) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.6) !important;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.04) !important;
+    border-radius: 16px;
+}
+
+/* Hover Effects */
+body.liquid-glass-mode .module-feature-card:hover,
+body.liquid-glass-mode .card:hover {
+    background: rgba(255, 255, 255, 0.55) !important;
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.08) !important;
+}
+
+/* Icon Styling - Remove Boxes */
+body.liquid-glass-mode .card-icon,
+body.liquid-glass-mode .prompt-icon-wrapper,
+body.liquid-glass-mode .welcome-icon-wrapper,
+body.liquid-glass-mode .icon-wrapper {
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+}
+
+/* Icon SVG Styling */
+body.liquid-glass-mode .card-icon svg,
+body.liquid-glass-mode .prompt-icon-wrapper svg,
+body.liquid-glass-mode .welcome-icon-wrapper svg,
+body.liquid-glass-mode .icon-wrapper svg {
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+    transform: scale(1.1); /* Slightly larger to compensate for lost box */
+    transition: stroke 0.3s ease;
+}
+
+/* Icon Hover Color (Light Mode) */
+body.liquid-glass-mode .module-feature-card:hover .card-icon svg {
+    stroke: #2c3e50 !important;
+}
+
+/* Dark Mode Adjustments */
+html.dark-mode body.liquid-glass-mode .module-feature-card,
+html.dark-mode body.liquid-glass-mode .card,
+html.dark-mode body.liquid-glass-mode .stats-card,
+html.dark-mode body.liquid-glass-mode .filter-card,
+html.dark-mode body.liquid-glass-mode .results-card,
+html.dark-mode body.liquid-glass-mode .prompt-card,
+html.dark-mode body.liquid-glass-mode .welcome-card {
+    background: rgba(30, 30, 30, 0.45) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2) !important;
+}
+
+html.dark-mode body.liquid-glass-mode .module-feature-card:hover,
+html.dark-mode body.liquid-glass-mode .card:hover {
+    background: rgba(40, 40, 40, 0.55) !important;
+}
+
+/* Icon Hover Color (Dark Mode) - Keep White */
+html.dark-mode body.liquid-glass-mode .module-feature-card:hover .card-icon svg {
+    stroke: white !important;
+}

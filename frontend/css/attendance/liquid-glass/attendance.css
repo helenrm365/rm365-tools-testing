@@ -1,0 +1,496 @@
+/* Liquid Glass Overrides for Attendance Overview */
+
+body.liquid-glass-mode .attendance-overview {
+    position: relative;
+    z-index: 1;
+}
+
+body.liquid-glass-mode .stat-card {
+    background: rgba(255, 255, 255, 0.45);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.04);
+    border-radius: 24px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+body.liquid-glass-mode .stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.08);
+    background: rgba(255, 255, 255, 0.6);
+}
+
+body.liquid-glass-mode .stat-icon {
+    background: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(4px);
+    border-radius: 16px;
+}
+
+body.liquid-glass-mode .inner-tabs .tab-button {
+    background: rgba(255, 255, 255, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    backdrop-filter: blur(4px);
+    border-radius: 12px;
+    margin-right: 8px;
+    transition: all 0.2s ease;
+}
+
+body.liquid-glass-mode .inner-tabs .tab-button:hover {
+    background: rgba(255, 255, 255, 0.5);
+    transform: translateY(-1px);
+}
+
+body.liquid-glass-mode .inner-tabs .tab-button.active {
+    background: rgba(255, 255, 255, 0.8);
+    border-color: #8bc34a;
+    color: #558b2f;
+    box-shadow: 0 4px 12px rgba(139, 195, 74, 0.15);
+}
+
+/* Staggered animation delays for table rows if present */
+body.liquid-glass-mode tbody tr {
+    animation: fadeInUp 0.5s ease-out forwards;
+    opacity: 0;
+}
+
+body.liquid-glass-mode tbody tr:nth-child(1) { animation-delay: 0.1s; }
+body.liquid-glass-mode tbody tr:nth-child(2) { animation-delay: 0.15s; }
+body.liquid-glass-mode tbody tr:nth-child(3) { animation-delay: 0.2s; }
+body.liquid-glass-mode tbody tr:nth-child(4) { animation-delay: 0.25s; }
+body.liquid-glass-mode tbody tr:nth-child(5) { animation-delay: 0.3s; }
+body.liquid-glass-mode tbody tr:nth-child(6) { animation-delay: 0.35s; }
+body.liquid-glass-mode tbody tr:nth-child(7) { animation-delay: 0.4s; }
+body.liquid-glass-mode tbody tr:nth-child(8) { animation-delay: 0.45s; }
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Liquid Glass Overrides for Attendance Home */
+
+body.liquid-glass-mode .module-feature-card {
+    background: rgba(255, 255, 255, 0.45);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.04);
+    border-radius: 24px;
+    transition: all 0.3s ease;
+}
+
+body.liquid-glass-mode .module-feature-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.08);
+    background: rgba(255, 255, 255, 0.6);
+    border-color: #8bc34a;
+}
+
+body.liquid-glass-mode .card-icon {
+    color: #7ab82d;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 16px;
+    padding: 12px;
+    width: fit-content;
+    transition: color 0.3s ease;
+}
+
+/* Icon Hover Color (Light Mode) */
+body.liquid-glass-mode .module-feature-card:hover .card-icon {
+    color: #2c3e50 !important;
+}
+
+/* Icon Hover Color (Dark Mode) */
+body.dark-mode.liquid-glass-mode .module-feature-card:hover .card-icon {
+    color: white !important;
+}
+
+body.liquid-glass-mode .card-arrow {
+    color: #8bc34a;
+}
+
+/* Liquid Glass Overrides for Manual Attendance */
+
+body.liquid-glass-mode .manual-inner-tabs {
+    background: rgba(255, 255, 255, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    backdrop-filter: blur(4px);
+    box-shadow: none;
+}
+
+body.liquid-glass-mode .manual-tab-button {
+    background: rgba(255, 255, 255, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    backdrop-filter: blur(4px);
+    border-radius: 12px;
+    transition: all 0.2s ease;
+    box-shadow: none;
+}
+
+body.liquid-glass-mode .manual-tab-button:hover {
+    background: rgba(255, 255, 255, 0.5);
+    transform: translateY(-1px);
+}
+
+body.liquid-glass-mode .manual-tab-button.active {
+    background: rgba(255, 255, 255, 0.8);
+    border-color: #8bc34a;
+    color: #558b2f;
+    box-shadow: 0 4px 12px rgba(139, 195, 74, 0.15);
+}
+
+body.liquid-glass-mode .manual-select-card {
+    background: rgba(255, 255, 255, 0.45);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.04);
+    border-radius: 16px;
+}
+
+body.liquid-glass-mode .manual-employee-dropdown {
+    background: rgba(255, 255, 255, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(8px);
+}
+
+/* Liquid Glass Overrides for Automatic Attendance */
+
+body.liquid-glass-mode .inner-tabs {
+    background: rgba(255, 255, 255, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    backdrop-filter: blur(4px);
+    box-shadow: none;
+}
+
+body.liquid-glass-mode .method-card,
+body.liquid-glass-mode .control-card {
+    background: rgba(255, 255, 255, 0.45);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.04);
+    border-radius: 20px;
+}
+
+body.liquid-glass-mode .method-card:hover {
+    background: rgba(255, 255, 255, 0.55);
+    transform: translateY(-5px);
+    box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.08);
+}
+
+body.liquid-glass-mode .method-icon {
+    background: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(4px);
+}
+
+body.liquid-glass-mode .scanner-display {
+    background: rgba(255, 255, 255, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    backdrop-filter: blur(4px);
+}
+
+/* Liquid Glass Overrides for Logs Page Specifics */
+
+/* Using !important to ensure override of specific page styles */
+body.liquid-glass-mode .attendance-logs .filter-card,
+body.liquid-glass-mode .attendance-logs .results-card,
+body.liquid-glass-mode .attendance-logs .export-card {
+    background: rgba(255, 255, 255, 0.45) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.6) !important;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.04) !important;
+    border-radius: 16px;
+}
+
+body.liquid-glass-mode .filter-input,
+body.liquid-glass-mode .filter-select {
+    background: rgba(255, 255, 255, 0.4) !important;
+    border: 1px solid rgba(255, 255, 255, 0.5) !important;
+    backdrop-filter: blur(8px);
+}
+
+body.liquid-glass-mode .search-box {
+    background: transparent !important;
+}
+
+body.liquid-glass-mode .export-btn {
+    background: rgba(255, 255, 255, 0.45) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.6) !important;
+}
+
+body.liquid-glass-mode .export-btn:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.6) !important;
+    transform: translateY(-4px);
+}
+
+body.liquid-glass-mode .export-icon {
+    background: rgba(255, 255, 255, 0.5) !important;
+    backdrop-filter: blur(4px);
+}
+
+/* Results Info Badge */
+body.liquid-glass-mode .results-info {
+    background: rgba(139, 195, 74, 0.2) !important;
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(139, 195, 74, 0.3) !important;
+}
+
+/* Liquid Glass Overrides for Attendance Overview Specifics */
+
+body.liquid-glass-mode .attendance-overview .stat-card {
+    background: rgba(255, 255, 255, 0.45) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.6) !important;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.04) !important;
+    border-radius: 24px;
+}
+
+body.liquid-glass-mode .attendance-overview .stat-card:hover {
+    background: rgba(255, 255, 255, 0.6) !important;
+    transform: translateY(-5px);
+    box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.08) !important;
+}
+
+body.liquid-glass-mode .attendance-overview .filters-card {
+    background: rgba(255, 255, 255, 0.45) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.6) !important;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.04) !important;
+    border-radius: 16px;
+}
+
+body.liquid-glass-mode .attendance-overview .filter-input,
+body.liquid-glass-mode .attendance-overview .filter-select {
+    background: rgba(255, 255, 255, 0.4) !important;
+    border: 1px solid rgba(255, 255, 255, 0.5) !important;
+    backdrop-filter: blur(8px);
+}
+
+body.liquid-glass-mode .attendance-overview .search-box {
+    background: transparent !important;
+}
+
+/* Liquid Glass Overrides for Attendance Overview Data & Charts */
+
+body.liquid-glass-mode .attendance-overview .data-section,
+body.liquid-glass-mode .attendance-overview .chart-card,
+body.liquid-glass-mode .attendance-overview .status-card {
+    background: rgba(255, 255, 255, 0.45) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.6) !important;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.04) !important;
+    border-radius: 16px;
+}
+
+body.liquid-glass-mode .attendance-overview .data-section:hover,
+body.liquid-glass-mode .attendance-overview .chart-card:hover,
+body.liquid-glass-mode .attendance-overview .status-card:hover {
+    background: rgba(255, 255, 255, 0.55) !important;
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.08) !important;
+}
+
+/* Liquid Glass Overrides for Manual Attendance Specifics */
+
+body.liquid-glass-mode .manual-select-card,
+body.liquid-glass-mode .manual-status-card,
+body.liquid-glass-mode .manual-activity-card {
+    background: rgba(255, 255, 255, 0.45) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.6) !important;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.04) !important;
+    border-radius: 16px;
+}
+
+body.liquid-glass-mode .manual-employee-dropdown {
+    background: rgba(255, 255, 255, 0.4) !important;
+    border: 1px solid rgba(255, 255, 255, 0.5) !important;
+    backdrop-filter: blur(8px);
+}
+
+body.liquid-glass-mode .manual-clock-btn {
+    background: rgba(255, 255, 255, 0.45) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.6) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05) !important;
+}
+
+body.liquid-glass-mode .manual-clock-btn:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.6) !important;
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Liquid Glass Overrides for Automatic Attendance Specifics */
+
+body.liquid-glass-mode .method-card,
+body.liquid-glass-mode .control-card,
+body.liquid-glass-mode .scans-card,
+body.liquid-glass-mode .auto-stats-section .stat-card {
+    background: rgba(255, 255, 255, 0.45) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.6) !important;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.04) !important;
+    border-radius: 20px;
+}
+
+body.liquid-glass-mode .method-card:hover,
+body.liquid-glass-mode .auto-stats-section .stat-card:hover {
+    background: rgba(255, 255, 255, 0.55) !important;
+    transform: translateY(-5px);
+    box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.08) !important;
+}
+
+body.liquid-glass-mode .scanner-display {
+    background: transparent !important;
+    border: none !important;
+    backdrop-filter: none !important;
+    box-shadow: none !important;
+}
+
+body.liquid-glass-mode .control-btn {
+    backdrop-filter: blur(4px);
+}
+
+/* Liquid Glass Overrides for Method Divider */
+body.liquid-glass-mode .method-divider {
+    color: rgba(0, 0, 0, 0.4) !important;
+    font-weight: 800 !important;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+}
+
+html.dark-mode body.liquid-glass-mode .method-divider {
+    color: rgba(255, 255, 255, 0.4) !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Liquid Glass Overrides for Icons - Remove Box/Background */
+
+body.liquid-glass-mode .stat-icon,
+body.liquid-glass-mode .method-icon,
+body.liquid-glass-mode .scanner-icon,
+body.liquid-glass-mode .manual-btn-icon,
+body.liquid-glass-mode .block-icon,
+body.liquid-glass-mode .instructions-icon,
+body.liquid-glass-mode .card-icon {
+    background: transparent !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    border: none !important;
+}
+
+/* Ensure icons are visible */
+body.liquid-glass-mode .stat-icon i,
+body.liquid-glass-mode .method-icon i,
+body.liquid-glass-mode .scanner-icon i,
+body.liquid-glass-mode .manual-btn-icon i,
+body.liquid-glass-mode .block-icon i,
+body.liquid-glass-mode .instructions-icon i,
+body.liquid-glass-mode .card-icon i {
+    font-size: 1.5em; /* Slightly larger to compensate for lack of box */
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+}
+
+/* Icon Hover Color (Dark Mode) */
+body.dark-mode.liquid-glass-mode .module-feature-card:hover .card-icon svg,
+body.dark-mode.liquid-glass-mode .module-feature-card:hover i {
+    color: white !important;
+    stroke: white !important;
+}
+
+/* Dark Mode Overrides */
+html.dark-mode body.liquid-glass-mode .stat-card,
+html.dark-mode body.liquid-glass-mode .module-feature-card,
+html.dark-mode body.liquid-glass-mode .attendance-method-card,
+html.dark-mode body.liquid-glass-mode .scanner-container,
+html.dark-mode body.liquid-glass-mode .manual-entry-container,
+html.dark-mode body.liquid-glass-mode .instructions-card,
+html.dark-mode body.liquid-glass-mode .attendance-overview .data-section,
+html.dark-mode body.liquid-glass-mode .attendance-overview .chart-card,
+html.dark-mode body.liquid-glass-mode .attendance-overview .status-card,
+html.dark-mode body.liquid-glass-mode .attendance-overview .filters-card,
+html.dark-mode body.liquid-glass-mode .manual-select-card,
+html.dark-mode body.liquid-glass-mode .manual-status-card,
+html.dark-mode body.liquid-glass-mode .manual-activity-card,
+html.dark-mode body.liquid-glass-mode .method-card,
+html.dark-mode body.liquid-glass-mode .control-card,
+html.dark-mode body.liquid-glass-mode .scans-card,
+html.dark-mode body.liquid-glass-mode .auto-stats-section .stat-card,
+html.dark-mode body.liquid-glass-mode .attendance-logs .filter-card,
+html.dark-mode body.liquid-glass-mode .attendance-logs .results-card,
+html.dark-mode body.liquid-glass-mode .attendance-logs .export-card {
+    background: rgba(30, 30, 30, 0.45) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2) !important;
+}
+
+html.dark-mode body.liquid-glass-mode .stat-card:hover,
+html.dark-mode body.liquid-glass-mode .module-feature-card:hover,
+html.dark-mode body.liquid-glass-mode .attendance-method-card:hover,
+html.dark-mode body.liquid-glass-mode .attendance-overview .data-section:hover,
+html.dark-mode body.liquid-glass-mode .attendance-overview .chart-card:hover,
+html.dark-mode body.liquid-glass-mode .attendance-overview .status-card:hover,
+html.dark-mode body.liquid-glass-mode .method-card:hover,
+html.dark-mode body.liquid-glass-mode .auto-stats-section .stat-card:hover {
+    background: rgba(40, 40, 40, 0.55) !important;
+}
+
+html.dark-mode body.liquid-glass-mode .manual-employee-dropdown,
+html.dark-mode body.liquid-glass-mode .filter-input,
+html.dark-mode body.liquid-glass-mode .filter-select,
+html.dark-mode body.liquid-glass-mode .attendance-overview .filter-input,
+html.dark-mode body.liquid-glass-mode .attendance-overview .filter-select {
+    background: rgba(30, 30, 30, 0.4) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    color: #e0e0e0 !important;
+}
+
+html.dark-mode body.liquid-glass-mode .manual-clock-btn,
+html.dark-mode body.liquid-glass-mode .export-btn {
+    background: rgba(30, 30, 30, 0.45) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    color: #e0e0e0 !important;
+}
+
+html.dark-mode body.liquid-glass-mode .manual-clock-btn:hover:not(:disabled),
+html.dark-mode body.liquid-glass-mode .export-btn:hover:not(:disabled) {
+    background: rgba(40, 40, 40, 0.6) !important;
+}
+
+html.dark-mode body.liquid-glass-mode .results-info {
+    background: rgba(139, 195, 74, 0.1) !important;
+    border-color: rgba(139, 195, 74, 0.2) !important;
+    color: #e0e0e0 !important;
+}
+
+html.dark-mode body.liquid-glass-mode .inner-tabs .tab-button {
+    background: rgba(30, 30, 30, 0.4) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    color: #e0e0e0 !important;
+}
+
+html.dark-mode body.liquid-glass-mode .inner-tabs .tab-button:hover {
+    background: rgba(40, 40, 40, 0.6) !important;
+}
+
+html.dark-mode body.liquid-glass-mode .inner-tabs .tab-button.active {
+    background: rgba(50, 50, 50, 0.8) !important;
+    border-color: #8bc34a !important;
+    color: #8bc34a !important;
+}
+
+html.dark-mode body.liquid-glass-mode .stat-icon,
+html.dark-mode body.liquid-glass-mode .card-icon {
+    background: transparent !important;
+}

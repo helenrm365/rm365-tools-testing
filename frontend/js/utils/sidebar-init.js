@@ -158,6 +158,92 @@
       toggle.setAttribute('aria-checked', String(enabled));
     });
   }
+
+  function enableLiquidGlass() {
+    document.body.classList.add('liquid-glass-mode');
+    
+    // Inject CSS if not already present
+    if (!document.getElementById('liquid-glass-styles')) {
+        const timestamp = new Date().getTime();
+        
+        const files = [
+            { id: 'liquid-glass-styles', href: '/css/components/liquid-glass/glass-components.css' },
+            { id: 'liquid-glass-sidebar', href: '/css/sidebar/liquid-glass/sidebar.css' },
+            { id: 'liquid-glass-attendance', href: '/css/attendance/liquid-glass/attendance.css' },
+            { id: 'liquid-glass-enrollment', href: '/css/enrollment/liquid-glass/enrollment.css' },
+            { id: 'liquid-glass-home', href: '/css/home/liquid-glass/home.css' },
+            { id: 'liquid-glass-inventory', href: '/css/inventory/liquid-glass/inventory.css' },
+            { id: 'liquid-glass-labels', href: '/css/labels/liquid-glass/labels.css' },
+            { id: 'liquid-glass-magentodata', href: '/css/magentodata/liquid-glass/magentodata.css' },
+            { id: 'liquid-glass-orders', href: '/css/orders/liquid-glass/orders.css' },
+            { id: 'liquid-glass-salesdata', href: '/css/salesdata/liquid-glass/salesdata.css' },
+            { id: 'liquid-glass-usermanagement', href: '/css/usermanagement/liquid-glass/usermanagement.css' },
+            { id: 'liquid-glass-login', href: '/css/login/liquid-glass/login.css' }
+        ];
+
+        files.forEach(file => {
+            if (!document.getElementById(file.id)) {
+                const link = document.createElement('link');
+                link.id = file.id;
+                link.rel = 'stylesheet';
+                link.href = `${file.href}?v=${timestamp}`;
+                document.head.appendChild(link);
+            }
+        });
+    }
+
+    // Add liquid background if not present
+    if (!document.querySelector('.liquid-bg')) {
+        const bg = document.createElement('div');
+        bg.className = 'liquid-bg';
+        bg.innerHTML = `
+            <div class="blob blob-1"></div>
+            <div class="blob blob-2"></div>
+            <div class="blob blob-3"></div>
+        `;
+        document.body.prepend(bg);
+    }
+  }
+
+  function disableLiquidGlass() {
+    document.body.classList.remove('liquid-glass-mode');
+    
+    // Remove liquid background
+    const bg = document.querySelector('.liquid-bg');
+    if (bg) bg.remove();
+  }
+
+  function initLiquidGlass() {
+    const toggle = document.getElementById('liquidGlassToggle');
+    if (!toggle) return;
+    
+    const GLASS_KEY = 'liquidGlassEnabled'; // Changed key to match old one for compatibility
+    
+    // Check saved state
+    const stored = localStorage.getItem(GLASS_KEY);
+    const isEnabled = stored === 'true';
+    
+    // Set initial state
+    if (isEnabled) {
+      enableLiquidGlass();
+    }
+    
+    // Sync toggle
+    toggle.checked = isEnabled;
+    toggle.setAttribute('aria-checked', String(isEnabled));
+    
+    // Add listener
+    toggle.addEventListener('change', (e) => {
+      const enabled = e.target.checked;
+      if (enabled) {
+        enableLiquidGlass();
+      } else {
+        disableLiquidGlass();
+      }
+      localStorage.setItem(GLASS_KEY, String(enabled));
+      toggle.setAttribute('aria-checked', String(enabled));
+    });
+  }
   
   function initSearch() {
     const searchInput = document.getElementById('searchInput');
@@ -430,6 +516,7 @@
   
   function init() {
     initDarkMode();
+    initLiquidGlass();
     initSearch();
     initNavigation();
     initLogout();
