@@ -37,3 +37,6 @@ local-hardware-bridge/
 
 # Additional venvs
 .venv-*/
+
+# macOS
+.DS_Store
