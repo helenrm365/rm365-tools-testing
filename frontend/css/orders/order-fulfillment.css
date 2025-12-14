@@ -45,7 +45,7 @@ html.dark-mode .order-fulfillment .page-subtitle {
   height: 1px;
   background: linear-gradient(
     to right,
-    rgba(0, 0, 0, 0.08) 0%,
+    rgba(0, 0, 0, 0.2) 0%,
     transparent 100%
   );
   border: none;
@@ -70,7 +70,7 @@ html.dark-mode .order-fulfillment .page-divider {
   background: white;
   padding: 1rem;
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
@@ -225,7 +225,7 @@ html.dark-mode .section-subtitle {
   background: white;
   border-radius: 16px;
   padding: 2rem;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
   overflow: visible;
 }
 
@@ -263,7 +263,7 @@ html.dark-mode .lookup-card {
   border-radius: 16px;
   padding: 2rem;
   margin-bottom: 2rem;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
   border-left: 4px solid #8bc34a;
 }
 
@@ -439,7 +439,7 @@ html.dark-mode .info-value.address-info {
   border-radius: 12px;
   padding: 1.5rem;
   margin-bottom: 2rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
@@ -540,7 +540,7 @@ html.dark-mode .progress-bar {
   background: white;
   border-radius: 16px;
   padding: 2rem;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
 html.dark-mode .scanner-interface-card {
@@ -791,7 +791,7 @@ html.dark-mode .message-area.info {
   background: white;
   border-radius: 16px;
   padding: 1.5rem;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
 html.dark-mode .items-list {
@@ -1979,7 +1979,7 @@ html.dark-mode .order-card {
   background: linear-gradient(135deg, rgba(139, 195, 74, 0.15), rgba(122, 184, 45, 0.15));
   border: 2px solid var(--primary);
   color: var(--primary);
-  box-shadow: 0 4px 12px rgba(139, 195, 74, 0.2);
+  box-shadow: 0 0 12px rgba(139, 195, 74, 0.2);
   transform: none;
 }
 
@@ -2004,7 +2004,7 @@ html.dark-mode .order-card {
   background: linear-gradient(135deg, rgba(33, 150, 243, 0.15), rgba(25, 118, 210, 0.15));
   border-color: #2196F3;
   color: #2196F3;
-  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.2);
+  box-shadow: 0 0 12px rgba(33, 150, 243, 0.2);
   transform: none;
 }
 
@@ -2023,7 +2023,7 @@ html.dark-mode .order-card {
   background: linear-gradient(135deg, rgba(255, 152, 0, 0.15), rgba(245, 124, 0, 0.15));
   border-color: #FF9800;
   color: #FF9800;
-  box-shadow: 0 4px 12px rgba(255, 152, 0, 0.2);
+  box-shadow: 0 0 12px rgba(255, 152, 0, 0.2);
   transform: none;
 }
 
@@ -2042,7 +2042,7 @@ html.dark-mode .order-card {
   background: linear-gradient(135deg, rgba(102, 187, 106, 0.15), rgba(67, 160, 71, 0.15));
   border-color: #66BB6A;
   color: #66BB6A;
-  box-shadow: 0 4px 12px rgba(102, 187, 106, 0.2);
+  box-shadow: 0 0 12px rgba(102, 187, 106, 0.2);
   transform: none;
 }
 

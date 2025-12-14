@@ -44,7 +44,7 @@ html.dark-mode .labels-generator .page-subtitle {
   height: 1px;
   background: linear-gradient(
     to right,
-    rgba(0, 0, 0, 0.08) 0%,
+    rgba(0, 0, 0, 0.2) 0%,
     transparent 100%
   );
   border: none;
@@ -497,7 +497,7 @@ html.dark-mode .labels-generator .selection-info {
   border-radius: 12px;
   overflow: auto;
   max-height: 70vh;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
   border: 2px solid #f1f5f9;
 }
 

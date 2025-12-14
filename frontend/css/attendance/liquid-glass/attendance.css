@@ -112,14 +112,14 @@ body.liquid-glass-mode .card-arrow {
 
 /* Liquid Glass Overrides for Manual Attendance */
 
-body.liquid-glass-mode .manual-inner-tabs {
+body.liquid-glass-mode .inner-tabs {
     background: rgba(255, 255, 255, 0.3);
     border: 1px solid rgba(255, 255, 255, 0.4);
     backdrop-filter: blur(4px);
     box-shadow: none;
 }
 
-body.liquid-glass-mode .manual-tab-button {
+body.liquid-glass-mode .tab-button {
     background: rgba(255, 255, 255, 0.3);
     border: 1px solid rgba(255, 255, 255, 0.4);
     backdrop-filter: blur(4px);
@@ -128,12 +128,12 @@ body.liquid-glass-mode .manual-tab-button {
     box-shadow: none;
 }
 
-body.liquid-glass-mode .manual-tab-button:hover {
+body.liquid-glass-mode .tab-button:hover {
     background: rgba(255, 255, 255, 0.5);
     transform: translateY(-1px);
 }
 
-body.liquid-glass-mode .manual-tab-button.active {
+body.liquid-glass-mode .tab-button.active {
     background: rgba(255, 255, 255, 0.8);
     border-color: #8bc34a;
     color: #558b2f;
@@ -493,4 +493,28 @@ html.dark-mode body.liquid-glass-mode .inner-tabs .tab-button.active {
 html.dark-mode body.liquid-glass-mode .stat-icon,
 html.dark-mode body.liquid-glass-mode .card-icon {
     background: transparent !important;
+}
+
+/* Dark Mode Overrides for Tabs (Manual & Universal) */
+html.dark-mode body.liquid-glass-mode .inner-tabs,
+html.dark-mode body.liquid-glass-mode .inner-tabs {
+    background: rgba(30, 30, 30, 0.4) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    backdrop-filter: blur(4px);
+}
+
+html.dark-mode body.liquid-glass-mode .tab-button {
+    background: rgba(30, 30, 30, 0.4) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    color: #e0e0e0 !important;
+}
+
+html.dark-mode body.liquid-glass-mode .tab-button:hover {
+    background: rgba(40, 40, 40, 0.6) !important;
+}
+
+html.dark-mode body.liquid-glass-mode .tab-button.active {
+    background: rgba(50, 50, 50, 0.8) !important;
+    border-color: #8bc34a !important;
+    color: #8bc34a !important;
 }

@@ -1,5 +1,12 @@
 /* Liquid Glass Overrides for Magento Data Module */
 
+/* Main Container Transparency */
+body.liquid-glass-mode .magentodata-page,
+body.liquid-glass-mode .main-container,
+body.liquid-glass-mode .magento-content {
+    background: transparent !important;
+}
+
 /* Card Backgrounds */
 body.liquid-glass-mode .module-feature-card,
 body.liquid-glass-mode .card,
@@ -146,4 +153,53 @@ html.dark-mode body.liquid-glass-mode .card-animated:hover {
 html.dark-mode body.liquid-glass-mode .module-feature-card:hover .card-icon svg {
     stroke: white !important;
     color: white !important;
+}
+
+/* Search Box */
+body.liquid-glass-mode .search-box {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+body.liquid-glass-mode .search-input {
+    background: rgba(255, 255, 255, 0.4) !important;
+    border: 1px solid rgba(255, 255, 255, 0.5) !important;
+    backdrop-filter: blur(8px);
+    color: #2c3e50;
+}
+
+html.dark-mode body.liquid-glass-mode .search-input {
+    background: rgba(0, 0, 0, 0.2) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    color: #fff !important;
+}
+
+/* Table Styles */
+body.liquid-glass-mode .table-container {
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+}
+
+
+/* Empty State */
+body.liquid-glass-mode .empty-state {
+    background: transparent !important;
+}
+
+/* Pagination Controls */
+body.liquid-glass-mode .pagination-controls {
+    background: rgba(255, 255, 255, 0.45) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.6) !important;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.04) !important;
+    border-radius: 16px;
+}
+
+html.dark-mode body.liquid-glass-mode .pagination-controls {
+    background: rgba(30, 30, 30, 0.45) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2) !important;
 }

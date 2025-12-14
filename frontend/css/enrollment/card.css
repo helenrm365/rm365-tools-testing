@@ -46,7 +46,7 @@ html.dark-mode .enrollment-card .page-subtitle {
   height: 1px;
   background: linear-gradient(
     to right,
-    rgba(0, 0, 0, 0.08) 0%,
+    rgba(0, 0, 0, 0.2) 0%,
     transparent 100%
   );
   border: none;
@@ -71,7 +71,7 @@ html.dark-mode .enrollment-card .page-divider {
   background: white;
   padding: 1rem;
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
@@ -182,7 +182,7 @@ html.dark-mode .enrollment-card .tab-button.active:hover {
 .enrollment-card-section {
   background: white;
   border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   border: 1px solid rgba(0, 0, 0, 0.06);
   overflow: hidden;
 }
@@ -315,7 +315,7 @@ html.dark-mode .enrollment-card .uid-label {
   padding: 0.75rem 1rem;
   background: white;
   border-radius: 8px;
-  border: 2px solid rgba(0, 0, 0, 0.08);
+  border: 2px solid rgba(0, 0, 0, 0.2);
   min-height: 60px;
   display: flex;
   align-items: center;

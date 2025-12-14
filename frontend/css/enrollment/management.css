@@ -46,7 +46,7 @@ html.dark-mode .enrollment-management .page-subtitle {
   height: 1px;
   background: linear-gradient(
     to right,
-    rgba(0, 0, 0, 0.08) 0%,
+    rgba(0, 0, 0, 0.2) 0%,
     transparent 100%
   );
   border: none;
@@ -71,7 +71,7 @@ html.dark-mode .enrollment-management .page-divider {
   background: white;
   padding: 1rem;
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
@@ -185,7 +185,7 @@ html.dark-mode .enrollment-management .tab-button.active:hover {
   background: white;
   border-radius: 16px;
   padding: 2rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   border: 1px solid rgba(0, 0, 0, 0.06);
   animation: cardFadeIn 0.4s ease;
 }
@@ -347,7 +347,7 @@ html.dark-mode .divider-line {
   width: 100%;
   padding: var(--input-padding-y, 0.75rem) var(--input-padding-x, 1rem) var(--input-padding-y, 0.75rem) 2.75rem;
   min-height: var(--input-height, 44px);
-  border: 2px solid rgba(0, 0, 0, 0.08);
+  border: 2px solid rgba(0, 0, 0, 0.2);
   border-radius: 12px;
   font-size: 0.95rem;
   background: linear-gradient(135deg, #f8f9fa, #e9ecef);
@@ -510,7 +510,7 @@ html.dark-mode .filter-select option {
   background: white;
   border-radius: 14px;
   padding: 1.5rem;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
   border: 1px solid rgba(0, 0, 0, 0.06);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   animation: cardSlideIn 0.4s ease;

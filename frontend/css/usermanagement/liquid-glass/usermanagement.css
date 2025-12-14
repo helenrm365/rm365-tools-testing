@@ -64,23 +64,6 @@ body.liquid-glass-mode .tab-button.active {
     color: #2c3e50 !important;
 }
 
-/* Table Overrides */
-body.liquid-glass-mode .modern-table,
-body.liquid-glass-mode .table-wrap {
-    background: transparent !important;
-    box-shadow: none !important;
-    border: none !important;
-}
-
-body.liquid-glass-mode .modern-table th {
-    background: rgba(255, 255, 255, 0.3) !important;
-    backdrop-filter: blur(4px);
-}
-
-body.liquid-glass-mode .modern-table tr:hover td {
-    background: rgba(255, 255, 255, 0.2) !important;
-}
-
 /* Dark Mode Adjustments */
 html.dark-mode body.liquid-glass-mode .module-feature-card,
 html.dark-mode body.liquid-glass-mode .card,
@@ -104,15 +87,6 @@ html.dark-mode body.liquid-glass-mode .tab-button.active {
     background: rgba(139, 195, 74, 0.2) !important;
     border-color: rgba(139, 195, 74, 0.5) !important;
     color: #fff !important;
-}
-
-html.dark-mode body.liquid-glass-mode .modern-table th {
-    background: rgba(0, 0, 0, 0.3) !important;
-    color: #e0e0e0 !important;
-}
-
-html.dark-mode body.liquid-glass-mode .modern-table tr:hover td {
-    background: rgba(255, 255, 255, 0.05) !important;
 }
 
 html.dark-mode body.liquid-glass-mode .module-feature-card:hover,

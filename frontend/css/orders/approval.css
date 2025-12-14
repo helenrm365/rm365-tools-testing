@@ -57,7 +57,7 @@ html.dark-mode .order-approval .page-subtitle {
   height: 1px;
   background: linear-gradient(
     to right,
-    rgba(0, 0, 0, 0.08) 0%,
+    rgba(0, 0, 0, 0.2) 0%,
     transparent 100%
   );
   border: none;
@@ -82,7 +82,7 @@ html.dark-mode .order-approval .page-divider {
   background: white;
   padding: 1rem;
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;

@@ -49,7 +49,6 @@ body.liquid-glass-mode .module-feature-card:hover .card-icon svg {
 body.liquid-glass-mode .filter-collapse-header,
 body.liquid-glass-mode .filter-summary,
 body.liquid-glass-mode .checkbox-label,
-body.liquid-glass-mode .search-box,
 body.liquid-glass-mode .filter-toggle-btn {
     background: rgba(255, 255, 255, 0.3) !important;
     backdrop-filter: blur(4px);
@@ -96,7 +95,6 @@ html.dark-mode body.liquid-glass-mode .inner-tabs {
 html.dark-mode body.liquid-glass-mode .filter-collapse-header,
 html.dark-mode body.liquid-glass-mode .filter-summary,
 html.dark-mode body.liquid-glass-mode .checkbox-label,
-html.dark-mode body.liquid-glass-mode .search-box,
 html.dark-mode body.liquid-glass-mode .filter-toggle-btn {
     background: rgba(0, 0, 0, 0.2) !important;
     border-color: rgba(255, 255, 255, 0.1) !important;

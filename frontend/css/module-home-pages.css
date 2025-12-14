@@ -67,7 +67,7 @@ html.dark-mode .hero-subtitle {
   background: linear-gradient(
     to right,
     transparent 0%,
-    rgba(0, 0, 0, 0.08) 50%,
+    rgba(0, 0, 0, 0.2) 50%,
     transparent 100%
   );
   border: none;

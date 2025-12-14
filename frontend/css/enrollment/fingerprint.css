@@ -44,7 +44,7 @@ html.dark-mode .enrollment-fingerprint .page-subtitle {
   height: 1px;
   background: linear-gradient(
     to right,
-    rgba(0, 0, 0, 0.08) 0%,
+    rgba(0, 0, 0, 0.2) 0%,
     transparent 100%
   );
   border: none;
@@ -69,7 +69,7 @@ html.dark-mode .enrollment-fingerprint .page-divider {
   background: white;
   padding: 1rem;
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
@@ -176,7 +176,7 @@ html.dark-mode .enrollment-fingerprint .tab-button.active:hover {
 .enrollment-fingerprint .enrollment-fp-section {
   background: white;
   border-radius: 16px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
   border: 2px solid rgba(0, 0, 0, 0.04);
   transition: all 0.3s ease;
 }
@@ -317,7 +317,7 @@ html.dark-mode .enrollment-fingerprint .preview-label {
   min-height: 280px;
   background: white;
   border-radius: 12px;
-  border: 2px solid rgba(0, 0, 0, 0.08);
+  border: 2px solid rgba(0, 0, 0, 0.2);
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -533,7 +533,7 @@ html.dark-mode .enrollment-fingerprint .employee-dropdown:focus {
   font-size: 0.95rem;
   font-weight: 500;
   transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   min-height: auto;
 }
 

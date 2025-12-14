@@ -69,7 +69,29 @@ html.dark-mode .attendance-overview .page-divider {
   background: white;
   padding: 1rem;
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(139, 195, 74, 0.3) transparent;
+}
+
+.attendance-overview .inner-tabs::-webkit-scrollbar {
+  height: 6px;
+}
+
+.attendance-overview .inner-tabs::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.attendance-overview .inner-tabs::-webkit-scrollbar-thumb {
+  background: rgba(139, 195, 74, 0.3);
+  border-radius: 3px;
+}
+
+.attendance-overview .inner-tabs::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 195, 74, 0.5);
 }
 
 html.dark-mode .attendance-overview .inner-tabs {
@@ -78,7 +100,8 @@ html.dark-mode .attendance-overview .inner-tabs {
 
 /* Tab Button - Flat color secondary UI control */
 .attendance-overview .tab-button {
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 180px;
   padding: 1rem 1.5rem;
   background: linear-gradient(135deg, #f8f9fa, #e9ecef);
   border: none;
@@ -94,6 +117,7 @@ html.dark-mode .attendance-overview .inner-tabs {
   justify-content: center;
   gap: 0.75rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  white-space: nowrap;
 }
 
 .attendance-overview .tab-button:hover {
@@ -136,10 +160,6 @@ html.dark-mode .attendance-overview .tab-button.active:hover {
   box-shadow: 0 4px 12px rgba(139, 195, 74, 0.4);
 }
 
-.attendance-overview .tab-button i {
-  font-size: 1.125rem;
-}
-
 /* ===== Main Content Wrapper ===== */
 .attendance-overview-content {
   display: flex;
@@ -168,7 +188,7 @@ html.dark-mode .attendance-overview .section-title {
 
 /* ===== Stats Section ===== */
 .attendance-overview .stats-section {
-  animation: fadeInUp 0.4s ease-out;
+  /* animation: fadeInUp 0.4s ease-out; */
 }
 
 .attendance-overview .stats-grid {
@@ -265,7 +285,7 @@ html.dark-mode .attendance-overview .stat-label {
 
 /* ===== Filters Section ===== */
 .attendance-overview .filters-section {
-  animation: fadeInUp 0.4s ease-out 0.1s backwards;
+  /* animation: fadeInUp 0.4s ease-out 0.1s backwards; */
 }
 
 .attendance-overview .filters-card {
@@ -411,7 +431,7 @@ html.dark-mode .attendance-overview .filter-select:focus {
   border-radius: 16px;
   padding: 2rem;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  animation: fadeInUp 0.4s ease-out;
+  /* animation: fadeInUp 0.4s ease-out; */
 }
 
 html.dark-mode .attendance-overview .data-section {

@@ -22,7 +22,7 @@ html.dark-mode .section-title {
 
 /* ===== Stats Components ===== */
 .stats-section {
-  animation: fadeInUp 0.4s ease-out;
+  /* animation: fadeInUp 0.4s ease-out; */
 }
 
 .stats-grid {
@@ -67,7 +67,7 @@ html.dark-mode .section-title {
 
 /* ===== Filters Components ===== */
 .filters-section {
-  animation: fadeInUp 0.4s ease-out 0.1s backwards;
+  /* animation: fadeInUp 0.4s ease-out 0.1s backwards; */
 }
 
 /* Filters card styles are now in components/card.css */
@@ -209,7 +209,7 @@ html.dark-mode .filter-select:focus {
   border-radius: 16px;
   padding: 2rem;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  animation: fadeInUp 0.4s ease-out;
+  /* animation: fadeInUp 0.4s ease-out; */
 }
 
 html.dark-mode .data-section {
@@ -233,7 +233,7 @@ html.dark-mode .data-section h4 {
 
 /* ===== Chart Components ===== */
 .chart-section {
-  animation: fadeInUp 0.4s ease-out 0.2s backwards;
+  /* animation: fadeInUp 0.4s ease-out 0.2s backwards; */
 }
 
 .chart-card {
@@ -263,7 +263,7 @@ html.dark-mode .chart-card {
 
 /* ===== Status Components ===== */
 .status-section {
-  animation: fadeInUp 0.4s ease-out 0.3s backwards;
+  /* animation: fadeInUp 0.4s ease-out 0.3s backwards; */
 }
 
 .status-card {

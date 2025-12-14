@@ -9,7 +9,7 @@ body.liquid-glass-mode .sidebar {
 }
 
 body.liquid-glass-mode .sidebar-header {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+    border-bottom: none;
 }
 
 body.liquid-glass-mode .search-container {
@@ -41,7 +41,9 @@ body.liquid-glass-mode .nav-item.active {
 }
 
 body.liquid-glass-mode .sidebar-divider {
-    background: rgba(255, 255, 255, 0.3);
+    background: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.2) 50%, transparent 100%);
+    height: 1px;
+    border: none;
 }
 
 /* Dark Mode Sidebar */
@@ -52,7 +54,7 @@ html.dark-mode body.liquid-glass-mode .sidebar {
 }
 
 html.dark-mode body.liquid-glass-mode .sidebar-header {
-    border-bottom-color: rgba(255, 255, 255, 0.1);
+    border-bottom: none;
 }
 
 html.dark-mode body.liquid-glass-mode .search-container {
@@ -80,7 +82,7 @@ html.dark-mode body.liquid-glass-mode .nav-item.active {
 }
 
 html.dark-mode body.liquid-glass-mode .sidebar-divider {
-    background: rgba(255, 255, 255, 0.1);
+    background: linear-gradient(to right, transparent 0%, rgba(255, 255, 255, 0.2) 50%, transparent 100%);
 }
 
 html.dark-mode body.liquid-glass-mode .welcome-message {

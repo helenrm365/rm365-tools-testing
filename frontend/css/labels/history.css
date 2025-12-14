@@ -44,7 +44,7 @@ html.dark-mode .labels-history .page-subtitle {
   height: 1px;
   background: linear-gradient(
     to right,
-    rgba(0, 0, 0, 0.08) 0%,
+    rgba(0, 0, 0, 0.2) 0%,
     transparent 100%
   );
   border: none;
@@ -203,7 +203,7 @@ html.dark-mode .labels-history .control-select:hover {
   background: white;
   border-radius: 12px;
   border: 2px solid #f1f5f9;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
   margin-bottom: 2rem;
 }
 
@@ -241,7 +241,7 @@ html.dark-mode .labels-history .loading-message {
   border-radius: 12px;
   border: 2px solid #f1f5f9;
   padding: 1.5rem;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
 }
 
 html.dark-mode .labels-history .history-details {
@@ -266,7 +266,7 @@ html.dark-mode .labels-history .history-details h4 {
   background: white;
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
   border: 2px solid #f1f5f9;
 }
 

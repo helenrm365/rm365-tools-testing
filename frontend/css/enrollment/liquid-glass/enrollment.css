@@ -89,17 +89,46 @@ body.liquid-glass-mode .employee-card:hover {
 }
 
 body.liquid-glass-mode .search-box {
-    background: transparent !important;
-}
-
-body.liquid-glass-mode .search-input {
     background: rgba(255, 255, 255, 0.4) !important;
     border: 1px solid rgba(255, 255, 255, 0.5) !important;
     backdrop-filter: blur(8px);
+    box-shadow: none !important;
+}
+
+body.liquid-glass-mode .search-input {
+    background: transparent !important;
+    border: none !important;
+    backdrop-filter: none !important;
+    box-shadow: none !important;
+}
+
+/* C-Select Overrides for Enrollment */
+body.liquid-glass-mode .c-select__button {
+    background: rgba(255, 255, 255, 0.4) !important;
+    border: 1px solid rgba(255, 255, 255, 0.5) !important;
+    backdrop-filter: blur(8px);
+    color: #2c3e50 !important;
+    box-shadow: none !important;
+}
+
+body.liquid-glass-mode .c-select__button:hover {
+    background: rgba(255, 255, 255, 0.6) !important;
+    border-color: rgba(255, 255, 255, 0.8) !important;
+}
+
+body.liquid-glass-mode .c-select__list {
+    background: rgba(255, 255, 255, 0.85) !important;
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.6) !important;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1) !important;
+}
+
+body.liquid-glass-mode .c-select__option:hover {
+    background: rgba(139, 195, 74, 0.2) !important;
 }
 
 body.liquid-glass-mode .filter-select {
-    background: rgba(255, 255, 255, 0.4) !important;
+    background-color: rgba(255, 255, 255, 0.4) !important;
     border: 1px solid rgba(255, 255, 255, 0.5) !important;
     backdrop-filter: blur(8px);
 }
@@ -172,7 +201,7 @@ html.dark-mode body.liquid-glass-mode .help-section {
 
 html.dark-mode body.liquid-glass-mode .help-icon,
 html.dark-mode body.liquid-glass-mode .block-icon {
-    background: rgba(255, 255, 255, 0.1) !important;
+    background: transparent !important;
 }
 
 html.dark-mode body.liquid-glass-mode .employee-dropdown {
@@ -194,9 +223,14 @@ html.dark-mode body.liquid-glass-mode .employee-card:hover {
     background: rgba(40, 40, 40, 0.6) !important;
 }
 
-html.dark-mode body.liquid-glass-mode .search-input,
-html.dark-mode body.liquid-glass-mode .filter-select {
+html.dark-mode body.liquid-glass-mode .search-input {
     background: rgba(0, 0, 0, 0.2) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    color: #fff !important;
+}
+
+html.dark-mode body.liquid-glass-mode .filter-select {
+    background-color: rgba(0, 0, 0, 0.2) !important;
     border-color: rgba(255, 255, 255, 0.1) !important;
     color: #fff !important;
 }
@@ -211,4 +245,26 @@ body.liquid-glass-mode .action-block.filter-block {
 /* Ensure the filter controls themselves are glass */
 body.liquid-glass-mode .filter-controls .filter-item {
     background: transparent !important;
+}
+
+/* Dark Mode Overrides for C-Select in Enrollment */
+html.dark-mode body.liquid-glass-mode .c-select__button {
+    background: rgba(0, 0, 0, 0.2) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    color: #fff !important;
+}
+
+html.dark-mode body.liquid-glass-mode .c-select__button:hover {
+    background: rgba(0, 0, 0, 0.3) !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+html.dark-mode body.liquid-glass-mode .c-select__list {
+    background: rgba(30, 30, 30, 0.9) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    color: #e0e0e0 !important;
+}
+
+html.dark-mode body.liquid-glass-mode .c-select__option:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
 }

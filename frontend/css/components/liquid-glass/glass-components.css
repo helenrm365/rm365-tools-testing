@@ -124,6 +124,24 @@ html.dark-mode body.liquid-glass-mode .card-description {
 /* Overrides for existing components in Liquid Glass Mode */
 
 /* Global Input Styles for Liquid Glass Mode */
+
+/* Selects - Preserve background images (arrows) */
+body.liquid-glass-mode select,
+body.liquid-glass-mode .sort-select,
+body.liquid-glass-mode .manual-employee-dropdown,
+body.liquid-glass-mode .filter-select,
+body.liquid-glass-mode .control-select,
+body.liquid-glass-mode .employee-dropdown,
+body.liquid-glass-mode .form-select {
+    background-color: rgba(255, 255, 255, 0.4) !important;
+    border: 1px solid rgba(255, 255, 255, 0.5) !important;
+    backdrop-filter: blur(8px);
+    color: #2c3e50;
+    transition: all 0.3s ease;
+}
+
+/* Inputs - Wipe background images (gradients) */
+body.liquid-glass-mode .modern-input,
 body.liquid-glass-mode input[type="text"],
 body.liquid-glass-mode input[type="search"],
 body.liquid-glass-mode input[type="email"],
@@ -131,7 +149,6 @@ body.liquid-glass-mode input[type="password"],
 body.liquid-glass-mode input[type="number"],
 body.liquid-glass-mode .form-input,
 body.liquid-glass-mode .search-input,
-body.liquid-glass-mode .form-select,
 body.liquid-glass-mode .form-textarea {
     background: rgba(255, 255, 255, 0.4) !important;
     border: 1px solid rgba(255, 255, 255, 0.5) !important;
@@ -140,11 +157,25 @@ body.liquid-glass-mode .form-textarea {
     transition: all 0.3s ease;
 }
 
-/* Focus State */
+/* Focus State - Selects */
+body.liquid-glass-mode select:focus,
+body.liquid-glass-mode .sort-select:focus,
+body.liquid-glass-mode .manual-employee-dropdown:focus,
+body.liquid-glass-mode .filter-select:focus,
+body.liquid-glass-mode .control-select:focus,
+body.liquid-glass-mode .employee-dropdown:focus,
+body.liquid-glass-mode .form-select:focus {
+    background-color: rgba(255, 255, 255, 0.8) !important;
+    border-color: #8bc34a !important;
+    box-shadow: 0 0 0 4px rgba(139, 195, 74, 0.1) !important;
+    outline: none;
+}
+
+/* Focus State - Inputs */
+body.liquid-glass-mode .modern-input:focus,
 body.liquid-glass-mode input:focus,
 body.liquid-glass-mode .form-input:focus,
 body.liquid-glass-mode .search-input:focus,
-body.liquid-glass-mode .form-select:focus,
 body.liquid-glass-mode .form-textarea:focus {
     background: rgba(255, 255, 255, 0.8) !important;
     border-color: #8bc34a !important;
@@ -152,11 +183,25 @@ body.liquid-glass-mode .form-textarea:focus {
     outline: none;
 }
 
+/* Ensure options are readable in Light Mode */
+body.liquid-glass-mode select option {
+    background-color: #ffffff;
+    color: #2c3e50;
+}
+
 /* Sidebar Search Specifics */
 body.liquid-glass-mode .sidebar .search-container {
     background: rgba(255, 255, 255, 0.2) !important;
     border: 1px solid rgba(255, 255, 255, 0.3) !important;
     backdrop-filter: blur(4px);
+}
+
+/* Fix for Double Box Issue in Search Containers */
+body.liquid-glass-mode .search-box {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
 }
 
 body.liquid-glass-mode .sidebar .search-input {
@@ -181,6 +226,22 @@ body.liquid-glass-mode .primary-btn:hover {
 }
 
 /* Dark Mode Form Elements */
+
+/* Selects - Preserve background images (arrows) */
+html.dark-mode body.liquid-glass-mode select,
+html.dark-mode body.liquid-glass-mode .sort-select,
+html.dark-mode body.liquid-glass-mode .manual-employee-dropdown,
+html.dark-mode body.liquid-glass-mode .filter-select,
+html.dark-mode body.liquid-glass-mode .control-select,
+html.dark-mode body.liquid-glass-mode .employee-dropdown,
+html.dark-mode body.liquid-glass-mode .form-select {
+    background-color: rgba(0, 0, 0, 0.2) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    color: #fff !important;
+}
+
+/* Inputs - Wipe background images (gradients) */
+html.dark-mode body.liquid-glass-mode .modern-input,
 html.dark-mode body.liquid-glass-mode input[type="text"],
 html.dark-mode body.liquid-glass-mode input[type="search"],
 html.dark-mode body.liquid-glass-mode input[type="email"],
@@ -188,20 +249,38 @@ html.dark-mode body.liquid-glass-mode input[type="password"],
 html.dark-mode body.liquid-glass-mode input[type="number"],
 html.dark-mode body.liquid-glass-mode .form-input,
 html.dark-mode body.liquid-glass-mode .search-input,
-html.dark-mode body.liquid-glass-mode .form-select,
 html.dark-mode body.liquid-glass-mode .form-textarea {
     background: rgba(0, 0, 0, 0.2) !important;
     border-color: rgba(255, 255, 255, 0.1) !important;
     color: #fff !important;
 }
 
+/* Focus State - Selects */
+html.dark-mode body.liquid-glass-mode select:focus,
+html.dark-mode body.liquid-glass-mode .sort-select:focus,
+html.dark-mode body.liquid-glass-mode .manual-employee-dropdown:focus,
+html.dark-mode body.liquid-glass-mode .filter-select:focus,
+html.dark-mode body.liquid-glass-mode .control-select:focus,
+html.dark-mode body.liquid-glass-mode .employee-dropdown:focus,
+html.dark-mode body.liquid-glass-mode .form-select:focus {
+    background-color: rgba(0, 0, 0, 0.4) !important;
+    border-color: #8bc34a !important;
+}
+
+/* Focus State - Inputs */
+html.dark-mode body.liquid-glass-mode .modern-input:focus,
 html.dark-mode body.liquid-glass-mode input:focus,
 html.dark-mode body.liquid-glass-mode .form-input:focus,
 html.dark-mode body.liquid-glass-mode .search-input:focus,
-html.dark-mode body.liquid-glass-mode .form-select:focus,
 html.dark-mode body.liquid-glass-mode .form-textarea:focus {
     background: rgba(0, 0, 0, 0.4) !important;
     border-color: #8bc34a !important;
+}
+
+/* Ensure options are readable in Dark Mode */
+html.dark-mode body.liquid-glass-mode select option {
+    background-color: #2a2a2a;
+    color: #ecf0f1;
 }
 
 /* Dark Mode Sidebar Search */
@@ -391,4 +470,163 @@ html.dark-mode body.liquid-glass-mode:not(:has(.inventory-management)) .modern-t
 
 html.dark-mode body.liquid-glass-mode:not(:has(.inventory-management)) .modern-table tr:hover td {
     background: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Universal Footer Liquid Glass Overrides */
+body.liquid-glass-mode .universal-footer {
+    background: rgba(255, 255, 255, 0.3) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid rgba(255, 255, 255, 0.4) !important;
+    color: #2c3e50;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.02);
+}
+
+html.dark-mode body.liquid-glass-mode .universal-footer {
+    background: rgba(30, 30, 30, 0.45) !important;
+    border-top-color: rgba(255, 255, 255, 0.1) !important;
+    color: #e0e0e0;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.1);
+}
+
+body.liquid-glass-mode .footer-divider {
+    color: rgba(0, 0, 0, 0.2);
+}
+
+html.dark-mode body.liquid-glass-mode .footer-divider {
+    color: rgba(255, 255, 255, 0.2);
+}
+
+/* C-Select Liquid Glass Overrides */
+body.liquid-glass-mode .c-select__button {
+    background: rgba(255, 255, 255, 0.4) !important;
+    border: 1px solid rgba(255, 255, 255, 0.5) !important;
+    backdrop-filter: blur(8px);
+    color: #2c3e50 !important;
+    box-shadow: none !important;
+}
+
+body.liquid-glass-mode .c-select__button:hover {
+    background: rgba(255, 255, 255, 0.6) !important;
+    border-color: rgba(255, 255, 255, 0.8) !important;
+}
+
+body.liquid-glass-mode .c-select__list {
+    background: rgba(255, 255, 255, 0.85) !important;
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.6) !important;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1) !important;
+}
+
+body.liquid-glass-mode .c-select__option:hover {
+    background: rgba(139, 195, 74, 0.2) !important;
+}
+
+/* Dark Mode C-Select */
+html.dark-mode body.liquid-glass-mode .c-select__button {
+    background: rgba(0, 0, 0, 0.2) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    color: #fff !important;
+}
+
+html.dark-mode body.liquid-glass-mode .c-select__button:hover {
+    background: rgba(0, 0, 0, 0.3) !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+html.dark-mode body.liquid-glass-mode .c-select__list {
+    background: rgba(30, 30, 30, 0.9) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    color: #e0e0e0 !important;
+}
+
+html.dark-mode body.liquid-glass-mode .c-select__option:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* ===== Frosted Table Styles ===== */
+/* Applies to all tables except Inventory Management (which uses different classes) */
+
+/* Table Container - The main frosted wrapper */
+body.liquid-glass-mode .table-container,
+body.liquid-glass-mode .table-wrap {
+    background: rgba(255, 255, 255, 0.3) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1) !important;
+}
+
+/* Modern Table - Make transparent to show container background */
+body.liquid-glass-mode .modern-table,
+body.liquid-glass-mode .products-table {
+    background: transparent !important;
+}
+
+/* Header - Slightly more opaque for contrast */
+body.liquid-glass-mode .modern-table thead,
+body.liquid-glass-mode .products-table thead,
+body.liquid-glass-mode .products-table .table-header {
+    background: transparent !important;
+}
+
+body.liquid-glass-mode .modern-table th,
+body.liquid-glass-mode .products-table th {
+    background: rgba(255, 255, 255, 0.4) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3) !important;
+    color: #2c3e50 !important;
+}
+
+/* Rows - Transparent to show container frosted effect */
+body.liquid-glass-mode .modern-table tbody tr,
+body.liquid-glass-mode .products-table tbody tr,
+body.liquid-glass-mode .products-table .table-body tr {
+    background: transparent !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Hover Effect */
+body.liquid-glass-mode .modern-table tbody tr:hover,
+body.liquid-glass-mode .products-table tbody tr:hover,
+body.liquid-glass-mode .products-table .table-body tr:hover {
+    background: rgba(255, 255, 255, 0.2) !important;
+}
+
+body.liquid-glass-mode .modern-table td,
+body.liquid-glass-mode .products-table td {
+    color: #2c3e50 !important;
+}
+
+/* Dark Mode Adjustments */
+html.dark-mode body.liquid-glass-mode .table-container,
+html.dark-mode body.liquid-glass-mode .table-wrap {
+    background: rgba(30, 30, 30, 0.45) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2) !important;
+}
+
+html.dark-mode body.liquid-glass-mode .modern-table th,
+html.dark-mode body.liquid-glass-mode .products-table th {
+    background: rgba(40, 40, 40, 0.6) !important;
+    border-bottom-color: rgba(255, 255, 255, 0.1) !important;
+    color: #e0e0e0 !important;
+}
+
+html.dark-mode body.liquid-glass-mode .modern-table tbody tr,
+html.dark-mode body.liquid-glass-mode .products-table tbody tr,
+html.dark-mode body.liquid-glass-mode .products-table .table-body tr {
+    border-bottom-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+html.dark-mode body.liquid-glass-mode .modern-table tbody tr:hover,
+html.dark-mode body.liquid-glass-mode .products-table tbody tr:hover,
+html.dark-mode body.liquid-glass-mode .products-table .table-body tr:hover {
+    background: rgba(255, 255, 255, 0.05) !important;
+}
+
+html.dark-mode body.liquid-glass-mode .modern-table td,
+html.dark-mode body.liquid-glass-mode .products-table td {
+    color: #e0e0e0 !important;
 }

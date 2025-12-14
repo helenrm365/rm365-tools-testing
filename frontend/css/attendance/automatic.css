@@ -69,7 +69,29 @@ html.dark-mode .attendance-automatic .page-divider {
   background: white;
   padding: 1rem;
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(139, 195, 74, 0.3) transparent;
+}
+
+.attendance-automatic .inner-tabs::-webkit-scrollbar {
+  height: 6px;
+}
+
+.attendance-automatic .inner-tabs::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.attendance-automatic .inner-tabs::-webkit-scrollbar-thumb {
+  background: rgba(139, 195, 74, 0.3);
+  border-radius: 3px;
+}
+
+.attendance-automatic .inner-tabs::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 195, 74, 0.5);
 }
 
 html.dark-mode .attendance-automatic .inner-tabs {
@@ -78,7 +100,8 @@ html.dark-mode .attendance-automatic .inner-tabs {
 
 /* Tab Button - Flat color secondary UI control */
 .attendance-automatic .tab-button {
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 180px;
   padding: 1rem 1.5rem;
   background: linear-gradient(135deg, #f8f9fa, #e9ecef);
   border: none;
@@ -94,6 +117,7 @@ html.dark-mode .attendance-automatic .inner-tabs {
   justify-content: center;
   gap: 0.75rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  white-space: nowrap;
 }
 
 .attendance-automatic .tab-button:hover {
@@ -130,14 +154,18 @@ html.dark-mode .attendance-automatic .tab-button.active {
   background: linear-gradient(135deg, #8bc34a, #7ab82d);
   color: white;
   box-shadow: 0 3px 10px rgba(139, 195, 74, 0.3);
+  transform: translateY(-1px);
 }
 
 html.dark-mode .attendance-automatic .tab-button.active:hover {
   box-shadow: 0 4px 12px rgba(139, 195, 74, 0.4);
 }
 
-.attendance-automatic .tab-button i {
+.attendance-automatic .tab-button i,
+.attendance-automatic .tab-button svg {
   font-size: 1.125rem;
+  width: 1.125rem;
+  height: 1.125rem;
 }
 
 /* Main Content */
@@ -151,7 +179,7 @@ html.dark-mode .attendance-automatic .tab-button.active:hover {
 
 /* Scanner Methods Section */
 .attendance-automatic .scanner-methods-section {
-  animation: fadeInUp 0.4s ease-out;
+  /* animation: fadeInUp 0.4s ease-out; */
 }
 
 .attendance-automatic .methods-grid {
@@ -277,7 +305,7 @@ html.dark-mode .attendance-automatic .method-divider {
 
 /* Scanner Control Section */
 .attendance-automatic .scanner-control-section {
-  animation: fadeInUp 0.4s ease-out 0.1s backwards;
+  /* animation: fadeInUp 0.4s ease-out 0.1s backwards; */
 }
 
 .attendance-automatic .control-card {
@@ -425,7 +453,7 @@ html.dark-mode .attendance-automatic .scanner-message {
 
 /* Scan Result Alert */
 .attendance-automatic .scan-result-alert {
-  animation: slideDown 0.3s ease-out;
+  /* animation: slideDown 0.3s ease-out; */
   margin-bottom: 2rem;
 }
 
@@ -512,7 +540,7 @@ html.dark-mode .attendance-automatic .alert-close {
 
 /* Statistics Section */
 .attendance-automatic .auto-stats-section {
-  animation: fadeInUp 0.4s ease-out 0.2s backwards;
+  /* animation: fadeInUp 0.4s ease-out 0.2s backwards; */
 }
 
 .attendance-automatic .scanner-status-icon {
@@ -543,7 +571,7 @@ html.dark-mode .attendance-automatic .alert-close {
 
 /* Recent Scans Section */
 .attendance-automatic .recent-scans-section {
-  animation: fadeInUp 0.4s ease-out 0.3s backwards;
+  /* animation: fadeInUp 0.4s ease-out 0.3s backwards; */
 }
 
 .attendance-automatic .scans-card {
