@@ -1,15 +1,16 @@
 """
-Magento API Client for Magento Data Module
+Magento Data Client for Magento Data Module
 
-This client fetches orders from Magento and breaks them down into product-level rows,
+This client fetches orders from Magento Database directly and breaks them down into product-level rows,
 similar to how eMagicOne Store Manager works.
 """
-import requests
 import logging
 from typing import Optional, List, Dict, Any
 from datetime import datetime
+import pymysql
 
 from core.config import settings
+from .db import get_magento_connection
 
 logger = logging.getLogger(__name__)
 
@@ -23,52 +24,14 @@ CUSTOMER_GROUP_MAP = {
 
 
 class MagentoDataClient:
-    """Client to interact with Magento REST API for sales data extraction"""
+    """Client to interact with Magento Database for sales data extraction"""
     
     def __init__(self, region: str = "uk"):
         """
         Initialize Magento client for a specific region.
-        For now, all regions use UK connection until FR/NL are configured in .env
         """
         self.region = region.lower()
         
-        # For now, use UK Magento connection for all regions
-        # TODO: Add region-specific credentials when FR and NL are configured
-        self.base_url = (settings.MAGENTO_BASE_URL or '').rstrip('/')
-        self.access_token = settings.MAGENTO_ACCESS_TOKEN or ''
-        
-        if not self.base_url:
-            raise ValueError("MAGENTO_BASE_URL environment variable not set")
-        if not self.access_token:
-            raise ValueError("MAGENTO_ACCESS_TOKEN environment variable not set")
-        
-        self.headers = {
-            'Authorization': f'Bearer {self.access_token}',
-            'Content-Type': 'application/json'
-        }
-    
-    def _make_request(self, endpoint: str, method: str = 'GET', params: Optional[Dict] = None) -> Any:
-        """Make a request to Magento API"""
-        # Safety guard: Only allow GET requests
-        if method.upper() != 'GET':
-            raise ValueError(f"Only GET requests are allowed. Attempted method: {method}")
-        
-        url = f"{self.base_url}/rest/V1/{endpoint}"
-        
-        try:
-            response = requests.request(
-                method=method,
-                url=url,
-                headers=self.headers,
-                params=params,
-                timeout=30
-            )
-            response.raise_for_status()
-            return response.json()
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Magento API error: {str(e)}")
-            raise Exception(f"Magento API error: {str(e)}")
-    
     def fetch_orders_product_breakdown(
         self,
         start_date: Optional[str] = None,
@@ -79,7 +42,7 @@ class MagentoDataClient:
         sort_desc: bool = False
     ) -> List[Dict[str, Any]]:
         """
-        Fetch orders from Magento and break them down into product-level rows.
+        Fetch orders from Magento DB and break them down into product-level rows.
         
         Similar to eMagicOne Store Manager:
         - Each order is split into multiple rows, one per product
@@ -89,7 +52,7 @@ class MagentoDataClient:
         Args:
             start_date: Start date filter (format: YYYY-MM-DD HH:MM:SS)
             end_date: End date filter (format: YYYY-MM-DD HH:MM:SS)
-            page_size: Number of orders to fetch per page
+            page_size: Number of orders to fetch per page (Not used in DB implementation but kept for compatibility)
             max_orders: Maximum number of orders to fetch (None for all)
             progress_callback: Optional callback function to report progress
             sort_desc: Sort by created_at DESC to get latest orders first (default False for ASC)
@@ -98,236 +61,186 @@ class MagentoDataClient:
             List of product-level rows
         """
         product_rows = []
-        current_page = 1
-        total_orders_fetched = 0
         
-        while True:
-            # Build search criteria
-            sort_direction = 'DESC' if sort_desc else 'ASC'
-            params = {
-                'searchCriteria[pageSize]': str(page_size),
-                'searchCriteria[currentPage]': str(current_page),
-                'searchCriteria[sortOrders][0][field]': 'created_at',
-                'searchCriteria[sortOrders][0][direction]': sort_direction
-            }
-            
-            filter_index = 0
-            
-            # Add date filters if provided
-            if start_date:
-                # Use 'gt' (greater than) to exclude already-synced orders
-                params[f'searchCriteria[filterGroups][{filter_index}][filters][0][field]'] = 'created_at'
-                params[f'searchCriteria[filterGroups][{filter_index}][filters][0][value]'] = start_date
-                params[f'searchCriteria[filterGroups][{filter_index}][filters][0][conditionType]'] = 'gt'
-                filter_index += 1
-            
-            if end_date:
-                # Use 'lt' (less than) to get orders before the specified date
-                params[f'searchCriteria[filterGroups][{filter_index}][filters][0][field]'] = 'created_at'
-                params[f'searchCriteria[filterGroups][{filter_index}][filters][0][value]'] = end_date
-                params[f'searchCriteria[filterGroups][{filter_index}][filters][0][conditionType]'] = 'lt'
-                filter_index += 1
-            
-            # Fetch orders
-            try:
-                logger.info(f"Fetching page {current_page} of orders from Magento...")
-                result = self._make_request('orders', params=params)
-                orders = result.get('items', [])
-                total_count = result.get('total_count', 0)
+        try:
+            conn = get_magento_connection(self.region)
+            with conn.cursor() as cursor:
+                # Base query to fetch order items with order details
+                # We join sales_order_item with sales_order to get order details
+                # We also join with other tables if needed for customer group, addresses etc.
                 
-                if not orders:
-                    logger.info(f"No more orders to fetch. Total fetched: {total_orders_fetched}")
-                    break
+                # Note: This is a simplified query. You might need to adjust table names 
+                # and joins based on your specific Magento version and schema.
+                # Assuming standard Magento 2 tables: sales_order, sales_order_item, sales_order_address
                 
-                logger.info(f"Processing {len(orders)} orders from page {current_page}...")
+                query = """
+                    SELECT 
+                        so.increment_id as order_number,
+                        so.created_at,
+                        so.status,
+                        so.order_currency_code as currency,
+                        so.grand_total,
+                        so.customer_email,
+                        so.customer_firstname,
+                        so.customer_lastname,
+                        so.customer_group_id,
+                        soi.sku,
+                        soi.name,
+                        soi.qty_invoiced,
+                        soi.original_price,
+                        soi.price,
+                        soi.product_type,
+                        
+                        -- Billing Address
+                        sab.street as billing_street,
+                        sab.city as billing_city,
+                        sab.region as billing_region,
+                        sab.postcode as billing_postcode,
+                        sab.country_id as billing_country_id,
+                        
+                        -- Shipping Address
+                        sas.street as shipping_street,
+                        sas.city as shipping_city,
+                        sas.region as shipping_region,
+                        sas.postcode as shipping_postcode,
+                        sas.country_id as shipping_country_id
+                        
+                    FROM sales_order_item soi
+                    JOIN sales_order so ON soi.order_id = so.entity_id
+                    LEFT JOIN sales_order_address sab ON so.billing_address_id = sab.entity_id
+                    LEFT JOIN sales_order_address sas ON so.shipping_address_id = sas.entity_id
+                    WHERE soi.product_type != 'configurable'
+                """
                 
-                # Report progress if callback provided
+                params = []
+                
+                if start_date:
+                    query += " AND so.created_at > %s"
+                    params.append(start_date)
+                
+                if end_date:
+                    query += " AND so.created_at < %s"
+                    params.append(end_date)
+                
+                # Sort order
+                sort_direction = 'DESC' if sort_desc else 'ASC'
+                query += f" ORDER BY so.created_at {sort_direction}"
+                
+                if max_orders:
+                    query += " LIMIT %s"
+                    params.append(max_orders)
+                
+                logger.info(f"Executing Magento DB query for {self.region}...")
+                cursor.execute(query, params)
+                
+                rows = cursor.fetchall()
+                total_count = len(rows)
+                logger.info(f"Fetched {total_count} rows from Magento DB")
+                
                 if progress_callback:
-                    progress_msg = f"Processing page {current_page} ({total_orders_fetched}/{total_count} orders, {len(product_rows)} rows)"
-                    progress_callback(progress_msg)
+                    progress_callback(f"Processing {total_count} rows from database...")
                 
-                # Process each order and break it down into product-level rows
-                for order in orders:
-                    rows = self._extract_product_rows(order)
-                    product_rows.extend(rows)
-                    total_orders_fetched += 1
-                    
-                    # Check if we've reached the max orders limit
-                    if max_orders and total_orders_fetched >= max_orders:
-                        logger.info(f"Reached max orders limit: {max_orders}")
-                        if progress_callback:
-                            progress_callback(f"Completed: {total_orders_fetched} orders, {len(product_rows)} rows")
-                        return product_rows
-                
-                # Check if there are more pages
-                if len(orders) < page_size or current_page * page_size >= total_count:
-                    logger.info(f"Fetched all available orders. Total: {total_orders_fetched}")
-                    if progress_callback:
-                        progress_callback(f"Completed: {total_orders_fetched} orders, {len(product_rows)} rows")
-                    break
-                
-                current_page += 1
-                
-            except Exception as e:
-                logger.error(f"Error fetching orders on page {current_page}: {e}")
-                break
+                for row in rows:
+                    processed_row = self._process_db_row(row)
+                    if processed_row:
+                        product_rows.append(processed_row)
+                        
+        except Exception as e:
+            logger.error(f"Error fetching data from Magento DB: {e}")
+            raise
+        finally:
+            if 'conn' in locals() and conn.open:
+                conn.close()
         
-        logger.info(f"Extracted {len(product_rows)} product-level rows from {total_orders_fetched} orders")
         return product_rows
-    
-    def _extract_product_rows(self, order: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """
-        Extract product-level rows from a single order.
+
+    def _process_db_row(self, row: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Process a raw database row into the expected format"""
         
-        Each order item becomes a separate row with:
-        - order_number: Order increment ID
-        - created_at: Order creation date
-        - sku: Product SKU
-        - name: Product name
-        - qty: Invoiced quantity (0 if not invoiced/cancelled)
-        - original_price: Original unit price
-        - special_price: Special/discounted price (if applicable)
-        - status: Order status
-        - currency: Order currency
-        - grand_total: Order grand total
-        - customer_email: Customer email
-        - customer_full_name: Customer name
-        - billing_address: Formatted billing address
-        - shipping_address: Formatted shipping address
-        - customer_group_code: Customer group
-        """
-        rows = []
-        
-        order_number = order.get('increment_id', '')
-        created_at = order.get('created_at', '')
-        status = order.get('status', '')
-        currency = order.get('order_currency_code', '')
-        grand_total = float(order.get('grand_total', 0))
-        
-        # Customer information
-        customer_email = order.get('customer_email', '')
-        customer_firstname = order.get('customer_firstname', '')
-        customer_lastname = order.get('customer_lastname', '')
+        # Customer Name
+        customer_firstname = row.get('customer_firstname') or ''
+        customer_lastname = row.get('customer_lastname') or ''
         customer_full_name = f"{customer_firstname} {customer_lastname}".strip()
         
-        # Get customer group - try multiple fields
+        # Customer Group
+        group_id = row.get('customer_group_id')
         customer_group_code = None
-        if 'extension_attributes' in order and 'customer_group_code' in order['extension_attributes']:
-            customer_group_code = order['extension_attributes']['customer_group_code']
-        elif 'customer_group_id' in order:
-            # Map group ID to code using standard Magento mapping
-            group_id = order.get('customer_group_id')
-            if group_id is not None:
-                try:
-                    group_id_int = int(group_id)
-                    customer_group_code = CUSTOMER_GROUP_MAP.get(group_id_int, f"Group {group_id_int}")
-                except (ValueError, TypeError):
-                    customer_group_code = str(group_id)
+        if group_id is not None:
+             customer_group_code = CUSTOMER_GROUP_MAP.get(group_id, f"Group {group_id}")
+
+        # Addresses
+        billing_address = self._format_db_address(
+            row.get('billing_street'),
+            row.get('billing_city'),
+            row.get('billing_region'),
+            row.get('billing_postcode'),
+            row.get('billing_country_id')
+        )
         
-        # Billing address
-        billing_address = self._format_address(order.get('billing_address'))
+        shipping_address = self._format_db_address(
+            row.get('shipping_street'),
+            row.get('shipping_city'),
+            row.get('shipping_region'),
+            row.get('shipping_postcode'),
+            row.get('shipping_country_id')
+        )
         
-        # Shipping address (try extension_attributes first, then fallback)
-        shipping_address = None
-        ext_attrs = order.get('extension_attributes', {})
-        if ext_attrs.get('shipping_assignments'):
-            shipping_assignment = ext_attrs['shipping_assignments'][0]
-            if shipping_assignment.get('shipping'):
-                shipping_addr = shipping_assignment['shipping'].get('address', {})
-                shipping_address = self._format_address(shipping_addr)
-        
-        # If no shipping address found, use billing as fallback
         if not shipping_address:
             shipping_address = billing_address
+
+        # Price Logic
+        original_price = float(row.get('original_price') or 0)
+        price = float(row.get('price') or 0)
         
-        # Process order items
-        for item in order.get('items', []):
-            # Skip parent/configurable items, only process simple products
-            if item.get('product_type') == 'configurable':
-                continue
+        special_price = None
+        if original_price and price < original_price:
+            special_price = price
+        elif not original_price:
+            original_price = price
             
-            sku = item.get('sku', '')
-            name = item.get('name', '')
-            
-            # Extract price information
-            original_price = float(item.get('original_price', 0)) if item.get('original_price') else None
-            price = float(item.get('price', 0))
-            
-            # Determine special_price
-            # If the actual price is different from original_price, use it as special_price
-            special_price = None
-            if original_price and price < original_price:
-                special_price = price
-            elif not original_price:
-                # If no original_price, treat the current price as original
-                original_price = price
-            
-            # Get invoiced quantity from the order item
-            # qty_invoiced will be 0 for cancelled orders, and the actual invoiced qty for others
-            qty_invoiced = float(item.get('qty_invoiced', 0))
-            
-            # Only include items with a valid SKU
-            if sku:
-                row = {
-                    'order_number': order_number,
-                    'created_at': created_at,
-                    'sku': sku,
-                    'name': name,
-                    'qty': int(qty_invoiced),  # invoiced quantity from order item
-                    'original_price': original_price,
-                    'special_price': special_price,
-                    'status': status,
-                    'currency': currency,
-                    'grand_total': grand_total,
-                    'customer_email': customer_email,
-                    'customer_full_name': customer_full_name,
-                    'billing_address': billing_address,
-                    'shipping_address': shipping_address,
-                    'customer_group_code': customer_group_code
-                }
-                rows.append(row)
+        qty_invoiced = float(row.get('qty_invoiced') or 0)
         
-        return rows
-    
-    def _format_address(self, address: Optional[Dict[str, Any]]) -> Optional[str]:
-        """Format an address dictionary into a single string"""
-        if not address:
-            return None
-        
+        return {
+            'order_number': row.get('order_number'),
+            'created_at': str(row.get('created_at')),
+            'sku': row.get('sku'),
+            'name': row.get('name'),
+            'qty': int(qty_invoiced),
+            'original_price': original_price,
+            'special_price': special_price,
+            'status': row.get('status'),
+            'currency': row.get('currency'),
+            'grand_total': float(row.get('grand_total') or 0),
+            'customer_email': row.get('customer_email'),
+            'customer_full_name': customer_full_name,
+            'billing_address': billing_address,
+            'shipping_address': shipping_address,
+            'customer_group_code': customer_group_code
+        }
+
+    def _format_db_address(self, street, city, region, postcode, country_id) -> Optional[str]:
+        """Format address parts into a string"""
         parts = []
-        
-        # Street
-        street = address.get('street', [])
-        if isinstance(street, list):
-            parts.extend([s for s in street if s])
-        elif street:
-            parts.append(street)
-        
-        # City
-        if address.get('city'):
-            parts.append(address.get('city'))
-        
-        # Region
-        if address.get('region'):
-            parts.append(address.get('region'))
-        
-        # Postcode
-        if address.get('postcode'):
-            parts.append(address.get('postcode'))
-        
-        # Country
-        if address.get('country_id'):
-            parts.append(address.get('country_id'))
-        
+        if street:
+            parts.append(street.replace('\n', ', '))
+        if city:
+            parts.append(city)
+        if region:
+            parts.append(region)
+        if postcode:
+            parts.append(postcode)
+        if country_id:
+            parts.append(country_id)
+            
         return ', '.join(parts) if parts else None
-    
+
     def fetch_orders_product_breakdown_batched(
         self,
         table_name: str,
         region: str,
         start_date: Optional[str] = None,
         end_date: Optional[str] = None,
-        page_size: int = 100,
+        page_size: int = 1000, # Increased default page size for DB
         max_orders: Optional[int] = None,
         username: Optional[str] = None,
         repo = None,
@@ -335,173 +248,157 @@ class MagentoDataClient:
         cancelled: Optional[callable] = None
     ) -> Dict[str, Any]:
         """
-        Fetch orders from Magento and process them in batches, saving metadata after each batch.
-        This enables incremental progress tracking and graceful cancellation.
-        
-        Args:
-            table_name: Database table to save to
-            region: Region being synced (for metadata)
-            start_date: Start date filter (format: YYYY-MM-DD HH:MM:SS)
-            end_date: End date filter (format: YYYY-MM-DD HH:MM:SS)
-            page_size: Number of orders to fetch per page
-            max_orders: Maximum number of orders to fetch (None for all)
-            username: User performing the sync
-            repo: Repository instance for saving data and metadata
-            progress_callback: Optional callback function to report progress
-            cancelled: Optional callable that returns True if sync should be cancelled
-        
-        Returns:
-            Dict with rows_imported, orders_processed, and was_cancelled status
+        Fetch orders from Magento DB and process them in batches.
         """
         if not repo:
             raise ValueError("repo parameter is required for batched sync")
-        
+            
         total_rows_imported = 0
         total_orders_processed = 0
-        current_page = 1
         was_cancelled = False
-        error_occurred = None  # Track if an error occurred and what it was
+        error_occurred = None
+        
+        # For DB implementation, we can fetch in larger chunks or stream
+        # But to keep logic similar to API version (resumable, batched commits),
+        # we will implement pagination using LIMIT/OFFSET or keyset pagination on created_at
+        
+        current_offset = 0
         
         while True:
-            # Check if cancelled
             if cancelled and cancelled():
-                logger.info(f"Sync cancelled by user after {total_orders_processed} orders")
+                logger.info(f"Sync cancelled by user")
                 was_cancelled = True
                 break
-            
-            # Build search criteria for this page
-            params = {
-                'searchCriteria[pageSize]': str(page_size),
-                'searchCriteria[currentPage]': str(current_page),
-                'searchCriteria[sortOrders][0][field]': 'created_at',
-                'searchCriteria[sortOrders][0][direction]': 'ASC'  # Oldest first for resumability
-            }
-            
-            filter_index = 0
-            
-            # Add date filters if provided
-            if start_date:
-                params[f'searchCriteria[filterGroups][{filter_index}][filters][0][field]'] = 'created_at'
-                params[f'searchCriteria[filterGroups][{filter_index}][filters][0][value]'] = start_date
-                params[f'searchCriteria[filterGroups][{filter_index}][filters][0][conditionType]'] = 'gt'
-                filter_index += 1
-            
-            if end_date:
-                params[f'searchCriteria[filterGroups][{filter_index}][filters][0][field]'] = 'created_at'
-                params[f'searchCriteria[filterGroups][{filter_index}][filters][0][value]'] = end_date
-                params[f'searchCriteria[filterGroups][{filter_index}][filters][0][conditionType]'] = 'lteq'
-                filter_index += 1
-            
-            # Fetch orders for this page
+                
             try:
-                logger.info(f"Fetching page {current_page} of orders from Magento...")
-                result = self._make_request('orders', params=params)
-                orders = result.get('items', [])
-                total_count = result.get('total_count', 0)
-                
-                if not orders:
-                    logger.info(f"No more orders to fetch. Total fetched: {total_orders_processed}")
-                    break
-                
-                logger.info(f"Processing {len(orders)} orders from page {current_page}...")
-                
-                if progress_callback:
-                    progress_msg = f"Processing page {current_page} ({total_orders_processed}/{total_count} orders, {total_rows_imported} rows)"
-                    progress_callback(progress_msg)
-                
-                # Process each order and extract product rows
-                batch_product_rows = []
-                batch_order_dates = []  # Track order dates even if no products
-                for order in orders:
-                    rows = self._extract_product_rows(order)
-                    batch_product_rows.extend(rows)
-                    # Track order creation date even if it has no products
-                    created_at = order.get('created_at', '')
-                    if created_at:  # Only add if created_at exists
-                        batch_order_dates.append(created_at)
+                conn = get_magento_connection(self.region)
+                with conn.cursor() as cursor:
+                    # Query to get a batch of orders first to handle "orders processed" count correctly
+                    # and to group items by order for atomic commits per batch of orders
+                    
+                    order_query = """
+                        SELECT entity_id, increment_id, created_at 
+                        FROM sales_order 
+                        WHERE 1=1
+                    """
+                    params = []
+                    
+                    if start_date:
+                        order_query += " AND created_at > %s"
+                        params.append(start_date)
+                    if end_date:
+                        order_query += " AND created_at <= %s"
+                        params.append(end_date)
+                        
+                    order_query += " ORDER BY created_at ASC LIMIT %s OFFSET %s"
+                    params.append(page_size)
+                    params.append(current_offset)
+                    
+                    cursor.execute(order_query, params)
+                    orders_batch = cursor.fetchall()
+                    
+                    if not orders_batch:
+                        break
+                        
+                    order_ids = [o['entity_id'] for o in orders_batch]
+                    if not order_ids:
+                        break
+                        
+                    # Now fetch items for these orders
+                    placeholders = ','.join(['%s'] * len(order_ids))
+                    items_query = f"""
+                        SELECT 
+                            so.increment_id as order_number,
+                            so.created_at,
+                            so.status,
+                            so.order_currency_code as currency,
+                            so.grand_total,
+                            so.customer_email,
+                            so.customer_firstname,
+                            so.customer_lastname,
+                            so.customer_group_id,
+                            soi.sku,
+                            soi.name,
+                            soi.qty_invoiced,
+                            soi.original_price,
+                            soi.price,
+                            soi.product_type,
+                            sab.street as billing_street,
+                            sab.city as billing_city,
+                            sab.region as billing_region,
+                            sab.postcode as billing_postcode,
+                            sab.country_id as billing_country_id,
+                            sas.street as shipping_street,
+                            sas.city as shipping_city,
+                            sas.region as shipping_region,
+                            sas.postcode as shipping_postcode,
+                            sas.country_id as shipping_country_id
+                        FROM sales_order_item soi
+                        JOIN sales_order so ON soi.order_id = so.entity_id
+                        LEFT JOIN sales_order_address sab ON so.billing_address_id = sab.entity_id
+                        LEFT JOIN sales_order_address sas ON so.shipping_address_id = sas.entity_id
+                        WHERE soi.product_type != 'configurable'
+                        AND so.entity_id IN ({placeholders})
+                    """
+                    
+                    cursor.execute(items_query, order_ids)
+                    items_rows = cursor.fetchall()
+                    
+                    # Process rows
+                    batch_product_rows = []
+                    for row in items_rows:
+                        processed = self._process_db_row(row)
+                        if processed:
+                            batch_product_rows.append(processed)
+                            
+                    # Determine last order date for metadata
+                    last_order_date = orders_batch[-1]['created_at']
+                    
+                    # Import batch
+                    if batch_product_rows:
+                        try:
+                            repo.import_batch_with_metadata(
+                                table_name=table_name,
+                                product_rows=batch_product_rows,
+                                region=region,
+                                last_order_date=last_order_date,
+                                orders_count=len(orders_batch),
+                                username=username
+                            )
+                            total_rows_imported += len(batch_product_rows)
+                            total_orders_processed += len(orders_batch)
+                            
+                            if progress_callback:
+                                progress_callback(f"Processed {total_orders_processed} orders, {total_rows_imported} rows imported")
+                                
+                        except Exception as e:
+                            error_occurred = f"Database error during import: {str(e)}"
+                            logger.error(error_occurred)
+                            break
                     else:
-                        logger.warning(f"Order {order.get('increment_id', 'unknown')} missing created_at field")
-                    total_orders_processed += 1
-                    
-                    # Check max orders limit
-                    if max_orders and total_orders_processed >= max_orders:
-                        logger.info(f"Reached max orders limit: {max_orders}")
-                        break
-                
-                # Import this batch of product rows (if any)
-                batch_rows_imported = 0
-                if batch_product_rows and batch_order_dates:
-                    most_recent_order_date = max(batch_order_dates)
-                    
-                    # Use atomic import that saves product rows AND metadata in one transaction
-                    try:
-                        batch_result = repo.import_batch_with_metadata(
-                            table_name=table_name,
-                            product_rows=batch_product_rows,
-                            region=region,
-                            last_order_date=most_recent_order_date,
-                            orders_count=len(orders),
-                            username=username
-                        )
-                        batch_rows_imported = batch_result.get('rows_imported', 0)
-                        total_rows_imported += batch_rows_imported
-                        logger.info(
-                            f"Batch committed atomically: {batch_rows_imported} rows, "
-                            f"metadata saved with last order {most_recent_order_date}"
-                        )
-                    except Exception as e:
-                        logger.error(f"Failed to import batch atomically: {e}")
-                        # If atomic import fails, the entire batch is rolled back
-                        # Track the error and break - next sync will retry this batch
-                        error_occurred = f"Database error: {str(e)}"
-                        break
-                elif batch_order_dates and not batch_product_rows:
-                    # No products but we still processed orders (e.g., all cancelled)
-                    # Update metadata separately since there's nothing to import
-                    most_recent_order_date = max(batch_order_dates)
-                    try:
+                        # No product rows (e.g. all configurable or cancelled with no invoice), but we advanced orders
                         repo.update_sync_metadata(
                             region=region,
-                            last_order_date=most_recent_order_date,
-                            orders_count=len(orders),
+                            last_order_date=last_order_date,
+                            orders_count=len(orders_batch),
                             rows_count=0,
                             username=username
                         )
-                        logger.info(f"Saved metadata for {len(orders)} orders with no products")
-                    except Exception as e:
-                        logger.warning(f"Could not save metadata for orders with no products: {e}")
-                        # Continue anyway - this is not critical
-                elif batch_product_rows and not batch_order_dates:
-                    # This shouldn't happen - we have products but no order dates
-                    error_msg = f"Batch has {len(batch_product_rows)} products but no order dates - skipping batch"
-                    logger.error(error_msg)
-                    error_occurred = error_msg
-                    break
-                
-                # Check if we should stop
-                if max_orders and total_orders_processed >= max_orders:
-                    break
-                
-                if len(orders) < page_size or current_page * page_size >= total_count:
-                    logger.info(f"Fetched all available orders. Total: {total_orders_processed}")
-                    break
-                
-                # Check for cancellation again before next page
-                if cancelled and cancelled():
-                    logger.info(f"Sync cancelled by user after {total_orders_processed} orders")
-                    was_cancelled = True
-                    break
-                
-                current_page += 1
-                
+                        total_orders_processed += len(orders_batch)
+
+                    current_offset += len(orders_batch)
+                    
+                    if max_orders and total_orders_processed >= max_orders:
+                        break
+                        
             except Exception as e:
-                error_msg = f"Error fetching orders on page {current_page}: {str(e)}"
-                logger.error(error_msg)
-                error_occurred = error_msg
+                error_occurred = f"Error fetching from Magento DB: {str(e)}"
+                logger.error(error_occurred)
                 break
-        
-        logger.info(f"Batch sync complete: {total_rows_imported} rows from {total_orders_processed} orders")
-        
+            finally:
+                if 'conn' in locals() and conn.open:
+                    conn.close()
+                    
         return {
             'rows_imported': total_rows_imported,
             'orders_processed': total_orders_processed,

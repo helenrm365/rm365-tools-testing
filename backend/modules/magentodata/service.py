@@ -321,7 +321,7 @@ class MagentoDataService:
         """
         Sync live Magento data for a specific region with resumable sync support.
         
-        Fetches orders from Magento API and breaks them down into product-level rows.
+        Fetches orders from Magento Database and breaks them down into product-level rows.
         Uses sync metadata to track progress and resume from last synced order.
         Saves metadata incrementally after each batch to handle cancellations gracefully.
         
@@ -345,7 +345,7 @@ class MagentoDataService:
             if not start_date:
                 metadata = self.repo.get_sync_metadata(region)
                 if metadata and metadata.get('last_synced_order_date'):
-                    # Convert timestamp to string format for Magento API
+                    # Convert timestamp to string format for Magento DB query
                     last_date = metadata['last_synced_order_date']
                     
                     # Go back resync_days to catch status/qty changes on recent orders
@@ -371,7 +371,7 @@ class MagentoDataService:
             client = MagentoDataClient(region=region)
             
             # Fetch product-level rows from Magento with batch processing
-            logger.info(f"Fetching orders from Magento for region: {region}")
+            logger.info(f"Fetching orders from Magento DB for region: {region}")
             batch_result = client.fetch_orders_product_breakdown_batched(
                 table_name=table_name,
                 region=region,

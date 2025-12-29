@@ -43,6 +43,22 @@ class Settings(BaseSettings):
     INVENTORY_LOGS_USER: Optional[str] = None
     INVENTORY_LOGS_PASSWORD: Optional[str] = None
 
+    # Magento DB credentials
+    MAGENTO_DB_HOST: str = "localhost"
+    MAGENTO_DB_PORT: int = 3306
+    
+    MAGENTO_DB_NAME_UK: str = "magento_uk"
+    MAGENTO_DB_USER_UK: Optional[str] = None
+    MAGENTO_DB_PASSWORD_UK: Optional[str] = None
+
+    MAGENTO_DB_NAME_NL: str = "magento_nl"
+    MAGENTO_DB_USER_NL: Optional[str] = None
+    MAGENTO_DB_PASSWORD_NL: Optional[str] = None
+
+    MAGENTO_DB_NAME_FR: str = "magento_fr"
+    MAGENTO_DB_USER_FR: Optional[str] = None
+    MAGENTO_DB_PASSWORD_FR: Optional[str] = None
+
     class Config:
         # Environment variables provided directly - no .env file needed in production
         case_sensitive = False
