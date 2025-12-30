@@ -32,6 +32,107 @@ class MagentoDataClient:
         """
         self.region = region.lower()
         
+    def get_data_direct(
+        self,
+        limit: int = 100,
+        offset: int = 0,
+        search: str = ""
+    ) -> Dict[str, Any]:
+        """
+        Fetch data directly from Magento DB with pagination and search.
+        """
+        try:
+            conn = get_magento_connection(self.region)
+            with conn.cursor() as cursor:
+                # Base query
+                base_query = """
+                    FROM sales_order_item soi
+                    JOIN sales_order so ON soi.order_id = so.entity_id
+                    LEFT JOIN sales_order_address sab ON so.billing_address_id = sab.entity_id
+                    LEFT JOIN sales_order_address sas ON so.shipping_address_id = sas.entity_id
+                    WHERE soi.product_type != 'configurable'
+                """
+                
+                params = []
+                
+                if search:
+                    search_term = f"%{search}%"
+                    base_query += """
+                        AND (
+                            so.increment_id LIKE %s OR
+                            soi.sku LIKE %s OR
+                            so.customer_email LIKE %s OR
+                            CONCAT(so.customer_firstname, ' ', so.customer_lastname) LIKE %s
+                        )
+                    """
+                    params.extend([search_term, search_term, search_term, search_term])
+                
+                # Count query
+                count_query = f"SELECT COUNT(*) as count {base_query}"
+                cursor.execute(count_query, params)
+                total_count = cursor.fetchone()['count']
+                
+                # Data query
+                data_query = f"""
+                    SELECT 
+                        so.increment_id as order_number,
+                        so.created_at,
+                        so.status,
+                        so.order_currency_code as currency,
+                        so.grand_total,
+                        so.customer_email,
+                        so.customer_firstname,
+                        so.customer_lastname,
+                        so.customer_group_id,
+                        soi.sku,
+                        soi.name,
+                        soi.qty_invoiced,
+                        soi.original_price,
+                        soi.price,
+                        soi.product_type,
+                        
+                        -- Billing Address
+                        sab.street as billing_street,
+                        sab.city as billing_city,
+                        sab.region as billing_region,
+                        sab.postcode as billing_postcode,
+                        sab.country_id as billing_country_id,
+                        
+                        -- Shipping Address
+                        sas.street as shipping_street,
+                        sas.city as shipping_city,
+                        sas.region as shipping_region,
+                        sas.postcode as shipping_postcode,
+                        sas.country_id as shipping_country_id
+                    {base_query}
+                    ORDER BY so.created_at DESC 
+                    LIMIT %s OFFSET %s
+                """
+                
+                # Add limit and offset to params for data query
+                data_params = params + [limit, offset]
+                
+                cursor.execute(data_query, data_params)
+                rows = cursor.fetchall()
+                
+                data = []
+                for row in rows:
+                    processed = self._process_db_row(row)
+                    if processed:
+                        data.append(processed)
+                        
+                return {
+                    "data": data,
+                    "total_count": total_count
+                }
+                
+        except Exception as e:
+            logger.error(f"Error fetching direct data from Magento DB: {e}")
+            raise
+        finally:
+            if 'conn' in locals() and conn.open:
+                conn.close()
+
     def fetch_orders_product_breakdown(
         self,
         start_date: Optional[str] = None,

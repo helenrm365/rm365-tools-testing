@@ -25,10 +25,6 @@
                 <i class="fas fa-flag"></i>
                 <span>NL Magento</span>
             </button>
-            <button class="tab-button" onclick="location.href='/magentodata/test-magento'">
-                <i class="fas fa-vial"></i>
-                <span>Test Sync</span>
-            </button>
             <button class="tab-button" onclick="location.href='/magentodata/history'">
                 <i class="fas fa-history"></i>
                 <span>Import History</span>
@@ -43,36 +39,7 @@
                     <i class="fas fa-flag"></i>
                     NL Magento Data
                 </h2>
-                <p class="section-subtitle">Sync and manage Dutch magento data from live Magento API</p>
-            </section>
-
-            <!-- Sync Section -->
-            <section class="upload-section">
-                <div class="card-animated">
-                    <div class="card-header">
-                        <h3 class="card-title">
-                            <i class="fas fa-sync-alt"></i>
-                            Live Data Sync
-                        </h3>
-                        <p class="card-subtitle">Sync product-level sales data directly from Magento</p>
-                    </div>
-                    <div class="card-body">
-                        <div class="sync-controls">
-                            <button type="button" id="syncDataBtn" class="action-btn primary-btn" style="display: none;">
-                                <i class="fas fa-sync-alt"></i>
-                                Sync from Magento
-                            </button>
-                            <div class="info-message" style="padding: 15px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; color: #856404;">
-                                <i class="fas fa-info-circle" style="margin-right: 8px;"></i>
-                                <strong>NL Magento sync is currently disabled.</strong> Only UK Magento data can be synced at this time.
-                            </div>
-                            <p class="sync-info" style="display: none;">
-                                <i class="fas fa-info-circle"></i>
-                                This will fetch recent orders from Magento and break them down into product-level rows (using UK connection until NL is configured)
-                            </p>
-                        </div>
-                    </div>
-                </div>
+                <p class="section-subtitle">Manage Dutch magento data directly from Magento Database</p>
             </section>
 
             <!-- Data Controls -->
@@ -88,10 +55,6 @@
                                 <button class="toggle-btn" id="viewCondensedBtn">
                                     <i class="fas fa-calendar-alt"></i>
                                     6-Month
-                                </button>
-                                <button class="action-btn secondary-btn" id="refreshCondensedBtn" title="Refresh condensed data">
-                                    <i class="fas fa-sync-alt"></i>
-                                    Refresh 6M
                                 </button>
                                 <button class="action-btn secondary-btn" id="customRangeBtn" title="Custom Range Analysis">
                                     <i class="fas fa-calendar-day"></i>

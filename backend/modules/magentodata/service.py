@@ -231,6 +231,26 @@ class MagentoDataService:
     def get_region_data(self, region: str, limit: int = 100, offset: int = 0, search: str = "", fields: list = None) -> Dict[str, Any]:
         """Get magento data for a specific region with optional field selection"""
         try:
+            # Direct fetch from Magento DB for supported regions
+            if region.lower() in ['uk', 'fr', 'nl']:
+                client = MagentoDataClient(region)
+                result = client.get_data_direct(limit, offset, search)
+                
+                # Filter fields if requested
+                if fields and result.get('data'):
+                    filtered_data = []
+                    for item in result['data']:
+                        filtered_item = {k: v for k, v in item.items() if k in fields}
+                        filtered_data.append(filtered_item)
+                    result['data'] = filtered_data
+                
+                return {
+                    "status": "success",
+                    "region": region,
+                    **result
+                }
+            
+            # Fallback for 'test' or other regions (using local DB)
             table_name = self._get_table_name(region)
             result = self.repo.get_magento_data(table_name, limit, offset, search, fields)
             return {

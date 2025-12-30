@@ -40,25 +40,7 @@ def get_test_magento_data(
     return MagentoDataResponse(**result)
 
 
-@router.post("/test-sync", response_model=MagentoSyncResponse)
-async def test_sync_magento_data(user=Depends(get_current_user)):
-    """
-    Test sync: Fetches 10 orders from Magento and syncs to test_magento_data table.
-    This is for testing the Magento integration without affecting production data.
-    """
-    username = user.get("username") or user.get("email") or "unknown"
-    
-    # Progress tracking
-    progress_info = {"message": "Starting test sync..."}
-    
-    def progress_callback(msg: str):
-        progress_info["message"] = msg
-        logger.info(f"[Test Sync Progress] {msg}")
-    
-    result = svc.test_sync_magento_data(max_orders=10, username=username, progress_callback=progress_callback)
-    result["progress"] = progress_info["message"]
-    result["is_complete"] = True
-    return MagentoSyncResponse(**result)
+
 
 
 # UK Magento endpoints
@@ -76,51 +58,7 @@ def get_uk_magento_data(
     return MagentoDataResponse(**result)
 
 
-@router.post("/uk/sync", response_model=MagentoSyncResponse)
-async def sync_uk_magento_data(
-    request: MagentoSyncRequest = None,
-    user=Depends(get_current_user)
-):
-    """
-    Sync live Magento data for UK region.
-    Fetches orders from Magento API and breaks them down into product-level rows.
-    Supports progress tracking for large syncs.
-    """
-    username = user.get("username") or user.get("email") or "unknown"
-    
-    # Extract parameters from request body if provided
-    start_date = request.start_date if request else None
-    end_date = request.end_date if request else None
-    max_orders = request.max_orders if request else None
-    resync_days = request.resync_days if request and request.resync_days is not None else 7
-    
-    # Progress tracking (simple in-memory for now)
-    progress_info = {"message": "Starting sync..."}
-    
-    def progress_callback(msg: str):
-        progress_info["message"] = msg
-        logger.info(f"[UK Sync Progress] {msg}")
-    
-    result = svc.sync_magento_data("uk", start_date, end_date, max_orders, resync_days, username, progress_callback)
-    result["progress"] = progress_info["message"]
-    result["is_complete"] = True
-    return MagentoSyncResponse(**result)
 
-
-@router.post("/uk/upload", response_model=MagentoDataImportResponse)
-async def upload_uk_magento_csv(
-    file: UploadFile = File(...),
-    user=Depends(get_current_user)
-):
-    """
-    Upload CSV file for UK magento data.
-    NOTE: This endpoint is deprecated. Use /uk/sync for live Magento data.
-    """
-    content = await file.read()
-    csv_content = content.decode('utf-8')
-    username = user.get("username") or user.get("email") or "unknown"
-    result = svc.import_csv("uk", csv_content, file.filename, username)
-    return MagentoDataImportResponse(**result)
 
 
 # FR Magento endpoints
@@ -138,48 +76,7 @@ def get_fr_magento_data(
     return MagentoDataResponse(**result)
 
 
-@router.post("/fr/sync", response_model=MagentoSyncResponse)
-async def sync_fr_magento_data(
-    request: MagentoSyncRequest = None,
-    user=Depends(get_current_user)
-):
-    """
-    Sync live Magento data for FR region.
-    NOTE: Currently uses UK Magento connection until FR credentials are configured.
-    """
-    username = user.get("username") or user.get("email") or "unknown"
-    
-    start_date = request.start_date if request else None
-    end_date = request.end_date if request else None
-    max_orders = request.max_orders if request else None
-    resync_days = request.resync_days if request and request.resync_days is not None else 7
-    
-    progress_info = {"message": "Starting sync..."}
-    
-    def progress_callback(msg: str):
-        progress_info["message"] = msg
-        logger.info(f"[FR Sync Progress] {msg}")
-    
-    result = svc.sync_magento_data("fr", start_date, end_date, max_orders, resync_days, username, progress_callback)
-    result["progress"] = progress_info["message"]
-    result["is_complete"] = True
-    return MagentoSyncResponse(**result)
 
-
-@router.post("/fr/upload", response_model=MagentoDataImportResponse)
-async def upload_fr_magento_csv(
-    file: UploadFile = File(...),
-    user=Depends(get_current_user)
-):
-    """
-    Upload CSV file for FR magento data.
-    NOTE: This endpoint is deprecated. Use /fr/sync for live Magento data.
-    """
-    content = await file.read()
-    csv_content = content.decode('utf-8')
-    username = user.get("username") or user.get("email") or "unknown"
-    result = svc.import_csv("fr", csv_content, file.filename, username)
-    return MagentoDataImportResponse(**result)
 
 
 # NL Magento endpoints
@@ -197,45 +94,7 @@ def get_nl_magento_data(
     return MagentoDataResponse(**result)
 
 
-@router.post("/nl/sync", response_model=MagentoSyncResponse)
-async def sync_nl_magento_data(
-    request: MagentoSyncRequest = None,
-    user=Depends(get_current_user)
-):
-    """
-    Sync live Magento data for NL region.
-    NOTE: Currently uses UK Magento connection until NL credentials are configured.
-    """
-    username = user.get("username") or user.get("email") or "unknown"
-    
-    start_date = request.start_date if request else None
-    end_date = request.end_date if request else None
-    max_orders = request.max_orders if request else None
-    resync_days = request.resync_days if request and request.resync_days is not None else 7
-    
-    progress_info = {"message": "Starting sync..."}
-    
-    def progress_callback(msg: str):
-        progress_info["message"] = msg
-        logger.info(f"[NL Sync Progress] {msg}")
-    
-    result = svc.sync_magento_data("nl", start_date, end_date, max_orders, resync_days, username, progress_callback)
-    result["progress"] = progress_info["message"]
-    result["is_complete"] = True
-    return MagentoSyncResponse(**result)
 
-
-@router.post("/nl/upload", response_model=MagentoDataImportResponse)
-async def upload_nl_magento_csv(
-    file: UploadFile = File(...),
-    user=Depends(get_current_user)
-):
-    """Upload CSV file for NL magento data"""
-    content = await file.read()
-    csv_content = content.decode('utf-8')
-    username = user.get("username") or user.get("email") or "unknown"
-    result = svc.import_csv("nl", csv_content, file.filename, username)
-    return MagentoDataImportResponse(**result)
 
 
 # Condensed data endpoints (6-month aggregated by SKU)
@@ -514,7 +373,4 @@ def get_exchange_rates(user=Depends(get_current_user)):
     }
 
 
-@router.get("/sync-metadata")
-def get_sync_metadata():
-    """Get sync metadata for all regions (UK, FR, NL) - Public endpoint, no auth required"""
-    return svc.get_all_sync_metadata()
+

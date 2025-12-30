@@ -1,5 +1,5 @@
 // frontend/js/modules/magentodata/uk-magento.js
-import { getUKMagentoData, syncUKMagentoData, getUKCondensedData, refreshCondensedDataForRegion, initializeTables } from '../../services/api/magentoDataApi.js';
+import { getUKMagentoData, getUKCondensedData, refreshCondensedDataForRegion, initializeTables } from '../../services/api/magentoDataApi.js';
 import { showToast } from '../../ui/toast.js';
 import { showFiltersModal, showCustomRangeModal } from './condensed-filters.js';
 import { exportToPDF } from '../../utils/pdfExport.js';
@@ -35,43 +35,14 @@ export async function initUKMagentoData() {
   // Set up event listeners
   setupEventListeners();
   
-  // Add beforeunload handler to warn about losing sync progress
-  setupBeforeUnloadHandler();
-  
   // Load initial data
   await loadMagentoData();
-}
-
-/**
- * Set up beforeunload handler to prevent accidental navigation during sync
- */
-function setupBeforeUnloadHandler() {
-  window.addEventListener('beforeunload', (e) => {
-    if (isSyncing) {
-      // Modern browsers require returnValue to be set
-      e.preventDefault();
-      e.returnValue = 'Sync in progress. Progress has been saved, but leaving now will stop the sync. Continue?';
-      return e.returnValue;
-    }
-  });
 }
 
 /**
  * Set up event listeners for the page
  */
 function setupEventListeners() {
-  // Sync button - unified handler that checks state
-  const syncDataBtn = document.getElementById('syncDataBtn');
-  if (syncDataBtn) {
-    syncDataBtn.addEventListener('click', () => {
-      if (isSyncing) {
-        handleCancelSync();
-      } else {
-        handleSync();
-      }
-    });
-  }
-  
   // View toggle buttons
   const viewFullBtn = document.getElementById('viewFullBtn');
   const viewCondensedBtn = document.getElementById('viewCondensedBtn');
@@ -650,179 +621,9 @@ function displayCondensedData(data) {
   `).join('');
 }
 
-/**
- * Interruptible delay that can be cancelled via AbortController
- */
-function delay(ms, signal) {
-  return new Promise((resolve, reject) => {
-    const timeout = setTimeout(resolve, ms);
-    if (signal) {
-      signal.addEventListener('abort', () => {
-        clearTimeout(timeout);
-        reject(new DOMException('Delay aborted', 'AbortError'));
-      });
-    }
-  });
-}
 
-/**
- * Handle Magento data sync with progress tracking
- * Automatically restarts sync when complete to continuously sync new orders
- */
-async function handleSync() {
-  const syncBtn = document.getElementById('syncDataBtn');
-  
-  if (!syncBtn) {
-    return;
-  }
-  
-  // If this is the very first call (no abort controller exists), initialize everything
-  if (!syncAbortController) {
-    console.log('[UK Magento] Initializing new sync session');
-    syncAbortController = new AbortController();
-    isSyncing = true;
-    
-    // Change button to cancel mode
-    syncBtn.classList.add('syncing');
-    syncBtn.innerHTML = '<i class="fas fa-times"></i> Cancel Sync';
-    syncBtn.style.background = '#f44336';
-  }
-  
-  // Early exit if sync was cancelled
-  if (!isSyncing) {
-    console.log('[UK Magento] Sync is not active, not starting');
-    return;
-  }
-  
-  // Check if abort signal is active (user cancelled)
-  if (syncAbortController.signal.aborted) {
-    console.log('[UK Magento] Sync was cancelled, exiting');
-    return;
-  }
-  
-  try {    showToast('Starting Magento sync... Progress is saved after each batch.', 'info');
-    
-    const result = await syncUKMagentoData(syncAbortController.signal);
-    
-    if (result.status === 'success') {
-      // Check if any orders were actually synced
-      const hasNewOrders = result.orders_processed > 0;
-      
-      if (hasNewOrders) {
-        showToast(
-          `✅ Successfully synced ${result.rows_synced} product rows from ${result.orders_processed} orders!`, 
-          'success',
-          5000
-        );
-        
-        // Show any errors that occurred during sync
-        if (result.errors && result.errors.length > 0) {
-          console.warn('[UK Magento] Sync errors:', result.errors);
-          showToast(`⚠️ Sync completed with ${result.errors.length} errors. Check console for details.`, 'warning');
-        }
-        
-        // Reload the data
-        currentPage = 0;
-        await loadMagentoData();
-        
-        // Auto-restart sync immediately since we found orders
-        if (isSyncing && syncAbortController && !syncAbortController.signal.aborted) {
-          console.log('[UK Magento] Sync batch complete. Checking for more orders...');
-          showToast('✅ Batch complete. Checking for new orders...', 'info', 3000);
-          // Small delay before restarting
-          try {
-            await delay(2000, syncAbortController.signal);
-          } catch (e) {
-            if (e.name === 'AbortError') {
-              console.log('[UK Magento] Delay cancelled');
-              return; // Exit without restarting
-            }
-            throw e;
-          }
-          
-          // Check again if still syncing (user might have cancelled during delay)
-          if (isSyncing && syncAbortController && !syncAbortController.signal.aborted) {
-            // Recursively call handleSync to continue
-            await handleSync();
-          }
-        }
-      } else {
-        // No new orders found - wait longer before checking again
-        console.log('[UK Magento] No new orders found. Will check again in 30 seconds...');
-        showToast('✅ All caught up! No new orders. Will check again in 30 seconds...', 'info', 5000);
-        
-        // Wait 30 seconds before checking again
-        try {
-          await delay(30000, syncAbortController.signal);
-        } catch (e) {
-          if (e.name === 'AbortError') {
-            console.log('[UK Magento] Wait period cancelled');
-            return; // Exit without restarting
-          }
-          throw e;
-        }
-        
-        // Check if still syncing (user might have cancelled during wait)
-        if (isSyncing && syncAbortController && !syncAbortController.signal.aborted) {
-          console.log('[UK Magento] Checking for new orders after wait period...');
-          showToast('🔄 Checking for new orders...', 'info', 3000);
-          await handleSync();
-        }
-      }
-    } else if (result.status === 'cancelled') {
-      showToast('⚠️ Sync cancelled. Progress has been saved - next sync will resume from where it left off.', 'warning', 5000);
-    } else if (result.status === 'error') {
-      // Show error with any partial progress info
-      const errorMsg = result.message || 'Sync failed';
-      if (result.orders_processed > 0) {
-        showToast(`❌ ${errorMsg} (${result.rows_synced} rows from ${result.orders_processed} orders were saved)`, 'error', 7000);
-      } else {
-        showToast(`❌ ${errorMsg}`, 'error');
-      }
-    } else {
-      showToast('❌ Sync failed: ' + (result.message || 'Unknown error'), 'error');
-    }
-  } catch (error) {
-    if (error.name === 'AbortError') {
-      console.log('[UK Magento] Sync cancelled by user');
-      showToast('⚠️ Sync cancelled. Progress has been saved.', 'warning', 5000);
-      // Don't re-throw AbortError - just stop gracefully
-    } else {
-      console.error('[UK Magento] Sync error:', error);
-      // Check if it's a network error
-      const isNetworkError = error.message.includes('timeout') || error.message.includes('fetch') || error.message.includes('network');
-      if (isNetworkError) {
-        showToast('❌ Network error during sync. Any progress made has been saved - next sync will resume.', 'error', 7000);
-      } else {
-        showToast('❌ Sync error: ' + error.message + '. Any progress made has been saved.', 'error', 7000);
-      }
-    }
-  } finally {
-    // Only restore button if we're truly done (not in the middle of auto-restarting)
-    // Check if abort was called or if we're exiting naturally
-    const shouldResetButton = !isSyncing || (syncAbortController && syncAbortController.signal.aborted);
-    if (shouldResetButton) {
-      // Restore button to sync mode
-      isSyncing = false;
-      syncAbortController = null;
-      if (syncBtn) {
-        syncBtn.classList.remove('syncing');
-        syncBtn.style.background = '';
-        syncBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Sync from Magento';
-      }
-    }
-  }
-}
 
-function handleCancelSync() {
-  if (syncAbortController) {
-    console.log('[UK Magento] Cancelling sync... Progress will be saved.');
-    // Immediately set isSyncing to false to prevent auto-restart
-    isSyncing = false;
-    syncAbortController.abort();
-    showToast('Cancelling sync... Your progress has been saved.', 'info');
-  }
-}
+
 
 /**
  * Escape HTML to prevent XSS

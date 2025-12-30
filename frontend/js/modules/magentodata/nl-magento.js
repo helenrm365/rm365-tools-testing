@@ -1,5 +1,5 @@
 // frontend/js/modules/magentodata/nl-magento.js
-import { getNLMagentoData, syncNLMagentoData, getNLCondensedData, refreshCondensedDataForRegion, initializeTables } from '../../services/api/magentoDataApi.js';
+import { getNLMagentoData, getNLCondensedData, refreshCondensedDataForRegion, initializeTables } from '../../services/api/magentoDataApi.js';
 import { showToast } from '../../ui/toast.js';
 import { showFiltersModal, showCustomRangeModal } from './condensed-filters.js';
 import { exportToPDF } from '../../utils/pdfExport.js';
@@ -33,42 +33,14 @@ export async function initNLMagentoData() {
   // Set up event listeners
   setupEventListeners();
   
-  // Add beforeunload handler to warn about losing sync progress
-  setupBeforeUnloadHandler();
-  
   // Load initial data
   await loadMagentoData();
-}
-
-/**
- * Set up beforeunload handler to prevent accidental navigation during sync
- */
-function setupBeforeUnloadHandler() {
-  window.addEventListener('beforeunload', (e) => {
-    if (isSyncing) {
-      e.preventDefault();
-      e.returnValue = 'Sync in progress. Progress has been saved, but leaving now will stop the sync. Continue?';
-      return e.returnValue;
-    }
-  });
 }
 
 /**
  * Set up event listeners for the page
  */
 function setupEventListeners() {
-  // Sync button - unified handler that checks state
-  const syncDataBtn = document.getElementById('syncDataBtn');
-  if (syncDataBtn) {
-    syncDataBtn.addEventListener('click', () => {
-      if (isSyncing) {
-        handleCancelSync();
-      } else {
-        handleSync();
-      }
-    });
-  }
-  
   // View toggle buttons
   const viewFullBtn = document.getElementById('viewFullBtn');
   const viewCondensedBtn = document.getElementById('viewCondensedBtn');

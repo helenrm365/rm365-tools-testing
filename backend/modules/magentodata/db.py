@@ -11,18 +11,20 @@ def get_magento_connection(region: str = "uk"):
     """
     region = region.lower()
     
-    host = settings.MAGENTO_DB_HOST
     port = settings.MAGENTO_DB_PORT
     
     if region == "uk":
+        host = settings.MAGENTO_DB_HOST_UK
         user = settings.MAGENTO_DB_USER_UK
         password = settings.MAGENTO_DB_PASSWORD_UK
         db_name = settings.MAGENTO_DB_NAME_UK
     elif region == "nl":
+        host = settings.MAGENTO_DB_HOST_NL
         user = settings.MAGENTO_DB_USER_NL
         password = settings.MAGENTO_DB_PASSWORD_NL
         db_name = settings.MAGENTO_DB_NAME_NL
     elif region == "fr":
+        host = settings.MAGENTO_DB_HOST_FR
         user = settings.MAGENTO_DB_USER_FR
         password = settings.MAGENTO_DB_PASSWORD_FR
         db_name = settings.MAGENTO_DB_NAME_FR
