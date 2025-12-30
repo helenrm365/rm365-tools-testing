@@ -1,8 +1,12 @@
 // frontend/js/modules/magentodata/fr-magento.js
-import { getFRMagentoData, getFRAggregatedData, refreshAggregatedDataForRegion, initializeTables } from '../../services/api/magentoDataApi.js';
+import { getFRMagentoData, getFRAggregatedData, refreshAggregatedDataForRegion, initializeTables, syncFRMagentoData } from '../../services/api/magentoDataApi.js?v=7';
 import { showToast } from '../../ui/toast.js';
 import { showFiltersModal, showCustomRangeModal } from './aggregated-filters.js';
 import { exportToPDF } from '../../utils/pdfExport.js';
+
+console.log('═══════════════════════════════════════════════════');
+console.log('[FR Magento] Module loaded - v4 (Debug Version)');
+console.log('═══════════════════════════════════════════════════');
 
 let currentPage = 0;
 const pageSize = 100; // Display 100 records per page
@@ -18,9 +22,57 @@ let isSyncing = false; // Track if sync is in progress
 /**
  * Initialize FR magento page
  */
-export async function initFRMagentoData() {
+export async function initFRMagentoData(path = '/magentodata/fr-magento') {
+  console.log('[FR Magento] initFRMagentoData called with path:', path);
+  console.log('[FR Magento] window.navigate available:', !!window.navigate);
+  
+  // Reset state for new page load
+  currentPage = 0;
+  currentSearch = '';
+  isSearchMode = false;
+  allData = [];
+  totalRecords = 0;
+  
+  // Determine initial view mode from URL
+  if (path.includes('/full-data')) {
+    viewMode = 'full';
+    customRangeLabel = '';
+    console.log('[FR Magento] Setting view mode to: full');
+  } else if (path.includes('/6-month')) {
+    viewMode = 'aggregated';
+    customRangeLabel = '';
+    console.log('[FR Magento] Setting view mode to: aggregated');
+  } else if (path.includes('/custom-range')) {
+    viewMode = 'custom';
+    console.log('[FR Magento] Setting view mode to: custom');
+  } else if (path === '/magentodata/fr-magento' || path === '/magentodata/fr-magento/') {
+    // Redirect base URL to full-data to make URL explicit
+    console.log('[FR Magento] Redirecting base URL to /full-data');
+    if (window.navigate) {
+      window.navigate('/magentodata/fr-magento/full-data', true);
+    } else {
+      console.error('[FR Magento] window.navigate is NOT available!');
+    }
+    return;
+  } else {
+    // Default to full data view
+    viewMode = 'full';
+    customRangeLabel = '';
+    console.log('[FR Magento] Defaulting view mode to: full');
+  }
+  
   // Wait for DOM to be ready before setting up event listeners
   await new Promise(resolve => setTimeout(resolve, 0));
+  
+  console.log('[FR Magento] About to call setupEventListeners()');
+  // Set up event listeners immediately so UI is responsive
+  setupEventListeners();
+  console.log('[FR Magento] setupEventListeners() completed');
+  
+  // Update active button based on view mode immediately
+  console.log('[FR Magento] About to call updateViewButtons()');
+  updateViewButtons();
+  console.log('[FR Magento] updateViewButtons() completed');
   
   // Initialize tables first (creates tables if they don't exist)
   try {
@@ -30,51 +82,172 @@ export async function initFRMagentoData() {
     showToast('Failed to initialize database tables. Please check your connection.', 'error');
   }
   
-  // Set up event listeners
-  setupEventListeners();
+  // Load initial data based on view mode
+  if (viewMode === 'custom') {
+    // Check if custom range parameters exist
+    if (window.customRangeActive) {
+      customRangeLabel = window.customRangeActive.rangeLabel || 'Custom Range';
+      // Load the custom range data
+      allData = window.customRangeActive.data || [];
+      totalRecords = window.customRangeActive.totalCount || 0;
+      currentPage = 0;
+      displayCurrentPage();
+    } else {
+      // No custom range set, redirect to full data
+      showToast('No custom range data available. Please select a date range first.', 'warning');
+      if (window.navigate) {
+        window.navigate('/magentodata/fr-magento/full-data', true);
+      }
+    }
+  } else if (viewMode === 'aggregated') {
+    await handleRefreshAggregatedData();
+  } else {
+    await loadMagentoData();
+  }
   
-  // Load initial data
-  await loadMagentoData();
+  console.log('[FR Magento] Initialization complete. View mode:', viewMode);
+}
+
+/**
+ * Trigger background sync to cache latest data
+ */
+async function triggerBackgroundSync() {
+  if (isSyncing) return;
+  
+  const syncBtn = document.getElementById('syncNowBtn');
+  const originalBtnContent = syncBtn ? syncBtn.innerHTML : '';
+  
+  try {
+    isSyncing = true;
+    console.log('[FR Magento] Starting background sync...');
+    
+    if (syncBtn) {
+      syncBtn.disabled = true;
+      syncBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
+    }
+    
+    // Create abort controller for this sync
+    syncAbortController = new AbortController();
+    
+    // Sync with 180 days (6 months) lookback to catch status updates
+    const result = await syncFRMagentoData(syncAbortController.signal, null, null, null, 180);
+    
+    if (result.status === 'success') {
+      if (result.rows_synced > 0) {
+        showToast(`Sync Complete: Processed ${result.rows_synced} new/updated rows`, 'success');
+        // Reload data if we're on the first page to show new items
+        if (currentPage === 0 && !isSearchMode) {
+          loadMagentoData();
+        }
+      } else {
+        showToast('Sync Complete: No new or updated orders found', 'info');
+      }
+    } else if (result.status === 'error') {
+      console.warn('[FR Magento] Background sync warning:', result.message);
+      showToast('Sync Warning: ' + result.message, 'warning');
+    }
+  } catch (error) {
+    if (error.name !== 'AbortError') {
+      console.error('[FR Magento] Background sync error:', error);
+      showToast('Sync Failed: ' + error.message, 'error');
+    }
+  } finally {
+    isSyncing = false;
+    syncAbortController = null;
+    if (syncBtn) {
+      syncBtn.disabled = false;
+      syncBtn.innerHTML = originalBtnContent;
+    }
+  }
+}
+
+/**
+ * Update view buttons to reflect current view mode
+ */
+function updateViewButtons() {
+  const viewFullBtn = document.getElementById('viewFullBtn');
+  const viewAggregatedBtn = document.getElementById('viewAggregatedBtn');
+  const customRangeBtn = document.getElementById('customRangeBtn');
+  
+  // Remove active class from all
+  viewFullBtn?.classList.remove('active');
+  viewAggregatedBtn?.classList.remove('active');
+  customRangeBtn?.classList.remove('active');
+  
+  // Add active class to current view
+  if (viewMode === 'full') {
+    viewFullBtn?.classList.add('active');
+  } else if (viewMode === 'aggregated') {
+    viewAggregatedBtn?.classList.add('active');
+  } else if (viewMode === 'custom') {
+    customRangeBtn?.classList.add('active');
+  }
 }
 
 /**
  * Set up event listeners for the page
  */
 function setupEventListeners() {
-  // View toggle buttons
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('[FR Magento] >>> ENTERING setupEventListeners <<<');
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  
+  // Check if elements exist
   const viewFullBtn = document.getElementById('viewFullBtn');
   const viewAggregatedBtn = document.getElementById('viewAggregatedBtn');
   
-  if (viewFullBtn) {
-    viewFullBtn.addEventListener('click', () => {
-      viewMode = 'full';
-      viewFullBtn.classList.add('active');
-      viewAggregatedBtn?.classList.remove('active');
-      currentPage = 0;
-      customRangeLabel = ''; // Clear custom range
-      
-      // Check if there's an active search and preserve it
-      const searchInput = document.getElementById('magentoSearchInput');
-      if (searchInput && searchInput.value.trim()) {
-        // Keep search active and reload with search term
-        loadSearchResults(searchInput.value.trim());
-      } else {
-        // No search, just load data normally
-        loadMagentoData();
-      }
-    });
-  }
+  console.log('[FR Magento] Element check:', {
+    viewFullBtn: viewFullBtn ? 'FOUND' : 'NOT FOUND',
+    viewAggregatedBtn: viewAggregatedBtn ? 'FOUND' : 'NOT FOUND',
+    viewFullBtnClass: viewFullBtn?.className,
+    viewAggregatedBtnClass: viewAggregatedBtn?.className
+  });
   
-  if (viewAggregatedBtn) {
-    viewAggregatedBtn.addEventListener('click', async () => {
-      viewMode = 'aggregated';
-      viewAggregatedBtn.classList.add('active');
-      viewFullBtn?.classList.remove('active');
-      currentPage = 0;
-      customRangeLabel = ''; // Clear custom range
-      
-      // Automatically sync and refresh aggregated data
-      await handleRefreshAggregatedData();
+  // Helper to safely attach listener
+  const attachListener = (id, callback) => {
+    const el = document.getElementById(id);
+    console.log(`[FR Magento] attachListener called for #${id}:`, el ? 'FOUND' : 'NOT FOUND');
+    if (el) {
+      // Clone to remove existing listeners
+      const newEl = el.cloneNode(true);
+      el.parentNode.replaceChild(newEl, el);
+      newEl.addEventListener('click', callback);
+      console.log(`[FR Magento] ✓ Successfully attached listener to #${id}`);
+      return true;
+    }
+    console.error(`[FR Magento] ✗ Element #${id} NOT FOUND - Cannot attach listener!`);
+    return false;
+  };
+
+  // View toggle buttons
+  console.log('[FR Magento] Attaching viewFullBtn listener...');
+  attachListener('viewFullBtn', () => {
+    console.log('🔥🔥🔥 [FR Magento] Full Data button CLICKED! 🔥🔥🔥');
+    if (window.navigate) {
+      window.navigate('/magentodata/fr-magento/full-data');
+    } else {
+      window.location.href = '/magentodata/fr-magento/full-data';
+    }
+  });
+  
+  console.log('[FR Magento] Attaching viewAggregatedBtn listener...');
+  attachListener('viewAggregatedBtn', () => {
+    console.log('🔥🔥🔥 [FR Magento] Aggregated Data button CLICKED! 🔥🔥🔥');
+    if (window.navigate) {
+      window.navigate('/magentodata/fr-magento/6-month');
+    } else {
+      window.location.href = '/magentodata/fr-magento/6-month';
+    }
+  });
+  
+  console.log('[FR Magento] >>> EXITING setupEventListeners <<<');
+
+  // Sync Now button
+  const syncNowBtn = document.getElementById('syncNowBtn');
+  if (syncNowBtn) {
+    syncNowBtn.addEventListener('click', async () => {
+      showToast('Starting sync...', 'info');
+      await triggerBackgroundSync();
     });
   }
   
@@ -264,29 +437,8 @@ function setupEventListeners() {
   // Listen for custom range applied event
   window.addEventListener('customRangeApplied', (e) => {
     if (e.detail.region === 'fr') {
-      // Switch to custom view mode
-      viewMode = 'custom';
-      customRangeLabel = e.detail.rangeLabel;
-      
-      // Update view buttons
-      const viewFullBtn = document.getElementById('viewFullBtn');
-      const viewAggregatedBtn = document.getElementById('viewAggregatedBtn');
-      viewFullBtn?.classList.remove('active');
-      viewAggregatedBtn?.classList.remove('active');
-      
-      // Load the custom range data
-      allData = e.detail.data;
-      totalRecords = e.detail.totalCount;
-      currentPage = 0;
-      isSearchMode = false;
-      currentSearch = '';
-      
-      // Clear search input
-      const searchInput = document.getElementById('magentoSearchInput');
-      if (searchInput) searchInput.value = '';
-      
-      // Render the data
-      renderData();
+      // Navigate to the custom range URL
+      window.navigate('/magentodata/fr-magento/custom-range');
     }
   });
 }
@@ -480,7 +632,15 @@ function displayCurrentPage() {
   
   // All views now use server-side pagination (100 records at a time)
   // Display all data from the current page load
-  const pageData = allData;
+  let pageData = allData;
+  
+  // For custom view, we have all data client-side (up to 1000 rows), so we need to slice it
+  if (viewMode === 'custom') {
+    const start = currentPage * pageSize;
+    const end = start + pageSize;
+    pageData = allData.slice(start, end);
+  }
+
   const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize));
   
   

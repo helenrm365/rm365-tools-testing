@@ -458,7 +458,7 @@ class MagentoDataClient:
                     # Import batch
                     if batch_product_rows:
                         try:
-                            repo.import_batch_with_metadata(
+                            import_result = repo.import_batch_with_metadata(
                                 table_name=table_name,
                                 product_rows=batch_product_rows,
                                 region=region,
@@ -466,11 +466,11 @@ class MagentoDataClient:
                                 orders_count=len(orders_batch),
                                 username=username
                             )
-                            total_rows_imported += len(batch_product_rows)
+                            total_rows_imported += import_result.get('rows_imported', 0)
                             total_orders_processed += len(orders_batch)
                             
                             if progress_callback:
-                                progress_callback(f"Processed {total_orders_processed} orders, {total_rows_imported} rows imported")
+                                progress_callback(f"Processed {total_orders_processed} orders, {total_rows_imported} new/updated rows")
                                 
                         except Exception as e:
                             error_occurred = f"Database error during import: {str(e)}"

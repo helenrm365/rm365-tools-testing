@@ -15,18 +15,21 @@ export async function init(path) {
       console.log('[Magento Data Module] home.js loaded, calling initMagentoDataHome()...');
       await initMagentoDataHome();
       console.log('[Magento Data Module] initMagentoDataHome() completed');
-    } else if (path === '/magentodata/uk-magento') {
+    } else if (path.startsWith('/magentodata/uk-magento')) {
       // Load UK magento page
-      const { initUKMagentoData } = await import('./uk-magento.js');
-      await initUKMagentoData();
-    } else if (path === '/magentodata/fr-magento') {
+      const { initUKMagentoData } = await import(`./uk-magento.js?t=${Date.now()}`);
+      await initUKMagentoData(path);
+    } else if (path.startsWith('/magentodata/fr-magento')) {
       // Load FR magento page
-      const { initFRMagentoData } = await import('./fr-magento.js');
-      await initFRMagentoData();
-    } else if (path === '/magentodata/nl-magento') {
+      console.log('[Magento Data Module] Loading fr-magento.js for path:', path);
+      const { initFRMagentoData } = await import(`./fr-magento.js?t=${Date.now()}&v=4`);
+      console.log('[Magento Data Module] fr-magento.js loaded, calling initFRMagentoData()');
+      await initFRMagentoData(path);
+      console.log('[Magento Data Module] initFRMagentoData() completed');
+    } else if (path.startsWith('/magentodata/nl-magento')) {
       // Load NL magento page
-      const { initNLMagentoData } = await import('./nl-magento.js');
-      await initNLMagentoData();
+      const { initNLMagentoData } = await import(`./nl-magento.js?t=${Date.now()}&v=2`);
+      await initNLMagentoData(path);
     } else if (path === '/magentodata/test-magento') {
       // Load test magento page
       const { initTestMagentoData } = await import('./test-magento.js');

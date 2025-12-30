@@ -375,6 +375,15 @@ class MagentoDataService:
                     logger.info(f"Re-syncing last {resync_days} days from {start_date} to catch order updates")
                     if progress_callback:
                         progress_callback(f"Re-syncing from {start_date} (last {resync_days} days)...")
+                else:
+                    # First time sync: Default to last 6 months + 1 week buffer
+                    # This prevents trying to download the entire history of the shop on first run
+                    from datetime import datetime, timedelta
+                    six_months_ago = datetime.now() - timedelta(days=190)
+                    start_date = six_months_ago.strftime('%Y-%m-%d %H:%M:%S')
+                    logger.info(f"First-time sync for {region}: Defaulting to {start_date}")
+                    if progress_callback:
+                        progress_callback(f"First-time sync: Fetching data from {start_date}...")
             
             # Verify last order was completely saved before continuing
             if start_date:

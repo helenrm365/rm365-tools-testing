@@ -613,7 +613,11 @@ class MagentoDataRepo:
                 
                 if prev_date:
                     # Found previous orders, suggest starting from there
-                    suggested_date = prev_date.strftime('%Y-%m-%d %H:%M:%S')
+                    if hasattr(prev_date, 'strftime'):
+                        suggested_date = prev_date.strftime('%Y-%m-%d %H:%M:%S')
+                    else:
+                        suggested_date = str(prev_date)
+                    
                     return {
                         'is_complete': False,
                         'message': f'No orders found at last synced date {last_synced_date}',
@@ -700,7 +704,13 @@ class MagentoDataRepo:
                 """, (last_synced_date,))
                 
                 prev_date = cursor.fetchone()[0]
-                suggested_date = prev_date.strftime('%Y-%m-%d %H:%M:%S') if prev_date else None
+                if prev_date:
+                    if hasattr(prev_date, 'strftime'):
+                        suggested_date = prev_date.strftime('%Y-%m-%d %H:%M:%S')
+                    else:
+                        suggested_date = str(prev_date)
+                else:
+                    suggested_date = None
                 
                 incomplete_details = ', '.join([
                     f"{order}({saved}/{total})" 
@@ -1247,6 +1257,8 @@ class MagentoDataRepo:
                             qty = EXCLUDED.qty,
                             status = EXCLUDED.status,
                             updated_at = EXCLUDED.updated_at
+                        WHERE {table_name}.qty IS DISTINCT FROM EXCLUDED.qty
+                           OR {table_name}.status IS DISTINCT FROM EXCLUDED.status
                     """
                     now = datetime.now(timezone.utc)
                     cursor.execute(insert_query, (

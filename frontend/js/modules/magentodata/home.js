@@ -1,5 +1,5 @@
 // frontend/js/modules/magentodata/home.js
-import { initializeTables, checkTablesStatus, refreshAllAggregatedData } from '../../services/api/magentoDataApi.js';
+import { initializeTables, checkTablesStatus, refreshAllAggregatedData } from '../../services/api/magentoDataApi.js?v=5';
 import { showToast } from '../../ui/toast.js';
 
 /**

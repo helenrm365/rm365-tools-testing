@@ -1,7 +1,7 @@
 // frontend/js/modules/magentodata/aggregated-filters.js
 import { get, post, del } from '../../services/api/http.js';
 import { showToast } from '../../ui/toast.js';
-import { refreshAggregatedDataForRegion } from '../../services/api/magentoDataApi.js';
+import { refreshAggregatedDataForRegion, getCustomRangeAggregatedData } from '../../services/api/magentoDataApi.js';
 
 const API = '/api/v1/magentodata';
 
@@ -1267,32 +1267,29 @@ window.runCustomAnalysis = async function(region) {
     
     try {
         // Call the custom range API
-        const { getCustomRangeAggregatedData } = await import('../../services/api/magentoDataApi.js');
         const response = await getCustomRangeAggregatedData(region, rangeType, rangeValue, useExclusions, 1000, 0, '');
         
         if (response.status === 'success' && response.data) {
-            // Store the custom range parameters globally
-            window.customRangeActive = {
-                region,
-                rangeType,
-                rangeValue,
-                useExclusions
-            };
-            
-            // Dispatch event to notify the page to switch to custom range view
+            // Store the custom range parameters and data globally
             const rangeLabel = rangeType === 'days' ? `Last ${rangeValue} Days` :
                               rangeType === 'months' ? `Last ${rangeValue} Months` :
                               `Since ${rangeValue}`;
             
+            window.customRangeActive = {
+                region,
+                rangeType,
+                rangeValue,
+                useExclusions,
+                rangeLabel,
+                data: response.data,
+                totalCount: response.total_count
+            };
+            
+            // Dispatch event to notify the page to switch to custom range view
             window.dispatchEvent(new CustomEvent('customRangeApplied', {
                 detail: {
                     region,
-                    rangeType,
-                    rangeValue,
-                    useExclusions,
-                    rangeLabel,
-                    data: response.data,
-                    totalCount: response.total_count
+                    rangeLabel
                 }
             }));
             

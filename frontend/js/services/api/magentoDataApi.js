@@ -44,11 +44,12 @@ export async function getUKMagentoData(limit = 100, offset = 0, search = '') {
   return await get(`${API}/uk?${params.toString()}`);
 }
 
-export async function syncUKMagentoData(signal = null, startDate = null, endDate = null, maxOrders = null) {
+export async function syncUKMagentoData(signal = null, startDate = null, endDate = null, maxOrders = null, resyncDays = null) {
   const body = {};
   if (startDate) body.start_date = startDate;
   if (endDate) body.end_date = endDate;
   if (maxOrders) body.max_orders = maxOrders;
+  if (resyncDays) body.resync_days = resyncDays;
   
   return await post(`${API}/uk/sync`, body, { signal });
 }
@@ -95,11 +96,12 @@ export async function getFRMagentoData(limit = 100, offset = 0, search = '') {
   return await get(`${API}/fr?${params.toString()}`);
 }
 
-export async function syncFRMagentoData(signal = null, startDate = null, endDate = null, maxOrders = null) {
+export async function syncFRMagentoData(signal = null, startDate = null, endDate = null, maxOrders = null, resyncDays = null) {
   const body = {};
   if (startDate) body.start_date = startDate;
   if (endDate) body.end_date = endDate;
   if (maxOrders) body.max_orders = maxOrders;
+  if (resyncDays) body.resync_days = resyncDays;
   
   return await post(`${API}/fr/sync`, body, { signal });
 }
@@ -146,11 +148,12 @@ export async function getNLMagentoData(limit = 100, offset = 0, search = '') {
   return await get(`${API}/nl?${params.toString()}`);
 }
 
-export async function syncNLMagentoData(signal = null, startDate = null, endDate = null, maxOrders = null) {
+export async function syncNLMagentoData(signal = null, startDate = null, endDate = null, maxOrders = null, resyncDays = null) {
   const body = {};
   if (startDate) body.start_date = startDate;
   if (endDate) body.end_date = endDate;
   if (maxOrders) body.max_orders = maxOrders;
+  if (resyncDays) body.resync_days = resyncDays;
   
   return await post(`${API}/nl/sync`, body, { signal });
 }

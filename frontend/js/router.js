@@ -236,8 +236,24 @@ export async function navigate(path, replace = false) {
       url = routes['/orders/order-fulfillment'];
     }
     
+    // Check if this is a magento data view-specific URL (full-data, 6-month, custom-range)
+    // Use simple prefix matching instead of complex regex
+    if (!url) {
+      if (path.startsWith('/magentodata/uk-magento/')) {
+        url = routes['/magentodata/uk-magento'];
+        console.log(`[Router] Mapping ${path} to ${url} (region: uk)`);
+      } else if (path.startsWith('/magentodata/fr-magento/')) {
+        url = routes['/magentodata/fr-magento'];
+        console.log(`[Router] Mapping ${path} to ${url} (region: fr)`);
+      } else if (path.startsWith('/magentodata/nl-magento/')) {
+        url = routes['/magentodata/nl-magento'];
+        console.log(`[Router] Mapping ${path} to ${url} (region: nl)`);
+      }
+    }
+    
     if (!url) {
       console.warn('[Router] No route defined for:', path);
+      console.warn('[Router] Available routes:', Object.keys(routes));
       // Fallback to home page
       const fallbackPath = '/home';
       if (path !== fallbackPath) {
@@ -343,7 +359,7 @@ export async function navigate(path, replace = false) {
       currentModule = mod;
       currentModulePath = 'labels';
     } else if (path.startsWith('/magentodata')) {
-      const mod = await import('./modules/magentodata/index.js');
+      const mod = await import(`./modules/magentodata/index.js?t=${Date.now()}&v=2`);
       await mod.init(path);
       currentModule = mod;
       currentModulePath = 'magentodata';

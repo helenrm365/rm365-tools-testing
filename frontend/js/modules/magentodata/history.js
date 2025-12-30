@@ -1,6 +1,6 @@
 // frontend/js/modules/magentodata/history.js
 
-import { getImportHistory } from '../../services/api/magentoDataApi.js';
+import { getImportHistory } from '../../services/api/magentoDataApi.js?v=5';
 import { showToast } from '../../ui/toast.js';
 
 // State

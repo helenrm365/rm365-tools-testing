@@ -1,5 +1,5 @@
 // frontend/js/modules/magentodata/uk-magento.js
-import { getUKMagentoData, getUKAggregatedData, refreshAggregatedDataForRegion, initializeTables } from '../../services/api/magentoDataApi.js';
+import { getUKMagentoData, getUKAggregatedData, refreshAggregatedDataForRegion, initializeTables, syncUKMagentoData } from '../../services/api/magentoDataApi.js?v=5';
 import { showToast } from '../../ui/toast.js';
 import { showFiltersModal, showCustomRangeModal } from './aggregated-filters.js';
 import { exportToPDF } from '../../utils/pdfExport.js';
@@ -20,9 +20,50 @@ let currentSortDirection = 'asc'; // 'asc' or 'desc'
 /**
  * Initialize UK magento page
  */
-export async function initUKMagentoData() {
+export async function initUKMagentoData(path = '/magentodata/uk-magento') {
+  console.log('[UK Magento] initUKMagentoData called with path:', path);
+  
+  // Reset state for new page load
+  currentPage = 0;
+  currentSearch = '';
+  isSearchMode = false;
+  currentSortColumn = null;
+  currentSortDirection = 'asc';
+  allData = [];
+  totalRecords = 0;
+  
+  // Determine initial view mode from URL
+  if (path.includes('/full-data')) {
+    viewMode = 'full';
+    customRangeLabel = '';
+    console.log('[UK Magento] Setting view mode to: full');
+  } else if (path.includes('/6-month')) {
+    viewMode = 'aggregated';
+    customRangeLabel = '';
+    console.log('[UK Magento] Setting view mode to: aggregated');
+  } else if (path.includes('/custom-range')) {
+    viewMode = 'custom';
+    console.log('[UK Magento] Setting view mode to: custom');
+  } else if (path === '/magentodata/uk-magento' || path === '/magentodata/uk-magento/') {
+    // Redirect base URL to full-data to make URL explicit
+    console.log('[UK Magento] Redirecting base URL to /full-data');
+    window.navigate('/magentodata/uk-magento/full-data', true);
+    return;
+  } else {
+    // Default to full data view
+    viewMode = 'full';
+    customRangeLabel = '';
+    console.log('[UK Magento] Defaulting view mode to: full');
+  }
+  
   // Wait for DOM to be ready before setting up event listeners
   await new Promise(resolve => setTimeout(resolve, 0));
+  
+  // Set up event listeners immediately so UI is responsive
+  setupEventListeners();
+  
+  // Update active button based on view mode immediately
+  updateViewButtons();
   
   // Initialize tables first (creates tables if they don't exist)
   try {
@@ -32,55 +73,132 @@ export async function initUKMagentoData() {
     showToast('Failed to initialize database tables. Please check your connection.', 'error');
   }
   
-  // Set up event listeners
-  setupEventListeners();
+  // Load initial data based on view mode
+  if (viewMode === 'custom') {
+    // Check if custom range parameters exist
+    if (window.customRangeActive) {
+      customRangeLabel = window.customRangeActive.rangeLabel || 'Custom Range';
+      // Load the custom range data
+      allData = window.customRangeActive.data || [];
+      totalRecords = window.customRangeActive.totalCount || 0;
+      currentPage = 0;
+      displayCurrentPage();
+    } else {
+      // No custom range set, redirect to full data
+      showToast('No custom range data available. Please select a date range first.', 'warning');
+      window.navigate('/magentodata/uk-magento/full-data', true);
+    }
+  } else if (viewMode === 'aggregated') {
+    await handleRefreshAggregatedData();
+  } else {
+    await loadMagentoData();
+  }
   
-  // Load initial data
-  await loadMagentoData();
+  console.log('[UK Magento] Initialization complete. View mode:', viewMode);
+}
+
+/**
+ * Trigger background sync to cache latest data
+ */
+async function triggerBackgroundSync() {
+  if (isSyncing) return;
+  
+  const syncBtn = document.getElementById('syncNowBtn');
+  const originalBtnContent = syncBtn ? syncBtn.innerHTML : '';
+  
+  try {
+    isSyncing = true;
+    console.log('[UK Magento] Starting background sync...');
+    
+    if (syncBtn) {
+      syncBtn.disabled = true;
+      syncBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
+    }
+    
+    // Create abort controller for this sync
+    syncAbortController = new AbortController();
+    
+    // Sync with 180 days (6 months) lookback to catch status updates
+    const result = await syncUKMagentoData(syncAbortController.signal, null, null, null, 180);
+    
+    if (result.status === 'success') {
+      if (result.rows_synced > 0) {
+        showToast(`Sync Complete: Processed ${result.rows_synced} new/updated rows`, 'success');
+        // Reload data if we're on the first page to show new items
+        if (currentPage === 0 && !isSearchMode) {
+          loadMagentoData();
+        }
+      } else {
+        showToast('Sync Complete: No new or updated orders found', 'info');
+      }
+    } else if (result.status === 'error') {
+      console.warn('[UK Magento] Background sync warning:', result.message);
+      showToast('Sync Warning: ' + result.message, 'warning');
+    }
+  } catch (error) {
+    if (error.name !== 'AbortError') {
+      console.error('[UK Magento] Background sync error:', error);
+      showToast('Sync Failed: ' + error.message, 'error');
+    }
+  } finally {
+    isSyncing = false;
+    syncAbortController = null;
+    if (syncBtn) {
+      syncBtn.disabled = false;
+      syncBtn.innerHTML = originalBtnContent;
+    }
+  }
+}
+
+/**
+ * Update view buttons to reflect current view mode
+ */
+function updateViewButtons() {
+  const viewFullBtn = document.getElementById('viewFullBtn');
+  const viewAggregatedBtn = document.getElementById('viewAggregatedBtn');
+  const customRangeBtn = document.getElementById('customRangeBtn');
+  
+  // Remove active class from all
+  viewFullBtn?.classList.remove('active');
+  viewAggregatedBtn?.classList.remove('active');
+  customRangeBtn?.classList.remove('active');
+  
+  // Add active class to current view
+  if (viewMode === 'full') {
+    viewFullBtn?.classList.add('active');
+  } else if (viewMode === 'aggregated') {
+    viewAggregatedBtn?.classList.add('active');
+  } else if (viewMode === 'custom') {
+    customRangeBtn?.classList.add('active');
+  }
 }
 
 /**
  * Set up event listeners for the page
  */
 function setupEventListeners() {
-  // View toggle buttons
+  // View toggle buttons - now navigate to different URLs
   const viewFullBtn = document.getElementById('viewFullBtn');
   const viewAggregatedBtn = document.getElementById('viewAggregatedBtn');
   
   if (viewFullBtn) {
     viewFullBtn.addEventListener('click', () => {
-      viewMode = 'full';
-      viewFullBtn.classList.add('active');
-      viewAggregatedBtn?.classList.remove('active');
-      currentPage = 0;
-      customRangeLabel = ''; // Clear custom range
-      currentSortColumn = null; // Reset sorting
-      currentSortDirection = 'asc';
-      
-      // Check if there's an active search and preserve it
-      const searchInput = document.getElementById('magentoSearchInput');
-      if (searchInput && searchInput.value.trim()) {
-        // Keep search active and reload with search term
-        loadSearchResults(searchInput.value.trim());
-      } else {
-        // No search, just load data normally
-        loadMagentoData();
-      }
+      window.navigate('/magentodata/uk-magento/full-data');
     });
   }
   
   if (viewAggregatedBtn) {
-    viewAggregatedBtn.addEventListener('click', async () => {
-      viewMode = 'aggregated';
-      viewAggregatedBtn.classList.add('active');
-      viewFullBtn?.classList.remove('active');
-      currentPage = 0;
-      customRangeLabel = ''; // Clear custom range
-      currentSortColumn = null; // Reset sorting
-      currentSortDirection = 'asc';
-      
-      // Automatically sync and refresh aggregated data
-      await handleRefreshAggregatedData();
+    viewAggregatedBtn.addEventListener('click', () => {
+      window.navigate('/magentodata/uk-magento/6-month');
+    });
+  }
+
+  // Sync Now button
+  const syncNowBtn = document.getElementById('syncNowBtn');
+  if (syncNowBtn) {
+    syncNowBtn.addEventListener('click', async () => {
+      showToast('Starting sync...', 'info');
+      await triggerBackgroundSync();
     });
   }
   
@@ -298,29 +416,8 @@ function setupEventListeners() {
   // Listen for custom range applied event
   window.addEventListener('customRangeApplied', (e) => {
     if (e.detail.region === 'uk') {
-      // Switch to custom view mode
-      viewMode = 'custom';
-      customRangeLabel = e.detail.rangeLabel;
-      
-      // Update view buttons
-      const viewFullBtn = document.getElementById('viewFullBtn');
-      const viewAggregatedBtn = document.getElementById('viewAggregatedBtn');
-      viewFullBtn?.classList.remove('active');
-      viewAggregatedBtn?.classList.remove('active');
-      
-      // Load the custom range data
-      allData = e.detail.data;
-      totalRecords = e.detail.totalCount;
-      currentPage = 0;
-      isSearchMode = false;
-      currentSearch = '';
-      
-      // Clear search input
-      const searchInput = document.getElementById('magentoSearchInput');
-      if (searchInput) searchInput.value = '';
-      
-      // Render the data
-      renderData();
+      // Navigate to the custom range URL
+      window.navigate('/magentodata/uk-magento/custom-range');
     }
   });
 }
@@ -459,7 +556,15 @@ function displayCurrentPage() {
   
   // All views now use server-side pagination (100 records at a time)
   // Display all data from the current page load
-  const pageData = allData;
+  let pageData = allData;
+  
+  // For custom view, we have all data client-side (up to 1000 rows), so we need to slice it
+  if (viewMode === 'custom') {
+    const start = currentPage * pageSize;
+    const end = start + pageSize;
+    pageData = allData.slice(start, end);
+  }
+
   const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize));
   
   
