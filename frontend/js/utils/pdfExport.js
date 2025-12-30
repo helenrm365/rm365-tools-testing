@@ -53,31 +53,37 @@ export async function exportToPDF(data, region, viewType, searchTerm = '') {
         const doc = new jsPDF();
         
         // Set up fonts and colors
-        const primaryColor = [0, 120, 212]; // Blue
-        const headerBg = [240, 240, 240]; // Light gray
+        const primaryColor = [40, 40, 40]; // Dark Grey
+        const secondaryColor = [100, 100, 100]; // Medium Grey
         
-        // Title
-        doc.setFontSize(18);
+        // Title Section
+        doc.setFontSize(20);
         doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-        doc.text(`${region.toUpperCase()} Magento Data - ${viewType}`, 14, 20);
+        doc.setFont(undefined, 'bold');
+        doc.text(`${region.toUpperCase()} MAGENTO DATA`, 14, 20);
         
-        // Subtitle with date and search info
-        doc.setFontSize(10);
-        doc.setTextColor(100, 100, 100);
+        // Metadata Section
+        doc.setFontSize(9);
+        doc.setFont(undefined, 'normal');
+        doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+        
         const currentDate = new Date().toLocaleDateString('en-GB', { 
             year: 'numeric', 
             month: 'long', 
             day: 'numeric' 
         });
-        let subtitle = `Generated: ${currentDate}`;
-        if (searchTerm) {
-            subtitle += ` | Search: "${searchTerm}"`;
-        }
-        doc.text(subtitle, 14, 28);
         
-        // Summary info
-        doc.setFontSize(9);
-        doc.text(`Total SKUs: ${data.length}`, 14, 35);
+        let metaY = 28;
+        doc.text(`View: ${viewType}`, 14, metaY);
+        doc.text(`Date: ${currentDate}`, 80, metaY);
+        
+        if (searchTerm) {
+            metaY += 5;
+            doc.text(`Search: "${searchTerm}"`, 14, metaY);
+        }
+        
+        metaY += 5;
+        doc.text(`Total Items: ${data.length}`, 14, metaY);
         
         // Table headers
         const headers = [['#', 'SKU', 'Product Name', 'Total Qty']];
@@ -86,7 +92,7 @@ export async function exportToPDF(data, region, viewType, searchTerm = '') {
         const rows = data.map((item, index) => [
             (index + 1).toString(),
             item.sku || 'N/A',
-            truncateText(item.name || 'N/A', 40),
+            truncateText(item.name || 'N/A', 50),
             (item.total_qty || 0).toString()
         ]);
         
@@ -97,50 +103,70 @@ export async function exportToPDF(data, region, viewType, searchTerm = '') {
         doc.autoTable({
             head: headers,
             body: rows,
-            startY: 40,
-            theme: 'grid',
-            headStyles: {
-                fillColor: primaryColor,
-                textColor: 255,
-                fontStyle: 'bold',
-                fontSize: 9
+            startY: metaY + 10,
+            theme: 'plain',
+            styles: {
+                fontSize: 9,
+                cellPadding: 4,
+                textColor: primaryColor,
+                overflow: 'ellipsize',
+                valign: 'middle'
             },
-            bodyStyles: {
-                fontSize: 8,
-                textColor: 50
+            headStyles: {
+                fillColor: [255, 255, 255],
+                textColor: primaryColor,
+                fontStyle: 'bold',
+                fontSize: 9,
+                minCellHeight: 10
             },
             columnStyles: {
-                0: { cellWidth: 15, halign: 'center' },  // #
-                1: { cellWidth: 40 },                      // SKU
-                2: { cellWidth: 80 },                      // Product Name
+                0: { cellWidth: 15, halign: 'center', textColor: secondaryColor },  // #
+                1: { cellWidth: 45, fontStyle: 'bold' },                      // SKU
+                2: { cellWidth: 'auto' },                      // Product Name
                 3: { cellWidth: 25, halign: 'right' }     // Total Qty
             },
-            alternateRowStyles: {
-                fillColor: [250, 250, 250]
+            didDrawCell: function(data) {
+                // Draw line at the bottom of the header
+                if (data.section === 'head' && data.row.index === 0) {
+                    doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+                    doc.setLineWidth(0.5);
+                    doc.line(data.cell.x, data.cell.y + data.cell.height, data.cell.x + data.cell.width, data.cell.y + data.cell.height);
+                }
+                // Draw light line at the bottom of each body row for separation
+                if (data.section === 'body') {
+                    doc.setDrawColor(240, 240, 240);
+                    doc.setLineWidth(0.1);
+                    doc.line(data.cell.x, data.cell.y + data.cell.height, data.cell.x + data.cell.width, data.cell.y + data.cell.height);
+                }
             },
             margin: { top: 40, left: 14, right: 14 },
             didDrawPage: function(data) {
                 // Footer with page numbers
                 const pageCount = doc.internal.getNumberOfPages();
                 doc.setFontSize(8);
-                doc.setTextColor(150);
-                for (let i = 1; i <= pageCount; i++) {
-                    doc.setPage(i);
-                    doc.text(
-                        `Page ${i} of ${pageCount}`,
-                        doc.internal.pageSize.width / 2,
-                        doc.internal.pageSize.height - 10,
-                        { align: 'center' }
-                    );
-                }
+                doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+                const footerText = `Page ${doc.internal.getCurrentPageInfo().pageNumber} of ${pageCount}`;
+                doc.text(
+                    footerText,
+                    doc.internal.pageSize.width - 14,
+                    doc.internal.pageSize.height - 10,
+                    { align: 'right' }
+                );
             }
         });
         
         // Add summary row after table
-        const finalY = doc.lastAutoTable.finalY + 5;
-        doc.setFontSize(9);
+        const finalY = doc.lastAutoTable.finalY + 10;
+        
+        // Draw a line above the total
+        doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+        doc.setLineWidth(0.5);
+        doc.line(14, finalY - 5, doc.internal.pageSize.width - 14, finalY - 5);
+
+        doc.setFontSize(10);
         doc.setFont(undefined, 'bold');
-        doc.text(`Total Quantity: ${totalQty.toLocaleString()}`, 14, finalY);
+        doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+        doc.text(`Total Quantity: ${totalQty.toLocaleString()}`, doc.internal.pageSize.width - 14, finalY, { align: 'right' });
         
         // Generate filename
         const dateStr = new Date().toISOString().split('T')[0];

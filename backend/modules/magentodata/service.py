@@ -770,7 +770,9 @@ class MagentoDataService:
     def search_customers(self, region: str, search_term: str) -> Dict[str, Any]:
         """Search for customers in magento data"""
         try:
-            customers = self.repo.search_customers(region, search_term)
+            # Use client to search live Magento DB
+            client = MagentoDataClient(region)
+            customers = client.search_customers(search_term)
             return {
                 "status": "success",
                 "customers": customers
@@ -783,6 +785,11 @@ class MagentoDataService:
             }
         except Exception as e:
             logger.error(f"Error searching customers: {e}")
+            return {
+                "status": "error",
+                "message": f"Error searching customers: {str(e)}",
+                "customers": []
+            }
             return {
                 "status": "error",
                 "message": f"Failed to search customers: {str(e)}",
@@ -899,7 +906,9 @@ class MagentoDataService:
     def get_customer_groups(self, region: str) -> Dict[str, Any]:
         """Get all customer groups for a region"""
         try:
-            groups = self.repo.get_customer_groups(region)
+            # Use client to get groups from live Magento DB
+            client = MagentoDataClient(region)
+            groups = client.get_customer_groups()
             return {
                 "status": "success",
                 "customer_groups": groups

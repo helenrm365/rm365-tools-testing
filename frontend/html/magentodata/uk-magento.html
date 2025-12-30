@@ -162,10 +162,15 @@
                         </thead>
                         <tbody id="magentoTableBody" class="table-body">
                             <tr>
-                                <td colspan="14" class="empty-state">
-                                    <div class="empty-icon"><i class="fas fa-chart-bar"></i></div>
-                                    <div class="empty-message">No data available</div>
-                                    <div class="empty-submessage">Click "Sync from Magento" to fetch live magento data</div>
+                                <td colspan="14" style="text-align: center; padding: 2rem;">
+                                    <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
+                                        <div class="loader" style="margin: 0;">
+                                            <div class="dot" style="background: var(--accent-color, #0078d4);"></div>
+                                            <div class="dot" style="background: var(--accent-color, #0078d4);"></div>
+                                            <div class="dot" style="background: var(--accent-color, #0078d4);"></div>
+                                        </div>
+                                        <span style="color: var(--text-secondary); font-size: 0.9rem;">Loading data...</span>
+                                    </div>
                                 </td>
                             </tr>
                         </tbody>

@@ -506,3 +506,41 @@ class MagentoDataClient:
             'was_cancelled': was_cancelled,
             'error': error_occurred
         }
+
+    def search_customers(self, search_term: str, limit: int = 20) -> List[Dict[str, Any]]:
+        """Search for customers in live Magento DB"""
+        try:
+            conn = get_magento_connection(self.region)
+            with conn.cursor() as cursor:
+                # Search in sales_order_grid for performance
+                search_pattern = f"%{search_term}%"
+                query = """
+                    SELECT DISTINCT customer_email, customer_name
+                    FROM sales_order_grid
+                    WHERE (customer_email LIKE %s OR customer_name LIKE %s)
+                    AND customer_email IS NOT NULL
+                    LIMIT %s
+                """
+                cursor.execute(query, (search_pattern, search_pattern, limit))
+                rows = cursor.fetchall()
+                
+                return [
+                    {"email": row['customer_email'], "full_name": row['customer_name']}
+                    for row in rows
+                ]
+        except Exception as e:
+            logger.error(f"Error searching customers in Magento: {e}")
+            return []
+
+    def get_customer_groups(self) -> List[str]:
+        """Get customer groups from live Magento DB"""
+        try:
+            conn = get_magento_connection(self.region)
+            with conn.cursor() as cursor:
+                query = "SELECT customer_group_code FROM customer_group"
+                cursor.execute(query)
+                rows = cursor.fetchall()
+                return [row['customer_group_code'] for row in rows]
+        except Exception as e:
+            logger.error(f"Error getting customer groups from Magento: {e}")
+            return []

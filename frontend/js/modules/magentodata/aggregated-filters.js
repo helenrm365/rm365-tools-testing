@@ -188,6 +188,17 @@ function createFiltersModal(region) {
                         Current: <strong>No threshold</strong> (all orders included)
                     </div>
                 </div>
+
+                <!-- Apply Options -->
+                <div class="filter-section" style="border-top: 1px solid var(--border-color); margin-top: 20px; padding-top: 20px;">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" id="apply-to-custom-range-${region}" style="width: 18px; height: 18px;">
+                        <span style="font-weight: 500;">Also apply to Custom Range view</span>
+                    </label>
+                    <p class="filter-section-description" style="margin-top: 5px; margin-left: 28px;">
+                        If checked, the current custom range analysis (if active) will be refreshed with these filters.
+                    </p>
+                </div>
             </div>
             
             <div class="filters-modal-footer">
@@ -416,6 +427,9 @@ async function applyAllFilters(region) {
     const applyBtn = document.getElementById(`filters-apply-${region}`);
     if (!applyBtn) return;
     
+    const applyToCustomRangeCheckbox = document.getElementById(`apply-to-custom-range-${region}`);
+    const shouldApplyToCustomRange = applyToCustomRangeCheckbox ? applyToCustomRangeCheckbox.checked : false;
+    
     // Show custom confirmation dialog
     const confirmMessage = 'Apply all filter changes and refresh 6M aggregated magento data?';
     const confirmed = await showConfirmDialog(confirmMessage);
@@ -563,6 +577,35 @@ async function applyAllFilters(region) {
                     // Reload the page data if on aggregated view
                     const reloadEvent = new CustomEvent('aggregated-data-refreshed', { detail: { region } });
                     document.dispatchEvent(reloadEvent);
+
+                    // Apply to custom range if requested and active
+                    if (shouldApplyToCustomRange && window.customRangeActive && window.customRangeActive.region === region) {
+                        showToast('🔄 Refreshing Custom Range data...', 'info');
+                        try {
+                            const { rangeType, rangeValue } = window.customRangeActive;
+                            // Force useExclusions=true since we just applied filters
+                            const response = await getCustomRangeAggregatedData(region, rangeType, rangeValue, true, 1000, 0, '');
+                            
+                            if (response.status === 'success' && response.data) {
+                                // Update global state
+                                window.customRangeActive.data = response.data;
+                                window.customRangeActive.totalCount = response.total_count;
+                                window.customRangeActive.useExclusions = true;
+                                
+                                // Dispatch event to update view
+                                window.dispatchEvent(new CustomEvent('customRangeApplied', {
+                                    detail: {
+                                        region,
+                                        rangeLabel: window.customRangeActive.rangeLabel
+                                    }
+                                }));
+                                showToast('✅ Custom Range data refreshed!', 'success');
+                            }
+                        } catch (e) {
+                            console.error('Error refreshing custom range:', e);
+                            showToast('⚠️ Failed to refresh custom range data', 'warning');
+                        }
+                    }
                 } else {
                     showToast(`⚠️ Filters saved but refresh failed: ${refreshResult.message}`, 'warning');
                 }

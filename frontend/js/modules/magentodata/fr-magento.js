@@ -55,6 +55,9 @@ export async function initFRMagentoData(path = '/magentodata/fr-magento') {
   // Wait for DOM to be ready before setting up event listeners
   await new Promise(resolve => setTimeout(resolve, 0));
   
+  // Show loading state immediately
+  showLoadingState();
+  
   // Set up event listeners immediately so UI is responsive
   setupEventListeners();
   
@@ -424,6 +427,26 @@ function setupEventListeners() {
       window.navigate('/magentodata/fr-magento/custom-range');
     }
   });
+}
+
+/**
+ * Show loading state in the table
+ */
+function showLoadingState() {
+  const tbody = document.getElementById('magentoTableBody');
+  if (!tbody) return;
+  
+  const colSpan = viewMode === 'aggregated' ? '4' : '14';
+  tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem;">
+    <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
+      <div class="loader" style="margin: 0;">
+        <div class="dot" style="background: var(--accent-color, #0078d4);"></div>
+        <div class="dot" style="background: var(--accent-color, #0078d4);"></div>
+        <div class="dot" style="background: var(--accent-color, #0078d4);"></div>
+      </div>
+      <span style="color: var(--text-secondary); font-size: 0.9rem;">Loading data...</span>
+    </div>
+  </td></tr>`;
 }
 
 /**
