@@ -21,14 +21,11 @@ export async function init(path) {
       await initUKMagentoData(path);
     } else if (path.startsWith('/magentodata/fr-magento')) {
       // Load FR magento page
-      console.log('[Magento Data Module] Loading fr-magento.js for path:', path);
       const { initFRMagentoData } = await import(`./fr-magento.js?t=${Date.now()}&v=4`);
-      console.log('[Magento Data Module] fr-magento.js loaded, calling initFRMagentoData()');
       await initFRMagentoData(path);
-      console.log('[Magento Data Module] initFRMagentoData() completed');
     } else if (path.startsWith('/magentodata/nl-magento')) {
       // Load NL magento page
-      const { initNLMagentoData } = await import(`./nl-magento.js?t=${Date.now()}&v=2`);
+      const { initNLMagentoData } = await import(`./nl-magento.js?t=${Date.now()}&v=4`);
       await initNLMagentoData(path);
     } else if (path === '/magentodata/test-magento') {
       // Load test magento page

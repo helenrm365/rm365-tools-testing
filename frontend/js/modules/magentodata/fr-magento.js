@@ -23,8 +23,6 @@ let isSyncing = false; // Track if sync is in progress
  * Initialize FR magento page
  */
 export async function initFRMagentoData(path = '/magentodata/fr-magento') {
-  console.log('[FR Magento] initFRMagentoData called with path:', path);
-  console.log('[FR Magento] window.navigate available:', !!window.navigate);
   
   // Reset state for new page load
   currentPage = 0;
@@ -37,42 +35,31 @@ export async function initFRMagentoData(path = '/magentodata/fr-magento') {
   if (path.includes('/full-data')) {
     viewMode = 'full';
     customRangeLabel = '';
-    console.log('[FR Magento] Setting view mode to: full');
   } else if (path.includes('/6-month')) {
     viewMode = 'aggregated';
     customRangeLabel = '';
-    console.log('[FR Magento] Setting view mode to: aggregated');
   } else if (path.includes('/custom-range')) {
     viewMode = 'custom';
-    console.log('[FR Magento] Setting view mode to: custom');
   } else if (path === '/magentodata/fr-magento' || path === '/magentodata/fr-magento/') {
     // Redirect base URL to full-data to make URL explicit
-    console.log('[FR Magento] Redirecting base URL to /full-data');
     if (window.navigate) {
       window.navigate('/magentodata/fr-magento/full-data', true);
-    } else {
-      console.error('[FR Magento] window.navigate is NOT available!');
     }
     return;
   } else {
     // Default to full data view
     viewMode = 'full';
     customRangeLabel = '';
-    console.log('[FR Magento] Defaulting view mode to: full');
   }
   
   // Wait for DOM to be ready before setting up event listeners
   await new Promise(resolve => setTimeout(resolve, 0));
   
-  console.log('[FR Magento] About to call setupEventListeners()');
   // Set up event listeners immediately so UI is responsive
   setupEventListeners();
-  console.log('[FR Magento] setupEventListeners() completed');
   
   // Update active button based on view mode immediately
-  console.log('[FR Magento] About to call updateViewButtons()');
   updateViewButtons();
-  console.log('[FR Magento] updateViewButtons() completed');
   
   // Initialize tables first (creates tables if they don't exist)
   try {
@@ -95,17 +82,13 @@ export async function initFRMagentoData(path = '/magentodata/fr-magento') {
     } else {
       // No custom range set, redirect to full data
       showToast('No custom range data available. Please select a date range first.', 'warning');
-      if (window.navigate) {
-        window.navigate('/magentodata/fr-magento/full-data', true);
-      }
+      window.navigate('/magentodata/fr-magento/full-data', true);
     }
   } else if (viewMode === 'aggregated') {
     await handleRefreshAggregatedData();
   } else {
     await loadMagentoData();
   }
-  
-  console.log('[FR Magento] Initialization complete. View mode:', viewMode);
 }
 
 /**

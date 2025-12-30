@@ -1,10 +1,8 @@
 // frontend/js/modules/magentodata/nl-magento.js
-import { getNLMagentoData, getNLAggregatedData, refreshAggregatedDataForRegion, initializeTables, syncNLMagentoData } from '../../services/api/magentoDataApi.js?v=6';
+import { getNLMagentoData, getNLAggregatedData, refreshAggregatedDataForRegion, initializeTables, syncNLMagentoData } from '../../services/api/magentoDataApi.js?v=7';
 import { showToast } from '../../ui/toast.js';
 import { showFiltersModal, showCustomRangeModal } from './aggregated-filters.js';
 import { exportToPDF } from '../../utils/pdfExport.js';
-
-console.log('[NL Magento] Module loaded - v3 (Updated Navigation)');
 
 let currentPage = 0;
 const pageSize = 100; // Display 100 records per page
@@ -21,8 +19,6 @@ let isSyncing = false; // Track if sync is in progress
  * Initialize NL magento page
  */
 export async function initNLMagentoData(path = '/magentodata/nl-magento') {
-  console.log('[NL Magento] initNLMagentoData called with path:', path);
-  console.log('[NL Magento] window.navigate available:', !!window.navigate);
   
   // Reset state for new page load
   currentPage = 0;
@@ -89,9 +85,7 @@ export async function initNLMagentoData(path = '/magentodata/nl-magento') {
     } else {
       // No custom range set, redirect to full data
       showToast('No custom range data available. Please select a date range first.', 'warning');
-      if (window.navigate) {
-        window.navigate('/magentodata/nl-magento/full-data', true);
-      }
+      window.navigate('/magentodata/nl-magento/full-data', true);
     }
   } else if (viewMode === 'aggregated') {
     await handleRefreshAggregatedData();
@@ -182,40 +176,25 @@ function updateViewButtons() {
  * Set up event listeners for the page
  */
 function setupEventListeners() {
-  console.log('[NL Magento] Setting up event listeners...');
-  
   // Helper to safely attach listener
   const attachListener = (id, callback) => {
     const el = document.getElementById(id);
     if (el) {
-      // Clone to remove existing listeners
       const newEl = el.cloneNode(true);
       el.parentNode.replaceChild(newEl, el);
       newEl.addEventListener('click', callback);
-      console.log(`[NL Magento] Attached listener to #${id}`);
       return true;
     }
-    console.warn(`[NL Magento] Element #${id} not found!`);
     return false;
   };
 
   // View toggle buttons
   attachListener('viewFullBtn', () => {
-    console.log('[NL Magento] Full Data button clicked');
-    if (window.navigate) {
-      window.navigate('/magentodata/nl-magento/full-data');
-    } else {
-      window.location.href = '/magentodata/nl-magento/full-data';
-    }
+    window.navigate('/magentodata/nl-magento/full-data');
   });
   
   attachListener('viewAggregatedBtn', () => {
-    console.log('[NL Magento] Aggregated Data button clicked');
-    if (window.navigate) {
-      window.navigate('/magentodata/nl-magento/6-month');
-    } else {
-      window.location.href = '/magentodata/nl-magento/6-month';
-    }
+    window.navigate('/magentodata/nl-magento/6-month');
   });
 
   // Sync Now button
