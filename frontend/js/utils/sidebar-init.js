@@ -176,7 +176,6 @@
             { id: 'liquid-glass-labels', href: '/css/labels/liquid-glass/labels.css' },
             { id: 'liquid-glass-magentodata', href: '/css/magentodata/liquid-glass/magentodata.css' },
             { id: 'liquid-glass-orders', href: '/css/orders/liquid-glass/orders.css' },
-            { id: 'liquid-glass-salesdata', href: '/css/salesdata/liquid-glass/salesdata.css' },
             { id: 'liquid-glass-usermanagement', href: '/css/usermanagement/liquid-glass/usermanagement.css' },
             { id: 'liquid-glass-login', href: '/css/login/liquid-glass/login.css' }
         ];

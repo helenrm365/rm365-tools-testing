@@ -611,7 +611,7 @@ html.dark-mode .labels-generator .product-sku {
   white-space: nowrap;
 }
 
-.labels-generator .sales-data {
+.labels-generator .magento-data {
   font-weight: 600;
   text-align: right;
   color: #059669;
@@ -628,7 +628,7 @@ html.dark-mode .labels-generator .price-data {
   color: #60a5fa;
 }
 
-html.dark-mode .labels-generator .sales-data {
+html.dark-mode .labels-generator .magento-data {
   color: #34d399;
 }
 
@@ -982,7 +982,7 @@ html.dark-mode .labels-generator .empty-submessage {
     font-size: 0.8rem;
   }
 
-  .labels-generator .sales-data,
+  .labels-generator .magento-data,
   .labels-generator .price-data {
     font-size: 0.85rem;
   }

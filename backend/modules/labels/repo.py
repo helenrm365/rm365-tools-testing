@@ -66,7 +66,7 @@ class LabelsRepo:
 
     # DEPRECATED: No longer used - 6M data now comes from inventory_metadata table
     # def _load_six_month_data_psycopg(self, conn, resolved_data: Dict[str, Tuple[str, str, str]]) -> Dict[str, Tuple[str, str]]:
-    #     """Old method that loaded 6M data from condensed_sales tables using item_ids"""
+    #     """Old method that loaded 6M data from aggregated_orders tables using item_ids"""
     #     pass
 
     def _load_inventory_metadata_map(self, inventory_conn) -> Dict[str, Tuple[str, str, str]]:
@@ -105,8 +105,8 @@ class LabelsRepo:
     
     def _load_latest_prices_psycopg(self, conn, skus: List[str], preferred_region: str = "uk") -> Dict[str, str]:
         """
-        Return { sku: price } with the most recent price from sales data.
-        Checks uk_sales_data, fr_sales_data, and nl_sales_data.
+        Return { sku: price } with the most recent price from magento data.
+        Checks uk_orders_cache, fr_orders_cache, and nl_orders_cache.
         Queries each table separately to avoid timeout issues.
         
         Args:
@@ -128,10 +128,10 @@ class LabelsRepo:
         
         # Query order based on preferred region (preferred region first)
         tables = [
-            (f'{preferred_region}_sales_data', preferred_region),
-            ('uk_sales_data', 'uk'),
-            ('fr_sales_data', 'fr'),
-            ('nl_sales_data', 'nl')
+            (f'{preferred_region}_orders_cache', preferred_region),
+            ('uk_orders_cache', 'uk'),
+            ('fr_orders_cache', 'fr'),
+            ('nl_orders_cache', 'nl')
         ]
         # Remove duplicates while preserving order
         seen = set()
@@ -146,12 +146,11 @@ class LabelsRepo:
                     cur.execute(f"""
                         SELECT DISTINCT ON (sku) 
                             sku, 
-                            price,
+                            COALESCE(special_price, original_price) as price,
                             COALESCE(currency, %s) as currency
                         FROM {table_name}
                         WHERE sku = ANY(%s) 
-                          AND price IS NOT NULL 
-                          AND price > 0
+                          AND (original_price IS NOT NULL OR special_price IS NOT NULL)
                         ORDER BY sku, created_at DESC
                     """, (region_currency_map[region], skus))
                     
@@ -175,7 +174,7 @@ class LabelsRepo:
 
     def _load_product_names_psycopg(self, conn, skus: List[str], preferred_region: str = "uk") -> Dict[str, str]:
         """
-        Return { sku: product_name } with the most recent product name from sales data.
+        Return { sku: product_name } with the most recent product name from magento data.
         Prioritizes preferred region, then falls back to other regions.
         Queries each table separately to avoid timeout issues.
         
@@ -191,10 +190,10 @@ class LabelsRepo:
         
         # Query order based on preferred region (preferred region first)
         tables = [
-            f'{preferred_region}_sales_data',
-            'uk_sales_data',
-            'fr_sales_data',
-            'nl_sales_data'
+            f'{preferred_region}_orders_cache',
+            'uk_orders_cache',
+            'fr_orders_cache',
+            'nl_orders_cache'
         ]
         # Remove duplicates while preserving order
         tables = list(dict.fromkeys(tables))
@@ -272,7 +271,7 @@ class LabelsRepo:
     ) -> List[Dict[str, Any]]:
         """
         Collapse per-base to base/-MD, map to inventory_metadata, attach 6M data and prices.
-        SKUs come from UK (magento), but prices/names come from sales data.
+        SKUs come from UK (magento), but prices/names come from magento data.
         Item IDs and 6M data come from inventory_metadata table.
         
         Args:
@@ -322,12 +321,12 @@ class LabelsRepo:
         all_skus = list(set([t[1] for t in resolved.values()]))
         logger.info(f"Loading data for {len(all_skus)} unique SKUs from {len(resolved)} products")
         
-        # Load prices with region preference from sales data
+        # Load prices with region preference from magento data
         with products_conn() as prod_conn:
             prices = self._load_latest_prices_psycopg(prod_conn, all_skus, preferred_region)
             logger.info(f"Loaded prices for {len(prices)} SKUs (region: {preferred_region})")
         
-        # Load product names from sales data with region preference
+        # Load product names from magento data with region preference
         with products_conn() as prod_conn:
             sales_names = self._load_product_names_psycopg(prod_conn, all_skus, preferred_region)
             logger.info(f"Loaded names for {len(sales_names)} SKUs (region: {preferred_region})")
@@ -341,7 +340,7 @@ class LabelsRepo:
             out.append({
                 "item_id": item_id,       # barcode from inventory_metadata
                 "sku": sku_used,          # chosen SKU (base or -MD) - always from UK
-                "product_name": product_name,     # from sales data (region preference)
+                "product_name": product_name,     # from magento data (region preference)
                 "uk_6m_data": uk_6m,      # UK 6-month data from inventory_metadata
                 "fr_6m_data": fr_6m,      # FR+NL combined 6-month data from inventory_metadata
                 "price": price,           # most recent price from preferred region
@@ -355,7 +354,7 @@ class LabelsRepo:
         """
         DB-driven: Magento 'discontinued_status' decides inclusion.
         Gets item_id and 6M data from inventory_metadata table.
-        Gets prices and names from sales_data tables.
+        Gets prices and names from magento_data tables.
         
         Args:
             conn: database connection to inventory_logs database

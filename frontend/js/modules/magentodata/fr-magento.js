@@ -1,13 +1,13 @@
 // frontend/js/modules/magentodata/fr-magento.js
-import { getFRMagentoData, getFRCondensedData, refreshCondensedDataForRegion, initializeTables } from '../../services/api/magentoDataApi.js';
+import { getFRMagentoData, getFRAggregatedData, refreshAggregatedDataForRegion, initializeTables } from '../../services/api/magentoDataApi.js';
 import { showToast } from '../../ui/toast.js';
-import { showFiltersModal, showCustomRangeModal } from './condensed-filters.js';
+import { showFiltersModal, showCustomRangeModal } from './aggregated-filters.js';
 import { exportToPDF } from '../../utils/pdfExport.js';
 
 let currentPage = 0;
 const pageSize = 100; // Display 100 records per page
 let currentSearch = '';
-let viewMode = 'full'; // 'full', 'condensed', or 'custom'
+let viewMode = 'full'; // 'full', 'aggregated', or 'custom'
 let allData = []; // Store loaded data
 let totalRecords = 0; // Total records available (from server count)
 let isSearchMode = false; // Whether we're in search mode (all matching results loaded) or pagination mode
@@ -43,13 +43,13 @@ export async function initFRMagentoData() {
 function setupEventListeners() {
   // View toggle buttons
   const viewFullBtn = document.getElementById('viewFullBtn');
-  const viewCondensedBtn = document.getElementById('viewCondensedBtn');
+  const viewAggregatedBtn = document.getElementById('viewAggregatedBtn');
   
   if (viewFullBtn) {
     viewFullBtn.addEventListener('click', () => {
       viewMode = 'full';
       viewFullBtn.classList.add('active');
-      viewCondensedBtn?.classList.remove('active');
+      viewAggregatedBtn?.classList.remove('active');
       currentPage = 0;
       customRangeLabel = ''; // Clear custom range
       
@@ -65,23 +65,16 @@ function setupEventListeners() {
     });
   }
   
-  if (viewCondensedBtn) {
-    viewCondensedBtn.addEventListener('click', () => {
-      viewMode = 'condensed';
-      viewCondensedBtn.classList.add('active');
+  if (viewAggregatedBtn) {
+    viewAggregatedBtn.addEventListener('click', async () => {
+      viewMode = 'aggregated';
+      viewAggregatedBtn.classList.add('active');
       viewFullBtn?.classList.remove('active');
       currentPage = 0;
       customRangeLabel = ''; // Clear custom range
       
-      // Check if there's an active search and preserve it
-      const searchInput = document.getElementById('magentoSearchInput');
-      if (searchInput && searchInput.value.trim()) {
-        // Keep search active and reload with search term
-        loadSearchResults(searchInput.value.trim());
-      } else {
-        // No search, just load data normally
-        loadMagentoData();
-      }
+      // Automatically sync and refresh aggregated data
+      await handleRefreshAggregatedData();
     });
   }
   
@@ -202,10 +195,10 @@ function setupEventListeners() {
     });
   }
   
-  // Refresh condensed data button
-  const refreshCondensedBtn = document.getElementById('refreshCondensedBtn');
-  if (refreshCondensedBtn) {
-    refreshCondensedBtn.addEventListener('click', handleRefreshCondensedData);
+  // Refresh aggregated data button
+  const refreshAggregatedBtn = document.getElementById('refreshAggregatedBtn');
+  if (refreshAggregatedBtn) {
+    refreshAggregatedBtn.addEventListener('click', handleRefreshAggregatedData);
   }
   
   // Custom Range button
@@ -252,10 +245,10 @@ function setupEventListeners() {
     });
   }
   
-  // Listen for condensed data refresh events from filter modal
-  document.addEventListener('condensed-data-refreshed', (e) => {
-    if (e.detail.region === 'fr' && viewMode === 'condensed') {
-      // Reload the table data if currently viewing condensed data
+  // Listen for aggregated data refresh events from filter modal
+  document.addEventListener('aggregated-data-refreshed', (e) => {
+    if (e.detail.region === 'fr' && viewMode === 'aggregated') {
+      // Reload the table data if currently viewing aggregated data
       const searchInput = document.getElementById('magentoSearchInput');
       if (searchInput && searchInput.value.trim()) {
         // Reload with current search
@@ -277,9 +270,9 @@ function setupEventListeners() {
       
       // Update view buttons
       const viewFullBtn = document.getElementById('viewFullBtn');
-      const viewCondensedBtn = document.getElementById('viewCondensedBtn');
+      const viewAggregatedBtn = document.getElementById('viewAggregatedBtn');
       viewFullBtn?.classList.remove('active');
-      viewCondensedBtn?.classList.remove('active');
+      viewAggregatedBtn?.classList.remove('active');
       
       // Load the custom range data
       allData = e.detail.data;
@@ -308,7 +301,7 @@ async function loadMagentoData() {
   if (!tbody) return;
   
   // Show loading state
-  const colSpan = viewMode === 'condensed' || viewMode === 'custom' ? '4' : '14';
+  const colSpan = viewMode === 'aggregated' || viewMode === 'custom' ? '4' : '14';
   tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem;">
     <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
       <div class="loader" style="margin: 0;">
@@ -326,12 +319,12 @@ async function loadMagentoData() {
       return;
     }
     
-    // Both full and condensed views now use server-side pagination (100 records at a time)
+    // Both full and aggregated views now use server-side pagination (100 records at a time)
     const offset = currentPage * pageSize;
     
     let result;
-    if (viewMode === 'condensed') {
-      result = await getFRCondensedData(pageSize, offset, '');
+    if (viewMode === 'aggregated') {
+      result = await getFRAggregatedData(pageSize, offset, '');
     } else {
       result = await getFRMagentoData(pageSize, offset, '');
     }
@@ -350,7 +343,7 @@ async function loadMagentoData() {
     }
   } catch (error) {
     console.error('[FR Magento] Error loading data:', error);
-    const colSpan = viewMode === 'condensed' ? '4' : '14';
+    const colSpan = viewMode === 'aggregated' ? '4' : '14';
     tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem; color: red;">Error: ${error.message}</td></tr>`;
     showToast('Error loading data: ' + error.message, 'error');
   }
@@ -364,7 +357,7 @@ async function loadMagentoData() {
  */
 async function loadSearchResults(searchTerm) {
   const tbody = document.getElementById('magentoTableBody');
-  const colSpan = viewMode === 'condensed' ? '4' : '14';
+  const colSpan = viewMode === 'aggregated' ? '4' : '14';
   
   if (!tbody) return;
   
@@ -375,8 +368,8 @@ async function loadSearchResults(searchTerm) {
     const offset = currentPage * pageSize;
     
     let result;
-    if (viewMode === 'condensed') {
-      result = await getFRCondensedData(pageSize, offset, searchTerm);
+    if (viewMode === 'aggregated') {
+      result = await getFRAggregatedData(pageSize, offset, searchTerm);
     } else {
       result = await getFRMagentoData(pageSize, offset, searchTerm);
     }
@@ -400,9 +393,9 @@ async function loadSearchResults(searchTerm) {
 }
 
 /**
- * Load ALL data for condensed view
+ * Load ALL data for aggregated view
  */
-async function loadAllDataForCondensed() {
+async function loadAllDataForAggregated() {
   const tbody = document.getElementById('magentoTableBody');
   const colSpan = '4';
   
@@ -410,7 +403,7 @@ async function loadAllDataForCondensed() {
   
   tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem;">
     <div style="display: flex; justify-content: center; align-items: center; gap: 10px; flex-direction: column;">
-      <div style="margin-bottom: 1rem; color: var(--text-secondary);">Loading condensed data...</div>
+      <div style="margin-bottom: 1rem; color: var(--text-secondary);">Loading aggregated data...</div>
       <div class="loader" style="margin: 0;">
         <div class="dot" style="background: var(--accent-color, #0078d4);"></div>
         <div class="dot" style="background: var(--accent-color, #0078d4);"></div>
@@ -426,7 +419,7 @@ async function loadAllDataForCondensed() {
     let hasMore = true;
     
     while (hasMore) {
-      const result = await getFRCondensedData(batchSize, offset, '');
+      const result = await getFRAggregatedData(batchSize, offset, '');
       
       if (result.status === 'success' && result.data && result.data.length > 0) {
         allData = allData.concat(result.data);
@@ -435,7 +428,7 @@ async function loadAllDataForCondensed() {
         // Update loading message
         tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem;">
           <div style="display: flex; justify-content: center; align-items: center; gap: 10px; flex-direction: column;">
-            <div style="margin-bottom: 1rem; color: var(--text-secondary);">Loading condensed data... (${allData.length} SKUs loaded)</div>
+            <div style="margin-bottom: 1rem; color: var(--text-secondary);">Loading aggregated data... (${allData.length} SKUs loaded)</div>
             <div class="loader" style="margin: 0;">
               <div class="dot" style="background: var(--accent-color, #0078d4);"></div>
               <div class="dot" style="background: var(--accent-color, #0078d4);"></div>
@@ -456,7 +449,7 @@ async function loadAllDataForCondensed() {
     totalRecords = allData.length;
     displayCurrentPage();
   } catch (error) {
-    console.error('[FR Magento] Error loading condensed data:', error);
+    console.error('[FR Magento] Error loading aggregated data:', error);
     tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem; color: red;">Error: ${error.message}</td></tr>`;
     showToast('Error loading data: ' + error.message, 'error');
   }
@@ -476,7 +469,7 @@ function displayCurrentPage() {
   
   // Check if data is loaded
   if (!allData || allData.length === 0) {
-    const colSpan = viewMode === 'condensed' || viewMode === 'custom' ? '4' : '14';
+    const colSpan = viewMode === 'aggregated' || viewMode === 'custom' ? '4' : '14';
     tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem;">No data available</td></tr>`;
     if (pageInfo) {
       pageInfo.textContent = 'No data loaded';
@@ -492,8 +485,8 @@ function displayCurrentPage() {
   
   
   // Display the data
-  if (viewMode === 'condensed' || viewMode === 'custom') {
-    displayCondensedData(pageData);
+  if (viewMode === 'aggregated' || viewMode === 'custom') {
+    displayAggregatedData(pageData);
   } else {
     displayMagentoData(pageData);
   }
@@ -501,7 +494,7 @@ function displayCurrentPage() {
   // Show/hide export PDF button based on view mode
   const exportPdfBtn = document.getElementById('exportPdfBtn');
   if (exportPdfBtn) {
-    if (viewMode === 'condensed' || viewMode === 'custom') {
+    if (viewMode === 'aggregated' || viewMode === 'custom') {
       exportPdfBtn.style.display = '';
     } else {
       exportPdfBtn.style.display = 'none';
@@ -513,8 +506,8 @@ function displayCurrentPage() {
     let viewLabel;
     if (viewMode === 'custom') {
       viewLabel = `Custom Range (${customRangeLabel})`;
-    } else if (viewMode === 'condensed') {
-      viewLabel = 'Condensed (6-Month)';
+    } else if (viewMode === 'aggregated') {
+      viewLabel = 'Aggregated (6-Month)';
     } else {
       viewLabel = 'Full Magento';
     }
@@ -522,7 +515,7 @@ function displayCurrentPage() {
     
     if (isSearchMode) {
       pageInfo.textContent = `${viewLabel}${searchLabel} - Page ${currentPage + 1} of ${totalPages} (${totalRecords} matching records)`;
-    } else if (viewMode === 'condensed' || viewMode === 'custom') {
+    } else if (viewMode === 'aggregated' || viewMode === 'custom') {
       pageInfo.textContent = `${viewLabel} - Page ${currentPage + 1} of ${totalPages} (${totalRecords} total SKUs)`;
     } else {
       pageInfo.textContent = `${viewLabel} - Page ${currentPage + 1} of ${totalPages} (${totalRecords} total records)`;
@@ -607,15 +600,15 @@ function displayMagentoData(data) {
 }
 
 /**
- * Display condensed magento data in the table
+ * Display aggregated magento data in the table
  */
-function displayCondensedData(data) {
+function displayAggregatedData(data) {
   const tbody = document.getElementById('magentoTableBody');
   const thead = document.querySelector('#magentoTable thead tr');
   
   if (!tbody) return;
   
-  // Update table headers for condensed view
+  // Update table headers for aggregated view
   if (thead) {
     const headerLabel = viewMode === 'custom' ? customRangeLabel : '6 Months';
     thead.innerHTML = `
@@ -763,8 +756,8 @@ function escapeHtml(text) {
  * Handle PDF export
  */
 async function handleExportPDF() {
-  if (viewMode !== 'condensed' && viewMode !== 'custom') {
-    showToast('PDF export is only available for condensed and custom range views', 'warning');
+  if (viewMode !== 'aggregated' && viewMode !== 'custom') {
+    showToast('PDF export is only available for aggregated and custom range views', 'warning');
     return;
   }
   
@@ -824,19 +817,19 @@ function formatDateTime(dateStr) {
 }
 
 /**
- * Handle refresh condensed data
+ * Handle refresh aggregated data
  */
-async function handleRefreshCondensedData() {
+async function handleRefreshAggregatedData() {
   try {
-    showToast('Refreshing condensed data...', 'info');
+    showToast('Refreshing aggregated data...', 'info');
     
-    const result = await refreshCondensedDataForRegion('fr');
+    const result = await refreshAggregatedDataForRegion('fr');
     
     if (result.status === 'success') {
-      showToast(`Successfully refreshed condensed data! ${result.rows_aggregated} SKUs processed.`, 'success');
+      showToast(`Successfully refreshed aggregated data! ${result.rows_aggregated} SKUs processed.`, 'success');
       
-      // Reload the data if currently viewing condensed view
-      if (viewMode === 'condensed') {
+      // Reload the data if currently viewing aggregated view
+      if (viewMode === 'aggregated') {
         // Check if there's an active search and reload with it
         if (currentSearch) {
           await loadSearchResults(currentSearch);

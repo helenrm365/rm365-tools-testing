@@ -1,9 +1,9 @@
-// frontend/js/modules/salesdata/condensed-filters.js
+// frontend/js/modules/magentodata/aggregated-filters.js
 import { get, post, del } from '../../services/api/http.js';
 import { showToast } from '../../ui/toast.js';
-import { refreshCondensedDataForRegion } from '../../services/api/salesDataApi.js';
+import { refreshAggregatedDataForRegion } from '../../services/api/magentoDataApi.js';
 
-const API = '/api/v1/salesdata';
+const API = '/api/v1/magentodata';
 
 let currentRegion = null;
 let searchDebounceTimer = null;
@@ -58,7 +58,7 @@ function createFiltersModal(region) {
     overlay.innerHTML = `
         <div class="filters-modal" onclick="event.stopPropagation()">
             <div class="filters-modal-header">
-                <h2><i class="fas fa-chart-bar"></i> 6M Condensed Sales Filters - ${region.toUpperCase()}</h2>
+                <h2><i class="fas fa-chart-bar"></i> 6M Aggregated Magento Filters - ${region.toUpperCase()}</h2>
                 <button class="filters-modal-close" onclick="this.closest('.filters-modal-overlay').remove()">
                     ✕
                 </button>
@@ -72,7 +72,7 @@ function createFiltersModal(region) {
                         <h3 class="filter-section-title">Excluded Customers</h3>
                     </div>
                     <p class="filter-section-description">
-                        Orders from these customers will not be included in the 6-month condensed sales data.
+                        Orders from these customers will not be included in the 6-month aggregated magento data.
                     </p>
                     
                     <div class="customer-search-container">
@@ -104,7 +104,7 @@ function createFiltersModal(region) {
                         <h3 class="filter-section-title">Excluded Customer Groups</h3>
                     </div>
                     <p class="filter-section-description">
-                        Orders from these customer groups will not be included in the 6-month condensed sales data.
+                        Orders from these customer groups will not be included in the 6-month aggregated magento data.
                     </p>
                     
                     <div class="customer-group-select-container">
@@ -138,7 +138,7 @@ function createFiltersModal(region) {
                         <h3 class="filter-section-title">Grand Total Threshold</h3>
                     </div>
                     <p class="filter-section-description">
-                        Orders with a grand total above this amount will be excluded from 6-month condensed sales.
+                        Orders with a grand total above this amount will be excluded from 6-month aggregated magento.
                         <strong>All currencies are automatically converted</strong> to ${region === 'uk' ? 'GBP (£)' : 'EUR (€)'} at current exchange rates for comparison.
                         <span id="currency-conversion-info-${region}" style="display: block; margin-top: 0.5rem; font-size: 0.9em; color: var(--accent-color);">
                             <i class="fas fa-sync fa-spin"></i> Loading exchange rates...
@@ -169,7 +169,7 @@ function createFiltersModal(region) {
                         <h3 class="filter-section-title">Quantity Threshold</h3>
                     </div>
                     <p class="filter-section-description">
-                        Orders with a quantity above this amount will be excluded from 6-month condensed sales.
+                        Orders with a quantity above this amount will be excluded from 6-month aggregated magento.
                     </p>
                     
                     <div class="threshold-input-wrapper">
@@ -417,7 +417,7 @@ async function applyAllFilters(region) {
     if (!applyBtn) return;
     
     // Show custom confirmation dialog
-    const confirmMessage = 'Apply all filter changes and refresh 6M condensed sales data?';
+    const confirmMessage = 'Apply all filter changes and refresh 6M aggregated magento data?';
     const confirmed = await showConfirmDialog(confirmMessage);
     if (!confirmed) {
         return;
@@ -548,20 +548,20 @@ async function applyAllFilters(region) {
             }
         }
         
-        // 5. Refresh 6M condensed data
+        // 5. Refresh 6M aggregated data
         if (!hasErrors) {
-            showToast('💾 Filters saved! Refreshing 6M condensed data...', 'info');
+            showToast('💾 Filters saved! Refreshing 6M aggregated data...', 'info');
             
             try {
-                const refreshResult = await refreshCondensedDataForRegion(region);
+                const refreshResult = await refreshAggregatedDataForRegion(region);
                 if (refreshResult.status === 'success') {
                     showToast(`✅ Filters applied and 6M data refreshed! ${refreshResult.rows_aggregated} SKUs processed.`, 'success');
                     
                     // Close the modal
                     document.querySelector('.filters-modal-overlay')?.remove();
                     
-                    // Reload the page data if on condensed view
-                    const reloadEvent = new CustomEvent('condensed-data-refreshed', { detail: { region } });
+                    // Reload the page data if on aggregated view
+                    const reloadEvent = new CustomEvent('aggregated-data-refreshed', { detail: { region } });
                     document.dispatchEvent(reloadEvent);
                 } else {
                     showToast(`⚠️ Filters saved but refresh failed: ${refreshResult.message}`, 'warning');
@@ -1267,8 +1267,8 @@ window.runCustomAnalysis = async function(region) {
     
     try {
         // Call the custom range API
-        const { getCustomRangeCondensedData } = await import('../../services/api/salesDataApi.js');
-        const response = await getCustomRangeCondensedData(region, rangeType, rangeValue, useExclusions, 1000, 0, '');
+        const { getCustomRangeAggregatedData } = await import('../../services/api/magentoDataApi.js');
+        const response = await getCustomRangeAggregatedData(region, rangeType, rangeValue, useExclusions, 1000, 0, '');
         
         if (response.status === 'success' && response.data) {
             // Store the custom range parameters globally

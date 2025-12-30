@@ -106,8 +106,8 @@ html.dark-mode .tab-button.active:hover {
   box-shadow: 0 4px 12px rgba(139, 195, 74, 0.4);
 }
 
-/* ===== Sales Data Error Card ===== */
-.sales-data-error {
+/* ===== Magento Data Error Card ===== */
+.magento-data-error {
   margin: 2rem 0;
   display: none;
 }
@@ -645,8 +645,8 @@ html.dark-mode .page-btn.active {
     font-size: 0.95rem;
   }
 
-  /* Sales data error card */
-  .sales-data-error {
+  /* Magento data error card */
+  .magento-data-error {
     margin: 1.5rem 0;
   }
 

@@ -499,7 +499,7 @@ function setupTable() {
     // Create a merged metadata object without modifying the original
     const metadata = { ...baseMetadata };
     
-    // Merge sales data and stock quantities from item.custom_fields into metadata
+    // Merge magento data and stock quantities from item.custom_fields into metadata
     if (item.custom_fields) {
       Object.assign(metadata, {
         uk_6m_data: item.custom_fields.uk_6m_data ?? metadata.uk_6m_data,
@@ -1286,9 +1286,9 @@ function closeAllDropdowns() {
 let isSyncing = false;
 
 /**
-* Unified sales sync function
+* Unified magento sync function
 */
-async function syncSalesData(showNotification = true) {
+async function syncMagentoData(showNotification = true) {
   if (isSyncing) return;
   const btn = document.getElementById('syncSalesBtn');
   try {
@@ -1297,13 +1297,13 @@ async function syncSalesData(showNotification = true) {
       btn.disabled = true;
       btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
     }
-    const res = await post('/api/v1/inventory/management/sync-sales-data', {
+    const res = await post('/api/v1/inventory/management/sync-magento-data', {
       dry_run: false
     });
     if (res && res.status === 'success') {
       const updated = res.stats?.updated_records ?? 0;
       if (showNotification) {
-        showToast(`Sales data synced! ${updated} records updated`, 'success');
+        showToast(`Magento data synced! ${updated} records updated`, 'success');
       }
 
       // Refresh table if available
@@ -1325,7 +1325,7 @@ async function syncSalesData(showNotification = true) {
     isSyncing = false;
     if (btn) {
       btn.disabled = false;
-      btn.innerHTML = '<i class="fas fa-sync-alt"></i> Sync Sales Data';
+      btn.innerHTML = '<i class="fas fa-sync-alt"></i> Sync Magento Data';
     }
   }
 }
@@ -1341,12 +1341,12 @@ async function initAutoSync() {
       return;
     }
   }
-  await syncSalesData(false); // false = don’t show alert
+  await syncMagentoData(false); // false = don’t show alert
   localStorage.setItem('lastSalesSync', new Date().toISOString());
 }
 
 // Attach to button
-document.getElementById('syncSalesBtn')?.addEventListener('click', () => syncSalesData(true));
+document.getElementById('syncSalesBtn')?.addEventListener('click', () => syncMagentoData(true));
 
 /**
  * Initialize real-time collaboration features

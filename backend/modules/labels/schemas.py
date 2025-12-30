@@ -41,7 +41,7 @@ class RecentRunsResponse(BaseModel):
     runs: List[LabelRunHistory]
 
 
-class SalesOrderCreate(BaseModel):
+class MagentoOrderCreate(BaseModel):
     order_number: str = Field(..., description="Unique order number")
     customer_name: str = Field(..., description="Customer name")
     customer_address: Optional[str] = Field(None, description="Customer address")
@@ -52,7 +52,7 @@ class SalesOrderCreate(BaseModel):
     shipping_method: Optional[str] = Field("Standard", description="Shipping method")
 
 
-class SalesOrderOut(BaseModel):
+class MagentoOrderOut(BaseModel):
     id: int
     order_number: str
     customer_name: str

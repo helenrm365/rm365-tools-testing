@@ -78,7 +78,7 @@ switch ($choice) {
         Write-Host ""
         
         # Products DB
-        Write-Host "Products/Sales Database URL:" -ForegroundColor Cyan
+        Write-Host "Products/Magento Database URL:" -ForegroundColor Cyan
         $productsUrl = Read-Host "postgres://..."
         if ($productsUrl) {
             Invoke-IndexMigration -dbUrl $productsUrl -dbName "Products/Sales DB"

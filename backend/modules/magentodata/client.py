@@ -24,7 +24,7 @@ CUSTOMER_GROUP_MAP = {
 
 
 class MagentoDataClient:
-    """Client to interact with Magento Database for sales data extraction"""
+    """Client to interact with Magento Database for magento data extraction"""
     
     def __init__(self, region: str = "uk"):
         """

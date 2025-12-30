@@ -69,7 +69,7 @@ def inventory_conn():
 @contextmanager
 def products_conn():
     """
-    Context manager for the products DB (sales data, condensed_sales, etc.).
+    Context manager for the products DB (sales data, aggregated_orders, etc.).
     Automatically commits on successful exit, rolls back on exception.
     """
     conn = get_products_connection()

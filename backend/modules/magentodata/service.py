@@ -14,9 +14,9 @@ class MagentoDataService:
     
     # Table name mapping for validation
     VALID_REGIONS = {
-        'uk': 'uk_magento_data',
-        'fr': 'fr_magento_data',
-        'nl': 'nl_magento_data',
+        'uk': 'uk_orders_cache',
+        'fr': 'fr_orders_cache',
+        'nl': 'nl_orders_cache',
         'test': 'test_magento_data'
     }
     
@@ -30,8 +30,8 @@ class MagentoDataService:
     def initialize_tables(self) -> Dict[str, Any]:
         """
         Initialize the magento data tables.
-        Creates uk_magento_data, fr_magento_data, nl_magento_data and their condensed versions.
-        Also populates condensed tables with existing data and auto-creates MD variant aliases.
+        Creates uk_magento_orders_cache, fr_magento_orders_cache, nl_magento_orders_cache and their aggregated versions.
+        Also populates aggregated tables with existing data and auto-creates MD variant aliases.
         """
         try:
             tables = self.repo.init_tables()
@@ -43,12 +43,12 @@ class MagentoDataService:
             except Exception as e:
                 logger.warning(f"Could not auto-create MD variant aliases: {e}")
             
-            # Refresh condensed data for all regions
+            # Refresh aggregated data for all regions
             for region in ['uk', 'fr', 'nl']:
                 try:
-                    self.repo.refresh_condensed_data(region)
+                    self.repo.refresh_aggregated_data(region)
                 except Exception as e:
-                    logger.warning(f"Could not refresh condensed data for {region}: {e}")
+                    logger.warning(f"Could not refresh aggregated data for {region}: {e}")
             
             return {
                 "status": "success",
@@ -277,7 +277,7 @@ class MagentoDataService:
     
     def import_csv(self, region: str, csv_content: str, filename: str = None, username: str = None) -> Dict[str, Any]:
         """
-        Import CSV data for a specific region and refresh condensed data.
+        Import CSV data for a specific region and refresh aggregated data.
         NOTE: This method is deprecated. Use sync_magento_data() instead for live data.
         """
         try:
@@ -292,12 +292,12 @@ class MagentoDataService:
                 except Exception as e:
                     logger.warning(f"Could not auto-create MD variant aliases after import: {e}")
                 
-                # Refresh condensed data after import
+                # Refresh aggregated data after import
                 try:
-                    condensed_result = self.repo.refresh_condensed_data(region)
-                    logger.info(f"Refreshed condensed data for {region}: {condensed_result['rows_aggregated']} SKUs")
+                    aggregated_result = self.repo.refresh_aggregated_data(region)
+                    logger.info(f"Refreshed aggregated data for {region}: {aggregated_result['rows_aggregated']} SKUs")
                 except Exception as e:
-                    logger.error(f"Failed to refresh condensed data for {region}: {e}")
+                    logger.error(f"Failed to refresh aggregated data for {region}: {e}")
                 
                 return {
                     "status": "success",
@@ -450,12 +450,12 @@ class MagentoDataService:
             except Exception as e:
                 logger.warning(f"Could not auto-create MD variant aliases after sync: {e}")
             
-            # Refresh condensed data after sync
+            # Refresh aggregated data after sync
             try:
-                condensed_result = self.repo.refresh_condensed_data(region)
-                logger.info(f"Refreshed condensed data for {region}: {condensed_result['rows_aggregated']} SKUs")
+                aggregated_result = self.repo.refresh_aggregated_data(region)
+                logger.info(f"Refreshed aggregated data for {region}: {aggregated_result['rows_aggregated']} SKUs")
             except Exception as e:
-                logger.error(f"Failed to refresh condensed data for {region}: {e}")
+                logger.error(f"Failed to refresh aggregated data for {region}: {e}")
             
             return {
                 "status": "success",
@@ -481,18 +481,18 @@ class MagentoDataService:
                 "orders_processed": 0
             }
     
-    def get_condensed_data(self, region: str, limit: int = 100, offset: int = 0, search: str = "") -> Dict[str, Any]:
-        """Get condensed (6-month aggregated) magento data for a specific region"""
+    def get_aggregated_data(self, region: str, limit: int = 100, offset: int = 0, search: str = "") -> Dict[str, Any]:
+        """Get aggregated (6-month aggregated) magento data for a specific region"""
         try:
-            # Always refresh condensed data before retrieving to ensure it's up-to-date
+            # Always refresh aggregated data before retrieving to ensure it's up-to-date
             try:
-                refresh_result = self.repo.refresh_condensed_data(region)
-                logger.info(f"Auto-refreshed condensed data for {region}: {refresh_result['rows_aggregated']} SKUs")
+                refresh_result = self.repo.refresh_aggregated_data(region)
+                logger.info(f"Auto-refreshed aggregated data for {region}: {refresh_result['rows_aggregated']} SKUs")
             except Exception as refresh_error:
-                logger.warning(f"Could not auto-refresh condensed data for {region}: {refresh_error}")
+                logger.warning(f"Could not auto-refresh aggregated data for {region}: {refresh_error}")
                 # Continue with existing data even if refresh fails
             
-            result = self.repo.get_condensed_data(region, limit, offset, search)
+            result = self.repo.get_aggregated_data(region, limit, offset, search)
             return {
                 "status": "success",
                 "region": region,
@@ -507,21 +507,40 @@ class MagentoDataService:
                 "total_count": 0
             }
         except Exception as e:
-            logger.error(f"Error getting condensed {region} data: {e}")
+            logger.error(f"Error getting aggregated {region} data: {e}")
             return {
                 "status": "error",
-                "message": f"Failed to get condensed data: {str(e)}",
+                "message": f"Failed to get aggregated data: {str(e)}",
                 "data": [],
                 "total_count": 0
             }
     
-    def refresh_condensed_data_for_region(self, region: str) -> Dict[str, Any]:
-        """Manually refresh condensed data for a specific region"""
+    def refresh_aggregated_data_for_region(self, region: str) -> Dict[str, Any]:
+        """Manually refresh aggregated data for a specific region. Triggers a quick sync first."""
         try:
-            result = self.repo.refresh_condensed_data(region)
+            # Trigger a sync to ensure data is up-to-date
+            # If we have never synced before, only fetch the last 6 months (plus buffer) to speed up the first load
+            # If we have synced before, just fetch the last 7 days (incremental)
+            try:
+                metadata = self.repo.get_sync_metadata(region)
+                if not metadata or not metadata.get('last_synced_order_date'):
+                    # First time sync: Only get last 6 months + 1 week buffer
+                    from datetime import datetime, timedelta
+                    six_months_ago = datetime.now() - timedelta(days=190) # 6 months + ~1 week
+                    start_date = six_months_ago.strftime('%Y-%m-%d %H:%M:%S')
+                    logger.info(f"First-time sync for {region}: Fetching data from {start_date}")
+                    self.sync_magento_data(region, start_date=start_date)
+                else:
+                    # Incremental sync: Standard 7-day lookback
+                    self.sync_magento_data(region, resync_days=7)
+            except Exception as sync_error:
+                logger.warning(f"Auto-sync failed during refresh for {region}: {sync_error}")
+                # Continue with refresh even if sync fails
+
+            result = self.repo.refresh_aggregated_data(region)
             return {
                 "status": "success",
-                "message": f"Successfully refreshed condensed data for {region.upper()}",
+                "message": f"Successfully refreshed aggregated data for {region.upper()}",
                 "region": region,
                 **result
             }
@@ -532,19 +551,19 @@ class MagentoDataService:
                 "message": str(e)
             }
         except Exception as e:
-            logger.error(f"Error refreshing condensed data for {region}: {e}")
+            logger.error(f"Error refreshing aggregated data for {region}: {e}")
             return {
                 "status": "error",
-                "message": f"Failed to refresh condensed data: {str(e)}"
+                "message": f"Failed to refresh aggregated data: {str(e)}"
             }
     
-    def refresh_all_condensed_data(self) -> Dict[str, Any]:
-        """Manually refresh condensed data for all regions"""
+    def refresh_all_aggregated_data(self) -> Dict[str, Any]:
+        """Manually refresh aggregated data for all regions"""
         try:
             results = {}
             for region in ['uk', 'fr', 'nl']:
                 try:
-                    result = self.repo.refresh_condensed_data(region)
+                    result = self.repo.refresh_aggregated_data(region)
                     results[region] = {
                         "success": True,
                         "rows_aggregated": result['rows_aggregated']
@@ -554,30 +573,30 @@ class MagentoDataService:
                         "success": False,
                         "error": str(e)
                     }
-                    logger.error(f"Failed to refresh condensed data for {region}: {e}")
+                    logger.error(f"Failed to refresh aggregated data for {region}: {e}")
             
             successful_regions = [r for r, res in results.items() if res['success']]
             total_rows = sum(res.get('rows_aggregated', 0) for res in results.values() if res['success'])
             
             return {
                 "status": "success",
-                "message": f"Refreshed condensed data for {len(successful_regions)}/3 regions",
+                "message": f"Refreshed aggregated data for {len(successful_regions)}/3 regions",
                 "results": results,
                 "total_rows_aggregated": total_rows
             }
         except Exception as e:
-            logger.error(f"Error refreshing all condensed data: {e}")
+            logger.error(f"Error refreshing all aggregated data: {e}")
             return {
                 "status": "error",
-                "message": f"Failed to refresh condensed data: {str(e)}"
+                "message": f"Failed to refresh aggregated data: {str(e)}"
             }
     
-    def get_condensed_data_custom_range(self, region: str, range_type: str, range_value: str, 
+    def get_aggregated_data_custom_range(self, region: str, range_type: str, range_value: str, 
                                        use_exclusions: bool, limit: int = 100, offset: int = 0, 
                                        search: str = "") -> Dict[str, Any]:
-        """Get condensed magento data with custom date range"""
+        """Get aggregated magento data with custom date range"""
         try:
-            result = self.repo.get_condensed_data_custom_range(
+            result = self.repo.get_aggregated_data_custom_range(
                 region, range_type, range_value, use_exclusions, limit, offset, search
             )
             return {
@@ -641,12 +660,12 @@ class MagentoDataService:
         try:
             result = self.repo.add_sku_alias(alias_sku, unified_sku)
             
-            # Refresh all condensed data to apply the new alias
+            # Refresh all aggregated data to apply the new alias
             for region in ['uk', 'fr', 'nl']:
                 try:
-                    self.repo.refresh_condensed_data(region)
+                    self.repo.refresh_aggregated_data(region)
                 except Exception as e:
-                    logger.warning(f"Could not refresh condensed data for {region}: {e}")
+                    logger.warning(f"Could not refresh aggregated data for {region}: {e}")
             
             return {
                 "status": "success",
@@ -670,12 +689,12 @@ class MagentoDataService:
         try:
             result = self.repo.delete_sku_alias(alias_id)
             
-            # Refresh all condensed data to remove the alias effect
+            # Refresh all aggregated data to remove the alias effect
             for region in ['uk', 'fr', 'nl']:
                 try:
-                    self.repo.refresh_condensed_data(region)
+                    self.repo.refresh_aggregated_data(region)
                 except Exception as e:
-                    logger.warning(f"Could not refresh condensed data for {region}: {e}")
+                    logger.warning(f"Could not refresh aggregated data for {region}: {e}")
             
             return {
                 "status": "success",
@@ -716,13 +735,13 @@ class MagentoDataService:
         try:
             result = self.repo.auto_create_md_variant_aliases()
             
-            # Refresh all condensed data to apply the new aliases
+            # Refresh all aggregated data to apply the new aliases
             if result.get("aliases_created", 0) > 0:
                 for region in ['uk', 'fr', 'nl']:
                     try:
-                        self.repo.refresh_condensed_data(region)
+                        self.repo.refresh_aggregated_data(region)
                     except Exception as e:
-                        logger.warning(f"Could not refresh condensed data for {region}: {e}")
+                        logger.warning(f"Could not refresh aggregated data for {region}: {e}")
             
             return {
                 "status": "success",
@@ -737,7 +756,7 @@ class MagentoDataService:
                 "aliases_skipped": 0
             }
     
-    # ===== CONDENSED MAGENTO FILTER METHODS =====
+    # ===== AGGREGATED MAGENTO FILTER METHODS =====
     
     def search_customers(self, region: str, search_term: str) -> Dict[str, Any]:
         """Search for customers in magento data"""

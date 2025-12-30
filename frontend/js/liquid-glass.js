@@ -97,12 +97,6 @@
             ordersLink.href = `/css/orders/liquid-glass/orders.css?v=${timestamp}`;
             document.head.appendChild(ordersLink);
 
-            const salesLink = document.createElement('link');
-            salesLink.id = 'liquid-glass-salesdata';
-            salesLink.rel = 'stylesheet';
-            salesLink.href = `/css/salesdata/liquid-glass/salesdata.css?v=${timestamp}`;
-            document.head.appendChild(salesLink);
-
             const usersLink = document.createElement('link');
             usersLink.id = 'liquid-glass-usermanagement';
             usersLink.rel = 'stylesheet';

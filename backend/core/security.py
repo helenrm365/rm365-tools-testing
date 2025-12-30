@@ -25,7 +25,6 @@ def get_all_tabs() -> List[str]:
         "attendance", "attendance.overview", "attendance.logs", "attendance.manual", "attendance.automatic",
         "enrollment", "enrollment.management", "enrollment.nfc", "enrollment.card", "enrollment.fingerprint",
         "labels", "labels.generator", "labels.history",
-        "salesdata", "salesdata.uk-sales", "salesdata.fr-sales", "salesdata.nl-sales", "salesdata.upload", "salesdata.history",
         "magentodata", "magentodata.uk-magento", "magentodata.fr-magento", "magentodata.nl-magento", "magentodata.history",
         "inventory", "inventory.management",
         "orders", "orders.order-fulfillment", "orders.order-progress", "orders.order-tracking", "orders.order-approval",

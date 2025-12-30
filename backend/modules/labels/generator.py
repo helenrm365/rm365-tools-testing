@@ -6,7 +6,7 @@ import io
 
 
 def generate_label_content(data: List[Dict[str, Any]]) -> str:
-    """Generate label content from sales data"""
+    """Generate label content from magento data"""
     
     output = io.StringIO()
     

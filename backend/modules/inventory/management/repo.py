@@ -93,7 +93,7 @@ class InventoryManagementRepo:
         """Save or update inventory metadata
         
         Note: uk_6m_data and fr_6m_data are NOT updated by this method.
-        They are populated by the sales sync process and preserved during updates.
+        They are populated by the magento sync process and preserved during updates.
         """
         conn = self.get_metadata_connection()
         try:
@@ -163,12 +163,12 @@ class InventoryManagementRepo:
         finally:
             self.return_connection(conn)
 
-    def get_condensed_sales(self, region: str) -> Dict[str, int]:
-        """Fetch {sku: total_qty} from condensed sales table for given region."""
+    def get_aggregated_data(self, region: str) -> Dict[str, int]:
+        """Fetch {sku: total_qty} from aggregated magento table for given region."""
         table_map = {
-            "uk": "uk_condensed_sales",
-            "fr": "fr_condensed_sales",
-            "nl": "nl_condensed_sales"
+            "uk": "uk_aggregated_orders",
+            "fr": "fr_aggregated_orders",
+            "nl": "nl_aggregated_orders"
         }
         if region not in table_map:
             raise ValueError(f"Invalid region: {region}")

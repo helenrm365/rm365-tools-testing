@@ -90,7 +90,6 @@ frontend/
     │   ├── enrollment/        # Student enrollment
     │   ├── inventory/         # Inventory management
     │   ├── labels/            # Label generation
-    │   ├── salesdata/         # Sales analytics
     │   └── users/             # User management
     │
     ├── services/              # Shared services

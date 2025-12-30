@@ -1031,8 +1031,8 @@ async function loadRoles() {
     // Fallback to default roles if API fails
     state.roles = [
       { role_name: 'user', allowed_tabs: ['enrollment', 'attendance'] },
-      { role_name: 'admin', allowed_tabs: ['enrollment', 'inventory', 'attendance', 'labels', 'salesdata', 'usermanagement'] },
-      { role_name: 'manager', allowed_tabs: ['enrollment', 'inventory', 'attendance', 'labels', 'salesdata'] }
+      { role_name: 'admin', allowed_tabs: ['enrollment', 'inventory', 'attendance', 'labels', 'magentodata', 'usermanagement'] },
+      { role_name: 'manager', allowed_tabs: ['enrollment', 'inventory', 'attendance', 'labels', 'magentodata'] }
     ];
   }
 }

@@ -141,7 +141,6 @@ backend/
     │   └── service.py
     │
     ├── roles/             # Role management
-    ├── salesdata/         # Sales data import
     └── users/             # User management
 ```
 
@@ -154,7 +153,7 @@ The application uses **four separate PostgreSQL databases**:
 1. **Attendance Database**: Employee attendance records
 2. **Labels Database**: Inventory items and label history
 3. **Inventory Logs Database**: Stock adjustments and sync logs
-4. **Products Database**: Sales data and analytics
+4. **Products Database**: Magento data and analytics
 
 ### Environment Variables
 
@@ -182,7 +181,7 @@ INVENTORY_LOGS_NAME=inventory
 INVENTORY_LOGS_USER=postgres
 INVENTORY_LOGS_PASSWORD=***
 
-# Database - Products/Sales Data
+# Database - Products/Magento Data
 PRODUCTS_DB_HOST=localhost
 PRODUCTS_DB_PORT=5432
 PRODUCTS_DB_NAME=products

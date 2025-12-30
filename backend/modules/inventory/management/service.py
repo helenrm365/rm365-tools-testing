@@ -19,35 +19,35 @@ class InventoryManagementService:
     def __init__(self, repo: Optional[InventoryManagementRepo] = None):
         self.repo = repo or InventoryManagementRepo()
     
-    def _populate_sales_data_for_items(self, items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _populate_magento_data_for_items(self, items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
-        Populate uk_6m_data and fr_6m_data for items from condensed_sales tables.
-        Uses SKU to match sales data.
+        Populate uk_6m_data and fr_6m_data for items from aggregated_orders tables.
+        Uses SKU to match magento data.
         
-        MD variants are already merged in the condensed sales tables.
+        MD variants are already merged in the aggregated orders tables.
         Other variants (SD, DP, NP, MV) are kept separate and not shown in inventory management.
         """
         try:
-            # Get sales data from condensed tables (MD already merged there)
-            uk_sales = self.repo.get_condensed_sales("uk")
-            fr_sales_raw = self.repo.get_condensed_sales("fr")
-            nl_sales_raw = self.repo.get_condensed_sales("nl")
+            # Get magento data from aggregated tables (MD already merged there)
+            uk_data = self.repo.get_aggregated_data("uk")
+            fr_data_raw = self.repo.get_aggregated_data("fr")
+            nl_data_raw = self.repo.get_aggregated_data("nl")
             
-            # Combine FR and NL sales
-            fr_sales = {}
-            for sku, qty in fr_sales_raw.items():
-                fr_sales[sku] = fr_sales.get(sku, 0) + qty
-            for sku, qty in nl_sales_raw.items():
-                fr_sales[sku] = fr_sales.get(sku, 0) + qty
+            # Combine FR and NL data
+            fr_data = {}
+            for sku, qty in fr_data_raw.items():
+                fr_data[sku] = fr_data.get(sku, 0) + qty
+            for sku, qty in nl_data_raw.items():
+                fr_data[sku] = fr_data.get(sku, 0) + qty
             
-            # Populate items with sales data - direct lookup, no aggregation needed
-            # (MD variants are already merged in condensed tables)
+            # Populate items with magento data - direct lookup, no aggregation needed
+            # (MD variants are already merged in aggregated tables)
             for item in items:
                 sku = item.get("sku", "")
                 
-                # Direct lookup - condensed tables already have MD merged
-                uk_qty = uk_sales.get(sku, 0)
-                fr_qty = fr_sales.get(sku, 0)
+                # Direct lookup - aggregated tables already have MD merged
+                uk_qty = uk_data.get(sku, 0)
+                fr_qty = fr_data.get(sku, 0)
                 
                 # Add to custom_fields for compatibility
                 if "custom_fields" not in item:
@@ -156,8 +156,8 @@ class InventoryManagementService:
                 }
                 items.append(item)
             
-            # Populate sales data from condensed_sales tables
-            items = self._populate_sales_data_for_items(items)
+            # Populate magento data from aggregated_orders tables
+            items = self._populate_magento_data_for_items(items)
             
             logger.info(f"Returning page {page}/{total_pages}: items {start_idx+1}-{end_idx} of {total_items} (search: '{search or 'none'}')")
             

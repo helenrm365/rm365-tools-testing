@@ -59,13 +59,6 @@ const routes = {
   '/labels/generator':      '/html/labels/generator.html',
   '/labels/history':        '/html/labels/history.html',
 
-  '/salesdata':         '/html/salesdata/home.html',
-  '/salesdata/uk-sales':'/html/salesdata/uk-sales.html',
-  '/salesdata/fr-sales':'/html/salesdata/fr-sales.html',
-  '/salesdata/nl-sales':'/html/salesdata/nl-sales.html',
-  '/salesdata/upload':  '/html/salesdata/upload.html',
-  '/salesdata/history': '/html/salesdata/history.html',
-
   '/magentodata':         '/html/magentodata/home.html',
   '/magentodata/uk-magento':'/html/magentodata/uk-magento.html',
   '/magentodata/fr-magento':'/html/magentodata/fr-magento.html',
@@ -128,7 +121,6 @@ export function generateTabStructure() {
     'attendance': 'Attendance',
     'enrollment': 'Enrollment',
     'labels': 'Labels',
-    'salesdata': 'Sales Data',
     'magentodata': 'Magento Data',
     'inventory': 'Inventory',
     'orders': 'Orders',
@@ -150,11 +142,6 @@ export function generateTabStructure() {
     // Labels
     'generator': 'Generator',
     'history': 'History',
-    // Sales Data
-    'uk-sales': 'UK Sales',
-    'fr-sales': 'FR Sales',
-    'nl-sales': 'NL Sales',
-    'upload': 'Upload',
     // Inventory
     'management': 'Management',
     // Orders
@@ -307,7 +294,6 @@ export async function navigate(path, replace = false) {
       const titleMap = {
         'home': 'Home',
         'usermanagement': 'User Management',
-        'salesdata': 'Sales Data',
         'magentodata': 'Magento Data',
         'attendance': 'Attendance',
         'enrollment': 'Enrollment',
@@ -356,11 +342,6 @@ export async function navigate(path, replace = false) {
       await mod.init(path);
       currentModule = mod;
       currentModulePath = 'labels';
-    } else if (path.startsWith('/salesdata')) {
-      const mod = await import('./modules/salesdata/index.js');
-      await mod.init(path);
-      currentModule = mod;
-      currentModulePath = 'salesdata';
     } else if (path.startsWith('/magentodata')) {
       const mod = await import('./modules/magentodata/index.js');
       await mod.init(path);

@@ -13,7 +13,7 @@ svc = MagentoDataService()
 @router.get("/init", response_model=InitTablesResponse)
 def initialize_tables(user=Depends(get_current_user)):
     """
-    Initialize magento data tables (uk_magento_data, fr_magento_data, nl_magento_data).
+    Initialize magento data tables (uk_magento_data, fr_magento_orders_cache, nl_magento_orders_cache).
     This endpoint is called when the magento data home page is accessed.
     """
     result = svc.initialize_tables()
@@ -40,6 +40,20 @@ def get_test_magento_data(
     return MagentoDataResponse(**result)
 
 
+@router.post("/test-sync", response_model=MagentoSyncResponse)
+def sync_test_magento_data(
+    user=Depends(get_current_user)
+):
+    """
+    Test sync: Sync the latest 10 orders to test_magento_data table.
+    """
+    result = svc.test_sync_magento_data(
+        max_orders=10,
+        username=user.get("username", "unknown")
+    )
+    return MagentoSyncResponse(**result)
+
+
 
 
 
@@ -58,12 +72,31 @@ def get_uk_magento_data(
     return MagentoDataResponse(**result)
 
 
+@router.post("/uk/sync", response_model=MagentoSyncResponse)
+def sync_uk_magento_data(
+    request: MagentoSyncRequest,
+    user=Depends(get_current_user)
+):
+    """
+    Sync UK magento data from live Magento DB.
+    """
+    result = svc.sync_magento_data(
+        region="uk",
+        start_date=request.start_date,
+        end_date=request.end_date,
+        max_orders=request.max_orders,
+        resync_days=request.resync_days,
+        username=user.get("username", "unknown")
+    )
+    return MagentoSyncResponse(**result)
+
+
 
 
 
 # FR Magento endpoints
 @router.get("/fr", response_model=MagentoDataResponse)
-def get_fr_magento_data(
+def get_fr_magento_orders_cache(
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0),
     search: str = Query(""),
@@ -76,12 +109,31 @@ def get_fr_magento_data(
     return MagentoDataResponse(**result)
 
 
+@router.post("/fr/sync", response_model=MagentoSyncResponse)
+def sync_fr_magento_orders_cache(
+    request: MagentoSyncRequest,
+    user=Depends(get_current_user)
+):
+    """
+    Sync FR magento data from live Magento DB.
+    """
+    result = svc.sync_magento_data(
+        region="fr",
+        start_date=request.start_date,
+        end_date=request.end_date,
+        max_orders=request.max_orders,
+        resync_days=request.resync_days,
+        username=user.get("username", "unknown")
+    )
+    return MagentoSyncResponse(**result)
+
+
 
 
 
 # NL Magento endpoints
 @router.get("/nl", response_model=MagentoDataResponse)
-def get_nl_magento_data(
+def get_nl_magento_orders_cache(
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0),
     search: str = Query(""),
@@ -94,43 +146,62 @@ def get_nl_magento_data(
     return MagentoDataResponse(**result)
 
 
+@router.post("/nl/sync", response_model=MagentoSyncResponse)
+def sync_nl_magento_orders_cache(
+    request: MagentoSyncRequest,
+    user=Depends(get_current_user)
+):
+    """
+    Sync NL magento data from live Magento DB.
+    """
+    result = svc.sync_magento_data(
+        region="nl",
+        start_date=request.start_date,
+        end_date=request.end_date,
+        max_orders=request.max_orders,
+        resync_days=request.resync_days,
+        username=user.get("username", "unknown")
+    )
+    return MagentoSyncResponse(**result)
 
 
 
-# Condensed data endpoints (6-month aggregated by SKU)
-@router.get("/uk/condensed", response_model=MagentoDataResponse)
-def get_uk_condensed_data(
+
+
+# Aggregated data endpoints (6-month aggregated by SKU)
+@router.get("/uk/aggregated", response_model=MagentoDataResponse)
+def get_uk_aggregated_data(
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0),
     search: str = Query(""),
     user=Depends(get_current_user)
 ):
-    """Get UK condensed magento data (6-month aggregated by SKU)"""
-    result = svc.get_condensed_data("uk", limit, offset, search)
+    """Get UK aggregated magento data (6-month aggregated by SKU)"""
+    result = svc.get_aggregated_data("uk", limit, offset, search)
     return MagentoDataResponse(**result)
 
 
-@router.get("/fr/condensed", response_model=MagentoDataResponse)
-def get_fr_condensed_data(
+@router.get("/fr/aggregated", response_model=MagentoDataResponse)
+def get_fr_aggregated_data(
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0),
     search: str = Query(""),
     user=Depends(get_current_user)
 ):
-    """Get FR condensed magento data (6-month aggregated by SKU)"""
-    result = svc.get_condensed_data("fr", limit, offset, search)
+    """Get FR aggregated magento data (6-month aggregated by SKU)"""
+    result = svc.get_aggregated_data("fr", limit, offset, search)
     return MagentoDataResponse(**result)
 
 
-@router.get("/nl/condensed", response_model=MagentoDataResponse)
-def get_nl_condensed_data(
+@router.get("/nl/aggregated", response_model=MagentoDataResponse)
+def get_nl_aggregated_data(
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0),
     search: str = Query(""),
     user=Depends(get_current_user)
 ):
-    """Get NL condensed magento data (6-month aggregated by SKU)"""
-    result = svc.get_condensed_data("nl", limit, offset, search)
+    """Get NL aggregated magento data (6-month aggregated by SKU)"""
+    result = svc.get_aggregated_data("nl", limit, offset, search)
     return MagentoDataResponse(**result)
 
 
@@ -160,7 +231,7 @@ def add_sku_alias(
     unified_sku: str = Query(..., description="The unified SKU to map to"),
     user=Depends(get_current_user)
 ):
-    """Add a new SKU alias mapping. After adding, condensed data will be automatically refreshed."""
+    """Add a new SKU alias mapping. After adding, aggregated data will be automatically refreshed."""
     return svc.add_sku_alias(alias_sku, unified_sku)
 
 
@@ -169,7 +240,7 @@ def delete_sku_alias(
     alias_id: int,
     user=Depends(get_current_user)
 ):
-    """Delete a SKU alias mapping. After deletion, condensed data will be automatically refreshed."""
+    """Delete a SKU alias mapping. After deletion, aggregated data will be automatically refreshed."""
     return svc.delete_sku_alias(alias_id)
 
 
@@ -180,24 +251,24 @@ def auto_create_md_variant_aliases(user=Depends(get_current_user)):
     return svc.auto_create_md_variant_aliases()
 
 
-# Condensed data refresh endpoints
-@router.post("/refresh-condensed")
-def refresh_all_condensed_data(user=Depends(get_current_user)):
-    """Manually refresh condensed data for all regions (UK, FR, NL)"""
-    return svc.refresh_all_condensed_data()
+# Aggregated data refresh endpoints
+@router.post("/refresh-aggregated")
+def refresh_all_aggregated_data(user=Depends(get_current_user)):
+    """Manually refresh aggregated data for all regions (UK, FR, NL)"""
+    return svc.refresh_all_aggregated_data()
 
 
-@router.post("/refresh-condensed/{region}")
-def refresh_condensed_data_for_region(
+@router.post("/refresh-aggregated/{region}")
+def refresh_aggregated_data_for_region(
     region: str,
     user=Depends(get_current_user)
 ):
-    """Manually refresh condensed data for a specific region"""
-    return svc.refresh_condensed_data_for_region(region)
+    """Manually refresh aggregated data for a specific region"""
+    return svc.refresh_aggregated_data_for_region(region)
 
 
-@router.get("/{region}/condensed/custom-range")
-def get_custom_range_condensed_data(
+@router.get("/{region}/aggregated/custom-range")
+def get_custom_range_aggregated_data(
     region: str,
     range_type: str = Query(..., description="Type of range: 'days', 'months', or 'since'"),
     range_value: str = Query(..., description="Value for the range (number for days/months, date string for since)"),
@@ -207,8 +278,8 @@ def get_custom_range_condensed_data(
     search: str = Query(""),
     user=Depends(get_current_user)
 ):
-    """Get condensed magento data with custom date range"""
-    result = svc.get_condensed_data_custom_range(
+    """Get aggregated magento data with custom date range"""
+    result = svc.get_aggregated_data_custom_range(
         region, range_type, range_value, use_exclusions, limit, offset, search
     )
     return MagentoDataResponse(**result)
@@ -220,7 +291,7 @@ def create_md_aliases(user=Depends(get_current_user)):
     return svc.create_md_variant_aliases()
 
 
-# ===== CONDENSED MAGENTO FILTER ENDPOINTS =====
+# ===== AGGREGATED MAGENTO FILTER ENDPOINTS =====
 
 @router.get("/filters/customers/search/{region}")
 def search_customers(

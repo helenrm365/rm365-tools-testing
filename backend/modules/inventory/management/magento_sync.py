@@ -15,62 +15,62 @@ from core.db import (
 
 logger = logging.getLogger(__name__)
 
-def get_regional_sales() -> Tuple[Dict[str, int], Dict[str, int], Dict[str, int]]:
+def get_regional_data() -> Tuple[Dict[str, int], Dict[str, int], Dict[str, int]]:
     conn = get_products_connection()
 
     try:
         cursor = conn.cursor()
 
         cursor.execute(
-            "SELECT sku, total_qty FROM uk_condensed_sales WHERE sku IS NOT NULL AND sku != ''"
+            "SELECT sku, total_qty FROM uk_aggregated_orders WHERE sku IS NOT NULL AND sku != ''"
         )
-        uk_sales = {row[0]: int(row[1] or 0) for row in cursor.fetchall()}
+        uk_data = {row[0]: int(row[1] or 0) for row in cursor.fetchall()}
 
         cursor.execute(
-            "SELECT sku, total_qty FROM fr_condensed_sales WHERE sku IS NOT NULL AND sku != ''"
+            "SELECT sku, total_qty FROM fr_aggregated_orders WHERE sku IS NOT NULL AND sku != ''"
         )
-        fr_sales = {row[0]: int(row[1] or 0) for row in cursor.fetchall()}
+        fr_data = {row[0]: int(row[1] or 0) for row in cursor.fetchall()}
 
         cursor.execute(
-            "SELECT sku, total_qty FROM nl_condensed_sales WHERE sku IS NOT NULL AND sku != ''"
+            "SELECT sku, total_qty FROM nl_aggregated_orders WHERE sku IS NOT NULL AND sku != ''"
         )
-        nl_sales = {row[0]: int(row[1] or 0) for row in cursor.fetchall()}
+        nl_data = {row[0]: int(row[1] or 0) for row in cursor.fetchall()}
 
-        logger.info(f"Loaded: UK={len(uk_sales)}, FR={len(fr_sales)}, NL={len(nl_sales)} SKUs")
-        return uk_sales, fr_sales, nl_sales
+        logger.info(f"Loaded: UK={len(uk_data)}, FR={len(fr_data)}, NL={len(nl_data)} SKUs")
+        return uk_data, fr_data, nl_data
 
     finally:
         return_products_connection(conn)
 
 
-def merge_fr_nl_sales(fr_sales: Dict[str, int], nl_sales: Dict[str, int]) -> Dict[str, int]:
+def merge_fr_nl_data(fr_data: Dict[str, int], nl_data: Dict[str, int]) -> Dict[str, int]:
     combined = defaultdict(int)
 
-    for sku, qty in fr_sales.items():
+    for sku, qty in fr_data.items():
         combined[sku] += qty
 
-    for sku, qty in nl_sales.items():
+    for sku, qty in nl_data.items():
         combined[sku] += qty
 
     return dict(combined)
 
 
-def sync_sales_to_inventory_metadata(dry_run: bool = False) -> Dict[str, any]:
+def sync_magento_to_inventory_metadata(dry_run: bool = False) -> Dict[str, any]:
     """
-    Sync sales data from condensed_sales tables to inventory_metadata.
+    Sync magento data from aggregated_orders tables to inventory_metadata.
     Now uses SKU as the primary key instead of item_id.
     """
     stats = {
         "total_skus": 0,
         "matched_skus": 0,
         "updated_records": 0,
-        "skipped_no_sales": 0,
+        "skipped_no_data": 0,
         "unmatched_skus": [],
     }
 
-    # Fetch raw sales data
-    uk_sales, fr_sales, nl_sales = get_regional_sales()
-    combined_fr_sales = merge_fr_nl_sales(fr_sales, nl_sales)
+    # Fetch raw magento data
+    uk_data, fr_data, nl_data = get_regional_data()
+    combined_fr_data = merge_fr_nl_data(fr_data, nl_data)
 
     # Helper to get base SKU (remove all identifier suffixes including -xxxx variants)
     def get_base_sku(sku: str) -> str:
@@ -80,14 +80,14 @@ def sync_sales_to_inventory_metadata(dry_run: bool = False) -> Dict[str, any]:
         pattern = re.compile(r'-(?:SD|DP|NP|MV|MD)(?:-.*)?$', re.IGNORECASE)
         return pattern.sub('', sku)
 
-    # Aggregate sales by base SKU (all identifiers merged with base)
+    # Aggregate magento data by base SKU (all identifiers merged with base)
     bases: Dict[str, Dict[str, int]] = defaultdict(lambda: {"uk": 0, "fr": 0})
 
-    for sku, qty in uk_sales.items():
+    for sku, qty in uk_data.items():
         base = get_base_sku(sku)
         bases[base]["uk"] += int(qty or 0)
 
-    for sku, qty in combined_fr_sales.items():
+    for sku, qty in combined_fr_data.items():
         base = get_base_sku(sku)
         bases[base]["fr"] += int(qty or 0)
 

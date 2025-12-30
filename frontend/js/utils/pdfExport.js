@@ -1,7 +1,7 @@
 // frontend/js/utils/pdfExport.js
 
 /**
- * Export condensed sales data to PDF
+ * Export aggregated magento data to PDF
  * Uses jsPDF library loaded from CDN
  */
 
@@ -37,8 +37,8 @@ async function loadJsPDF() {
 }
 
 /**
- * Export sales data table to PDF
- * @param {Array} data - Array of sales data objects
+ * Export magento data table to PDF
+ * @param {Array} data - Array of magento data objects
  * @param {string} region - Region code (uk, fr, nl)
  * @param {string} viewType - Type of view ('6-Month' or custom range label)
  * @param {string} searchTerm - Optional search term used
@@ -59,7 +59,7 @@ export async function exportToPDF(data, region, viewType, searchTerm = '') {
         // Title
         doc.setFontSize(18);
         doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-        doc.text(`${region.toUpperCase()} Sales Data - ${viewType}`, 14, 20);
+        doc.text(`${region.toUpperCase()} Magento Data - ${viewType}`, 14, 20);
         
         // Subtitle with date and search info
         doc.setFontSize(10);
@@ -146,7 +146,7 @@ export async function exportToPDF(data, region, viewType, searchTerm = '') {
         const dateStr = new Date().toISOString().split('T')[0];
         const searchStr = searchTerm ? `_search-${sanitizeFilename(searchTerm)}` : '';
         const viewStr = viewType.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
-        const filename = `${region}-sales-${viewStr}${searchStr}_${dateStr}.pdf`;
+        const filename = `${region}-magento-data-${viewStr}${searchStr}_${dateStr}.pdf`;
         
         // Save the PDF
         doc.save(filename);

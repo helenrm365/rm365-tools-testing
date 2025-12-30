@@ -16,15 +16,15 @@ class MagentoDataRepo:
         pass
     
     def init_tables(self):
-        """Initialize magento data tables and condensed tables if they don't exist"""
+        """Initialize magento data tables and aggregated tables if they don't exist"""
         conn = None
         try:
             conn = get_products_connection()
             cursor = conn.cursor()
             
             # Define the main magento data tables to create
-            tables = ['uk_magento_data', 'fr_magento_data', 'nl_magento_data']
-            condensed_tables = ['uk_condensed_magento', 'fr_condensed_magento', 'nl_condensed_magento']
+            tables = ['uk_orders_cache', 'fr_orders_cache', 'nl_orders_cache']
+            aggregated_tables = ['uk_aggregated_orders', 'fr_aggregated_orders', 'nl_aggregated_orders']
             all_tables = []
             
             # Create SKU aliases table first if it doesn't exist
@@ -76,18 +76,18 @@ class MagentoDataRepo:
             else:
                 logger.info(f"ℹ️  Table already exists: import_history")
             
-            # Create excluded customers table for 6M condensed magento filters
+            # Create excluded customers table for 6M aggregated magento filters
             cursor.execute("""
                 SELECT EXISTS (
                     SELECT FROM information_schema.tables 
                     WHERE table_schema = 'public' 
-                    AND table_name = 'condensed_magento_excluded_customers'
+                    AND table_name = 'aggregated_excluded_customers'
                 )
             """)
             
             if not cursor.fetchone()[0]:
                 cursor.execute("""
-                    CREATE TABLE condensed_magento_excluded_customers (
+                    CREATE TABLE aggregated_excluded_customers (
                         id SERIAL PRIMARY KEY,
                         region VARCHAR(10) NOT NULL,
                         customer_email VARCHAR(255) NOT NULL,
@@ -97,22 +97,22 @@ class MagentoDataRepo:
                         UNIQUE(region, customer_email)
                     )
                 """)
-                logger.info(f"✅ Created table: condensed_magento_excluded_customers")
+                logger.info(f"✅ Created table: aggregated_excluded_customers")
             else:
-                logger.info(f"ℹ️  Table already exists: condensed_magento_excluded_customers")
+                logger.info(f"ℹ️  Table already exists: aggregated_excluded_customers")
             
-            # Create excluded customer groups table for 6M condensed magento filters
+            # Create excluded customer groups table for 6M aggregated magento filters
             cursor.execute("""
                 SELECT EXISTS (
                     SELECT FROM information_schema.tables 
                     WHERE table_schema = 'public' 
-                    AND table_name = 'condensed_magento_excluded_customer_groups'
+                    AND table_name = 'aggregated_excluded_customer_groups'
                 )
             """)
             
             if not cursor.fetchone()[0]:
                 cursor.execute("""
-                    CREATE TABLE condensed_magento_excluded_customer_groups (
+                    CREATE TABLE aggregated_excluded_customer_groups (
                         id SERIAL PRIMARY KEY,
                         region VARCHAR(10) NOT NULL,
                         customer_group VARCHAR(255) NOT NULL,
@@ -121,9 +121,9 @@ class MagentoDataRepo:
                         UNIQUE(region, customer_group)
                     )
                 """)
-                logger.info(f"✅ Created table: condensed_magento_excluded_customer_groups")
+                logger.info(f"✅ Created table: aggregated_excluded_customer_groups")
             else:
-                logger.info(f"ℹ️  Table already exists: condensed_magento_excluded_customer_groups")
+                logger.info(f"ℹ️  Table already exists: aggregated_excluded_customer_groups")
             
             # Create sync metadata table to track resumable syncs
             cursor.execute("""
@@ -152,18 +152,18 @@ class MagentoDataRepo:
             else:
                 logger.info(f"ℹ️  Table already exists: magento_sync_metadata")
             
-            # Create grand total threshold table for 6M condensed magento filters
+            # Create grand total threshold table for 6M aggregated magento filters
             cursor.execute("""
                 SELECT EXISTS (
                     SELECT FROM information_schema.tables 
                     WHERE table_schema = 'public' 
-                    AND table_name = 'condensed_magento_grand_total_threshold'
+                    AND table_name = 'aggregated_grand_total_threshold'
                 )
             """)
             
             if not cursor.fetchone()[0]:
                 cursor.execute("""
-                    CREATE TABLE condensed_magento_grand_total_threshold (
+                    CREATE TABLE aggregated_grand_total_threshold (
                         id SERIAL PRIMARY KEY,
                         region VARCHAR(10) NOT NULL UNIQUE,
                         threshold DECIMAL(10, 2),
@@ -172,26 +172,26 @@ class MagentoDataRepo:
                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
                 """)
-                logger.info(f"✅ Created table: condensed_magento_grand_total_threshold")
+                logger.info(f"✅ Created table: aggregated_grand_total_threshold")
             else:
-                logger.info(f"ℹ️  Table already exists: condensed_magento_grand_total_threshold")
+                logger.info(f"ℹ️  Table already exists: aggregated_grand_total_threshold")
                 # Add qty_threshold column if it doesn't exist
                 cursor.execute("""
                     SELECT column_name 
                     FROM information_schema.columns 
-                    WHERE table_name = 'condensed_magento_grand_total_threshold' 
+                    WHERE table_name = 'aggregated_grand_total_threshold' 
                     AND column_name = 'qty_threshold'
                 """)
                 if not cursor.fetchone():
                     cursor.execute("""
-                        ALTER TABLE condensed_magento_grand_total_threshold 
+                        ALTER TABLE aggregated_grand_total_threshold 
                         ADD COLUMN qty_threshold INTEGER
                     """)
-                    logger.info(f"✅ Added qty_threshold column to condensed_magento_grand_total_threshold")
+                    logger.info(f"✅ Added qty_threshold column to aggregated_grand_total_threshold")
             
             # Make threshold column nullable if it isn't already
             cursor.execute("""
-                ALTER TABLE condensed_magento_grand_total_threshold 
+                ALTER TABLE aggregated_grand_total_threshold 
                 ALTER COLUMN threshold DROP NOT NULL
             """)
 
@@ -276,8 +276,8 @@ class MagentoDataRepo:
                 
                 all_tables.append(table_name)
             
-            # Create condensed magento tables (6-month aggregated data)
-            for table_name in condensed_tables:
+            # Create aggregated magento tables (6-month aggregated data)
+            for table_name in aggregated_tables:
                 # Check if table exists
                 cursor.execute("""
                     SELECT EXISTS (
@@ -290,7 +290,7 @@ class MagentoDataRepo:
                 exists = cursor.fetchone()[0]
                 
                 if not exists:
-                    # Create the condensed table
+                    # Create the aggregated table
                     # This table aggregates magento by SKU over the last 6 months
                     create_table_sql = f"""
                         CREATE TABLE {table_name} (
@@ -302,9 +302,9 @@ class MagentoDataRepo:
                         )
                     """
                     cursor.execute(create_table_sql)
-                    logger.info(f"✅ Created condensed table: {table_name}")
+                    logger.info(f"✅ Created aggregated table: {table_name}")
                 else:
-                    logger.info(f"ℹ️  Condensed table already exists: {table_name}")
+                    logger.info(f"ℹ️  Aggregated table already exists: {table_name}")
                 
                 all_tables.append(table_name)
             
@@ -571,7 +571,7 @@ class MagentoDataRepo:
         2. Comparing the number of products in the database against the actual count
         
         Args:
-            table_name: The table to check (uk_magento_data, fr_magento_data, nl_magento_data, test_magento_data)
+            table_name: The table to check (uk_magento_orders_cache, fr_magento_orders_cache, nl_magento_orders_cache, test_magento_data)
             last_synced_date: The created_at date of the last synced order
             region: Region code (uk, fr, nl, test) - needed to initialize Magento client
         
@@ -579,7 +579,7 @@ class MagentoDataRepo:
             Dict with is_complete (bool), message (str), and optionally suggested_start_date
         """
         # Validate table name
-        valid_tables = ['uk_magento_data', 'fr_magento_data', 'nl_magento_data', 'test_magento_data']
+        valid_tables = ['uk_orders_cache', 'fr_orders_cache', 'nl_orders_cache', 'test_magento_data']
         if table_name not in valid_tables:
             raise ValueError(f"Invalid table name: {table_name}")
         
@@ -639,7 +639,7 @@ class MagentoDataRepo:
                     if table_name == 'test_magento_data':
                         region = 'uk'  # Test uses UK connection
                     else:
-                        region = table_name.replace('_magento_data', '')
+                        region = table_name.replace('_orders_cache', '')
                 
                 client = MagentoDataClient(region=region)
                 
@@ -740,7 +740,7 @@ class MagentoDataRepo:
             conn = get_products_connection()
             cursor = conn.cursor()
             
-            tables = ['uk_magento_data', 'fr_magento_data', 'nl_magento_data']
+            tables = ['uk_orders_cache', 'fr_orders_cache', 'nl_orders_cache']
             status = {}
             
             for table_name in tables:
@@ -767,7 +767,7 @@ class MagentoDataRepo:
     def get_magento_data(self, table_name: str, limit: int = 100, offset: int = 0, search: str = "", fields: list = None) -> Dict[str, Any]:
         """Get magento data from a specific table with pagination, search, and optional field selection"""
         # Validate table name to prevent SQL injection
-        valid_tables = ['uk_magento_data', 'fr_magento_data', 'nl_magento_data', 'test_magento_data']
+        valid_tables = ['uk_orders_cache', 'fr_orders_cache', 'nl_orders_cache', 'test_magento_data']
         if table_name not in valid_tables:
             raise ValueError(f"Invalid table name: {table_name}")
         
@@ -872,12 +872,15 @@ class MagentoDataRepo:
         NOTE: This method is deprecated. Use import_magento_product_rows() for live Magento data.
         """
         # Validate table name to prevent SQL injection
-        valid_tables = ['uk_magento_data', 'fr_magento_data', 'nl_magento_data', 'test_magento_data']
+        valid_tables = ['uk_orders_cache', 'fr_orders_cache', 'nl_orders_cache', 'test_magento_data']
         if table_name not in valid_tables:
             raise ValueError(f"Invalid table name: {table_name}")
         
         # Extract region from table name
-        region = table_name.replace('_magento_data', '').upper()
+        if table_name == 'test_magento_data':
+            region = 'TEST'
+        else:
+            region = table_name.replace('_orders_cache', '').upper()
         
         conn = None
         try:
@@ -1042,7 +1045,7 @@ class MagentoDataRepo:
         Each row represents a product from an order, with invoiced quantities.
         
         Args:
-            table_name: The table to import into (uk_magento_data, fr_magento_data, nl_magento_data, test_magento_data)
+            table_name: The table to import into (uk_magento_orders_cache, fr_magento_orders_cache, nl_magento_orders_cache, test_magento_data)
             product_rows: List of product-level dictionaries from Magento API
             username: User performing the sync
         
@@ -1050,7 +1053,7 @@ class MagentoDataRepo:
             Dict with rows_imported, errors, and success status
         """
         # Validate table name to prevent SQL injection
-        valid_tables = ['uk_magento_data', 'fr_magento_data', 'nl_magento_data', 'test_magento_data']
+        valid_tables = ['uk_orders_cache', 'fr_orders_cache', 'nl_orders_cache', 'test_magento_data']
         if table_name not in valid_tables:
             raise ValueError(f"Invalid table name: {table_name}")
         
@@ -1058,7 +1061,7 @@ class MagentoDataRepo:
         if table_name == 'test_magento_data':
             region = 'TEST'
         else:
-            region = table_name.replace('_magento_data', '').upper()
+            region = table_name.replace('_orders_cache', '').upper()
         
         conn = None
         try:
@@ -1185,7 +1188,7 @@ class MagentoDataRepo:
             Dict with rows_imported, errors, and success status
         """
         # Validate table name
-        valid_tables = ['uk_magento_data', 'fr_magento_data', 'nl_magento_data', 'test_magento_data']
+        valid_tables = ['uk_orders_cache', 'fr_orders_cache', 'nl_orders_cache', 'test_magento_data']
         if table_name not in valid_tables:
             raise ValueError(f"Invalid table name: {table_name}")
         
@@ -1201,7 +1204,7 @@ class MagentoDataRepo:
             if table_name == 'test_magento_data':
                 region = 'test'
             else:
-                region = table_name.replace('_magento_data', '')
+                region = table_name.replace('_orders_cache', '')
         
         conn = None
         try:
@@ -1286,7 +1289,7 @@ class MagentoDataRepo:
             if table_name == 'test_magento_data':
                 history_region = 'TEST'
             else:
-                history_region = table_name.replace('_magento_data', '').upper()
+                history_region = table_name.replace('_orders_cache', '').upper()
             
             history_query = """
                 INSERT INTO import_history 
@@ -1330,9 +1333,9 @@ class MagentoDataRepo:
                     cursor.close()
                 return_products_connection(conn)
     
-    def refresh_condensed_data(self, region: str) -> Dict[str, Any]:
+    def refresh_aggregated_data(self, region: str) -> Dict[str, Any]:
         """
-        Refresh condensed magento data for a region.
+        Refresh aggregated magento data for a region.
         Aggregates last 6 months of data by SKU, summing quantities.
         Uses sku_aliases table to combine related SKUs under their unified_sku.
         Applies currency conversion when filtering by grand_total threshold.
@@ -1341,34 +1344,34 @@ class MagentoDataRepo:
         
         # Map region to table names and base currency
         region_mapping = {
-            'uk': ('uk_magento_data', 'uk_condensed_magento', 'GBP', convert_to_gbp),
-            'fr': ('fr_magento_data', 'fr_condensed_magento', 'EUR', convert_to_eur),
-            'nl': ('nl_magento_data', 'nl_condensed_magento', 'EUR', convert_to_eur)
+            'uk': ('uk_orders_cache', 'uk_aggregated_orders', 'GBP', convert_to_gbp),
+            'fr': ('fr_orders_cache', 'fr_aggregated_orders', 'EUR', convert_to_eur),
+            'nl': ('nl_orders_cache', 'nl_aggregated_orders', 'EUR', convert_to_eur)
         }
         
         if region not in region_mapping:
             raise ValueError(f"Invalid region: {region}")
         
-        magento_table, condensed_table, base_currency, converter_func = region_mapping[region]
+        magento_table, aggregated_table, base_currency, converter_func = region_mapping[region]
         
         conn = None
         try:
             conn = get_products_connection()
             cursor = conn.cursor()
             
-            # Clear existing condensed data
-            cursor.execute(f"DELETE FROM {condensed_table}")
+            # Clear existing aggregated data
+            cursor.execute(f"DELETE FROM {aggregated_table}")
             
             # Get the thresholds for this region (if set)
             cursor.execute("""
-                SELECT threshold, qty_threshold FROM condensed_magento_grand_total_threshold 
+                SELECT threshold, qty_threshold FROM aggregated_grand_total_threshold 
                 WHERE region = %s
             """, (region,))
             threshold_row = cursor.fetchone()
             grand_total_threshold = threshold_row[0] if threshold_row else None
             qty_threshold = threshold_row[1] if threshold_row and len(threshold_row) > 1 else None
             
-            logger.info(f"Refreshing {region} condensed data with threshold: {grand_total_threshold} {base_currency}, qty_threshold: {qty_threshold}")
+            logger.info(f"Refreshing {region} aggregated data with threshold: {grand_total_threshold} {base_currency}, qty_threshold: {qty_threshold}")
             
             # Fetch all magento data from last 6 months with SKU aliases
             # We'll filter in Python to apply currency conversion
@@ -1415,14 +1418,14 @@ class MagentoDataRepo:
             
             # Get excluded customers
             cursor.execute("""
-                SELECT customer_email FROM condensed_magento_excluded_customers
+                SELECT customer_email FROM aggregated_excluded_customers
                 WHERE region = %s
             """, (region,))
             excluded_emails = {row[0] for row in cursor.fetchall()}
             
             # Get excluded customer groups
             cursor.execute("""
-                SELECT customer_group FROM condensed_magento_excluded_customer_groups
+                SELECT customer_group FROM aggregated_excluded_customer_groups
                 WHERE region = %s
             """, (region,))
             excluded_groups = {row[0] for row in cursor.fetchall()}
@@ -1464,7 +1467,7 @@ class MagentoDataRepo:
             # Insert aggregated data
             if sku_aggregates:
                 insert_query = f"""
-                    INSERT INTO {condensed_table} (sku, name, total_qty, last_updated)
+                    INSERT INTO {aggregated_table} (sku, name, total_qty, last_updated)
                     VALUES (%s, %s, %s, CURRENT_TIMESTAMP)
                 """
                 
@@ -1479,37 +1482,37 @@ class MagentoDataRepo:
             
             conn.commit()
             
-            logger.info(f"✅ Refreshed {condensed_table}: {rows_affected} SKUs aggregated (filtered {filtered_count} orders with thresholds)")
+            logger.info(f"✅ Refreshed {aggregated_table}: {rows_affected} SKUs aggregated (filtered {filtered_count} orders with thresholds)")
             
             return {
                 "success": True,
                 "rows_aggregated": rows_affected,
-                "table": condensed_table
+                "table": aggregated_table
             }
             
         except Exception as e:
             if conn:
                 conn.rollback()
-            logger.error(f"Error refreshing condensed data for {region}: {e}")
+            logger.error(f"Error refreshing aggregated data for {region}: {e}")
             raise
         finally:
             if conn:
                 cursor.close()
                 return_products_connection(conn)
     
-    def get_condensed_data(self, region: str, limit: int = 100, offset: int = 0, search: str = "") -> Dict[str, Any]:
-        """Get condensed magento data for a specific region"""
-        # Map region to condensed table
+    def get_aggregated_data(self, region: str, limit: int = 100, offset: int = 0, search: str = "") -> Dict[str, Any]:
+        """Get aggregated magento data for a specific region"""
+        # Map region to aggregated table
         region_mapping = {
-            'uk': 'uk_condensed_magento',
-            'fr': 'fr_condensed_magento',
-            'nl': 'nl_condensed_magento'
+            'uk': 'uk_aggregated_orders',
+            'fr': 'fr_aggregated_orders',
+            'nl': 'nl_aggregated_orders'
         }
         
         if region not in region_mapping:
             raise ValueError(f"Invalid region: {region}")
         
-        condensed_table = region_mapping[region]
+        aggregated_table = region_mapping[region]
         
         conn = None
         try:
@@ -1520,12 +1523,12 @@ class MagentoDataRepo:
             if search:
                 search_pattern = f"%{search}%"
                 count_query = f"""
-                    SELECT COUNT(*) FROM {condensed_table}
+                    SELECT COUNT(*) FROM {aggregated_table}
                     WHERE sku ILIKE %s OR name ILIKE %s
                 """
                 data_query = f"""
                     SELECT id, sku, name, total_qty, last_updated
-                    FROM {condensed_table}
+                    FROM {aggregated_table}
                     WHERE sku ILIKE %s OR name ILIKE %s
                     ORDER BY total_qty DESC
                     LIMIT %s OFFSET %s
@@ -1535,10 +1538,10 @@ class MagentoDataRepo:
                 
                 cursor.execute(data_query, (search_pattern, search_pattern, limit, offset))
             else:
-                count_query = f"SELECT COUNT(*) FROM {condensed_table}"
+                count_query = f"SELECT COUNT(*) FROM {aggregated_table}"
                 data_query = f"""
                     SELECT id, sku, name, total_qty, last_updated
-                    FROM {condensed_table}
+                    FROM {aggregated_table}
                     ORDER BY total_qty DESC
                     LIMIT %s OFFSET %s
                 """
@@ -1571,18 +1574,18 @@ class MagentoDataRepo:
             }
             
         except Exception as e:
-            logger.error(f"Error fetching condensed data from {condensed_table}: {e}")
+            logger.error(f"Error fetching aggregated data from {aggregated_table}: {e}")
             raise
         finally:
             if conn:
                 cursor.close()
                 return_products_connection(conn)
     
-    def get_condensed_data_custom_range(self, region: str, range_type: str, range_value: str, 
+    def get_aggregated_data_custom_range(self, region: str, range_type: str, range_value: str, 
                                        use_exclusions: bool, limit: int = 100, offset: int = 0, 
                                        search: str = "") -> Dict[str, Any]:
         """
-        Get condensed magento data with custom date range.
+        Get aggregated magento data with custom date range.
         Aggregates data on-the-fly based on the specified date range.
         
         Args:
@@ -1599,9 +1602,9 @@ class MagentoDataRepo:
         
         # Map region to table names and base currency
         region_mapping = {
-            'uk': ('uk_magento_data', 'GBP', convert_to_gbp),
-            'fr': ('fr_magento_data', 'EUR', convert_to_eur),
-            'nl': ('nl_magento_data', 'EUR', convert_to_eur)
+            'uk': ('uk_orders_cache', 'GBP', convert_to_gbp),
+            'fr': ('fr_orders_cache', 'EUR', convert_to_eur),
+            'nl': ('nl_orders_cache', 'EUR', convert_to_eur)
         }
         
         if region not in region_mapping:
@@ -1640,20 +1643,20 @@ class MagentoDataRepo:
             excluded_groups = set()
             if use_exclusions:
                 cursor.execute("""
-                    SELECT customer_email FROM condensed_magento_excluded_customers
+                    SELECT customer_email FROM aggregated_excluded_customers
                     WHERE region = %s
                 """, (region,))
                 excluded_emails = {row[0] for row in cursor.fetchall()}
                 
                 cursor.execute("""
-                    SELECT customer_group FROM condensed_magento_excluded_customer_groups
+                    SELECT customer_group FROM aggregated_excluded_customer_groups
                     WHERE region = %s
                 """, (region,))
                 excluded_groups = {row[0] for row in cursor.fetchall()}
             
             # Get the thresholds for this region (if set)
             cursor.execute("""
-                SELECT threshold, qty_threshold FROM condensed_magento_grand_total_threshold 
+                SELECT threshold, qty_threshold FROM aggregated_grand_total_threshold 
                 WHERE region = %s
             """, (region,))
             threshold_row = cursor.fetchone()
@@ -1752,7 +1755,7 @@ class MagentoDataRepo:
             # Apply pagination
             paginated_data = aggregated_list[offset:offset + limit]
             
-            # Add IDs for consistency with regular condensed data
+            # Add IDs for consistency with regular aggregated data
             for i, item in enumerate(paginated_data):
                 item['id'] = offset + i + 1
                 item['last_updated'] = datetime.now().isoformat()
@@ -1952,7 +1955,7 @@ class MagentoDataRepo:
             cursor = conn.cursor()
             
             # Get all unique SKUs from all magento tables that have -MD or -MD-xxxx patterns
-            tables = ['uk_magento_data', 'fr_magento_data', 'nl_magento_data']
+            tables = ['uk_orders_cache', 'fr_orders_cache', 'nl_orders_cache']
             md_skus = set()
             base_skus = set()
             
@@ -2066,14 +2069,14 @@ class MagentoDataRepo:
                 cursor.close()
                 return_products_connection(conn)
 
-    # ===== CONDENSED MAGENTO FILTER METHODS =====
+    # ===== AGGREGATED MAGENTO FILTER METHODS =====
     
     def search_customers(self, region: str, search_term: str, limit: int = 20) -> List[Dict[str, Any]]:
         """Search for customers by email or name in magento data"""
         region_mapping = {
-            'uk': 'uk_magento_data',
-            'fr': 'fr_magento_data',
-            'nl': 'nl_magento_data'
+            'uk': 'uk_orders_cache',
+            'fr': 'fr_orders_cache',
+            'nl': 'nl_orders_cache'
         }
         
         if region not in region_mapping:
@@ -2131,7 +2134,7 @@ class MagentoDataRepo:
                 SELECT 
                     id, customer_email, customer_full_name, 
                     added_by, added_at
-                FROM condensed_magento_excluded_customers
+                FROM aggregated_excluded_customers
                 WHERE region = %s
                 ORDER BY customer_email
             """
@@ -2167,7 +2170,7 @@ class MagentoDataRepo:
             cursor = conn.cursor()
             
             cursor.execute("""
-                INSERT INTO condensed_magento_excluded_customers 
+                INSERT INTO aggregated_excluded_customers 
                 (region, customer_email, customer_full_name, added_by)
                 VALUES (%s, %s, %s, %s)
                 ON CONFLICT (region, customer_email) DO NOTHING
@@ -2207,7 +2210,7 @@ class MagentoDataRepo:
             cursor = conn.cursor()
             
             cursor.execute("""
-                DELETE FROM condensed_magento_excluded_customers 
+                DELETE FROM aggregated_excluded_customers 
                 WHERE id = %s
                 RETURNING customer_email
             """, (customer_id,))
@@ -2244,7 +2247,7 @@ class MagentoDataRepo:
             cursor = conn.cursor()
             
             cursor.execute("""
-                SELECT threshold FROM condensed_magento_grand_total_threshold
+                SELECT threshold FROM aggregated_grand_total_threshold
                 WHERE region = %s
             """, (region,))
             
@@ -2267,7 +2270,7 @@ class MagentoDataRepo:
             cursor = conn.cursor()
             
             cursor.execute("""
-                INSERT INTO condensed_magento_grand_total_threshold 
+                INSERT INTO aggregated_grand_total_threshold 
                 (region, threshold, updated_by, updated_at)
                 VALUES (%s, %s, %s, CURRENT_TIMESTAMP)
                 ON CONFLICT (region) 
@@ -2303,7 +2306,7 @@ class MagentoDataRepo:
             cursor = conn.cursor()
             
             cursor.execute("""
-                SELECT qty_threshold FROM condensed_magento_grand_total_threshold
+                SELECT qty_threshold FROM aggregated_grand_total_threshold
                 WHERE region = %s
             """, (region,))
             
@@ -2326,7 +2329,7 @@ class MagentoDataRepo:
             cursor = conn.cursor()
             
             cursor.execute("""
-                INSERT INTO condensed_magento_grand_total_threshold 
+                INSERT INTO aggregated_grand_total_threshold 
                 (region, qty_threshold, updated_by, updated_at)
                 VALUES (%s, %s, %s, CURRENT_TIMESTAMP)
                 ON CONFLICT (region) 
@@ -2361,7 +2364,7 @@ class MagentoDataRepo:
             conn = get_products_connection()
             cursor = conn.cursor()
             
-            table_name = f"{region.lower()}_magento_data"
+            table_name = f"{region.lower()}_orders_cache"
             query = f"""
                 SELECT DISTINCT customer_group_code 
                 FROM {table_name}
@@ -2394,7 +2397,7 @@ class MagentoDataRepo:
                 SELECT 
                     id, customer_group, 
                     added_by, added_at
-                FROM condensed_magento_excluded_customer_groups
+                FROM aggregated_excluded_customer_groups
                 WHERE region = %s
                 ORDER BY customer_group
             """
@@ -2429,7 +2432,7 @@ class MagentoDataRepo:
             cursor = conn.cursor()
             
             cursor.execute("""
-                INSERT INTO condensed_magento_excluded_customer_groups 
+                INSERT INTO aggregated_excluded_customer_groups 
                 (region, customer_group, added_by)
                 VALUES (%s, %s, %s)
                 ON CONFLICT (region, customer_group) DO NOTHING
@@ -2469,7 +2472,7 @@ class MagentoDataRepo:
             cursor = conn.cursor()
             
             cursor.execute("""
-                DELETE FROM condensed_magento_excluded_customer_groups 
+                DELETE FROM aggregated_excluded_customer_groups 
                 WHERE id = %s
                 RETURNING customer_group
             """, (group_id,))

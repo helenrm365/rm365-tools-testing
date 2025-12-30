@@ -9,7 +9,7 @@ from common.dto import InventoryItemOut, InventoryMetadataRecord, LiveSyncResult
 from .schemas import InventoryMetadataCreateIn, InventoryMetadataUpdateIn, LiveSyncIn
 from .service import InventoryManagementService
 
-from modules.inventory.management.sales_sync import sync_sales_to_inventory_metadata
+from modules.inventory.management.magento_sync import sync_magento_to_inventory_metadata
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -77,14 +77,14 @@ def save_inventory_metadata(body: InventoryMetadataCreateIn, user=Depends(get_cu
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/sync-sales-data")
-async def sync_sales_data(
+@router.post("/sync-magento-data")
+async def sync_magento_data(
         dry_run: bool = False,
         current_user: dict = Depends(get_current_user)
 ):
-    """Sync 6 months of sales data to inventory_metadata"""
+    """Sync 6 months of magento data to inventory_metadata"""
     try:
-        stats = sync_sales_to_inventory_metadata(dry_run=dry_run)
+        stats = sync_magento_to_inventory_metadata(dry_run=dry_run)
         return {"status": "success", "stats": stats}
     except Exception as e:
         logger.error(f"Sync failed: {e}")

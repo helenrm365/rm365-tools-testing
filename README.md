@@ -215,18 +215,6 @@ start-macos/start.command
 ✓ Automated queue management
 ```
 
-### 📊 **Sales Data Management**
-
-```
-✓ CSV upload & processing
-✓ Flexible column mapping (5/7/8 cols)
-✓ UK date format (DD/MM/YYYY)
-✓ Data validation & error reports
-✓ Bulk import functionality
-✓ Import history tracking
-✓ Multi-country support (UK/FR/NL)
-```
-
 </td>
 <td width="50%" valign="top">
 
@@ -439,7 +427,6 @@ rm365-tools-testing/
 │   │   │   └── order_fulfillment/ # Magento pick & pack
 │   │   ├── labels/             # Label generation
 │   │   ├── roles/              # Role management
-│   │   ├── salesdata/          # Sales data import
 │   │   ├── users/              # User management
 │   │   └── _integrations/      # External services
 
@@ -944,7 +931,7 @@ GET    /api/v1/inventory/management/items        - List items with pagination
 GET    /api/v1/inventory/management/metadata     - Get metadata
 POST   /api/v1/inventory/management/metadata     - Create metadata
 PATCH  /api/v1/inventory/management/metadata/{sku} - Update metadata
-POST   /api/v1/inventory/management/sync-sales-data - Sync sales data
+POST   /api/v1/inventory/management/sync-magento-data - Sync magento data
 GET    /api/v1/inventory/management/categories   - Get categories
 GET    /api/v1/inventory/management/suppliers    - Get suppliers
 GET    /api/v1/inventory/collaboration/presence  - Live users
@@ -962,18 +949,6 @@ POST   /api/v1/labels/start-job             - Start new print job
 DELETE /api/v1/labels/job/{job_id}          - Delete job
 GET    /api/v1/labels/job/{job_id}/pdf      - Download PDF labels
 GET    /api/v1/labels/job/{job_id}/csv      - Download CSV
-```
-
-#### Sales Data
-```
-GET    /api/v1/salesdata/status             - Database status
-GET    /api/v1/salesdata/uk                 - UK sales data
-POST   /api/v1/salesdata/uk/upload          - Upload UK CSV
-GET    /api/v1/salesdata/fr                 - FR sales data
-POST   /api/v1/salesdata/fr/upload          - Upload FR CSV
-GET    /api/v1/salesdata/nl                 - NL sales data
-POST   /api/v1/salesdata/nl/upload          - Upload NL CSV
-GET    /api/v1/salesdata/history            - Import history
 ```
 
 #### Magento (Order Fulfillment)

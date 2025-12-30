@@ -266,35 +266,35 @@ export async function checkHealth() {
   return await get(`${API}/health`);
 }
 
-// Condensed data operations (6-month aggregated by SKU)
-export async function getUKCondensedData(limit = 100, offset = 0, search = '') {
+// Aggregated data operations (6-month aggregated by SKU)
+export async function getUKAggregatedData(limit = 100, offset = 0, search = '') {
   const params = new URLSearchParams({
     limit: limit.toString(),
     offset: offset.toString(),
     search: search
   });
-  return await get(`${API}/uk/condensed?${params.toString()}`);
+  return await get(`${API}/uk/aggregated?${params.toString()}`);
 }
 
-export async function getFRCondensedData(limit = 100, offset = 0, search = '') {
+export async function getFRAggregatedData(limit = 100, offset = 0, search = '') {
   const params = new URLSearchParams({
     limit: limit.toString(),
     offset: offset.toString(),
     search: search
   });
-  return await get(`${API}/fr/condensed?${params.toString()}`);
+  return await get(`${API}/fr/aggregated?${params.toString()}`);
 }
 
-export async function getNLCondensedData(limit = 100, offset = 0, search = '') {
+export async function getNLAggregatedData(limit = 100, offset = 0, search = '') {
   const params = new URLSearchParams({
     limit: limit.toString(),
     offset: offset.toString(),
     search: search
   });
-  return await get(`${API}/nl/condensed?${params.toString()}`);
+  return await get(`${API}/nl/aggregated?${params.toString()}`);
 }
 
-export async function getCustomRangeCondensedData(region, rangeType, rangeValue, useExclusions, limit = 100, offset = 0, search = '') {
+export async function getCustomRangeAggregatedData(region, rangeType, rangeValue, useExclusions, limit = 100, offset = 0, search = '') {
   const params = new URLSearchParams({
     range_type: rangeType,
     range_value: rangeValue,
@@ -303,7 +303,7 @@ export async function getCustomRangeCondensedData(region, rangeType, rangeValue,
     offset: offset.toString(),
     search: search
   });
-  return await get(`${API}/${region}/condensed/custom-range?${params.toString()}`);
+  return await get(`${API}/${region}/aggregated/custom-range?${params.toString()}`);
 }
 
 // Import History operations
@@ -318,11 +318,11 @@ export async function getImportHistory(limit = 100, offset = 0, region = null) {
   return await get(`${API}/history?${params.toString()}`);
 }
 
-// Condensed data refresh operations
-export async function refreshAllCondensedData() {
-  return await post(`${API}/refresh-condensed`, {});
+// Aggregated data refresh operations
+export async function refreshAllAggregatedData() {
+  return await post(`${API}/refresh-aggregated`, {});
 }
 
-export async function refreshCondensedDataForRegion(region) {
-  return await post(`${API}/refresh-condensed/${region}`, {});
+export async function refreshAggregatedDataForRegion(region) {
+  return await post(`${API}/refresh-aggregated/${region}`, {});
 }

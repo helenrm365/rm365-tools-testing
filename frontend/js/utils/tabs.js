@@ -51,8 +51,6 @@ export function getDefaultAllowedPath(allowed = null) {
   }
   // Then labels
   if (isAllowed('labels', allowedTabs)) return '/labels';
-  // Then salesdata
-  if (isAllowed('salesdata', allowedTabs)) return '/salesdata';
   // Then magentodata
   if (isAllowed('magentodata', allowedTabs)) return '/magentodata';
   // Then inventory

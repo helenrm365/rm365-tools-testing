@@ -131,7 +131,7 @@ export async function downloadCSV(jobId) {
 }
 
 /**
- * Initialize label dependencies (sync sales data)
+ * Initialize label dependencies (sync magento data)
  */
 export async function initDependencies() {
   return await post(`${API}/init-dependencies`);

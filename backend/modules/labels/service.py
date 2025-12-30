@@ -16,7 +16,8 @@ class LabelsService:
     def get_label_data(self, start_date: str, end_date: str, search: str = "") -> Dict[str, Any]:
         """Get filtered label data for generation"""
         try:
-            data = self.repo.get_sales_data(start_date, end_date, search)
+            # TODO: Check if get_magento_data exists in repo, or if this method is deprecated
+            data = self.repo.get_magento_data(start_date, end_date, search)
             return {
                 "status": "success",
                 "data": data,
@@ -34,7 +35,7 @@ class LabelsService:
     def generate_labels(self, start_date: str, end_date: str, search: str = "") -> Dict[str, Any]:
         """Generate label file"""
         try:
-            data = self.repo.get_sales_data(start_date, end_date, search)
+            data = self.repo.get_magento_data(start_date, end_date, search)
             
             if not data:
                 return {

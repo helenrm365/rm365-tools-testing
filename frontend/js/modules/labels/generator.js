@@ -209,11 +209,11 @@ async function loadProducts() {
     console.error('[Labels] Error loading products:', error);
     if (loadingEl) loadingEl.style.display = 'none';
     
-    // Check if error is about missing sales data tables
+    // Check if error is about missing magento data tables
     const errorMessage = error.message || '';
-    if (errorMessage.includes('Sales data tables not initialized')) {
+    if (errorMessage.includes('Magento data tables not initialized')) {
       // Show a helpful error message with action button
-      showSalesDataInitError();
+      showMagentoDataInitError();
     } else {
       // Show generic error toast
       showToast('Failed to load products: ' + errorMessage, 'error');
@@ -221,14 +221,14 @@ async function loadProducts() {
   }
 }
 
-// Show specific error UI for sales data initialization
-function showSalesDataInitError() {
+// Show specific error UI for magento data initialization
+function showMagentoDataInitError() {
   // Create or update error message element
-  let errorEl = document.querySelector('#salesDataError');
+  let errorEl = document.querySelector('#magentoDataError');
   if (!errorEl) {
     errorEl = document.createElement('div');
-    errorEl.id = 'salesDataError';
-    errorEl.className = 'sales-data-error';
+    errorEl.id = 'magentoDataError';
+    errorEl.className = 'magento-data-error';
     
     // Insert after loading indicator
     const loadingEl = document.querySelector('#loadingIndicator');
@@ -241,16 +241,16 @@ function showSalesDataInitError() {
     <div class="error-card">
       <div class="error-header">
         <i class="fas fa-exclamation-triangle"></i>
-        <h3>Sales Data Not Initialized</h3>
+        <h3>Magento Data Not Initialized</h3>
       </div>
       <div class="error-body">
-        <p>The label generator requires sales data tables to be set up first. This provides pricing information and sales history for your products.</p>
+        <p>The label generator requires magento data tables to be set up first. This provides pricing information and sales history for your products.</p>
         <div class="error-actions">
-          <button class="action-btn primary-btn" onclick="window.location.href='/salesdata'">
+          <button class="action-btn primary-btn" onclick="window.location.href='/magentodata'">
             <i class="fas fa-database"></i>
-            Go to Sales Data Module
+            Go to Magento Data Module
           </button>
-          <button class="action-btn secondary-btn" onclick="initSalesDataFromLabels()">
+          <button class="action-btn secondary-btn" onclick="initMagentoDataFromLabels()">
             <i class="fas fa-magic"></i>
             Initialize Here
           </button>
@@ -266,9 +266,9 @@ function showSalesDataInitError() {
   errorEl.style.display = 'block';
 }
 
-// Initialize sales data from labels module
-async function initSalesDataFromLabels() {
-  const button = document.querySelector('#salesDataError .action-btn');
+// Initialize magento data from labels module
+async function initMagentoDataFromLabels() {
+  const button = document.querySelector('#magentoDataError .action-btn');
   if (button) {
     button.disabled = true;
     button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Initializing...';
@@ -278,17 +278,17 @@ async function initSalesDataFromLabels() {
     const result = await initDependencies();
     
     if (result.status === 'success') {
-      showToast('Sales data initialized successfully! Reloading products...', 'success');
+      showToast('Magento data initialized successfully! Reloading products...', 'success');
       // Hide error and reload
-      const errorEl = document.querySelector('#salesDataError');
+      const errorEl = document.querySelector('#magentoDataError');
       if (errorEl) errorEl.style.display = 'none';
       await loadProducts();
     } else {
       throw new Error(result.message || 'Failed to initialize');
     }
   } catch (error) {
-    console.error('[Labels] Error initializing sales data:', error);
-    showToast('Failed to initialize sales data: ' + error.message, 'error');
+    console.error('[Labels] Error initializing magento data:', error);
+    showToast('Failed to initialize magento data: ' + error.message, 'error');
   } finally {
     if (button) {
       button.disabled = false;
@@ -299,13 +299,13 @@ async function initSalesDataFromLabels() {
 
 // Retry loading products
 async function retryLoadProducts() {
-  const errorEl = document.querySelector('#salesDataError');
+  const errorEl = document.querySelector('#magentoDataError');
   if (errorEl) errorEl.style.display = 'none';
   await loadProducts();
 }
 
 // Make functions available globally for onclick handlers
-window.initSalesDataFromLabels = initSalesDataFromLabels;
+window.initMagentoDataFromLabels = initMagentoDataFromLabels;
 window.retryLoadProducts = retryLoadProducts;
 
 function setupEventListeners() {
@@ -499,8 +499,8 @@ function renderProductTable() {
         <td class="product-name" title="${escapeHtml(product.product_name || '-')}">${escapeHtml(product.product_name || '-')}</td>
   <td class="price-data">${escapeHtml(formatPrice(product.price))}</td>
         <td>${escapeHtml(product.item_id || '-')}</td>
-  <td class="sales-data">${escapeHtml(String(product.uk_6m_data ?? '0'))}</td>
-  <td class="sales-data">${escapeHtml(String(product.fr_6m_data ?? '0'))}</td>
+  <td class="magento-data">${escapeHtml(String(product.uk_6m_data ?? '0'))}</td>
+  <td class="magento-data">${escapeHtml(String(product.fr_6m_data ?? '0'))}</td>
       </tr>
     `;
   }).join('');

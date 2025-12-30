@@ -132,7 +132,7 @@ def _get_products_pool():
 
 
 def get_products_connection():
-    """Get connection for products/sales database"""
+    """Get connection for products/magento database"""
     pool_obj = _get_products_pool()
     return pool_obj.getconn()
 
@@ -168,12 +168,12 @@ def initialize_database():
             print(f"⚠️  Could not initialize roles table: {e}")
         
         try:
-            from modules.salesdata.repo import SalesDataRepo
-            sales_repo = SalesDataRepo()
-            sales_repo.init_tables()
-            print("✅ Sales data tables initialized (UK, FR, NL sales data and condensed tables)")
+            from modules.magentodata.repo import MagentoDataRepo
+            magento_repo = MagentoDataRepo()
+            magento_repo.init_tables()
+            print("✅ Magento data tables initialized")
         except Exception as e:
-            print(f"⚠️  Could not initialize sales data tables: {e}")
+            print(f"⚠️  Could not initialize magento data tables: {e}")
         
         return True
     except Exception as e:

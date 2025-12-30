@@ -1,5 +1,5 @@
 // frontend/js/modules/magentodata/home.js
-import { initializeTables, checkTablesStatus, refreshAllCondensedData } from '../../services/api/magentoDataApi.js';
+import { initializeTables, checkTablesStatus, refreshAllAggregatedData } from '../../services/api/magentoDataApi.js';
 import { showToast } from '../../ui/toast.js';
 
 /**
@@ -37,10 +37,10 @@ export async function initMagentoDataHome() {
 function setupEventListeners() {
   console.warn('[Magento Data] Setting up event listeners...');
   
-  // Refresh all condensed data button
-  const refreshAllBtn = document.getElementById('refreshAllCondensedBtn');
+  // Refresh all aggregated data button
+  const refreshAllBtn = document.getElementById('refreshAllAggregatedBtn');
   if (refreshAllBtn) {
-    refreshAllBtn.addEventListener('click', handleRefreshAllCondensedData);
+    refreshAllBtn.addEventListener('click', handleRefreshAllAggregatedData);
     console.log('[Magento Data] Refresh all button event listener attached');
   } else {
     console.warn('[Magento Data] Refresh all button not found');
@@ -48,17 +48,17 @@ function setupEventListeners() {
 }
 
 /**
- * Handle refresh all condensed data
+ * Handle refresh all aggregated data
  */
-async function handleRefreshAllCondensedData() {
+async function handleRefreshAllAggregatedData() {
   try {
-    showToast('Refreshing condensed data for all regions...', 'info');
+    showToast('Refreshing aggregated data for all regions...', 'info');
     
-    const result = await refreshAllCondensedData();
+    const result = await refreshAllAggregatedData();
     
     if (result.status === 'success') {
       const successfulRegions = Object.keys(result.results).filter(r => result.results[r].success);
-      showToast(`Successfully refreshed condensed data for ${successfulRegions.join(', ')}! Total: ${result.total_rows_aggregated} SKUs processed.`, 'success');
+      showToast(`Successfully refreshed aggregated data for ${successfulRegions.join(', ')}! Total: ${result.total_rows_aggregated} SKUs processed.`, 'success');
     } else {
       showToast('Refresh failed: ' + result.message, 'error');
     }
