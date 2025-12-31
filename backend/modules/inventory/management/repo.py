@@ -12,6 +12,7 @@ from core.db import (
     return_inventory_connection,
     return_psycopg_connection
 )
+from modules.magentodata.db import get_magento_connection
 
 logger = logging.getLogger(__name__)
 
@@ -412,20 +413,17 @@ class InventoryManagementRepo:
 
     def sync_magento_products_to_inventory_metadata(self) -> Dict[str, int]:
         """
-        Sync products from magento_product_list to inventory_metadata.
+        Sync ALL products (regardless of enabled/disabled status) from UK Magento catalog to inventory_metadata.
         
         Behavior:
+        - Fetches ALL products from UK Magento catalog_product_entity table
         - NEW products (SKU not in inventory_metadata): Creates new record with just SKU
         - EXISTING products (SKU already in inventory_metadata): Preserved completely
           * Keeps item_id, location, shelf quantities, sales data, etc.
           * No updates or overwrites
-        - FILTERED OUT: Products with "AW365" in categories column are completely ignored
-        
-        This allows you to:
-        1. Delete all data from magento_product_list
-        2. Re-import fresh product catalog
-        3. New products get added to inventory_metadata
-        4. Existing products retain ALL their warehouse data
+          * Persists even if product status changes in Magento
+        - FILTERED OUT: Products with "AW365" in their name are completely ignored
+        - Note: We do NOT filter by Magento's enabled/disabled status - all products are synced
         
         Returns stats about the operation.
         """
@@ -440,25 +438,55 @@ class InventoryManagementRepo:
                 "filtered_aw365": 0
             }
             
-            # Get all products from magento_product_list
-            cursor.execute("""
-                SELECT sku, name, categories FROM magento_product_list
-                ORDER BY sku
-            """)
-            
-            products = cursor.fetchall()
+            # Get ALL products from UK Magento catalog (no status filtering)
+            magento_conn = get_magento_connection("uk")
+            try:
+                with magento_conn.cursor() as magento_cursor:
+                    # Query catalog tables for ALL products
+                    # Note: We removed enabled/disabled status filtering
+                    magento_cursor.execute("""
+                        SELECT DISTINCT
+                            cpe.sku,
+                            cpev_name.value as name
+                        FROM catalog_product_entity cpe
+                        LEFT JOIN catalog_product_entity_varchar cpev_name 
+                            ON cpe.entity_id = cpev_name.entity_id
+                            AND cpev_name.attribute_id = (
+                                SELECT attribute_id 
+                                FROM eav_attribute 
+                                WHERE attribute_code = 'name' 
+                                AND entity_type_id = (
+                                    SELECT entity_type_id 
+                                    FROM eav_entity_type 
+                                    WHERE entity_type_code = 'catalog_product'
+                                )
+                            )
+                            AND cpev_name.store_id = 0
+                        WHERE cpe.sku IS NOT NULL 
+                            AND cpe.sku != ''
+                        ORDER BY cpe.sku
+                    """)
+                    
+                    products = magento_cursor.fetchall()
+                    logger.info(f"Fetched {len(products)} products from UK Magento catalog (all products)")
+            finally:
+                if magento_conn.open:
+                    magento_conn.close()
             
             # Process each product, filtering out AW365
-            for sku, name, categories in products:
+            for product in products:
+                sku = product['sku']
+                name = product.get('name') or sku
                 stats["total_products"] += 1
                 
-                # Filter: Skip if categories contains "AW365" (case-insensitive)
-                if categories and "AW365" in categories.upper():
+                # Filter: Skip if name contains "AW365" (case-insensitive)
+                if name and "AW365" in name.upper():
                     stats["filtered_aw365"] += 1
-                    logger.debug(f"Filtered out {sku} (contains AW365 in categories)")
+                    logger.debug(f"Filtered out {sku} (contains AW365 in name)")
                     continue
                 
                 # Insert into inventory_metadata (only if SKU doesn't exist)
+                # Note: We never DELETE from inventory_metadata, so products keep their data
                 cursor.execute("""
                     INSERT INTO inventory_metadata (sku)
                     VALUES (%s)
@@ -474,33 +502,34 @@ class InventoryManagementRepo:
             conn.commit()
             
             if stats["new_records"] > 0:
-                logger.info(f"✅ Synced {stats['new_records']} new products to inventory_metadata")
+                logger.info(f"✅ Synced {stats['new_records']} new products to inventory_metadata from Magento catalog")
             if stats["filtered_aw365"] > 0:
                 logger.info(f"🚫 Filtered out {stats['filtered_aw365']} AW365 products")
             
             return stats
             
-        except psycopg2.Error as e:
+        except Exception as e:
             if conn:
                 conn.rollback()
-            logger.error(f"Database error in sync_magento_products_to_inventory_metadata: {e}")
+            logger.error(f"Error in sync_magento_products_to_inventory_metadata: {e}")
             raise
         finally:
             self.return_connection(conn)
 
     def merge_identifier_products(self) -> Dict[str, int]:
         """
-        Merge products with identifier suffixes (-SD, -DP, -NP, -MV, -MD) into their base SKU products.
-        Also handles extended variants like -SD-xxxx, -DP-xxxx, -NP-xxxx, -MV-xxxx, -MD-xxxx.
+        Merge products with -MD suffix into their base SKU products (ONLY MD variants merge).
+        Also handles extended MD variants like -MD-xxxx.
+        This matches the 6M Data logic where SD, DP, NP, MV variants stay separate.
         This operates on inventory_metadata table (not magento_product_list).
         This should be called BEFORE ensure_all_products_have_item_ids() so that item IDs are generated
         after merging is complete.
         
         Process:
-        1. Find all products with identifier suffixes in inventory_metadata
+        1. Find all products with -MD suffix in inventory_metadata
         2. For each, check if base SKU product exists
-        3. If base exists: delete the identifier variant (data merged conceptually via sales aggregation)
-        4. If base doesn't exist: rename the identifier SKU to base SKU
+        3. If base exists: delete the MD variant (data merged conceptually via sales aggregation)
+        4. If base doesn't exist: rename the MD SKU to base SKU
         
         Returns stats about the operation.
         """
@@ -509,11 +538,9 @@ class InventoryManagementRepo:
         try:
             cursor = conn.cursor()
             
-            # Identifiers to merge (both exact and with -xxxx extensions)
-            identifiers = ["-SD", "-DP", "-NP", "-MV", "-MD"]
-            
-            # Regex pattern to match any identifier with optional -xxxx suffix
-            identifier_pattern_regex = re.compile(r'-(?:SD|DP|NP|MV|MD)(?:-.*)?$', re.IGNORECASE)
+            # ONLY MD identifiers merge (matching 6M data logic)
+            # Regex pattern to match -MD with optional -xxxx suffix
+            identifier_pattern_regex = re.compile(r'-MD(?:-.*)?$', re.IGNORECASE)
             
             stats = {
                 "total_checked": 0,
@@ -523,11 +550,10 @@ class InventoryManagementRepo:
                 "base_created": 0
             }
             
-            # Find all products with identifier suffixes (including -xxxx variants)
-            identifier_pattern = " OR ".join([f"sku LIKE '%{suffix}%'" for suffix in identifiers])
-            cursor.execute(f"""
+            # Find all products with -MD suffix (including -MD-xxxx variants)
+            cursor.execute("""
                 SELECT sku FROM inventory_metadata
-                WHERE {identifier_pattern}
+                WHERE sku LIKE '%-MD%'
                 ORDER BY sku
             """)
             
@@ -536,11 +562,11 @@ class InventoryManagementRepo:
             identifier_skus = [sku for sku in all_skus if identifier_pattern_regex.search(sku)]
             stats["total_checked"] = len(identifier_skus)
             
-            logger.info(f"Found {len(identifier_skus)} products with identifier suffixes in inventory_metadata")
+            logger.info(f"Found {len(identifier_skus)} products with -MD suffix in inventory_metadata")
             
-            # Process each identifier SKU
+            # Process each MD SKU
             for sku in identifier_skus:
-                # Determine base SKU by removing identifier suffix (and any -xxxx extension)
+                # Determine base SKU by removing -MD suffix (and any -xxxx extension)
                 base_sku = identifier_pattern_regex.sub('', sku)
                 
                 # Check if base SKU already exists
@@ -552,7 +578,7 @@ class InventoryManagementRepo:
                 base_exists = cursor.fetchone()
                 
                 if base_exists:
-                    # Base exists - delete the identifier variant
+                    # Base exists - delete the MD variant
                     # (sales data will be aggregated via the sales aggregation logic)
                     cursor.execute("""
                         DELETE FROM inventory_metadata
@@ -562,7 +588,7 @@ class InventoryManagementRepo:
                     stats["base_existed"] += 1
                     logger.debug(f"Deleted {sku} (base {base_sku} exists)")
                 else:
-                    # Base doesn't exist - rename identifier SKU to base SKU
+                    # Base doesn't exist - rename MD SKU to base SKU
                     cursor.execute("""
                         UPDATE inventory_metadata
                         SET sku = %s, updated_at = NOW()
@@ -574,7 +600,7 @@ class InventoryManagementRepo:
             
             conn.commit()
             
-            logger.info(f"✅ Merge complete: {stats['deleted']} deleted, {stats['renamed']} renamed")
+            logger.info(f"✅ MD merge complete: {stats['deleted']} deleted, {stats['renamed']} renamed")
             
             return stats
             
@@ -696,54 +722,97 @@ class InventoryManagementRepo:
 
     def get_magento_products(self, status_filters: str = None) -> List[Dict[str, Any]]:
         """
-        Get products from magento_product_list, optionally filtered by discontinued_status.
-        Parses discontinued_status from additional_attributes field.
+        Get ALL products (regardless of enabled/disabled status) from UK Magento catalog database.
+        Queries catalog_product_entity and related tables for complete product list.
         
         Args:
-            status_filters: Comma-separated string like "Active,Temporarily OOS,Pre Order,Samples"
+            status_filters: Comma-separated list of product_status values to filter by
+                          (e.g., "Active,Temporarily OOS,Pre Order,Samples")
+                          If None, returns all products
         
         Returns:
-            List of product dictionaries with sku, product_name, item_id, discontinued_status, status
+            List of product dictionaries with sku, name, and product_status
         """
-        conn = self.get_metadata_connection()
         try:
-            cursor = conn.cursor()
-            
-            if status_filters:
-                # Parse comma-separated filters and use efficient WHERE IN query
-                filters = [f.strip() for f in status_filters.split(',') if f.strip()]
-                placeholders = ','.join(['%s'] * len(filters))
-                
-                cursor.execute(f"""
-                    SELECT sku, name, categories, additional_attributes, discontinued_status
-                    FROM magento_product_list
-                    WHERE discontinued_status IN ({placeholders})
-                    ORDER BY sku
-                """, tuple(filters))
-            else:
-                # No filters - return all
+            conn = get_magento_connection("uk")  # Always use UK Magento as source
+            with conn.cursor() as cursor:
+                # Fetch ALL products from catalog_product_entity
+                # Join with attribute tables to get product name and product_status
+                # Magento 2 stores attributes in EAV (Entity-Attribute-Value) structure
+                # Note: We do NOT filter by Magento's enabled/disabled status anymore
                 cursor.execute("""
-                    SELECT sku, name, categories, additional_attributes, discontinued_status
-                    FROM magento_product_list
-                    ORDER BY sku
+                    SELECT DISTINCT
+                        cpe.sku,
+                        cpev_name.value as name,
+                        cpev_product_status.value as product_status
+                    FROM catalog_product_entity cpe
+                    LEFT JOIN catalog_product_entity_varchar cpev_name 
+                        ON cpe.entity_id = cpev_name.entity_id
+                        AND cpev_name.attribute_id = (
+                            SELECT attribute_id 
+                            FROM eav_attribute 
+                            WHERE attribute_code = 'name' 
+                            AND entity_type_id = (
+                                SELECT entity_type_id 
+                                FROM eav_entity_type 
+                                WHERE entity_type_code = 'catalog_product'
+                            )
+                        )
+                        AND cpev_name.store_id = 0
+                    LEFT JOIN catalog_product_entity_varchar cpev_product_status
+                        ON cpe.entity_id = cpev_product_status.entity_id
+                        AND cpev_product_status.attribute_id = (
+                            SELECT attribute_id 
+                            FROM eav_attribute 
+                            WHERE attribute_code = 'product_status' 
+                            AND entity_type_id = (
+                                SELECT entity_type_id 
+                                FROM eav_entity_type 
+                                WHERE entity_type_code = 'catalog_product'
+                            )
+                        )
+                        AND cpev_product_status.store_id = 0
+                    WHERE cpe.sku IS NOT NULL 
+                        AND cpe.sku != ''
+                    ORDER BY cpe.sku
                 """)
-            
-            columns = ['sku', 'name', 'categories', 'additional_attributes', 'discontinued_status']
-            rows = cursor.fetchall()
-            
-            # Convert rows to dictionaries - discontinued_status is now in the result set
-            result = []
-            for row in rows:
-                row_dict = dict(zip(columns, row))
-                # Note: item_id is now stored in inventory_metadata, not magento_product_list
-                # magento_product_list is just the product catalog
-                result.append(row_dict)
-            
-            return result
-            
-        except psycopg2.Error as e:
-            logger.error(f"Database error in get_magento_products: {e}")
-            raise
+                
+                rows = cursor.fetchall()
+                
+                # Parse status_filters if provided
+                allowed_statuses = None
+                if status_filters:
+                    allowed_statuses = [s.strip() for s in status_filters.split(",") if s.strip()]
+                
+                # Convert to list of dictionaries and apply filtering
+                result = []
+                for row in rows:
+                    product_status = row.get('product_status') or 'Active'  # Default to Active if not set
+                    
+                    # Apply status filter if provided
+                    if allowed_statuses and product_status not in allowed_statuses:
+                        continue
+                    
+                    result.append({
+                        'sku': row['sku'],
+                        'name': row.get('name') or row['sku'],  # Fallback to SKU if name not found
+                        'categories': None,  # Not fetched (can be added if needed)
+                        'additional_attributes': None,  # Not fetched
+                        'discontinued_status': product_status  # Use product_status from Magento
+                    })
+                
+                if status_filters:
+                    logger.info(f"Fetched {len(result)} products from UK Magento catalog (filtered by product_status: {status_filters})")
+                else:
+                    logger.info(f"Fetched {len(result)} products from UK Magento catalog (all products)")
+                return result
+                
+        except Exception as e:
+            logger.error(f"Error fetching products from Magento database: {e}")
+            # Fallback to empty list if Magento DB unavailable
+            logger.warning("Falling back to empty product list")
+            return []
         finally:
-            self.return_connection(conn)
+            if 'conn' in locals() and conn.open:
+                conn.close()
 

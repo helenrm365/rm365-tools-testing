@@ -1,5 +1,7 @@
 from typing import Dict, Any
 import logging
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
 from .repo import MagentoDataRepo
 from .client import MagentoDataClient
 
@@ -376,10 +378,9 @@ class MagentoDataService:
                     if progress_callback:
                         progress_callback(f"Re-syncing from {start_date} (last {resync_days} days)...")
                 else:
-                    # First time sync: Default to last 6 months + 1 week buffer
+                    # First time sync: Default to last 6 months exactly
                     # This prevents trying to download the entire history of the shop on first run
-                    from datetime import datetime, timedelta
-                    six_months_ago = datetime.now() - timedelta(days=190)
+                    six_months_ago = datetime.now() - relativedelta(months=6)
                     start_date = six_months_ago.strftime('%Y-%m-%d %H:%M:%S')
                     logger.info(f"First-time sync for {region}: Defaulting to {start_date}")
                     if progress_callback:
@@ -533,9 +534,8 @@ class MagentoDataService:
             try:
                 metadata = self.repo.get_sync_metadata(region)
                 if not metadata or not metadata.get('last_synced_order_date'):
-                    # First time sync: Only get last 6 months + 1 week buffer
-                    from datetime import datetime, timedelta
-                    six_months_ago = datetime.now() - timedelta(days=190) # 6 months + ~1 week
+                    # First time sync: Only get last 6 months exactly
+                    six_months_ago = datetime.now() - relativedelta(months=6)
                     start_date = six_months_ago.strftime('%Y-%m-%d %H:%M:%S')
                     logger.info(f"First-time sync for {region}: Fetching data from {start_date}")
                     self.sync_magento_data(region, start_date=start_date)

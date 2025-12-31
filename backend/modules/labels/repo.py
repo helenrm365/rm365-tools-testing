@@ -27,63 +27,166 @@ class LabelsRepo:
         return next(iter(vs), None)
 
     # --- psycopg2 queries ---
-    def _fetch_allowed_skus_from_magento_psycopg(self, conn, discontinued_statuses: Optional[List[str]] = None) -> List[str]:
+    def _fetch_allowed_skus_from_magento_psycopg(self, conn, product_statuses: Optional[List[str]] = None) -> List[str]:
         """
-        Magento allow-list: fetch SKUs filtered by discontinued_status.
-        Parses discontinued_status from additional_attributes field.
+        Fetch SKUs directly from UK Magento catalog database filtered by product_status custom attribute.
+        Uses same logic as inventory management - queries catalog_product_entity with EAV attributes.
         
         Args:
-            conn: database connection
-            discontinued_statuses: list of statuses to include (e.g., ['Active', 'Temporarily OOS'])
-                                  If None, defaults to ['Active', 'Temporarily OOS', 'Pre Order', 'Samples']
+            conn: database connection (not used - queries Magento DB directly)
+            product_statuses: list of statuses to include (e.g., ['Active', 'Temporarily OOS'])
+                            If None, defaults to ['Active', 'Temporarily OOS', 'Pre Order', 'Samples']
         """
-        # Default to the standard active statuses if not specified
-        if discontinued_statuses is None:
-            discontinued_statuses = ['Active', 'Temporarily OOS', 'Pre Order', 'Samples']
+        from modules.magentodata.db import get_magento_connection
         
-        if not discontinued_statuses:
+        # Default to the standard active statuses if not specified
+        if product_statuses is None:
+            product_statuses = ['Active', 'Temporarily OOS', 'Pre Order', 'Samples']
+        
+        if not product_statuses:
             return []
         
-        # Build LIKE conditions dynamically
-        conditions = " OR ".join([
-            f"additional_attributes LIKE %s"
-            for _ in discontinued_statuses
-        ])
-        
-        # Build parameter list with wildcards
-        params = [f'%discontinued_status={status}%' for status in discontinued_statuses]
-        
-        with conn.cursor() as cur:
-            query = f"""
-                SELECT sku
-                FROM magento_product_list
-                WHERE sku IS NOT NULL
-                  AND sku <> ''
-                  AND ({conditions})
-            """
-            cur.execute(query, params)
-            return [str(r[0]).strip() for r in cur.fetchall()]
+        magento_conn = None
+        try:
+            magento_conn = get_magento_connection("uk")
+            with magento_conn.cursor() as cur:
+                # Build IN clause for product_status filtering
+                placeholders = ','.join(['%s'] * len(product_statuses))
+                
+                query = f"""
+                    SELECT DISTINCT cpe.sku
+                    FROM catalog_product_entity cpe
+                    LEFT JOIN catalog_product_entity_varchar cpev_product_status
+                        ON cpe.entity_id = cpev_product_status.entity_id
+                        AND cpev_product_status.attribute_id = (
+                            SELECT attribute_id 
+                            FROM eav_attribute 
+                            WHERE attribute_code = 'product_status' 
+                            AND entity_type_id = (
+                                SELECT entity_type_id 
+                                FROM eav_entity_type 
+                                WHERE entity_type_code = 'catalog_product'
+                            )
+                        )
+                        AND cpev_product_status.store_id = 0
+                    LEFT JOIN catalog_product_entity_varchar cpev_name
+                        ON cpe.entity_id = cpev_name.entity_id
+                        AND cpev_name.attribute_id = (
+                            SELECT attribute_id 
+                            FROM eav_attribute 
+                            WHERE attribute_code = 'name' 
+                            AND entity_type_id = (
+                                SELECT entity_type_id 
+                                FROM eav_entity_type 
+                                WHERE entity_type_code = 'catalog_product'
+                            )
+                        )
+                        AND cpev_name.store_id = 0
+                    WHERE cpe.sku IS NOT NULL 
+                        AND cpe.sku != ''
+                        AND COALESCE(cpev_product_status.value, 'Active') IN ({placeholders})
+                        AND (cpev_name.value IS NULL OR cpev_name.value NOT LIKE '%AW365%')
+                    ORDER BY cpe.sku
+                """
+                cur.execute(query, product_statuses)
+                skus = [str(r[0]).strip() for r in cur.fetchall()]
+                logger.info(f"Fetched {len(skus)} SKUs from UK Magento catalog with product_status filter")
+                return skus
+        except Exception as e:
+            logger.error(f"Error fetching SKUs from UK Magento: {e}")
+            return []
+        finally:
+            if magento_conn and magento_conn.open:
+                magento_conn.close()
 
-    # DEPRECATED: No longer used - 6M data now comes from inventory_metadata table
-    # def _load_six_month_data_psycopg(self, conn, resolved_data: Dict[str, Tuple[str, str, str]]) -> Dict[str, Tuple[str, str]]:
-    #     """Old method that loaded 6M data from aggregated_orders tables using item_ids"""
+    # DEPRECATED: No longer used - 6M data now comes from aggregated_orders tables directly
+    # def _load_inventory_metadata_map(self, inventory_conn) -> Dict[str, Tuple[str, str, str]]:
+    #     """Old method that loaded 6M data from inventory_metadata table"""
     #     pass
 
-    def _load_inventory_metadata_map(self, inventory_conn) -> Dict[str, Tuple[str, str, str]]:
+    def _load_6m_data_from_aggregated_tables(self, conn) -> Dict[str, Tuple[str, str]]:
         """
-        Load inventory metadata mapping: sku -> (item_id, uk_6m_data, fr_6m_data)
+        Load 6M data directly from aggregated_orders tables (same as inventory management).
+        Returns mapping: sku -> (uk_6m_qty, fr_6m_qty)
+        
+        FR 6M data combines fr_aggregated_orders + nl_aggregated_orders (same logic as inventory management).
+        
+        Args:
+            conn: Connection to products database (where aggregated tables live)
+            
+        Returns:
+            Dict mapping SKU to tuple of (uk_6m, fr_6m) quantities as strings
+        """
+        data_map = {}
+        
+        try:
+            # Fetch UK 6M data
+            uk_data = {}
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT sku, total_qty
+                    FROM uk_aggregated_orders
+                    WHERE sku IS NOT NULL
+                """)
+                for row in cur.fetchall():
+                    sku = str(row[0]).strip()
+                    qty = int(row[1] or 0)
+                    uk_data[sku] = qty
+            
+            # Fetch FR 6M data
+            fr_data = {}
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT sku, total_qty
+                    FROM fr_aggregated_orders
+                    WHERE sku IS NOT NULL
+                """)
+                for row in cur.fetchall():
+                    sku = str(row[0]).strip()
+                    qty = int(row[1] or 0)
+                    fr_data[sku] = qty
+            
+            # Fetch NL 6M data and combine with FR
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT sku, total_qty
+                    FROM nl_aggregated_orders
+                    WHERE sku IS NOT NULL
+                """)
+                for row in cur.fetchall():
+                    sku = str(row[0]).strip()
+                    qty = int(row[1] or 0)
+                    fr_data[sku] = fr_data.get(sku, 0) + qty
+            
+            # Combine all SKUs
+            all_skus = set(uk_data.keys()) | set(fr_data.keys())
+            for sku in all_skus:
+                uk_qty = str(uk_data.get(sku, 0))
+                fr_qty = str(fr_data.get(sku, 0))
+                data_map[sku] = (uk_qty, fr_qty)
+            
+            logger.info(f"Loaded 6M data for {len(data_map)} SKUs from aggregated tables")
+        except Exception as e:
+            logger.error(f"Failed to load 6M data from aggregated tables: {e}")
+            
+        return data_map
+    
+    def _load_inventory_item_ids(self, inventory_conn) -> Dict[str, str]:
+        """
+        Load item_id mapping from inventory_metadata: sku -> item_id
+        Item IDs are used as barcodes on labels.
         
         Args:
             inventory_conn: Connection to inventory database
             
         Returns:
-            Dict mapping SKU to tuple of (item_id, uk_6m_data, fr_6m_data)
+            Dict mapping SKU to item_id
         """
-        metadata_map = {}
+        item_id_map = {}
         try:
             with inventory_conn.cursor() as cur:
                 cur.execute("""
-                    SELECT sku, item_id, uk_6m_data, fr_6m_data
+                    SELECT sku, item_id
                     FROM inventory_metadata
                     WHERE sku IS NOT NULL 
                       AND item_id IS NOT NULL
@@ -92,16 +195,13 @@ class LabelsRepo:
                 for row in cur.fetchall():
                     sku = str(row[0]).strip()
                     item_id = str(row[1]).strip()
-                    uk_6m = str(row[2] or "0")
-                    fr_6m = str(row[3] or "0")
-                    metadata_map[sku] = (item_id, uk_6m, fr_6m)
+                    item_id_map[sku] = item_id
                     
-            logger.info(f"Loaded {len(metadata_map)} records from inventory_metadata")
+            logger.info(f"Loaded {len(item_id_map)} item IDs from inventory_metadata")
         except Exception as e:
-            logger.error(f"Failed to load inventory_metadata: {e}")
-            # Return empty map if table doesn't exist yet
+            logger.error(f"Failed to load item IDs from inventory_metadata: {e}")
             
-        return metadata_map
+        return item_id_map
     
     def _load_latest_prices_psycopg(self, conn, skus: List[str], preferred_region: str = "uk") -> Dict[str, str]:
         """
@@ -229,72 +329,45 @@ class LabelsRepo:
         logger.info(f"Loaded names for {len(names)}/{len(skus)} SKUs")
         return names
 
-    def _load_inventory_metadata_map(self, inventory_conn) -> Dict[str, Tuple[str, str, str]]:
-        """
-        Load inventory metadata mapping: sku -> (item_id, uk_6m_data, fr_6m_data)
-        
-        Args:
-            inventory_conn: Connection to inventory database
-            
-        Returns:
-            Dict mapping SKU to tuple of (item_id, uk_6m_data, fr_6m_data)
-        """
-        metadata_map = {}
-        try:
-            with inventory_conn.cursor() as cur:
-                cur.execute("""
-                    SELECT sku, item_id, uk_6m_data, fr_6m_data
-                    FROM inventory_metadata
-                    WHERE sku IS NOT NULL 
-                      AND item_id IS NOT NULL
-                """)
-                
-                for row in cur.fetchall():
-                    sku = str(row[0]).strip()
-                    item_id = str(row[1]).strip()
-                    uk_6m = str(row[2] or "0")
-                    fr_6m = str(row[3] or "0")
-                    metadata_map[sku] = (item_id, uk_6m, fr_6m)
-                    
-            logger.info(f"Loaded {len(metadata_map)} records from inventory_metadata")
-        except Exception as e:
-            logger.error(f"Failed to load inventory_metadata: {e}")
-            # Return empty map if table doesn't exist yet
-            
-        return metadata_map
-
     def _resolve_to_rows(
         self,
-        inventory_conn,  # for magento_product_list and inventory_metadata
+        inventory_conn,  # for inventory_metadata (item IDs)
         candidate_skus: List[str],
         preferred_region: str = "uk",  # region preference for price/name selection
     ) -> List[Dict[str, Any]]:
         """
-        Collapse per-base to base/-MD, map to inventory_metadata, attach 6M data and prices.
-        SKUs come from UK (magento), but prices/names come from magento data.
-        Item IDs and 6M data come from inventory_metadata table.
+        Process SKUs: merge MD variants, fetch item IDs, 6M data, prices, and names.
+        Uses same logic as inventory management:
+        - Item IDs from inventory_metadata
+        - 6M data from aggregated_orders tables (UK, FR+NL combined)
+        - Prices/names from magento orders_cache tables
+        - Only MD variants merge (same as 6M data aggregation)
         
         Args:
-            inventory_conn: Connection to inventory_logs database (for magento and inventory_metadata)
+            inventory_conn: Connection to inventory_logs database (for inventory_metadata)
             candidate_skus: List of SKUs to process
             preferred_region: Region preference for pricing (uk/fr/nl)
         """
         if not candidate_skus:
             return []
 
-        # Load inventory metadata mapping (item_id and 6M data)
-        metadata_map = self._load_inventory_metadata_map(inventory_conn)
-        if not metadata_map:
-            logger.warning("No inventory_metadata records found. Ensure inventory sync has run.")
+        # Load item IDs from inventory_metadata
+        item_id_map = self._load_inventory_item_ids(inventory_conn)
+        if not item_id_map:
+            logger.warning("No item IDs found in inventory_metadata. Ensure inventory sync has run.")
             return []
 
-        # group by base
+        # Load 6M data from aggregated tables (same as inventory management)
+        with products_conn() as prod_conn:
+            sixm_data_map = self._load_6m_data_from_aggregated_tables(prod_conn)
+
+        # Group by base SKU (MD variants will merge)
         grouped: Dict[str, List[str]] = {}
         for sku in candidate_skus:
             base = self._base_of(sku)
             grouped.setdefault(base, []).append(sku)
 
-        # choose base or -MD per group
+        # Choose base or -MD per group (MD variants merge into base)
         chosen_by_base: Dict[str, str] = {}
         for base, variants in grouped.items():
             chosen = self._choose_sku_for_base(base, variants)
@@ -305,15 +378,15 @@ class LabelsRepo:
         if not chosen_by_base:
             return []
 
-        # map to inventory_metadata - get item_id and 6M data
-        resolved: Dict[str, Tuple[str, str, str, str]] = {}  # base -> (item_id, sku_used, uk_6m, fr_6m)
+        # Resolve to final SKUs with item IDs
+        resolved: Dict[str, Tuple[str, str]] = {}  # base -> (item_id, sku_used)
         for base, chosen in chosen_by_base.items():
             # Try the chosen SKU directly
-            if chosen in metadata_map:
-                item_id, uk_6m, fr_6m = metadata_map[chosen]
-                resolved[base] = (item_id, chosen, uk_6m, fr_6m)
+            if chosen in item_id_map:
+                item_id = item_id_map[chosen]
+                resolved[base] = (item_id, chosen)
             else:
-                log.warning("inventory_metadata mapping missing for SKU=%s", chosen)
+                log.warning("item_id missing for SKU=%s in inventory_metadata", chosen)
         if not resolved:
             return []
 
@@ -331,37 +404,45 @@ class LabelsRepo:
             sales_names = self._load_product_names_psycopg(prod_conn, all_skus, preferred_region)
             logger.info(f"Loaded names for {len(sales_names)} SKUs (region: {preferred_region})")
 
-        # build rows
+        # Build rows
         out: List[Dict[str, Any]] = []
-        for base, (item_id, sku_used, uk_6m, fr_6m) in resolved.items():
-            price = prices.get(sku_used, "£0.00")  # Get price for this SKU with region preference
+        for base, (item_id, sku_used) in resolved.items():
+            price = prices.get(sku_used, "£0.00")
             product_name = sales_names.get(sku_used, "")
             
+            # Get 6M data from aggregated tables
+            uk_6m, fr_6m = sixm_data_map.get(sku_used, ("0", "0"))
+            
             out.append({
-                "item_id": item_id,       # barcode from inventory_metadata
-                "sku": sku_used,          # chosen SKU (base or -MD) - always from UK
-                "product_name": product_name,     # from magento data (region preference)
-                "uk_6m_data": uk_6m,      # UK 6-month data from inventory_metadata
-                "fr_6m_data": fr_6m,      # FR+NL combined 6-month data from inventory_metadata
-                "price": price,           # most recent price from preferred region
+                "item_id": item_id,           # barcode from inventory_metadata
+                "sku": sku_used,              # chosen SKU (base or -MD)
+                "product_name": product_name, # from magento orders_cache
+                "uk_6m_data": uk_6m,          # from uk_aggregated_orders
+                "fr_6m_data": fr_6m,          # from fr_aggregated_orders + nl_aggregated_orders
+                "price": price,               # from orders_cache (region preference)
             })
         
         logger.info(f"Built {len(out)} label rows")
         return out
 
     # --- public (psycopg2) ---
-    def get_labels_to_print_psycopg(self, conn, discontinued_statuses: Optional[List[str]] = None, preferred_region: str = "uk") -> List[Dict[str, Any]]:
+    def get_labels_to_print_psycopg(self, conn, product_statuses: Optional[List[str]] = None, preferred_region: str = "uk") -> List[Dict[str, Any]]:
         """
-        DB-driven: Magento 'discontinued_status' decides inclusion.
-        Gets item_id and 6M data from inventory_metadata table.
-        Gets prices and names from magento_data tables.
+        Fetch products from UK Magento catalog database filtered by product_status attribute.
+        Uses same logic as inventory management:
+        - Fetches from catalog_product_entity with EAV attributes
+        - Filters by custom product_status attribute
+        - Gets item IDs from inventory_metadata
+        - Gets 6M data from aggregated_orders tables
+        - Gets prices/names from orders_cache tables
         
         Args:
-            conn: database connection to inventory_logs database
-            discontinued_statuses: list of discontinued statuses to filter by (optional)
+            conn: database connection to inventory_logs database (for inventory_metadata)
+            product_statuses: list of product_status values to filter by (e.g., ['Active', 'Temporarily OOS'])
+                            If None, defaults to ['Active', 'Temporarily OOS', 'Pre Order', 'Samples']
             preferred_region: "uk" (default), "fr", or "nl" - determines price/name priority
         """
-        magento_skus = self._fetch_allowed_skus_from_magento_psycopg(conn, discontinued_statuses)
+        magento_skus = self._fetch_allowed_skus_from_magento_psycopg(conn, product_statuses)
 
         return self._resolve_to_rows(
             conn,
@@ -376,27 +457,51 @@ class LabelsRepo:
         preferred_region: str = "uk",
     ) -> List[Dict[str, Any]]:
         """
-        CSV-driven (optional): validate against Magento to exclude discontinued.
+        CSV-driven: validate SKUs against UK Magento catalog filtered by product_status.
         Only includes Active, Temporarily OOS, Pre Order, and Samples.
-        Parses discontinued_status from additional_attributes field.
-        Gets item_id and 6M data from inventory_metadata table.
+        Uses same filtering logic as get_labels_to_print_psycopg.
+        
+        Args:
+            conn: database connection (not used - queries Magento directly)
+            csv_skus: List of SKUs from CSV upload
+            preferred_region: "uk", "fr", or "nl" - determines price/name priority
         """
+        from modules.magentodata.db import get_magento_connection
+        
         if not csv_skus:
             return []
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT sku
-                FROM magento_product_list
-                WHERE sku = ANY(%s)
-                  AND (
-                    additional_attributes LIKE '%discontinued_status=Active%'
-                    OR additional_attributes LIKE '%discontinued_status=Temporarily OOS%'
-                    OR additional_attributes LIKE '%discontinued_status=Pre Order%'
-                    OR additional_attributes LIKE '%discontinued_status=Samples%'
-                  )
-                """,
-                (csv_skus,)
-            )
-            allowed = [str(r[0]).strip() for r in cur.fetchall()]
+        
+        # Validate SKUs against UK Magento with product_status filtering
+        magento_conn = None
+        try:
+            magento_conn = get_magento_connection("uk")
+            with magento_conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT DISTINCT cpe.sku
+                    FROM catalog_product_entity cpe
+                    LEFT JOIN catalog_product_entity_varchar cpev_product_status
+                        ON cpe.entity_id = cpev_product_status.entity_id
+                        AND cpev_product_status.attribute_id = (
+                            SELECT attribute_id 
+                            FROM eav_attribute 
+                            WHERE attribute_code = 'product_status' 
+                            AND entity_type_id = (
+                                SELECT entity_type_id 
+                                FROM eav_entity_type 
+                                WHERE entity_type_code = 'catalog_product'
+                            )
+                        )
+                        AND cpev_product_status.store_id = 0
+                    WHERE cpe.sku = ANY(%s)
+                      AND COALESCE(cpev_product_status.value, 'Active') IN ('Active', 'Temporarily OOS', 'Pre Order', 'Samples')
+                    """,
+                    (csv_skus,)
+                )
+                allowed = [str(r[0]).strip() for r in cur.fetchall()]
+                logger.info(f"CSV validation: {len(allowed)}/{len(csv_skus)} SKUs found in Magento with valid product_status")
+        finally:
+            if magento_conn and magento_conn.open:
+                magento_conn.close()
+        
         return self._resolve_to_rows(conn, allowed, preferred_region=preferred_region)

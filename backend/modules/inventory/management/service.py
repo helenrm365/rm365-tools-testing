@@ -64,13 +64,13 @@ class InventoryManagementService:
             return items
     
     def get_inventory_items_from_magento(self, page: int = 1, per_page: int = 100, search: str = None, discontinued_status: str = None) -> Dict[str, Any]:
-        """Get inventory items from magento_product_list table with pagination, search, and discontinued status filter
+        """Get inventory items from UK Magento database with pagination and search
         
         Args:
             page: Page number (1-indexed)
             per_page: Number of items per page
             search: Search query to filter items (searches product_name and sku)
-            discontinued_status: Comma-separated discontinued statuses to filter by (e.g., "Active,Pre Order")
+            discontinued_status: Not used when pulling from Magento DB (kept for API compatibility)
             
         Returns:
             Dict with items, total count, and pagination info
@@ -79,13 +79,9 @@ class InventoryManagementService:
             # Step 0: Ensure tables exist (creates if not present)
             self.repo.init_tables()
             
-            # Step 1: Sync products from magento_product_list to inventory_metadata
+            # Step 1: Sync products from UK Magento database to inventory_metadata
             # This creates inventory_metadata records for any new products
             self.repo.sync_magento_products_to_inventory_metadata()
-            
-            # Step 1.5: Ensure discontinued_status column is populated from additional_attributes
-            # This ensures filtering is fast (no need to parse on every query)
-            self.repo.update_discontinued_status_from_additional_attributes()
             
             # Step 2: Merge identifier products with their base SKUs in inventory_metadata
             # This must happen BEFORE generating item IDs
@@ -94,8 +90,9 @@ class InventoryManagementService:
             # Step 3: Ensure all products have item IDs in inventory_metadata (after merging)
             self.repo.ensure_all_products_have_item_ids()
             
-            # Get all products from magento_product_list (with optional discontinued status filter)
-            all_products = self.repo.get_magento_products(status_filters=discontinued_status)
+            # Get all products from UK Magento database
+            # Note: discontinued_status filter not supported when pulling from Magento DB
+            all_products = self.repo.get_magento_products(status_filters=None)
             
             if not all_products:
                 return {
@@ -106,10 +103,10 @@ class InventoryManagementService:
                     "total_pages": 0
                 }
             
-            # Filter out AW365 products (same logic as sync)
+            # Filter out AW365 products (done by checking product name)
             filtered_products = [
                 product for product in all_products
-                if not (product.get("categories") and "AW365" in product.get("categories", "").upper())
+                if not (product.get("name") and "AW365" in product.get("name", "").upper())
             ]
             
             logger.info(f"Filtered out {len(all_products) - len(filtered_products)} AW365 products")
@@ -119,10 +116,10 @@ class InventoryManagementService:
                 search_lower = search.strip().lower()
                 filtered_products = [
                     product for product in filtered_products
-                    if (search_lower in (product.get("product_name") or "").lower() or
+                    if (search_lower in (product.get("name") or "").lower() or
                         search_lower in (product.get("sku") or "").lower())
                 ]
-                logger.info(f"Search '{search}' filtered {len(all_products)} products to {len(filtered_products)} products")
+                logger.info(f"Search '{search}' filtered to {len(filtered_products)} products")
             
             total_items = len(filtered_products)
             total_pages = (total_items + per_page - 1) // per_page if total_items > 0 else 1

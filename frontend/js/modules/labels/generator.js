@@ -178,28 +178,20 @@ async function loadProducts() {
   if (errorEl) errorEl.style.display = 'none';
   
   try {
-    // Debug: Log what filters are being sent
     // Fetch products with current status filters and region preference
     state.allProducts = await getProductsToPrint(state.statusFilters, state.region);
     state.filteredProducts = [...state.allProducts];
     state.displayedProducts = [...state.allProducts];
-    // Auto-select all products when using default filters
-    const isDefaultFilters = 
-      state.statusFilters.length === 4 &&
-      state.statusFilters.includes('Active') &&
-      state.statusFilters.includes('Temporarily OOS') &&
-      state.statusFilters.includes('Pre Order') &&
-      state.statusFilters.includes('Samples');
     
-    if (isDefaultFilters) {
-      state.selectedProducts.clear();
-      state.allProducts.forEach(p => state.selectedProducts.add(p.item_id));
-      
-      // Update select all checkbox
-      const selectAllCheckbox = document.querySelector('#selectAllCheckbox');
-      if (selectAllCheckbox) {
-        selectAllCheckbox.checked = true;
-      }
+    // IMPORTANT: Don't auto-select products - causes lag with large product lists
+    // Products remain unchecked by default
+    // If user generates labels without selecting any, we'll print all filtered products
+    state.selectedProducts.clear();
+    
+    // Ensure select all checkbox is unchecked
+    const selectAllCheckbox = document.querySelector('#selectAllCheckbox');
+    if (selectAllCheckbox) {
+      selectAllCheckbox.checked = false;
     }
     
     if (loadingEl) loadingEl.style.display = 'none';
@@ -520,21 +512,44 @@ function updateStats() {
   
   if (totalEl) totalEl.textContent = state.displayedProducts.length;
   if (selectedEl) selectedEl.textContent = state.selectedProducts.size;
+  
+  // Enable button if there are products (either selected or filtered)
+  // If nothing is selected, we'll print all filtered products
   if (generatePdfBtn) {
-    generatePdfBtn.disabled = state.selectedProducts.size === 0;
+    generatePdfBtn.disabled = state.displayedProducts.length === 0;
+    
+    // Update button text to indicate what will be printed
+    if (state.selectedProducts.size === 0 && state.displayedProducts.length > 0) {
+      generatePdfBtn.textContent = `📄 Generate PDF Labels (All ${state.displayedProducts.length})`;
+    } else if (state.selectedProducts.size > 0) {
+      generatePdfBtn.textContent = `📄 Generate PDF Labels (${state.selectedProducts.size} Selected)`;
+    } else {
+      generatePdfBtn.textContent = '📄 Generate PDF Labels';
+    }
   }
 }
 
 function updateUI() {
   const generatePdfBtn = document.querySelector('#generatePdfBtn');
   if (generatePdfBtn) {
-    generatePdfBtn.disabled = state.selectedProducts.size === 0;
+    // Enable button if there are products (either selected or filtered)
+    generatePdfBtn.disabled = state.displayedProducts.length === 0;
+    
+    // Update button text to indicate what will be printed
+    if (state.selectedProducts.size === 0 && state.displayedProducts.length > 0) {
+      generatePdfBtn.textContent = `📄 Generate PDF Labels (All ${state.displayedProducts.length})`;
+    } else if (state.selectedProducts.size > 0) {
+      generatePdfBtn.textContent = `📄 Generate PDF Labels (${state.selectedProducts.size} Selected)`;
+    } else {
+      generatePdfBtn.textContent = '📄 Generate PDF Labels';
+    }
   }
 }
 
 async function handleGeneratePdf() {
-  if (state.selectedProducts.size === 0) {
-    showToast('Please select at least one product', 'error');
+  // Check if there are any products to print
+  if (state.displayedProducts.length === 0) {
+    showToast('No products available to print', 'error');
     return;
   }
   
@@ -545,10 +560,31 @@ async function handleGeneratePdf() {
   }
   
   try {
-    // Create print job with selected item IDs
+    // Determine which products to print:
+    // - If products are specifically selected, use those
+    // - If nothing selected but filters/search applied, use all displayed products
+    let itemIdsToUse;
+    if (state.selectedProducts.size > 0) {
+      // User selected specific products
+      itemIdsToUse = Array.from(state.selectedProducts);
+    } else {
+      // No selection - use all displayed/filtered products
+      itemIdsToUse = state.displayedProducts.map(p => p.item_id);
+      
+      // Check if filters or search are active
+      const hasActiveFilters = state.statusFilters.length > 0;
+      const searchInput = document.querySelector('#searchInput');
+      const hasSearch = searchInput && searchInput.value.trim().length > 0;
+      
+      if (hasActiveFilters || hasSearch) {
+        console.log(`[Labels] No selection - printing all ${itemIdsToUse.length} filtered products`);
+      }
+    }
+    
+    // Create print job with item IDs
     const payload = {
       created_by: 'user@example.com', // TODO: Get from session
-      item_ids: Array.from(state.selectedProducts)
+      item_ids: itemIdsToUse
     };
     const result = await createPrintJob(payload);
     const jobId = result.job_id;
