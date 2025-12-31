@@ -31,6 +31,7 @@ class LabelsRepo:
         """
         Fetch SKUs directly from UK Magento catalog database filtered by product_status custom attribute.
         Uses same logic as inventory management - queries catalog_product_entity with EAV attributes.
+        Filters out: 1) Categories containing "AW365", 2) Products with no website assignment
         
         Args:
             conn: database connection (not used - queries Magento DB directly)
@@ -69,28 +70,38 @@ class LabelsRepo:
                             )
                         )
                         AND cpev_product_status.store_id = 0
-                    LEFT JOIN catalog_product_entity_varchar cpev_name
-                        ON cpe.entity_id = cpev_name.entity_id
-                        AND cpev_name.attribute_id = (
+                    LEFT JOIN catalog_category_product ccp ON cpe.entity_id = ccp.product_id
+                    LEFT JOIN catalog_category_entity cce ON ccp.category_id = cce.entity_id
+                    LEFT JOIN catalog_category_entity_varchar ccev 
+                        ON cce.entity_id = ccev.entity_id
+                        AND ccev.attribute_id = (
                             SELECT attribute_id 
                             FROM eav_attribute 
                             WHERE attribute_code = 'name' 
                             AND entity_type_id = (
                                 SELECT entity_type_id 
                                 FROM eav_entity_type 
-                                WHERE entity_type_code = 'catalog_product'
+                                WHERE entity_type_code = 'catalog_category'
                             )
                         )
-                        AND cpev_name.store_id = 0
+                        AND ccev.store_id = 0
                     WHERE cpe.sku IS NOT NULL 
                         AND cpe.sku != ''
                         AND COALESCE(cpev_product_status.value, 'Active') IN ({placeholders})
-                        AND (cpev_name.value IS NULL OR cpev_name.value NOT LIKE '%AW365%')
+                        AND EXISTS (
+                            SELECT 1 FROM catalog_product_website cpw 
+                            WHERE cpw.product_id = cpe.entity_id
+                        )
+                    GROUP BY cpe.entity_id, cpe.sku
+                    HAVING GROUP_CONCAT(DISTINCT ccev.value ORDER BY ccev.value SEPARATOR ',') IS NOT NULL
+                        AND NOT (
+                            GROUP_CONCAT(DISTINCT ccev.value ORDER BY ccev.value SEPARATOR ',') LIKE '%AW365%'
+                        )
                     ORDER BY cpe.sku
                 """
                 cur.execute(query, product_statuses)
                 skus = [str(r[0]).strip() for r in cur.fetchall()]
-                logger.info(f"Fetched {len(skus)} SKUs from UK Magento catalog with product_status filter")
+                logger.info(f"Fetched {len(skus)} SKUs from UK Magento catalog with product_status filter (excluding AW365 categories and products without websites)")
                 return skus
         except Exception as e:
             logger.error(f"Error fetching SKUs from UK Magento: {e}")

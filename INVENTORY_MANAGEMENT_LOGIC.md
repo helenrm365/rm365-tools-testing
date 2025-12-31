@@ -87,7 +87,9 @@ The Inventory Management system tracks product inventory data, including stock l
    ↓ Fetch ALL products from UK Magento catalog_product_entity
    ├─→ Only inserts NEW SKUs into inventory_metadata
    ├─→ Existing products are PRESERVED (no overwrites)
-   ├─→ Filters out products with "AW365" in name
+   ├─→ Filters out products with no categories assigned
+   ├─→ Filters out products with "AW365" in any category
+   ├─→ Filters out products with no website assignment (blank product_websites)
    └─→ Does NOT filter by enabled/disabled status (all products synced)
    
 3. MERGE IDENTIFIER PRODUCTS
@@ -239,20 +241,51 @@ def generate_item_id(sku: str) -> str:
 
 ## Product Filtering
 
-### 1. AW365 Product Filter
+### 1. Empty Categories Filter
 **Applied:** During sync from UK Magento to `inventory_metadata`
 
 **Logic:**
 ```python
-if "AW365" in product_name.upper():
+if not categories or categories.strip() == "":
     skip_product()  # Not added to inventory_metadata
 ```
 
-**Purpose:** Exclude specific product category from inventory tracking
+**Purpose:** Exclude products that have no categories assigned
 
-**Note:** Since we no longer have a categories field, filtering is done based on product name containing "AW365"
+**Note:** In CSV exports, these appear as "(Blanks)" in the categories column
 
-### 2. Product Status Filter
+### 2. AW365 Category Filter
+**Applied:** During sync from UK Magento to `inventory_metadata`
+
+**Logic:**
+```python
+if "AW365" in categories.upper():
+    skip_product()  # Not added to inventory_metadata
+```
+
+**Purpose:** Exclude products in AW365 categories from inventory tracking
+
+**Examples of excluded categories:**
+- `AW365 Default Category`
+- `AW365 Default Category/Apparel`
+- `AW365 Default Category/Apparel/Featured Brands/Miu Miu`
+
+**Note:** Products are excluded if ANY of their assigned categories contain "AW365"
+
+### 3. Product Website Filter
+**Applied:** During sync from UK Magento to `inventory_metadata`
+
+**Logic:**
+```python
+if product_website_count == 0:
+    skip_product()  # Not added to inventory_metadata
+```
+
+**Purpose:** Exclude products that are not assigned to any website
+
+**Note:** In CSV exports, these appear as "(Blanks)" in the product_websites column
+
+### 4. Product Status Filter
 **Applied:** When fetching products from UK Magento (optional)
 
 **Logic:**

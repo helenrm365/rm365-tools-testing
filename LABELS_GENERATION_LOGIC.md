@@ -30,7 +30,9 @@ The Labels Generation system creates product labels with barcodes, prices, and s
 
 **Key Points:**
 - Uses EAV (Entity-Attribute-Value) structure to query custom attributes
-- Excludes products with "AW365" in name
+- Excludes products with no categories assigned (blank categories)
+- Excludes products with "AW365" in any category
+- Excludes products with no website assignment (blank product_websites)
 - Does NOT use Magento's enabled/disabled system status
 - Identical to Inventory Management product fetching
 
@@ -97,7 +99,9 @@ The Labels Generation system creates product labels with barcodes, prices, and s
 1. FETCH PRODUCTS FROM UK MAGENTO
    ↓ Query catalog_product_entity with product_status filter
    ├─→ Default: Active, Temporarily OOS, Pre Order, Samples
-   ├─→ Exclude AW365 products
+   ├─→ Exclude products with no categories assigned
+   ├─→ Exclude products with AW365 in any category
+   ├─→ Exclude products with no website assignment
    └─→ Returns list of SKUs
    
 2. GROUP BY BASE SKU

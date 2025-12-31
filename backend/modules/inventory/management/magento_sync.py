@@ -72,24 +72,18 @@ def sync_magento_to_inventory_metadata(dry_run: bool = False) -> Dict[str, any]:
     uk_data, fr_data, nl_data = get_regional_data()
     combined_fr_data = merge_fr_nl_data(fr_data, nl_data)
 
-    # Helper to get base SKU (remove all identifier suffixes including -xxxx variants)
-    def get_base_sku(sku: str) -> str:
-        """Remove identifier suffixes: -SD, -DP, -NP, -MV, -MD (and their -xxxx variants)"""
-        import re
-        # Match any of the identifiers with optional -xxxx suffix
-        pattern = re.compile(r'-(?:SD|DP|NP|MV|MD)(?:-.*)?$', re.IGNORECASE)
-        return pattern.sub('', sku)
-
-    # Aggregate magento data by base SKU (all identifiers merged with base)
+    # Note: MD variants are already merged in the aggregated tables (handled by Magento 6M Data module)
+    # We do NOT merge any variants here - just use the SKUs as-is
+    # SD, DP, NP, MV variants stay separate as per documentation
+    
+    # Build combined data dictionary {sku: {uk: qty, fr: qty}}
     bases: Dict[str, Dict[str, int]] = defaultdict(lambda: {"uk": 0, "fr": 0})
 
     for sku, qty in uk_data.items():
-        base = get_base_sku(sku)
-        bases[base]["uk"] += int(qty or 0)
+        bases[sku]["uk"] += int(qty or 0)
 
     for sku, qty in combined_fr_data.items():
-        base = get_base_sku(sku)
-        bases[base]["fr"] += int(qty or 0)
+        bases[sku]["fr"] += int(qty or 0)
 
     stats["total_skus"] = len(bases)
 
@@ -103,10 +97,10 @@ def sync_magento_to_inventory_metadata(dry_run: bool = False) -> Dict[str, any]:
 
             # Skip if both zero
             if uk_qty == 0 and fr_qty == 0:
-                stats["skipped_no_sales"] += 1
+                stats["skipped_no_data"] += 1
                 continue
 
-            # Use the base SKU directly (no external resolution needed)
+            # Use the SKU directly from aggregated tables (MD variants already merged there)
             sku_to_use = base_sku
             
             if dry_run:

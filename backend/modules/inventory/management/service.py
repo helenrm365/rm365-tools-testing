@@ -91,7 +91,7 @@ class InventoryManagementService:
             self.repo.ensure_all_products_have_item_ids()
             
             # Get all products from UK Magento database
-            # Note: discontinued_status filter not supported when pulling from Magento DB
+            # Note: Filtering by categories (AW365), websites, and empty categories is done in the repo
             all_products = self.repo.get_magento_products(status_filters=None)
             
             if not all_products:
@@ -103,23 +103,17 @@ class InventoryManagementService:
                     "total_pages": 0
                 }
             
-            # Filter out AW365 products (done by checking product name)
-            filtered_products = [
-                product for product in all_products
-                if not (product.get("name") and "AW365" in product.get("name", "").upper())
-            ]
-            
-            logger.info(f"Filtered out {len(all_products) - len(filtered_products)} AW365 products")
-            
             # Apply search filter if provided
             if search and search.strip():
                 search_lower = search.strip().lower()
                 filtered_products = [
-                    product for product in filtered_products
+                    product for product in all_products
                     if (search_lower in (product.get("name") or "").lower() or
                         search_lower in (product.get("sku") or "").lower())
                 ]
                 logger.info(f"Search '{search}' filtered to {len(filtered_products)} products")
+            else:
+                filtered_products = all_products
             
             total_items = len(filtered_products)
             total_pages = (total_items + per_page - 1) // per_page if total_items > 0 else 1
@@ -141,14 +135,35 @@ class InventoryManagementService:
                 sku = product.get("sku")
                 metadata = metadata_by_sku.get(sku, {})
                 
+                # Calculate stock values from metadata
+                shelf_lt1_qty = int(metadata.get("shelf_lt1_qty") or 0)
+                shelf_gt1_qty = int(metadata.get("shelf_gt1_qty") or 0)
+                top_floor_total = int(metadata.get("top_floor_total") or 0)
+                
+                # Calculate totals per documentation
+                shelf_total = shelf_lt1_qty + shelf_gt1_qty
+                reserve_stock = top_floor_total
+                stock_on_hand = shelf_total + top_floor_total  # Reuse shelf_total calculation
+                
                 item = {
                     "item_id": metadata.get("item_id") or "",  # Get from inventory_metadata
                     "product_name": product.get("name") or "",  # Use 'name' column from magento_product_list
                     "sku": sku or "",
-                    "stock_on_hand": 0,  # Will be calculated from metadata
+                    "stock_on_hand": stock_on_hand,  # Total of all locations
+                    "location": metadata.get("location"),
+                    "date": str(metadata.get("date")) if metadata.get("date") else None,
+                    "qty_ordered_jason": metadata.get("qty_ordered_jason"),
+                    "shelf_lt1": metadata.get("shelf_lt1"),
+                    "shelf_lt1_qty": shelf_lt1_qty,
+                    "shelf_gt1": metadata.get("shelf_gt1"),
+                    "shelf_gt1_qty": shelf_gt1_qty,
+                    "top_floor_expiry": str(metadata.get("top_floor_expiry")) if metadata.get("top_floor_expiry") else None,
+                    "top_floor_total": top_floor_total,
+                    "status": metadata.get("status"),
+                    "uk_fr_preorder": metadata.get("uk_fr_preorder"),
                     "custom_fields": {
-                        "shelf_total": None,
-                        "reserve_stock": None
+                        "shelf_total": shelf_total,  # Combined shelf quantities
+                        "reserve_stock": reserve_stock  # Top floor total
                     }
                 }
                 items.append(item)

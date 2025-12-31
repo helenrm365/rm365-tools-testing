@@ -442,12 +442,14 @@ class InventoryManagementRepo:
             magento_conn = get_magento_connection("uk")
             try:
                 with magento_conn.cursor() as magento_cursor:
-                    # Query catalog tables for ALL products
-                    # Note: We removed enabled/disabled status filtering
+                    # Query catalog tables for ALL products with categories and website info
+                    # Filter out: 1) Categories containing "AW365", 2) Products with no website assignment
                     magento_cursor.execute("""
                         SELECT DISTINCT
                             cpe.sku,
-                            cpev_name.value as name
+                            cpev_name.value as name,
+                            GROUP_CONCAT(DISTINCT ccev.value ORDER BY ccev.value SEPARATOR ',') as categories,
+                            (SELECT COUNT(*) FROM catalog_product_website cpw WHERE cpw.product_id = cpe.entity_id) as website_count
                         FROM catalog_product_entity cpe
                         LEFT JOIN catalog_product_entity_varchar cpev_name 
                             ON cpe.entity_id = cpev_name.entity_id
@@ -462,27 +464,51 @@ class InventoryManagementRepo:
                                 )
                             )
                             AND cpev_name.store_id = 0
+                        LEFT JOIN catalog_category_product ccp ON cpe.entity_id = ccp.product_id
+                        LEFT JOIN catalog_category_entity cce ON ccp.category_id = cce.entity_id
+                        LEFT JOIN catalog_category_entity_varchar ccev 
+                            ON cce.entity_id = ccev.entity_id
+                            AND ccev.attribute_id = (
+                                SELECT attribute_id 
+                                FROM eav_attribute 
+                                WHERE attribute_code = 'name' 
+                                AND entity_type_id = (
+                                    SELECT entity_type_id 
+                                    FROM eav_entity_type 
+                                    WHERE entity_type_code = 'catalog_category'
+                                )
+                            )
+                            AND ccev.store_id = 0
                         WHERE cpe.sku IS NOT NULL 
                             AND cpe.sku != ''
+                        GROUP BY cpe.entity_id, cpe.sku, cpev_name.value
+                        HAVING website_count > 0
                         ORDER BY cpe.sku
                     """)
                     
                     products = magento_cursor.fetchall()
-                    logger.info(f"Fetched {len(products)} products from UK Magento catalog (all products)")
+                    logger.info(f"Fetched {len(products)} products from UK Magento catalog (with categories and websites)")
             finally:
                 if magento_conn.open:
                     magento_conn.close()
             
-            # Process each product, filtering out AW365
+            # Process each product, filtering out AW365 categories and products with no categories
             for product in products:
                 sku = product['sku']
                 name = product.get('name') or sku
+                categories = product.get('categories') or ""
                 stats["total_products"] += 1
                 
-                # Filter: Skip if name contains "AW365" (case-insensitive)
-                if name and "AW365" in name.upper():
+                # Filter: Skip if no categories assigned
+                if not categories or categories.strip() == "":
                     stats["filtered_aw365"] += 1
-                    logger.debug(f"Filtered out {sku} (contains AW365 in name)")
+                    logger.debug(f"Filtered out {sku} (no categories assigned)")
+                    continue
+                
+                # Filter: Skip if categories contain "AW365" (case-insensitive)
+                if categories and "AW365" in categories.upper():
+                    stats["filtered_aw365"] += 1
+                    logger.debug(f"Filtered out {sku} (categories contain AW365)")
                     continue
                 
                 # Insert into inventory_metadata (only if SKU doesn't exist)
@@ -724,6 +750,7 @@ class InventoryManagementRepo:
         """
         Get ALL products (regardless of enabled/disabled status) from UK Magento catalog database.
         Queries catalog_product_entity and related tables for complete product list.
+        Filters out: 1) Products with no categories, 2) Categories containing "AW365", 3) Products with no website assignment
         
         Args:
             status_filters: Comma-separated list of product_status values to filter by
@@ -737,14 +764,15 @@ class InventoryManagementRepo:
             conn = get_magento_connection("uk")  # Always use UK Magento as source
             with conn.cursor() as cursor:
                 # Fetch ALL products from catalog_product_entity
-                # Join with attribute tables to get product name and product_status
+                # Join with attribute tables to get product name, product_status, and categories
                 # Magento 2 stores attributes in EAV (Entity-Attribute-Value) structure
-                # Note: We do NOT filter by Magento's enabled/disabled status anymore
+                # Filter out: products without categories, AW365 categories, products without websites
                 cursor.execute("""
                     SELECT DISTINCT
                         cpe.sku,
                         cpev_name.value as name,
-                        cpev_product_status.value as product_status
+                        cpev_product_status.value as product_status,
+                        GROUP_CONCAT(DISTINCT ccev.value ORDER BY ccev.value SEPARATOR ',') as categories
                     FROM catalog_product_entity cpe
                     LEFT JOIN catalog_product_entity_varchar cpev_name 
                         ON cpe.entity_id = cpev_name.entity_id
@@ -772,8 +800,31 @@ class InventoryManagementRepo:
                             )
                         )
                         AND cpev_product_status.store_id = 0
+                    LEFT JOIN catalog_category_product ccp ON cpe.entity_id = ccp.product_id
+                    LEFT JOIN catalog_category_entity cce ON ccp.category_id = cce.entity_id
+                    LEFT JOIN catalog_category_entity_varchar ccev 
+                        ON cce.entity_id = ccev.entity_id
+                        AND ccev.attribute_id = (
+                            SELECT attribute_id 
+                            FROM eav_attribute 
+                            WHERE attribute_code = 'name' 
+                            AND entity_type_id = (
+                                SELECT entity_type_id 
+                                FROM eav_entity_type 
+                                WHERE entity_type_code = 'catalog_category'
+                            )
+                        )
+                        AND ccev.store_id = 0
                     WHERE cpe.sku IS NOT NULL 
                         AND cpe.sku != ''
+                        AND EXISTS (
+                            SELECT 1 FROM catalog_product_website cpw 
+                            WHERE cpw.product_id = cpe.entity_id
+                        )
+                    GROUP BY cpe.entity_id, cpe.sku, cpev_name.value, cpev_product_status.value
+                    HAVING categories IS NOT NULL
+                        AND categories != ''
+                        AND categories NOT LIKE '%AW365%'
                     ORDER BY cpe.sku
                 """)
                 
@@ -796,15 +847,15 @@ class InventoryManagementRepo:
                     result.append({
                         'sku': row['sku'],
                         'name': row.get('name') or row['sku'],  # Fallback to SKU if name not found
-                        'categories': None,  # Not fetched (can be added if needed)
+                        'categories': row.get('categories'),
                         'additional_attributes': None,  # Not fetched
                         'discontinued_status': product_status  # Use product_status from Magento
                     })
                 
                 if status_filters:
-                    logger.info(f"Fetched {len(result)} products from UK Magento catalog (filtered by product_status: {status_filters})")
+                    logger.info(f"Fetched {len(result)} products from UK Magento catalog (filtered by product_status: {status_filters}, excluding AW365 and products without categories/websites)")
                 else:
-                    logger.info(f"Fetched {len(result)} products from UK Magento catalog (all products)")
+                    logger.info(f"Fetched {len(result)} products from UK Magento catalog (all products, excluding AW365 and products without categories/websites)")
                 return result
                 
         except Exception as e:
