@@ -36,7 +36,7 @@ function saveDiscontinuedStatusFilters(filters) {
 async function testBackendConnectivity() {
   try {
     // Test with a simple fetch to check CORS - use the http service
-    const testPath = `/api/health`;
+    const testPath = `/health`;
     const data = await get(testPath);
   } catch (error) {
     console.error('[Test] Backend connectivity test failed:', error);
@@ -205,10 +205,9 @@ async function loadInventoryData() {
   try {
     // Try multiple possible API paths
     const possiblePaths = [
-      { items: `/api/v1/inventory/management/items`, metadata: `/api/v1/inventory/management/metadata` },
-      { items: `/api/inventory/management/items`, metadata: `/api/inventory/management/metadata` },
-      { items: `/inventory/items`, metadata: `/inventory/metadata` },
-      { items: `/api/inventory/items`, metadata: `/api/inventory/metadata` }
+      { items: `/v1/inventory/management/items`, metadata: `/v1/inventory/management/metadata` },
+      { items: `/inventory/management/items`, metadata: `/inventory/management/metadata` },
+      { items: `/inventory/items`, metadata: `/inventory/metadata` }
     ];
     
     let itemsData = null;
@@ -254,7 +253,7 @@ async function loadInventoryData() {
     
     // Load magento_product_list for discontinued status filtering
     try {
-      const magentoProducts = await get(`/api/v1/inventory/management/magento-products`);
+      const magentoProducts = await get(`/v1/inventory/management/magento-products`);
       magentoProductsIndex.clear();
       if (Array.isArray(magentoProducts)) {
         magentoProducts.forEach(product => {
@@ -1228,7 +1227,7 @@ async function handleUpdate(row) {
   cells[12].textContent = newTotalStock;
 
   try {
-    await post(`/api/v1/inventory/management/metadata`, updated);
+    await post(`/v1/inventory/management/metadata`, updated);
     
     metadataIndex.set(sku, updated);
   } catch (err) {
@@ -1297,7 +1296,7 @@ async function syncMagentoData(showNotification = true) {
       btn.disabled = true;
       btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
     }
-    const res = await post('/api/v1/inventory/management/sync-magento-data', {
+    const res = await post('/v1/inventory/management/sync-magento-data', {
       dry_run: false
     });
     if (res && res.status === 'success') {
