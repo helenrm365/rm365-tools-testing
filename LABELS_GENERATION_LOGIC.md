@@ -29,7 +29,7 @@ The Labels Generation system creates product labels with barcodes, prices, and s
 **Default Filter:** `['Active', 'Temporarily OOS', 'Pre Order', 'Samples']`
 
 **Key Points:**
-- Uses EAV (Entity-Attribute-Value) structure to query custom attributes
+- Uses Entity-Attribute-Value (EAV) structure to query custom attributes
 - Excludes products with no categories assigned (blank categories)
 - Excludes products with "AW365" in any category
 - Excludes products with no website assignment (blank product_websites)

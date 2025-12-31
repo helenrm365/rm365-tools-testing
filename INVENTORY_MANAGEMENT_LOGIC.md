@@ -18,8 +18,8 @@ The Inventory Management system tracks product inventory data, including stock l
 
 **Data Fetched:**
 - `sku` - Product SKU from catalog
-- `name` - Product name from EAV attribute tables
-- `discontinued_status` - Custom attribute (stored in additional_attributes) with values like:
+- `name` - Product name from Entity-Attribute-Value attribute tables
+- `discontinued_status` - Custom attribute (stored in Entity-Attribute-Value attribute tables) with values like:
   - `Active` - Currently available
   - `Temporarily OOS` - Out of stock temporarily
   - `Pre Order` - Available for pre-order
@@ -31,10 +31,12 @@ The Inventory Management system tracks product inventory data, including stock l
 
 **Query Details:**
 - Queries Magento's catalog tables (`catalog_product_entity`)
-- Joins with EAV attribute tables for product names and custom attributes
+- Joins with Entity-Attribute-Value attribute tables for product names and custom attributes (including `discontinued_status`)
 - Returns **ALL products** (does NOT filter by Magento's enabled/disabled status)
 - Filters by custom `discontinued_status` attribute when requested
-- Always filters out products with "AW365" in their name
+- Always filters out products with categories containing "AW365"
+- Filters out products with no categories assigned
+- Filters out products with no website assignment
 
 **Key Points:**
 - **All products visible** regardless of Magento enabled/disabled status
@@ -242,10 +244,16 @@ def generate_item_id(sku: str) -> str:
 ## Product Filtering
 
 ### 1. Empty Categories Filter
-**Applied:** During sync from UK Magento to `inventory_metadata`
+**Applied:** In SQL queries when fetching from UK Magento (in both `sync_magento_products_to_inventory_metadata()` and `get_magento_products()`)
 
 **Logic:**
-```python
+```sql
+-- In get_magento_products():
+HAVING categories IS NOT NULL
+    AND categories != ''
+
+-- In sync_magento_products_to_inventory_metadata():
+-- Additionally checked in Python:
 if not categories or categories.strip() == "":
     skip_product()  # Not added to inventory_metadata
 ```
@@ -255,10 +263,15 @@ if not categories or categories.strip() == "":
 **Note:** In CSV exports, these appear as "(Blanks)" in the categories column
 
 ### 2. AW365 Category Filter
-**Applied:** During sync from UK Magento to `inventory_metadata`
+**Applied:** In SQL queries when fetching from UK Magento (in both `sync_magento_products_to_inventory_metadata()` and `get_magento_products()`)
 
 **Logic:**
-```python
+```sql
+-- In get_magento_products():
+HAVING categories NOT LIKE '%AW365%'
+
+-- In sync_magento_products_to_inventory_metadata():
+-- Additionally checked in Python:
 if "AW365" in categories.upper():
     skip_product()  # Not added to inventory_metadata
 ```
@@ -273,12 +286,21 @@ if "AW365" in categories.upper():
 **Note:** Products are excluded if ANY of their assigned categories contain "AW365"
 
 ### 3. Product Website Filter
-**Applied:** During sync from UK Magento to `inventory_metadata`
+**Applied:** In SQL queries when fetching from UK Magento (in both `sync_magento_products_to_inventory_metadata()` and `get_magento_products()`)
 
 **Logic:**
-```python
-if product_website_count == 0:
-    skip_product()  # Not added to inventory_metadata
+```sql
+-- In get_magento_products():
+WHERE EXISTS (
+    SELECT 1 FROM catalog_product_website cpw 
+    WHERE cpw.product_id = cpe.entity_id
+)
+
+-- In sync_magento_products_to_inventory_metadata():
+-- Uses COUNT approach:
+HAVING website_count > 0
+-- where website_count is calculated as:
+-- (SELECT COUNT(*) FROM catalog_product_website cpw WHERE cpw.product_id = cpe.entity_id)
 ```
 
 **Purpose:** Exclude products that are not assigned to any website
@@ -293,8 +315,16 @@ if product_website_count == 0:
 # API accepts comma-separated list of statuses
 status_filters = "Active,Temporarily OOS,Pre Order,Samples"
 
-# Query filters by discontinued_status custom attribute (stored in additional_attributes)
-WHERE discontinued_status IN ('Active', 'Temporarily OOS', 'Pre Order', 'Samples')
+# Query fetches discontinued_status from Entity-Attribute-Value attribute tables, then filters in Python:
+# LEFT JOIN catalog_product_entity_varchar cpev_discontinued_status
+#     ON cpe.entity_id = cpev_discontinued_status.entity_id
+#     AND cpev_discontinued_status.attribute_id = (
+#         SELECT attribute_id FROM eav_attribute 
+#         WHERE attribute_code = 'discontinued_status' ...
+#     )
+# Then filters in Python:
+if allowed_statuses and discontinued_status not in allowed_statuses:
+    continue  # Skip this product
 ```
 
 **Purpose:** Filter products by their custom discontinued_status attribute
@@ -354,7 +384,7 @@ NOTE: All products visible by default (filter by discontinued_status if needed)
 
 **Process:**
 1. Query `catalog_product_entity` table for ALL products (no status filtering)
-2. Join with EAV attribute tables to get product names
+2. Join with Entity-Attribute-Value attribute tables to get product names
 3. Filter out products with categories containing "AW365"
 4. Filter out products with no categories assigned (blank categories)
 5. Filter out products with no website assignment (blank product_websites)
@@ -372,7 +402,7 @@ NOTE: All products visible by default (filter by discontinued_status if needed)
 - ALL products synced to `inventory_metadata` (data persists)
 - Uses UK Magento as canonical source
 - Read-only database access
-- Product names from EAV attribute system
+- Product names from Entity-Attribute-Value attribute system
 - Filter by custom `discontinued_status` attribute in UI, not system status
 
 ### Sync Magento Sales Data
@@ -519,7 +549,7 @@ LIMIT per_page OFFSET (page-1)*per_page
 - Verify Magento database connection is working
 
 ### Updating Product Names
-- Product names come from UK Magento catalog EAV tables
+- Product names come from UK Magento catalog Entity-Attribute-Value tables
 - Updates from Magento reflected on next page load
 - Inventory data unaffected
 

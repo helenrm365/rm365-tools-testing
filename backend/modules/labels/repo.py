@@ -80,18 +80,18 @@ class LabelsRepo:
         try:
             magento_conn = get_magento_connection("uk")
             with magento_conn.cursor() as cur:
-                # Build IN clause for product_status filtering
+                # Build IN clause for discontinued_status filtering
                 placeholders = ','.join(['%s'] * len(product_statuses))
                 
                 query = f"""
                     SELECT DISTINCT cpe.sku
                     FROM catalog_product_entity cpe
-                    LEFT JOIN catalog_product_entity_varchar cpev_product_status
-                        ON cpe.entity_id = cpev_product_status.entity_id
-                        AND cpev_product_status.attribute_id = (
+                    LEFT JOIN catalog_product_entity_varchar cpev_discontinued_status
+                        ON cpe.entity_id = cpev_discontinued_status.entity_id
+                        AND cpev_discontinued_status.attribute_id = (
                             SELECT attribute_id 
                             FROM eav_attribute 
-                            WHERE attribute_code = 'product_status' 
+                            WHERE attribute_code = 'discontinued_status' 
                             AND entity_type_id = (
                                 SELECT entity_type_id 
                                 FROM eav_entity_type 
@@ -468,17 +468,17 @@ class LabelsRepo:
     # --- public (psycopg2) ---
     def get_labels_to_print_psycopg(self, conn, product_statuses: Optional[List[str]] = None, preferred_region: str = "uk") -> List[Dict[str, Any]]:
         """
-        Fetch products from UK Magento catalog database filtered by product_status attribute.
+        Fetch products from UK Magento catalog database filtered by discontinued_status attribute.
         Uses same logic as inventory management:
         - Fetches from catalog_product_entity with EAV attributes
-        - Filters by custom product_status attribute
+        - Filters by custom discontinued_status attribute
         - Gets item IDs from inventory_metadata
         - Gets 6M data from aggregated_orders tables
         - Gets prices/names from orders_cache tables
         
         Args:
             conn: database connection to inventory_logs database (for inventory_metadata)
-            product_statuses: list of product_status values to filter by (e.g., ['Active', 'Temporarily OOS'])
+            product_statuses: list of discontinued_status values to filter by (e.g., ['Active', 'Temporarily OOS'])
                             If None, defaults to ['Active', 'Temporarily OOS', 'Pre Order', 'Samples']
             preferred_region: "uk" (default), "fr", or "nl" - determines price/name priority
         """
@@ -497,7 +497,7 @@ class LabelsRepo:
         preferred_region: str = "uk",
     ) -> List[Dict[str, Any]]:
         """
-        CSV-driven: validate SKUs against UK Magento catalog filtered by product_status.
+        CSV-driven: validate SKUs against UK Magento catalog filtered by discontinued_status.
         Only includes Active, Temporarily OOS, Pre Order, and Samples.
         Uses same filtering logic as get_labels_to_print_psycopg.
         

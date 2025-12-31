@@ -765,7 +765,7 @@ class InventoryManagementRepo:
             with conn.cursor() as cursor:
                 # Fetch ALL products from catalog_product_entity
                 # Join with attribute tables to get product name, product_status, and categories
-                # Magento 2 stores attributes in EAV (Entity-Attribute-Value) structure
+                # Magento 2 stores attributes in Entity-Attribute-Value (Entity-Attribute-Value) structure
                 # Filter out: products without categories, AW365 categories, products without websites
                 cursor.execute("""
                     SELECT DISTINCT
