@@ -1,7 +1,7 @@
 # Labels Generation Logic Documentation
 
 ## Overview
-The Labels Generation system creates product labels with barcodes, prices, and sales data. It uses the **same data architecture as Inventory Management** for consistency - fetching products directly from UK Magento database, filtering by custom product_status attribute, and using aggregated sales tables for 6M data.
+The Labels Generation system creates product labels with barcodes, prices, and sales data. It uses the **same data architecture as Inventory Management** for consistency - fetching products directly from UK Magento database, filtering by custom discontinued_status attribute, and using aggregated sales tables for 6M data.
 
 **Key Principle:** Labels and Inventory Management share identical product sourcing, filtering, and 6M data logic to ensure consistency across the system.
 
@@ -16,7 +16,7 @@ The Labels Generation system creates product labels with barcodes, prices, and s
 
 **Data Fetched:**
 - `sku` - Product SKU from catalog
-- `product_status` - Custom attribute for filtering:
+- `discontinued_status` - Custom attribute (stored in additional_attributes) for filtering:
   - `Active` - Currently available
   - `Temporarily OOS` - Out of stock temporarily
   - `Pre Order` - Available for pre-order
@@ -97,7 +97,7 @@ The Labels Generation system creates product labels with barcodes, prices, and s
 
 ```
 1. FETCH PRODUCTS FROM UK MAGENTO
-   ↓ Query catalog_product_entity with product_status filter
+   ↓ Query catalog_product_entity with discontinued_status filter
    ├─→ Default: Active, Temporarily OOS, Pre Order, Samples
    ├─→ Exclude products with no categories assigned
    ├─→ Exclude products with AW365 in any category
@@ -148,11 +148,11 @@ The Labels Generation system creates product labels with barcodes, prices, and s
 
 | Suffix Pattern | Meaning | Merged? |
 |---------------|---------|---------|
-| `-MD`, `-MD-xxxx` | Material Difference | ✅ Yes |
-| `-SD`, `-SD-xxxx` | Slightly Damaged | ❌ No (stays separate) |
-| `-DP`, `-DP-xxxx` | Display | ❌ No (stays separate) |
-| `-NP`, `-NP-xxxx` | New Packaging | ❌ No (stays separate) |
-| `-MV`, `-MV-xxxx` | Multi-Variant | ❌ No (stays separate) |
+| `-MD`, `-MD-xxxx` | Manager Decision | ✅ Yes |
+| `-SD`, `-SD-xxxx` | Short Date | ❌ No (stays separate) |
+| `-DP`, `-DP-xxxx` | Damaged Packaging | ❌ No (stays separate) |
+| `-NP`, `-NP-xxxx` | No Packaging | ❌ No (stays separate) |
+| `-MV`, `-MV-xxxx` | Missing Vials | ❌ No (stays separate) |
 
 **Merging Process:**
 1. Group SKUs by base (strip `-MD` suffix)
@@ -174,7 +174,7 @@ The Labels Generation system creates product labels with barcodes, prices, and s
 
 **Logic:**
 ```sql
-WHERE COALESCE(product_status, 'Active') IN ('Active', 'Temporarily OOS', 'Pre Order', 'Samples')
+WHERE COALESCE(discontinued_status, 'Active') IN ('Active', 'Temporarily OOS', 'Pre Order', 'Samples')
 ```
 
 **Purpose:** Only include products with appropriate statuses for label generation
@@ -199,7 +199,7 @@ WHERE cpev_name.value NOT LIKE '%AW365%'
 **Logic:**
 - User uploads CSV with SKU list
 - System validates each SKU against UK Magento catalog
-- Only includes SKUs with valid product_status
+- Only includes SKUs with valid discontinued_status
 - Same filtering rules apply
 
 **Purpose:** Allow targeted label generation for specific products while maintaining data integrity
@@ -264,7 +264,7 @@ Labels Generation and Inventory Management use **identical logic** for:
 | Aspect | Shared Logic |
 |--------|--------------|
 | Product Source | UK Magento `catalog_product_entity` |
-| Filtering | Custom `product_status` attribute |
+| Filtering | Custom `discontinued_status` attribute |
 | AW365 Exclusion | Product name contains "AW365" |
 | SKU Merging | Only MD variants merge |
 | 6M Data | Same aggregated_orders tables |
@@ -398,7 +398,7 @@ Labels module requires connections to:
 | Feature | Labels | Inventory Management |
 |---------|--------|---------------------|
 | Product Source | UK Magento catalog_product_entity | UK Magento catalog_product_entity |
-| Filtering | product_status attribute | product_status attribute |
+| Filtering | discontinued_status attribute | discontinued_status attribute |
 | MD Merging | Only MD merges | Only MD merges |
 | 6M Data Source | aggregated_orders tables | aggregated_orders tables |
 | Item IDs | From inventory_metadata | From inventory_metadata |

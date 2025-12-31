@@ -753,7 +753,7 @@ class InventoryManagementRepo:
         Filters out: 1) Products with no categories, 2) Categories containing "AW365", 3) Products with no website assignment
         
         Args:
-            status_filters: Comma-separated list of product_status values to filter by
+            status_filters: Comma-separated list of discontinued_status values to filter by
                           (e.g., "Active,Temporarily OOS,Pre Order,Samples")
                           If None, returns all products
         
@@ -771,7 +771,7 @@ class InventoryManagementRepo:
                     SELECT DISTINCT
                         cpe.sku,
                         cpev_name.value as name,
-                        cpev_product_status.value as product_status,
+                        cpev_discontinued_status.value as discontinued_status,
                         GROUP_CONCAT(DISTINCT ccev.value ORDER BY ccev.value SEPARATOR ',') as categories
                     FROM catalog_product_entity cpe
                     LEFT JOIN catalog_product_entity_varchar cpev_name 
@@ -787,19 +787,19 @@ class InventoryManagementRepo:
                             )
                         )
                         AND cpev_name.store_id = 0
-                    LEFT JOIN catalog_product_entity_varchar cpev_product_status
-                        ON cpe.entity_id = cpev_product_status.entity_id
-                        AND cpev_product_status.attribute_id = (
+                    LEFT JOIN catalog_product_entity_varchar cpev_discontinued_status
+                        ON cpe.entity_id = cpev_discontinued_status.entity_id
+                        AND cpev_discontinued_status.attribute_id = (
                             SELECT attribute_id 
                             FROM eav_attribute 
-                            WHERE attribute_code = 'product_status' 
+                            WHERE attribute_code = 'discontinued_status' 
                             AND entity_type_id = (
                                 SELECT entity_type_id 
                                 FROM eav_entity_type 
                                 WHERE entity_type_code = 'catalog_product'
                             )
                         )
-                        AND cpev_product_status.store_id = 0
+                        AND cpev_discontinued_status.store_id = 0
                     LEFT JOIN catalog_category_product ccp ON cpe.entity_id = ccp.product_id
                     LEFT JOIN catalog_category_entity cce ON ccp.category_id = cce.entity_id
                     LEFT JOIN catalog_category_entity_varchar ccev 
@@ -821,7 +821,7 @@ class InventoryManagementRepo:
                             SELECT 1 FROM catalog_product_website cpw 
                             WHERE cpw.product_id = cpe.entity_id
                         )
-                    GROUP BY cpe.entity_id, cpe.sku, cpev_name.value, cpev_product_status.value
+                    GROUP BY cpe.entity_id, cpe.sku, cpev_name.value, cpev_discontinued_status.value
                     HAVING categories IS NOT NULL
                         AND categories != ''
                         AND categories NOT LIKE '%AW365%'
@@ -838,10 +838,10 @@ class InventoryManagementRepo:
                 # Convert to list of dictionaries and apply filtering
                 result = []
                 for row in rows:
-                    product_status = row.get('product_status') or 'Active'  # Default to Active if not set
+                    discontinued_status = row.get('discontinued_status') or 'Active'  # Default to Active if not set
                     
                     # Apply status filter if provided
-                    if allowed_statuses and product_status not in allowed_statuses:
+                    if allowed_statuses and discontinued_status not in allowed_statuses:
                         continue
                     
                     result.append({
@@ -849,11 +849,11 @@ class InventoryManagementRepo:
                         'name': row.get('name') or row['sku'],  # Fallback to SKU if name not found
                         'categories': row.get('categories'),
                         'additional_attributes': None,  # Not fetched
-                        'discontinued_status': product_status  # Use product_status from Magento
+                        'discontinued_status': discontinued_status  # Use discontinued_status from Magento
                     })
                 
                 if status_filters:
-                    logger.info(f"Fetched {len(result)} products from UK Magento catalog (filtered by product_status: {status_filters}, excluding AW365 and products without categories/websites)")
+                    logger.info(f"Fetched {len(result)} products from UK Magento catalog (filtered by discontinued_status: {status_filters}, excluding AW365 and products without categories/websites)")
                 else:
                     logger.info(f"Fetched {len(result)} products from UK Magento catalog (all products, excluding AW365 and products without categories/websites)")
                 return result

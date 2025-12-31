@@ -3,7 +3,7 @@
 ## Overview
 The Inventory Management system tracks product inventory data, including stock levels, locations, and sales data. It uses a **direct connection to the UK Magento database** for product catalog, eliminating the need for manual CSV imports.
 
-**Important:** The system shows **ALL products** from Magento (regardless of enabled/disabled status), except products with "AW365" in their name. Filtering is done via the custom `product_status` attribute, not Magento's system status field.
+**Important:** The system shows **ALL products** from Magento (regardless of enabled/disabled status), except products with "AW365" in their name. Filtering is done via the custom `discontinued_status` attribute, not Magento's system status field.
 
 ---
 
@@ -19,7 +19,7 @@ The Inventory Management system tracks product inventory data, including stock l
 **Data Fetched:**
 - `sku` - Product SKU from catalog
 - `name` - Product name from EAV attribute tables
-- `product_status` - Custom attribute with values like:
+- `discontinued_status` - Custom attribute (stored in additional_attributes) with values like:
   - `Active` - Currently available
   - `Temporarily OOS` - Out of stock temporarily
   - `Pre Order` - Available for pre-order
@@ -33,14 +33,14 @@ The Inventory Management system tracks product inventory data, including stock l
 - Queries Magento's catalog tables (`catalog_product_entity`)
 - Joins with EAV attribute tables for product names and custom attributes
 - Returns **ALL products** (does NOT filter by Magento's enabled/disabled status)
-- Filters by custom `product_status` attribute when requested
+- Filters by custom `discontinued_status` attribute when requested
 - Always filters out products with "AW365" in their name
 
 **Key Points:**
 - **All products visible** regardless of Magento enabled/disabled status
-- Filtering is done via `product_status` custom attribute, not system status
+- Filtering is done via `discontinued_status` custom attribute, not system status
 - The `status` field in `inventory_metadata` is for overstock/low stock calculation, not filtering
-- When `status_filters` parameter is provided (e.g., "Active,Temporarily OOS"), only those product_status values are returned
+- When `status_filters` parameter is provided (e.g., "Active,Temporarily OOS"), only those discontinued_status values are returned
 - `inventory_metadata` persists regardless of product status
 - Read-only access to entire Magento database
 - Always uses UK Magento as the canonical source
@@ -102,7 +102,7 @@ The Inventory Management system tracks product inventory data, including stock l
    
 5. FETCH PRODUCTS
    ↓ Get from UK Magento database (live query)
-   └─→ Optional filtering by product_status attribute
+   └─→ Optional filtering by discontinued_status attribute
    
 6. FETCH METADATA
    ↓ Get all inventory_metadata records
@@ -122,7 +122,7 @@ The Inventory Management system tracks product inventory data, including stock l
 
 ### Same Logic as 6M Data (ONLY MD Merges)
 
-Inventory Management now uses **identical merging logic to Magento 6M Data** - only MD variants merge with their base SKU:
+Inventory Management uses **identical merging logic to Magento 6M Data** - only MD variants merge with their base SKU:
 
 | Suffix Pattern | Meaning | Merged? |
 |---------------|---------|---------|
@@ -293,11 +293,11 @@ if product_website_count == 0:
 # API accepts comma-separated list of statuses
 status_filters = "Active,Temporarily OOS,Pre Order,Samples"
 
-# Query filters by product_status custom attribute
-WHERE product_status IN ('Active', 'Temporarily OOS', 'Pre Order', 'Samples')
+# Query filters by discontinued_status custom attribute (stored in additional_attributes)
+WHERE discontinued_status IN ('Active', 'Temporarily OOS', 'Pre Order', 'Samples')
 ```
 
-**Purpose:** Filter products by their custom product_status attribute
+**Purpose:** Filter products by their custom discontinued_status attribute
 
 **Available Values:**
 - `Active` - Currently available products
@@ -318,7 +318,7 @@ WHERE product_status IN ('Active', 'Temporarily OOS', 'Pre Order', 'Samples')
 **Important Notes:**
 - **All products** are visible by default (no status filtering)
 - Magento's enabled/disabled status field is **NOT used** for filtering
-- Custom `product_status` attribute is the correct field for filtering
+- Custom `discontinued_status` attribute is the correct field for filtering
 - `inventory_metadata.status` is for warehouse calculations (overstock/low stock), not product visibility
 
 ---
@@ -338,11 +338,11 @@ UK MAGENTO DATABASE (catalog_product_entity)
     ↓
 INVENTORY MANAGEMENT PAGE
     ↑
-    ├─ Product catalog from UK Magento (live, optional product_status filter)
+    ├─ Product catalog from UK Magento (live, optional discontinued_status filter)
     ├─ Warehouse data from inventory_metadata
     └─ Live 6M data from aggregated_orders tables
     
-NOTE: All products visible by default (filter by product_status if needed)
+NOTE: All products visible by default (filter by discontinued_status if needed)
 ```
 
 ---
@@ -350,28 +350,30 @@ NOTE: All products visible by default (filter by product_status if needed)
 ## Import & Sync Operations
 
 ### Automatic Product Discovery
-**How it works:** Enabled products synced from UK Magento catalog
+**How it works:** ALL products synced from UK Magento catalog (regardless of enabled/disabled status)
 
 **Process:**
-1. Query `catalog_product_entity` table for ENABLED products (status = 1)
+1. Query `catalog_product_entity` table for ALL products (no status filtering)
 2. Join with EAV attribute tables to get product names
-3. Filter out products with "AW365" in name
-4. Filter out disabled products (status = 2)
-5. New products automatically added to `inventory_metadata` on page load
+3. Filter out products with categories containing "AW365"
+4. Filter out products with no categories assigned (blank categories)
+5. Filter out products with no website assignment (blank product_websites)
+6. New products automatically added to `inventory_metadata` on page load
 
 **Benefits:**
 - No manual CSV imports required
-- Only active/enabled products appear in inventory
-- Disabled products automatically hidden
-- When re-enabled, products reappear with all data intact
+- All products synced to `inventory_metadata` for data persistence
+- Use `discontinued_status` custom attribute for filtering in the UI
+- `inventory_metadata` preserved even if product status changes
 - Always up-to-date with Magento catalog
 
 **Important:**
-- Gets only ENABLED products from Magento catalog
-- Disabled products excluded but `inventory_metadata` preserved
+- Gets ALL products from Magento catalog (no enabled/disabled filtering)
+- ALL products synced to `inventory_metadata` (data persists)
 - Uses UK Magento as canonical source
 - Read-only database access
 - Product names from EAV attribute system
+- Filter by custom `discontinued_status` attribute in UI, not system status
 
 ### Sync Magento Sales Data
 **Endpoint:** `POST /inventory/management/sync-magento-data`
@@ -481,7 +483,7 @@ LIMIT per_page OFFSET (page-1)*per_page
 
 | Aspect | Magento 6M Data | Inventory Management |
 |--------|----------------|---------------------|
-| **Variant Merging** | Only MD variants | ALL variants (SD, DP, NP, MV, MD) |
+| **Variant Merging** | Only MD variants | Only MD variants |
 | **Merge Location** | Aggregated orders tables | inventory_metadata table |
 | **Merge Method** | SQL regex in query | Pre-processing before item IDs |
 | **6M Data Source** | Aggregated tables only | Both aggregated tables + metadata table |
@@ -501,23 +503,19 @@ LIMIT per_page OFFSET (page-1)*per_page
 - Item ID generated automatically on first page load
 - Start tracking inventory via metadata updates
 
-### Disabling a Product
-- Disable product in UK Magento (set status = 2)
-- Product disappears from inventory table on next page load
+### Changing Product Status
+- Products always remain in `inventory_metadata` once synced
+- Changing `discontinued_status` custom attribute in Magento affects filtering
+- UI can filter by `discontinued_status` to show/hide products
 - `inventory_metadata` is PRESERVED with all warehouse data
 - Item ID, locations, quantities, and 6M data remain intact
 
-### Re-enabling a Product
-- Enable product in UK Magento (set status = 1)
-- Product reappears in inventory table on next page load
-- All warehouse data restored automatically
-- No data loss - everything was preserved
-
 ### Product Not Appearing Yet
 - Product must exist in UK Magento catalog (`catalog_product_entity`)
-- Product must be ENABLED (status = 1)
+- Product must have categories assigned (not blank)
+- Product must have a website assignment
+- Product must not have "AW365" in any category
 - Refresh inventory management page to trigger sync
-- Check if product name contains "AW365" (auto-filtered)
 - Verify Magento database connection is working
 
 ### Updating Product Names
@@ -537,23 +535,26 @@ LIMIT per_page OFFSET (page-1)*per_page
 ### Product Not Showing
 **Check:**
 1. Does it exist in UK Magento catalog (`catalog_product_entity`)?
-2. Is the product ENABLED (status = 1)? Disabled products don't appear
-3. Does product name contain "AW365"? (auto-filtered)
-4. Was variant merging applied correctly?
-5. Is UK Magento database accessible?
-6. Try refreshing the inventory management page to force sync
+2. Does product have categories assigned? (blank categories are filtered out)
+3. Do any categories contain "AW365"? (auto-filtered)
+4. Does product have a website assignment? (products without websites are filtered out)
+5. Was variant merging applied correctly?
+6. Is UK Magento database accessible?
+7. Try refreshing the inventory management page to force sync
+8. Are you filtering by `discontinued_status`? Check if the product has the right status value
 
-### Disabled Product Still Showing
-**This shouldn't happen** - disabled products are filtered automatically
-- Check that product status is actually 2 in Magento
-- Clear browser cache and refresh
-- Verify EAV status attribute is properly set
-- Check logs for sync errors
+### Product Not Visible in UI
+**Check:**
+- Product should be synced to `inventory_metadata` if it passes the filters above
+- UI may be filtering by `discontinued_status` custom attribute
+- Check the product's `discontinued_status` value in Magento (stored in additional_attributes)
+- Try removing status filters in the UI to see all products
+- `inventory_metadata` persists regardless of Magento status changes
 
-### Lost Data After Disabling Product
+### Lost Data After Product Changes
 **This shouldn't happen** - inventory_metadata is never deleted
 - Check `inventory_metadata` table directly for the SKU
-- Data should still exist even if product is disabled
+- Data should persist even if product changes in Magento
 - If data is missing, check application logs for errors
 - Consider implementing backups for critical data
 

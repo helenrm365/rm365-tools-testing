@@ -12,24 +12,53 @@ class LabelsRepo:
     # --- helpers (suffix/base) ---
     @staticmethod
     def _base_of(sku: str) -> str:
-        return (sku or "").split("-")[0].strip()
+        """
+        Get base SKU by stripping ONLY -MD suffix (not -SD, -DP, -NP, -MV).
+        Matches inventory management and 6M data logic - only MD variants merge.
+        
+        Examples:
+        - PROD123 -> PROD123
+        - PROD123-MD -> PROD123
+        - PROD123-MD-2024 -> PROD123
+        - PROD123-SD -> PROD123-SD (stays separate)
+        - AB-123 -> AB-123 (not split on first dash)
+        """
+        import re
+        if not sku:
+            return ""
+        # Pattern to match -MD with optional -xxxx suffix at the end
+        pattern = re.compile(r'-MD(?:-.*)?$', re.IGNORECASE)
+        return pattern.sub('', sku).strip()
 
     @classmethod
     def _choose_sku_for_base(cls, base: str, variants: List[str]) -> Optional[str]:
         """
-        Simply return any available SKU - no filtering logic.
-        All SKUs are treated as valid products.
+        ALWAYS return the base SKU (with -MD stripped).
+        This matches 6M data logic which ALWAYS strips -MD unconditionally.
+        
+        Why: The aggregated_orders tables strip -MD via SQL regex, so:
+        - If catalog has PROD123-MD, aggregated table has PROD123
+        - If catalog has PROD123, aggregated table has PROD123
+        - We must ALWAYS query by base SKU to match aggregated data
+        
+        Similarly, inventory_metadata merges MD variants:
+        - Deletes -MD if base exists
+        - Renames -MD to base if base doesn't exist
+        - So inventory_metadata only has base SKUs after merge
+        
+        Args:
+            base: Base SKU (with -MD suffix already stripped by _base_of)
+            variants: List of SKU variants in this group (unused - base always wins)
+        
+        Returns:
+            Always returns base SKU (never MD variant)
         """
-        vs = {v.strip() for v in (variants or []) if v}
-        if not vs:
-            return None
-        # Just return the first available SKU
-        return next(iter(vs), None)
+        return base if base else None
 
     # --- psycopg2 queries ---
     def _fetch_allowed_skus_from_magento_psycopg(self, conn, product_statuses: Optional[List[str]] = None) -> List[str]:
         """
-        Fetch SKUs directly from UK Magento catalog database filtered by product_status custom attribute.
+        Fetch SKUs directly from UK Magento catalog database filtered by discontinued_status custom attribute.
         Uses same logic as inventory management - queries catalog_product_entity with EAV attributes.
         Filters out: 1) Categories containing "AW365", 2) Products with no website assignment
         
@@ -69,7 +98,7 @@ class LabelsRepo:
                                 WHERE entity_type_code = 'catalog_product'
                             )
                         )
-                        AND cpev_product_status.store_id = 0
+                        AND cpev_discontinued_status.store_id = 0
                     LEFT JOIN catalog_category_product ccp ON cpe.entity_id = ccp.product_id
                     LEFT JOIN catalog_category_entity cce ON ccp.category_id = cce.entity_id
                     LEFT JOIN catalog_category_entity_varchar ccev 
@@ -87,7 +116,7 @@ class LabelsRepo:
                         AND ccev.store_id = 0
                     WHERE cpe.sku IS NOT NULL 
                         AND cpe.sku != ''
-                        AND COALESCE(cpev_product_status.value, 'Active') IN ({placeholders})
+                        AND COALESCE(cpev_discontinued_status.value, 'Active') IN ({placeholders})
                         AND EXISTS (
                             SELECT 1 FROM catalog_product_website cpw 
                             WHERE cpw.product_id = cpe.entity_id
@@ -101,7 +130,7 @@ class LabelsRepo:
                 """
                 cur.execute(query, product_statuses)
                 skus = [str(r[0]).strip() for r in cur.fetchall()]
-                logger.info(f"Fetched {len(skus)} SKUs from UK Magento catalog with product_status filter (excluding AW365 categories and products without websites)")
+                logger.info(f"Fetched {len(skus)} SKUs from UK Magento catalog with discontinued_status filter (excluding AW365 categories and products without websites)")
                 return skus
         except Exception as e:
             logger.error(f"Error fetching SKUs from UK Magento: {e}")
@@ -491,26 +520,26 @@ class LabelsRepo:
                     """
                     SELECT DISTINCT cpe.sku
                     FROM catalog_product_entity cpe
-                    LEFT JOIN catalog_product_entity_varchar cpev_product_status
-                        ON cpe.entity_id = cpev_product_status.entity_id
-                        AND cpev_product_status.attribute_id = (
+                    LEFT JOIN catalog_product_entity_varchar cpev_discontinued_status
+                        ON cpe.entity_id = cpev_discontinued_status.entity_id
+                        AND cpev_discontinued_status.attribute_id = (
                             SELECT attribute_id 
                             FROM eav_attribute 
-                            WHERE attribute_code = 'product_status' 
+                            WHERE attribute_code = 'discontinued_status' 
                             AND entity_type_id = (
                                 SELECT entity_type_id 
                                 FROM eav_entity_type 
                                 WHERE entity_type_code = 'catalog_product'
                             )
                         )
-                        AND cpev_product_status.store_id = 0
+                        AND cpev_discontinued_status.store_id = 0
                     WHERE cpe.sku = ANY(%s)
-                      AND COALESCE(cpev_product_status.value, 'Active') IN ('Active', 'Temporarily OOS', 'Pre Order', 'Samples')
+                      AND COALESCE(cpev_discontinued_status.value, 'Active') IN ('Active', 'Temporarily OOS', 'Pre Order', 'Samples')
                     """,
                     (csv_skus,)
                 )
                 allowed = [str(r[0]).strip() for r in cur.fetchall()]
-                logger.info(f"CSV validation: {len(allowed)}/{len(csv_skus)} SKUs found in Magento with valid product_status")
+                logger.info(f"CSV validation: {len(allowed)}/{len(csv_skus)} SKUs found in Magento with valid discontinued_status")
         finally:
             if magento_conn and magento_conn.open:
                 magento_conn.close()
