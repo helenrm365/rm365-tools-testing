@@ -405,7 +405,7 @@ function createPrintableTable(logs) {
   `;
 }
 
-function handlePrint() {
+async function handlePrint() {
   const logsTable = $("#logsTable");
   if (!logsTable || !state.logs || state.logs.length === 0) {
     alert("No logs to print");
@@ -421,15 +421,19 @@ function handlePrint() {
     if (titleEl) titleEl.textContent = "🔄 Printing...";
     if (btn) btn.disabled = true;
 
-    // Use the same PDF function but trigger browser print
-    handleExportPdf();
+    const startDate = $("#fromDate")?.value;
+    const endDate = $("#toDate")?.value;
+    
+    // Generate PDF and open print dialog
+    await exportAttendanceToPDF(state.logs, startDate, endDate, true);
 
+  } catch (error) {
+    console.error("Failed to print:", error);
+    alert("Failed to generate print document. Please try again.");
   } finally {
-    // Restore button state after a short delay
-    setTimeout(() => {
-      if (titleEl && originalTitle) titleEl.textContent = originalTitle;
-      if (btn) btn.disabled = false;
-    }, 600);
+    // Restore button state
+    if (titleEl && originalTitle) titleEl.textContent = originalTitle;
+    if (btn) btn.disabled = false;
   }
 }
 

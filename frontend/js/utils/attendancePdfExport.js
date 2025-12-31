@@ -70,8 +70,9 @@ async function loadImageAsBase64(imagePath) {
  * @param {Array} logs - Array of attendance log objects
  * @param {string} startDate - Start date of the report period
  * @param {string} endDate - End date of the report period
+ * @param {boolean} openPrint - Whether to open print dialog instead of downloading
  */
-export async function exportAttendanceToPDF(logs, startDate, endDate) {
+export async function exportAttendanceToPDF(logs, startDate, endDate, openPrint = false) {
     try {
         // Load jsPDF
         const jspdf = await loadJsPDF();
@@ -275,8 +276,14 @@ export async function exportAttendanceToPDF(logs, startDate, endDate) {
         const dateStr = new Date().toISOString().split('T')[0];
         const filename = `attendance-logs-${startDate}-to-${endDate}_${dateStr}.pdf`;
         
-        // Save the PDF
-        doc.save(filename);
+        if (openPrint) {
+            // Open print dialog
+            doc.autoPrint();
+            window.open(doc.output('bloburl'), '_blank');
+        } else {
+            // Download the PDF
+            doc.save(filename);
+        }
         
         return { success: true, filename };
     } catch (error) {
