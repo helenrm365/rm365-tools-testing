@@ -512,22 +512,29 @@ class MagentoDataClient:
         try:
             conn = get_magento_connection(self.region)
             with conn.cursor() as cursor:
-                # Search in sales_order_grid for performance
+                # Search in sales_order table which definitely exists
                 search_pattern = f"%{search_term}%"
                 query = """
-                    SELECT DISTINCT customer_email, customer_name
-                    FROM sales_order_grid
-                    WHERE (customer_email LIKE %s OR customer_name LIKE %s)
-                    AND customer_email IS NOT NULL
+                    SELECT DISTINCT 
+                        so.customer_email,
+                        CONCAT(so.customer_firstname, ' ', so.customer_lastname) as customer_name
+                    FROM sales_order so
+                    WHERE (so.customer_email LIKE %s 
+                        OR so.customer_firstname LIKE %s 
+                        OR so.customer_lastname LIKE %s
+                        OR CONCAT(so.customer_firstname, ' ', so.customer_lastname) LIKE %s)
+                    AND so.customer_email IS NOT NULL
+                    ORDER BY so.customer_email
                     LIMIT %s
                 """
-                cursor.execute(query, (search_pattern, search_pattern, limit))
+                cursor.execute(query, (search_pattern, search_pattern, search_pattern, search_pattern, limit))
                 rows = cursor.fetchall()
                 
                 return [
                     {"email": row['customer_email'], "full_name": row['customer_name']}
                     for row in rows
                 ]
+            conn.close()
         except Exception as e:
             logger.error(f"Error searching customers in Magento: {e}")
             return []
@@ -537,10 +544,27 @@ class MagentoDataClient:
         try:
             conn = get_magento_connection(self.region)
             with conn.cursor() as cursor:
-                query = "SELECT customer_group_code FROM customer_group"
-                cursor.execute(query)
-                rows = cursor.fetchall()
-                return [row['customer_group_code'] for row in rows]
+                # Try new Magento 2 structure first (customer_group table)
+                try:
+                    query = "SELECT customer_group_code FROM customer_group ORDER BY customer_group_code"
+                    cursor.execute(query)
+                    rows = cursor.fetchall()
+                    conn.close()
+                    if rows:
+                        return [row['customer_group_code'] for row in rows]
+                except Exception:
+                    # If that fails, try extracting from sales_order
+                    cursor.execute("""
+                        SELECT DISTINCT so.customer_group_id
+                        FROM sales_order so
+                        WHERE so.customer_group_id IS NOT NULL
+                        ORDER BY so.customer_group_id
+                    """)
+                    rows = cursor.fetchall()
+                    conn.close()
+                    # Map IDs to names using CUSTOMER_GROUP_MAP
+                    return [CUSTOMER_GROUP_MAP.get(row['customer_group_id'], f"Group {row['customer_group_id']}") 
+                           for row in rows]
         except Exception as e:
             logger.error(f"Error getting customer groups from Magento: {e}")
             return []
