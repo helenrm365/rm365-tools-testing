@@ -37,7 +37,7 @@ async function loadJsPDF() {
 }
 
 /**
- * Convert image to base64 data URL
+ * Convert image to base64 data URL and get dimensions
  */
 async function loadImageAsBase64(imagePath) {
     return new Promise((resolve, reject) => {
@@ -51,7 +51,11 @@ async function loadImageAsBase64(imagePath) {
             ctx.drawImage(this, 0, 0);
             try {
                 const dataURL = canvas.toDataURL('image/png');
-                resolve(dataURL);
+                resolve({
+                    dataURL,
+                    width: this.width,
+                    height: this.height
+                });
             } catch (e) {
                 reject(e);
             }
@@ -89,9 +93,14 @@ export async function exportToPDF(data, region, viewType, searchTerm = '') {
         // Try to load and add logo
         let logoY = 15;
         try {
-            const logoData = await loadImageAsBase64('/assets/RM365_Logo_New.png');
-            // Add logo at top right (width: 40mm, proportional height)
-            doc.addImage(logoData, 'PNG', doc.internal.pageSize.width - 54, 10, 40, 15);
+            const logoImage = await loadImageAsBase64('/assets/RM365_Logo_New.png');
+            // Calculate proportional dimensions - max width 40mm
+            const maxLogoWidth = 40;
+            const aspectRatio = logoImage.height / logoImage.width;
+            const logoWidth = maxLogoWidth;
+            const logoHeight = maxLogoWidth * aspectRatio;
+            // Add logo at top right with proper aspect ratio
+            doc.addImage(logoImage.dataURL, 'PNG', doc.internal.pageSize.width - 54, 10, logoWidth, logoHeight);
         } catch (error) {
             console.warn('Could not load logo:', error);
             // Continue without logo
