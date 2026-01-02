@@ -160,30 +160,49 @@ The Labels Generation system creates product labels with barcodes, prices, and s
 
 ---
 
-## SKU Variant Merging
+## SKU Variant Normalization
 
-### Same Logic as 6M Data & Inventory Management
+### ALL Variants Normalize to Base SKU
 
-**Only MD variants merge:**
+**Identical Logic to Inventory Management:**
 
-| Suffix Pattern | Meaning | Merged? |
-|---------------|---------|---------|
-| `-MD`, `-MD-xxxx` | Manager Decision | ✅ Yes |
-| `-SD`, `-SD-xxxx` | Short Date | ❌ No (stays separate) |
-| `-DP`, `-DP-xxxx` | Damaged Packaging | ❌ No (stays separate) |
-| `-NP`, `-NP-xxxx` | No Packaging | ❌ No (stays separate) |
-| `-MV`, `-MV-xxxx` | Missing Vials | ❌ No (stays separate) |
+| Suffix Pattern | Meaning | Normalized? |
+|---------------|---------|-------------|
+| `-MD`, `-MD-xxxx` | Manager Decision | ✅ Yes → Base SKU |
+| `-SD`, `-SD-xxxx` | Short Date | ✅ Yes → Base SKU |
+| `-DP`, `-DP-xxxx` | Damaged Packaging | ✅ Yes → Base SKU |
+| `-NP`, `-NP-xxxx` | No Packaging | ✅ Yes → Base SKU |
+| `-MV`, `-MV-xxxx` | Missing Vials | ✅ Yes → Base SKU |
 
-**Merging Process:**
-1. Group SKUs by base (strip `-MD` suffix)
-2. If base exists: use base SKU
-3. If base doesn't exist: use `-MD` variant as base
-4. Other variants (SD, DP, NP, MV) stay separate
+**Normalization Process:**
+1. **Fetch all products** from UK Magento (including all variants)
+2. **Strip variant suffixes** using regex: `r'-(?:MD|SD|DP|NP|MV)(?:-.*)?$'`
+3. **Group by base SKU** - all variants grouped under their base
+4. **Collect variant statuses** - track ALL discontinued_status values from ALL variants
+5. **Filter by ANY status** - keep product if ANY variant matches filter criteria
+6. **Use base SKU only** - labels always show base SKU (e.g., PROD123)
 
-**Example:**
-- Products: `PROD123`, `PROD123-MD`, `PROD123-SD`
-- Labels generated for: `PROD123` (base), `PROD123-SD` (separate)
-- `PROD123-MD` merges into `PROD123`
+**Example Scenario:**
+```
+Magento Products:
+- PROD123-MD (discontinued_status: "Active")
+- PROD123-SD (discontinued_status: "Discontinued (RM)")
+- PROD123-DP (discontinued_status: "Temporarily OOS")
+
+Normalization:
+- Base SKU: PROD123
+- variant_statuses: ["Active", "Discontinued (RM)", "Temporarily OOS"]
+
+Filtering for ['Active', 'Temporarily OOS']:
+- Match found: "Active" present in variant_statuses → Product included
+- Match found: "Temporarily OOS" present in variant_statuses → Product included
+
+Result:
+- Label generated for: PROD123 (base only)
+- Shows combined data from all variants
+```
+
+**Important:** No base product (PROD123) needs to exist in Magento. The system always uses base SKU form regardless of which variants are present.
 
 ---
 
