@@ -213,7 +213,7 @@ class PendingMagentoOrderSchema(BaseModel):
     """Schema for pending Magento orders awaiting approval"""
     order_id: int
     order_number: str
-    created_at: str
+    created_at: datetime
     grand_total: float
     status: str
     customer_name: Optional[str] = None

@@ -474,6 +474,7 @@ class InventoryManagementRepo:
                         SELECT DISTINCT
                             cpe.sku,
                             cpev_name.value as name,
+                            cpev_status.value as discontinued_status,
                             GROUP_CONCAT(DISTINCT ccev.value ORDER BY ccev.value SEPARATOR ',') as categories,
                             (SELECT COUNT(*) FROM catalog_product_website cpw WHERE cpw.product_id = cpe.entity_id) as website_count
                         FROM catalog_product_entity cpe
@@ -490,6 +491,19 @@ class InventoryManagementRepo:
                                 )
                             )
                             AND cpev_name.store_id = 0
+                        LEFT JOIN catalog_product_entity_varchar cpev_status 
+                            ON cpe.entity_id = cpev_status.entity_id
+                            AND cpev_status.attribute_id = (
+                                SELECT attribute_id 
+                                FROM eav_attribute 
+                                WHERE attribute_code = 'discontinued_status' 
+                                AND entity_type_id = (
+                                    SELECT entity_type_id 
+                                    FROM eav_entity_type 
+                                    WHERE entity_type_code = 'catalog_product'
+                                )
+                            )
+                            AND cpev_status.store_id = 0
                         LEFT JOIN catalog_category_product ccp ON cpe.entity_id = ccp.product_id
                         LEFT JOIN catalog_category_entity cce ON ccp.category_id = cce.entity_id
                         LEFT JOIN catalog_category_entity_varchar ccev 
@@ -507,7 +521,7 @@ class InventoryManagementRepo:
                             AND ccev.store_id = 0
                         WHERE cpe.sku IS NOT NULL 
                             AND cpe.sku != ''
-                        GROUP BY cpe.entity_id, cpe.sku, cpev_name.value
+                        GROUP BY cpe.entity_id, cpe.sku, cpev_name.value, cpev_status.value
                         HAVING website_count > 0
                         ORDER BY cpe.sku
                     """)
@@ -523,6 +537,7 @@ class InventoryManagementRepo:
                 sku = product['sku']
                 name = product.get('name') or sku
                 categories = product.get('categories') or ""
+                status = product.get('discontinued_status') or "Active"
                 stats["total_products"] += 1
                 
                 # Filter: Skip if no categories assigned
@@ -540,11 +555,12 @@ class InventoryManagementRepo:
                 # Insert into inventory_metadata (only if SKU doesn't exist)
                 # Note: We never DELETE from inventory_metadata, so products keep their data
                 cursor.execute("""
-                    INSERT INTO inventory_metadata (sku)
-                    VALUES (%s)
-                    ON CONFLICT (sku) DO NOTHING
+                    INSERT INTO inventory_metadata (sku, status)
+                    VALUES (%s, %s)
+                    ON CONFLICT (sku) DO UPDATE SET
+                        status = EXCLUDED.status
                     RETURNING sku
-                """, (sku,))
+                """, (sku, status))
                 
                 if cursor.fetchone():
                     stats["new_records"] += 1

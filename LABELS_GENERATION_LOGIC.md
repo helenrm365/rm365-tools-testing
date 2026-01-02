@@ -1,7 +1,7 @@
 # Labels Generation Logic Documentation
 
 ## Overview
-The Labels Generation system creates product labels with barcodes, prices, and sales data. It uses the **same data architecture as Inventory Management** for consistency - fetching products directly from UK Magento database, normalizing ALL variants to base SKUs, filtering by variant discontinued_status values, and using aggregated sales tables for 6M data.
+The Labels Generation system creates product labels with barcodes, prices, and sales data. It uses the **exact same data architecture as Inventory Management** for consistency. Instead of querying Magento directly, it leverages the `inventory_metadata` table as the single source of truth, ensuring that product lists, variant merging, and status filtering are identical across both systems.
 
 **Key Principle:** Labels and Inventory Management share identical product sourcing, variant normalization, status filtering, and 6M data logic to ensure consistency across the system.
 
@@ -9,14 +9,19 @@ The Labels Generation system creates product labels with barcodes, prices, and s
 
 ## Data Sources
 
-### 1. Product Catalog: UK Magento Database
-**Source:** Direct connection to UK Magento `catalog_product_entity` table
+### 1. Product Catalog: Inventory Metadata (Synced from Magento)
+**Source:** PostgreSQL `inventory_metadata` table (refreshed from UK Magento)
 
 **Purpose:** Get list of products to generate labels for
 
+**Process:**
+1.  **Refresh:** System calls `InventoryManagementRepo.sync_magento_products_to_inventory_metadata()` to pull ALL products and their statuses from UK Magento.
+2.  **Merge:** System calls `InventoryManagementRepo.merge_identifier_products()` to normalize ALL variants (e.g., `-MD`, `-SD`) into base SKUs.
+3.  **Filter:** System queries `inventory_metadata` filtering by the `status` column.
+
 **Data Fetched:**
-- `sku` - Product SKU from catalog
-- `discontinued_status` - Custom attribute (stored in additional_attributes) for filtering:
+- `sku` - Base SKU from inventory_metadata
+- `status` - Discontinued status synced from Magento:
   - `Active` - Currently available
   - `Temporarily OOS` - Out of stock temporarily
   - `Pre Order` - Available for pre-order
@@ -29,21 +34,15 @@ The Labels Generation system creates product labels with barcodes, prices, and s
 **Default Filter:** `['Active', 'Temporarily OOS', 'Pre Order', 'Samples']`
 
 **Variant Status Logic:**
-- ALL variants (e.g., PROD123-MD, PROD123-SD) normalize to base SKU (PROD123)
-- System tracks ALL discontinued_status values from ALL variants in a `variant_statuses` array
-- Filtering matches if ANY variant has a matching status
-- Example: PROD123-MD is "Active", PROD123-SD is "Discontinued (RM)"
-  - Base PROD123 has variant_statuses: ["Active", "Discontinued (RM)"]
-  - Filtering for "Active" → Found (matches first variant)
-  - Filtering for "Discontinued (RM)" → Found (matches second variant)
+- Handled during the **Merge** step in Inventory Management logic.
+- If a base SKU exists, variants are merged into it.
+- If only variants exist, one is renamed to the base SKU.
+- The status is preserved during sync/merge.
 
 **Key Points:**
-- Uses Entity-Attribute-Value (EAV) structure to query custom attributes
-- Excludes products with no categories assigned (blank categories)
-- Excludes products with "AW365" in any category
-- Excludes products with no website assignment (blank product_websites)
-- Does NOT use Magento's enabled/disabled system status
-- Identical to Inventory Management product fetching and variant normalization
+- **Single Source of Truth:** Uses `inventory_metadata` just like Inventory Management.
+- **Identical Logic:** By calling the exact same sync and merge functions, we guarantee 1:1 consistency.
+- **Exclusions:** The sync process already handles exclusions (AW365 categories, no websites, etc.).
 
 ### 2. Item IDs (Barcodes): inventory_metadata Table
 **Source:** PostgreSQL `inventory_metadata` table

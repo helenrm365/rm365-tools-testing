@@ -56,110 +56,7 @@ class LabelsRepo:
         return base if base else None
 
     # --- psycopg2 queries ---
-    def _fetch_allowed_skus_from_magento_psycopg(self, conn, product_statuses: Optional[List[str]] = None) -> List[str]:
-        """
-        Fetch SKUs directly from UK Magento catalog database filtered by discontinued_status custom attribute.
-        Uses same logic as inventory management - queries catalog_product_entity with EAV attributes.
-        Filters out: 1) Categories containing "AW365", 2) Products with no website assignment
-        
-        Args:
-            conn: database connection (not used - queries Magento DB directly)
-            product_statuses: list of statuses to include (e.g., ['Active', 'Temporarily OOS'])
-                            If None, defaults to ['Active', 'Temporarily OOS', 'Pre Order', 'Samples']
-        """
-        from modules.magentodata.db import get_magento_connection
-        
-        # Default to the standard active statuses if not specified
-        if product_statuses is None:
-            product_statuses = ['Active', 'Temporarily OOS', 'Pre Order', 'Samples']
-        
-        if not product_statuses:
-            return []
-        
-        magento_conn = None
-        try:
-            magento_conn = get_magento_connection("uk")
-            with magento_conn.cursor() as cur:
-                # Build query without parameterization in WHERE clause (collect all, filter in Python)
-                query = """
-                    SELECT DISTINCT cpe.sku, cpev_discontinued_status.value as discontinued_status
-                    FROM catalog_product_entity cpe
-                    LEFT JOIN catalog_product_entity_varchar cpev_discontinued_status
-                        ON cpe.entity_id = cpev_discontinued_status.entity_id
-                        AND cpev_discontinued_status.attribute_id = (
-                            SELECT attribute_id 
-                            FROM eav_attribute 
-                            WHERE attribute_code = 'discontinued_status' 
-                            AND entity_type_id = (
-                                SELECT entity_type_id 
-                                FROM eav_entity_type 
-                                WHERE entity_type_code = 'catalog_product'
-                            )
-                        )
-                        AND cpev_discontinued_status.store_id = 0
-                    LEFT JOIN catalog_category_product ccp ON cpe.entity_id = ccp.product_id
-                    LEFT JOIN catalog_category_entity cce ON ccp.category_id = cce.entity_id
-                    LEFT JOIN catalog_category_entity_varchar ccev 
-                        ON cce.entity_id = ccev.entity_id
-                        AND ccev.attribute_id = (
-                            SELECT attribute_id 
-                            FROM eav_attribute 
-                            WHERE attribute_code = 'name' 
-                            AND entity_type_id = (
-                                SELECT entity_type_id 
-                                FROM eav_entity_type 
-                                WHERE entity_type_code = 'catalog_category'
-                            )
-                        )
-                        AND ccev.store_id = 0
-                    WHERE cpe.sku IS NOT NULL 
-                        AND cpe.sku != ''
-                        AND EXISTS (
-                            SELECT 1 FROM catalog_product_website cpw 
-                            WHERE cpw.product_id = cpe.entity_id
-                        )
-                    GROUP BY cpe.entity_id, cpe.sku, cpev_discontinued_status.value
-                    HAVING GROUP_CONCAT(DISTINCT ccev.value ORDER BY ccev.value SEPARATOR ',') IS NOT NULL
-                        AND NOT (
-                            GROUP_CONCAT(DISTINCT ccev.value ORDER BY ccev.value SEPARATOR ',') LIKE '%AW365%'
-                        )
-                    ORDER BY cpe.sku
-                """
-                cur.execute(query)
-                
-                # Get all products and group by base SKU to collect variant statuses
-                import re
-                identifier_pattern = re.compile(r'-(?:MD|SD|DP|NP|MV)(?:-.*)?$', re.IGNORECASE)
-                
-                base_sku_statuses = {}  # {base_sku: set of statuses}
-                for row in cur.fetchall():
-                    sku = str(row[0]).strip()
-                    discontinued_status = row[1] if row[1] else 'Active'
-                    
-                    # Determine base SKU
-                    if identifier_pattern.search(sku):
-                        base_sku = identifier_pattern.sub('', sku)
-                    else:
-                        base_sku = sku
-                    
-                    # Collect statuses for this base SKU
-                    if base_sku not in base_sku_statuses:
-                        base_sku_statuses[base_sku] = set()
-                    base_sku_statuses[base_sku].add(discontinued_status)
-                
-                # Filter base SKUs that have ANY of the requested statuses
-                skus = [
-                    base_sku for base_sku, statuses in base_sku_statuses.items()
-                    if any(status in product_statuses for status in statuses)
-                ]
-                logger.info(f"Fetched {len(skus)} base SKUs from UK Magento catalog with discontinued_status filter (excluding AW365 categories and products without websites)")
-                return skus
-        except Exception as e:
-            logger.error(f"Error fetching SKUs from UK Magento: {e}")
-            return []
-        finally:
-            if magento_conn and magento_conn.open:
-                magento_conn.close()
+    # _fetch_allowed_skus_from_magento_psycopg REMOVED - now using inventory_metadata
 
     # DEPRECATED: No longer used - 6M data now comes from aggregated_orders tables directly
     # def _load_inventory_metadata_map(self, inventory_conn) -> Dict[str, Tuple[str, str, str]]:
@@ -490,27 +387,52 @@ class LabelsRepo:
     # --- public (psycopg2) ---
     def get_labels_to_print_psycopg(self, conn, product_statuses: Optional[List[str]] = None, preferred_region: str = "uk") -> List[Dict[str, Any]]:
         """
-        Fetch products from UK Magento catalog database filtered by discontinued_status attribute.
-        Uses same logic as inventory management:
-        - Fetches from catalog_product_entity with EAV attributes
-        - Filters by custom discontinued_status attribute (checks ANY variant status)
-        - Normalizes ALL variants (MD, SD, DP, NP, MV) to base SKU
-        - Gets item IDs from inventory_metadata
-        - Gets 6M data from aggregated_orders tables
-        - Gets prices/names from orders_cache tables
+        Fetch products from inventory_metadata (synced from Magento) filtered by status.
+        Uses EXACT SAME logic as inventory management:
+        1. Syncs ALL products from Magento to inventory_metadata (refresh)
+        2. Merges all variants to base SKUs
+        3. Filters by status from inventory_metadata
         
         Args:
             conn: database connection to inventory_logs database (for inventory_metadata)
             product_statuses: list of discontinued_status values to filter by (e.g., ['Active', 'Temporarily OOS'])
                             If None, defaults to ['Active', 'Temporarily OOS', 'Pre Order', 'Samples']
-                            Products with ANY variant matching these statuses will be included
             preferred_region: "uk" (default), "fr", or "nl" - determines price/name priority
         """
-        magento_skus = self._fetch_allowed_skus_from_magento_psycopg(conn, product_statuses)
+        from modules.inventory.management.repo import InventoryManagementRepo
+        
+        # Default statuses if not provided
+        if product_statuses is None:
+            product_statuses = ['Active', 'Temporarily OOS', 'Pre Order', 'Samples']
+            
+        # 1. Refresh inventory_metadata from Magento (same as inventory management)
+        inv_repo = InventoryManagementRepo()
+        logger.info("Refreshing inventory_metadata from Magento for label generation...")
+        inv_repo.sync_magento_products_to_inventory_metadata()
+        
+        # 2. Merge variants (same as inventory management)
+        logger.info("Merging identifier products...")
+        inv_repo.merge_identifier_products()
+        
+        # 3. Fetch SKUs from inventory_metadata filtered by status
+        allowed_skus = []
+        try:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT sku 
+                    FROM inventory_metadata 
+                    WHERE status = ANY(%s)
+                    ORDER BY sku
+                """, (product_statuses,))
+                allowed_skus = [str(row[0]).strip() for row in cur.fetchall()]
+                logger.info(f"Fetched {len(allowed_skus)} SKUs from inventory_metadata with statuses: {product_statuses}")
+        except Exception as e:
+            logger.error(f"Error fetching SKUs from inventory_metadata: {e}")
+            return []
 
         return self._resolve_to_rows(
             conn,
-            magento_skus,
+            allowed_skus,
             preferred_region=preferred_region,
         )
 
@@ -521,51 +443,45 @@ class LabelsRepo:
         preferred_region: str = "uk",
     ) -> List[Dict[str, Any]]:
         """
-        CSV-driven: validate SKUs against UK Magento catalog filtered by discontinued_status.
+        CSV-driven: validate SKUs against inventory_metadata filtered by status.
         Only includes Active, Temporarily OOS, Pre Order, and Samples.
         Uses same filtering logic as get_labels_to_print_psycopg.
         
         Args:
-            conn: database connection (not used - queries Magento directly)
+            conn: database connection to inventory_logs database (for inventory_metadata)
             csv_skus: List of SKUs from CSV upload
             preferred_region: "uk", "fr", or "nl" - determines price/name priority
         """
-        from modules.magentodata.db import get_magento_connection
+        from modules.inventory.management.repo import InventoryManagementRepo
         
         if not csv_skus:
             return []
+            
+        # 1. Refresh inventory_metadata from Magento (same as inventory management)
+        inv_repo = InventoryManagementRepo()
+        logger.info("Refreshing inventory_metadata from Magento for CSV label generation...")
+        inv_repo.sync_magento_products_to_inventory_metadata()
         
-        # Validate SKUs against UK Magento with product_status filtering
-        magento_conn = None
+        # 2. Merge variants (same as inventory management)
+        logger.info("Merging identifier products...")
+        inv_repo.merge_identifier_products()
+        
+        # 3. Validate SKUs against inventory_metadata with status filtering
+        allowed_statuses = ['Active', 'Temporarily OOS', 'Pre Order', 'Samples']
+        allowed_skus = []
+        
         try:
-            magento_conn = get_magento_connection("uk")
-            with magento_conn.cursor() as cur:
-                cur.execute(
-                    """
-                    SELECT DISTINCT cpe.sku
-                    FROM catalog_product_entity cpe
-                    LEFT JOIN catalog_product_entity_varchar cpev_discontinued_status
-                        ON cpe.entity_id = cpev_discontinued_status.entity_id
-                        AND cpev_discontinued_status.attribute_id = (
-                            SELECT attribute_id 
-                            FROM eav_attribute 
-                            WHERE attribute_code = 'discontinued_status' 
-                            AND entity_type_id = (
-                                SELECT entity_type_id 
-                                FROM eav_entity_type 
-                                WHERE entity_type_code = 'catalog_product'
-                            )
-                        )
-                        AND cpev_discontinued_status.store_id = 0
-                    WHERE cpe.sku = ANY(%s)
-                      AND COALESCE(cpev_discontinued_status.value, 'Active') IN ('Active', 'Temporarily OOS', 'Pre Order', 'Samples')
-                    """,
-                    (csv_skus,)
-                )
-                allowed = [str(r[0]).strip() for r in cur.fetchall()]
-                logger.info(f"CSV validation: {len(allowed)}/{len(csv_skus)} SKUs found in Magento with valid discontinued_status")
-        finally:
-            if magento_conn and magento_conn.open:
-                magento_conn.close()
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT sku 
+                    FROM inventory_metadata 
+                    WHERE sku = ANY(%s)
+                      AND status = ANY(%s)
+                """, (csv_skus, allowed_statuses))
+                allowed_skus = [str(row[0]).strip() for row in cur.fetchall()]
+                logger.info(f"CSV validation: {len(allowed_skus)}/{len(csv_skus)} SKUs found in inventory_metadata with valid status")
+        except Exception as e:
+            logger.error(f"Error validating CSV SKUs against inventory_metadata: {e}")
+            return []
         
-        return self._resolve_to_rows(conn, allowed, preferred_region=preferred_region)
+        return self._resolve_to_rows(conn, allowed_skus, preferred_region=preferred_region)
