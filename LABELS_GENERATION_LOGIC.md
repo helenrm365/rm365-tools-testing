@@ -1,9 +1,9 @@
 # Labels Generation Logic Documentation
 
 ## Overview
-The Labels Generation system creates product labels with barcodes, prices, and sales data. It uses the **same data architecture as Inventory Management** for consistency - fetching products directly from UK Magento database, filtering by custom discontinued_status attribute, and using aggregated sales tables for 6M data.
+The Labels Generation system creates product labels with barcodes, prices, and sales data. It uses the **same data architecture as Inventory Management** for consistency - fetching products directly from UK Magento database, normalizing ALL variants to base SKUs, filtering by variant discontinued_status values, and using aggregated sales tables for 6M data.
 
-**Key Principle:** Labels and Inventory Management share identical product sourcing, filtering, and 6M data logic to ensure consistency across the system.
+**Key Principle:** Labels and Inventory Management share identical product sourcing, variant normalization, status filtering, and 6M data logic to ensure consistency across the system.
 
 ---
 
@@ -28,13 +28,22 @@ The Labels Generation system creates product labels with barcodes, prices, and s
 
 **Default Filter:** `['Active', 'Temporarily OOS', 'Pre Order', 'Samples']`
 
+**Variant Status Logic:**
+- ALL variants (e.g., PROD123-MD, PROD123-SD) normalize to base SKU (PROD123)
+- System tracks ALL discontinued_status values from ALL variants in a `variant_statuses` array
+- Filtering matches if ANY variant has a matching status
+- Example: PROD123-MD is "Active", PROD123-SD is "Discontinued (RM)"
+  - Base PROD123 has variant_statuses: ["Active", "Discontinued (RM)"]
+  - Filtering for "Active" → Found (matches first variant)
+  - Filtering for "Discontinued (RM)" → Found (matches second variant)
+
 **Key Points:**
 - Uses Entity-Attribute-Value (EAV) structure to query custom attributes
 - Excludes products with no categories assigned (blank categories)
 - Excludes products with "AW365" in any category
 - Excludes products with no website assignment (blank product_websites)
 - Does NOT use Magento's enabled/disabled system status
-- Identical to Inventory Management product fetching
+- Identical to Inventory Management product fetching and variant normalization
 
 ### 2. Item IDs (Barcodes): inventory_metadata Table
 **Source:** PostgreSQL `inventory_metadata` table
@@ -97,45 +106,56 @@ The Labels Generation system creates product labels with barcodes, prices, and s
 
 ```
 1. FETCH PRODUCTS FROM UK MAGENTO
-   ↓ Query catalog_product_entity with discontinued_status filter
-   ├─→ Default: Active, Temporarily OOS, Pre Order, Samples
+   ↓ Query catalog_product_entity (all variants)
+   ├─→ Fetches ALL products including variants (MD, SD, DP, NP, MV)
+   ├─→ No filtering at this stage - get complete product list
    ├─→ Exclude products with no categories assigned
    ├─→ Exclude products with AW365 in any category
-   ├─→ Exclude products with no website assignment
-   └─→ Returns list of SKUs
+   └─→ Exclude products with no website assignment
    
-2. GROUP BY BASE SKU
-   ↓ Group variants by base (e.g., PROD123, PROD123-MD)
-   └─→ Prepare for MD merging
+2. NORMALIZE ALL VARIANTS TO BASE SKU
+   ↓ Strip ALL variant suffixes (-MD, -SD, -DP, -NP, -MV)
+   ├─→ PROD123-MD → PROD123
+   ├─→ PROD123-SD-2024 → PROD123
+   ├─→ PROD123-DP → PROD123
+   └─→ Group by base SKU
    
-3. CHOOSE SKU FOR EACH BASE
-   ↓ Select base or -MD variant per group
-   └─→ MD variants merge into base (matching 6M logic)
+3. COLLECT VARIANT STATUSES
+   ↓ For each base SKU, collect ALL discontinued_status values from its variants
+   ├─→ PROD123-MD: "Active" → variant_statuses: ["Active"]
+   ├─→ PROD123-SD: "Discontinued (RM)" → variant_statuses: ["Active", "Discontinued (RM)"]
+   └─→ Store in variant_statuses JSONB array
    
-4. LOAD ITEM IDs
+4. FILTER BY VARIANT STATUS
+   ↓ Apply discontinued_status filter to variant_statuses array
+   ├─→ Default: ['Active', 'Temporarily OOS', 'Pre Order', 'Samples']
+   ├─→ Keep product if ANY variant status matches filter
+   └─→ Returns filtered list of base SKUs
+   
+5. LOAD ITEM IDs
    ↓ Query inventory_metadata for barcodes
    └─→ sku → item_id mapping
    
-5. LOAD 6M DATA
+6. LOAD 6M DATA
    ↓ Query aggregated_orders tables
    ├─→ UK: uk_aggregated_orders
    ├─→ FR: fr_aggregated_orders + nl_aggregated_orders
    └─→ sku → (uk_6m, fr_6m) mapping
    
-6. LOAD PRICES
+7. LOAD PRICES
    ↓ Query orders_cache with region preference
    └─→ Latest price with currency symbol
    
-7. LOAD PRODUCT NAMES
+8. LOAD PRODUCT NAMES
    ↓ Query orders_cache with region preference
    └─→ Latest product name
    
-8. BUILD LABEL DATA
+9. BUILD LABEL DATA
    ↓ Combine all data for each product
-   └─→ {item_id, sku, name, uk_6m, fr_6m, price}
+   └─→ {item_id, sku, name, uk_6m, fr_6m, price, variant_statuses}
    
-9. GENERATE LABEL FILE
-   └─→ Output in selected format (PDF/CSV)
+10. GENERATE LABEL FILE
+    └─→ Output in selected format (PDF/CSV)
 ```
 
 ---
@@ -169,15 +189,27 @@ The Labels Generation system creates product labels with barcodes, prices, and s
 
 ## Filtering Logic
 
-### 1. Product Status Filter
-**Applied:** When fetching products from UK Magento
+### 1. Variant Status Filter (Primary)
+**Applied:** After variant normalization, during Python filtering
 
 **Logic:**
-```sql
-WHERE COALESCE(discontinued_status, 'Active') IN ('Active', 'Temporarily OOS', 'Pre Order', 'Samples')
+```python
+# Collect all discontinued_status values from all variants
+variant_statuses = [variant['discontinued_status'] for variant in variants]
+
+# Filter: Keep if ANY variant status matches filter criteria
+matches = any(status in allowed_statuses for status in variant_statuses)
+
+# Default allowed_statuses: ['Active', 'Temporarily OOS', 'Pre Order', 'Samples']
 ```
 
-**Purpose:** Only include products with appropriate statuses for label generation
+**Purpose:** Include products where ANY variant has an appropriate status for label generation
+
+**Examples:**
+- PROD123-MD: "Active", PROD123-SD: "Discontinued (RM)"
+  - Filter for ["Active"] → ✅ Included (MD variant is Active)
+  - Filter for ["Discontinued (RM)"] → ✅ Included (SD variant is Discontinued)
+  - Filter for ["Temporarily OOS"] → ❌ Excluded (no variant matches)
 
 **Customizable:** API accepts comma-separated list of statuses to override defaults
 
@@ -285,11 +317,12 @@ Each label contains:
 | Field | Source | Description |
 |-------|--------|-------------|
 | `item_id` | inventory_metadata | 18-digit barcode |
-| `sku` | UK Magento catalog | Product SKU (base or -MD) |
+| `sku` | UK Magento catalog | Product SKU (always base form) |
 | `product_name` | orders_cache | Latest product name |
 | `uk_6m_data` | uk_aggregated_orders | UK 6-month sales quantity |
 | `fr_6m_data` | fr + nl aggregated | FR+NL 6-month sales quantity |
 | `price` | orders_cache | Latest price with currency |
+| `variant_statuses` | UK Magento (internal) | Array of all variant statuses (used for filtering) |
 
 **Example Label Data:**
 ```json
@@ -299,9 +332,12 @@ Each label contains:
   "product_name": "Premium Face Serum 30ml",
   "uk_6m_data": "450",
   "fr_6m_data": "320",
-  "price": "£24.99"
+  "price": "£24.99",
+  "variant_statuses": ["Active", "Temporarily OOS"]
 }
 ```
+
+**Note:** `variant_statuses` is used internally for filtering but may not appear in the actual label output (PDF/CSV).
 
 ---
 
@@ -398,8 +434,9 @@ Labels module requires connections to:
 | Feature | Labels | Inventory Management |
 |---------|--------|---------------------|
 | Product Source | UK Magento catalog_product_entity | UK Magento catalog_product_entity |
-| Filtering | discontinued_status attribute | discontinued_status attribute |
-| MD Merging | Only MD merges | Only MD merges |
+| Filtering | variant_statuses (ANY match) | variant_statuses (ANY match) |
+| Variant Normalization | ALL variants → base SKU | ALL variants → base SKU |
+| Status Tracking | variant_statuses JSONB array | variant_statuses JSONB array |
 | 6M Data Source | aggregated_orders tables | aggregated_orders tables |
 | Item IDs | From inventory_metadata | From inventory_metadata |
 | Prices | From orders_cache (region pref) | Not shown |
@@ -407,7 +444,7 @@ Labels module requires connections to:
 | CSV Upload | Yes (selective generation) | No |
 | Region Preference | Yes (price/name) | No (always UK) |
 
-**Key Difference:** Labels adds pricing and regional preferences, but uses identical underlying data architecture.
+**Key Difference:** Labels adds pricing and regional preferences, but uses **100% identical** variant normalization, status tracking, and filtering logic as Inventory Management.
 
 ---
 
