@@ -3,6 +3,8 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta
 import logging
 import requests
+import json
+import re
 
 from .repo import InventoryManagementRepo
 from core.config import settings
@@ -94,6 +96,68 @@ class InventoryManagementService:
             # Note: Filtering by categories (AW365), websites, and empty categories is done in the repo
             all_products = self.repo.get_magento_products(status_filters=None)
             
+            # Normalize variant SKUs to base SKUs and collect all variant statuses
+            # If PROD123 or any variant (PROD123-SD, PROD123-MD, etc) exists in Magento, show PROD123
+            identifier_pattern = re.compile(r'-(?:MD|SD|DP|NP|MV)(?:-.*)?$', re.IGNORECASE)
+            
+            # Group products by base SKU and collect all statuses
+            base_sku_data = {}  # {base_sku: {'product': {...}, 'statuses': set()}}
+            for product in all_products:
+                sku = product.get('sku', '')
+                discontinued_status = product.get('discontinued_status') or 'Active'
+                
+                # Determine base SKU
+                if identifier_pattern.search(sku):
+                    base_sku = identifier_pattern.sub('', sku)
+                else:
+                    base_sku = sku
+                
+                # Initialize or update base SKU data
+                if base_sku not in base_sku_data:
+                    base_sku_data[base_sku] = {
+                        'product': product,  # Keep first product for details
+                        'statuses': set()
+                    }
+                
+                # Add this variant's status to the collection
+                base_sku_data[base_sku]['statuses'].add(discontinued_status)
+            
+            # Update inventory_metadata with variant_statuses for each base SKU
+            # This tracks which statuses are currently active for each product
+            conn = self.repo.get_metadata_connection()
+            try:
+                cursor = conn.cursor()
+                for base_sku, data in base_sku_data.items():
+                    statuses_list = sorted(list(data['statuses']))  # Convert set to sorted list
+                    cursor.execute("""
+                        UPDATE inventory_metadata
+                        SET variant_statuses = %s, updated_at = NOW()
+                        WHERE sku = %s
+                    """, (json.dumps(statuses_list), base_sku))
+                conn.commit()
+            except Exception as e:
+                logger.error(f"Error updating variant_statuses: {e}")
+                if conn:
+                    conn.rollback()
+            finally:
+                self.repo.return_connection(conn)
+            
+            # Create normalized product list with base SKUs
+            normalized_products = []
+            for base_sku, data in base_sku_data.items():
+                product = data['product']
+                normalized_product = {
+                    'sku': base_sku,  # Always use base SKU
+                    'name': product.get('name', ''),
+                    'categories': product.get('categories'),
+                    'additional_attributes': product.get('additional_attributes'),
+                    'discontinued_status': product.get('discontinued_status'),  # First variant's status
+                    'variant_statuses': sorted(list(data['statuses']))  # All statuses from variants
+                }
+                normalized_products.append(normalized_product)
+            
+            all_products = normalized_products
+            
             if not all_products:
                 return {
                     "items": [],
@@ -103,17 +167,27 @@ class InventoryManagementService:
                     "total_pages": 0
                 }
             
+            # Apply discontinued_status filter if provided
+            # Filter by ANY of the variant statuses (check if any match)
+            if discontinued_status and discontinued_status.strip():
+                allowed_statuses = [s.strip() for s in discontinued_status.split(",") if s.strip()]
+                filtered_products = [
+                    product for product in all_products
+                    if any(status in allowed_statuses for status in product.get('variant_statuses', []))
+                ]
+                logger.info(f"Status filter '{discontinued_status}' filtered to {len(filtered_products)} products")
+            else:
+                filtered_products = all_products
+            
             # Apply search filter if provided
             if search and search.strip():
                 search_lower = search.strip().lower()
                 filtered_products = [
-                    product for product in all_products
+                    product for product in filtered_products
                     if (search_lower in (product.get("name") or "").lower() or
                         search_lower in (product.get("sku") or "").lower())
                 ]
                 logger.info(f"Search '{search}' filtered to {len(filtered_products)} products")
-            else:
-                filtered_products = all_products
             
             total_items = len(filtered_products)
             total_pages = (total_items + per_page - 1) // per_page if total_items > 0 else 1

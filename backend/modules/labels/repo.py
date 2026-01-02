@@ -13,45 +13,45 @@ class LabelsRepo:
     @staticmethod
     def _base_of(sku: str) -> str:
         """
-        Get base SKU by stripping ONLY -MD suffix (not -SD, -DP, -NP, -MV).
-        Matches inventory management and 6M data logic - only MD variants merge.
+        Get base SKU by stripping ALL identifier suffixes (-MD, -SD, -DP, -NP, -MV).
+        Matches inventory management logic - all variants normalize to base SKU.
         
         Examples:
         - PROD123 -> PROD123
         - PROD123-MD -> PROD123
-        - PROD123-MD-2024 -> PROD123
-        - PROD123-SD -> PROD123-SD (stays separate)
+        - PROD123-SD-2024 -> PROD123
+        - PROD123-DP -> PROD123
         - AB-123 -> AB-123 (not split on first dash)
         """
         import re
         if not sku:
             return ""
-        # Pattern to match -MD with optional -xxxx suffix at the end
-        pattern = re.compile(r'-MD(?:-.*)?$', re.IGNORECASE)
+        # Pattern to match all identifier suffixes with optional -xxxx extension
+        pattern = re.compile(r'-(?:MD|SD|DP|NP|MV)(?:-.*)?$', re.IGNORECASE)
         return pattern.sub('', sku).strip()
 
     @classmethod
     def _choose_sku_for_base(cls, base: str, variants: List[str]) -> Optional[str]:
         """
-        ALWAYS return the base SKU (with -MD stripped).
-        This matches 6M data logic which ALWAYS strips -MD unconditionally.
+        ALWAYS return the base SKU (with all identifier suffixes stripped).
+        This matches inventory management logic which normalizes ALL variants to base.
         
-        Why: The aggregated_orders tables strip -MD via SQL regex, so:
-        - If catalog has PROD123-MD, aggregated table has PROD123
+        Why: The aggregated_orders tables strip suffixes via SQL regex, so:
+        - If catalog has PROD123-MD/SD/DP/NP/MV, aggregated table has PROD123
         - If catalog has PROD123, aggregated table has PROD123
         - We must ALWAYS query by base SKU to match aggregated data
         
-        Similarly, inventory_metadata merges MD variants:
-        - Deletes -MD if base exists
-        - Renames -MD to base if base doesn't exist
-        - So inventory_metadata only has base SKUs after merge
+        Similarly, inventory_metadata normalizes all variants:
+        - Deletes variant if base exists
+        - Renames variant to base if base doesn't exist
+        - So inventory_metadata only has base SKUs after normalization
         
         Args:
-            base: Base SKU (with -MD suffix already stripped by _base_of)
+            base: Base SKU (with all suffixes already stripped by _base_of)
             variants: List of SKU variants in this group (unused - base always wins)
         
         Returns:
-            Always returns base SKU (never MD variant)
+            Always returns base SKU (never variant)
         """
         return base if base else None
 
@@ -80,11 +80,9 @@ class LabelsRepo:
         try:
             magento_conn = get_magento_connection("uk")
             with magento_conn.cursor() as cur:
-                # Build IN clause for discontinued_status filtering
-                placeholders = ','.join(['%s'] * len(product_statuses))
-                
-                query = f"""
-                    SELECT DISTINCT cpe.sku
+                # Build query without parameterization in WHERE clause (collect all, filter in Python)
+                query = """
+                    SELECT DISTINCT cpe.sku, cpev_discontinued_status.value as discontinued_status
                     FROM catalog_product_entity cpe
                     LEFT JOIN catalog_product_entity_varchar cpev_discontinued_status
                         ON cpe.entity_id = cpev_discontinued_status.entity_id
@@ -116,21 +114,45 @@ class LabelsRepo:
                         AND ccev.store_id = 0
                     WHERE cpe.sku IS NOT NULL 
                         AND cpe.sku != ''
-                        AND COALESCE(cpev_discontinued_status.value, 'Active') IN ({placeholders})
                         AND EXISTS (
                             SELECT 1 FROM catalog_product_website cpw 
                             WHERE cpw.product_id = cpe.entity_id
                         )
-                    GROUP BY cpe.entity_id, cpe.sku
+                    GROUP BY cpe.entity_id, cpe.sku, cpev_discontinued_status.value
                     HAVING GROUP_CONCAT(DISTINCT ccev.value ORDER BY ccev.value SEPARATOR ',') IS NOT NULL
                         AND NOT (
                             GROUP_CONCAT(DISTINCT ccev.value ORDER BY ccev.value SEPARATOR ',') LIKE '%AW365%'
                         )
                     ORDER BY cpe.sku
                 """
-                cur.execute(query, product_statuses)
-                skus = [str(r[0]).strip() for r in cur.fetchall()]
-                logger.info(f"Fetched {len(skus)} SKUs from UK Magento catalog with discontinued_status filter (excluding AW365 categories and products without websites)")
+                cur.execute(query)
+                
+                # Get all products and group by base SKU to collect variant statuses
+                import re
+                identifier_pattern = re.compile(r'-(?:MD|SD|DP|NP|MV)(?:-.*)?$', re.IGNORECASE)
+                
+                base_sku_statuses = {}  # {base_sku: set of statuses}
+                for row in cur.fetchall():
+                    sku = str(row[0]).strip()
+                    discontinued_status = row[1] if row[1] else 'Active'
+                    
+                    # Determine base SKU
+                    if identifier_pattern.search(sku):
+                        base_sku = identifier_pattern.sub('', sku)
+                    else:
+                        base_sku = sku
+                    
+                    # Collect statuses for this base SKU
+                    if base_sku not in base_sku_statuses:
+                        base_sku_statuses[base_sku] = set()
+                    base_sku_statuses[base_sku].add(discontinued_status)
+                
+                # Filter base SKUs that have ANY of the requested statuses
+                skus = [
+                    base_sku for base_sku, statuses in base_sku_statuses.items()
+                    if any(status in product_statuses for status in statuses)
+                ]
+                logger.info(f"Fetched {len(skus)} base SKUs from UK Magento catalog with discontinued_status filter (excluding AW365 categories and products without websites)")
                 return skus
         except Exception as e:
             logger.error(f"Error fetching SKUs from UK Magento: {e}")
@@ -376,16 +398,16 @@ class LabelsRepo:
         preferred_region: str = "uk",  # region preference for price/name selection
     ) -> List[Dict[str, Any]]:
         """
-        Process SKUs: merge MD variants, fetch item IDs, 6M data, prices, and names.
+        Process SKUs: normalize all variants to base SKU, fetch item IDs, 6M data, prices, and names.
         Uses same logic as inventory management:
-        - Item IDs from inventory_metadata
+        - Item IDs from inventory_metadata (normalized to base SKUs)
         - 6M data from aggregated_orders tables (UK, FR+NL combined)
         - Prices/names from magento orders_cache tables
-        - Only MD variants merge (same as 6M data aggregation)
+        - ALL variants (MD, SD, DP, NP, MV) normalize to base SKU
         
         Args:
             inventory_conn: Connection to inventory_logs database (for inventory_metadata)
-            candidate_skus: List of SKUs to process
+            candidate_skus: List of base SKUs to process (already normalized)
             preferred_region: Region preference for pricing (uk/fr/nl)
         """
         if not candidate_skus:
@@ -401,13 +423,13 @@ class LabelsRepo:
         with products_conn() as prod_conn:
             sixm_data_map = self._load_6m_data_from_aggregated_tables(prod_conn)
 
-        # Group by base SKU (MD variants will merge)
+        # Group by base SKU (all variants will normalize)
         grouped: Dict[str, List[str]] = {}
         for sku in candidate_skus:
             base = self._base_of(sku)
             grouped.setdefault(base, []).append(sku)
 
-        # Choose base or -MD per group (MD variants merge into base)
+        # Choose base for each group (all variants normalize to base)
         chosen_by_base: Dict[str, str] = {}
         for base, variants in grouped.items():
             chosen = self._choose_sku_for_base(base, variants)
@@ -455,7 +477,7 @@ class LabelsRepo:
             
             out.append({
                 "item_id": item_id,           # barcode from inventory_metadata
-                "sku": sku_used,              # chosen SKU (base or -MD)
+                "sku": sku_used,              # base SKU (all variants normalized)
                 "product_name": product_name, # from magento orders_cache
                 "uk_6m_data": uk_6m,          # from uk_aggregated_orders
                 "fr_6m_data": fr_6m,          # from fr_aggregated_orders + nl_aggregated_orders
@@ -471,7 +493,8 @@ class LabelsRepo:
         Fetch products from UK Magento catalog database filtered by discontinued_status attribute.
         Uses same logic as inventory management:
         - Fetches from catalog_product_entity with EAV attributes
-        - Filters by custom discontinued_status attribute
+        - Filters by custom discontinued_status attribute (checks ANY variant status)
+        - Normalizes ALL variants (MD, SD, DP, NP, MV) to base SKU
         - Gets item IDs from inventory_metadata
         - Gets 6M data from aggregated_orders tables
         - Gets prices/names from orders_cache tables
@@ -480,6 +503,7 @@ class LabelsRepo:
             conn: database connection to inventory_logs database (for inventory_metadata)
             product_statuses: list of discontinued_status values to filter by (e.g., ['Active', 'Temporarily OOS'])
                             If None, defaults to ['Active', 'Temporarily OOS', 'Pre Order', 'Samples']
+                            Products with ANY variant matching these statuses will be included
             preferred_region: "uk" (default), "fr", or "nl" - determines price/name priority
         """
         magento_skus = self._fetch_allowed_skus_from_magento_psycopg(conn, product_statuses)

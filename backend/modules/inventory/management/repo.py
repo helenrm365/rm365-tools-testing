@@ -4,13 +4,15 @@ from datetime import datetime
 import psycopg2
 import logging
 import hashlib
+import json
 
 from common.deps import pg_conn
 from core.db import (
     get_inventory_log_connection, 
     get_products_connection,
     return_inventory_connection,
-    return_psycopg_connection
+    return_psycopg_connection,
+    return_products_connection
 )
 from modules.magentodata.db import get_magento_connection
 
@@ -72,17 +74,31 @@ class InventoryManagementRepo:
             cursor.execute("""
                 SELECT sku, item_id, location, date, qty_ordered_jason, shelf_lt1, shelf_lt1_qty,
                        shelf_gt1, shelf_gt1_qty, top_floor_expiry, top_floor_total,
-                       status, uk_fr_preorder, uk_6m_data, fr_6m_data
+                       status, uk_fr_preorder, uk_6m_data, fr_6m_data, variant_statuses
                 FROM inventory_metadata
                 ORDER BY sku
             """)
             
             columns = ['sku', 'item_id', 'location', 'date', 'qty_ordered_jason', 'shelf_lt1', 'shelf_lt1_qty',
                       'shelf_gt1', 'shelf_gt1_qty', 'top_floor_expiry', 'top_floor_total',
-                      'status', 'uk_fr_preorder', 'uk_6m_data', 'fr_6m_data']
+                      'status', 'uk_fr_preorder', 'uk_6m_data', 'fr_6m_data', 'variant_statuses']
             rows = cursor.fetchall()
             
-            return [dict(zip(columns, row)) for row in rows]
+            # Parse variant_statuses JSON if present
+            result = []
+            for row in rows:
+                row_dict = dict(zip(columns, row))
+                # Parse variant_statuses from JSON string to list
+                if row_dict.get('variant_statuses'):
+                    try:
+                        row_dict['variant_statuses'] = json.loads(row_dict['variant_statuses']) if isinstance(row_dict['variant_statuses'], str) else row_dict['variant_statuses']
+                    except:
+                        row_dict['variant_statuses'] = []
+                else:
+                    row_dict['variant_statuses'] = []
+                result.append(row_dict)
+            
+            return result
             
         except psycopg2.Error as e:
             logger.error(f"Database error in load_inventory_metadata: {e}")
@@ -185,7 +201,7 @@ class InventoryManagementRepo:
             rows = cursor.fetchall()
             return {sku: int(qty or 0) for sku, qty in rows}
         finally:
-            self.return_connection(conn)
+            return_products_connection(conn)
 
     def init_tables(self) -> None:
         """Initialize inventory metadata tables"""
@@ -210,6 +226,7 @@ class InventoryManagementRepo:
                     status VARCHAR(50) DEFAULT 'Active',
                     uk_fr_preorder TEXT,
                     fr_6m_data TEXT,
+                    variant_statuses JSONB,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
@@ -282,6 +299,15 @@ class InventoryManagementRepo:
                 """)
             except Exception as e:
                 logger.debug(f"Column discontinued_status addition skipped (may already exist): {e}")
+            
+            # Add variant_statuses column to inventory_metadata (migration for existing tables)
+            try:
+                cursor.execute("""
+                    ALTER TABLE inventory_metadata 
+                    ADD COLUMN IF NOT EXISTS variant_statuses JSONB
+                """)
+            except Exception as e:
+                logger.debug(f"Column variant_statuses addition skipped (may already exist): {e}")
             
             # Create index on discontinued_status for fast filtering
             try:
@@ -544,18 +570,23 @@ class InventoryManagementRepo:
 
     def merge_identifier_products(self) -> Dict[str, int]:
         """
-        Merge products with -MD suffix into their base SKU products (ONLY MD variants merge).
-        Also handles extended MD variants like -MD-xxxx.
-        This matches the 6M Data logic where SD, DP, NP, MV variants stay separate.
+        Normalize all products to use their base SKU - removes all identifier suffixes (-MD, -SD, -DP, -NP, -MV).
+        Also handles extended variants like -MD-xxxx.
+        
+        Logic:
+        - If base SKU exists: delete the variant (merge into base)
+        - If base SKU doesn't exist: rename variant to base SKU
+        - Result: ALL products use base SKU form, no suffixes remain
+        
         This operates on inventory_metadata table (not magento_product_list).
         This should be called BEFORE ensure_all_products_have_item_ids() so that item IDs are generated
         after merging is complete.
         
         Process:
-        1. Find all products with -MD suffix in inventory_metadata
-        2. For each, check if base SKU product exists
-        3. If base exists: delete the MD variant (data merged conceptually via sales aggregation)
-        4. If base doesn't exist: rename the MD SKU to base SKU
+        1. Find all products with identifier suffixes in inventory_metadata
+        2. For each, extract the base SKU by removing suffix
+        3. If base exists: delete the variant (merge into base)
+        4. If base doesn't exist: rename variant to base SKU
         
         Returns stats about the operation.
         """
@@ -564,9 +595,8 @@ class InventoryManagementRepo:
         try:
             cursor = conn.cursor()
             
-            # ONLY MD identifiers merge (matching 6M data logic)
-            # Regex pattern to match -MD with optional -xxxx suffix
-            identifier_pattern_regex = re.compile(r'-MD(?:-.*)?$', re.IGNORECASE)
+            # Pattern to match all identifier suffixes: -MD, -SD, -DP, -NP, -MV (with optional -xxxx extension)
+            identifier_pattern_regex = re.compile(r'-(?:MD|SD|DP|NP|MV)(?:-.*)?$', re.IGNORECASE)
             
             stats = {
                 "total_checked": 0,
@@ -576,10 +606,11 @@ class InventoryManagementRepo:
                 "base_created": 0
             }
             
-            # Find all products with -MD suffix (including -MD-xxxx variants)
+            # Find all products with identifier suffixes (including -XX-xxxx variants)
+            # Use ILIKE for case-insensitive matching since ~ is case-sensitive by default
             cursor.execute("""
                 SELECT sku FROM inventory_metadata
-                WHERE sku LIKE '%-MD%'
+                WHERE sku ~* '-(MD|SD|DP|NP|MV)'
                 ORDER BY sku
             """)
             
@@ -588,11 +619,11 @@ class InventoryManagementRepo:
             identifier_skus = [sku for sku in all_skus if identifier_pattern_regex.search(sku)]
             stats["total_checked"] = len(identifier_skus)
             
-            logger.info(f"Found {len(identifier_skus)} products with -MD suffix in inventory_metadata")
+            logger.info(f"Found {len(identifier_skus)} products with identifier suffixes in inventory_metadata")
             
-            # Process each MD SKU
+            # Process each identifier SKU
             for sku in identifier_skus:
-                # Determine base SKU by removing -MD suffix (and any -xxxx extension)
+                # Determine base SKU by removing identifier suffix (and any -xxxx extension)
                 base_sku = identifier_pattern_regex.sub('', sku)
                 
                 # Check if base SKU already exists
@@ -604,7 +635,7 @@ class InventoryManagementRepo:
                 base_exists = cursor.fetchone()
                 
                 if base_exists:
-                    # Base exists - delete the MD variant
+                    # Base exists - delete the variant (merge into base)
                     # (sales data will be aggregated via the sales aggregation logic)
                     cursor.execute("""
                         DELETE FROM inventory_metadata
@@ -612,9 +643,9 @@ class InventoryManagementRepo:
                     """, (sku,))
                     stats["deleted"] += 1
                     stats["base_existed"] += 1
-                    logger.debug(f"Deleted {sku} (base {base_sku} exists)")
+                    logger.debug(f"Deleted {sku} (merged into base {base_sku})")
                 else:
-                    # Base doesn't exist - rename MD SKU to base SKU
+                    # Base doesn't exist - rename variant to base SKU
                     cursor.execute("""
                         UPDATE inventory_metadata
                         SET sku = %s, updated_at = NOW()
@@ -626,7 +657,7 @@ class InventoryManagementRepo:
             
             conn.commit()
             
-            logger.info(f"✅ MD merge complete: {stats['deleted']} deleted, {stats['renamed']} renamed")
+            logger.info(f"✅ Identifier normalization complete: {stats['deleted']} merged, {stats['renamed']} renamed to base SKU")
             
             return stats
             

@@ -51,9 +51,9 @@ The Inventory Management system tracks product inventory data, including stock l
 **Purpose:** Warehouse data and sales metadata (persistent across syncs)
 
 **Columns:**
-- `sku` (PRIMARY KEY) - Product SKU
+- `sku` (PRIMARY KEY) - Product SKU (always normalized to base SKU)
 - `item_id` (UNIQUE) - Generated 18-digit ID (format: 772578000000491823)
-- `location` - ???
+- `location` - Warehouse location
 - `date` - Last inventory date
 - `qty_ordered_jason` - Quantity ordered by Jason
 - `uk_6m_data` - UK 6-month sales quantity (populated by magento sync)
@@ -66,12 +66,15 @@ The Inventory Management system tracks product inventory data, including stock l
 - `top_floor_total` - Total quantity of products in top floor
 - `status` - Product status (Overstock/Low Stock)
 - `uk_fr_preorder` - Pre-order information
+- `variant_statuses` (JSONB) - Array of all discontinued statuses from variants (e.g., ["Active", "Pre Order", "Special Offer"])
 - `created_at` - Creation timestamp
 - `updated_at` - Last update timestamp
 
 **Key Points:**
 - This table **persists** warehouse data across catalog re-imports
 - SKU is primary key (item_id is derived from SKU)
+- **All SKUs are normalized to base form** (no -MD, -SD, -DP, -NP, -MV suffixes)
+- `variant_statuses` tracks all discontinued_status values from all variants
 - 6M data fields are **only** updated by magento sync process
 - Manual inventory updates don't touch 6M data fields
 
@@ -81,9 +84,7 @@ The Inventory Management system tracks product inventory data, including stock l
 
 ### Step-by-Step Process (when page loads)
 
-```
-1. ENSURE TABLES EXIST
-   ↓ Create inventory_metadata table if it doesn't exist
+```↓ Add variant_statuses column if missing (migration)
    
 2. SYNC MAGENTO → METADATA
    ↓ Fetch ALL products from UK Magento catalog_product_entity
@@ -94,25 +95,43 @@ The Inventory Management system tracks product inventory data, including stock l
    ├─→ Filters out products with no website assignment (blank product_websites)
    └─→ Does NOT filter by enabled/disabled status (all products synced)
    
-3. MERGE IDENTIFIER PRODUCTS
-   ↓ Consolidate variant SKUs into base SKUs
+3. NORMALIZE IDENTIFIER PRODUCTS
+   ↓ Consolidate ALL variant SKUs (-MD, -SD, -DP, -NP, -MV) into base SKUs
+   ├─→ If base SKU exists: DELETE variant (merge into base)
+   ├─→ If base SKU doesn't exist: RENAME variant to base SKU
    └─→ Happens BEFORE item ID generation
    
 4. GENERATE ITEM IDs
    ↓ Assign 18-digit IDs to products without them
    └─→ ID is SHA-256 hash of SKU in legacy format
    
-5. FETCH PRODUCTS
-   ↓ Get from UK Magento database (live query)
-   └─→ Optional filtering by discontinued_status attribute
+5. FETCH PRODUCTS FROM MAGENTO
+   ↓ Get ALL products from UK Magento database (live query)
+   └─→ Includes base SKUs and all variants with their discontinued_status
    
-6. FETCH METADATA
+6. NORMALIZE & COLLECT VARIANT STATUSES
+   ↓ Group products by base SKU
+   ├─→ PROD123 → Active
+   ├─→ PROD123-MD → Pre Order       } All grouped under PROD123
+   ├─→ PROD123-SD → Special Offer   }
+   ├─→ PROD123-MV → Discontinued    }
+   ├─→ Collect all statuses: ["Active", "Pre Order", "Special Offer", "Discontinued"]
+   └─→ Update inventory_metadata.variant_statuses for base SKU
+   
+7. FILTER BY DISCONTINUED STATUS (if provided)
+   ↓ Check if ANY variant status matches filter
+   └─→ Filter "Active,Pre Order" → finds PROD123 (has both statuses)
+   
+8. FETCH METADATA
    ↓ Get all inventory_metadata records
-   └─→ Contains item_id, locations, quantities, 6M data
+   └─→ Contains item_id, locations, quantities, 6M data, variant_statuses
    
-7. POPULATE 6M DATA
+9. POPULATE 6M DATA
    ↓ Fetch aggregated sales from uk/fr/nl_aggregated_orders tables
    └─→ Merge into items as custom_fields
+   
+10. RETURN TO FRONTEND
+    └─→ Items with merged Magento product + metadata + sales data + variant_statuses
    
 8. RETURN TO FRONTEND
    └─→ Items with merged Magento product + metadata + sales data
@@ -120,48 +139,197 @@ The Inventory Management system tracks product inventory data, including stock l
 
 ---
 
-## SKU Variant Merging
+## SKU Variant Normalization
 
-### Same Logic as 6M Data (ONLY MD Merges)
+### All Products Use Base SKU
 
-Inventory Management uses **identical merging logic to Magento 6M Data** - only MD variants merge with their base SKU:
+Inventory Management normalizes **all products to use their base SKU** - no identifier suffixes remain in the system:
 
-| Suffix Pattern | Meaning | Merged? |
+| Suffix Pattern | Meaning | Action |
 |---------------|---------|---------|
-| `-MD`, `-MD-xxxx` | Manager Decision | ✅ Yes |
-| `-SD`, `-SD-xxxx` | Short Date | ❌ No (stays separate) |
-| `-DP`, `-DP-xxxx` | Damaged Packaging | ❌ No (stays separate) |
-| `-NP`, `-NP-xxxx` | No Packaging | ❌ No (stays separate) |
-| `-MV`, `-MV-xxxx` | Missing Vials | ❌ No (stays separate) |
+| `-MD`, `-MD-xxxx` | Manager Decision | ✅ Normalized to base |
+| `-SD`, `-SD-xxxx` | Short Date | ✅ Normalized to base |
+| `-DP`, `-DP-xxxx` | Damaged Packaging | ✅ Normalized to base |
+| `-NP`, `-NP-xxxx` | No Packaging | ✅ Normalized to base |
+| `-MV`, `-MV-xxxx` | Missing Vials | ✅ Normalized to base |
 
 **Regex Pattern:**
 ```regex
--MD(?:-.*)?$
+-(?:MD|SD|DP|NP|MV)(?:-.*)?$
 ```
 
-### Merging Logic
+### Normalization Logic
 
 **Process (happens BEFORE item ID generation):**
 
-1. **Find all -MD variant SKUs** in `inventory_metadata`
-2. **Extract base SKU** by stripping -MD suffix
-3. **Check if base SKU exists:**
+1. **Find all identifier variant SKUs** in `inventory_metadata`
+2. **Extract base SKU** by stripping identifier suffix
+3. **Normalize to base SKU:**
 
    **If base SKU EXISTS:**
-   - **DELETE** the -MD variant record
-   - Sales data will aggregate to base via magento sync
+   - **DELETE** the variant record (merge into base)
+   - All data consolidates under base SKU
    - Example: `PROD123-MD` deleted, data goes to `PROD123`
    
    **If base SKU DOES NOT EXIST:**
-   - **RENAME** -MD SKU to base SKU
+   - **RENAME** variant to base SKU
    - Variant becomes the base product
    - Example: `PROD123-MD` renamed to `PROD123`
 
+**Result:** Every product in `inventory_metadata` uses its base SKU form. No suffixes remain.
+
+### Variant Status Tracking
+
+Each product tracks **all discontinued statuses** from its variants in the `variant_statuses` field (JSONB array):
+
+**Example Scenario:**
+
+Magento Catalog:
+```
+PROD123         → discontinued_status: "Active"
+PROD123-MD      → discontinued_status: "Pre Order"
+PROD123-SD-1234 → discontinued_status: "Special Offer"
+PROD123-MV      → discontinued_status: "Discontinued (RM)"
+```
+
+Result in `inventory_metadata`:
+```json
+{
+  "sku": "PROD123",
+  "variant_statuses": ["Active", "Discontinued (RM)", "Pre Order", "Special Offer"]
+}
+```
+
+**Filtering Behavior:**
+
+The system filters by checking if **ANY** variant status matches:
+
+| Filter Query | Finds PROD123? | Reason |
+|-------------|----------------|--------|
+| `Active` | ✅ Yes | Has "Active" status |
+| `Pre Order` | ✅ Yes | Has "Pre Order" status |
+| `Special Offer` | ✅ Yes | Has "Special Offer" status |
+| `Discontinued (RM)` | ✅ Yes | Has "Discontinued (RM)" status |
+| `Active,Pre Order` | ✅ Yes | Has at least one matching status |
+| `Temporarily OOS` | ❌ No | Does not have this status |
+
+**Dynamic Updates:**
+
+The `variant_statuses` array is **automatically updated** every page load:
+
+1. System fetches all products from Magento (base + variants)
+2. Groups them by base SKU
+3. Collects all discontinued_status values
+4. Updates `inventory_metadata.variant_statuses`
+
+**Example Update Scenario:**
+
+Initial state:
+```
+Magento: PROD123-SD → "Special Offer"
+Database: variant_statuses = ["Active", "Special Offer"]
+```
+
+After removing PROD123-SD from Magento:
+```
+Magento: Only PROD123 → "Active"
+Database: variant_statuses = ["Active"]  (Special Offer removed)
+Filter "Special Offer" → No longer finds PROD123 ✅
+```
+
+**Key Points:**
+- Statuses are refreshed on every page load
+- Reflects current state of Magento catalog
+- Automatically removes statuses when variants are deleted
+- Automatically adds statuses when new variants are added
+- Enables multi-status filtering (OR logic)
+- Products can be found by any of their variant statuses
+
+**Display Filtering:**
+- All variant SKUs from Magento are normalized to base SKU for display
+- Only base SKUs are shown in the inventory table
+- As long as ANY variant exists in Magento, the base SKU displays
+- This matches the normalized form in `inventory_metadata`
+
+### Edge Cases & Data Persistence
+
+**Case 1: Only Variants Exist (No Base SKU)**
+
+Initial State:
+```
+Magento: PROD123-SD-1625, PROD123-SD-1927 (no PROD123 base)
+```
+
+Process:
+1. Both variants synced to `inventory_metadata`
+2. Normalization runs (alphabetical order):
+   - `PROD123-SD-1625` → base doesn't exist → **renamed to PROD123**
+   - `PROD123-SD-1927` → base exists now → **deleted** (merged into PROD123)
+3. Display: Shows `PROD123` (because variants exist in Magento)
+
+After deleting `PROD123-SD-1625`:
+```
+Magento: PROD123-SD-1927 (only one variant left)
+Database: PROD123 (persists with data)
+Display: Still shows PROD123 ✅ (because variant still exists)
+```
+
+After deleting both variants:
+```
+Magento: Neither variant exists
+Database: PROD123 (persists with data but orphaned)
+Display: PROD123 disappears ❌ (no variants in Magento)
+```
+
+**Case 2: Base SKU Removed from Magento**
+
+Initial State:
+```
+Magento: PROD123, PROD123-MD
+Database: PROD123 (MD variant merged)
+```
+
+After removing base PROD123 from Magento:
+```
+Magento: PROD123-MD (only variant left)
+Database: PROD123 (persists with all data)
+Display: Still shows PROD123 ✅ (because -MD variant exists)
+```
+
+**Case 3: Base SKU Renamed in Magento**
+
+```
+Old: PROD123 → renamed to → New: PROD456
+
+Result:
+- PROD123 stays in inventory_metadata (orphaned with data)
+- PROD456 added as new record
+- No data transfer between old and new
+- Manual intervention needed to migrate data
+```
+
+**Case 4: Variant Added to Existing Product**
+
+```
+Before: Magento has PROD123 (Active)
+Database: PROD123 with variant_statuses = ["Active"]
+
+After: Add PROD123-MD (Pre Order) to Magento
+Next page load:
+- Syncs PROD123-MD to database
+- Normalization deletes PROD123-MD (merged into PROD123)
+- Updates variant_statuses = ["Active", "Pre Order"] ✅
+- Product now findable by both statuses
+```
+- As long as ANY variant exists in Magento, the base SKU displays
+- This matches the normalized form in `inventory_metadata`
+
 **Important Notes:**
-- This operates on `inventory_metadata` (NOT `magento_product_list`)
-- **Only MD variants merge** - all other variants (SD, DP, NP, MV) stay separate
-- Matches the 6M Data aggregation logic exactly
+- This operates on `inventory_metadata` (NOT Magento catalog)
+- All identifier variants (MD, SD, DP, NP, MV) are normalized to base SKU
 - Sales data aggregation happens separately via magento sync
+- System ensures consistent SKU format across all inventory records
+- Variant statuses are tracked dynamically based on current Magento data
 
 ---
 
@@ -568,16 +736,71 @@ LIMIT per_page OFFSET (page-1)*per_page
 2. Does product have categories assigned? (blank categories are filtered out)
 3. Do any categories contain "AW365"? (auto-filtered)
 4. Does product have a website assignment? (products without websites are filtered out)
-5. Was variant merging applied correctly?
-6. Is UK Magento database accessible?
-7. Try refreshing the inventory management page to force sync
-8. Are you filtering by `discontinued_status`? Check if the product has the right status value
+5. Is it a variant SKU? (all variants normalized to base SKU - check for base SKU instead)
+6. Was variant merging applied correctly?
+7. Is UK Magento database accessible?
+8. Try refreshing the inventory management page to force sync
+9. Are you filtering by `discontinued_status`? Check if ANY variant has that status
+
+### Product Shows as Empty/No Data
+**Possible Causes:**
+1. **Variant without base:** Product is a variant (e.g., PROD123-MD) but base PROD123 exists
+   - Variant data was merged into base SKU
+   - Look for the base SKU (PROD123) instead
+2. **Recently added:** First page load creates the record, subsequent loads populate data
+3. **Magento sync issue:** Check if UK Magento connection is working
+
+### Variant SKU Appearing Instead of Base
+**This should not happen** - if it does:
+1. Check normalization logs for errors
+2. Verify regex pattern is matching: `-(?:MD|SD|DP|NP|MV)(?:-.*)?$`
+3. Check if merge process completed successfully
+4. Database may need manual cleanup of variant records
+
+### Filtering Not Finding Product
+**Check variant_statuses:**
+1. Product found by ANY status in its `variant_statuses` array
+2. Example: Product has `["Active", "Pre Order"]`
+   - Filter "Active" → ✅ Found
+   - Filter "Pre Order" → ✅ Found  
+   - Filter "Special Offer" → ❌ Not found (doesn't have this status)
+3. Verify `variant_statuses` in database:
+   ```sql
+   SELECT sku, variant_statuses FROM inventory_metadata WHERE sku = 'PROD123';
+   ```
+4. Statuses update every page load - try refreshing
+
+### Orphaned Data (Product in Database but Not Displaying)
+**Cause:** Product exists in `inventory_metadata` but not in Magento catalog
+
+**Why it happens:**
+- Base SKU was deleted from Magento
+- All variants were removed from Magento
+- Product was renamed in Magento (old SKU orphaned)
+
+**Result:**
+- Data persists in `inventory_metadata` (with all warehouse info)
+- Product won't display in UI (requires Magento presence)
+- Manual intervention needed to reassign data or clean up
+
+**Fix:**
+- Re-add product to Magento (data will reappear)
+- Or manually delete from `inventory_metadata` if no longer needed
+- Or create base SKU in Magento if only variants exist
+
+### Database Connection Errors
+**Check:**
+1. `return_products_connection` import present in repo.py
+2. All database pool functions imported correctly
+3. Error logs for connection pool issues
+4. Database credentials in .env file
 
 ### Product Not Visible in UI
 **Check:**
 - Product should be synced to `inventory_metadata` if it passes the filters above
 - UI may be filtering by `discontinued_status` custom attribute
-- Check the product's `discontinued_status` value in Magento (stored in additional_attributes)
+- Check the product's `discontinued_status` value in Magento
+- Check `variant_statuses` array for all applicable statuses
 - Try removing status filters in the UI to see all products
 - `inventory_metadata` persists regardless of Magento status changes
 
