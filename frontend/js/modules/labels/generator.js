@@ -5,11 +5,17 @@ import { getToken } from '../../services/state/sessionStore.js';
 import { syncUKMagentoData, syncFRMagentoData, syncNLMagentoData } from '../../services/api/magentoDataApi.js';
 import { post } from '../../services/api/http.js';
 
-// Status filter preferences key
-const STATUS_FILTERS_KEY = 'labels_status_filters';
-
-// Default status filters (Active, Temporarily OOS, Pre Order, Samples checked by default)
-const DEFAULT_STATUS_FILTERS = ['Active', 'Temporarily OOS', 'Pre Order', 'Samples'];
+// Default status filters (ALL statuses checked by default)
+const DEFAULT_STATUS_FILTERS = [
+  'Active', 
+  'Temporarily OOS', 
+  'Pre Order', 
+  'Samples',
+  'Discontinued (Supplier)',
+  'Discontinued (RM)',
+  'Special Offer',
+  'Special Item'
+];
 
 let state = {
   allProducts: [],       // All products from API
@@ -17,37 +23,12 @@ let state = {
   displayedProducts: [], // Products after applying search filter
   selectedProducts: new Set(),
   selectAll: false,
-  statusFilters: [],
+  statusFilters: DEFAULT_STATUS_FILTERS,  // Always start with all filters
   region: "uk"           // Default region preference for prices/names
 };
 
-// Get saved status filters from localStorage
-function getSavedStatusFilters() {
-  try {
-    const saved = localStorage.getItem(STATUS_FILTERS_KEY);
-    if (saved) {
-      return JSON.parse(saved);
-    }
-  } catch (e) {
-    console.error('[Labels] Error loading saved filters:', e);
-  }
-  return DEFAULT_STATUS_FILTERS;
-}
-
-// Save status filters to localStorage
-function saveStatusFilters(filters) {
-  try {
-    localStorage.setItem(STATUS_FILTERS_KEY, JSON.stringify(filters));
-  } catch (e) {
-    console.error('[Labels] Error saving filters:', e);
-  }
-}
-
 export async function initLabelGenerator() {
-  // Load saved filters
-  state.statusFilters = getSavedStatusFilters();
-  
-  // Setup status filter checkboxes
+  // Setup status filter checkboxes (all checked by default)
   setupStatusFilterCheckboxes();
   
   // Setup region selection
@@ -100,9 +81,9 @@ async function handleStatusFilterChange() {
   const selectedFilters = Array.from(checkboxes)
     .filter(cb => cb.checked)
     .map(cb => cb.value);
-  // Save preferences
+  
+  // Update state (no localStorage saving)
   state.statusFilters = selectedFilters;
-  saveStatusFilters(selectedFilters);
   
   // Show loading state
   const applyBtn = document.getElementById('applyStatusFilters');
@@ -348,9 +329,9 @@ async function handleApplyStatusFilters() {
   const selectedFilters = Array.from(checkboxes)
     .filter(cb => cb.checked)
     .map(cb => cb.value);
-  // Save preferences
+  
+  // Update state (no localStorage saving)
   state.statusFilters = selectedFilters;
-  saveStatusFilters(selectedFilters);
   
   // Clear selections when changing filters
   state.selectedProducts.clear();

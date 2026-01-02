@@ -1,7 +1,7 @@
 # Labels Generation Logic Documentation
 
 ## Overview
-The Labels Generation system creates product labels with barcodes, prices, and sales data. It uses the **exact same data architecture as Inventory Management** for consistency. Instead of querying Magento directly, it leverages the `inventory_metadata` table as the single source of truth, ensuring that product lists, variant merging, and status filtering are identical across both systems.
+The Labels Generation system creates product labels with barcodes, prices, and sales data. It uses the **same data architecture as Inventory Management** for consistency. Instead of querying Magento directly, it leverages the `inventory_metadata` table as the single source of truth, ensuring that product lists, variant merging, and status filtering are identical across both systems.
 
 **Key Principle:** Labels and Inventory Management share identical product sourcing, variant normalization, status filtering, and 6M data logic to ensure consistency across the system.
 
@@ -21,14 +21,18 @@ The Labels Generation system creates product labels with barcodes, prices, and s
 2.  **Refresh:** System calls `InventoryManagementRepo.sync_magento_products_to_inventory_metadata()` to pull ALL products and their statuses from UK Magento.
 3.  **Merge:** System calls `InventoryManagementRepo.merge_identifier_products()` to normalize ALL variants (e.g., `-MD`, `-SD`) into base SKUs.
 4.  **Update Statuses:** System calls `InventoryManagementRepo.update_variant_statuses()` to refresh the `variant_statuses` JSONB array from live Magento data.
-5.  **Filter:** System queries `inventory_metadata` filtering by the `variant_statuses` column (JSONB array).
+5.  **Filter:** 
+    - **Database Mode:** Queries `inventory_metadata` filtering by the `variant_statuses` JSONB array (ANY match)
+    - **CSV Mode:** Queries `inventory_metadata` filtering by the `status` column (base SKU status only)
 
 **Data Fetched:**
 - `sku` - Base SKU from inventory_metadata
 - `variant_statuses` - Array of all variant statuses (e.g., `["Active", "Discontinued"]`)
-- `status` - Base SKU status (kept for reference)
+- `status` - Base SKU status (kept for reference, not used for filtering)
 
-**Default Filter:** `['Active', 'Temporarily OOS', 'Pre Order', 'Samples']`
+**Default Filter:** ALL statuses (all 8 checkboxes checked)
+
+**No Saved Preferences:** Filters always reset to default (all checked) on page load
 
 **Variant Status Logic:**
 - **Identical to Inventory Management:**
@@ -226,28 +230,35 @@ Result:
 ## Filtering Logic
 
 ### 1. Variant Status Filter (Primary)
-**Applied:** After variant normalization, during Python filtering
+**Applied:** After variant normalization, during SQL filtering
 
 **Logic:**
-```python
-# Collect all discontinued_status values from all variants
-variant_statuses = [variant['discontinued_status'] for variant in variants]
-
-# Filter: Keep if ANY variant status matches filter criteria
-matches = any(status in allowed_statuses for status in variant_statuses)
-
-# Default allowed_statuses: ['Active', 'Temporarily OOS', 'Pre Order', 'Samples']
+```sql
+-- Query inventory_metadata for SKUs where ANY variant status matches
+-- Uses variant_statuses JSONB array (identical to Inventory Management)
+SELECT sku FROM inventory_metadata 
+WHERE EXISTS (
+    SELECT 1 FROM jsonb_array_elements_text(variant_statuses) AS s 
+    WHERE s = ANY(allowed_statuses)
+)
 ```
 
-**Purpose:** Include products where ANY variant has an appropriate status for label generation
+**Default Behavior:**
+- **UI Default:** ALL 8 status checkboxes checked
+- **Result:** Shows all products (any variant with any status)
+- **Empty Selection:** No checkboxes → shows no products
+- **No Persistence:** Filters reset to default (all checked) on every page load
+
+**Purpose:** Include products where ANY variant has a checked status
 
 **Examples:**
 - PROD123-MD: "Active", PROD123-SD: "Discontinued (RM)"
-  - Filter for ["Active"] → ✅ Included (MD variant is Active)
-  - Filter for ["Discontinued (RM)"] → ✅ Included (SD variant is Discontinued)
-  - Filter for ["Temporarily OOS"] → ❌ Excluded (no variant matches)
+  - Filter ["Active"] checked → ✅ Included (MD variant is Active)
+  - Filter ["Discontinued (RM)"] checked → ✅ Included (SD variant is Discontinued)
+  - Filter ["Temporarily OOS"] only → ❌ Excluded (no variant matches)
+  - ALL filters checked → ✅ Included (has at least one matching status)
 
-**Customizable:** API accepts comma-separated list of statuses to override defaults
+**Customizable:** UI checkboxes control which statuses are included
 
 ### 2. AW365 Products Filter
 **Applied:** During product fetching from Magento
@@ -261,49 +272,70 @@ WHERE cpev_name.value NOT LIKE '%AW365%'
 
 **Note:** Same as Inventory Management filtering
 
-### 3. CSV Upload Validation (Optional)
-**Applied:** When generating labels from CSV upload
+### 3. Product Selection in UI
+**Applied:** When user manually selects products
 
 **Logic:**
-- User uploads CSV with SKU list
-- System validates each SKU against UK Magento catalog
-- Only includes SKUs with valid discontinued_status
-- Same filtering rules apply
+- User can select/deselect individual products in UI
+- If no products selected: generates labels for all displayed products
+- If products selected: generates labels only for selected products
+- Selection works within current filter context
 
-**Purpose:** Allow targeted label generation for specific products while maintaining data integrity
+**Purpose:** Allow targeted label generation for specific products or batches
 
 ---
 
-## Two Generation Modes
+## Label Generation Workflow
 
-### Mode 1: Database-Driven (Full Catalog)
-**Use Case:** Generate labels for all active products
+### UI-Driven Product Selection
 
-**Process:**
-1. Fetch all SKUs from UK Magento with status filter
-2. Apply MD merging
-3. Load all supporting data (item IDs, 6M, prices, names)
-4. Generate labels
+**Step 1: Filter Products (Status Checkboxes)**
+- **Default:** ALL 8 status checkboxes checked
+  - ✅ Active
+  - ✅ Temporarily OOS
+  - ✅ Pre Order
+  - ✅ Samples
+  - ✅ Special Offer
+  - ✅ Discontinued (Supplier)
+  - ✅ Discontinued (RM)
+  - ✅ Special Item
+- **No Saved Preferences:** Checkboxes always reset to all checked on page load
+- **Result:** By default, displays ALL products (any variant with any status)
+- **Empty Selection:** Uncheck all → displays no products
 
-**Advantages:**
-- Complete product list
-- Always up-to-date with catalog
-- No manual SKU management
+**Step 2: Search Filter (Optional)**
+- Search box filters within displayed products
+- Searches SKU, product name, item ID, price, and 6M data
+- Works in combination with status filters
+- Search does NOT trigger API call - filters client-side
+- Examples:
+  - All statuses checked (default) + Search "P001" → Shows all P001 products
+  - Only "Active" checked + Search "P001" → Shows P001 products where variant has Active status
+  - No statuses checked + Search "P001" → Shows nothing (no products displayed)
 
-### Mode 2: CSV-Driven (Selective)
-**Use Case:** Generate labels for specific products only
+**Step 3: Select Products**
+- Products are **NOT auto-selected** (prevents UI lag)
+- User can manually select specific products
+- Checkbox to select all displayed products
 
-**Process:**
-1. User uploads CSV with SKU list
-2. Validate SKUs against UK Magento (same filters)
-3. Apply MD merging
-4. Load supporting data for validated SKUs only
-5. Generate labels
+**Step 4: Generate Labels (Button Click)**
+- **No products selected** → Generates labels for ALL displayed products
+- **Some products selected** → Generates labels ONLY for selected products
+- API call: `GET /labels/to-print?discontinued_statuses=Active,Pre Order&region=uk`
 
-**Advantages:**
-- Targeted label generation
-- Useful for specific shipments or stock takes
-- Validated against catalog to prevent invalid SKUs
+**Step 5: View Generated Labels**
+- Labels saved to history automatically
+- Three viewing options:
+  - **PDF** - Opens PDF file with labels
+  - **CSV** - Downloads CSV (if implemented)
+  - **View** - Preview in browser
+
+**Process Behind the Scenes:**
+1. Fetch products from inventory_metadata filtered by `variant_statuses`
+2. Apply variant merging (all variants → base SKU)
+3. Load supporting data (item IDs, 6M data, prices, names)
+4. Generate label file in requested format
+5. Save to label_print_jobs table
 
 ---
 
@@ -470,23 +502,22 @@ Labels module requires connections to:
 | Feature | Labels | Inventory Management |
 |---------|--------|---------------------|
 | Product Source | UK Magento catalog_product_entity | UK Magento catalog_product_entity |
-| Filtering | `status` column in inventory_metadata | `variant_statuses` (ANY match) |
-| Variant Normalization | ALL variants → base SKU | ALL variants → base SKU |
-| Status Tracking | `status` column (base SKU status) | `variant_statuses` JSONB array |
-| 6M Data Source | aggregated_orders tables | aggregated_orders tables |
-| Item IDs | From inventory_metadata | From inventory_metadata |
-| Prices | From orders_cache (region pref) | Not shown |
-| Output | PDF/variant_statuses` (ANY match) | `variant_statuses` (ANY match) |
+| Filtering | `variant_statuses` (ANY match) | `variant_statuses` (ANY match) |
 | Variant Normalization | ALL variants → base SKU | ALL variants → base SKU |
 | Status Tracking | `variant_statuses` JSONB array | `variant_statuses` JSONB array |
 | 6M Data Source | aggregated_orders tables | aggregated_orders tables |
 | Item IDs | From inventory_metadata | From inventory_metadata |
 | Prices | From orders_cache (region pref) | Not shown |
 | Output | PDF/CSV label file | Web table UI |
-| CSV Upload | Yes (selective generation) | No |
+| Product Selection | UI checkboxes + manual selection | UI table with inline editing |
 | Region Preference | Yes (price/name) | No (always UK) |
 
-**Key Difference:** Labels adds pricing and regional preferences, but uses **100% identical** variant normalization, status tracking, and filtering logic as Inventory Management
+**Key Differences:** 
+- Labels adds pricing and regional preferences
+- Labels uses **identical** variant normalization, status tracking, and filtering logic as Inventory Management
+- Labels allows exporting to PDF/CSV files, while Inventory Management provides inline table editing
+
+## Future Enhancements
 
 1. **Batch Label Generation**
    - Generate labels in batches to handle large catalogs
@@ -507,3 +538,11 @@ Labels module requires connections to:
 5. **Multi-Language Support**
    - Product names in multiple languages
    - Language selection per region preference
+
+6. **CSV Export Verification**
+   - Verify CSV button functionality in label history
+   - Ensure CSV format matches PDF content
+
+---
+
+*Last Updated: January 2, 2026*

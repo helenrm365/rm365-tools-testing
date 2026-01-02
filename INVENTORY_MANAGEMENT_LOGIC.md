@@ -18,8 +18,8 @@ The Inventory Management system tracks product inventory data, including stock l
 
 **Data Fetched:**
 - `sku` - Product SKU from catalog
-- `name` - Product name from Entity-Attribute-Value attribute tables
-- `discontinued_status` - Custom attribute (stored in Entity-Attribute-Value attribute tables) with values like:
+- `name` - Product name from EAV (Entity-Attribute-Value) attribute tables
+- `discontinued_status` - Custom attribute (stored in EAV attribute tables) with values like:
   - `Active` - Currently available
   - `Temporarily OOS` - Out of stock temporarily
   - `Pre Order` - Available for pre-order
@@ -32,7 +32,7 @@ The Inventory Management system tracks product inventory data, including stock l
 
 **Query Details:**
 - Queries Magento's catalog tables (`catalog_product_entity`)
-- Joins with Entity-Attribute-Value attribute tables for product names and custom attributes (including `discontinued_status`)
+- Joins with EAV (Entity-Attribute-Value) attribute tables for product names and custom attributes (including `discontinued_status`)
 - Returns **ALL products** (does NOT filter by Magento's enabled/disabled status)
 - Filters by custom `discontinued_status` attribute when requested
 - Always filters out products with categories containing "AW365"
@@ -86,8 +86,8 @@ The Inventory Management system tracks product inventory data, including stock l
 
 ### Step-by-Step Process (when page loads)
 
-1. **AUTO-SYNC MAGENTO DATA**
-   ↓ Frontend calls `syncMagentoData()` automatically on load
+1. **AUTO-SYNC MAGENTO DATA** (Optional/Background)
+   ↓ Frontend can call `syncMagentoData()` to update sales data
    ├─→ Syncs UK Magento orders (Live → Cache → Aggregated)
    ├─→ Syncs FR Magento orders (Live → Cache → Aggregated)
    ├─→ Syncs NL Magento orders (Live → Cache → Aggregated)
@@ -99,10 +99,10 @@ The Inventory Management system tracks product inventory data, including stock l
    ├─→ Existing products are PRESERVED (no overwrites)
    ├─→ Filters out products with no categories assigned
    ├─→ Filters out products with "AW365" in any category
-   ├─→ Filters out products with no website assignment (blank product_websites)
+   └─→ Filters out products with no website assignment (blank product_websites)
 
-3. **MERGE IDENTIFIER PRODUCTS**
-   ↓ Normalize all products to base SKU form
+3. **MERGE IDENTIFIER PRODUCTS IN METADATA**
+   ↓ Normalize all products to base SKU form in inventory_metadata
    ├─→ Identifies products with suffixes (-MD, -SD, -DP, -NP, -MV)
    ├─→ If base SKU exists: Deletes variant (merges into base)
    └─→ If base SKU missing: Renames variant to base SKU
@@ -110,23 +110,12 @@ The Inventory Management system tracks product inventory data, including stock l
 4. **ENSURE ITEM IDS**
    ↓ Generate item IDs for any products missing them
    └─→ Uses hash of SKU to generate consistent 18-digit ID
-   └─→ Does NOT filter by enabled/disabled status (all products synced)
    
-5. **NORMALIZE IDENTIFIER PRODUCTS**
-   ↓ Consolidate ALL variant SKUs (-MD, -SD, -DP, -NP, -MV) into base SKUs
-   ├─→ If base SKU exists: DELETE variant (merge into base)
-   ├─→ If base SKU doesn't exist: RENAME variant to base SKU
-   └─→ Happens BEFORE item ID generation
-   
-6. GENERATE ITEM IDs
-   ↓ Assign 18-digit IDs to products without them
-   └─→ ID is SHA-256 hash of SKU in legacy format
-   
-7. FETCH PRODUCTS FROM MAGENTO
+5. **FETCH PRODUCTS FROM MAGENTO**
    ↓ Get ALL products from UK Magento database (live query)
    └─→ Includes base SKUs and all variants with their discontinued_status
    
-8. NORMALIZE & COLLECT VARIANT STATUSES
+6. **NORMALIZE & COLLECT VARIANT STATUSES**
    ↓ **Trigger:** Automatically runs on every page load
    ↓ Group products by base SKU
    ├─→ PROD123 → Active
@@ -134,26 +123,22 @@ The Inventory Management system tracks product inventory data, including stock l
    ├─→ PROD123-SD → Special Offer   }
    ├─→ PROD123-MV → Discontinued    }
    ├─→ Update inventory_metadata.variant_statuses for base SKU
-   └─→ **Deletion Handling:** If PROD123-MV is deleted from Magento, "Discontinued" is removed from the list on next sync.Offer", "Discontinued"]
-   └─→ Update inventory_metadata.variant_statuses for base SKU
+   └─→ **Deletion Handling:** If PROD123-MV is deleted from Magento, "Discontinued" is removed from the list on next sync
    
-9. FILTER BY DISCONTINUED STATUS (if provided)
+7. **FILTER BY DISCONTINUED STATUS** (if provided)
    ↓ Check if ANY variant status matches filter
    └─→ Filter "Active,Pre Order" → finds PROD123 (has both statuses)
    
-10. FETCH METADATA
+8. **FETCH METADATA**
    ↓ Get all inventory_metadata records
    └─→ Contains item_id, locations, quantities, 6M data, variant_statuses
    
-11. POPULATE 6M DATA
+9. **POPULATE 6M DATA**
    ↓ Fetch aggregated sales from uk/fr/nl_aggregated_orders tables
    └─→ Merge into items as custom_fields
    
-12. RETURN TO FRONTEND
+10. **RETURN TO FRONTEND**
     └─→ Items with merged Magento product + metadata + sales data + variant_statuses
-   
-13. RETURN TO FRONTEND
-   └─→ Items with merged Magento product + metadata + sales data
 ```
 
 ---
@@ -593,7 +578,7 @@ NOTE: All products visible by default (filter by discontinued_status if needed)
 - ALL products synced to `inventory_metadata` (data persists)
 - Uses UK Magento as canonical source
 - Read-only database access
-- Product names from Entity-Attribute-Value attribute system
+- Product names from EAV (Entity-Attribute-Value) attribute system
 - Filter by custom `discontinued_status` attribute in UI, not system status
 
 ### Sync Magento Sales Data
@@ -888,4 +873,4 @@ LIMIT per_page OFFSET (page-1)*per_page
 
 ---
 
-*Last Updated: December 31, 2025*
+*Last Updated: January 2, 2026*
