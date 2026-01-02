@@ -32,7 +32,10 @@ class MagentoRepo:
         self._load_takeover_requests()
     
     def get_sku_by_item_id(self, item_id: str) -> Optional[str]:
-        """Look up SKU by item_id from inventory_metadata table"""
+        """
+        Look up SKU by item_id from inventory_metadata table.
+        READ-ONLY operation.
+        """
         try:
             from core.db import get_psycopg_connection
             conn = get_psycopg_connection()
