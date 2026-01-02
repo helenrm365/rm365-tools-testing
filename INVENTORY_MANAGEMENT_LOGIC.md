@@ -28,6 +28,7 @@ The Inventory Management system tracks product inventory data, including stock l
   - `Discontinued (RM)` - Discontinued by RM
   - `Special Offer` - On special offer
   - `Special Item` - Special items
+- `categories` - Used for filtering (not displayed directly)
 
 **Query Details:**
 - Queries Magento's catalog tables (`catalog_product_entity`)
@@ -75,6 +76,7 @@ The Inventory Management system tracks product inventory data, including stock l
 - SKU is primary key (item_id is derived from SKU)
 - **All SKUs are normalized to base form** (no -MD, -SD, -DP, -NP, -MV suffixes)
 - `variant_statuses` tracks all discontinued_status values from all variants
+- **Dynamic Status Updates:** If a variant is deleted from Magento, its status is automatically removed from the base SKU's `variant_statuses` list during the next sync.
 - 6M data fields are **only** updated by magento sync process
 - Manual inventory updates don't touch 6M data fields
 
@@ -98,47 +100,59 @@ The Inventory Management system tracks product inventory data, including stock l
    ├─→ Filters out products with no categories assigned
    ├─→ Filters out products with "AW365" in any category
    ├─→ Filters out products with no website assignment (blank product_websites)
+
+3. **MERGE IDENTIFIER PRODUCTS**
+   ↓ Normalize all products to base SKU form
+   ├─→ Identifies products with suffixes (-MD, -SD, -DP, -NP, -MV)
+   ├─→ If base SKU exists: Deletes variant (merges into base)
+   └─→ If base SKU missing: Renames variant to base SKU
+
+4. **ENSURE ITEM IDS**
+   ↓ Generate item IDs for any products missing them
+   └─→ Uses hash of SKU to generate consistent 18-digit ID
    └─→ Does NOT filter by enabled/disabled status (all products synced)
    
-3. **NORMALIZE IDENTIFIER PRODUCTS**
+5. **NORMALIZE IDENTIFIER PRODUCTS**
    ↓ Consolidate ALL variant SKUs (-MD, -SD, -DP, -NP, -MV) into base SKUs
    ├─→ If base SKU exists: DELETE variant (merge into base)
    ├─→ If base SKU doesn't exist: RENAME variant to base SKU
    └─→ Happens BEFORE item ID generation
    
-4. GENERATE ITEM IDs
+6. GENERATE ITEM IDs
    ↓ Assign 18-digit IDs to products without them
    └─→ ID is SHA-256 hash of SKU in legacy format
    
-5. FETCH PRODUCTS FROM MAGENTO
+7. FETCH PRODUCTS FROM MAGENTO
    ↓ Get ALL products from UK Magento database (live query)
    └─→ Includes base SKUs and all variants with their discontinued_status
    
-6. NORMALIZE & COLLECT VARIANT STATUSES
+8. NORMALIZE & COLLECT VARIANT STATUSES
+   ↓ **Trigger:** Automatically runs on every page load
    ↓ Group products by base SKU
    ├─→ PROD123 → Active
    ├─→ PROD123-MD → Pre Order       } All grouped under PROD123
    ├─→ PROD123-SD → Special Offer   }
    ├─→ PROD123-MV → Discontinued    }
-   ├─→ Collect all statuses: ["Active", "Pre Order", "Special Offer", "Discontinued"]
+   ├─→ Update inventory_metadata.variant_statuses for base SKU
+   └─→ **Deletion Handling:** If PROD123-MV is deleted from Magento, "Discontinued" is removed from the list on next sync.Offer", "Discontinued"]
    └─→ Update inventory_metadata.variant_statuses for base SKU
    
-7. FILTER BY DISCONTINUED STATUS (if provided)
+9. FILTER BY DISCONTINUED STATUS (if provided)
    ↓ Check if ANY variant status matches filter
    └─→ Filter "Active,Pre Order" → finds PROD123 (has both statuses)
    
-8. FETCH METADATA
+10. FETCH METADATA
    ↓ Get all inventory_metadata records
    └─→ Contains item_id, locations, quantities, 6M data, variant_statuses
    
-9. POPULATE 6M DATA
+11. POPULATE 6M DATA
    ↓ Fetch aggregated sales from uk/fr/nl_aggregated_orders tables
    └─→ Merge into items as custom_fields
    
-10. RETURN TO FRONTEND
+12. RETURN TO FRONTEND
     └─→ Items with merged Magento product + metadata + sales data + variant_statuses
    
-8. RETURN TO FRONTEND
+13. RETURN TO FRONTEND
    └─→ Items with merged Magento product + metadata + sales data
 ```
 

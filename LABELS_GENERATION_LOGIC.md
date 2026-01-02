@@ -20,31 +20,27 @@ The Labels Generation system creates product labels with barcodes, prices, and s
     - Sync Aggregated Data → Inventory Metadata (updates 6M sales columns)
 2.  **Refresh:** System calls `InventoryManagementRepo.sync_magento_products_to_inventory_metadata()` to pull ALL products and their statuses from UK Magento.
 3.  **Merge:** System calls `InventoryManagementRepo.merge_identifier_products()` to normalize ALL variants (e.g., `-MD`, `-SD`) into base SKUs.
-4.  **Filter:** System queries `inventory_metadata` filtering by the `status` column.
+4.  **Update Statuses:** System calls `InventoryManagementRepo.update_variant_statuses()` to refresh the `variant_statuses` JSONB array from live Magento data.
+5.  **Filter:** System queries `inventory_metadata` filtering by the `variant_statuses` column (JSONB array).
 
 **Data Fetched:**
 - `sku` - Base SKU from inventory_metadata
-- `status` - Discontinued status synced from Magento:
-  - `Active` - Currently available
-  - `Temporarily OOS` - Out of stock temporarily
-  - `Pre Order` - Available for pre-order
-  - `Samples` - Sample products
-  - `Discontinued (Supplier)` - Discontinued by supplier
-  - `Discontinued (RM)` - Discontinued by RM
-  - `Special Offer` - On special offer
-  - `Special Item` - Special items
+- `variant_statuses` - Array of all variant statuses (e.g., `["Active", "Discontinued"]`)
+- `status` - Base SKU status (kept for reference)
 
 **Default Filter:** `['Active', 'Temporarily OOS', 'Pre Order', 'Samples']`
 
 **Variant Status Logic:**
-- Handled during the **Merge** step in Inventory Management logic.
-- If a base SKU exists, variants are merged into it.
-- If only variants exist, one is renamed to the base SKU.
-- The status is preserved during sync/merge.
+- **Identical to Inventory Management:**
+- All variants (e.g., `-MD`, `-SD`) are grouped by base SKU.
+- All statuses from these variants are collected into `variant_statuses`.
+- **Dynamic Updates:** If a variant is deleted from Magento, its status is automatically removed from the base SKU's list.
+- Filtering checks if **ANY** of the variant statuses match the requested filter.
+- Example: If Base is "Active" and Variant is "Discontinued", filtering by "Discontinued" **WILL** include the product.
 
 **Key Points:**
 - **Single Source of Truth:** Uses `inventory_metadata` just like Inventory Management.
-- **Identical Logic:** By calling the exact same sync and merge functions, we guarantee 1:1 consistency.
+- **Identical Logic:** By calling `update_variant_statuses()`, we guarantee 1:1 consistency.
 - **Exclusions:** The sync process already handles exclusions (AW365 categories, no websites, etc.).
 
 ### 2. Item IDs (Barcodes): inventory_metadata Table
@@ -97,6 +93,25 @@ The Labels Generation system creates product labels with barcodes, prices, and s
 **Source:** PostgreSQL `{region}_orders_cache` tables
 
 **Purpose:** Get product display names
+
+**Region Priority:**
+- User can select preferred region (uk/fr/nl)
+- System checks preferred region first, then falls back to others
+- Ensures most relevant product name is shown (e.g., French name for FR region)
+
+### 6. Job History: Label Print Jobs
+**Source:** PostgreSQL `label_print_jobs` and `label_print_items` tables
+
+**Purpose:** Track history of generated labels
+
+**Data Stored:**
+- **Job:** ID, created_by, line_date, created_at
+- **Items:** SKU, product_name, 6M data, price, line_date
+
+**Key Points:**
+- Every label generation run is saved as a job
+- Allows reviewing past print runs
+- Tracks who generated the labels and when
 
 **Data Fetched:**
 - Latest `name` for each SKU
@@ -455,9 +470,15 @@ Labels module requires connections to:
 | Feature | Labels | Inventory Management |
 |---------|--------|---------------------|
 | Product Source | UK Magento catalog_product_entity | UK Magento catalog_product_entity |
-| Filtering | variant_statuses (ANY match) | variant_statuses (ANY match) |
+| Filtering | `status` column in inventory_metadata | `variant_statuses` (ANY match) |
 | Variant Normalization | ALL variants → base SKU | ALL variants → base SKU |
-| Status Tracking | variant_statuses JSONB array | variant_statuses JSONB array |
+| Status Tracking | `status` column (base SKU status) | `variant_statuses` JSONB array |
+| 6M Data Source | aggregated_orders tables | aggregated_orders tables |
+| Item IDs | From inventory_metadata | From inventory_metadata |
+| Prices | From orders_cache (region pref) | Not shown |
+| Output | PDF/variant_statuses` (ANY match) | `variant_statuses` (ANY match) |
+| Variant Normalization | ALL variants → base SKU | ALL variants → base SKU |
+| Status Tracking | `variant_statuses` JSONB array | `variant_statuses` JSONB array |
 | 6M Data Source | aggregated_orders tables | aggregated_orders tables |
 | Item IDs | From inventory_metadata | From inventory_metadata |
 | Prices | From orders_cache (region pref) | Not shown |
@@ -465,13 +486,7 @@ Labels module requires connections to:
 | CSV Upload | Yes (selective generation) | No |
 | Region Preference | Yes (price/name) | No (always UK) |
 
-**Key Difference:** Labels adds pricing and regional preferences, but uses **100% identical** variant normalization, status tracking, and filtering logic as Inventory Management.
-
----
-
-## Future Enhancements
-
-Potential improvements while maintaining current architecture:
+**Key Difference:** Labels adds pricing and regional preferences, but uses **100% identical** variant normalization, status tracking, and filtering logic as Inventory Management
 
 1. **Batch Label Generation**
    - Generate labels in batches to handle large catalogs

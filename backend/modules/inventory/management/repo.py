@@ -584,6 +584,69 @@ class InventoryManagementRepo:
         finally:
             self.return_connection(conn)
 
+    def update_variant_statuses(self) -> None:
+        """
+        Fetch all products from Magento, group by base SKU, and update variant_statuses in inventory_metadata.
+        This ensures that inventory_metadata has the complete list of statuses for all variants of a product.
+        """
+        import re
+        
+        # Get all products from Magento (raw list)
+        all_products = self.get_magento_products(status_filters=None)
+        
+        # Pattern to match identifier suffixes
+        identifier_pattern = re.compile(r'-(?:MD|SD|DP|NP|MV)(?:-.*)?$', re.IGNORECASE)
+        
+        # Group products by base SKU and collect all statuses
+        base_sku_data = {}  # {base_sku: {'statuses': set()}}
+        
+        for product in all_products:
+            sku = product.get('sku', '')
+            discontinued_status = product.get('discontinued_status') or 'Active'
+            
+            # Determine base SKU
+            if identifier_pattern.search(sku):
+                base_sku = identifier_pattern.sub('', sku)
+            else:
+                base_sku = sku
+            
+            # Initialize or update base SKU data
+            if base_sku not in base_sku_data:
+                base_sku_data[base_sku] = {
+                    'statuses': set()
+                }
+            
+            # Add this variant's status to the collection
+            base_sku_data[base_sku]['statuses'].add(discontinued_status)
+        
+        # Update inventory_metadata with variant_statuses for each base SKU
+        conn = self.get_metadata_connection()
+        try:
+            cursor = conn.cursor()
+            
+            # Prepare batch updates
+            updates = []
+            for base_sku, data in base_sku_data.items():
+                statuses_list = sorted(list(data['statuses']))
+                updates.append((json.dumps(statuses_list), base_sku))
+            
+            # Execute batch update
+            cursor.executemany("""
+                UPDATE inventory_metadata
+                SET variant_statuses = %s, updated_at = NOW()
+                WHERE sku = %s
+            """, updates)
+            
+            conn.commit()
+            logger.info(f"✅ Updated variant_statuses for {len(updates)} products in inventory_metadata")
+            
+        except Exception as e:
+            logger.error(f"Error updating variant_statuses: {e}")
+            if conn:
+                conn.rollback()
+        finally:
+            self.return_connection(conn)
+
     def merge_identifier_products(self) -> Dict[str, int]:
         """
         Normalize all products to use their base SKU - removes all identifier suffixes (-MD, -SD, -DP, -NP, -MV).

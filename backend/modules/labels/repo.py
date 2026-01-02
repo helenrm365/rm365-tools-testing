@@ -414,18 +414,27 @@ class LabelsRepo:
         logger.info("Merging identifier products...")
         inv_repo.merge_identifier_products()
         
-        # 3. Fetch SKUs from inventory_metadata filtered by status
+        # 3. Update variant statuses (same as inventory management)
+        logger.info("Updating variant statuses...")
+        inv_repo.update_variant_statuses()
+        
+        # 4. Fetch SKUs from inventory_metadata filtered by variant_statuses
+        # Uses JSONB containment to check if ANY of the variant statuses match the requested statuses
         allowed_skus = []
         try:
             with conn.cursor() as cur:
                 cur.execute("""
                     SELECT sku 
                     FROM inventory_metadata 
-                    WHERE status = ANY(%s)
+                    WHERE EXISTS (
+                        SELECT 1 
+                        FROM jsonb_array_elements_text(variant_statuses) AS s 
+                        WHERE s = ANY(%s)
+                    )
                     ORDER BY sku
                 """, (product_statuses,))
                 allowed_skus = [str(row[0]).strip() for row in cur.fetchall()]
-                logger.info(f"Fetched {len(allowed_skus)} SKUs from inventory_metadata with statuses: {product_statuses}")
+                logger.info(f"Fetched {len(allowed_skus)} SKUs from inventory_metadata with variant_statuses matching: {product_statuses}")
         except Exception as e:
             logger.error(f"Error fetching SKUs from inventory_metadata: {e}")
             return []

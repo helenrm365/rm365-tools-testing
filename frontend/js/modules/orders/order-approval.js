@@ -69,6 +69,21 @@ class OrderApprovalManager {
         
         if (this.pendingOrders.length === 0) {
           console.warn('[Order Approval] No pending orders found. Check backend logs for details.');
+          
+          // Auto-fetch debug info to help diagnose why
+          try {
+            console.log('[Order Approval] 🔍 Fetching debug info to diagnose empty list...');
+            const debugResponse = await get('/v1/magento/tracking/pending-orders/debug');
+            console.log('[Order Approval] 🔍 Debug Info:', debugResponse);
+            
+            if (debugResponse.summary) {
+              console.log(`[Order Approval] 📊 Summary: Found ${debugResponse.summary.total_processing_orders} processing orders in Magento.`);
+              console.log(`[Order Approval] 🧹 Filtered: ${debugResponse.summary.filtered_orders_count} orders already have sessions.`);
+              console.log(`[Order Approval] 📋 Pending: ${debugResponse.summary.pending_orders_count} orders available for approval.`);
+            }
+          } catch (e) {
+            console.error('[Order Approval] Failed to fetch debug info:', e);
+          }
         } else {
           const orderNumbers = this.pendingOrders.map(o => o.order_number);
           console.log('[Order Approval] Order numbers:', orderNumbers);
