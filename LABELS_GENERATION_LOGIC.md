@@ -15,9 +15,12 @@ The Labels Generation system creates product labels with barcodes, prices, and s
 **Purpose:** Get list of products to generate labels for
 
 **Process:**
-1.  **Refresh:** System calls `InventoryManagementRepo.sync_magento_products_to_inventory_metadata()` to pull ALL products and their statuses from UK Magento.
-2.  **Merge:** System calls `InventoryManagementRepo.merge_identifier_products()` to normalize ALL variants (e.g., `-MD`, `-SD`) into base SKUs.
-3.  **Filter:** System queries `inventory_metadata` filtering by the `status` column.
+1.  **Auto-Sync:** Frontend calls `syncMagentoData()` automatically on load to:
+    - Sync UK/FR/NL Magento orders (Live → Cache → Aggregated)
+    - Sync Aggregated Data → Inventory Metadata (updates 6M sales columns)
+2.  **Refresh:** System calls `InventoryManagementRepo.sync_magento_products_to_inventory_metadata()` to pull ALL products and their statuses from UK Magento.
+3.  **Merge:** System calls `InventoryManagementRepo.merge_identifier_products()` to normalize ALL variants (e.g., `-MD`, `-SD`) into base SKUs.
+4.  **Filter:** System queries `inventory_metadata` filtering by the `status` column.
 
 **Data Fetched:**
 - `sku` - Base SKU from inventory_metadata

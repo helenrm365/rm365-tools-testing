@@ -2,6 +2,8 @@
 import { getProductsToPrint, createPrintJob, downloadPDF, downloadCSV, initDependencies } from '../../services/api/labelsApi.js';
 import { showToast } from '../../ui/toast.js';
 import { getToken } from '../../services/state/sessionStore.js';
+import { syncUKMagentoData, syncFRMagentoData, syncNLMagentoData } from '../../services/api/magentoDataApi.js';
+import { post } from '../../services/api/http.js';
 
 // Status filter preferences key
 const STATUS_FILTERS_KEY = 'labels_status_filters';
@@ -50,6 +52,9 @@ export async function initLabelGenerator() {
   
   // Setup region selection
   setupRegionSelection();
+
+  // Auto sync
+  await initAutoSync();
   
   await loadProducts();
   setupEventListeners();
@@ -741,4 +746,88 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+// State management for sync
+let isSyncing = false;
+
+/**
+* Auto-sync on page load (but avoid repeat syncs via cooldown)
+*/
+async function initAutoSync() {
+  const lastSync = localStorage.getItem('lastLabelsSync');
+  if (lastSync) {
+    const diffMins = (new Date() - new Date(lastSync)) / 60000;
+    if (diffMins < 5) {
+      return;
+    }
+  }
+  await syncMagentoData(false); // false = don’t show alert
+  localStorage.setItem('lastLabelsSync', new Date().toISOString());
+}
+
+/**
+* Unified magento sync function
+*/
+async function syncMagentoData(showNotification = true) {
+  if (isSyncing) return;
+  
+  try {
+    isSyncing = true;
+    if (showNotification) {
+      showToast('Starting Magento sync...', 'info');
+    }
+
+    // 1. Sync UK, FR, NL Magento Data (Live -> Cache -> Aggregated)
+    try {
+        if (showNotification) showToast('Syncing UK Magento data...', 'info');
+        await syncUKMagentoData();
+    } catch (e) {
+        console.error('Failed to sync UK data:', e);
+        if (showNotification) showToast('Failed to sync UK data', 'error');
+    }
+
+    try {
+        if (showNotification) showToast('Syncing FR Magento data...', 'info');
+        await syncFRMagentoData();
+    } catch (e) {
+        console.error('Failed to sync FR data:', e);
+        if (showNotification) showToast('Failed to sync FR data', 'error');
+    }
+
+    try {
+        if (showNotification) showToast('Syncing NL Magento data...', 'info');
+        await syncNLMagentoData();
+    } catch (e) {
+        console.error('Failed to sync NL data:', e);
+        if (showNotification) showToast('Failed to sync NL data', 'error');
+    }
+
+    // 2. Sync Inventory Metadata (Aggregated -> Inventory Metadata)
+    if (showNotification) showToast('Updating inventory metadata...', 'info');
+    const res = await post('/v1/inventory/management/sync-magento-data', {
+      dry_run: false
+    });
+    
+    if (res && res.status === 'success') {
+      const updated = res.stats?.updated_records ?? 0;
+      if (showNotification) {
+        showToast(`Magento data synced! ${updated} records updated`, 'success');
+      }
+      
+      // Reload products to show latest data
+      await loadProducts();
+      
+      localStorage.setItem('lastLabelsSync', new Date().toISOString());
+    } else {
+      throw new Error(res?.detail || 'Sync failed');
+    }
+  } catch (err) {
+    console.error('[Sync] Failed:', err);
+    if (showNotification) {
+      showToast('Sync failed: ' + err.message, 'error');
+    }
+  } finally {
+    isSyncing = false;
+  }
 }

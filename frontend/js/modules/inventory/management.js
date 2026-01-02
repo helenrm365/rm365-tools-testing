@@ -2,6 +2,7 @@ import { get, post, patch, http } from '../../services/api/http.js';
 import { config } from '../../config.js';
 import { showToast } from '../../ui/toast.js';
 import { collaborationManager } from './collaboration.js';
+import { syncUKMagentoData, syncFRMagentoData, syncNLMagentoData } from '../../services/api/magentoDataApi.js';
 
 const API = config.API;
 // Discontinued status filter preferences key (for checkboxes)
@@ -1296,6 +1297,40 @@ async function syncMagentoData(showNotification = true) {
       btn.disabled = true;
       btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
     }
+
+    if (showNotification) {
+      showToast('Starting Magento sync...', 'info');
+    }
+
+    // 1. Sync UK, FR, NL Magento Data (Live -> Cache -> Aggregated)
+    // We run them sequentially to avoid overwhelming the server/DB
+    
+    try {
+        if (showNotification) showToast('Syncing UK Magento data...', 'info');
+        await syncUKMagentoData();
+    } catch (e) {
+        console.error('Failed to sync UK data:', e);
+        if (showNotification) showToast('Failed to sync UK data', 'error');
+    }
+
+    try {
+        if (showNotification) showToast('Syncing FR Magento data...', 'info');
+        await syncFRMagentoData();
+    } catch (e) {
+        console.error('Failed to sync FR data:', e);
+        if (showNotification) showToast('Failed to sync FR data', 'error');
+    }
+
+    try {
+        if (showNotification) showToast('Syncing NL Magento data...', 'info');
+        await syncNLMagentoData();
+    } catch (e) {
+        console.error('Failed to sync NL data:', e);
+        if (showNotification) showToast('Failed to sync NL data', 'error');
+    }
+
+    // 2. Sync Inventory Metadata (Aggregated -> Inventory Metadata)
+    if (showNotification) showToast('Updating inventory metadata...', 'info');
     const res = await post('/v1/inventory/management/sync-magento-data', {
       dry_run: false
     });

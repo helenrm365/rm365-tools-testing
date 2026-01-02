@@ -84,9 +84,14 @@ The Inventory Management system tracks product inventory data, including stock l
 
 ### Step-by-Step Process (when page loads)
 
-```↓ Add variant_statuses column if missing (migration)
+1. **AUTO-SYNC MAGENTO DATA**
+   ↓ Frontend calls `syncMagentoData()` automatically on load
+   ├─→ Syncs UK Magento orders (Live → Cache → Aggregated)
+   ├─→ Syncs FR Magento orders (Live → Cache → Aggregated)
+   ├─→ Syncs NL Magento orders (Live → Cache → Aggregated)
+   └─→ Syncs Aggregated Data → Inventory Metadata (updates 6M sales columns)
    
-2. SYNC MAGENTO → METADATA
+2. **SYNC MAGENTO PRODUCTS → METADATA**
    ↓ Fetch ALL products from UK Magento catalog_product_entity
    ├─→ Only inserts NEW SKUs into inventory_metadata
    ├─→ Existing products are PRESERVED (no overwrites)
@@ -95,7 +100,7 @@ The Inventory Management system tracks product inventory data, including stock l
    ├─→ Filters out products with no website assignment (blank product_websites)
    └─→ Does NOT filter by enabled/disabled status (all products synced)
    
-3. NORMALIZE IDENTIFIER PRODUCTS
+3. **NORMALIZE IDENTIFIER PRODUCTS**
    ↓ Consolidate ALL variant SKUs (-MD, -SD, -DP, -NP, -MV) into base SKUs
    ├─→ If base SKU exists: DELETE variant (merge into base)
    ├─→ If base SKU doesn't exist: RENAME variant to base SKU
@@ -363,9 +368,12 @@ for item in items:
 ```
 
 #### Method 2: Via Magento Sync (Persistent)
-Manual sync that writes to `inventory_metadata`:
+Manual sync (or auto-sync on page load) that writes to `inventory_metadata`:
 
 ```python
+# 1. Sync Live Magento -> Local Cache -> Aggregated Tables (UK, FR, NL)
+# 2. Sync Aggregated Tables -> Inventory Metadata
+
 # Note: MD variants already merged in aggregated tables
 # No additional merging needed - direct lookup by SKU
 
@@ -378,6 +386,7 @@ WHERE sku = %s
 **Key Differences:**
 - **Service Layer:** Reads aggregated tables on-demand, temporary
 - **Magento Sync:** Writes to `inventory_metadata`, persistent
+- **Auto-Sync:** Now runs automatically on page load to ensure fresh data
 - MD variants already merged in aggregated tables (no additional processing needed)
 
 ---
