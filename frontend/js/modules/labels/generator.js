@@ -33,12 +33,19 @@ export async function initLabelGenerator() {
   
   // Setup region selection
   setupRegionSelection();
-
-  // Auto sync
-  await initAutoSync();
   
-  await loadProducts();
+  // Setup event listeners immediately so search works while loading
   setupEventListeners();
+  
+  // Setup product table event delegation once
+  setupProductTableDelegation();
+
+  // Load initial data
+  await loadProducts();
+
+  // Auto sync in background
+  initAutoSync();
+  
   updateUI();
 }
 
@@ -87,8 +94,9 @@ async function handleStatusFilterChange() {
   
   // Show loading state
   const applyBtn = document.getElementById('applyStatusFilters');
+  let originalText = '';
   if (applyBtn) {
-    const originalText = applyBtn.textContent;
+    originalText = applyBtn.textContent;
     applyBtn.textContent = 'Applying...';
     applyBtn.disabled = true;
   }
@@ -105,7 +113,7 @@ async function handleStatusFilterChange() {
       applyBtn.textContent = '✓ Applied';
       applyBtn.style.background = '#10b981';
       setTimeout(() => {
-        applyBtn.textContent = 'Apply Filters';
+        applyBtn.textContent = originalText || 'Apply Filters';
         applyBtn.style.background = '';
         applyBtn.disabled = false;
       }, 1500);
@@ -120,7 +128,7 @@ async function handleStatusFilterChange() {
       applyBtn.textContent = 'Error - Retry';
       applyBtn.style.background = '#ef4444';
       setTimeout(() => {
-        applyBtn.textContent = 'Apply Filters';
+        applyBtn.textContent = originalText || 'Apply Filters';
         applyBtn.style.background = '';
         applyBtn.disabled = false;
       }, 2000);
@@ -156,18 +164,42 @@ function setupRegionSelection() {
   });
 }
 
-async function loadProducts() {
+async function loadProducts(isBackground = false) {
   const loadingEl = document.querySelector('#loadingIndicator');
   const errorEl = document.querySelector('#errorMessage');
   
-  if (loadingEl) loadingEl.style.display = 'block';
+  if (loadingEl && !isBackground) loadingEl.style.display = 'block';
   if (errorEl) errorEl.style.display = 'none';
   
   try {
     // Fetch products with current status filters and region preference
     state.allProducts = await getProductsToPrint(state.statusFilters, state.region);
     state.filteredProducts = [...state.allProducts];
-    state.displayedProducts = [...state.allProducts];
+    
+    console.log(`[Labels Load] Loaded ${state.allProducts.length} products from API`);
+    
+    // Re-apply search filter if exists
+    const searchInput = document.querySelector('#searchInput');
+    if (searchInput && searchInput.value.trim()) {
+      const query = searchInput.value.toLowerCase().trim();
+      console.log(`[Labels Load] Re-applying search filter: "${query}"`);
+      
+      state.displayedProducts = state.filteredProducts.filter(p => {
+        const priceText = formatPrice(p.price).toLowerCase();
+        return (
+          (p.sku || '').toLowerCase().includes(query) ||
+          (p.product_name || '').toLowerCase().includes(query) ||
+          (p.item_id || '').toLowerCase().includes(query) ||
+          priceText.includes(query) ||
+          (p.uk_6m_data ?? '').toString().toLowerCase().includes(query) ||
+          (p.fr_6m_data ?? '').toString().toLowerCase().includes(query)
+        );
+      });
+      console.log(`[Labels Load] After search filter: ${state.displayedProducts.length} products`);
+    } else {
+      state.displayedProducts = [...state.filteredProducts];
+      console.log(`[Labels Load] No search filter active, showing all ${state.displayedProducts.length} products`);
+    }
     
     // IMPORTANT: Don't auto-select products - causes lag with large product lists
     // Products remain unchecked by default
@@ -286,11 +318,19 @@ async function retryLoadProducts() {
 window.initMagentoDataFromLabels = initMagentoDataFromLabels;
 window.retryLoadProducts = retryLoadProducts;
 
+function debounce(func, wait) {
+  let timeout;
+  return function(...args) {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func.apply(this, args), wait);
+  };
+}
+
 function setupEventListeners() {
   // Search
   const searchInput = document.querySelector('#searchInput');
   if (searchInput) {
-    searchInput.addEventListener('input', handleSearch);
+    searchInput.addEventListener('input', debounce(handleSearch, 300));
   }
   
   // Select all checkbox
@@ -338,8 +378,9 @@ async function handleApplyStatusFilters() {
   
   // Visual feedback on button
   const applyBtn = document.getElementById('applyStatusFilters');
+  let originalText = '';
   if (applyBtn) {
-    const originalText = applyBtn.textContent;
+    originalText = applyBtn.textContent;
     applyBtn.textContent = 'Applying...';
     applyBtn.disabled = true;
   }
@@ -353,7 +394,7 @@ async function handleApplyStatusFilters() {
       applyBtn.textContent = '✓ Filters Applied';
       applyBtn.style.background = '#10b981';
       setTimeout(() => {
-        applyBtn.textContent = originalText;
+        applyBtn.textContent = originalText || 'Apply Filters';
         applyBtn.style.background = '';
         applyBtn.disabled = false;
       }, 2000);
@@ -367,7 +408,7 @@ async function handleApplyStatusFilters() {
       applyBtn.textContent = 'Error - Retry';
       applyBtn.style.background = '#ef4444';
       setTimeout(() => {
-        applyBtn.textContent = originalText;
+        applyBtn.textContent = originalText || 'Apply Filters';
         applyBtn.style.background = '';
         applyBtn.disabled = false;
       }, 3000);
@@ -380,20 +421,55 @@ async function handleApplyStatusFilters() {
 function handleSearch(e) {
   const query = e.target.value.toLowerCase().trim();
   
+  console.log(`[Labels Search] Query: "${query}"`);
+  console.log(`[Labels Search] Filtering from ${state.filteredProducts.length} products`);
+  
   if (!query) {
     state.displayedProducts = [...state.filteredProducts];
+    console.log(`[Labels Search] No query - showing all ${state.displayedProducts.length} products`);
   } else {
+    // Log first few products to debug
+    if (state.filteredProducts.length > 0) {
+      const sample = state.filteredProducts[0];
+      console.log('[Labels Search] Sample product fields:', {
+        sku: sample.sku,
+        product_name: sample.product_name,
+        item_id: sample.item_id,
+        price: sample.price,
+        uk_6m_data: sample.uk_6m_data,
+        fr_6m_data: sample.fr_6m_data
+      });
+    }
+    
     state.displayedProducts = state.filteredProducts.filter(p => {
       const priceText = formatPrice(p.price).toLowerCase();
-      return (
-        (p.sku || '').toLowerCase().includes(query) ||
-        (p.product_name || '').toLowerCase().includes(query) ||
-        (p.item_id || '').toLowerCase().includes(query) ||
-        priceText.includes(query) ||
-        (p.uk_6m_data ?? '').toString().toLowerCase().includes(query) ||
-        (p.fr_6m_data ?? '').toString().toLowerCase().includes(query)
-      );
+      const skuMatch = (p.sku || '').toLowerCase().includes(query);
+      const nameMatch = (p.product_name || '').toLowerCase().includes(query);
+      const itemIdMatch = (p.item_id || '').toLowerCase().includes(query);
+      const priceMatch = priceText.includes(query);
+      const uk6mMatch = (p.uk_6m_data ?? '').toString().toLowerCase().includes(query);
+      const fr6mMatch = (p.fr_6m_data ?? '').toString().toLowerCase().includes(query);
+      
+      const matches = skuMatch || nameMatch || itemIdMatch || priceMatch || uk6mMatch || fr6mMatch;
+      
+      // Log first match for debugging
+      if (matches && state.displayedProducts.length === 0) {
+        console.log(`[Labels Search] First match found:`, {
+          sku: p.sku,
+          name: p.product_name,
+          skuMatch,
+          nameMatch,
+          itemIdMatch,
+          priceMatch,
+          uk6mMatch,
+          fr6mMatch
+        });
+      }
+      
+      return matches;
     });
+    
+    console.log(`[Labels Search] Found ${state.displayedProducts.length} matching products`);
   }
   
   renderProductTable();
@@ -448,6 +524,8 @@ function renderProductTable() {
   const tbody = document.querySelector('#productsTableBody');
   if (!tbody) return;
   
+  console.log(`[Labels Render] Rendering ${state.displayedProducts.length} products`);
+  
   if (state.displayedProducts.length === 0) {
     tbody.innerHTML = `
       <tr>
@@ -482,12 +560,18 @@ function renderProductTable() {
       </tr>
     `;
   }).join('');
+}
+
+// Set up event delegation for product checkboxes once
+function setupProductTableDelegation() {
+  const tbody = document.querySelector('#productsTableBody');
+  if (!tbody) return;
   
-  // Attach checkbox listeners
-  tbody.querySelectorAll('.product-checkbox').forEach(checkbox => {
-    checkbox.addEventListener('change', (e) => {
+  // Use event delegation - single listener for all checkboxes
+  tbody.addEventListener('change', (e) => {
+    if (e.target.classList.contains('product-checkbox')) {
       handleProductSelect(e.target.dataset.itemId, e.target.checked);
-    });
+    }
   });
 }
 
@@ -495,6 +579,8 @@ function updateStats() {
   const totalEl = document.querySelector('#totalProducts');
   const selectedEl = document.querySelector('#selectedProducts');
   const generatePdfBtn = document.querySelector('#generatePdfBtn');
+  
+  console.log(`[Labels Stats] Displayed: ${state.displayedProducts.length}, Selected: ${state.selectedProducts.size}`);
   
   if (totalEl) totalEl.textContent = state.displayedProducts.length;
   if (selectedEl) selectedEl.textContent = state.selectedProducts.size;
@@ -797,7 +883,7 @@ async function syncMagentoData(showNotification = true) {
       }
       
       // Reload products to show latest data
-      await loadProducts();
+      await loadProducts(true);
       
       localStorage.setItem('lastLabelsSync', new Date().toISOString());
     } else {

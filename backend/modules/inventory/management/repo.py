@@ -470,11 +470,12 @@ class InventoryManagementRepo:
                 with magento_conn.cursor() as magento_cursor:
                     # Query catalog tables for ALL products with categories and website info
                     # Filter out: 1) Categories containing "AW365", 2) Products with no website assignment
+                    # Note: discontinued_status is stored as option_id, so we join with eav_attribute_option_value to get text
                     magento_cursor.execute("""
                         SELECT DISTINCT
                             cpe.sku,
                             cpev_name.value as name,
-                            cpev_status.value as discontinued_status,
+                            COALESCE(eaov_status.value, 'Active') as discontinued_status,
                             GROUP_CONCAT(DISTINCT ccev.value ORDER BY ccev.value SEPARATOR ',') as categories,
                             (SELECT COUNT(*) FROM catalog_product_website cpw WHERE cpw.product_id = cpe.entity_id) as website_count
                         FROM catalog_product_entity cpe
@@ -491,9 +492,9 @@ class InventoryManagementRepo:
                                 )
                             )
                             AND cpev_name.store_id = 0
-                        LEFT JOIN catalog_product_entity_varchar cpev_status 
-                            ON cpe.entity_id = cpev_status.entity_id
-                            AND cpev_status.attribute_id = (
+                        LEFT JOIN catalog_product_entity_int cpei_status
+                            ON cpe.entity_id = cpei_status.entity_id
+                            AND cpei_status.attribute_id = (
                                 SELECT attribute_id 
                                 FROM eav_attribute 
                                 WHERE attribute_code = 'discontinued_status' 
@@ -503,7 +504,13 @@ class InventoryManagementRepo:
                                     WHERE entity_type_code = 'catalog_product'
                                 )
                             )
-                            AND cpev_status.store_id = 0
+                            AND cpei_status.store_id = 0
+                        LEFT JOIN eav_attribute_option eao_status
+                            ON cpei_status.value = eao_status.option_id
+                            AND eao_status.attribute_id = cpei_status.attribute_id
+                        LEFT JOIN eav_attribute_option_value eaov_status
+                            ON eao_status.option_id = eaov_status.option_id
+                            AND eaov_status.store_id = 0
                         LEFT JOIN catalog_category_product ccp ON cpe.entity_id = ccp.product_id
                         LEFT JOIN catalog_category_entity cce ON ccp.category_id = cce.entity_id
                         LEFT JOIN catalog_category_entity_varchar ccev 
@@ -521,7 +528,7 @@ class InventoryManagementRepo:
                             AND ccev.store_id = 0
                         WHERE cpe.sku IS NOT NULL 
                             AND cpe.sku != ''
-                        GROUP BY cpe.entity_id, cpe.sku, cpev_name.value, cpev_status.value
+                        GROUP BY cpe.entity_id, cpe.sku, cpev_name.value, eaov_status.value
                         HAVING website_count > 0
                         ORDER BY cpe.sku
                     """)
@@ -875,13 +882,14 @@ class InventoryManagementRepo:
             with conn.cursor() as cursor:
                 # Fetch ALL products from catalog_product_entity
                 # Join with attribute tables to get product name, product_status, and categories
-                # Magento 2 stores attributes in Entity-Attribute-Value (Entity-Attribute-Value) structure
+                # Magento 2 stores attributes in Entity-Attribute-Value (EAV) structure
+                # discontinued_status is stored as option_id (int), so we join with eav_attribute_option_value to get text
                 # Filter out: products without categories, AW365 categories, products without websites
                 cursor.execute("""
                     SELECT DISTINCT
                         cpe.sku,
                         cpev_name.value as name,
-                        cpev_discontinued_status.value as discontinued_status,
+                        COALESCE(eaov_discontinued_status.value, 'Active') as discontinued_status,
                         GROUP_CONCAT(DISTINCT ccev.value ORDER BY ccev.value SEPARATOR ',') as categories
                     FROM catalog_product_entity cpe
                     LEFT JOIN catalog_product_entity_varchar cpev_name 
@@ -897,9 +905,9 @@ class InventoryManagementRepo:
                             )
                         )
                         AND cpev_name.store_id = 0
-                    LEFT JOIN catalog_product_entity_varchar cpev_discontinued_status
-                        ON cpe.entity_id = cpev_discontinued_status.entity_id
-                        AND cpev_discontinued_status.attribute_id = (
+                    LEFT JOIN catalog_product_entity_int cpei_discontinued_status
+                        ON cpe.entity_id = cpei_discontinued_status.entity_id
+                        AND cpei_discontinued_status.attribute_id = (
                             SELECT attribute_id 
                             FROM eav_attribute 
                             WHERE attribute_code = 'discontinued_status' 
@@ -909,7 +917,13 @@ class InventoryManagementRepo:
                                 WHERE entity_type_code = 'catalog_product'
                             )
                         )
-                        AND cpev_discontinued_status.store_id = 0
+                        AND cpei_discontinued_status.store_id = 0
+                    LEFT JOIN eav_attribute_option eao_discontinued_status
+                        ON cpei_discontinued_status.value = eao_discontinued_status.option_id
+                        AND eao_discontinued_status.attribute_id = cpei_discontinued_status.attribute_id
+                    LEFT JOIN eav_attribute_option_value eaov_discontinued_status
+                        ON eao_discontinued_status.option_id = eaov_discontinued_status.option_id
+                        AND eaov_discontinued_status.store_id = 0
                     LEFT JOIN catalog_category_product ccp ON cpe.entity_id = ccp.product_id
                     LEFT JOIN catalog_category_entity cce ON ccp.category_id = cce.entity_id
                     LEFT JOIN catalog_category_entity_varchar ccev 
@@ -931,7 +945,7 @@ class InventoryManagementRepo:
                             SELECT 1 FROM catalog_product_website cpw 
                             WHERE cpw.product_id = cpe.entity_id
                         )
-                    GROUP BY cpe.entity_id, cpe.sku, cpev_name.value, cpev_discontinued_status.value
+                    GROUP BY cpe.entity_id, cpe.sku, cpev_name.value, eaov_discontinued_status.value
                     HAVING categories IS NOT NULL
                         AND categories != ''
                         AND categories NOT LIKE '%AW365%'
