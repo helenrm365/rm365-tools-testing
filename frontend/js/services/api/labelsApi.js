@@ -1,7 +1,7 @@
 // js/services/api/labelsApi.js
 import { get, post, http } from './http.js';
 import { getToken } from '../state/sessionStore.js';
-import { config } from '../../config.js';
+import { getApiUrl } from '../../config.js';
 
 const API = '/v1/labels';  // http.js adds BASE which already includes /api
 
@@ -68,7 +68,8 @@ export async function deletePrintJob(jobId) {
  * @param {number} jobId - Job ID
  */
 export async function downloadPDF(jobId) {
-  const BASE = config.API.replace(/\/+$/, '');
+  // Use API base with /api prefix so we hit the FastAPI routes, not the SPA index
+  const BASE = getApiUrl().replace(/\/+$/, '');
   const url = `${BASE}${API}/job/${jobId}/pdf`;
   const token = getToken();
   const headers = {};
@@ -104,7 +105,8 @@ export async function downloadPDF(jobId) {
  * @param {number} jobId - Job ID
  */
 export async function downloadCSV(jobId) {
-  const BASE = config.API.replace(/\/+$/, '');
+  // Use API base with /api prefix so we hit the FastAPI routes, not the SPA index
+  const BASE = getApiUrl().replace(/\/+$/, '');
   const url = `${BASE}${API}/job/${jobId}/csv`;
   
   const token = getToken();
