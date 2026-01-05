@@ -28,8 +28,6 @@ let state = {
 };
 
 export async function initLabelGenerator() {
-  console.log('[Labels Init] ===== LABEL GENERATOR INITIALIZING =====');
-  
   // Setup status filter checkboxes (all checked by default)
   setupStatusFilterCheckboxes();
   
@@ -37,35 +35,18 @@ export async function initLabelGenerator() {
   setupRegionSelection();
   
   // Setup event listeners immediately so search works while loading
-  console.log('[Labels Init] Setting up event listeners...');
   setupEventListeners();
   
   // Setup product table event delegation once
   setupProductTableDelegation();
 
   // Load initial data
-  console.log('[Labels Init] Loading products...');
   await loadProducts();
 
   // Auto sync in background
   initAutoSync();
   
   updateUI();
-  
-  console.log('[Labels Init] ===== INITIALIZATION COMPLETE =====');
-  console.log('[Labels Init] State check:', {
-    allProducts: state.allProducts.length,
-    filteredProducts: state.filteredProducts.length,
-    displayedProducts: state.displayedProducts.length
-  });
-  
-  // Make search function available globally for debugging
-  window.debugLabelSearch = (query) => {
-    const fakeEvent = { target: { value: query } };
-    handleSearch(fakeEvent);
-    console.log('[Debug] After search, displayedProducts:', state.displayedProducts.length);
-  };
-  console.log('[Labels Init] Debug command available: window.debugLabelSearch("your search term")');
 }
 
 // Update filter count display
@@ -184,10 +165,8 @@ function setupRegionSelection() {
 }
 
 async function loadProducts(isBackground = false) {
-  const loadingEl = document.querySelector('#loadingIndicator');
   const errorEl = document.querySelector('#errorMessage');
   
-  if (loadingEl && !isBackground) loadingEl.style.display = 'block';
   if (errorEl) errorEl.style.display = 'none';
   
   try {
@@ -195,13 +174,10 @@ async function loadProducts(isBackground = false) {
     state.allProducts = await getProductsToPrint(state.statusFilters, state.region);
     state.filteredProducts = [...state.allProducts];
     
-    console.log(`[Labels Load] Loaded ${state.allProducts.length} products from API`);
-    
     // Re-apply search filter if exists
-    const searchInput = document.querySelector('#searchInput');
+    const searchInput = document.querySelector('#productSearchInput');
     if (searchInput && searchInput.value.trim()) {
       const query = searchInput.value.toLowerCase().trim();
-      console.log(`[Labels Load] Re-applying search filter: "${query}"`);
       
       state.displayedProducts = state.filteredProducts.filter(p => {
         const priceText = formatPrice(p.price).toLowerCase();
@@ -214,10 +190,8 @@ async function loadProducts(isBackground = false) {
           (p.fr_6m_data ?? '').toString().toLowerCase().includes(query)
         );
       });
-      console.log(`[Labels Load] After search filter: ${state.displayedProducts.length} products`);
     } else {
       state.displayedProducts = [...state.filteredProducts];
-      console.log(`[Labels Load] No search filter active, showing all ${state.displayedProducts.length} products`);
     }
     
     // IMPORTANT: Don't auto-select products - causes lag with large product lists
@@ -231,12 +205,10 @@ async function loadProducts(isBackground = false) {
       selectAllCheckbox.checked = false;
     }
     
-    if (loadingEl) loadingEl.style.display = 'none';
     renderProductTable();
     updateStats();
   } catch (error) {
     console.error('[Labels] Error loading products:', error);
-    if (loadingEl) loadingEl.style.display = 'none';
     
     // Check if error is about missing magento data tables
     const errorMessage = error.message || '';
@@ -259,10 +231,10 @@ function showMagentoDataInitError() {
     errorEl.id = 'magentoDataError';
     errorEl.className = 'magento-data-error';
     
-    // Insert after loading indicator
-    const loadingEl = document.querySelector('#loadingIndicator');
-    if (loadingEl && loadingEl.parentNode) {
-      loadingEl.parentNode.insertBefore(errorEl, loadingEl.nextSibling);
+    // Insert at the top of generator-content
+    const contentEl = document.querySelector('.generator-content');
+    if (contentEl) {
+      contentEl.insertBefore(errorEl, contentEl.firstChild);
     }
   }
   
@@ -347,31 +319,12 @@ function debounce(func, wait) {
 
 function setupEventListeners() {
   // Search
-  const searchInput = document.querySelector('#searchInput');
-  console.log('[Labels Setup] ===== SETTING UP EVENT LISTENERS =====');
-  console.log('[Labels Setup] Search input found:', !!searchInput);
-  console.log('[Labels Setup] Search input element:', searchInput);
+  const searchInput = document.querySelector('#productSearchInput');
   
   if (searchInput) {
-    // Add focus listener with performance tracking
-    searchInput.addEventListener('focus', () => {
-      console.log('[Labels Focus] Search input focused');
-    });
-    
-    // Add immediate non-debounced logging
-    searchInput.addEventListener('input', (e) => {
-      console.log('[Labels Input] ===== INPUT EVENT FIRED =====');
-      console.log('[Labels Input] Current value:', e.target.value);
-      console.log('[Labels Input] Event type:', e.type);
-    });
-    
-    // Add debounced handler for actual search
+    // Add debounced handler for search
     const debouncedSearch = debounce(handleSearch, 300);
     searchInput.addEventListener('input', debouncedSearch);
-    
-    console.log('[Labels Setup] Event listeners attached successfully');
-  } else {
-    console.error('[Labels Setup] CRITICAL: Search input not found!');
   }
   
   // Select all checkbox
@@ -570,8 +523,6 @@ function renderProductTable() {
   const tbody = document.querySelector('#productsTableBody');
   if (!tbody) return;
   
-  console.log(`[Labels Render] Rendering ${state.displayedProducts.length} products`);
-  
   if (state.displayedProducts.length === 0) {
     tbody.innerHTML = `
       <tr>
@@ -625,8 +576,6 @@ function updateStats() {
   const totalEl = document.querySelector('#totalProducts');
   const selectedEl = document.querySelector('#selectedProducts');
   const generatePdfBtn = document.querySelector('#generatePdfBtn');
-  
-  console.log(`[Labels Stats] Displayed: ${state.displayedProducts.length}, Selected: ${state.selectedProducts.size}`);
   
   if (totalEl) totalEl.textContent = state.displayedProducts.length;
   if (selectedEl) selectedEl.textContent = state.selectedProducts.size;
@@ -688,15 +637,6 @@ async function handleGeneratePdf() {
     } else {
       // No selection - use all displayed/filtered products
       itemIdsToUse = state.displayedProducts.map(p => p.item_id);
-      
-      // Check if filters or search are active
-      const hasActiveFilters = state.statusFilters.length > 0;
-      const searchInput = document.querySelector('#searchInput');
-      const hasSearch = searchInput && searchInput.value.trim().length > 0;
-      
-      if (hasActiveFilters || hasSearch) {
-        console.log(`[Labels] No selection - printing all ${itemIdsToUse.length} filtered products`);
-      }
     }
     
     // Create print job with item IDs

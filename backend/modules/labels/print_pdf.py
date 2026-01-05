@@ -265,15 +265,22 @@ def stream_pdf_labels(conn: PGConn, job_id: int) -> StreamingResponse:
             if label_no % (COLS_PER_PAGE * ROWS_PER_PAGE) == 0:
                 c.showPage()
 
+        # Save the final page (even if not full)
+        if label_no > 0:
+            c.showPage()
+        
         c.save()
         buf.seek(0)
+        
+        pdf_bytes = buf.getvalue()
+        print(f"[Labels PDF] Generated PDF for job {job_id}: {len(pdf_bytes)} bytes, {label_no} labels")
 
         # 4. return response
         filename = f"labels_job_{job_id}.pdf"
         return StreamingResponse(
-            iter([buf.getvalue()]),
+            io.BytesIO(pdf_bytes),
             media_type="application/pdf",
-            headers={"Content-Disposition": f'attachment; filename=\"{filename}\"'},
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
         )
     
     except Exception as e:

@@ -1580,7 +1580,7 @@ export function cleanup() {
   inventoryData = [];
   metadataIndex.clear();
   magentoProductsIndex.clear();
-  rowEntryByEl.clear();
+  // Note: rowEntryByEl is a WeakMap and doesn't have/need .clear()
   
   // Reset pagination
   currentPage = 0;
