@@ -28,6 +28,8 @@ let state = {
 };
 
 export async function initLabelGenerator() {
+  console.log('[Labels Init] ===== LABEL GENERATOR INITIALIZING =====');
+  
   // Setup status filter checkboxes (all checked by default)
   setupStatusFilterCheckboxes();
   
@@ -35,18 +37,35 @@ export async function initLabelGenerator() {
   setupRegionSelection();
   
   // Setup event listeners immediately so search works while loading
+  console.log('[Labels Init] Setting up event listeners...');
   setupEventListeners();
   
   // Setup product table event delegation once
   setupProductTableDelegation();
 
   // Load initial data
+  console.log('[Labels Init] Loading products...');
   await loadProducts();
 
   // Auto sync in background
   initAutoSync();
   
   updateUI();
+  
+  console.log('[Labels Init] ===== INITIALIZATION COMPLETE =====');
+  console.log('[Labels Init] State check:', {
+    allProducts: state.allProducts.length,
+    filteredProducts: state.filteredProducts.length,
+    displayedProducts: state.displayedProducts.length
+  });
+  
+  // Make search function available globally for debugging
+  window.debugLabelSearch = (query) => {
+    const fakeEvent = { target: { value: query } };
+    handleSearch(fakeEvent);
+    console.log('[Debug] After search, displayedProducts:', state.displayedProducts.length);
+  };
+  console.log('[Labels Init] Debug command available: window.debugLabelSearch("your search term")');
 }
 
 // Update filter count display
@@ -329,8 +348,30 @@ function debounce(func, wait) {
 function setupEventListeners() {
   // Search
   const searchInput = document.querySelector('#searchInput');
+  console.log('[Labels Setup] ===== SETTING UP EVENT LISTENERS =====');
+  console.log('[Labels Setup] Search input found:', !!searchInput);
+  console.log('[Labels Setup] Search input element:', searchInput);
+  
   if (searchInput) {
-    searchInput.addEventListener('input', debounce(handleSearch, 300));
+    // Add focus listener with performance tracking
+    searchInput.addEventListener('focus', () => {
+      console.log('[Labels Focus] Search input focused');
+    });
+    
+    // Add immediate non-debounced logging
+    searchInput.addEventListener('input', (e) => {
+      console.log('[Labels Input] ===== INPUT EVENT FIRED =====');
+      console.log('[Labels Input] Current value:', e.target.value);
+      console.log('[Labels Input] Event type:', e.type);
+    });
+    
+    // Add debounced handler for actual search
+    const debouncedSearch = debounce(handleSearch, 300);
+    searchInput.addEventListener('input', debouncedSearch);
+    
+    console.log('[Labels Setup] Event listeners attached successfully');
+  } else {
+    console.error('[Labels Setup] CRITICAL: Search input not found!');
   }
   
   // Select all checkbox
@@ -419,10 +460,15 @@ async function handleApplyStatusFilters() {
 }
 
 function handleSearch(e) {
+  console.log('[Labels Search] === HANDLE SEARCH CALLED ===');
   const query = e.target.value.toLowerCase().trim();
   
   console.log(`[Labels Search] Query: "${query}"`);
   console.log(`[Labels Search] Filtering from ${state.filteredProducts.length} products`);
+  console.log(`[Labels Search] State allProducts: ${state.allProducts.length}`);
+  console.log(`[Labels Search] State filteredProducts: ${state.filteredProducts.length}`);
+  console.log(`[Labels Search] State displayedProducts: ${state.displayedProducts.length}`);
+  
   
   if (!query) {
     state.displayedProducts = [...state.filteredProducts];
