@@ -1,10 +1,8 @@
 import { get, post, patch, http } from '../../services/api/http.js';
-import { config } from '../../config.js';
 import { showToast } from '../../ui/toast.js';
 import { collaborationManager } from './collaboration.js';
 import { syncUKMagentoData, syncFRMagentoData, syncNLMagentoData } from '../../services/api/magentoDataApi.js';
 
-const API = config.API;
 // Discontinued status filter preferences key (for checkboxes)
 const DISCONTINUED_STATUS_FILTERS_KEY = 'inventory_discontinued_status_filters';
 

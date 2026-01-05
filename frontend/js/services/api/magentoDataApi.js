@@ -1,7 +1,7 @@
 // js/services/api/magentoDataApi.js
 import { get, post, http } from './http.js';
 import { getToken } from '../state/sessionStore.js';
-import { config } from '../../config.js';
+import { getApiUrl } from '../../config.js';
 
 const API = '/v1/magentodata';  // http.js adds BASE which already includes /api
 
@@ -58,7 +58,7 @@ export async function uploadUKMagentoCSV(file) {
   const formData = new FormData();
   formData.append('file', file);
   
-  const BASE = config.API.replace(/\/+$/, '');
+  const BASE = getApiUrl().replace(/\/+$/, '');
   const url = `${BASE}${API}/uk/upload`;
   
   const fetchOptions = {
@@ -110,7 +110,7 @@ export async function uploadFRMagentoCSV(file) {
   const formData = new FormData();
   formData.append('file', file);
   
-  const BASE = config.API.replace(/\/+$/, '');
+  const BASE = getApiUrl().replace(/\/+$/, '');
   const url = `${BASE}${API}/fr/upload`;
   
   const fetchOptions = {
@@ -162,7 +162,7 @@ export async function uploadNLMagentoCSV(file) {
   const formData = new FormData();
   formData.append('file', file);
   
-  const BASE = config.API.replace(/\/+$/, '');
+  const BASE = getApiUrl().replace(/\/+$/, '');
   const url = `${BASE}${API}/nl/upload`;
   
   const fetchOptions = {
@@ -195,7 +195,7 @@ export async function uploadCSV(file) {
   const formData = new FormData();
   formData.append('file', file);
   
-  const BASE = config.API.replace(/\/+$/, '');
+  const BASE = getApiUrl().replace(/\/+$/, '');
   const url = `${BASE}${API}/upload`;
   
   const fetchOptions = {
@@ -229,7 +229,7 @@ export async function validateCSV(file) {
   const formData = new FormData();
   formData.append('file', file);
   
-  const BASE = config.API.replace(/\/+$/, '');
+  const BASE = getApiUrl().replace(/\/+$/, '');
   const url = `${BASE}${API}/validate`;
   
   const fetchOptions = {
