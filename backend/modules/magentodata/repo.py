@@ -76,54 +76,131 @@ class MagentoDataRepo:
             else:
                 logger.info(f"ℹ️  Table already exists: import_history")
             
-            # Create excluded customers table for 6M aggregated magento filters
+            # Create unified magento_region_filters table for all filter types
             cursor.execute("""
                 SELECT EXISTS (
                     SELECT FROM information_schema.tables 
                     WHERE table_schema = 'public' 
-                    AND table_name = 'aggregated_excluded_customers'
+                    AND table_name = 'magento_region_filters'
                 )
             """)
             
             if not cursor.fetchone()[0]:
                 cursor.execute("""
-                    CREATE TABLE aggregated_excluded_customers (
+                    CREATE TABLE magento_region_filters (
                         id SERIAL PRIMARY KEY,
                         region VARCHAR(10) NOT NULL,
-                        customer_email VARCHAR(255) NOT NULL,
+                        filter_type VARCHAR(50) NOT NULL,
+                        
+                        -- For customer exclusions
+                        customer_email VARCHAR(255),
                         customer_full_name VARCHAR(255),
+                        
+                        -- For group exclusions
+                        customer_group VARCHAR(255),
+                        
+                        -- For thresholds
+                        threshold_value DECIMAL(10, 2),
+                        qty_threshold_value INTEGER,
+                        
+                        -- For smart quantity rules
+                        smart_qty_threshold INTEGER,
+                        smart_qty_action VARCHAR(20),
+                        smart_qty_divisor DECIMAL(10, 2),
+                        smart_qty_rule_order INTEGER DEFAULT 1,
+                        
+                        -- Metadata
                         added_by VARCHAR(100),
+                        updated_by VARCHAR(100),
                         added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        UNIQUE(region, customer_email)
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        
+                        -- Unique constraints
+                        CONSTRAINT unique_excluded_customer UNIQUE(region, filter_type, customer_email),
+                        CONSTRAINT unique_excluded_group UNIQUE(region, filter_type, customer_group),
+                        CONSTRAINT unique_smart_qty_rule UNIQUE(region, filter_type, smart_qty_rule_order)
                     )
                 """)
-                logger.info(f"✅ Created table: aggregated_excluded_customers")
-            else:
-                logger.info(f"ℹ️  Table already exists: aggregated_excluded_customers")
-            
-            # Create excluded customer groups table for 6M aggregated magento filters
-            cursor.execute("""
-                SELECT EXISTS (
-                    SELECT FROM information_schema.tables 
-                    WHERE table_schema = 'public' 
-                    AND table_name = 'aggregated_excluded_customer_groups'
-                )
-            """)
-            
-            if not cursor.fetchone()[0]:
+                
+                # Create partial unique index for thresholds (excludes smart_qty_rule)
                 cursor.execute("""
-                    CREATE TABLE aggregated_excluded_customer_groups (
-                        id SERIAL PRIMARY KEY,
-                        region VARCHAR(10) NOT NULL,
-                        customer_group VARCHAR(255) NOT NULL,
-                        added_by VARCHAR(100),
-                        added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        UNIQUE(region, customer_group)
+                    CREATE UNIQUE INDEX unique_threshold_filter 
+                    ON magento_region_filters(region, filter_type) 
+                    WHERE filter_type IN ('threshold', 'qty_threshold')
+                """)
+                
+                # Create indexes for common queries
+                cursor.execute("CREATE INDEX idx_filters_region_type ON magento_region_filters(region, filter_type)")
+                cursor.execute("CREATE INDEX idx_filters_customer_email ON magento_region_filters(customer_email) WHERE customer_email IS NOT NULL")
+                
+                logger.info(f"✅ Created table: magento_region_filters")
+            else:
+                logger.info(f"ℹ️  Table already exists: magento_region_filters")
+                
+                # Ensure the new constraint exists and old one is fixed
+                # Check if smart_qty_rule_order column exists
+                cursor.execute("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.columns 
+                        WHERE table_name = 'magento_region_filters' 
+                        AND column_name = 'smart_qty_rule_order'
                     )
                 """)
-                logger.info(f"✅ Created table: aggregated_excluded_customer_groups")
-            else:
-                logger.info(f"ℹ️  Table already exists: aggregated_excluded_customer_groups")
+                
+                if not cursor.fetchone()[0]:
+                    # Add the column if it doesn't exist
+                    cursor.execute("""
+                        ALTER TABLE magento_region_filters 
+                        ADD COLUMN smart_qty_rule_order INTEGER DEFAULT 1
+                    """)
+                    logger.info(f"✅ Added column: smart_qty_rule_order")
+                
+                # Drop the old unique_threshold constraint if it exists
+                cursor.execute("""
+                    SELECT conname 
+                    FROM pg_constraint 
+                    WHERE conname = 'unique_threshold' 
+                    AND conrelid = 'magento_region_filters'::regclass
+                """)
+                
+                if cursor.fetchone():
+                    cursor.execute("""
+                        ALTER TABLE magento_region_filters 
+                        DROP CONSTRAINT unique_threshold
+                    """)
+                    logger.info(f"✅ Dropped old constraint: unique_threshold")
+                
+                # Add new partial unique index for thresholds (excluding smart_qty_rule)
+                cursor.execute("""
+                    SELECT indexname 
+                    FROM pg_indexes 
+                    WHERE indexname = 'unique_threshold_filter' 
+                    AND tablename = 'magento_region_filters'
+                """)
+                
+                if not cursor.fetchone():
+                    cursor.execute("""
+                        CREATE UNIQUE INDEX unique_threshold_filter 
+                        ON magento_region_filters(region, filter_type) 
+                        WHERE filter_type IN ('threshold', 'qty_threshold')
+                    """)
+                    logger.info(f"✅ Added new partial unique index: unique_threshold_filter")
+                
+                # Ensure smart_qty_rule constraint exists
+                cursor.execute("""
+                    SELECT conname 
+                    FROM pg_constraint 
+                    WHERE conname = 'unique_smart_qty_rule' 
+                    AND conrelid = 'magento_region_filters'::regclass
+                """)
+                
+                if not cursor.fetchone():
+                    cursor.execute("""
+                        ALTER TABLE magento_region_filters 
+                        ADD CONSTRAINT unique_smart_qty_rule 
+                        UNIQUE(region, filter_type, smart_qty_rule_order)
+                    """)
+                    logger.info(f"✅ Added constraint: unique_smart_qty_rule")
             
             # Create sync metadata table to track resumable syncs
             cursor.execute("""
@@ -151,50 +228,6 @@ class MagentoDataRepo:
                 logger.info(f"✅ Created table: magento_sync_metadata")
             else:
                 logger.info(f"ℹ️  Table already exists: magento_sync_metadata")
-            
-            # Create grand total threshold table for 6M aggregated magento filters
-            cursor.execute("""
-                SELECT EXISTS (
-                    SELECT FROM information_schema.tables 
-                    WHERE table_schema = 'public' 
-                    AND table_name = 'aggregated_grand_total_threshold'
-                )
-            """)
-            
-            if not cursor.fetchone()[0]:
-                cursor.execute("""
-                    CREATE TABLE aggregated_grand_total_threshold (
-                        id SERIAL PRIMARY KEY,
-                        region VARCHAR(10) NOT NULL UNIQUE,
-                        threshold DECIMAL(10, 2),
-                        qty_threshold INTEGER,
-                        updated_by VARCHAR(100),
-                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    )
-                """)
-                logger.info(f"✅ Created table: aggregated_grand_total_threshold")
-            else:
-                logger.info(f"ℹ️  Table already exists: aggregated_grand_total_threshold")
-                # Add qty_threshold column if it doesn't exist
-                cursor.execute("""
-                    SELECT column_name 
-                    FROM information_schema.columns 
-                    WHERE table_name = 'aggregated_grand_total_threshold' 
-                    AND column_name = 'qty_threshold'
-                """)
-                if not cursor.fetchone():
-                    cursor.execute("""
-                        ALTER TABLE aggregated_grand_total_threshold 
-                        ADD COLUMN qty_threshold INTEGER
-                    """)
-                    logger.info(f"✅ Added qty_threshold column to aggregated_grand_total_threshold")
-            
-            # Make threshold column nullable if it isn't already
-            cursor.execute("""
-                ALTER TABLE aggregated_grand_total_threshold 
-                ALTER COLUMN threshold DROP NOT NULL
-            """)
-
             
             # Create main magento data tables
             for table_name in tables:
@@ -1376,12 +1409,18 @@ class MagentoDataRepo:
             
             # Get the thresholds for this region (if set)
             cursor.execute("""
-                SELECT threshold, qty_threshold FROM aggregated_grand_total_threshold 
-                WHERE region = %s
+                SELECT threshold_value FROM magento_region_filters 
+                WHERE region = %s AND filter_type = 'threshold'
             """, (region,))
             threshold_row = cursor.fetchone()
             grand_total_threshold = threshold_row[0] if threshold_row else None
-            qty_threshold = threshold_row[1] if threshold_row and len(threshold_row) > 1 else None
+            
+            cursor.execute("""
+                SELECT qty_threshold_value FROM magento_region_filters 
+                WHERE region = %s AND filter_type = 'qty_threshold'
+            """, (region,))
+            qty_row = cursor.fetchone()
+            qty_threshold = qty_row[0] if qty_row else None
             
             logger.info(f"Refreshing {region} aggregated data with threshold: {grand_total_threshold} {base_currency}, qty_threshold: {qty_threshold}")
             
@@ -1430,17 +1469,23 @@ class MagentoDataRepo:
             
             # Get excluded customers
             cursor.execute("""
-                SELECT customer_email FROM aggregated_excluded_customers
-                WHERE region = %s
+                SELECT customer_email FROM magento_region_filters
+                WHERE region = %s AND filter_type = 'excluded_customer'
             """, (region,))
             excluded_emails = {row[0] for row in cursor.fetchall()}
             
             # Get excluded customer groups
             cursor.execute("""
-                SELECT customer_group FROM aggregated_excluded_customer_groups
-                WHERE region = %s
+                SELECT customer_group FROM magento_region_filters
+                WHERE region = %s AND filter_type = 'excluded_group'
             """, (region,))
             excluded_groups = {row[0] for row in cursor.fetchall()}
+            
+            # Get smart qty rules (multiple rules possible)
+            smart_rules = self.get_smart_qty_rules(region)
+            # Sort by threshold descending (highest first) for cutoff behavior
+            if smart_rules:
+                smart_rules = sorted(smart_rules, key=lambda r: r['threshold'], reverse=True)
             
             # Filter and aggregate in Python with currency conversion
             sku_aggregates = {}
@@ -1470,10 +1515,31 @@ class MagentoDataRepo:
                         filtered_count += 1
                         continue
                 
+                # Apply smart qty rules (only first matching rule - cutoff behavior)
+                # Check from highest threshold to lowest
+                qty_to_use = qty or 0
+                if smart_rules and qty is not None:
+                    for rule in smart_rules:
+                        if qty >= rule['threshold']:
+                            threshold = rule['threshold']
+                            action = rule['action']
+                            divisor = rule['divisor']
+                            
+                            if action == 'divide' and divisor:
+                                qty_to_use = qty / divisor
+                            elif action == 'multiply' and divisor:
+                                qty_to_use = qty * divisor
+                            elif action == 'subtract' and divisor:
+                                qty_to_use = max(0, qty - divisor)
+                            elif action == 'set_to' and divisor:
+                                qty_to_use = divisor
+                            # Break after applying first matching rule (cutoff point)
+                            break
+                
                 # Aggregate by SKU
                 if sku not in sku_aggregates:
                     sku_aggregates[sku] = {'name': name, 'total_qty': 0}
-                sku_aggregates[sku]['total_qty'] += (qty or 0)
+                sku_aggregates[sku]['total_qty'] += qty_to_use
                 sku_aggregates[sku]['name'] = name  # Keep the latest name
             
             # Insert aggregated data
@@ -1655,25 +1721,37 @@ class MagentoDataRepo:
             excluded_groups = set()
             if use_exclusions:
                 cursor.execute("""
-                    SELECT customer_email FROM aggregated_excluded_customers
-                    WHERE region = %s
+                    SELECT customer_email FROM magento_region_filters
+                    WHERE region = %s AND filter_type = 'excluded_customer'
                 """, (region,))
                 excluded_emails = {row[0] for row in cursor.fetchall()}
                 
                 cursor.execute("""
-                    SELECT customer_group FROM aggregated_excluded_customer_groups
-                    WHERE region = %s
+                    SELECT customer_group FROM magento_region_filters
+                    WHERE region = %s AND filter_type = 'excluded_group'
                 """, (region,))
                 excluded_groups = {row[0] for row in cursor.fetchall()}
             
             # Get the thresholds for this region (if set)
             cursor.execute("""
-                SELECT threshold, qty_threshold FROM aggregated_grand_total_threshold 
-                WHERE region = %s
+                SELECT threshold_value FROM magento_region_filters 
+                WHERE region = %s AND filter_type = 'threshold'
             """, (region,))
             threshold_row = cursor.fetchone()
             grand_total_threshold = threshold_row[0] if threshold_row else None
-            qty_threshold = threshold_row[1] if threshold_row and len(threshold_row) > 1 else None
+            
+            cursor.execute("""
+                SELECT qty_threshold_value FROM magento_region_filters 
+                WHERE region = %s AND filter_type = 'qty_threshold'
+            """, (region,))
+            qty_row = cursor.fetchone()
+            qty_threshold = qty_row[0] if qty_row else None
+            
+            # Get smart qty rules (multiple rules possible)
+            smart_rules = self.get_smart_qty_rules(region)
+            # Sort by threshold descending (highest first) for cutoff behavior
+            if smart_rules:
+                smart_rules = sorted(smart_rules, key=lambda r: r['threshold'], reverse=True)
             
             # Fetch magento data with SKU aliases for the custom date range
             fetch_query = f"""
@@ -1741,10 +1819,31 @@ class MagentoDataRepo:
                     if converted_total > float(grand_total_threshold):
                         continue
                 
+                # Apply smart qty rules (only first matching rule - cutoff behavior)
+                # Check from highest threshold to lowest
+                qty_to_use = qty or 0
+                if smart_rules and qty is not None:
+                    for rule in smart_rules:
+                        if qty >= rule['threshold']:
+                            threshold = rule['threshold']
+                            action = rule['action']
+                            divisor = rule['divisor']
+                            
+                            if action == 'divide' and divisor:
+                                qty_to_use = qty / divisor
+                            elif action == 'multiply' and divisor:
+                                qty_to_use = qty * divisor
+                            elif action == 'subtract' and divisor:
+                                qty_to_use = max(0, qty - divisor)
+                            elif action == 'set_to' and divisor:
+                                qty_to_use = divisor
+                            # Break after applying first matching rule (cutoff point)
+                            break
+                
                 # Aggregate by SKU
                 if sku not in sku_aggregates:
                     sku_aggregates[sku] = {'name': name, 'total_qty': 0}
-                sku_aggregates[sku]['total_qty'] += (qty or 0)
+                sku_aggregates[sku]['total_qty'] += qty_to_use
                 sku_aggregates[sku]['name'] = name  # Keep the latest name
             
             # Convert to list and sort by total_qty
@@ -2146,8 +2245,8 @@ class MagentoDataRepo:
                 SELECT 
                     id, customer_email, customer_full_name, 
                     added_by, added_at
-                FROM aggregated_excluded_customers
-                WHERE region = %s
+                FROM magento_region_filters
+                WHERE region = %s AND filter_type = 'excluded_customer'
                 ORDER BY customer_email
             """
             
@@ -2182,10 +2281,10 @@ class MagentoDataRepo:
             cursor = conn.cursor()
             
             cursor.execute("""
-                INSERT INTO aggregated_excluded_customers 
-                (region, customer_email, customer_full_name, added_by)
-                VALUES (%s, %s, %s, %s)
-                ON CONFLICT (region, customer_email) DO NOTHING
+                INSERT INTO magento_region_filters 
+                (region, filter_type, customer_email, customer_full_name, added_by)
+                VALUES (%s, 'excluded_customer', %s, %s, %s)
+                ON CONFLICT (region, filter_type, customer_email) DO NOTHING
                 RETURNING id
             """, (region, email, full_name, username))
             
@@ -2222,8 +2321,8 @@ class MagentoDataRepo:
             cursor = conn.cursor()
             
             cursor.execute("""
-                DELETE FROM aggregated_excluded_customers 
-                WHERE id = %s
+                DELETE FROM magento_region_filters 
+                WHERE id = %s AND filter_type = 'excluded_customer'
                 RETURNING customer_email
             """, (customer_id,))
             
@@ -2259,12 +2358,12 @@ class MagentoDataRepo:
             cursor = conn.cursor()
             
             cursor.execute("""
-                SELECT threshold FROM aggregated_grand_total_threshold
-                WHERE region = %s
+                SELECT threshold_value FROM magento_region_filters
+                WHERE region = %s AND filter_type = 'threshold'
             """, (region,))
             
             result = cursor.fetchone()
-            return float(result[0]) if result else None
+            return float(result[0]) if result and result[0] is not None else None
             
         except Exception as e:
             logger.error(f"Error getting grand total threshold: {e}")
@@ -2282,12 +2381,12 @@ class MagentoDataRepo:
             cursor = conn.cursor()
             
             cursor.execute("""
-                INSERT INTO aggregated_grand_total_threshold 
-                (region, threshold, updated_by, updated_at)
-                VALUES (%s, %s, %s, CURRENT_TIMESTAMP)
-                ON CONFLICT (region) 
+                INSERT INTO magento_region_filters 
+                (region, filter_type, threshold_value, updated_by, updated_at)
+                VALUES (%s, 'threshold', %s, %s, CURRENT_TIMESTAMP)
+                ON CONFLICT (region, filter_type) WHERE filter_type = 'threshold'
                 DO UPDATE SET 
-                    threshold = EXCLUDED.threshold,
+                    threshold_value = EXCLUDED.threshold_value,
                     updated_by = EXCLUDED.updated_by,
                     updated_at = CURRENT_TIMESTAMP
                 RETURNING id
@@ -2318,8 +2417,8 @@ class MagentoDataRepo:
             cursor = conn.cursor()
             
             cursor.execute("""
-                SELECT qty_threshold FROM aggregated_grand_total_threshold
-                WHERE region = %s
+                SELECT qty_threshold_value FROM magento_region_filters
+                WHERE region = %s AND filter_type = 'qty_threshold'
             """, (region,))
             
             result = cursor.fetchone()
@@ -2341,12 +2440,12 @@ class MagentoDataRepo:
             cursor = conn.cursor()
             
             cursor.execute("""
-                INSERT INTO aggregated_grand_total_threshold 
-                (region, qty_threshold, updated_by, updated_at)
-                VALUES (%s, %s, %s, CURRENT_TIMESTAMP)
-                ON CONFLICT (region) 
+                INSERT INTO magento_region_filters 
+                (region, filter_type, qty_threshold_value, updated_by, updated_at)
+                VALUES (%s, 'qty_threshold', %s, %s, CURRENT_TIMESTAMP)
+                ON CONFLICT (region, filter_type) WHERE filter_type = 'qty_threshold'
                 DO UPDATE SET 
-                    qty_threshold = EXCLUDED.qty_threshold,
+                    qty_threshold_value = EXCLUDED.qty_threshold_value,
                     updated_by = EXCLUDED.updated_by,
                     updated_at = CURRENT_TIMESTAMP
                 RETURNING id
@@ -2363,6 +2462,154 @@ class MagentoDataRepo:
             if conn:
                 conn.rollback()
             logger.error(f"Error setting qty threshold: {e}")
+            raise
+        finally:
+            if conn:
+                cursor.close()
+                return_products_connection(conn)
+    
+    def get_smart_qty_rules(self, region: str) -> List[Dict[str, Any]]:
+        """Get all smart quantity rules for a region"""
+        conn = None
+        try:
+            conn = get_products_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                SELECT id, smart_qty_threshold, smart_qty_action, smart_qty_divisor, smart_qty_rule_order
+                FROM magento_region_filters
+                WHERE region = %s AND filter_type = 'smart_qty_rule'
+                ORDER BY smart_qty_rule_order
+            """, (region,))
+            
+            rows = cursor.fetchall()
+            rules = []
+            for row in rows:
+                if row[1] is not None:
+                    rules.append({
+                        'id': row[0],
+                        'threshold': int(row[1]),
+                        'action': row[2],
+                        'divisor': float(row[3]) if row[3] else None,
+                        'order': row[4]
+                    })
+            return rules
+            
+        except Exception as e:
+            logger.error(f"Error getting smart qty rule: {e}")
+            raise
+        finally:
+            if conn:
+                cursor.close()
+                return_products_connection(conn)
+    
+    def add_smart_qty_rule(self, region: str, threshold: int, action: str, divisor: float, username: str) -> Dict[str, Any]:
+        """Add a smart quantity rule for a region"""
+        conn = None
+        try:
+            conn = get_products_connection()
+            cursor = conn.cursor()
+            
+            # Validate action
+            valid_actions = ['divide', 'multiply', 'subtract', 'set_to']
+            if action not in valid_actions:
+                raise ValueError(f"Invalid action: {action}. Must be one of {valid_actions}")
+            
+            # Get next order number
+            cursor.execute("""
+                SELECT COALESCE(MAX(smart_qty_rule_order), 0) + 1
+                FROM magento_region_filters
+                WHERE region = %s AND filter_type = 'smart_qty_rule'
+            """, (region,))
+            next_order = cursor.fetchone()[0]
+            
+            cursor.execute("""
+                INSERT INTO magento_region_filters 
+                (region, filter_type, smart_qty_threshold, smart_qty_action, smart_qty_divisor, smart_qty_rule_order, added_by, added_at)
+                VALUES (%s, 'smart_qty_rule', %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                RETURNING id
+            """, (region, threshold, action, divisor, next_order, username))
+            
+            result = cursor.fetchone()
+            conn.commit()
+            
+            action_desc = f"{action} by {divisor}" if action != 'set_to' else f"set to {divisor}"
+            return {
+                "success": True,
+                "message": f"Smart qty rule added: if qty >= {threshold}, {action_desc} for {region.upper()}",
+                "id": result[0]
+            }
+            
+        except Exception as e:
+            if conn:
+                conn.rollback()
+            logger.error(f"Error setting smart qty rule: {e}")
+            raise
+        finally:
+            if conn:
+                cursor.close()
+                return_products_connection(conn)
+    
+    def remove_smart_qty_rule(self, rule_id: int) -> Dict[str, Any]:
+        """Remove a specific smart quantity rule"""
+        conn = None
+        try:
+            conn = get_products_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                DELETE FROM magento_region_filters 
+                WHERE id = %s AND filter_type = 'smart_qty_rule'
+                RETURNING smart_qty_threshold, smart_qty_action
+            """, (rule_id,))
+            
+            result = cursor.fetchone()
+            conn.commit()
+            
+            if result:
+                return {
+                    "success": True,
+                    "message": f"Smart qty rule removed"
+                }
+            else:
+                return {
+                    "success": False,
+                    "message": "No smart qty rule found to remove"
+                }
+        except Exception as e:
+            if conn:
+                conn.rollback()
+            logger.error(f"Error removing smart qty rule: {e}")
+            raise
+        finally:
+            if conn:
+                cursor.close()
+                return_products_connection(conn)
+    
+    def clear_all_smart_qty_rules(self, region: str) -> Dict[str, Any]:
+        """Clear all smart quantity rules for a region"""
+        conn = None
+        try:
+            conn = get_products_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                DELETE FROM magento_region_filters 
+                WHERE region = %s AND filter_type = 'smart_qty_rule'
+            """, (region,))
+            
+            deleted_count = cursor.rowcount
+            conn.commit()
+            
+            return {
+                "success": True,
+                "message": f"Cleared {deleted_count} smart qty rule(s) for {region.upper()}"
+            }
+            
+        except Exception as e:
+            if conn:
+                conn.rollback()
+            logger.error(f"Error clearing smart qty rule: {e}")
             raise
         finally:
             if conn:
@@ -2409,8 +2656,8 @@ class MagentoDataRepo:
                 SELECT 
                     id, customer_group, 
                     added_by, added_at
-                FROM aggregated_excluded_customer_groups
-                WHERE region = %s
+                FROM magento_region_filters
+                WHERE region = %s AND filter_type = 'excluded_group'
                 ORDER BY customer_group
             """
             
@@ -2444,10 +2691,10 @@ class MagentoDataRepo:
             cursor = conn.cursor()
             
             cursor.execute("""
-                INSERT INTO aggregated_excluded_customer_groups 
-                (region, customer_group, added_by)
-                VALUES (%s, %s, %s)
-                ON CONFLICT (region, customer_group) DO NOTHING
+                INSERT INTO magento_region_filters 
+                (region, filter_type, customer_group, added_by)
+                VALUES (%s, 'excluded_group', %s, %s)
+                ON CONFLICT (region, filter_type, customer_group) DO NOTHING
                 RETURNING id
             """, (region, customer_group, username))
             
@@ -2484,8 +2731,8 @@ class MagentoDataRepo:
             cursor = conn.cursor()
             
             cursor.execute("""
-                DELETE FROM aggregated_excluded_customer_groups 
-                WHERE id = %s
+                DELETE FROM magento_region_filters 
+                WHERE id = %s AND filter_type = 'excluded_group'
                 RETURNING customer_group
             """, (group_id,))
             

@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Dict, Any, List
 import logging
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
@@ -902,6 +902,22 @@ class MagentoDataService:
                 "status": "error",
                 "message": f"Failed to set qty threshold: {str(e)}"
             }
+    
+    def get_smart_qty_rules(self, region: str) -> List[Dict[str, Any]]:
+        """Get all smart quantity rules for a region"""
+        return self.repo.get_smart_qty_rules(region)
+    
+    def add_smart_qty_rule(self, region: str, threshold: int, action: str, divisor: float, username: str) -> Dict[str, Any]:
+        """Add a smart quantity rule for a region"""
+        return self.repo.add_smart_qty_rule(region, threshold, action, divisor, username)
+    
+    def remove_smart_qty_rule(self, rule_id: int) -> Dict[str, Any]:
+        """Remove a specific smart quantity rule"""
+        return self.repo.remove_smart_qty_rule(rule_id)
+    
+    def clear_all_smart_qty_rules(self, region: str) -> Dict[str, Any]:
+        """Clear all smart quantity rules for a region"""
+        return self.repo.clear_all_smart_qty_rules(region)
     
     def get_customer_groups(self, region: str) -> Dict[str, Any]:
         """Get all customer groups for a region"""

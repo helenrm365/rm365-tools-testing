@@ -3,7 +3,7 @@ import { get, post, del } from '../../services/api/http.js';
 import { showToast } from '../../ui/toast.js';
 import { refreshAggregatedDataForRegion, getCustomRangeAggregatedData } from '../../services/api/magentoDataApi.js';
 
-const API = '/api/v1/magentodata';
+const API = '/v1/magentodata';
 
 let currentRegion = null;
 let searchDebounceTimer = null;
@@ -12,6 +12,7 @@ let excludedCustomerGroups = [];
 let availableCustomerGroups = [];
 let currentThreshold = null;
 let currentQtyThreshold = null;
+let currentSmartQtyRules = []; // Array of rules
 let pendingCustomerAdds = []; // Customers to be added when Apply is clicked
 let pendingCustomerRemoves = []; // Customer IDs to be removed when Apply is clicked
 let pendingGroupAdds = []; // Customer groups to be added when Apply is clicked
@@ -40,6 +41,7 @@ export function showFiltersModal(region) {
     loadExcludedCustomerGroups();
     loadThreshold();
     loadQtyThreshold();
+    loadSmartQtyRules();
     loadExchangeRates(region);
     
     // Focus on customer search input
@@ -189,6 +191,71 @@ function createFiltersModal(region) {
                     </div>
                 </div>
 
+                <!-- Smart Quantity Filter -->
+                <div class="filter-section">
+                    <div class="filter-section-header">
+                        <span class="filter-section-icon"><i class="fas fa-magic"></i></span>
+                        <h3 class="filter-section-title">Smart Quantity Filter</h3>
+                    </div>
+                    <p class="filter-section-description">
+                        Automatically adjust product quantities in aggregated data based on rules. Rules are applied in order during aggregation.
+                    </p>
+                    
+                    <!-- Current Rules List -->
+                    <div class="smart-rules-list" id="smart-rules-list-${region}">
+                        <div class="smart-rules-empty">No rules configured. Add a rule below.</div>
+                    </div>
+                    
+                    <!-- Add New Rule Form -->
+                    <div class="smart-filter-config">
+                        <div class="smart-filter-header">Add New Rule</div>
+                        
+                        <div class="smart-filter-row">
+                            <label class="smart-filter-label">If quantity ≥</label>
+                            <input 
+                                type="number" 
+                                class="smart-filter-input" 
+                                placeholder="100"
+                                step="1"
+                                min="1"
+                                id="smart-qty-threshold-${region}"
+                            />
+                        </div>
+                        
+                        <div class="smart-filter-row">
+                            <label class="smart-filter-label">Then</label>
+                            <select class="smart-filter-select" id="smart-qty-action-${region}">
+                                <option value="divide">Divide by</option>
+                                <option value="multiply">Multiply by</option>
+                                <option value="subtract">Subtract</option>
+                                <option value="set_to">Set to</option>
+                            </select>
+                            <input 
+                                type="number" 
+                                class="smart-filter-input" 
+                                placeholder="2"
+                                step="0.1"
+                                min="0.1"
+                                id="smart-qty-divisor-${region}"
+                            />
+                        </div>
+                        
+                        <div class="smart-filter-preview" id="smart-filter-preview-${region}">
+                            <i class="fas fa-info-circle"></i> 
+                            <span id="smart-filter-preview-text-${region}">Configure rule above to see preview</span>
+                        </div>
+                        
+                        <div class="smart-filter-actions">
+                            <button class="smart-filter-add-btn" id="smart-filter-add-${region}">
+                                <i class="fas fa-plus"></i> Add Rule
+                            </button>
+                            <button class="smart-filter-clear-all-btn" id="smart-filter-clear-all-${region}">
+                                <i class="fas fa-trash"></i> Clear All
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Apply Options -->
                 <div class="filter-section" style="border-top: 1px solid var(--border-color); margin-top: 20px; padding-top: 20px;">
                     <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
@@ -306,6 +373,29 @@ function setupEventListeners(region) {
         thresholdInput.addEventListener('input', (e) => {
             debounceConversionUpdate(region, e.target.value);
         });
+    }
+    
+    // Smart qty filter inputs - update preview as user types
+    const smartThresholdInput = document.getElementById(`smart-qty-threshold-${region}`);
+    const smartActionSelect = document.getElementById(`smart-qty-action-${region}`);
+    const smartDivisorInput = document.getElementById(`smart-qty-divisor-${region}`);
+    const smartAddBtn = document.getElementById(`smart-filter-add-${region}`);
+    const smartClearAllBtn = document.getElementById(`smart-filter-clear-all-${region}`);
+    
+    if (smartThresholdInput) {
+        smartThresholdInput.addEventListener('input', () => updateSmartFilterPreview());
+    }
+    if (smartActionSelect) {
+        smartActionSelect.addEventListener('change', () => updateSmartFilterPreview());
+    }
+    if (smartDivisorInput) {
+        smartDivisorInput.addEventListener('input', () => updateSmartFilterPreview());
+    }
+    if (smartAddBtn) {
+        smartAddBtn.addEventListener('click', () => addSmartQtyRule());
+    }
+    if (smartClearAllBtn) {
+        smartClearAllBtn.addEventListener('click', () => clearAllSmartQtyRules());
     }
 }
 
@@ -562,7 +652,10 @@ async function applyAllFilters(region) {
             }
         }
         
-        // 5. Refresh 6M aggregated data
+        // 5. Smart qty rules are already saved individually via Add Rule button
+        // No need to save them here
+        
+        // 6. Refresh 6M aggregated data
         if (!hasErrors) {
             showToast('💾 Filters saved! Refreshing 6M aggregated data...', 'info');
             
@@ -1161,6 +1254,216 @@ async function saveQtyThreshold(region) {
         showToast('❌ Failed to save qty threshold', 'error');
     } finally {
         saveBtn.disabled = false;
+    }
+}
+
+/**
+ * Load smart qty rules
+ */
+async function loadSmartQtyRules() {
+    if (!currentRegion) return;
+    
+    try {
+        const response = await get(`${API}/filters/smart-qty-rules/${currentRegion}`);
+        
+        if (response.status === 'success') {
+            currentSmartQtyRules = response.rules || [];
+            displaySmartQtyRules();
+        }
+    } catch (error) {
+        console.error('Error loading smart qty rules:', error);
+    }
+}
+
+/**
+ * Display current smart qty rules
+ */
+function displaySmartQtyRules() {
+    const rulesListContainer = document.getElementById(`smart-rules-list-${currentRegion}`);
+    
+    if (!rulesListContainer) return;
+    
+    if (currentSmartQtyRules.length === 0) {
+        rulesListContainer.innerHTML = '<div class="smart-rules-empty">No rules configured. Add a rule below.</div>';
+    } else {
+        let html = '<div class="smart-rules-items">';
+        
+        currentSmartQtyRules.forEach((rule, index) => {
+            const actionText = {
+                'divide': `÷ ${rule.divisor}`,
+                'multiply': `× ${rule.divisor}`,
+                'subtract': `− ${rule.divisor}`,
+                'set_to': `→ ${rule.divisor}`
+            }[rule.action];
+            
+            html += `
+                <div class="smart-rule-item" data-rule-id="${rule.id}">
+                    <div class="smart-rule-number">#${index + 1}</div>
+                    <div class="smart-rule-content">
+                        <div class="smart-rule-text">If qty ≥ <strong>${rule.threshold}</strong>, ${actionText}</div>
+                    </div>
+                    <button class="smart-rule-delete-btn" data-rule-id="${rule.id}" title="Delete this rule">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                            <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
+                            <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
+                        </svg>
+                    </button>
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+        rulesListContainer.innerHTML = html;
+        
+        // Attach delete handlers
+        document.querySelectorAll('.smart-rule-delete-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const ruleId = parseInt(btn.dataset.ruleId);
+                deleteSmartQtyRule(ruleId);
+            });
+        });
+    }
+}
+
+/**
+ * Update smart filter preview for new rule form
+ */
+function updateSmartFilterPreview() {
+    const thresholdInput = document.getElementById(`smart-qty-threshold-${currentRegion}`);
+    const actionSelect = document.getElementById(`smart-qty-action-${currentRegion}`);
+    const divisorInput = document.getElementById(`smart-qty-divisor-${currentRegion}`);
+    const previewText = document.getElementById(`smart-filter-preview-text-${currentRegion}`);
+    
+    if (!thresholdInput || !actionSelect || !divisorInput || !previewText) return;
+    
+    const threshold = parseInt(thresholdInput.value);
+    const action = actionSelect.value;
+    const divisor = parseFloat(divisorInput.value);
+    
+    if (isNaN(threshold) || isNaN(divisor) || threshold < 1 || divisor < 0.1) {
+        previewText.textContent = 'Configure rule above to see preview';
+        return;
+    }
+    
+    let result;
+    if (action === 'divide') {
+        result = Math.round(threshold / divisor);
+    } else if (action === 'multiply') {
+        result = Math.round(threshold * divisor);
+    } else if (action === 'subtract') {
+        result = Math.max(0, threshold - divisor);
+    } else if (action === 'set_to') {
+        result = divisor;
+    }
+    
+    const actionText = {
+        'divide': `÷ ${divisor}`,
+        'multiply': `× ${divisor}`,
+        'subtract': `− ${divisor}`,
+        'set_to': `→ ${divisor}`
+    }[action];
+    
+    previewText.innerHTML = `Example: <strong>${threshold}</strong> ${actionText} = <strong>${result}</strong>`;
+}
+
+/**
+ * Add a new smart qty rule
+ */
+async function addSmartQtyRule() {
+    if (!currentRegion) return;
+    
+    const thresholdInput = document.getElementById(`smart-qty-threshold-${currentRegion}`);
+    const actionSelect = document.getElementById(`smart-qty-action-${currentRegion}`);
+    const divisorInput = document.getElementById(`smart-qty-divisor-${currentRegion}`);
+    
+    if (!thresholdInput || !actionSelect || !divisorInput) return;
+    
+    const threshold = parseInt(thresholdInput.value);
+    const action = actionSelect.value;
+    const divisor = parseFloat(divisorInput.value);
+    
+    if (isNaN(threshold) || threshold < 1) {
+        showToast('⚠️ Threshold must be a positive number', 'warning');
+        thresholdInput.focus();
+        return;
+    }
+    
+    if (isNaN(divisor) || divisor < 0.1) {
+        showToast('⚠️ Value must be at least 0.1', 'warning');
+        divisorInput.focus();
+        return;
+    }
+    
+    try {
+        const response = await post(
+            `${API}/filters/smart-qty-rules/${currentRegion}?threshold=${threshold}&action=${action}&divisor=${divisor}`
+        );
+        
+        if (response.status === 'success' || response.success) {
+            showToast(`✅ Smart rule added`, 'success');
+            
+            // Clear form
+            thresholdInput.value = '';
+            divisorInput.value = '';
+            
+            // Reload rules
+            await loadSmartQtyRules();
+        } else {
+            showToast(`❌ ${response.message}`, 'error');
+        }
+    } catch (error) {
+        console.error('Error adding smart qty rule:', error);
+        showToast('❌ Failed to add smart qty rule', 'error');
+    }
+}
+
+/**
+ * Delete a smart qty rule
+ */
+async function deleteSmartQtyRule(ruleId) {
+    if (!confirm('Delete this rule?')) {
+        return;
+    }
+    
+    try {
+        const response = await del(`${API}/filters/smart-qty-rules/${ruleId}`);
+        
+        if (response.status === 'success' || response.success) {
+            showToast(`✅ Rule deleted`, 'success');
+            await loadSmartQtyRules();
+        } else {
+            showToast(`❌ ${response.message}`, 'error');
+        }
+    } catch (error) {
+        console.error('Error deleting smart qty rule:', error);
+        showToast('❌ Failed to delete rule', 'error');
+    }
+}
+
+/**
+ * Clear all smart qty rules
+ */
+async function clearAllSmartQtyRules() {
+    if (!currentRegion) return;
+    
+    if (!confirm(`Clear all smart quantity rules for ${currentRegion.toUpperCase()}? This will affect the next aggregation.`)) {
+        return;
+    }
+    
+    try {
+        const response = await del(`${API}/filters/smart-qty-rules/region/${currentRegion}`);
+        
+        if (response.status === 'success' || response.success) {
+            showToast(`✅ All rules cleared`, 'success');
+            currentSmartQtyRules = [];
+            displaySmartQtyRules();
+        } else {
+            showToast(`❌ ${response.message}`, 'error');
+        }
+    } catch (error) {
+        console.error('Error clearing rules:', error);
+        showToast('❌ Failed to clear rules', 'error');
     }
 }
 

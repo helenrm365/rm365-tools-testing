@@ -642,3 +642,219 @@
 .customer-search-results::-webkit-scrollbar-thumb:hover {
     background: var(--text-tertiary);
 }
+
+/* Smart Quantity Filter Styles */
+.smart-rules-list {
+    margin-bottom: 16px;
+}
+
+.smart-rules-empty {
+    padding: 20px;
+    text-align: center;
+    color: var(--text-tertiary);
+    font-size: 0.875rem;
+    font-style: italic;
+    background: var(--input-bg);
+    border-radius: 8px;
+    border: 1px dashed var(--border-color);
+}
+
+.smart-rules-items {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.smart-rule-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    background: var(--input-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+
+.smart-rule-item:hover {
+    border-color: var(--accent-color);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.smart-rule-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    height: 32px;
+    background: var(--accent-color);
+    color: white;
+    border-radius: 50%;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.smart-rule-content {
+    flex: 1;
+}
+
+.smart-rule-text {
+    font-size: 0.9375rem;
+    color: var(--text-primary);
+    line-height: 1.4;
+}
+
+.smart-rule-text strong {
+    color: var(--accent-color);
+    font-weight: 600;
+}
+
+.smart-rule-delete-btn {
+    padding: 6px 8px;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-tertiary);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.smart-rule-delete-btn:hover {
+    background: rgba(244, 67, 54, 0.1);
+    border-color: var(--danger-color);
+    color: var(--danger-color);
+}
+
+.smart-filter-config {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+    background: var(--input-bg);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.smart-filter-header {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.smart-filter-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.smart-filter-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    min-width: 120px;
+    font-weight: 500;
+}
+
+.smart-filter-input {
+    flex: 1;
+    padding: 8px 12px;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    transition: all 0.2s;
+}
+
+.smart-filter-input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
+}
+
+.smart-filter-select {
+    flex: 1;
+    padding: 8px 12px;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.smart-filter-select:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
+}
+
+.smart-filter-preview {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px;
+    background: rgba(33, 150, 243, 0.05);
+    border-left: 3px solid var(--accent-color);
+    border-radius: 4px;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.smart-filter-preview i {
+    color: var(--accent-color);
+}
+
+.smart-filter-preview strong {
+    color: var(--text-primary);
+}
+
+.smart-filter-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.smart-filter-add-btn {
+    flex: 1;
+    padding: 10px 16px;
+    background: var(--accent-color);
+    border: none;
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.smart-filter-add-btn:hover {
+    background: var(--primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+}
+
+.smart-filter-add-btn i {
+    margin-right: 6px;
+}
+
+.smart-filter-clear-all-btn {
+    padding: 10px 16px;
+    background: transparent;
+    border: 1px solid var(--danger-color);
+    color: var(--danger-color);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: all 0.2s;
+}
+
+.smart-filter-clear-all-btn:hover {
+    background: var(--danger-color);
+    color: white;
+}
+
+.smart-filter-clear-all-btn i {
+    margin-right: 6px;
+}

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, UploadFile, File, Query
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 import logging
 from common.deps import get_current_user
 from .service import MagentoDataService
@@ -444,4 +444,78 @@ def get_exchange_rates(user=Depends(get_current_user)):
     }
 
 
+@router.get("/filters/smart-qty-rules/{region}")
+async def get_smart_qty_rules_endpoint(
+    region: str,
+    user=Depends(get_current_user)
+):
+    """Get all smart quantity rules for a region"""
+    if region not in ['uk', 'fr', 'nl']:
+        return {"status": "error", "message": "Invalid region"}
+    
+    result = svc.get_smart_qty_rules(region)
+    return {"status": "success", "region": region, "rules": result}
 
+@router.post("/filters/smart-qty-rules/{region}")
+async def add_smart_qty_rule_endpoint(
+    region: str,
+    threshold: int = Query(..., ge=1),
+    action: str = Query(...),
+    divisor: float = Query(..., gt=0),
+    user=Depends(get_current_user)
+):
+    """Add a smart quantity rule for a region"""
+    if region not in ['uk', 'fr', 'nl']:
+        return {"status": "error", "message": "Invalid region"}
+    
+    valid_actions = ['divide', 'multiply', 'subtract', 'set_to']
+    if action not in valid_actions:
+        return {"status": "error", "message": f"Invalid action. Must be one of: {valid_actions}"}
+    
+    # Check if user has permission (admin or manager)
+    user_role = user.get("role", "").lower()
+    if user_role not in ["admin", "manager"]:
+        return {
+            "status": "error",
+            "message": "Only admins and managers can add smart quantity rules"
+        }
+    
+    result = svc.add_smart_qty_rule(region, threshold, action, divisor, user.get("username", "unknown"))
+    return result
+
+@router.delete("/filters/smart-qty-rules/{rule_id}")
+async def remove_smart_qty_rule_endpoint(
+    rule_id: int,
+    user=Depends(get_current_user)
+):
+    """Remove a specific smart quantity rule"""
+    # Check if user has permission (admin or manager)
+    user_role = user.get("role", "").lower()
+    if user_role not in ["admin", "manager"]:
+        return {
+            "status": "error",
+            "message": "Only admins and managers can remove smart quantity rules"
+        }
+    
+    result = svc.remove_smart_qty_rule(rule_id)
+    return result
+
+@router.delete("/filters/smart-qty-rules/region/{region}")
+async def clear_all_smart_qty_rules_endpoint(
+    region: str,
+    user=Depends(get_current_user)
+):
+    """Clear all smart quantity rules for a region"""
+    if region not in ['uk', 'fr', 'nl']:
+        return {"status": "error", "message": "Invalid region"}
+    
+    # Check if user has permission (admin or manager)
+    user_role = user.get("role", "").lower()
+    if user_role not in ["admin", "manager"]:
+        return {
+            "status": "error",
+            "message": "Only admins and managers can clear smart quantity rules"
+        }
+    
+    result = svc.clear_all_smart_qty_rules(region)
+    return result
