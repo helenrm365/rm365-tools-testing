@@ -6,6 +6,7 @@ import { getUserData } from '../../services/state/userStore.js';
 import { syncUKMagentoData, syncFRMagentoData, syncNLMagentoData } from '../../services/api/magentoDataApi.js';
 import { post } from '../../services/api/http.js';
 import { confirmModal } from '../../ui/confirmationModal.js';
+import { getApiUrl } from '../../config.js';
 
 // Default status filters (ALL statuses checked by default)
 const DEFAULT_STATUS_FILTERS = [
@@ -761,8 +762,9 @@ async function handleGeneratePdf() {
   } finally {
     if (generatePdfBtn) {
       generatePdfBtn.disabled = false;
-      generatePdfBtn.textContent = '📄 Generate PDF Labels';
     }
+    // Update button text properly to show selection count
+    updateStats();
   }
 }
 
@@ -781,17 +783,17 @@ function showPdfPreviewModal(jobId, itemCount) {
           Your label print job <strong>#${jobId}</strong> has been created with <strong>${itemCount}</strong> products.
         </p>
         <p style="margin-bottom: 1.5rem; color: #666; font-size: 0.9rem;">
-          Click below to download the PDF with your labels, or export as CSV.
+          Choose an option below to view or print your labels.
         </p>
         <div style="display: flex; gap: 1rem; flex-direction: column;">
-          <button class="modern-button" id="downloadPdfBtn" style="width: 100%; background: linear-gradient(135deg, #ef4444, #dc2626); color: white; font-weight: 600; padding: 1rem; font-size: 1.1rem;">
-            📄 Download PDF Labels
+          <button class="modern-button" id="openPdfBtn" style="width: 100%; background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; font-weight: 600; padding: 1rem; font-size: 1.1rem;">
+            📖 Open PDF
           </button>
-          <button class="modern-button" id="downloadCsvBtn" style="width: 100%; background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 0.75rem;">
-            📊 Download CSV Export
+          <button class="modern-button" id="printPdfBtn" style="width: 100%; background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white; padding: 0.75rem;">
+            🖨️ Print PDF
           </button>
-          <button class="modern-button" onclick="this.closest('.modal-overlay').remove()" style="width: 100%; background: #6b7280; color: white; padding: 0.75rem;">
-            Close
+          <button class="modern-button" id="manualDownloadBtn" style="width: 100%; background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 0.75rem;">
+            💾 Manual Download
           </button>
         </div>
       </div>
@@ -805,17 +807,107 @@ function showPdfPreviewModal(jobId, itemCount) {
     modal.style.opacity = '1';
   }, 10);
   
-  // PDF download
-  modal.querySelector('#downloadPdfBtn').addEventListener('click', async () => {
-    const btn = modal.querySelector('#downloadPdfBtn');
+  // Helper function to fetch PDF with authentication and create blob URL
+  const getPdfBlobUrl = async () => {
+    const BASE = getApiUrl().replace(/\/+$/, '');
+    const API = '/v1/labels';
+    const url = `${BASE}${API}/job/${jobId}/pdf`;
+    const token = getToken();
+    
+    const headers = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
+    const response = await fetch(url, { headers });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to fetch PDF: ${response.statusText}. ${errorText}`);
+    }
+    
+    const blob = await response.blob();
+    if (blob.size === 0) {
+      throw new Error('Received empty PDF file');
+    }
+    
+    return window.URL.createObjectURL(blob);
+  };
+  
+  // Open PDF in new tab
+  modal.querySelector('#openPdfBtn').addEventListener('click', async () => {
+    const btn = modal.querySelector('#openPdfBtn');
     const originalText = btn.textContent;
-    btn.textContent = '⏳ Generating PDF...';
+    btn.textContent = '⏳ Loading PDF...';
+    btn.disabled = true;
+    
+    try {
+      const blobUrl = await getPdfBlobUrl();
+      window.open(blobUrl, '_blank');
+      showToast('PDF opened in new tab', 'success');
+      
+      // Clean up blob URL after a delay
+      setTimeout(() => {
+        window.URL.revokeObjectURL(blobUrl);
+      }, 30000);
+      
+    } catch (error) {
+      console.error('[Labels] PDF open error:', error);
+      showToast('Failed to open PDF: ' + error.message, 'error');
+    } finally {
+      btn.textContent = originalText;
+      btn.disabled = false;
+    }
+  });
+  
+  // Print PDF directly
+  modal.querySelector('#printPdfBtn').addEventListener('click', async () => {
+    const btn = modal.querySelector('#printPdfBtn');
+    const originalText = btn.textContent;
+    btn.textContent = '⏳ Loading PDF...';
+    btn.disabled = true;
+    
+    try {
+      const blobUrl = await getPdfBlobUrl();
+      const printWindow = window.open(blobUrl, '_blank');
+      
+      if (printWindow) {
+        // Wait for PDF to load then trigger print
+        printWindow.addEventListener('load', () => {
+          setTimeout(() => {
+            printWindow.print();
+          }, 1000);
+        });
+        showToast('PDF opened for printing', 'success');
+        
+        // Clean up blob URL after a delay
+        setTimeout(() => {
+          window.URL.revokeObjectURL(blobUrl);
+        }, 60000);
+        
+      } else {
+        showToast('Please allow pop-ups to print the PDF', 'error');
+        window.URL.revokeObjectURL(blobUrl);
+      }
+    } catch (error) {
+      console.error('[Labels] PDF print error:', error);
+      showToast('Failed to open PDF for printing: ' + error.message, 'error');
+    } finally {
+      btn.textContent = originalText;
+      btn.disabled = false;
+    }
+  });
+  
+  // Manual download
+  modal.querySelector('#manualDownloadBtn').addEventListener('click', async () => {
+    const btn = modal.querySelector('#manualDownloadBtn');
+    const originalText = btn.textContent;
+    btn.textContent = '⏳ Downloading...';
     btn.disabled = true;
     
     try {
       await downloadPDF(jobId);
       showToast('PDF downloaded successfully!', 'success');
-      // Keep modal open so user can download CSV too if needed
       btn.textContent = '✓ Downloaded';
       setTimeout(() => {
         btn.textContent = originalText;
@@ -824,28 +916,6 @@ function showPdfPreviewModal(jobId, itemCount) {
     } catch (error) {
       console.error('[Labels] PDF download error:', error);
       showToast('Failed to download PDF: ' + error.message, 'error');
-      btn.textContent = originalText;
-      btn.disabled = false;
-    }
-  });
-  
-  // CSV download
-  modal.querySelector('#downloadCsvBtn').addEventListener('click', async () => {
-    const btn = modal.querySelector('#downloadCsvBtn');
-    const originalText = btn.textContent;
-    btn.textContent = '⏳ Generating CSV...';
-    btn.disabled = true;
-    
-    try {
-      await downloadCSV(jobId);
-      showToast('CSV downloaded successfully!', 'success');
-      btn.textContent = '✓ Downloaded';
-      setTimeout(() => {
-        btn.textContent = originalText;
-        btn.disabled = false;
-      }, 2000);
-    } catch (error) {
-      showToast('Failed to download CSV: ' + error.message, 'error');
       btn.textContent = originalText;
       btn.disabled = false;
     }
