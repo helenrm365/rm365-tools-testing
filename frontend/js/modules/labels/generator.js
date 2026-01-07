@@ -639,10 +639,12 @@ async function handleGeneratePdf() {
       itemIdsToUse = state.displayedProducts.map(p => p.item_id);
     }
     
-    // Create print job with item IDs
+    // Create print job with item IDs, status filters, and region
     const payload = {
       created_by: 'user@example.com', // TODO: Get from session
-      item_ids: itemIdsToUse
+      item_ids: itemIdsToUse,
+      discontinued_statuses: state.statusFilters,
+      region: state.region
     };
     const result = await createPrintJob(payload);
     const jobId = result.job_id;

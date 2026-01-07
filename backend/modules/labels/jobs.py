@@ -97,23 +97,24 @@ def _ensure_label_print_schema(conn: PGConn) -> None:
 
 # --- helpers ---------------------------------------------------------------
 
-def _snapshot_rows(item_ids: List[str] = None) -> List[Dict[str, Any]]:
+def _snapshot_rows(item_ids: List[str] = None, discontinued_statuses: List[str] = None, region: str = "uk") -> List[Dict[str, Any]]:
     """
     Pull current /to-print rows from your repo, optionally filtered by item_ids.
     Expected keys used below: sku, item_id, product_name, uk_6m_data, fr_6m_data
     Uses inventory_logs database connection to query magento, inventory_metadata, and sales data.
+    
+    Args:
+        item_ids: Optional list of item IDs to filter by
+        discontinued_statuses: Optional list of statuses to filter by (e.g., ['Active', 'Discontinued (Supplier)'])
+        region: Region for price/name preference (default 'uk')
     """
     inventory_conn = None
     try:
         # Use inventory_logs database connection (same as /to-print endpoint)
         inventory_conn = get_inventory_log_connection()
-        logger.info(f"Fetching labels data from inventory_logs DB")
-        all_rows = LabelsRepo().get_labels_to_print_psycopg(inventory_conn)
-        logger.info(f"Fetched {len(all_rows)} total rows from labels repo")
+        all_rows = LabelsRepo().get_labels_to_print_psycopg(inventory_conn, product_statuses=discontinued_statuses, preferred_region=region)
     except Exception as e:
         logger.error(f"Error fetching labels data: {e}")
-        import traceback
-        logger.error(traceback.format_exc())
         raise
     finally:
         if inventory_conn:
@@ -123,7 +124,6 @@ def _snapshot_rows(item_ids: List[str] = None) -> List[Dict[str, Any]]:
     if item_ids:
         item_ids_set = set(item_ids)
         filtered_rows = [r for r in all_rows if r.get("item_id") in item_ids_set]
-        logger.info(f"Filtered to {len(filtered_rows)} rows based on {len(item_ids)} item IDs")
         return filtered_rows
     
     return all_rows
@@ -136,12 +136,16 @@ def start_label_job(conn: PGConn, payload: Dict[str, Any]) -> int:
     payload: { 
         'line_date': 'YYYY-MM-DD' (optional), 
         'created_by': 'email' (optional),
-        'item_ids': ['id1', 'id2', ...] (optional - if not provided, uses all products)
+        'item_ids': ['id1', 'id2', ...] (optional - if not provided, uses all products),
+        'discontinued_statuses': ['Active', ...] (optional - status filters),
+        'region': 'uk'|'fr'|'nl' (optional - region preference)
     }
     """
     line_date = payload.get("line_date")  # let SQL cast DATE if provided
     created_by = payload.get("created_by")
     item_ids = payload.get("item_ids")  # list of selected item IDs
+    discontinued_statuses = payload.get("discontinued_statuses")  # status filters
+    region = payload.get("region", "uk")  # region preference, default to UK
 
     try:
         _ensure_label_print_schema(conn)
@@ -152,7 +156,7 @@ def start_label_job(conn: PGConn, payload: Dict[str, Any]) -> int:
     # 2) snapshot current rows (filtered by item_ids if provided) - do this BEFORE starting transaction
     # This uses a SEPARATE connection to the inventory database
     try:
-        rows = _snapshot_rows(item_ids)
+        rows = _snapshot_rows(item_ids, discontinued_statuses, region)
         logger.info(f"Fetched {len(rows)} rows for new job")
     except Exception as e:
         logger.error(f"Failed to snapshot rows: {e}")
