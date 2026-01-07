@@ -446,3 +446,144 @@ class LabelsRepo:
         )
 
     # CSV upload functionality removed - dead code that was never fully implemented
+    # --- Label Printing Presets CRUD ---
+    
+    @staticmethod
+    def create_preset(conn, name: str, description: Optional[str], status_filters: List[str], 
+                     region: str, product_skus: List[str], created_by: Optional[str]) -> int:
+        """Create a new label printing preset"""
+        import json
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO label_printing_presets 
+                    (name, description, status_filters, region, product_skus, created_by)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                RETURNING id
+                """,
+                (name, description, json.dumps(status_filters), region, 
+                 json.dumps(product_skus), created_by)
+            )
+            preset_id = cur.fetchone()[0]
+            logger.info(f"Created label preset {preset_id}: {name}")
+            return preset_id
+    
+    @staticmethod
+    def get_all_presets(conn) -> List[Dict[str, Any]]:
+        """Get all label printing presets"""
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, name, description, status_filters, region, 
+                       product_skus, created_by, created_at, updated_at
+                FROM label_printing_presets
+                ORDER BY created_at DESC
+                """
+            )
+            cols = [c[0] for c in cur.description]
+            rows = cur.fetchall()
+            
+            presets = []
+            for row in rows:
+                preset = dict(zip(cols, row))
+                # JSONB columns are already Python objects, no need to parse
+                preset['status_filters'] = preset['status_filters'] if preset['status_filters'] else []
+                preset['product_skus'] = preset['product_skus'] if preset['product_skus'] else []
+                # Convert timestamps to strings
+                preset['created_at'] = preset['created_at'].isoformat() if preset['created_at'] else None
+                preset['updated_at'] = preset['updated_at'].isoformat() if preset['updated_at'] else None
+                presets.append(preset)
+            
+            return presets
+    
+    @staticmethod
+    def get_preset_by_id(conn, preset_id: int) -> Optional[Dict[str, Any]]:
+        """Get a specific label printing preset by ID"""
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, name, description, status_filters, region, 
+                       product_skus, created_by, created_at, updated_at
+                FROM label_printing_presets
+                WHERE id = %s
+                """,
+                (preset_id,)
+            )
+            row = cur.fetchone()
+            if not row:
+                return None
+            
+            cols = [c[0] for c in cur.description]
+            preset = dict(zip(cols, row))
+            # JSONB columns are already Python objects, no need to parse
+            preset['status_filters'] = preset['status_filters'] if preset['status_filters'] else []
+            preset['product_skus'] = preset['product_skus'] if preset['product_skus'] else []
+            # Convert timestamps to strings
+            preset['created_at'] = preset['created_at'].isoformat() if preset['created_at'] else None
+            preset['updated_at'] = preset['updated_at'].isoformat() if preset['updated_at'] else None
+            
+            return preset
+    
+    @staticmethod
+    def update_preset(conn, preset_id: int, name: Optional[str] = None, 
+                     description: Optional[str] = None, status_filters: Optional[List[str]] = None,
+                     region: Optional[str] = None, product_skus: Optional[List[str]] = None) -> bool:
+        """Update an existing label printing preset"""
+        import json
+        
+        # Build dynamic update query
+        update_fields = []
+        params = []
+        
+        if name is not None:
+            update_fields.append("name = %s")
+            params.append(name)
+        if description is not None:
+            update_fields.append("description = %s")
+            params.append(description)
+        if status_filters is not None:
+            update_fields.append("status_filters = %s")
+            params.append(json.dumps(status_filters))
+        if region is not None:
+            update_fields.append("region = %s")
+            params.append(region)
+        if product_skus is not None:
+            update_fields.append("product_skus = %s")
+            params.append(json.dumps(product_skus))
+        
+        if not update_fields:
+            return False
+        
+        # Always update updated_at
+        update_fields.append("updated_at = CURRENT_TIMESTAMP")
+        
+        params.append(preset_id)
+        
+        with conn.cursor() as cur:
+            query = f"""
+                UPDATE label_printing_presets
+                SET {', '.join(update_fields)}
+                WHERE id = %s
+            """
+            cur.execute(query, params)
+            updated = cur.rowcount > 0
+            
+            if updated:
+                logger.info(f"Updated label preset {preset_id}")
+            
+            return updated
+    
+    @staticmethod
+    def delete_preset(conn, preset_id: int) -> bool:
+        """Delete a label printing preset"""
+        with conn.cursor() as cur:
+            cur.execute(
+                "DELETE FROM label_printing_presets WHERE id = %s",
+                (preset_id,)
+            )
+            deleted = cur.rowcount > 0
+            
+            if deleted:
+                logger.info(f"Deleted label preset {preset_id}")
+            
+            return deleted

@@ -23,16 +23,7 @@
 
   <!-- Main Content -->
   <div class="generator-content">
-    <!-- Generate Labels Section -->
-    <section class="section-header">
-      <h2 class="section-title">
-        <i class="fas fa-tags"></i>
-        Generate Labels
-      </h2>
-      <p class="section-subtitle">Select products to generate barcode labels with UK/FR 6-month magento data</p>
-    </section>
-        
-        <!-- Filters Section -->
+    <!-- Filters Section -->
         <div class="filters-section">
           <div class="filters-card">
             <!-- Status Filters -->
@@ -142,6 +133,37 @@
             </div>
           </div>
         </div>
+
+        <!-- Preset Management Section -->
+        <div class="preset-section">
+          <div class="preset-header">
+            <div class="preset-title-group">
+              <h3 class="preset-title">
+                <i class="fas fa-bookmark"></i>
+                Label Presets
+              </h3>
+              <p class="preset-subtitle">Save and load product selections for quick label printing</p>
+            </div>
+            <div class="preset-actions">
+              <button id="savePresetBtn" class="preset-button primary">
+                <i class="fas fa-save"></i>
+                Save Current Selection
+              </button>
+              <button id="managePresetsBtn" class="preset-button secondary">
+                <i class="fas fa-cog"></i>
+                Manage Presets
+              </button>
+            </div>
+          </div>
+          
+          <div class="preset-list" id="presetList">
+            <div class="preset-loading">
+              <i class="fas fa-spinner fa-spin"></i>
+              Loading presets...
+            </div>
+          </div>
+        </div>
+        
         <!-- Selection Bar -->
         <div class="selection-bar">
           <div class="select-all-group">
@@ -208,6 +230,210 @@
         </div>
   </div>
 </div>
+
+<!-- Save Preset Modal -->
+<div id="savePresetModal" class="modal" style="display: none;">
+  <div class="modal-content preset-modal">
+    <div class="modal-header">
+      <h2 class="modal-title">
+        <i class="fas fa-save"></i>
+        Save Label Preset
+      </h2>
+      <button class="modal-close" onclick="document.getElementById('savePresetModal').style.display='none'">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">
+          <i class="fas fa-save"></i>
+          Save Option
+        </label>
+        <div class="save-option-group">
+          <label class="radio-option">
+            <input type="radio" name="saveOption" value="new" checked>
+            <span>Save as New Preset</span>
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="saveOption" value="overwrite">
+            <span>Overwrite Existing Preset</span>
+          </label>
+        </div>
+      </div>
+      <div class="form-group" id="newPresetFields">
+        <label for="presetName" class="form-label">
+          <i class="fas fa-tag"></i>
+          Preset Name <span class="required">*</span>
+        </label>
+        <input type="text" id="presetName" class="form-input" placeholder="e.g., Weekly Active Products" required>
+      </div>
+      <div class="form-group" id="overwritePresetField" style="display: none;">
+        <label for="overwritePresetSelect" class="form-label">
+          <i class="fas fa-list"></i>
+          Select Preset to Overwrite <span class="required">*</span>
+        </label>
+        <select id="overwritePresetSelect" class="form-input">
+          <option value="">-- Select a preset --</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="presetDescription" class="form-label">
+          <i class="fas fa-align-left"></i>
+          Description (Optional)
+        </label>
+        <textarea id="presetDescription" class="form-textarea" rows="3" placeholder="Describe what this preset is for..."></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">
+          <i class="fas fa-box"></i>
+          Products in this Preset
+        </label>
+        <div class="preset-product-list" id="savePresetProductList">
+          <div class="preset-product-empty">No products selected</div>
+        </div>
+      </div>
+      <div class="preset-summary">
+        <div class="summary-item">
+          <i class="fas fa-filter"></i>
+          <span><strong id="presetStatusCount">0</strong> status filters</span>
+        </div>
+        <div class="summary-item">
+          <i class="fas fa-globe"></i>
+          <span>Region: <strong id="presetRegion">UK</strong></span>
+        </div>
+        <div class="summary-item">
+          <i class="fas fa-box"></i>
+          <span><strong id="presetProductCount">0</strong> products selected</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="modal-button secondary" onclick="document.getElementById('savePresetModal').style.display='none'">
+        <i class="fas fa-times"></i>
+        Cancel
+      </button>
+      <button id="confirmSavePresetBtn" class="modal-button primary">
+        <i class="fas fa-save"></i>
+        Save Preset
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Manage Presets Modal -->
+<div id="managePresetsModal" class="modal" style="display: none;">
+  <div class="modal-content preset-modal large">
+    <div class="modal-header">
+      <h2 class="modal-title">
+        <i class="fas fa-cog"></i>
+        Manage Label Presets
+      </h2>
+      <button class="modal-close" onclick="document.getElementById('managePresetsModal').style.display='none'">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div id="managePresetsList" class="manage-presets-list">
+        <div class="preset-loading">
+          <i class="fas fa-spinner fa-spin"></i>
+          Loading presets...
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="modal-button secondary" onclick="document.getElementById('managePresetsModal').style.display='none'">
+        <i class="fas fa-times"></i>
+        Close
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Preset Modal -->
+<div id="editPresetModal" class="modal" style="display: none;">
+  <div class="modal-content preset-modal">
+    <div class="modal-header">
+      <h2 class="modal-title">
+        <i class="fas fa-edit"></i>
+        Edit Preset
+      </h2>
+      <button class="modal-close" onclick="document.getElementById('editPresetModal').style.display='none'">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editPresetId">
+      <div class="form-group">
+        <label for="editPresetName" class="form-label">
+          <i class="fas fa-tag"></i>
+          Preset Name <span class="required">*</span>
+        </label>
+        <input type="text" id="editPresetName" class="form-input" required>
+      </div>
+      <div class="form-group">
+        <label for="editPresetDescription" class="form-label">
+          <i class="fas fa-align-left"></i>
+          Description (Optional)
+        </label>
+        <textarea id="editPresetDescription" class="form-textarea" rows="3"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">
+          <i class="fas fa-info-circle"></i>
+          Preset Contents
+        </label>
+        <div class="preset-summary">
+          <div class="summary-item">
+            <i class="fas fa-filter"></i>
+            <span><strong id="editPresetStatusCount">0</strong> status filters</span>
+          </div>
+          <div class="summary-item">
+            <i class="fas fa-globe"></i>
+            <span>Region: <strong id="editPresetRegion">UK</strong></span>
+          </div>
+          <div class="summary-item">
+            <i class="fas fa-box"></i>
+            <span><strong id="editPresetProductCount">0</strong> products</span>
+          </div>
+        </div>
+        <div class="preset-product-list" id="editPresetProductList">
+          <div class="preset-product-empty">No products in preset</div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="checkbox-label">
+          <input type="checkbox" id="updatePresetContents">
+          <span>Update preset with current selection (filters, region, and products)</span>
+        </label>
+        <div class="preset-summary" id="currentSelectionSummary" style="margin-top: 0.5rem; display: none;">
+          <div class="summary-item">
+            <i class="fas fa-filter"></i>
+            <span><strong id="currentStatusCount">0</strong> status filters</span>
+          </div>
+          <div class="summary-item">
+            <i class="fas fa-globe"></i>
+            <span>Region: <strong id="currentRegion">UK</strong></span>
+          </div>
+          <div class="summary-item">
+            <i class="fas fa-box"></i>
+            <span><strong id="currentProductCount">0</strong> products selected</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="modal-button secondary" onclick="document.getElementById('editPresetModal').style.display='none'">
+        <i class="fas fa-times"></i>
+        Cancel
+      </button>
+      <button id="confirmEditPresetBtn" class="modal-button primary">
+        <i class="fas fa-save"></i>
+        Save Changes
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- Universal Footer -->
 <div id="footerPlaceholder"></div>
 <script>

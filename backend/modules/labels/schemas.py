@@ -63,3 +63,49 @@ class MagentoOrderOut(BaseModel):
     order_date: str
     shipping_method: Optional[str] = None
     created_at: Optional[str] = None
+
+
+class DeleteJobsRequest(BaseModel):
+    job_ids: Optional[List[int]] = Field(None, description="List of job IDs to delete")
+    delete_all: bool = Field(False, description="If true, delete all jobs")
+
+
+class DeleteJobsResponse(BaseModel):
+    status: str = "success"
+    deleted_count: int
+    message: str
+
+
+# Label Printing Presets
+class LabelPresetCreate(BaseModel):
+    name: str = Field(..., description="Preset name", min_length=1, max_length=255)
+    description: Optional[str] = Field(None, description="Preset description")
+    status_filters: List[str] = Field(default_factory=list, description="Status filters for the preset")
+    region: str = Field("uk", description="Region preference (uk, fr, nl)")
+    product_skus: List[str] = Field(default_factory=list, description="List of product SKUs in this preset")
+
+
+class LabelPresetUpdate(BaseModel):
+    name: Optional[str] = Field(None, description="Preset name", min_length=1, max_length=255)
+    description: Optional[str] = Field(None, description="Preset description")
+    status_filters: Optional[List[str]] = Field(None, description="Status filters for the preset")
+    region: Optional[str] = Field(None, description="Region preference (uk, fr, nl)")
+    product_skus: Optional[List[str]] = Field(None, description="List of product SKUs in this preset")
+
+
+class LabelPresetOut(BaseModel):
+    id: int
+    name: str
+    description: Optional[str] = None
+    status_filters: List[str] = []
+    region: str = "uk"
+    product_skus: List[str] = []
+    created_by: Optional[str] = None
+    created_at: str
+    updated_at: str
+
+
+class LabelPresetsResponse(BaseModel):
+    status: str = "success"
+    presets: List[LabelPresetOut]
+    count: int

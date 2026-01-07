@@ -5,8 +5,16 @@ from fastapi import APIRouter, Depends, HTTPException, Path, Body, Query
 
 from common.deps import get_current_user, inventory_conn
 from modules.labels.repo import LabelsRepo
+from modules.labels.schemas import (
+    DeleteJobsRequest, 
+    DeleteJobsResponse,
+    LabelPresetCreate,
+    LabelPresetUpdate,
+    LabelPresetOut,
+    LabelPresetsResponse
+)
 
-from modules.labels.jobs import start_label_job, get_label_job_rows, delete_label_job
+from modules.labels.jobs import start_label_job, get_label_job_rows, delete_label_job, delete_label_jobs, _ensure_label_print_schema
 from modules.labels.print_csv import stream_csv_labels
 from modules.labels.print_pdf import stream_pdf_labels
 
@@ -174,6 +182,46 @@ def delete_print_job(
             detail=f"Failed to delete print job: {e}"
         )
 
+@router.delete("/jobs")
+def delete_print_jobs(
+        request: DeleteJobsRequest,
+        user=Depends(get_current_user)
+) -> DeleteJobsResponse:
+    """
+    # Delete multiple print jobs or all jobs at once.
+    # Provide either job_ids list or set delete_all to true.
+    """
+    try:
+        if not request.delete_all and not request.job_ids:
+            raise HTTPException(
+                status_code=400,
+                detail="Either provide job_ids or set delete_all to true"
+            )
+        
+        with inventory_conn() as conn:
+            deleted_count = delete_label_jobs(conn, request.job_ids, request.delete_all)
+            
+            if request.delete_all:
+                message = f"Successfully deleted all {deleted_count} label print jobs"
+            else:
+                message = f"Successfully deleted {deleted_count} label print job(s)"
+            
+            return DeleteJobsResponse(
+                status="success",
+                deleted_count=deleted_count,
+                message=message
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        error_detail = f"Failed to delete print jobs: {str(e)}\n{traceback.format_exc()}"
+        print(f"[Labels API] Error: {error_detail}")
+        raise HTTPException(
+            status_code=500,
+            detail=error_detail
+        )
+
 @router.get("/job/{job_id}/pdf")
 def download_labels_pdf(
         job_id: int = Path(..., title="Label print job ID"),
@@ -221,4 +269,174 @@ def download_labels_csv(
         raise HTTPException(
             status_code=500,
             detail=f"Failed to generate CSV: {e}"
+        )
+
+
+# === Label Printing Presets Endpoints ===
+
+@router.get("/presets", response_model=LabelPresetsResponse)
+def get_label_presets(user=Depends(get_current_user)):
+    """
+    Get all label printing presets.
+    Presets are global and available to all users.
+    """
+    try:
+        with inventory_conn() as conn:
+            _ensure_label_print_schema(conn)
+            presets = LabelsRepo.get_all_presets(conn)
+            return LabelPresetsResponse(
+                status="success",
+                presets=presets,
+                count=len(presets)
+            )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to fetch presets: {e}"
+        )
+
+
+@router.get("/presets/{preset_id}", response_model=LabelPresetOut)
+def get_label_preset(
+    preset_id: int = Path(..., title="Preset ID"),
+    user=Depends(get_current_user)
+):
+    """
+    Get a specific label printing preset by ID.
+    """
+    try:
+        with inventory_conn() as conn:
+            _ensure_label_print_schema(conn)
+            preset = LabelsRepo.get_preset_by_id(conn, preset_id)
+            if not preset:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Preset {preset_id} not found"
+                )
+            return preset
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to fetch preset: {e}"
+        )
+
+
+@router.post("/presets", response_model=LabelPresetOut)
+def create_label_preset(
+    preset: LabelPresetCreate,
+    user=Depends(get_current_user)
+):
+    """
+    Create a new label printing preset.
+    Presets are global and can be used by all users.
+    """
+    try:
+        with inventory_conn() as conn:
+            _ensure_label_print_schema(conn)
+            preset_id = LabelsRepo.create_preset(
+                conn,
+                name=preset.name,
+                description=preset.description,
+                status_filters=preset.status_filters,
+                region=preset.region,
+                product_skus=preset.product_skus,
+                created_by=user.get('email')
+            )
+            conn.commit()
+            
+            # Fetch and return the created preset
+            created_preset = LabelsRepo.get_preset_by_id(conn, preset_id)
+            return created_preset
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to create preset: {e}"
+        )
+
+
+@router.put("/presets/{preset_id}", response_model=LabelPresetOut)
+def update_label_preset(
+    preset_id: int = Path(..., title="Preset ID"),
+    preset_update: LabelPresetUpdate = Body(...),
+    user=Depends(get_current_user)
+):
+    """
+    Update an existing label printing preset.
+    Only provided fields will be updated.
+    """
+    try:
+        with inventory_conn() as conn:
+            _ensure_label_print_schema(conn)
+            # Check if preset exists
+            existing = LabelsRepo.get_preset_by_id(conn, preset_id)
+            if not existing:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Preset {preset_id} not found"
+                )
+            
+            # Update the preset
+            updated = LabelsRepo.update_preset(
+                conn,
+                preset_id=preset_id,
+                name=preset_update.name,
+                description=preset_update.description,
+                status_filters=preset_update.status_filters,
+                region=preset_update.region,
+                product_skus=preset_update.product_skus
+            )
+            
+            if not updated:
+                raise HTTPException(
+                    status_code=400,
+                    detail="No fields to update"
+                )
+            
+            conn.commit()
+            
+            # Fetch and return the updated preset
+            updated_preset = LabelsRepo.get_preset_by_id(conn, preset_id)
+            return updated_preset
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to update preset: {e}"
+        )
+
+
+@router.delete("/presets/{preset_id}")
+def delete_label_preset(
+    preset_id: int = Path(..., title="Preset ID"),
+    user=Depends(get_current_user)
+):
+    """
+    Delete a label printing preset.
+    """
+    try:
+        with inventory_conn() as conn:
+            _ensure_label_print_schema(conn)
+            deleted = LabelsRepo.delete_preset(conn, preset_id)
+            
+            if not deleted:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Preset {preset_id} not found"
+                )
+            
+            conn.commit()
+            
+            return {
+                "status": "success",
+                "message": f"Preset {preset_id} deleted successfully"
+            }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to delete preset: {e}"
         )

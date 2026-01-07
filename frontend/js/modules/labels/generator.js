@@ -1,9 +1,11 @@
 // js/modules/labels/generator.js
-import { getProductsToPrint, createPrintJob, downloadPDF, downloadCSV, initDependencies } from '../../services/api/labelsApi.js';
+import { getProductsToPrint, createPrintJob, downloadPDF, downloadCSV, initDependencies, getPresets, createPreset, updatePreset, deletePreset } from '../../services/api/labelsApi.js';
 import { showToast } from '../../ui/toast.js';
 import { getToken } from '../../services/state/sessionStore.js';
+import { getUserData } from '../../services/state/userStore.js';
 import { syncUKMagentoData, syncFRMagentoData, syncNLMagentoData } from '../../services/api/magentoDataApi.js';
 import { post } from '../../services/api/http.js';
+import { confirmModal } from '../../ui/confirmationModal.js';
 
 // Default status filters (ALL statuses checked by default)
 const DEFAULT_STATUS_FILTERS = [
@@ -26,6 +28,24 @@ let state = {
   statusFilters: DEFAULT_STATUS_FILTERS,  // Always start with all filters
   region: "uk"           // Default region preference for prices/names
 };
+
+// Utility functions
+function escapeHtml(text) {
+  const map = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  };
+  return text?.replace(/[&<>"']/g, m => map[m]) || '';
+}
+
+function formatDate(dateString) {
+  if (!dateString) return 'Unknown';
+  const date = new Date(dateString);
+  return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
 
 export async function initLabelGenerator() {
   // Setup status filter checkboxes (all checked by default)
@@ -356,6 +376,48 @@ function setupEventListeners() {
   if (applyBtn) {
     applyBtn.addEventListener('click', handleApplyStatusFilters);
   }
+  
+  // Preset buttons
+  const savePresetBtn = document.getElementById('savePresetBtn');
+  if (savePresetBtn) {
+    savePresetBtn.addEventListener('click', showSavePresetModal);
+  }
+  
+  const managePresetsBtn = document.getElementById('managePresetsBtn');
+  if (managePresetsBtn) {
+    managePresetsBtn.addEventListener('click', showManagePresetsModal);
+  }
+  
+  const confirmSavePresetBtn = document.getElementById('confirmSavePresetBtn');
+  if (confirmSavePresetBtn) {
+    confirmSavePresetBtn.addEventListener('click', savePreset);
+  }
+  
+  const confirmEditPresetBtn = document.getElementById('confirmEditPresetBtn');
+  if (confirmEditPresetBtn) {
+    confirmEditPresetBtn.addEventListener('click', editPreset);
+  }
+  
+  // Save option toggle
+  const saveOptionRadios = document.querySelectorAll('input[name="saveOption"]');
+  saveOptionRadios.forEach(radio => {
+    radio.addEventListener('change', handleSaveOptionChange);
+  });
+  
+  // Overwrite preset dropdown change handler
+  const overwritePresetSelect = document.getElementById('overwritePresetSelect');
+  if (overwritePresetSelect) {
+    overwritePresetSelect.addEventListener('change', handleOverwritePresetChange);
+  }
+  
+  // Update preset contents checkbox
+  const updateContentsCheckbox = document.getElementById('updatePresetContents');
+  if (updateContentsCheckbox) {
+    updateContentsCheckbox.addEventListener('change', handleUpdateContentsToggle);
+  }
+  
+  // Load presets initially
+  loadPresets();
 }
 
 async function handleApplyStatusFilters() {
@@ -510,6 +572,19 @@ function handleProductSelect(itemId, checked) {
     state.selectedProducts.delete(itemId);
   }
   
+  // Update the row's selected class
+  const checkbox = document.querySelector(`.product-checkbox[data-item-id="${itemId}"]`);
+  if (checkbox) {
+    const row = checkbox.closest('tr');
+    if (row) {
+      if (checked) {
+        row.classList.add('selected');
+      } else {
+        row.classList.remove('selected');
+      }
+    }
+  }
+  
   // Update select all checkbox
   const selectAllCheckbox = document.querySelector('#selectAllCheckbox');
   if (selectAllCheckbox) {
@@ -639,9 +714,13 @@ async function handleGeneratePdf() {
       itemIdsToUse = state.displayedProducts.map(p => p.item_id);
     }
     
+    // Get current user email
+    const userData = getUserData();
+    const userEmail = userData?.email || userData?.username || 'unknown';
+    
     // Create print job with item IDs, status filters, and region
     const payload = {
-      created_by: 'user@example.com', // TODO: Get from session
+      created_by: userEmail,
       item_ids: itemIdsToUse,
       discontinued_statuses: state.statusFilters,
       region: state.region
@@ -797,10 +876,75 @@ function formatPrice(price) {
   return text.length ? text : '-';
 }
 
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
+function handleSaveOptionChange(e) {
+  const isOverwrite = e.target.value === 'overwrite';
+  document.getElementById('newPresetFields').style.display = isOverwrite ? 'none' : 'block';
+  document.getElementById('overwritePresetField').style.display = isOverwrite ? 'block' : 'none';
+  
+  // Populate overwrite dropdown if switching to overwrite mode
+  if (isOverwrite) {
+    const select = document.getElementById('overwritePresetSelect');
+    select.innerHTML = '<option value="">-- Select a preset --</option>' + 
+      presets.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+    
+    // Clear description when switching to overwrite mode
+    document.getElementById('presetDescription').value = '';
+  } else {
+    // Clear description when switching to new mode
+    document.getElementById('presetDescription').value = '';
+  }
+}
+
+function handleOverwritePresetChange(e) {
+  const presetId = parseInt(e.target.value);
+  if (presetId) {
+    const preset = presets.find(p => p.id === presetId);
+    if (preset) {
+      // Populate the description field with the existing preset's description
+      document.getElementById('presetDescription').value = preset.description || '';
+      
+      // Show products in the preset
+      renderOverwritePresetProductList(preset);
+    }
+  } else {
+    // Clear description if no preset selected
+    document.getElementById('presetDescription').value = '';
+    
+    // Show current selection instead
+    renderSavePresetProductList();
+  }
+}
+
+function renderOverwritePresetProductList(preset) {
+  const listContainer = document.getElementById('savePresetProductList');
+  if (!listContainer) return;
+  
+  const skus = preset.product_skus || [];
+  
+  if (skus.length === 0) {
+    listContainer.innerHTML = '<div class="preset-product-empty">No products in this preset</div>';
+    return;
+  }
+  
+  listContainer.innerHTML = skus.map(sku => `
+    <div class="preset-product-item">
+      <span class="preset-product-sku">${escapeHtml(sku)}</span>
+      <span class="preset-product-name">Will be replaced with current selection</span>
+    </div>
+  `).join('');
+}
+
+function handleUpdateContentsToggle(e) {
+  const summaryDiv = document.getElementById('currentSelectionSummary');
+  if (e.target.checked) {
+    // Show current selection summary
+    document.getElementById('currentStatusCount').textContent = state.statusFilters.length;
+    document.getElementById('currentRegion').textContent = state.region.toUpperCase();
+    document.getElementById('currentProductCount').textContent = state.selectedProducts.size;
+    summaryDiv.style.display = 'flex';
+  } else {
+    summaryDiv.style.display = 'none';
+  }
 }
 
 // State management for sync
@@ -886,3 +1030,432 @@ async function syncMagentoData(showNotification = true) {
     isSyncing = false;
   }
 }
+
+// === Preset Management ===
+
+let presets = [];
+
+async function loadPresets() {
+  try {
+    const response = await getPresets();
+    presets = response.presets || [];
+    renderPresetList();
+  } catch (error) {
+    console.error('[Presets] Failed to load:', error);
+    // Don't show error toast - table might not exist yet on first load
+    // Just initialize with empty presets
+    presets = [];
+    renderPresetList();
+  }
+}
+
+function renderPresetList() {
+  const presetList = document.getElementById('presetList');
+  if (!presetList) return;
+  
+  if (presets.length === 0) {
+    presetList.innerHTML = `
+      <div class="preset-empty">
+        <i class="fas fa-bookmark"></i>
+        <p>No presets saved yet</p>
+        <p class="preset-empty-hint">Select products and click "Save Current Selection" to create a preset</p>
+      </div>
+    `;
+    return;
+  }
+  
+  presetList.innerHTML = presets.map(preset => `
+    <div class="preset-card" data-preset-id="${preset.id}">
+      <div class="preset-card-header">
+        <div class="preset-info">
+          <h4 class="preset-name">${escapeHtml(preset.name)}</h4>
+          ${preset.description ? `<p class="preset-description">${escapeHtml(preset.description)}</p>` : ''}
+        </div>
+        <div class="preset-stats">
+          <span class="preset-stat" title="Status filters">
+            <i class="fas fa-filter"></i> ${preset.status_filters?.length || 0}
+          </span>
+          <span class="preset-stat" title="Region">
+            <i class="fas fa-globe"></i> ${(preset.region || 'uk').toUpperCase()}
+          </span>
+          <span class="preset-stat" title="Products">
+            <i class="fas fa-box"></i> ${preset.product_skus?.length || 0}
+          </span>
+        </div>
+      </div>
+      <div class="preset-card-footer">
+        <button class="preset-action-btn load" onclick="window.labelGenerator.loadPreset(${preset.id})">
+          <i class="fas fa-check"></i>
+          Load Preset
+        </button>
+        <button class="preset-action-btn secondary" onclick="window.labelGenerator.showEditPresetModal(${preset.id})">
+          <i class="fas fa-edit"></i>
+          Edit
+        </button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderManagePresetsList() {
+  const manageList = document.getElementById('managePresetsList');
+  if (!manageList) return;
+  
+  if (presets.length === 0) {
+    manageList.innerHTML = `
+      <div class="preset-empty">
+        <i class="fas fa-bookmark"></i>
+        <p>No presets available</p>
+      </div>
+    `;
+    return;
+  }
+  
+  manageList.innerHTML = presets.map(preset => `
+    <div class="manage-preset-item" data-preset-id="${preset.id}">
+      <div class="manage-preset-info">
+        <h4 class="preset-name">${escapeHtml(preset.name)}</h4>
+        ${preset.description ? `<p class="preset-description">${escapeHtml(preset.description)}</p>` : ''}
+        <div class="preset-meta">
+          <span><i class="fas fa-user"></i> ${escapeHtml(preset.created_by || 'Unknown')}</span>
+          <span><i class="fas fa-clock"></i> ${formatDate(preset.created_at)}</span>
+        </div>
+      </div>
+      <div class="manage-preset-stats">
+        <span class="preset-stat">
+          <i class="fas fa-filter"></i> ${preset.status_filters?.length || 0} filters
+        </span>
+        <span class="preset-stat">
+          <i class="fas fa-globe"></i> ${(preset.region || 'uk').toUpperCase()}
+        </span>
+        <span class="preset-stat">
+          <i class="fas fa-box"></i> ${preset.product_skus?.length || 0} products
+        </span>
+      </div>
+      <div class="manage-preset-actions">
+        <button class="preset-action-btn load" onclick="window.labelGenerator.loadPreset(${preset.id}); document.getElementById('managePresetsModal').style.display='none';">
+          <i class="fas fa-check"></i>
+          Load
+        </button>
+        <button class="preset-action-btn secondary" onclick="window.labelGenerator.showEditPresetModal(${preset.id})">
+          <i class="fas fa-edit"></i>
+          Edit
+        </button>
+        <button class="preset-action-btn danger" onclick="window.labelGenerator.deletePresetConfirm(${preset.id})">
+          <i class="fas fa-trash"></i>
+          Delete
+        </button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function loadPreset(presetId) {
+  const preset = presets.find(p => p.id === presetId);
+  if (!preset) {
+    showToast('Preset not found', 'error');
+    return;
+  }
+  
+  try {
+    // Apply status filters
+    state.statusFilters = preset.status_filters || [];
+    const checkboxes = document.querySelectorAll('.status-filter-checkbox');
+    checkboxes.forEach(checkbox => {
+      checkbox.checked = state.statusFilters.includes(checkbox.value);
+    });
+    updateStatusFilterVisuals();
+    updateFilterCount();
+    
+    // Apply region
+    state.region = preset.region || 'uk';
+    const regionRadios = document.querySelectorAll('.region-radio');
+    regionRadios.forEach(radio => {
+      radio.checked = radio.value === state.region;
+    });
+    
+    // Reload products with new filters
+    await loadProducts();
+    
+    // Select products from preset
+    state.selectedProducts.clear();
+    const presetSkus = new Set(preset.product_skus || []);
+    state.displayedProducts.forEach(product => {
+      if (presetSkus.has(product.sku)) {
+        state.selectedProducts.add(product.item_id);
+      }
+    });
+    
+    // Re-render table to show checkboxes and update stats
+    renderProductTable();
+    updateStats();
+    
+    showToast(`Loaded preset: ${preset.name}`, 'success');
+  } catch (error) {
+    console.error('[Presets] Failed to load preset:', error);
+    showToast('Failed to load preset', 'error');
+  }
+}
+
+function showSavePresetModal() {
+  // Reset to new preset mode
+  document.querySelector('input[name="saveOption"][value="new"]').checked = true;
+  document.getElementById('newPresetFields').style.display = 'block';
+  document.getElementById('overwritePresetField').style.display = 'none';
+  
+  // Update summary in modal
+  document.getElementById('presetStatusCount').textContent = state.statusFilters.length;
+  document.getElementById('presetRegion').textContent = state.region.toUpperCase();
+  document.getElementById('presetProductCount').textContent = state.selectedProducts.size;
+  
+  // Clear previous values
+  document.getElementById('presetName').value = '';
+  document.getElementById('presetDescription').value = '';
+  document.getElementById('overwritePresetSelect').value = '';
+  
+  // Populate product list with currently selected products
+  renderSavePresetProductList();
+  
+  // Show modal
+  document.getElementById('savePresetModal').style.display = 'flex';
+}
+
+function renderSavePresetProductList() {
+  const listContainer = document.getElementById('savePresetProductList');
+  if (!listContainer) return;
+  
+  // Get selected products
+  const selectedProductsArray = Array.from(state.selectedProducts).map(itemId => {
+    return state.displayedProducts.find(p => p.item_id === itemId);
+  }).filter(p => p);
+  
+  if (selectedProductsArray.length === 0) {
+    listContainer.innerHTML = '<div class="preset-product-empty">No products selected</div>';
+    return;
+  }
+  
+  listContainer.innerHTML = selectedProductsArray.map(product => `
+    <div class="preset-product-item">
+      <span class="preset-product-sku">${escapeHtml(product.sku || '-')}</span>
+      <span class="preset-product-name">${escapeHtml(product.product_name || '-')}</span>
+    </div>
+  `).join('');
+}
+
+async function savePreset() {
+  const saveOption = document.querySelector('input[name="saveOption"]:checked').value;
+  
+  // Get selected product SKUs
+  const selectedSkus = Array.from(state.selectedProducts).map(itemId => {
+    const product = state.displayedProducts.find(p => p.item_id === itemId);
+    return product?.sku;
+  }).filter(sku => sku);
+  
+  try {
+    if (saveOption === 'new') {
+      // Save as new preset
+      const name = document.getElementById('presetName').value.trim();
+      const description = document.getElementById('presetDescription').value.trim();
+      
+      if (!name) {
+        showToast('Please enter a preset name', 'error');
+        return;
+      }
+      
+      const preset = {
+        name,
+        description: description || null,
+        status_filters: state.statusFilters,
+        region: state.region,
+        product_skus: selectedSkus
+      };
+      
+      await createPreset(preset);
+      showToast('Preset saved successfully', 'success');
+    } else {
+      // Overwrite existing preset
+      const presetId = parseInt(document.getElementById('overwritePresetSelect').value);
+      
+      if (!presetId) {
+        showToast('Please select a preset to overwrite', 'error');
+        return;
+      }
+      
+      const existingPreset = presets.find(p => p.id === presetId);
+      if (!existingPreset) {
+        showToast('Preset not found', 'error');
+        return;
+      }
+      
+      // Get the description (user may have modified it)
+      const description = document.getElementById('presetDescription').value.trim();
+      
+      await updatePreset(presetId, {
+        description: description || null,
+        status_filters: state.statusFilters,
+        region: state.region,
+        product_skus: selectedSkus
+      });
+      
+      showToast(`Preset "${existingPreset.name}" overwritten successfully`, 'success');
+    }
+    
+    // Reload presets
+    await loadPresets();
+    
+    // Close modal
+    document.getElementById('savePresetModal').style.display = 'none';
+  } catch (error) {
+    console.error('[Presets] Failed to save:', error);
+    showToast('Failed to save preset', 'error');
+  }
+}
+
+function showManagePresetsModal() {
+  renderManagePresetsList();
+  document.getElementById('managePresetsModal').style.display = 'flex';
+}
+
+function showEditPresetModal(presetId) {
+  const preset = presets.find(p => p.id === presetId);
+  if (!preset) {
+    showToast('Preset not found', 'error');
+    return;
+  }
+  
+  // Populate form
+  document.getElementById('editPresetId').value = preset.id;
+  document.getElementById('editPresetName').value = preset.name;
+  document.getElementById('editPresetDescription').value = preset.description || '';
+  
+  // Update preset summary
+  document.getElementById('editPresetStatusCount').textContent = preset.status_filters?.length || 0;
+  document.getElementById('editPresetRegion').textContent = (preset.region || 'uk').toUpperCase();
+  document.getElementById('editPresetProductCount').textContent = preset.product_skus?.length || 0;
+  
+  // Show products in preset
+  renderEditPresetProductList(preset);
+  
+  // Reset and hide update contents option
+  const checkbox = document.getElementById('updatePresetContents');
+  checkbox.checked = false;
+  document.getElementById('currentSelectionSummary').style.display = 'none';
+  
+  // Update current selection summary
+  document.getElementById('currentStatusCount').textContent = state.statusFilters.length;
+  document.getElementById('currentRegion').textContent = state.region.toUpperCase();
+  document.getElementById('currentProductCount').textContent = state.selectedProducts.size;
+  
+  // Close manage modal if open
+  document.getElementById('managePresetsModal').style.display = 'none';
+  
+  // Show edit modal
+  document.getElementById('editPresetModal').style.display = 'flex';
+}
+
+function renderEditPresetProductList(preset) {
+  const listContainer = document.getElementById('editPresetProductList');
+  if (!listContainer) return;
+  
+  const skus = preset.product_skus || [];
+  
+  if (skus.length === 0) {
+    listContainer.innerHTML = '<div class="preset-product-empty">No products in this preset</div>';
+    return;
+  }
+  
+  listContainer.innerHTML = skus.map(sku => `
+    <div class="preset-product-item">
+      <span class="preset-product-sku">${escapeHtml(sku)}</span>
+      <span class="preset-product-name">Product SKU</span>
+    </div>
+  `).join('');
+}
+
+async function editPreset() {
+  const presetId = parseInt(document.getElementById('editPresetId').value);
+  const name = document.getElementById('editPresetName').value.trim();
+  const description = document.getElementById('editPresetDescription').value.trim();
+  const updateContents = document.getElementById('updatePresetContents').checked;
+  
+  if (!name) {
+    showToast('Please enter a preset name', 'error');
+    return;
+  }
+  
+  try {
+    const updates = {
+      name,
+      description: description || null
+    };
+    
+    // If user wants to update contents, include current selection
+    if (updateContents) {
+      const selectedSkus = Array.from(state.selectedProducts).map(itemId => {
+        const product = state.displayedProducts.find(p => p.item_id === itemId);
+        return product?.sku;
+      }).filter(sku => sku);
+      
+      updates.status_filters = state.statusFilters;
+      updates.region = state.region;
+      updates.product_skus = selectedSkus;
+    }
+    
+    await updatePreset(presetId, updates);
+    
+    // Reload presets
+    await loadPresets();
+    
+    // Close modal
+    document.getElementById('editPresetModal').style.display = 'none';
+    
+    const message = updateContents ? 'Preset updated with current selection' : 'Preset updated successfully';
+    showToast(message, 'success');
+  } catch (error) {
+    console.error('[Presets] Failed to update:', error);
+    showToast('Failed to update preset', 'error');
+  }
+}
+
+async function deletePresetConfirm(presetId) {
+  const preset = presets.find(p => p.id === presetId);
+  if (!preset) return;
+  
+  const confirmDelete = await confirmModal({
+    title: 'Delete Preset',
+    message: `Are you sure you want to delete the preset "${preset.name}"?\n\nThis action cannot be undone.`,
+    confirmText: 'Delete',
+    cancelText: 'Cancel',
+    confirmVariant: 'danger',
+    icon: '🗑️'
+  });
+  
+  if (!confirmDelete) {
+    return;
+  }
+  
+  try {
+    await deletePreset(presetId);
+    
+    // Reload presets data
+    await loadPresets();
+    
+    // Check if manage presets modal is open and refresh it
+    const manageModal = document.getElementById('managePresetsModal');
+    if (manageModal && manageModal.style.display === 'flex') {
+      renderManagePresetsList();
+    }
+    
+    showToast('Preset deleted successfully', 'success');
+  } catch (error) {
+    console.error('[Presets] Failed to delete:', error);
+    showToast('Failed to delete preset', 'error');
+  }
+}
+
+// Export functions for global access
+window.labelGenerator = {
+  loadPreset,
+  showEditPresetModal,
+  deletePresetConfirm
+};

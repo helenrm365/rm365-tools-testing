@@ -954,6 +954,9 @@ class InventoryManagementRepo:
                 
                 rows = cursor.fetchall()
                 
+                print(f"========== MAGENTO QUERY RESULT: {len(rows)} rows ==========")
+                logger.info(f"[INVENTORY DEBUG] Fetched {len(rows)} raw rows from Magento catalog query")
+                
                 # Parse status_filters if provided
                 allowed_statuses = None
                 if status_filters:

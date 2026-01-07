@@ -64,6 +64,18 @@ export async function deletePrintJob(jobId) {
 }
 
 /**
+ * Delete multiple print jobs or all jobs
+ * @param {Array<number>} jobIds - Array of job IDs to delete (optional if deleteAll is true)
+ * @param {boolean} deleteAll - If true, delete all jobs
+ */
+export async function deletePrintJobs(jobIds = null, deleteAll = false) {
+  return await http(`${API}/jobs`, { 
+    method: 'DELETE',
+    body: JSON.stringify({ job_ids: jobIds, delete_all: deleteAll })
+  });
+}
+
+/**
  * Download PDF labels for a job
  * @param {number} jobId - Job ID
  */
@@ -137,4 +149,49 @@ export async function downloadCSV(jobId) {
  */
 export async function initDependencies() {
   return await post(`${API}/init-dependencies`);
+}
+
+// === Label Printing Presets API ===
+
+/**
+ * Get all label printing presets
+ */
+export async function getPresets() {
+  return await get(`${API}/presets`);
+}
+
+/**
+ * Get a specific preset by ID
+ * @param {number} presetId - Preset ID
+ */
+export async function getPreset(presetId) {
+  return await get(`${API}/presets/${presetId}`);
+}
+
+/**
+ * Create a new label printing preset
+ * @param {Object} preset - { name, description, status_filters, region, product_skus }
+ */
+export async function createPreset(preset) {
+  return await post(`${API}/presets`, preset);
+}
+
+/**
+ * Update an existing preset
+ * @param {number} presetId - Preset ID
+ * @param {Object} updates - { name?, description?, status_filters?, region?, product_skus? }
+ */
+export async function updatePreset(presetId, updates) {
+  return await http(`${API}/presets/${presetId}`, {
+    method: 'PUT',
+    body: JSON.stringify(updates)
+  });
+}
+
+/**
+ * Delete a preset
+ * @param {number} presetId - Preset ID
+ */
+export async function deletePreset(presetId) {
+  return await http(`${API}/presets/${presetId}`, { method: 'DELETE' });
 }

@@ -269,10 +269,12 @@ async function loadInventoryData() {
     if (itemsData && itemsData.items) {
       inventoryData = Array.isArray(itemsData.items) ? itemsData.items : [];
       totalItemsFromAPI = itemsData.total || inventoryData.length;
+      totalFilteredItems = totalItemsFromAPI; // Set immediately to avoid stale values
     } else {
       // Fallback for old non-paginated API
       inventoryData = Array.isArray(itemsData) ? itemsData : [];
       totalItemsFromAPI = inventoryData.length;
+      totalFilteredItems = totalItemsFromAPI; // Set immediately to avoid stale values
     }
     
     // Index metadata by SKU (primary key is now SKU)

@@ -59,6 +59,39 @@ def _ensure_label_print_schema(conn: PGConn) -> None:
                 CREATE INDEX IF NOT EXISTS idx_label_print_items_sku ON label_print_items (sku)
                 """
             )
+
+    # Create label printing presets table if not exists
+    with conn.cursor() as cur:
+        cur.execute("SELECT to_regclass('public.label_printing_presets')")
+        presets_exists = cur.fetchone()[0] is not None
+    if not presets_exists:
+        with conn.cursor() as cur:
+            logger.info("Creating missing label_printing_presets table")
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS label_printing_presets (
+                    id SERIAL PRIMARY KEY,
+                    name VARCHAR(255) NOT NULL,
+                    description TEXT,
+                    status_filters JSONB DEFAULT '[]'::jsonb,
+                    region VARCHAR(10) DEFAULT 'uk',
+                    product_skus JSONB DEFAULT '[]'::jsonb,
+                    created_by VARCHAR(255),
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+                """
+            )
+            cur.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_label_presets_name ON label_printing_presets (name)
+                """
+            )
+            cur.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_label_presets_created_by ON label_printing_presets (created_by)
+                """
+            )
         return
 
     # Avoid re-running ALTER for every insert by checking information_schema first.
@@ -257,3 +290,37 @@ def delete_label_job(conn: PGConn, job_id: int) -> None:
     with conn.cursor() as cur:
         cur.execute("DELETE FROM label_print_jobs WHERE id = %s", (job_id,))
     conn.commit()
+
+
+def delete_label_jobs(conn: PGConn, job_ids: List[int] = None, delete_all: bool = False) -> int:
+    """
+    Delete multiple label print jobs or all jobs.
+    
+    Args:
+        conn: PostgreSQL connection
+        job_ids: List of job IDs to delete (if provided)
+        delete_all: If True, deletes all jobs regardless of job_ids
+        
+    Returns:
+        Number of jobs deleted
+    """
+    with conn.cursor() as cur:
+        if delete_all:
+            # Delete all jobs
+            cur.execute("DELETE FROM label_print_jobs")
+            deleted_count = cur.rowcount
+            logger.info(f"Deleted all {deleted_count} label print jobs")
+        elif job_ids:
+            # Delete specific jobs
+            cur.execute(
+                "DELETE FROM label_print_jobs WHERE id = ANY(%s)",
+                (job_ids,)
+            )
+            deleted_count = cur.rowcount
+            logger.info(f"Deleted {deleted_count} label print jobs: {job_ids}")
+        else:
+            deleted_count = 0
+            logger.warning("No job_ids provided and delete_all is False")
+    
+    conn.commit()
+    return deleted_count

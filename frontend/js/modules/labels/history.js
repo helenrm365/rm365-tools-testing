@@ -1,9 +1,10 @@
 // js/modules/labels/history.js
-import { listPrintJobs, getPrintJob, deletePrintJob, downloadPDF, downloadCSV } from '../../services/api/labelsApi.js';
+import { listPrintJobs, getPrintJob, deletePrintJob, deletePrintJobs, downloadPDF, downloadCSV } from '../../services/api/labelsApi.js';
 import { showToast } from '../../ui/toast.js';
 
 let currentLimit = 10;
 let allJobs = [];
+let selectedJobIds = new Set();
 
 function $(sel) { return document.querySelector(sel); }
 
@@ -74,12 +75,46 @@ function setupActionHandlers() {
 
 function renderJobsTable() {
   const container = $('#historyTable');
+  const bulkActionsContainer = $('#bulkActionsBar');
+  
+  const hasJobs = allJobs.length > 0;
+  const selectedCount = selectedJobIds.size;
+  const allSelected = hasJobs && selectedCount === allJobs.length;
+  
+  // Render bulk actions bar separately
+  if (hasJobs) {
+    bulkActionsContainer.innerHTML = `
+      <div class="bulk-actions-bar">
+        <div class="bulk-actions-left">
+          <label class="select-all-label">
+            <input type="checkbox" id="selectAllCheckbox" class="select-all-checkbox" ${allSelected ? 'checked' : ''}>
+            <span>Select All</span>
+          </label>
+          <span class="selection-count">
+            ${selectedCount > 0 ? `${selectedCount} selected` : ''}
+          </span>
+        </div>
+        <div class="bulk-actions-right">
+          <button id="deleteSelectedBtn" class="modern-button delete-selected-btn" 
+                  ${selectedCount === 0 ? 'disabled' : ''}>
+            <i class="fas fa-trash"></i> Delete Selected (${selectedCount})
+          </button>
+          <button id="deleteAllBtn" class="modern-button delete-all-btn">
+            <i class="fas fa-trash-alt"></i> Delete All
+          </button>
+        </div>
+      </div>
+    `;
+  } else {
+    bulkActionsContainer.innerHTML = '';
+  }
   
   container.innerHTML = `
     <div class="table-container">
     <table class="modern-table">
       <thead>
         <tr>
+          <th style="width: 50px; text-align: center;"><i class="fas fa-check-square"></i></th>
           <th style="text-align: left;">Job ID</th>
           <th style="text-align: left;">Created</th>
           <th style="text-align: left;">Line Date</th>
@@ -91,13 +126,17 @@ function renderJobsTable() {
       </thead>
       <tbody>
         ${allJobs.map(job => `
-          <tr>
+          <tr class="${selectedJobIds.has(job.id) ? 'job-row-selected' : ''}">
+            <td style="text-align: center;">
+              <input type="checkbox" class="job-checkbox" data-job-id="${job.id}" 
+                     ${selectedJobIds.has(job.id) ? 'checked' : ''}>
+            </td>
             <td style="font-weight: 500; font-family: monospace;">#${job.id}</td>
             <td>
               <div>${formatDateTime(job.created_at)}</div>
-              ${job.created_by ? `<div style="font-size: 0.85em; color: #666;">${job.created_by}</div>` : ''}
+              ${job.created_by ? `<div class="created-by-text">${job.created_by}</div>` : ''}
             </td>
-            <td>${job.line_date || '<span style="color: #999;">Not set</span>'}</td>
+            <td>${job.line_date || '<span class="muted-text">Not set</span>'}</td>
             <td style="text-align: center;">
               <span style="font-weight: 500; font-size: 1.1em;">${job.item_count || 0}</span>
             </td>
@@ -129,6 +168,29 @@ function renderJobsTable() {
     </table>
     </div>
   `;
+  
+  // Wire up bulk action handlers
+  if (hasJobs) {
+    const selectAllCheckbox = $('#selectAllCheckbox');
+    if (selectAllCheckbox) {
+      selectAllCheckbox.addEventListener('change', handleSelectAll);
+    }
+    
+    const deleteSelectedBtn = $('#deleteSelectedBtn');
+    if (deleteSelectedBtn) {
+      deleteSelectedBtn.addEventListener('click', handleDeleteSelected);
+    }
+    
+    const deleteAllBtn = $('#deleteAllBtn');
+    if (deleteAllBtn) {
+      deleteAllBtn.addEventListener('click', handleDeleteAll);
+    }
+    
+    // Individual checkboxes
+    document.querySelectorAll('.job-checkbox').forEach(checkbox => {
+      checkbox.addEventListener('change', handleCheckboxChange);
+    });
+  }
 }
 
 function formatDateTime(isoString) {
@@ -243,10 +305,85 @@ async function deleteJob(jobId) {
   try {
     await deletePrintJob(jobId);
     showToast('✅ Job deleted successfully', 'success');
+    selectedJobIds.delete(jobId);
     await loadHistory(); // Reload the list
   } catch (e) {
     console.error('Error deleting job:', e);
     showToast('❌ Failed to delete job: ' + e.message, 'error');
+  }
+}
+
+function handleSelectAll(e) {
+  const isChecked = e.target.checked;
+  if (isChecked) {
+    // Select all jobs
+    allJobs.forEach(job => selectedJobIds.add(job.id));
+  } else {
+    // Deselect all
+    selectedJobIds.clear();
+  }
+  renderJobsTable();
+}
+
+function handleCheckboxChange(e) {
+  const jobId = parseInt(e.target.dataset.jobId);
+  if (e.target.checked) {
+    selectedJobIds.add(jobId);
+  } else {
+    selectedJobIds.delete(jobId);
+  }
+  renderJobsTable();
+}
+
+async function handleDeleteSelected() {
+  if (selectedJobIds.size === 0) {
+    showToast('⚠️ No jobs selected', 'warning');
+    return;
+  }
+  
+  const jobCount = selectedJobIds.size;
+  if (!confirm(`Are you sure you want to delete ${jobCount} selected job(s)? This action cannot be undone.`)) {
+    return;
+  }
+  
+  try {
+    showToast(`🗑️ Deleting ${jobCount} job(s)...`, 'info');
+    const jobIdsArray = Array.from(selectedJobIds);
+    const response = await deletePrintJobs(jobIdsArray, false);
+    showToast(`✅ ${response.message}`, 'success');
+    selectedJobIds.clear();
+    await loadHistory();
+  } catch (e) {
+    console.error('Error deleting selected jobs:', e);
+    showToast('❌ Failed to delete jobs: ' + e.message, 'error');
+  }
+}
+
+async function handleDeleteAll() {
+  const jobCount = allJobs.length;
+  if (jobCount === 0) {
+    showToast('⚠️ No jobs to delete', 'warning');
+    return;
+  }
+  
+  if (!confirm(`⚠️ WARNING: This will delete ALL ${jobCount} label print jobs permanently!\n\nAre you absolutely sure you want to continue? This action CANNOT be undone.`)) {
+    return;
+  }
+  
+  // Double confirmation for delete all
+  if (!confirm(`This is your final confirmation. Delete ALL ${jobCount} jobs?`)) {
+    return;
+  }
+  
+  try {
+    showToast('🗑️ Deleting all jobs...', 'info');
+    const response = await deletePrintJobs(null, true);
+    showToast(`✅ ${response.message}`, 'success');
+    selectedJobIds.clear();
+    await loadHistory();
+  } catch (e) {
+    console.error('Error deleting all jobs:', e);
+    showToast('❌ Failed to delete all jobs: ' + e.message, 'error');
   }
 }
 

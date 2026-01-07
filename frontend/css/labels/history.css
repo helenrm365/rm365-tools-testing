@@ -1,5 +1,152 @@
 /* ===== Labels History Page Styles ===== */
 
+/* ===== Bulk Actions Bar ===== */
+.labels-history .bulk-actions-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: #f8fafc;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease;
+}
+
+html.dark-mode .labels-history .bulk-actions-bar {
+  background: #2d2d2d;
+  border-color: #404040;
+}
+
+.labels-history .bulk-actions-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.labels-history .bulk-actions-right {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.labels-history .select-all-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-weight: 500;
+  color: #334155;
+}
+
+html.dark-mode .labels-history .select-all-label {
+  color: #e5e7eb;
+}
+
+.labels-history .select-all-checkbox {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #8bc34a;
+}
+
+.labels-history .selection-count {
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+html.dark-mode .labels-history .selection-count {
+  color: #94a3b8;
+}
+
+.labels-history .delete-selected-btn {
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  color: white;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  box-shadow: 0 2px 8px rgba(231, 76, 60, 0.3);
+}
+
+.labels-history .delete-selected-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #ff6b6b, #e74c3c);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
+}
+
+.labels-history .delete-selected-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.labels-history .delete-all-btn {
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  color: white;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  box-shadow: 0 2px 8px rgba(231, 76, 60, 0.3);
+}
+
+.labels-history .delete-all-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #ff6b6b, #e74c3c);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
+}
+
+/* Dark mode overrides to keep delete buttons red */
+html.dark-mode .labels-history .delete-selected-btn {
+  background: linear-gradient(135deg, #e74c3c, #c0392b) !important;
+  color: white;
+  box-shadow: 0 2px 8px rgba(231, 76, 60, 0.3);
+}
+
+html.dark-mode .labels-history .delete-selected-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #ff6b6b, #e74c3c) !important;
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
+}
+
+html.dark-mode .labels-history .delete-all-btn {
+  background: linear-gradient(135deg, #e74c3c, #c0392b) !important;
+  color: white;
+  box-shadow: 0 2px 8px rgba(231, 76, 60, 0.3);
+}
+
+html.dark-mode .labels-history .delete-all-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #ff6b6b, #e74c3c) !important;
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
+}
+
+.labels-history .job-checkbox {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #8bc34a;
+}
+
+.labels-history .job-row-selected {
+  background: #eff6ff !important;
+}
+
+html.dark-mode .labels-history .job-row-selected {
+  background: #1e3a5f !important;
+}
+
+.labels-history .created-by-text {
+  font-size: 0.85em;
+  color: #666;
+}
+
+html.dark-mode .labels-history .created-by-text {
+  color: #999;
+}
+
+.labels-history .muted-text {
+  color: #999;
+}
+
+html.dark-mode .labels-history .muted-text {
+  color: #666;
+}
+
 /* ===== Page Header ===== */
 .labels-history .page-header {
   margin-bottom: 2rem;
@@ -83,7 +230,7 @@ html.dark-mode .labels-history .page-divider {
   padding: 1.5rem;
   border-radius: 12px;
   border: 2px solid #f1f5f9;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
@@ -200,14 +347,18 @@ html.dark-mode .labels-history .control-select:hover {
 
 /* ===== History Table Container ===== */
 .labels-history .history-table-container {
+  margin-bottom: 2rem;
+}
+
+.labels-history .table-container {
   background: white;
   border-radius: 12px;
   border: 2px solid #f1f5f9;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
-  margin-bottom: 2rem;
+  overflow: auto;
 }
 
-html.dark-mode .labels-history .history-table-container {
+html.dark-mode .labels-history .table-container {
   background: #2a2a2a;
   border-color: #404040;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);

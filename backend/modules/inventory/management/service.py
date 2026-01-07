@@ -92,71 +92,74 @@ class InventoryManagementService:
             # Step 3: Ensure all products have item IDs in inventory_metadata (after merging)
             self.repo.ensure_all_products_have_item_ids()
             
-            # Get all products from UK Magento database
-            # Note: Filtering by categories (AW365), websites, and empty categories is done in the repo
-            all_products = self.repo.get_magento_products(status_filters=None)
-            
-            # Normalize variant SKUs to base SKUs and collect all variant statuses
-            # If PROD123 or any variant (PROD123-SD, PROD123-MD, etc) exists in Magento, show PROD123
-            identifier_pattern = re.compile(r'-(?:MD|SD|DP|NP|MV)(?:-.*)?$', re.IGNORECASE)
-            
-            # Group products by base SKU and collect all statuses
-            base_sku_data = {}  # {base_sku: {'product': {...}, 'statuses': set()}}
-            for product in all_products:
-                sku = product.get('sku', '')
-                discontinued_status = product.get('discontinued_status') or 'Active'
-                
-                # Determine base SKU
-                if identifier_pattern.search(sku):
-                    base_sku = identifier_pattern.sub('', sku)
-                else:
-                    base_sku = sku
-                
-                # Initialize or update base SKU data
-                if base_sku not in base_sku_data:
-                    base_sku_data[base_sku] = {
-                        'product': product,  # Keep first product for details
-                        'statuses': set()
-                    }
-                
-                # Add this variant's status to the collection
-                base_sku_data[base_sku]['statuses'].add(discontinued_status)
-            
-            # Update inventory_metadata with variant_statuses for each base SKU
-            # This tracks which statuses are currently active for each product
+            # Step 4: Query inventory_metadata for all products (filtered by variant_statuses if requested)
             conn = self.repo.get_metadata_connection()
             try:
                 cursor = conn.cursor()
-                for base_sku, data in base_sku_data.items():
-                    statuses_list = sorted(list(data['statuses']))  # Convert set to sorted list
+                
+                # Build query with optional status filter
+                if discontinued_status and discontinued_status.strip():
+                    allowed_statuses = [s.strip() for s in discontinued_status.split(",") if s.strip()]
                     cursor.execute("""
-                        UPDATE inventory_metadata
-                        SET variant_statuses = %s, updated_at = NOW()
-                        WHERE sku = %s
-                    """, (json.dumps(statuses_list), base_sku))
-                conn.commit()
-            except Exception as e:
-                logger.error(f"Error updating variant_statuses: {e}")
-                if conn:
-                    conn.rollback()
+                        SELECT sku, variant_statuses
+                        FROM inventory_metadata
+                        WHERE sku IS NOT NULL
+                        AND EXISTS (
+                            SELECT 1 
+                            FROM jsonb_array_elements_text(variant_statuses) AS s 
+                            WHERE s = ANY(%s)
+                        )
+                        ORDER BY sku
+                    """, (allowed_statuses,))
+                else:
+                    cursor.execute("""
+                        SELECT sku, variant_statuses
+                        FROM inventory_metadata
+                        WHERE sku IS NOT NULL
+                        ORDER BY sku
+                    """)
+                
+                # Collect all SKUs and their variant_statuses from inventory_metadata
+                metadata_products = []
+                for row in cursor.fetchall():
+                    sku = row[0]
+                    variant_statuses_json = row[1]
+                    variant_statuses = json.loads(variant_statuses_json) if isinstance(variant_statuses_json, str) else variant_statuses_json
+                    metadata_products.append({
+                        'sku': sku,
+                        'variant_statuses': variant_statuses or ['Active']
+                    })
             finally:
                 self.repo.return_connection(conn)
             
-            # Create normalized product list with base SKUs
-            normalized_products = []
-            for base_sku, data in base_sku_data.items():
-                product = data['product']
-                normalized_product = {
-                    'sku': base_sku,  # Always use base SKU
-                    'name': product.get('name', ''),
-                    'categories': product.get('categories'),
-                    'additional_attributes': product.get('additional_attributes'),
-                    'discontinued_status': product.get('discontinued_status'),  # First variant's status
-                    'variant_statuses': sorted(list(data['statuses']))  # All statuses from variants
-                }
-                normalized_products.append(normalized_product)
+            # Step 5: Get Magento product details for display (name, categories, etc.)
+            magento_products = self.repo.get_magento_products(status_filters=None)
+            identifier_pattern = re.compile(r'-(?:MD|SD|DP|NP|MV)(?:-.*)?$', re.IGNORECASE)
             
-            all_products = normalized_products
+            # Build lookup dict: base_sku -> magento product details
+            magento_by_base_sku = {}
+            for product in magento_products:
+                sku = product.get('sku', '')
+                base_sku = identifier_pattern.sub('', sku) if identifier_pattern.search(sku) else sku
+                if base_sku not in magento_by_base_sku:
+                    magento_by_base_sku[base_sku] = product
+            
+            # Step 6: Combine inventory_metadata products with Magento display data
+            all_products = []
+            for meta_product in metadata_products:
+                sku = meta_product['sku']
+                magento_product = magento_by_base_sku.get(sku, {})
+                
+                all_products.append({
+                    'sku': sku,
+                    'name': magento_product.get('name', ''),
+                    'categories': magento_product.get('categories'),
+                    'additional_attributes': magento_product.get('additional_attributes'),
+                    'discontinued_status': magento_product.get('discontinued_status'),
+                    'variant_statuses': meta_product['variant_statuses']
+                })
+            print(f"========== AFTER NORMALIZATION: {len(all_products)} base SKU products ==========")
+            logger.info(f"[INVENTORY DEBUG] After normalization: {len(all_products)} base SKU products")
             
             if not all_products:
                 return {
@@ -167,17 +170,8 @@ class InventoryManagementService:
                     "total_pages": 0
                 }
             
-            # Apply discontinued_status filter if provided
-            # Filter by ANY of the variant statuses (check if any match)
-            if discontinued_status and discontinued_status.strip():
-                allowed_statuses = [s.strip() for s in discontinued_status.split(",") if s.strip()]
-                filtered_products = [
-                    product for product in all_products
-                    if any(status in allowed_statuses for status in product.get('variant_statuses', []))
-                ]
-                logger.info(f"Status filter '{discontinued_status}' filtered to {len(filtered_products)} products")
-            else:
-                filtered_products = all_products
+            # Status filtering is already done at SQL level above
+            filtered_products = all_products
             
             # Apply search filter if provided
             if search and search.strip():
