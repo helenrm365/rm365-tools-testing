@@ -48,12 +48,28 @@ function formatDate(dateString) {
   return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
+// Debounce utility for instant filtering with delay
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
 export async function initLabelGenerator() {
   // Setup status filter checkboxes (all checked by default)
   setupStatusFilterCheckboxes();
   
   // Setup region selection
   setupRegionSelection();
+  
+  // Setup unified filter panel
+  setupUnifiedFilterPanel();
   
   // Setup event listeners immediately so search works while loading
   setupEventListeners();
@@ -78,20 +94,48 @@ function updateFilterCount() {
   
   const countElement = document.getElementById('labelActiveFiltersCount');
   if (countElement) {
-    countElement.textContent = checkedCount;
+    countElement.textContent = `${checkedCount} of ${totalCount}`;
   }
 }
 
 function setupStatusFilterCheckboxes() {
   const checkboxes = document.querySelectorAll('.status-filter-checkbox');
   
+  // Create debounced filter apply function
+  const debouncedApplyFilters = debounce(async () => {
+    // Get current filter state
+    const selectedFilters = Array.from(checkboxes)
+      .filter(cb => cb.checked)
+      .map(cb => cb.value);
+    
+    // Update state
+    state.statusFilters = selectedFilters;
+    
+    // Clear selections when changing filters
+    state.selectedProducts.clear();
+    
+    try {
+      // Reload products with new filters
+      await loadProducts();
+      
+    } catch (error) {
+      console.error('[Labels] Error applying filters:', error);
+      showToast('Error applying filters', 'error');
+    }
+  }, 500); // 500ms debounce
+  
   checkboxes.forEach(checkbox => {
     checkbox.checked = state.statusFilters.includes(checkbox.value);
     
-    // Add change listener for visual feedback AND auto-apply filters
-    checkbox.addEventListener('change', handleStatusFilterChange);
-    // Add listener to update count
-    checkbox.addEventListener('change', updateFilterCount);
+    // Add change listener for instant visual feedback and debounced filtering
+    checkbox.addEventListener('change', () => {
+      // Instant visual update
+      updateStatusFilterVisuals();
+      updateFilterCount();
+      
+      // Debounced filter application
+      debouncedApplyFilters();
+    });
   });
   
   // Initial visual update
@@ -100,66 +144,8 @@ function setupStatusFilterCheckboxes() {
   updateFilterCount();
 }
 
-async function handleStatusFilterChange() {
-  // Update visuals immediately
-  updateStatusFilterVisuals();
-  
-  // Get current filter state
-  const checkboxes = document.querySelectorAll('.status-filter-checkbox');
-  const selectedFilters = Array.from(checkboxes)
-    .filter(cb => cb.checked)
-    .map(cb => cb.value);
-  
-  // Update state (no localStorage saving)
-  state.statusFilters = selectedFilters;
-  
-  // Show loading state
-  const applyBtn = document.getElementById('applyStatusFilters');
-  let originalText = '';
-  if (applyBtn) {
-    originalText = applyBtn.textContent;
-    applyBtn.textContent = 'Applying...';
-    applyBtn.disabled = true;
-  }
-  
-  // Clear selections when changing filters
-  state.selectedProducts.clear();
-  
-  try {
-    // Auto-reload products with new filters
-    await loadProducts();
-    
-    // Show success feedback
-    if (applyBtn) {
-      applyBtn.textContent = '✓ Applied';
-      applyBtn.style.background = '#10b981';
-      setTimeout(() => {
-        applyBtn.textContent = originalText || 'Apply Filters';
-        applyBtn.style.background = '';
-        applyBtn.disabled = false;
-      }, 1500);
-    }
-    
-    // Show toast notification
-    showToast(`Applied ${selectedFilters.length} status filters`, 'success');
-    
-  } catch (error) {
-    console.error('[Labels] Error applying filters:', error);
-    if (applyBtn) {
-      applyBtn.textContent = 'Error - Retry';
-      applyBtn.style.background = '#ef4444';
-      setTimeout(() => {
-        applyBtn.textContent = originalText || 'Apply Filters';
-        applyBtn.style.background = '';
-        applyBtn.disabled = false;
-      }, 2000);
-    }
-    showToast('Error applying filters', 'error');
-  }
-}
-
 function updateStatusFilterVisuals() {
-  const filters = document.querySelectorAll('.status-filter');
+  const filters = document.querySelectorAll('.status-filter, .status-filter-compact');
   
   filters.forEach(filter => {
     const checkbox = filter.querySelector('.status-filter-checkbox');
@@ -183,6 +169,112 @@ function setupRegionSelection() {
       }
     });
   });
+}
+
+// === Unified Filter Panel Setup ===
+function setupUnifiedFilterPanel() {
+  // Panel collapse/expand toggle
+  const collapseBtn = document.getElementById('filterPanelCollapseBtn');
+  const panelBody = document.getElementById('filterPanelBody');
+  
+  if (collapseBtn && panelBody) {
+    collapseBtn.addEventListener('click', () => {
+      panelBody.classList.toggle('collapsed');
+      collapseBtn.classList.toggle('collapsed');
+    });
+  }
+  
+  // Search clear button
+  const searchInput = document.getElementById('productSearchInput');
+  const searchClearBtn = document.getElementById('searchClearBtn');
+  
+  if (searchInput && searchClearBtn) {
+    searchInput.addEventListener('input', (e) => {
+      if (e.target.value.trim()) {
+        searchClearBtn.style.display = 'flex';
+      } else {
+        searchClearBtn.style.display = 'none';
+      }
+    });
+    
+    searchClearBtn.addEventListener('click', () => {
+      searchInput.value = '';
+      searchInput.dispatchEvent(new Event('input'));
+      searchClearBtn.style.display = 'none';
+      // Trigger search to reset displayed products
+      handleSearch({ target: searchInput });
+    });
+  }
+  
+  // Preset search functionality
+  const presetSearchInput = document.getElementById('presetSearchInput');
+  if (presetSearchInput) {
+    presetSearchInput.addEventListener('input', debounce((e) => {
+      filterPresets(e.target.value.trim().toLowerCase());
+    }, 300));
+  }
+  
+  // Create new preset button
+  const createNewPresetBtn = document.getElementById('createNewPresetBtn');
+  if (createNewPresetBtn) {
+    createNewPresetBtn.addEventListener('click', () => {
+      showSavePresetModal();
+    });
+  }
+  
+  // Refresh button
+  const refreshBtn = document.getElementById('refreshBtn');
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', async () => {
+      refreshBtn.disabled = true;
+      refreshBtn.innerHTML = '<i class=\"fas fa-spinner fa-spin\"></i> Refreshing...';
+      try {
+        await loadProducts();
+        showToast('Products refreshed', 'success');
+      } catch (error) {
+        showToast('Failed to refresh', 'error');
+      } finally {
+        refreshBtn.disabled = false;
+        refreshBtn.innerHTML = '<i class=\"fas fa-sync-alt\"></i> Refresh';
+      }
+    });
+  }
+  
+  // Update preset count badge
+  updatePresetCountBadge();
+}
+
+// Filter presets based on search query
+function filterPresets(query) {
+  const presetCards = document.querySelectorAll('.preset-card');
+  
+  if (!query) {
+    // Show all presets
+    presetCards.forEach(card => {
+      card.style.display = 'flex';
+    });
+    return;
+  }
+  
+  // Filter presets
+  presetCards.forEach(card => {
+    const name = card.querySelector('.preset-name')?.textContent.toLowerCase() || '';
+    const description = card.querySelector('.preset-description')?.textContent.toLowerCase() || '';
+    
+    if (name.includes(query) || description.includes(query)) {
+      card.style.display = 'flex';
+    } else {
+      card.style.display = 'none';
+    }
+  });
+}
+
+function updatePresetCountBadge() {
+  const badge = document.getElementById('presetCountBadge');
+  if (badge) {
+    const count = presets.length;
+    badge.textContent = count === 0 ? 'No presets' : `${count} saved`;
+  }
 }
 
 async function loadProducts(isBackground = false) {
@@ -330,14 +422,6 @@ async function retryLoadProducts() {
 window.initMagentoDataFromLabels = initMagentoDataFromLabels;
 window.retryLoadProducts = retryLoadProducts;
 
-function debounce(func, wait) {
-  let timeout;
-  return function(...args) {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func.apply(this, args), wait);
-  };
-}
-
 function setupEventListeners() {
   // Search
   const searchInput = document.querySelector('#productSearchInput');
@@ -370,12 +454,6 @@ function setupEventListeners() {
   const refreshBtn = document.querySelector('#refreshBtn');
   if (refreshBtn) {
     refreshBtn.addEventListener('click', loadProducts);
-  }
-  
-  // Apply status filters button
-  const applyBtn = document.getElementById('applyStatusFilters');
-  if (applyBtn) {
-    applyBtn.addEventListener('click', handleApplyStatusFilters);
   }
   
   // Preset buttons
@@ -419,60 +497,6 @@ function setupEventListeners() {
   
   // Load presets initially
   loadPresets();
-}
-
-async function handleApplyStatusFilters() {
-  const checkboxes = document.querySelectorAll('.status-filter-checkbox');
-  const selectedFilters = Array.from(checkboxes)
-    .filter(cb => cb.checked)
-    .map(cb => cb.value);
-  
-  // Update state (no localStorage saving)
-  state.statusFilters = selectedFilters;
-  
-  // Clear selections when changing filters
-  state.selectedProducts.clear();
-  
-  // Visual feedback on button
-  const applyBtn = document.getElementById('applyStatusFilters');
-  let originalText = '';
-  if (applyBtn) {
-    originalText = applyBtn.textContent;
-    applyBtn.textContent = 'Applying...';
-    applyBtn.disabled = true;
-  }
-  
-  try {
-    // Reload products from API with new filters
-    await loadProducts();
-    
-    // Success feedback
-    if (applyBtn) {
-      applyBtn.textContent = '✓ Filters Applied';
-      applyBtn.style.background = '#10b981';
-      setTimeout(() => {
-        applyBtn.textContent = originalText || 'Apply Filters';
-        applyBtn.style.background = '';
-        applyBtn.disabled = false;
-      }, 2000);
-    }
-    
-    showToast(`Applied ${selectedFilters.length} status filters - Found ${state.allProducts.length} products`, 'success');
-    
-  } catch (error) {
-    console.error('[Labels] Error applying filters:', error);
-    if (applyBtn) {
-      applyBtn.textContent = 'Error - Retry';
-      applyBtn.style.background = '#ef4444';
-      setTimeout(() => {
-        applyBtn.textContent = originalText || 'Apply Filters';
-        applyBtn.style.background = '';
-        applyBtn.disabled = false;
-      }, 3000);
-    }
-    
-    showToast('Error applying status filters: ' + error.message, 'error');
-  }
 }
 
 function handleSearch(e) {
@@ -1123,12 +1147,15 @@ function renderPresetList() {
   const presetList = document.getElementById('presetList');
   if (!presetList) return;
   
+  // Update preset count badge
+  updatePresetCountBadge();
+  
   if (presets.length === 0) {
     presetList.innerHTML = `
       <div class="preset-empty">
         <i class="fas fa-bookmark"></i>
         <p>No presets saved yet</p>
-        <p class="preset-empty-hint">Select products and click "Save Current Selection" to create a preset</p>
+        <p class="preset-empty-hint">Select products and click the save button to create your first preset</p>
       </div>
     `;
     return;
@@ -1138,29 +1165,35 @@ function renderPresetList() {
     <div class="preset-card" data-preset-id="${preset.id}">
       <div class="preset-card-header">
         <div class="preset-info">
-          <h4 class="preset-name">${escapeHtml(preset.name)}</h4>
+          <h4 class="preset-name">
+            ${escapeHtml(preset.name)}
+          </h4>
           ${preset.description ? `<p class="preset-description">${escapeHtml(preset.description)}</p>` : ''}
         </div>
         <div class="preset-stats">
-          <span class="preset-stat" title="Status filters">
+          <span class="preset-stat" title="${preset.status_filters?.length || 0} status filters active">
             <i class="fas fa-filter"></i> ${preset.status_filters?.length || 0}
           </span>
-          <span class="preset-stat" title="Region">
+          <span class="preset-stat" title="Region: ${(preset.region || 'uk').toUpperCase()}">
             <i class="fas fa-globe"></i> ${(preset.region || 'uk').toUpperCase()}
           </span>
-          <span class="preset-stat" title="Products">
+          <span class="preset-stat" title="${preset.product_skus?.length || 0} products in preset">
             <i class="fas fa-box"></i> ${preset.product_skus?.length || 0}
           </span>
         </div>
       </div>
       <div class="preset-card-footer">
-        <button class="preset-action-btn load" onclick="window.labelGenerator.loadPreset(${preset.id})">
-          <i class="fas fa-check"></i>
-          Load Preset
+        <button class="preset-action-btn load" onclick="window.labelGenerator.loadPreset(${preset.id})" title="Load this preset">
+          <i class="fas fa-check-circle"></i>
+          Load
         </button>
-        <button class="preset-action-btn secondary" onclick="window.labelGenerator.showEditPresetModal(${preset.id})">
+        <button class="preset-action-btn secondary" onclick="window.labelGenerator.showEditPresetModal(${preset.id})" title="Edit preset details">
           <i class="fas fa-edit"></i>
           Edit
+        </button>
+        <button class="preset-action-btn secondary" onclick="window.labelGenerator.deletePresetConfirm(${preset.id})" title="Delete this preset">
+          <i class="fas fa-trash-alt"></i>
+          Delete
         </button>
       </div>
     </div>

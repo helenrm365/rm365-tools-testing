@@ -23,146 +23,152 @@
 
   <!-- Main Content -->
   <div class="generator-content">
-    <!-- Filters Section -->
-        <div class="filters-section">
-          <div class="filters-card">
-            <!-- Status Filters -->
-            <div class="filter-group collapsible-filter">
-              <div class="filter-collapse-header" onclick="this.parentElement.classList.toggle('expanded')">
-                <div class="filter-header-content">
-                  <h3 class="filter-title">
-                    <i class="fas fa-filter"></i>
-                    Product Status Filters
-                  </h3>
-                  <div class="filter-summary">
-                    <span class="filter-count" id="labelActiveFiltersCount">8</span> of 8 active
-                  </div>
+    <!-- Comprehensive Filter Control Panel -->
+    <div class="unified-filter-panel">
+      <div class="filter-panel-header">
+        <div class="filter-panel-title">
+          <i class="fas fa-sliders-h"></i>
+          <h2>Filter & Selection Control Panel</h2>
+        </div>
+        <div class="filter-panel-header-actions">
+          <button id="refreshBtn" class="panel-header-btn" title="Refresh products">
+            <i class="fas fa-sync-alt"></i>
+          </button>
+          <button class="filter-panel-collapse" id="filterPanelCollapseBtn" title="Collapse/Expand Panel">
+            <i class="fas fa-chevron-up"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="filter-panel-body" id="filterPanelBody">
+        <!-- 2x2 Grid Layout -->
+        <div class="filter-panel-grid">
+          <!-- Top Left: Label Presets -->
+          <div class="filter-control-group presets-control">
+            <div class="control-header">
+              <div class="control-header-left">
+                <i class="fas fa-bookmark"></i>
+                <span class="control-title">Label Presets</span>
+                <span class="preset-count-badge" id="presetCountBadge">No presets</span>
+              </div>
+              <div class="preset-header-actions">
+                <div class="preset-search-wrapper">
+                  <input type="text" id="presetSearchInput" class="preset-search-input" placeholder="Search presets...">
+                  <i class="fas fa-search preset-search-icon"></i>
                 </div>
-                <button type="button" class="filter-toggle-btn">
-                  <i class="fas fa-chevron-down"></i>
+                <button id="savePresetBtn" class="preset-action-btn-small primary" title="Save Current Selection">
+                  <i class="fas fa-save"></i>
+                </button>
+                <button id="createNewPresetBtn" class="preset-action-btn-small success" title="Create New Preset">
+                  <i class="fas fa-plus"></i>
                 </button>
               </div>
-              <div class="status-filters">
-                <label class="status-filter">
-                  <input type="checkbox" id="filter_Active" class="status-checkbox status-filter-checkbox" value="Active" checked>
-                  <span class="status-label">Active</span>
-                </label>
-                <label class="status-filter">
-                  <input type="checkbox" id="filter_TemporarilyOOS" class="status-checkbox status-filter-checkbox" value="Temporarily OOS" checked>
-                  <span class="status-label">Temporarily OOS</span>
-                </label>
-                <label class="status-filter">
-                  <input type="checkbox" id="filter_PreOrder" class="status-checkbox status-filter-checkbox" value="Pre Order" checked>
-                  <span class="status-label">Pre Order</span>
-                </label>
-                <label class="status-filter">
-                  <input type="checkbox" id="filter_Samples" class="status-checkbox status-filter-checkbox" value="Samples" checked>
-                  <span class="status-label">Samples</span>
-                </label>
-                <label class="status-filter">
-                  <input type="checkbox" id="filter_DiscontinuedSupplier" class="status-checkbox status-filter-checkbox" value="Discontinued (Supplier)" checked>
-                  <span class="status-label">Discontinued (Supplier)</span>
-                </label>
-                <label class="status-filter">
-                  <input type="checkbox" id="filter_DiscontinuedRM" class="status-checkbox status-filter-checkbox" value="Discontinued (RM)" checked>
-                  <span class="status-label">Discontinued (RM)</span>
-                </label>
-                <label class="status-filter">
-                  <input type="checkbox" id="filter_SpecialOffer" class="status-checkbox status-filter-checkbox" value="Special Offer" checked>
-                  <span class="status-label">Special Offer</span>
-                </label>
-                <label class="status-filter">
-                  <input type="checkbox" id="filter_SpecialItem" class="status-checkbox status-filter-checkbox" value="Special Item" checked>
-                  <span class="status-label">Special Item</span>
-                </label>
-              </div>
             </div>
-            
-            <!-- Region Selection -->
-            <div class="filter-group">
-              <h3 class="filter-title">
-                <i class="fas fa-globe-europe"></i>
-                Region Preference
-              </h3>
-              <div class="region-toggle">
-                <label class="region-option">
-                  <input type="radio" name="region" value="uk" class="region-radio" checked>
-                  <span class="region-label">
-                    <i class="fas fa-flag"></i>
-                    UK (GBP)
-                  </span>
-                </label>
-                <label class="region-option">
-                  <input type="radio" name="region" value="fr" class="region-radio">
-                  <span class="region-label">
-                    <i class="fas fa-flag"></i>
-                    FR (EUR)
-                  </span>
-                </label>
-                <label class="region-option">
-                  <input type="radio" name="region" value="nl" class="region-radio">
-                  <span class="region-label">
-                    <i class="fas fa-flag"></i>
-                    NL (EUR)
-                  </span>
-                </label>
+            <div class="presets-scroll-container" id="presetList">
+              <div class="preset-loading-compact">
+                <i class="fas fa-spinner fa-spin"></i>
+                <span>Loading...</span>
               </div>
-              <p class="region-help">
-                <i class="fas fa-info-circle"></i>
-                SKUs from UK Magento. Prices/names from selected region. 6M: UK separate, FR+NL combined.
-              </p>
-            </div>
-            
-            <!-- Search and Controls -->
-            <div class="filters-controls">
-              <div class="filter-input-group">
-                <label for="productSearchInput" class="filter-label">
-                  <i class="fas fa-search"></i>
-                  Search Products
-                </label>
-                <input type="text" id="productSearchInput" class="filter-input" placeholder="Search by SKU, Product Name, or Item ID...">
-              </div>
-              <button id="applyStatusFilters" class="filter-button">
-                <i class="fas fa-check"></i>
-                Apply Filters
-              </button>
-              <button id="refreshBtn" class="filter-button secondary">
-                <i class="fas fa-sync-alt"></i>
-                Refresh
-              </button>
             </div>
           </div>
-        </div>
 
-        <!-- Preset Management Section -->
-        <div class="preset-section">
-          <div class="preset-header">
-            <div class="preset-title-group">
-              <h3 class="preset-title">
-                <i class="fas fa-bookmark"></i>
-                Label Presets
-              </h3>
-              <p class="preset-subtitle">Save and load product selections for quick label printing</p>
+          <!-- Top Right: Product Status Filters -->
+          <div class="filter-control-group status-control">
+            <div class="control-header">
+              <div class="control-header-left">
+                <i class="fas fa-filter"></i>
+                <span class="control-title">Product Status Filters</span>
+                <span class="filter-count-badge" id="labelActiveFiltersCount">8 of 8</span>
+              </div>
             </div>
-            <div class="preset-actions">
-              <button id="savePresetBtn" class="preset-button primary">
-                <i class="fas fa-save"></i>
-                Save Current Selection
-              </button>
-              <button id="managePresetsBtn" class="preset-button secondary">
-                <i class="fas fa-cog"></i>
-                Manage Presets
+            <div class="status-filters-grid">
+              <label class="status-filter-compact">
+                <input type="checkbox" id="filter_Active" class="status-checkbox status-filter-checkbox" value="Active" checked>
+                <span class="status-label">Active</span>
+              </label>
+              <label class="status-filter-compact">
+                <input type="checkbox" id="filter_TemporarilyOOS" class="status-checkbox status-filter-checkbox" value="Temporarily OOS" checked>
+                <span class="status-label">Temp. OOS</span>
+              </label>
+              <label class="status-filter-compact">
+                <input type="checkbox" id="filter_PreOrder" class="status-checkbox status-filter-checkbox" value="Pre Order" checked>
+                <span class="status-label">Pre Order</span>
+              </label>
+              <label class="status-filter-compact">
+                <input type="checkbox" id="filter_Samples" class="status-checkbox status-filter-checkbox" value="Samples" checked>
+                <span class="status-label">Samples</span>
+              </label>
+              <label class="status-filter-compact">
+                <input type="checkbox" id="filter_DiscontinuedSupplier" class="status-checkbox status-filter-checkbox" value="Discontinued (Supplier)" checked>
+                <span class="status-label">Disc. (Supp)</span>
+              </label>
+              <label class="status-filter-compact">
+                <input type="checkbox" id="filter_DiscontinuedRM" class="status-checkbox status-filter-checkbox" value="Discontinued (RM)" checked>
+                <span class="status-label">Disc. (RM)</span>
+              </label>
+              <label class="status-filter-compact">
+                <input type="checkbox" id="filter_SpecialOffer" class="status-checkbox status-filter-checkbox" value="Special Offer" checked>
+                <span class="status-label">Special Offer</span>
+              </label>
+              <label class="status-filter-compact">
+                <input type="checkbox" id="filter_SpecialItem" class="status-checkbox status-filter-checkbox" value="Special Item" checked>
+                <span class="status-label">Special Item</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Bottom Left: Search Products -->
+          <div class="filter-control-group search-control">
+            <div class="control-header">
+              <div class="control-header-left">
+                <i class="fas fa-search"></i>
+                <span class="control-title">Search Products</span>
+              </div>
+            </div>
+            <div class="search-input-wrapper">
+              <input type="text" id="productSearchInput" class="search-input-compact" placeholder="Search by SKU, Product Name, or Item ID...">
+              <button class="search-clear-btn" id="searchClearBtn" title="Clear search" style="display: none;">
+                <i class="fas fa-times"></i>
               </button>
             </div>
           </div>
-          
-          <div class="preset-list" id="presetList">
-            <div class="preset-loading">
-              <i class="fas fa-spinner fa-spin"></i>
-              Loading presets...
+
+          <!-- Bottom Right: Region Preference -->
+          <div class="filter-control-group region-control">
+            <div class="control-header">
+              <div class="control-header-left">
+                <i class="fas fa-globe-europe"></i>
+                <span class="control-title">Region Preference</span>
+              </div>
             </div>
+            <div class="region-toggle-compact">
+              <label class="region-option-compact">
+                <input type="radio" name="region" value="uk" class="region-radio" checked>
+                <span class="region-label-compact">
+                  <i class="fas fa-flag"></i> UK (GBP)
+                </span>
+              </label>
+              <label class="region-option-compact">
+                <input type="radio" name="region" value="fr" class="region-radio">
+                <span class="region-label-compact">
+                  <i class="fas fa-flag"></i> FR (EUR)
+                </span>
+              </label>
+              <label class="region-option-compact">
+                <input type="radio" name="region" value="nl" class="region-radio">
+                <span class="region-label-compact">
+                  <i class="fas fa-flag"></i> NL (EUR)
+                </span>
+              </label>
+            </div>
+            <p class="control-hint">
+              <i class="fas fa-info-circle"></i>
+              SKUs from UK Magento. Prices/names from selected region. 6M: UK separate, FR+NL combined.
+            </p>
           </div>
         </div>
+      </div>
+    </div>
         
         <!-- Selection Bar -->
         <div class="selection-bar">
