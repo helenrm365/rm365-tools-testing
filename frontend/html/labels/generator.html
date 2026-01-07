@@ -56,11 +56,11 @@
                   <input type="text" id="presetSearchInput" class="preset-search-input" placeholder="Search presets...">
                   <i class="fas fa-search preset-search-icon"></i>
                 </div>
-                <button id="savePresetBtn" class="preset-action-btn-small primary" title="Save Current Selection">
+                <button id="savePresetBtn" class="preset-action-btn-small primary" title="Save Preset">
                   <i class="fas fa-save"></i>
                 </button>
-                <button id="createNewPresetBtn" class="preset-action-btn-small success" title="Create New Preset">
-                  <i class="fas fa-plus"></i>
+                <button id="managePresetsBtn" class="preset-action-btn-small secondary" title="Manage Presets">
+                  <i class="fas fa-cog"></i>
                 </button>
               </div>
             </div>
@@ -258,14 +258,33 @@
         <div class="save-option-group">
           <label class="radio-option">
             <input type="radio" name="saveOption" value="new" checked>
-            <span>Save as New Preset</span>
+            <span>Create New Preset</span>
+          </label>
+          <label class="radio-option" id="overwriteCurrentOption" style="display: none;">
+            <input type="radio" name="saveOption" value="overwrite-current">
+            <span>Overwrite Current Preset</span>
           </label>
           <label class="radio-option">
-            <input type="radio" name="saveOption" value="overwrite">
-            <span>Overwrite Existing Preset</span>
+            <input type="radio" name="saveOption" value="overwrite-other">
+            <span>Overwrite Other Preset</span>
           </label>
         </div>
       </div>
+      
+      <!-- Current Preset Info (shown when overwrite-current is selected) -->
+      <div class="form-group" id="currentPresetInfo" style="display: none;">
+        <div class="current-preset-warning">
+          <i class="fas fa-exclamation-triangle"></i>
+          <div>
+            <strong>You are about to overwrite:</strong>
+            <div class="preset-info-box">
+              <div><strong>Name:</strong> <span id="currentPresetName"></span></div>
+              <div><strong>Description:</strong> <span id="currentPresetDescription"></span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
       <div class="form-group" id="newPresetFields">
         <label for="presetName" class="form-label">
           <i class="fas fa-tag"></i>
@@ -273,7 +292,7 @@
         </label>
         <input type="text" id="presetName" class="form-input" placeholder="e.g., Weekly Active Products" required>
       </div>
-      <div class="form-group" id="overwritePresetField" style="display: none;">
+      <div class="form-group" id="overwriteOtherPresetField" style="display: none;">
         <label for="overwritePresetSelect" class="form-label">
           <i class="fas fa-list"></i>
           Select Preset to Overwrite <span class="required">*</span>
@@ -348,6 +367,77 @@
     </div>
     <div class="modal-footer">
       <button class="modal-button secondary" onclick="document.getElementById('managePresetsModal').style.display='none'">
+        <i class="fas fa-times"></i>
+        Close
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- View Preset Details Modal -->
+<div id="viewPresetModal" class="modal" style="display: none;">
+  <div class="modal-content preset-modal">
+    <div class="modal-header">
+      <h2 class="modal-title">
+        <i class="fas fa-eye"></i>
+        Preset Details
+      </h2>
+      <button class="modal-close" onclick="document.getElementById('viewPresetModal').style.display='none'">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="preset-detail-section">
+        <h3 class="preset-detail-title" id="viewPresetName"></h3>
+        <p class="preset-detail-description" id="viewPresetDescription"></p>
+      </div>
+      
+      <div class="preset-detail-grid">
+        <div class="preset-detail-item">
+          <label class="detail-label">
+            <i class="fas fa-user"></i>
+            Created By
+          </label>
+          <span class="detail-value" id="viewPresetCreatedBy"></span>
+        </div>
+        <div class="preset-detail-item">
+          <label class="detail-label">
+            <i class="fas fa-clock"></i>
+            Created At
+          </label>
+          <span class="detail-value" id="viewPresetCreatedAt"></span>
+        </div>
+        <div class="preset-detail-item">
+          <label class="detail-label">
+            <i class="fas fa-globe"></i>
+            Region
+          </label>
+          <span class="detail-value" id="viewPresetRegion"></span>
+        </div>
+      </div>
+      
+      <div class="preset-detail-section">
+        <label class="detail-label">
+          <i class="fas fa-filter"></i>
+          Status Filters
+        </label>
+        <div class="filters-container" id="viewPresetFilters">
+          <span class="filter-badge">Loading...</span>
+        </div>
+      </div>
+      
+      <div class="preset-detail-section">
+        <label class="detail-label">
+          <i class="fas fa-box"></i>
+          Products in Preset
+        </label>
+        <div class="products-list-view" id="viewPresetProducts">
+          <div class="empty-text">Loading...</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="modal-button secondary" onclick="document.getElementById('viewPresetModal').style.display='none'">
         <i class="fas fa-times"></i>
         Close
       </button>

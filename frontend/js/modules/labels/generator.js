@@ -27,7 +27,8 @@ let state = {
   selectedProducts: new Set(),
   selectAll: false,
   statusFilters: DEFAULT_STATUS_FILTERS,  // Always start with all filters
-  region: "uk"           // Default region preference for prices/names
+  region: "uk",          // Default region preference for prices/names
+  currentPresetId: null  // Track currently loaded preset
 };
 
 // Utility functions
@@ -212,14 +213,6 @@ function setupUnifiedFilterPanel() {
     presetSearchInput.addEventListener('input', debounce((e) => {
       filterPresets(e.target.value.trim().toLowerCase());
     }, 300));
-  }
-  
-  // Create new preset button
-  const createNewPresetBtn = document.getElementById('createNewPresetBtn');
-  if (createNewPresetBtn) {
-    createNewPresetBtn.addEventListener('click', () => {
-      showSavePresetModal();
-    });
   }
   
   // Refresh button
@@ -971,20 +964,33 @@ function formatPrice(price) {
 }
 
 function handleSaveOptionChange(e) {
-  const isOverwrite = e.target.value === 'overwrite';
-  document.getElementById('newPresetFields').style.display = isOverwrite ? 'none' : 'block';
-  document.getElementById('overwritePresetField').style.display = isOverwrite ? 'block' : 'none';
+  const option = e.target.value;
   
-  // Populate overwrite dropdown if switching to overwrite mode
-  if (isOverwrite) {
+  // Show/hide fields based on selected option
+  document.getElementById('newPresetFields').style.display = option === 'new' ? 'block' : 'none';
+  document.getElementById('overwriteOtherPresetField').style.display = option === 'overwrite-other' ? 'block' : 'none';
+  document.getElementById('currentPresetInfo').style.display = option === 'overwrite-current' ? 'block' : 'none';
+  
+  // Handle specific options
+  if (option === 'overwrite-other') {
+    // Populate overwrite dropdown with all presets except current
     const select = document.getElementById('overwritePresetSelect');
     select.innerHTML = '<option value="">-- Select a preset --</option>' + 
-      presets.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
-    
-    // Clear description when switching to overwrite mode
+      presets
+        .filter(p => p.id !== state.currentPresetId)
+        .map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`)
+        .join('');
     document.getElementById('presetDescription').value = '';
+  } else if (option === 'overwrite-current') {
+    // Show current preset info
+    const currentPreset = presets.find(p => p.id === state.currentPresetId);
+    if (currentPreset) {
+      document.getElementById('currentPresetName').textContent = currentPreset.name;
+      document.getElementById('currentPresetDescription').textContent = currentPreset.description || 'No description';
+      document.getElementById('presetDescription').value = currentPreset.description || '';
+    }
   } else {
-    // Clear description when switching to new mode
+    // New preset - clear fields
     document.getElementById('presetDescription').value = '';
   }
 }
@@ -1161,43 +1167,40 @@ function renderPresetList() {
     return;
   }
   
-  presetList.innerHTML = presets.map(preset => `
-    <div class="preset-card" data-preset-id="${preset.id}">
-      <div class="preset-card-header">
-        <div class="preset-info">
-          <h4 class="preset-name">
-            ${escapeHtml(preset.name)}
-          </h4>
-          ${preset.description ? `<p class="preset-description">${escapeHtml(preset.description)}</p>` : ''}
-        </div>
-        <div class="preset-stats">
-          <span class="preset-stat" title="${preset.status_filters?.length || 0} status filters active">
-            <i class="fas fa-filter"></i> ${preset.status_filters?.length || 0}
+  presetList.innerHTML = presets.map(preset => {
+    const isActive = preset.id === state.currentPresetId;
+    return `
+    <div class="preset-card-compact ${isActive ? 'active' : ''}" data-preset-id="${preset.id}">
+      <div class="preset-compact-header">
+        <h4 class="preset-name-compact">
+          ${isActive ? '<i class="fas fa-check-circle" style="color: #8bc34a; margin-right: 4px; font-size: 0.75rem;"></i>' : ''}
+          ${escapeHtml(preset.name)}
+        </h4>
+        <div class="preset-stats-inline">
+          <span class="preset-stat-inline" title="${preset.status_filters?.length || 0} status filters">
+            <i class="fas fa-filter"></i>${preset.status_filters?.length || 0}
           </span>
-          <span class="preset-stat" title="Region: ${(preset.region || 'uk').toUpperCase()}">
-            <i class="fas fa-globe"></i> ${(preset.region || 'uk').toUpperCase()}
+          <span class="preset-stat-inline" title="Region: ${(preset.region || 'uk').toUpperCase()}">
+            <i class="fas fa-globe"></i>${(preset.region || 'uk').toUpperCase()}
           </span>
-          <span class="preset-stat" title="${preset.product_skus?.length || 0} products in preset">
-            <i class="fas fa-box"></i> ${preset.product_skus?.length || 0}
+          <span class="preset-stat-inline" title="${preset.product_skus?.length || 0} products">
+            <i class="fas fa-box"></i>${preset.product_skus?.length || 0}
           </span>
         </div>
       </div>
-      <div class="preset-card-footer">
-        <button class="preset-action-btn load" onclick="window.labelGenerator.loadPreset(${preset.id})" title="Load this preset">
-          <i class="fas fa-check-circle"></i>
-          Load
+      <div class="preset-compact-actions">
+        <button class="preset-btn-compact load" onclick="window.labelGenerator.loadPreset(${preset.id})" title="${isActive ? 'Reload this preset' : 'Load this preset'}">
+          <i class="fas fa-${isActive ? 'sync-alt' : 'check-circle'}"></i>
+          ${isActive ? 'Reload' : 'Load'}
         </button>
-        <button class="preset-action-btn secondary" onclick="window.labelGenerator.showEditPresetModal(${preset.id})" title="Edit preset details">
-          <i class="fas fa-edit"></i>
-          Edit
-        </button>
-        <button class="preset-action-btn secondary" onclick="window.labelGenerator.deletePresetConfirm(${preset.id})" title="Delete this preset">
-          <i class="fas fa-trash-alt"></i>
-          Delete
+        <button class="preset-btn-compact view" onclick="window.labelGenerator.viewPresetDetails(${preset.id})" title="View preset details">
+          <i class="fas fa-eye"></i>
+          View
         </button>
       </div>
     </div>
-  `).join('');
+  `;
+  }).join('');
 }
 
 function renderManagePresetsList() {
@@ -1261,6 +1264,9 @@ async function loadPreset(presetId) {
   }
   
   try {
+    // Track current preset
+    state.currentPresetId = presetId;
+    
     // Apply status filters
     state.statusFilters = preset.status_filters || [];
     const checkboxes = document.querySelectorAll('.status-filter-checkbox');
@@ -1293,6 +1299,9 @@ async function loadPreset(presetId) {
     renderProductTable();
     updateStats();
     
+    // Update preset list to show active state
+    renderPresetList();
+    
     showToast(`Loaded preset: ${preset.name}`, 'success');
   } catch (error) {
     console.error('[Presets] Failed to load preset:', error);
@@ -1301,10 +1310,19 @@ async function loadPreset(presetId) {
 }
 
 function showSavePresetModal() {
+  // Show/hide overwrite current option based on whether a preset is loaded
+  const overwriteCurrentOption = document.getElementById('overwriteCurrentOption');
+  if (state.currentPresetId && presets.find(p => p.id === state.currentPresetId)) {
+    overwriteCurrentOption.style.display = 'block';
+  } else {
+    overwriteCurrentOption.style.display = 'none';
+  }
+  
   // Reset to new preset mode
   document.querySelector('input[name="saveOption"][value="new"]').checked = true;
   document.getElementById('newPresetFields').style.display = 'block';
-  document.getElementById('overwritePresetField').style.display = 'none';
+  document.getElementById('overwriteOtherPresetField').style.display = 'none';
+  document.getElementById('currentPresetInfo').style.display = 'none';
   
   // Update summary in modal
   document.getElementById('presetStatusCount').textContent = state.statusFilters.length;
@@ -1375,8 +1393,40 @@ async function savePreset() {
       
       await createPreset(preset);
       showToast('Preset saved successfully', 'success');
-    } else {
-      // Overwrite existing preset
+    } else if (saveOption === 'overwrite-current') {
+      // Overwrite current preset
+      const currentPreset = presets.find(p => p.id === state.currentPresetId);
+      if (!currentPreset) {
+        showToast('Current preset not found', 'error');
+        return;
+      }
+      
+      // Confirm before overwriting
+      const confirmed = await confirmModal({
+        title: 'Overwrite Current Preset',
+        message: `Are you sure you want to overwrite the preset "${currentPreset.name}"?\n\nThis will replace all settings and products with your current selection.`,
+        confirmText: 'Overwrite',
+        cancelText: 'Cancel',
+        confirmVariant: 'primary',
+        icon: '⚠️'
+      });
+      
+      if (!confirmed) {
+        return;
+      }
+      
+      const description = document.getElementById('presetDescription').value.trim();
+      
+      await updatePreset(state.currentPresetId, {
+        description: description || null,
+        status_filters: state.statusFilters,
+        region: state.region,
+        product_skus: selectedSkus
+      });
+      
+      showToast(`Preset "${currentPreset.name}" overwritten successfully`, 'success');
+    } else if (saveOption === 'overwrite-other') {
+      // Overwrite other preset
       const presetId = parseInt(document.getElementById('overwritePresetSelect').value);
       
       if (!presetId) {
@@ -1390,7 +1440,20 @@ async function savePreset() {
         return;
       }
       
-      // Get the description (user may have modified it)
+      // Confirm before overwriting
+      const confirmed = await confirmModal({
+        title: 'Overwrite Preset',
+        message: `Are you sure you want to overwrite the preset "${existingPreset.name}"?\n\nThis will replace all settings and products with your current selection.`,
+        confirmText: 'Overwrite',
+        cancelText: 'Cancel',
+        confirmVariant: 'primary',
+        icon: '⚠️'
+      });
+      
+      if (!confirmed) {
+        return;
+      }
+      
       const description = document.getElementById('presetDescription').value.trim();
       
       await updatePreset(presetId, {
@@ -1556,9 +1619,48 @@ async function deletePresetConfirm(presetId) {
   }
 }
 
+function viewPresetDetails(presetId) {
+  const preset = presets.find(p => p.id === presetId);
+  if (!preset) {
+    showToast('Preset not found', 'error');
+    return;
+  }
+  
+  // Populate modal with preset details
+  document.getElementById('viewPresetName').textContent = preset.name;
+  document.getElementById('viewPresetDescription').textContent = preset.description || 'No description provided';
+  document.getElementById('viewPresetCreatedBy').textContent = preset.created_by || 'Unknown';
+  document.getElementById('viewPresetCreatedAt').textContent = formatDate(preset.created_at);
+  document.getElementById('viewPresetRegion').textContent = (preset.region || 'uk').toUpperCase();
+  
+  // Show status filters
+  const filtersContainer = document.getElementById('viewPresetFilters');
+  if (preset.status_filters && preset.status_filters.length > 0) {
+    filtersContainer.innerHTML = preset.status_filters.map(filter => 
+      `<span class="filter-badge">${escapeHtml(filter)}</span>`
+    ).join('');
+  } else {
+    filtersContainer.innerHTML = '<span class="empty-text">No filters</span>';
+  }
+  
+  // Show products
+  const productsContainer = document.getElementById('viewPresetProducts');
+  if (preset.product_skus && preset.product_skus.length > 0) {
+    productsContainer.innerHTML = preset.product_skus.map(sku => 
+      `<div class="product-sku-item">${escapeHtml(sku)}</div>`
+    ).join('');
+  } else {
+    productsContainer.innerHTML = '<div class="empty-text">No products in this preset</div>';
+  }
+  
+  // Show modal
+  document.getElementById('viewPresetModal').style.display = 'flex';
+}
+
 // Export functions for global access
 window.labelGenerator = {
   loadPreset,
   showEditPresetModal,
-  deletePresetConfirm
+  deletePresetConfirm,
+  viewPresetDetails
 };

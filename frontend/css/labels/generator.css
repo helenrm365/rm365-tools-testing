@@ -620,22 +620,39 @@ html.dark-mode .presets-scroll-container::-webkit-scrollbar-track {
   cursor: pointer;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.35rem;
   transition: all 0.2s ease;
   white-space: nowrap;
   height: 28px;
+  width: 28px;
+  min-width: 28px;
 }
 
 .preset-action-btn-small.primary {
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
-  color: white;
-  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+  background: #f8f9fa;
+  color: #546e7a;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+html.dark-mode .preset-action-btn-small.primary {
+  background: #1e1e1e;
+  color: #b0bec5;
+  border-color: #404040;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 .preset-action-btn-small.primary:hover {
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  background: #e9ecef;
+  border-color: #d0d0d0;
   transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+html.dark-mode .preset-action-btn-small.primary:hover {
+  background: #2a2a2a;
+  border-color: #505050;
 }
 
 .preset-action-btn-small.success {
@@ -648,6 +665,32 @@ html.dark-mode .presets-scroll-container::-webkit-scrollbar-track {
   background: linear-gradient(135deg, #059669, #047857);
   transform: translateY(-1px);
   box-shadow: 0 4px 10px rgba(16, 185, 129, 0.4);
+}
+
+.preset-action-btn-small.secondary {
+  background: #f8f9fa;
+  color: #546e7a;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+html.dark-mode .preset-action-btn-small.secondary {
+  background: #1e1e1e;
+  color: #b0bec5;
+  border-color: #404040;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.preset-action-btn-small.secondary:hover {
+  background: #e9ecef;
+  border-color: #d0d0d0;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+html.dark-mode .preset-action-btn-small.secondary:hover {
+  background: #2a2a2a;
+  border-color: #505050;
 }
 
 /* Presets Grid - Compact Cards */
@@ -740,6 +783,153 @@ html.dark-mode .preset-empty i {
   justify-content: space-between;
 }
 
+/* Compact Preset Card Styles */
+.preset-card-compact {
+  background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
+  border-radius: 8px;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #e8ecef;
+  transition: all 0.2s ease;
+  position: relative;
+  animation: slideInPreset 0.3s ease forwards;
+  opacity: 0;
+  min-width: 140px;
+  max-width: 140px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+html.dark-mode .preset-card-compact {
+  background: linear-gradient(135deg, #2d2d2d 0%, #282828 100%);
+  border-color: #3a3a3a;
+}
+
+.preset-card-compact:hover {
+  border-color: #8bc34a;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.preset-card-compact.active {
+  border-color: #8bc34a;
+  border-width: 2px;
+  box-shadow: 0 4px 12px rgba(139, 195, 74, 0.2);
+}
+
+html.dark-mode .preset-card-compact.active {
+  border-color: #7cb342;
+  box-shadow: 0 4px 12px rgba(139, 195, 74, 0.3);
+}
+
+html.dark-mode .preset-card-compact:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.preset-compact-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.preset-name-compact {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+html.dark-mode .preset-name-compact {
+  color: #ecf0f1;
+}
+
+.preset-stats-inline {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.preset-stat-inline {
+  font-size: 0.7rem;
+  color: #546e7a;
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  background: #f8f9fa;
+  padding: 0.15rem 0.4rem;
+  border-radius: 10px;
+}
+
+html.dark-mode .preset-stat-inline {
+  color: #b0bec5;
+  background: #3a3a3a;
+}
+
+.preset-stat-inline i {
+  color: #8bc34a;
+  font-size: 0.7rem;
+}
+
+.preset-compact-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.preset-btn-compact {
+  flex: 1;
+  padding: 0.35rem 0.5rem;
+  border: none;
+  border-radius: 5px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.preset-btn-compact.load {
+  background: linear-gradient(135deg, #8bc34a, #7cb342);
+  color: white;
+}
+
+.preset-btn-compact.load:hover {
+  background: linear-gradient(135deg, #7cb342, #6a9e34);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(139, 195, 74, 0.3);
+}
+
+.preset-btn-compact.view {
+  background: #f8f9fa;
+  color: #546e7a;
+  border: 1px solid #e0e0e0;
+}
+
+html.dark-mode .preset-btn-compact.view {
+  background: #3a3a3a;
+  color: #b0bec5;
+  border-color: #4a4a4a;
+}
+
+.preset-btn-compact.view:hover {
+  background: #e9ecef;
+  border-color: #8bc34a;
+  color: #8bc34a;
+}
+
+html.dark-mode .preset-btn-compact.view:hover {
+  background: #4a4a4a;
+}
+
 @keyframes slideInPreset {
   from {
     opacity: 0;
@@ -769,6 +959,17 @@ html.dark-mode .preset-card {
   transform: translateY(-2px);
 }
 
+.preset-card.active {
+  border-color: #8bc34a;
+  border-width: 2px;
+  box-shadow: 0 4px 12px rgba(139, 195, 74, 0.2);
+}
+
+html.dark-mode .preset-card.active {
+  border-color: #7cb342;
+  box-shadow: 0 4px 12px rgba(139, 195, 74, 0.3);
+}
+
 html.dark-mode .preset-card:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
@@ -792,6 +993,24 @@ html.dark-mode .preset-card:hover {
 
 html.dark-mode .preset-name {
   color: #ecf0f1;
+}
+
+.active-badge {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #8bc34a;
+  background: rgba(139, 195, 74, 0.1);
+  padding: 0.1rem 0.4rem;
+  border-radius: 10px;
+  margin-left: 0.3rem;
+  border: 1px solid rgba(139, 195, 74, 0.3);
+}
+
+html.dark-mode .active-badge {
+  color: #7cb342;
+  background: rgba(139, 195, 74, 0.15);
+  border-color: rgba(139, 195, 74, 0.4);
 }
 
 .preset-description {
