@@ -127,6 +127,7 @@
             </div>
             <div class="search-input-wrapper">
               <input type="text" id="productSearchInput" class="search-input-compact" placeholder="Search by SKU, Product Name, or Item ID...">
+              <i class="fas fa-search product-search-icon" id="productSearchIcon" title="Search"></i>
               <button class="search-clear-btn" id="searchClearBtn" title="Clear search" style="display: none;">
                 <i class="fas fa-times"></i>
               </button>
@@ -176,10 +177,6 @@
             <input type="checkbox" id="selectAllCheckbox" class="select-all-checkbox">
             <label for="selectAllCheckbox" class="select-all-label">Select All</label>
           </div>
-          <button id="deselectAllBtn" class="filter-button secondary">
-            <i class="fas fa-times"></i>
-            Deselect All
-          </button>
           <div class="selection-info">
             <span class="selection-count" id="selectedProducts">0</span> of <span id="totalProducts">0</span> products selected
           </div>

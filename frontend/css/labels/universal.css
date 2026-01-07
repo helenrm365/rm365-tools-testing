@@ -876,3 +876,69 @@ html.dark-mode .page-btn.active {
     transform: scale(0.99);
   }
 }
+/* ===== Modal Detail View Styles ===== */
+.detail-group {
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+}
+
+html.dark-mode .detail-group {
+  background: #1a1a1a;
+  border-color: #444;
+}
+
+.detail-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #6c757d;
+  letter-spacing: 0.5px;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+html.dark-mode .detail-label {
+  color: #95a5a6;
+}
+
+.detail-value {
+  font-size: 0.95rem;
+  color: #2c3e50;
+  word-break: break-word;
+}
+
+html.dark-mode .detail-value {
+  color: #ecf0f1;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.badge-success {
+  background: #d4edda;
+  color: #155724;
+}
+
+html.dark-mode .badge-success {
+  background: #1e4620;
+  color: #a3d9a5;
+}
+
+.badge-error {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+html.dark-mode .badge-error {
+  background: #5a1f1f;
+  color: #f1aeb5;
+}

@@ -1,6 +1,7 @@
 // js/modules/labels/history.js
 import { listPrintJobs, getPrintJob, deletePrintJob, deletePrintJobs, downloadPDF, downloadCSV } from '../../services/api/labelsApi.js';
 import { showToast } from '../../ui/toast.js';
+import { confirmModal } from '../../ui/confirmationModal.js';
 
 let currentLimit = 10;
 let allJobs = [];
@@ -298,7 +299,16 @@ async function downloadJobCSV(jobId) {
 }
 
 async function deleteJob(jobId) {
-  if (!confirm(`Are you sure you want to delete job #${jobId}? This action cannot be undone.`)) {
+  const confirmed = await confirmModal({
+    title: 'Delete Label Job',
+    message: `Are you sure you want to delete job #${jobId}? This action cannot be undone.`,
+    confirmText: 'Delete',
+    cancelText: 'Cancel',
+    confirmVariant: 'danger',
+    icon: '🗑️'
+  });
+  
+  if (!confirmed) {
     return;
   }
   
@@ -342,7 +352,16 @@ async function handleDeleteSelected() {
   }
   
   const jobCount = selectedJobIds.size;
-  if (!confirm(`Are you sure you want to delete ${jobCount} selected job(s)? This action cannot be undone.`)) {
+  const confirmed = await confirmModal({
+    title: 'Delete Selected Jobs',
+    message: `Are you sure you want to delete ${jobCount} selected job(s)? This action cannot be undone.`,
+    confirmText: `Delete ${jobCount} Job${jobCount > 1 ? 's' : ''}`,
+    cancelText: 'Cancel',
+    confirmVariant: 'danger',
+    icon: '🗑️'
+  });
+  
+  if (!confirmed) {
     return;
   }
   
@@ -366,12 +385,30 @@ async function handleDeleteAll() {
     return;
   }
   
-  if (!confirm(`⚠️ WARNING: This will delete ALL ${jobCount} label print jobs permanently!\n\nAre you absolutely sure you want to continue? This action CANNOT be undone.`)) {
+  const firstConfirm = await confirmModal({
+    title: '⚠️ WARNING: Delete All Jobs',
+    message: `This will delete ALL ${jobCount} label print jobs permanently!\n\nAre you absolutely sure you want to continue? This action CANNOT be undone.`,
+    confirmText: 'Continue to Final Confirmation',
+    cancelText: 'Cancel',
+    confirmVariant: 'danger',
+    icon: '⚠️'
+  });
+  
+  if (!firstConfirm) {
     return;
   }
   
   // Double confirmation for delete all
-  if (!confirm(`This is your final confirmation. Delete ALL ${jobCount} jobs?`)) {
+  const finalConfirm = await confirmModal({
+    title: 'Final Confirmation',
+    message: `This is your final confirmation. Delete ALL ${jobCount} jobs?`,
+    confirmText: `Delete ALL ${jobCount} Jobs`,
+    cancelText: 'Cancel',
+    confirmVariant: 'danger',
+    icon: '🗑️'
+  });
+  
+  if (!finalConfirm) {
     return;
   }
   

@@ -1,5 +1,6 @@
 // js/modules/labels/labelManagement.js
 import { createLabel, updateLabel, deleteLabel, getLabels } from '../../services/api/labelsApi.js';
+import { confirmModal } from '../../ui/confirmationModal.js';
 
 let state = {
   labels: [],
@@ -263,7 +264,16 @@ window.deleteSelectedLabel = async function(labelId) {
   const label = state.labels.find(l => l.id === labelId);
   if (!label) return;
   
-  if (!confirm(`Are you sure you want to delete "${label.name}"? This action cannot be undone.`)) {
+  const confirmed = await confirmModal({
+    title: 'Delete Label',
+    message: `Are you sure you want to delete "${label.name}"? This action cannot be undone.`,
+    confirmText: 'Delete',
+    cancelText: 'Cancel',
+    confirmVariant: 'danger',
+    icon: '🗑️'
+  });
+  
+  if (!confirmed) {
     return;
   }
   

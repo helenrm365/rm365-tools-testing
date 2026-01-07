@@ -25,7 +25,6 @@ let state = {
   filteredProducts: [],  // Products after applying discontinued status filters
   displayedProducts: [], // Products after applying search filter
   selectedProducts: new Set(),
-  selectAll: false,
   statusFilters: DEFAULT_STATUS_FILTERS,  // Always start with all filters
   region: "uk",          // Default region preference for prices/names
   currentPresetId: null  // Track currently loaded preset
@@ -188,6 +187,7 @@ function setupUnifiedFilterPanel() {
   // Search clear button
   const searchInput = document.getElementById('productSearchInput');
   const searchClearBtn = document.getElementById('searchClearBtn');
+  const productSearchIcon = document.getElementById('productSearchIcon');
   
   if (searchInput && searchClearBtn) {
     searchInput.addEventListener('input', (e) => {
@@ -195,6 +195,14 @@ function setupUnifiedFilterPanel() {
         searchClearBtn.style.display = 'flex';
       } else {
         searchClearBtn.style.display = 'none';
+      }
+    });
+    
+    // Add Enter key handler for product search
+    searchInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleSearch({ target: searchInput });
       }
     });
     
@@ -207,29 +215,35 @@ function setupUnifiedFilterPanel() {
     });
   }
   
+  // Make product search icon clickable
+  if (productSearchIcon && searchInput) {
+    productSearchIcon.addEventListener('click', () => {
+      handleSearch({ target: searchInput });
+    });
+  }
+  
   // Preset search functionality
   const presetSearchInput = document.getElementById('presetSearchInput');
+  const presetSearchIcon = document.querySelector('.preset-search-icon');
+  
   if (presetSearchInput) {
     presetSearchInput.addEventListener('input', debounce((e) => {
       filterPresets(e.target.value.trim().toLowerCase());
     }, 300));
+    
+    // Add Enter key handler for preset search
+    presetSearchInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        filterPresets(e.target.value.trim().toLowerCase());
+      }
+    });
   }
   
-  // Refresh button
-  const refreshBtn = document.getElementById('refreshBtn');
-  if (refreshBtn) {
-    refreshBtn.addEventListener('click', async () => {
-      refreshBtn.disabled = true;
-      refreshBtn.innerHTML = '<i class=\"fas fa-spinner fa-spin\"></i> Refreshing...';
-      try {
-        await loadProducts();
-        showToast('Products refreshed', 'success');
-      } catch (error) {
-        showToast('Failed to refresh', 'error');
-      } finally {
-        refreshBtn.disabled = false;
-        refreshBtn.innerHTML = '<i class=\"fas fa-sync-alt\"></i> Refresh';
-      }
+  // Make preset search icon clickable
+  if (presetSearchIcon && presetSearchInput) {
+    presetSearchIcon.addEventListener('click', () => {
+      filterPresets(presetSearchInput.value.trim().toLowerCase());
     });
   }
   
@@ -431,12 +445,6 @@ function setupEventListeners() {
     selectAllCheckbox.addEventListener('change', handleSelectAll);
   }
   
-  // Deselect all button
-  const deselectAllBtn = document.querySelector('#deselectAllBtn');
-  if (deselectAllBtn) {
-    deselectAllBtn.addEventListener('click', handleDeselectAll);
-  }
-  
   // Generate PDF button
   const generatePdfBtn = document.querySelector('#generatePdfBtn');
   if (generatePdfBtn) {
@@ -446,7 +454,25 @@ function setupEventListeners() {
   // Refresh button
   const refreshBtn = document.querySelector('#refreshBtn');
   if (refreshBtn) {
-    refreshBtn.addEventListener('click', loadProducts);
+    refreshBtn.addEventListener('click', async () => {
+      const icon = refreshBtn.querySelector('i');
+      if (!icon) return;
+      
+      // Disable button and animate icon
+      refreshBtn.disabled = true;
+      icon.className = 'fas fa-sync-alt fa-spin';
+      
+      try {
+        await loadProducts();
+        showToast('Products refreshed', 'success');
+      } catch (error) {
+        showToast('Failed to refresh', 'error');
+      } finally {
+        // Re-enable button and stop animation
+        refreshBtn.disabled = false;
+        icon.className = 'fas fa-sync-alt';
+      }
+    });
   }
   
   // Preset buttons
@@ -556,27 +582,12 @@ function handleSearch(e) {
 }
 
 function handleSelectAll(e) {
-  state.selectAll = e.target.checked;
-  
-  if (state.selectAll) {
+  if (e.target.checked) {
     // Select all displayed products (filtered + searched)
     state.displayedProducts.forEach(p => state.selectedProducts.add(p.item_id));
   } else {
-    // Deselect all
-    state.selectedProducts.clear();
-  }
-  
-  renderProductTable();
-  updateStats();
-}
-
-function handleDeselectAll() {
-  state.selectedProducts.clear();
-  state.selectAll = false;
-  
-  const selectAllCheckbox = document.querySelector('#selectAllCheckbox');
-  if (selectAllCheckbox) {
-    selectAllCheckbox.checked = false;
+    // Deselect all displayed products
+    state.displayedProducts.forEach(p => state.selectedProducts.delete(p.item_id));
   }
   
   renderProductTable();
@@ -603,13 +614,25 @@ function handleProductSelect(itemId, checked) {
     }
   }
   
-  // Update select all checkbox
-  const selectAllCheckbox = document.querySelector('#selectAllCheckbox');
-  if (selectAllCheckbox) {
-    selectAllCheckbox.checked = state.selectedProducts.size === state.displayedProducts.length && state.displayedProducts.length > 0;
-  }
+  // Update select all checkbox based on whether all displayed products are selected
+  updateSelectAllCheckbox();
   
   updateStats();
+}
+
+function updateSelectAllCheckbox() {
+  const selectAllCheckbox = document.querySelector('#selectAllCheckbox');
+  if (!selectAllCheckbox || state.displayedProducts.length === 0) {
+    if (selectAllCheckbox) selectAllCheckbox.checked = false;
+    return;
+  }
+  
+  // Check if all displayed products are selected
+  const allDisplayedSelected = state.displayedProducts.every(p => 
+    state.selectedProducts.has(p.item_id)
+  );
+  
+  selectAllCheckbox.checked = allDisplayedSelected;
 }
 
 function renderProductTable() {
@@ -650,6 +673,9 @@ function renderProductTable() {
       </tr>
     `;
   }).join('');
+  
+  // Update select all checkbox state after rendering
+  updateSelectAllCheckbox();
 }
 
 // Set up event delegation for product checkboxes once

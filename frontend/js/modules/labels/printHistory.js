@@ -1,6 +1,7 @@
 // js/modules/labels/printHistory.js
 import { getPrintHistory, deletePrintRecord, reprintLabel } from '../../services/api/labelsApi.js';
 import { formatDateTime } from '../../utils/formatters.js';
+import { confirmModal } from '../../ui/confirmationModal.js';
 
 let state = {
   history: [],
@@ -316,7 +317,16 @@ window.goToPage = function(page) {
 };
 
 window.reprintRecord = async function(recordId) {
-  if (!confirm('Are you sure you want to reprint this label?')) {
+  const confirmed = await confirmModal({
+    title: 'Reprint Label',
+    message: 'Are you sure you want to reprint this label?',
+    confirmText: 'Reprint',
+    cancelText: 'Cancel',
+    confirmVariant: 'primary',
+    icon: '🖨️'
+  });
+  
+  if (!confirmed) {
     return;
   }
   
@@ -333,26 +343,126 @@ window.viewRecordDetails = function(recordId) {
   const record = state.history.find(r => r.id === recordId);
   if (!record) return;
   
-  const details = `
-    Print Job Details:
-    
-    ID: ${record.id}
-    Label: ${record.label_name}
-    Date: ${formatDateTime(record.printed_at)}
-    Quantity: ${record.quantity}
-    Status: ${record.status}
-    Printer: ${record.printer_name || 'Default'}
-    
-    ${record.data_fields ? 'Data Fields:\n' + JSON.stringify(JSON.parse(record.data_fields), null, 2) : 'No custom data'}
-    
-    ${record.error_message ? 'Error: ' + record.error_message : ''}
+  // Create custom modal for detailed view
+  const modalHtml = `
+    <div class="modal-overlay active" id="recordDetailsModal">
+      <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header" style="background: linear-gradient(to right, #3498db, #2980b9);">
+          <h3 class="modal-title" style="color: white;">
+            <span style="margin-right: 0.5rem;">📋</span>
+            Print Job Details
+          </h3>
+          <button class="modal-close modal-close-contrast" id="closeRecordDetailsModal">&times;</button>
+        </div>
+        <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+          <div style="display: grid; gap: 1rem;">
+            <div class="detail-group">
+              <label class="detail-label">Job ID</label>
+              <div class="detail-value">#${record.id}</div>
+            </div>
+            <div class="detail-group">
+              <label class="detail-label">Label</label>
+              <div class="detail-value">${record.label_name}</div>
+            </div>
+            <div class="detail-group">
+              <label class="detail-label">Date & Time</label>
+              <div class="detail-value">${formatDateTime(record.printed_at)}</div>
+            </div>
+            <div class="detail-group">
+              <label class="detail-label">Quantity</label>
+              <div class="detail-value">${record.quantity}</div>
+            </div>
+            <div class="detail-group">
+              <label class="detail-label">Status</label>
+              <div class="detail-value">
+                <span class="badge ${record.status === 'success' ? 'badge-success' : 'badge-error'}">
+                  ${record.status}
+                </span>
+              </div>
+            </div>
+            <div class="detail-group">
+              <label class="detail-label">Printer</label>
+              <div class="detail-value">${record.printer_name || 'Default'}</div>
+            </div>
+            ${record.data_fields ? `
+              <div class="detail-group">
+                <label class="detail-label">Data Fields</label>
+                <pre style="background: #f5f5f5; padding: 1rem; border-radius: 4px; overflow-x: auto; font-size: 0.85rem;">${JSON.stringify(JSON.parse(record.data_fields), null, 2)}</pre>
+              </div>
+            ` : `
+              <div class="detail-group">
+                <label class="detail-label">Data Fields</label>
+                <div class="detail-value" style="color: #999;">No custom data</div>
+              </div>
+            `}
+            ${record.error_message ? `
+              <div class="detail-group">
+                <label class="detail-label">Error</label>
+                <div class="detail-value" style="color: #e74c3c;">${record.error_message}</div>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="modern-button" id="confirmRecordDetailsModal" style="background: #3498db;">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
   `;
   
-  alert(details);
+  // Inject modal into DOM
+  let container = document.getElementById('recordDetailsModalContainer');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'recordDetailsModalContainer';
+    document.body.appendChild(container);
+  }
+  container.innerHTML = modalHtml;
+  
+  // Setup event handlers
+  const closeModal = () => {
+    const modal = document.getElementById('recordDetailsModal');
+    if (modal) {
+      modal.classList.remove('active');
+      setTimeout(() => {
+        container.innerHTML = '';
+      }, 300);
+    }
+  };
+  
+  document.getElementById('closeRecordDetailsModal').addEventListener('click', closeModal);
+  document.getElementById('confirmRecordDetailsModal').addEventListener('click', closeModal);
+  
+  // Close on overlay click
+  document.getElementById('recordDetailsModal').addEventListener('click', (e) => {
+    if (e.target.id === 'recordDetailsModal') {
+      closeModal();
+    }
+  });
+  
+  // Close on Escape
+  const handleEscape = (e) => {
+    if (e.key === 'Escape') {
+      closeModal();
+      document.removeEventListener('keydown', handleEscape);
+    }
+  };
+  document.addEventListener('keydown', handleEscape);
 };
 
 window.deleteRecord = async function(recordId) {
-  if (!confirm('Are you sure you want to delete this print record? This action cannot be undone.')) {
+  const confirmed = await confirmModal({
+    title: 'Delete Print Record',
+    message: 'Are you sure you want to delete this print record? This action cannot be undone.',
+    confirmText: 'Delete',
+    cancelText: 'Cancel',
+    confirmVariant: 'danger',
+    icon: '🗑️'
+  });
+  
+  if (!confirmed) {
     return;
   }
   

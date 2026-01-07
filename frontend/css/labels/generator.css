@@ -104,8 +104,12 @@ html.dark-mode .labels-generator .page-divider {
   border: 2px solid #e8ecef;
   margin-bottom: 2rem;
   overflow: hidden;
-  transition: all 0.3s ease;
+  transition: border-radius 0.3s ease;
   animation: slideInPanel 0.4s ease-out;
+}
+
+.unified-filter-panel:has(.filter-panel-body.collapsed) {
+  border-radius: 16px;
 }
 
 @keyframes slideInPanel {
@@ -202,20 +206,35 @@ html.dark-mode .unified-filter-panel {
   transform: scale(1.05);
 }
 
+.filter-panel-collapse i {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 .filter-panel-collapse.collapsed i {
   transform: rotate(180deg);
 }
 
 .filter-panel-body {
   padding: 1.75rem;
-  display: flex;
+  display: grid;
+  grid-template-rows: 1fr;
   flex-direction: column;
   gap: 1.5rem;
-  transition: all 0.3s ease;
+  opacity: 1;
+  transition: grid-template-rows 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.25s ease,
+              padding 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .filter-panel-body.collapsed {
-  display: none;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.filter-panel-body > * {
+  overflow: hidden;
 }
 
 .filter-panel-grid {
@@ -466,7 +485,7 @@ html.dark-mode .status-filter-compact .status-label {
 
 .search-input-compact {
   width: 100%;
-  padding: 0.75rem 3rem 0.75rem 1rem;
+  padding: 0.75rem 3.5rem 0.75rem 1rem;
   border: 2px solid #e0e0e0;
   border-radius: 10px;
   font-size: 0.95rem;
@@ -486,9 +505,28 @@ html.dark-mode .search-input-compact {
   box-shadow: 0 0 0 3px rgba(139, 195, 74, 0.1);
 }
 
-.search-clear-btn {
+.product-search-icon {
   position: absolute;
   right: 0.75rem;
+  color: #8bc34a;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0.5rem;
+}
+
+html.dark-mode .product-search-icon {
+  color: #8bc34a;
+}
+
+.product-search-icon:hover {
+  color: #7cb342;
+  transform: scale(1.1);
+}
+
+.search-clear-btn {
+  position: absolute;
+  right: 3rem;
   background: #f8f9fa;
   border: 1px solid #e0e0e0;
   width: 28px;
@@ -562,9 +600,15 @@ html.dark-mode .preset-search-input:focus {
   right: 0.5rem;
   top: 50%;
   transform: translateY(-50%);
-  color: #95a5a6;
-  pointer-events: none;
+  color: #8bc34a;
+  cursor: pointer;
   font-size: 0.85rem;
+  transition: all 0.2s ease;
+}
+
+.preset-search-icon:hover {
+  color: #7cb342;
+  transform: translateY(-50%) scale(1.1);
 }
 
 .presets-scroll-container {
