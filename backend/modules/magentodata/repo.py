@@ -156,10 +156,7 @@ class MagentoDataRepo:
                         AND column_name = 'smart_qty_rule_order'
                     )
                 """)
-                
-                # ... existing smart_qty logic ... (Wait, I don't see it in context. I should read more lines to see where to insert)
-                """)
-                
+
                 if not cursor.fetchone()[0]:
                     # Add the column if it doesn't exist
                     cursor.execute("""
