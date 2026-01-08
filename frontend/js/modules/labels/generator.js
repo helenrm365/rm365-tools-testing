@@ -1202,17 +1202,6 @@ function renderPresetList() {
           ${isActive ? '<i class="fas fa-check-circle" style="color: #8bc34a; margin-right: 4px; font-size: 0.75rem;"></i>' : ''}
           ${escapeHtml(preset.name)}
         </h4>
-        <div class="preset-stats-inline">
-          <span class="preset-stat-inline" title="${preset.status_filters?.length || 0} status filters">
-            <i class="fas fa-filter"></i>${preset.status_filters?.length || 0}
-          </span>
-          <span class="preset-stat-inline" title="Region: ${(preset.region || 'uk').toUpperCase()}">
-            <i class="fas fa-globe"></i>${(preset.region || 'uk').toUpperCase()}
-          </span>
-          <span class="preset-stat-inline" title="${preset.product_skus?.length || 0} products">
-            <i class="fas fa-box"></i>${preset.product_skus?.length || 0}
-          </span>
-        </div>
       </div>
       <div class="preset-compact-actions">
         <button class="preset-btn-compact load" onclick="window.labelGenerator.loadPreset(${preset.id})" title="${isActive ? 'Reload this preset' : 'Load this preset'}">
@@ -1658,6 +1647,20 @@ function viewPresetDetails(presetId) {
   document.getElementById('viewPresetCreatedBy').textContent = preset.created_by || 'Unknown';
   document.getElementById('viewPresetCreatedAt').textContent = formatDate(preset.created_at);
   document.getElementById('viewPresetRegion').textContent = (preset.region || 'uk').toUpperCase();
+  
+  // Update counts in labels
+  const statusCount = preset.status_filters ? preset.status_filters.length : 0;
+  const productCount = preset.product_skus ? preset.product_skus.length : 0;
+  
+  const statusLabel = document.getElementById('viewPresetStatusFiltersLabel');
+  if (statusLabel) {
+    statusLabel.innerHTML = `<i class="fas fa-filter"></i> Status Filters (${statusCount})`;
+  }
+  
+  const productsLabel = document.getElementById('viewPresetProductsLabel');
+  if (productsLabel) {
+    productsLabel.innerHTML = `<i class="fas fa-box"></i> Products in Preset (${productCount})`;
+  }
   
   // Show status filters
   const filtersContainer = document.getElementById('viewPresetFilters');
