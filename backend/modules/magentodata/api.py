@@ -579,8 +579,8 @@ def add_smart_date_rule(
     """Add a smart date rule"""
     valid_actions = ['exclude', 'divide', 'multiply', 'set_to']
     if action not in valid_actions:
-         return {"success": False, "message": f"Invalid action. Must be one of: {valid_actions}"}
-         
+        return {"success": False, "message": f"Invalid action. Must be one of: {valid_actions}"}
+    
     return svc.add_smart_date_rule(region, start_date, end_date, action, value or 0, user.get("username", "unknown"))
 
 @router.delete("/filters/smart-date-rules/{rule_id}")
