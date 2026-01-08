@@ -112,6 +112,12 @@ class MagentoDataRepo:
                         -- For status exclusions
                         order_status VARCHAR(50),
                         
+                        -- For smart date rules
+                        date_rule_start DATE,
+                        date_rule_end DATE,
+                        date_rule_action VARCHAR(20),
+                        date_rule_value DECIMAL(10, 2),
+                        
                         -- Metadata
                         added_by VARCHAR(100),
                         updated_by VARCHAR(100),
@@ -237,6 +243,33 @@ class MagentoDataRepo:
                         UNIQUE(region, filter_type, order_status)
                     """)
                     logger.info(f"✅ Added constraint: unique_excluded_status")
+
+                # Check for date_rule columns
+                cursor.execute("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.columns 
+                        WHERE table_name = 'magento_region_filters' 
+                        AND column_name = 'date_rule_start'
+                    )
+                """)
+                
+                if not cursor.fetchone()[0]:
+                    cursor.execute("""
+                        ALTER TABLE magento_region_filters 
+                        ADD COLUMN date_rule_start DATE,
+                        ADD COLUMN date_rule_end DATE,
+                        ADD COLUMN date_rule_action VARCHAR(20),
+                        ADD COLUMN date_rule_value DECIMAL(10, 2)
+                    """)
+                    logger.info("✅ Added columns: date_rule_*")
+
+                    # Add constraint for date rules
+                    cursor.execute("""
+                        ALTER TABLE magento_region_filters 
+                        ADD CONSTRAINT unique_date_rule 
+                        UNIQUE(region, filter_type, date_rule_start, date_rule_end)
+                    """)
+                    logger.info("✅ Added constraint: unique_date_rule")
             
             # Create sync metadata table to track resumable syncs
             cursor.execute("""
@@ -1524,6 +1557,9 @@ class MagentoDataRepo:
                 WHERE region = %s AND filter_type = 'excluded_status'
             """, (region,))
             excluded_statuses = {row[0] for row in cursor.fetchall()}
+
+            # Get smart date rules
+            date_rules = self.get_smart_date_rules(region)
             
             # Get smart qty rules (multiple rules possible)
             smart_rules = self.get_smart_qty_rules(region)
@@ -1562,27 +1598,95 @@ class MagentoDataRepo:
                     if converted_total > float(grand_total_threshold):
                         filtered_count += 1
                         continue
-                
-                # Apply smart qty rules (only first matching rule - cutoff behavior)
-                # Check from highest threshold to lowest
+
+                # Parse created_at for date rules
+                order_date = None
+                if created_at:
+                    try:
+                        if '-' in created_at: # YYYY-MM-DD
+                            order_date = datetime.strptime(created_at.split(' ')[0], '%Y-%m-%d').date()
+                            if order_date.year < 2000: # Handle MM-DD-YYYY or other formats incorrectly parsed as YYYY-MM-DD
+                                # Try alternate parsing if needed
+                                pass
+                        elif '/' in created_at: # DD/MM/YYYY or MM/DD/YYYY
+                             parts = created_at.split(' ')[0].split('/')
+                             if len(parts) == 3:
+                                 # Try DD/MM/YYYY first (common in UK/Europe)
+                                 try:
+                                     order_date = datetime.strptime(created_at.split(' ')[0], '%d/%m/%Y').date()
+                                 except ValueError:
+                                     # Fallback to MM/DD/YYYY
+                                     try:
+                                         order_date = datetime.strptime(created_at.split(' ')[0], '%m/%d/%Y').date()
+                                     except ValueError:
+                                         pass
+                    except Exception:
+                        pass # Cannot parse date, skip date rules
+
+                # Apply date rules
+                date_rule_applied = False
                 qty_to_use = qty or 0
-                if smart_rules and qty is not None:
-                    for rule in smart_rules:
-                        if qty >= rule['threshold']:
-                            threshold = rule['threshold']
-                            action = rule['action']
-                            divisor = rule['divisor']
+                
+                if order_date and date_rules:
+                    for rule in date_rules:
+                        # Parse rule constraints
+                        try:
+                            rule_start = datetime.strptime(rule['start_date'], '%Y-%m-%d').date() if rule['start_date'] else None
+                            rule_end = datetime.strptime(rule['end_date'], '%Y-%m-%d').date() if rule['end_date'] else None
                             
-                            if action == 'divide' and divisor:
-                                qty_to_use = qty / divisor
-                            elif action == 'multiply' and divisor:
-                                qty_to_use = qty * divisor
-                            elif action == 'subtract' and divisor:
-                                qty_to_use = max(0, qty - divisor)
-                            elif action == 'set_to' and divisor:
-                                qty_to_use = divisor
-                            # Break after applying first matching rule (cutoff point)
-                            break
+                            # Check if order falls in range
+                            in_range = True
+                            if rule_start and order_date < rule_start:
+                                in_range = False
+                            if rule_end and order_date > rule_end:
+                                in_range = False
+                            
+                            if in_range:
+                                action = rule['action']
+                                value = rule['value']
+                                
+                                if action == 'exclude':
+                                    filtered_count += 1
+                                    qty_to_use = 0 # Will be skipped below if user wants hard exclude, but let's just make it equivalent for now or verify logic
+                                    # Wait, existing logic uses `continue` for hard exclude
+                                    # Let's align
+                                    continue # Skip this row entirely
+                                
+                                elif action == 'divide' and value:
+                                    qty_to_use = qty_to_use / value
+                                elif action == 'multiply' and value:
+                                    qty_to_use = qty_to_use * value
+                                elif action == 'set_to' and value is not None:
+                                    qty_to_use = value
+                                
+                                date_rule_applied = True
+                                break # Apply only first matching date rule
+                        except Exception as e:
+                            logger.error(f"Error checking date rule: {e}")
+
+                # If date rule was applied and it resulted in exclusion (continue loop above), code won't reach here
+                # If date rule applied logic modification, we should skip smart quantity rules below as per requirement
+                
+                if not date_rule_applied:
+                    # Apply smart qty rules (only first matching rule - cutoff behavior)
+                    # Check from highest threshold to lowest
+                    if smart_rules and qty is not None:
+                        for rule in smart_rules:
+                            if qty >= rule['threshold']:
+                                threshold = rule['threshold']
+                                action = rule['action']
+                                divisor = rule['divisor']
+                                
+                                if action == 'divide' and divisor:
+                                    qty_to_use = qty / divisor
+                                elif action == 'multiply' and divisor:
+                                    qty_to_use = qty * divisor
+                                elif action == 'subtract' and divisor:
+                                    qty_to_use = max(0, qty - divisor)
+                                elif action == 'set_to' and divisor:
+                                    qty_to_use = divisor
+                                # Break after applying first matching rule (cutoff point)
+                                break
                 
                 # Aggregate by SKU
                 if sku not in sku_aggregates:
@@ -2950,6 +3054,121 @@ class MagentoDataRepo:
             if conn:
                 conn.rollback()
             logger.error(f"Error removing excluded status: {e}")
+            raise
+        finally:
+            if conn:
+                cursor.close()
+                return_products_connection(conn)
+
+    def get_smart_date_rules(self, region: str) -> List[Dict[str, Any]]:
+        """Get list of smart date rules for a region"""
+        conn = None
+        try:
+            conn = get_products_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                SELECT id, date_rule_start, date_rule_end, date_rule_action, date_rule_value
+                FROM magento_region_filters 
+                WHERE region = %s AND filter_type = 'smart_date_rule'
+                ORDER BY date_rule_start DESC
+            """, (region,))
+            
+            results = []
+            for row in cursor.fetchall():
+                results.append({
+                    "id": row[0],
+                    "start_date": row[1].isoformat() if row[1] else None,
+                    "end_date": row[2].isoformat() if row[2] else None,
+                    "action": row[3],
+                    "value": float(row[4]) if row[4] is not None else None
+                })
+            
+            return results
+            
+        except Exception as e:
+            logger.error(f"Error getting smart date rules for {region}: {e}")
+            return []
+        finally:
+            if conn:
+                cursor.close()
+                return_products_connection(conn)
+
+    def add_smart_date_rule(
+        self, 
+        region: str, 
+        start_date: str, 
+        end_date: str, 
+        action: str, 
+        value: Optional[float] = None
+    ) -> Dict[str, Any]:
+        """Add a smart date rule"""
+        conn = None
+        try:
+            conn = get_products_connection()
+            cursor = conn.cursor()
+            
+            # Check existing rules to avoid duplicates? Unique constraint handles it.
+            
+            cursor.execute("""
+                INSERT INTO magento_region_filters 
+                (region, filter_type, date_rule_start, date_rule_end, date_rule_action, date_rule_value)
+                VALUES (%s, 'smart_date_rule', %s, %s, %s, %s)
+                RETURNING id
+            """, (region, start_date, end_date, action, value))
+            
+            new_id = cursor.fetchone()[0]
+            conn.commit()
+            
+            return {
+                "success": True,
+                "message": "Date rule added successfully",
+                "id": new_id
+            }
+            
+        except Exception as e:
+            if conn:
+                conn.rollback()
+            logger.error(f"Error adding smart date rule: {e}")
+            if "unique_date_rule" in str(e):
+                return {"success": False, "message": "A rule for these dates already exists"}
+            raise
+        finally:
+            if conn:
+                cursor.close()
+                return_products_connection(conn)
+
+    def remove_smart_date_rule(self, rule_id: int) -> Dict[str, Any]:
+        """Remove a smart date rule"""
+        conn = None
+        try:
+            conn = get_products_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                DELETE FROM magento_region_filters 
+                WHERE id = %s AND filter_type = 'smart_date_rule'
+                RETURNING id
+            """, (rule_id,))
+            
+            result = cursor.fetchone()
+            conn.commit()
+            
+            if result:
+                return {
+                    "success": True,
+                    "message": "Date rule removed successfully"
+                }
+            else:
+                return {
+                    "success": False,
+                    "message": "Rule not found"
+                }
+            
+        except Exception as e:
+            if conn:
+                conn.rollback()
+            logger.error(f"Error removing smart date rule: {e}")
             raise
         finally:
             if conn:

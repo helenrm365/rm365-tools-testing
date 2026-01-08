@@ -1076,3 +1076,43 @@ class MagentoDataService:
                 "message": str(e)
             }
 
+    def get_smart_date_rules(self, region: str) -> List[Dict[str, Any]]:
+        """Get smart date rules for a region"""
+        try:
+            return self.repo.get_smart_date_rules(region)
+        except Exception as e:
+            logger.error(f"Error getting smart date rules for {region}: {e}")
+            return []
+
+    def add_smart_date_rule(self, region: str, start_date: str, end_date: str, action: str, value: float, username: str) -> Dict[str, Any]:
+        """Add a smart date rule"""
+        try:
+            return self.repo.add_smart_date_rule(region, start_date, end_date, action, value)
+        except Exception as e:
+            logger.error(f"Error adding smart date rule: {e}")
+            return {
+                "success": False, 
+                "message": str(e)
+            }
+
+    def remove_smart_date_rule(self, rule_id: int) -> Dict[str, Any]:
+        """Remove a smart date rule"""
+        try:
+            result = self.repo.remove_smart_date_rule(rule_id)
+            if result['success']:
+                return {
+                    "status": "success", 
+                    "message": result['message']
+                }
+            else:
+                return {
+                    "status": "error", 
+                    "message": result['message']
+                }
+        except Exception as e:
+            logger.error(f"Error removing smart date rule: {e}")
+            return {
+                "status": "error", 
+                "message": str(e)
+            }
+

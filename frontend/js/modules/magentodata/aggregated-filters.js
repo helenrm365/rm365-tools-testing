@@ -21,6 +21,7 @@ let availableStatuses = [];
 let excludedStatuses = [];
 let pendingStatusAdds = []; // Statuses to be added when Apply is clicked
 let pendingStatusRemoves = []; // Status IDs to be removed when Apply is clicked
+let currentSmartDateRules = []; // Array of date rules
 let exchangeRates = null; // Cached exchange rates
 let conversionDebounceTimer = null; // Debounce timer for currency conversion updates
 
@@ -50,6 +51,7 @@ export function showFiltersModal(region) {
     loadThreshold();
     loadQtyThreshold();
     loadSmartQtyRules();
+    loadSmartDateRules();
     loadExchangeRates(region);
     
     // Focus on customer search input
@@ -298,6 +300,59 @@ function createFiltersModal(region) {
                     </div>
                 </div>
 
+                <!-- Smart Date Filter -->
+                <div class="filter-section">
+                    <div class="filter-section-header">
+                        <span class="filter-section-icon"><i class="fas fa-calendar-alt"></i></span>
+                        <h3 class="filter-section-title">Smart Date Rules</h3>
+                    </div>
+                    <p class="filter-section-description">
+                        Apply specific adjustment logic to orders created within a specific date range. These rules override smart quantity rules.
+                    </p>
+                    
+                    <!-- Current Date Rules List -->
+                    <div class="smart-rules-list" id="smart-date-rules-list-${region}">
+                        <div class="smart-rules-empty">No date rules configured. Add a rule below.</div>
+                    </div>
+                    
+                    <!-- Add New Date Rule Form -->
+                    <div class="smart-filter-config">
+                        <div class="smart-filter-header">Add Date Rule</div>
+                        
+                        <div class="smart-filter-row">
+                            <label class="smart-filter-label" style="width: 50px;">Range</label>
+                            <input type="date" class="smart-filter-input" id="smart-date-start-${region}" style="width: 130px;">
+                            <span style="padding: 0 5px; color: var(--text-secondary);">to</span>
+                            <input type="date" class="smart-filter-input" id="smart-date-end-${region}" style="width: 130px;">
+                        </div>
+                        
+                        <div class="smart-filter-row">
+                            <label class="smart-filter-label" style="width: 50px;">Action</label>
+                            <select class="smart-filter-select" id="smart-date-action-${region}" style="flex: 1;">
+                                <option value="exclude">Exclude Entirely</option>
+                                <option value="divide">Divide Qty by</option>
+                                <option value="multiply">Multiply Qty by</option>
+                                <option value="set_to">Set Qty to</option>
+                            </select>
+                            <input 
+                                type="number" 
+                                class="smart-filter-input" 
+                                placeholder="Value"
+                                step="0.1"
+                                min="0.1"
+                                id="smart-date-value-${region}"
+                                style="width: 80px; display: none;"
+                            />
+                        </div>
+                        
+                        <div class="smart-filter-actions">
+                            <button class="smart-filter-add-btn" id="smart-date-add-${region}">
+                                <i class="fas fa-plus"></i> Add Rule
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Apply Options -->
                 <div class="filter-section" style="border-top: 1px solid var(--border-color); margin-top: 20px; padding-top: 20px;">
                     <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
@@ -500,6 +555,26 @@ function setupEventListeners(region) {
     }
     if (smartClearAllBtn) {
         smartClearAllBtn.addEventListener('click', () => clearAllSmartQtyRules());
+    }
+
+    // Smart Date Rules listeners
+    const smartDateAddBtn = document.getElementById(`smart-date-add-${region}`);
+    const smartDateActionSelect = document.getElementById(`smart-date-action-${region}`);
+    const smartDateValueInput = document.getElementById(`smart-date-value-${region}`);
+
+    if (smartDateAddBtn) {
+        smartDateAddBtn.addEventListener('click', () => addSmartDateRule());
+    }
+    
+    if (smartDateActionSelect && smartDateValueInput) {
+        smartDateActionSelect.addEventListener('change', () => {
+            const action = smartDateActionSelect.value;
+            if (action === 'exclude') {
+                smartDateValueInput.style.display = 'none';
+            } else {
+                smartDateValueInput.style.display = 'block';
+            }
+        });
     }
 }
 
@@ -1595,6 +1670,181 @@ async function clearAllSmartQtyRules() {
     } catch (error) {
         console.error('Error clearing rules:', error);
         showToast('❌ Failed to clear rules', 'error');
+    }
+}
+
+/*
+ * ==========================================
+ * Smart Date Rules Logic
+ * ==========================================
+ */
+
+/**
+ * Load smart date rules from backend
+ */
+async function loadSmartDateRules() {
+    if (!currentRegion) return;
+    
+    try {
+        const response = await get(`${API}/filters/smart-date-rules/${currentRegion}`);
+        
+        if (response.status === 'success') {
+            currentSmartDateRules = response.rules || [];
+            displaySmartDateRules();
+        }
+    } catch (error) {
+        console.error('Error loading smart date rules:', error);
+    }
+}
+
+/**
+ * Display current smart date rules
+ */
+function displaySmartDateRules() {
+    const rulesListContainer = document.getElementById(`smart-date-rules-list-${currentRegion}`);
+    
+    if (!rulesListContainer) return;
+    
+    if (currentSmartDateRules.length === 0) {
+        rulesListContainer.innerHTML = '<div class="smart-rules-empty">No date rules configured. Add a rule below.</div>';
+    } else {
+        let html = '<div class="smart-rules-items">';
+        
+        currentSmartDateRules.forEach((rule, index) => {
+            let actionText = '';
+            if (rule.action === 'exclude') {
+                actionText = '<strong>Exclude</strong> from data';
+            } else {
+                const verb = {
+                    'divide': 'Divide Qty by',
+                    'multiply': 'Multiply Qty by',
+                    'set_to': 'Set Qty to'
+                }[rule.action] || rule.action;
+                actionText = `${verb} <strong>${rule.value}</strong>`;
+            }
+            
+            // Format dates "YYYY-MM-DD"
+            const dateDisplay = `${rule.start_date} <i class="fas fa-arrow-right" style="font-size: 0.8em; margin: 0 5px;"></i> ${rule.end_date}`;
+            
+            html += `
+                <div class="smart-rule-item" data-rule-id="${rule.id}">
+                    <div class="smart-rule-number">#${index + 1}</div>
+                    <div class="smart-rule-content">
+                        <div class="smart-rule-text">
+                            <span class="rule-date-badge" style="background: rgba(var(--primary-rgb), 0.1); padding: 2px 6px; border-radius: 4px; margin-right: 8px; font-family: monospace;">${dateDisplay}</span>
+                            <span class="rule-action">${actionText}</span>
+                        </div>
+                    </div>
+                    <button class="smart-rule-delete-btn-date" data-rule-id="${rule.id}" title="Delete this rule">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                            <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
+                            <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
+                        </svg>
+                    </button>
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+        rulesListContainer.innerHTML = html;
+        
+        // Attach delete handlers for date rules
+        document.querySelectorAll('.smart-rule-delete-btn-date').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const ruleId = parseInt(btn.dataset.ruleId);
+                deleteSmartDateRule(ruleId);
+            });
+        });
+    }
+}
+
+/**
+ * Add a new smart date rule
+ */
+async function addSmartDateRule() {
+    if (!currentRegion) return;
+    
+    const startInput = document.getElementById(`smart-date-start-${currentRegion}`);
+    const endInput = document.getElementById(`smart-date-end-${currentRegion}`);
+    const actionSelect = document.getElementById(`smart-date-action-${currentRegion}`);
+    const valueInput = document.getElementById(`smart-date-value-${currentRegion}`);
+    
+    if (!startInput || !endInput || !actionSelect || !valueInput) return;
+    
+    const startDate = startInput.value;
+    const endDate = endInput.value;
+    const action = actionSelect.value;
+    let value = null;
+    
+    if (!startDate || !endDate) {
+        showToast('⚠️ Please select both start and end dates', 'warning');
+        return;
+    }
+    
+    if (startDate > endDate) {
+        showToast('⚠️ Start date cannot be after end date', 'warning');
+        return;
+    }
+    
+    if (action !== 'exclude') {
+        value = parseFloat(valueInput.value);
+        if (isNaN(value) || value < 0) {
+            showToast('⚠️ Please enter a valid non-negative value', 'warning');
+            valueInput.focus();
+            return;
+        }
+    }
+    
+    try {
+        let url = `${API}/filters/smart-date-rules/${currentRegion}?start_date=${startDate}&end_date=${endDate}&action=${action}`;
+        if (value !== null) {
+            url += `&value=${value}`;
+        }
+        
+        const response = await post(url);
+        
+        if (response.status === 'success' || response.success) {
+            showToast(`✅ Date rule added`, 'success');
+            
+            // Clear inputs
+            startInput.value = '';
+            endInput.value = '';
+            valueInput.value = '';
+            actionSelect.value = 'exclude'; // Reset to default
+            valueInput.style.display = 'none'; // Hide value input
+            
+            // Reload rules
+            await loadSmartDateRules();
+        } else {
+            showToast(`❌ ${response.message}`, 'error');
+        }
+    } catch (error) {
+        console.error('Error adding smart date rule:', error);
+        showToast('❌ Failed to add date rule', 'error');
+    }
+}
+
+/**
+ * Delete a smart date rule
+ */
+async function deleteSmartDateRule(ruleId) {
+    if (!confirm('Delete this date rule?')) {
+        return;
+    }
+    
+    try {
+        const response = await del(`${API}/filters/smart-date-rules/${ruleId}`);
+        
+        if (response.status === 'success' || response.success) {
+            showToast(`✅ Date rule deleted`, 'success');
+            await loadSmartDateRules();
+        } else {
+            showToast(`❌ ${response.message}`, 'error');
+        }
+    } catch (error) {
+        console.error('Error deleting smart date rule:', error);
+        showToast('❌ Failed to delete date rule', 'error');
     }
 }
 

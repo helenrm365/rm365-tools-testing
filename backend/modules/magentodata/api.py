@@ -557,3 +557,37 @@ def remove_excluded_status(
     """Remove a status from the exclusion list"""
     return svc.remove_excluded_status(status_id)
 
+
+@router.get("/filters/smart-date-rules/{region}")
+def get_smart_date_rules(
+    region: str,
+    user=Depends(get_current_user)
+):
+    """Get all smart date rules for a region"""
+    result = svc.get_smart_date_rules(region)
+    return {"status": "success", "region": region, "rules": result}
+
+@router.post("/filters/smart-date-rules/{region}")
+def add_smart_date_rule(
+    region: str,
+    start_date: str = Query(..., description="YYYY-MM-DD"),
+    end_date: str = Query(..., description="YYYY-MM-DD"),
+    action: str = Query(..., description="exclude, divide, multiply, set_to"),
+    value: float = Query(None, description="Value for action"),
+    user=Depends(get_current_user)
+):
+    """Add a smart date rule"""
+    valid_actions = ['exclude', 'divide', 'multiply', 'set_to']
+    if action not in valid_actions:
+         return {"success": False, "message": f"Invalid action. Must be one of: {valid_actions}"}
+         
+    return svc.add_smart_date_rule(region, start_date, end_date, action, value or 0, user.get("username", "unknown"))
+
+@router.delete("/filters/smart-date-rules/{rule_id}")
+def remove_smart_date_rule(
+    rule_id: int,
+    user=Depends(get_current_user)
+):
+    """Remove a smart date rule"""
+    return svc.remove_smart_date_rule(rule_id)
+
