@@ -604,3 +604,186 @@ html.dark-mode .modern-input:focus {
     padding-bottom: 0;
 }
 /* Modern table styles are now in components/table.css */
+
+/* Role Badges */
+.role-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.85em;
+  font-weight: 600;
+  text-transform: capitalize;
+  display: inline-block;
+}
+
+.role-badge.user {
+  background-color: #e3f2fd;
+  color: #1565c0;
+}
+
+.role-badge.admin {
+  background-color: #ffebee;
+  color: #c62828;
+}
+
+.role-badge.manager {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+/* Action Buttons */
+.icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 4px;
+  color: #666;
+  transition: all 0.2s;
+  font-size: 1.1em;
+}
+
+.icon-btn:hover {
+  background-color: rgba(0,0,0,0.05);
+  color: #333;
+}
+
+html.dark-mode .icon-btn {
+  color: #aaa;
+}
+html.dark-mode .icon-btn:hover {
+  background-color: rgba(255,255,255,0.1);
+  color: #fff;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Modal Helper */
+.form-row {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+@media (max-width: 600px) {
+    .form-row {
+        flex-direction: column;
+        gap: 0;
+    }
+}
+
+/* Role Editor Styles */
+.role-list-item {
+    padding: 10px;
+    margin-bottom: 5px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s;
+    border: 1px solid transparent;
+}
+.role-list-item:hover {
+    background: #e9ecef;
+}
+.role-list-item.active {
+    background: #e3f2fd;
+    border-color: #bbdefb;
+    color: #1565c0;
+    font-weight: 600;
+}
+
+/* Role Manager Layout */
+.roles-manager-body {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+    padding: 0;
+}
+
+.roles-sidebar {
+    width: 250px;
+    border-right: 1px solid #eee;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    background: #fafafa;
+}
+
+.roles-sidebar-header {
+    margin-bottom: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.roles-title {
+    margin: 0;
+    font-size: 1rem;
+    color: #333;
+}
+
+.roles-list-container {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.roles-editor-container {
+    flex: 1;
+    padding: 1rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.role-editor-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #999;
+}
+
+/* Dark Mode Support for Roles Manager */
+html.dark-mode .roles-sidebar {
+    background: #2d2d2d;
+    border-right-color: #444;
+}
+
+html.dark-mode .roles-title {
+    color: #e0e0e0;
+}
+
+html.dark-mode .role-list-item:hover {
+    background: #3d3d3d;
+}
+
+html.dark-mode .role-list-item.active {
+    background: #3e4a52; /* Darker blue-ish */
+    border-color: #5d87a5;
+    color: #82b1ff;
+}
+
+html.dark-mode .role-list-item div {
+    /* Ensure text inside list item is visible */
+}
+
+/* Adjust text colors inside list item */
+.role-name {
+    font-weight: 500;
+    color: #333;
+}
+.role-details {
+    font-size: 0.8em;
+    color: #666;
+}
+
+html.dark-mode .role-name {
+    color: #e0e0e0;
+}
+html.dark-mode .role-details {
+    color: #aaa;
+}
+
+/* Modal Content Background Override if needed */
+/* Assuming .modal-content handles bg color correctly */
