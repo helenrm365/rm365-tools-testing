@@ -519,3 +519,41 @@ async def clear_all_smart_qty_rules_endpoint(
     
     result = svc.clear_all_smart_qty_rules(region)
     return result
+
+
+@router.get("/filters/status/available/{region}")
+def get_available_statuses(
+    region: str,
+    user=Depends(get_current_user)
+):
+    """Get all available order statuses for a region"""
+    return svc.get_available_statuses(region)
+
+
+@router.get("/filters/status/excluded/{region}")
+def get_excluded_statuses(
+    region: str,
+    user=Depends(get_current_user)
+):
+    """Get list of excluded order statuses for a region"""
+    return svc.get_excluded_statuses(region)
+
+
+@router.post("/filters/status/{region}")
+def add_excluded_status(
+    region: str,
+    status: str = Query(...),
+    user=Depends(get_current_user)
+):
+    """Add a status to the exclusion list"""
+    return svc.add_excluded_status(region, status, user.get("username", "unknown"))
+
+
+@router.delete("/filters/status/{status_id}")
+def remove_excluded_status(
+    status_id: int,
+    user=Depends(get_current_user)
+):
+    """Remove a status from the exclusion list"""
+    return svc.remove_excluded_status(status_id)
+

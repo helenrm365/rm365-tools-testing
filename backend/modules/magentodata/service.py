@@ -998,3 +998,81 @@ class MagentoDataService:
                 "message": f"Failed to get sync metadata: {str(e)}",
                 "data": []
             }
+
+    def get_available_statuses(self, region: str) -> Dict[str, Any]:
+        """Get available order statuses for a region"""
+        try:
+            statuses = self.repo.get_available_statuses(region)
+            return {
+                "status": "success",
+                "region": region,
+                "statuses": statuses
+            }
+        except Exception as e:
+            logger.error(f"Error getting statuses for {region}: {e}")
+            return {
+                "status": "error",
+                "message": str(e),
+                "statuses": []
+            }
+
+    def get_excluded_statuses(self, region: str) -> Dict[str, Any]:
+        """Get excluded statuses for a region"""
+        try:
+            excluded = self.repo.get_excluded_statuses(region)
+            return {
+                "status": "success",
+                "region": region,
+                "excluded": excluded
+            }
+        except Exception as e:
+            logger.error(f"Error getting excluded statuses for {region}: {e}")
+            return {
+                "status": "error",
+                "message": str(e),
+                "excluded": []
+            }
+
+    def add_excluded_status(self, region: str, status: str, username: str) -> Dict[str, Any]:
+        """Add a status to the exclusion list"""
+        try:
+            result = self.repo.add_excluded_status(region, status)
+            if result['success']:
+                return {
+                    "status": "success",
+                    "message": f"Added '{status}' to exclusion list",
+                    "id": result['id']
+                }
+            else:
+                return {
+                    "status": "error",
+                    "message": result['message']
+                }
+        except Exception as e:
+            logger.error(f"Error adding excluded status: {e}")
+            return {
+                "status": "error",
+                "message": str(e)
+            }
+
+    def remove_excluded_status(self, status_id: int) -> Dict[str, Any]:
+        """Remove a status from the exclusion list"""
+        try:
+            result = self.repo.remove_excluded_status(status_id)
+            if result['success']:
+                return {
+                    "status": "success",
+                    "message": result['message']
+                }
+            else:
+                return {
+                    "status": "error",
+                    "message": result['message']
+                }
+        except Exception as e:
+            logger.error(f"Error removing excluded status: {e}")
+            return {
+                "status": "error",
+                "message": str(e)
+            }
+

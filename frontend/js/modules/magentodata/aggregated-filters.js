@@ -17,6 +17,10 @@ let pendingCustomerAdds = []; // Customers to be added when Apply is clicked
 let pendingCustomerRemoves = []; // Customer IDs to be removed when Apply is clicked
 let pendingGroupAdds = []; // Customer groups to be added when Apply is clicked
 let pendingGroupRemoves = []; // Customer group IDs to be removed when Apply is clicked
+let availableStatuses = [];
+let excludedStatuses = [];
+let pendingStatusAdds = []; // Statuses to be added when Apply is clicked
+let pendingStatusRemoves = []; // Status IDs to be removed when Apply is clicked
 let exchangeRates = null; // Cached exchange rates
 let conversionDebounceTimer = null; // Debounce timer for currency conversion updates
 
@@ -31,6 +35,8 @@ export function showFiltersModal(region) {
     pendingCustomerRemoves = [];
     pendingGroupAdds = [];
     pendingGroupRemoves = [];
+    pendingStatusAdds = [];
+    pendingStatusRemoves = [];
     
     const modal = createFiltersModal(region);
     document.body.appendChild(modal);
@@ -39,6 +45,8 @@ export function showFiltersModal(region) {
     loadExcludedCustomers();
     loadCustomerGroups();
     loadExcludedCustomerGroups();
+    loadAvailableStatuses(region);
+    loadExcludedStatuses();
     loadThreshold();
     loadQtyThreshold();
     loadSmartQtyRules();
@@ -130,6 +138,40 @@ function createFiltersModal(region) {
                     
                     <div class="excluded-groups-list collapsed" id="excluded-groups-list-${region}">
                         <div class="excluded-groups-empty">No customer groups excluded yet</div>
+                    </div>
+                </div>
+                
+                <!-- Order Status Exclusions -->
+                <div class="filter-section">
+                    <div class="filter-section-header">
+                        <span class="filter-section-icon">🚦</span>
+                        <h3 class="filter-section-title">Excluded Order Statuses</h3>
+                    </div>
+                    <p class="filter-section-description">
+                        Orders with these statuses will not be included in the 6-month aggregated magento data.
+                    </p>
+                    
+                    <div class="customer-group-select-container">
+                        <select 
+                            class="customer-group-select" 
+                            id="status-select-${region}"
+                        >
+                            <option value="">Select a status to exclude...</option>
+                        </select>
+                        <button class="add-group-btn" id="add-status-btn-${region}">
+                            <i class="fas fa-plus"></i> Add
+                        </button>
+                    </div>
+                    
+                    <div class="excluded-groups-header" id="excluded-statuses-header-${region}">
+                        <span class="excluded-groups-count" id="excluded-statuses-count-${region}">0 statuses excluded</span>
+                        <button class="excluded-groups-toggle" id="excluded-statuses-toggle-${region}">
+                            <span class="toggle-icon">▼</span> Show List
+                        </button>
+                    </div>
+                    
+                    <div class="excluded-groups-list collapsed" id="excluded-statuses-list-${region}">
+                        <div class="excluded-groups-empty">No statuses excluded yet</div>
                     </div>
                 </div>
                 
@@ -357,6 +399,68 @@ function setupEventListeners(region) {
             } else {
                 excludedGroupsList.classList.add('collapsed');
                 groupsToggleBtn.innerHTML = '<span class="toggle-icon">▼</span> Show List';
+            }
+        });
+    }
+
+    // Status list toggle
+    const statusToggleBtn = document.getElementById(`excluded-statuses-toggle-${region}`);
+    const statusList = document.getElementById(`excluded-statuses-list-${region}`);
+    if (statusToggleBtn && statusList) {
+        statusToggleBtn.addEventListener('click', () => {
+            const isCollapsed = statusList.classList.contains('collapsed');
+            if (isCollapsed) {
+                statusList.classList.remove('collapsed');
+                statusToggleBtn.innerHTML = '<span class="toggle-icon">▲</span> Hide List';
+            } else {
+                statusList.classList.add('collapsed');
+                statusToggleBtn.innerHTML = '<span class="toggle-icon">▼</span> Show List';
+            }
+        });
+    }
+
+    // Status add button
+    const addStatusBtn = document.getElementById(`add-status-btn-${region}`);
+    const statusSelect = document.getElementById(`status-select-${region}`);
+    if (addStatusBtn && statusSelect) {
+        addStatusBtn.addEventListener('click', () => {
+            const status = statusSelect.value;
+            if (status) {
+                addExcludedStatus(status);
+                statusSelect.value = ''; // Reset select
+            } else {
+                showToast('Please select a status to exclude', 'warning');
+            }
+        });
+    }
+
+    // Status list toggle
+    const statusToggleBtn = document.getElementById(`excluded-statuses-toggle-${region}`);
+    const statusList = document.getElementById(`excluded-statuses-list-${region}`);
+    if (statusToggleBtn && statusList) {
+        statusToggleBtn.addEventListener('click', () => {
+            const isCollapsed = statusList.classList.contains('collapsed');
+            if (isCollapsed) {
+                statusList.classList.remove('collapsed');
+                statusToggleBtn.innerHTML = '<span class="toggle-icon">▲</span> Hide List';
+            } else {
+                statusList.classList.add('collapsed');
+                statusToggleBtn.innerHTML = '<span class="toggle-icon">▼</span> Show List';
+            }
+        });
+    }
+
+    // Status add button
+    const addStatusBtn = document.getElementById(`add-status-btn-${region}`);
+    const statusSelect = document.getElementById(`status-select-${region}`);
+    if (addStatusBtn && statusSelect) {
+        addStatusBtn.addEventListener('click', () => {
+            const status = statusSelect.value;
+            if (status) {
+                addExcludedStatus(status);
+                statusSelect.value = ''; // Reset select
+            } else {
+                showToast('Please select a status to exclude', 'warning');
             }
         });
     }
@@ -651,11 +755,38 @@ async function applyAllFilters(region) {
                 hasErrors = true;
             }
         }
+
+        // 5. Save status exclusions
+        for (const status of pendingStatusAdds) {
+            try {
+                const response = await post(`${API}/filters/status/${region}?status=${encodeURIComponent(status)}`);
+                if (response.status !== 'success') {
+                    errors.push(`Failed to exclude status: ${status}`);
+                    hasErrors = true;
+                }
+            } catch (error) {
+                 errors.push(`Error excluding status: ${status}`);
+                 hasErrors = true;
+            }
+        }
+
+        for (const id of pendingStatusRemoves) {
+            try {
+                 const response = await del(`${API}/filters/status/${id}`);
+                 if (response.status !== 'success') {
+                     errors.push(`Failed to remove status exclusion`);
+                     hasErrors = true;
+                 }
+            } catch (error) {
+                 errors.push(`Error removing status exclusion`);
+                 hasErrors = true;
+            }
+        }
         
-        // 5. Smart qty rules are already saved individually via Add Rule button
+        // 6. Smart qty rules are already saved individually via Add Rule button
         // No need to save them here
         
-        // 6. Refresh 6M aggregated data
+        // 7. Refresh 6M aggregated data
         if (!hasErrors) {
             showToast('💾 Filters saved! Refreshing 6M aggregated data...', 'info');
             
@@ -1817,3 +1948,158 @@ function showCustomRangeResults(results) {
 
 
 
+
+/**
+ * Load available order statuses
+ */
+async function loadAvailableStatuses(region) {
+    const select = document.getElementById(`status-select-${region}`);
+    if (!select) return;
+    
+    try {
+        select.innerHTML = '<option value="">Loading statuses...</option>';
+        const response = await get(`${API}/filters/status/available/${region}`);
+        
+        if (response && response.status === 'success') {
+            availableStatuses = response.statuses || [];
+            
+            select.innerHTML = '<option value="">Select a status to exclude...</option>';
+            availableStatuses.forEach(status => {
+                const option = document.createElement('option');
+                option.value = status;
+                option.textContent = status;
+                select.appendChild(option);
+            });
+        } else {
+            select.innerHTML = '<option value="">Failed to load statuses</option>';
+        }
+    } catch (error) {
+        console.error('Error loading statuses:', error);
+        select.innerHTML = '<option value="">Error loading statuses</option>';
+    }
+}
+
+/**
+ * Load excluded statuses
+ */
+async function loadExcludedStatuses() {
+    if (!currentRegion) return;
+    try {
+        const response = await get(`${API}/filters/status/excluded/${currentRegion}`);
+        if (response && response.status === 'success') {
+            excludedStatuses = response.excluded || [];
+            displayExcludedStatuses();
+        }
+    } catch (error) {
+        console.error('Error loading excluded statuses:', error);
+    }
+}
+
+/**
+ * Display excluded statuses
+ */
+function displayExcludedStatuses() {
+    if (!currentRegion) return;
+    
+    const listContainer = document.getElementById(`excluded-statuses-list-${currentRegion}`);
+    const countDisplay = document.getElementById(`excluded-statuses-count-${currentRegion}`);
+    
+    if (!listContainer || !countDisplay) return;
+    
+    // Combine current exclusions with pending adds, remove pending removes
+    const displayStatuses = [
+        ...excludedStatuses.filter(s => !pendingStatusRemoves.includes(s.id)),
+        ...pendingStatusAdds.map(status => ({ status: status, isPending: true }))
+    ];
+    
+    // Update count
+    countDisplay.textContent = `${displayStatuses.length} status${displayStatuses.length !== 1 ? 'es' : ''} excluded`;
+    
+    if (displayStatuses.length === 0) {
+        listContainer.innerHTML = '<div class="excluded-groups-empty">No statuses excluded yet</div>';
+        return;
+    }
+    
+    // Display list of excluded statuses
+    listContainer.innerHTML = displayStatuses.map(status => {
+        const isPendingRemove = status.id && pendingStatusRemoves.includes(status.id);
+        const itemClass = status.isPending ? 'excluded-group-item pending-add' : 
+                         isPendingRemove ? 'excluded-group-item pending-remove' : 
+                         'excluded-group-item';
+        
+        const statusId = status.isPending ? `pending-${pendingStatusAdds.indexOf(status.status)}` : status.id;
+        
+        return `
+            <div class="${itemClass}">
+                <div class="excluded-group-info">
+                    <div class="excluded-group-name">${status.status}</div>
+                    ${status.isPending ? 
+                        '<span class="badge badge-pending">Pending</span>' : 
+                        isPendingRemove ? 
+                        '<span class="badge badge-removing">Removing...</span>' : ''}
+                </div>
+                <button class="excluded-status-remove-btn" data-id="${statusId}">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+    }).join('');
+    
+    // Add click handlers for remove buttons
+    listContainer.querySelectorAll('.excluded-status-remove-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const statusId = btn.dataset.id;
+            if (statusId.startsWith('pending-')) {
+                // Remove from pending adds
+                const idx = parseInt(statusId.split('-')[1]);
+                const removed = pendingStatusAdds.splice(idx, 1)[0];
+                showToast(`📝 Cancelled excluding ${removed}`, 'info');
+                displayExcludedStatuses();
+            } else {
+                const id = parseInt(statusId);
+                if (pendingStatusRemoves.includes(id)) {
+                    // Undo the pending remove
+                    const idx = pendingStatusRemoves.indexOf(id);
+                    pendingStatusRemoves.splice(idx, 1);
+                    const status = excludedStatuses.find(s => s.id === id);
+                    showToast(`📝 Cancelled removing ${status?.status || 'status'}`, 'info');
+                    displayExcludedStatuses();
+                } else {
+                    // Stage for removal
+                    pendingStatusRemoves.push(id);
+                    displayExcludedStatuses();
+                }
+            }
+        });
+    });
+}
+
+/**
+ * Add status to pending list
+ */
+function addExcludedStatus(status) {
+    // Check if already in pending adds
+    if (pendingStatusAdds.includes(status)) {
+        showToast('Status is already staged for exclusion', 'warning');
+        return;
+    }
+    
+    // Check if already in existing exclusions (and not staged for removal)
+    const existing = excludedStatuses.find(s => s.status === status);
+    if (existing) {
+        if (pendingStatusRemoves.includes(existing.id)) {
+            // It was staged for removal, cancel the removal
+            const idx = pendingStatusRemoves.indexOf(existing.id);
+            pendingStatusRemoves.splice(idx, 1);
+            displayExcludedStatuses();
+            showToast(`Restored exclusion for ${status}`, 'info');
+            return;
+        } else {
+            showToast('Status is already excluded', 'warning');
+            return;
+        }
+    }
+    
+    pendingStatusAdds.push(status);
+    displayExcludedStatuses();
+}

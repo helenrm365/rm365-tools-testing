@@ -109,6 +109,9 @@ class MagentoDataRepo:
                         smart_qty_divisor DECIMAL(10, 2),
                         smart_qty_rule_order INTEGER DEFAULT 1,
                         
+                        -- For status exclusions
+                        order_status VARCHAR(50),
+                        
                         -- Metadata
                         added_by VARCHAR(100),
                         updated_by VARCHAR(100),
@@ -118,7 +121,8 @@ class MagentoDataRepo:
                         -- Unique constraints
                         CONSTRAINT unique_excluded_customer UNIQUE(region, filter_type, customer_email),
                         CONSTRAINT unique_excluded_group UNIQUE(region, filter_type, customer_group),
-                        CONSTRAINT unique_smart_qty_rule UNIQUE(region, filter_type, smart_qty_rule_order)
+                        CONSTRAINT unique_smart_qty_rule UNIQUE(region, filter_type, smart_qty_rule_order),
+                        CONSTRAINT unique_excluded_status UNIQUE(region, filter_type, order_status)
                     )
                 """)
                 
@@ -147,6 +151,9 @@ class MagentoDataRepo:
                     )
                 """)
                 
+                # ... existing smart_qty logic ... (Wait, I don't see it in context. I should read more lines to see where to insert)
+                """)
+                
                 if not cursor.fetchone()[0]:
                     # Add the column if it doesn't exist
                     cursor.execute("""
@@ -154,6 +161,19 @@ class MagentoDataRepo:
                         ADD COLUMN smart_qty_rule_order INTEGER DEFAULT 1
                     """)
                     logger.info(f"✅ Added column: smart_qty_rule_order")
+                
+                # Check for order_status column
+                cursor.execute("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.columns 
+                        WHERE table_name = 'magento_region_filters' 
+                        AND column_name = 'order_status'
+                    )
+                """)
+                
+                if not cursor.fetchone()[0]:
+                    cursor.execute("ALTER TABLE magento_region_filters ADD COLUMN order_status VARCHAR(50)")
+                    logger.info("✅ Added column: order_status")
                 
                 # Drop the old unique_threshold constraint if it exists
                 cursor.execute("""
@@ -201,6 +221,22 @@ class MagentoDataRepo:
                         UNIQUE(region, filter_type, smart_qty_rule_order)
                     """)
                     logger.info(f"✅ Added constraint: unique_smart_qty_rule")
+
+                # Ensure order_status constraint exists
+                cursor.execute("""
+                    SELECT conname 
+                    FROM pg_constraint 
+                    WHERE conname = 'unique_excluded_status' 
+                    AND conrelid = 'magento_region_filters'::regclass
+                """)
+                
+                if not cursor.fetchone():
+                    cursor.execute("""
+                        ALTER TABLE magento_region_filters 
+                        ADD CONSTRAINT unique_excluded_status 
+                        UNIQUE(region, filter_type, order_status)
+                    """)
+                    logger.info(f"✅ Added constraint: unique_excluded_status")
             
             # Create sync metadata table to track resumable syncs
             cursor.execute("""
@@ -1441,7 +1477,8 @@ class MagentoDataRepo:
                     s.currency,
                     s.customer_email,
                     s.customer_group_code,
-                    s.created_at
+                    s.created_at,
+                    s.status
                 FROM {magento_table} s
                 LEFT JOIN sku_aliases sa ON s.sku = sa.alias_sku
                 WHERE 
@@ -1480,6 +1517,13 @@ class MagentoDataRepo:
                 WHERE region = %s AND filter_type = 'excluded_group'
             """, (region,))
             excluded_groups = {row[0] for row in cursor.fetchall()}
+
+            # Get excluded order statuses
+            cursor.execute("""
+                SELECT order_status FROM magento_region_filters
+                WHERE region = %s AND filter_type = 'excluded_status'
+            """, (region,))
+            excluded_statuses = {row[0] for row in cursor.fetchall()}
             
             # Get smart qty rules (multiple rules possible)
             smart_rules = self.get_smart_qty_rules(region)
@@ -1492,7 +1536,7 @@ class MagentoDataRepo:
             filtered_count = 0
             
             for row in all_rows:
-                sku, name, qty, grand_total, currency, customer_email, customer_group, created_at = row
+                sku, name, qty, grand_total, currency, customer_email, customer_group, created_at, status = row
                 
                 # Skip excluded customers
                 if customer_email in excluded_emails:
@@ -1500,6 +1544,10 @@ class MagentoDataRepo:
                 
                 # Skip excluded customer groups
                 if customer_group in excluded_groups:
+                    continue
+
+                # Skip excluded statuses
+                if status in excluded_statuses:
                     continue
                 
                 # Apply quantity threshold filter
@@ -2754,6 +2802,154 @@ class MagentoDataRepo:
             if conn:
                 conn.rollback()
             logger.error(f"Error removing excluded customer group: {e}")
+            raise
+        finally:
+            if conn:
+                cursor.close()
+                return_products_connection(conn)
+
+
+    def get_available_statuses(self, region: str) -> List[str]:
+        """Get distinct order statuses from the region's cache table"""
+        conn = None
+        try:
+            conn = get_products_connection()
+            cursor = conn.cursor()
+            
+            # Map region to table name
+            table_map = {
+                'uk': 'uk_orders_cache',
+                'fr': 'fr_orders_cache',
+                'nl': 'nl_orders_cache',
+                'test': 'test_magento_data'
+            }
+            
+            table_name = table_map.get(region.lower())
+            if not table_name:
+                return []
+            
+            # Check if table exists first to avoid errors during init
+            cursor.execute(f"SELECT to_regclass('public.{table_name}')")
+            if not cursor.fetchone()[0]:
+                return []
+
+            cursor.execute(f"SELECT DISTINCT status FROM {table_name} WHERE status IS NOT NULL AND status != '' ORDER BY status")
+            return [row[0] for row in cursor.fetchall()]
+            
+        except Exception as e:
+            logger.error(f"Error getting available statuses for {region}: {e}")
+            return []
+        finally:
+            if conn:
+                cursor.close()
+                return_products_connection(conn)
+
+    def get_excluded_statuses(self, region: str) -> List[Dict[str, Any]]:
+        """Get list of excluded statuses for a region"""
+        conn = None
+        try:
+            conn = get_products_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                SELECT id, order_status 
+                FROM magento_region_filters 
+                WHERE region = %s AND filter_type = 'excluded_status'
+            """, (region,))
+            
+            results = []
+            for row in cursor.fetchall():
+                results.append({
+                    "id": row[0],
+                    "status": row[1]
+                })
+            
+            return results
+            
+        except Exception as e:
+            logger.error(f"Error getting excluded statuses: {e}")
+            return []
+        finally:
+            if conn:
+                cursor.close()
+                return_products_connection(conn)
+
+    def add_excluded_status(self, region: str, status: str) -> Dict[str, Any]:
+        """Add a status to the exclusion list"""
+        conn = None
+        try:
+            conn = get_products_connection()
+            cursor = conn.cursor()
+            
+            # Check if already excluded
+            cursor.execute("""
+                SELECT id FROM magento_region_filters 
+                WHERE region = %s AND filter_type = 'excluded_status' AND order_status = %s
+            """, (region, status))
+            
+            if cursor.fetchone():
+                return {
+                    "success": False,
+                    "message": "Status already excluded"
+                }
+            
+            cursor.execute("""
+                INSERT INTO magento_region_filters (region, filter_type, order_status)
+                VALUES (%s, 'excluded_status', %s)
+                RETURNING id
+            """, (region, status))
+            
+            new_id = cursor.fetchone()[0]
+            conn.commit()
+            
+            return {
+                "success": True,
+                "message": "Status added to exclusion list",
+                "id": new_id,
+                "status": status
+            }
+            
+        except Exception as e:
+            if conn:
+                conn.rollback()
+            logger.error(f"Error adding excluded status: {e}")
+            raise
+        finally:
+            if conn:
+                cursor.close()
+                return_products_connection(conn)
+
+    def remove_excluded_status(self, id: int) -> Dict[str, Any]:
+        """Remove a status from the exclusion list"""
+        conn = None
+        try:
+            conn = get_products_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                DELETE FROM magento_region_filters 
+                WHERE id = %s
+                RETURNING order_status
+            """, (id,))
+            
+            result = cursor.fetchone()
+            conn.commit()
+            
+            if result:
+                return {
+                    "success": True,
+                    "message": f"Status '{result[0]}' removed from exclusion list"
+                }
+            else:
+                return {
+                    "success": False,
+                    "message": "Status not found"
+                }
+            
+        except Exception as e:
+            if conn:
+                conn.rollback()
+            logger.error(f"Error removing excluded status: {e}")
             raise
         finally:
             if conn:
