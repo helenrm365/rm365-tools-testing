@@ -488,37 +488,6 @@ function setupEventListeners(region) {
             }
         });
     }
-
-    // Status list toggle
-    const statusToggleBtn = document.getElementById(`excluded-statuses-toggle-${region}`);
-    const statusList = document.getElementById(`excluded-statuses-list-${region}`);
-    if (statusToggleBtn && statusList) {
-        statusToggleBtn.addEventListener('click', () => {
-            const isCollapsed = statusList.classList.contains('collapsed');
-            if (isCollapsed) {
-                statusList.classList.remove('collapsed');
-                statusToggleBtn.innerHTML = '<span class="toggle-icon">▲</span> Hide List';
-            } else {
-                statusList.classList.add('collapsed');
-                statusToggleBtn.innerHTML = '<span class="toggle-icon">▼</span> Show List';
-            }
-        });
-    }
-
-    // Status add button
-    const addStatusBtn = document.getElementById(`add-status-btn-${region}`);
-    const statusSelect = document.getElementById(`status-select-${region}`);
-    if (addStatusBtn && statusSelect) {
-        addStatusBtn.addEventListener('click', () => {
-            const status = statusSelect.value;
-            if (status) {
-                addExcludedStatus(status);
-                statusSelect.value = ''; // Reset select
-            } else {
-                showToast('Please select a status to exclude', 'warning');
-            }
-        });
-    }
     
     // Apply filters button
     const applyBtn = document.getElementById(`filters-apply-${region}`);
