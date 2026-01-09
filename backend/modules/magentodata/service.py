@@ -1037,17 +1037,10 @@ class MagentoDataService:
         """Add a status to the exclusion list"""
         try:
             result = self.repo.add_excluded_status(region, status)
-            if result['success']:
-                return {
-                    "status": "success",
-                    "message": f"Added '{status}' to exclusion list",
-                    "id": result['id']
-                }
-            else:
-                return {
-                    "status": "error",
-                    "message": result['message']
-                }
+            return {
+                "status": "success" if result["success"] else "info",
+                **result
+            }
         except Exception as e:
             logger.error(f"Error adding excluded status: {e}")
             return {

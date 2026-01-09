@@ -127,16 +127,22 @@ class MagentoDataRepo:
                         -- Unique constraints
                         CONSTRAINT unique_excluded_customer UNIQUE(region, filter_type, customer_email),
                         CONSTRAINT unique_excluded_group UNIQUE(region, filter_type, customer_group),
-                        CONSTRAINT unique_smart_qty_rule UNIQUE(region, filter_type, smart_qty_rule_order),
                         CONSTRAINT unique_excluded_status UNIQUE(region, filter_type, order_status)
                     )
                 """)
                 
-                # Create partial unique index for thresholds (excludes smart_qty_rule)
+                # Create partial unique index for thresholds
                 cursor.execute("""
                     CREATE UNIQUE INDEX unique_threshold_filter 
                     ON magento_region_filters(region, filter_type) 
                     WHERE filter_type IN ('threshold', 'qty_threshold')
+                """)
+                
+                # Create partial unique constraint for smart qty rules
+                cursor.execute("""
+                    CREATE UNIQUE INDEX unique_smart_qty_rule 
+                    ON magento_region_filters(region, filter_type, smart_qty_rule_order) 
+                    WHERE filter_type = 'smart_qty_rule'
                 """)
                 
                 # Create indexes for common queries
@@ -209,7 +215,7 @@ class MagentoDataRepo:
                     """)
                     logger.info(f"✅ Added new partial unique index: unique_threshold_filter")
                 
-                # Ensure smart_qty_rule constraint exists
+                # Drop the old unique_smart_qty_rule constraint if it exists (needs to be replaced with partial index)
                 cursor.execute("""
                     SELECT conname 
                     FROM pg_constraint 
@@ -217,13 +223,28 @@ class MagentoDataRepo:
                     AND conrelid = 'magento_region_filters'::regclass
                 """)
                 
-                if not cursor.fetchone():
+                if cursor.fetchone():
                     cursor.execute("""
                         ALTER TABLE magento_region_filters 
-                        ADD CONSTRAINT unique_smart_qty_rule 
-                        UNIQUE(region, filter_type, smart_qty_rule_order)
+                        DROP CONSTRAINT unique_smart_qty_rule
                     """)
-                    logger.info(f"✅ Added constraint: unique_smart_qty_rule")
+                    logger.info(f"✅ Dropped old constraint: unique_smart_qty_rule (will be replaced with partial index)")
+                
+                # Ensure smart_qty_rule partial unique index exists (only for smart_qty_rule filter_type)
+                cursor.execute("""
+                    SELECT indexname 
+                    FROM pg_indexes 
+                    WHERE indexname = 'unique_smart_qty_rule' 
+                    AND tablename = 'magento_region_filters'
+                """)
+                
+                if not cursor.fetchone():
+                    cursor.execute("""
+                        CREATE UNIQUE INDEX unique_smart_qty_rule 
+                        ON magento_region_filters(region, filter_type, smart_qty_rule_order) 
+                        WHERE filter_type = 'smart_qty_rule'
+                    """)
+                    logger.info(f"✅ Added partial unique index: unique_smart_qty_rule (only applies to smart_qty_rule rows)")
 
                 # Ensure order_status constraint exists
                 cursor.execute("""
@@ -3007,7 +3028,7 @@ class MagentoDataRepo:
                 "success": True,
                 "message": "Status added to exclusion list",
                 "id": new_id,
-                "status": status
+                "order_status": status
             }
             
         except Exception as e:

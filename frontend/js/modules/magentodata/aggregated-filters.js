@@ -24,6 +24,7 @@ let pendingStatusRemoves = []; // Status IDs to be removed when Apply is clicked
 let currentSmartDateRules = []; // Array of date rules
 let exchangeRates = null; // Cached exchange rates
 let conversionDebounceTimer = null; // Debounce timer for currency conversion updates
+let isApplying = false; // Global flag to prevent concurrent apply operations
 
 /**
  * Show the filters modal for a specific region
@@ -489,10 +490,10 @@ function setupEventListeners(region) {
         });
     }
     
-    // Apply filters button
+    // Apply filters button - use 'once' option to prevent duplicate listeners
     const applyBtn = document.getElementById(`filters-apply-${region}`);
     if (applyBtn) {
-        applyBtn.addEventListener('click', () => applyAllFilters(region));
+        applyBtn.addEventListener('click', () => applyAllFilters(region), { once: true });
     }
     
     // Threshold input - update conversion display as user types
@@ -660,11 +661,32 @@ function showConfirmDialog(message) {
 
 /**
  * Apply all filter changes at once
+ * Version: 2026-01-09-v2 - Enhanced double-execution prevention with global flag
  */
 async function applyAllFilters(region) {
+    console.log('[Filters] applyAllFilters called for region:', region, 'isApplying:', isApplying);
+    
+    // FIRST GUARD: Check global flag
+    if (isApplying) {
+        console.warn('[Filters] ⚠️ Apply operation already in progress! Blocking duplicate execution.');
+        showToast('⚠️ Filters are already being applied, please wait...', 'warning');
+        return;
+    }
+    
     const applyBtn = document.getElementById(`filters-apply-${region}`);
     if (!applyBtn) return;
     
+    // SECOND GUARD: Check button state
+    if (applyBtn.disabled) {
+        console.warn('[Filters] ⚠️ Button already disabled! Blocking duplicate execution.');
+        return;
+    }
+    
+    // Set global flag and disable button IMMEDIATELY
+    isApplying = true;
+    applyBtn.disabled = true;
+    applyBtn.textContent = 'Confirming...';
+    console.log('[Filters] ✅ Guards activated. isApplying=true, button disabled.');
     const applyToCustomRangeCheckbox = document.getElementById(`apply-to-custom-range-${region}`);
     const shouldApplyToCustomRange = applyToCustomRangeCheckbox ? applyToCustomRangeCheckbox.checked : false;
     
@@ -672,10 +694,15 @@ async function applyAllFilters(region) {
     const confirmMessage = 'Apply all filter changes and refresh 6M aggregated magento data?';
     const confirmed = await showConfirmDialog(confirmMessage);
     if (!confirmed) {
+        console.log('[Filters] User cancelled confirmation.');
+        // Re-enable if user cancels
+        applyBtn.disabled = false;
+        applyBtn.textContent = 'Apply & Refresh 6M Data';
+        isApplying = false;
         return;
     }
     
-    applyBtn.disabled = true;
+    console.log('[Filters] User confirmed. Starting filter application...');
     applyBtn.textContent = 'Applying...';
     
     let hasErrors = false;
@@ -759,7 +786,7 @@ async function applyAllFilters(region) {
                     }
                 }
                 
-                if (response && response.status !== 'success') {
+                if (response && response.status !== 'success' && response.status !== 'info') {
                     errors.push('Failed to save grand total threshold');
                     hasErrors = true;
                 }
@@ -789,7 +816,7 @@ async function applyAllFilters(region) {
                     }
                 }
                 
-                if (response && response.status !== 'success') {
+                if (response && response.status !== 'success' && response.status !== 'info') {
                     errors.push('Failed to save quantity threshold');
                     hasErrors = true;
                 }
@@ -804,7 +831,7 @@ async function applyAllFilters(region) {
         for (const status of pendingStatusAdds) {
             try {
                 const response = await post(`${API}/filters/status/${region}?status=${encodeURIComponent(status)}`);
-                if (response.status !== 'success') {
+                if (response.status !== 'success' && response.status !== 'info') {
                     errors.push(`Failed to exclude status: ${status}`);
                     hasErrors = true;
                 }
@@ -839,8 +866,16 @@ async function applyAllFilters(region) {
                 if (refreshResult.status === 'success') {
                     showToast(`✅ Filters applied and 6M data refreshed! ${refreshResult.rows_aggregated} SKUs processed.`, 'success');
                     
-                    // Close the modal
-                    document.querySelector('.filters-modal-overlay')?.remove();
+                    // Close the modal (this also prevents further clicks)
+                    const modalOverlay = document.querySelector('.filters-modal-overlay');
+                    if (modalOverlay) {
+                        modalOverlay.remove();
+                        console.log('[Filters] Modal removed.');
+                    }
+                    
+                    // Reset guards AFTER modal is removed
+                    isApplying = false;
+                    console.log('[Filters] Guards reset after modal removal.');
                     
                     // Reload the page data if on aggregated view
                     const reloadEvent = new CustomEvent('aggregated-data-refreshed', { detail: { region } });
@@ -883,15 +918,21 @@ async function applyAllFilters(region) {
             }
         } else {
             showToast(`⚠️ Some changes failed to save:\n${errors.join('\n')}`, 'error');
+            // Reset guards on error
+            isApplying = false;
+            applyBtn.disabled = false;
+            applyBtn.textContent = 'Apply & Refresh 6M Data';
         }
         
     } catch (error) {
-        console.error('Error applying filters:', error);
+        console.error('[Filters] Error applying filters:', error);
         showToast('❌ Failed to apply filters', 'error');
-    } finally {
+        // Reset guards on error
+        isApplying = false;
         applyBtn.disabled = false;
         applyBtn.textContent = 'Apply & Refresh 6M Data';
     }
+    // Note: No finally block - guards are reset in success path after modal closes, or immediately on error
 }
 
 /**
@@ -2181,20 +2222,45 @@ async function loadAvailableStatuses(region) {
         
         if (response && response.status === 'success') {
             availableStatuses = response.statuses || [];
-            
-            select.innerHTML = '<option value="">Select a status to exclude...</option>';
-            availableStatuses.forEach(status => {
-                const option = document.createElement('option');
-                option.value = status;
-                option.textContent = status;
-                select.appendChild(option);
-            });
+            updateStatusDropdown();
         } else {
             select.innerHTML = '<option value="">Failed to load statuses</option>';
         }
     } catch (error) {
         console.error('Error loading statuses:', error);
         select.innerHTML = '<option value="">Error loading statuses</option>';
+    }
+}
+
+/**
+ * Update the status dropdown to exclude already-excluded statuses
+ */
+function updateStatusDropdown() {
+    if (!currentRegion) return;
+    
+    const select = document.getElementById(`status-select-${currentRegion}`);
+    if (!select) return;
+    
+    // Get all currently excluded statuses (including pending adds)
+    const currentlyExcluded = [
+        ...excludedStatuses.filter(s => !pendingStatusRemoves.includes(s.id)).map(s => s.status),
+        ...pendingStatusAdds
+    ];
+    
+    // Filter available statuses to exclude already-excluded ones
+    const filteredStatuses = availableStatuses.filter(status => !currentlyExcluded.includes(status));
+    
+    select.innerHTML = '<option value="">Select a status to exclude...</option>';
+    filteredStatuses.forEach(status => {
+        const option = document.createElement('option');
+        option.value = status;
+        option.textContent = status;
+        select.appendChild(option);
+    });
+    
+    // Show message if all statuses are excluded
+    if (filteredStatuses.length === 0 && availableStatuses.length > 0) {
+        select.innerHTML = '<option value="">All statuses are already excluded</option>';
     }
 }
 
@@ -2233,6 +2299,9 @@ function displayExcludedStatuses() {
     
     // Update count
     countDisplay.textContent = `${displayStatuses.length} status${displayStatuses.length !== 1 ? 'es' : ''} excluded`;
+    
+    // Update dropdown to exclude already-excluded statuses
+    updateStatusDropdown();
     
     if (displayStatuses.length === 0) {
         listContainer.innerHTML = '<div class="excluded-groups-empty">No statuses excluded yet</div>';
@@ -2321,4 +2390,8 @@ function addExcludedStatus(status) {
     
     pendingStatusAdds.push(status);
     displayExcludedStatuses();
+    
+    // Reset the dropdown selection
+    const select = document.getElementById(`status-select-${currentRegion}`);
+    if (select) select.value = '';
 }
