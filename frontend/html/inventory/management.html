@@ -78,6 +78,10 @@
             <input type="checkbox" id="filter_SpecialItem" class="status-filter-checkbox" value="Special Item">
             <span>Special Item</span>
           </label>
+          <label class="checkbox-label" style="grid-column: 1 / -1; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border-color);">
+            <input type="checkbox" id="showOrphanedCheckbox" class="status-checkbox">
+            <span style="color: var(--text-muted); font-style: italic;" title="Orphaned SKUs are products that exist in your warehouse inventory but have been renamed or deleted in Magento. They appear with no product name because they no longer exist in the catalog. Enable this to view and manage these orphaned inventory records.">Show Orphaned Products</span>
+          </label>
           <button id="applyStatusFilters" class="apply-filters-btn">
             <i class="fas fa-check"></i>
             Apply Filters

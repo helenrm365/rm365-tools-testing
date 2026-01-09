@@ -27,7 +27,8 @@ let state = {
   selectedProducts: new Set(),
   statusFilters: DEFAULT_STATUS_FILTERS,  // Always start with all filters
   region: "uk",          // Default region preference for prices/names
-  currentPresetId: null  // Track currently loaded preset
+  currentPresetId: null, // Track currently loaded preset
+  showOrphaned: false    // Whether to show orphaned SKUs (products without names)
 };
 
 // Utility functions
@@ -290,8 +291,8 @@ async function loadProducts(isBackground = false) {
   if (errorEl) errorEl.style.display = 'none';
   
   try {
-    // Fetch products with current status filters and region preference
-    state.allProducts = await getProductsToPrint(state.statusFilters, state.region);
+    // Fetch products with current status filters, region preference, and orphaned setting
+    state.allProducts = await getProductsToPrint(state.statusFilters, state.region, state.showOrphaned);
     state.filteredProducts = [...state.allProducts];
     
     // Re-apply search filter if exists
@@ -437,6 +438,39 @@ function setupEventListeners() {
     // Add debounced handler for search
     const debouncedSearch = debounce(handleSearch, 300);
     searchInput.addEventListener('input', debouncedSearch);
+  }
+  
+  // Show orphaned checkbox
+  const showOrphanedCheckbox = document.getElementById('showOrphanedCheckbox');
+  if (showOrphanedCheckbox) {
+    showOrphanedCheckbox.addEventListener('change', async (e) => {
+      state.showOrphaned = e.target.checked;
+      console.log('[Labels] Show orphaned toggled:', state.showOrphaned);
+      
+      // Show loading feedback
+      const totalEl = document.querySelector('#totalProducts');
+      const originalTotal = totalEl?.textContent || '0';
+      if (totalEl) {
+        totalEl.textContent = '...';
+      }
+      
+      try {
+        await loadProducts();
+        showToast(
+          state.showOrphaned 
+            ? 'Showing orphaned products' 
+            : 'Hiding orphaned products',
+          'success'
+        );
+      } catch (error) {
+        console.error('[Labels] Error reloading products:', error);
+        showToast('Failed to reload products', 'error');
+        // Restore original count on error
+        if (totalEl) {
+          totalEl.textContent = originalTotal;
+        }
+      }
+    });
   }
   
   // Select all checkbox

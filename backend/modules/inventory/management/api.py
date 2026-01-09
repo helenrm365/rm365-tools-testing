@@ -30,15 +30,17 @@ def get_inventory_items(
     per_page: int = 100, 
     search: str = None,
     discontinued_status: str = None,
+    show_orphaned: bool = False,
     user=Depends(get_current_user)
 ):
-    """Get inventory items from magento_product_list with pagination, search, and discontinued status filter"""
+    """Get inventory items from magento_product_list with pagination, search, discontinued status filter, and orphaned filter"""
     try:
         result = _svc().get_inventory_items(
             page=page, 
             per_page=per_page, 
             search=search,
-            discontinued_status=discontinued_status
+            discontinued_status=discontinued_status,
+            show_orphaned=show_orphaned
         )
         return {
             "items": [InventoryItemOut(**item) for item in result["items"]],

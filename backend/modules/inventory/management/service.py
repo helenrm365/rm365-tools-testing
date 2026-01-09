@@ -65,7 +65,7 @@ class InventoryManagementService:
             # Return items unchanged if there's an error
             return items
     
-    def get_inventory_items_from_magento(self, page: int = 1, per_page: int = 100, search: str = None, discontinued_status: str = None) -> Dict[str, Any]:
+    def get_inventory_items_from_magento(self, page: int = 1, per_page: int = 100, search: str = None, discontinued_status: str = None, show_orphaned: bool = False) -> Dict[str, Any]:
         """Get inventory items from UK Magento database with pagination and search
         
         Args:
@@ -73,6 +73,7 @@ class InventoryManagementService:
             per_page: Number of items per page
             search: Search query to filter items (searches product_name and sku)
             discontinued_status: Not used when pulling from Magento DB (kept for API compatibility)
+            show_orphaned: If True, show SKUs that exist in inventory_metadata but not in Magento (default: False)
             
         Returns:
             Dict with items, total count, and pagination info
@@ -145,10 +146,21 @@ class InventoryManagementService:
                     magento_by_base_sku[base_sku] = product
             
             # Step 6: Combine inventory_metadata products with Magento display data
+            # Filter out orphaned SKUs (exist in inventory_metadata but not in Magento) unless show_orphaned=True
             all_products = []
+            orphaned_count = 0
+            skus_without_names = []  # Track SKUs that need Magento catalog fallback
+            
             for meta_product in metadata_products:
                 sku = meta_product['sku']
                 magento_product = magento_by_base_sku.get(sku, {})
+                
+                # Check if product has a name
+                has_name = bool(magento_product.get('name'))
+                
+                # Track SKUs without names for Magento catalog fallback
+                if not has_name:
+                    skus_without_names.append(sku)
                 
                 all_products.append({
                     'sku': sku,
@@ -158,8 +170,37 @@ class InventoryManagementService:
                     'discontinued_status': magento_product.get('discontinued_status'),
                     'variant_statuses': meta_product['variant_statuses']
                 })
-            print(f"========== AFTER NORMALIZATION: {len(all_products)} base SKU products ==========")
-            logger.info(f"[INVENTORY DEBUG] After normalization: {len(all_products)} base SKU products")
+            
+            # Fallback: Load names from Magento catalog for SKUs without names
+            if skus_without_names:
+                logger.info(f"Loading names from Magento catalog for {len(skus_without_names)} SKUs without names")
+                magento_catalog_names = self.repo.get_magento_catalog_names(skus_without_names)
+                logger.info(f"Magento catalog returned {len(magento_catalog_names)} names")
+                
+                # Update products with names from Magento catalog
+                for product in all_products:
+                    if not product['name'] and product['sku'] in magento_catalog_names:
+                        product['name'] = magento_catalog_names[product['sku']]
+                        logger.debug(f"Updated name for {product['sku']} from Magento catalog")
+            
+            # Now filter out orphaned products (those still without names after fallback)
+            filtered_products = []
+            for product in all_products:
+                is_orphaned = not product.get('name')
+                
+                if is_orphaned and not show_orphaned:
+                    logger.debug(f"Skipping orphaned SKU {product['sku']} (not in Magento but kept in inventory_metadata)")
+                    orphaned_count += 1
+                    continue
+                
+                filtered_products.append(product)
+            
+            all_products = filtered_products
+            
+            if orphaned_count > 0:
+                logger.info(f"Filtered out {orphaned_count} orphaned SKUs (use show_orphaned=true to include)")
+            logger.info(f"[INVENTORY DEBUG] After orphaned filtering: {len(all_products)} products (show_orphaned={show_orphaned}, orphaned_count={orphaned_count})")
+            print(f"========== AFTER NORMALIZATION: {len(all_products)} base SKU products (show_orphaned={show_orphaned}) ==========")
             
             if not all_products:
                 return {
@@ -185,6 +226,8 @@ class InventoryManagementService:
             
             total_items = len(filtered_products)
             total_pages = (total_items + per_page - 1) // per_page if total_items > 0 else 1
+            
+            logger.info(f"[INVENTORY DEBUG] Total items after all filters: {total_items}, requesting page {page}/{total_pages}, show_orphaned={show_orphaned}")
             
             # Calculate slice indices
             start_idx = (page - 1) * per_page
@@ -239,7 +282,7 @@ class InventoryManagementService:
             # Populate magento data from aggregated_orders tables
             items = self._populate_magento_data_for_items(items)
             
-            logger.info(f"Returning page {page}/{total_pages}: items {start_idx+1}-{end_idx} of {total_items} (search: '{search or 'none'}')")
+            logger.info(f"Returning page {page}/{total_pages}: items {start_idx+1}-{end_idx} of {total_items} (search: '{search or 'none'}', show_orphaned={show_orphaned})")
             
             return {
                 "items": items,
@@ -268,7 +311,7 @@ class InventoryManagementService:
         logger.warning("_fetch_all_items_legacy called - this method is deprecated")
         return []
     
-    def get_inventory_items(self, page: int = 1, per_page: int = 100, search: str = None, discontinued_status: str = None) -> Dict[str, Any]:
+    def get_inventory_items(self, page: int = 1, per_page: int = 100, search: str = None, discontinued_status: str = None, show_orphaned: bool = False) -> Dict[str, Any]:
         """Get inventory items from magento_product_list table
         
         Args:
@@ -276,11 +319,12 @@ class InventoryManagementService:
             per_page: Number of items per page
             search: Search query to filter items (searches product_name and sku)
             discontinued_status: Comma-separated discontinued statuses to filter by
+            show_orphaned: If True, show SKUs that exist in inventory_metadata but not in Magento (default: False)
             
         Returns:
             Dict with items, total count, and pagination info
         """
-        return self.get_inventory_items_from_magento(page, per_page, search, discontinued_status)
+        return self.get_inventory_items_from_magento(page, per_page, search, discontinued_status, show_orphaned)
 
     def _get_custom_field_value(self, item: Dict[str, Any], field_name: str) -> Optional[str]:
         """DEPRECATED: Extract custom field value from item (legacy method)"""

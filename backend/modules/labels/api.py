@@ -35,6 +35,7 @@ def labels_health():
 def labels_to_print(
     discontinued_statuses: Optional[str] = None,
     region: str = Query("uk", regex="^(uk|fr|nl)$"),
+    show_orphaned: bool = False,
     user=Depends(get_current_user)
 ):
     """
@@ -47,6 +48,7 @@ def labels_to_print(
         region: Region preference for pricing/names ("uk", "fr", or "nl"). Defaults to "uk".
                 SKUs always come from UK Magento, but prices/names can come from any region.
                 6M data: from inventory_metadata (UK separate, FR+NL combined).
+        show_orphaned: If True, include orphaned SKUs (in inventory_metadata but not in Magento). Defaults to False.
     """
     try:
         # Parse discontinued_statuses if provided
@@ -58,7 +60,8 @@ def labels_to_print(
             return LabelsRepo().get_labels_to_print_psycopg(
                 conn, 
                 status_list, 
-                preferred_region=region
+                preferred_region=region,
+                show_orphaned=show_orphaned
             )
     except Exception as e:
         raise HTTPException(

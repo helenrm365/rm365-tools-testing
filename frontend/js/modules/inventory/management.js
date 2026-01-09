@@ -52,8 +52,8 @@ let dropdownDocListenersBound = false;
 let dropdownBackdrop;
 let _filterSeq = 0;
 
-// Discontinued status filter set
-let discontinuedFilterSet = new Set(DEFAULT_DISCONTINUED_STATUS_FILTERS);
+// Discontinued status filter set - initialize from saved preferences
+let discontinuedFilterSet = new Set(getSavedDiscontinuedStatusFilters());
 
 // Pagination settings
 const ITEMS_PER_PAGE = 100;
@@ -219,8 +219,14 @@ async function loadInventoryData() {
         const searchInput = document.getElementById('inventorySearch');
         const searchQuery = searchInput?.value?.trim() || '';
         
-        // Get discontinued status filters
+        // Get discontinued status filters from the saved filter set (not UI checkboxes)
         const discontinuedFilters = Array.from(discontinuedFilterSet).join(',');
+        console.log('[Inventory] Using discontinued filters:', discontinuedFilters, 'from set:', discontinuedFilterSet);
+        
+        // Check if orphaned products should be shown
+        const showOrphanedCheckbox = document.getElementById('showOrphanedCheckbox');
+        const showOrphaned = showOrphanedCheckbox?.checked || false;
+        console.log('[Inventory] Loading data with showOrphaned:', showOrphaned);
         
         // Build URL with search and discontinued status parameters
         let itemsUrl = `${pathSet.items}?page=${currentPage + 1}&per_page=${ITEMS_PER_PAGE}`;
@@ -230,6 +236,10 @@ async function loadInventoryData() {
         if (discontinuedFilters) {
           itemsUrl += `&discontinued_status=${encodeURIComponent(discontinuedFilters)}`;
         }
+        if (showOrphaned) {
+          itemsUrl += `&show_orphaned=true`;
+        }
+        console.log('[Inventory] API URL:', itemsUrl);
         
         // Fetch items with search and metadata
         const itemsResponse = await http(itemsUrl, { timeout: 120000 }); // 2 minutes for slow inventory fetch
@@ -900,6 +910,47 @@ function setupDiscontinuedStatusFilters() {
   
   // Initialize filter count
   updateFilterCount();
+  
+  // Show orphaned checkbox - reload data when toggled
+  const showOrphanedCheckbox = document.getElementById('showOrphanedCheckbox');
+  if (showOrphanedCheckbox) {
+    showOrphanedCheckbox.addEventListener('change', async (e) => {
+      const isChecked = e.target.checked;
+      console.log('[Inventory] Orphaned checkbox toggled:', isChecked);
+      
+      // Show loading state
+      const applyBtn = document.getElementById('applyStatusFilters');
+      const originalApplyText = applyBtn?.innerHTML || '';
+      if (applyBtn) {
+        applyBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+        applyBtn.disabled = true;
+      }
+      
+      try {
+        currentPage = 0;
+        await loadInventoryData();
+        setupTable();
+        
+        // Show toast notification
+        const visibleRows = document.querySelectorAll('#inventoryManagementBody tr:not([style*="display: none"])').length;
+        showToast(
+          isChecked 
+            ? `Showing orphaned products (${visibleRows} total)` 
+            : `Hiding orphaned products (${visibleRows} total)`,
+          'success'
+        );
+      } catch (error) {
+        console.error('[Inventory] Error reloading data:', error);
+        showToast('Failed to reload inventory data', 'error');
+      } finally {
+        // Restore button state
+        if (applyBtn) {
+          applyBtn.innerHTML = originalApplyText;
+          applyBtn.disabled = false;
+        }
+      }
+    });
+  }
   
   // Apply filters button
   const applyBtn = document.getElementById('applyStatusFilters');

@@ -93,8 +93,8 @@ The Labels Generation system creates product labels with barcodes, prices, and s
 - System checks preferred region first, then falls back to others
 - Ensures most relevant pricing is shown
 
-### 5. Product Names: Magento Orders Cache
-**Source:** PostgreSQL `{region}_orders_cache` tables
+### 5. Product Names: Magento Orders Cache + Magento Catalog (Fallback)
+**Source:** PostgreSQL `{region}_orders_cache` tables (primary) + UK Magento `catalog_product_entity` (fallback)
 
 **Purpose:** Get product display names
 
@@ -102,6 +102,11 @@ The Labels Generation system creates product labels with barcodes, prices, and s
 - User can select preferred region (uk/fr/nl)
 - System checks preferred region first, then falls back to others
 - Ensures most relevant product name is shown (e.g., French name for FR region)
+
+**Fallback Mechanism:**
+- If product name not found in any `orders_cache` table (product never been ordered)
+- Falls back to UK Magento catalog `catalog_product_entity_varchar` table
+- Ensures all products have names even if they've never been ordered
 
 ### 6. Job History: Label Print Jobs
 **Source:** PostgreSQL `label_print_jobs` and `label_print_items` tables
@@ -169,7 +174,9 @@ The Labels Generation system creates product labels with barcodes, prices, and s
    
 8. LOAD PRODUCT NAMES
    ↓ Query orders_cache with region preference
-   └─→ Latest product name
+   ├─→ Try UK/FR/NL orders_cache (based on region preference)
+   ├─→ If name found: use latest product name from orders
+   └─→ If NOT found: fallback to UK Magento catalog_product_entity
    
 9. BUILD LABEL DATA
    ↓ Combine all data for each product

@@ -994,3 +994,122 @@ class InventoryManagementRepo:
             if 'conn' in locals() and conn.open:
                 conn.close()
 
+    def get_magento_catalog_names(self, skus: List[str]) -> Dict[str, str]:
+        """
+        Load product names directly from UK Magento catalog for SKUs.
+        Used as fallback when products don't have names in magento_product_list
+        (e.g., products that were never ordered but exist in catalog).
+        
+        Args:
+            skus: List of SKUs to get names for
+            
+        Returns:
+            Dict mapping SKU to product name
+        """
+        if not skus:
+            return {}
+        
+        names = {}
+        try:
+            conn = get_magento_connection("uk")
+            with conn.cursor() as cur:
+                # First try exact SKU matches
+                cur.execute("""
+                    SELECT 
+                        cpe.sku,
+                        cpev_name.value as name
+                    FROM catalog_product_entity cpe
+                    INNER JOIN catalog_product_entity_varchar cpev_name 
+                        ON cpe.entity_id = cpev_name.entity_id
+                        AND cpev_name.attribute_id = (
+                            SELECT attribute_id 
+                            FROM eav_attribute 
+                            WHERE attribute_code = 'name' 
+                            AND entity_type_id = (
+                                SELECT entity_type_id 
+                                FROM eav_entity_type 
+                                WHERE entity_type_code = 'catalog_product'
+                            )
+                        )
+                        AND cpev_name.store_id = 0
+                    WHERE cpe.sku IN %s
+                        AND cpev_name.value IS NOT NULL
+                        AND cpev_name.value != ''
+                """, (tuple(skus),))
+                
+                for row in cur.fetchall():
+                    sku = str(row['sku']).strip() if row.get('sku') else ""
+                    name = str(row['name']).strip() if row.get('name') else ""
+                    if sku and name:
+                        # Clean the name - trim " - Special Offer" from the end
+                        if name.endswith(" - Special Offer"):
+                            name = name[:-len(" - Special Offer")].strip()
+                        names[sku] = name
+                
+                logger.info(f"Found {len(names)} exact SKU matches in Magento catalog")
+                
+                # For base SKUs not found, search for variants
+                still_missing = [sku for sku in skus if sku not in names]
+                if still_missing:
+                    logger.info(f"Searching for variants for {len(still_missing)} remaining SKUs")
+                    import re
+                    identifier_pattern = re.compile(r'-(?:MD|SD|DP|NP|MV)(?:-.*)?$', re.IGNORECASE)
+                    
+                    # Build LIKE patterns for variants
+                    like_conditions = []
+                    like_params = []
+                    for base_sku in still_missing:
+                        like_conditions.append("cpe.sku LIKE %s")
+                        like_params.append(f"{base_sku}-%")
+                    
+                    like_clause = " OR ".join(like_conditions)
+                    
+                    variant_query = f"""
+                        SELECT 
+                            cpe.sku,
+                            cpev_name.value as name
+                        FROM catalog_product_entity cpe
+                        INNER JOIN catalog_product_entity_varchar cpev_name 
+                            ON cpe.entity_id = cpev_name.entity_id
+                            AND cpev_name.attribute_id = (
+                                SELECT attribute_id 
+                                FROM eav_attribute 
+                                WHERE attribute_code = 'name' 
+                                AND entity_type_id = (
+                                    SELECT entity_type_id 
+                                    FROM eav_entity_type 
+                                    WHERE entity_type_code = 'catalog_product'
+                                )
+                            )
+                            AND cpev_name.store_id = 0
+                        WHERE ({like_clause})
+                            AND cpev_name.value IS NOT NULL
+                            AND cpev_name.value != ''
+                    """
+                    
+                    cur.execute(variant_query, tuple(like_params))
+                    
+                    for row in cur.fetchall():
+                        variant_sku = str(row['sku']).strip() if row.get('sku') else ""
+                        name = str(row['name']).strip() if row.get('name') else ""
+                        if name and variant_sku:
+                            # Clean the name
+                            if name.endswith(" - Special Offer"):
+                                name = name[:-len(" - Special Offer")].strip()
+                            
+                            # Map the base SKU to this variant's cleaned name
+                            base = identifier_pattern.sub('', variant_sku) if identifier_pattern.search(variant_sku) else variant_sku
+                            if base not in names:
+                                names[base] = name
+                                logger.debug(f"Found variant {variant_sku} -> base {base}: {name}")
+                    
+                    logger.info(f"Found {len([s for s in still_missing if s in names])} names from variants")
+            
+            logger.info(f"Total: Loaded {len(names)}/{len(skus)} product names from Magento catalog")
+        except Exception as e:
+            logger.error(f"Failed to load names from Magento catalog: {e}", exc_info=True)
+        finally:
+            if 'conn' in locals() and conn.open:
+                conn.close()
+        
+        return names

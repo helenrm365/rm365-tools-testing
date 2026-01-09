@@ -9,8 +9,9 @@ const API = '/v1/labels';  // http.js adds BASE which already includes /api
  * Get all products available for label printing
  * @param {Array<string>} discontinuedStatuses - Optional array of discontinued statuses to filter by
  * @param {string} region - Region preference: "uk", "fr", or "nl"
+ * @param {boolean} showOrphaned - Whether to include orphaned SKUs (products without names)
  */
-export async function getProductsToPrint(discontinuedStatuses = null, region = "uk") {
+export async function getProductsToPrint(discontinuedStatuses = null, region = "uk", showOrphaned = false) {
   let url = `${API}/to-print`;
   
   const params = new URLSearchParams();
@@ -23,6 +24,11 @@ export async function getProductsToPrint(discontinuedStatuses = null, region = "
   
   // Add region parameter
   params.append('region', region);
+  
+  // Add show_orphaned parameter
+  if (showOrphaned) {
+    params.append('show_orphaned', 'true');
+  }
   
   if (params.toString()) {
     url += `?${params.toString()}`;

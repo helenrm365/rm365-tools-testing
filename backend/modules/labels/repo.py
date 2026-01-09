@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import List, Dict, Any, Optional, Tuple
 import logging
 from common.deps import products_conn
+from modules.magentodata.db import get_magento_connection
 
 logger = logging.getLogger(__name__)
 log = logging.getLogger("labels")
@@ -235,10 +236,11 @@ class LabelsRepo:
         """
         Return { sku: product_name } with the most recent product name from magento data.
         Prioritizes preferred region, then falls back to other regions.
+        If no name found in orders_cache, falls back to Magento catalog.
         Queries each table separately to avoid timeout issues.
         
         Args:
-            conn: Database connection
+            conn: Database connection to products database (for orders_cache)
             skus: List of SKUs to get names for
             preferred_region: "uk" (default), "fr", or "nl" - determines name priority
         """
@@ -257,6 +259,7 @@ class LabelsRepo:
         # Remove duplicates while preserving order
         tables = list(dict.fromkeys(tables))
         
+        # Try to get names from orders_cache tables
         with conn.cursor() as cur:
             for table_name in tables:
                 try:
@@ -285,7 +288,130 @@ class LabelsRepo:
                     logger.debug(f"Could not fetch names from {table_name}: {e}")
                     continue
         
-        logger.info(f"Loaded names for {len(names)}/{len(skus)} SKUs")
+        # Fallback: Load names from Magento catalog for SKUs not found in orders_cache
+        skus_without_names = [sku for sku in skus if sku not in names]
+        if skus_without_names:
+            logger.info(f"Loading names from Magento catalog for {len(skus_without_names)} SKUs not found in orders_cache: {skus_without_names[:10]}")
+            magento_names = self._load_product_names_from_magento(skus_without_names)
+            logger.info(f"Magento catalog returned {len(magento_names)} names")
+            names.update(magento_names)
+        
+        logger.info(f"Loaded names for {len(names)}/{len(skus)} SKUs (from orders_cache + Magento fallback)")
+        if len(names) < len(skus):
+            missing = [sku for sku in skus if sku not in names]
+            logger.warning(f"Still missing names for {len(missing)} SKUs: {missing[:10]}")
+        
+        return names
+    
+    def _load_product_names_from_magento(self, skus: List[str]) -> Dict[str, str]:
+        """
+        Load product names directly from UK Magento catalog as a fallback.
+        Used when products don't have names in orders_cache (i.e., never been ordered).
+        
+        For base SKUs that don't exist in Magento (because they were merged from variants),
+        searches for variants and uses their names, trimming " - Special Offer" if present.
+        
+        Args:
+            skus: List of base SKUs to get names for
+        
+        Returns:
+            Dict mapping SKU to product name from Magento catalog
+        """
+        if not skus:
+            return {}
+        
+        names = {}
+        
+        try:
+            conn = get_magento_connection("uk")
+            with conn.cursor() as cur:
+                # First, try exact base SKU matches
+                cur.execute("""
+                    SELECT DISTINCT
+                        cpe.sku,
+                        cpev_name.value as name
+                    FROM catalog_product_entity cpe
+                    LEFT JOIN catalog_product_entity_varchar cpev_name 
+                        ON cpe.entity_id = cpev_name.entity_id
+                        AND cpev_name.attribute_id = (
+                            SELECT attribute_id 
+                            FROM eav_attribute 
+                            WHERE attribute_code = 'name' 
+                            AND entity_type_id = (
+                                SELECT entity_type_id 
+                                FROM eav_entity_type 
+                                WHERE entity_type_code = 'catalog_product'
+                            )
+                        )
+                        AND cpev_name.store_id = 0
+                    WHERE cpe.sku IN %s
+                        AND cpev_name.value IS NOT NULL
+                        AND cpev_name.value != ''
+                """, (tuple(skus),))
+                
+                for row in cur.fetchall():
+                    sku = str(row['sku']).strip() if row.get('sku') else ""
+                    name = str(row['name']).strip() if row.get('name') else ""
+                    if name and sku:
+                        names[sku] = name
+                
+                logger.info(f"Found {len(names)} exact base SKU matches in Magento")
+                
+                # For missing base SKUs, search for their variants
+                still_missing = [sku for sku in skus if sku not in names]
+                if still_missing:
+                    logger.info(f"Searching for variants of {len(still_missing)} base SKUs")
+                    
+                    # Build query to find any SKU that starts with base SKU + dash
+                    like_conditions = " OR ".join(["cpe.sku LIKE %s"] * len(still_missing))
+                    like_params = [f"{sku}-%" for sku in still_missing]
+                    
+                    variant_query = f"""
+                        SELECT DISTINCT
+                            cpe.sku,
+                            cpev_name.value as name
+                        FROM catalog_product_entity cpe
+                        LEFT JOIN catalog_product_entity_varchar cpev_name 
+                            ON cpe.entity_id = cpev_name.entity_id
+                            AND cpev_name.attribute_id = (
+                                SELECT attribute_id 
+                                FROM eav_attribute 
+                                WHERE attribute_code = 'name' 
+                                AND entity_type_id = (
+                                    SELECT entity_type_id 
+                                    FROM eav_entity_type 
+                                    WHERE entity_type_code = 'catalog_product'
+                                )
+                            )
+                            AND cpev_name.store_id = 0
+                        WHERE ({like_conditions})
+                            AND cpev_name.value IS NOT NULL
+                            AND cpev_name.value != ''
+                    """
+                    
+                    cur.execute(variant_query, tuple(like_params))
+                    
+                    for row in cur.fetchall():
+                        variant_sku = str(row['sku']).strip() if row.get('sku') else ""
+                        name = str(row['name']).strip() if row.get('name') else ""
+                        if name and variant_sku:
+                            # Clean the name - trim " - Special Offer" from the end
+                            cleaned_name = name
+                            if cleaned_name.endswith(" - Special Offer"):
+                                cleaned_name = cleaned_name[:-len(" - Special Offer")].strip()
+                            
+                            # Map the base SKU to this variant's cleaned name
+                            base = self._base_of(variant_sku)
+                            if base not in names:
+                                names[base] = cleaned_name
+                                logger.debug(f"Found variant {variant_sku} -> base {base}: {cleaned_name}")
+                    
+                    logger.info(f"Found {len([s for s in still_missing if s in names])} names from variants")
+            
+            logger.info(f"Total: Loaded {len(names)}/{len(skus)} product names from Magento catalog")
+        except Exception as e:
+            logger.error(f"Failed to load names from Magento catalog: {e}", exc_info=True)
+        
         return names
 
     def _resolve_to_rows(
@@ -293,6 +419,7 @@ class LabelsRepo:
         inventory_conn,  # for inventory_metadata (item IDs)
         candidate_skus: List[str],
         preferred_region: str = "uk",  # region preference for price/name selection
+        show_orphaned: bool = False,  # whether to include orphaned SKUs
     ) -> List[Dict[str, Any]]:
         """
         Process SKUs: normalize all variants to base SKU, fetch item IDs, 6M data, prices, and names.
@@ -306,6 +433,7 @@ class LabelsRepo:
             inventory_conn: Connection to inventory_logs database (for inventory_metadata)
             candidate_skus: List of base SKUs to process (already normalized)
             preferred_region: Region preference for pricing (uk/fr/nl)
+            show_orphaned: If True, include SKUs without names (not in Magento)
         """
         if not candidate_skus:
             return []
@@ -363,11 +491,18 @@ class LabelsRepo:
             sales_names = self._load_product_names_psycopg(prod_conn, all_skus, preferred_region)
             logger.info(f"Loaded names for {len(sales_names)} SKUs (region: {preferred_region})")
 
-        # Build rows
+        # Build rows, filtering out orphaned SKUs (not in Magento) unless show_orphaned=True
         out: List[Dict[str, Any]] = []
+        skipped_orphaned = 0
         for base, (item_id, sku_used) in resolved.items():
             price = prices.get(sku_used, "£0.00")
             product_name = sales_names.get(sku_used, "")
+            
+            # Skip orphaned SKUs (exist in inventory_metadata but not in Magento) unless explicitly requested
+            if not product_name and not show_orphaned:
+                logger.debug(f"Skipping orphaned SKU {sku_used} (not in Magento but kept in inventory_metadata)")
+                skipped_orphaned += 1
+                continue
             
             # Get 6M data from aggregated tables
             uk_6m, fr_6m = sixm_data_map.get(sku_used, ("0", "0"))
@@ -381,11 +516,13 @@ class LabelsRepo:
                 "price": price,               # from orders_cache (region preference)
             })
         
+        if skipped_orphaned > 0:
+            logger.info(f"Skipped {skipped_orphaned} orphaned SKUs (use show_orphaned=true to include)")
         logger.info(f"Built {len(out)} label rows")
         return out
 
     # --- public (psycopg2) ---
-    def get_labels_to_print_psycopg(self, conn, product_statuses: Optional[List[str]] = None, preferred_region: str = "uk") -> List[Dict[str, Any]]:
+    def get_labels_to_print_psycopg(self, conn, product_statuses: Optional[List[str]] = None, preferred_region: str = "uk", show_orphaned: bool = False) -> List[Dict[str, Any]]:
         """
         Fetch products from inventory_metadata (synced from Magento) filtered by status.
         Uses EXACT SAME logic as inventory management:
@@ -398,6 +535,7 @@ class LabelsRepo:
             product_statuses: list of discontinued_status values to filter by (e.g., ['Active', 'Temporarily OOS'])
                             If None, defaults to ['Active', 'Temporarily OOS', 'Pre Order', 'Samples']
             preferred_region: "uk" (default), "fr", or "nl" - determines price/name priority
+            show_orphaned: if False (default), exclude SKUs with no product name (orphaned SKUs)
         """
         from modules.inventory.management.repo import InventoryManagementRepo
         
@@ -443,6 +581,7 @@ class LabelsRepo:
             conn,
             allowed_skus,
             preferred_region=preferred_region,
+            show_orphaned=show_orphaned,
         )
 
     # CSV upload functionality removed - dead code that was never fully implemented
