@@ -35,9 +35,15 @@ The Inventory Management system tracks product inventory data, including stock l
 - Joins with EAV (Entity-Attribute-Value) attribute tables for product names and custom attributes (including `discontinued_status`)
 - Returns **ALL products** (does NOT filter by Magento's enabled/disabled status)
 - Filters by custom `discontinued_status` attribute when requested
-- Always filters out products with categories containing "AW365"
+- Always filters out products with category containing "AW365"
 - Filters out products with no categories assigned
 - Filters out products with no website assignment
+
+**Fallback for Deleted Products (Orphaned Logic):**
+When a product exists in `inventory_metadata` (the warehouse) but is no longer found in the live Magento catalog (e.g., deleted):
+1.  **Check Live Catalog:** Primary source. If found, use live data.
+2.  **Check Order History:** If not found in Live, checks historical `orders_cache` tables to find the product name from past sales.
+3.  **Orphaned:** If not found in Live OR History, it is marked as "Orphaned" (product exists in warehouse but has no name/details).
 
 **Key Points:**
 - **All products visible** regardless of Magento enabled/disabled status
@@ -47,6 +53,7 @@ The Inventory Management system tracks product inventory data, including stock l
 - `inventory_metadata` persists regardless of product status
 - Read-only access to entire Magento database
 - Always uses UK Magento as the canonical source
+- **Deleted products are recoverable:** If a product is deleted from Magento but has sales history, it remains visible in Inventory Management (not orphaned).
 
 #### 2. `inventory_metadata`
 **Purpose:** Warehouse data and sales metadata (persistent across syncs)

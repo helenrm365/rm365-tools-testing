@@ -93,10 +93,30 @@ The Labels Generation system creates product labels with barcodes, prices, and s
 - System checks preferred region first, then falls back to others
 - Ensures most relevant pricing is shown
 
-### 5. Product Names: Magento Orders Cache + Magento Catalog (Fallback)
-**Source:** PostgreSQL `{region}_orders_cache` tables (primary) + UK Magento `catalog_product_entity` (fallback)
+### 5. Product Names: Region-Smart Resolution Strategy
+**Source:** Live Magento Catalog + Historical Orders Cache
 
-**Purpose:** Get product display names
+**Purpose:** Get product display names with intelligent fallback logic
+
+**Priority Logic:**
+1.  **Live Catalog (Region Specific):** 
+    - Checks the live Magento database for the *selected region* (UK, FR, or NL).
+    - Ensures labels for France get French product names if they exist.
+2.  **Order History (Region Prioritized):** 
+    - If not in live catalog (e.g., deleted), checks `orders_cache` tables.
+    - Prioritizes history from the selected region.
+3.  **Live Catalog (UK Fallback):** 
+    - If preferred region was not UK, and product wasn't found in live region catalog or history.
+    - Checks UK Live Catalog as the final source of truth.
+
+**Data Fetched:**
+- Product Name (localized if available)
+- Handles "Orphaned Products" by finding their names in history if deleted from live catalog.
+
+**Why this matters:**
+- **Accuracy:** French labels get French names.
+- **Completeness:** Deleted products still get names (from history).
+- **Fallbacks:** If a product is only in the UK catalog but you print a French label, it falls back to the UK name instead of showing nothing.
 
 **Region Priority:**
 - User can select preferred region (uk/fr/nl)
