@@ -92,14 +92,6 @@ function renderTable() {
           <label class="detail-label">NFC UID</label>
           <input class="detail-input nfc-input" value="${e.nfc_uid || ''}" placeholder="No NFC assigned">
         </div>
-        
-        <div class="detail-row">
-          <label class="detail-label">Fingerprint</label>
-          <div class="fingerprint-status">
-            <span class="status-indicator ${e.has_fingerprint ? 'active' : 'inactive'}"></span>
-            <span>${e.has_fingerprint ? 'Enrolled' : 'Not enrolled'}</span>
-          </div>
-        </div>
       </div>
       
       <div class="card-actions">

@@ -305,19 +305,6 @@ def debug_inventory():
     except Exception as e:
         return {'status': 'error', 'message': str(e)}
 
-# --- Fingerprint capture (lazy import) ---------------------------------------
-@app.get('/scan-fingerprint')
-def scan():
-    try:
-        from enrollment.fingerprint_reader import read_fingerprint_template  # lazy import
-    except Exception:
-        raise HTTPException(status_code=501, detail='Fingerprint capture isn\'t available on this host')
-    try:
-        tpl = read_fingerprint_template(timeout=8000)
-        return {'template_b64': base64.b64encode(tpl).decode()}
-    except Exception as e:
-        raise HTTPException(status_code=501, detail=str(e))
-
 # --- Optional DB smoke test --------------------------------------------------
 # Removed test-db endpoint - not needed for production deployment
 

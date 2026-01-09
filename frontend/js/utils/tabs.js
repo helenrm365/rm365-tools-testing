@@ -38,7 +38,7 @@ export function getDefaultAllowedPath(allowed = null) {
     // pick a sensible default sub-route
     if (allowedTabs.includes('enrollment.management')) return '/enrollment/management';
     if (allowedTabs.includes('enrollment.card')) return '/enrollment/card';
-    if (allowedTabs.includes('enrollment.fingerprint')) return '/enrollment/fingerprint';
+
     return '/enrollment';
   }
   // Then attendance

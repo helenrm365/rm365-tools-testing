@@ -10,10 +10,5 @@ export async function init(path) {
     await mod.init();
     return;
   }
-  if (path === '/enrollment/fingerprint') {
-    const mod = await import('./fingerprint.js');
-    await mod.init();
-    return;
-  }
   // default: do nothing for unknown subpaths
 }

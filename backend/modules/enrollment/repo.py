@@ -8,7 +8,7 @@ class EnrollmentRepo:
     # -------- Queries --------
     def list_employees(self) -> List[Dict[str, Any]]:
         """
-        Returns employees with a derived has_fingerprint flag and list of fingerprints.
+        Returns employees with their details.
         """
         with pg_conn() as conn:
             with conn.cursor() as cur:
@@ -17,16 +17,7 @@ class EnrollmentRepo:
                     SELECT e.id, e.name, COALESCE(e.employee_code, '') AS employee_code,
                            COALESCE(e.location, '') AS location,
                            COALESCE(e.status, '') AS status,
-                           COALESCE(e.nfc_uid, '') AS nfc_uid,
-                           (EXISTS (SELECT 1 FROM employee_fingerprints ef WHERE ef.employee_id = e.id)) AS has_fingerprint,
-                           COALESCE(
-                               (
-                                   SELECT json_agg(json_build_object('id', ef.id, 'name', ef.name, 'created_at', ef.created_at))
-                                   FROM employee_fingerprints ef
-                                   WHERE ef.employee_id = e.id
-                               ),
-                               '[]'::json
-                           ) AS fingerprints
+                           COALESCE(e.nfc_uid, '') AS nfc_uid
                     FROM employees e
                     ORDER BY e.name
                     """
@@ -71,7 +62,6 @@ class EnrollmentRepo:
         return {
             "id": row[0], "name": row[1], "employee_code": row[2],
             "location": row[3], "status": row[4], "nfc_uid": row[5],
-            "has_fingerprint": False,
         }
         # :contentReference[oaicite:3]{index=3}
 
@@ -101,15 +91,10 @@ class EnrollmentRepo:
                 cur.execute(sql, vals)
                 row = cur.fetchone()
                 
-                # Check for fingerprints
-                cur.execute("SELECT EXISTS(SELECT 1 FROM employee_fingerprints WHERE employee_id = %s)", (employee_id,))
-                has_fingerprint = cur.fetchone()[0]
-                
                 conn.commit()
         return {
             "id": row[0], "name": row[1], "employee_code": row[2],
             "location": row[3], "status": row[4], "nfc_uid": row[5],
-            "has_fingerprint": has_fingerprint,
         }
         # :contentReference[oaicite:4]{index=4}
 
@@ -128,20 +113,9 @@ class EnrollmentRepo:
                 if not row:
                     return None
                 
-                # Fetch fingerprints
-                cur.execute(
-                    "SELECT id, name, created_at FROM employee_fingerprints WHERE employee_id = %s ORDER BY created_at",
-                    (employee_id,)
-                )
-                fingerprints = [{"id": r[0], "name": r[1], "created_at": r[2]} for r in cur.fetchall()]
-                
-                has_fingerprint = bool(fingerprints)
-
         return {
             "id": row[0], "name": row[1], "employee_code": row[2],
             "location": row[3], "status": row[4], "nfc_uid": row[5],
-            "has_fingerprint": has_fingerprint,
-            "fingerprints": fingerprints
         }
 
     def delete_employee(self, employee_id: int) -> int:
@@ -226,33 +200,4 @@ class EnrollmentRepo:
                 
                 conn.commit()
 
-    def save_fingerprint(self, employee_id: int, tpl_bytes: bytes, name: str = "Default") -> None:
-        with pg_conn() as conn:
-            with conn.cursor() as cur:
-                # Check if exists
-                cur.execute(
-                    "SELECT id FROM employee_fingerprints WHERE employee_id = %s AND name = %s",
-                    (employee_id, name)
-                )
-                row = cur.fetchone()
-                
-                if row:
-                    # Update
-                    cur.execute(
-                        "UPDATE employee_fingerprints SET template = %s, created_at = CURRENT_TIMESTAMP WHERE id = %s",
-                        (tpl_bytes, row[0])
-                    )
-                else:
-                    # Insert
-                    cur.execute(
-                        "INSERT INTO employee_fingerprints (employee_id, template, name) VALUES (%s, %s, %s)",
-                        (employee_id, tpl_bytes, name),
-                    )
-                conn.commit()
-        # :contentReference[oaicite:8]{index=8}
 
-    def delete_fingerprint(self, fingerprint_id: int) -> None:
-        with pg_conn() as conn:
-            with conn.cursor() as cur:
-                cur.execute("DELETE FROM employee_fingerprints WHERE id = %s", (fingerprint_id,))
-                conn.commit()

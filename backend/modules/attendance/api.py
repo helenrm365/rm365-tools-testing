@@ -5,7 +5,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, Query
 
 from common.deps import get_current_user
-from .schemas import ClockRequest, FingerClockRequest
+from .schemas import ClockRequest
 from .service import AttendanceService
 
 router = APIRouter()
@@ -31,20 +31,11 @@ def get_locations(user=Depends(get_current_user)):
     """Get all available employee locations."""
     return _svc().get_locations()
 
-@router.get("/employees/templates")
-def list_employee_templates(user=Depends(get_current_user)):
-    """Get all employee fingerprint templates for client-side matching."""
-    return _svc().get_employee_templates()
-
 # ---- Clocking ----
 @router.post("/clock")
 def clock(body: ClockRequest, user=Depends(get_current_user)):
     direction = _svc().toggle_clock(body.employee_id)
     return {"status": "success", "direction": direction}
-
-@router.post("/clock-by-fingerprint")
-def clock_by_fingerprint(body: FingerClockRequest, user=Depends(get_current_user)):
-    return _svc().clock_by_fingerprint(body.template_b64)
 
 # ---- Logs & summary ----
 @router.get("/logs")

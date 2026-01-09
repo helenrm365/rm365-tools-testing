@@ -184,7 +184,7 @@ start-macos/start.command
 
 ```
 ✓ Real-time clock in/out with auto-logging
-✓ Hardware integration (fingerprint/RFID)
+✓ Hardware integration (NFC/RFID)
 ✓ Automatic presence detection
 ✓ Weekly & daily analytics reports
 ✓ Overtime calculation & tracking
@@ -247,7 +247,7 @@ start-macos/start.command
 ```
 ✓ Student/employee registration
 ✓ Hardware device assignment
-✓ Biometric enrollment (fingerprints)
+✓ Biometric enrollment (NFC/RFID)
 ✓ RFID card association
 ✓ Profile management
 ✓ Device tracking & audit logs
@@ -295,7 +295,7 @@ start-macos/start.command
 
 **USB Device Access**
 
-🔹 SecuGen fingerprint scanners  
+🔹 NFC/RFID card readers
 🔹 RFID card readers  
 🔹 Automatic device detection  
 🔹 Hybrid cloud + local architecture  
@@ -544,7 +544,7 @@ cp .env.example .env
 
 #### 4. Optional: Hardware Bridge Setup
 
-For fingerprint/card reader support:
+For NFC/card reader support:
 
 **Windows:**
 ```bash
@@ -563,7 +563,7 @@ Hardware bridge available at: `http://127.0.0.1:8080`
 
 **Features:**
 - ✅ Shares same `.venv` as backend (no duplicate dependencies)
-- ✅ SecuGen fingerprint support (Windows only)
+- ✅ NFC card support (Windows/macOS/Linux via PC/SC or Serial)
 - ✅ RFID card reader support (cross-platform via pyserial)
 - ✅ Platform detection with graceful error messages
 
@@ -817,7 +817,7 @@ This creates 30+ indexes for faster queries.
 **Local hardware bridge** enables browser access to USB devices.
 
 **Supported Devices:**
-- SecuGen fingerprint scanners (Windows)
+
 - **ACR1252U USB NFC Reader III** ⭐ NEW
 - ACR122U and other PC/SC NFC readers
 - Serial-based RFID card readers
@@ -919,7 +919,7 @@ POST   /api/v1/roles               - Create role
 ```
 GET    /api/v1/attendance/employees         - List employees
 POST   /api/v1/attendance/clock             - Clock in/out
-POST   /api/v1/attendance/clock-by-fingerprint - Fingerprint clock
+
 GET    /api/v1/attendance/logs              - Get logs
 GET    /api/v1/attendance/daily-stats       - Daily statistics
 ```

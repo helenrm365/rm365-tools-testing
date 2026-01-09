@@ -128,7 +128,7 @@ def chunked(iterable: Iterable[T], size: int) -> Iterable[List[T]]:
         yield buf
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Base64 helpers (useful for fingerprint templates & label assets)
+# Base64 helpers (useful for label assets)
 # ──────────────────────────────────────────────────────────────────────────────
 
 def b64_encode(data: bytes) -> str:

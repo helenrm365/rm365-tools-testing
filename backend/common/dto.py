@@ -107,11 +107,6 @@ class LiveSyncResult(BaseModel):
 # ---------------------------
 # Enrollment
 # ---------------------------
-class FingerprintOut(BaseModel):
-    id: int
-    name: str
-    created_at: Optional[str] = None
-
 class EmployeeOut(BaseModel):
     id: int
     name: str
@@ -119,8 +114,6 @@ class EmployeeOut(BaseModel):
     location: Optional[str] = None
     status: Optional[str] = None
     nfc_uid: Optional[str] = None
-    has_fingerprint: Optional[bool] = None
-    fingerprints: List[FingerprintOut] = Field(default_factory=list)
 # :contentReference[oaicite:9]{index=9}
 
 
@@ -134,10 +127,6 @@ class ScanNFCResponse(Status):
     uid: Optional[str] = None  # status: 'scanned'
 # :contentReference[oaicite:11]{index=11}
 
-
-class FingerprintScanResponse(Status):
-    template_b64: Optional[str] = None  # status: 'scanned'
-# :contentReference[oaicite:12]{index=12}
 
 
 class UpdateEmployeeIn(BaseModel):

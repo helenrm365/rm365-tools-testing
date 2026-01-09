@@ -1,44 +1,31 @@
-// js/modules/attendance/automaticClocking.js - Automatic clocking with fingerprint and card support
-import { getEmployees, clockEmployee, getEmployeeTemplates } from '../../services/api/attendanceApi.js';
+// js/modules/attendance/automaticClocking.js - Automatic clocking with NFC card support
+import { getEmployees, clockEmployee } from '../../services/api/attendanceApi.js';
 import { playSuccessSound, playErrorSound, playScanSound } from '../../utils/sound.js';
 
 // ====== State Management ======
 let state = {
   employees: [],
-  fingerprintTemplates: [],
-  employeeNameToIdMap: {},
   cardUidToEmployee: {},
   isScanning: false,
   cardPollingInterval: null,
-  fingerprintPollingInterval: null,
   isProcessingCard: false,
-  isProcessingFingerprint: false,
   lastScannedUid: null,
   lastScanTime: 0,
-  lastFingerprintTime: 0,
   cardScanErrorCount: 0,
-  fingerprintScanErrorCount: 0,
   nextCardPollDelay: 500,
   scanCount: 0,
   recentScans: [],
-  cardServiceAvailable: false,
-  fingerprintServiceAvailable: false
+  cardServiceAvailable: false
 };
 
 // ====== Constants ======
 const SCAN_COOLDOWN_MS = 1000;
-const FINGERPRINT_COOLDOWN_MS = 1000;
 const MAX_RECENT_SCANS = 10;
-const MAX_CONSECUTIVE_ERRORS = 5; // After this many errors, slow down polling
+const MAX_CONSECUTIVE_ERRORS = 5;
 
 // Hardware bridge always runs on HTTPS
 const BRIDGE_PROTOCOL = 'https:';
 const BRIDGE_BASE = `${BRIDGE_PROTOCOL}//127.0.0.1:8080`;
-
-// SecuGen endpoints to probe for fingerprint scanning
-const SGI_ENDPOINTS = [
-  `${BRIDGE_BASE}/SGIFPCapture`
-];
 
 const CARD_SCAN_ENDPOINTS = [
   `${BRIDGE_BASE}/card/scan`
@@ -126,7 +113,7 @@ function updateRecentScansTable() {
             <td>${scan.employee}</td>
             <td>
               <span class="method-badge">
-                ${scan.method === 'fingerprint' ? '👆 Fingerprint' : '💳 Card'}
+                💳 Card
               </span>
             </td>
             <td>
@@ -146,23 +133,6 @@ function updateRecentScansTable() {
 }
 
 function updateHardwareStatus() {
-  // Update fingerprint status
-  const fpStatusEl = $('#fingerprintStatus');
-  if (fpStatusEl) {
-    const iconEl = fpStatusEl.querySelector('i');
-    const textEl = fpStatusEl.querySelector('span');
-    
-    if (state.fingerprintServiceAvailable) {
-      if (iconEl) iconEl.className = 'fas fa-check-circle';
-      if (textEl) textEl.textContent = 'Ready';
-      fpStatusEl.style.color = '#28a745';
-    } else {
-      if (iconEl) iconEl.className = 'fas fa-exclamation-triangle';
-      if (textEl) textEl.textContent = 'Service Unavailable';
-      fpStatusEl.style.color = '#dc3545';
-    }
-  }
-  
   // Update card status
   const cardStatusEl = $('#cardStatus');
   if (cardStatusEl) {
@@ -214,23 +184,18 @@ function setStopButtonState({ disabled }) {
   }
 }
 
-
-
 async function checkBridgeHealth() {
   try {
     const response = await fetch(`${BRIDGE_BASE}/health`);
-    if (!response.ok) return { fingerprint: false, card: false };
+    if (!response.ok) return { card: false };
     const data = await response.json();
     return {
-      fingerprint: data.fingerprint_available === true,
-      card: data.nfc_available === true  // Updated from card_available to nfc_available
+      card: data.nfc_available === true
     };
   } catch (e) {
-    return { fingerprint: false, card: false };
+    return { card: false };
   }
 }
-
-
 
 async function evaluateHardwareStatus({ showSpinner = false } = {}) {
   if (showSpinner) {
@@ -238,60 +203,40 @@ async function evaluateHardwareStatus({ showSpinner = false } = {}) {
   }
 
   const status = await checkBridgeHealth();
-  const fingerprintReady = status.fingerprint;
   const cardReady = status.card;
 
-  state.fingerprintServiceAvailable = fingerprintReady;
   state.cardServiceAvailable = cardReady;
   updateHardwareStatus();
 
-  const missing = [];
-  if (!fingerprintReady) missing.push('fingerprint scanner');
-  if (!cardReady) missing.push('card reader');
-  const availableCount = 2 - missing.length;
-
-  if (availableCount === 0) {
-    setStartButtonState({ disabled: true, label: 'Connect scanners to start' });
+  if (!cardReady) {
+    setStartButtonState({ disabled: true, label: 'Connect reader to start' });
     setStopButtonState({ disabled: true });
-    setScannerDisplayState('Hardware Required', 'Connect at least one fingerprint or card device to begin scanning.', false);
-    updateStatus('No scanners detected. Please connect a fingerprint scanner or card reader.', 'warning');
+    setScannerDisplayState('Hardware Required', 'Connect card reader to begin scanning.', false);
+    updateStatus('No card reader detected. Please connect card reader.', 'warning');
     return false;
   }
 
   setStartButtonState({ disabled: false, label: 'Start Scanning' });
   setStopButtonState({ disabled: true });
 
-  if (availableCount === 2) {
-    setScannerDisplayState('Awaiting Start', 'Press Start Scanning once both scanners are connected.', false);
-    updateStatus('Both scanners detected. Press Start Scanning to begin.', 'info');
-  } else {
-    const online = fingerprintReady ? 'Fingerprint scanner online; card reader offline.' : 'Card reader online; fingerprint scanner offline.';
-    setScannerDisplayState('Partial hardware ready', `${online} Scanning will continue with the available method.`, false);
-    updateStatus(`Partial availability: ${online}`, 'warning');
-  }
-
+  setScannerDisplayState('Awaiting Start', 'Press Start Scanning to begin.', false);
+  updateStatus('Card reader detected. Press Start Scanning to begin.', 'info');
   return true;
 }
 
 // ====== Employee Data Loading ======
 async function loadEmployees() {
   try {
-    const [employees, templates] = await Promise.all([
-      getEmployees(),
-      getEmployeeTemplates()
-    ]);
+    const employees = await getEmployees();
     
     // Handle cases where API returns wrapped data
     state.employees = Array.isArray(employees) ? employees : (employees?.employees || []);
-    state.fingerprintTemplates = Array.isArray(templates) ? templates : (templates?.templates || []);
     
     // Reset mapping objects
-    state.employeeNameToIdMap = {};
     state.cardUidToEmployee = {};
 
     // Build lookup maps
     state.employees.forEach(emp => {
-      state.employeeNameToIdMap[emp.name] = emp.id;
       if (emp.nfc_uid) {
         state.cardUidToEmployee[emp.nfc_uid.toUpperCase()] = emp;
       }
@@ -299,189 +244,6 @@ async function loadEmployees() {
   } catch (error) {
     console.error('Failed to load employees:', error);
     updateStatus('Failed to load employees', 'error');
-  }
-}
-
-// ====== Fingerprint Scanning ======
-async function captureFingerprint(timeoutMs = 1000) {
-  const payload = { 
-    Timeout: 500, 
-    TemplateFormat: 'ANSI', 
-    FakeDetection: 1 
-  };
-  
-  const abortController = new AbortController();
-  const timeout = setTimeout(() => abortController.abort(), timeoutMs);
-
-  const promises = SGI_ENDPOINTS.map(url => (async () => {
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-        signal: abortController.signal,
-        cache: 'no-store',
-        keepalive: false, // Prevent connection pooling interference with main API
-        mode: 'cors',
-        credentials: 'omit'
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status} @ ${url}`);
-      }
-      
-      const data = await response.json();
-      data.__endpoint = url;
-      return data;
-    } catch (e) {
-      throw e;
-    }
-  })());
-
-  try {
-    return await Promise.any(promises);
-  } finally {
-    clearTimeout(timeout);
-    abortController.abort(); // Ensure all other requests are cancelled
-  }
-}
-
-async function pollFingerprint() {
-  if (state.isProcessingFingerprint || !state.isScanning) return;
-
-  try {
-    const data = await captureFingerprint(1000);
-
-    // Reset error count on successful connection
-    state.fingerprintScanErrorCount = 0;
-    state.fingerprintServiceAvailable = true;
-    updateHardwareStatus();
-
-    // No finger detected or timeout (ErrorCode 54)
-    if (!data || typeof data.ErrorCode !== 'number') return;
-    if (data.ErrorCode === 54) return;
-
-    // Handle local errors
-    if (data.ErrorCode !== 0) {
-      if (data.ErrorCode === 10004) {
-        console.warn('Fingerprint: Service access error');
-      }
-      return;
-    }
-
-    const now = Date.now();
-    if (now - state.lastFingerprintTime < FINGERPRINT_COOLDOWN_MS) return;
-    
-    state.lastFingerprintTime = now;
-    state.isProcessingFingerprint = true;
-
-    playScanSound(); // Sound feedback for scan
-    updateStatus('Fingerprint detected - matching...', 'scanning');
-
-    // Perform client-side matching via local bridge
-    let bestMatch = null;
-    let bestScore = 0;
-    const MATCH_THRESHOLD = 80;
-
-    try {
-      // Try batch matching first (much faster)
-      const candidates = state.fingerprintTemplates.map(t => ({
-        id: String(t.id),
-        template_b64: t.template_b64,
-        name: t.name
-      }));
-
-      const matchResponse = await fetch('https://127.0.0.1:8080/fingerprint/match_batch', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          probe_template_b64: data.TemplateBase64,
-          candidates: candidates,
-          threshold: MATCH_THRESHOLD
-        })
-      });
-      
-      if (matchResponse.ok) {
-        const matchData = await matchResponse.json();
-        if (matchData.status === 'success') {
-          bestScore = matchData.best_score;
-          if (matchData.matched && matchData.match) {
-             bestMatch = state.fingerprintTemplates.find(t => String(t.id) === matchData.match.id);
-          }
-        }
-      } else {
-        throw new Error('Batch matching endpoint not available');
-      }
-    } catch (e) {
-      console.warn('Batch matching failed, falling back to individual matching:', e);
-      
-      // Fallback to individual matching
-      for (const tmpl of state.fingerprintTemplates) {
-        try {
-          const matchResponse = await fetch('https://127.0.0.1:8080/fingerprint/match', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              template1_b64: data.TemplateBase64,
-              template2_b64: tmpl.template_b64
-            })
-          });
-          
-          if (!matchResponse.ok) continue;
-          const matchData = await matchResponse.json();
-          
-          // Log scores for debugging
-          if (matchData.score > 0) {
-          }
-          
-          if (matchData.status === 'success' && matchData.score > bestScore) {
-            bestScore = matchData.score;
-            bestMatch = tmpl;
-          }
-        } catch (e) {
-          console.warn('Error matching template:', e);
-        }
-      }
-    }
-
-    if (bestMatch && bestScore >= MATCH_THRESHOLD) {
-      // Clock the employee
-      const result = await clockEmployee(bestMatch.id);
-      
-      if (result?.status === 'success') {
-        playSuccessSound();
-        updateStatus(`✅ ${bestMatch.name} clocked ${result.direction || 'in'} (score: ${bestScore})`, 'info');
-        
-        state.scanCount++;
-        updateScanCount();
-        updateLastScanTime();
-        
-        addRecentScan({ name: bestMatch.name }, 'fingerprint', result.direction || 'in');
-      } else {
-        playErrorSound();
-        updateStatus(`❌ Clock failed for ${bestMatch.name}`, 'error');
-      }
-    } else {
-      playErrorSound();
-      updateStatus(`❌ No fingerprint match (Best score: ${bestScore})`, 'error');
-    }
-
-  } catch (error) {
-    // Track consecutive errors
-    state.fingerprintScanErrorCount++;
-    
-    // Only log errors periodically to avoid spam
-    if (state.fingerprintScanErrorCount === 1 || state.fingerprintScanErrorCount % 10 === 0) {
-      console.warn('Fingerprint service unavailable (attempt ' + state.fingerprintScanErrorCount + ')');
-    }
-    
-    // Update service status
-    if (state.fingerprintScanErrorCount >= MAX_CONSECUTIVE_ERRORS) {
-      state.fingerprintServiceAvailable = false;
-      updateHardwareStatus();
-    }
-  } finally {
-    state.isProcessingFingerprint = false;
   }
 }
 
@@ -621,26 +383,15 @@ async function startScanning(options = {}) {
   }
 
   const usingCard = state.cardServiceAvailable;
-  const usingFingerprint = state.fingerprintServiceAvailable;
 
-  if (!usingCard && !usingFingerprint) {
+  if (!usingCard) {
     updateStatus('No scanners available to start scanning.', 'warning');
     return;
   }
 
   state.isScanning = true;
-  const activeMessage = usingCard && usingFingerprint
-    ? 'Both methods will automatically clock employees in or out.'
-    : usingCard
-      ? 'Card reader will clock employees; fingerprint scanner offline.'
-      : 'Fingerprint scanner will clock employees; card reader offline.';
-  const scanningStatus = usingCard && usingFingerprint
-    ? 'Scanning via fingerprint and card readers...'
-    : usingCard
-      ? 'Scanning via card reader'
-      : 'Scanning via fingerprint reader';
-  updateStatus(scanningStatus, 'scanning');
-  setScannerDisplayState('Scanning Active', activeMessage, true);
+  updateStatus('Scanning via card reader', 'scanning');
+  setScannerDisplayState('Scanning Active', 'Card reader will clock employees.', true);
 
   // Start card polling with backoff-aware logic
   if (usingCard) {
@@ -659,21 +410,6 @@ async function startScanning(options = {}) {
     cardLoop();
   }
 
-  // Start fingerprint polling with dynamic interval based on errors
-  if (usingFingerprint) {
-    const fingerprintLoop = async () => {
-      try {
-        await pollFingerprint();
-      } finally {
-        if (state.isScanning && state.fingerprintServiceAvailable) {
-          const interval = state.fingerprintScanErrorCount >= MAX_CONSECUTIVE_ERRORS ? 5000 : 600;
-          state.fingerprintPollingInterval = setTimeout(fingerprintLoop, interval);
-        }
-      }
-    };
-    fingerprintLoop();
-  }
-
   setStartButtonState({ disabled: true, label: 'Scanning...' });
   setStopButtonState({ disabled: false });
 }
@@ -683,17 +419,11 @@ function stopScanning() {
 
   state.isScanning = false;
   state.isProcessingCard = false;
-  state.isProcessingFingerprint = false;
 
   // Clear intervals
   if (state.cardPollingInterval) {
     clearTimeout(state.cardPollingInterval);
     state.cardPollingInterval = null;
-  }
-  
-  if (state.fingerprintPollingInterval) {
-    clearTimeout(state.fingerprintPollingInterval);
-    state.fingerprintPollingInterval = null;
   }
 
   updateHardwareStatus();
@@ -722,23 +452,17 @@ function cleanup() {
   stopScanning();
   state = {
     employees: [],
-    employeeNameToIdMap: {},
     cardUidToEmployee: {},
     isScanning: false,
     cardPollingInterval: null,
-    fingerprintPollingInterval: null,
     isProcessingCard: false,
-    isProcessingFingerprint: false,
     lastScannedUid: null,
     lastScanTime: 0,
-    lastFingerprintTime: 0,
     cardScanErrorCount: 0,
-    fingerprintScanErrorCount: 0,
     nextCardPollDelay: 500,
     scanCount: 0,
     recentScans: [],
-    cardServiceAvailable: false,
-    fingerprintServiceAvailable: false
+    cardServiceAvailable: false
   };
 }
 

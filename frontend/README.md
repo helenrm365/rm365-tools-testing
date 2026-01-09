@@ -303,15 +303,7 @@ emit('inventory:editing', {
 Connect to local hardware bridge:
 
 ```javascript
-import { getFingerprint, readRFID } from './services/hardware.js';
-
-// Read fingerprint
-try {
-  const fingerprint = await getFingerprint();
-  console.log('Fingerprint captured:', fingerprint);
-} catch (error) {
-  showError('Fingerprint reader not connected');
-}
+import { readRFID } from './services/hardware.js';
 
 // Read RFID card
 const cardNumber = await readRFID();

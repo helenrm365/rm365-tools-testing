@@ -133,18 +133,11 @@ html.dark-mode .welcome-box h3 {
   }
 }
 
-/* Status Indicators (for card and fingerprint pages) */
-#cardStatus,
-#fpStatus {
+/* Status Indicators (for card page) */
+#cardStatus {
   font-family: 'Fira Code', monospace;
   font-size: 0.9rem;
   line-height: 1.4;
-}
-
-/* Fingerprint Preview */
-#fingerprintPreview {
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 /* Toolbar */
@@ -159,8 +152,7 @@ html.dark-mode .welcome-box h3 {
   /* Enrollment Page Padding */
   .enrollment-home,
   .enrollment-management,
-  .enrollment-card,
-  .enrollment-fingerprint {
+  .enrollment-card {
     padding: 0.5rem;
   }
 
@@ -393,21 +385,4 @@ html.dark-mode .dropdown-container .dropdown-item.selected {
     padding-bottom: 0;
 }
 
-/* ===== Status Indicator (for JS-generated fingerprint status in management) ===== */
-.status-indicator {
-    display: inline-block;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    margin-right: 0.5rem;
-}
 
-.status-indicator.active {
-    background: #27ae60;
-    box-shadow: 0 0 0 3px rgba(39, 174, 96, 0.3);
-}
-
-.status-indicator.inactive {
-    background: #e74c3c;
-    box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.3);
-}

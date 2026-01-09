@@ -4,8 +4,7 @@ import { getReaderStatus, configureReader, processReaderEvent } from '../../serv
 let state = {
   readerConnected: false,
   readerConfig: {
-    cardReader: { enabled: false, device: 'default' },
-    fingerprintReader: { enabled: false, device: 'default' }
+    cardReader: { enabled: false, device: 'default' }
   },
   pollingInterval: null
 };
@@ -15,14 +14,13 @@ function $(sel) { return document.querySelector(sel); }
 function updateConnectionStatus() {
   const statusDiv = $('#readerStatus');
   const cardStatus = $('#cardReaderStatus');
-  const fingerprintStatus = $('#fingerprintReaderStatus');
   
   if (state.readerConnected) {
     statusDiv.className = 'status-box connected';
     statusDiv.innerHTML = `
       <div class="status-indicator connected"></div>
       <div>
-        <div class="status-title">Readers Connected</div>
+        <div class="status-title">Reader Connected</div>
         <div class="status-subtitle">Ready for automatic clocking</div>
       </div>
     `;
@@ -31,8 +29,8 @@ function updateConnectionStatus() {
     statusDiv.innerHTML = `
       <div class="status-indicator disconnected"></div>
       <div>
-        <div class="status-title">Readers Disconnected</div>
-        <div class="status-subtitle">Check device connections</div>
+        <div class="status-title">Reader Disconnected</div>
+        <div class="status-subtitle">Check device connection</div>
       </div>
     `;
   }
@@ -42,14 +40,6 @@ function updateConnectionStatus() {
       <h4>💳 Card Reader</h4>
       <p>Status: ${state.readerConfig.cardReader.enabled ? 'Active' : 'Disabled'}</p>
       <p>Device: ${state.readerConfig.cardReader.device}</p>
-    </div>
-  `;
-  
-  fingerprintStatus.innerHTML = `
-    <div class="reader-status ${state.readerConfig.fingerprintReader.enabled ? 'enabled' : 'disabled'}">
-      <h4>👆 Fingerprint Reader</h4>
-      <p>Status: ${state.readerConfig.fingerprintReader.enabled ? 'Active' : 'Disabled'}</p>
-      <p>Device: ${state.readerConfig.fingerprintReader.device}</p>
     </div>
   `;
 }
@@ -72,12 +62,9 @@ async function checkReaderStatus() {
 async function configureReaders() {
   const cardEnabled = $('#cardReaderEnabled').checked;
   const cardDevice = $('#cardReaderDevice').value;
-  const fingerprintEnabled = $('#fingerprintReaderEnabled').checked;
-  const fingerprintDevice = $('#fingerprintReaderDevice').value;
 
   const config = {
-    cardReader: { enabled: cardEnabled, device: cardDevice },
-    fingerprintReader: { enabled: fingerprintEnabled, device: fingerprintDevice }
+    cardReader: { enabled: cardEnabled, device: cardDevice }
   };
 
   const btn = $('#saveConfigBtn');
@@ -174,8 +161,7 @@ function stopPolling() {
 function populateConfigForm() {
   $('#cardReaderEnabled').checked = state.readerConfig.cardReader.enabled;
   $('#cardReaderDevice').value = state.readerConfig.cardReader.device;
-  $('#fingerprintReaderEnabled').checked = state.readerConfig.fingerprintReader.enabled;
-  $('#fingerprintReaderDevice').value = state.readerConfig.fingerprintReader.device;
+
 }
 
 function notify(msg, isErr = false) {
