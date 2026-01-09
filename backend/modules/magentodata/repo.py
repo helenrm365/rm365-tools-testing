@@ -1643,6 +1643,7 @@ class MagentoDataRepo:
 
                 # Apply date rules
                 date_rule_applied = False
+                should_skip_row = False
                 qty_to_use = qty or 0
                 
                 if order_date and date_rules:
@@ -1665,10 +1666,10 @@ class MagentoDataRepo:
                                 
                                 if action == 'exclude':
                                     filtered_count += 1
-                                    qty_to_use = 0 # Will be skipped below if user wants hard exclude, but let's just make it equivalent for now or verify logic
-                                    # Wait, existing logic uses `continue` for hard exclude
-                                    # Let's align
-                                    continue # Skip this row entirely
+                                    qty_to_use = 0
+                                    should_skip_row = True
+                                    date_rule_applied = True
+                                    break 
                                 
                                 elif action == 'divide' and value:
                                     qty_to_use = qty_to_use / value
@@ -1682,8 +1683,8 @@ class MagentoDataRepo:
                         except Exception as e:
                             logger.error(f"Error checking date rule: {e}")
 
-                # If date rule was applied and it resulted in exclusion (continue loop above), code won't reach here
-                # If date rule applied logic modification, we should skip smart quantity rules below as per requirement
+                if should_skip_row:
+                    continue
                 
                 if not date_rule_applied:
                     # Apply smart qty rules (only first matching rule - cutoff behavior)

@@ -967,13 +967,21 @@ function displaySearchResults(region, customers) {
     const resultsContainer = document.getElementById(`search-results-${region}`);
     if (!resultsContainer) return;
     
-    if (customers.length === 0) {
+    // Filter out customers that are already excluded or pending exclusion
+    const currentlyExcludedEmails = [
+        ...excludedCustomers.filter(c => !pendingCustomerRemoves.includes(c.id)).map(c => c.customer_email),
+        ...pendingCustomerAdds.map(c => c.email)
+    ];
+    
+    const filteredCustomers = customers.filter(customer => !currentlyExcludedEmails.includes(customer.email));
+    
+    if (filteredCustomers.length === 0) {
         resultsContainer.innerHTML = '<div class="customer-search-no-results">No customers found</div>';
         resultsContainer.classList.add('visible');
         return;
     }
     
-    resultsContainer.innerHTML = customers.map(customer => `
+    resultsContainer.innerHTML = filteredCustomers.map(customer => `
         <div class="customer-search-result-item" data-email="${escapeHtml(customer.email)}" data-name="${escapeHtml(customer.full_name || '')}">
             <div class="customer-result-email">${escapeHtml(customer.email)}</div>
             ${customer.full_name ? `<div class="customer-result-name">${escapeHtml(customer.full_name)}</div>` : ''}
@@ -1217,6 +1225,9 @@ function displayExcludedCustomerGroups() {
     // Update count
     countDisplay.textContent = `${displayGroups.length} group${displayGroups.length !== 1 ? 's' : ''} excluded`;
     
+    // Update dropdown to exclude already-excluded groups
+    updateCustomerGroupDropdown();
+    
     if (displayGroups.length === 0) {
         listContainer.innerHTML = '<div class="excluded-groups-empty">No customer groups excluded yet</div>';
         return;
@@ -1273,6 +1284,38 @@ function displayExcludedCustomerGroups() {
             }
         });
     });
+}
+
+/**
+ * Update customer group dropdown to exclude already-excluded groups
+ */
+function updateCustomerGroupDropdown() {
+    if (!currentRegion) return;
+    
+    const select = document.getElementById(`customer-group-select-${currentRegion}`);
+    if (!select) return;
+    
+    // Get all currently excluded groups (including pending adds)
+    const currentlyExcluded = [
+        ...excludedCustomerGroups.filter(g => !pendingGroupRemoves.includes(g.id)).map(g => g.customer_group),
+        ...pendingGroupAdds
+    ];
+    
+    // Filter available groups to exclude already-excluded ones
+    const filteredGroups = availableCustomerGroups.filter(group => !currentlyExcluded.includes(group));
+    
+    select.innerHTML = '<option value="">Select a customer group to exclude...</option>';
+    filteredGroups.forEach(group => {
+        const option = document.createElement('option');
+        option.value = group;
+        option.textContent = group;
+        select.appendChild(option);
+    });
+    
+    // Show message if all groups are excluded
+    if (filteredGroups.length === 0 && availableCustomerGroups.length > 0) {
+        select.innerHTML = '<option value="">All customer groups are already excluded</option>';
+    }
 }
 
 /**
