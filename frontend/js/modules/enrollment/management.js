@@ -522,8 +522,55 @@ function notify(msg, isErr = false) {
 }
 
 export async function refresh() {
-  const data = await getEmployees();
-  state.employees = Array.isArray(data) ? data : [];
+  let useSampleData = false;
+  
+  try {
+    const data = await getEmployees();
+    
+    // Check if we got valid data
+    if (!data || (Array.isArray(data) && data.length === 0)) {
+      console.warn('[Enrollment] No employees found or connection issue');
+      useSampleData = true;
+    } else {
+      state.employees = Array.isArray(data) ? data : [];
+    }
+  } catch (error) {
+    console.error('[Enrollment] Failed to load employees:', error);
+    useSampleData = true;
+  }
+  
+  // Use sample data if needed
+  if (useSampleData) {
+    notify('⚠️ Connection failed - Using sample data', true);
+    
+    state.employees = [
+      {
+        id: 1,
+        name: 'Sample Employee 1',
+        employee_code: 'EMP001',
+        location: 'UK',
+        status: 'active',
+        nfc_uid: 'SAMPLE001'
+      },
+      {
+        id: 2,
+        name: 'Sample Employee 2',
+        employee_code: 'EMP002',
+        location: 'FR',
+        status: 'active',
+        nfc_uid: 'SAMPLE002'
+      },
+      {
+        id: 3,
+        name: 'Sample Employee 3 (Inactive)',
+        employee_code: 'EMP003',
+        location: 'UK',
+        status: 'inactive',
+        nfc_uid: ''
+      }
+    ];
+  }
+  
   renderTable();
 }
 

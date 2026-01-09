@@ -338,8 +338,63 @@ async function loadProducts(isBackground = false) {
       showMagentoDataInitError();
     } else {
       // Show generic error toast
-      showToast('Failed to load products: ' + errorMessage, 'error');
+      showToast('Connection failed - Using sample data', 'error');
     }
+    
+    // Fallback: Use sample data for testing
+    state.allProducts = [
+      {
+        sku: 'SAMPLE001',
+        product_name: 'Sample Product 1',
+        uk_6m_data: 150,
+        fr_6m_data: 85,
+        uk_price: '29.99',
+        fr_price: '34.99',
+        discontinued_status: 'Active',
+        categories: 'Sample Category'
+      },
+      {
+        sku: 'SAMPLE002',
+        product_name: 'Sample Product 2',
+        uk_6m_data: 220,
+        fr_6m_data: 120,
+        uk_price: '19.99',
+        fr_price: '22.99',
+        discontinued_status: 'Active',
+        categories: 'Sample Category'
+      },
+      {
+        sku: 'SAMPLE003',
+        product_name: 'Sample Product 3 (Discontinued)',
+        uk_6m_data: 45,
+        fr_6m_data: 20,
+        uk_price: '15.99',
+        fr_price: '18.99',
+        discontinued_status: 'Discontinued (RM)',
+        categories: 'Sample Category'
+      }
+    ];
+    state.filteredProducts = [...state.allProducts];
+    
+    // Re-apply search filter if exists
+    const searchInput = document.querySelector('#productSearchInput');
+    if (searchInput && searchInput.value.trim()) {
+      handleSearch({ target: searchInput });
+    } else {
+      state.displayedProducts = [...state.filteredProducts];
+    }
+    
+    // Clear selections when loading fails
+    state.selectedProducts.clear();
+    
+    // Ensure select all checkbox is unchecked
+    const selectAllCheckbox = document.querySelector('#selectAllCheckbox');
+    if (selectAllCheckbox) {
+      selectAllCheckbox.checked = false;
+    }
+    
+    renderProductTable();
+    updateStats();
   }
 }
 
@@ -1202,9 +1257,31 @@ async function loadPresets() {
     renderPresetList();
   } catch (error) {
     console.error('[Presets] Failed to load:', error);
-    // Don't show error toast - table might not exist yet on first load
-    // Just initialize with empty presets
-    presets = [];
+    // Fallback: Use sample presets for testing
+    const userData = getUserData();
+    const username = userData?.username || 'sample_user';
+    presets = [
+      {
+        id: 1,
+        name: 'Sample Preset - Active Products',
+        description: 'Sample preset showing active products only',
+        created_by: username,
+        created_at: new Date().toISOString(),
+        status_filters: ['Active'],
+        region: 'uk',
+        product_skus: ['SAMPLE001', 'SAMPLE002']
+      },
+      {
+        id: 2,
+        name: 'Sample Preset - All Products',
+        description: 'Sample preset with all sample products',
+        created_by: username,
+        created_at: new Date().toISOString(),
+        status_filters: DEFAULT_STATUS_FILTERS,
+        region: 'uk',
+        product_skus: ['SAMPLE001', 'SAMPLE002', 'SAMPLE003']
+      }
+    ];
     renderPresetList();
   }
 }
