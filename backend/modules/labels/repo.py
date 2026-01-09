@@ -236,8 +236,7 @@ class LabelsRepo:
         """
         Return { sku: product_name } with the most recent product name from magento data.
         Prioritizes preferred region, then falls back to other regions.
-        If no name found in orders_cache, falls back to Magento catalog.
-        Queries each table separately to avoid timeout issues.
+        Queries HISTORY from orders_cache tables.
         
         Args:
             conn: Database connection to products database (for orders_cache)
@@ -288,32 +287,18 @@ class LabelsRepo:
                     logger.debug(f"Could not fetch names from {table_name}: {e}")
                     continue
         
-        # Fallback: Load names from Magento catalog for SKUs not found in orders_cache
-        skus_without_names = [sku for sku in skus if sku not in names]
-        if skus_without_names:
-            logger.info(f"Loading names from Magento catalog for {len(skus_without_names)} SKUs not found in orders_cache: {skus_without_names[:10]}")
-            magento_names = self._load_product_names_from_magento(skus_without_names)
-            logger.info(f"Magento catalog returned {len(magento_names)} names")
-            names.update(magento_names)
-        
-        logger.info(f"Loaded names for {len(names)}/{len(skus)} SKUs (from orders_cache + Magento fallback)")
-        if len(names) < len(skus):
-            missing = [sku for sku in skus if sku not in names]
-            logger.warning(f"Still missing names for {len(missing)} SKUs: {missing[:10]}")
+        logger.info(f"Loaded names for {len(names)}/{len(skus)} SKUs (from orders_cache)")
         
         return names
     
-    def _load_product_names_from_magento(self, skus: List[str]) -> Dict[str, str]:
+    def _load_product_names_from_magento(self, skus: List[str], region: str = "uk") -> Dict[str, str]:
         """
-        Load product names directly from UK Magento catalog as a fallback.
-        Used when products don't have names in orders_cache (i.e., never been ordered).
-        
-        For base SKUs that don't exist in Magento (because they were merged from variants),
-        searches for variants and uses their names, trimming " - Special Offer" if present.
+        Load product names directly from Magento catalog.
         
         Args:
             skus: List of base SKUs to get names for
-        
+            region: Magento region to query (uk, fr, nl)
+            
         Returns:
             Dict mapping SKU to product name from Magento catalog
         """
@@ -323,7 +308,7 @@ class LabelsRepo:
         names = {}
         
         try:
-            conn = get_magento_connection("uk")
+            conn = get_magento_connection(region)
             with conn.cursor() as cur:
                 # First, try exact base SKU matches
                 cur.execute("""
@@ -355,7 +340,7 @@ class LabelsRepo:
                     if name and sku:
                         names[sku] = name
                 
-                logger.info(f"Found {len(names)} exact base SKU matches in Magento")
+                logger.info(f"Found {len(names)} exact base SKU matches in Magento ({region})")
                 
                 # For missing base SKUs, search for their variants
                 still_missing = [sku for sku in skus if sku not in names]
@@ -408,9 +393,9 @@ class LabelsRepo:
                     
                     logger.info(f"Found {len([s for s in still_missing if s in names])} names from variants")
             
-            logger.info(f"Total: Loaded {len(names)}/{len(skus)} product names from Magento catalog")
+            logger.info(f"Total: Loaded {len(names)}/{len(skus)} product names from Magento catalog ({region})")
         except Exception as e:
-            logger.error(f"Failed to load names from Magento catalog: {e}", exc_info=True)
+            logger.error(f"Failed to load names from Magento catalog ({region}): {e}")
         
         return names
 
@@ -486,12 +471,34 @@ class LabelsRepo:
             prices = self._load_latest_prices_psycopg(prod_conn, all_skus, preferred_region)
             logger.info(f"Loaded prices for {len(prices)} SKUs (region: {preferred_region})")
         
-        # Load product names from magento data with region preference
-        with products_conn() as prod_conn:
-            sales_names = self._load_product_names_psycopg(prod_conn, all_skus, preferred_region)
-            logger.info(f"Loaded names for {len(sales_names)} SKUs (region: {preferred_region})")
-
-        # Build rows, filtering out orphaned SKUs (not in Magento) unless show_orphaned=True
+        # Load product names
+        # Stratgy: Catalog (Live) -> History (Cache) -> Catalog (UK Fallback if region != uk)
+        
+        # 1. Try Live Magento Catalog (for preferred region)
+        sales_names = self._load_product_names_from_magento(all_skus, region=preferred_region)
+        
+        # 2. Try History (Orders Cache) for missing
+        skus_missing_names = [sku for sku in all_skus if sku not in sales_names]
+        if skus_missing_names:
+            with products_conn() as prod_conn:
+                history_names = self._load_product_names_psycopg(prod_conn, skus_missing_names, preferred_region)
+                sales_names.update(history_names)
+        
+        # 3. Fallback: Try UK Catalog if preferred region was not UK (and still missing)
+        # This covers cases where product exists in UK catalog but not FR/NL catalog or history
+        if preferred_region != "uk":
+            skus_missing_names = [sku for sku in all_skus if sku not in sales_names]
+            if skus_missing_names:
+                logger.info(f"Fallback: Checking UK catalog for {len(skus_missing_names)} missing names")
+                uk_catalog_names = self._load_product_names_from_magento(skus_missing_names, region="uk")
+                sales_names.update(uk_catalog_names)
+        
+        logger.info(f"Loaded names for {len(sales_names)} SKUs (region: {preferred_region})")
+        
+        if len(sales_names) < len(all_skus):
+            missing = [sku for sku in all_skus if sku not in sales_names]
+            logger.warning(f"Still missing names for {len(missing)} SKUs: {missing[:10]}")
+        
         out: List[Dict[str, Any]] = []
         skipped_orphaned = 0
         for base, (item_id, sku_used) in resolved.items():

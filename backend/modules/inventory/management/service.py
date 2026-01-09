@@ -171,7 +171,23 @@ class InventoryManagementService:
                     'variant_statuses': meta_product['variant_statuses']
                 })
             
-            # Fallback: Load names from Magento catalog for SKUs without names
+            # Fallback 1: Try to get names from orders_cache (historical data)
+            # This handles products deleted from Magento but present in history (fixes orphan discrepancy)
+            if skus_without_names:
+                logger.info(f"Loading names from orders_cache or {len(skus_without_names)} SKUs without names")
+                cache_names = self.repo.get_names_from_orders_cache(skus_without_names)
+                
+                if cache_names:
+                    logger.info(f"Found {len(cache_names)} names in orders_cache")
+                    # Update products
+                    for product in all_products:
+                        if not product['name'] and product['sku'] in cache_names:
+                            product['name'] = cache_names[product['sku']]
+                    
+                    # Re-calculate missing names
+                    skus_without_names = [sku for sku in skus_without_names if sku not in cache_names]
+
+            # Fallback 2: Load names from Magento catalog for remaining SKUs without names
             if skus_without_names:
                 logger.info(f"Loading names from Magento catalog for {len(skus_without_names)} SKUs without names")
                 magento_catalog_names = self.repo.get_magento_catalog_names(skus_without_names)

@@ -994,6 +994,48 @@ class InventoryManagementRepo:
             if 'conn' in locals() and conn.open:
                 conn.close()
 
+    def get_names_from_orders_cache(self, skus: List[str]) -> Dict[str, str]:
+        """
+        Load product names from orders_cache tables.
+        Useful for products deleted from Magento but present in historical orders.
+        Checks uk_orders_cache, fr_orders_cache, and nl_orders_cache.
+        """
+        if not skus:
+            return {}
+        
+        names = {}
+        # Check tables in order of preference
+        tables = ['uk_orders_cache', 'fr_orders_cache', 'nl_orders_cache']
+        
+        conn = get_products_connection()
+        try:
+            with conn.cursor() as cur:
+                for table in tables:
+                    try:
+                        cur.execute(f"""
+                            SELECT DISTINCT ON (sku) sku, name 
+                            FROM {table}
+                            WHERE sku = ANY(%s) AND name IS NOT NULL AND name != ''
+                            ORDER BY sku, created_at DESC
+                        """, (skus,))
+                        
+                        for row in cur.fetchall():
+                            sku = str(row[0]).strip()
+                            name = str(row[1]).strip()
+                            if sku not in names:
+                                names[sku] = name
+                    except Exception as e:
+                        logger.warning(f"Failed to query {table} for names: {e}")
+                        continue
+                        
+            logger.info(f"Loaded {len(names)} names from orders_cache for {len(skus)} requested SKUs")
+        except Exception as e:
+            logger.error(f"Error fetching names from orders_cache: {e}")
+        finally:
+            return_products_connection(conn)
+            
+        return names
+
     def get_magento_catalog_names(self, skus: List[str]) -> Dict[str, str]:
         """
         Load product names directly from UK Magento catalog for SKUs.
