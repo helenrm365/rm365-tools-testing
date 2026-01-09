@@ -26,6 +26,6 @@ class BulkDeleteIn(BaseModel):
 
 # Outputs (use common/dto for shapes the frontend already expects)
 from common.dto import (
-    EmployeeOut, EnrollResponse, ScanNFCResponse, FingerprintScanResponse,
+    EmployeeOut, EnrollResponse, ScanNFCResponse,
     BulkDeleteResult
 )
