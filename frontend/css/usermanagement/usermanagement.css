@@ -404,7 +404,7 @@ html.dark-mode .modern-table .in {
 }
 
 html.dark-mode {
-  --tab-bg: #2d2d2d;
+  --tab-bg: #161616;
   --tab-bg-hover: #2d2d2d;
   --primary-color: #8bc34a;
   --text-color: #e0e0e0;

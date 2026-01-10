@@ -5,6 +5,11 @@ export async function init(path) {
     await mod.init();
     return;
   }
+  if (path.startsWith('/enrollment/management-depth-test')) {
+    const mod = await import('./management-depth-test.js');
+    await mod.init();
+    return;
+  }
   if (path === '/enrollment/card' || path === '/enrollment/nfc') {
     const mod = await import('./nfc.js');
     await mod.init();

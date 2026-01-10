@@ -48,7 +48,7 @@ body:not(.dark-mode) {
 
 /* === Dark Mode === */
 html.dark-mode {
-    --popup-bg: #1a1a1a;
+    --popup-bg: #161616;
     --popup-text: #ffffff;
 }
 

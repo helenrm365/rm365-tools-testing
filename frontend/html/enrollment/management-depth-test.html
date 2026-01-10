@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Employee Management - Depth Theme</title>
+  <link rel="stylesheet" href="../../css/enrollment/management-depth-test.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Font Options - Load all for testing -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Roboto:wght@400;500;700&family=Open+Sans:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="enrollment-management">
+    <!-- Header -->
+    <header class="page-header">
+      <div class="header-content">
+        <h1 class="page-title">Employee Management</h1>
+        <button id="openGuideBtn" class="help-button" aria-label="Open Management Guide">
+          <i class="fas fa-question-circle"></i>
+          <span>Help</span>
+        </button>
+      </div>
+      <p class="page-subtitle">Manage your team members, cards, and access credentials with beautiful depth</p>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="inner-tabs">
+      <button class="tab-button active">
+        <i class="fas fa-users"></i>
+        <span>Management</span>
+      </button>
+      <button class="tab-button">
+        <i class="fas fa-id-card"></i>
+        <span>Card</span>
+      </button>
+      <button class="tab-button">
+        <i class="fas fa-qrcode"></i>
+        <span>NFC</span>
+      </button>
+    </nav>
+
+    <!-- Depth Shadow Examples -->
+    <section class="shadows">
+      <div class="shadow-none">
+        <h2>Level 0</h2>
+        <p>No shadow</p>
+        <small>Base cards</small>
+      </div>
+      <div class="shadow-s">
+        <h2>Level 1</h2>
+        <p>Small shadow</p>
+        <small>Subtle elevation</small>
+      </div>
+      <div class="shadow-m">
+        <h2>Level 2</h2>
+        <p>Medium shadow</p>
+        <small>Standard cards</small>
+      </div>
+      <div class="shadow-l">
+        <h2>Level 3</h2>
+        <p>Large shadow</p>
+        <small>Emphasized elements</small>
+      </div>
+    </section>
+
+    <!-- Main Content with Applied Shadows -->
+    <div class="management-wrapper">
+      <!-- Primary Management Card -->
+      <div class="management-card shadow-m">
+        <!-- Toolbar Actions Block -->
+        <div class="action-block shadow-s">
+          <div class="block-header">
+            <div class="block-icon">
+              <i class="fas fa-users-cog"></i>
+            </div>
+            <div class="block-title-group">
+              <h3 class="block-title">Employee Actions</h3>
+              <p class="block-subtitle">Create or manage team members</p>
+            </div>
+          </div>
+
+          <div class="block-content">
+            <div class="action-buttons-grid">
+              <button class="action-btn primary-btn">
+                <i class="fas fa-user-plus"></i>
+                <span>New Employee</span>
+              </button>
+              <button class="action-btn danger-btn">
+                <i class="fas fa-trash-alt"></i>
+                <span>Delete Selected</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Search & Filter Block -->
+        <div class="action-block shadow-s">
+          <div class="block-header">
+            <div class="block-icon">
+              <i class="fas fa-filter"></i>
+            </div>
+            <div class="block-title-group">
+              <h3 class="block-title">Search & Filter</h3>
+              <p class="block-subtitle">Find specific employees</p>
+            </div>
+          </div>
+
+          <div class="block-content">
+            <div class="search-box">
+              <i class="fas fa-search search-icon"></i>
+              <input type="text" class="search-input" placeholder="Search by name or code...">
+            </div>
+
+            <div class="filter-controls">
+              <div class="filter-item">
+                <label class="filter-label">
+                  <i class="fas fa-toggle-on"></i>
+                  <span>Status</span>
+                </label>
+                <div class="custom-dropdown" id="status-dropdown">
+                  <div class="dropdown-selected" onclick="toggleDropdown('status-dropdown')">All Status</div>
+                  <div class="dropdown-options">
+                    <div class="dropdown-option selected" onclick="selectOption(this, 'status-dropdown', '', 'All Status')">All Status</div>
+                    <div class="dropdown-option" onclick="selectOption(this, 'status-dropdown', 'active', 'Active')">Active</div>
+                    <div class="dropdown-option" onclick="selectOption(this, 'status-dropdown', 'inactive', 'Inactive')">Inactive</div>
+                  </div>
+                  <input type="hidden" name="status" value="">
+                </div>
+              </div>
+
+              <div class="filter-item">
+                <label class="filter-label">
+                  <i class="fas fa-map-marker-alt"></i>
+                  <span>Location</span>
+                </label>
+                <div class="custom-dropdown" id="location-dropdown">
+                  <div class="dropdown-selected" onclick="toggleDropdown('location-dropdown')">All Locations</div>
+                  <div class="dropdown-options">
+                    <div class="dropdown-option selected" onclick="selectOption(this, 'location-dropdown', '', 'All Locations')">All Locations</div>
+                    <div class="dropdown-option" onclick="selectOption(this, 'location-dropdown', 'UK', 'UK')">UK</div>
+                    <div class="dropdown-option" onclick="selectOption(this, 'location-dropdown', 'FR', 'France')">France</div>
+                  </div>
+                  <input type="hidden" name="location" value="">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Employee Grid Block -->
+        <div class="action-block shadow-s">
+          <div class="block-header">
+            <div class="block-icon">
+              <i class="fas fa-users"></i>
+            </div>
+            <div class="block-title-group">
+              <h3 class="block-title">Team Members</h3>
+              <p class="block-subtitle">12 active employees</p>
+            </div>
+          </div>
+
+          <div class="block-content">
+            <div class="employee-grid">
+              <!-- Sample Employee Cards -->
+              <div class="employee-card shadow-s">
+                <label class="card-checkbox">
+                  <input type="checkbox" name="employee-select" value="EMP001">
+                  <span class="checkbox-custom"></span>
+                </label>
+                <div class="employee-avatar">
+                  <i class="fas fa-user"></i>
+                </div>
+                <div class="employee-info">
+                  <h4>John Smith</h4>
+                  <p>EMP001</p>
+                  <span class="status-badge active">Active</span>
+                </div>
+              </div>
+              
+              <div class="employee-card shadow-s">
+                <label class="card-checkbox">
+                  <input type="checkbox" name="employee-select" value="EMP002">
+                  <span class="checkbox-custom"></span>
+                </label>
+                <div class="employee-avatar">
+                  <i class="fas fa-user"></i>
+                </div>
+                <div class="employee-info">
+                  <h4>Sarah Johnson</h4>
+                  <p>EMP002</p>
+                  <span class="status-badge active">Active</span>
+                </div>
+              </div>
+
+              <div class="employee-card shadow-s">
+                <label class="card-checkbox">
+                  <input type="checkbox" name="employee-select" value="EMP003">
+                  <span class="checkbox-custom"></span>
+                </label>
+                <div class="employee-avatar">
+                  <i class="fas fa-user"></i>
+                </div>
+                <div class="employee-info">
+                  <h4>Mike Wilson</h4>
+                  <p>EMP003</p>
+                  <span class="status-badge inactive">Inactive</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Management Guide Modal -->
+  <div id="guideModal" class="guide-modal">
+    <div class="guide-modal-overlay"></div>
+    <div class="guide-modal-content shadow-l">
+      <div class="instructions-header">
+        <div class="instructions-icon">
+          <i class="fas fa-info-circle"></i>
+        </div>
+        <h3 class="instructions-title">Management Guide</h3>
+        <button id="closeGuideBtn" class="modal-close-btn" aria-label="Close">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="steps-list">
+        <div class="step-item">
+          <div class="step-number">1</div>
+          <div class="step-info">
+            <h4 class="step-name">Create Employee</h4>
+            <p class="step-desc">Click "New Employee" to add team members</p>
+          </div>
+        </div>
+
+        <div class="step-item">
+          <div class="step-number">2</div>
+          <div class="step-info">
+            <h4 class="step-name">Assign Cards</h4>
+            <p class="step-desc">Link access cards to employees</p>
+          </div>
+        </div>
+
+        <div class="step-item">
+          <div class="step-number">3</div>
+          <div class="step-info">
+            <h4 class="step-name">Monitor Access</h4>
+            <p class="step-desc">Track employee attendance and access</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Management Guide Modal
+    const guideModal = document.getElementById('guideModal');
+    const openGuideBtn = document.getElementById('openGuideBtn');
+    const closeGuideBtn = document.getElementById('closeGuideBtn');
+    const modalOverlay = guideModal.querySelector('.guide-modal-overlay');
+
+    openGuideBtn.addEventListener('click', () => {
+      guideModal.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    });
+
+    const closeModal = () => {
+      guideModal.classList.remove('active');
+      document.body.style.overflow = '';
+    };
+
+    closeGuideBtn.addEventListener('click', closeModal);
+    modalOverlay.addEventListener('click', closeModal);
+
+    // Close on Escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && guideModal.classList.contains('active')) {
+        closeModal();
+      }
+    });
+
+    // Custom Dropdown Logic
+    window.toggleDropdown = (id) => {
+      const dropdown = document.getElementById(id);
+      
+      // Close all other dropdowns
+      document.querySelectorAll('.custom-dropdown').forEach(d => {
+        if (d.id !== id) d.classList.remove('open');
+      });
+      
+      dropdown.classList.toggle('open');
+    };
+
+    window.selectOption = (element, dropdownId, value, text) => {
+      const dropdown = document.getElementById(dropdownId);
+      const selectedDisplay = dropdown.querySelector('.dropdown-selected');
+      const hiddenInput = dropdown.querySelector('input[type="hidden"]');
+      
+      selectedDisplay.textContent = text;
+      if(hiddenInput) hiddenInput.value = value;
+      
+      dropdown.querySelectorAll('.dropdown-option').forEach(opt => opt.classList.remove('selected'));
+      element.classList.add('selected');
+      
+      dropdown.classList.remove('open');
+    };
+
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.custom-dropdown')) {
+        document.querySelectorAll('.custom-dropdown').forEach(d => {
+          d.classList.remove('open');
+        });
+      }
+    });
+
+    console.log('Depth theme loaded. Use your sidebar dark mode toggle to switch themes.');
+  </script>
+</body>
+</html>

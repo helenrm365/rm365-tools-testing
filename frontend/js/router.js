@@ -51,6 +51,7 @@ const routes = {
 
   '/enrollment':            '/html/enrollment/home.html',
   '/enrollment/management': '/html/enrollment/management.html',
+  '/enrollment/management-depth-test': '/html/enrollment/management-depth-test.html',
   '/enrollment/card':       '/html/enrollment/nfc.html',
   '/enrollment/nfc':        '/html/enrollment/nfc.html',
 
