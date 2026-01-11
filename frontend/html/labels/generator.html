@@ -1,16 +1,16 @@
 <!-- Label Generator Page -->
+<!-- Uses css-new/app.css + css-new/pages/labels/generator.css -->
 <div class="labels-generator">
-  <!-- Page Header -->
-  <div class="page-header">
+  <!-- Header -->
+  <header class="page-header">
     <div class="header-content">
       <h1 class="page-title">Label Generator</h1>
-      <hr class="page-divider">
-      <p class="page-subtitle">Generate professional barcode labels with comprehensive magento data insights</p>
     </div>
-  </div>
+    <p class="page-subtitle">Generate professional barcode labels with comprehensive magento data insights</p>
+  </header>
 
   <!-- Navigation Tabs -->
-  <div class="inner-tabs">
+  <nav class="inner-tabs">
     <button class="tab-button active" onclick="location.href='/labels/generator'">
       <i class="fas fa-barcode"></i>
       <span>Generator</span>
@@ -19,10 +19,10 @@
       <i class="fas fa-history"></i>
       <span>History</span>
     </button>
-  </div>
+  </nav>
 
   <!-- Main Content -->
-  <div class="generator-content">
+  <div class="generator-wrapper">
     <!-- Comprehensive Filter Control Panel -->
     <div class="unified-filter-panel">
       <div class="filter-panel-header">
@@ -31,117 +31,20 @@
           <h2>Filter & Selection Control Panel</h2>
         </div>
         <div class="filter-panel-header-actions">
-          <button id="refreshBtn" class="panel-header-btn" title="Refresh products">
+          <button id="refreshBtn" class="btn btn-icon btn-sm btn-ghost panel-header-btn" title="Refresh products">
             <i class="fas fa-sync-alt"></i>
           </button>
-          <button class="filter-panel-collapse" id="filterPanelCollapseBtn" title="Collapse/Expand Panel">
+          <button class="btn btn-icon btn-sm btn-ghost filter-panel-collapse collapsed" id="filterPanelCollapseBtn" title="Collapse/Expand Panel">
             <i class="fas fa-chevron-up"></i>
           </button>
         </div>
       </div>
 
-      <div class="filter-panel-body" id="filterPanelBody">
-        <!-- 2x2 Grid Layout -->
-        <div class="filter-panel-grid">
-          <!-- Top Left: Label Presets -->
-          <div class="filter-control-group presets-control">
-            <div class="control-header">
-              <div class="control-header-left">
-                <i class="fas fa-bookmark"></i>
-                <span class="control-title">Label Presets</span>
-                <span class="preset-count-badge" id="presetCountBadge">No presets</span>
-              </div>
-              <div class="preset-header-actions">
-                <div class="preset-search-wrapper">
-                  <input type="text" id="presetSearchInput" class="preset-search-input" placeholder="Search presets...">
-                  <i class="fas fa-search preset-search-icon"></i>
-                </div>
-                <button id="savePresetBtn" class="preset-action-btn-small primary" title="Save Preset">
-                  <i class="fas fa-save"></i>
-                </button>
-                <button id="managePresetsBtn" class="preset-action-btn-small secondary" title="Manage Presets">
-                  <i class="fas fa-cog"></i>
-                </button>
-              </div>
-            </div>
-            <div class="presets-scroll-container" id="presetList">
-              <div class="preset-loading-compact">
-                <i class="fas fa-spinner fa-spin"></i>
-                <span>Loading...</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Top Right: Product Status Filters -->
-          <div class="filter-control-group status-control">
-            <div class="control-header">
-              <div class="control-header-left">
-                <i class="fas fa-filter"></i>
-                <span class="control-title">Product Status Filters</span>
-                <span class="filter-count-badge" id="labelActiveFiltersCount">8 of 8</span>
-              </div>
-            </div>
-            <div class="status-filters-grid">
-              <label class="status-filter-compact">
-                <input type="checkbox" id="filter_Active" class="status-checkbox status-filter-checkbox" value="Active" checked>
-                <span class="status-label">Active</span>
-              </label>
-              <label class="status-filter-compact">
-                <input type="checkbox" id="filter_TemporarilyOOS" class="status-checkbox status-filter-checkbox" value="Temporarily OOS" checked>
-                <span class="status-label">Temp. OOS</span>
-              </label>
-              <label class="status-filter-compact">
-                <input type="checkbox" id="filter_PreOrder" class="status-checkbox status-filter-checkbox" value="Pre Order" checked>
-                <span class="status-label">Pre Order</span>
-              </label>
-              <label class="status-filter-compact">
-                <input type="checkbox" id="filter_Samples" class="status-checkbox status-filter-checkbox" value="Samples" checked>
-                <span class="status-label">Samples</span>
-              </label>
-              <label class="status-filter-compact">
-                <input type="checkbox" id="filter_DiscontinuedSupplier" class="status-checkbox status-filter-checkbox" value="Discontinued (Supplier)" checked>
-                <span class="status-label">Disc. (Supp)</span>
-              </label>
-              <label class="status-filter-compact">
-                <input type="checkbox" id="filter_DiscontinuedRM" class="status-checkbox status-filter-checkbox" value="Discontinued (RM)" checked>
-                <span class="status-label">Disc. (RM)</span>
-              </label>
-              <label class="status-filter-compact">
-                <input type="checkbox" id="filter_SpecialOffer" class="status-checkbox status-filter-checkbox" value="Special Offer" checked>
-                <span class="status-label">Special Offer</span>
-              </label>
-              <label class="status-filter-compact">
-                <input type="checkbox" id="filter_SpecialItem" class="status-checkbox status-filter-checkbox" value="Special Item" checked>
-                <span class="status-label">Special Item</span>
-              </label>
-            </div>
-            <div class="orphaned-toggle" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color);">
-              <label class="status-filter-compact" style="cursor: pointer;">
-                <input type="checkbox" id="showOrphanedCheckbox" class="status-checkbox" style="cursor: pointer;">
-                <span class="status-label" style="color: var(--text-muted); font-style: italic;" title="Orphaned SKUs are products that exist in your warehouse inventory but have been renamed or deleted in Magento. They have no product name because they no longer exist in the catalog. Enable this to see and generate labels for these orphaned products.">Show Orphaned Products</span>
-              </label>
-            </div>
-          </div>
-
-          <!-- Bottom Left: Search Products -->
-          <div class="filter-control-group search-control">
-            <div class="control-header">
-              <div class="control-header-left">
-                <i class="fas fa-search"></i>
-                <span class="control-title">Search Products</span>
-              </div>
-            </div>
-            <div class="search-input-wrapper">
-              <input type="text" id="productSearchInput" class="search-input-compact" placeholder="Search by SKU, Product Name, or Item ID...">
-              <i class="fas fa-search product-search-icon" id="productSearchIcon" title="Search"></i>
-              <button class="search-clear-btn" id="searchClearBtn" title="Clear search" style="display: none;">
-                <i class="fas fa-times"></i>
-              </button>
-            </div>
-          </div>
-
-          <!-- Bottom Right: Region Preference -->
-          <div class="filter-control-group region-control">
+      <div class="filter-panel-body collapsed" id="filterPanelBody">
+        <!-- Top Row: Region Preference + Product Status Filters -->
+        <div class="filter-panel-grid filter-panel-grid-top">
+          <!-- Top Left: Region Preference -->
+          <div class="card filter-control-group region-control">
             <div class="control-header">
               <div class="control-header-left">
                 <i class="fas fa-globe-europe"></i>
@@ -149,21 +52,21 @@
               </div>
             </div>
             <div class="region-toggle-compact">
-              <label class="region-option-compact">
+              <label class="region-option-compact selection-pill">
                 <input type="radio" name="region" value="uk" class="region-radio" checked>
-                <span class="region-label-compact">
+                <span class="region-label-compact selection-pill-label">
                   <i class="fas fa-flag"></i> UK (GBP)
                 </span>
               </label>
-              <label class="region-option-compact">
+              <label class="region-option-compact selection-pill">
                 <input type="radio" name="region" value="fr" class="region-radio">
-                <span class="region-label-compact">
+                <span class="region-label-compact selection-pill-label">
                   <i class="fas fa-flag"></i> FR (EUR)
                 </span>
               </label>
-              <label class="region-option-compact">
+              <label class="region-option-compact selection-pill">
                 <input type="radio" name="region" value="nl" class="region-radio">
-                <span class="region-label-compact">
+                <span class="region-label-compact selection-pill-label">
                   <i class="fas fa-flag"></i> NL (EUR)
                 </span>
               </label>
@@ -173,27 +76,112 @@
               SKUs from UK Magento. Prices/names from selected region. 6M: UK separate, FR+NL combined.
             </p>
           </div>
+
+          <!-- Top Right: Product Status Filters -->
+          <div class="card filter-control-group status-control">
+            <div class="control-header">
+              <div class="control-header-left">
+                <i class="fas fa-filter"></i>
+                <span class="control-title">Product Status Filters</span>
+                <span class="filter-count-badge" id="labelActiveFiltersCount">8 of 8</span>
+              </div>
+            </div>
+            <div class="status-filters-grid">
+              <label class="status-filter-compact selection-box-compact">
+                <input type="checkbox" id="filter_Active" class="status-checkbox status-filter-checkbox" value="Active" checked>
+                <span class="status-label selection-box-label">Active</span>
+              </label>
+              <label class="status-filter-compact selection-box-compact">
+                <input type="checkbox" id="filter_TemporarilyOOS" class="status-checkbox status-filter-checkbox" value="Temporarily OOS" checked>
+                <span class="status-label selection-box-label">Temp. OOS</span>
+              </label>
+              <label class="status-filter-compact selection-box-compact">
+                <input type="checkbox" id="filter_PreOrder" class="status-checkbox status-filter-checkbox" value="Pre Order" checked>
+                <span class="status-label selection-box-label">Pre Order</span>
+              </label>
+              <label class="status-filter-compact selection-box-compact">
+                <input type="checkbox" id="filter_Samples" class="status-checkbox status-filter-checkbox" value="Samples" checked>
+                <span class="status-label selection-box-label">Samples</span>
+              </label>
+              <label class="status-filter-compact selection-box-compact">
+                <input type="checkbox" id="filter_DiscontinuedSupplier" class="status-checkbox status-filter-checkbox" value="Discontinued (Supplier)" checked>
+                <span class="status-label selection-box-label">Disc. (Supp)</span>
+              </label>
+              <label class="status-filter-compact selection-box-compact">
+                <input type="checkbox" id="filter_DiscontinuedRM" class="status-checkbox status-filter-checkbox" value="Discontinued (RM)" checked>
+                <span class="status-label selection-box-label">Disc. (RM)</span>
+              </label>
+              <label class="status-filter-compact selection-box-compact">
+                <input type="checkbox" id="filter_SpecialOffer" class="status-checkbox status-filter-checkbox" value="Special Offer" checked>
+                <span class="status-label selection-box-label">Special Offer</span>
+              </label>
+              <label class="status-filter-compact selection-box-compact">
+                <input type="checkbox" id="filter_SpecialItem" class="status-checkbox status-filter-checkbox" value="Special Item" checked>
+                <span class="status-label selection-box-label">Special Item</span>
+              </label>
+            </div>
+            <label class="status-filter-compact selection-box-compact orphaned-option">
+              <input type="checkbox" id="showOrphanedCheckbox" class="status-checkbox">
+              <span class="status-label selection-box-label" title="Show products that exist in warehouse but not in Magento catalog">Show Orphaned Products</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Bottom Row: Label Presets (full width, horizontal scroll) -->
+        <div class="card filter-control-group presets-control presets-control-full">
+          <div class="control-header">
+            <div class="control-header-left">
+              <i class="fas fa-bookmark"></i>
+              <span class="control-title">Label Presets</span>
+              <span class="preset-count-badge" id="presetCountBadge">No presets</span>
+            </div>
+            <div class="preset-header-actions">
+              <div class="preset-search-wrapper">
+                <input type="text" id="presetSearchInput" class="preset-search-input" placeholder="Search presets...">
+                <i class="fas fa-search preset-search-icon"></i>
+              </div>
+              <button id="savePresetBtn" class="action-btn btn-sm primary-btn" title="Save Preset">
+                <i class="fas fa-save"></i>
+              </button>
+              <button id="managePresetsBtn" class="action-btn btn-sm secondary-btn" title="Manage Presets">
+                <i class="fas fa-cog"></i>
+              </button>
+            </div>
+          </div>
+          <div class="presets-horizontal-scroll" id="presetList">
+            <div class="preset-loading-compact">
+              <i class="fas fa-spinner fa-spin"></i>
+              <span>Loading...</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
         
-        <!-- Selection Bar -->
-        <div class="selection-bar">
+        <!-- Selection Bar (with search) -->
+        <div class="card selection-bar">
           <div class="select-all-group">
             <input type="checkbox" id="selectAllCheckbox" class="select-all-checkbox">
             <label for="selectAllCheckbox" class="select-all-label">Select All</label>
           </div>
+          <div class="selection-bar-search">
+            <input type="text" id="productSearchInput" class="search-input-compact" placeholder="Search by SKU, Product Name, or Item ID...">
+            <i class="fas fa-search product-search-icon" id="productSearchIcon" title="Search"></i>
+            <button class="btn btn-icon btn-sm btn-ghost search-clear-btn" id="searchClearBtn" title="Clear search" style="display: none;">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
           <div class="selection-info">
             <span class="selection-count" id="selectedProducts">0</span> of <span id="totalProducts">0</span> products selected
           </div>
-          <button id="generatePdfBtn" class="action-button" disabled>
+          <button id="generatePdfBtn" class="action-btn primary-btn" disabled>
             <i class="fas fa-file-pdf"></i>
             Generate PDF Labels
           </button>
         </div>
 
         <!-- Products Table -->
-        <div class="table-container">
+        <div class="card table-container">
           <table class="products-table">
             <thead class="table-header">
               <tr>
@@ -241,14 +229,14 @@
 </div>
 
 <!-- Save Preset Modal -->
-<div id="savePresetModal" class="modal" style="display: none;">
+<div id="savePresetModal" class="modal-backdrop">
   <div class="modal-content preset-modal">
     <div class="modal-header">
       <h2 class="modal-title">
         <i class="fas fa-save"></i>
         Save Label Preset
       </h2>
-      <button class="modal-close" onclick="document.getElementById('savePresetModal').style.display='none'">
+      <button class="modal-close" onclick="document.getElementById('savePresetModal').classList.remove('active')">
         <i class="fas fa-times"></i>
       </button>
     </div>
@@ -296,20 +284,24 @@
         <input type="text" id="presetName" class="form-input" placeholder="e.g., Weekly Active Products" required>
       </div>
       <div class="form-group" id="overwriteOtherPresetField" style="display: none;">
-        <label for="overwritePresetSelect" class="form-label">
+        <label class="form-label">
           <i class="fas fa-list"></i>
           Select Preset to Overwrite <span class="required">*</span>
         </label>
-        <select id="overwritePresetSelect" class="form-input">
-          <option value="">-- Select a preset --</option>
-        </select>
+        <div class="custom-dropdown" id="overwrite-preset-dropdown">
+          <div class="dropdown-selected" onclick="toggleDropdown('overwrite-preset-dropdown')">-- Select a preset --</div>
+          <div class="dropdown-options">
+            <!-- Options populated dynamically by JS -->
+          </div>
+          <input type="hidden" name="overwritePreset" id="overwritePresetSelect" value="">
+        </div>
       </div>
       <div class="form-group">
         <label for="presetDescription" class="form-label">
           <i class="fas fa-align-left"></i>
           Description (Optional)
         </label>
-        <textarea id="presetDescription" class="form-textarea" rows="3" placeholder="Describe what this preset is for..."></textarea>
+        <textarea id="presetDescription" class="form-textarea" rows="2" placeholder="Describe what this preset is for..."></textarea>
       </div>
       <div class="form-group">
         <label class="form-label">
@@ -336,11 +328,11 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="modal-button secondary" onclick="document.getElementById('savePresetModal').style.display='none'">
+      <button class="action-btn secondary-btn" onclick="document.getElementById('savePresetModal').classList.remove('active')">
         <i class="fas fa-times"></i>
         Cancel
       </button>
-      <button id="confirmSavePresetBtn" class="modal-button primary">
+      <button id="confirmSavePresetBtn" class="action-btn primary-btn">
         <i class="fas fa-save"></i>
         Save Preset
       </button>
@@ -349,14 +341,14 @@
 </div>
 
 <!-- Manage Presets Modal -->
-<div id="managePresetsModal" class="modal" style="display: none;">
+<div id="managePresetsModal" class="modal-backdrop">
   <div class="modal-content preset-modal large">
     <div class="modal-header">
       <h2 class="modal-title">
         <i class="fas fa-cog"></i>
         Manage Label Presets
       </h2>
-      <button class="modal-close" onclick="document.getElementById('managePresetsModal').style.display='none'">
+      <button class="modal-close" onclick="document.getElementById('managePresetsModal').classList.remove('active')">
         <i class="fas fa-times"></i>
       </button>
     </div>
@@ -369,7 +361,7 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="modal-button secondary" onclick="document.getElementById('managePresetsModal').style.display='none'">
+      <button class="action-btn secondary-btn" onclick="document.getElementById('managePresetsModal').classList.remove('active')">
         <i class="fas fa-times"></i>
         Close
       </button>
@@ -378,14 +370,14 @@
 </div>
 
 <!-- View Preset Details Modal -->
-<div id="viewPresetModal" class="modal" style="display: none;">
+<div id="viewPresetModal" class="modal-backdrop">
   <div class="modal-content preset-modal">
     <div class="modal-header">
       <h2 class="modal-title">
         <i class="fas fa-eye"></i>
         Preset Details
       </h2>
-      <button class="modal-close" onclick="document.getElementById('viewPresetModal').style.display='none'">
+      <button class="modal-close" onclick="document.getElementById('viewPresetModal').classList.remove('active')">
         <i class="fas fa-times"></i>
       </button>
     </div>
@@ -440,7 +432,7 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="modal-button secondary" onclick="document.getElementById('viewPresetModal').style.display='none'">
+      <button class="action-btn secondary-btn" onclick="document.getElementById('viewPresetModal').classList.remove('active')">
         <i class="fas fa-times"></i>
         Close
       </button>
@@ -449,14 +441,14 @@
 </div>
 
 <!-- Edit Preset Modal -->
-<div id="editPresetModal" class="modal" style="display: none;">
+<div id="editPresetModal" class="modal-backdrop">
   <div class="modal-content preset-modal">
     <div class="modal-header">
       <h2 class="modal-title">
         <i class="fas fa-edit"></i>
         Edit Preset
       </h2>
-      <button class="modal-close" onclick="document.getElementById('editPresetModal').style.display='none'">
+      <button class="modal-close" onclick="document.getElementById('editPresetModal').classList.remove('active')">
         <i class="fas fa-times"></i>
       </button>
     </div>
@@ -521,11 +513,11 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="modal-button secondary" onclick="document.getElementById('editPresetModal').style.display='none'">
+      <button class="action-btn secondary-btn" onclick="document.getElementById('editPresetModal').classList.remove('active')">
         <i class="fas fa-times"></i>
         Cancel
       </button>
-      <button id="confirmEditPresetBtn" class="modal-button primary">
+      <button id="confirmEditPresetBtn" class="action-btn primary-btn">
         <i class="fas fa-save"></i>
         Save Changes
       </button>

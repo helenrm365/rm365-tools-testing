@@ -1,0 +1,272 @@
+/* ===== Depth Theme for Employee Management ===== */
+/* Page-specific styles for management-depth-test.html */
+/* Uses variables from app.css (standard-colors.css) */
+/* 
+   Components used from css-new/components/:
+   - buttons.css: .action-btn, .primary-btn, .danger-btn, .action-buttons-grid
+   - cards.css: .action-block, .block-header, .block-icon, .block-title, .employee-card, .employee-avatar, .employee-info, .employee-grid
+   - badges.css: .status-badge, .status-badge.active/inactive/pending
+   - filters.css: .filter-controls, .filter-item, .filter-label, .filter-select
+   - forms.css: .search-box, .search-icon, .search-input, .custom-dropdown, .card-checkbox, .checkbox-custom
+   - modals.css: .modal-overlay, .modal-content, .modal-header, .modal-title, .modal-close
+   - tabs.css: .inner-tabs, .tab-button
+   - tables.css: table styles
+*/
+
+/* ===== Page Scope ===== */
+.enrollment-management {
+  display: block;
+  font-family: var(--ff);
+  color: var(--text-muted);
+  transition: all var(--transition);
+  padding: 0.5rem 1rem;
+  min-height: calc(100vh - 40px);
+  background: var(--bg-dark);
+  /* Note: margin-left is handled by #content parent */
+}
+
+/* ===== Page Header ===== */
+.enrollment-management .page-header {
+  padding: 1rem 0 1.5rem 0;
+  margin-bottom: 2rem;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.enrollment-management .header-content {
+  max-width: 100%;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.enrollment-management .help-button {
+  margin-left: auto;
+  margin-top: 0.25rem;
+}
+
+.enrollment-management .page-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0;
+  text-align: left;
+}
+
+html.dark-mode .enrollment-management .page-title {
+  background: linear-gradient(135deg, #ecf0f1, #a8d85f);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.enrollment-management .page-subtitle {
+  font-size: 1.1rem;
+  color: var(--text-muted);
+  margin: 0;
+  font-weight: 400;
+  text-align: left;
+}
+
+/* ===== Page-specific Tab Overrides ===== */
+.enrollment-management .inner-tabs {
+  margin: 2rem 0;
+}
+
+.enrollment-management .tab-button {
+  flex: 1 1 auto;
+  min-width: 140px;
+}
+
+/* ===== Shadow Examples Section (Demo Only) ===== */
+.enrollment-management .shadows {
+  background: var(--bg);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  padding: 2rem;
+  gap: 1.5rem;
+  margin: 0 0 2rem 0;
+  border-radius: 16px;
+  box-shadow: var(--shadow-m);
+}
+
+.enrollment-management .shadows > div {
+  background: var(--bg-light);
+  padding: 2.5rem 1.5rem;
+  border-radius: 12px;
+  text-align: center;
+  transition: all var(--transition);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+html.dark-mode .enrollment-management .shadows > div {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.enrollment-management .shadows > div:hover {
+  transform: translateY(-6px);
+  border-color: #8bc34a;
+}
+
+.enrollment-management .shadows h2 {
+  margin-bottom: 0.75rem;
+  font-size: 1.25rem;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.enrollment-management .shadows p {
+  margin-bottom: 0.5rem;
+  color: var(--text-muted);
+  font-size: 0.9375rem;
+}
+
+.enrollment-management .shadows small {
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+  opacity: 0.8;
+}
+
+.enrollment-management .shadow-none { box-shadow: none; }
+.enrollment-management .shadow-s { box-shadow: var(--shadow-s); }
+.enrollment-management .shadow-m { box-shadow: var(--shadow-m); }
+.enrollment-management .shadow-l { box-shadow: var(--shadow-l); }
+
+/* ===== Management Layout ===== */
+.enrollment-management .management-wrapper {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+  margin-bottom: 3rem;
+}
+
+.enrollment-management .management-card {
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  box-shadow: none;
+  border: none;
+}
+
+/* ===== Page-specific Table Styling ===== */
+.enrollment-management .employee-table-container {
+  background: var(--bg);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: var(--shadow-m);
+}
+
+.enrollment-management .employee-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.enrollment-management .employee-table th {
+  padding: 1.25rem 1.5rem;
+  text-align: left;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--bg-light);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+html.dark-mode .enrollment-management .employee-table th {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+.enrollment-management .employee-table td {
+  padding: 1rem 1.5rem;
+  color: var(--text);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+html.dark-mode .enrollment-management .employee-table td {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+.enrollment-management .employee-table tr:last-child td {
+  border-bottom: none;
+}
+
+.enrollment-management .employee-table tr:hover td {
+  background: rgba(139, 195, 74, 0.05);
+}
+
+/* ===== Dark Mode Toggle (for testing) ===== */
+.dark-mode-toggle-test {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  padding: 1rem 1.5rem;
+  background: var(--bg-light);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow: var(--shadow-m);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: var(--text);
+  transition: all var(--transition);
+  z-index: 100;
+}
+
+html.dark-mode .dark-mode-toggle-test {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark-mode-toggle-test:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-l);
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .enrollment-management {
+    padding: 1rem;
+  }
+  
+  .enrollment-management .page-header {
+    padding: 1.5rem 0 1rem 0;
+  }
+  
+  .enrollment-management .header-content {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .enrollment-management .help-button {
+    margin-left: 0;
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .enrollment-management .page-title {
+    font-size: 2rem;
+  }
+  
+  .enrollment-management .inner-tabs {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .enrollment-management .tab-button {
+    min-width: 100%;
+  }
+  
+  .enrollment-management .action-buttons-grid {
+    grid-template-columns: 1fr;
+  }
+}

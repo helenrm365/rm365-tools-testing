@@ -1,0 +1,169 @@
+/* ===== Selection Boxes ===== */
+/* Reusable checkbox/radio button pill-style selectors with depth effect */
+/* Matches the depth styling of inputs and custom dropdowns */
+
+/* ===== Base Selection Box ===== */
+.selection-box {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-light);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all var(--transition);
+  border: 2px solid var(--bg);
+  box-shadow: var(--shadow-m);
+}
+
+.selection-box:hover {
+  background: var(--bg);
+}
+
+.selection-box:has(input:checked) {
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-light));
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.selection-box:has(input:focus) {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* ===== Selection Box Checkbox ===== */
+.selection-box input[type="checkbox"],
+.selection-box input[type="radio"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  margin: 0;
+}
+
+/* ===== Selection Box Label ===== */
+.selection-box-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text);
+  flex: 1;
+  user-select: none;
+}
+
+.selection-box:has(input:checked) .selection-box-label {
+  color: var(--accent-dark);
+}
+
+/* ===== Compact Variant ===== */
+.selection-box-compact {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.625rem;
+  background: var(--bg-light);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all var(--transition);
+  border: 2px solid var(--bg);
+  box-shadow: var(--shadow-m);
+}
+
+.selection-box-compact:hover {
+  background: var(--bg);
+}
+
+.selection-box-compact:has(input:checked) {
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-light));
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.selection-box-compact:has(input:focus) {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.selection-box-compact input[type="checkbox"],
+.selection-box-compact input[type="radio"] {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  margin: 0;
+}
+
+.selection-box-compact .selection-box-label {
+  font-size: 0.8rem;
+}
+
+/* ===== Pill Variant (radio button style, hides input) ===== */
+.selection-pill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 0.625rem 1rem;
+  background: var(--bg-light);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all var(--transition);
+  border: 2px solid var(--bg);
+  box-shadow: var(--shadow-m);
+  flex: 1;
+}
+
+.selection-pill input[type="radio"],
+.selection-pill input[type="checkbox"] {
+  display: none;
+}
+
+.selection-pill:hover {
+  background: var(--bg);
+}
+
+.selection-pill:has(input:checked) {
+  background: color-mix(in srgb, var(--accent) 15%, var(--bg-light));
+  box-shadow: var(--shadow-m), inset 0 1px 3px rgba(139, 195, 74, 0.15);
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.selection-pill:has(input:focus) {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.selection-pill-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.selection-pill-label i {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.selection-pill:has(input:checked) .selection-pill-label {
+  color: var(--accent-dark);
+}
+
+.selection-pill:has(input:checked) .selection-pill-label i {
+  color: var(--accent);
+}
+
+/* ===== Dark Mode Adjustments ===== */
+html.dark-mode .selection-box,
+html.dark-mode .selection-box-compact,
+html.dark-mode .selection-pill {
+  border-color: var(--bg-dark);
+}
+
+html.dark-mode .selection-box:has(input:checked),
+html.dark-mode .selection-box-compact:has(input:checked),
+html.dark-mode .selection-pill:has(input:checked) {
+  background: color-mix(in srgb, var(--accent) 15%, var(--bg));
+}

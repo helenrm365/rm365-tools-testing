@@ -1,0 +1,463 @@
+/* ===== Attendance Automatic Clocking Page ===== */
+/* Page-specific styles for attendance/automatic.html */
+/* 
+   Global Components Used (from css-new/):
+   - layout/header.css: .page-header, .page-title, .page-subtitle, .header-content
+   - components/buttons.css: .action-btn, .success-btn, .danger-btn
+   - components/cards.css: .action-block, .block-header, .block-icon, .block-title-group, .block-title, .block-subtitle, .block-content
+   - components/tabs.css: .inner-tabs, .tab-button
+   
+   Shadow System (from SHADOW_SYSTEM.md):
+   - .action-block uses shadow-l (main container)
+   - buttons use shadow-m
+*/
+
+/* ===== Page Scope ===== */
+.attendance-automatic {
+  display: block;
+  font-family: var(--ff);
+  color: var(--text-muted);
+  transition: all var(--transition);
+  padding: 0.5rem 1rem;
+  min-height: calc(100vh - 40px);
+  background: var(--bg-dark);
+}
+
+/* ===== Page-specific Tab Overrides ===== */
+.attendance-automatic .inner-tabs {
+  margin: 2rem 0;
+}
+
+.attendance-automatic .tab-button {
+  flex: 1 1 auto;
+  min-width: 120px;
+}
+
+/* ===== Automatic Layout ===== */
+.attendance-automatic .automatic-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+}
+
+/* ===== Block Icon Color Variants ===== */
+.attendance-automatic .scanner-icon-block {
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  color: var(--accent);
+}
+
+.attendance-automatic .stats-icon {
+  background: color-mix(in srgb, var(--info) 15%, transparent);
+  color: var(--info);
+}
+
+.attendance-automatic .history-icon {
+  background: color-mix(in srgb, var(--warning) 15%, transparent);
+  color: var(--warning);
+}
+
+/* ===== Scanner Display ===== */
+.attendance-automatic .scanner-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 1rem;
+}
+
+.attendance-automatic .scanner-animation {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+  opacity: 0.35;
+  transition: opacity var(--transition);
+}
+
+.attendance-automatic .scanner-animation.scanner-active {
+  opacity: 1;
+}
+
+.attendance-automatic .pulse-ring {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 3px solid var(--accent);
+  opacity: 0;
+}
+
+.attendance-automatic .scanner-animation.scanner-active .pulse-ring {
+  animation: pulse-ring 2s ease-out infinite;
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+.attendance-automatic .scanner-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  color: white;
+  box-shadow: var(--shadow-m);
+}
+
+.attendance-automatic .scanner-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 0.25rem;
+}
+
+.attendance-automatic .scanner-message {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* Scanner status message - for JS to update with detailed messages */
+.attendance-automatic .scanner-status-message {
+  margin-top: 0.75rem;
+  padding: 0.5rem 1rem;
+  background: var(--bg);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* ===== Control Buttons ===== */
+.attendance-automatic .control-buttons {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
+.attendance-automatic .control-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+  box-shadow: var(--shadow-m);
+}
+
+.attendance-automatic .control-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.attendance-automatic .control-btn.start-btn {
+  background: linear-gradient(135deg, var(--success), #27ae60);
+  color: white;
+}
+
+.attendance-automatic .control-btn.start-btn:not(:disabled):hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-l);
+}
+
+.attendance-automatic .control-btn.stop-btn {
+  background: linear-gradient(135deg, var(--error), #c0392b);
+  color: white;
+}
+
+.attendance-automatic .control-btn.stop-btn:not(:disabled):hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-l);
+}
+
+/* ===== Scan Result Alert ===== */
+.attendance-automatic .scan-result-alert {
+  position: fixed;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  min-width: 300px;
+  max-width: 500px;
+}
+
+.attendance-automatic .alert-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: var(--bg);
+  border-radius: 12px;
+  box-shadow: var(--shadow-l);
+  border-left: 4px solid var(--success);
+}
+
+.attendance-automatic .alert-content.alert-error {
+  border-left-color: var(--error);
+}
+
+.attendance-automatic .alert-icon {
+  font-size: 1.5rem;
+  color: var(--success);
+}
+
+.attendance-automatic .alert-content.alert-error .alert-icon {
+  color: var(--error);
+}
+
+.attendance-automatic .alert-text {
+  flex: 1;
+}
+
+.attendance-automatic .alert-title {
+  margin: 0 0 0.25rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.attendance-automatic .alert-message {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.attendance-automatic .alert-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.5rem;
+  font-size: 1rem;
+  transition: color var(--transition);
+}
+
+.attendance-automatic .alert-close:hover {
+  color: var(--text);
+}
+
+/* ===== Stats Grid ===== */
+.attendance-automatic .stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.attendance-automatic .stat-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem;
+  background: var(--bg-light);
+  border-radius: 12px;
+  box-shadow: var(--shadow-m);
+}
+
+.attendance-automatic .stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.attendance-automatic .stat-icon.scanner-status-icon {
+  background: color-mix(in srgb, var(--success) 15%, transparent);
+  color: var(--success);
+}
+
+.attendance-automatic .stat-icon.time-icon {
+  background: color-mix(in srgb, var(--info) 15%, transparent);
+  color: var(--info);
+}
+
+.attendance-automatic .stat-icon.count-icon {
+  background: color-mix(in srgb, var(--warning) 15%, transparent);
+  color: var(--warning);
+}
+
+.attendance-automatic .stat-icon.success-icon {
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  color: var(--accent);
+}
+
+.attendance-automatic .stat-info {
+  flex: 1;
+}
+
+.attendance-automatic .stat-value {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.attendance-automatic .stat-label {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* ===== Hardware Status ===== */
+.attendance-automatic .hardware-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: var(--bg-light);
+  border-radius: 10px;
+  font-size: 0.9rem;
+}
+
+.attendance-automatic .hardware-status i {
+  font-size: 1rem;
+}
+
+.attendance-automatic .hardware-status.status-ready {
+  color: var(--success);
+}
+
+.attendance-automatic .hardware-status.status-error {
+  color: var(--error);
+}
+
+/* ===== Scans Table ===== */
+.attendance-automatic .scans-table-wrapper {
+  overflow-x: auto;
+  border-radius: 10px;
+  background: var(--bg-light);
+}
+
+.attendance-automatic .scans-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 400px;
+}
+
+.attendance-automatic .scans-table th {
+  padding: 0.875rem 1rem;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  background: var(--bg);
+  border-bottom: 1px solid var(--bg);
+}
+
+.attendance-automatic .scans-table td {
+  padding: 0.875rem 1rem;
+  font-size: 0.9rem;
+  color: var(--text);
+  border-bottom: 1px solid var(--bg);
+}
+
+.attendance-automatic .scans-table tbody tr:hover {
+  background: var(--bg);
+}
+
+.attendance-automatic .scans-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* ===== Badges ===== */
+.attendance-automatic .method-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  background: color-mix(in srgb, var(--info) 15%, transparent);
+  color: var(--info);
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.attendance-automatic .status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.attendance-automatic .status-badge.status-in {
+  background: color-mix(in srgb, var(--success) 15%, transparent);
+  color: var(--success);
+}
+
+.attendance-automatic .status-badge.status-out {
+  background: color-mix(in srgb, var(--error) 15%, transparent);
+  color: var(--error);
+}
+
+/* ===== Empty State ===== */
+.attendance-automatic .empty-state {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: var(--text-muted);
+}
+
+.attendance-automatic .empty-state i {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.attendance-automatic .empty-state p {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .attendance-automatic {
+    padding: 1rem;
+  }
+  
+  .attendance-automatic .inner-tabs {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .attendance-automatic .tab-button {
+    min-width: 100%;
+  }
+  
+  .attendance-automatic .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .attendance-automatic .control-buttons {
+    flex-direction: column;
+  }
+  
+  .attendance-automatic .control-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

@@ -1,0 +1,72 @@
+/* ===== Scrollbar Styles ===== */
+/* Custom scrollbar for consistency across browsers */
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--bg-light) transparent;
+}
+
+html.dark-mode * {
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+
+/* Chrome, Edge, Safari */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bg-light);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+html.dark-mode ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+html.dark-mode ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* Hide scrollbar but keep functionality */
+.scrollbar-hidden {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+}
+
+/* Thin scrollbar variant */
+.scrollbar-thin {
+  scrollbar-width: thin;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+/* ===== OverlayScrollbars Library Styling ===== */
+html.dark-mode .os-scrollbar {
+  background: transparent !important;
+}
+
+html.dark-mode .os-scrollbar-handle {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+html.dark-mode .os-scrollbar-handle:hover {
+  background: rgba(255, 255, 255, 0.25) !important;
+}

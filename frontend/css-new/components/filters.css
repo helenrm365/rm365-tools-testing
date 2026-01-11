@@ -1,0 +1,220 @@
+/* ===== Filters Component ===== */
+/* Filter controls and filter categories */
+
+/* Filter container */
+.filters-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+/* Filter controls grid */
+.filter-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+}
+
+/* Filter item */
+.filter-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+/* Filter group */
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  min-width: 200px;
+}
+
+/* Filter label */
+.filter-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.filter-label i {
+  color: #8bc34a;
+  font-size: 0.875rem;
+}
+
+/* Filter select (native) */
+.filter-select {
+  padding: 0.875rem 1rem;
+  background: var(--bg-light);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 10px;
+  font-size: 0.9375rem;
+  font-family: var(--ff);
+  color: var(--text);
+  cursor: pointer;
+  transition: all var(--transition);
+  box-shadow: var(--shadow-s);
+}
+
+html.dark-mode .filter-select {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: #8bc34a;
+  box-shadow: var(--shadow-m);
+}
+
+/* Filter category chips */
+.filter-category {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--bg);
+  border: 1px solid var(--bg-light);
+  border-radius: var(--radius-full);
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.filter-category:hover {
+  background: var(--bg-light);
+  border-color: rgba(139, 195, 74, 0.3);
+}
+
+.filter-category.active {
+  background: rgba(139, 195, 74, 0.15);
+  border-color: #8bc34a;
+  color: #8bc34a;
+}
+
+.filter-category .count {
+  background: var(--bg-light);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.filter-category.active .count {
+  background: #8bc34a;
+  color: white;
+}
+
+/* Filter actions */
+.filter-actions {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: flex-end;
+}
+
+/* Active filters display */
+.active-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-md);
+}
+
+.active-filter-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  background: rgba(139, 195, 74, 0.1);
+  border: 1px solid rgba(139, 195, 74, 0.3);
+  border-radius: var(--radius-full);
+  font-size: 0.8125rem;
+  color: #8bc34a;
+}
+
+.active-filter-tag .remove {
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity var(--transition);
+}
+
+.active-filter-tag .remove:hover {
+  opacity: 1;
+}
+
+/* Clear all filters */
+.clear-filters {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color var(--transition);
+}
+
+.clear-filters:hover {
+  color: #e74c3c;
+}
+
+/* Filter panel (slide-out) */
+.filter-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 320px;
+  height: 100vh;
+  background: var(--bg);
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+  z-index: var(--z-modal);
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
+}
+
+.filter-panel.open {
+  transform: translateX(0);
+}
+
+.filter-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-lg);
+  border-bottom: 1px solid var(--bg-light);
+}
+
+.filter-panel-body {
+  padding: var(--space-lg);
+  overflow-y: auto;
+  height: calc(100vh - 140px);
+}
+
+.filter-panel-footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: var(--space-lg);
+  background: var(--bg);
+  border-top: 1px solid var(--bg-light);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .filter-panel {
+    width: 100%;
+  }
+  
+  .filters-container {
+    flex-direction: column;
+  }
+  
+  .filter-group {
+    min-width: 100%;
+  }
+}

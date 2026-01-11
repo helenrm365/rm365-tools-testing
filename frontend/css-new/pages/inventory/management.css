@@ -1,0 +1,91 @@
+/* ===== Inventory Module Styles ===== */
+/* Page-specific styles for inventory module */
+
+/* 
+ * MIGRATION NOTE:
+ * This file should contain ONLY page-specific layout and styles.
+ * All shared components are available from app.css imports.
+ * 
+ * IMPORT PATTERN:
+ * <link rel="stylesheet" href="/css-new/app.css">
+ * <link rel="stylesheet" href="/css-new/pages/inventory/management.css">
+ */
+
+/* ===== Page Scope ===== */
+.inventory-management {
+  /* Page wrapper for scoped styles */
+  display: block;
+}
+
+/* ===== Page Header ===== */
+.inventory-management .page-header {
+  margin-bottom: 2rem;
+  padding: 2rem 0 1rem 0;
+}
+
+.inventory-management .header-content {
+  max-width: 800px;
+}
+
+.inventory-management .page-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
+  background: linear-gradient(135deg, #8bc34a, #6a9e34);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+html.dark-mode .inventory-management .page-title {
+  background: linear-gradient(135deg, #ecf0f1, #8bc34a);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.inventory-management .page-subtitle {
+  font-size: 1.1rem;
+  color: var(--text-muted);
+  margin: 0;
+  font-weight: 400;
+}
+
+/* Modern divider */
+.inventory-management .page-divider {
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    rgba(0, 0, 0, 0.2) 0%,
+    transparent 100%
+  );
+  border: none;
+  margin: 1.25rem 0;
+  max-width: 800px;
+}
+
+html.dark-mode .inventory-management .page-divider {
+  background: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0.1) 0%,
+    transparent 100%
+  );
+}
+
+/* ===== Page-Specific Navigation Tabs ===== */
+.inventory-management .inner-tabs {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  background: var(--bg-light);
+  padding: 1rem;
+  border-radius: 12px;
+  box-shadow: var(--shadow-m);
+}
+
+/* 
+ * TODO: Migrate remaining page-specific styles from:
+ * /css/inventory/management.css
+ * /css/inventory/collaboration.css
+ * /css/inventory/table.css
+ */

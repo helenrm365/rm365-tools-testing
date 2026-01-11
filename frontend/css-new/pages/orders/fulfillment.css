@@ -1,0 +1,91 @@
+/* ===== Orders Module Styles ===== */
+/* Page-specific styles for orders module */
+
+/* 
+ * MIGRATION NOTE:
+ * This file should contain ONLY page-specific layout and styles.
+ * All shared components are available from app.css imports.
+ * 
+ * IMPORT PATTERN:
+ * <link rel="stylesheet" href="/css-new/app.css">
+ * <link rel="stylesheet" href="/css-new/pages/orders/fulfillment.css">
+ */
+
+/* ===== Order Fulfillment Page ===== */
+.order-fulfillment .page-header {
+  margin-bottom: 2rem;
+  padding: 2rem 0 1rem 0;
+}
+
+.order-fulfillment .page-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #8bc34a, #6a9e34);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+html.dark-mode .order-fulfillment .page-title {
+  background: linear-gradient(135deg, #ecf0f1, #8bc34a);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.order-fulfillment .page-subtitle {
+  font-size: 1.1rem;
+  color: var(--text-muted);
+}
+
+/* ===== Order Progress Indicators ===== */
+.order-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.progress-step {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  font-weight: 600;
+  background: var(--bg);
+  color: var(--text-muted);
+  border: 2px solid var(--bg-light);
+  transition: all 0.3s ease;
+}
+
+.progress-step.active {
+  background: #8bc34a;
+  color: white;
+  border-color: #8bc34a;
+}
+
+.progress-step.completed {
+  background: #10b981;
+  color: white;
+  border-color: #10b981;
+}
+
+.progress-line {
+  flex: 1;
+  height: 2px;
+  background: var(--bg-light);
+}
+
+.progress-line.completed {
+  background: #10b981;
+}
+
+/* 
+ * TODO: Migrate remaining page-specific styles from:
+ * /css/orders/order-fulfillment.css
+ * /css/orders/order-progress.css
+ * /css/orders/tracking.css
+ * /css/orders/approval.css
+ */

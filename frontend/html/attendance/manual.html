@@ -1,146 +1,141 @@
 <!-- Manual Clocking Page -->
+<!-- Uses css-new/app.css + css-new/pages/attendance/manual.css -->
 <div class="attendance-manual">
-  <!-- Page Header -->
-  <div class="manual-page-header">
-    <h1 class="manual-page-title">Manual Clocking</h1>
-    <hr class="page-divider">
-    <p class="manual-page-subtitle">Manually clock employees in and out with ease</p>
-  </div>
+  <!-- Header -->
+  <header class="page-header">
+    <div class="header-content">
+      <h1 class="page-title">Manual Clocking</h1>
+    </div>
+    <p class="page-subtitle">Manually clock employees in and out with ease</p>
+  </header>
 
   <!-- Navigation Tabs -->
-  <div class="inner-tabs">
+  <nav class="inner-tabs">
     <button class="tab-button" onclick="location.href='/attendance/overview'">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M3 3v18h18"></path>
-        <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"></path>
-      </svg>
+      <i class="fas fa-chart-line"></i>
       <span>Overview</span>
     </button>
     <button class="tab-button active" onclick="location.href='/attendance/manual'">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="10"></circle>
-        <polyline points="12 6 12 12 16 14"></polyline>
-      </svg>
+      <i class="fas fa-clock"></i>
       <span>Manual</span>
     </button>
     <button class="tab-button" onclick="location.href='/attendance/automatic'">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"></path>
-        <path d="M14 13.12c0 2.38 0 6.38-1 8.88"></path>
-        <path d="M17.29 21.02c.12-.6.43-2.3.5-3.02"></path>
-        <path d="M2 12a10 10 0 0 1 18-6"></path>
-        <path d="M2 16h.01"></path>
-        <path d="M21.8 16c.2-2 .131-5.354 0-6"></path>
-        <path d="M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2"></path>
-        <path d="M8.65 22c.21-.66.45-1.32.57-2"></path>
-        <path d="M9 6.8a6 6 0 0 1 9 5.2v2"></path>
-      </svg>
+      <i class="fas fa-fingerprint"></i>
       <span>Automatic</span>
     </button>
     <button class="tab-button" onclick="location.href='/attendance/logs'">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-        <polyline points="14 2 14 8 20 8"></polyline>
-        <line x1="16" y1="13" x2="8" y2="13"></line>
-        <line x1="16" y1="17" x2="8" y2="17"></line>
-        <polyline points="10 9 9 9 8 9"></polyline>
-      </svg>
+      <i class="fas fa-file-alt"></i>
       <span>Logs</span>
     </button>
-  </div>
+  </nav>
 
   <!-- Main Content -->
-  <div class="manual-content">
-    <!-- Employee Selection Section -->
-    <section class="manual-select-section">
-      <div class="manual-section-header">
-        <h2 class="manual-section-title">Select Employee</h2>
-      </div>
-      <div class="manual-select-card">
-        <div class="manual-select-wrapper">
-          <label class="manual-select-label">
-            <i class="fas fa-user"></i>
-            <span>Choose an employee to clock in or out</span>
-          </label>
-          <select id="employeeSelect" class="manual-employee-dropdown">
-            <option value="">Select Employee</option>
-          </select>
+  <div class="manual-wrapper">
+    <!-- Select Employee Section -->
+    <div class="action-block">
+      <div class="block-header">
+        <div class="block-icon select-icon">
+          <i class="fas fa-user-check"></i>
+        </div>
+        <div class="block-title-group">
+          <h3 class="block-title">Select Employee</h3>
+          <p class="block-subtitle">Choose an employee to clock in or out</p>
         </div>
       </div>
-    </section>
 
-    <!-- Action Buttons Section -->
-    <section class="manual-actions-section">
-      <div class="manual-clock-actions">
-        <button id="clockInBtn" class="manual-clock-btn clock-in" disabled>
-          <div class="manual-btn-icon">
-            <i class="fas fa-sign-in-alt"></i>
+      <div class="block-content">
+        <div class="form-group">
+          <label class="form-label" for="employeeSelect">
+            <i class="fas fa-user"></i>
+            <span>Employee</span>
+          </label>
+          <div class="custom-dropdown" id="employee-dropdown">
+            <div class="dropdown-selected" onclick="toggleDropdown('employee-dropdown')">Select Employee...</div>
+            <div class="dropdown-options" id="employeeDropdownOptions">
+              <div class="dropdown-option selected" onclick="selectOption(this, 'employee-dropdown', '', 'Select Employee...')">Select Employee...</div>
+              <!-- Additional options populated by JavaScript -->
+            </div>
+            <input type="hidden" name="employeeSelect" id="employeeSelect" value="">
           </div>
-          <div class="manual-btn-content">
-            <div class="manual-btn-title">Clock In</div>
-            <div class="manual-btn-subtitle">Start work shift</div>
-          </div>
-        </button>
-        <button id="clockOutBtn" class="manual-clock-btn clock-out" disabled>
-          <div class="manual-btn-icon">
-            <i class="fas fa-sign-out-alt"></i>
-          </div>
-          <div class="manual-btn-content">
-            <div class="manual-btn-title">Clock Out</div>
-            <div class="manual-btn-subtitle">End work shift</div>
-          </div>
-        </button>
+        </div>
       </div>
-    </section>
+    </div>
 
-    <!-- Employee Status Section -->
-    <div id="employeeStatus" class="manual-status-section" style="display: none;">
-      <div class="manual-section-header">
-        <h2 class="manual-section-title">Employee Status</h2>
+    <!-- Clock Actions Section -->
+    <div class="action-block">
+      <div class="block-header">
+        <div class="block-icon clock-icon">
+          <i class="fas fa-clock"></i>
+        </div>
+        <div class="block-title-group">
+          <h3 class="block-title">Clock Actions</h3>
+          <p class="block-subtitle">Start or end work shift</p>
+        </div>
       </div>
-      <div class="manual-status-card">
-        <div id="statusDetails" class="manual-status-details"></div>
+
+      <div class="block-content">
+        <div class="clock-actions">
+          <button id="clockInBtn" class="clock-btn clock-in" disabled>
+            <div class="btn-icon">
+              <i class="fas fa-sign-in-alt"></i>
+            </div>
+            <div class="btn-content">
+              <div class="btn-title">Clock In</div>
+              <div class="btn-subtitle">Start work shift</div>
+            </div>
+          </button>
+          <button id="clockOutBtn" class="clock-btn clock-out" disabled>
+            <div class="btn-icon">
+              <i class="fas fa-sign-out-alt"></i>
+            </div>
+            <div class="btn-content">
+              <div class="btn-title">Clock Out</div>
+              <div class="btn-subtitle">End work shift</div>
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Employee Status Section (shown when employee selected) -->
+    <div id="employeeStatus" class="action-block" style="display: none;">
+      <div class="block-header">
+        <div class="block-icon status-icon-block">
+          <i class="fas fa-info-circle"></i>
+        </div>
+        <div class="block-title-group">
+          <h3 class="block-title">Employee Status</h3>
+          <p class="block-subtitle">Current employee information</p>
+        </div>
+      </div>
+
+      <div class="block-content">
+        <div id="statusDetails" class="status-grid">
+          <!-- Populated by JavaScript -->
+        </div>
       </div>
     </div>
 
     <!-- Recent Activity Section -->
-    <section class="manual-activity-section">
-      <div class="manual-section-header">
-        <h2 class="manual-section-title">Recent Manual Activity</h2>
+    <div class="action-block">
+      <div class="block-header">
+        <div class="block-icon activity-icon">
+          <i class="fas fa-history"></i>
+        </div>
+        <div class="block-title-group">
+          <h3 class="block-title">Recent Manual Activity</h3>
+          <p class="block-subtitle">Latest manual clocking records</p>
+        </div>
       </div>
-      <div class="manual-activity-card">
+
+      <div class="block-content">
         <div id="recentActivityTable">
-          <div class="manual-empty-state">
+          <div class="empty-state">
             <i class="fas fa-clock"></i>
             <p>No recent activity</p>
           </div>
         </div>
       </div>
-    </section>
+    </div>
   </div>
 </div>
-
-<!-- Universal Footer -->
-<div id="footerPlaceholder"></div>
-<script>
-  if (!document.getElementById('universalFooter')) {
-    fetch('/components/universal-footer.html')
-      .then(response => response.text())
-      .then(html => {
-        document.getElementById('footerPlaceholder').innerHTML = html;
-      })
-      .catch(error => console.error('Error loading footer:', error));
-  }
-</script>
-<!-- Universal Footer -->
-<div id="footerPlaceholder"></div>
-<script>
-  if (!document.getElementById('universalFooter')) {
-    fetch('/components/universal-footer.html')
-      .then(response => response.text())
-      .then(html => {
-        document.getElementById('footerPlaceholder').innerHTML = html;
-      })
-      .catch(error => console.error('Error loading footer:', error));
-  }
-</script>

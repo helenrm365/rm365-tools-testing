@@ -1,0 +1,158 @@
+/* ===== Tables ===== */
+/* Table styles for data display */
+
+/* ===== Table Container ===== */
+.table-container {
+  width: 100%;
+  overflow: auto;
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  box-shadow: var(--shadow-m);
+  border: 2px solid var(--bg-light);
+  padding: 0;
+  max-height: 500px;
+}
+
+/* Custom scrollbar for table container */
+.table-container::-webkit-scrollbar {
+  height: 12px;
+  width: 12px;
+}
+
+.table-container::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+
+.table-container::-webkit-scrollbar-track:horizontal {
+  border-radius: 0 0 12px 12px;
+}
+
+.table-container::-webkit-scrollbar-track:vertical {
+  border-radius: 0 12px 12px 0;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+  background: var(--text-muted);
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
+  opacity: 0.5;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+  opacity: 0.7;
+}
+
+/* ===== Base Table ===== */
+table,
+.modern-table,
+.products-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+/* ===== Table Header ===== */
+thead,
+.table-header {
+  background: linear-gradient(135deg, rgba(139, 195, 74, 0.15), rgba(139, 195, 74, 0.08));
+  border-bottom: 2px solid var(--accent);
+}
+
+th {
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: var(--text);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+/* Header icons */
+th i {
+  color: var(--accent);
+  margin-right: var(--space-xs);
+}
+
+/* ===== Table Body ===== */
+tbody tr,
+.table-body tr {
+  background: var(--bg-light);
+  border-bottom: 1px solid var(--bg);
+  transition: background-color var(--transition);
+}
+
+tbody tr:hover,
+.table-body tr:hover {
+  background: var(--bg);
+}
+
+td {
+  padding: 1rem;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+/* ===== Sortable Header ===== */
+th.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+th.sortable:hover {
+  background: var(--bg-dark);
+}
+
+.sort-icon {
+  margin-left: var(--space-xs);
+  font-size: 0.75rem;
+  opacity: 0.5;
+}
+
+/* ===== Table Variants ===== */
+
+/* Striped table */
+.table-striped tbody tr:nth-child(even) {
+  background: var(--bg);
+}
+
+/* Compact table */
+.table-compact th,
+.table-compact td {
+  padding: var(--space-sm) var(--space-md);
+}
+
+/* ===== Empty State ===== */
+.empty-state {
+  text-align: center;
+  padding: 3rem;
+  color: var(--text-muted);
+}
+
+.empty-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.empty-message {
+  font-size: 1.1rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.empty-submessage {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  opacity: 0.8;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  th,
+  td {
+    padding: var(--space-sm) var(--space-md);
+    font-size: 0.875rem;
+  }
+}

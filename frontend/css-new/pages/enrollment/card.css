@@ -1,0 +1,222 @@
+/* ===== NFC Card Enrollment Page ===== */
+/* Page-specific styles for enrollment/nfc.html */
+/* 
+   Global Components Used (from css-new/):
+   - layout/header.css: .page-header, .page-title, .page-subtitle, .header-content
+   - components/buttons.css: .action-btn, .success-btn, .danger-btn
+   - components/cards.css: .action-block, .block-header, .block-icon, .block-title-group, .block-title, .block-subtitle, .block-content
+   - components/forms.css: .form-select, .form-group, .form-label
+   - components/modals.css: .steps-list, .step-item, .step-number, .step-info, .step-name, .step-desc
+   - components/tabs.css: .inner-tabs, .tab-button
+   
+   Shadow System (from SHADOW_SYSTEM.md):
+   - .action-block uses shadow-l (main container)
+   - buttons use shadow-m
+   - inputs use shadow-m
+*/
+
+/* ===== Page Scope ===== */
+.enrollment-nfc {
+  display: block;
+  font-family: var(--ff);
+  color: var(--text-muted);
+  transition: all var(--transition);
+  padding: 0.5rem 1rem;
+  min-height: calc(100vh - 40px);
+  background: var(--bg-dark);
+}
+
+/* ===== Page-specific Tab Overrides ===== */
+.enrollment-nfc .inner-tabs {
+  margin: 2rem 0;
+}
+
+.enrollment-nfc .tab-button {
+  flex: 1 1 auto;
+  min-width: 140px;
+}
+
+/* ===== NFC Layout ===== */
+.enrollment-nfc .nfc-wrapper {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+  margin-bottom: 3rem;
+}
+
+.enrollment-nfc .nfc-card {
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  box-shadow: none;
+  border: none;
+}
+
+/* Reduce action-block bottom padding to match top visual weight */
+.enrollment-nfc .action-block {
+  padding: 1.25rem 1.25rem 1rem 1.25rem;
+}
+
+/* ===== Block Icon Color Variants ===== */
+/* All block icons use default accent color from cards.css */
+/* Only info-icon override needed for instructions block */
+
+.enrollment-nfc .info-icon {
+  background: color-mix(in srgb, var(--info) 15%, transparent);
+  color: var(--info);
+}
+
+/* ===== UID Display (similar to form-input but readonly) ===== */
+.enrollment-nfc .uid-display {
+  padding: 0.75rem 1.25rem;
+  background: var(--bg-light);
+  border: 2px solid var(--bg);
+  border-radius: 12px;
+  font-family: 'Courier New', monospace;
+  font-size: 1.1rem;
+  color: var(--text);
+  min-height: var(--input-height);
+  display: flex;
+  align-items: center;
+  box-shadow: var(--shadow-m);
+}
+
+.enrollment-nfc .uid-display .placeholder-text {
+  color: var(--text-muted);
+  font-family: var(--ff);
+  font-size: 0.95rem;
+}
+
+.enrollment-nfc .uid-display.has-value {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* ===== Status Bar ===== */
+.enrollment-nfc .status-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  background: var(--bg);
+  border-radius: 12px;
+  border-left: 4px solid var(--text-muted);
+  box-shadow: var(--shadow-m);
+}
+
+.enrollment-nfc .status-bar .status-icon {
+  font-size: 0.5rem;
+}
+
+.enrollment-nfc .status-bar .status-message {
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.enrollment-nfc .status-bar[data-status="ready"] {
+  border-left-color: var(--info);
+}
+
+.enrollment-nfc .status-bar[data-status="ready"] .status-icon {
+  color: var(--info);
+}
+
+.enrollment-nfc .status-bar[data-status="scanning"] {
+  border-left-color: var(--warning);
+  animation: pulse 2s infinite;
+}
+
+.enrollment-nfc .status-bar[data-status="scanning"] .status-icon {
+  color: var(--warning);
+}
+
+.enrollment-nfc .status-bar[data-status="success"] {
+  border-left-color: var(--success);
+}
+
+.enrollment-nfc .status-bar[data-status="success"] .status-icon {
+  color: var(--success);
+}
+
+.enrollment-nfc .status-bar[data-status="error"] {
+  border-left-color: var(--error);
+}
+
+.enrollment-nfc .status-bar[data-status="error"] .status-icon {
+  color: var(--error);
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* ===== Note Card ===== */
+.enrollment-nfc .note-card {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: color-mix(in srgb, var(--warning) 10%, transparent);
+  border-radius: 10px;
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.enrollment-nfc .note-card i {
+  color: var(--warning);
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+/* ===== Existing Card Section ===== */
+.enrollment-nfc .current-card-display {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  background: var(--bg-light);
+  border-radius: 10px;
+  gap: 1rem;
+}
+
+.enrollment-nfc .current-card-info {
+  flex: 1;
+}
+
+.enrollment-nfc .current-card-uid {
+  font-family: 'Courier New', monospace;
+  font-size: 0.95rem;
+  color: var(--text);
+  margin-top: 0.5rem;
+}
+
+/* ===== Modal Overrides ===== */
+.modal-body .note-card {
+  margin-top: 1.5rem;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .enrollment-nfc {
+    padding: 1rem;
+  }
+  
+  .enrollment-nfc .inner-tabs {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .enrollment-nfc .tab-button {
+    min-width: 100%;
+  }
+  
+  .enrollment-nfc .current-card-display {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

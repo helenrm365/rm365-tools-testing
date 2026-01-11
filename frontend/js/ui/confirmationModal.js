@@ -1,7 +1,7 @@
 // frontend/js/ui/confirmationModal.js
 /**
  * Modern confirmation modal component
- * Provides a better UX than browser's native confirm() dialog
+ * Uses css-new/components/modals.css and buttons.css
  */
 
 let modalContainer = null;
@@ -10,9 +10,50 @@ function ensureModalContainer() {
   if (!modalContainer) {
     modalContainer = document.createElement('div');
     modalContainer.id = 'confirmationModalContainer';
+    modalContainer.style.position = 'relative';
+    modalContainer.style.zIndex = '9999';
     document.body.appendChild(modalContainer);
   }
   return modalContainer;
+}
+
+function getHeaderClass(variant) {
+  switch (variant) {
+    case 'danger':
+      return 'modal-header-danger';
+    case 'warning':
+      return 'modal-header-warning';
+    case 'primary':
+      return 'modal-header-primary';
+    default:
+      return 'modal-header-danger';
+  }
+}
+
+function getConfirmButtonClass(variant) {
+  switch (variant) {
+    case 'danger':
+      return 'danger-btn';
+    case 'warning':
+      return 'warning-btn';
+    case 'primary':
+      return 'primary-btn';
+    default:
+      return 'danger-btn';
+  }
+}
+
+function getIconClass(variant) {
+  switch (variant) {
+    case 'danger':
+      return 'fa-trash-alt';
+    case 'warning':
+      return 'fa-exclamation-triangle';
+    case 'primary':
+      return 'fa-question-circle';
+    default:
+      return 'fa-exclamation-triangle';
+  }
 }
 
 function createConfirmationModal(options) {
@@ -21,32 +62,35 @@ function createConfirmationModal(options) {
     message = 'Are you sure?',
     confirmText = 'Confirm',
     cancelText = 'Cancel',
-    confirmVariant = 'danger', // 'danger', 'warning', 'primary'
-    icon = '⚠️'
+    confirmVariant = 'danger',
+    icon = null
   } = options;
 
-  const headerStyle = getHeaderStyle(confirmVariant);
+  const headerClass = getHeaderClass(confirmVariant);
+  const confirmBtnClass = getConfirmButtonClass(confirmVariant);
+  const iconClass = icon || getIconClass(confirmVariant);
 
+  // Note: Don't add 'active' class here - it's added via JS for animation
   const modalHtml = `
-    <div class="modal-overlay active" id="confirmationModal">
-      <div class="modal-content" style="max-width: 450px; animation: modalSlideIn 0.3s ease-out;">
-        <div class="modal-header" style="${headerStyle}">
-          <h3 class="modal-title" style="color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 0.75rem;">
-            <span style="background: rgba(255,255,255,0.2); border-radius: 8px; width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; font-size: 1.2rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 1px solid rgba(255,255,255,0.2);">${icon}</span>
-            <span>${title}</span>
-          </h3>
-          <button class="modal-close modal-close-contrast" id="confirmModalClose">&times;</button>
+    <div class="modal-backdrop" id="confirmationModal">
+      <div class="modal modal-sm">
+        <div class="modal-header ${headerClass}">
+          <div class="modal-header-icon">
+            <i class="fas ${iconClass}"></i>
+          </div>
+          <h3 class="modal-title">${title}</h3>
+          <button class="modal-close modal-close-contrast" id="confirmModalClose">
+            <i class="fas fa-times"></i>
+          </button>
         </div>
         <div class="modal-body">
-          <p class="modal-message">
-            ${message}
-          </p>
+          <p class="modal-message">${message}</p>
         </div>
-        <div class="modal-footer" style="display: flex; gap: 0.75rem; justify-content: flex-end;">
-          <button class="modern-button" id="confirmModalCancel" style="background: #6c757d; color: white;">
+        <div class="modal-footer">
+          <button class="action-btn secondary-btn" id="confirmModalCancel">
             ${cancelText}
           </button>
-          <button class="modern-button" id="confirmModalConfirm" style="background: ${getVariantColor(confirmVariant)}; color: white;">
+          <button class="action-btn ${confirmBtnClass}" id="confirmModalConfirm">
             ${confirmText}
           </button>
         </div>
@@ -57,32 +101,6 @@ function createConfirmationModal(options) {
   return modalHtml;
 }
 
-function getHeaderStyle(variant) {
-  switch (variant) {
-    case 'danger':
-      return 'background: linear-gradient(to right, #e74c3c, #c0392b); border-bottom: none;';
-    case 'warning':
-      return 'background: linear-gradient(to right, #f39c12, #e67e22); border-bottom: none;';
-    case 'primary':
-      return 'background: linear-gradient(to right, #3498db, #2980b9); border-bottom: none;';
-    default:
-      return 'background: linear-gradient(to right, #e74c3c, #c0392b); border-bottom: none;';
-  }
-}
-
-function getVariantColor(variant) {
-  switch (variant) {
-    case 'danger':
-      return 'linear-gradient(to bottom right, #e74c3c, #c0392b)';
-    case 'warning':
-      return 'linear-gradient(to bottom right, #f39c12, #e67e22)';
-    case 'primary':
-      return 'linear-gradient(to bottom right, #3498db, #2980b9)';
-    default:
-      return 'linear-gradient(to bottom right, #e74c3c, #c0392b)';
-  }
-}
-
 /**
  * Show a confirmation modal
  * @param {Object} options - Configuration options
@@ -91,8 +109,16 @@ function getVariantColor(variant) {
 export function confirmModal(options = {}) {
   return new Promise((resolve) => {
     const container = ensureModalContainer();
-    const modalHtml = createConfirmationModal(options);
     
+    // Find and hide any currently open modal (to show confirmation on top)
+    const openModals = document.querySelectorAll('.modal-overlay.active, .modal-backdrop.active');
+    const previousModal = Array.from(openModals).find(m => m.id !== 'confirmationModal' && !m.closest('#confirmationModalContainer'));
+    
+    if (previousModal) {
+      previousModal.classList.remove('active');
+    }
+    
+    const modalHtml = createConfirmationModal(options);
     container.innerHTML = modalHtml;
     
     const modal = container.querySelector('#confirmationModal');
@@ -100,14 +126,21 @@ export function confirmModal(options = {}) {
     const cancelBtn = container.querySelector('#confirmModalCancel');
     const closeBtn = container.querySelector('#confirmModalClose');
     
+    // Trigger animation by adding active class after a frame
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        modal.classList.add('active');
+      });
+    });
+    
     // Event handlers
     const handleConfirm = () => {
-      cleanup();
+      cleanup(false); // Don't restore previous modal on confirm
       resolve(true);
     };
     
     const handleCancel = () => {
-      cleanup();
+      cleanup(true); // Restore previous modal on cancel
       resolve(false);
     };
     
@@ -117,12 +150,18 @@ export function confirmModal(options = {}) {
       }
     };
     
-    const cleanup = () => {
+    const cleanup = (restorePrevious) => {
       modal.classList.remove('active');
+      document.removeEventListener('keydown', handleEscape);
+      
       setTimeout(() => {
         container.innerHTML = '';
+        
+        // Restore previous modal if cancelled/closed
+        if (restorePrevious && previousModal) {
+          previousModal.classList.add('active');
+        }
       }, 300); // Wait for animation
-      document.removeEventListener('keydown', handleEscape);
     };
     
     // Bind events

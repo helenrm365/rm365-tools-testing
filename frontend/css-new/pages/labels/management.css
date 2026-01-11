@@ -1,0 +1,82 @@
+/* ===== Labels Module Styles ===== */
+/* Page-specific styles for labels module */
+
+/* 
+ * IMPORT PATTERN:
+ * <link rel="stylesheet" href="/css-new/app.css">
+ * <link rel="stylesheet" href="/css-new/pages/labels/management.css">
+ */
+
+/* ===== Page Scope ===== */
+.labels-management {
+  /* Page wrapper for scoped styles */
+  display: block;
+}
+
+/* ===== Page Header ===== */
+.labels-management .page-header {
+  margin-bottom: 2rem;
+  padding: 2rem 0 1rem 0;
+}
+
+.labels-management .page-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #8bc34a, #6a9e34);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+html.dark-mode .labels-management .page-title {
+  background: linear-gradient(135deg, #ecf0f1, #8bc34a);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ===== Label Preview ===== */
+.label-preview {
+  background: var(--bg-light);
+  border: 2px dashed var(--bg);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+}
+
+.label-preview-content {
+  text-align: center;
+  color: var(--text-muted);
+}
+
+/* ===== Print Queue ===== */
+.print-queue {
+  background: var(--bg-light);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+}
+
+.print-queue-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-md);
+}
+
+.print-queue-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  background: var(--bg);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-sm);
+}
+
+/* 
+ * TODO: Migrate remaining page-specific styles from:
+ * /css/labels/*.css
+ */

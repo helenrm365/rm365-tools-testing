@@ -1,16 +1,20 @@
 <!-- Employee Management Page -->
+<!-- Uses css-new/app.css + css-new/pages/enrollment/management.css -->
 <div class="enrollment-management">
-  <!-- Header Section -->
-  <div class="page-header">
+  <!-- Header -->
+  <header class="page-header">
     <div class="header-content">
       <h1 class="page-title">Employee Management</h1>
-      <hr class="page-divider">
-      <p class="page-subtitle">Manage your team members, cards, and access credentials</p>
+      <button id="openGuideBtn" class="action-btn primary-btn help-button" aria-label="Open Management Guide">
+        <i class="fas fa-question-circle"></i>
+        <span>Help</span>
+      </button>
     </div>
-  </div>
+    <p class="page-subtitle">Manage your team members, cards, and access credentials</p>
+  </header>
 
   <!-- Navigation Tabs -->
-  <div class="inner-tabs">
+  <nav class="inner-tabs">
     <button class="tab-button active" onclick="location.href='/enrollment/management'">
       <i class="fas fa-users"></i>
       <span>Management</span>
@@ -19,17 +23,15 @@
       <i class="fas fa-id-card"></i>
       <span>Card</span>
     </button>
+  </nav>
 
-  </div>
-  
   <!-- Main Content -->
   <div class="management-wrapper">
-    <!-- Primary Management Card -->
-    <div class="management-card-section primary-section">
-      <!-- Toolbar Actions Block -->
-      <div class="action-block toolbar-block">
+    <div class="management-card">
+      <!-- Employee Actions Block -->
+      <div class="action-block">
         <div class="block-header">
-          <div class="block-icon toolbar-icon">
+          <div class="block-icon">
             <i class="fas fa-users-cog"></i>
           </div>
           <div class="block-title-group">
@@ -52,15 +54,10 @@
         </div>
       </div>
 
-      <!-- Divider -->
-      <div class="action-divider">
-        <div class="divider-line"></div>
-      </div>
-
       <!-- Search & Filter Block -->
-      <div class="action-block filter-block">
+      <div class="action-block">
         <div class="block-header">
-          <div class="block-icon filter-icon">
+          <div class="block-icon">
             <i class="fas fa-filter"></i>
           </div>
           <div class="block-title-group">
@@ -81,11 +78,15 @@
                 <i class="fas fa-toggle-on"></i>
                 <span>Status</span>
               </label>
-              <select id="statusFilter" class="filter-select">
-                <option value="">All Status</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-              </select>
+              <div class="custom-dropdown" id="status-dropdown">
+                <div class="dropdown-selected" onclick="toggleDropdown('status-dropdown')">All Status</div>
+                <div class="dropdown-options">
+                  <div class="dropdown-option selected" onclick="selectOption(this, 'status-dropdown', '', 'All Status')">All Status</div>
+                  <div class="dropdown-option" onclick="selectOption(this, 'status-dropdown', 'active', 'Active')">Active</div>
+                  <div class="dropdown-option" onclick="selectOption(this, 'status-dropdown', 'inactive', 'Inactive')">Inactive</div>
+                </div>
+                <input type="hidden" name="status" id="statusFilter" value="">
+              </div>
             </div>
 
             <div class="filter-item">
@@ -93,25 +94,24 @@
                 <i class="fas fa-map-marker-alt"></i>
                 <span>Location</span>
               </label>
-              <select id="locationFilter" class="filter-select">
-                <option value="">All Locations</option>
-                <option value="UK">UK</option>
-                <option value="FR">France</option>
-              </select>
+              <div class="custom-dropdown" id="location-dropdown">
+                <div class="dropdown-selected" onclick="toggleDropdown('location-dropdown')">All Locations</div>
+                <div class="dropdown-options">
+                  <div class="dropdown-option selected" onclick="selectOption(this, 'location-dropdown', '', 'All Locations')">All Locations</div>
+                  <div class="dropdown-option" onclick="selectOption(this, 'location-dropdown', 'UK', 'UK')">UK</div>
+                  <div class="dropdown-option" onclick="selectOption(this, 'location-dropdown', 'FR', 'France')">France</div>
+                </div>
+                <input type="hidden" name="location" id="locationFilter" value="">
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Divider -->
-      <div class="action-divider">
-        <div class="divider-line"></div>
-      </div>
-
       <!-- Employee Grid Block -->
-      <div class="action-block employees-block">
+      <div class="action-block">
         <div class="block-header">
-          <div class="block-icon employees-icon">
+          <div class="block-icon">
             <i class="fas fa-users"></i>
           </div>
           <div class="block-title-group">
@@ -122,7 +122,7 @@
 
         <div class="block-content">
           <div id="enrEmployeeGrid" class="employee-grid">
-            <!-- Your JS will render the employee cards here -->
+            <!-- Employee cards rendered by JS -->
             <div class="loading-state">
               <div class="loading-spinner"></div>
               <p>Loading employees...</p>
@@ -131,16 +131,22 @@
         </div>
       </div>
     </div>
+  </div>
+</div>
 
-    <!-- Instructions Card -->
-    <div class="management-card-section instructions-card">
-      <div class="instructions-header">
-        <div class="instructions-icon">
-          <i class="fas fa-info-circle"></i>
-        </div>
-        <h3 class="instructions-title">Management Guide</h3>
+<!-- Management Guide Modal -->
+<div id="guideModal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-header-icon">
+        <i class="fas fa-info-circle"></i>
       </div>
-
+      <h3 class="modal-title">Management Guide</h3>
+      <button id="closeGuideBtn" class="modal-close" aria-label="Close">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
       <div class="steps-list">
         <div class="step-item">
           <div class="step-number">1</div>
@@ -149,55 +155,26 @@
             <p class="step-desc">Click "New Employee" to add team members</p>
           </div>
         </div>
-
         <div class="step-item">
           <div class="step-number">2</div>
           <div class="step-info">
-            <h4 class="step-name">Edit Details</h4>
-            <p class="step-desc">Update employee name, location, and status directly in cards</p>
+            <h4 class="step-name">Assign Cards</h4>
+            <p class="step-desc">Link access cards to employees</p>
           </div>
         </div>
-
         <div class="step-item">
           <div class="step-number">3</div>
           <div class="step-info">
-            <h4 class="step-name">Assign Credentials</h4>
-            <p class="step-desc">Use Card or Fingerprint tabs to link access methods</p>
+            <h4 class="step-name">Monitor Access</h4>
+            <p class="step-desc">Track employee attendance and access</p>
           </div>
         </div>
-
-        <div class="step-item">
-          <div class="step-number">4</div>
-          <div class="step-info">
-            <h4 class="step-name">Save</h4>
-            <p class="step-desc">Click save button after editing any employee card</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="logic-items">
-        <div class="logic-item">
-          <div class="logic-icon-wrapper">
-            <i class="fas fa-id-card"></i>
-          </div>
-          <div class="logic-content">
-            <h5>Card Assignment</h5>
-            <p>Navigate to the Card tab to scan and assign RFID cards to employees.</p>
-          </div>
-        </div>
-
-
-      </div>
-
-      <div class="note-card">
-        <i class="fas fa-exclamation-circle"></i>
-        <span><strong>Note:</strong> Changes are saved immediately when you click save. Use search and filters to quickly find employees.</span>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Employee Creation Modal (moved outside enrollment-management container) -->
+<!-- Employee Creation Modal -->
 <div id="createEmployeeModal" class="modal-overlay">
   <div class="modal-content">
     <div class="modal-header">
@@ -218,47 +195,136 @@
         <input type="text" id="employeeName" class="form-input" placeholder="Enter full name" required>
       </div>
       <div class="form-group">
-        <label class="form-label" for="employeeLocation">
+        <label class="form-label">
           <i class="fas fa-map-marker-alt"></i>
           <span>Location *</span>
         </label>
-        <select id="employeeLocation" class="form-input">
-          <option value="UK">United Kingdom (UK)</option>
-          <option value="FR">France (FR)</option>
-        </select>
+        <div class="custom-dropdown" id="create-location-dropdown">
+          <div class="dropdown-selected" onclick="toggleDropdown('create-location-dropdown')">United Kingdom (UK)</div>
+          <div class="dropdown-options">
+            <div class="dropdown-option selected" onclick="selectOption(this, 'create-location-dropdown', 'UK', 'United Kingdom (UK)')">United Kingdom (UK)</div>
+            <div class="dropdown-option" onclick="selectOption(this, 'create-location-dropdown', 'FR', 'France (FR)')">France (FR)</div>
+          </div>
+          <input type="hidden" id="employeeLocation" value="UK">
+        </div>
       </div>
       <div class="form-group">
-        <label class="form-label" for="employeeStatus">
+        <label class="form-label">
           <i class="fas fa-toggle-on"></i>
           <span>Status</span>
         </label>
-        <select id="employeeStatus" class="form-input">
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
-        </select>
+        <div class="custom-dropdown" id="create-status-dropdown">
+          <div class="dropdown-selected" onclick="toggleDropdown('create-status-dropdown')">Active</div>
+          <div class="dropdown-options">
+            <div class="dropdown-option selected" onclick="selectOption(this, 'create-status-dropdown', 'active', 'Active')">Active</div>
+            <div class="dropdown-option" onclick="selectOption(this, 'create-status-dropdown', 'inactive', 'Inactive')">Inactive</div>
+          </div>
+          <input type="hidden" id="employeeStatus" value="active">
+        </div>
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn-secondary" id="cancelCreate">
+      <button class="action-btn secondary-btn" id="cancelCreate">
         <i class="fas fa-times"></i>
         <span>Cancel</span>
       </button>
-      <button class="btn-primary" id="confirmCreate">
+      <button class="action-btn primary-btn" id="confirmCreate">
         <i class="fas fa-check"></i>
         <span>Create Employee</span>
       </button>
     </div>
   </div>
 </div>
-<!-- Universal Footer -->
-<div id="footerPlaceholder"></div>
-<script>
-  if (!document.getElementById('universalFooter')) {
-    fetch('/components/universal-footer.html')
-      .then(response => response.text())
-      .then(html => {
-        document.getElementById('footerPlaceholder').innerHTML = html;
-      })
-      .catch(error => console.error('Error loading footer:', error));
-  }
-</script>
+
+<!-- Employee Edit Modal -->
+<div id="editEmployeeModal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-header-icon employee-avatar-modal">
+        <i class="fas fa-user"></i>
+      </div>
+      <div class="modal-title-group">
+        <h3 class="modal-title" id="editModalTitle">Edit Employee</h3>
+        <span class="status-badge" id="editModalStatus">Active</span>
+      </div>
+      <button class="modal-close" id="closeEditModal">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editEmployeeId">
+      
+      <div class="form-group">
+        <label class="form-label" for="editEmployeeName">
+          <i class="fas fa-user"></i>
+          <span>Employee Name *</span>
+        </label>
+        <input type="text" id="editEmployeeName" class="form-input" placeholder="Enter full name" required>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label" for="editEmployeeCode">
+          <i class="fas fa-id-badge"></i>
+          <span>Employee Code</span>
+        </label>
+        <input type="text" id="editEmployeeCode" class="form-input" readonly disabled>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">
+          <i class="fas fa-map-marker-alt"></i>
+          <span>Location *</span>
+        </label>
+        <div class="custom-dropdown" id="edit-location-dropdown">
+          <div class="dropdown-selected" onclick="toggleDropdown('edit-location-dropdown')">United Kingdom (UK)</div>
+          <div class="dropdown-options">
+            <div class="dropdown-option selected" onclick="selectOption(this, 'edit-location-dropdown', 'UK', 'United Kingdom (UK)')">United Kingdom (UK)</div>
+            <div class="dropdown-option" onclick="selectOption(this, 'edit-location-dropdown', 'FR', 'France (FR)')">France (FR)</div>
+          </div>
+          <input type="hidden" id="editEmployeeLocation" value="UK">
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">
+          <i class="fas fa-toggle-on"></i>
+          <span>Status</span>
+        </label>
+        <div class="custom-dropdown" id="edit-status-dropdown">
+          <div class="dropdown-selected" onclick="toggleDropdown('edit-status-dropdown')">Active</div>
+          <div class="dropdown-options">
+            <div class="dropdown-option selected" onclick="selectOption(this, 'edit-status-dropdown', 'active', 'Active')">Active</div>
+            <div class="dropdown-option" onclick="selectOption(this, 'edit-status-dropdown', 'inactive', 'Inactive')">Inactive</div>
+          </div>
+          <input type="hidden" id="editEmployeeStatusSelect" value="active">
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label" for="editEmployeeNfc">
+          <i class="fas fa-credit-card"></i>
+          <span>NFC Card UID</span>
+        </label>
+        <input type="text" id="editEmployeeNfc" class="form-input" placeholder="No NFC card assigned">
+      </div>
+    </div>
+    <div class="modal-footer modal-footer-split">
+      <button class="action-btn danger-btn" id="deleteFromEdit">
+        <i class="fas fa-trash-alt"></i>
+        <span>Delete</span>
+      </button>
+      <div class="modal-footer-right">
+        <button class="action-btn secondary-btn" id="cancelEdit">
+          <i class="fas fa-times"></i>
+          <span>Cancel</span>
+        </button>
+        <button class="action-btn primary-btn" id="confirmEdit">
+          <i class="fas fa-save"></i>
+          <span>Save Changes</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Dropdown and modal logic handled by js/modules/enrollment/management.js -->

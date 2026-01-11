@@ -92,40 +92,45 @@ function updateRecentScansTable() {
   if (!tableEl) return;
 
   if (state.recentScans.length === 0) {
-    tableEl.innerHTML = '<p class="muted" style="text-align: center; padding: 2rem; color: #999;">No recent scans.</p>';
+    tableEl.innerHTML = `
+      <div class="empty-state">
+        <i class="fas fa-inbox"></i>
+        <p>No recent scans available</p>
+      </div>
+    `;
     return;
   }
 
   const table = `
-    <div class="table-container">
-    <table class="modern-table">
-      <thead>
-        <tr>
-          <th>Employee</th>
-          <th>Method</th>
-          <th>Action</th>
-          <th>Time</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${state.recentScans.map(scan => `
+    <div class="scans-table-wrapper">
+      <table class="scans-table">
+        <thead>
           <tr>
-            <td>${scan.employee}</td>
-            <td>
-              <span class="method-badge">
-                💳 Card
-              </span>
-            </td>
-            <td>
-              <span class="status-badge ${scan.direction === 'in' ? 'status-in' : 'status-out'}">
-                ${scan.direction === 'in' ? '✅ Clock In' : '❌ Clock Out'}
-              </span>
-            </td>
-            <td>${scan.time}</td>
+            <th>Employee</th>
+            <th>Method</th>
+            <th>Action</th>
+            <th>Time</th>
           </tr>
-        `).join('')}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          ${state.recentScans.map(scan => `
+            <tr>
+              <td>${scan.employee}</td>
+              <td>
+                <span class="method-badge">
+                  <i class="fas fa-credit-card"></i> Card
+                </span>
+              </td>
+              <td>
+                <span class="status-badge ${scan.direction === 'in' ? 'status-in' : 'status-out'}">
+                  ${scan.direction === 'in' ? '<i class="fas fa-sign-in-alt"></i> Clock In' : '<i class="fas fa-sign-out-alt"></i> Clock Out'}
+                </span>
+              </td>
+              <td>${scan.time}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
     </div>
   `;
 

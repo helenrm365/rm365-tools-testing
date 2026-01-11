@@ -25,6 +25,43 @@ let state = {
 // ====== Utility Functions ======
 function $(sel) { return document.querySelector(sel); }
 
+// ====== Custom Dropdown Functions ======
+function toggleDropdown(dropdownId) {
+  const dropdown = document.getElementById(dropdownId);
+  if (dropdown) {
+    dropdown.classList.toggle('open');
+  }
+}
+
+function selectOption(element, dropdownId, value, text) {
+  const dropdown = document.getElementById(dropdownId);
+  if (!dropdown) return;
+  
+  const selected = dropdown.querySelector('.dropdown-selected');
+  const hiddenInput = dropdown.querySelector('input[type="hidden"]');
+  
+  if (selected) selected.textContent = text;
+  if (hiddenInput) hiddenInput.value = value;
+  
+  dropdown.classList.remove('open');
+  
+  // Trigger change event for filters
+  if (dropdownId === 'location-dropdown') {
+    state.filters.location = value;
+  }
+}
+
+// Expose to window for onclick handlers
+window.toggleDropdown = toggleDropdown;
+window.selectOption = selectOption;
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.custom-dropdown')) {
+    document.querySelectorAll('.custom-dropdown.open').forEach(d => d.classList.remove('open'));
+  }
+});
+
 function formatHoursToHM(decimalHours) {
   if (!decimalHours || decimalHours === 0) return '0m';
   
@@ -651,54 +688,40 @@ async function loadCurrentStatus() {
 async function loadLocations() {
   try {
     const locations = await fetchLocations();
-    state.locations = locations;
-    populateLocationFilter();
+    // Handle both array and object responses
+    state.locations = Array.isArray(locations) ? locations : (locations?.data || locations?.locations || []);
+    // Only populate if we got locations from API
+    if (state.locations.length > 0) {
+      populateLocationFilter();
+    }
   } catch (error) {
     console.error('Failed to load locations:', error);
+    // Fallback: use hardcoded options already in HTML
   }
 }
 
 function populateLocationFilter() {
-  const locationFilter = $("#locationFilter");
-  if (!locationFilter) return;
+  const dropdownOptions = $("#locationDropdownOptions");
+  if (!dropdownOptions || state.locations.length === 0) return;
   
-  // Clear existing options (except "All Locations")
-  locationFilter.innerHTML = '<option value="">All Locations</option>';
+  // Clear existing options
+  dropdownOptions.innerHTML = '';
+  
+  // Add "All Locations" option
+  const allOption = document.createElement('div');
+  allOption.className = 'dropdown-option';
+  allOption.textContent = 'All Locations';
+  allOption.onclick = () => selectOption(allOption, 'location-dropdown', '', 'All Locations');
+  dropdownOptions.appendChild(allOption);
   
   // Add location options
   state.locations.forEach(location => {
-    const option = document.createElement('option');
-    option.value = location;
+    const option = document.createElement('div');
+    option.className = 'dropdown-option';
     option.textContent = location;
-    locationFilter.appendChild(option);
+    option.onclick = () => selectOption(option, 'location-dropdown', location, location);
+    dropdownOptions.appendChild(option);
   });
-  
-  // Reinitialize c-select for the updated dropdown
-  if (window.initCSelects) {
-    // Remove the existing c-select wrapper if it exists
-    const existingWrapper = locationFilter.closest('.c-select');
-    if (existingWrapper) {
-      const parent = existingWrapper.parentNode;
-      const nextSibling = existingWrapper.nextSibling;
-      parent.insertBefore(locationFilter, nextSibling);
-      existingWrapper.remove();
-      locationFilter.style.display = '';
-      locationFilter.classList.remove('select-hidden');
-      delete locationFilter.dataset.enhanced;
-    }
-    
-    // Re-enhance the select element
-    window.initCSelects(locationFilter.parentElement);
-    
-    // Verify the enhancement worked
-    const newWrapper = locationFilter.closest('.c-select');
-    if (newWrapper) {
-    } else {
-      console.warn('⚠️ Location dropdown enhancement may have failed');
-    }
-  } else {
-    console.warn('⚠️ initCSelects not available for location dropdown');
-  }
 }
 
 function applyFilters() {
@@ -714,8 +737,10 @@ function applyFilters() {
 function clearFilters() {
   const locationFilter = $("#locationFilter");
   const nameFilter = $("#nameFilter");
+  const locationSelected = document.querySelector('#location-dropdown .dropdown-selected');
   
   if (locationFilter) locationFilter.value = '';
+  if (locationSelected) locationSelected.textContent = 'All Locations';
   if (nameFilter) nameFilter.value = '';
   
   state.filters.location = '';

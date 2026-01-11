@@ -1,0 +1,240 @@
+/* ===== Attendance Manual Clocking Page ===== */
+/* Page-specific styles for attendance/manual.html */
+/* 
+   Global Components Used (from css-new/):
+   - layout/header.css: .page-header, .page-title, .page-subtitle, .header-content
+   - components/buttons.css: .action-btn, .success-btn, .danger-btn
+   - components/cards.css: .action-block, .block-header, .block-icon, .block-title-group, .block-title, .block-subtitle, .block-content
+   - components/forms.css: .form-group, .form-label, .custom-dropdown
+   - components/tabs.css: .inner-tabs, .tab-button
+   
+   Shadow System (from SHADOW_SYSTEM.md):
+   - .action-block uses shadow-l (main container)
+   - buttons use shadow-m
+   - inputs use shadow-m
+*/
+
+/* ===== Page Scope ===== */
+.attendance-manual {
+  display: block;
+  font-family: var(--ff);
+  color: var(--text-muted);
+  transition: all var(--transition);
+  padding: 0.5rem 1rem;
+  min-height: calc(100vh - 40px);
+  background: var(--bg-dark);
+}
+
+/* ===== Page-specific Tab Overrides ===== */
+.attendance-manual .inner-tabs {
+  margin: 2rem 0;
+}
+
+.attendance-manual .tab-button {
+  flex: 1 1 auto;
+  min-width: 120px;
+}
+
+/* ===== Manual Layout ===== */
+.attendance-manual .manual-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+}
+
+/* ===== Block Icon Color Variants ===== */
+.attendance-manual .select-icon {
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  color: var(--accent);
+}
+
+.attendance-manual .clock-icon {
+  background: color-mix(in srgb, var(--info) 15%, transparent);
+  color: var(--info);
+}
+
+.attendance-manual .status-icon-block {
+  background: color-mix(in srgb, var(--success) 15%, transparent);
+  color: var(--success);
+}
+
+.attendance-manual .activity-icon {
+  background: color-mix(in srgb, var(--warning) 15%, transparent);
+  color: var(--warning);
+}
+
+/* ===== Clock Action Buttons ===== */
+.attendance-manual .clock-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.attendance-manual .clock-btn {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all var(--transition);
+  background: var(--bg-light);
+  box-shadow: var(--shadow-m);
+}
+
+.attendance-manual .clock-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.attendance-manual .clock-btn:not(:disabled):hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-l);
+}
+
+.attendance-manual .clock-btn .btn-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.attendance-manual .clock-btn.clock-in .btn-icon {
+  background: color-mix(in srgb, var(--success) 15%, transparent);
+  color: var(--success);
+}
+
+.attendance-manual .clock-btn.clock-out .btn-icon {
+  background: color-mix(in srgb, var(--error) 15%, transparent);
+  color: var(--error);
+}
+
+.attendance-manual .clock-btn .btn-content {
+  text-align: left;
+}
+
+.attendance-manual .clock-btn .btn-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 0.25rem;
+}
+
+.attendance-manual .clock-btn .btn-subtitle {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* ===== Status Display ===== */
+.attendance-manual .status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.attendance-manual .status-item {
+  padding: 1rem;
+  background: var(--bg-light);
+  border-radius: 10px;
+}
+
+.attendance-manual .status-item strong {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 0.25rem;
+}
+
+.attendance-manual .status-item span {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text);
+}
+
+/* ===== Activity Table ===== */
+.attendance-manual .activity-table-wrapper {
+  overflow-x: auto;
+  border-radius: 10px;
+  background: var(--bg-light);
+}
+
+.attendance-manual .activity-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 400px;
+}
+
+.attendance-manual .activity-table th {
+  padding: 0.875rem 1rem;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  background: var(--bg);
+  border-bottom: 1px solid var(--bg);
+}
+
+.attendance-manual .activity-table td {
+  padding: 0.875rem 1rem;
+  font-size: 0.9rem;
+  color: var(--text);
+  border-bottom: 1px solid var(--bg);
+}
+
+.attendance-manual .activity-table tbody tr:hover {
+  background: var(--bg);
+}
+
+.attendance-manual .activity-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* ===== Empty State ===== */
+.attendance-manual .empty-state {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: var(--text-muted);
+}
+
+.attendance-manual .empty-state i {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.attendance-manual .empty-state p {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .attendance-manual {
+    padding: 1rem;
+  }
+  
+  .attendance-manual .inner-tabs {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .attendance-manual .tab-button {
+    min-width: 100%;
+  }
+  
+  .attendance-manual .clock-actions {
+    grid-template-columns: 1fr;
+  }
+  
+  .attendance-manual .status-grid {
+    grid-template-columns: 1fr;
+  }
+}

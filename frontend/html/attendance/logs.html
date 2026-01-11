@@ -1,175 +1,181 @@
 <!-- Attendance Logs Page -->
+<!-- Uses css-new/app.css + css-new/pages/attendance/logs.css -->
 <div class="attendance-logs">
-  <!-- Page Header -->
-  <div class="page-header">
+  <!-- Header -->
+  <header class="page-header">
     <div class="header-content">
       <h1 class="page-title">Attendance Logs</h1>
-      <hr class="page-divider">
-      <p class="page-subtitle">View, filter, and export comprehensive attendance records</p>
     </div>
-  </div>
+    <p class="page-subtitle">View, filter, and export comprehensive attendance records</p>
+  </header>
 
   <!-- Navigation Tabs -->
-  <div class="inner-tabs">
+  <nav class="inner-tabs">
     <button class="tab-button" onclick="location.href='/attendance/overview'">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M3 3v18h18"></path>
-        <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"></path>
-      </svg>
+      <i class="fas fa-chart-line"></i>
       <span>Overview</span>
     </button>
     <button class="tab-button" onclick="location.href='/attendance/manual'">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="10"></circle>
-        <polyline points="12 6 12 12 16 14"></polyline>
-      </svg>
+      <i class="fas fa-clock"></i>
       <span>Manual</span>
     </button>
     <button class="tab-button" onclick="location.href='/attendance/automatic'">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"></path>
-        <path d="M14 13.12c0 2.38 0 6.38-1 8.88"></path>
-        <path d="M17.29 21.02c.12-.6.43-2.3.5-3.02"></path>
-        <path d="M2 12a10 10 0 0 1 18-6"></path>
-        <path d="M2 16h.01"></path>
-        <path d="M21.8 16c.2-2 .131-5.354 0-6"></path>
-        <path d="M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2"></path>
-        <path d="M8.65 22c.21-.66.45-1.32.57-2"></path>
-        <path d="M9 6.8a6 6 0 0 1 9 5.2v2"></path>
-      </svg>
+      <i class="fas fa-fingerprint"></i>
       <span>Automatic</span>
     </button>
     <button class="tab-button active" onclick="location.href='/attendance/logs'">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-        <polyline points="14 2 14 8 20 8"></polyline>
-        <line x1="16" y1="13" x2="8" y2="13"></line>
-        <line x1="16" y1="17" x2="8" y2="17"></line>
-        <polyline points="10 9 9 9 8 9"></polyline>
-      </svg>
+      <i class="fas fa-file-alt"></i>
       <span>Logs</span>
     </button>
-  </div>
+  </nav>
 
   <!-- Main Content -->
-  <div class="logs-content">
+  <div class="logs-wrapper">
     <!-- Quick Stats Section -->
-    <section class="quick-stats-section">
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-icon total-logs-icon">
-            <i class="fas fa-file-alt"></i>
-          </div>
-          <div class="stat-info">
-            <div class="stat-value" id="totalLogs">0</div>
-            <div class="stat-label">Total Logs</div>
-          </div>
+    <div class="action-block">
+      <div class="block-header">
+        <div class="block-icon stats-icon">
+          <i class="fas fa-chart-pie"></i>
         </div>
-
-        <div class="stat-card">
-          <div class="stat-icon date-range-icon">
-            <i class="fas fa-calendar-alt"></i>
-          </div>
-          <div class="stat-info">
-            <div class="stat-value" id="dateRange">—</div>
-            <div class="stat-label">Date Range</div>
-          </div>
+        <div class="block-title-group">
+          <h3 class="block-title">Quick Stats</h3>
+          <p class="block-subtitle">Summary of current log data</p>
         </div>
+      </div>
 
-        <div class="stat-card">
-          <div class="stat-icon employees-icon">
-            <i class="fas fa-users"></i>
+      <div class="block-content">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon total-icon">
+              <i class="fas fa-file-alt"></i>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" id="totalLogs">0</div>
+              <div class="stat-label">Total Logs</div>
+            </div>
           </div>
-          <div class="stat-info">
-            <div class="stat-value" id="uniqueEmployees">0</div>
-            <div class="stat-label">Employees</div>
-          </div>
-        </div>
 
-        <div class="stat-card">
-          <div class="stat-icon locations-icon">
-            <i class="fas fa-map-marker-alt"></i>
+          <div class="stat-card">
+            <div class="stat-icon date-icon">
+              <i class="fas fa-calendar-alt"></i>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" id="dateRange">—</div>
+              <div class="stat-label">Date Range</div>
+            </div>
           </div>
-          <div class="stat-info">
-            <div class="stat-value" id="uniqueLocations">—</div>
-            <div class="stat-label">Locations</div>
+
+          <div class="stat-card">
+            <div class="stat-icon employees-icon">
+              <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" id="uniqueEmployees">0</div>
+              <div class="stat-label">Employees</div>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon locations-icon">
+              <i class="fas fa-map-marker-alt"></i>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" id="uniqueLocations">—</div>
+              <div class="stat-label">Locations</div>
+            </div>
           </div>
         </div>
       </div>
-    </section>
+    </div>
 
     <!-- Filter Section -->
-    <section class="filter-section">
-      <div class="section-header">
-        <h2 class="section-title">
+    <div class="action-block">
+      <div class="block-header">
+        <div class="block-icon filter-icon">
           <i class="fas fa-filter"></i>
-          Filter Logs
-        </h2>
+        </div>
+        <div class="block-title-group">
+          <h3 class="block-title">Filter Logs</h3>
+          <p class="block-subtitle">Search and filter attendance records</p>
+        </div>
       </div>
-      <div class="filter-card">
+
+      <div class="block-content">
         <div class="filter-grid">
-          <div class="filter-group">
-            <label class="filter-label">
+          <div class="form-group">
+            <label class="form-label" for="fromDate">
               <i class="fas fa-calendar-day"></i>
               <span>From Date</span>
             </label>
-            <input type="date" id="fromDate" class="filter-input" required>
+            <input type="date" id="fromDate" class="form-input" required>
           </div>
 
-          <div class="filter-group">
-            <label class="filter-label">
+          <div class="form-group">
+            <label class="form-label" for="toDate">
               <i class="fas fa-calendar-day"></i>
               <span>To Date</span>
             </label>
-            <input type="date" id="toDate" class="filter-input" required>
+            <input type="date" id="toDate" class="form-input" required>
           </div>
 
-          <div class="filter-group">
-            <label class="filter-label">
+          <div class="form-group">
+            <label class="form-label">
               <i class="fas fa-map-marker-alt"></i>
               <span>Location</span>
             </label>
-            <select id="locationFilter" class="filter-select">
-              <option value="">All Locations</option>
-              <option value="UK">UK</option>
-              <option value="FR">FR</option>
-              <option value="NL">NL</option>
-            </select>
+            <div class="custom-dropdown" id="location-dropdown">
+              <div class="dropdown-selected" onclick="toggleDropdown('location-dropdown')">All Locations</div>
+              <div class="dropdown-options">
+                <div class="dropdown-option selected" onclick="selectOption(this, 'location-dropdown', '', 'All Locations')">All Locations</div>
+                <div class="dropdown-option" onclick="selectOption(this, 'location-dropdown', 'UK', 'UK')">UK</div>
+                <div class="dropdown-option" onclick="selectOption(this, 'location-dropdown', 'FR', 'FR')">FR</div>
+              </div>
+              <input type="hidden" name="locationFilter" id="locationFilter" value="">
+            </div>
           </div>
 
-          <div class="filter-group">
-            <label class="filter-label">
+          <div class="form-group">
+            <label class="form-label" for="nameFilter">
+              <i class="fas fa-search"></i>
               <span>Employee Name</span>
             </label>
             <div class="search-box">
               <i class="fas fa-search search-icon"></i>
-              <input type="text" id="nameFilter" class="filter-input" placeholder="Search by name...">
+              <input type="text" id="nameFilter" class="form-input" placeholder="Search by name...">
             </div>
           </div>
 
-          <div class="filter-group">
-            <label class="filter-label">
+          <div class="form-group">
+            <label class="form-label">
               <i class="fas fa-toggle-on"></i>
               <span>Action Type</span>
             </label>
-            <select id="actionFilter" class="filter-select">
-              <option value="">All Actions</option>
-              <option value="in">Clock In</option>
-              <option value="out">Clock Out</option>
-            </select>
+            <div class="custom-dropdown" id="action-dropdown">
+              <div class="dropdown-selected" onclick="toggleDropdown('action-dropdown')">All Actions</div>
+              <div class="dropdown-options">
+                <div class="dropdown-option selected" onclick="selectOption(this, 'action-dropdown', '', 'All Actions')">All Actions</div>
+                <div class="dropdown-option" onclick="selectOption(this, 'action-dropdown', 'in', 'Clock In')">Clock In</div>
+                <div class="dropdown-option" onclick="selectOption(this, 'action-dropdown', 'out', 'Clock Out')">Clock Out</div>
+              </div>
+              <input type="hidden" name="actionFilter" id="actionFilter" value="">
+            </div>
           </div>
 
-          <div class="filter-group">
-            <label class="filter-label">
+          <div class="form-group">
+            <label class="form-label">
               <i class="fas fa-sort-amount-down"></i>
               <span>Sort By</span>
             </label>
-            <select id="sortFilter" class="filter-select">
-              <option value="date_desc">Date (Newest First)</option>
-              <option value="date_asc">Date (Oldest First)</option>
-              <option value="name_asc">Name (A-Z)</option>
-              <option value="name_desc">Name (Z-A)</option>
-            </select>
+            <div class="custom-dropdown" id="sort-dropdown">
+              <div class="dropdown-selected" onclick="toggleDropdown('sort-dropdown')">Date (Newest First)</div>
+              <div class="dropdown-options">
+                <div class="dropdown-option selected" onclick="selectOption(this, 'sort-dropdown', 'date_desc', 'Date (Newest First)')">Date (Newest First)</div>
+                <div class="dropdown-option" onclick="selectOption(this, 'sort-dropdown', 'date_asc', 'Date (Oldest First)')">Date (Oldest First)</div>
+                <div class="dropdown-option" onclick="selectOption(this, 'sort-dropdown', 'name_asc', 'Name (A-Z)')">Name (A-Z)</div>
+                <div class="dropdown-option" onclick="selectOption(this, 'sort-dropdown', 'name_desc', 'Name (Z-A)')">Name (Z-A)</div>
+              </div>
+              <input type="hidden" name="sortFilter" id="sortFilter" value="date_desc">
+            </div>
           </div>
         </div>
 
@@ -184,39 +190,43 @@
           </button>
         </div>
       </div>
-    </section>
+    </div>
 
     <!-- Results Section -->
-    <section class="results-section" id="logsResultsSection" style="display: none;">
-      <div class="section-header">
-        <h2 class="section-title">
+    <div class="action-block" id="logsResultsSection" style="display: none;">
+      <div class="block-header">
+        <div class="block-icon results-icon">
           <i class="fas fa-table"></i>
-          Attendance Records
-        </h2>
-        <div class="results-info" id="resultsInfo"></div>
+        </div>
+        <div class="block-title-group">
+          <h3 class="block-title">Attendance Records</h3>
+          <p class="block-subtitle" id="logsStats">Showing filtered results</p>
+        </div>
       </div>
-      <div class="results-card">
-        <div class="table-wrapper">
-          <div id="logsTable">
-            <div class="loading-state">
-              <i class="fas fa-spinner fa-spin"></i>
-              <p>Loading logs...</p>
-            </div>
+
+      <div class="block-content">
+        <div id="logsTable">
+          <div class="loading-state">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Loading logs...</p>
           </div>
         </div>
       </div>
-    </section>
+    </div>
 
     <!-- Export Section -->
-    <section class="export-section">
-      <div class="section-header">
-        <h2 class="section-title">
+    <div class="action-block">
+      <div class="block-header">
+        <div class="block-icon export-icon-block">
           <i class="fas fa-download"></i>
-          Export Options
-        </h2>
+        </div>
+        <div class="block-title-group">
+          <h3 class="block-title">Export Options</h3>
+          <p class="block-subtitle">Download or print attendance data</p>
+        </div>
       </div>
-      <div class="export-card">
-        <p class="export-description">Download or print attendance data for reporting and analysis</p>
+
+      <div class="block-content">
         <div class="export-grid">
           <button id="exportCsvBtn" class="export-btn csv-btn" disabled>
             <div class="export-icon">
@@ -259,18 +269,6 @@
           </button>
         </div>
       </div>
-    </section>
+    </div>
   </div>
 </div>
-<!-- Universal Footer -->
-<div id="footerPlaceholder"></div>
-<script>
-  if (!document.getElementById('universalFooter')) {
-    fetch('/components/universal-footer.html')
-      .then(response => response.text())
-      .then(html => {
-        document.getElementById('footerPlaceholder').innerHTML = html;
-      })
-      .catch(error => console.error('Error loading footer:', error));
-  }
-</script>

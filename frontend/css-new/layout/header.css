@@ -1,0 +1,99 @@
+/* ===== Header Layout ===== */
+/* Header structure and positioning */
+
+.header {
+  /* Structure */
+  position: sticky;
+  top: 0;
+  width: 100%;
+  height: var(--header-height);
+  
+  /* Appearance */
+  background: var(--bg);
+  
+  /* Layout */
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-lg);
+  
+  /* Behavior */
+  z-index: var(--z-sticky);
+}
+
+/* ===== Page Header ===== */
+/* Shared page header component for module pages */
+
+.page-header {
+  padding: 1rem 0 1.5rem 0;
+  margin-bottom: 2rem;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.header-content {
+  max-width: 100%;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.page-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0;
+  text-align: left;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
+}
+
+html.dark-mode .page-title {
+  background: linear-gradient(135deg, #ecf0f1, var(--accent-light));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.page-subtitle {
+  font-size: 1.1rem;
+  color: var(--text-muted);
+  margin: 0;
+  font-weight: 400;
+  text-align: left;
+  text-shadow: var(--text-shadow-s);
+}
+
+/* Help Button - positioning modifier for use with .action-btn .primary-btn */
+.help-button {
+  margin-left: auto;
+}
+
+/* ===== Page Header Responsive ===== */
+@media (max-width: 768px) {
+  .page-header {
+    padding: 1.5rem 0 1rem 0;
+  }
+  
+  .header-content {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .help-button {
+    margin-left: 0;
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .page-title {
+    font-size: 2rem;
+  }
+}

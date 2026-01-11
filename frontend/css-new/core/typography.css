@@ -1,0 +1,84 @@
+/* ===== Typography ===== */
+/* All text-related styles */
+
+h1 {
+  font: var(--h1);
+  color: var(--text);
+}
+
+h2 {
+  font: var(--h2);
+  color: var(--text);
+}
+
+h3 {
+  font: var(--h3);
+  color: var(--text);
+}
+
+h4 {
+  font-weight: 600;
+  font-size: 1rem;
+  line-height: 1.4em;
+  color: var(--text);
+}
+
+h5 {
+  font-weight: 600;
+  font-size: 0.875rem;
+  line-height: 1.4em;
+  color: var(--text);
+}
+
+h6 {
+  font-weight: 600;
+  font-size: 0.75rem;
+  line-height: 1.4em;
+  color: var(--text);
+}
+
+p {
+  font: var(--p);
+  color: var(--text-muted);
+}
+
+.small,
+small {
+  font: var(--small);
+  color: var(--text-muted);
+}
+
+strong,
+b {
+  font-weight: 700;
+}
+
+em,
+i {
+  font-style: italic;
+}
+
+/* Text utilities */
+.text-primary {
+  color: var(--text);
+}
+
+.text-muted {
+  color: var(--text-muted);
+}
+
+.text-accent {
+  color: var(--primary);
+}
+
+.text-center {
+  text-align: center;
+}
+
+.text-left {
+  text-align: left;
+}
+
+.text-right {
+  text-align: right;
+}

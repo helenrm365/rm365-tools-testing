@@ -28,7 +28,8 @@ let state = {
   statusFilters: DEFAULT_STATUS_FILTERS,  // Always start with all filters
   region: "uk",          // Default region preference for prices/names
   currentPresetId: null, // Track currently loaded preset
-  showOrphaned: false    // Whether to show orphaned SKUs (products without names)
+  showOrphaned: false,   // Whether to show orphaned SKUs (products without names)
+  editingPresetSkus: []  // SKUs being edited in the edit preset modal
 };
 
 // Utility functions
@@ -49,6 +50,16 @@ function formatDate(dateString) {
   return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
+// Format status names for display (shorten long ones)
+function formatStatusDisplay(status) {
+  const displayMap = {
+    'Discontinued (Supplier)': 'Disc. (Supp)',
+    'Discontinued (RM)': 'Disc. (RM)',
+    'Temporarily OOS': 'Temp. OOS'
+  };
+  return displayMap[status] || status;
+}
+
 // Debounce utility for instant filtering with delay
 function debounce(func, wait) {
   let timeout;
@@ -61,6 +72,62 @@ function debounce(func, wait) {
     timeout = setTimeout(later, wait);
   };
 }
+
+// ====== Custom Dropdown Functions ======
+function toggleDropdown(dropdownId) {
+  const dropdown = document.getElementById(dropdownId);
+  if (!dropdown) return;
+
+  // Close all other dropdowns first
+  document.querySelectorAll('.custom-dropdown.open').forEach(d => {
+    if (d.id !== dropdownId) {
+      d.classList.remove('open');
+    }
+  });
+
+  dropdown.classList.toggle('open');
+}
+
+function selectPresetOption(element, dropdownId, value, text) {
+  const dropdown = document.getElementById(dropdownId);
+  if (!dropdown) return;
+
+  // Update the displayed text
+  const selected = dropdown.querySelector('.dropdown-selected');
+  if (selected) {
+    selected.textContent = text;
+  }
+
+  // Update the hidden input value
+  const hiddenInput = dropdown.querySelector('input[type="hidden"]');
+  if (hiddenInput) {
+    hiddenInput.value = value;
+    // Trigger the change handler
+    handleOverwritePresetChange({ target: hiddenInput });
+  }
+
+  // Update selected state visually
+  dropdown.querySelectorAll('.dropdown-option').forEach(opt => {
+    opt.classList.remove('selected');
+  });
+  element.classList.add('selected');
+
+  // Close the dropdown
+  dropdown.classList.remove('open');
+}
+
+// Expose dropdown functions globally for inline onclick handlers
+window.toggleDropdown = toggleDropdown;
+window.selectPresetOption = selectPresetOption;
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.custom-dropdown')) {
+    document.querySelectorAll('.custom-dropdown.open').forEach(d => {
+      d.classList.remove('open');
+    });
+  }
+});
 
 export async function initLabelGenerator() {
   // Setup status filter checkboxes (all checked by default)
@@ -179,6 +246,7 @@ function setupUnifiedFilterPanel() {
   const panelBody = document.getElementById('filterPanelBody');
   
   if (collapseBtn && panelBody) {
+    // Panel starts collapsed (set in HTML to prevent animation on load)
     collapseBtn.addEventListener('click', () => {
       panelBody.classList.toggle('collapsed');
       collapseBtn.classList.toggle('collapsed');
@@ -566,13 +634,21 @@ function setupEventListeners() {
   
   // Preset buttons
   const savePresetBtn = document.getElementById('savePresetBtn');
+  console.log('[Labels] savePresetBtn found:', !!savePresetBtn);
   if (savePresetBtn) {
-    savePresetBtn.addEventListener('click', showSavePresetModal);
+    savePresetBtn.addEventListener('click', () => {
+      console.log('[Labels] Save preset button clicked');
+      showSavePresetModal();
+    });
   }
   
   const managePresetsBtn = document.getElementById('managePresetsBtn');
+  console.log('[Labels] managePresetsBtn found:', !!managePresetsBtn);
   if (managePresetsBtn) {
-    managePresetsBtn.addEventListener('click', showManagePresetsModal);
+    managePresetsBtn.addEventListener('click', () => {
+      console.log('[Labels] Manage presets button clicked');
+      showManagePresetsModal();
+    });
   }
   
   const confirmSavePresetBtn = document.getElementById('confirmSavePresetBtn');
@@ -1089,12 +1165,23 @@ function handleSaveOptionChange(e) {
   // Handle specific options
   if (option === 'overwrite-other') {
     // Populate overwrite dropdown with all presets except current
-    const select = document.getElementById('overwritePresetSelect');
-    select.innerHTML = '<option value="">-- Select a preset --</option>' + 
-      presets
-        .filter(p => p.id !== state.currentPresetId)
-        .map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`)
+    const dropdown = document.getElementById('overwrite-preset-dropdown');
+    const optionsContainer = dropdown.querySelector('.dropdown-options');
+    const selectedDisplay = dropdown.querySelector('.dropdown-selected');
+    const hiddenInput = document.getElementById('overwritePresetSelect');
+    
+    // Reset the dropdown
+    selectedDisplay.textContent = '-- Select a preset --';
+    hiddenInput.value = '';
+    
+    // Build dropdown options
+    const availablePresets = presets.filter(p => p.id !== state.currentPresetId);
+    optionsContainer.innerHTML = 
+      `<div class="dropdown-option" onclick="selectPresetOption(this, 'overwrite-preset-dropdown', '', '-- Select a preset --')">-- Select a preset --</div>` +
+      availablePresets
+        .map(p => `<div class="dropdown-option" onclick="selectPresetOption(this, 'overwrite-preset-dropdown', '${p.id}', '${escapeHtml(p.name)}')">${escapeHtml(p.name)}</div>`)
         .join('');
+    
     document.getElementById('presetDescription').value = '';
   } else if (option === 'overwrite-current') {
     // Show current preset info
@@ -1279,7 +1366,37 @@ async function loadPresets() {
         created_at: new Date().toISOString(),
         status_filters: DEFAULT_STATUS_FILTERS,
         region: 'uk',
-        product_skus: ['SAMPLE001', 'SAMPLE002', 'SAMPLE003']
+        product_skus: ['SAMPLE001', 'SAMPLE002', 'SAMPLE003', 'SAMPLE004', 'SAMPLE005', 'SAMPLE006', 'SAMPLE007', 'SAMPLE008', 'SAMPLE009', 'SAMPLE010', 'SAMPLE011', 'SAMPLE012', 'SAMPLE013', 'SAMPLE014', 'SAMPLE015']
+      },
+      {
+        id: 3,
+        name: 'Sample Preset - Pre-Orders Only',
+        description: 'Products with pre-order status',
+        created_by: username,
+        created_at: new Date().toISOString(),
+        status_filters: ['Pre Order'],
+        region: 'uk',
+        product_skus: ['SAMPLE001']
+      },
+      {
+        id: 4,
+        name: 'Sample Preset - France Region',
+        description: 'Products for French market',
+        created_by: username,
+        created_at: new Date().toISOString(),
+        status_filters: ['Active', 'Special Offer'],
+        region: 'fr',
+        product_skus: ['SAMPLE002', 'SAMPLE003']
+      },
+      {
+        id: 5,
+        name: 'Sample Preset - Discontinued Items',
+        description: 'Products discontinued by supplier or RM',
+        created_by: username,
+        created_at: new Date().toISOString(),
+        status_filters: ['Discontinued (Supplier)', 'Discontinued (RM)'],
+        region: 'uk',
+        product_skus: ['SAMPLE003']
       }
     ];
     renderPresetList();
@@ -1306,20 +1423,23 @@ function renderPresetList() {
   
   presetList.innerHTML = presets.map(preset => {
     const isActive = preset.id === state.currentPresetId;
+    const filterCount = preset.status_filters ? preset.status_filters.length : 0;
     return `
-    <div class="preset-card-compact ${isActive ? 'active' : ''}" data-preset-id="${preset.id}">
-      <div class="preset-compact-header">
-        <h4 class="preset-name-compact">
-          ${isActive ? '<i class="fas fa-check-circle" style="color: #8bc34a; margin-right: 4px; font-size: 0.75rem;"></i>' : ''}
-          ${escapeHtml(preset.name)}
-        </h4>
+    <div class="preset-card-horizontal ${isActive ? 'active' : ''}" data-preset-id="${preset.id}">
+      <h4 class="preset-name">
+        ${isActive ? '<i class="fas fa-check-circle" style="color: var(--accent); margin-right: 4px;"></i>' : ''}
+        ${escapeHtml(preset.name)}
+      </h4>
+      <div class="preset-meta">
+        <span><i class="fas fa-filter"></i> ${filterCount} filters</span>
+        <span><i class="fas fa-globe"></i> ${preset.region ? preset.region.toUpperCase() : 'UK'}</span>
       </div>
-      <div class="preset-compact-actions">
-        <button class="preset-btn-compact load" onclick="window.labelGenerator.loadPreset(${preset.id})" title="${isActive ? 'Reload this preset' : 'Load this preset'}">
+      <div class="preset-actions">
+        <button class="action-btn btn-sm primary-btn" onclick="window.labelGenerator.loadPreset(${preset.id})" title="${isActive ? 'Reload this preset' : 'Load this preset'}">
           <i class="fas fa-${isActive ? 'sync-alt' : 'check-circle'}"></i>
           ${isActive ? 'Reload' : 'Load'}
         </button>
-        <button class="preset-btn-compact view" onclick="window.labelGenerator.viewPresetDetails(${preset.id})" title="View preset details">
+        <button class="action-btn btn-sm secondary-btn" onclick="window.labelGenerator.viewPresetDetails(${preset.id})" title="View preset details">
           <i class="fas fa-eye"></i>
           View
         </button>
@@ -1344,36 +1464,38 @@ function renderManagePresetsList() {
   }
   
   manageList.innerHTML = presets.map(preset => `
-    <div class="manage-preset-item" data-preset-id="${preset.id}">
-      <div class="manage-preset-info">
-        <h4 class="preset-name">${escapeHtml(preset.name)}</h4>
-        ${preset.description ? `<p class="preset-description">${escapeHtml(preset.description)}</p>` : ''}
-        <div class="preset-meta">
-          <span><i class="fas fa-user"></i> ${escapeHtml(preset.created_by || 'Unknown')}</span>
-          <span><i class="fas fa-clock"></i> ${formatDate(preset.created_at)}</span>
+    <div class="card manage-preset-item" data-preset-id="${preset.id}">
+      <div class="manage-preset-header">
+        <div class="manage-preset-info">
+          <h4 class="preset-name">${escapeHtml(preset.name)}</h4>
+          ${preset.description ? `<p class="preset-description">${escapeHtml(preset.description)}</p>` : ''}
+          <div class="preset-meta">
+            <span><i class="fas fa-user"></i> ${escapeHtml(preset.created_by || 'Unknown')}</span>
+            <span><i class="fas fa-clock"></i> ${formatDate(preset.created_at)}</span>
+          </div>
+        </div>
+        <div class="manage-preset-stats">
+          <span class="preset-stat">
+            <i class="fas fa-filter"></i> ${preset.status_filters?.length || 0} filters
+          </span>
+          <span class="preset-stat">
+            <i class="fas fa-globe"></i> ${(preset.region || 'uk').toUpperCase()}
+          </span>
+          <span class="preset-stat">
+            <i class="fas fa-box"></i> ${preset.product_skus?.length || 0} products
+          </span>
         </div>
       </div>
-      <div class="manage-preset-stats">
-        <span class="preset-stat">
-          <i class="fas fa-filter"></i> ${preset.status_filters?.length || 0} filters
-        </span>
-        <span class="preset-stat">
-          <i class="fas fa-globe"></i> ${(preset.region || 'uk').toUpperCase()}
-        </span>
-        <span class="preset-stat">
-          <i class="fas fa-box"></i> ${preset.product_skus?.length || 0} products
-        </span>
-      </div>
       <div class="manage-preset-actions">
-        <button class="preset-action-btn load" onclick="window.labelGenerator.loadPreset(${preset.id}); document.getElementById('managePresetsModal').style.display='none';">
+        <button class="action-btn btn-sm primary-btn" onclick="window.labelGenerator.loadPreset(${preset.id}); document.getElementById('managePresetsModal').classList.remove('active');">
           <i class="fas fa-check"></i>
           Load
         </button>
-        <button class="preset-action-btn secondary" onclick="window.labelGenerator.showEditPresetModal(${preset.id})">
+        <button class="action-btn btn-sm secondary-btn" onclick="window.labelGenerator.showEditPresetModal(${preset.id})">
           <i class="fas fa-edit"></i>
           Edit
         </button>
-        <button class="preset-action-btn danger" onclick="window.labelGenerator.deletePresetConfirm(${preset.id})">
+        <button class="action-btn btn-sm danger-btn" onclick="window.labelGenerator.deletePresetConfirm(${preset.id})">
           <i class="fas fa-trash"></i>
           Delete
         </button>
@@ -1460,11 +1582,20 @@ function showSavePresetModal() {
   document.getElementById('presetDescription').value = '';
   document.getElementById('overwritePresetSelect').value = '';
   
+  // Reset the custom dropdown display
+  const dropdown = document.getElementById('overwrite-preset-dropdown');
+  if (dropdown) {
+    const selectedDisplay = dropdown.querySelector('.dropdown-selected');
+    if (selectedDisplay) {
+      selectedDisplay.textContent = '-- Select a preset --';
+    }
+  }
+  
   // Populate product list with currently selected products
   renderSavePresetProductList();
   
   // Show modal
-  document.getElementById('savePresetModal').style.display = 'flex';
+  document.getElementById('savePresetModal').classList.add('active');
 }
 
 function renderSavePresetProductList() {
@@ -1596,7 +1727,7 @@ async function savePreset() {
     await loadPresets();
     
     // Close modal
-    document.getElementById('savePresetModal').style.display = 'none';
+    document.getElementById('savePresetModal').classList.remove('active');
   } catch (error) {
     console.error('[Presets] Failed to save:', error);
     showToast('Failed to save preset', 'error');
@@ -1605,7 +1736,7 @@ async function savePreset() {
 
 function showManagePresetsModal() {
   renderManagePresetsList();
-  document.getElementById('managePresetsModal').style.display = 'flex';
+  document.getElementById('managePresetsModal').classList.add('active');
 }
 
 function showEditPresetModal(presetId) {
@@ -1639,29 +1770,47 @@ function showEditPresetModal(presetId) {
   document.getElementById('currentProductCount').textContent = state.selectedProducts.size;
   
   // Close manage modal if open
-  document.getElementById('managePresetsModal').style.display = 'none';
+  document.getElementById('managePresetsModal').classList.remove('active');
   
   // Show edit modal
-  document.getElementById('editPresetModal').style.display = 'flex';
+  document.getElementById('editPresetModal').classList.add('active');
 }
 
 function renderEditPresetProductList(preset) {
   const listContainer = document.getElementById('editPresetProductList');
   if (!listContainer) return;
   
-  const skus = preset.product_skus || [];
+  // Initialize editing SKUs from preset if not already set
+  if (preset) {
+    state.editingPresetSkus = [...(preset.product_skus || [])];
+  }
+  
+  const skus = state.editingPresetSkus;
+  
+  // Update product count display
+  const countEl = document.getElementById('editPresetProductCount');
+  if (countEl) countEl.textContent = skus.length;
   
   if (skus.length === 0) {
     listContainer.innerHTML = '<div class="preset-product-empty">No products in this preset</div>';
     return;
   }
   
-  listContainer.innerHTML = skus.map(sku => `
-    <div class="preset-product-item">
+  listContainer.innerHTML = skus.map((sku, index) => `
+    <div class="preset-product-item" data-sku="${escapeHtml(sku)}">
       <span class="preset-product-sku">${escapeHtml(sku)}</span>
       <span class="preset-product-name">Product SKU</span>
+      <button type="button" class="preset-product-remove" onclick="window.labelGenerator.removeEditPresetProduct('${escapeHtml(sku)}')" title="Remove from preset">
+        <i class="fas fa-times"></i>
+      </button>
     </div>
   `).join('');
+}
+
+// Remove a product from the editing preset
+function removeEditPresetProduct(sku) {
+  state.editingPresetSkus = state.editingPresetSkus.filter(s => s !== sku);
+  renderEditPresetProductList(null); // Re-render without resetting the list
 }
 
 async function editPreset() {
@@ -1681,7 +1830,7 @@ async function editPreset() {
       description: description || null
     };
     
-    // If user wants to update contents, include current selection
+    // If user wants to update contents with current selection
     if (updateContents) {
       const selectedSkus = Array.from(state.selectedProducts).map(itemId => {
         const product = state.displayedProducts.find(p => p.item_id === itemId);
@@ -1691,6 +1840,9 @@ async function editPreset() {
       updates.status_filters = state.statusFilters;
       updates.region = state.region;
       updates.product_skus = selectedSkus;
+    } else {
+      // Save the edited product list (with any removals)
+      updates.product_skus = state.editingPresetSkus;
     }
     
     await updatePreset(presetId, updates);
@@ -1699,7 +1851,7 @@ async function editPreset() {
     await loadPresets();
     
     // Close modal
-    document.getElementById('editPresetModal').style.display = 'none';
+    document.getElementById('editPresetModal').classList.remove('active');
     
     const message = updateContents ? 'Preset updated with current selection' : 'Preset updated successfully';
     showToast(message, 'success');
@@ -1734,7 +1886,7 @@ async function deletePresetConfirm(presetId) {
     
     // Check if manage presets modal is open and refresh it
     const manageModal = document.getElementById('managePresetsModal');
-    if (manageModal && manageModal.style.display === 'flex') {
+    if (manageModal && manageModal.classList.contains('active')) {
       renderManagePresetsList();
     }
     
@@ -1777,7 +1929,7 @@ function viewPresetDetails(presetId) {
   const filtersContainer = document.getElementById('viewPresetFilters');
   if (preset.status_filters && preset.status_filters.length > 0) {
     filtersContainer.innerHTML = preset.status_filters.map(filter => 
-      `<span class="filter-badge">${escapeHtml(filter)}</span>`
+      `<span class="filter-badge">${escapeHtml(formatStatusDisplay(filter))}</span>`
     ).join('');
   } else {
     filtersContainer.innerHTML = '<span class="empty-text">No filters</span>';
@@ -1794,7 +1946,7 @@ function viewPresetDetails(presetId) {
   }
   
   // Show modal
-  document.getElementById('viewPresetModal').style.display = 'flex';
+  document.getElementById('viewPresetModal').classList.add('active');
 }
 
 // Export functions for global access
@@ -1802,5 +1954,6 @@ window.labelGenerator = {
   loadPreset,
   showEditPresetModal,
   deletePresetConfirm,
-  viewPresetDetails
+  viewPresetDetails,
+  removeEditPresetProduct
 };

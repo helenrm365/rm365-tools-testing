@@ -1,0 +1,42 @@
+/* ===== Main Application Stylesheet ===== */
+/* Import order matters! */
+
+/* 1. Core - Foundation (load first) */
+@import 'core/standard-colors.css';  /* Color variables - SINGLE SOURCE OF TRUTH */
+@import 'core/variables.css';         /* Non-color variables (spacing, z-index, etc.) */
+@import 'core/reset.css';             /* Browser reset / normalize */
+@import 'core/typography.css';        /* Typography styles */
+
+/* 2. Layout - Page structure */
+@import 'layout/grid.css';            /* Grid system & containers */
+@import 'layout/header.css';          /* Header layout */
+@import 'layout/sidebar.css';         /* Sidebar layout */
+@import 'layout/module-home.css';     /* Module home page layouts */
+
+/* 3. Components - Reusable UI elements */
+@import 'components/buttons.css';     /* All button variants */
+@import 'components/badges.css';      /* Status badges & pills */
+@import 'components/cards.css';       /* All card variants */
+@import 'components/forms.css';       /* Form elements (inputs, selects, etc.) */
+@import 'components/selection-boxes.css'; /* Checkbox/radio pill selectors */
+@import 'components/modals.css';      /* Modal dialogs */
+@import 'components/tables.css';      /* Table styles */
+@import 'components/tabs.css';        /* Tab navigation */
+@import 'components/loaders.css';     /* Loading spinners & skeletons */
+@import 'components/charts.css';      /* Chart.js & chart styling */
+@import 'components/collapsible.css'; /* Expandable sections */
+@import 'components/popups.css';      /* Popup dialogs & toasts */
+@import 'components/filters.css';     /* Filter controls & categories */
+
+/* 4. Utilities - Helper classes */
+@import 'utilities/animations.css';   /* Keyframes & animation classes */
+@import 'utilities/helpers.css';      /* Utility classes (.hidden, .mt-2, etc.) */
+@import 'utilities/scrollbar.css';    /* Custom scrollbar styles */
+
+/* 
+ * Page-specific styles are NOT imported here.
+ * They should be loaded separately per page:
+ * 
+ * <link rel="stylesheet" href="/css-new/app.css">
+ * <link rel="stylesheet" href="/css-new/pages/enrollment/management.css">
+ */

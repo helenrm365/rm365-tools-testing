@@ -1,0 +1,101 @@
+/* ===== Magento Data Module Styles ===== */
+/* Page-specific styles for Magento data sync module */
+
+/* 
+ * IMPORT PATTERN:
+ * <link rel="stylesheet" href="/css-new/app.css">
+ * <link rel="stylesheet" href="/css-new/pages/magentodata/sync.css">
+ */
+
+/* ===== Page Scope ===== */
+.magentodata-sync {
+  /* Page wrapper for scoped styles */
+  display: block;
+}
+
+/* ===== Page Header ===== */
+.magentodata-sync .page-header {
+  margin-bottom: 2rem;
+  padding: 2rem 0 1rem 0;
+}
+
+.magentodata-sync .page-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #8bc34a, #6a9e34);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+html.dark-mode .magentodata-sync .page-title {
+  background: linear-gradient(135deg, #ecf0f1, #8bc34a);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ===== Sync Status Dashboard ===== */
+.sync-status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-lg);
+  margin-bottom: var(--space-xl);
+}
+
+.sync-status-card {
+  background: var(--bg-light);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  border-left: 4px solid var(--bg);
+}
+
+.sync-status-card.syncing {
+  border-left-color: #3b82f6;
+}
+
+.sync-status-card.success {
+  border-left-color: #10b981;
+}
+
+.sync-status-card.error {
+  border-left-color: #e74c3c;
+}
+
+.sync-status-card.pending {
+  border-left-color: #f59e0b;
+}
+
+/* ===== Sync Progress ===== */
+.sync-progress {
+  height: 8px;
+  background: var(--bg);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: var(--space-md);
+}
+
+.sync-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #8bc34a, #7ab82d);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+/* ===== Data Table Enhancements ===== */
+.magento-data-table .product-image {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+}
+
+.magento-data-table .sku-cell {
+  font-family: monospace;
+  font-size: 0.875rem;
+}
+
+/* 
+ * TODO: Migrate remaining page-specific styles from:
+ * /css/magentodata/*.css
+ */

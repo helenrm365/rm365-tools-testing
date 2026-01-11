@@ -29,7 +29,7 @@
   <!-- Fonts + libs -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 
   <!-- Charts (Attendance overview) - Load early to ensure availability -->
@@ -45,8 +45,21 @@
     });
   </script>
 
-  <!-- Your CSS (order matters) -->
-  <!-- Component CSS - Modular components (loaded in dependency order) -->
+  <!-- ===== NEW CSS Architecture - Single Source of Truth ===== -->
+  <link rel="stylesheet" href="/css-new/app.css">
+  
+  <!-- Page-specific CSS (loaded dynamically or keep commonly used ones) -->
+  <link rel="stylesheet" href="/css-new/pages/enrollment/management.css">
+  <link rel="stylesheet" href="/css-new/pages/enrollment/management-depth-test.css">
+  <link rel="stylesheet" href="/css-new/pages/enrollment/card.css">
+  <link rel="stylesheet" href="/css-new/pages/attendance/overview.css">
+  <link rel="stylesheet" href="/css-new/pages/attendance/manual.css">
+  <link rel="stylesheet" href="/css-new/pages/attendance/automatic.css">
+  <link rel="stylesheet" href="/css-new/pages/attendance/logs.css">
+  <link rel="stylesheet" href="/css-new/pages/labels/generator.css">
+  <link rel="stylesheet" href="/css-new/pages/labels/history.css">
+  
+  <!-- OLD CSS - COMMENTED OUT FOR TESTING NEW CSS
   <link rel="stylesheet" href="/css/components/variables.css">
   <link rel="stylesheet" href="/css/components/base.css">
   <link rel="stylesheet" href="/css/components/card.css">
@@ -63,14 +76,12 @@
   <link rel="stylesheet" href="/css/components/filter-category.css">
   <link rel="stylesheet" href="/css/components/c-select.css">
   
-  <!-- Sidebar CSS - Modular components (loaded in dependency order) -->
   <link rel="stylesheet" href="/css/sidebar/base.css">
   <link rel="stylesheet" href="/css/sidebar/header.css">
   <link rel="stylesheet" href="/css/sidebar/navigation.css">
   <link rel="stylesheet" href="/css/sidebar/footer.css">
   <link rel="stylesheet" href="/css/sidebar/responsive.css">
   
-  <!-- Home Page CSS - Self-contained modular components (all dependencies included) -->
   <link rel="stylesheet" href="/css/home/base.css">
   <link rel="stylesheet" href="/css/home/scrollbar.css">
   <link rel="stylesheet" href="/css/home/typography.css">
@@ -78,14 +89,11 @@
   <link rel="stylesheet" href="/css/home/home.css">
   <link rel="stylesheet" href="/css/home/responsive.css">
   
-  <!-- Login Page CSS - Self-contained modular components -->
   <link rel="stylesheet" href="/css/login/base.css">
   <link rel="stylesheet" href="/css/login/layout.css">
   <link rel="stylesheet" href="/css/login/form.css">
   <link rel="stylesheet" href="/css/login/animations.css">
   
-  <!-- Modern UI and other module-specific CSS -->
-  <!-- <link rel="stylesheet" href="/css/modern-ui.css"> --> <!-- COMMENTED OUT - Replaced by component CSS files -->
   <link rel="stylesheet" href="/css/module-home-pages.css">
   <link rel="stylesheet" href="/css/enrollment/universal.css">
   <link rel="stylesheet" href="/css/enrollment/management.css">
@@ -108,6 +116,7 @@
   <link rel="stylesheet" href="/css/orders/approval.css">
   <link rel="stylesheet" href="/css/usermanagement/usermanagement.css">
   <link rel="stylesheet" href="/css/components/liquid-glass/toggle.css">
+  END OLD CSS -->
 
   <link rel="manifest" href="/manifest.webmanifest">
 

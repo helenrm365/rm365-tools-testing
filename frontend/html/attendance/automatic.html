@@ -1,87 +1,79 @@
 <!-- Automatic Clocking Page -->
+<!-- Uses css-new/app.css + css-new/pages/attendance/automatic.css -->
 <div class="attendance-automatic">
-  <!-- Page Header -->
-  <div class="page-header">
+  <!-- Header -->
+  <header class="page-header">
     <div class="header-content">
       <h1 class="page-title">Automatic Clocking</h1>
-      <hr class="page-divider">
-      <p class="page-subtitle">Seamless NFC-based attendance tracking</p>
     </div>
-  </div>
+    <p class="page-subtitle">Seamless NFC-based attendance tracking</p>
+  </header>
 
   <!-- Navigation Tabs -->
-  <div class="inner-tabs">
+  <nav class="inner-tabs">
     <button class="tab-button" onclick="location.href='/attendance/overview'">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M3 3v18h18"></path>
-        <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"></path>
-      </svg>
+      <i class="fas fa-chart-line"></i>
       <span>Overview</span>
     </button>
     <button class="tab-button" onclick="location.href='/attendance/manual'">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="10"></circle>
-        <polyline points="12 6 12 12 16 14"></polyline>
-      </svg>
+      <i class="fas fa-clock"></i>
       <span>Manual</span>
     </button>
     <button class="tab-button active" onclick="location.href='/attendance/automatic'">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"></path>
-        <path d="M14 13.12c0 2.38 0 6.38-1 8.88"></path>
-        <path d="M17.29 21.02c.12-.6.43-2.3.5-3.02"></path>
-        <path d="M2 12a10 10 0 0 1 18-6"></path>
-        <path d="M2 16h.01"></path>
-        <path d="M21.8 16c.2-2 .131-5.354 0-6"></path>
-        <path d="M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2"></path>
-        <path d="M8.65 22c.21-.66.45-1.32.57-2"></path>
-        <path d="M9 6.8a6 6 0 0 1 9 5.2v2"></path>
-      </svg>
+      <i class="fas fa-fingerprint"></i>
       <span>Automatic</span>
     </button>
     <button class="tab-button" onclick="location.href='/attendance/logs'">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-        <polyline points="14 2 14 8 20 8"></polyline>
-        <line x1="16" y1="13" x2="8" y2="13"></line>
-        <line x1="16" y1="17" x2="8" y2="17"></line>
-        <polyline points="10 9 9 9 8 9"></polyline>
-      </svg>
+      <i class="fas fa-file-alt"></i>
       <span>Logs</span>
     </button>
+  </nav>
+
+  <!-- Scan Result Alert (Hidden by default) -->
+  <div id="scanResultAlert" class="scan-result-alert" style="display: none;">
+    <div class="alert-content">
+      <i class="alert-icon fas fa-check-circle"></i>
+      <div class="alert-text">
+        <h4 class="alert-title">Scan Successful</h4>
+        <p class="alert-message" id="scanResultMessage"></p>
+      </div>
+      <button class="alert-close" onclick="document.getElementById('scanResultAlert').style.display='none'">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
   </div>
 
   <!-- Main Content -->
-  <div class="automatic-content">
-    <!-- Scanner Methods Section -->
-    <section class="scanner-methods-section">
-      <div class="methods-grid" style="display: flex; justify-content: center;">
-        <div class="method-card card-method">
-          <div class="method-icon">
-            <i class="fas fa-id-card"></i>
-          </div>
-          <h3 class="method-title">NFC Tap</h3>
-          <p class="method-description">Tap NFC card or key fob on the reader for quick access</p>
-          <div id="cardStatus" class="method-status">
-            <i class="fas fa-check-circle"></i>
-            <span>Ready</span>
-          </div>
+  <div class="automatic-wrapper">
+    <!-- Scanner Control Section -->
+    <div class="action-block">
+      <div class="block-header">
+        <div class="block-icon scanner-icon-block">
+          <i class="fas fa-id-card"></i>
+        </div>
+        <div class="block-title-group">
+          <h3 class="block-title">NFC Scanner</h3>
+          <p class="block-subtitle">Tap NFC card or key fob on the reader</p>
+        </div>
+        <div id="cardStatus" class="hardware-status status-ready">
+          <i class="fas fa-check-circle"></i>
+          <span>Ready</span>
         </div>
       </div>
-    </section>
 
-    <!-- Scanner Control Section -->
-    <section class="scanner-control-section">
-      <div class="control-card">
+      <div class="block-content">
         <div class="scanner-display">
           <div class="scanner-animation" id="scannerAnimation">
             <div class="pulse-ring"></div>
             <div class="scanner-icon">
-              <i class="fas fa-qrcode"></i>
+              <i class="fas fa-wifi"></i>
             </div>
           </div>
           <h3 class="scanner-title">Ready to Scan</h3>
           <p class="scanner-message">Automatic clocking is active for NFC</p>
+          
+          <!-- Status message area for JS to update -->
+          <div id="scannerStatus" class="scanner-status-message">🟢 Card reader detected</div>
         </div>
 
         <div class="control-buttons">
@@ -95,76 +87,68 @@
           </button>
         </div>
       </div>
-    </section>
+    </div>
 
-    <!-- Scan Result Alert (Hidden by default) -->
-    <div id="scanResultAlert" class="scan-result-alert" style="display: none;">
-      <div class="alert-content">
-        <i class="alert-icon fas fa-check-circle"></i>
-        <div class="alert-text">
-          <h4 class="alert-title">Scan Successful</h4>
-          <p class="alert-message" id="scanResultMessage"></p>
+    <!-- Statistics Section -->
+    <div class="action-block">
+      <div class="block-header">
+        <div class="block-icon stats-icon">
+          <i class="fas fa-chart-bar"></i>
         </div>
-        <button class="alert-close" onclick="document.getElementById('scanResultAlert').style.display='none'">
-          <i class="fas fa-times"></i>
-        </button>
+        <div class="block-title-group">
+          <h3 class="block-title">Scanner Statistics</h3>
+          <p class="block-subtitle">Real-time scanning metrics</p>
+        </div>
+      </div>
+
+      <div class="block-content">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon time-icon">
+              <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" id="lastScanTime">—</div>
+              <div class="stat-label">Last Scan</div>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon count-icon">
+              <i class="fas fa-calculator"></i>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" id="totalScansToday">0</div>
+              <div class="stat-label">Scans Today</div>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon success-icon">
+              <i class="fas fa-check-double"></i>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" id="successRate">100%</div>
+              <div class="stat-label">Success Rate</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- Statistics Grid -->
-    <section class="auto-stats-section">
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-icon scanner-status-icon">
-            <i class="fas fa-wifi"></i>
-          </div>
-          <div class="stat-info">
-            <div class="stat-value" id="scannerStatus">Connected</div>
-            <div class="stat-label">Scanner Status</div>
-          </div>
-        </div>
-
-        <div class="stat-card">
-          <div class="stat-icon time-icon">
-            <i class="fas fa-clock"></i>
-          </div>
-          <div class="stat-info">
-            <div class="stat-value" id="lastScanTime">—</div>
-            <div class="stat-label">Last Scan</div>
-          </div>
-        </div>
-
-        <div class="stat-card">
-          <div class="stat-icon count-icon">
-            <i class="fas fa-calculator"></i>
-          </div>
-          <div class="stat-info">
-            <div class="stat-value" id="totalScansToday">0</div>
-            <div class="stat-label">Scans Today</div>
-          </div>
-        </div>
-
-        <div class="stat-card">
-          <div class="stat-icon success-icon">
-            <i class="fas fa-check-double"></i>
-          </div>
-          <div class="stat-info">
-            <div class="stat-value" id="successRate">100%</div>
-            <div class="stat-label">Success Rate</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
     <!-- Recent Scans Section -->
-    <section class="recent-scans-section">
-      <div class="section-header">
-        <h2 class="section-title">
+    <div class="action-block">
+      <div class="block-header">
+        <div class="block-icon history-icon">
           <i class="fas fa-history"></i>
-          Recent Automatic Scans
-        </h2>
+        </div>
+        <div class="block-title-group">
+          <h3 class="block-title">Recent Automatic Scans</h3>
+          <p class="block-subtitle">Latest NFC clocking records</p>
+        </div>
       </div>
-      <div class="scans-card">
+
+      <div class="block-content">
         <div id="recentScansTable">
           <div class="empty-state">
             <i class="fas fa-inbox"></i>
@@ -172,18 +156,6 @@
           </div>
         </div>
       </div>
-    </section>
+    </div>
   </div>
 </div>
-<!-- Universal Footer -->
-<div id="footerPlaceholder"></div>
-<script>
-  if (!document.getElementById('universalFooter')) {
-    fetch('/components/universal-footer.html')
-      .then(response => response.text())
-      .then(html => {
-        document.getElementById('footerPlaceholder').innerHTML = html;
-      })
-      .catch(error => console.error('Error loading footer:', error));
-  }
-</script>

@@ -9,6 +9,62 @@ let state = {
   currentSortAsc: false // default: most recent first
 };
 
+// ====== Custom Dropdown Functions ======
+function toggleDropdown(dropdownId) {
+  const dropdown = document.getElementById(dropdownId);
+  if (!dropdown) return;
+
+  // Close all other dropdowns first
+  document.querySelectorAll('.custom-dropdown.open').forEach(d => {
+    if (d.id !== dropdownId) {
+      d.classList.remove('open');
+    }
+  });
+
+  dropdown.classList.toggle('open');
+}
+
+function selectOption(element, dropdownId, value, text) {
+  const dropdown = document.getElementById(dropdownId);
+  if (!dropdown) return;
+
+  // Update the displayed text
+  const selected = dropdown.querySelector('.dropdown-selected');
+  if (selected) {
+    selected.textContent = text;
+  }
+
+  // Update the hidden input value
+  const hiddenInput = dropdown.querySelector('input[type="hidden"]');
+  if (hiddenInput) {
+    hiddenInput.value = value;
+  }
+
+  // Update selected state visually
+  dropdown.querySelectorAll('.dropdown-option').forEach(opt => {
+    opt.classList.remove('selected');
+  });
+  element.classList.add('selected');
+
+  // Close the dropdown
+  dropdown.classList.remove('open');
+}
+
+// Expose dropdown functions globally for inline onclick handlers
+window.toggleDropdown = toggleDropdown;
+window.selectOption = selectOption;
+
+// Close dropdowns when clicking outside
+function setupDropdownCloseHandler() {
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.custom-dropdown')) {
+      document.querySelectorAll('.custom-dropdown.open').forEach(d => {
+        d.classList.remove('open');
+      });
+    }
+  });
+}
+
 // ====== Utility Functions ======
 function $(sel) { return document.querySelector(sel); }
 
@@ -30,6 +86,8 @@ async function loadLogs() {
   const endDate = $("#toDate")?.value;
   const searchTerm = $("#nameFilter")?.value;
   const location = $("#locationFilter")?.value;
+  const actionType = $("#actionFilter")?.value;
+  const sortBy = $("#sortFilter")?.value || 'date_desc';
 
   if (!startDate || !endDate) {
     const message = "Please select both start and end dates";
@@ -39,21 +97,31 @@ async function loadLogs() {
 
   // Show loading state
   const btn = $("#filterBtn");
-  const originalText = btn?.textContent;
-  if (btn) btn.textContent = "🔄 Loading...";
+  const originalHTML = btn?.innerHTML;
+  if (btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Loading...</span>';
 
   try {
     // Call API with individual parameters including location
-    const logs = await getLogs(startDate, endDate, location, searchTerm, searchTerm);
+    let logs = await getLogs(startDate, endDate, location, searchTerm, searchTerm);
+    
+    // Filter by action type if specified
+    if (actionType) {
+      logs = logs.filter(log => log.direction === actionType);
+    }
+    
+    // Sort logs based on sortBy value
+    logs = sortLogsByFilter(logs, sortBy);
+    
     state.logs = logs;
 
     // Display results
     displayLogs(logs);
     updateStats(logs);
+    updateQuickStats(logs, startDate, endDate);
     showResults();
 
     // Enable export buttons
-    ["#exportCsvBtn", "#exportPdfBtn", "#printBtn"].forEach(sel => {
+    ["#exportCsvBtn", "#exportPdfBtn", "#printBtn", "#exportExcelBtn"].forEach(sel => {
       const btn = $(sel);
       if (btn) {
         btn.disabled = false;
@@ -65,8 +133,56 @@ async function loadLogs() {
     console.error("Failed to load logs:", error);
     alert("Failed to load logs. Please try again.");
   } finally {
-    // Restore button text
-    if (btn && originalText) btn.textContent = originalText;
+    // Restore button
+    if (btn && originalHTML) btn.innerHTML = originalHTML;
+  }
+}
+
+function sortLogsByFilter(logs, sortBy) {
+  const sorted = [...logs];
+  
+  switch(sortBy) {
+    case 'date_asc':
+      sorted.sort((a, b) => new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`));
+      break;
+    case 'date_desc':
+      sorted.sort((a, b) => new Date(`${b.date}T${b.time}`) - new Date(`${a.date}T${a.time}`));
+      break;
+    case 'name_asc':
+      sorted.sort((a, b) => a.employee.localeCompare(b.employee));
+      break;
+    case 'name_desc':
+      sorted.sort((a, b) => b.employee.localeCompare(a.employee));
+      break;
+    default:
+      sorted.sort((a, b) => new Date(`${b.date}T${b.time}`) - new Date(`${a.date}T${a.time}`));
+  }
+  
+  return sorted;
+}
+
+function updateQuickStats(logs, startDate, endDate) {
+  const totalLogsEl = $("#totalLogs");
+  const dateRangeEl = $("#dateRange");
+  const uniqueEmployeesEl = $("#uniqueEmployees");
+  const uniqueLocationsEl = $("#uniqueLocations");
+  
+  if (totalLogsEl) totalLogsEl.textContent = logs.length;
+  
+  if (dateRangeEl && startDate && endDate) {
+    const start = new Date(startDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    const end = new Date(endDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    dateRangeEl.textContent = `${start} - ${end}`;
+  }
+  
+  if (uniqueEmployeesEl) {
+    const unique = new Set(logs.map(log => log.employee)).size;
+    uniqueEmployeesEl.textContent = unique;
+  }
+  
+  if (uniqueLocationsEl) {
+    const locations = new Set(logs.map(log => log.location).filter(Boolean));
+    uniqueLocationsEl.textContent = locations.size > 0 ? Array.from(locations).join(', ') : 'All';
   }
 }
 
@@ -79,25 +195,30 @@ function displayLogs(logs) {
   }
 
   if (!logs || logs.length === 0) {
-    container.innerHTML = '<p style="text-align: center; color: #666; padding: 2rem;">No logs found for the selected criteria.</p>';
+    container.innerHTML = `
+      <div class="empty-state">
+        <i class="fas fa-search"></i>
+        <p>No logs found for the selected criteria.</p>
+      </div>
+    `;
     return;
   }
 
   const table = `
     <div class="table-container">
-    <table class="modern-table">
+    <table class="logs-table">
       <thead>
         <tr>
-          <th data-key="employee" style="cursor: pointer;">
+          <th data-key="employee">
             Employee <span class="sort-icon"></span>
           </th>
-          <th data-key="date" style="cursor: pointer;">
+          <th data-key="date">
             Date <span class="sort-icon"></span>
           </th>
-          <th data-key="time" style="cursor: pointer;">
+          <th data-key="time">
             Time <span class="sort-icon"></span>
           </th>
-          <th data-key="direction" style="cursor: pointer;">
+          <th data-key="direction">
             Action <span class="sort-icon"></span>
           </th>
         </tr>
@@ -109,8 +230,9 @@ function displayLogs(logs) {
             <td>${log.date}</td>
             <td>${log.time}</td>
             <td>
-              <span class="status-badge ${log.direction === 'in' ? 'status-in' : 'status-out'}" style="padding: 4px 8px; border-radius: 4px; ${log.direction === 'in' ? 'background-color: #d4edda; color: #155724;' : 'background-color: #f8d7da; color: #721c24;'}">
-                ${log.direction === 'in' ? '✅ Clock In' : '❌ Clock Out'}
+              <span class="status-badge ${log.direction === 'in' ? 'status-in' : 'status-out'}">
+                <i class="fas ${log.direction === 'in' ? 'fa-sign-in-alt' : 'fa-sign-out-alt'}"></i>
+                ${log.direction === 'in' ? 'Clock In' : 'Clock Out'}
               </span>
             </td>
           </tr>
@@ -147,7 +269,7 @@ function updateStats(logs) {
 }
 
 function showResults() {
-  const resultsEl = $("#logsResults");
+  const resultsEl = $("#logsResultsSection");
   if (resultsEl) {
     resultsEl.style.display = "block";
     resultsEl.scrollIntoView({ behavior: "smooth" });
@@ -245,25 +367,46 @@ function setupSearch() {
 
 function clearFilters() {
   // Clear all filter inputs
-  const fromDate = $("#fromDate");
-  const toDate = $("#toDate");
   const nameFilter = $("#nameFilter");
   const locationFilter = $("#locationFilter");
+  const actionFilter = $("#actionFilter");
+  const sortFilter = $("#sortFilter");
   
   if (nameFilter) nameFilter.value = "";
   if (locationFilter) locationFilter.value = "";
+  if (actionFilter) actionFilter.value = "";
+  if (sortFilter) sortFilter.value = "date_desc";
+  
+  // Reset dropdown displays
+  const locationDropdown = document.getElementById('location-dropdown');
+  if (locationDropdown) {
+    const selected = locationDropdown.querySelector('.dropdown-selected');
+    if (selected) selected.textContent = 'All Locations';
+  }
+  
+  const actionDropdown = document.getElementById('action-dropdown');
+  if (actionDropdown) {
+    const selected = actionDropdown.querySelector('.dropdown-selected');
+    if (selected) selected.textContent = 'All Actions';
+  }
+  
+  const sortDropdown = document.getElementById('sort-dropdown');
+  if (sortDropdown) {
+    const selected = sortDropdown.querySelector('.dropdown-selected');
+    if (selected) selected.textContent = 'Date (Newest First)';
+  }
   
   // Reset date defaults
   setDateDefaults();
   
   // Clear results
-  const resultsEl = $("#logsResults");
+  const resultsEl = $("#logsResultsSection");
   if (resultsEl) {
     resultsEl.style.display = "none";
   }
   
   // Disable export buttons
-  ["#exportCsvBtn", "#exportPdfBtn", "#printBtn"].forEach(sel => {
+  ["#exportCsvBtn", "#exportPdfBtn", "#printBtn", "#exportExcelBtn"].forEach(sel => {
     const btn = $(sel);
     if (btn) {
       btn.disabled = true;
@@ -472,6 +615,7 @@ function setupEventHandlers() {
 export async function init() {
   setDateDefaults();
   
+  setupDropdownCloseHandler();
   setupSearch();
   setupEventHandlers();
   

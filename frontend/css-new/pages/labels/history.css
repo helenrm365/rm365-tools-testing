@@ -1,0 +1,386 @@
+/* ===== Labels History Page ===== */
+/* Page-specific styles for labels/history.html */
+/* 
+   Global Components Used (from css-new/):
+   - layout/header.css: .page-header, .page-title, .page-subtitle, .header-content
+   - components/buttons.css: .action-btn, .primary-btn, .secondary-btn, .danger-btn, .btn-sm
+   - components/cards.css: .action-block, .block-header, .block-icon, .block-title-group, .block-title, .block-subtitle, .block-content
+   - components/forms.css: .custom-dropdown, .dropdown-selected, .dropdown-options, .dropdown-option, .filter-label, .card-checkbox, .checkbox-custom
+   - components/tabs.css: .inner-tabs, .tab-button
+   - components/loaders.css: .loading-spinner, .loading-state
+*/
+
+/* ===== Page Scope ===== */
+.labels-history {
+  display: block;
+  font-family: var(--ff);
+  color: var(--text-muted);
+  transition: all var(--transition);
+  padding: var(--space-sm) var(--space-md);
+  min-height: calc(100vh - 40px);
+  background: var(--bg-dark);
+}
+
+/* ===== Page-specific Tab Overrides ===== */
+.labels-history .inner-tabs {
+  margin: var(--space-lg) 0;
+}
+
+.labels-history .tab-button {
+  flex: 1 1 auto;
+  min-width: 120px;
+}
+
+/* ===== History Layout ===== */
+.labels-history .history-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  margin-bottom: var(--space-xl);
+}
+
+/* ===== Header Actions (dropdown + refresh in header) ===== */
+.labels-history .header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-left: auto;
+}
+
+/* Header dropdown - auto width */
+.labels-history .header-actions .custom-dropdown {
+  width: auto;
+  min-width: 150px;
+}
+
+/* Fix dropdown gap - remove the extra spacing */
+.labels-history .custom-dropdown .dropdown-options {
+  top: 100%;
+  margin-top: 2px;
+}
+
+/* ===== Bulk Actions Row ===== */
+.labels-history .bulk-actions-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+  padding-bottom: var(--space-md);
+  margin-bottom: var(--space-md);
+  border-bottom: 1px solid rgba(139, 195, 74, 0.2);
+}
+
+.labels-history .bulk-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.labels-history .bulk-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.labels-history .selection-count {
+  font-size: 0.9rem;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* ===== Table ===== */
+/* Uses shared table-container from components/tables.css */
+
+/* Page-specific table overrides */
+.labels-history .table-container table {
+  font-size: 0.9rem;
+}
+
+.labels-history .table-container th,
+.labels-history .table-container td {
+  padding: var(--space-sm) var(--space-md);
+}
+
+/* Selected row highlight */
+.labels-history .table-container tbody tr.selected {
+  background: rgba(139, 195, 74, 0.12);
+}
+
+/* Column-specific styles */
+.labels-history .col-checkbox {
+  width: 50px;
+  text-align: center;
+}
+
+.labels-history .col-id {
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.labels-history .col-created {
+  min-width: 140px;
+}
+
+.labels-history .created-main {
+  font-weight: 500;
+  color: var(--text);
+}
+
+.labels-history .created-by {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: var(--space-xs);
+}
+
+.labels-history .col-line-date {
+  min-width: 100px;
+}
+
+.labels-history .muted-text {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.labels-history .col-items,
+.labels-history .col-uk,
+.labels-history .col-fr {
+  text-align: center;
+  font-weight: 500;
+}
+
+.labels-history .col-items strong {
+  font-size: 1.1em;
+  color: var(--text);
+}
+
+.labels-history .col-actions {
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* Action buttons in table */
+.labels-history .action-buttons {
+  display: flex;
+  gap: var(--space-xs);
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* Table action buttons - extend .btn class */
+.labels-history .table-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-family: var(--ff);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+  box-shadow: var(--shadow-s);
+}
+
+.labels-history .table-action-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-m);
+}
+
+.labels-history .table-action-btn.view-btn {
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
+  color: white;
+}
+
+.labels-history .table-action-btn.pdf-btn {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+}
+
+.labels-history .table-action-btn.csv-btn {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+}
+
+.labels-history .table-action-btn.delete-btn {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: white;
+}
+
+/* ===== Details Panel ===== */
+.labels-history .details-panel {
+  border: 2px solid var(--accent);
+}
+
+.labels-history .details-panel .block-header {
+  background: linear-gradient(135deg, rgba(139, 195, 74, 0.12), rgba(139, 195, 74, 0.05));
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  margin: calc(-1 * var(--space-lg));
+  margin-bottom: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+}
+
+/* Details table - uses shared table-container */
+.labels-history .details-table {
+  max-height: 350px;
+}
+
+.labels-history .details-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.labels-history .sku-cell {
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.labels-history .item-id-cell {
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.labels-history .price-cell {
+  text-align: right;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* ===== Empty State ===== */
+.labels-history .empty-state {
+  text-align: center;
+  padding: var(--space-xl) var(--space-lg);
+}
+
+.labels-history .empty-state-icon {
+  font-size: 4rem;
+  margin-bottom: var(--space-md);
+  opacity: 0.6;
+}
+
+.labels-history .empty-state h3 {
+  font-size: 1.25rem;
+  color: var(--text);
+  margin-bottom: var(--space-sm);
+}
+
+.labels-history .empty-state p {
+  color: var(--text-muted);
+  margin-bottom: var(--space-md);
+}
+
+.labels-history .empty-state a {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.labels-history .empty-state a:hover {
+  text-decoration: underline;
+}
+
+/* ===== Error State ===== */
+.labels-history .error-state {
+  text-align: center;
+  padding: var(--space-xl) var(--space-lg);
+}
+
+.labels-history .error-state-icon {
+  font-size: 4rem;
+  margin-bottom: var(--space-md);
+  color: #ef4444;
+}
+
+.labels-history .error-state h3 {
+  font-size: 1.25rem;
+  color: #ef4444;
+  margin-bottom: var(--space-sm);
+}
+
+.labels-history .error-state p {
+  color: var(--text-muted);
+  margin-bottom: var(--space-md);
+}
+
+/* ===== Loading State ===== */
+.labels-history .loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl);
+  gap: var(--space-md);
+}
+
+.labels-history .loading-state p {
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* ===== Custom Scrollbar for Tables ===== */
+.labels-history .table-wrapper::-webkit-scrollbar,
+.labels-history .details-table-wrapper::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+
+.labels-history .table-wrapper::-webkit-scrollbar-track,
+.labels-history .details-table-wrapper::-webkit-scrollbar-track {
+  background: var(--bg);
+  border-radius: 4px;
+}
+
+.labels-history .table-wrapper::-webkit-scrollbar-thumb,
+.labels-history .details-table-wrapper::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 4px;
+}
+
+.labels-history .table-wrapper::-webkit-scrollbar-thumb:hover,
+.labels-history .details-table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-dark);
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .labels-history {
+    padding: var(--space-sm);
+  }
+
+  .labels-history .controls-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .labels-history .control-item {
+    min-width: 100%;
+  }
+
+  .labels-history .bulk-actions-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-md);
+  }
+
+  .labels-history .bulk-left,
+  .labels-history .bulk-right {
+    justify-content: center;
+  }
+
+  .labels-history .action-buttons {
+    flex-direction: column;
+    gap: var(--space-xs);
+  }
+
+  .labels-history .table-action-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

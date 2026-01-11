@@ -1,0 +1,129 @@
+/* ===== Login Page Styles ===== */
+/* Page-specific styles for login page */
+
+/* 
+ * IMPORT PATTERN:
+ * <link rel="stylesheet" href="/css-new/app.css">
+ * <link rel="stylesheet" href="/css-new/pages/login.css">
+ */
+
+/* ===== Login Container ===== */
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  padding: var(--space-lg);
+}
+
+.login-card {
+  background: var(--bg-light);
+  border-radius: var(--radius-xl);
+  padding: var(--space-2xl);
+  width: 100%;
+  max-width: 420px;
+  box-shadow: var(--shadow-l);
+  text-align: center;
+}
+
+/* ===== Logo ===== */
+.login-logo {
+  margin-bottom: var(--space-xl);
+}
+
+.login-logo img {
+  height: 60px;
+  width: auto;
+}
+
+/* ===== Login Title ===== */
+.login-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: var(--space-xs);
+}
+
+.login-subtitle {
+  font-size: 1rem;
+  color: var(--text-muted);
+  margin-bottom: var(--space-xl);
+}
+
+/* ===== Login Form ===== */
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.login-form .form-group {
+  text-align: left;
+}
+
+.login-form .form-input {
+  padding: 1rem;
+  font-size: 1rem;
+}
+
+/* ===== Login Button ===== */
+.login-button {
+  width: 100%;
+  padding: 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(139, 195, 74, 0.3);
+}
+
+.login-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(139, 195, 74, 0.4);
+}
+
+.login-button:active {
+  transform: translateY(0);
+}
+
+/* ===== Remember Me ===== */
+.login-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: var(--space-md);
+}
+
+.remember-me {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.forgot-password {
+  font-size: 0.875rem;
+  color: #8bc34a;
+  text-decoration: none;
+}
+
+.forgot-password:hover {
+  text-decoration: underline;
+}
+
+/* ===== Error Message ===== */
+.login-error {
+  background: rgba(231, 76, 60, 0.1);
+  border: 1px solid rgba(231, 76, 60, 0.3);
+  color: #e74c3c;
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  margin-bottom: var(--space-md);
+}

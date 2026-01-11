@@ -345,6 +345,7 @@ for mod, attr, prefix, tags in working_modules:
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / 'frontend'
 JS_DIR       = FRONTEND_DIR / 'js'
 CSS_DIR      = FRONTEND_DIR / 'css'
+CSS_NEW_DIR  = FRONTEND_DIR / 'css-new'
 HTML_DIR     = FRONTEND_DIR / 'html'
 ASSETS_DIR   = FRONTEND_DIR / 'assets'
 COMPONENTS_DIR = FRONTEND_DIR / 'components'
@@ -358,6 +359,7 @@ def _mount_if_exists(prefix: str, path: Path, *, html: bool = False, name: str =
 # 1) Explicit asset mounts
 _mount_if_exists('/js',         JS_DIR,         html=False, name='js')
 _mount_if_exists('/css',        CSS_DIR,        html=False, name='css')
+_mount_if_exists('/css-new',    CSS_NEW_DIR,    html=False, name='css-new')
 _mount_if_exists('/html',       HTML_DIR,       html=False, name='html')
 _mount_if_exists('/assets',     ASSETS_DIR,     html=False, name='assets')
 _mount_if_exists('/components', COMPONENTS_DIR, html=False, name='components')

@@ -7,57 +7,121 @@ let cache = { employees: [], scannedUid: null };
 let scanLoopActive = false;
 let currentScanAbort = null;
 
+// Sample employees for fallback when connection fails
+const SAMPLE_EMPLOYEES = [
+  { id: 1, name: 'Sample Employee 1', employee_code: 'EMP001', location: 'UK', status: 'active', nfc_uid: 'SAMPLE001' },
+  { id: 2, name: 'Sample Employee 2', employee_code: 'EMP002', location: 'FR', status: 'active', nfc_uid: 'SAMPLE002' },
+  { id: 3, name: 'Sample Employee 3 (No Card)', employee_code: 'EMP003', location: 'UK', status: 'active', nfc_uid: '' },
+];
+
 function $(sel) { return document.querySelector(sel); }
 
+// ===== Custom Dropdown Functions =====
+// Exposed on window so onclick attributes in HTML can access them
+
+window.toggleDropdown = function(id) {
+  const dropdown = document.getElementById(id);
+  if (!dropdown) return;
+  
+  // Close other dropdowns
+  document.querySelectorAll('.custom-dropdown').forEach(d => {
+    if (d.id !== id) d.classList.remove('open');
+  });
+  dropdown.classList.toggle('open');
+};
+
+window.selectOption = function(element, dropdownId, value, text) {
+  const dropdown = document.getElementById(dropdownId);
+  if (!dropdown) return;
+  
+  const selectedDisplay = dropdown.querySelector('.dropdown-selected');
+  const hiddenInput = dropdown.querySelector('input[type="hidden"]');
+  
+  if (selectedDisplay) selectedDisplay.textContent = text;
+  if (hiddenInput) hiddenInput.value = value;
+  
+  dropdown.querySelectorAll('.dropdown-option').forEach(opt => opt.classList.remove('selected'));
+  element.classList.add('selected');
+  dropdown.classList.remove('open');
+  
+  // Handle employee selection
+  if (dropdownId === 'employee-dropdown') {
+    onEmployeeSelect(value);
+  }
+};
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.custom-dropdown')) {
+    document.querySelectorAll('.custom-dropdown').forEach(d => d.classList.remove('open'));
+  }
+});
+
+function onEmployeeSelect(empId) {
+  const status = $('#cardStatus');
+  const statusText = status?.querySelector('.status-message');
+  
+  console.log('👤 Employee selection changed:', empId);
+  
+  if (empId) {
+    const emp = cache.employees.find(em => String(em.id) === String(empId));
+    console.log('✅ Employee selected:', emp?.name);
+    if (statusText) statusText.textContent = `Employee selected: ${emp?.name || 'Unknown'}. Waiting for NFC tap...`;
+    if (status) status.setAttribute('data-status', 'ready');
+    
+    // Show existing card section if employee has a card
+    showExistingCard(emp);
+    
+    startScanningLoop();
+  } else {
+    console.log('ℹ️ Employee deselected');
+    if (statusText) statusText.textContent = 'Please select an employee to begin enrollment';
+    if (status) status.setAttribute('data-status', 'ready');
+    stopScanningLoop();
+    // Clear scanned NFC when deselecting employee
+    resetCardDisplay();
+    // Hide existing card section
+    hideExistingCard();
+  }
+}
+
 function fillEmployeeSelect() {
-  const sel = $('#cardEmployee');
-  if (!sel) {
-    console.error('❌ Employee select element not found (#cardEmployee)');
+  const dropdown = $('#employee-dropdown');
+  const optionsContainer = $('#employeeDropdownOptions');
+  
+  if (!dropdown || !optionsContainer) {
+    console.error('❌ Employee dropdown elements not found');
     return;
   }
   
-  console.log('📋 Filling employee select with', cache.employees.length, 'employees');
-  sel.innerHTML = '<option value="">Select an employee...</option>';
+  console.log('📋 Filling employee dropdown with', cache.employees.length, 'employees');
+  
+  // Clear existing options
+  optionsContainer.innerHTML = '';
+  
+  // Add placeholder option
+  const placeholderOpt = document.createElement('div');
+  placeholderOpt.className = 'dropdown-option selected';
+  placeholderOpt.textContent = 'Select Employee...';
+  placeholderOpt.onclick = function() { selectOption(this, 'employee-dropdown', '', 'Select Employee...'); };
+  optionsContainer.appendChild(placeholderOpt);
+  
+  // Add employee options
   cache.employees.forEach(e => {
-    const opt = document.createElement('option');
-    opt.value = String(e.id);
+    const opt = document.createElement('div');
+    opt.className = 'dropdown-option';
     opt.textContent = `${e.name} (${e.employee_code || '—'})`;
-    sel.appendChild(opt);
+    opt.onclick = function() { selectOption(this, 'employee-dropdown', String(e.id), `${e.name} (${e.employee_code || '—'})`); };
+    optionsContainer.appendChild(opt);
   });
   
-  // Remove any existing listener to prevent duplicates
-  const newSelect = sel.cloneNode(true);
-  sel.parentNode.replaceChild(newSelect, sel);
+  // Reset selected display
+  const selectedDisplay = dropdown.querySelector('.dropdown-selected');
+  if (selectedDisplay) selectedDisplay.textContent = 'Select Employee...';
   
-  // Add change listener to start/stop scanning loop
-  newSelect.addEventListener('change', (e) => {
-    const empId = e.target.value;
-    const status = $('#cardStatus');
-    const statusText = status?.querySelector('.status-message');
-    
-    console.log('👤 Employee selection changed:', empId);
-    
-    if (empId) {
-      const emp = cache.employees.find(em => String(em.id) === empId);
-      console.log('✅ Employee selected:', emp?.name);
-      if (statusText) statusText.textContent = `Employee selected: ${emp?.name || 'Unknown'}. Waiting for NFC tap...`;
-      if (status) status.setAttribute('data-status', 'ready');
-      
-      // Show existing card section if employee has a card
-      showExistingCard(emp);
-      
-      startScanningLoop();
-    } else {
-      console.log('ℹ️ Employee deselected');
-      if (statusText) statusText.textContent = 'Please select an employee to begin enrollment';
-      if (status) status.setAttribute('data-status', 'ready');
-      stopScanningLoop();
-      // Clear scanned NFC when deselecting employee
-      resetCardDisplay();
-      // Hide existing card section
-      hideExistingCard();
-    }
-  });
+  // Reset hidden input
+  const hiddenInput = dropdown.querySelector('input[type="hidden"]');
+  if (hiddenInput) hiddenInput.value = '';
 }
 
 function resetCardDisplay() {
@@ -347,13 +411,22 @@ async function onSave() {
     cache.scannedUid = null;
     resetCardDisplay();
     
-    // Reset employee dropdown
-    const empSelect = $('#cardEmployee');
-    if (empSelect) {
-      empSelect.value = '';
-      // Trigger change event to update UI properly
-      empSelect.dispatchEvent(new Event('change', { bubbles: true }));
+    // Reset employee dropdown to placeholder
+    const dropdown = $('#employee-dropdown');
+    if (dropdown) {
+      const selectedDisplay = dropdown.querySelector('.dropdown-selected');
+      const hiddenInput = dropdown.querySelector('input[type="hidden"]');
+      if (selectedDisplay) selectedDisplay.textContent = 'Select Employee...';
+      if (hiddenInput) hiddenInput.value = '';
+      
+      // Reset option selection
+      dropdown.querySelectorAll('.dropdown-option').forEach((opt, idx) => {
+        opt.classList.toggle('selected', idx === 0);
+      });
     }
+    
+    // Refill dropdown with fresh data
+    fillEmployeeSelect();
     
     // Notify other modules to reload
     window.dispatchEvent(new Event('reloadEmployees'));
@@ -373,15 +446,47 @@ async function onSave() {
 export async function init() {
   console.log('🎫 Initializing NFC enrollment page');
   
-  // Load employees
+  // Load employees with sample data fallback
+  let useSampleData = false;
+  
   try {
     console.log('📡 Fetching employees...');
-    cache.employees = await getEmployees();
-    console.log('✅ Loaded', cache.employees.length, 'employees');
-    fillEmployeeSelect();
+    const data = await getEmployees();
+    
+    // Check if we got valid data
+    if (!data || (Array.isArray(data) && data.length === 0)) {
+      console.warn('[NFC] No employees found or connection issue');
+      useSampleData = true;
+    } else {
+      cache.employees = Array.isArray(data) ? data : [];
+      console.log('✅ Loaded', cache.employees.length, 'employees');
+    }
   } catch (err) {
     console.error('❌ Failed to load employees:', err);
+    useSampleData = true;
   }
+  
+  // Use sample data if needed
+  if (useSampleData) {
+    console.warn('⚠️ Using sample employee data');
+    cache.employees = SAMPLE_EMPLOYEES;
+    
+    // Show notification that we're using sample data
+    const status = $('#cardStatus');
+    const statusText = status?.querySelector('.status-message');
+    if (statusText) {
+      statusText.textContent = '⚠️ Connection failed - Using sample data';
+    }
+    if (status) status.setAttribute('data-status', 'error');
+    
+    // Reset to normal message after a delay
+    setTimeout(() => {
+      if (statusText) statusText.textContent = 'Please select an employee to begin enrollment';
+      if (status) status.setAttribute('data-status', 'ready');
+    }, 3000);
+  }
+  
+  fillEmployeeSelect();
   
   // Only save button needed now (no manual scan button)
   const saveBtn = $('#saveCardBtn');
@@ -401,16 +506,44 @@ export async function init() {
     console.error('❌ Delete button not found (#deleteCardBtn)');
   }
   
-  // Set initial status
-  const status = $('#cardStatus');
-  const statusText = status?.querySelector('.status-message');
-  if (statusText) {
-    statusText.textContent = 'Please select an employee to begin enrollment';
-    console.log('✅ Initial status set');
-  } else {
-    console.error('❌ Status elements not found');
+  // Guide modal handlers
+  const openGuideBtn = $('#openGuideBtn');
+  const closeGuideBtn = $('#closeGuideBtn');
+  const guideModal = $('#guideModal');
+  
+  if (openGuideBtn && guideModal) {
+    openGuideBtn.addEventListener('click', () => {
+      guideModal.classList.add('active');
+    });
   }
-  if (status) status.setAttribute('data-status', 'ready');
+  
+  if (closeGuideBtn && guideModal) {
+    closeGuideBtn.addEventListener('click', () => {
+      guideModal.classList.remove('active');
+    });
+  }
+  
+  // Close modal when clicking overlay
+  if (guideModal) {
+    guideModal.addEventListener('click', (e) => {
+      if (e.target === guideModal) {
+        guideModal.classList.remove('active');
+      }
+    });
+  }
+  
+  // Set initial status (only if not already set by sample data warning)
+  if (!useSampleData) {
+    const status = $('#cardStatus');
+    const statusText = status?.querySelector('.status-message');
+    if (statusText) {
+      statusText.textContent = 'Please select an employee to begin enrollment';
+      console.log('✅ Initial status set');
+    } else {
+      console.error('❌ Status elements not found');
+    }
+    if (status) status.setAttribute('data-status', 'ready');
+  }
   
   console.log('✅ NFC enrollment page initialization complete');
 }

@@ -1,140 +1,139 @@
 <!-- Attendance Overview Page -->
+<!-- Uses css-new/app.css + css-new/pages/attendance/overview.css -->
 <div class="attendance-overview">
-  <!-- Page Header -->
-  <div class="page-header">
+  <!-- Header -->
+  <header class="page-header">
     <div class="header-content">
       <h1 class="page-title">Attendance Overview</h1>
-      <hr class="page-divider">
-      <p class="page-subtitle">Real-time insights and comprehensive attendance tracking</p>
     </div>
-  </div>
+    <p class="page-subtitle">Real-time insights and comprehensive attendance tracking</p>
+  </header>
 
   <!-- Navigation Tabs -->
-  <div class="inner-tabs">
+  <nav class="inner-tabs">
     <button class="tab-button active" onclick="location.href='/attendance/overview'">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M3 3v18h18"></path>
-        <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"></path>
-      </svg>
+      <i class="fas fa-chart-line"></i>
       <span>Overview</span>
     </button>
     <button class="tab-button" onclick="location.href='/attendance/manual'">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="10"></circle>
-        <polyline points="12 6 12 12 16 14"></polyline>
-      </svg>
+      <i class="fas fa-clock"></i>
       <span>Manual</span>
     </button>
     <button class="tab-button" onclick="location.href='/attendance/automatic'">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"></path>
-        <path d="M14 13.12c0 2.38 0 6.38-1 8.88"></path>
-        <path d="M17.29 21.02c.12-.6.43-2.3.5-3.02"></path>
-        <path d="M2 12a10 10 0 0 1 18-6"></path>
-        <path d="M2 16h.01"></path>
-        <path d="M21.8 16c.2-2 .131-5.354 0-6"></path>
-        <path d="M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2"></path>
-        <path d="M8.65 22c.21-.66.45-1.32.57-2"></path>
-        <path d="M9 6.8a6 6 0 0 1 9 5.2v2"></path>
-      </svg>
+      <i class="fas fa-fingerprint"></i>
       <span>Automatic</span>
     </button>
     <button class="tab-button" onclick="location.href='/attendance/logs'">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-        <polyline points="14 2 14 8 20 8"></polyline>
-        <line x1="16" y1="13" x2="8" y2="13"></line>
-        <line x1="16" y1="17" x2="8" y2="17"></line>
-        <polyline points="10 9 9 9 8 9"></polyline>
-      </svg>
+      <i class="fas fa-file-alt"></i>
       <span>Logs</span>
     </button>
-  </div>
+  </nav>
 
   <!-- Main Content -->
-  <div class="attendance-overview-content">
+  <div class="overview-content">
     <!-- Today's Stats -->
-    <section class="stats-section">
-      <div class="section-header">
-        <h2 class="section-title">Today's Snapshot</h2>
-      </div>
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-icon total-icon">
-            <i class="fas fa-users"></i>
-          </div>
-          <div class="stat-info">
-            <div class="stat-value" id="totalEmployees">-</div>
-            <div class="stat-label">Total Employees</div>
-          </div>
+    <div class="action-block">
+      <div class="block-header">
+        <div class="block-icon">
+          <i class="fas fa-chart-pie"></i>
         </div>
-        <div class="stat-card">
-          <div class="stat-icon checked-in-icon">
-            <i class="fas fa-user-check"></i>
-          </div>
-          <div class="stat-info">
-            <div class="stat-value" id="checkedIn">-</div>
-            <div class="stat-label">Checked In</div>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon checked-out-icon">
-            <i class="fas fa-user-clock"></i>
-          </div>
-          <div class="stat-info">
-            <div class="stat-value" id="checkedOut">-</div>
-            <div class="stat-label">Checked Out</div>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon absent-icon">
-            <i class="fas fa-user-times"></i>
-          </div>
-          <div class="stat-info">
-            <div class="stat-value" id="absentToday">-</div>
-            <div class="stat-label">Absent Today</div>
-          </div>
+        <div class="block-title-group">
+          <h3 class="block-title">Today's Snapshot</h3>
+          <p class="block-subtitle">Real-time attendance statistics</p>
         </div>
       </div>
-    </section>
+      <div class="block-content">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon total-icon">
+              <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" id="totalEmployees">-</div>
+              <div class="stat-label">Total Employees</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon checked-in-icon">
+              <i class="fas fa-user-check"></i>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" id="checkedIn">-</div>
+              <div class="stat-label">Checked In</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon checked-out-icon">
+              <i class="fas fa-user-clock"></i>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" id="checkedOut">-</div>
+              <div class="stat-label">Checked Out</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon absent-icon">
+              <i class="fas fa-user-times"></i>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" id="absentToday">-</div>
+              <div class="stat-label">Absent Today</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- Filters Section -->
-    <section class="filters-section">
-      <div class="section-header">
-        <h2 class="section-title">Filters</h2>
+    <div class="action-block">
+      <div class="block-header">
+        <div class="block-icon">
+          <i class="fas fa-filter"></i>
+        </div>
+        <div class="block-title-group">
+          <h3 class="block-title">Filters</h3>
+          <p class="block-subtitle">Filter attendance data by date and criteria</p>
+        </div>
       </div>
-      <div class="filters-card">
+      <div class="block-content">
         <div class="filters-grid">
-          <div class="filter-group">
-            <label class="filter-label">
+          <div class="form-group">
+            <label class="form-label" for="fromDate">
               <i class="fas fa-calendar-alt"></i>
               <span>From Date</span>
             </label>
-            <input type="date" id="fromDate" class="filter-input">
+            <input type="date" id="fromDate" class="form-input">
           </div>
-          <div class="filter-group">
-            <label class="filter-label">
+          <div class="form-group">
+            <label class="form-label" for="toDate">
               <i class="fas fa-calendar-alt"></i>
               <span>To Date</span>
             </label>
-            <input type="date" id="toDate" class="filter-input">
+            <input type="date" id="toDate" class="form-input">
           </div>
-          <div class="filter-group">
-            <label class="filter-label">
+          <div class="form-group">
+            <label class="form-label" for="locationFilter">
               <i class="fas fa-map-marker-alt"></i>
               <span>Location</span>
             </label>
-            <select id="locationFilter" class="filter-select">
-              <option value="">All Locations</option>
-            </select>
+            <div class="custom-dropdown" id="location-dropdown">
+              <div class="dropdown-selected" onclick="toggleDropdown('location-dropdown')">All Locations</div>
+              <div class="dropdown-options" id="locationDropdownOptions">
+                <div class="dropdown-option selected" onclick="selectOption(this, 'location-dropdown', '', 'All Locations')">All Locations</div>
+                <div class="dropdown-option" onclick="selectOption(this, 'location-dropdown', 'UK', 'UK')">UK</div>
+                <div class="dropdown-option" onclick="selectOption(this, 'location-dropdown', 'FR', 'France')">France</div>
+              </div>
+              <input type="hidden" name="locationFilter" id="locationFilter" value="">
+            </div>
           </div>
-          <div class="filter-group">
-            <label class="filter-label">
+          <div class="form-group">
+            <label class="form-label" for="nameFilter">
+              <i class="fas fa-search"></i>
               <span>Employee Name</span>
             </label>
-            <div class="search-box">
+            <div class="search-wrapper">
               <i class="fas fa-search search-icon"></i>
-              <input type="text" id="nameFilter" class="filter-input" placeholder="Search by name...">
+              <input type="text" id="nameFilter" class="search-input" placeholder="Search by name...">
             </div>
           </div>
         </div>
@@ -149,44 +148,56 @@
           </button>
         </div>
       </div>
-    </section>
+    </div>
 
-    <!-- Summary Results -->
-    <div id="summaryResults" class="data-section" style="display: none;">
+    <!-- Summary Results (populated by JS) -->
+    <div id="summaryResults" class="action-block" style="display: none;">
       <!-- Summary content will be populated by JavaScript -->
     </div>
 
-    <!-- Work Hours Results -->
-    <div id="workHoursResults" class="data-section" style="display: none;">
+    <!-- Work Hours Results (populated by JS) -->
+    <div id="workHoursResults" class="action-block" style="display: none;">
       <!-- Work hours content will be populated by JavaScript -->
     </div>
 
     <!-- Weekly Chart Section -->
-    <section class="chart-section">
-      <div class="section-header">
-        <h2 class="section-title">Weekly Attendance Trends</h2>
+    <div class="action-block">
+      <div class="block-header">
+        <div class="block-icon">
+          <i class="fas fa-chart-bar"></i>
+        </div>
+        <div class="block-title-group">
+          <h3 class="block-title">Weekly Attendance Trends</h3>
+          <p class="block-subtitle">Attendance patterns over the past week</p>
+        </div>
       </div>
-      <div class="chart-card">
+      <div class="block-content">
         <div class="chart-container">
           <canvas id="attendanceChart"></canvas>
         </div>
       </div>
-    </section>
+    </div>
 
     <!-- Current Status Section -->
-    <section class="status-section">
-      <div class="section-header">
-        <h2 class="section-title">Current Employee Status</h2>
+    <div class="action-block">
+      <div class="block-header">
+        <div class="block-icon">
+          <i class="fas fa-users"></i>
+        </div>
+        <div class="block-title-group">
+          <h3 class="block-title">Current Employee Status</h3>
+          <p class="block-subtitle">Live status of all employees</p>
+        </div>
       </div>
-      <div class="status-card">
-        <div id="currentStatusTable">
+      <div class="block-content">
+        <div id="currentStatusTable" class="status-table-wrapper">
           <div class="loading-state">
             <i class="fas fa-spinner fa-spin"></i>
             <p>Loading current employee status...</p>
           </div>
         </div>
       </div>
-    </section>
+    </div>
   </div>
 </div>
 

@@ -2,6 +2,7 @@
 import { getEmployees,
     createEmployee, updateEmployee, deleteEmployee,
     bulkDeleteEmployees } from '../../services/api/enrollmentApi.js';
+import { confirmModal } from '../../ui/confirmationModal.js';
 
 
 let state = {
@@ -14,6 +15,53 @@ let state = {
 
 function $(sel) { return document.querySelector(sel); }
 function $all(sel) { return Array.from(document.querySelectorAll(sel)); }
+
+// ===== Custom Dropdown Functions =====
+// Exposed on window so onclick attributes in HTML can access them
+
+window.toggleDropdown = function(id) {
+  const dropdown = document.getElementById(id);
+  if (!dropdown) return;
+  
+  // Close other dropdowns
+  document.querySelectorAll('.custom-dropdown').forEach(d => {
+    if (d.id !== id) d.classList.remove('open');
+  });
+  dropdown.classList.toggle('open');
+};
+
+window.selectOption = function(element, dropdownId, value, text) {
+  const dropdown = document.getElementById(dropdownId);
+  if (!dropdown) return;
+  
+  const selectedDisplay = dropdown.querySelector('.dropdown-selected');
+  const hiddenInput = dropdown.querySelector('input[type="hidden"]');
+  
+  if (selectedDisplay) selectedDisplay.textContent = text;
+  if (hiddenInput) hiddenInput.value = value;
+  
+  dropdown.querySelectorAll('.dropdown-option').forEach(opt => opt.classList.remove('selected'));
+  element.classList.add('selected');
+  dropdown.classList.remove('open');
+  
+  // Trigger filter update for filter dropdowns
+  if (dropdownId === 'status-dropdown' || dropdownId === 'location-dropdown') {
+    filterEmployees();
+  }
+};
+
+// Filter employees based on current dropdown values
+function filterEmployees() {
+  const statusInput = document.querySelector('#status-dropdown input[type="hidden"]');
+  const locationInput = document.querySelector('#location-dropdown input[type="hidden"]');
+  
+  state.status = statusInput?.value || '';
+  state.location = locationInput?.value || '';
+  renderTable();
+}
+
+// Expose for potential external use
+window.filterEmployees = filterEmployees;
 
 function renderTable() {
   const grid = $('#enrEmployeeGrid');
@@ -51,64 +99,200 @@ function renderTable() {
     return;
   }
 
-  grid.innerHTML = rows.map(e => `
-    <div class="employee-card" data-id="${e.id}">
-      <div class="card-header-section">
-        <div class="checkbox-wrapper">
-          <input type="checkbox" class="employee-checkbox" data-id="${e.id}" ${state.selectedIds.has(e.id) ? 'checked' : ''}>
-        </div>
-        <div class="employee-info">
-          <div class="employee-name-section">
-            <input class="employee-name-input" value="${e.name || ''}" placeholder="Employee Name">
-            <span class="employee-code">#${e.employee_code || 'N/A'}</span>
-          </div>
-          <div class="employee-meta">
-            <span class="meta-badge location-badge">${e.location || 'N/A'}</span>
-            <span class="meta-badge status-badge status-${(e.status || 'active').toLowerCase()}">
-              ${(e.status || 'active').charAt(0).toUpperCase() + (e.status || 'active').slice(1)}
-            </span>
-          </div>
-        </div>
+  // Render simplified clickable cards
+  grid.innerHTML = rows.map(e => {
+    const statusClass = (e.status || 'active').toLowerCase();
+    const statusLabel = (e.status || 'active').charAt(0).toUpperCase() + (e.status || 'active').slice(1);
+    
+    return `
+    <div class="employee-card clickable" 
+         data-id="${e.id}"
+         data-name="${e.name || ''}"
+         data-code="${e.employee_code || ''}"
+         data-location="${e.location || 'UK'}"
+         data-status="${e.status || 'active'}"
+         data-nfc="${e.nfc_uid || ''}"
+         onclick="window.openEmployeeEditModal(this)">
+      <label class="card-checkbox" onclick="event.stopPropagation()">
+        <input type="checkbox" class="employee-checkbox" data-id="${e.id}" ${state.selectedIds.has(e.id) ? 'checked' : ''}>
+        <span class="checkbox-custom"></span>
+      </label>
+      <div class="employee-avatar">
+        <i class="fas fa-user"></i>
       </div>
-      
-      <div class="card-details">
-        <div class="detail-row">
-          <label class="detail-label">Location</label>
-          <select class="detail-select location-select">
-            <option ${e.location === 'UK' ? 'selected' : ''} value="UK">GB United Kingdom</option>
-            <option ${e.location === 'FR' ? 'selected' : ''} value="FR">FR France</option>
-          </select>
+      <div class="employee-info">
+        <h4 class="employee-name">${e.name || 'Unnamed'}</h4>
+        <p class="employee-code">#${e.employee_code || 'N/A'}</p>
+        <div class="employee-badges">
+          <span class="location-badge">${e.location || 'N/A'}</span>
+          <span class="status-badge status-${statusClass}">${statusLabel}</span>
         </div>
-        
-        <div class="detail-row">
-          <label class="detail-label">Status</label>
-          <select class="detail-select status-select">
-            <option ${!e.status || e.status === 'active' ? 'selected' : ''} value="active">ACTIVE</option>
-            <option ${e.status === 'inactive' ? 'selected' : ''} value="inactive">INACTIVE</option>
-          </select>
-        </div>
-        
-        <div class="detail-item">
-          <label class="detail-label">NFC UID</label>
-          <input class="detail-input nfc-input" value="${e.nfc_uid || ''}" placeholder="No NFC assigned">
-        </div>
-      </div>
-      
-      <div class="card-actions">
-        <button class="btn-save">
-          <i class="fas fa-save"></i>
-          <span>Save</span>
-        </button>
-        <button class="btn-delete">
-          <i class="fas fa-trash-alt"></i>
-          <span>Delete</span>
-        </button>
       </div>
     </div>
-  `).join('');
+  `}).join('');
 
   // Wire up event listeners
   wireCardEvents();
+}
+
+// Open Employee Edit Modal
+window.openEmployeeEditModal = function(cardEl) {
+  const modal = $('#editEmployeeModal');
+  if (!modal) return;
+  
+  // Populate modal with card data
+  $('#editEmployeeId').value = cardEl.dataset.id;
+  $('#editEmployeeName').value = cardEl.dataset.name;
+  $('#editEmployeeCode').value = cardEl.dataset.code ? `#${cardEl.dataset.code}` : 'N/A';
+  $('#editEmployeeLocation').value = cardEl.dataset.location;
+  $('#editEmployeeStatusSelect').value = cardEl.dataset.status;
+  $('#editEmployeeNfc').value = cardEl.dataset.nfc;
+  
+  // Update custom dropdown displays
+  updateDropdownDisplay('edit-location-dropdown', cardEl.dataset.location);
+  updateDropdownDisplay('edit-status-dropdown', cardEl.dataset.status);
+  
+  // Update modal header
+  const title = $('#editModalTitle');
+  const statusBadge = $('#editModalStatus');
+  if (title) title.textContent = cardEl.dataset.name || 'Edit Employee';
+  if (statusBadge) {
+    const status = cardEl.dataset.status || 'active';
+    statusBadge.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+    statusBadge.className = `status-badge status-${status.toLowerCase()}`;
+  }
+  
+  // Show modal
+  modal.classList.add('active');
+  document.body.style.overflow = 'hidden';
+};
+
+// Helper to update custom dropdown display
+function updateDropdownDisplay(dropdownId, value) {
+  const dropdown = document.getElementById(dropdownId);
+  if (!dropdown) return;
+  
+  const options = dropdown.querySelectorAll('.dropdown-option');
+  const selected = dropdown.querySelector('.dropdown-selected');
+  const hiddenInput = dropdown.querySelector('input[type="hidden"]');
+  
+  options.forEach(opt => {
+    // Check if this option matches the value
+    const onclick = opt.getAttribute('onclick') || '';
+    const isMatch = onclick.includes(`'${value}'`);
+    
+    if (isMatch) {
+      opt.classList.add('selected');
+      if (selected) selected.textContent = opt.textContent;
+      if (hiddenInput) hiddenInput.value = value;
+    } else {
+      opt.classList.remove('selected');
+    }
+  });
+}
+
+// Helper to reset custom dropdown to default
+function resetDropdownDisplay(dropdownId, value, displayText) {
+  const dropdown = document.getElementById(dropdownId);
+  if (!dropdown) return;
+  
+  const options = dropdown.querySelectorAll('.dropdown-option');
+  const selected = dropdown.querySelector('.dropdown-selected');
+  const hiddenInput = dropdown.querySelector('input[type="hidden"]');
+  
+  // Reset display
+  if (selected) selected.textContent = displayText;
+  if (hiddenInput) hiddenInput.value = value;
+  
+  // Reset selected state
+  options.forEach(opt => {
+    const onclick = opt.getAttribute('onclick') || '';
+    if (onclick.includes(`'${value}'`)) {
+      opt.classList.add('selected');
+    } else {
+      opt.classList.remove('selected');
+    }
+  });
+  
+  // Close dropdown if open
+  dropdown.classList.remove('open');
+}
+
+function hideEditEmployeeModal() {
+  const modal = $('#editEmployeeModal');
+  if (modal) {
+    modal.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+}
+
+function wireEditModalEvents() {
+  // Close buttons
+  $('#closeEditModal')?.addEventListener('click', hideEditEmployeeModal);
+  $('#cancelEdit')?.addEventListener('click', hideEditEmployeeModal);
+  
+  // Click overlay to close
+  $('#editEmployeeModal')?.addEventListener('click', (e) => {
+    if (e.target.classList.contains('modal-overlay')) {
+      hideEditEmployeeModal();
+    }
+  });
+  
+  // Save changes
+  $('#confirmEdit')?.addEventListener('click', async () => {
+    const id = Number($('#editEmployeeId').value);
+    const name = $('#editEmployeeName').value.trim();
+    const location = $('#editEmployeeLocation').value;
+    const status = $('#editEmployeeStatusSelect').value;
+    const nfc_uid = $('#editEmployeeNfc').value.trim() || null;
+    
+    if (!name) {
+      notify('❌ Employee name is required', true);
+      return;
+    }
+    
+    const btn = $('#confirmEdit');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Saving...</span>';
+    
+    try {
+      await updateEmployee(id, { name, location, status, nfc_uid });
+      notify('✅ Changes saved successfully');
+      hideEditEmployeeModal();
+      await refresh();
+    } catch (e) {
+      notify('❌ Save failed: ' + e.message, true);
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+    }
+  });
+  
+  // Delete from modal
+  $('#deleteFromEdit')?.addEventListener('click', async () => {
+    const id = Number($('#editEmployeeId').value);
+    const name = $('#editEmployeeName').value.trim();
+    
+    const confirmed = await confirmDelete(name, 'employee');
+    if (!confirmed) return;
+    
+    const btn = $('#deleteFromEdit');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Deleting...</span>';
+    
+    try {
+      await deleteEmployee(id);
+      notify('✅ Employee deleted successfully');
+      state.selectedIds.delete(id);
+      hideEditEmployeeModal();
+      await refresh();
+    } catch (e) {
+      notify('❌ Delete failed: ' + e.message, true);
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+    }
+  });
 }
 
 function wireCardEvents() {
@@ -122,64 +306,6 @@ function wireCardEvents() {
         state.selectedIds.delete(id);
       }
       updateBulkDeleteButton();
-    });
-  });
-
-  // Save button
-  $all('.btn-save').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const card = btn.closest('.employee-card');
-      const id = Number(card.dataset.id);
-      const name = card.querySelector('.employee-name-input').value.trim();
-      const location = card.querySelector('.location-select').value;
-      const status = card.querySelector('.status-select').value;
-      const nfc_uid = card.querySelector('.nfc-input').value.trim() || null;
-
-      if (!name) {
-        notify('❌ Employee name is required', true);
-        return;
-      }
-
-      const originalText = btn.innerHTML;
-      btn.disabled = true;
-      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Saving...</span>';
-      
-      try {
-        await updateEmployee(id, { name, location, status, nfc_uid });
-        notify('✅ Changes saved successfully');
-        await refresh();
-      } catch (e) {
-        notify('❌ Save failed: ' + e.message, true);
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-      }
-    });
-  });
-
-  // Delete button
-  $all('.btn-delete').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const card = btn.closest('.employee-card');
-      const id = Number(card.dataset.id);
-      const name = card.querySelector('.employee-name-input').value.trim();
-      
-      const confirmed = await confirmDelete(name, 'employee');
-      if (!confirmed) return;
-      
-      const originalText = btn.innerHTML;
-      btn.disabled = true;
-      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Deleting...</span>';
-      
-      try {
-        await deleteEmployee(id);
-        notify('✅ Employee deleted successfully');
-        state.selectedIds.delete(id);
-        await refresh();
-      } catch (e) {
-        notify('❌ Delete failed: ' + e.message, true);
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-      }
     });
   });
 }
@@ -265,22 +391,27 @@ function wireToolbar() {
 function showCreateEmployeeModal() {
   const modal = $('#createEmployeeModal');
   const nameInput = $('#employeeName');
-  const locationSelect = $('#employeeLocation');
-  const statusSelect = $('#employeeStatus');
+  const locationInput = $('#employeeLocation');
+  const statusInput = $('#employeeStatus');
   
-  if (!modal || !nameInput || !locationSelect || !statusSelect) {
-    // Try to wire the modal again in case it wasn't wired properly
+  if (!modal || !nameInput) {
+    console.warn('[Enrollment] Create modal elements not found, trying to wire again');
     wireCreateEmployeeModal();
     return;
   }
   
   // Reset form
   nameInput.value = '';
-  locationSelect.value = 'UK';
-  statusSelect.value = 'active';
+  if (locationInput) locationInput.value = 'UK';
+  if (statusInput) statusInput.value = 'active';
   
-  // Show modal using the same method as user management (which works)
-  modal.style.display = 'flex';
+  // Reset custom dropdowns to defaults
+  resetDropdownDisplay('create-location-dropdown', 'UK', 'United Kingdom (UK)');
+  resetDropdownDisplay('create-status-dropdown', 'active', 'Active');
+  
+  // Show modal using class (matches CSS)
+  modal.classList.add('active');
+  document.body.style.overflow = 'hidden';
   
   // Focus the name input after a small delay to ensure the modal is visible
   setTimeout(() => {
@@ -291,136 +422,31 @@ function showCreateEmployeeModal() {
 function hideCreateEmployeeModal() {
   const modal = $('#createEmployeeModal');
   if (modal) {
-    // Use the same method as user management (which works)
-    modal.style.display = 'none';
+    modal.classList.remove('active');
+    document.body.style.overflow = '';
   }
 }
 
 // Confirmation modal functions (following the same pattern as create employee modal)
-function showConfirmationModal(options = {}) {
-  const {
-    title = 'Confirm Action',
-    message = 'Are you sure?',
-    confirmText = 'Confirm',
-    cancelText = 'Cancel',
-    confirmVariant = 'danger', // 'danger', 'warning', 'primary'
-    icon = '⚠️'
-  } = options;
-
-  // Remove any existing confirmation modal
-  const existingModal = $('#confirmationModal');
-  if (existingModal) {
-    existingModal.remove();
-  }
-
-  const modalHtml = `
-    <div class="modal-overlay" id="confirmationModal" style="display: flex;">
-      <div class="modal-content" style="max-width: 450px;">
-        <div class="modal-header">
-          <h3 class="modal-title">${icon} ${title}</h3>
-          <button class="modal-close" id="confirmModalClose">&times;</button>
-        </div>
-        <div class="modal-body">
-          <p style="margin: 0 0 1.5rem 0; font-size: 1rem; line-height: 1.5; color: #555;">
-            ${message}
-          </p>
-        </div>
-        <div class="modal-footer" style="display: flex; gap: 0.75rem; justify-content: flex-end;">
-          <button class="modern-button" id="confirmModalCancel" style="background: #6c757d; color: white;">
-            ${cancelText}
-          </button>
-          <button class="modern-button" id="confirmModalConfirm" style="background: ${getConfirmButtonColor(confirmVariant)}; color: white;">
-            ${confirmText}
-          </button>
-        </div>
-      </div>
-    </div>
-  `;
-
-  document.body.insertAdjacentHTML('beforeend', modalHtml);
-  
-  return new Promise((resolve) => {
-    const modal = $('#confirmationModal');
-    const confirmBtn = $('#confirmModalConfirm');
-    const cancelBtn = $('#confirmModalCancel');
-    const closeBtn = $('#confirmModalClose');
-    
-    const handleConfirm = () => {
-      cleanup();
-      resolve(true);
-    };
-    
-    const handleCancel = () => {
-      cleanup();
-      resolve(false);
-    };
-    
-    const handleEscape = (e) => {
-      if (e.key === 'Escape') {
-        handleCancel();
-      }
-    };
-    
-    const cleanup = () => {
-      modal.style.display = 'none';
-      setTimeout(() => {
-        modal?.remove();
-      }, 300);
-      document.removeEventListener('keydown', handleEscape);
-    };
-    
-    // Bind events
-    confirmBtn.addEventListener('click', handleConfirm);
-    cancelBtn.addEventListener('click', handleCancel);
-    closeBtn.addEventListener('click', handleCancel);
-    document.addEventListener('keydown', handleEscape);
-    
-    // Close on overlay click
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) {
-        handleCancel();
-      }
-    });
-    
-    // Focus the confirm button
-    setTimeout(() => {
-      confirmBtn.focus();
-    }, 100);
-  });
-}
-
-function getConfirmButtonColor(variant) {
-  switch (variant) {
-    case 'danger':
-      return 'linear-gradient(to bottom right, #e74c3c, #c0392b)';
-    case 'warning':
-      return 'linear-gradient(to bottom right, #f39c12, #e67e22)';
-    case 'primary':
-      return 'linear-gradient(to bottom right, #3498db, #2980b9)';
-    default:
-      return 'linear-gradient(to bottom right, #e74c3c, #c0392b)';
-  }
-}
-
 function confirmBulkDelete(count, itemType = 'items') {
-  return showConfirmationModal({
+  return confirmModal({
     title: 'Bulk Delete Confirmation',
     message: `You are about to permanently delete ${count} ${itemType} and all their related attendance logs. This action cannot be undone.`,
     confirmText: `Delete ${count} ${itemType}`,
     cancelText: 'Cancel',
     confirmVariant: 'danger',
-    icon: 'fas fa-trash-alt'
+    icon: 'fa-trash-alt'
   });
 }
 
 function confirmDelete(itemName, itemType = 'item') {
-  return showConfirmationModal({
+  return confirmModal({
     title: 'Delete Confirmation',
     message: `Are you sure you want to delete ${itemType} "${itemName}" and all related attendance logs? This action cannot be undone.`,
     confirmText: `Delete ${itemType}`,
     cancelText: 'Cancel',
     confirmVariant: 'danger',
-    icon: 'fas fa-trash-alt'
+    icon: 'fa-trash-alt'
   });
 }
 
@@ -589,5 +615,46 @@ export async function init() {
   await new Promise(resolve => setTimeout(resolve, 100));
   
   wireToolbar();
+  wireEditModalEvents();
+  wireGuideModal();
+  wireDropdownClose();
   await refresh();
+}
+
+// Wire guide modal open/close
+function wireGuideModal() {
+  const guideModal = $('#guideModal');
+  const openGuideBtn = $('#openGuideBtn');
+  const closeGuideBtn = $('#closeGuideBtn');
+
+  openGuideBtn?.addEventListener('click', () => {
+    if (guideModal) {
+      guideModal.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+  });
+
+  closeGuideBtn?.addEventListener('click', () => {
+    if (guideModal) {
+      guideModal.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+  });
+
+  // Close on overlay click
+  guideModal?.addEventListener('click', (e) => {
+    if (e.target === guideModal) {
+      guideModal.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+  });
+}
+
+// Close dropdowns when clicking outside
+function wireDropdownClose() {
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.custom-dropdown')) {
+      document.querySelectorAll('.custom-dropdown').forEach(d => d.classList.remove('open'));
+    }
+  });
 }

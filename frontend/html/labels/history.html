@@ -1,16 +1,16 @@
 <!-- Labels History Page -->
+<!-- Uses css-new/app.css + css-new/pages/labels/history.css -->
 <div class="labels-history">
-  <!-- Page Header -->
-  <div class="page-header">
+  <!-- Header -->
+  <header class="page-header">
     <div class="header-content">
       <h1 class="page-title">Label History</h1>
-      <hr class="page-divider">
-      <p class="page-subtitle">View and manage your label generation history</p>
     </div>
-  </div>
+    <p class="page-subtitle">View and manage your label generation history</p>
+  </header>
 
   <!-- Navigation Tabs -->
-  <div class="inner-tabs">
+  <nav class="inner-tabs">
     <button class="tab-button" onclick="location.href='/labels/generator'">
       <i class="fas fa-barcode"></i>
       <span>Generator</span>
@@ -19,47 +19,99 @@
       <i class="fas fa-history"></i>
       <span>History</span>
     </button>
-  </div>
+  </nav>
 
   <!-- Main Content -->
-  <div class="history-content">
-    <!-- History Controls -->
-    <div class="history-controls">
-      <div class="controls-group">
-        <div class="control-item">
-          <label class="control-label">Show Recent:</label>
-          <select id="limitSelect" class="control-select">
-            <option value="10">Last 10 runs</option>
-            <option value="25">Last 25 runs</option>
-            <option value="50">Last 50 runs</option>
-            <option value="100">Last 100 runs</option>
-          </select>
+  <div class="history-wrapper">
+    <!-- Print Jobs Controls Card -->
+    <div class="action-block">
+      <div class="block-header">
+        <div class="block-icon">
+          <i class="fas fa-print"></i>
         </div>
-        <button id="refreshHistoryBtn" class="filter-button secondary">
-          <i class="fas fa-sync-alt"></i>
-          Refresh
-        </button>
+        <div class="block-title-group">
+          <h3 class="block-title">Print Jobs</h3>
+          <p class="block-subtitle" id="jobCountSubtitle">Loading...</p>
+        </div>
+        <div class="header-actions">
+          <div class="custom-dropdown" id="limit-dropdown">
+            <div class="dropdown-selected" onclick="window.toggleHistoryDropdown('limit-dropdown')">
+              <i class="fas fa-list-ol"></i>
+              <span>Last 10</span>
+            </div>
+            <div class="dropdown-options">
+              <div class="dropdown-option selected" onclick="window.selectHistoryLimit(this, '10', 'Last 10')">Last 10</div>
+              <div class="dropdown-option" onclick="window.selectHistoryLimit(this, '25', 'Last 25')">Last 25</div>
+              <div class="dropdown-option" onclick="window.selectHistoryLimit(this, '50', 'Last 50')">Last 50</div>
+              <div class="dropdown-option" onclick="window.selectHistoryLimit(this, '100', 'Last 100')">Last 100</div>
+            </div>
+            <input type="hidden" id="limitSelect" value="10">
+          </div>
+          <button id="refreshHistoryBtn" class="action-btn secondary-btn">
+            <i class="fas fa-sync-alt"></i>
+            <span>Refresh</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="block-content">
+        <!-- Bulk Actions Row -->
+        <div id="bulkActionsRow" class="bulk-actions-row">
+          <div class="bulk-left">
+            <label class="card-checkbox">
+              <input type="checkbox" id="selectAllCheckbox">
+              <span class="checkbox-custom"></span>
+              <span class="checkbox-label-text">Select All</span>
+            </label>
+            <span class="selection-count" id="selectionCount"></span>
+          </div>
+          <div class="bulk-right">
+            <button id="deleteSelectedBtn" class="action-btn danger-btn" disabled>
+              <i class="fas fa-trash"></i>
+              <span>Delete Selected (<span id="selectedCountBtn">0</span>)</span>
+            </button>
+            <button id="deleteAllBtn" class="action-btn danger-btn">
+              <i class="fas fa-trash-alt"></i>
+              <span>Delete All</span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- Bulk Actions -->
-    <div id="bulkActionsBar"></div>
-
-    <!-- History Table -->
-    <div id="historyTable" class="history-table-container">
-      <div class="loading-message">
-        <i class="fas fa-spinner fa-spin"></i>
+    <!-- Jobs Table -->
+    <div id="historyTable" class="table-container">
+      <div class="loading-state">
+        <div class="loading-spinner"></div>
         <p>Loading history...</p>
       </div>
     </div>
 
-    <!-- History Details -->
-    <div id="historyDetails" class="history-details" style="display: none;">
-      <h4>Run Details</h4>
-      <div id="runDetailsContent"></div>
+    <!-- History Details Panel -->
+    <div id="historyDetails" class="action-block details-panel" style="display: none;">
+      <div class="block-header">
+        <div class="block-icon">
+          <i class="fas fa-info-circle"></i>
+        </div>
+        <div class="block-title-group">
+          <h3 class="block-title" id="detailsTitle">Job Details</h3>
+          <p class="block-subtitle" id="detailsSubtitle">View items in this job</p>
+        </div>
+        <button id="closeDetailsBtn" class="action-btn secondary-btn">
+          <i class="fas fa-times"></i>
+          <span>Close</span>
+        </button>
+      </div>
+
+      <div class="block-content">
+        <div id="runDetailsContent" class="table-container details-table">
+          <!-- Populated by JS -->
+        </div>
+      </div>
     </div>
   </div>
 </div>
+
 <!-- Universal Footer -->
 <div id="footerPlaceholder"></div>
 <script>

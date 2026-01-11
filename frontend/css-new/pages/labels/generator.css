@@ -1,0 +1,1450 @@
+/* ===== Labels Generator Page ===== */
+/* Page-specific styles for labels/generator.html */
+/* 
+   Global Components Used (from css-new/):
+   - layout/header.css: .page-header, .page-title, .page-subtitle, .header-content
+   - components/buttons.css: .action-btn, .primary-btn, .secondary-btn
+   - components/forms.css: .form-input, .search-box, .search-input, .search-icon
+   - components/tabs.css: .inner-tabs, .tab-button
+   - components/tables.css: table styles
+   - components/modals.css: modal styles
+   
+   Color System:
+   - Use --accent for green theme (#8bc34a) - NOT --primary which is blue
+   - Use --accent-dark for darker green (#7ab82d)
+   - Use --accent-light for lighter green (#a5d461)
+*/
+
+/* ===== Page Scope ===== */
+.labels-generator {
+  display: block;
+  font-family: var(--ff);
+  color: var(--text-muted);
+  transition: all var(--transition);
+  padding: 0.5rem 1rem;
+  min-height: calc(100vh - 40px);
+  background: var(--bg-dark);
+}
+
+/* ===== Page-specific Tab Overrides ===== */
+.labels-generator .inner-tabs {
+  margin: 2rem 0;
+}
+
+.labels-generator .tab-button {
+  flex: 1 1 auto;
+  min-width: 120px;
+}
+
+/* ===== Generator Content Layout ===== */
+.labels-generator .generator-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+/* ===== Unified Filter Panel ===== */
+/* Container is transparent - only the header and individual cards are visible */
+.labels-generator .unified-filter-panel {
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  border: none;
+  overflow: visible;
+}
+
+.labels-generator .unified-filter-panel:has(.filter-panel-body.collapsed) {
+  box-shadow: none;
+}
+
+html.dark-mode .labels-generator .unified-filter-panel {
+  border-color: transparent;
+}
+
+/* ===== Filter Panel Header ===== */
+/* Standalone header card with green gradient */
+.labels-generator .filter-panel-header {
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  padding: 1rem 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-m);
+  transition: border-radius 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+              margin-bottom 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-bottom: 1rem;
+}
+
+.labels-generator .unified-filter-panel:has(.filter-panel-body.collapsed) .filter-panel-header {
+  border-radius: var(--radius-lg);
+  margin-bottom: 0;
+}
+
+.labels-generator .filter-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: white;
+}
+
+.labels-generator .filter-panel-title i {
+  font-size: 1.25rem;
+  color: white;
+}
+
+.labels-generator .filter-panel-title h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+  color: white;
+  text-shadow: var(--text-shadow-s);
+}
+
+.labels-generator .filter-panel-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* ===== Panel Header Buttons ===== */
+/* Uses .btn .btn-icon .btn-sm .btn-ghost from buttons.css */
+/* Only page-specific overrides here */
+.labels-generator .panel-header-btn,
+.labels-generator .filter-panel-collapse {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  box-shadow: none;
+}
+
+.labels-generator .panel-header-btn:hover,
+.labels-generator .filter-panel-collapse:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.labels-generator .filter-panel-collapse.collapsed i {
+  transform: rotate(180deg);
+}
+
+/* ===== Filter Panel Body ===== */
+/* Transparent container - just handles collapse animation for the cards inside */
+.labels-generator .filter-panel-body {
+  padding: 0 !important;
+  background: transparent;
+  max-height: 1000px;
+  overflow: visible;
+  opacity: 1;
+  transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.25s ease;
+  grid-template-rows: unset !important;
+  min-height: unset !important;
+  height: auto !important;
+}
+
+.labels-generator .filter-panel-body.collapsed {
+  max-height: 0 !important;
+  opacity: 0;
+  overflow: hidden;
+}
+
+.labels-generator .filter-panel-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-auto-rows: auto;
+  gap: 1rem;
+}
+
+.labels-generator .filter-panel-grid-top {
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 992px) {
+  .labels-generator .filter-panel-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== Full Width Presets Section ===== */
+.labels-generator .presets-control-full {
+  width: 100%;
+  margin-bottom: 0.75rem;
+}
+
+/* ===== Filter Control Group ===== */
+/* Uses .card from cards.css for base styling (background: --bg-light, shadow, border) */
+/* Override to use --bg instead of --bg-light for proper hierarchy */
+.labels-generator .filter-control-group {
+  background: var(--bg);
+  padding: 1rem;
+}
+
+.labels-generator .control-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--bg-dark);
+}
+
+.labels-generator .control-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.labels-generator .control-header-left i {
+  color: var(--accent);
+  font-size: 1rem;
+}
+
+.labels-generator .control-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.labels-generator .control-hint {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.5rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.375rem;
+}
+
+.labels-generator .control-hint i {
+  color: var(--info);
+  margin-top: 2px;
+}
+
+/* ===== Count Badges ===== */
+.labels-generator .filter-count-badge,
+.labels-generator .preset-count-badge {
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 10px;
+  margin-left: auto;
+  text-shadow: var(--text-shadow-s);
+}
+
+/* ===== Status Filters Grid ===== */
+.labels-generator .status-filters-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+}
+
+/* Status filters use .selection-box-compact from components/selection-boxes.css */
+/* Only page-specific overrides here */
+.labels-generator .status-checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.labels-generator .status-label {
+  font-size: 0.8rem;
+  color: var(--text);
+  flex: 1;
+}
+
+/* Orphaned option - full width at bottom, subtle styling */
+.labels-generator .orphaned-option {
+  margin-top: 0.5rem;
+}
+
+.labels-generator .orphaned-option .status-label {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* ===== Preset Header Actions ===== */
+.labels-generator .preset-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.labels-generator .preset-search-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* Preset search - uses forms.css base styling */
+/* Only size overrides here */
+.labels-generator .preset-search-input {
+  width: 140px;
+  height: auto;
+  padding: 0.4rem 0.6rem 0.4rem 1.75rem;
+  font-size: 0.75rem;
+}
+
+.labels-generator .preset-search-icon {
+  position: absolute;
+  left: 0.5rem;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  pointer-events: none;
+}
+
+/* Preset header action buttons - uses .action-btn .btn-sm from buttons.css */
+/* Only page-specific size overrides here */
+.labels-generator .preset-header-actions .action-btn {
+  padding: 0.375rem 0.5rem;
+  min-height: 28px;
+}
+
+/* ===== Presets Horizontal Scroll Container ===== */
+.labels-generator .presets-horizontal-scroll {
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.5rem 0.25rem;
+  scroll-behavior: smooth;
+  /* Firefox scrollbar styling */
+  scrollbar-width: thin;
+  scrollbar-color: var(--bg-dark) var(--bg);
+}
+
+.labels-generator .presets-horizontal-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+
+.labels-generator .presets-horizontal-scroll::-webkit-scrollbar-track {
+  background: var(--bg);
+  border-radius: 3px;
+}
+
+.labels-generator .presets-horizontal-scroll::-webkit-scrollbar-thumb {
+  background: var(--bg-dark);
+  border-radius: 3px;
+}
+
+.labels-generator .presets-horizontal-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* ===== Presets Scroll Container (legacy vertical) ===== */
+.labels-generator .presets-scroll-container {
+  max-height: 120px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.25rem;
+  padding-right: 0.5rem;
+  /* Firefox scrollbar styling */
+  scrollbar-width: thin;
+  scrollbar-color: var(--bg-dark) var(--bg);
+}
+
+.labels-generator .presets-scroll-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.labels-generator .presets-scroll-container::-webkit-scrollbar-track {
+  background: var(--bg);
+  border-radius: 3px;
+}
+
+.labels-generator .presets-scroll-container::-webkit-scrollbar-thumb {
+  background: var(--bg-dark);
+  border-radius: 3px;
+}
+
+.labels-generator .presets-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* ===== Preset Cards ===== */
+.labels-generator .preset-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem;
+  background: var(--bg);
+  border-radius: 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.labels-generator .preset-card:hover {
+  background: var(--bg-dark);
+  border-color: var(--accent-light);
+}
+
+.labels-generator .preset-card.active {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border-color: var(--accent);
+}
+
+/* ===== Preset Card - Horizontal Layout ===== */
+/* Uses entity-card pattern from cards.css: --bg-light background for inner elevated elements */
+.labels-generator .preset-card-horizontal {
+  display: flex;
+  flex-direction: column;
+  min-width: 220px;
+  max-width: 280px;
+  padding: 1rem;
+  background: var(--bg-light);
+  border-radius: 12px;
+  border: 2px solid var(--bg);
+  box-shadow: var(--shadow-m);
+  cursor: pointer;
+  transition: all var(--transition);
+  flex-shrink: 0;
+}
+
+.labels-generator .preset-card-horizontal:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-l);
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.labels-generator .preset-card-horizontal.active {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.labels-generator .preset-card-horizontal .preset-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 0.5rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.labels-generator .preset-card-horizontal .preset-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 0.75rem;
+}
+
+.labels-generator .preset-card-horizontal .preset-meta span {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.labels-generator .preset-card-horizontal .preset-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: auto;
+}
+
+/* Preset card buttons - uses .action-btn .btn-sm from buttons.css */
+/* Only layout-specific overrides here */
+.labels-generator .preset-card-horizontal .preset-actions .action-btn {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8rem;
+}
+
+.labels-generator .preset-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.labels-generator .preset-name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.labels-generator .preset-meta {
+  display: flex;
+  gap: 0.75rem;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+.labels-generator .preset-meta span {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.labels-generator .preset-actions-inline {
+  display: flex;
+  gap: 0.25rem;
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+
+.labels-generator .preset-card:hover .preset-actions-inline {
+  opacity: 1;
+}
+
+.labels-generator .preset-loading-compact {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1.5rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.labels-generator .preset-loading-compact i {
+  color: var(--accent);
+}
+
+/* ===== Preset Card Compact ===== */
+.labels-generator .preset-card-compact {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.875rem 1rem;
+  background: var(--bg);
+  border-radius: 10px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all var(--transition);
+  gap: 1rem;
+}
+
+.labels-generator .preset-card-compact:hover {
+  background: var(--bg-dark);
+  border-color: var(--accent-light);
+  transform: translateY(-1px);
+}
+
+.labels-generator .preset-card-compact.active {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-color: var(--accent);
+}
+
+.labels-generator .preset-compact-header {
+  flex: 1;
+  min-width: 0;
+}
+
+.labels-generator .preset-name-compact {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+}
+
+.labels-generator .preset-compact-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+/* Legacy preset-btn-compact removed - now uses shared button classes */
+
+/* ===== Preset Empty State ===== */
+.labels-generator .preset-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.labels-generator .preset-empty-state i {
+  font-size: 2rem;
+  color: var(--accent);
+  opacity: 0.4;
+  margin-bottom: 0.75rem;
+}
+
+.labels-generator .preset-empty-state p {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.labels-generator .preset-empty-hint {
+  font-size: 0.75rem !important;
+  color: var(--text-muted);
+  margin-top: 0.25rem !important;
+}
+
+/* ===== Search Input - Use standard component structure ===== */
+.labels-generator .search-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* Uses forms.css base styling - only add positioning adjustments */
+.labels-generator .search-input-compact {
+  padding-left: 2.5rem;
+  padding-right: 2.5rem;
+}
+
+.labels-generator .product-search-icon {
+  position: absolute;
+  left: 0.875rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: color var(--transition);
+}
+
+.labels-generator .product-search-icon:hover {
+  color: var(--accent);
+}
+
+/* Search clear button - uses .btn .btn-icon .btn-sm .btn-ghost from buttons.css */
+/* Only page-specific overrides here */
+.labels-generator .search-clear-btn {
+  position: absolute;
+  right: 0.75rem;
+  background: var(--bg-dark);
+  border-radius: 50%;
+  min-width: 24px;
+  min-height: 24px;
+  padding: 0;
+}
+
+.labels-generator .search-clear-btn:hover {
+  background: var(--danger);
+  color: white;
+}
+
+/* ===== Region Toggle ===== */
+.labels-generator .region-toggle-compact {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* Region options use .selection-pill from components/selection-boxes.css */
+/* Only page-specific overrides here */
+.labels-generator .region-radio {
+  display: none;
+}
+
+.labels-generator .region-label-compact {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.labels-generator .region-label-compact i {
+  color: var(--text-muted);
+}
+
+.labels-generator .region-option-compact:has(input:checked) .region-label-compact {
+  color: var(--accent);
+}
+
+.labels-generator .region-option-compact:has(input:checked) .region-label-compact i {
+  color: var(--accent);
+}
+
+/* ===== Selection Bar ===== */
+/* Uses .card from cards.css for base styling */
+/* Override to use --bg instead of --bg-light for proper hierarchy */
+.labels-generator .selection-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.25rem;
+  background: var(--bg);
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* ===== Selection Bar Search ===== */
+.labels-generator .selection-bar-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  max-width: 400px;
+  min-width: 200px;
+}
+
+.labels-generator .selection-bar-search .search-input-compact {
+  width: 100%;
+  padding-right: 2.5rem;
+}
+
+.labels-generator .selection-bar-search .product-search-icon {
+  position: absolute;
+  right: 0.75rem;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+/* Search clear in selection bar - uses .btn .btn-icon .btn-sm .btn-ghost from buttons.css */
+.labels-generator .selection-bar-search .search-clear-btn {
+  position: absolute;
+  right: 2rem;
+  background: none;
+  min-width: auto;
+  min-height: auto;
+  padding: 0.25rem;
+}
+
+.labels-generator .selection-bar-search .search-clear-btn:hover {
+  background: none;
+  color: var(--text);
+}
+
+.labels-generator .select-all-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.labels-generator .select-all-checkbox {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.labels-generator .select-all-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.labels-generator .selection-info {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.labels-generator .selection-count {
+  font-weight: 700;
+  color: var(--accent);
+}
+
+/* Generate PDF button uses .action-btn .primary-btn from buttons.css */
+/* No page-specific overrides needed */
+
+/* ===== Products Table ===== */
+/* Uses shared .table-container and table styles from tables.css */
+
+.labels-generator .products-table {
+  font-size: 0.875rem;
+}
+
+.labels-generator .products-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.labels-generator .products-table th {
+  padding: 0.875rem 1rem;
+}
+
+.labels-generator .products-table th i {
+  margin-right: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.labels-generator .products-table td {
+  padding: 0.75rem 1rem;
+  color: var(--text);
+  vertical-align: middle;
+}
+
+.labels-generator .products-table tbody tr.selected {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.labels-generator .checkbox-col {
+  width: 40px;
+  text-align: center;
+}
+
+.labels-generator .price-col {
+  min-width: 80px;
+}
+
+.labels-generator .sales-col {
+  min-width: 70px;
+  text-align: right;
+}
+
+.labels-generator .products-table .product-checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* ===== Product Row Styles ===== */
+.labels-generator .product-sku {
+  font-family: monospace;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.labels-generator .product-name {
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.labels-generator .product-price {
+  font-weight: 600;
+  color: var(--success);
+}
+
+.labels-generator .product-item-id {
+  font-family: monospace;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.labels-generator .sales-value {
+  font-weight: 500;
+}
+
+.labels-generator .sales-value.high {
+  color: var(--success);
+}
+
+.labels-generator .sales-value.medium {
+  color: var(--warning);
+}
+
+.labels-generator .sales-value.low {
+  color: var(--text-muted);
+}
+
+/* ===== Empty State ===== */
+.labels-generator .empty-state {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: var(--text-muted);
+}
+
+.labels-generator .empty-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  color: var(--accent);
+  opacity: 0.5;
+}
+
+.labels-generator .empty-message {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 0.5rem;
+}
+
+.labels-generator .empty-submessage {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+/* ===== Magento Data Error ===== */
+.labels-generator .magento-data-error {
+  margin-bottom: 1.5rem;
+}
+
+.labels-generator .error-card {
+  background: color-mix(in srgb, var(--warning) 10%, var(--bg));
+  border: 1px solid var(--warning);
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: var(--shadow-m);
+}
+
+.labels-generator .error-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.labels-generator .error-header i {
+  font-size: 1.5rem;
+  color: var(--warning);
+}
+
+.labels-generator .error-header h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+}
+
+.labels-generator .error-body p {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+
+.labels-generator .error-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* ===== Responsive Adjustments ===== */
+@media (max-width: 768px) {
+  .labels-generator {
+    padding: 0.5rem;
+  }
+  
+  .labels-generator .selection-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .labels-generator .selection-bar .action-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .labels-generator .products-table {
+    font-size: 0.8rem;
+  }
+  
+  .labels-generator .products-table th,
+  .labels-generator .products-table td {
+    padding: 0.5rem;
+  }
+  
+  .labels-generator .preset-header-actions {
+    flex-wrap: wrap;
+  }
+  
+  .labels-generator .preset-search-wrapper {
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+  
+  .labels-generator .preset-search-input {
+    width: 100%;
+  }
+  
+  .labels-generator .status-filters-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ===== Preset Modal Overrides ===== */
+/* Tighter spacing for save preset modal */
+.preset-modal .modal-body {
+  padding: 1.25rem 1.5rem;
+}
+
+.preset-modal .form-group {
+  margin-bottom: 0.875rem;
+}
+
+.preset-modal .form-group:last-child {
+  margin-bottom: 0;
+}
+
+.preset-modal .form-label {
+  margin-bottom: 0.25rem;
+}
+
+.preset-modal .form-textarea {
+  min-height: 60px;
+  resize: none;
+}
+
+.preset-modal .preset-product-list {
+  margin-top: 0.375rem;
+}
+
+/* Larger modal for manage presets */
+.preset-modal.large {
+  max-width: 700px;
+}
+
+/* Manage Presets List */
+.manage-presets-list {
+  max-height: 500px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* Manage preset item - extends .card component */
+.manage-preset-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  overflow: visible;
+}
+
+.manage-preset-item:hover {
+  border-color: var(--accent);
+}
+
+.manage-preset-item .manage-preset-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.manage-preset-info {
+  flex: 1;
+  min-width: 200px;
+}
+
+.manage-preset-info .preset-name {
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--text);
+  margin: 0 0 0.25rem 0;
+}
+
+.manage-preset-info .preset-description {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 0 0 0.5rem 0;
+}
+
+.preset-meta {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.preset-meta i {
+  color: var(--accent);
+  margin-right: 0.25rem;
+}
+
+.manage-preset-stats {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.preset-stat {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.preset-stat i {
+  color: var(--accent);
+}
+
+.manage-preset-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* Use shared button components - just ensure proper sizing in context */
+.manage-preset-actions .btn {
+  min-height: auto;
+  padding: 0.5rem 0.75rem;
+}
+
+/* Preset Loading State */
+.preset-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 2rem;
+  color: var(--text-muted);
+}
+
+/* Empty State */
+.manage-presets-list:empty::after,
+.manage-presets-list .preset-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* ===== View Preset Details Modal ===== */
+.preset-detail-section {
+  margin-bottom: 1.5rem;
+}
+
+.preset-detail-section:last-child {
+  margin-bottom: 0;
+}
+
+.preset-detail-title {
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 0.5rem 0;
+}
+
+.preset-detail-description {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  margin: 0 0 1rem 0;
+  line-height: 1.5;
+}
+
+.preset-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.preset-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.detail-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.detail-label i {
+  color: var(--accent);
+  font-size: 0.85rem;
+}
+
+.detail-value {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text);
+}
+
+/* Filters display */
+.filters-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.filter-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.4rem 0.75rem;
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  color: white;
+  border-radius: 16px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  box-shadow: 0 2px 4px rgba(139, 195, 74, 0.2);
+}
+
+/* Products list in view modal */
+.products-list-view {
+  max-height: 200px;
+  overflow-y: auto;
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  background: var(--bg-light);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+html.dark-mode .products-list-view {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.product-sku-item {
+  padding: 0.5rem 0.75rem;
+  background: var(--bg);
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  font-family: var(--ff-mono, monospace);
+}
+
+.product-sku-item:last-child {
+  margin-bottom: 0;
+}
+
+html.dark-mode .product-sku-item {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.empty-text {
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 0.5rem;
+}
+
+/* ===== Preset Summary (Save/Edit Modals) ===== */
+.preset-summary {
+  display: flex;
+  gap: 1.5rem;
+  padding: 0.75rem 1rem;
+  background: var(--bg-light);
+  border-radius: var(--radius-md);
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+
+.summary-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.summary-item i {
+  color: var(--accent);
+}
+
+.summary-item strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* ===== Save Option Radio Group ===== */
+.save-option-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.radio-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: var(--bg-light);
+  border: 2px solid rgba(0, 0, 0, 0.08);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+html.dark-mode .radio-option {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.radio-option:hover {
+  border-color: var(--accent);
+}
+
+.radio-option input[type="radio"] {
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
+.radio-option input[type="radio"]:checked + span {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* ===== Checkbox Label in Modals ===== */
+.checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.checkbox-label input[type="checkbox"] {
+  margin-top: 0.2rem;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
+/* ===== Preset Product List (Save/Edit Modals) ===== */
+.preset-product-list {
+  max-height: 100px;
+  overflow-y: auto;
+  background: var(--bg-light);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: var(--radius-md);
+  padding: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+html.dark-mode .preset-product-list {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.preset-product-item {
+  padding: 0.5rem 0.75rem;
+  background: var(--bg);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.preset-product-item:last-child {
+  margin-bottom: 0;
+}
+
+.preset-product-item:hover {
+  border-color: var(--accent);
+  transform: translateX(2px);
+}
+
+html.dark-mode .preset-product-item {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Remove button in product items */
+.preset-product-remove {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preset-product-remove:hover {
+  background: rgba(231, 76, 60, 0.1);
+  color: #e74c3c;
+}
+
+.preset-product-sku {
+  font-weight: 600;
+  color: var(--text);
+  font-family: var(--ff-mono, 'Courier New', monospace);
+  min-width: 120px;
+}
+
+.preset-product-name {
+  color: var(--text-muted);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.preset-product-empty {
+  text-align: center;
+  padding: 1rem;
+  color: var(--text-muted);
+  font-style: italic;
+  font-size: 0.875rem;
+}
+
+/* Scrollbar styling for product lists */
+.preset-product-list::-webkit-scrollbar,
+.products-list-view::-webkit-scrollbar {
+  width: 8px;
+}
+
+.preset-product-list::-webkit-scrollbar-track,
+.products-list-view::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+}
+
+.preset-product-list::-webkit-scrollbar-thumb,
+.products-list-view::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 4px;
+}
+
+.preset-product-list::-webkit-scrollbar-thumb:hover,
+.products-list-view::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-dark);
+}
+
+html.dark-mode .preset-product-list::-webkit-scrollbar-track,
+html.dark-mode .products-list-view::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Responsive for view modal */
+@media (max-width: 500px) {
+  .preset-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .manage-preset-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .manage-preset-actions {
+    width: 100%;
+  }
+  
+  .manage-preset-actions .btn {
+    flex: 1;
+  }
+}
+
+/* ===== Print Styles ===== */
+@media print {
+  .labels-generator .unified-filter-panel,
+  .labels-generator .selection-bar,
+  .labels-generator .inner-tabs {
+    display: none !important;
+  }
+  
+  .labels-generator .products-table {
+    box-shadow: none;
+    border: 1px solid #ddd;
+  }
+}

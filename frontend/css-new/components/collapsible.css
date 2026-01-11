@@ -1,0 +1,71 @@
+/* ===== Collapsible Component ===== */
+/* Expandable/collapsible sections */
+
+.collapsible {
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.collapsible-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: var(--space-md);
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--bg);
+  transition: all 0.3s ease;
+  user-select: none;
+}
+
+.collapsible-heading:hover {
+  background: var(--bg-light);
+}
+
+.collapsible-heading .arrow {
+  font-size: 1.2rem;
+  transition: transform 0.3s ease;
+  color: var(--text-muted);
+}
+
+.collapsible-heading[aria-expanded="true"] .arrow {
+  transform: rotate(90deg);
+}
+
+.collapsible-content {
+  padding: var(--space-md);
+  background: var(--bg-light);
+  transition: max-height 0.3s ease, padding 0.3s ease;
+  overflow: hidden;
+}
+
+.collapsible-content.collapsed {
+  display: none;
+}
+
+/* Animated version */
+.collapsible-animated .collapsible-content {
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.collapsible-animated .collapsible-content.expanded {
+  max-height: 1000px;
+  padding-top: var(--space-md);
+  padding-bottom: var(--space-md);
+}
+
+/* Collapsible with border */
+.collapsible-bordered {
+  border: 1px solid var(--bg);
+}
+
+.collapsible-bordered .collapsible-heading {
+  border-bottom: 1px solid var(--bg);
+}
+
+.collapsible-bordered .collapsible-content.collapsed + .collapsible-heading {
+  border-bottom: none;
+}

@@ -8,6 +8,64 @@ let state = {
 
 function $(sel) { return document.querySelector(sel); }
 
+// ===== Custom Dropdown Functions =====
+// Exposed on window so onclick attributes in HTML can access them
+
+window.toggleDropdown = function(id) {
+  const dropdown = document.getElementById(id);
+  if (!dropdown) return;
+  
+  // Close other dropdowns
+  document.querySelectorAll('.custom-dropdown').forEach(d => {
+    if (d.id !== id) d.classList.remove('open');
+  });
+  dropdown.classList.toggle('open');
+};
+
+window.selectOption = function(element, dropdownId, value, text) {
+  const dropdown = document.getElementById(dropdownId);
+  if (!dropdown) return;
+  
+  const selectedDisplay = dropdown.querySelector('.dropdown-selected');
+  const hiddenInput = dropdown.querySelector('input[type="hidden"]');
+  
+  if (selectedDisplay) selectedDisplay.textContent = text;
+  if (hiddenInput) hiddenInput.value = value;
+  
+  dropdown.querySelectorAll('.dropdown-option').forEach(opt => opt.classList.remove('selected'));
+  element.classList.add('selected');
+  dropdown.classList.remove('open');
+  
+  // Handle employee selection
+  if (dropdownId === 'employee-dropdown') {
+    onEmployeeSelect(value);
+  }
+};
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.custom-dropdown')) {
+    document.querySelectorAll('.custom-dropdown').forEach(d => d.classList.remove('open'));
+  }
+});
+
+function onEmployeeSelect(empId) {
+  const clockInBtn = $('#clockInBtn');
+  const clockOutBtn = $('#clockOutBtn');
+  const hasSelection = empId !== '';
+  
+  if (clockInBtn) clockInBtn.disabled = !hasSelection;
+  if (clockOutBtn) clockOutBtn.disabled = !hasSelection;
+  
+  if (hasSelection) {
+    state.selectedEmployee = state.employees.find(emp => String(emp.id) === String(empId));
+  } else {
+    state.selectedEmployee = null;
+  }
+  
+  updateEmployeeStatus();
+}
+
 async function loadEmployees() {
   try {
     state.employees = await getEmployeesWithStatus();
@@ -15,49 +73,51 @@ async function loadEmployees() {
   } catch (e) {
     console.error('Error loading employees:', e);
     notify('❌ Failed to load employees', true);
+    // Use fallback data
+    state.employees = [
+      { id: 1, name: 'Sample Employee 1', employee_code: 'EMP001', status: 'out' },
+      { id: 2, name: 'Sample Employee 2', employee_code: 'EMP002', status: 'in' },
+      { id: 3, name: 'Sample Employee 3', employee_code: 'EMP003', status: 'unknown' }
+    ];
+    fillEmployeeSelect();
   }
 }
 
 function fillEmployeeSelect() {
-  const select = $('#employeeSelect');
-  if (!select) return;
+  const dropdown = $('#employee-dropdown');
+  const optionsContainer = $('#employeeDropdownOptions');
   
-  select.innerHTML = '<option value="">Select an employee...</option>';
+  if (!dropdown || !optionsContainer) {
+    console.error('❌ Employee dropdown elements not found');
+    return;
+  }
   
+  // Clear existing options
+  optionsContainer.innerHTML = '';
+  
+  // Add placeholder option
+  const placeholderOpt = document.createElement('div');
+  placeholderOpt.className = 'dropdown-option selected';
+  placeholderOpt.textContent = 'Select Employee...';
+  placeholderOpt.onclick = function() { selectOption(this, 'employee-dropdown', '', 'Select Employee...'); };
+  optionsContainer.appendChild(placeholderOpt);
+  
+  // Add employee options
   state.employees.forEach(emp => {
-    const option = document.createElement('option');
-    option.value = emp.id;
-    option.textContent = `${emp.name} - ${getStatusText(emp.status)}`;
-    option.dataset.status = emp.status || 'unknown';
-    select.appendChild(option);
+    const opt = document.createElement('div');
+    opt.className = 'dropdown-option';
+    opt.textContent = `${emp.name} - ${getStatusText(emp.status)}`;
+    opt.onclick = function() { selectOption(this, 'employee-dropdown', String(emp.id), `${emp.name} - ${getStatusText(emp.status)}`); };
+    optionsContainer.appendChild(opt);
   });
   
-  // Reinitialize c-select for the updated dropdown
-  if (window.initCSelects) {
-    // Remove the existing c-select wrapper if it exists
-    const existingWrapper = select.closest('.c-select');
-    if (existingWrapper) {
-      const parent = existingWrapper.parentNode;
-      const nextSibling = existingWrapper.nextSibling;
-      parent.insertBefore(select, nextSibling);
-      existingWrapper.remove();
-      select.style.display = '';
-      select.classList.remove('select-hidden');
-      delete select.dataset.enhanced;
-    }
-    
-    // Re-enhance the select element
-    window.initCSelects(select.parentElement);
-    
-    // Verify the enhancement worked
-    const newWrapper = select.closest('.c-select');
-    if (newWrapper) {
-    } else {
-      console.warn('⚠️ Employee dropdown enhancement may have failed');
-    }
-  } else {
-    console.warn('⚠️ initCSelects not available for employee dropdown');
-  }
+  // Reset selected display
+  const selectedDisplay = dropdown.querySelector('.dropdown-selected');
+  if (selectedDisplay) selectedDisplay.textContent = 'Select Employee...';
+  
+  // Reset hidden input
+  const hiddenInput = dropdown.querySelector('input[type="hidden"]');
+  if (hiddenInput) hiddenInput.value = '';
 }
 
 function getStatusText(status) {
@@ -70,15 +130,16 @@ function getStatusText(status) {
 }
 
 async function clockIn() {
-  const employeeId = $('#employeeSelect').value;
+  const employeeId = $('#employeeSelect')?.value;
   if (!employeeId) {
     notify('❌ Please select an employee', true);
     return;
   }
 
   const btn = $('#clockInBtn');
-  btn.disabled = true;
-  btn.textContent = 'Clocking In...';
+  const btnTitle = btn?.querySelector('.btn-title');
+  if (btnTitle) btnTitle.textContent = 'Clocking In...';
+  if (btn) btn.disabled = true;
 
   try {
     const result = await clockEmployee(parseInt(employeeId));
@@ -96,21 +157,22 @@ async function clockIn() {
   } catch (e) {
     notify('❌ ' + e.message, true);
   } finally {
-    btn.disabled = false;
-    btn.textContent = '⏰ Clock In';
+    if (btnTitle) btnTitle.textContent = 'Clock In';
+    if (btn) btn.disabled = false;
   }
 }
 
 async function clockOut() {
-  const employeeId = $('#employeeSelect').value;
+  const employeeId = $('#employeeSelect')?.value;
   if (!employeeId) {
     notify('❌ Please select an employee', true);
     return;
   }
 
   const btn = $('#clockOutBtn');
-  btn.disabled = true;
-  btn.textContent = 'Clocking Out...';
+  const btnTitle = btn?.querySelector('.btn-title');
+  if (btnTitle) btnTitle.textContent = 'Clocking Out...';
+  if (btn) btn.disabled = true;
 
   try {
     const result = await clockEmployee(parseInt(employeeId));
@@ -128,39 +190,44 @@ async function clockOut() {
   } catch (e) {
     notify('❌ ' + e.message, true);
   } finally {
-    btn.disabled = false;
-    btn.textContent = '⏰ Clock Out';
+    if (btnTitle) btnTitle.textContent = 'Clock Out';
+    if (btn) btn.disabled = false;
   }
 }
 
 function updateEmployeeStatus() {
-  const employeeId = $('#employeeSelect').value;
+  const employeeId = $('#employeeSelect')?.value;
   const statusDiv = $('#employeeStatus');
   const detailsDiv = $('#statusDetails');
   
-  if (!employeeId) {
+  if (!employeeId || !statusDiv) {
+    if (statusDiv) statusDiv.style.display = 'none';
+    return;
+  }
+  
+  const employee = state.employees.find(emp => String(emp.id) === String(employeeId));
+  if (!employee) {
     statusDiv.style.display = 'none';
     return;
   }
   
-  const employee = state.employees.find(emp => emp.id == employeeId);
-  if (!employee) return;
-  
   statusDiv.style.display = 'block';
   detailsDiv.innerHTML = `
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
-      <div>
-        <strong>Employee:</strong> ${employee.name}
-      </div>
-      <div>
-        <strong>Current Status:</strong> ${getStatusText(employee.status)}
-      </div>
-      <div>
-        <strong>Last Activity:</strong> ${employee.last_activity || 'No recent activity'}
-      </div>
-      <div>
-        <strong>Duration:</strong> ${employee.duration || 'Not available'}
-      </div>
+    <div class="status-item">
+      <strong>Employee</strong>
+      <span>${employee.name}</span>
+    </div>
+    <div class="status-item">
+      <strong>Current Status</strong>
+      <span>${getStatusText(employee.status)}</span>
+    </div>
+    <div class="status-item">
+      <strong>Last Activity</strong>
+      <span>${employee.last_activity || 'No recent activity'}</span>
+    </div>
+    <div class="status-item">
+      <strong>Duration</strong>
+      <span>${employee.duration || 'Not available'}</span>
     </div>
   `;
 }
@@ -168,44 +235,32 @@ function updateEmployeeStatus() {
 function loadRecentActivity() {
   // Placeholder for recent activity - would typically fetch from API
   const tableDiv = $('#recentActivityTable');
+  if (!tableDiv) return;
+  
   tableDiv.innerHTML = `
-    <div class="table-container">
-    <table class="modern-table">
-      <thead>
-        <tr>
-          <th>Time</th>
-          <th>Employee</th>
-          <th>Action</th>
-          <th>Method</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td colspan="4" style="padding: 2rem; text-align: center; color: #666;">
-            Recent activity will appear here after clocking operations
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="activity-table-wrapper">
+      <table class="activity-table">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Employee</th>
+            <th>Action</th>
+            <th>Method</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td colspan="4">
+              <div class="empty-state">
+                <i class="fas fa-clock"></i>
+                <p>Recent activity will appear here after clocking operations</p>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   `;
-}
-
-function attachEmployeeSelectListener() {
-  const employeeSelect = $('#employeeSelect');
-  const clockInBtn = $('#clockInBtn');
-  const clockOutBtn = $('#clockOutBtn');
-
-  if (employeeSelect && !employeeSelect._listenerAttached) {
-    employeeSelect.addEventListener('change', () => {
-      const hasSelection = employeeSelect.value !== '';
-      if (clockInBtn) clockInBtn.disabled = !hasSelection;
-      if (clockOutBtn) clockOutBtn.disabled = !hasSelection;
-      updateEmployeeStatus();
-    });
-    
-    employeeSelect._listenerAttached = true;
-  }
 }
 
 function wireControls() {
@@ -223,8 +278,7 @@ function wireControls() {
     clockOutBtn._listenerAttached = true;
   }
   
-  // Attach employee select listener
-  attachEmployeeSelectListener();
+  // Custom dropdown handles selection via onclick - no need for additional listeners
 }
 
 function notify(msg, isErr = false) {
