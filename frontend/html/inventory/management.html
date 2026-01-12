@@ -1,233 +1,262 @@
 <!-- Inventory Management Page -->
+<!-- Uses css-new/app.css + css-new/pages/inventory/management.css -->
 <div class="inventory-management">
-  <!-- Page Header -->
-  <div class="page-header">
+  <!-- Header -->
+  <header class="page-header">
     <div class="header-content">
       <h1 class="page-title">Inventory Management</h1>
-      <hr class="page-divider">
-      <p class="page-subtitle">Monitor stock levels, manage product availability, and track inventory across locations</p>
     </div>
-  </div>
+    <p class="page-subtitle">Monitor stock levels, manage product availability, and track inventory across locations</p>
+  </header>
 
   <!-- Navigation Tabs -->
-  <div class="inner-tabs">
+  <nav class="inner-tabs">
     <button class="tab-button active" onclick="location.href='/inventory/management'">
       <i class="fas fa-boxes"></i>
       <span>Management</span>
     </button>
-  </div>
-  
+  </nav>
+
   <!-- Main Content -->
   <div class="management-content">
-    <!-- Filter Section -->
-    <section class="filter-section">
-      <div class="section-header">
-        <h2 class="section-title">
-          <i class="fas fa-filter"></i>
-          Filter Inventory
-        </h2>
-        <p class="section-subtitle">Refine your inventory view with status and search filters</p>
+    <!-- ===== Filter & Selection Control Panel ===== -->
+    <div class="unified-filter-panel">
+      <!-- Panel Header -->
+      <div class="filter-panel-header">
+        <div class="filter-panel-title">
+          <i class="fas fa-sliders-h"></i>
+          <h2>Filter & Selection Control Panel</h2>
+        </div>
+        <div class="filter-panel-header-actions">
+          <button id="applyStatusFilters" class="btn btn-sm btn-white panel-header-btn" title="Apply Filters">
+            <i class="fas fa-check"></i>
+            <span>Apply</span>
+          </button>
+          <button class="btn btn-icon btn-sm btn-ghost filter-panel-collapse collapsed" id="filterPanelCollapseBtn" title="Collapse/Expand Panel">
+            <i class="fas fa-chevron-up"></i>
+          </button>
+        </div>
       </div>
 
-      <!-- Discontinued Status Filters -->
-      <div class="discontinued-filters">
-        <div class="filter-collapse-header" onclick="this.parentElement.classList.toggle('expanded')">
-          <div class="filter-header-content">
-            <label class="filter-group-title">
-              <i class="fas fa-tags"></i>
-              Product Status Filters
+      <!-- Panel Body -->
+      <div class="filter-panel-body collapsed" id="filterPanelBody">
+        <div class="filter-panel-grid">
+          <!-- Left: Product Status Filters -->
+          <div class="card filter-control-group status-control">
+            <div class="control-header">
+              <div class="control-header-left">
+                <i class="fas fa-filter"></i>
+                <span class="control-title">Product Status Filters</span>
+                <span class="filter-count-badge" id="activeFiltersCount">4 of 8</span>
+              </div>
+            </div>
+            <div class="status-filters-grid">
+              <label class="status-filter-compact selection-box-compact">
+                <input type="checkbox" id="filter_Active" class="status-checkbox status-filter-checkbox" value="Active" checked>
+                <span class="status-label selection-box-label">Active</span>
+              </label>
+              <label class="status-filter-compact selection-box-compact">
+                <input type="checkbox" id="filter_TemporarilyOOS" class="status-checkbox status-filter-checkbox" value="Temporarily OOS" checked>
+                <span class="status-label selection-box-label">Temp. OOS</span>
+              </label>
+              <label class="status-filter-compact selection-box-compact">
+                <input type="checkbox" id="filter_PreOrder" class="status-checkbox status-filter-checkbox" value="Pre Order" checked>
+                <span class="status-label selection-box-label">Pre Order</span>
+              </label>
+              <label class="status-filter-compact selection-box-compact">
+                <input type="checkbox" id="filter_Samples" class="status-checkbox status-filter-checkbox" value="Samples" checked>
+                <span class="status-label selection-box-label">Samples</span>
+              </label>
+              <label class="status-filter-compact selection-box-compact">
+                <input type="checkbox" id="filter_DiscontinuedSupplier" class="status-checkbox status-filter-checkbox" value="Discontinued (Supplier)">
+                <span class="status-label selection-box-label">Disc. (Supp)</span>
+              </label>
+              <label class="status-filter-compact selection-box-compact">
+                <input type="checkbox" id="filter_DiscontinuedRM" class="status-checkbox status-filter-checkbox" value="Discontinued (RM)">
+                <span class="status-label selection-box-label">Disc. (RM)</span>
+              </label>
+              <label class="status-filter-compact selection-box-compact">
+                <input type="checkbox" id="filter_SpecialOffer" class="status-checkbox status-filter-checkbox" value="Special Offer">
+                <span class="status-label selection-box-label">Special Offer</span>
+              </label>
+              <label class="status-filter-compact selection-box-compact">
+                <input type="checkbox" id="filter_SpecialItem" class="status-checkbox status-filter-checkbox" value="Special Item">
+                <span class="status-label selection-box-label">Special Item</span>
+              </label>
+            </div>
+            <label class="status-filter-compact selection-box-compact orphaned-option">
+              <input type="checkbox" id="showOrphanedCheckbox" class="status-checkbox">
+              <span class="status-label selection-box-label" title="Show products that exist in warehouse but not in Magento catalog">Show Orphaned Products</span>
             </label>
-            <div class="filter-summary">
-              <span class="filter-count" id="activeFiltersCount">4</span> of 8 active
+          </div>
+
+          <!-- Right: Dropdowns -->
+          <div class="card filter-control-group dropdowns-control">
+            <div class="control-header">
+              <div class="control-header-left">
+                <i class="fas fa-th-list"></i>
+                <span class="control-title">Display Controls</span>
+              </div>
+            </div>
+            <div class="dropdowns-grid">
+              <!-- Column Filter Dropdown -->
+              <div class="dropdown-group">
+                <label class="dropdown-label">
+                  <i class="fas fa-columns"></i>
+                  <span>Columns</span>
+                </label>
+                <div class="custom-dropdown" id="columnDropdown">
+                  <div class="dropdown-selected" onclick="toggleDropdown('columnDropdown')">
+                    <i class="fas fa-columns"></i>
+                    Show/Hide Columns
+                  </div>
+                  <div class="dropdown-options" id="columnDropdownOptions">
+                    <!-- Populated by JavaScript -->
+                  </div>
+                </div>
+              </div>
+
+              <!-- Stock Status Dropdown -->
+              <div class="dropdown-group">
+                <label class="dropdown-label">
+                  <i class="fas fa-warehouse"></i>
+                  <span>Stock Status</span>
+                </label>
+                <div class="custom-dropdown" id="statusDropdown">
+                  <div class="dropdown-selected" onclick="toggleDropdown('statusDropdown')">
+                    <i class="fas fa-warehouse"></i>
+                    All Stock Status
+                  </div>
+                  <div class="dropdown-options" id="statusDropdownOptions">
+                    <div class="dropdown-option selected" onclick="selectStockStatus(this, '', 'All Stock Status')">All Stock Status</div>
+                    <div class="dropdown-option" onclick="selectStockStatus(this, 'low', 'Low Stock')">Low Stock</div>
+                    <div class="dropdown-option" onclick="selectStockStatus(this, 'ok', 'OK Stock')">OK Stock</div>
+                    <div class="dropdown-option" onclick="selectStockStatus(this, 'overstock', 'Overstock')">Overstock</div>
+                  </div>
+                  <input type="hidden" name="stockStatus" id="stockStatusFilter" value="">
+                </div>
+              </div>
             </div>
           </div>
-          <button type="button" class="filter-toggle-btn">
-            <i class="fas fa-chevron-down"></i>
-          </button>
-        </div>
-        <div class="checkbox-grid">
-          <label class="checkbox-label">
-            <input type="checkbox" id="filter_Active" class="status-filter-checkbox" value="Active" checked>
-            <span>Active</span>
-          </label>
-          <label class="checkbox-label">
-            <input type="checkbox" id="filter_TemporarilyOOS" class="status-filter-checkbox" value="Temporarily OOS" checked>
-            <span>Temporarily OOS</span>
-          </label>
-          <label class="checkbox-label">
-            <input type="checkbox" id="filter_PreOrder" class="status-filter-checkbox" value="Pre Order" checked>
-            <span>Pre Order</span>
-          </label>
-          <label class="checkbox-label">
-            <input type="checkbox" id="filter_Samples" class="status-filter-checkbox" value="Samples" checked>
-            <span>Samples</span>
-          </label>
-          <label class="checkbox-label">
-            <input type="checkbox" id="filter_DiscontinuedSupplier" class="status-filter-checkbox" value="Discontinued (Supplier)">
-            <span>Discontinued (Supplier)</span>
-          </label>
-          <label class="checkbox-label">
-            <input type="checkbox" id="filter_DiscontinuedRM" class="status-filter-checkbox" value="Discontinued (RM)">
-            <span>Discontinued (RM)</span>
-          </label>
-          <label class="checkbox-label">
-            <input type="checkbox" id="filter_SpecialOffer" class="status-filter-checkbox" value="Special Offer">
-            <span>Special Offer</span>
-          </label>
-          <label class="checkbox-label">
-            <input type="checkbox" id="filter_SpecialItem" class="status-filter-checkbox" value="Special Item">
-            <span>Special Item</span>
-          </label>
-          <label class="checkbox-label" style="grid-column: 1 / -1; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border-color);">
-            <input type="checkbox" id="showOrphanedCheckbox" class="status-checkbox">
-            <span style="color: var(--text-muted); font-style: italic;" title="Orphaned SKUs are products that exist in your warehouse inventory but have been renamed or deleted in Magento. They appear with no product name because they no longer exist in the catalog. Enable this to view and manage these orphaned inventory records.">Show Orphaned Products</span>
-          </label>
-          <button id="applyStatusFilters" class="apply-filters-btn">
-            <i class="fas fa-check"></i>
-            Apply Filters
-          </button>
         </div>
       </div>
+    </div>
 
-      <!-- Search and Controls -->
-      <div class="search-controls">
-        <div class="search-box">
+    <!-- ===== Inventory Data Controls Block ===== -->
+    <div class="card data-controls-bar">
+      <div class="data-controls-bar-content">
+        <!-- Search Box -->
+        <div class="data-controls-search">
           <i class="fas fa-search search-icon"></i>
           <input type="text" id="inventorySearch" class="search-input" placeholder="Search products, SKU, location...">
         </div>
         
-        <!-- Sync Magento Data Button -->
-        <button id="syncSalesBtn" class="action-btn sync-btn" title="Sync magento data to inventory">
+        <!-- Zoom Controls -->
+        <div class="table-zoom-controls">
+          <button class="zoom-btn" id="zoomOutBtn" title="Zoom Out">
+            <i class="fas fa-search-minus"></i>
+          </button>
+          <div class="zoom-indicator" id="zoomIndicator">100%</div>
+          <button class="zoom-btn" id="zoomInBtn" title="Zoom In">
+            <i class="fas fa-search-plus"></i>
+          </button>
+          <button class="zoom-btn" id="zoomResetBtn" title="Reset Zoom">
+            <i class="fas fa-undo"></i>
+          </button>
+        </div>
+        
+        <!-- Sync Button -->
+        <button id="syncSalesBtn" class="action-btn success-btn" title="Sync magento data to inventory">
           <i class="fas fa-sync-alt"></i>
-          Sync Magento Data
+          <span>Sync Magento Data</span>
         </button>
-        
-        <!-- Column Filter Dropdown -->
-        <div class="c-select" id="columnDropdown" role="combobox" aria-haspopup="listbox" aria-expanded="false">
-          <button type="button" class="c-select__button" id="columnToggle">
-            <span class="c-select__label">
-              <i class="fas fa-columns"></i>
-              Show/Hide Columns
-            </span>
-            <span class="c-select__caret">▾</span>
-          </button>
-          <div class="c-select__list" role="listbox" aria-hidden="true"></div>
-        </div>
-        
-        <!-- Stock Status Dropdown -->
-        <div class="c-select" id="statusDropdown" role="combobox" aria-haspopup="listbox" aria-expanded="false">
-          <button type="button" class="c-select__button" id="statusToggle">
-            <span class="c-select__label">
-              <i class="fas fa-warehouse"></i>
-              All Stock Status
-            </span>
-            <span class="c-select__caret">▾</span>
-          </button>
-          <div class="c-select__list" role="listbox" aria-hidden="true"></div>
-        </div>
       </div>
-    </section>
+    </div>
 
-    <!-- Table Section -->
-    <section class="table-section">
-      <!-- Zoom Controls -->
-      <div class="table-zoom-controls">
-        <button class="zoom-btn" id="zoomOutBtn" title="Zoom Out">
-          <i class="fas fa-search-minus"></i>
-        </button>
-        <div class="zoom-indicator" id="zoomIndicator">100%</div>
-        <button class="zoom-btn" id="zoomInBtn" title="Zoom In">
-          <i class="fas fa-search-plus"></i>
-        </button>
-        <button class="zoom-btn" id="zoomResetBtn" title="Reset Zoom">
-          <i class="fas fa-undo"></i>
-        </button>
+    <!-- ===== Standalone Table (outside any card) ===== -->
+    <div class="table-container standalone-table" id="inventoryManagementTableWrapper">
+      <div id="inventoryManagementTableScroller">
+        <table id="inventoryManagementTable" class="inventory-table">
+          <colgroup>
+            <col class="col-1">
+            <col class="col-2">
+            <col class="col-3">
+            <col class="col-4">
+            <col class="col-5">
+            <col class="col-6">
+            <col class="col-7">
+            <col class="col-8">
+            <col class="col-9">
+            <col class="col-10">
+            <col class="col-11">
+            <col class="col-12">
+            <col class="col-13">
+            <col class="col-14">
+            <col class="col-15">
+            <col class="col-16">
+            <col class="col-17">
+            <col class="col-18">
+          </colgroup>
+          <thead>
+            <tr>
+              <th>Location</th>
+              <th>Date</th>
+              <th>Qty Ordered - Jason</th>
+              <th>Product Name</th>
+              <th>SKU</th>
+              <th>UK 6M Data</th>
+              <th>Shelf &lt; 1</th>
+              <th>Shelf &lt; 1 Year Qty</th>
+              <th>Shelf &gt; 1</th>
+              <th>Shelf &gt; 1 Year Qty</th>
+              <th>Shelf Total</th>
+              <th>Top Floor Expiry Date</th>
+              <th>Top Floor Total</th>
+              <th>Total Stock</th>
+              <th>Status</th>
+              <th>UK + FR Pre Order</th>
+              <th>FR 6M Data</th>
+              <th>Discontinued Status</th>
+            </tr>
+          </thead>
+          <tbody id="inventoryManagementBody">
+            <tr>
+              <td colspan="18">
+                <div class="loading-state">
+                  <div class="loading-spinner"></div>
+                  <p>Loading inventory data...</p>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-      
-      <div class="table-wrapper" id="inventoryManagementTableWrapper">
-        <div id="inventoryManagementTableScroller">
-          <table id="inventoryManagementTable">
-            <colgroup>
-              <col class="col-1">
-              <col class="col-2">
-              <col class="col-3">
-              <col class="col-4">
-              <col class="col-5">
-              <col class="col-6">
-              <col class="col-7">
-              <col class="col-8">
-              <col class="col-9">
-              <col class="col-10">
-              <col class="col-11">
-              <col class="col-12">
-              <col class="col-13">
-              <col class="col-14">
-              <col class="col-15">
-              <col class="col-16">
-              <col class="col-17">
-              <col class="col-18">
-            </colgroup>
-            <thead>
-              <tr>
-                <th>Location</th>
-                <th>Date</th>
-                <th>Qty Ordered - Jason</th>
-                <th>Product Name</th>
-                <th>SKU</th>
-                <th>UK 6M Data</th>
-                <th>Shelf < 1</th>
-                <th>Shelf < 1 Year Qty</th>
-                <th>Shelf > 1</th>
-                <th>Shelf > 1 Year Qty</th>
-                <th>Shelf Total</th>
-                <th>Top Floor Expiry Date</th>
-                <th>Top Floor Total</th>
-                <th>Total Stock</th>
-                <th>Status</th>
-                <th>UK + FR Pre Order</th>
-                <th>FR 6M Data</th>
-                <th>Discontinued Status</th>
-              </tr>
-            </thead>
-            <tbody id="inventoryManagementBody">
-              <tr>
-                <td colspan="18">
-                  <div class="loading-state">
-                    <div class="loading-spinner"></div>
-                    <p>Loading inventory data...</p>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </section>
+    </div>
 
-    <!-- Pagination Section -->
-    <section class="pagination-section" id="paginationSection" style="display: none;">
-      <div class="pagination-info" id="paginationInfo">
-        Showing 0 of 0 items
-      </div>
-      <div class="pagination-controls">
-        <button class="pagination-btn" id="prevPageBtn" disabled>
-          <i class="fas fa-chevron-left"></i>
-          Previous
-        </button>
-        <div class="page-indicator" id="pageIndicator">
-          Page 1
+    <!-- Pagination Block -->
+    <div class="action-block pagination-block" id="paginationSection" style="display: none;">
+      <div class="pagination-wrapper">
+        <div class="pagination-info" id="paginationInfo">
+          Showing 0 of 0 items
         </div>
-        <button class="pagination-btn" id="nextPageBtn" disabled>
-          Next
-          <i class="fas fa-chevron-right"></i>
-        </button>
+        <div class="pagination-controls">
+          <button class="action-btn secondary-btn pagination-btn" id="prevPageBtn" disabled>
+            <i class="fas fa-chevron-left"></i>
+            <span>Previous</span>
+          </button>
+          <div class="page-indicator" id="pageIndicator">
+            Page 1
+          </div>
+          <button class="action-btn secondary-btn pagination-btn" id="nextPageBtn" disabled>
+            <span>Next</span>
+            <i class="fas fa-chevron-right"></i>
+          </button>
+        </div>
       </div>
-    </section>
+    </div>
   </div>
 </div>
 
-<!-- Global Dropdown Backdrop -->
-<div id="globalDropdownBackdrop" class="dropdown-backdrop"></div>
 <!-- Universal Footer -->
 <div id="footerPlaceholder"></div>
 <script>

@@ -394,6 +394,7 @@ input[type="radio"] {
 .custom-dropdown {
   position: relative;
   width: 100%;
+  overflow: visible; /* Ensure dropdown options can extend beyond container bounds */
 }
 
 .dropdown-selected {
@@ -495,12 +496,9 @@ html.dark-mode .dropdown-option {
 }
 
 /* ===== Modal Dropdown Overflow Fix ===== */
-/* Allow dropdowns to overflow the modal body so they're fully visible */
-.modal-content .modal-body {
-  overflow: visible;
-}
-
-.modal-content .custom-dropdown .dropdown-options {
+/* Use fixed positioning for dropdown options in modals */
+.modal-content .custom-dropdown .dropdown-options,
+.modal .custom-dropdown .dropdown-options {
   z-index: var(--z-dropdown, 9999);
   font-weight: 600;
 }

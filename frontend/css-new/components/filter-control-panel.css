@@ -1,0 +1,192 @@
+/* ===== Filter & Selection Control Panel Component ===== */
+/* Reusable collapsible filter panel with dynamic height
+   Usage: Add class 'filter-control-panel' to parent container
+   Initialize with: FilterControlPanel.init(panelElement)
+*/
+
+/* ===== Unified Filter Panel Container ===== */
+.unified-filter-panel {
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  border: none;
+  overflow: visible;
+}
+
+/* ===== Filter Panel Header ===== */
+.filter-panel-header {
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark, #7ab82d));
+  padding: 1rem 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-l);
+  transition: border-radius 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+              margin-bottom 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-bottom: 0.5rem;
+}
+
+.unified-filter-panel:has(.filter-panel-body.collapsed) .filter-panel-header {
+  border-radius: var(--radius-lg);
+  margin-bottom: 0;
+}
+
+.filter-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: white;
+}
+
+.filter-panel-title i {
+  font-size: 1.25rem;
+  color: white;
+}
+
+.filter-panel-title h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+  color: white;
+}
+
+.filter-panel-header-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+/* Header button styles */
+.btn-white {
+  background: white;
+  color: var(--accent);
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.btn-white:hover {
+  background: rgba(255, 255, 255, 0.9);
+  transform: translateY(-1px);
+}
+
+.btn-ghost {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.filter-panel-collapse i {
+  transition: transform 0.3s ease;
+}
+
+.filter-panel-collapse.collapsed i {
+  transform: rotate(180deg);
+}
+
+/* ===== Filter Panel Body ===== */
+/* Transparent container - just handles collapse animation for the cards inside */
+.filter-panel-body {
+  padding: 0;
+  background: transparent;
+  overflow: hidden;
+  opacity: 1;
+  transition: max-height 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.filter-panel-body.expanded {
+  overflow: visible;
+}
+
+.filter-panel-body > * {
+  overflow: visible;
+}
+
+.filter-panel-body.collapsed {
+  max-height: 0 !important;
+  opacity: 0;
+  overflow: hidden;
+}
+
+/* ===== Filter Panel Grid ===== */
+.filter-panel-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 1rem;
+}
+
+/* ===== Filter Control Group Cards ===== */
+.filter-control-group {
+  background: var(--bg);
+  border-radius: var(--radius-lg);
+  padding: 1rem 1.25rem;
+  box-shadow: var(--shadow-l);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+html.dark-mode .filter-control-group {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.control-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.875rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--bg-light);
+}
+
+.control-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.control-header-left i {
+  font-size: 1rem;
+  color: var(--accent);
+}
+
+.control-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.filter-count-badge {
+  padding: 0.25rem 0.5rem;
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  color: var(--accent);
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* ===== Responsive Grid ===== */
+@media (max-width: 1024px) {
+  .filter-panel-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,198 +1,219 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UK Magento Data</title>
-    
-    <!-- Magentodata CSS -->
-    <link rel="stylesheet" href="/css/magentodata/universal.css">
-    <link rel="stylesheet" href="/css/magentodata/filters-modal.css">
-</head>
-<body>
-    <div class="magentodata-page main-container">
-        <!-- Navigation Tabs -->
-        <div class="inner-tabs">
-            <button class="tab-button active" onclick="location.href='/magentodata/uk-magento'">
-                <i class="fas fa-flag"></i>
-                <span>UK Magento</span>
-            </button>
-            <button class="tab-button" onclick="location.href='/magentodata/fr-magento'">
-                <i class="fas fa-flag"></i>
-                <span>FR Magento</span>
-            </button>
-            <button class="tab-button" onclick="location.href='/magentodata/nl-magento'">
-                <i class="fas fa-flag"></i>
-                <span>NL Magento</span>
-            </button>
-            <button class="tab-button" onclick="location.href='/magentodata/history'">
-                <i class="fas fa-history"></i>
-                <span>Import History</span>
-            </button>
-        </div>
-
-        <!-- Main Content -->
-        <div class="magento-content">
-            <!-- Page Header -->
-            <section class="section-header">
-                <h2 class="section-title">
-                    <i class="fas fa-flag"></i>
-                    UK Magento Data
-                </h2>
-                <p class="section-subtitle">Manage UK magento data directly from Magento Database</p>
-            </section>
-
-            <!-- Data Controls -->
-            <section class="controls-section">
-                <div class="card-animated">
-                    <div class="card-body">
-                        <div class="controls-grid">
-                            <div class="view-toggle">
-                                <button class="toggle-btn active" id="viewFullBtn">
-                                    <i class="fas fa-list"></i>
-                                    Full Data
-                                </button>
-                                <button class="toggle-btn" id="viewAggregatedBtn">
-                                    <i class="fas fa-calendar-alt"></i>
-                                    6-Month
-                                </button>
-                                <button class="toggle-btn" id="customRangeBtn">
-                                    <i class="fas fa-calendar-day"></i>
-                                    Custom Range
-                                </button>
-                                <button class="action-btn primary-btn" id="syncNowBtn" title="Sync latest orders from Magento">
-                                    <i class="fas fa-sync"></i>
-                                    Sync Now
-                                </button>
-                                <button class="action-btn secondary-btn" id="filtersBtn" title="Configure 6M filters">
-                                    <i class="fas fa-filter"></i>
-                                    Filters
-                                </button>
-                                <button class="action-btn secondary-btn" id="exportPdfBtn" title="Export to PDF" style="display: none;">
-                                    <i class="fas fa-file-pdf"></i>
-                                    Export PDF
-                                </button>
-                            </div>
-                            <div class="search-controls">
-                                <div class="search-box">
-                                  <i class="fas fa-search search-icon"></i>
-                                  <input type="text" id="magentoSearchInput" class="form-input search-input" 
-                                         placeholder="Search by order number or SKU..."
-                                         autocomplete="off"
-                                         data-form-type="other"
-                                         data-lpignore="true">
-                                </div>
-                                <button class="action-btn secondary-btn" id="searchBtn">
-                                    <i class="fas fa-search"></i>
-                                    Search
-                                </button>
-                                <button class="action-btn secondary-btn" id="clearSearchBtn">
-                                    <i class="fas fa-times"></i>
-                                    Clear
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Data Table -->
-            <section class="table-section">
-                <div class="table-container">
-                    <table class="products-table" id="magentoTable">
-                        <thead class="table-header">
-                            <tr>
-                                <th>
-                                    <i class="fas fa-hashtag"></i>
-                                    Order Number
-                                </th>
-                                <th>
-                                    <i class="fas fa-calendar"></i>
-                                    Created At
-                                </th>
-                                <th>
-                                    <i class="fas fa-barcode"></i>
-                                    Product SKU
-                                </th>
-                                <th>
-                                    <i class="fas fa-box"></i>
-                                    Product Name
-                                </th>
-                                <th>
-                                    <i class="fas fa-sort-numeric-up"></i>
-                                    Product Qty
-                                </th>
-                                <th>
-                                    <i class="fas fa-pound-sign"></i>
-                                    Product Price
-                                </th>
-                                <th>
-                                    <i class="fas fa-info-circle"></i>
-                                    Status
-                                </th>
-                                <th>
-                                    <i class="fas fa-money-bill"></i>
-                                    Currency
-                                </th>
-                                <th>
-                                    <i class="fas fa-calculator"></i>
-                                    Grand Total
-                                </th>
-                                <th>
-                                    <i class="fas fa-envelope"></i>
-                                    Customer Email
-                                </th>
-                                <th>
-                                    <i class="fas fa-user"></i>
-                                    Customer Full Name
-                                </th>
-                                <th>
-                                    <i class="fas fa-map-marker-alt"></i>
-                                    Billing Address
-                                </th>
-                                <th>
-                                    <i class="fas fa-shipping-fast"></i>
-                                    Shipping Address
-                                </th>
-                                <th>
-                                    <i class="fas fa-users"></i>
-                                    Customer Group Code
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody id="magentoTableBody" class="table-body">
-                            <tr>
-                                <td colspan="14" style="text-align: center; padding: 2rem;">
-                                    <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
-                                        <div class="loader" style="margin: 0;">
-                                            <div class="dot" style="background: var(--accent-color, #0078d4);"></div>
-                                            <div class="dot" style="background: var(--accent-color, #0078d4);"></div>
-                                            <div class="dot" style="background: var(--accent-color, #0078d4);"></div>
-                                        </div>
-                                        <span style="color: var(--text-secondary); font-size: 0.9rem;">Loading data...</span>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-
-            <!-- Pagination -->
-            <section class="pagination-section">
-                <div class="pagination-controls">
-                    <button id="prevPageBtn" class="action-btn secondary-btn">
-                        <i class="fas fa-chevron-left"></i>
-                        Previous
-                    </button>
-                    <span id="pageInfo" class="page-info">Page 1 of 0 (0 total records)</span>
-                    <button id="nextPageBtn" class="action-btn secondary-btn">
-                        Next
-                        <i class="fas fa-chevron-right"></i>
-                    </button>
-                </div>
-            </section>
-        </div>
+<!-- UK Magento Data Page -->
+<!-- Uses css-new/app.css + css-new/pages/magentodata/universal.css + css-new/pages/magentodata/filters-modal.css -->
+<div class="magentodata-page">
+  <!-- Header -->
+  <header class="page-header">
+    <div class="header-content">
+      <h1 class="page-title">UK Magento Data</h1>
     </div>
-</body>
-</html>
+    <p class="page-subtitle">Manage UK magento data directly from Magento Database</p>
+  </header>
+
+  <!-- Navigation Tabs -->
+  <nav class="inner-tabs">
+    <button class="tab-button active" onclick="location.href='/magentodata/uk-magento'">
+      <i class="fas fa-flag"></i>
+      <span>UK</span>
+    </button>
+    <button class="tab-button" onclick="location.href='/magentodata/fr-magento'">
+      <i class="fas fa-flag"></i>
+      <span>FR</span>
+    </button>
+    <button class="tab-button" onclick="location.href='/magentodata/nl-magento'">
+      <i class="fas fa-flag"></i>
+      <span>NL</span>
+    </button>
+    <button class="tab-button" onclick="location.href='/magentodata/history'">
+      <i class="fas fa-history"></i>
+      <span>History</span>
+    </button>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="magento-content">
+    <!-- Controls Section -->
+    <div class="action-block">
+      <div class="block-header">
+        <div class="block-icon">
+          <i class="fas fa-sliders-h"></i>
+        </div>
+        <div class="block-title-group">
+          <h3 class="block-title">Data Controls</h3>
+          <p class="block-subtitle">View mode, sync, and filters</p>
+        </div>
+      </div>
+      <div class="block-content">
+        <div class="controls-grid">
+          <!-- View Toggle -->
+          <div class="view-toggle">
+            <button class="toggle-btn active" id="viewFullBtn">
+              <i class="fas fa-list"></i>
+              <span>Full Data</span>
+            </button>
+            <button class="toggle-btn" id="viewAggregatedBtn">
+              <i class="fas fa-calendar-alt"></i>
+              <span>6-Month</span>
+            </button>
+            <button class="toggle-btn" id="customRangeBtn">
+              <i class="fas fa-calendar-day"></i>
+              <span>Custom Range</span>
+            </button>
+          </div>
+          
+          <!-- Action Buttons -->
+          <div class="action-buttons-row">
+            <button class="action-btn primary-btn" id="syncNowBtn" title="Sync latest orders from Magento">
+              <i class="fas fa-sync"></i>
+              <span>Sync Now</span>
+            </button>
+            <button class="action-btn secondary-btn" id="filtersBtn" title="Configure 6M filters">
+              <i class="fas fa-filter"></i>
+              <span>Filters</span>
+            </button>
+            <button class="action-btn secondary-btn" id="exportPdfBtn" title="Export to PDF" style="display: none;">
+              <i class="fas fa-file-pdf"></i>
+              <span>Export PDF</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Search Section -->
+    <div class="action-block">
+      <div class="block-header">
+        <div class="block-icon">
+          <i class="fas fa-search"></i>
+        </div>
+        <div class="block-title-group">
+          <h3 class="block-title">Search</h3>
+          <p class="block-subtitle">Find orders by number or SKU</p>
+        </div>
+      </div>
+      <div class="block-content">
+        <div class="search-controls">
+          <div class="search-wrapper">
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" id="magentoSearchInput" class="search-input" 
+                   placeholder="Search by order number or SKU..."
+                   autocomplete="off"
+                   data-form-type="other"
+                   data-lpignore="true">
+          </div>
+          <button class="action-btn primary-btn" id="searchBtn">
+            <i class="fas fa-search"></i>
+            <span>Search</span>
+          </button>
+          <button class="action-btn secondary-btn" id="clearSearchBtn">
+            <i class="fas fa-times"></i>
+            <span>Clear</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Data Table Section -->
+    <div class="action-block">
+      <div class="block-header">
+        <div class="block-icon">
+          <i class="fas fa-table"></i>
+        </div>
+        <div class="block-title-group">
+          <h3 class="block-title">Order Data</h3>
+          <p class="block-subtitle">UK Magento orders and products</p>
+        </div>
+      </div>
+      <div class="block-content">
+        <div class="table-container">
+          <table class="products-table" id="magentoTable">
+            <thead class="table-header">
+              <tr>
+                <th>
+                  <i class="fas fa-hashtag"></i>
+                  Order Number
+                </th>
+                <th>
+                  <i class="fas fa-calendar"></i>
+                  Created At
+                </th>
+                <th>
+                  <i class="fas fa-barcode"></i>
+                  Product SKU
+                </th>
+                <th>
+                  <i class="fas fa-box"></i>
+                  Product Name
+                </th>
+                <th>
+                  <i class="fas fa-sort-numeric-up"></i>
+                  Qty
+                </th>
+                <th>
+                  <i class="fas fa-pound-sign"></i>
+                  Price
+                </th>
+                <th>
+                  <i class="fas fa-info-circle"></i>
+                  Status
+                </th>
+                <th>
+                  <i class="fas fa-money-bill"></i>
+                  Currency
+                </th>
+                <th>
+                  <i class="fas fa-calculator"></i>
+                  Grand Total
+                </th>
+                <th>
+                  <i class="fas fa-envelope"></i>
+                  Email
+                </th>
+                <th>
+                  <i class="fas fa-user"></i>
+                  Customer
+                </th>
+                <th>
+                  <i class="fas fa-map-marker-alt"></i>
+                  Billing
+                </th>
+                <th>
+                  <i class="fas fa-shipping-fast"></i>
+                  Shipping
+                </th>
+                <th>
+                  <i class="fas fa-users"></i>
+                  Group
+                </th>
+              </tr>
+            </thead>
+            <tbody id="magentoTableBody" class="table-body">
+              <tr>
+                <td colspan="14">
+                  <div class="table-loading">
+                    <div class="loading-spinner"></div>
+                    <span>Loading data...</span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pagination Section -->
+    <section class="pagination-section">
+      <div class="pagination-controls">
+        <button id="prevPageBtn" class="action-btn secondary-btn">
+          <i class="fas fa-chevron-left"></i>
+          <span>Previous</span>
+        </button>
+        <span id="pageInfo" class="page-info">Page 1 of 0 (0 total records)</span>
+        <button id="nextPageBtn" class="action-btn secondary-btn">
+          <span>Next</span>
+          <i class="fas fa-chevron-right"></i>
+        </button>
+      </div>
+    </section>
+  </div>
+</div>

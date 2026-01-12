@@ -174,7 +174,8 @@ The Labels Generation system creates product labels with barcodes, prices, and s
    
 4. FILTER BY VARIANT STATUS
    ↓ Apply discontinued_status filter to variant_statuses array
-   ├─→ Default: ['Active', 'Temporarily OOS', 'Pre Order', 'Samples']
+   ├─→ API Default: ['Active', 'Temporarily OOS', 'Pre Order', 'Samples']
+   ├─→ UI Default: ALL 8 status checkboxes checked (overrides API default)
    ├─→ Keep product if ANY variant status matches filter
    └─→ Returns filtered list of base SKUs
    
@@ -271,8 +272,9 @@ WHERE EXISTS (
 ```
 
 **Default Behavior:**
-- **UI Default:** ALL 8 status checkboxes checked
-- **Result:** Shows all products (any variant with any status)
+- **API Default:** `['Active', 'Temporarily OOS', 'Pre Order', 'Samples']` (4 statuses)
+- **UI Default:** ALL 8 status checkboxes checked (UI sends all checked statuses)
+- **Result:** Shows products matching selected status filters
 - **Empty Selection:** No checkboxes → shows no products
 - **No Persistence:** Filters reset to default (all checked) on every page load
 
@@ -348,21 +350,42 @@ WHERE cpev_name.value NOT LIKE '%AW365%'
 **Step 4: Generate Labels (Button Click)**
 - **No products selected** → Generates labels for ALL displayed products
 - **Some products selected** → Generates labels ONLY for selected products
-- API call: `GET /labels/to-print?discontinued_statuses=Active,Pre Order&region=uk`
+- API call: `GET /labels/to-print?discontinued_statuses=Active,Pre Order&region=uk&show_orphaned=false`
 
 **Step 5: View Generated Labels**
 - Labels saved to history automatically
 - Three viewing options:
   - **PDF** - Opens PDF file with labels
-  - **CSV** - Downloads CSV (if implemented)
+  - **CSV** - Downloads CSV file with label data
   - **View** - Preview in browser
 
 **Process Behind the Scenes:**
-1. Fetch products from inventory_metadata filtered by `variant_statuses`
-2. Apply variant merging (all variants → base SKU)
-3. Load supporting data (item IDs, 6M data, prices, names)
-4. Generate label file in requested format
-5. Save to label_print_jobs table
+1. Refresh inventory_metadata from Magento (sync products)
+2. Merge all variants to base SKUs
+3. Update variant_statuses from live Magento data
+4. Fetch products from inventory_metadata filtered by `variant_statuses`
+5. Load supporting data (item IDs, 6M data, prices, names)
+6. Filter out orphaned products (unless show_orphaned=true)
+7. Generate label file in requested format
+8. Save to label_print_jobs table
+
+---
+
+## Orphaned Products Filter
+
+**Parameter:** `show_orphaned` (boolean, default: `false`)
+
+**Purpose:** Control visibility of SKUs that exist in `inventory_metadata` but have no matching product name in Magento catalog or order history.
+
+**Behavior:**
+- `show_orphaned=false` (default): Skips orphaned SKUs from label generation
+- `show_orphaned=true`: Includes orphaned SKUs (will have empty product name)
+
+**Detection Logic:**
+1. Try to find product name in Live Magento catalog (preferred region)
+2. Fall back to orders_cache tables (historical order data)
+3. Fall back to UK Magento catalog (if preferred region was not UK)
+4. If still no name found after all fallbacks → marked as orphaned and skipped
 
 ---
 
@@ -524,6 +547,49 @@ Labels module requires connections to:
 
 ---
 
+## Label Printing Presets
+
+Presets allow saving filter configurations for quick reuse.
+
+### Preset Data Structure
+```json
+{
+  "id": 1,
+  "name": "Active Products UK",
+  "description": "All active products with UK pricing",
+  "status_filters": ["Active", "Temporarily OOS"],
+  "region": "uk",
+  "product_skus": [],
+  "created_by": "user@example.com",
+  "created_at": "2026-01-11T10:00:00Z",
+  "updated_at": "2026-01-11T10:00:00Z"
+}
+```
+
+### Preset Fields
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | string | Preset display name |
+| `description` | string | Optional description |
+| `status_filters` | array | List of discontinued_status values to filter |
+| `region` | string | Price/name region preference (uk/fr/nl) |
+| `product_skus` | array | Specific SKUs to include (empty = all) |
+| `created_by` | string | User who created the preset |
+
+### API Endpoints
+- `GET /labels/presets` - List all presets
+- `GET /labels/presets/{id}` - Get preset by ID
+- `POST /labels/presets` - Create new preset
+- `PUT /labels/presets/{id}` - Update preset
+- `DELETE /labels/presets/{id}` - Delete preset
+
+### Key Points
+- Presets are **global** (available to all users)
+- Presets store filter configuration, not product data
+- Using a preset applies its filters to the current view
+
+---
+
 ## Comparison: Labels vs Inventory Management
 
 | Feature | Labels | Inventory Management |
@@ -538,11 +604,14 @@ Labels module requires connections to:
 | Output | PDF/CSV label file | Web table UI |
 | Product Selection | UI checkboxes + manual selection | UI table with inline editing |
 | Region Preference | Yes (price/name) | No (always UK) |
+| Presets | Yes (saveable filter configs) | No |
+| Orphaned Filter | Yes (`show_orphaned` param) | Yes (`show_orphaned` param) |
 
 **Key Differences:** 
 - Labels adds pricing and regional preferences
 - Labels uses **identical** variant normalization, status tracking, and filtering logic as Inventory Management
 - Labels allows exporting to PDF/CSV files, while Inventory Management provides inline table editing
+- Labels supports saveable presets for filter configurations
 
 ## Future Enhancements
 
@@ -566,10 +635,29 @@ Labels module requires connections to:
    - Product names in multiple languages
    - Language selection per region preference
 
-6. **CSV Export Verification**
-   - Verify CSV button functionality in label history
-   - Ensure CSV format matches PDF content
+---
+
+## Code References
+
+### Key Files
+- **Repository:** `backend/modules/labels/repo.py`
+- **API:** `backend/modules/labels/api.py`
+- **PDF Generator:** `backend/modules/labels/print_pdf.py`
+- **CSV Generator:** `backend/modules/labels/print_csv.py`
+- **Jobs:** `backend/modules/labels/jobs.py`
+- **Frontend:** `frontend/js/modules/labels/index.js`
+
+### Key Functions
+- `get_labels_to_print_psycopg()` - Main label data loader
+- `_resolve_to_rows()` - Combines all data sources into label rows
+- `_load_6m_data_from_aggregated_tables()` - Loads UK/FR 6M sales data
+- `_load_inventory_item_ids()` - Loads barcodes from inventory_metadata
+- `_load_latest_prices_psycopg()` - Loads prices with region preference
+- `_load_product_names_psycopg()` - Loads names from orders cache
+- `_load_product_names_from_magento()` - Fallback name loader from catalog
+- `stream_pdf_labels()` - Generates PDF label file
+- `stream_csv_labels()` - Generates CSV label file
 
 ---
 
-*Last Updated: January 2, 2026*
+*Last Updated: January 11, 2026*

@@ -67,136 +67,139 @@ export function showFiltersModal(region) {
  */
 function createFiltersModal(region) {
     const overlay = document.createElement('div');
-    overlay.className = 'filters-modal-overlay';
+    overlay.className = 'modal-overlay active';
     overlay.innerHTML = `
-        <div class="filters-modal" onclick="event.stopPropagation()">
-            <div class="filters-modal-header">
-                <h2><i class="fas fa-chart-bar"></i> 6M Aggregated Magento Filters - ${region.toUpperCase()}</h2>
-                <button class="filters-modal-close" onclick="this.closest('.filters-modal-overlay').remove()">
-                    ✕
+        <div class="modal modal-lg" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <div class="modal-header-icon">
+                    <i class="fas fa-chart-bar"></i>
+                </div>
+                <h2 class="modal-title">6M Aggregated Magento Filters - ${region.toUpperCase()}</h2>
+                <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">
+                    <i class="fas fa-times"></i>
                 </button>
             </div>
             
-            <div class="filters-modal-body">
+            <div class="modal-body">
                 <!-- Customer Exclusions -->
-                <div class="filter-section">
-                    <div class="filter-section-header">
-                        <span class="filter-section-icon">👥</span>
-                        <h3 class="filter-section-title">Excluded Customers</h3>
+                <div class="form-group">
+                    <div class="form-label">
+                        <i class="fas fa-users"></i>
+                        <span>Excluded Customers</span>
                     </div>
-                    <p class="filter-section-description">
+                    <p class="filter-description">
                         Orders from these customers will not be included in the 6-month aggregated magento data.
                     </p>
                     
-                    <div class="customer-search-container">
+                    <div class="search-container">
                         <input 
                             type="text" 
-                            class="customer-search-input" 
+                            class="form-input" 
                             placeholder="Search by email or name..."
                             id="customer-search-${region}"
                         />
-                        <div class="customer-search-results" id="search-results-${region}"></div>
+                        <div class="search-results-dropdown" id="search-results-${region}"></div>
                     </div>
                     
-                    <div class="excluded-customers-header" id="excluded-header-${region}">
-                        <span class="excluded-customers-count" id="excluded-count-${region}">0 customers excluded</span>
-                        <button class="excluded-customers-toggle" id="excluded-toggle-${region}">
+                    <div class="excluded-toggle-row" id="excluded-header-${region}">
+                        <span class="excluded-count" id="excluded-count-${region}">0 customers excluded</span>
+                        <button class="btn-text" id="excluded-toggle-${region}">
                             <span class="toggle-icon">▼</span> Show List
                         </button>
                     </div>
                     
-                    <div class="excluded-customers-list collapsed" id="excluded-list-${region}">
-                        <div class="excluded-customers-empty">No customers excluded yet</div>
+                    <div class="excluded-list collapsed" id="excluded-list-${region}">
+                        <div class="excluded-empty">No customers excluded yet</div>
                     </div>
                 </div>
                 
                 <!-- Customer Group Exclusions -->
-                <div class="filter-section">
-                    <div class="filter-section-header">
-                        <span class="filter-section-icon">👨‍👩‍👧‍👦</span>
-                        <h3 class="filter-section-title">Excluded Customer Groups</h3>
+                <div class="form-group">
+                    <div class="form-label">
+                        <i class="fas fa-user-friends"></i>
+                        <span>Excluded Customer Groups</span>
                     </div>
-                    <p class="filter-section-description">
+                    <p class="filter-description">
                         Orders from these customer groups will not be included in the 6-month aggregated magento data.
                     </p>
                     
-                    <div class="customer-group-select-container">
-                        <select 
-                            class="customer-group-select" 
-                            id="customer-group-select-${region}"
-                        >
-                            <option value="">Select a customer group to exclude...</option>
-                        </select>
-                        <button class="add-group-btn" id="add-group-btn-${region}">
+                    <div class="select-with-button">
+                        <div class="custom-dropdown" id="customer-group-dropdown-${region}">
+                            <div class="dropdown-selected" data-value="">Select a customer group to exclude...</div>
+                            <div class="dropdown-options" id="customer-group-options-${region}">
+                                <!-- Options populated by JavaScript -->
+                            </div>
+                        </div>
+                        <button class="action-btn action-btn-primary action-btn-sm" id="add-group-btn-${region}">
                             <i class="fas fa-plus"></i> Add
                         </button>
                     </div>
                     
-                    <div class="excluded-groups-header" id="excluded-groups-header-${region}">
-                        <span class="excluded-groups-count" id="excluded-groups-count-${region}">0 groups excluded</span>
-                        <button class="excluded-groups-toggle" id="excluded-groups-toggle-${region}">
+                    <div class="excluded-toggle-row" id="excluded-groups-header-${region}">
+                        <span class="excluded-count" id="excluded-groups-count-${region}">0 groups excluded</span>
+                        <button class="btn-text" id="excluded-groups-toggle-${region}">
                             <span class="toggle-icon">▼</span> Show List
                         </button>
                     </div>
                     
-                    <div class="excluded-groups-list collapsed" id="excluded-groups-list-${region}">
-                        <div class="excluded-groups-empty">No customer groups excluded yet</div>
+                    <div class="excluded-list collapsed" id="excluded-groups-list-${region}">
+                        <div class="excluded-empty">No customer groups excluded yet</div>
                     </div>
                 </div>
                 
                 <!-- Order Status Exclusions -->
-                <div class="filter-section">
-                    <div class="filter-section-header">
-                        <span class="filter-section-icon">🚦</span>
-                        <h3 class="filter-section-title">Excluded Order Statuses</h3>
+                <div class="form-group">
+                    <div class="form-label">
+                        <i class="fas fa-traffic-light"></i>
+                        <span>Excluded Order Statuses</span>
                     </div>
-                    <p class="filter-section-description">
+                    <p class="filter-description">
                         Orders with these statuses will not be included in the 6-month aggregated magento data.
                     </p>
                     
-                    <div class="customer-group-select-container">
-                        <select 
-                            class="customer-group-select" 
-                            id="status-select-${region}"
-                        >
-                            <option value="">Select a status to exclude...</option>
-                        </select>
-                        <button class="add-group-btn" id="add-status-btn-${region}">
+                    <div class="select-with-button">
+                        <div class="custom-dropdown" id="status-dropdown-${region}">
+                            <div class="dropdown-selected" data-value="">Select a status to exclude...</div>
+                            <div class="dropdown-options" id="status-options-${region}">
+                                <!-- Options populated by JavaScript -->
+                            </div>
+                        </div>
+                        <button class="action-btn action-btn-primary action-btn-sm" id="add-status-btn-${region}">
                             <i class="fas fa-plus"></i> Add
                         </button>
                     </div>
                     
-                    <div class="excluded-groups-header" id="excluded-statuses-header-${region}">
-                        <span class="excluded-groups-count" id="excluded-statuses-count-${region}">0 statuses excluded</span>
-                        <button class="excluded-groups-toggle" id="excluded-statuses-toggle-${region}">
+                    <div class="excluded-toggle-row" id="excluded-statuses-header-${region}">
+                        <span class="excluded-count" id="excluded-statuses-count-${region}">0 statuses excluded</span>
+                        <button class="btn-text" id="excluded-statuses-toggle-${region}">
                             <span class="toggle-icon">▼</span> Show List
                         </button>
                     </div>
                     
-                    <div class="excluded-groups-list collapsed" id="excluded-statuses-list-${region}">
-                        <div class="excluded-groups-empty">No statuses excluded yet</div>
+                    <div class="excluded-list collapsed" id="excluded-statuses-list-${region}">
+                        <div class="excluded-empty">No statuses excluded yet</div>
                     </div>
                 </div>
                 
                 <!-- Grand Total Threshold -->
-                <div class="filter-section">
-                    <div class="filter-section-header">
-                        <span class="filter-section-icon">💰</span>
-                        <h3 class="filter-section-title">Grand Total Threshold</h3>
+                <div class="form-group">
+                    <div class="form-label">
+                        <i class="fas fa-coins"></i>
+                        <span>Grand Total Threshold</span>
                     </div>
-                    <p class="filter-section-description">
+                    <p class="filter-description">
                         Orders with a grand total above this amount will be excluded from 6-month aggregated magento.
                         <strong>All currencies are automatically converted</strong> to ${region === 'uk' ? 'GBP (£)' : 'EUR (€)'} at current exchange rates for comparison.
-                        <span id="currency-conversion-info-${region}" style="display: block; margin-top: 0.5rem; font-size: 0.9em; color: var(--accent-color);">
+                        <span id="currency-conversion-info-${region}" class="exchange-rate-info">
                             <i class="fas fa-sync fa-spin"></i> Loading exchange rates...
                         </span>
                     </p>
                     
-                    <div class="threshold-input-wrapper">
-                        <span class="threshold-currency-symbol">${region === 'uk' ? '£' : '€'}</span>
+                    <div class="input-with-prefix">
+                        <span class="input-prefix">${region === 'uk' ? '£' : '€'}</span>
                         <input 
                             type="number" 
-                            class="threshold-input" 
+                            class="form-input" 
                             placeholder="Leave empty for no threshold"
                             step="0.01"
                             min="0"
@@ -204,26 +207,26 @@ function createFiltersModal(region) {
                         />
                     </div>
                     
-                    <div class="threshold-current" id="threshold-current-${region}">
+                    <div class="threshold-status" id="threshold-current-${region}">
                         Current: <strong>No threshold</strong> (all orders included)
                     </div>
                 </div>
                 
                 <!-- Quantity Threshold -->
-                <div class="filter-section">
-                    <div class="filter-section-header">
-                        <span class="filter-section-icon"><i class="fas fa-box"></i></span>
-                        <h3 class="filter-section-title">Quantity Threshold</h3>
+                <div class="form-group">
+                    <div class="form-label">
+                        <i class="fas fa-box"></i>
+                        <span>Quantity Threshold</span>
                     </div>
-                    <p class="filter-section-description">
+                    <p class="filter-description">
                         Orders with a quantity above this amount will be excluded from 6-month aggregated magento.
                     </p>
                     
-                    <div class="threshold-input-wrapper">
-                        <span class="threshold-currency-symbol">Qty</span>
+                    <div class="input-with-prefix">
+                        <span class="input-prefix">Qty</span>
                         <input 
                             type="number" 
-                            class="threshold-input" 
+                            class="form-input" 
                             placeholder="Leave empty for no threshold"
                             step="1"
                             min="0"
@@ -231,35 +234,35 @@ function createFiltersModal(region) {
                         />
                     </div>
                     
-                    <div class="threshold-current" id="qty-threshold-current-${region}">
+                    <div class="threshold-status" id="qty-threshold-current-${region}">
                         Current: <strong>No threshold</strong> (all orders included)
                     </div>
                 </div>
 
                 <!-- Smart Quantity Filter -->
-                <div class="filter-section">
-                    <div class="filter-section-header">
-                        <span class="filter-section-icon"><i class="fas fa-magic"></i></span>
-                        <h3 class="filter-section-title">Smart Quantity Filter</h3>
+                <div class="form-group">
+                    <div class="form-label">
+                        <i class="fas fa-magic"></i>
+                        <span>Smart Quantity Filter</span>
                     </div>
-                    <p class="filter-section-description">
+                    <p class="filter-description">
                         Automatically adjust product quantities in aggregated data based on rules. Rules are applied in order during aggregation.
                     </p>
                     
                     <!-- Current Rules List -->
-                    <div class="smart-rules-list" id="smart-rules-list-${region}">
-                        <div class="smart-rules-empty">No rules configured. Add a rule below.</div>
+                    <div class="rules-list" id="smart-rules-list-${region}">
+                        <div class="rules-empty">No rules configured. Add a rule below.</div>
                     </div>
                     
                     <!-- Add New Rule Form -->
-                    <div class="smart-filter-config">
-                        <div class="smart-filter-header">Add New Rule</div>
+                    <div class="rule-config-card">
+                        <div class="rule-config-header">Add New Rule</div>
                         
-                        <div class="smart-filter-row">
-                            <label class="smart-filter-label">If quantity ≥</label>
+                        <div class="rule-config-row">
+                            <label class="rule-label">If quantity ≥</label>
                             <input 
                                 type="number" 
-                                class="smart-filter-input" 
+                                class="form-input" 
                                 placeholder="100"
                                 step="1"
                                 min="1"
@@ -267,17 +270,20 @@ function createFiltersModal(region) {
                             />
                         </div>
                         
-                        <div class="smart-filter-row">
-                            <label class="smart-filter-label">Then</label>
-                            <select class="smart-filter-select" id="smart-qty-action-${region}">
-                                <option value="divide">Divide by</option>
-                                <option value="multiply">Multiply by</option>
-                                <option value="subtract">Subtract</option>
-                                <option value="set_to">Set to</option>
-                            </select>
+                        <div class="rule-config-row">
+                            <label class="rule-label">Then</label>
+                            <div class="custom-dropdown" id="smart-qty-action-dropdown-${region}">
+                                <div class="dropdown-selected" data-value="divide">Divide by</div>
+                                <div class="dropdown-options">
+                                    <div class="dropdown-option selected" data-value="divide">Divide by</div>
+                                    <div class="dropdown-option" data-value="multiply">Multiply by</div>
+                                    <div class="dropdown-option" data-value="subtract">Subtract</div>
+                                    <div class="dropdown-option" data-value="set_to">Set to</div>
+                                </div>
+                            </div>
                             <input 
                                 type="number" 
-                                class="smart-filter-input" 
+                                class="form-input" 
                                 placeholder="2"
                                 step="0.1"
                                 min="0.1"
@@ -285,16 +291,16 @@ function createFiltersModal(region) {
                             />
                         </div>
                         
-                        <div class="smart-filter-preview" id="smart-filter-preview-${region}">
+                        <div class="rule-preview" id="smart-filter-preview-${region}">
                             <i class="fas fa-info-circle"></i> 
                             <span id="smart-filter-preview-text-${region}">Configure rule above to see preview</span>
                         </div>
                         
-                        <div class="smart-filter-actions">
-                            <button class="smart-filter-add-btn" id="smart-filter-add-${region}">
+                        <div class="rule-actions">
+                            <button class="action-btn action-btn-primary action-btn-sm" id="smart-filter-add-${region}">
                                 <i class="fas fa-plus"></i> Add Rule
                             </button>
-                            <button class="smart-filter-clear-all-btn" id="smart-filter-clear-all-${region}">
+                            <button class="action-btn action-btn-danger action-btn-sm" id="smart-filter-clear-all-${region}">
                                 <i class="fas fa-trash"></i> Clear All
                             </button>
                         </div>
@@ -302,52 +308,55 @@ function createFiltersModal(region) {
                 </div>
 
                 <!-- Smart Date Filter -->
-                <div class="filter-section">
-                    <div class="filter-section-header">
-                        <span class="filter-section-icon"><i class="fas fa-calendar-alt"></i></span>
-                        <h3 class="filter-section-title">Smart Date Rules</h3>
+                <div class="form-group">
+                    <div class="form-label">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>Smart Date Rules</span>
                     </div>
-                    <p class="filter-section-description">
+                    <p class="filter-description">
                         Apply specific adjustment logic to orders created within a specific date range. These rules override smart quantity rules.
                     </p>
                     
                     <!-- Current Date Rules List -->
-                    <div class="smart-rules-list" id="smart-date-rules-list-${region}">
-                        <div class="smart-rules-empty">No date rules configured. Add a rule below.</div>
+                    <div class="rules-list" id="smart-date-rules-list-${region}">
+                        <div class="rules-empty">No date rules configured. Add a rule below.</div>
                     </div>
                     
                     <!-- Add New Date Rule Form -->
-                    <div class="smart-filter-config">
-                        <div class="smart-filter-header">Add Date Rule</div>
+                    <div class="rule-config-card">
+                        <div class="rule-config-header">Add Date Rule</div>
                         
-                        <div class="smart-filter-row">
-                            <label class="smart-filter-label" style="width: 50px;">Range</label>
-                            <input type="date" class="smart-filter-input" id="smart-date-start-${region}" style="width: 130px;">
-                            <span style="padding: 0 5px; color: var(--text-secondary);">to</span>
-                            <input type="date" class="smart-filter-input" id="smart-date-end-${region}" style="width: 130px;">
+                        <div class="rule-config-row">
+                            <label class="rule-label">Range</label>
+                            <input type="date" class="form-input" id="smart-date-start-${region}">
+                            <span class="rule-separator">to</span>
+                            <input type="date" class="form-input" id="smart-date-end-${region}">
                         </div>
                         
-                        <div class="smart-filter-row">
-                            <label class="smart-filter-label" style="width: 50px;">Action</label>
-                            <select class="smart-filter-select" id="smart-date-action-${region}" style="flex: 1;">
-                                <option value="exclude">Exclude Entirely</option>
-                                <option value="divide">Divide Qty by</option>
-                                <option value="multiply">Multiply Qty by</option>
-                                <option value="set_to">Set Qty to</option>
-                            </select>
+                        <div class="rule-config-row">
+                            <label class="rule-label">Action</label>
+                            <div class="custom-dropdown" id="smart-date-action-dropdown-${region}">
+                                <div class="dropdown-selected" data-value="exclude">Exclude Entirely</div>
+                                <div class="dropdown-options">
+                                    <div class="dropdown-option selected" data-value="exclude">Exclude Entirely</div>
+                                    <div class="dropdown-option" data-value="divide">Divide Qty by</div>
+                                    <div class="dropdown-option" data-value="multiply">Multiply Qty by</div>
+                                    <div class="dropdown-option" data-value="set_to">Set Qty to</div>
+                                </div>
+                            </div>
                             <input 
                                 type="number" 
-                                class="smart-filter-input" 
+                                class="form-input" 
                                 placeholder="Value"
                                 step="0.1"
                                 min="0.1"
                                 id="smart-date-value-${region}"
-                                style="width: 80px; display: none;"
+                                style="display: none;"
                             />
                         </div>
                         
-                        <div class="smart-filter-actions">
-                            <button class="smart-filter-add-btn" id="smart-date-add-${region}">
+                        <div class="rule-actions">
+                            <button class="action-btn action-btn-primary action-btn-sm" id="smart-date-add-${region}">
                                 <i class="fas fa-plus"></i> Add Rule
                             </button>
                         </div>
@@ -355,23 +364,23 @@ function createFiltersModal(region) {
                 </div>
 
                 <!-- Apply Options -->
-                <div class="filter-section" style="border-top: 1px solid var(--border-color); margin-top: 20px; padding-top: 20px;">
-                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                        <input type="checkbox" id="apply-to-custom-range-${region}" style="width: 18px; height: 18px;">
-                        <span style="font-weight: 500;">Also apply to Custom Range view</span>
+                <div class="form-group apply-options">
+                    <label class="checkbox-label">
+                        <input type="checkbox" class="form-checkbox" id="apply-to-custom-range-${region}">
+                        <span>Also apply to Custom Range view</span>
                     </label>
-                    <p class="filter-section-description" style="margin-top: 5px; margin-left: 28px;">
+                    <p class="filter-description">
                         If checked, the current custom range analysis (if active) will be refreshed with these filters.
                     </p>
                 </div>
             </div>
             
-            <div class="filters-modal-footer">
-                <button class="filters-cancel-btn" onclick="this.closest('.filters-modal-overlay').remove()">
+            <div class="modal-footer">
+                <button class="action-btn action-btn-secondary" onclick="this.closest('.modal-overlay').remove()">
                     Cancel
                 </button>
-                <button class="filters-apply-btn" id="filters-apply-${region}">
-                    Apply & Refresh 6M Data
+                <button class="action-btn action-btn-primary" id="filters-apply-${region}">
+                    <i class="fas fa-check"></i> Apply & Refresh 6M Data
                 </button>
             </div>
         </div>
@@ -414,6 +423,9 @@ function setupEventListeners(region) {
         });
     }
     
+    // Setup custom dropdown handlers
+    setupCustomDropdownHandlers(region);
+    
     // Excluded customers list toggle
     const toggleBtn = document.getElementById(`excluded-toggle-${region}`);
     const excludedList = document.getElementById(`excluded-list-${region}`);
@@ -432,13 +444,18 @@ function setupEventListeners(region) {
     
     // Customer group add button
     const addGroupBtn = document.getElementById(`add-group-btn-${region}`);
-    const groupSelect = document.getElementById(`customer-group-select-${region}`);
-    if (addGroupBtn && groupSelect) {
+    const groupDropdown = document.getElementById(`customer-group-dropdown-${region}`);
+    if (addGroupBtn && groupDropdown) {
         addGroupBtn.addEventListener('click', () => {
-            const selectedGroup = groupSelect.value;
+            const selected = groupDropdown.querySelector('.dropdown-selected');
+            const selectedGroup = selected?.dataset.value;
             if (selectedGroup) {
                 addCustomerGroupToPending(selectedGroup);
-                groupSelect.value = '';
+                // Reset dropdown
+                if (selected) {
+                    selected.textContent = 'Select a customer group to exclude...';
+                    selected.dataset.value = '';
+                }
             }
         });
     }
@@ -477,13 +494,18 @@ function setupEventListeners(region) {
 
     // Status add button
     const addStatusBtn = document.getElementById(`add-status-btn-${region}`);
-    const statusSelect = document.getElementById(`status-select-${region}`);
-    if (addStatusBtn && statusSelect) {
+    const statusDropdown = document.getElementById(`status-dropdown-${region}`);
+    if (addStatusBtn && statusDropdown) {
         addStatusBtn.addEventListener('click', () => {
-            const status = statusSelect.value;
+            const selected = statusDropdown.querySelector('.dropdown-selected');
+            const status = selected?.dataset.value;
             if (status) {
                 addExcludedStatus(status);
-                statusSelect.value = ''; // Reset select
+                // Reset dropdown
+                if (selected) {
+                    selected.textContent = 'Select a status to exclude...';
+                    selected.dataset.value = '';
+                }
             } else {
                 showToast('Please select a status to exclude', 'warning');
             }
@@ -506,16 +528,12 @@ function setupEventListeners(region) {
     
     // Smart qty filter inputs - update preview as user types
     const smartThresholdInput = document.getElementById(`smart-qty-threshold-${region}`);
-    const smartActionSelect = document.getElementById(`smart-qty-action-${region}`);
     const smartDivisorInput = document.getElementById(`smart-qty-divisor-${region}`);
     const smartAddBtn = document.getElementById(`smart-filter-add-${region}`);
     const smartClearAllBtn = document.getElementById(`smart-filter-clear-all-${region}`);
     
     if (smartThresholdInput) {
         smartThresholdInput.addEventListener('input', () => updateSmartFilterPreview());
-    }
-    if (smartActionSelect) {
-        smartActionSelect.addEventListener('change', () => updateSmartFilterPreview());
     }
     if (smartDivisorInput) {
         smartDivisorInput.addEventListener('input', () => updateSmartFilterPreview());
@@ -529,22 +547,134 @@ function setupEventListeners(region) {
 
     // Smart Date Rules listeners
     const smartDateAddBtn = document.getElementById(`smart-date-add-${region}`);
-    const smartDateActionSelect = document.getElementById(`smart-date-action-${region}`);
-    const smartDateValueInput = document.getElementById(`smart-date-value-${region}`);
 
     if (smartDateAddBtn) {
         smartDateAddBtn.addEventListener('click', () => addSmartDateRule());
     }
+}
+
+/**
+ * Setup custom dropdown handlers for the modal
+ */
+function setupCustomDropdownHandlers(region) {
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.custom-dropdown')) {
+            document.querySelectorAll('.custom-dropdown.open').forEach(d => {
+                d.classList.remove('open');
+            });
+        }
+    });
     
-    if (smartDateActionSelect && smartDateValueInput) {
-        smartDateActionSelect.addEventListener('change', () => {
-            const action = smartDateActionSelect.value;
-            if (action === 'exclude') {
-                smartDateValueInput.style.display = 'none';
-            } else {
-                smartDateValueInput.style.display = 'block';
-            }
-        });
+    // Setup all custom dropdowns
+    const dropdownIds = [
+        `customer-group-dropdown-${region}`,
+        `status-dropdown-${region}`,
+        `smart-qty-action-dropdown-${region}`,
+        `smart-date-action-dropdown-${region}`
+    ];
+    
+    dropdownIds.forEach(dropdownId => {
+        const dropdown = document.getElementById(dropdownId);
+        if (!dropdown) return;
+        
+        const selected = dropdown.querySelector('.dropdown-selected');
+        const options = dropdown.querySelector('.dropdown-options');
+        
+        // Toggle dropdown on click and position the options
+        if (selected) {
+            selected.addEventListener('click', (e) => {
+                e.stopPropagation();
+                // Close other dropdowns
+                document.querySelectorAll('.custom-dropdown.open').forEach(d => {
+                    if (d.id !== dropdownId) {
+                        d.classList.remove('open');
+                    }
+                });
+                
+                // Don't open if no options available
+                if (!options || !options.children.length) {
+                    return;
+                }
+                
+                const wasOpen = dropdown.classList.contains('open');
+                dropdown.classList.toggle('open');
+                
+                // Position the dropdown options using fixed positioning
+                if (!wasOpen && options) {
+                    positionDropdownOptions(dropdown, options);
+                }
+            });
+        }
+        
+        // Handle option selection
+        if (options) {
+            options.addEventListener('click', (e) => {
+                const option = e.target.closest('.dropdown-option');
+                if (!option) return;
+                
+                const value = option.dataset.value;
+                const text = option.textContent;
+                
+                // Update selected display
+                if (selected) {
+                    selected.textContent = text;
+                    selected.dataset.value = value;
+                }
+                
+                // Update selected state
+                options.querySelectorAll('.dropdown-option').forEach(opt => opt.classList.remove('selected'));
+                option.classList.add('selected');
+                
+                // Close dropdown
+                dropdown.classList.remove('open');
+                
+                // Trigger specific actions for certain dropdowns
+                if (dropdownId === `smart-qty-action-dropdown-${region}`) {
+                    updateSmartFilterPreview();
+                }
+                if (dropdownId === `smart-date-action-dropdown-${region}`) {
+                    const valueInput = document.getElementById(`smart-date-value-${region}`);
+                    if (valueInput) {
+                        valueInput.style.display = value === 'exclude' ? 'none' : 'block';
+                    }
+                }
+            });
+        }
+    });
+}
+
+/**
+ * Position dropdown options using fixed positioning to escape modal overflow
+ */
+function positionDropdownOptions(dropdown, options) {
+    // Don't position if no options
+    if (!options.children.length) return;
+    
+    const rect = dropdown.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+    
+    // Calculate available space below and above
+    const spaceBelow = viewportHeight - rect.bottom - 10;
+    const spaceAbove = rect.top - 10;
+    
+    // Set width to match dropdown
+    options.style.width = `${rect.width}px`;
+    options.style.left = `${rect.left}px`;
+    
+    // Determine max-height based on available space
+    const maxHeight = Math.min(200, Math.max(spaceBelow, spaceAbove) - 10);
+    options.style.maxHeight = `${maxHeight}px`;
+    
+    // Position below or above depending on space
+    if (spaceBelow >= 100 || spaceBelow >= spaceAbove) {
+        // Position below
+        options.style.top = `${rect.bottom + 4}px`;
+        options.style.bottom = 'auto';
+    } else {
+        // Position above
+        options.style.top = 'auto';
+        options.style.bottom = `${viewportHeight - rect.top + 4}px`;
     }
 }
 
@@ -976,22 +1106,22 @@ function displaySearchResults(region, customers) {
     const filteredCustomers = customers.filter(customer => !currentlyExcludedEmails.includes(customer.email));
     
     if (filteredCustomers.length === 0) {
-        resultsContainer.innerHTML = '<div class="customer-search-no-results">No customers found</div>';
+        resultsContainer.innerHTML = '<div class="search-no-results">No customers found</div>';
         resultsContainer.classList.add('visible');
         return;
     }
     
     resultsContainer.innerHTML = filteredCustomers.map(customer => `
-        <div class="customer-search-result-item" data-email="${escapeHtml(customer.email)}" data-name="${escapeHtml(customer.full_name || '')}">
-            <div class="customer-result-email">${escapeHtml(customer.email)}</div>
-            ${customer.full_name ? `<div class="customer-result-name">${escapeHtml(customer.full_name)}</div>` : ''}
+        <div class="search-result-item" data-email="${escapeHtml(customer.email)}" data-name="${escapeHtml(customer.full_name || '')}">
+            <div class="result-email">${escapeHtml(customer.email)}</div>
+            ${customer.full_name ? `<div class="result-name">${escapeHtml(customer.full_name)}</div>` : ''}
         </div>
     `).join('');
     
     resultsContainer.classList.add('visible');
     
     // Add click handlers
-    resultsContainer.querySelectorAll('.customer-search-result-item').forEach(item => {
+    resultsContainer.querySelectorAll('.search-result-item').forEach(item => {
         item.addEventListener('click', () => {
             const email = item.dataset.email;
             const name = item.dataset.name;
@@ -1059,25 +1189,25 @@ function displayExcludedCustomers() {
     }
     
     if (displayCustomers.length === 0) {
-        listContainer.innerHTML = '<div class="excluded-customers-empty">No customers excluded yet</div>';
+        listContainer.innerHTML = '<div class="excluded-empty">No customers excluded yet</div>';
         return;
     }
     
     listContainer.innerHTML = displayCustomers.map(customer => {
         const isPendingRemove = pendingCustomerRemoves.includes(customer.id);
-        const itemClass = customer.isPending ? 'excluded-customer-item pending-add' : 
-                         isPendingRemove ? 'excluded-customer-item pending-remove' : 
-                         'excluded-customer-item';
+        const itemClass = customer.isPending ? 'excluded-item pending-add' : 
+                         isPendingRemove ? 'excluded-item pending-remove' : 
+                         'excluded-item';
         const statusBadge = customer.isPending ? '<span class="pending-badge">NEW</span>' :
                            isPendingRemove ? '<span class="pending-badge remove">REMOVE</span>' : '';
         
         return `
             <div class="${itemClass}">
-                <div class="excluded-customer-info">
-                    <div class="excluded-customer-email">${escapeHtml(customer.email)} ${statusBadge}</div>
-                    ${customer.full_name ? `<div class="excluded-customer-name">${escapeHtml(customer.full_name)}</div>` : ''}
+                <div class="excluded-item-info">
+                    <div class="excluded-item-email">${escapeHtml(customer.email)} ${statusBadge}</div>
+                    ${customer.full_name ? `<div class="excluded-item-name">${escapeHtml(customer.full_name)}</div>` : ''}
                 </div>
-                <button class="excluded-customer-remove" data-id="${customer.id}">
+                <button class="excluded-item-remove" data-id="${customer.id}">
                     ${isPendingRemove ? 'Undo' : 'Remove'}
                 </button>
             </div>
@@ -1085,7 +1215,7 @@ function displayExcludedCustomers() {
     }).join('');
     
     // Add remove handlers
-    listContainer.querySelectorAll('.excluded-customer-remove').forEach(btn => {
+    listContainer.querySelectorAll('.excluded-item-remove').forEach(btn => {
         btn.addEventListener('click', () => {
             const customerId = btn.dataset.id;
             if (customerId.startsWith('pending-')) {
@@ -1159,7 +1289,7 @@ async function loadCustomerGroups() {
     try {
         const response = await get(`${API}/filters/customer-groups/${currentRegion}`);
         
-        if (response.status === 'success') {
+        if (response && response.status === 'success') {
             availableCustomerGroups = response.customer_groups || [];
             displayCustomerGroupsDropdown();
         }
@@ -1172,18 +1302,20 @@ async function loadCustomerGroups() {
  * Display customer groups in dropdown
  */
 function displayCustomerGroupsDropdown() {
-    const select = document.getElementById(`customer-group-select-${currentRegion}`);
-    if (!select) return;
+    const dropdown = document.getElementById(`customer-group-dropdown-${currentRegion}`);
+    const optionsContainer = document.getElementById(`customer-group-options-${currentRegion}`);
+    if (!dropdown || !optionsContainer) return;
     
-    // Clear existing options except the first one
-    select.innerHTML = '<option value="">Select a customer group to exclude...</option>';
+    // Clear existing options
+    optionsContainer.innerHTML = '';
     
     // Add options for each customer group
     availableCustomerGroups.forEach(group => {
-        const option = document.createElement('option');
-        option.value = group;
+        const option = document.createElement('div');
+        option.className = 'dropdown-option';
+        option.dataset.value = group;
         option.textContent = group;
-        select.appendChild(option);
+        optionsContainer.appendChild(option);
     });
 }
 
@@ -1229,29 +1361,29 @@ function displayExcludedCustomerGroups() {
     updateCustomerGroupDropdown();
     
     if (displayGroups.length === 0) {
-        listContainer.innerHTML = '<div class="excluded-groups-empty">No customer groups excluded yet</div>';
+        listContainer.innerHTML = '<div class="excluded-empty">No customer groups excluded yet</div>';
         return;
     }
     
     // Display list of excluded groups
     listContainer.innerHTML = displayGroups.map(group => {
         const isPendingRemove = group.id && pendingGroupRemoves.includes(group.id);
-        const itemClass = group.isPending ? 'excluded-group-item pending-add' : 
-                         isPendingRemove ? 'excluded-group-item pending-remove' : 
-                         'excluded-group-item';
+        const itemClass = group.isPending ? 'excluded-item pending-add' : 
+                         isPendingRemove ? 'excluded-item pending-remove' : 
+                         'excluded-item';
         
         const groupId = group.isPending ? `pending-${pendingGroupAdds.indexOf(group.customer_group)}` : group.id;
         
         return `
             <div class="${itemClass}">
-                <div class="excluded-group-info">
-                    <div class="excluded-group-name">${group.customer_group}</div>
+                <div class="excluded-item-info">
+                    <div class="excluded-item-name">${group.customer_group}</div>
                     ${group.isPending ? 
                         '<span class="badge badge-pending">Pending</span>' : 
                         isPendingRemove ? 
                         '<span class="badge badge-removing">Removing...</span>' : ''}
                 </div>
-                <button class="excluded-group-remove-btn" data-id="${groupId}">
+                <button class="excluded-item-remove" data-id="${groupId}">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
@@ -1259,7 +1391,7 @@ function displayExcludedCustomerGroups() {
     }).join('');
     
     // Add click handlers for remove buttons
-    listContainer.querySelectorAll('.excluded-group-remove-btn').forEach(btn => {
+    listContainer.querySelectorAll('.excluded-item-remove').forEach(btn => {
         btn.addEventListener('click', () => {
             const groupId = btn.dataset.id;
             if (groupId.startsWith('pending-')) {
@@ -1292,8 +1424,10 @@ function displayExcludedCustomerGroups() {
 function updateCustomerGroupDropdown() {
     if (!currentRegion) return;
     
-    const select = document.getElementById(`customer-group-select-${currentRegion}`);
-    if (!select) return;
+    const dropdown = document.getElementById(`customer-group-dropdown-${currentRegion}`);
+    const optionsContainer = document.getElementById(`customer-group-options-${currentRegion}`);
+    const selected = dropdown?.querySelector('.dropdown-selected');
+    if (!optionsContainer) return;
     
     // Get all currently excluded groups (including pending adds)
     const currentlyExcluded = [
@@ -1304,17 +1438,28 @@ function updateCustomerGroupDropdown() {
     // Filter available groups to exclude already-excluded ones
     const filteredGroups = availableCustomerGroups.filter(group => !currentlyExcluded.includes(group));
     
-    select.innerHTML = '<option value="">Select a customer group to exclude...</option>';
-    filteredGroups.forEach(group => {
-        const option = document.createElement('option');
-        option.value = group;
-        option.textContent = group;
-        select.appendChild(option);
-    });
+    // Clear and populate options
+    optionsContainer.innerHTML = '';
     
-    // Show message if all groups are excluded
     if (filteredGroups.length === 0 && availableCustomerGroups.length > 0) {
-        select.innerHTML = '<option value="">All customer groups are already excluded</option>';
+        // All groups excluded - show message in selected display
+        if (selected) {
+            selected.textContent = 'All customer groups are already excluded';
+            selected.dataset.value = '';
+        }
+    } else {
+        // Reset selected display if needed
+        if (selected && !selected.dataset.value) {
+            selected.textContent = 'Select a customer group to exclude...';
+        }
+        
+        filteredGroups.forEach(group => {
+            const option = document.createElement('div');
+            option.className = 'dropdown-option';
+            option.dataset.value = group;
+            option.textContent = group;
+            optionsContainer.appendChild(option);
+        });
     }
 }
 
@@ -1543,9 +1688,9 @@ function displaySmartQtyRules() {
     if (!rulesListContainer) return;
     
     if (currentSmartQtyRules.length === 0) {
-        rulesListContainer.innerHTML = '<div class="smart-rules-empty">No rules configured. Add a rule below.</div>';
+        rulesListContainer.innerHTML = '<div class="rules-empty">No rules configured. Add a rule below.</div>';
     } else {
-        let html = '<div class="smart-rules-items">';
+        let html = '<div class="rules-items">';
         
         currentSmartQtyRules.forEach((rule, index) => {
             const actionText = {
@@ -1556,16 +1701,13 @@ function displaySmartQtyRules() {
             }[rule.action];
             
             html += `
-                <div class="smart-rule-item" data-rule-id="${rule.id}">
-                    <div class="smart-rule-number">#${index + 1}</div>
-                    <div class="smart-rule-content">
-                        <div class="smart-rule-text">If qty ≥ <strong>${rule.threshold}</strong>, ${actionText}</div>
+                <div class="rule-item" data-rule-id="${rule.id}">
+                    <div class="rule-number">#${index + 1}</div>
+                    <div class="rule-content">
+                        <div class="rule-text">If qty ≥ <strong>${rule.threshold}</strong>, ${actionText}</div>
                     </div>
-                    <button class="smart-rule-delete-btn" data-rule-id="${rule.id}" title="Delete this rule">
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                            <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
-                            <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
-                        </svg>
+                    <button class="rule-delete-btn excluded-item-remove" data-rule-id="${rule.id}" title="Delete this rule">
+                        <i class="fas fa-times"></i>
                     </button>
                 </div>
             `;
@@ -1575,7 +1717,7 @@ function displaySmartQtyRules() {
         rulesListContainer.innerHTML = html;
         
         // Attach delete handlers
-        document.querySelectorAll('.smart-rule-delete-btn').forEach(btn => {
+        document.querySelectorAll('.rule-delete-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const ruleId = parseInt(btn.dataset.ruleId);
@@ -1590,14 +1732,15 @@ function displaySmartQtyRules() {
  */
 function updateSmartFilterPreview() {
     const thresholdInput = document.getElementById(`smart-qty-threshold-${currentRegion}`);
-    const actionSelect = document.getElementById(`smart-qty-action-${currentRegion}`);
+    const actionDropdown = document.getElementById(`smart-qty-action-dropdown-${currentRegion}`);
     const divisorInput = document.getElementById(`smart-qty-divisor-${currentRegion}`);
     const previewText = document.getElementById(`smart-filter-preview-text-${currentRegion}`);
     
-    if (!thresholdInput || !actionSelect || !divisorInput || !previewText) return;
+    if (!thresholdInput || !actionDropdown || !divisorInput || !previewText) return;
     
     const threshold = parseInt(thresholdInput.value);
-    const action = actionSelect.value;
+    const actionSelected = actionDropdown.querySelector('.dropdown-selected');
+    const action = actionSelected?.dataset.value || 'divide';
     const divisor = parseFloat(divisorInput.value);
     
     if (isNaN(threshold) || isNaN(divisor) || threshold < 1 || divisor < 0.1) {
@@ -1633,13 +1776,14 @@ async function addSmartQtyRule() {
     if (!currentRegion) return;
     
     const thresholdInput = document.getElementById(`smart-qty-threshold-${currentRegion}`);
-    const actionSelect = document.getElementById(`smart-qty-action-${currentRegion}`);
+    const actionDropdown = document.getElementById(`smart-qty-action-dropdown-${currentRegion}`);
     const divisorInput = document.getElementById(`smart-qty-divisor-${currentRegion}`);
     
-    if (!thresholdInput || !actionSelect || !divisorInput) return;
+    if (!thresholdInput || !actionDropdown || !divisorInput) return;
     
     const threshold = parseInt(thresholdInput.value);
-    const action = actionSelect.value;
+    const actionSelected = actionDropdown.querySelector('.dropdown-selected');
+    const action = actionSelected?.dataset.value || 'divide';
     const divisor = parseFloat(divisorInput.value);
     
     if (isNaN(threshold) || threshold < 1) {
@@ -1759,9 +1903,9 @@ function displaySmartDateRules() {
     if (!rulesListContainer) return;
     
     if (currentSmartDateRules.length === 0) {
-        rulesListContainer.innerHTML = '<div class="smart-rules-empty">No date rules configured. Add a rule below.</div>';
+        rulesListContainer.innerHTML = '<div class="rules-empty">No date rules configured. Add a rule below.</div>';
     } else {
-        let html = '<div class="smart-rules-items">';
+        let html = '<div class="rules-items">';
         
         currentSmartDateRules.forEach((rule, index) => {
             let actionText = '';
@@ -1780,19 +1924,16 @@ function displaySmartDateRules() {
             const dateDisplay = `${rule.start_date} <i class="fas fa-arrow-right" style="font-size: 0.8em; margin: 0 5px;"></i> ${rule.end_date}`;
             
             html += `
-                <div class="smart-rule-item" data-rule-id="${rule.id}">
-                    <div class="smart-rule-number">#${index + 1}</div>
-                    <div class="smart-rule-content">
-                        <div class="smart-rule-text">
-                            <span class="rule-date-badge" style="background: rgba(var(--primary-rgb), 0.1); padding: 2px 6px; border-radius: 4px; margin-right: 8px; font-family: monospace;">${dateDisplay}</span>
+                <div class="rule-item" data-rule-id="${rule.id}">
+                    <div class="rule-number">#${index + 1}</div>
+                    <div class="rule-content">
+                        <div class="rule-text">
+                            <span class="rule-date-badge">${dateDisplay}</span>
                             <span class="rule-action">${actionText}</span>
                         </div>
                     </div>
-                    <button class="smart-rule-delete-btn-date" data-rule-id="${rule.id}" title="Delete this rule">
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                            <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
-                            <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
-                        </svg>
+                    <button class="rule-delete-btn-date excluded-item-remove" data-rule-id="${rule.id}" title="Delete this rule">
+                        <i class="fas fa-times"></i>
                     </button>
                 </div>
             `;
@@ -1802,7 +1943,7 @@ function displaySmartDateRules() {
         rulesListContainer.innerHTML = html;
         
         // Attach delete handlers for date rules
-        document.querySelectorAll('.smart-rule-delete-btn-date').forEach(btn => {
+        document.querySelectorAll('.rule-delete-btn-date').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const ruleId = parseInt(btn.dataset.ruleId);
@@ -1820,14 +1961,15 @@ async function addSmartDateRule() {
     
     const startInput = document.getElementById(`smart-date-start-${currentRegion}`);
     const endInput = document.getElementById(`smart-date-end-${currentRegion}`);
-    const actionSelect = document.getElementById(`smart-date-action-${currentRegion}`);
+    const actionDropdown = document.getElementById(`smart-date-action-dropdown-${currentRegion}`);
     const valueInput = document.getElementById(`smart-date-value-${currentRegion}`);
     
-    if (!startInput || !endInput || !actionSelect || !valueInput) return;
+    if (!startInput || !endInput || !actionDropdown || !valueInput) return;
     
     const startDate = startInput.value;
     const endDate = endInput.value;
-    const action = actionSelect.value;
+    const actionSelected = actionDropdown.querySelector('.dropdown-selected');
+    const action = actionSelected?.dataset.value || 'exclude';
     let value = null;
     
     if (!startDate || !endDate) {
@@ -1864,8 +2006,16 @@ async function addSmartDateRule() {
             startInput.value = '';
             endInput.value = '';
             valueInput.value = '';
-            actionSelect.value = 'exclude'; // Reset to default
             valueInput.style.display = 'none'; // Hide value input
+            
+            // Reset dropdown to default
+            if (actionSelected) {
+                actionSelected.textContent = 'Exclude Entirely';
+                actionSelected.dataset.value = 'exclude';
+            }
+            actionDropdown.querySelectorAll('.dropdown-option').forEach(opt => {
+                opt.classList.toggle('selected', opt.dataset.value === 'exclude');
+            });
             
             // Reload rules
             await loadSmartDateRules();
@@ -2088,7 +2238,7 @@ window.runCustomAnalysis = async function(region) {
  */
 export function showCustomRangeModal(region) {
     // Remove any existing modal first
-    const existingModal = document.querySelector('.filters-modal-overlay');
+    const existingModal = document.querySelector('.modal-overlay');
     if (existingModal) {
         existingModal.remove();
     }
@@ -2099,69 +2249,72 @@ export function showCustomRangeModal(region) {
 
 function createCustomRangeModal(region) {
     const overlay = document.createElement('div');
-    overlay.className = 'filters-modal-overlay';
+    overlay.className = 'modal-overlay active';
     
     overlay.innerHTML = `
-        <div class="filters-modal" onclick="event.stopPropagation()" style="max-width: 500px;">
-            <div class="filters-modal-header">
-                <h2><i class="fas fa-calendar-day"></i> Custom Range Analysis - ${region.toUpperCase()}</h2>
-                <button class="filters-modal-close" onclick="this.closest('.filters-modal-overlay').remove()">
-                    ✕
+        <div class="modal" onclick="event.stopPropagation()" style="max-width: 500px;">
+            <div class="modal-header">
+                <div class="modal-header-icon">
+                    <i class="fas fa-calendar-day"></i>
+                </div>
+                <h2 class="modal-title">Custom Range Analysis - ${region.toUpperCase()}</h2>
+                <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">
+                    <i class="fas fa-times"></i>
                 </button>
             </div>
             
-            <div class="filters-modal-body">
-                <div class="filter-section">
-                    <div class="filter-section-header">
-                        <span class="filter-section-icon">📅</span>
-                        <h3 class="filter-section-title">Select Time Range</h3>
+            <div class="modal-body">
+                <div class="form-group">
+                    <div class="form-label">
+                        <i class="fas fa-calendar"></i>
+                        <span>Select Time Range</span>
                     </div>
                     
-                    <div style="display: flex; flex-direction: column; gap: 16px; margin-top: 16px;">
+                    <div style="display: flex; flex-direction: column; gap: 16px; margin-top: 12px;">
                         <!-- Last X Days -->
-                        <label style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
-                            <input type="radio" name="rangeType" value="days" checked onchange="updateRangeInputs(this)">
-                            <span style="color: var(--text-primary);">Last</span>
-                            <input type="number" id="rangeDays" value="30" min="1" style="width: 80px; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-primary);">
-                            <span style="color: var(--text-primary);">Days</span>
+                        <label class="radio-option">
+                            <input type="radio" name="rangeType" value="days" checked>
+                            <span>Last</span>
+                            <input type="number" id="rangeDays" class="form-input" value="30" min="1" style="width: 80px; margin: 0 8px;">
+                            <span>Days</span>
                         </label>
                         
                         <!-- Last X Months -->
-                        <label style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
-                            <input type="radio" name="rangeType" value="months" onchange="updateRangeInputs(this)">
-                            <span style="color: var(--text-primary);">Last</span>
-                            <input type="number" id="rangeMonths" value="6" min="1" disabled style="width: 80px; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-primary); opacity: 0.5;">
-                            <span style="color: var(--text-primary);">Months</span>
+                        <label class="radio-option">
+                            <input type="radio" name="rangeType" value="months">
+                            <span>Last</span>
+                            <input type="number" id="rangeMonths" class="form-input" value="6" min="1" disabled style="width: 80px; margin: 0 8px; opacity: 0.5;">
+                            <span>Months</span>
                         </label>
                         
                         <!-- Since Date -->
-                        <label style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
-                            <input type="radio" name="rangeType" value="since" onchange="updateRangeInputs(this)">
-                            <span style="color: var(--text-primary);">Since</span>
-                            <input type="date" id="rangeSince" disabled style="padding: 8px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-primary); opacity: 0.5;">
+                        <label class="radio-option">
+                            <input type="radio" name="rangeType" value="since">
+                            <span>Since</span>
+                            <input type="date" id="rangeSince" class="form-input" disabled style="margin-left: 8px; opacity: 0.5;">
                         </label>
                     </div>
                 </div>
                 
-                <div class="filter-section" style="margin-top: 24px; border-top: 1px solid var(--border-color); padding-top: 24px;">
-                    <div class="filter-section-header">
-                        <span class="filter-section-icon">🛡️</span>
-                        <h3 class="filter-section-title">Exclusions</h3>
+                <div class="form-group" style="margin-top: 24px; border-top: 1px solid var(--bg-light); padding-top: 24px;">
+                    <div class="form-label">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>Exclusions</span>
                     </div>
                     
                     <label style="display: flex; align-items: center; gap: 12px; cursor: pointer; margin-top: 12px;">
                         <input type="checkbox" id="useExclusions" checked style="width: 18px; height: 18px;">
-                        <span style="color: var(--text-primary);">Apply configured customer & group exclusions</span>
+                        <span>Apply configured customer & group exclusions</span>
                     </label>
-                    <p class="filter-section-description" style="margin-top: 8px; margin-left: 30px;">
+                    <p class="filter-description" style="margin-top: 8px; margin-left: 30px;">
                         If checked, customers and groups in the exclusion list will be filtered out.
                     </p>
                 </div>
             </div>
             
-            <div class="filters-modal-footer">
-                <button class="filters-cancel-btn" onclick="this.closest('.filters-modal-overlay').remove()">Cancel</button>
-                <button class="filters-apply-btn" onclick="runCustomAnalysis('${region}')">
+            <div class="modal-footer">
+                <button class="action-btn action-btn-secondary" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
+                <button class="action-btn action-btn-primary" onclick="runCustomAnalysis('${region}')">
                     <i class="fas fa-play"></i> Run Analysis
                 </button>
             </div>
@@ -2174,6 +2327,27 @@ function createCustomRangeModal(region) {
             overlay.remove();
         }
     });
+    
+    // Setup radio button handlers to enable/disable inputs
+    setTimeout(() => {
+        const radios = overlay.querySelectorAll('input[name="rangeType"]');
+        radios.forEach(radio => {
+            radio.addEventListener('change', () => {
+                const daysInput = overlay.querySelector('#rangeDays');
+                const monthsInput = overlay.querySelector('#rangeMonths');
+                const sinceInput = overlay.querySelector('#rangeSince');
+                
+                daysInput.disabled = radio.value !== 'days';
+                daysInput.style.opacity = radio.value === 'days' ? '1' : '0.5';
+                
+                monthsInput.disabled = radio.value !== 'months';
+                monthsInput.style.opacity = radio.value === 'months' ? '1' : '0.5';
+                
+                sinceInput.disabled = radio.value !== 'since';
+                sinceInput.style.opacity = radio.value === 'since' ? '1' : '0.5';
+            });
+        });
+    }, 0);
     
     return overlay;
 }
@@ -2189,7 +2363,7 @@ function showCustomRangeResults(results) {
                       `Since ${rangeValue}`;
     
     const overlay = document.createElement('div');
-    overlay.className = 'filters-modal-overlay';
+    overlay.className = 'modal-overlay active';
     
     // Create table rows
     const tableRows = data.map((item, index) => `
@@ -2202,20 +2376,23 @@ function showCustomRangeResults(results) {
     `).join('');
     
     overlay.innerHTML = `
-        <div class="filters-modal" onclick="event.stopPropagation()" style="max-width: 900px; max-height: 80vh;">
-            <div class="filters-modal-header">
-                <h2><i class="fas fa-chart-line"></i> Custom Range Analysis Results - ${region.toUpperCase()}</h2>
-                <button class="filters-modal-close" onclick="this.closest('.filters-modal-overlay').remove()">
-                    ✕
+        <div class="modal modal-lg" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <div class="modal-header-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <h2 class="modal-title">Custom Range Analysis Results - ${region.toUpperCase()}</h2>
+                <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">
+                    <i class="fas fa-times"></i>
                 </button>
             </div>
             
-            <div class="filters-modal-body" style="max-height: 60vh; overflow-y: auto;">
-                <div style="margin-bottom: 20px; padding: 16px; background: var(--input-bg); border-radius: 8px; border: 1px solid var(--border-color);">
-                    <h3 style="margin: 0 0 8px 0; color: var(--text-primary);">
+            <div class="modal-body" style="max-height: 60vh; overflow-y: auto;">
+                <div style="margin-bottom: 20px; padding: 16px; background: var(--bg-light); border-radius: 12px;">
+                    <h3 style="margin: 0 0 8px 0; color: var(--text);">
                         <i class="fas fa-info-circle"></i> Analysis Details
                     </h3>
-                    <p style="margin: 4px 0; color: var(--text-secondary);">
+                    <p style="margin: 4px 0; color: var(--text-muted);">
                         <strong>Range:</strong> ${rangeLabel}<br>
                         <strong>Total SKUs:</strong> ${totalCount}<br>
                         <strong>Showing:</strong> Top ${data.length} results
@@ -2223,9 +2400,9 @@ function showCustomRangeResults(results) {
                 </div>
                 
                 <div style="overflow-x: auto;">
-                    <table style="width: 100%; border-collapse: collapse; color: var(--text-primary);">
+                    <table style="width: 100%; border-collapse: collapse; color: var(--text);">
                         <thead>
-                            <tr style="background: var(--input-bg); border-bottom: 2px solid var(--border-color);">
+                            <tr style="background: var(--bg-light); border-bottom: 2px solid var(--bg);">
                                 <th style="padding: 12px; text-align: left; font-weight: 600;">#</th>
                                 <th style="padding: 12px; text-align: left; font-weight: 600;">SKU</th>
                                 <th style="padding: 12px; text-align: left; font-weight: 600;">Name</th>
@@ -2239,13 +2416,15 @@ function showCustomRangeResults(results) {
                 </div>
             </div>
             
-            <div class="filters-modal-footer">
-                <button class="filters-cancel-btn" onclick="this.closest('.filters-modal-overlay').remove()">Close</button>
+            <div class="modal-footer">
+                <button class="action-btn action-btn-secondary" onclick="this.closest('.modal-overlay').remove()">Close</button>
             </div>
         </div>
     `;
     
-    overlay.addEventListener('click', () => overlay.remove());
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) overlay.remove();
+    });
     document.body.appendChild(overlay);
 }
 
@@ -2256,22 +2435,30 @@ function showCustomRangeResults(results) {
  * Load available order statuses
  */
 async function loadAvailableStatuses(region) {
-    const select = document.getElementById(`status-select-${region}`);
-    if (!select) return;
+    const dropdown = document.getElementById(`status-dropdown-${region}`);
+    const selected = dropdown?.querySelector('.dropdown-selected');
+    if (!dropdown) return;
     
     try {
-        select.innerHTML = '<option value="">Loading statuses...</option>';
+        if (selected) {
+            selected.textContent = 'Loading statuses...';
+            selected.dataset.value = '';
+        }
         const response = await get(`${API}/filters/status/available/${region}`);
         
         if (response && response.status === 'success') {
             availableStatuses = response.statuses || [];
             updateStatusDropdown();
         } else {
-            select.innerHTML = '<option value="">Failed to load statuses</option>';
+            if (selected) {
+                selected.textContent = 'Failed to load statuses';
+            }
         }
     } catch (error) {
         console.error('Error loading statuses:', error);
-        select.innerHTML = '<option value="">Error loading statuses</option>';
+        if (selected) {
+            selected.textContent = 'Error loading statuses';
+        }
     }
 }
 
@@ -2281,8 +2468,10 @@ async function loadAvailableStatuses(region) {
 function updateStatusDropdown() {
     if (!currentRegion) return;
     
-    const select = document.getElementById(`status-select-${currentRegion}`);
-    if (!select) return;
+    const dropdown = document.getElementById(`status-dropdown-${currentRegion}`);
+    const optionsContainer = document.getElementById(`status-options-${currentRegion}`);
+    const selected = dropdown?.querySelector('.dropdown-selected');
+    if (!optionsContainer) return;
     
     // Get all currently excluded statuses (including pending adds)
     const currentlyExcluded = [
@@ -2293,17 +2482,28 @@ function updateStatusDropdown() {
     // Filter available statuses to exclude already-excluded ones
     const filteredStatuses = availableStatuses.filter(status => !currentlyExcluded.includes(status));
     
-    select.innerHTML = '<option value="">Select a status to exclude...</option>';
-    filteredStatuses.forEach(status => {
-        const option = document.createElement('option');
-        option.value = status;
-        option.textContent = status;
-        select.appendChild(option);
-    });
+    // Clear and populate options
+    optionsContainer.innerHTML = '';
     
-    // Show message if all statuses are excluded
     if (filteredStatuses.length === 0 && availableStatuses.length > 0) {
-        select.innerHTML = '<option value="">All statuses are already excluded</option>';
+        // All statuses excluded - show message in selected display
+        if (selected) {
+            selected.textContent = 'All statuses are already excluded';
+            selected.dataset.value = '';
+        }
+    } else {
+        // Reset selected display if needed
+        if (selected && !selected.dataset.value) {
+            selected.textContent = 'Select a status to exclude...';
+        }
+        
+        filteredStatuses.forEach(status => {
+            const option = document.createElement('div');
+            option.className = 'dropdown-option';
+            option.dataset.value = status;
+            option.textContent = status;
+            optionsContainer.appendChild(option);
+        });
     }
 }
 
@@ -2347,29 +2547,29 @@ function displayExcludedStatuses() {
     updateStatusDropdown();
     
     if (displayStatuses.length === 0) {
-        listContainer.innerHTML = '<div class="excluded-groups-empty">No statuses excluded yet</div>';
+        listContainer.innerHTML = '<div class="excluded-empty">No statuses excluded yet</div>';
         return;
     }
     
     // Display list of excluded statuses
     listContainer.innerHTML = displayStatuses.map(status => {
         const isPendingRemove = status.id && pendingStatusRemoves.includes(status.id);
-        const itemClass = status.isPending ? 'excluded-group-item pending-add' : 
-                         isPendingRemove ? 'excluded-group-item pending-remove' : 
-                         'excluded-group-item';
+        const itemClass = status.isPending ? 'excluded-item pending-add' : 
+                         isPendingRemove ? 'excluded-item pending-remove' : 
+                         'excluded-item';
         
         const statusId = status.isPending ? `pending-${pendingStatusAdds.indexOf(status.status)}` : status.id;
         
         return `
             <div class="${itemClass}">
-                <div class="excluded-group-info">
-                    <div class="excluded-group-name">${status.status}</div>
+                <div class="excluded-item-info">
+                    <div class="excluded-item-name">${status.status}</div>
                     ${status.isPending ? 
                         '<span class="badge badge-pending">Pending</span>' : 
                         isPendingRemove ? 
                         '<span class="badge badge-removing">Removing...</span>' : ''}
                 </div>
-                <button class="excluded-status-remove-btn" data-id="${statusId}">
+                <button class="excluded-item-remove" data-id="${statusId}">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
@@ -2377,7 +2577,7 @@ function displayExcludedStatuses() {
     }).join('');
     
     // Add click handlers for remove buttons
-    listContainer.querySelectorAll('.excluded-status-remove-btn').forEach(btn => {
+    listContainer.querySelectorAll('.excluded-item-remove').forEach(btn => {
         btn.addEventListener('click', () => {
             const statusId = btn.dataset.id;
             if (statusId.startsWith('pending-')) {

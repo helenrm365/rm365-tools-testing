@@ -1,5 +1,6 @@
 /* ===== Module Home Pages Layout ===== */
 /* Hero sections with feature cards for module landing pages */
+/* Uses new CSS system: standardized colors, shadows, and depth */
 
 /* ===== Hero Section ===== */
 .module-home-hero {
@@ -22,7 +23,7 @@
 .hero-title {
   font-size: 3.5rem;
   font-weight: 700;
-  background: linear-gradient(135deg, #8bc34a, #6a9e34);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -32,6 +33,7 @@
   align-items: baseline;
   gap: 0.75rem;
   justify-content: center;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
 }
 
 .home-title-logo {
@@ -43,10 +45,11 @@
 }
 
 html.dark-mode .hero-title {
-  background: linear-gradient(135deg, #ecf0f1, #a8d85f);
+  background: linear-gradient(135deg, var(--text), var(--accent-light));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
 }
 
 .hero-subtitle {
@@ -106,7 +109,7 @@ html.dark-mode .hero-divider {
   padding: clamp(1.25rem, 2.5vw, 2.75rem);
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 2px solid rgba(139, 195, 74, 0.1);
+  border: 1px solid rgba(0, 0, 0, 0.06);
   overflow: hidden;
   aspect-ratio: 1 / 1;
   display: flex;
@@ -116,6 +119,11 @@ html.dark-mode .hero-divider {
   min-width: 0;
   text-decoration: none;
   color: inherit;
+  box-shadow: var(--shadow-l);
+}
+
+html.dark-mode .module-feature-card {
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .module-feature-card::before {
@@ -125,7 +133,7 @@ html.dark-mode .hero-divider {
   left: 0;
   right: 0;
   height: 4px;
-  background: linear-gradient(90deg, #8bc34a, #7ab82d);
+  background: linear-gradient(90deg, var(--accent), var(--accent-dark));
   transform: scaleX(0);
   transform-origin: left;
   transition: transform 0.3s ease;
@@ -137,32 +145,27 @@ html.dark-mode .hero-divider {
 
 .module-feature-card:hover {
   transform: translateY(-8px);
-  box-shadow: 0 20px 40px rgba(139, 195, 74, 0.15);
-  border-color: rgba(139, 195, 74, 0.3);
-}
-
-html.dark-mode .module-feature-card {
-  background: var(--bg-light);
-  border-color: rgba(139, 195, 74, 0.25);
-}
-
-html.dark-mode .module-feature-card:hover {
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-  border-color: rgba(139, 195, 74, 0.45);
+  box-shadow: 
+    inset 0 1px 2px rgba(255, 255, 255, 0.5),
+    0 8px 12px rgba(0, 0, 0, 0.22),
+    0 12px 20px rgba(0, 0, 0, 0.12);
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
 }
 
 .card-icon {
   width: clamp(48px, 7vw, 80px);
   height: clamp(48px, 7vw, 80px);
-  background: linear-gradient(135deg, rgba(139, 195, 74, 0.1), rgba(94, 129, 34, 0.1));
+  background: var(--bg-light);
   border-radius: clamp(12px, 1.5vw, 20px);
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: clamp(0.5rem, 1.2vw, 1.5rem);
-  color: #8bc34a;
+  color: var(--accent);
   transition: all 0.3s ease;
   flex-shrink: 0;
+  box-shadow: var(--shadow-s);
 }
 
 .card-icon svg {
@@ -171,14 +174,10 @@ html.dark-mode .module-feature-card:hover {
 }
 
 .module-feature-card:hover .card-icon {
-  background: linear-gradient(135deg, #8bc34a, #7ab82d);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   color: white;
   transform: scale(1.05);
-}
-
-html.dark-mode .card-icon {
-  background: linear-gradient(135deg, rgba(139, 195, 74, 0.2), rgba(94, 129, 34, 0.15));
-  color: #8ec134;
+  box-shadow: var(--shadow-m);
 }
 
 .card-content {
@@ -209,7 +208,7 @@ html.dark-mode .card-icon {
   bottom: clamp(1rem, 2vw, 2.25rem);
   right: clamp(1rem, 2vw, 2.25rem);
   font-size: clamp(1rem, 1.8vw, 1.65rem);
-  color: #8bc34a;
+  color: var(--accent);
   opacity: 0;
   transform: translateX(-10px);
   transition: all 0.3s ease;
@@ -230,7 +229,7 @@ html.dark-mode .card-icon {
 
 .prompt-card {
   background: var(--bg-light);
-  border: 2px solid rgba(139, 195, 74, 0.2);
+  border: 1px solid rgba(0, 0, 0, 0.06);
   border-radius: 20px;
   padding: 2.5rem;
   max-width: 500px;
@@ -239,6 +238,11 @@ html.dark-mode .card-icon {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
+  box-shadow: var(--shadow-l);
+}
+
+html.dark-mode .prompt-card {
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .prompt-card::before {
@@ -248,7 +252,7 @@ html.dark-mode .card-icon {
   left: 0;
   right: 0;
   height: 4px;
-  background: linear-gradient(90deg, #8bc34a, #7ab82d);
+  background: linear-gradient(90deg, var(--accent), var(--accent-dark));
   transform: scaleX(0);
   transform-origin: left;
   transition: transform 0.3s ease;
@@ -259,40 +263,36 @@ html.dark-mode .card-icon {
 }
 
 .prompt-card:hover {
-  border-color: rgba(139, 195, 74, 0.4);
-  box-shadow: 0 20px 40px rgba(139, 195, 74, 0.15);
-}
-
-html.dark-mode .prompt-card {
-  background: var(--bg-light);
-  border-color: rgba(139, 195, 74, 0.3);
-}
-
-html.dark-mode .prompt-card:hover {
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-  border-color: rgba(139, 195, 74, 0.5);
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+  box-shadow: 
+    inset 0 1px 2px rgba(255, 255, 255, 0.5),
+    0 8px 12px rgba(0, 0, 0, 0.22),
+    0 12px 20px rgba(0, 0, 0, 0.12);
 }
 
 .prompt-icon-wrapper {
   width: 72px;
   height: 72px;
-  background: linear-gradient(135deg, rgba(139, 195, 74, 0.1), rgba(94, 129, 34, 0.1));
+  background: var(--bg-light);
   border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 1.5rem;
   transition: all 0.3s ease;
+  box-shadow: var(--shadow-s);
 }
 
 .prompt-card:hover .prompt-icon-wrapper {
-  background: linear-gradient(135deg, #8bc34a, #7ab82d);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  box-shadow: var(--shadow-m);
 }
 
 .prompt-icon {
   width: 36px;
   height: 36px;
-  color: #8bc34a;
+  color: var(--accent);
   transition: color 0.3s ease;
 }
 
@@ -324,7 +324,7 @@ html.dark-mode .prompt-card:hover {
 
 .welcome-card {
   background: var(--bg-light);
-  border: 2px solid rgba(139, 195, 74, 0.2);
+  border: 1px solid rgba(0, 0, 0, 0.06);
   border-radius: 20px;
   padding: 2.5rem;
   max-width: 500px;
@@ -333,6 +333,11 @@ html.dark-mode .prompt-card:hover {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
+  box-shadow: var(--shadow-l);
+}
+
+html.dark-mode .welcome-card {
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .welcome-card::before {
@@ -342,23 +347,19 @@ html.dark-mode .prompt-card:hover {
   left: 0;
   right: 0;
   height: 4px;
-  background: linear-gradient(90deg, #8bc34a, #7ab82d);
-}
-
-html.dark-mode .welcome-card {
-  background: var(--bg-light);
-  border-color: rgba(139, 195, 74, 0.3);
+  background: linear-gradient(90deg, var(--accent), var(--accent-dark));
 }
 
 .welcome-icon-wrapper {
   width: 72px;
   height: 72px;
-  background: linear-gradient(135deg, #8bc34a, #7ab82d);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 1.5rem;
+  box-shadow: var(--shadow-s);
 }
 
 .welcome-icon {

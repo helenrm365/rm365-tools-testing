@@ -1,0 +1,85 @@
+/* ===== Magento Data History Page ===== */
+/* Page-specific styles for magentodata/history.html */
+/* 
+   Uses global components from css-new/ plus universal.css from this module
+   
+   Global Components:
+   - layout/header.css: .page-header, .page-title, .page-subtitle
+   - components/cards.css: .action-block, .block-header, etc.
+   - components/tables.css: .table-container, table styles
+   - components/badges.css: .status-badge
+*/
+
+/* ===== Page Scope ===== */
+/* Inherits from .magentodata-page in universal.css */
+
+/* ===== History-specific Stats ===== */
+.magentodata-page .history-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
+}
+
+/* ===== Status Badge Variants ===== */
+.magentodata-page .status-cell .status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.magentodata-page .status-badge.status-success {
+  background: color-mix(in srgb, var(--success) 15%, transparent);
+  color: var(--success);
+}
+
+.magentodata-page .status-badge.status-error {
+  background: color-mix(in srgb, var(--error) 15%, transparent);
+  color: var(--error);
+}
+
+.magentodata-page .status-badge.status-processing {
+  background: color-mix(in srgb, var(--info) 15%, transparent);
+  color: var(--info);
+}
+
+.magentodata-page .status-badge.status-pending {
+  background: color-mix(in srgb, var(--warning) 15%, transparent);
+  color: var(--warning);
+}
+
+/* ===== Action Cell ===== */
+.magentodata-page .action-cell {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.magentodata-page .action-cell .icon-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.magentodata-page .action-cell .icon-btn:hover {
+  background: var(--bg-light);
+  color: var(--accent);
+}
+
+.magentodata-page .action-cell .icon-btn.delete-btn:hover {
+  background: color-mix(in srgb, var(--error) 15%, transparent);
+  color: var(--error);
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .magentodata-page .history-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

@@ -241,17 +241,8 @@ function setupRegionSelection() {
 
 // === Unified Filter Panel Setup ===
 function setupUnifiedFilterPanel() {
-  // Panel collapse/expand toggle
-  const collapseBtn = document.getElementById('filterPanelCollapseBtn');
-  const panelBody = document.getElementById('filterPanelBody');
-  
-  if (collapseBtn && panelBody) {
-    // Panel starts collapsed (set in HTML to prevent animation on load)
-    collapseBtn.addEventListener('click', () => {
-      panelBody.classList.toggle('collapsed');
-      collapseBtn.classList.toggle('collapsed');
-    });
-  }
+  // Initialize FilterControlPanel component
+  window.labelsFilterPanel = FilterControlPanel.init('filterPanelCollapseBtn', 'filterPanelBody');
   
   // Search clear button
   const searchInput = document.getElementById('productSearchInput');

@@ -1,0 +1,502 @@
+/* ===== Magento Data Filters Modal ===== */
+/* Modal styles for 6M filters configuration */
+
+/* ===== Filter Description Text ===== */
+.filter-description {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  margin: 0 0 1rem 0;
+  line-height: 1.5;
+}
+
+.exchange-rate-info {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.9em;
+  color: var(--accent);
+}
+
+/* ===== Search Container with Results Dropdown ===== */
+.search-container {
+  position: relative;
+  margin-bottom: 1rem;
+  width: 100%;
+}
+
+.search-results-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--bg);
+  border: 2px solid var(--bg-light);
+  border-radius: 12px;
+  margin-top: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+  box-shadow: var(--shadow-l);
+  z-index: 100;
+  display: none;
+}
+
+.search-results-dropdown.visible {
+  display: block;
+}
+
+.search-result-item {
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  border-bottom: 1px solid var(--bg-light);
+}
+
+.search-result-item:last-child {
+  border-bottom: none;
+}
+
+.search-result-item:hover {
+  background: var(--bg-light);
+}
+
+.result-email {
+  color: var(--text);
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.result-name {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  margin-top: 0.125rem;
+}
+
+.search-no-results {
+  padding: 1rem;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+/* ===== Select with Add Button ===== */
+.select-with-button {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.select-with-button .form-select,
+.select-with-button .custom-dropdown {
+  flex: 1;
+}
+
+/* ===== Custom Dropdown in Modal with Fixed Positioning ===== */
+.modal .custom-dropdown {
+  min-width: 0;
+}
+
+.modal .custom-dropdown .dropdown-selected {
+  font-size: 0.9375rem;
+}
+
+/* Use fixed positioning for dropdown options to escape modal overflow */
+.modal .custom-dropdown .dropdown-options {
+  position: fixed;
+  max-height: 180px;
+  min-width: 200px;
+  background: var(--bg-light, #f5f5f5);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  z-index: 10002;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+html.dark-mode .modal .custom-dropdown .dropdown-options {
+  background: var(--bg-light, #2a2a2a);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.modal .custom-dropdown.open .dropdown-options {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+}
+
+.rule-config-row .custom-dropdown {
+  min-width: 120px;
+}
+
+.rule-config-row .custom-dropdown .dropdown-selected {
+  font-size: 0.875rem;
+  padding: 0 2rem 0 0.875rem;
+}
+
+/* ===== Input with Prefix ===== */
+.input-with-prefix {
+  display: flex;
+  align-items: center;
+  background: var(--bg-light);
+  border-radius: 12px;
+  border: 2px solid var(--bg);
+  box-shadow: var(--shadow-m);
+  overflow: hidden;
+}
+
+.input-with-prefix .input-prefix {
+  padding: 0 1rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 1rem;
+  background: var(--bg);
+  height: var(--input-height, 44px);
+  display: flex;
+  align-items: center;
+  min-width: 3rem;
+  justify-content: center;
+}
+
+.input-with-prefix .form-input {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  flex: 1;
+}
+
+.input-with-prefix .form-input:focus {
+  outline: none;
+}
+
+.input-with-prefix:focus-within {
+  outline: 1px solid #8bc34a;
+  outline-offset: 1px;
+}
+
+/* ===== Excluded Toggle Row ===== */
+.excluded-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 1rem;
+  padding: 0.5rem 0;
+}
+
+.excluded-count {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.btn-text {
+  background: none;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 0.875rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.btn-text:hover {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+/* ===== Excluded List ===== */
+.excluded-list {
+  background: var(--bg-light);
+  border-radius: 12px;
+  padding: 0.75rem;
+  margin-top: 0.5rem;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.excluded-list.collapsed {
+  display: none;
+}
+
+.excluded-empty {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  text-align: center;
+  padding: 1rem;
+}
+
+.excluded-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg);
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+}
+
+.excluded-item:last-child {
+  margin-bottom: 0;
+}
+
+.excluded-item-info {
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.excluded-item-remove {
+  background: none;
+  border: none;
+  color: var(--danger, #e74c3c);
+  cursor: pointer;
+  padding: 0.25rem;
+  font-size: 0.9rem;
+  transition: opacity 0.2s ease;
+}
+
+.excluded-item-remove:hover {
+  opacity: 0.7;
+}
+
+/* ===== Threshold Status ===== */
+.threshold-status {
+  margin-top: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-light);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.threshold-status strong {
+  color: var(--text);
+}
+
+/* ===== Rules List ===== */
+.rules-list {
+  background: var(--bg-light);
+  border-radius: 12px;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.rules-empty {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  text-align: center;
+  padding: 1rem;
+}
+
+.rules-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.rule-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background: var(--bg);
+  border-radius: 8px;
+  gap: 0.75rem;
+}
+
+.rule-number {
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  min-width: 2rem;
+}
+
+.rule-content {
+  flex: 1;
+}
+
+.rule-text {
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.rule-date-badge {
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-right: 8px;
+  font-family: monospace;
+  font-size: 0.85rem;
+}
+
+/* ===== Rule Config Card ===== */
+.rule-config-card {
+  background: var(--bg-light);
+  border-radius: 12px;
+  padding: 1rem;
+  border: 2px dashed var(--bg);
+}
+
+.rule-config-header {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text);
+  margin-bottom: 1rem;
+}
+
+.rule-config-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.rule-config-row:last-of-type {
+  margin-bottom: 0;
+}
+
+.rule-label {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  min-width: 80px;
+  flex-shrink: 0;
+}
+
+.rule-separator {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.rule-config-row .form-input,
+.rule-config-row .form-select {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ===== Rule Preview ===== */
+.rule-preview {
+  margin: 1rem 0;
+  padding: 0.75rem;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: var(--accent);
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.rule-preview i {
+  margin-top: 0.1rem;
+}
+
+/* ===== Rule Actions ===== */
+.rule-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+/* ===== Excluded Item Styles ===== */
+.excluded-item-email,
+.excluded-item-name {
+  font-size: 0.9rem;
+}
+
+.excluded-item-email {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.excluded-item-name {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  margin-top: 0.125rem;
+}
+
+/* ===== Pending Status Styles ===== */
+.pending-add {
+  border-left: 3px solid var(--accent);
+}
+
+.pending-remove {
+  opacity: 0.6;
+  border-left: 3px solid var(--danger, #e74c3c);
+}
+
+.pending-badge {
+  display: inline-block;
+  padding: 0.125rem 0.375rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  background: var(--accent);
+  color: white;
+  margin-left: 0.5rem;
+}
+
+.pending-badge.remove {
+  background: var(--danger, #e74c3c);
+}
+
+.badge-pending {
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  color: var(--accent);
+  padding: 0.125rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.badge-removing {
+  background: color-mix(in srgb, var(--danger, #e74c3c) 20%, transparent);
+  color: var(--danger, #e74c3c);
+  padding: 0.125rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+/* ===== Apply Options Section ===== */
+.apply-options {
+  border-top: 2px solid var(--bg-light);
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.checkbox-label .form-checkbox {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 600px) {
+  .modal.modal-lg {
+    width: 95%;
+    max-width: 95%;
+  }
+  
+  .select-with-button {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .rule-config-row {
+    flex-wrap: wrap;
+  }
+  
+  .rule-label {
+    width: 100%;
+    margin-bottom: 0.25rem;
+  }
+  
+  .rule-actions {
+    flex-direction: column;
+  }
+}

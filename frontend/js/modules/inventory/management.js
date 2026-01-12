@@ -341,8 +341,78 @@ async function loadInventoryData() {
 }
 
 function setupDropdowns() {
-  // Column visibility dropdown
-  bindDropdown('columnDropdown', 'columnToggle', [
+  // Expose global dropdown functions for onclick handlers in HTML
+  setupGlobalDropdownFunctions();
+  
+  // Column visibility dropdown - new custom-dropdown pattern
+  setupColumnDropdown();
+
+  // Stock status dropdown - handled by onclick handlers in HTML
+  // Set initial selected value for status dropdown (default: empty string for "All")
+  const statusContainer = document.getElementById('statusDropdown');
+  if (statusContainer) {
+    statusContainer.dataset.selectedValue = '';
+  }
+}
+
+// Global dropdown functions for onclick handlers in HTML (custom-dropdown pattern)
+function setupGlobalDropdownFunctions() {
+  // Toggle dropdown open/close
+  window.toggleDropdown = function(id) {
+    const dropdown = document.getElementById(id);
+    if (!dropdown) return;
+    
+    // Close other dropdowns
+    document.querySelectorAll('.custom-dropdown').forEach(d => {
+      if (d.id !== id) d.classList.remove('open');
+    });
+    dropdown.classList.toggle('open');
+  };
+  
+  // Close dropdowns when clicking outside (only bind once)
+  if (!dropdownDocListenersBound) {
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.custom-dropdown')) {
+        document.querySelectorAll('.custom-dropdown').forEach(d => d.classList.remove('open'));
+      }
+    });
+    dropdownDocListenersBound = true;
+  }
+  
+  // Select stock status option
+  window.selectStockStatus = function(element, value, text) {
+    const dropdown = document.getElementById('statusDropdown');
+    if (!dropdown) return;
+    
+    const selectedDisplay = dropdown.querySelector('.dropdown-selected');
+    const hiddenInput = dropdown.querySelector('input[type="hidden"]');
+    
+    if (selectedDisplay) {
+      const icon = selectedDisplay.querySelector('i');
+      const iconHTML = icon ? icon.outerHTML : '';
+      selectedDisplay.innerHTML = `${iconHTML} ${text}`;
+    }
+    if (hiddenInput) hiddenInput.value = value;
+    
+    dropdown.querySelectorAll('.dropdown-option').forEach(opt => opt.classList.remove('selected'));
+    element.classList.add('selected');
+    dropdown.classList.remove('open');
+    
+    // Store value and trigger filter
+    dropdown.dataset.selectedValue = value;
+    onStockStatusFilterChange();
+  };
+}
+
+// Setup column dropdown with checkboxes
+function setupColumnDropdown() {
+  const container = document.getElementById('columnDropdown');
+  if (!container) return;
+  
+  const optionsContainer = container.querySelector('.dropdown-options') || document.getElementById('columnDropdownOptions');
+  if (!optionsContainer) return;
+  
+  const columns = [
     { value: 'col-1', text: 'Location', checked: true },
     { value: 'col-2', text: 'Date', checked: true },
     { value: 'col-3', text: 'Qty Ordered - Jason', checked: true },
@@ -360,26 +430,46 @@ function setupDropdowns() {
     { value: 'col-15', text: 'Status', checked: true },
     { value: 'col-16', text: 'UK + FR Pre Order', checked: true },
     { value: 'col-17', text: 'FR 6M Data', checked: true }
-  ], true); // true = this is a column dropdown
-
-  // Stock status dropdown - for overstock/low stock indicators (based on metadata.status field)
-  bindDropdown('statusDropdown', 'statusToggle', [
-    { value: '', text: 'All Stock Status' },
-    { value: 'overstock', text: 'Overstock' },
-    { value: 'lowstock', text: 'Low Stock' }
-  ]);
+  ];
   
-  // Set initial selected value for status dropdown (default: empty string for "All")
-  const statusContainer = document.getElementById('statusDropdown');
-  if (statusContainer) {
-    statusContainer.dataset.selectedValue = '';
-  }
+  // Populate with checkbox options
+  optionsContainer.innerHTML = columns.map(col => 
+    `<label class="dropdown-option checkbox-item" data-value="${col.value}">
+      <input type="checkbox" ${col.checked ? 'checked' : ''} data-column="${col.value}">
+      <span>${col.text}</span>
+    </label>`
+  ).join('');
+  
+  // Handle column visibility changes
+  optionsContainer.addEventListener('change', e => {
+    if (e.target.type === 'checkbox') {
+      const column = e.target.dataset.column;
+      const isVisible = e.target.checked;
+      toggleColumn(column, isVisible);
+    }
+  });
+  
+  // Prevent dropdown from closing when clicking checkboxes
+  optionsContainer.addEventListener('click', e => {
+    if (e.target.type === 'checkbox' || e.target.closest('label.checkbox-item')) {
+      e.stopPropagation();
+    }
+  });
 }
 
 function bindDropdown(containerId, toggleId, options, isColumnDropdown = false) {
   const container = document.getElementById(containerId);
-  const toggle = document.getElementById(toggleId);
   
+  // For new .custom-dropdown pattern, check for that class
+  if (container && container.classList.contains('custom-dropdown')) {
+    if (isColumnDropdown) {
+      setupColumnDropdown();
+    }
+    return; // Custom dropdown pattern is handled by onclick handlers in HTML
+  }
+  
+  // Legacy c-select pattern (fallback)
+  const toggle = document.getElementById(toggleId);
   if (!container || !toggle) return;
 
   let dropdownContent = container.querySelector('.c-select__list');
@@ -1016,7 +1106,8 @@ function updateFilterCount() {
   
   const countElement = document.getElementById('activeFiltersCount');
   if (countElement) {
-    countElement.textContent = checkedCount;
+    // Update to show "X of Y" format like labels generator
+    countElement.textContent = `${checkedCount} of ${totalCount}`;
   }
 }
 
@@ -1040,7 +1131,29 @@ function applyFilters() {
 }
 
 function getSelectedValue(toggle) {
-  if (!toggle) return '';
+  if (!toggle) {
+    // Try to get the status dropdown directly
+    const statusDropdown = document.getElementById('statusDropdown');
+    if (statusDropdown) {
+      // For custom-dropdown pattern, check for hidden input or data attribute
+      const hiddenInput = statusDropdown.querySelector('input[type="hidden"]');
+      if (hiddenInput) return hiddenInput.value || '';
+      if (statusDropdown.dataset.selectedValue !== undefined) {
+        return statusDropdown.dataset.selectedValue;
+      }
+    }
+    return '';
+  }
+  
+  // For custom-dropdown pattern
+  const customDropdown = toggle.closest('.custom-dropdown');
+  if (customDropdown) {
+    const hiddenInput = customDropdown.querySelector('input[type="hidden"]');
+    if (hiddenInput) return hiddenInput.value || '';
+    if (customDropdown.dataset.selectedValue !== undefined) {
+      return customDropdown.dataset.selectedValue;
+    }
+  }
   
   // For c-select dropdowns, get the value from the container's data attribute
   const container = toggle.closest('.c-select');
@@ -1185,6 +1298,16 @@ function setupZoomControls() {
 }
 
 function bindGlobalHandlers() {
+  // Initialize Filter Control Panel component
+  window.inventoryFilterPanel = FilterControlPanel.init('filterPanelCollapseBtn', 'filterPanelBody');
+  
+  // Collapsible block toggle function (legacy support)
+  window.toggleCollapsible = function(blockId) {
+    const block = document.getElementById(blockId);
+    if (!block) return;
+    block.classList.toggle('expanded');
+  };
+  
   // Global save function for update buttons
   window.saveRow = async function(button) {
     const row = button.closest('tr');
@@ -1238,13 +1361,8 @@ function bindGlobalHandlers() {
     });
   }
 
-  // Bind document click for dropdown closing
-  if (!dropdownDocListenersBound) {
-    document.addEventListener('click', () => {
-      closeAllDropdowns();
-    });
-    dropdownDocListenersBound = true;
-  }
+  // Note: Document click listener for dropdown closing is now handled in setupGlobalDropdownFunctions()
+  // to avoid duplicate event listeners
 }
 
 async function handleUpdate(row) {
@@ -1310,6 +1428,11 @@ function getBackdrop() {
 }
 
 function closeAllDropdowns() {
+  // Close custom-dropdown pattern
+  document.querySelectorAll('.custom-dropdown.open').forEach(el => {
+    el.classList.remove('open');
+  });
+  
   // Close c-select dropdowns
   document.querySelectorAll('.c-select[aria-expanded="true"]').forEach(el => {
     el.setAttribute('aria-expanded', 'false');

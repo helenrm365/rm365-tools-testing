@@ -8,11 +8,15 @@
    - components/tabs.css: .inner-tabs, .tab-button
    - components/tables.css: table styles
    - components/modals.css: modal styles
+   - components/filter-control-panel.css: .unified-filter-panel, .filter-panel-header, .filter-panel-body
    
    Color System:
    - Use --accent for green theme (#8bc34a) - NOT --primary which is blue
    - Use --accent-dark for darker green (#7ab82d)
    - Use --accent-light for lighter green (#a5d461)
+   
+   Note: Uses FilterControlPanel component for collapsible filter panel.
+   Customizes grid to 2 equal columns and adds full-width preset card below.
 */
 
 /* ===== Page Scope ===== */
@@ -44,115 +48,20 @@
   margin-bottom: 1rem;
 }
 
-/* ===== Unified Filter Panel ===== */
-/* Container is transparent - only the header and individual cards are visible */
-.labels-generator .unified-filter-panel {
-  background: transparent;
-  border-radius: 0;
-  box-shadow: none;
-  border: none;
-  overflow: visible;
-}
-
-.labels-generator .unified-filter-panel:has(.filter-panel-body.collapsed) {
-  box-shadow: none;
-}
-
-html.dark-mode .labels-generator .unified-filter-panel {
-  border-color: transparent;
-}
-
-/* ===== Filter Panel Header ===== */
-/* Standalone header card with green gradient */
+/* ===== Filter Panel Header Overrides ===== */
+/* Use component defaults, only override margins */
 .labels-generator .filter-panel-header {
-  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
-  padding: 1rem 1.25rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-m);
-  transition: border-radius 0.35s cubic-bezier(0.4, 0, 0.2, 1),
-              margin-bottom 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   margin-bottom: 1rem;
 }
 
 .labels-generator .unified-filter-panel:has(.filter-panel-body.collapsed) .filter-panel-header {
-  border-radius: var(--radius-lg);
   margin-bottom: 0;
 }
 
-.labels-generator .filter-panel-title {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  color: white;
-}
-
-.labels-generator .filter-panel-title i {
-  font-size: 1.25rem;
-  color: white;
-}
-
-.labels-generator .filter-panel-title h2 {
-  font-size: 1rem;
-  font-weight: 600;
-  margin: 0;
-  color: white;
-  text-shadow: var(--text-shadow-s);
-}
-
-.labels-generator .filter-panel-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-/* ===== Panel Header Buttons ===== */
-/* Uses .btn .btn-icon .btn-sm .btn-ghost from buttons.css */
-/* Only page-specific overrides here */
-.labels-generator .panel-header-btn,
-.labels-generator .filter-panel-collapse {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  box-shadow: none;
-}
-
-.labels-generator .panel-header-btn:hover,
-.labels-generator .filter-panel-collapse:hover {
-  background: rgba(255, 255, 255, 0.3);
-}
-
-.labels-generator .filter-panel-collapse.collapsed i {
-  transform: rotate(180deg);
-}
-
-/* ===== Filter Panel Body ===== */
-/* Transparent container - just handles collapse animation for the cards inside */
-.labels-generator .filter-panel-body {
-  padding: 0 !important;
-  background: transparent;
-  max-height: 1000px;
-  overflow: visible;
-  opacity: 1;
-  transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1),
-              opacity 0.25s ease;
-  grid-template-rows: unset !important;
-  min-height: unset !important;
-  height: auto !important;
-}
-
-.labels-generator .filter-panel-body.collapsed {
-  max-height: 0 !important;
-  opacity: 0;
-  overflow: hidden;
-}
-
+/* ===== Filter Panel Grid Layout ===== */
+/* Override component's 1.5fr 1fr to use equal columns */
 .labels-generator .filter-panel-grid {
-  display: grid;
   grid-template-columns: repeat(2, 1fr);
-  grid-auto-rows: auto;
-  gap: 1rem;
 }
 
 .labels-generator .filter-panel-grid-top {
@@ -168,43 +77,17 @@ html.dark-mode .labels-generator .unified-filter-panel {
 /* ===== Full Width Presets Section ===== */
 .labels-generator .presets-control-full {
   width: 100%;
-  margin-bottom: 0.75rem;
+  margin-top: 1rem;
+  margin-bottom: 0;
 }
 
-/* ===== Filter Control Group ===== */
-/* Uses .card from cards.css for base styling (background: --bg-light, shadow, border) */
-/* Override to use --bg instead of --bg-light for proper hierarchy */
+/* ===== Filter Control Group Overrides ===== */
+/* Component provides base styling, add page-specific customizations */
 .labels-generator .filter-control-group {
-  background: var(--bg);
   padding: 1rem;
 }
 
-.labels-generator .control-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.75rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid var(--bg-dark);
-}
-
-.labels-generator .control-header-left {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.labels-generator .control-header-left i {
-  color: var(--accent);
-  font-size: 1rem;
-}
-
-.labels-generator .control-title {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--text);
-}
-
+/* Control hint - unique to labels generator */
 .labels-generator .control-hint {
   font-size: 0.75rem;
   color: var(--text-muted);

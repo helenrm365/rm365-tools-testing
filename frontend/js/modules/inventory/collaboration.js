@@ -133,17 +133,26 @@ class CollaborationManager {
    */
   _createPresenceUI() {
     // Check if already exists
-    if (document.querySelector('.collab-presence-container')) {
-      this.presenceContainer = document.querySelector('.collab-presence-container');
+    if (document.querySelector('.connection-status-widget')) {
+      this.presenceContainer = document.querySelector('.connection-status-widget');
       return;
     }
 
     const container = document.createElement('div');
-    container.className = 'collab-presence-container';
+    container.className = 'connection-status-widget connected';
     container.innerHTML = `
-      <div class="collab-status">
-        <div class="collab-status-indicator"></div>
-        <span class="collab-status-text">Connecting...</span>
+      <div class="connection-status-indicator">
+        <div class="connection-status-dot"></div>
+      </div>
+      <div class="connection-status-text">
+        <span class="connection-status-label">Live</span>
+      </div>
+      <div class="connection-user-info">
+        <div class="connection-user-avatar">${this._getUserInitials()}</div>
+        <div class="connection-user-details">
+          <div class="connection-user-name">${this._getUserDisplayName()}</div>
+          <div class="connection-user-role">${this._getUserRole()}</div>
+        </div>
       </div>
       <div class="collab-users-list"></div>
     `;
@@ -169,18 +178,44 @@ class CollaborationManager {
   _updateConnectionStatus(connected) {
     if (!this.presenceContainer) return;
 
-    const indicator = this.presenceContainer.querySelector('.collab-status-indicator');
-    const statusText = this.presenceContainer.querySelector('.collab-status-text');
+    const statusLabel = this.presenceContainer.querySelector('.connection-status-label');
 
     if (connected) {
-      indicator.classList.add('connected');
-      indicator.classList.remove('disconnected');
-      statusText.textContent = 'Live';
+      this.presenceContainer.classList.add('connected');
+      this.presenceContainer.classList.remove('disconnected', 'connecting');
+      if (statusLabel) statusLabel.textContent = 'Live';
     } else {
-      indicator.classList.remove('connected');
-      indicator.classList.add('disconnected');
-      statusText.textContent = 'Offline';
+      this.presenceContainer.classList.remove('connected', 'connecting');
+      this.presenceContainer.classList.add('disconnected');
+      if (statusLabel) statusLabel.textContent = 'Disconnected';
     }
+  }
+
+  /**
+   * Get user initials for avatar
+   */
+  _getUserInitials() {
+    const user = this.wsService?.currentUser;
+    if (!user || !user.username) return 'U';
+    return user.username.substring(0, 2).toUpperCase();
+  }
+
+  /**
+   * Get user display name
+   */
+  _getUserDisplayName() {
+    const user = this.wsService?.currentUser;
+    if (!user) return 'User';
+    return `${user.username} (You)`;
+  }
+
+  /**
+   * Get user role
+   */
+  _getUserRole() {
+    const user = this.wsService?.currentUser;
+    if (!user || !user.role) return 'User';
+    return user.role;
   }
 
   /**

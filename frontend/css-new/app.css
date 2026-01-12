@@ -27,6 +27,8 @@
 @import 'components/collapsible.css'; /* Expandable sections */
 @import 'components/popups.css';      /* Popup dialogs & toasts */
 @import 'components/filters.css';     /* Filter controls & categories */
+@import 'components/filter-control-panel.css'; /* Collapsible filter panel */
+@import 'components/connection-status.css'; /* WebSocket connection status */
 
 /* 4. Utilities - Helper classes */
 @import 'utilities/animations.css';   /* Keyframes & animation classes */

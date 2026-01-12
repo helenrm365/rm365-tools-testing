@@ -122,29 +122,32 @@ When a product exists in `inventory_metadata` (the warehouse) but is no longer f
    ↓ Get ALL products from UK Magento database (live query)
    └─→ Includes base SKUs and all variants with their discontinued_status
    
-6. **NORMALIZE & COLLECT VARIANT STATUSES**
-   ↓ **Trigger:** Automatically runs on every page load
-   ↓ Group products by base SKU
-   ├─→ PROD123 → Active
-   ├─→ PROD123-MD → Pre Order       } All grouped under PROD123
-   ├─→ PROD123-SD → Special Offer   }
-   ├─→ PROD123-MV → Discontinued    }
-   ├─→ Update inventory_metadata.variant_statuses for base SKU
-   └─→ **Deletion Handling:** If PROD123-MV is deleted from Magento, "Discontinued" is removed from the list on next sync
+6. **BUILD BASE SKU LOOKUP (In-Memory)**
+   ↓ Group Magento products by base SKU for display name matching
+   ├─→ Uses same regex pattern as Step 3: `-(?:MD|SD|DP|NP|MV)(?:-.*)?$`
+   ├─→ Creates lookup dict: base_sku → first matching product details (name, categories)
+   └─→ **Note:** This is in-memory only; Magento still has all variants
    
-7. **FILTER BY DISCONTINUED STATUS** (if provided)
+7. **READ VARIANT STATUSES FROM METADATA**
+   ↓ Reads existing `variant_statuses` JSONB from inventory_metadata
+   ↓ **Note:** variant_statuses are populated/refreshed by:
+   ├─→ Labels module calling `update_variant_statuses()` before label generation
+   ├─→ Manual sync operation
+   └─→ Inventory Management page load does NOT rebuild variant_statuses
+
+8. **FILTER BY DISCONTINUED STATUS** (if provided)
    ↓ Check if ANY variant status matches filter
    └─→ Filter "Active,Pre Order" → finds PROD123 (has both statuses)
    
-8. **FETCH METADATA**
+9. **FETCH METADATA**
    ↓ Get all inventory_metadata records
    └─→ Contains item_id, locations, quantities, 6M data, variant_statuses
    
-9. **POPULATE 6M DATA**
-   ↓ Fetch aggregated sales from uk/fr/nl_aggregated_orders tables
-   └─→ Merge into items as custom_fields
+10. **POPULATE 6M DATA**
+    ↓ Fetch aggregated sales from uk/fr/nl_aggregated_orders tables
+    └─→ Merge into items as custom_fields
    
-10. **RETURN TO FRONTEND**
+11. **RETURN TO FRONTEND**
     └─→ Items with merged Magento product + metadata + sales data + variant_statuses
 ```
 
@@ -226,12 +229,17 @@ The system filters by checking if **ANY** variant status matches:
 
 **Dynamic Updates:**
 
-The `variant_statuses` array is **automatically updated** every page load:
+The `variant_statuses` array is updated when `update_variant_statuses()` is called:
 
 1. System fetches all products from Magento (base + variants)
 2. Groups them by base SKU
 3. Collects all discontinued_status values
 4. Updates `inventory_metadata.variant_statuses`
+
+**When Updates Occur:**
+- Labels module: Calls `update_variant_statuses()` before label generation
+- Inventory Management page load: Does NOT automatically refresh (reads existing values)
+- Manual sync operations: Can trigger updates
 
 **Example Update Scenario:**
 
@@ -241,7 +249,7 @@ Magento: PROD123-SD → "Special Offer"
 Database: variant_statuses = ["Active", "Special Offer"]
 ```
 
-After removing PROD123-SD from Magento:
+After removing PROD123-SD from Magento (and running `update_variant_statuses()`):
 ```
 Magento: Only PROD123 → "Active"
 Database: variant_statuses = ["Active"]  (Special Offer removed)
@@ -249,8 +257,8 @@ Filter "Special Offer" → No longer finds PROD123 ✅
 ```
 
 **Key Points:**
-- Statuses are refreshed on every page load
-- Reflects current state of Magento catalog
+- Statuses are refreshed when `update_variant_statuses()` is called
+- Labels module automatically refreshes before label generation
 - Automatically removes statuses when variants are deleted
 - Automatically adds statuses when new variants are added
 - Enables multi-status filtering (OR logic)
@@ -326,7 +334,7 @@ Before: Magento has PROD123 (Active)
 Database: PROD123 with variant_statuses = ["Active"]
 
 After: Add PROD123-MD (Pre Order) to Magento
-Next page load:
+When update_variant_statuses() is called (e.g., by Labels module):
 - Syncs PROD123-MD to database
 - Normalization deletes PROD123-MD (merged into PROD123)
 - Updates variant_statuses = ["Active", "Pre Order"] ✅
@@ -392,7 +400,7 @@ WHERE sku = %s
 **Key Differences:**
 - **Service Layer:** Reads aggregated tables on-demand, temporary
 - **Magento Sync:** Writes to `inventory_metadata`, persistent
-- **Auto-Sync:** Now runs automatically on page load to ensure fresh data
+- **Auto-Sync:** Can be triggered on page load via frontend call to ensure fresh data
 - MD variants already merged in aggregated tables (no additional processing needed)
 
 ---
@@ -605,7 +613,7 @@ NOTE: All products visible by default (filter by discontinued_status if needed)
 ## Metadata Updates
 
 ### Save Inventory Metadata
-**Endpoint:** `PUT /inventory/management/metadata`
+**Endpoint:** `PATCH /inventory/management/metadata/{sku}`
 
 **Updatable Fields:**
 - `location` - Warehouse location
@@ -689,6 +697,23 @@ LIMIT per_page OFFSET (page-1)*per_page
   - `total` - Total matching items
   - `page` - Current page number
   - `per_page` - Items per page
+
+### Orphaned Products Filter
+**Parameter:** `show_orphaned` (boolean, default: `false`)
+
+**Purpose:** Control visibility of SKUs that exist in `inventory_metadata` but have no matching product in Magento catalog.
+
+**Behavior:**
+- `show_orphaned=false` (default): Hides orphaned SKUs from results
+- `show_orphaned=true`: Includes orphaned SKUs in results
+
+**Orphaned Detection:**
+1. First tries to find product name in live Magento catalog
+2. Falls back to `orders_cache` tables (historical order data)
+3. Falls back to direct Magento catalog lookup (including variants)
+4. If still no name found after all fallbacks → marked as orphaned
+
+**Frontend:** Checkbox "Show Orphaned" toggles this filter
 
 ---
 
@@ -783,7 +808,7 @@ LIMIT per_page OFFSET (page-1)*per_page
    ```sql
    SELECT sku, variant_statuses FROM inventory_metadata WHERE sku = 'PROD123';
    ```
-4. Statuses update every page load - try refreshing
+4. Statuses update when Labels module runs - try generating labels to refresh variant_statuses
 
 ### Orphaned Data (Product in Database but Not Displaying)
 **Cause:** Product exists in `inventory_metadata` but not in Magento catalog
@@ -877,7 +902,10 @@ LIMIT per_page OFFSET (page-1)*per_page
 - `ensure_all_products_have_item_ids()` - ID generation
 - `get_inventory_items_from_magento()` - Main data loader
 - `sync_magento_to_inventory_metadata()` - 6M data sync
+- `update_variant_statuses()` - Refreshes variant_statuses JSONB from Magento (called by Labels module)
+- `get_names_from_orders_cache()` - Fallback name lookup from historical orders
+- `get_magento_catalog_names()` - Fallback name lookup from Magento catalog
 
 ---
 
-*Last Updated: January 2, 2026*
+*Last Updated: January 11, 2026*

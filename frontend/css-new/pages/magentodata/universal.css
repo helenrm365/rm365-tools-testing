@@ -1,0 +1,359 @@
+/* ===== Magento Data Universal Page ===== */
+/* Page-specific styles for all magentodata pages */
+/* 
+   Global Components Used (from css-new/):
+   - layout/header.css: .page-header, .page-title, .page-subtitle, .header-content
+   - components/buttons.css: .action-btn, .primary-btn, .secondary-btn
+   - components/cards.css: .action-block, .block-header, .block-icon, .block-title-group
+   - components/forms.css: .form-group, .form-label, input, .search-input, .custom-dropdown
+   - components/tabs.css: .inner-tabs, .tab-button
+   - components/tables.css: .table-container, table, th, td
+   - components/loaders.css: .loading-spinner, .loading-state
+   
+   Shadow System (from SHADOW_SYSTEM.md):
+   - .action-block uses shadow-l (main container)
+   - .table-container uses shadow-m
+   - inputs/buttons use shadow-m
+*/
+
+/* ===== Page Scope ===== */
+.magentodata-page {
+  display: block;
+  font-family: var(--ff);
+  color: var(--text-muted);
+  transition: all var(--transition);
+  padding: 0.5rem 1rem;
+  min-height: calc(100vh - 40px);
+  background: var(--bg-dark);
+}
+
+/* ===== Page-specific Tab Overrides ===== */
+.magentodata-page .inner-tabs {
+  margin: 2rem 0;
+}
+
+.magentodata-page .tab-button {
+  flex: 1 1 auto;
+  min-width: 120px;
+}
+
+/* ===== Main Content Layout ===== */
+.magentodata-page .magento-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-width: 100%;
+}
+
+/* ===== Controls Section ===== */
+.magentodata-page .controls-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.magentodata-page .controls-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+}
+
+/* ===== View Toggle ===== */
+.magentodata-page .view-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  background: var(--bg-light);
+  padding: 0.5rem;
+  border-radius: 12px;
+  border: 2px solid var(--bg);
+}
+
+.magentodata-page .toggle-btn {
+  flex: 1 1 auto;
+  min-width: 100px;
+  padding: 0.65rem 1rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-family: var(--ff);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: transparent;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+}
+
+.magentodata-page .toggle-btn:hover {
+  background: var(--bg);
+  color: var(--text);
+}
+
+.magentodata-page .toggle-btn.active {
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
+  color: white;
+  box-shadow: var(--shadow-s);
+}
+
+.magentodata-page .toggle-btn.active:hover {
+  box-shadow: var(--shadow-m);
+}
+
+/* ===== Search Controls ===== */
+.magentodata-page .search-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.magentodata-page .search-wrapper {
+  flex: 1;
+  min-width: 200px;
+  position: relative;
+}
+
+.magentodata-page .search-wrapper .search-icon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.magentodata-page .search-wrapper .search-input {
+  width: 100%;
+  padding-left: 2.75rem;
+}
+
+/* ===== Action Buttons Row ===== */
+.magentodata-page .action-buttons-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* ===== Pagination Section ===== */
+.magentodata-page .pagination-section {
+  margin-top: 1rem;
+}
+
+.magentodata-page .pagination-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--bg);
+  border-radius: 12px;
+  box-shadow: var(--shadow-m);
+}
+
+.magentodata-page .page-info {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  background: var(--bg-light);
+  border-radius: 8px;
+}
+
+/* ===== Stats Grid ===== */
+.magentodata-page .stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+/* ===== Stat Card ===== */
+.magentodata-page .stat-card {
+  background: var(--bg);
+  border-radius: 16px;
+  padding: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: var(--shadow-l);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  transition: transform var(--transition), box-shadow var(--transition), outline var(--transition);
+}
+
+html.dark-mode .magentodata-page .stat-card {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.magentodata-page .stat-card:hover {
+  transform: translateY(-2px);
+  outline: 1px solid #8bc34a;
+  outline-offset: 1px;
+}
+
+/* Stat Icon */
+.magentodata-page .stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  color: var(--accent);
+}
+
+.magentodata-page .stat-icon.success-icon {
+  background: color-mix(in srgb, var(--success) 15%, transparent);
+  color: var(--success);
+}
+
+.magentodata-page .stat-icon.error-icon {
+  background: color-mix(in srgb, var(--error) 15%, transparent);
+  color: var(--error);
+}
+
+.magentodata-page .stat-icon.info-icon {
+  background: color-mix(in srgb, var(--info) 15%, transparent);
+  color: var(--info);
+}
+
+/* Stat Info */
+.magentodata-page .stat-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.magentodata-page .stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 0.25rem;
+  color: var(--text);
+}
+
+.magentodata-page .stat-label {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* ===== Filters Grid ===== */
+.magentodata-page .filters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.magentodata-page .filter-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+.magentodata-page .filter-actions .action-btn {
+  flex: 1 1 auto;
+  min-width: 140px;
+}
+
+/* ===== Loading State in Table ===== */
+.magentodata-page .table-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 3rem;
+  color: var(--text-muted);
+}
+
+.magentodata-page .loading-spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--bg);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ===== Empty State ===== */
+.magentodata-page .empty-state-message {
+  text-align: center;
+  padding: 3rem;
+  color: var(--text-muted);
+}
+
+.magentodata-page .empty-state-message i {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+  display: block;
+}
+
+.magentodata-page .empty-state-message .empty-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--text);
+}
+
+.magentodata-page .empty-state-message .empty-subtitle {
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .magentodata-page {
+    padding: 0.75rem;
+  }
+  
+  .magentodata-page .inner-tabs {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .magentodata-page .tab-button {
+    min-width: 100%;
+  }
+  
+  .magentodata-page .view-toggle {
+    flex-direction: column;
+  }
+  
+  .magentodata-page .toggle-btn {
+    min-width: 100%;
+  }
+  
+  .magentodata-page .search-controls {
+    flex-direction: column;
+  }
+  
+  .magentodata-page .search-wrapper {
+    width: 100%;
+  }
+  
+  .magentodata-page .action-buttons-row {
+    flex-direction: column;
+  }
+  
+  .magentodata-page .action-buttons-row .action-btn {
+    width: 100%;
+  }
+  
+  .magentodata-page .pagination-controls {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+}
