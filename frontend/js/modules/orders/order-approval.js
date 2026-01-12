@@ -2,6 +2,48 @@ import { get, post } from '../../services/api/http.js';
 import { showToast } from '../../ui/toast.js';
 import { wsService } from '../../services/websocket.js';
 
+// Global dropdown functions for inline onclick handlers
+function toggleDropdown(dropdownId) {
+  const dropdown = document.getElementById(dropdownId);
+  if (dropdown) {
+    dropdown.classList.toggle('open');
+  }
+}
+
+function selectOption(element, dropdownId, value, text) {
+  const dropdown = document.getElementById(dropdownId);
+  if (!dropdown) return;
+  
+  const selected = dropdown.querySelector('.dropdown-selected');
+  const hiddenInput = dropdown.querySelector('input[type="hidden"]');
+  
+  if (selected) selected.textContent = text;
+  if (hiddenInput) {
+    hiddenInput.value = value;
+    // Trigger change event
+    hiddenInput.dispatchEvent(new Event('change'));
+  }
+  
+  // Update selected state visually
+  dropdown.querySelectorAll('.dropdown-option').forEach(opt => {
+    opt.classList.remove('selected');
+  });
+  element.classList.add('selected');
+  
+  dropdown.classList.remove('open');
+}
+
+// Expose to window for onclick handlers
+window.toggleDropdown = toggleDropdown;
+window.selectOption = selectOption;
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.custom-dropdown')) {
+    document.querySelectorAll('.custom-dropdown.open').forEach(d => d.classList.remove('open'));
+  }
+});
+
 class OrderApprovalManager {
   constructor() {
     this.pendingOrders = [];
@@ -34,8 +76,8 @@ class OrderApprovalManager {
       this.filterAndRenderOrders();
     });
 
-    // Sort select
-    document.getElementById('sortOrders')?.addEventListener('change', (e) => {
+    // Sort filter (monitors hidden input)
+    document.getElementById('sortFilter')?.addEventListener('change', (e) => {
       this.sortBy = e.target.value;
       this.filterAndRenderOrders();
     });

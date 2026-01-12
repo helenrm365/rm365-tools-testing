@@ -1,0 +1,486 @@
+/* ===== Order Approval Page ===== */
+/* Page-specific styles for order approval dashboard */
+
+.order-approval {
+  display: block;
+  font-family: var(--ff);
+  color: var(--text-muted);
+  transition: all var(--transition);
+  padding: 0.5rem 1rem;
+  min-height: calc(100vh - 40px);
+  background: var(--bg-dark);
+}
+
+/* ===== Tab Spacing ===== */
+.order-approval .inner-tabs {
+  margin: 2rem 0;
+}
+
+.order-approval .tab-button {
+  flex: 1 1 auto;
+  min-width: 160px;
+}
+
+/* ===== Main Content Layout ===== */
+.order-approval .approval-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-width: 1600px;
+}
+
+/* ===== Statistics Grid ===== */
+.order-approval .stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.order-approval .stat-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem;
+  background: var(--bg-light);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-s);
+  border-left: 4px solid var(--accent);
+  transition: all 0.2s ease;
+}
+
+.order-approval .stat-card:hover {
+  box-shadow: var(--shadow-m);
+  transform: translateY(-2px);
+}
+
+/* Stat card variants */
+.order-approval .stat-card.pending {
+  border-left-color: var(--warning);
+}
+
+.order-approval .stat-card.pending .stat-icon {
+  color: var(--warning);
+}
+
+.order-approval .stat-card.approved {
+  border-left-color: var(--success);
+}
+
+.order-approval .stat-card.approved .stat-icon {
+  color: var(--success);
+}
+
+.order-approval .stat-icon {
+  width: 3rem;
+  height: 3rem;
+  background: var(--bg);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-s);
+}
+
+.order-approval .stat-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.order-approval .stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1;
+  margin-bottom: 0.25rem;
+}
+
+.order-approval .stat-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ===== Controls Group ===== */
+.order-approval .controls-group {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Action Buttons Row */
+.order-approval .action-buttons {
+  display: flex;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+/* Filter Row - Search and Sort */
+.order-approval .filter-row {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex: 1;
+  min-width: 400px;
+}
+
+.order-approval .search-box {
+  flex: 1;
+  min-width: 250px;
+  position: relative;
+}
+
+.order-approval .search-icon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.order-approval .search-input {
+  width: 100%;
+  padding-left: 2.75rem;
+}
+
+.order-approval .form-group {
+  position: relative;
+  min-width: 200px;
+  margin-bottom: 0;
+}
+
+.order-approval .form-label {
+  position: absolute;
+  top: -1.25rem;
+  left: 0;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.order-approval .custom-dropdown {
+  width: 100%;
+}
+
+/* ===== Pending Orders List ===== */
+.order-approval .pending-orders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* ===== Order Card ===== */
+.order-approval .order-card {
+  background: var(--bg-light);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  box-shadow: var(--shadow-s);
+  border-left: 4px solid var(--warning);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.order-approval .order-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-m);
+  outline: 1px solid var(--warning);
+  outline-offset: 1px;
+}
+
+.order-approval .order-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+  gap: 1rem;
+}
+
+.order-approval .order-main-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.order-approval .order-number {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 0.25rem;
+}
+
+.order-approval .order-date {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.order-approval .order-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--success);
+  white-space: nowrap;
+}
+
+.order-approval .order-card-body {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.order-approval .order-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.order-approval .detail-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.order-approval .detail-value {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.order-approval .order-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid color-mix(in srgb, var(--text) 10%, transparent);
+}
+
+.order-approval .order-items-count {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.order-approval .order-items-count i {
+  color: var(--accent);
+}
+
+.order-approval .order-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.order-approval .order-actions .action-btn {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+}
+
+/* ===== Empty State ===== */
+.order-approval .empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--text-muted);
+}
+
+.order-approval .empty-state i {
+  font-size: 4rem;
+  color: var(--text-muted);
+  opacity: 0.5;
+  margin-bottom: 1rem;
+}
+
+.order-approval .empty-state p {
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+/* ===== Loading State ===== */
+.order-approval .loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1rem;
+  gap: 1rem;
+}
+
+.order-approval .loading-spinner {
+  width: 3rem;
+  height: 3rem;
+  border: 3px solid var(--bg-light);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.order-approval .loading-state p {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+}
+
+/* ===== Modal Content Enhancements ===== */
+.order-approval .order-detail-section {
+  margin-bottom: 2rem;
+}
+
+.order-approval .order-detail-section:last-child {
+  margin-bottom: 0;
+}
+
+.order-approval .detail-section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--accent);
+}
+
+.order-approval .detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.order-approval .items-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.order-approval .items-table th {
+  background: var(--bg);
+  color: var(--text);
+  padding: 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid var(--accent);
+}
+
+.order-approval .items-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--text) 10%, transparent);
+  color: var(--text);
+}
+
+.order-approval .items-table tr:last-child td {
+  border-bottom: none;
+}
+
+.order-approval .items-table tr:hover {
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+}
+
+/* ===== Success Button Variant ===== */
+.order-approval .action-btn.success-btn {
+  background: var(--success);
+  color: white;
+  border: none;
+}
+
+.order-approval .action-btn.success-btn:hover {
+  background: color-mix(in srgb, var(--success) 85%, black);
+  transform: translateY(-2px);
+}
+
+.order-approval .action-btn.success-btn:active {
+  transform: translateY(0);
+}
+
+/* ===== Responsive Design ===== */
+@media (max-width: 900px) {
+  .order-approval .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .order-approval .order-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .order-approval .order-card-body {
+    grid-template-columns: 1fr;
+  }
+
+  .order-approval .filter-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .order-approval .search-box {
+    min-width: 100%;
+  }
+
+  .order-approval .order-card-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .order-approval .order-actions {
+    flex-direction: column;
+  }
+
+  .order-approval .order-actions .action-btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .order-approval {
+    padding: 0.5rem;
+  }
+
+  .order-approval .stat-card {
+    padding: 1rem;
+  }
+
+  .order-approval .stat-icon {
+    width: 2.5rem;
+    height: 2.5rem;
+    font-size: 1.25rem;
+  }
+
+  .order-approval .stat-value {
+    font-size: 1.5rem;
+  }
+
+  .order-approval .order-card {
+    padding: 1rem;
+  }
+
+  .order-approval .approval-actions {
+    flex-direction: column;
+  }
+
+  .order-approval .approval-actions .action-btn {
+    width: 100%;
+  }
+
+  .order-approval .items-table {
+    font-size: 0.85rem;
+  }
+
+  .order-approval .items-table th,
+  .order-approval .items-table td {
+    padding: 0.5rem;
+  }
+}

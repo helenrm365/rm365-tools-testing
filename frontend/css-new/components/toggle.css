@@ -1,0 +1,86 @@
+/* ===== Toggle Switch Component ===== */
+/* Reusable toggle switch for binary options */
+
+.c-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.c-toggle__input-wrapper {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.c-toggle__input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.c-toggle__slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--bg-light);
+  transition: 0.3s;
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-l), inset 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.c-toggle__slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background: white;
+  transition: 0.3s;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.c-toggle__input:checked + .c-toggle__slider {
+  background: var(--accent);
+}
+
+.c-toggle__input:checked + .c-toggle__slider:before {
+  transform: translateX(26px);
+}
+
+.c-toggle__label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+  user-select: none;
+}
+
+/* ===== Hover & Focus States ===== */
+.c-toggle__slider:hover {
+  box-shadow: var(--shadow-l), inset 0 2px 4px rgba(0, 0, 0, 0.15), 0 0 0 2px rgba(139, 195, 74, 0.1);
+}
+
+.c-toggle__input:focus + .c-toggle__slider {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ===== Disabled State ===== */
+.c-toggle__input:disabled + .c-toggle__slider {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.c-toggle__input:disabled ~ .c-toggle__label {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

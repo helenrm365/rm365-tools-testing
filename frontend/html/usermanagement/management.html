@@ -1,244 +1,364 @@
 <!-- User Management Page -->
-<div class="usermanagement-management">
-  <!-- Page Header -->
-  <div class="page-header">
+<!-- Uses css-new/app.css + css-new/pages/usermanagement/users.css -->
+<div class="user-management">
+  <!-- Header -->
+  <header class="page-header">
     <div class="header-content">
       <h1 class="page-title">User Management</h1>
-      <hr class="page-divider">
-      <p class="page-subtitle">Manage system users and their permissions</p>
     </div>
-  </div>
-  
+    <p class="page-subtitle">Manage system users, roles, and permissions</p>
+  </header>
+
   <!-- Navigation Tabs -->
-  <div class="inner-tabs">
+  <nav class="inner-tabs">
     <button class="tab-button active" onclick="location.href='/usermanagement/management'">
       <i class="fas fa-users"></i>
       <span>Management</span>
     </button>
-  </div>
-  
-  <!-- Main Content -->
-  <div class="management-content">
-    <!-- Section Header -->
-    <section class="section-header">
-      <h2 class="section-title">
-        <i class="fas fa-users"></i>
-        User Management
-      </h2>
-      <p class="section-subtitle">Manage system users and their permissions. Control who can access the system and what tabs they can view.</p>
-    </section>
+  </nav>
 
-    <!-- User Management Card -->
-    <section class="card">
-      <div class="card-body">
-        <div class="toolbar" style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: center; justify-content: space-between;">
-          <div style="display: flex; gap: 0.5rem;">
-            <button class="modern-button" id="userCreateBtn"><i class="fas fa-plus"></i> Create User</button>
-            <button class="modern-button secondary" id="manageRolesBtn"><i class="fas fa-user-tag"></i> Manage Roles</button>
-            <button class="modern-button danger" id="userBulkDeleteBtn" style="display: none;"><i class="fas fa-trash-alt"></i> Delete Selected</button>
+  <!-- Main Content -->
+  <div class="management-wrapper">
+    <div class="management-card">
+      <!-- User Actions Block -->
+      <div class="action-block">
+        <div class="block-header">
+          <div class="block-icon">
+            <i class="fas fa-users-cog"></i>
           </div>
-          <div class="search-wrapper">
-             <input type="text" id="userSearch" class="modern-input" placeholder="Search users..." style="width: 250px;">
+          <div class="block-title-group">
+            <h3 class="block-title">User Actions</h3>
+            <p class="block-subtitle">Create and manage system users</p>
           </div>
         </div>
 
-        <div id="userTableWrap" class="table-wrap modern-box">
-          <!-- Your JS will render the table of users here -->
-          <p class="muted" style="text-align: center; padding: 2rem; color: #999;">User list will load here...</p>
+        <div class="block-content">
+          <div class="action-buttons-grid">
+            <button class="action-btn primary-btn" id="userCreateBtn">
+              <i class="fas fa-user-plus"></i>
+              <span>New User</span>
+            </button>
+            <button class="action-btn secondary-btn" id="manageRolesBtn">
+              <i class="fas fa-user-tag"></i>
+              <span>Manage Roles</span>
+            </button>
+            <button class="action-btn danger-btn" id="userBulkDeleteBtn" style="display: none;">
+              <i class="fas fa-trash-alt"></i>
+              <span>Delete Selected</span>
+            </button>
+          </div>
         </div>
       </div>
-    </section>
+
+      <!-- Search Block -->
+      <div class="action-block">
+        <div class="block-header">
+          <div class="block-icon">
+            <i class="fas fa-search"></i>
+          </div>
+          <div class="block-title-group">
+            <h3 class="block-title">Search Users</h3>
+            <p class="block-subtitle">Find users by username or role</p>
+          </div>
+        </div>
+
+        <div class="block-content">
+          <div class="search-box">
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" id="userSearch" class="search-input" placeholder="Search users...">
+          </div>
+        </div>
+      </div>
+
+      <!-- Users List Block -->
+      <div class="action-block">
+        <div class="block-header">
+          <div class="block-icon">
+            <i class="fas fa-list"></i>
+          </div>
+          <div class="block-title-group">
+            <h3 class="block-title">System Users</h3>
+            <p class="block-subtitle">All registered users and their roles</p>
+          </div>
+        </div>
+
+        <div class="block-content">
+          <div id="userTableWrap">
+            <div class="loading-state">
+              <div class="loading-spinner"></div>
+              <p>Loading users...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- User Modal (Create/Edit) -->
   <div id="userModal" class="modal-overlay">
-    <div class="modal-content" style="max-width: 600px;">
+    <div class="modal-content">
       <div class="modal-header">
-        <h3 class="modal-title" id="userModalTitle">User Details</h3>
-        <button class="modal-close" id="closeUserModal">&times;</button>
+        <div class="modal-header-icon">
+          <i class="fas fa-user-edit"></i>
+        </div>
+        <div class="modal-title-group">
+          <h3 class="modal-title" id="userModalTitle">User Details</h3>
+        </div>
+        <button class="modal-close" id="closeUserModal">
+          <i class="fas fa-times"></i>
+        </button>
       </div>
       <div class="modal-body">
         <form id="userForm">
           <input type="hidden" id="editOriginalUsername" name="originalUsername">
-          <div class="form-row" style="display: flex; gap: 1rem; margin-bottom: 1rem;">
-              <div class="form-group" style="flex: 1;">
-                <label for="formUsername">Username</label>
-                <input type="text" id="formUsername" name="username" class="modern-input" placeholder="Enter username" required style="width: 100%;">
-              </div>
-              <div class="form-group" style="flex: 1;">
-                <label for="formRole">Role</label>
-                <div style="display: flex; gap: 0.5rem;">
-                    <select id="formRole" name="role" class="modern-input" style="width: 100%;">
-                    <!-- Populated by JS -->
-                    </select>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label for="formUsername" class="form-label">
+                <i class="fas fa-user"></i>
+                <span>Username</span>
+              </label>
+              <input type="text" id="formUsername" name="username" class="form-input" placeholder="Enter username" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">
+                <i class="fas fa-user-tag"></i>
+                <span>Role</span>
+              </label>
+              <div class="custom-dropdown" id="role-dropdown">
+                <div class="dropdown-selected" onclick="toggleDropdown('role-dropdown')">Select Role</div>
+                <div class="dropdown-options">
+                  <!-- Populated by JS -->
                 </div>
+                <input type="hidden" name="role" id="formRole">
               </div>
+            </div>
           </div>
           
-          <div class="form-group" style="margin-bottom: 1rem;">
-            <label for="formPassword">Password <span class="text-muted" id="passwordHint" style="font-weight: normal; font-size: 0.85em;">(Leave blank to keep unchanged)</span></label>
-            <input type="password" id="formPassword" name="password" class="modern-input" placeholder="Enter password" style="width: 100%;">
+          <div class="form-group">
+            <label for="formPassword" class="form-label">
+              <i class="fas fa-lock"></i>
+              <span>Password</span>
+              <span class="form-hint" id="passwordHint">(Leave blank to keep unchanged)</span>
+            </label>
+            <input type="password" id="formPassword" name="password" class="form-input" placeholder="Enter password">
           </div>
           
-          <div class="form-group" style="margin-bottom: 1rem;">
-             <label for="formConfirmPassword">Confirm Password</label>
-             <input type="password" id="formConfirmPassword" name="confirmPassword" class="modern-input" placeholder="Confirm password" style="width: 100%;">
-             <small id="passwordMatchMsg" style="display: none; font-size: 0.85em; margin-top: 4px;"></small>
+          <div class="form-group">
+            <label for="formConfirmPassword" class="form-label">
+              <i class="fas fa-lock"></i>
+              <span>Confirm Password</span>
+            </label>
+            <input type="password" id="formConfirmPassword" name="confirmPassword" class="form-input" placeholder="Confirm password">
+            <small id="passwordMatchMsg" class="form-message" style="display: none;"></small>
           </div>
 
           <div class="form-group">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-              <label style="margin: 0;">Allowed Tabs & Permissions</label>
-              <label class="checkbox-label" style="font-weight: normal; color: #007bff; cursor: pointer;">
-                <input type="checkbox" id="userSelectAllTabs"> Select All
+            <div class="form-label-row">
+              <label class="form-label">
+                <i class="fas fa-th-large"></i>
+                <span>Allowed Tabs & Permissions</span>
+              </label>
+              <label class="checkbox-toggle">
+                <input type="checkbox" id="userSelectAllTabs">
+                <span>Select All</span>
               </label>
             </div>
-            <div class="checkbox-group" id="userTabsCheckboxGroup" style="max-height: 250px; overflow-y: auto; border: 1px solid #eee; padding: 10px; border-radius: 4px;">
+            <div class="checkbox-group" id="userTabsCheckboxGroup">
               <!-- Tabs will be generated by JS -->
             </div>
           </div>
         </form>
       </div>
       <div class="modal-footer">
-        <button type="button" class="modern-button secondary" id="cancelUserModal">Cancel</button>
-        <button type="submit" form="userForm" class="modern-button primary" id="saveUserBtn">Save User</button>
+        <button type="button" class="action-btn secondary-btn" id="cancelUserModal">Cancel</button>
+        <button type="submit" form="userForm" class="action-btn primary-btn" id="saveUserBtn">
+          <i class="fas fa-save"></i>
+          <span>Save User</span>
+        </button>
       </div>
     </div>
   </div>
   
   <!-- Add Role Modal -->
-  <div id="addRoleModal" class="modal-overlay" style="z-index: 1100;">
-      <div class="modal-content" style="max-width: 400px;">
-          <div class="modal-header">
-              <h3 class="modal-title">Add New Role</h3>
-              <button class="modal-close" id="closeAddRoleModal">&times;</button>
-          </div>
-          <div class="modal-body">
-              <div class="form-group">
-                  <label>New Role Name</label>
-                  <input type="text" id="newRoleName" class="modern-input" style="width: 100%;">
-              </div>
-          </div>
-          <div class="modal-footer">
-              <button class="modern-button secondary" id="cancelAddRole">Cancel</button>
-              <button class="modern-button primary" id="confirmAddRole">Add</button>
-          </div>
+  <div id="addRoleModal" class="modal-overlay">
+    <div class="modal-content modal-sm">
+      <div class="modal-header">
+        <div class="modal-header-icon">
+          <i class="fas fa-plus-circle"></i>
+        </div>
+        <div class="modal-title-group">
+          <h3 class="modal-title">Add New Role</h3>
+        </div>
+        <button class="modal-close" id="closeAddRoleModal">
+          <i class="fas fa-times"></i>
+        </button>
       </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="newRoleName" class="form-label">
+            <i class="fas fa-user-tag"></i>
+            <span>Role Name</span>
+          </label>
+          <input type="text" id="newRoleName" class="form-input" placeholder="Enter role name">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="action-btn secondary-btn" id="cancelAddRole">Cancel</button>
+        <button class="action-btn primary-btn" id="confirmAddRole">
+          <i class="fas fa-plus"></i>
+          <span>Add Role</span>
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- Roles Manager Modal -->
   <div id="rolesManagerModal" class="modal-overlay">
-      <div class="modal-content" style="max-width: 800px; height: 80vh; display: flex; flex-direction: column;">
-          <div class="modal-header">
-              <h3 class="modal-title">Manage Roles & Permissions</h3>
-              <button class="modal-close" id="closeRolesManager">&times;</button>
-          </div>
-          <div class="modal-body roles-manager-body">
-             <!-- Sidebar for Roles List -->
-             <div class="roles-sidebar">
-                <div class="roles-sidebar-header">
-                    <h4 class="roles-title">Roles</h4>
-                    <button class="modern-button small" id="rolesManagerAddBtn"><i class="fas fa-plus"></i></button>
-                </div>
-                <div id="rolesList" class="roles-list-container">
-                    <!-- Roles List Items -->
-                </div>
-             </div>
-             
-             <!-- Main Content for Role Editing -->
-             <div class="roles-editor-container">
-                <div id="roleEditorEmpty" class="role-editor-empty">
-                    <p>Select a role to edit permissions</p>
-                </div>
-                <div id="roleEditor" style="display: none; flex-direction: column; height: 100%;">
-                    <div style="margin-bottom: 1rem; display: flex; gap: 1rem; align-items: center; justify-content: space-between; padding-bottom: 1rem; border-bottom: 1px solid #eee;">
-                        <div class="form-group" style="margin: 0; flex: 1;">
-                            <label>Role Name</label>
-                            <input type="text" id="roleEditorName" class="modern-input" style="width: 100%;">
-                        </div>
-                        <div style="align-self: flex-end;">
-                           <button class="modern-button danger" id="roleDeleteBtn"><i class="fas fa-trash"></i> Delete</button>
-                           <button class="modern-button primary" id="roleSaveBtn"><i class="fas fa-save"></i> Save Changes</button>
-                        </div>
-                    </div>
-                    
-                    <div style="flex: 1; overflow-y: auto;">
-                        <h4 style="margin-top: 0;">Allowed Access Tabs</h4>
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                             <span style="font-size: 0.85em; color: #666;">Define which tabs members of this role can access.</span>
-                             <label class="checkbox-label" style="font-weight: normal; color: #007bff; cursor: pointer;">
-                                <input type="checkbox" id="roleSelectAllTabs"> Select All
-                             </label>
-                        </div>
-                        <div class="checkbox-group" id="roleTabsContainer" style="border: 1px solid #eee; padding: 1rem; border-radius: 6px;">
-                            <!-- Tabs Checkboxes -->
-                        </div>
-                    </div>
-                </div>
-             </div>
-          </div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-header-icon">
+          <i class="fas fa-user-cog"></i>
+        </div>
+        <div class="modal-title-group">
+          <h3 class="modal-title">Manage Roles</h3>
+          <p class="modal-subtitle">View and configure system roles</p>
+        </div>
+        <button class="modal-close" id="closeRolesManager">
+          <i class="fas fa-times"></i>
+        </button>
       </div>
+      <div class="modal-body">
+        <div class="modal-actions" style="margin: 0 0 1.5rem 0; padding: 0; border: none;">
+          <button class="action-btn primary-btn" id="rolesManagerAddBtn">
+            <i class="fas fa-plus"></i>
+            <span>Add New Role</span>
+          </button>
+        </div>
+        <div id="rolesList" class="roles-grid">
+          <!-- Roles List Items -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Role Modal -->
+  <div id="editRoleModal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-header-icon">
+          <i class="fas fa-user-tag"></i>
+        </div>
+        <div class="modal-title-group">
+          <h3 class="modal-title" id="editRoleTitle">Edit Role</h3>
+        </div>
+        <button class="modal-close" id="closeEditRole">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="editRoleName" class="form-label">
+            <i class="fas fa-user-tag"></i>
+            <span>Role Name</span>
+          </label>
+          <input type="text" id="editRoleName" class="form-input">
+        </div>
+        
+        <div class="form-group">
+          <div class="form-label-row">
+            <label class="form-label">
+              <i class="fas fa-th-large"></i>
+              <span>Allowed Access Tabs</span>
+            </label>
+            <label class="checkbox-toggle">
+              <input type="checkbox" id="editRoleSelectAllTabs">
+              <span>Select All</span>
+            </label>
+          </div>
+          <p class="form-helper-text">Define which tabs members of this role can access.</p>
+          <div class="checkbox-group" id="editRoleTabsContainer">
+            <!-- Tabs Checkboxes -->
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer modal-footer-split">
+        <button class="action-btn danger-btn" id="editRoleDeleteBtn">
+          <i class="fas fa-trash"></i>
+          <span>Delete Role</span>
+        </button>
+        <div class="modal-footer-right">
+          <button class="action-btn secondary-btn" id="cancelEditRole">Cancel</button>
+          <button class="action-btn primary-btn" id="saveEditRole">
+            <i class="fas fa-save"></i>
+            <span>Save Changes</span>
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Login History Modal -->
   <div id="historyModal" class="modal-overlay">
-    <div class="modal-content" style="max-width: 500px;">
+    <div class="modal-content">
       <div class="modal-header">
-        <h3 class="modal-title">Recent Sign-ins</h3>
-        <button class="modal-close" id="closeHistoryModal">&times;</button>
+        <div class="modal-header-icon">
+          <i class="fas fa-history"></i>
+        </div>
+        <div class="modal-title-group">
+          <h3 class="modal-title">Recent Sign-ins</h3>
+        </div>
+        <button class="modal-close" id="closeHistoryModal">
+          <i class="fas fa-times"></i>
+        </button>
       </div>
       <div class="modal-body">
-        <p id="historyUserLabel" style="margin-bottom: 1rem; font-weight: bold;"></p>
+        <p id="historyUserLabel" class="modal-info-text"></p>
         <div class="table-container">
-            <table class="modern-table">
-                <thead>
-                    <tr>
-                        <th>Date & Time</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody id="historyTableBody">
-                    <!-- Populated by JS -->
-                </tbody>
-            </table>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Date & Time</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="historyTableBody">
+              <!-- Populated by JS -->
+            </tbody>
+          </table>
         </div>
-        <p class="muted" style="margin-top: 1rem; font-size: 0.9em;">* Only recent logins are shown.</p>
+        <p class="form-helper-text">* Only recent logins are shown.</p>
       </div>
       <div class="modal-footer">
-        <button type="button" class="modern-button secondary" id="closeHistoryModalBtn">Close</button>
+        <button type="button" class="action-btn secondary-btn" id="closeHistoryModalBtn">Close</button>
       </div>
     </div>
   </div>
 
   <!-- Confirmation Modal -->
   <div id="confirmationModal" class="modal-overlay">
-    <div class="modal-content">
+    <div class="modal-content modal-sm">
       <div class="modal-header">
-        <h3 class="modal-title" id="confirmTitle">Confirm Action</h3>
-        <button class="modal-close" id="closeConfirmModal">&times;</button>
+        <div class="modal-header-icon warning">
+          <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <div class="modal-title-group">
+          <h3 class="modal-title" id="confirmTitle">Confirm Action</h3>
+        </div>
+        <button class="modal-close" id="closeConfirmModal">
+          <i class="fas fa-times"></i>
+        </button>
       </div>
       <div class="modal-body">
-        <p id="confirmMessage">Are you sure?</p>
+        <p id="confirmMessage" class="modal-confirm-text">Are you sure?</p>
       </div>
       <div class="modal-footer">
-        <button type="button" class="modern-button secondary" id="cancelConfirm">Cancel</button>
-        <button type="button" class="modern-button" id="confirmAction">Confirm</button>
+        <button type="button" class="action-btn secondary-btn" id="cancelConfirm">Cancel</button>
+        <button type="button" class="action-btn danger-btn" id="confirmAction">Confirm</button>
       </div>
     </div>
   </div>
 
   <!-- Notification area -->
-  <div id="notificationArea" style="position: fixed; top: 20px; right: 20px; z-index: 10000;"></div>
+  <div id="notificationArea"></div>
 </div>
-<!-- Universal Footer -->
-<div id="footerPlaceholder"></div>
-<script>
-  if (!document.getElementById('universalFooter')) {
-    fetch('/components/universal-footer.html')
-      .then(response => response.text())
-      .then(html => {
-        document.getElementById('footerPlaceholder').innerHTML = html;
-      })
-      .catch(error => console.error('Error loading footer:', error));
-  }
-</script>

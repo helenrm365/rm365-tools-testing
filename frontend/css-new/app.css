@@ -28,6 +28,7 @@
 @import 'components/popups.css';      /* Popup dialogs & toasts */
 @import 'components/filters.css';     /* Filter controls & categories */
 @import 'components/filter-control-panel.css'; /* Collapsible filter panel */
+@import 'components/toggle.css';      /* Toggle switch component */
 @import 'components/connection-status.css'; /* WebSocket connection status */
 
 /* 4. Utilities - Helper classes */

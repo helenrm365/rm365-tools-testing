@@ -138,10 +138,15 @@
   
   function initDarkMode() {
     const toggle = document.getElementById('darkModeToggle');
-    if (!toggle) return;
+    console.log('🌙 Dark Mode Toggle Element:', toggle);
+    if (!toggle) {
+      console.error('❌ Dark Mode Toggle not found!');
+      return;
+    }
     
     // Check the actual current state of the HTML element (already set by index.html)
     const currentlyDark = document.documentElement.classList.contains('dark-mode');
+    console.log('🌙 Current dark mode state:', currentlyDark);
     
     // Sync the toggle with the actual current state
     toggle.checked = currentlyDark;
@@ -152,11 +157,35 @@
     
     // Add change event listener
     toggle.addEventListener('change', (e) => {
+      console.log('🌙 Dark Mode Toggle CLICKED! New state:', e.target.checked);
       const enabled = e.target.checked;
       document.documentElement.classList.toggle('dark-mode', enabled);
       localStorage.setItem(THEME_KEY, String(enabled));
       toggle.setAttribute('aria-checked', String(enabled));
     });
+    
+    // Also add click listener to debug
+    toggle.addEventListener('click', (e) => {
+      console.log('🌙 Dark Mode Toggle DIRECT CLICK detected', e);
+    });
+    
+    // Debug: Add click listener to the entire toggle wrapper
+    const wrapper = toggle.closest('.c-toggle');
+    if (wrapper) {
+      wrapper.addEventListener('click', (e) => {
+        console.log('🌙 Wrapper clicked!', e.target);
+      });
+    }
+    
+    const slider = toggle.nextElementSibling;
+    if (slider) {
+      slider.addEventListener('click', (e) => {
+        console.log('🌙 Slider clicked!', e.target);
+        // Forward click to the actual input
+        e.stopPropagation();
+        toggle.click();
+      });
+    }
   }
 
   function enableLiquidGlass() {
@@ -214,13 +243,18 @@
 
   function initLiquidGlass() {
     const toggle = document.getElementById('liquidGlassToggle');
-    if (!toggle) return;
+    console.log('💧 Liquid Glass Toggle Element:', toggle);
+    if (!toggle) {
+      console.error('❌ Liquid Glass Toggle not found!');
+      return;
+    }
     
     const GLASS_KEY = 'liquidGlassEnabled'; // Changed key to match old one for compatibility
     
     // Check saved state
     const stored = localStorage.getItem(GLASS_KEY);
     const isEnabled = stored === 'true';
+    console.log('💧 Liquid Glass saved state:', isEnabled);
     
     // Set initial state
     if (isEnabled) {
@@ -233,6 +267,7 @@
     
     // Add listener
     toggle.addEventListener('change', (e) => {
+      console.log('💧 Liquid Glass Toggle CLICKED! New state:', e.target.checked);
       const enabled = e.target.checked;
       if (enabled) {
         enableLiquidGlass();
@@ -242,6 +277,29 @@
       localStorage.setItem(GLASS_KEY, String(enabled));
       toggle.setAttribute('aria-checked', String(enabled));
     });
+    
+    // Also add click listener to debug
+    toggle.addEventListener('click', (e) => {
+      console.log('💧 Liquid Glass Toggle DIRECT CLICK detected', e);
+    });
+    
+    // Debug: Add click listener to the entire toggle wrapper
+    const wrapper = toggle.closest('.c-toggle');
+    if (wrapper) {
+      wrapper.addEventListener('click', (e) => {
+        console.log('💧 Wrapper clicked!', e.target);
+      });
+    }
+    
+    const slider = toggle.nextElementSibling;
+    if (slider) {
+      slider.addEventListener('click', (e) => {
+        console.log('💧 Slider clicked!', e.target);
+        // Forward click to the actual input
+        e.stopPropagation();
+        toggle.click();
+      });
+    }
   }
   
   function initSearch() {

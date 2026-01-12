@@ -3,6 +3,38 @@ import { getUsers, createUser, updateUser, deleteUser } from '../../services/api
 import { getRoles, createRole, updateRole, deleteRole } from '../../services/api/rolesApi.js';
 import { generateTabStructure } from '../../router.js';
 
+// Dropdown helper functions exposed globally
+window.toggleDropdown = function(id) {
+  const dropdown = document.getElementById(id);
+  if (!dropdown) return;
+  
+  // Close other dropdowns
+  document.querySelectorAll('.custom-dropdown').forEach(d => {
+    if (d.id !== id) d.classList.remove('open');
+  });
+  dropdown.classList.toggle('open');
+};
+
+window.selectOption = function(element, dropdownId, value, text) {
+  const dropdown = document.getElementById(dropdownId);
+  if (!dropdown) return;
+  
+  const selectedDisplay = dropdown.querySelector('.dropdown-selected');
+  const hiddenInput = dropdown.querySelector('input[type="hidden"]');
+  
+  if (selectedDisplay) selectedDisplay.textContent = text;
+  if (hiddenInput) hiddenInput.value = value;
+  
+  dropdown.querySelectorAll('.dropdown-option').forEach(opt => opt.classList.remove('selected'));
+  element.classList.add('selected');
+  dropdown.classList.remove('open');
+  
+  // Auto-select tabs when role changes in user modal
+  if (dropdownId === 'role-dropdown') {
+    autoSelectTabsForRole(value);
+  }
+};
+
 // Get the tab structure dynamically from the router
 const TAB_STRUCTURE = generateTabStructure();
 let state = {
@@ -24,9 +56,14 @@ function $all(sel) { return document.querySelectorAll(sel); }
 // --- Rendering ---
 
 function renderTable() {
-  const tbody = $('#userTableWrap');
+  const wrapper = $('#userTableWrap');
   if (!state.users || state.users.length === 0) {
-    tbody.innerHTML = '<p class="muted" style="text-align: center; padding: 2rem; color: #999;">No users found.</p>';
+    wrapper.innerHTML = `
+      <div class="empty-state">
+        <i class="fas fa-users empty-state-icon"></i>
+        <p class="empty-state-text">No users found</p>
+      </div>
+    `;
     return;
   }
 
@@ -37,91 +74,72 @@ function renderTable() {
            (user.role || '').toLowerCase().includes(q);
   });
 
-  const tableHTML = `
-    <div class="table-container">
-    <table class="modern-table">
-      <thead>
-        <tr>
-          <th style="width: 40px; text-align: center;">
-            <input type="checkbox" id="selectAll" ${state.selectedForDelete.size === filtered.length && filtered.length > 0 ? 'checked' : ''}>
-          </th>
-          <th style="width: 25%;">Username</th>
-          <th style="width: 20%;">Role</th>
-          <th>Allowed Tabs</th>
-          <th style="width: 120px; text-align: right;">Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${filtered.map(user => {
-            // Visualize allowed tabs
-            const tabCount = user.allowed_tabs ? user.allowed_tabs.length : 0;
-            const tabSummary = tabCount > 0 
-                ? (tabCount > 3 ? `${user.allowed_tabs.slice(0, 3).join(', ')}... (+${tabCount - 3})` : user.allowed_tabs.join(', '))
-                : '<span class="muted">No Access</span>';
+  if (filtered.length === 0) {
+    wrapper.innerHTML = `
+      <div class="empty-state">
+        <i class="fas fa-search empty-state-icon"></i>
+        <p class="empty-state-text">No users match your search</p>
+      </div>
+    `;
+    return;
+  }
 
-            return `
-          <tr data-username="${user.username}">
-            <td style="text-align: center;">
-              <input type="checkbox" class="row-select" value="${user.username}" ${state.selectedForDelete.has(user.username) ? 'checked' : ''}>
-            </td>
-            <td><strong>${user.username}</strong></td>
-            <td><span class="role-badge ${user.role}">${user.role || 'user'}</span></td>
-            <td>${tabSummary}</td>
-            <td style="text-align: right;">
-              <div class="action-buttons" style="justify-content: flex-end;">
-                  <button class="icon-btn edit-user-btn" title="Edit User"><i class="fas fa-edit"></i></button>
-                  <button class="icon-btn history-user-btn" title="View Login History"><i class="fas fa-history"></i></button>
-              </div>
-            </td>
-          </tr>
-        `}).join('')}
-      </tbody>
-    </table>
-    </div>
-  `;
+  const usersHTML = filtered.map(user => {
+    // Visualize allowed tabs
+    const tabCount = user.allowed_tabs ? user.allowed_tabs.length : 0;
+    const tabSummary = tabCount > 0 
+        ? (tabCount > 3 ? `${user.allowed_tabs.slice(0, 3).join(', ')}... (+${tabCount - 3})` : user.allowed_tabs.join(', '))
+        : '<span style="color: var(--text-muted); font-style: italic;">No Access</span>';
 
-  tbody.innerHTML = tableHTML;
+    const initials = user.username.substring(0, 2).toUpperCase();
+
+    return `
+      <div class="user-row" data-username="${user.username}">
+        <div class="user-checkbox">
+          <input type="checkbox" class="row-select" value="${user.username}" ${state.selectedForDelete.has(user.username) ? 'checked' : ''}>
+        </div>
+        <div class="user-avatar">${initials}</div>
+        <div class="user-info">
+          <h4 class="user-name">${user.username}</h4>
+          <p class="user-role">
+            <span class="status-badge status-${user.role || 'user'}">${user.role || 'user'}</span>
+            <span style="margin-left: 0.5rem; font-size: 0.813rem;">• ${tabSummary}</span>
+          </p>
+        </div>
+        <div class="user-actions">
+          <button class="user-action-btn edit edit-user-btn" title="Edit User">
+            <i class="fas fa-edit"></i>
+            <span>Edit</span>
+          </button>
+          <button class="user-action-btn history history-user-btn" title="View Login History">
+            <i class="fas fa-history"></i>
+            <span>History</span>
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  wrapper.innerHTML = usersHTML;
 
   // Wire events
   wireTableEvents();
 }
 
 function wireTableEvents() {
-    // Select All
-    const selectAll = $('#selectAll');
-    if (selectAll) {
-        selectAll.addEventListener('change', (e) => {
-            const checkboxes = $all('.row-select');
-            checkboxes.forEach(cb => {
-                cb.checked = e.target.checked;
-                if (e.target.checked) state.selectedForDelete.add(cb.value);
-                else state.selectedForDelete.delete(cb.value);
-            });
-            updateToolbar();
-        });
-    }
-
     // Row Selects
     $all('.row-select').forEach(cb => {
         cb.addEventListener('change', (e) => {
             if (e.target.checked) state.selectedForDelete.add(e.target.value);
             else state.selectedForDelete.delete(e.target.value);
             updateToolbar();
-            
-            // Update Select All Checkbox state
-            const allCheckboxes = $all('.row-select');
-            const checkedCount = Array.from(allCheckboxes).filter(c => c.checked).length;
-            if (selectAll) {
-                selectAll.checked = checkedCount === allCheckboxes.length && allCheckboxes.length > 0;
-                selectAll.indeterminate = checkedCount > 0 && checkedCount < allCheckboxes.length;
-            }
         });
     });
 
     // Edit User
     $all('.edit-user-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            const username = btn.closest('tr').dataset.username;
+            const username = btn.closest('.user-row').dataset.username;
             const user = state.users.find(u => u.username === username);
             if (user) openUserModal(user);
         });
@@ -130,7 +148,7 @@ function wireTableEvents() {
     // History
     $all('.history-user-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            const username = btn.closest('tr').dataset.username;
+            const username = btn.closest('.user-row').dataset.username;
             openHistoryModal(username);
         });
     });
@@ -190,11 +208,9 @@ function openUserModal(user = null) {
     const title = $('#userModalTitle');
     const btn = $('#saveUserBtn');
     
-    // Populate Roles
-    populateRolesDropdown($('#formRole'));
-
     // Populate Tabs
-    renderTabCheckboxes($('#userTabsCheckboxGroup'));
+    const tabsContainer = $('#userTabsCheckboxGroup');
+    renderTabCheckboxes(tabsContainer);
 
     if (user) {
         // Edit Mode
@@ -202,17 +218,32 @@ function openUserModal(user = null) {
         title.textContent = 'Edit User: ' + user.username;
         $('#editOriginalUsername').value = user.username;
         $('#formUsername').value = user.username;
-        $('#formRole').value = user.role || 'user';
+        
+        // Populate Roles dropdown with current role selected
+        populateRolesDropdown(user.role || 'user');
+        
         $('#formPassword').value = ''; // Don't show password
         $('#formConfirmPassword').value = '';
         $('#passwordMatchMsg').style.display = 'none';
         $('#passwordHint').style.display = 'inline';
-        btn.textContent = 'Save Changes';
+        btn.innerHTML = '<i class="fas fa-save"></i><span>Save Changes</span>';
 
-        // Set Tabs
+        // Set Tabs and expand parent tabs
         const allTabBoxes = form.querySelectorAll('input[name="allowed_tab"]');
         allTabBoxes.forEach(cb => {
-            cb.checked = user.allowed_tabs.includes(cb.value);
+            if (user.allowed_tabs.includes(cb.value)) {
+                cb.checked = true;
+                
+                // If it's a parent checkbox, expand its subtabs
+                if (cb.classList.contains('parent-checkbox')) {
+                    const parentKey = cb.dataset.parent;
+                    const subtabsContainer = tabsContainer.querySelector(`.subtabs-container[data-parent="${parentKey}"]`);
+                    if (subtabsContainer) {
+                        subtabsContainer.style.display = 'block';
+                        subtabsContainer.classList.add('expanded');
+                    }
+                }
+            }
         });
     } else {
         // Create Mode
@@ -222,17 +253,17 @@ function openUserModal(user = null) {
         form.reset();
         $('#passwordMatchMsg').style.display = 'none';
         $('#passwordHint').style.display = 'none';
-        btn.textContent = 'Create User';
+        btn.innerHTML = '<i class="fas fa-plus"></i><span>Create User</span>';
         
-        // Default role
-        $('#formRole').value = 'user';
+        // Populate Roles dropdown with default role
+        populateRolesDropdown('user');
         autoSelectTabsForRole('user');
     }
     
     // Update Select All Checkbox logic initially
-    updateSelectAllTabsState();
+    updateSelectAllState(tabsContainer, 'allowed_tab');
 
-    modal.style.display = 'flex';
+    modal.classList.add('active');
 }
 
 function wireUserModal() {
@@ -240,30 +271,56 @@ function wireUserModal() {
     const modal = $('#userModal');
 
     // Close
-    $('#closeUserModal')?.addEventListener('click', () => modal.style.display = 'none');
-    $('#cancelUserModal')?.addEventListener('click', () => modal.style.display = 'none');
+    $('#closeUserModal')?.addEventListener('click', () => modal.classList.remove('active'));
+    $('#cancelUserModal')?.addEventListener('click', () => modal.classList.remove('active'));
 
     // Add Role Logic
     $('#addRoleBtn')?.addEventListener('click', () => {
         // Close Edit modal temporarily
-        modal.style.display = 'none';
+        modal.classList.remove('active');
         state.returnToUserModal = true;
         
         // Open Add Role Modal
-        $('#addRoleModal').style.display = 'flex';
+        $('#addRoleModal').classList.add('active');
         $('#newRoleName').focus();
     });
-    
-    // Role Change -> Auto Select Tabs
-    $('#formRole')?.addEventListener('change', (e) => {
-        const selectedRole = e.target.value;
-        autoSelectTabsForRole(selectedRole);
-    });
 
-    // Select All Tabs
+    // Select All Tabs - only selects parent tabs
     $('#userSelectAllTabs')?.addEventListener('change', (e) => {
-        const boxes = document.querySelectorAll('input[name="allowed_tab"]');
-        boxes.forEach(cb => cb.checked = e.target.checked);
+        const container = $('#userTabsCheckboxGroup');
+        if (!container) return;
+        
+        const isChecked = e.target.checked;
+        const parentCheckboxes = container.querySelectorAll('.parent-checkbox');
+        
+        parentCheckboxes.forEach(parentCb => {
+            parentCb.checked = isChecked;
+            
+            // Handle subtabs expansion/collapse
+            const parentKey = parentCb.dataset.parent;
+            const subtabsContainer = container.querySelector(`.subtabs-container[data-parent="${parentKey}"]`);
+            
+            if (subtabsContainer) {
+                const childCheckboxes = subtabsContainer.querySelectorAll('.child-checkbox');
+                
+                if (isChecked) {
+                    // Show and expand subtabs
+                    subtabsContainer.style.display = 'block';
+                    subtabsContainer.offsetHeight; // Force reflow
+                    subtabsContainer.classList.add('expanded');
+                    childCheckboxes.forEach(child => child.checked = true);
+                } else {
+                    // Hide and collapse subtabs
+                    subtabsContainer.classList.remove('expanded');
+                    childCheckboxes.forEach(child => child.checked = false);
+                    setTimeout(() => {
+                        if (!parentCb.checked) {
+                            subtabsContainer.style.display = 'none';
+                        }
+                    }, 300);
+                }
+            }
+        });
     });
 
     // Password Validation Debounce
@@ -353,7 +410,7 @@ function wireUserModal() {
                 await createUser({ username, password, role, allowed_tabs: allowedTabs });
                 notify('✅ User created');
             }
-            modal.style.display = 'none';
+            modal.classList.remove('active');
             await refresh();
         } catch(err) {
             notify('❌ Error: ' + err.message, true);
@@ -365,9 +422,9 @@ function wireAddRoleModal() {
     const modal = $('#addRoleModal');
     
     const closeAndReturn = () => {
-        modal.style.display = 'none';
+        modal.classList.remove('active');
         if (state.returnToUserModal) {
-            $('#userModal').style.display = 'flex';
+            $('#userModal').classList.add('active');
             state.returnToUserModal = false;
         } else if (state.returnToRolesManager) {
             openRolesManager();
@@ -422,17 +479,35 @@ function wireAddRoleModal() {
 
 function autoSelectTabsForRole(roleName) {
     const role = state.roles.find(r => r.role_name === roleName);
-    const boxes = document.querySelectorAll('input[name="allowed_tab"]');
+    const tabsContainer = $('#userTabsCheckboxGroup');
+    const boxes = tabsContainer.querySelectorAll('input[name="allowed_tab"]');
     
-    // Clear all
+    // Clear all and collapse all subtabs
     boxes.forEach(b => b.checked = false);
+    const subtabsContainers = tabsContainer.querySelectorAll('.subtabs-container');
+    subtabsContainers.forEach(sc => {
+        sc.style.display = 'none';
+        sc.classList.remove('expanded');
+    });
 
     if (role && role.allowed_tabs) {
         boxes.forEach(b => {
-            if (role.allowed_tabs.includes(b.value)) b.checked = true;
+            if (role.allowed_tabs.includes(b.value)) {
+                b.checked = true;
+                
+                // If it's a parent checkbox, expand its subtabs
+                if (b.classList.contains('parent-checkbox')) {
+                    const parentKey = b.dataset.parent;
+                    const subtabsContainer = tabsContainer.querySelector(`.subtabs-container[data-parent="${parentKey}"]`);
+                    if (subtabsContainer) {
+                        subtabsContainer.style.display = 'block';
+                        subtabsContainer.classList.add('expanded');
+                    }
+                }
+            }
         });
     }
-    updateSelectAllTabsState();
+    updateSelectAllState(tabsContainer, 'allowed_tab');
 }
 
 async function loadRoles() {
@@ -451,222 +526,344 @@ async function loadRoles() {
 // --- Roles Manager ---
 function openRolesManager() {
     const modal = $('#rolesManagerModal');
-    if (!modal) return; // Guard
+    if (!modal) return;
     
     renderRolesList();
-    
-    // Clear Editor if not maintaining selection
-    if (!state.manageRoleSelected) {
-        $('#roleEditor').style.display = 'none';
-        $('#roleEditorEmpty').style.display = 'flex';
-    } else {
-        // If re-opening with a selected role (e.g. after creating one)
-        selectRoleForEditing(state.manageRoleSelected);
-    }
-    
-    // Wire Logic (ensure we don't double wire)
-    // Actually, wiring every open is risky if listeners stack. 
-    // Ideally we wire once in init(), but for now let's just make sure we replace onclicks which is fine.
     wireRolesManager();
     
-    modal.style.display = 'flex';
+    modal.classList.add('active');
 }
 
 function wireRolesManager() {
    // Close
    $('#closeRolesManager').onclick = () => {
-       $('#rolesManagerModal').style.display = 'none';
-       refresh(); // Refresh main table in case roles changed
+       $('#rolesManagerModal').classList.remove('active');
+       refresh();
    };
    
    // Add Role
    $('#rolesManagerAddBtn').onclick = () => {
-       $('#rolesManagerModal').style.display = 'none';
+       $('#rolesManagerModal').classList.remove('active');
        state.returnToRolesManager = true;
        state.returnToUserModal = false;
-       $('#addRoleModal').style.display = 'flex';
+       $('#addRoleModal').classList.add('active');
        $('#newRoleName').value = '';
        $('#newRoleName').focus();
    };
    
-   // Select Role from List (Event Delegation)
+   // Select Role from List - Open Edit Modal
    $('#rolesList').onclick = (e) => {
        const item = e.target.closest('.role-list-item');
        if (item) {
            const roleName = item.dataset.role;
-           selectRoleForEditing(roleName);
+           openEditRoleModal(roleName);
        }
-   };
-   
-   // Delete Role
-   $('#roleDeleteBtn').onclick = async () => {
-       const roleName = state.manageRoleSelected;
-       if (!roleName) return;
-       
-       if (await confirmAction('Delete Role?', `Are you sure you want to delete role "${roleName}"?\nUsers with this role may lose permissions.`)) {
-           try {
-               await deleteRole(roleName);
-               notify('✅ Role deleted');
-               await loadRoles();
-               renderRolesList();
-               $('#roleEditor').style.display = 'none';
-               $('#roleEditorEmpty').style.display = 'flex';
-               state.manageRoleSelected = null;
-           } catch(e) {
-               notify('❌ Failed to delete role: ' + e.message, true);
-           }
-       }
-   };
-   
-   // Save Role
-   $('#roleSaveBtn').onclick = async () => {
-       const originalName = state.manageRoleSelected;
-       const newName = $('#roleEditorName').value.trim();
-       if (!originalName || !newName) return;
-       
-       const container = $('#roleTabsContainer');
-       const allowedTabs = Array.from(container.querySelectorAll('input[name="role_allowed_tab"]:checked'))
-                           .map(cb => cb.value);
-       
-       try {
-           await updateRole({
-               role_name: originalName,
-               new_role_name: newName !== originalName ? newName : undefined,
-               allowed_tabs: allowedTabs
-           });
-           notify('✅ Role updated');
-           
-           if (newName !== originalName) {
-               state.manageRoleSelected = newName;
-           }
-           await loadRoles(); // Reload state
-           renderRolesList(); // Re-render list to show new name
-       } catch(e) {
-           notify('❌ Failed to save role: ' + e.message, true);
-       }
-   };
-   
-   // Role Editor Select All
-   $('#roleSelectAllTabs').onchange = (e) => {
-       const container = $('#roleTabsContainer');
-       container.querySelectorAll('input[name="role_allowed_tab"]').forEach(cb => cb.checked = e.target.checked);
    };
 }
 
 function renderRolesList() {
     const list = $('#rolesList');
     list.innerHTML = state.roles.map(r => `
-        <div class="role-list-item ${state.manageRoleSelected === r.role_name ? 'active' : ''}" data-role="${r.role_name}">
-            <div class="role-name">${r.role_name}</div>
-            <div class="role-details">${r.allowed_tabs ? r.allowed_tabs.length : 0} tabs allowed</div>
+        <div class="role-list-item" data-role="${r.role_name}">
+            <div class="role-list-item-name">${r.role_name}</div>
+            <div class="role-list-item-tabs">${r.allowed_tabs ? r.allowed_tabs.length : 0} tabs allowed</div>
         </div>
     `).join('');
 }
 
-function selectRoleForEditing(roleName) {
+function openEditRoleModal(roleName) {
     state.manageRoleSelected = roleName;
-    renderRolesList(); // Update active class
-    
     const role = state.roles.find(r => r.role_name === roleName);
     if (!role) return;
     
-    $('#roleEditorEmpty').style.display = 'none';
-    $('#roleEditor').style.display = 'flex';
+    const modal = $('#editRoleModal');
+    $('#editRoleTitle').textContent = `Edit Role: ${roleName}`;
+    $('#editRoleName').value = role.role_name;
     
-    $('#roleEditorName').value = role.role_name;
+    // Render Tabs
+    const container = $('#editRoleTabsContainer');
+    renderTabCheckboxesInternal(container, 'edit_role_allowed_tab');
     
-    // Render Tabs for Editor
-    const container = $('#roleTabsContainer');
-    renderTabCheckboxesInternal(container, 'role_allowed_tab');
-    
-    // Check boxes
-    const boxes = container.querySelectorAll('input[name="role_allowed_tab"]');
+    // Check boxes and expand parent tabs
+    const boxes = container.querySelectorAll('input[name="edit_role_allowed_tab"]');
     boxes.forEach(cb => {
-        cb.checked = role.allowed_tabs.includes(cb.value);
+        if (role.allowed_tabs.includes(cb.value)) {
+            cb.checked = true;
+            
+            // If it's a parent checkbox, expand its subtabs
+            if (cb.classList.contains('parent-checkbox')) {
+                const parentKey = cb.dataset.parent;
+                const subtabsContainer = container.querySelector(`.subtabs-container[data-parent="${parentKey}"]`);
+                if (subtabsContainer) {
+                    subtabsContainer.style.display = 'block';
+                    subtabsContainer.classList.add('expanded');
+                }
+            }
+        }
     });
     
-    // Update Select All
-    const checked = container.querySelectorAll('input[name="role_allowed_tab"]:checked');
-    $('#roleSelectAllTabs').checked = boxes.length > 0 && boxes.length === checked.length;
+    // Update Select All based on parent checkboxes
+    updateSelectAllState(container, 'edit_role_allowed_tab');
+    
+    wireEditRoleModal();
+    modal.classList.add('active');
 }
 
-// Reuseable Tab Renderer
+function wireEditRoleModal() {
+    const modal = $('#editRoleModal');
+    
+    // Close
+    $('#closeEditRole').onclick = () => {
+        modal.classList.remove('active');
+        $('#rolesManagerModal').classList.add('active');
+    };
+    $('#cancelEditRole').onclick = () => {
+        modal.classList.remove('active');
+        $('#rolesManagerModal').classList.add('active');
+    };
+    
+    // Delete Role
+    $('#editRoleDeleteBtn').onclick = async () => {
+        const roleName = state.manageRoleSelected;
+        if (!roleName) return;
+        
+        if (await confirmAction('Delete Role?', `Are you sure you want to delete role "${roleName}"?\nUsers with this role may lose permissions.`)) {
+            try {
+                await deleteRole(roleName);
+                notify('✅ Role deleted');
+                await loadRoles();
+                modal.classList.remove('active');
+                $('#rolesManagerModal').classList.add('active');
+                renderRolesList();
+                state.manageRoleSelected = null;
+            } catch(e) {
+                notify('❌ Failed to delete role: ' + e.message, true);
+            }
+        }
+    };
+    
+    // Save Role
+    $('#saveEditRole').onclick = async () => {
+        const originalName = state.manageRoleSelected;
+        const newName = $('#editRoleName').value.trim();
+        if (!originalName || !newName) return;
+        
+        const container = $('#editRoleTabsContainer');
+        const allowedTabs = Array.from(container.querySelectorAll('input[name="edit_role_allowed_tab"]:checked'))
+                            .map(cb => cb.value);
+        
+        try {
+            await updateRole({
+                role_name: originalName,
+                new_role_name: newName !== originalName ? newName : undefined,
+                allowed_tabs: allowedTabs
+            });
+            notify('✅ Role updated');
+            
+            if (newName !== originalName) {
+                state.manageRoleSelected = newName;
+            }
+            await loadRoles();
+            modal.classList.remove('active');
+            $('#rolesManagerModal').classList.add('active');
+            renderRolesList();
+        } catch(e) {
+            notify('❌ Failed to save role: ' + e.message, true);
+        }
+    };
+    
+    // Select All - only selects parent tabs
+    $('#editRoleSelectAllTabs').onchange = (e) => {
+        const container = $('#editRoleTabsContainer');
+        if (!container) return;
+        
+        const isChecked = e.target.checked;
+        const parentCheckboxes = container.querySelectorAll('.parent-checkbox');
+        
+        parentCheckboxes.forEach(parentCb => {
+            parentCb.checked = isChecked;
+            
+            // Handle subtabs expansion/collapse
+            const parentKey = parentCb.dataset.parent;
+            const subtabsContainer = container.querySelector(`.subtabs-container[data-parent="${parentKey}"]`);
+            
+            if (subtabsContainer) {
+                const childCheckboxes = subtabsContainer.querySelectorAll('.child-checkbox');
+                
+                if (isChecked) {
+                    // Show and expand subtabs
+                    subtabsContainer.style.display = 'block';
+                    subtabsContainer.offsetHeight; // Force reflow
+                    subtabsContainer.classList.add('expanded');
+                    childCheckboxes.forEach(child => child.checked = true);
+                } else {
+                    // Hide and collapse subtabs
+                    subtabsContainer.classList.remove('expanded');
+                    childCheckboxes.forEach(child => child.checked = false);
+                    setTimeout(() => {
+                        if (!parentCb.checked) {
+                            subtabsContainer.style.display = 'none';
+                        }
+                    }, 300);
+                }
+            }
+        });
+    };
+}
+
+function selectRoleForEditing(roleName) {
+    // This function is no longer used but keeping for backwards compatibility
+    openEditRoleModal(roleName);
+}
+
+// Reuseable Tab Renderer with Collapsible Subtabs
 function renderTabCheckboxesInternal(container, inputName) {
     let html = '';
     for (const [key, info] of Object.entries(TAB_STRUCTURE)) {
+        const hasSubtabs = info.subtabs && info.subtabs.length > 0;
+        
         html += `
-            <div style="margin-bottom: 0.5rem;">
-                <label class="checkbox-label" style="font-weight: 600;">
-                    <input type="checkbox" name="${inputName}" value="${key}"> ${info.label}
+            <div class="tab-group" data-tab-key="${key}">
+                <label class="checkbox-label parent-tab">
+                    <input type="checkbox" name="${inputName}" value="${key}" class="parent-checkbox" data-parent="${key}"> 
+                    <span>${info.label}</span>
                 </label>
-            </div>
         `;
-        // Subtabs (if needed in future)
-         if (info.subtabs && info.subtabs.length > 0) {
-            html += `<div style="margin-left: 1.5rem; margin-top: 0.25rem;">`;
+        
+        // Subtabs collapsible section
+        if (hasSubtabs) {
+            html += `<div class="subtabs-container" data-parent="${key}" style="display: none;">`;
             info.subtabs.forEach(sub => {
                 html += `
-                    <label class="checkbox-label" style="display: block; margin-bottom: 2px;">
-                        <input type="checkbox" name="${inputName}" value="${key}.${sub.key}"> ${sub.label}
+                    <label class="checkbox-label subtab">
+                        <input type="checkbox" name="${inputName}" value="${key}.${sub.key}" class="child-checkbox" data-parent="${key}"> 
+                        <span>${sub.label}</span>
                     </label>
                 `;
             });
             html += `</div>`;
         }
+        
+        html += `</div>`;
     }
     container.innerHTML = html;
+    
+    // Wire collapse/expand behavior
+    wireTabCheckboxBehavior(container, inputName);
+}
+
+// Wire the collapsible checkbox behavior
+function wireTabCheckboxBehavior(container, inputName) {
+    const parentCheckboxes = container.querySelectorAll('.parent-checkbox');
+    
+    parentCheckboxes.forEach(parentCheckbox => {
+        const parentKey = parentCheckbox.dataset.parent;
+        const subtabsContainer = container.querySelector(`.subtabs-container[data-parent="${parentKey}"]`);
+        const childCheckboxes = subtabsContainer ? subtabsContainer.querySelectorAll('.child-checkbox') : [];
+        
+        parentCheckbox.addEventListener('change', (e) => {
+            const isChecked = e.target.checked;
+            
+            if (subtabsContainer) {
+                if (isChecked) {
+                    // Show subtabs with animation
+                    subtabsContainer.style.display = 'block';
+                    // Force reflow for animation
+                    subtabsContainer.offsetHeight;
+                    subtabsContainer.classList.add('expanded');
+                    
+                    // Auto-select all child checkboxes
+                    childCheckboxes.forEach(child => child.checked = true);
+                } else {
+                    // Hide subtabs with animation
+                    subtabsContainer.classList.remove('expanded');
+                    setTimeout(() => {
+                        if (!parentCheckbox.checked) {
+                            subtabsContainer.style.display = 'none';
+                        }
+                    }, 300);
+                    
+                    // Uncheck all child checkboxes
+                    childCheckboxes.forEach(child => child.checked = false);
+                }
+            }
+            
+            updateSelectAllState(container, inputName);
+        });
+        
+        // Initialize state on load
+        if (parentCheckbox.checked && subtabsContainer) {
+            subtabsContainer.style.display = 'block';
+            subtabsContainer.classList.add('expanded');
+        }
+    });
+    
+    // Wire child checkbox changes to update select all
+    const childCheckboxes = container.querySelectorAll('.child-checkbox');
+    childCheckboxes.forEach(child => {
+        child.addEventListener('change', () => {
+            updateSelectAllState(container, inputName);
+        });
+    });
+}
+
+// Update Select All checkbox state based on current selections
+function updateSelectAllState(container, inputName) {
+    let selectAllCheckbox;
+    
+    // Determine which select all checkbox to update based on input name
+    if (inputName === 'allowed_tab') {
+        selectAllCheckbox = $('#userSelectAllTabs');
+    } else if (inputName === 'edit_role_allowed_tab') {
+        selectAllCheckbox = $('#editRoleSelectAllTabs');
+    }
+    
+    if (!selectAllCheckbox) return;
+    
+    const allParentCheckboxes = container.querySelectorAll('.parent-checkbox');
+    const checkedParents = Array.from(allParentCheckboxes).filter(cb => cb.checked);
+    
+    if (checkedParents.length === 0) {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.indeterminate = false;
+    } else if (checkedParents.length === allParentCheckboxes.length) {
+        selectAllCheckbox.checked = true;
+        selectAllCheckbox.indeterminate = false;
+    } else {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.indeterminate = true;
+    }
 }
 
 // Refactor existing renderTabCheckboxes to use internal
 function renderTabCheckboxes(container) {
     if (!container) return;
     renderTabCheckboxesInternal(container, 'allowed_tab');
-    
-    // Re-wire parent/child logic for User Modal
-    const parents = container.querySelectorAll('input[value^=""]'); // Simplified logic from before...
-    // Actually, I need to preserve the complex parent/child logic I wrote previously or extract it properly.
-    // For now, let's just re-wire the existing parent logic as I'm replacing the function entirely?
-    // Wait, the previous implementation had event listeners attached inside.
-    // I should probably just call the internal renderer then re-attach listeners.
-    
-    // Attach listeners similar to before
-    const inputs = container.querySelectorAll('input');
-    inputs.forEach(input => {
-        if (!input.value.includes('.')) {
-            // Parent
-            input.addEventListener('change', (e) => {
-                const key = e.target.value;
-                const children = container.querySelectorAll(`input[value^="${key}."]`);
-                children.forEach(c => c.checked = e.target.checked);
-                updateSelectAllTabsState();
-            });
-        } else {
-             // Child
-             input.addEventListener('change', () => {
-                 updateSelectAllTabsState();
-             });
-        }
-    });
 }
 
-
-function updateSelectAllTabsState() {
-    const boxes = document.querySelectorAll('input[name="allowed_tab"]');
-    const checked = document.querySelectorAll('input[name="allowed_tab"]:checked');
-    const selectAll = $('#userSelectAllTabs');
-    if (selectAll) {
-        selectAll.checked = boxes.length > 0 && boxes.length === checked.length;
-        selectAll.indeterminate = checked.length > 0 && checked.length < boxes.length;
-    }
-}
-
-function populateRolesDropdown(select) {
-    if (!select) return;
-    const current = select.value;
-    select.innerHTML = state.roles.map(r => `<option value="${r.role_name}">${r.role_name}</option>`).join('');
-    // Optionally preserve selection if still valid
-    if (current && Array.from(select.options).some(o => o.value === current)) {
-        select.value = current;
+function populateRolesDropdown(currentRole = null) {
+    const dropdown = $('#role-dropdown');
+    if (!dropdown) return;
+    
+    const optionsContainer = dropdown.querySelector('.dropdown-options');
+    const selectedDisplay = dropdown.querySelector('.dropdown-selected');
+    const hiddenInput = dropdown.querySelector('input[type="hidden"]');
+    
+    // Populate options
+    optionsContainer.innerHTML = state.roles.map(r => {
+        const isSelected = currentRole === r.role_name;
+        return `<div class="dropdown-option ${isSelected ? 'selected' : ''}" onclick="selectOption(this, 'role-dropdown', '${r.role_name}', '${r.role_name}')">${r.role_name}</div>`;
+    }).join('');
+    
+    // Set current selection
+    if (currentRole) {
+        selectedDisplay.textContent = currentRole;
+        hiddenInput.value = currentRole;
+    } else if (state.roles.length > 0) {
+        // Default to first role (usually 'user')
+        const defaultRole = state.roles.find(r => r.role_name === 'user') || state.roles[0];
+        selectedDisplay.textContent = defaultRole.role_name;
+        hiddenInput.value = defaultRole.role_name;
     }
 }
 
@@ -690,10 +887,10 @@ function openHistoryModal(username) {
     }
 
     // Modal Close
-    $('#closeHistoryModal').onclick = () => modal.style.display = 'none';
-    $('#closeHistoryModalBtn').onclick = () => modal.style.display = 'none';
+    $('#closeHistoryModal').onclick = () => modal.classList.remove('active');
+    $('#closeHistoryModalBtn').onclick = () => modal.classList.remove('active');
     
-    modal.style.display = 'flex';
+    modal.classList.add('active');
 }
 
 

@@ -1,0 +1,478 @@
+/* ===== Order Tracking Page ===== */
+/* Page-specific styles for order tracking dashboard */
+
+.order-tracking {
+  display: block;
+  font-family: var(--ff);
+  color: var(--text-muted);
+  transition: all var(--transition);
+  padding: 0.5rem 1rem;
+  min-height: calc(100vh - 40px);
+  background: var(--bg-dark);
+}
+
+/* ===== Tab Spacing ===== */
+.order-tracking .inner-tabs {
+  margin: 2rem 0;
+}
+
+.order-tracking .tab-button {
+  flex: 1 1 auto;
+  min-width: 160px;
+}
+
+/* ===== Main Content Layout ===== */
+.order-tracking .tracking-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-width: 1800px;
+}
+
+/* ===== Tracking Actions ===== */
+.order-tracking .tracking-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.order-tracking .live-status,
+.order-tracking .tracking-actions button {
+  flex-shrink: 0;
+}
+
+.order-tracking .live-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--bg-light);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-m);
+}
+
+.order-tracking .status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.order-tracking .status-text {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text);
+}
+
+/* ===== Minimal Mode Styles ===== */
+/* Add transitions for smooth minimal mode toggle */
+.page-header,
+.inner-tabs,
+.sidebar,
+#sidebar,
+.tracking-actions .live-status,
+.tracking-actions .action-btn,
+#content,
+.order-tracking,
+.tracking-content,
+.action-block {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body.minimal-mode .page-header,
+body.minimal-mode .inner-tabs {
+  opacity: 0;
+  transform: translateY(-20px);
+  display: none;
+}
+
+body.minimal-mode .sidebar,
+body.minimal-mode #sidebar,
+body.minimal-mode .breadcrumb,
+body.minimal-mode .shell-breadcrumb {
+  opacity: 0;
+  transform: translateX(-100%);
+  display: none !important;
+}
+
+body.minimal-mode #content {
+  margin-left: 0 !important;
+}
+
+body.minimal-mode .order-tracking {
+  padding: 0;
+}
+
+body.minimal-mode .tracking-content {
+  gap: 0;
+  margin: 0;
+  max-width: none;
+}
+
+body.minimal-mode .action-block {
+  border-radius: 0;
+  padding: 1rem;
+  box-shadow: none;
+  border: none;
+}
+
+body.minimal-mode .block-header {
+  margin-bottom: 1rem;
+}
+
+body.minimal-mode .tracking-board {
+  gap: 1rem;
+  margin-top: 0;
+}
+
+/* Keep tracking actions visible but hide live status and refresh button */
+body.minimal-mode .tracking-actions .live-status,
+body.minimal-mode .tracking-actions .action-btn {
+  opacity: 0;
+  transform: scale(0.8);
+  pointer-events: none;
+  display: none;
+}
+
+body.minimal-mode .tracking-actions {
+  justify-content: flex-end;
+  margin-bottom: 1rem;
+}
+
+/* ===== Tracking Board ===== */
+.order-tracking .tracking-board {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+/* ===== Tracking Column ===== */
+.order-tracking .tracking-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-height: 400px;
+}
+
+.order-tracking .column-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: var(--bg-light);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-m);
+  border-left: 4px solid var(--accent);
+}
+
+/* Column header variants */
+.order-tracking .column-header.ready-to-pick {
+  border-left-color: var(--warning);
+}
+
+.order-tracking .column-header.ready-to-check {
+  border-left-color: var(--info);
+}
+
+.order-tracking .column-header.completed {
+  border-left-color: var(--success);
+}
+
+.order-tracking .column-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  background: var(--bg);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-s);
+}
+
+.order-tracking .column-header.ready-to-pick .column-icon {
+  color: var(--warning);
+}
+
+.order-tracking .column-header.ready-to-check .column-icon {
+  color: var(--info);
+}
+
+.order-tracking .column-header.completed .column-icon {
+  color: var(--success);
+}
+
+.order-tracking .column-icon i {
+  font-size: 1.25rem;
+}
+
+.order-tracking .column-title-group {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.order-tracking .column-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+
+.order-tracking .column-count {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: var(--bg);
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-full);
+  min-width: 2.5rem;
+  text-align: center;
+}
+
+.order-tracking .column-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 0.5rem;
+  background: var(--bg-light);
+  border-radius: var(--radius-md);
+  min-height: 300px;
+  flex: 1;
+}
+
+/* ===== Order Card (in columns) ===== */
+.order-tracking .order-card {
+  background: var(--bg);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  box-shadow: var(--shadow-m);
+  border-left: 3px solid var(--accent);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.order-tracking .order-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-l);
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.order-tracking .order-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.order-tracking .order-number {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.order-tracking .order-priority {
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.order-tracking .order-priority.high {
+  background: color-mix(in srgb, var(--danger) 15%, var(--bg-light));
+  color: var(--danger);
+  outline: 1px solid color-mix(in srgb, var(--danger) 30%, transparent);
+}
+
+.order-tracking .order-priority.medium {
+  background: color-mix(in srgb, var(--warning) 15%, var(--bg-light));
+  color: var(--warning);
+  outline: 1px solid color-mix(in srgb, var(--warning) 30%, transparent);
+}
+
+.order-tracking .order-priority.low {
+  background: color-mix(in srgb, var(--info) 15%, var(--bg-light));
+  color: var(--info);
+  outline: 1px solid color-mix(in srgb, var(--info) 30%, transparent);
+}
+
+.order-tracking .order-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.order-tracking .order-detail {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.order-tracking .order-detail i {
+  width: 16px;
+  text-align: center;
+  color: var(--accent);
+}
+
+.order-tracking .order-card-footer {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid color-mix(in srgb, var(--text) 10%, transparent);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* ===== Empty State ===== */
+.order-tracking .empty-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.order-tracking .empty-column i {
+  font-size: 3rem;
+  opacity: 0.3;
+  margin-bottom: 1rem;
+}
+
+.order-tracking .empty-column p {
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+/* ===== Modal Content Enhancements ===== */
+.order-tracking .order-detail-section {
+  margin-bottom: 2rem;
+}
+
+.order-tracking .order-detail-section:last-child {
+  margin-bottom: 0;
+}
+
+.order-tracking .detail-section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--accent);
+}
+
+.order-tracking .detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.order-tracking .detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.order-tracking .detail-label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.order-tracking .detail-value {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* ===== Responsive Design ===== */
+@media (max-width: 1200px) {
+  .order-tracking .tracking-board {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .order-tracking .tracking-board {
+    grid-template-columns: 1fr;
+  }
+
+  .order-tracking .detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .order-tracking {
+    padding: 0.5rem;
+  }
+
+  .order-tracking .tracking-actions {
+    gap: 0.35rem;
+  }
+
+  .order-tracking .live-status {
+    font-size: 0.8rem;
+    padding: 0.3rem 0.5rem;
+  }
+
+  .order-tracking .tracking-actions button {
+    font-size: 0.8rem;
+    padding: 0.3rem 0.6rem;
+  }
+
+  .order-tracking .minimal-mode-toggle {
+    font-size: 0.8rem;
+  }
+
+  .order-tracking .minimal-mode-switch input[type="checkbox"] {
+    width: 32px;
+    height: 18px;
+  }
+
+  .order-tracking .column-header {
+    padding: 0.75rem 1rem;
+  }
+
+  .order-tracking .column-icon {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .order-tracking .column-icon i {
+    font-size: 1rem;
+  }
+
+  .order-tracking .column-title {
+    font-size: 1rem;
+  }
+
+  .order-tracking .order-card {
+    padding: 0.75rem;
+  }
+}

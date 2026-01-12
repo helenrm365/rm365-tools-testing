@@ -1,16 +1,16 @@
 <!-- Order Approval Page -->
+<!-- Uses css-new/app.css + css-new/pages/orders/approval.css -->
 <div class="order-approval">
-  <!-- Page Header -->
-  <div class="page-header">
-    <div class="page-header-content">
+  <!-- Header -->
+  <header class="page-header">
+    <div class="header-content">
       <h1 class="page-title">Order Approval</h1>
-      <hr class="page-divider">
-      <p class="page-subtitle">Review and approve pending Magento orders for picking</p>
     </div>
-  </div>
+    <p class="page-subtitle">Review and approve pending Magento orders for picking</p>
+  </header>
 
   <!-- Navigation Tabs -->
-  <div class="inner-tabs">
+  <nav class="inner-tabs">
     <button class="tab-button" onclick="location.href='/orders/order-fulfillment'">
       <i class="fas fa-shopping-cart"></i>
       <span>Order Fulfillment</span>
@@ -27,79 +27,128 @@
       <i class="fas fa-check-circle"></i>
       <span>Order Approval</span>
     </button>
-  </div>
+  </nav>
 
   <!-- Main Content -->
-  <div class="approval-content-wrapper">
+  <div class="approval-content">
     
-    <!-- Action Buttons -->
-    <div class="approval-actions">
-      <button class="primary-button" id="refreshOrdersBtn">
-        <i class="fas fa-sync-alt"></i>
-        Refresh Orders
-      </button>
-      <button class="secondary-button" id="approveAllBtn" style="display: none;">
-        <i class="fas fa-check-double"></i>
-        Approve All
-      </button>
-    </div>
-
-    <!-- Statistics Cards -->
-    <div class="stats-cards">
-      <div class="stat-card">
-        <div class="stat-icon pending">
-          <i class="fas fa-clock"></i>
+    <!-- Statistics Block -->
+    <div class="action-block">
+      <div class="block-header">
+        <div class="block-icon">
+          <i class="fas fa-chart-bar"></i>
         </div>
-        <div class="stat-info">
-          <div class="stat-value" id="pendingCount">0</div>
-          <div class="stat-label">Pending Orders</div>
+        <div class="block-title-group">
+          <h3 class="block-title">Statistics</h3>
+          <p class="block-subtitle">Current approval overview</p>
         </div>
       </div>
-      <div class="stat-card">
-        <div class="stat-icon approved">
-          <i class="fas fa-check"></i>
-        </div>
-        <div class="stat-info">
-          <div class="stat-value" id="approvedTodayCount">0</div>
-          <div class="stat-label">Approved Today</div>
+
+      <div class="block-content">
+        <div class="stats-grid">
+          <div class="stat-card pending">
+            <div class="stat-icon">
+              <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-content">
+              <div class="stat-value" id="pendingCount">0</div>
+              <div class="stat-label">Pending Orders</div>
+            </div>
+          </div>
+          <div class="stat-card approved">
+            <div class="stat-icon">
+              <i class="fas fa-check"></i>
+            </div>
+            <div class="stat-content">
+              <div class="stat-value" id="approvedTodayCount">0</div>
+              <div class="stat-label">Approved Today</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Pending Orders List -->
-    <div class="pending-orders-section">
-      <div class="section-header-bar">
-        <h2 class="section-title">
+    <!-- Controls Block -->
+    <div class="action-block">
+      <div class="block-header">
+        <div class="block-icon">
+          <i class="fas fa-sliders-h"></i>
+        </div>
+        <div class="block-title-group">
+          <h3 class="block-title">Controls</h3>
+          <p class="block-subtitle">Search, filter and manage orders</p>
+        </div>
+      </div>
+
+      <div class="block-content">
+        <div class="controls-group">
+          <!-- Action Buttons -->
+          <div class="action-buttons">
+            <button class="action-btn primary-btn" id="refreshOrdersBtn">
+              <i class="fas fa-sync-alt"></i>
+              <span>Refresh Orders</span>
+            </button>
+            <button class="action-btn success-btn" id="approveAllBtn" style="display: none;">
+              <i class="fas fa-check-double"></i>
+              <span>Approve All</span>
+            </button>
+          </div>
+
+          <!-- Search and Sort Row -->
+          <div class="filter-row">
+            <div class="search-box">
+              <i class="fas fa-search search-icon"></i>
+              <input type="text" id="searchOrders" class="search-input" placeholder="Search orders...">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Sort by</label>
+              <div class="custom-dropdown" id="sortOrders">
+                <div class="dropdown-selected" onclick="toggleDropdown('sortOrders')">Newest First</div>
+                <div class="dropdown-options">
+                  <div class="dropdown-option selected" onclick="selectOption(this, 'sortOrders', 'date-desc', 'Newest First')">Newest First</div>
+                  <div class="dropdown-option" onclick="selectOption(this, 'sortOrders', 'date-asc', 'Oldest First')">Oldest First</div>
+                  <div class="dropdown-option" onclick="selectOption(this, 'sortOrders', 'value-desc', 'Highest Value')">Highest Value</div>
+                  <div class="dropdown-option" onclick="selectOption(this, 'sortOrders', 'value-asc', 'Lowest Value')">Lowest Value</div>
+                </div>
+                <input type="hidden" name="sort" id="sortFilter" value="date-desc">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pending Orders Block -->
+    <div class="action-block">
+      <div class="block-header">
+        <div class="block-icon">
           <i class="fas fa-list"></i>
-          Pending Orders
-        </h2>
-        <div class="section-actions">
-          <input type="text" id="searchOrders" class="search-input" placeholder="Search orders...">
-          <select id="sortOrders" class="sort-select">
-            <option value="date-desc">Newest First</option>
-            <option value="date-asc">Oldest First</option>
-            <option value="value-desc">Highest Value</option>
-            <option value="value-asc">Lowest Value</option>
-          </select>
+        </div>
+        <div class="block-title-group">
+          <h3 class="block-title">Pending Orders</h3>
+          <p class="block-subtitle">Orders awaiting approval</p>
         </div>
       </div>
 
-      <div class="pending-orders-list" id="pendingOrdersList">
-        <!-- Pending orders will be inserted here -->
+      <div class="block-content">
+        <!-- Orders List -->
+        <div class="pending-orders-list" id="pendingOrdersList">
+          <!-- Pending orders will be inserted here -->
+        </div>
       </div>
     </div>
   </div>
 </div>
 
 <!-- Order Details Modal -->
-<div id="orderDetailsModal" class="modal" style="display: none;">
-  <div class="modal-content large-modal">
+<div id="orderDetailsModal" class="modal-overlay" style="display: none;">
+  <div class="modal-container modal-large">
     <div class="modal-header">
       <h2 class="modal-title" id="orderDetailsTitle">
         <i class="fas fa-box"></i>
         Order Details
       </h2>
-      <button class="close-button" onclick="document.getElementById('orderDetailsModal').style.display='none'">
+      <button class="modal-close" onclick="document.getElementById('orderDetailsModal').style.display='none'" aria-label="Close modal">
         <i class="fas fa-times"></i>
       </button>
     </div>
@@ -109,12 +158,12 @@
     </div>
     
     <div class="modal-footer">
-      <button class="secondary-button" onclick="document.getElementById('orderDetailsModal').style.display='none'">
+      <button class="action-btn secondary-btn" onclick="document.getElementById('orderDetailsModal').style.display='none'">
         Close
       </button>
-      <button class="primary-button" id="approveFromModalBtn">
+      <button class="action-btn primary-btn" id="approveFromModalBtn">
         <i class="fas fa-check"></i>
-        Approve Order
+        <span>Approve Order</span>
       </button>
     </div>
   </div>

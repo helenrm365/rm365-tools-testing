@@ -1,91 +1,844 @@
-/* ===== Orders Module Styles ===== */
-/* Page-specific styles for orders module */
-
-/* 
- * MIGRATION NOTE:
- * This file should contain ONLY page-specific layout and styles.
- * All shared components are available from app.css imports.
- * 
- * IMPORT PATTERN:
- * <link rel="stylesheet" href="/css-new/app.css">
- * <link rel="stylesheet" href="/css-new/pages/orders/fulfillment.css">
- */
-
 /* ===== Order Fulfillment Page ===== */
-.order-fulfillment .page-header {
-  margin-bottom: 2rem;
-  padding: 2rem 0 1rem 0;
-}
+/* Page-specific styles for orders/order-fulfillment.html */
+/* 
+   Global Components Used (from css-new/):
+   - layout/header.css: .page-header, .page-title, .page-subtitle, .header-content
+   - components/buttons.css: .action-btn, .primary-btn, .secondary-btn, .success-btn, .warning-btn
+   - components/cards.css: .action-block, .block-header, .block-icon, .block-title-group, .block-title, .block-subtitle, .block-content
+   - components/forms.css: .form-group, .form-label, .form-input
+   - components/tabs.css: .inner-tabs, .tab-button
+   - components/modals.css: .modal-overlay, .modal-content, .modal-header, .modal-title, .modal-close, .modal-body, .modal-footer
+   
+   Shadow System (from SHADOW_SYSTEM.md):
+   - .action-block uses shadow-l (main container)
+   - buttons use shadow-m
+   - inputs use shadow-m
+   - modals use shadow-l
+*/
 
-.order-fulfillment .page-title {
-  font-size: 2.5rem;
-  font-weight: 700;
-  background: linear-gradient(135deg, #8bc34a, #6a9e34);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-html.dark-mode .order-fulfillment .page-title {
-  background: linear-gradient(135deg, #ecf0f1, #8bc34a);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.order-fulfillment .page-subtitle {
-  font-size: 1.1rem;
+/* ===== Page Scope ===== */
+.order-fulfillment {
+  display: block;
+  font-family: var(--ff);
   color: var(--text-muted);
+  transition: all var(--transition);
+  padding: 0.5rem 1rem;
+  min-height: calc(100vh - 40px);
+  background: var(--bg-dark);
 }
 
-/* ===== Order Progress Indicators ===== */
-.order-progress {
+/* ===== Page-specific Tab Overrides ===== */
+.order-fulfillment .inner-tabs {
+  margin: 2rem 0;
+}
+
+.order-fulfillment .tab-button {
+  flex: 1 1 auto;
+  min-width: 160px;
+}
+
+/* ===== Main Content Layout ===== */
+.order-fulfillment .fulfillment-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-width: 1600px;
+}
+
+/* ===== Tracking Actions ===== */
+.order-fulfillment .tracking-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: nowrap;
+}
+
+.order-fulfillment .live-status,
+.order-fulfillment .tracking-actions button,
+.order-fulfillment .mobile-mode-toggle {
+  flex-shrink: 0;
+}
+
+.order-fulfillment .live-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--bg);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-m);
+}
+
+.order-fulfillment .status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.order-fulfillment .status-text {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text);
+}
+
+/* Mobile Mode Toggle */
+.order-fulfillment .mobile-mode-toggle {
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
 
-.progress-step {
-  width: 32px;
-  height: 32px;
+.order-fulfillment .mobile-mode-switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 24px;
+}
+
+.order-fulfillment .mobile-mode-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.order-fulfillment .mobile-mode-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--bg);
+  transition: 0.4s;
+  border-radius: 24px;
+  box-shadow: var(--shadow-m);
+}
+
+.order-fulfillment .mobile-mode-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.4s;
   border-radius: 50%;
+}
+
+.order-fulfillment .mobile-mode-switch input:checked + .mobile-mode-slider {
+  background-color: var(--accent);
+}
+
+.order-fulfillment .mobile-mode-switch input:checked + .mobile-mode-slider:before {
+  transform: translateX(26px);
+}
+
+.order-fulfillment .toggle-label {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+/* ===== Mobile Column Tabs ===== */
+.order-fulfillment .mobile-column-tabs {
+  display: none;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.order-fulfillment .mobile-tab-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: var(--bg-light);
+  border: 2px solid var(--bg);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition);
+  box-shadow: var(--shadow-m);
+  color: var(--text);
+}
+
+.order-fulfillment .mobile-tab-button:hover {
+  background: var(--bg);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-l);
+}
+
+/* Ready to Pick - Warning Color */
+.order-fulfillment .mobile-tab-button[data-column="ready-to-pick"] {
+  border-color: var(--bg);
+}
+
+.order-fulfillment .mobile-tab-button[data-column="ready-to-pick"]:hover {
+  border-color: var(--warning);
+}
+
+.order-fulfillment .mobile-tab-button[data-column="ready-to-pick"].active {
+  background: color-mix(in srgb, var(--warning) 15%, var(--bg-light));
+  box-shadow: var(--shadow-m), inset 0 1px 3px rgba(245, 158, 11, 0.15);
+  outline: 1px solid var(--warning);
+  outline-offset: 1px;
+  border-color: var(--warning);
+}
+
+.order-fulfillment .mobile-tab-button[data-column="ready-to-pick"].active i,
+.order-fulfillment .mobile-tab-button[data-column="ready-to-pick"].active span {
+  color: var(--warning);
+}
+
+/* Ready to Check - Info Color */
+.order-fulfillment .mobile-tab-button[data-column="ready-to-check"] {
+  border-color: var(--bg);
+}
+
+.order-fulfillment .mobile-tab-button[data-column="ready-to-check"]:hover {
+  border-color: var(--info);
+}
+
+.order-fulfillment .mobile-tab-button[data-column="ready-to-check"].active {
+  background: color-mix(in srgb, var(--info) 15%, var(--bg-light));
+  box-shadow: var(--shadow-m), inset 0 1px 3px rgba(59, 130, 246, 0.15);
+  outline: 1px solid var(--info);
+  outline-offset: 1px;
+  border-color: var(--info);
+}
+
+.order-fulfillment .mobile-tab-button[data-column="ready-to-check"].active i,
+.order-fulfillment .mobile-tab-button[data-column="ready-to-check"].active span {
+  color: var(--info);
+}
+
+/* Completed - Success Color */
+.order-fulfillment .mobile-tab-button[data-column="completed"] {
+  border-color: var(--bg);
+}
+
+.order-fulfillment .mobile-tab-button[data-column="completed"]:hover {
+  border-color: var(--success);
+}
+
+.order-fulfillment .mobile-tab-button[data-column="completed"].active {
+  background: color-mix(in srgb, var(--success) 15%, var(--bg-light));
+  box-shadow: var(--shadow-m), inset 0 1px 3px rgba(16, 185, 129, 0.15);
+  outline: 1px solid var(--success);
+  outline-offset: 1px;
+  border-color: var(--success);
+}
+
+.order-fulfillment .mobile-tab-button[data-column="completed"].active i,
+.order-fulfillment .mobile-tab-button[data-column="completed"].active span {
+  color: var(--success);
+}
+
+.order-fulfillment .mobile-tab-button i {
+  font-size: 1.2rem;
+}
+
+.order-fulfillment .mobile-tab-button span {
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.order-fulfillment .mobile-tab-count {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+/* ===== Tracking Board ===== */
+.order-fulfillment .tracking-board {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.order-fulfillment .tracking-column {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 400px;
+}
+
+.order-fulfillment .column-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: var(--bg-light);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-m);
+}
+
+.order-fulfillment .column-header.ready-to-pick {
+  border-left: 4px solid var(--warning);
+}
+
+.order-fulfillment .column-header.ready-to-check {
+  border-left: 4px solid var(--info);
+}
+
+.order-fulfillment .column-header.completed {
+  border-left: 4px solid var(--success);
+}
+
+.order-fulfillment .column-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.875rem;
-  font-weight: 600;
-  background: var(--bg);
-  color: var(--text-muted);
-  border: 2px solid var(--bg-light);
-  transition: all 0.3s ease;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  font-size: 1.2rem;
 }
 
-.progress-step.active {
-  background: #8bc34a;
-  color: white;
-  border-color: #8bc34a;
+.order-fulfillment .column-header.ready-to-pick .column-icon {
+  background: rgba(255, 193, 7, 0.1);
+  color: var(--warning);
 }
 
-.progress-step.completed {
-  background: #10b981;
-  color: white;
-  border-color: #10b981;
+.order-fulfillment .column-header.ready-to-check .column-icon {
+  background: rgba(33, 150, 243, 0.1);
+  color: var(--info);
 }
 
-.progress-line {
+.order-fulfillment .column-header.completed .column-icon {
+  background: rgba(76, 175, 80, 0.1);
+  color: var(--success);
+}
+
+.order-fulfillment .column-title-group {
   flex: 1;
-  height: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.order-fulfillment .column-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+}
+
+.order-fulfillment .column-count {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 0.5rem;
+  background: var(--accent);
+  color: white;
+  border-radius: var(--radius-full);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.order-fulfillment .column-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  background: var(--bg-dark);
+  border-radius: var(--radius-md);
+  min-height: 300px;
+}
+
+/* ===== Lookup Form ===== */
+.order-fulfillment .lookup-form {
+  display: grid;
+  grid-template-columns: 2fr 1fr auto;
+  gap: 1rem;
+  align-items: end;
+}
+
+/* ===== Session Info Grid ===== */
+.order-fulfillment .session-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: linear-gradient(135deg, var(--accent), var(--accent-light));
+  color: white;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  box-shadow: var(--shadow-m);
+}
+
+.order-fulfillment .session-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.order-fulfillment .info-card {
+  padding: 1rem;
+  background: var(--bg-light);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-s);
+}
+
+.order-fulfillment .info-card.header-card {
+  grid-column: 1 / -1;
+  background: var(--bg);
+}
+
+.order-fulfillment .header-content {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+}
+
+.order-fulfillment .header-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.order-fulfillment .info-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.order-fulfillment .info-value {
+  font-size: 0.95rem;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.order-fulfillment .address-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.9rem;
+}
+
+/* ===== Session Actions ===== */
+.order-fulfillment .session-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
+/* ===== Progress Bars ===== */
+.order-fulfillment .progress-section {
+  margin-bottom: 1.5rem;
+}
+
+.order-fulfillment .progress-section:last-child {
+  margin-bottom: 0;
+}
+
+.order-fulfillment .progress-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.order-fulfillment .progress-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.order-fulfillment .progress-label i {
+  color: var(--accent);
+}
+
+.order-fulfillment .progress-bar {
+  width: 100%;
+  height: 12px;
+  background: var(--bg-light);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.order-fulfillment .progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent-light));
+  border-radius: var(--radius-full);
+  transition: width 0.3s ease;
+}
+
+.order-fulfillment .progress-fill.quantity-fill {
+  background: linear-gradient(90deg, var(--info), var(--success));
+}
+
+/* ===== Scanner Form ===== */
+.order-fulfillment .scanner-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--bg-light);
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 1rem;
+  box-shadow: var(--shadow-s);
+}
+
+.order-fulfillment .scanner-status-badge i {
+  color: var(--success);
+}
+
+.order-fulfillment .scanner-form {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr auto;
+  gap: 1rem;
+  align-items: end;
+}
+
+.order-fulfillment .barcode-input {
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
+}
+
+.order-fulfillment .qty-input {
+  text-align: center;
+  font-weight: 600;
+}
+
+.order-fulfillment .scan-message {
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  margin-top: 1rem;
+  font-size: 0.9rem;
+}
+
+.order-fulfillment .scan-message.success {
+  background: rgba(76, 175, 80, 0.1);
+  border-left: 4px solid var(--success);
+  color: var(--success);
+}
+
+.order-fulfillment .scan-message.error {
+  background: rgba(244, 67, 54, 0.1);
+  border-left: 4px solid var(--danger);
+  color: var(--danger);
+}
+
+/* ===== Items List ===== */
+.order-fulfillment .items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.order-fulfillment .empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  color: var(--text-muted);
+  font-size: 1rem;
+}
+
+.order-fulfillment .empty-state i {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+/* ===== Message Area ===== */
+.order-fulfillment .message-area {
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  margin-top: 1rem;
+  font-size: 0.9rem;
+}
+
+.order-fulfillment .message-area.error {
+  background: rgba(244, 67, 54, 0.1);
+  border-left: 4px solid var(--danger);
+  color: var(--danger);
+}
+
+.order-fulfillment .message-area.success {
+  background: rgba(76, 175, 80, 0.1);
+  border-left: 4px solid var(--success);
+  color: var(--success);
+}
+
+.order-fulfillment .message-area.info {
+  background: rgba(33, 150, 243, 0.1);
+  border-left: 4px solid var(--info);
+  color: var(--info);
+}
+
+/* ===== Order Preview Modal Specifics ===== */
+.order-fulfillment .order-preview-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.order-fulfillment .preview-section {
+  padding: 1.5rem;
+  background: var(--bg);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-s);
+}
+
+.order-fulfillment .preview-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.order-fulfillment .preview-section h3 i {
+  color: var(--accent);
+}
+
+.order-fulfillment .preview-section h4 {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.9rem;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.order-fulfillment .preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.order-fulfillment .preview-grid.two-column {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.order-fulfillment .preview-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.order-fulfillment .preview-item label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.order-fulfillment .preview-item span {
+  font-size: 0.95rem;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.order-fulfillment .preview-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.order-fulfillment .preview-address {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.order-fulfillment .address-name {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.order-fulfillment .address-line {
+  color: var(--text-muted);
+}
+
+.order-fulfillment .preview-items-table {
+  overflow-x: auto;
+}
+
+.order-fulfillment .preview-items-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.order-fulfillment .preview-items-table th,
+.order-fulfillment .preview-items-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--bg-light);
+}
+
+.order-fulfillment .preview-items-table th {
+  font-weight: 600;
+  color: var(--text);
   background: var(--bg-light);
 }
 
-.progress-line.completed {
-  background: #10b981;
+.order-fulfillment .preview-items-table td {
+  color: var(--text-muted);
 }
 
-/* 
- * TODO: Migrate remaining page-specific styles from:
- * /css/orders/order-fulfillment.css
- * /css/orders/order-progress.css
- * /css/orders/tracking.css
- * /css/orders/approval.css
- */
+.order-fulfillment .text-center {
+  text-align: center;
+}
+
+.order-fulfillment .text-right {
+  text-align: right;
+}
+
+.order-fulfillment .preview-totals {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 300px;
+  margin-left: auto;
+}
+
+.order-fulfillment .preview-total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--bg-light);
+  font-size: 0.9rem;
+}
+
+.order-fulfillment .preview-total-row.grand-total {
+  border-top: 2px solid var(--accent);
+  border-bottom: none;
+  padding-top: 0.75rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.order-fulfillment .preview-total-row label {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.order-fulfillment .preview-total-row span {
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* ===== Responsive Design ===== */
+@media (max-width: 1200px) {
+  .order-fulfillment .tracking-board {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .order-fulfillment .scanner-form {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .order-fulfillment .scanner-form .form-group:nth-child(3),
+  .order-fulfillment .scanner-form .form-group:nth-child(4) {
+    grid-column: span 1;
+  }
+}
+
+@media (max-width: 900px) {
+  .order-fulfillment .tracking-board {
+    grid-template-columns: 1fr;
+  }
+
+  .order-fulfillment .lookup-form {
+    grid-template-columns: 1fr;
+  }
+
+  .order-fulfillment .scanner-form {
+    grid-template-columns: 1fr;
+  }
+
+  .order-fulfillment .session-info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .order-fulfillment .preview-grid.two-column {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .order-fulfillment {
+    padding: 0.5rem;
+  }
+
+  .order-fulfillment .tab-button {
+    min-width: 120px;
+    font-size: 0.85rem;
+  }
+
+  .order-fulfillment .tab-button span {
+    display: none;
+  }
+
+  /* Keep tracking actions horizontal but more compact */
+  .order-fulfillment .tracking-actions {
+    gap: 0.35rem;
+  }
+
+  .order-fulfillment .live-status {
+    font-size: 0.8rem;
+    padding: 0.3rem 0.5rem;
+    min-width: auto;
+  }
+
+  .order-fulfillment .tracking-actions button {
+    font-size: 0.8rem;
+    padding: 0.3rem 0.6rem;
+    min-width: auto;
+  }
+
+  .order-fulfillment .mobile-mode-toggle {
+    margin-left: 0;
+    font-size: 0.8rem;
+  }
+
+  .order-fulfillment .mobile-mode-toggle input[type="checkbox"] {
+    width: 32px;
+    height: 18px;
+  }
+
+  .order-fulfillment .session-actions {
+    flex-direction: column;
+  }
+
+  .order-fulfillment .session-actions button {
+    width: 100%;
+  }
+}

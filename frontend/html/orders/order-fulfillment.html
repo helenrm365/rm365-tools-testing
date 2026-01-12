@@ -1,16 +1,16 @@
 <!-- Order Fulfillment Page -->
+<!-- Uses css-new/app.css + css-new/pages/orders/fulfillment.css -->
 <div class="order-fulfillment">
-  <!-- Page Header -->
-  <div class="page-header">
-    <div class="page-header-content">
+  <!-- Header -->
+  <header class="page-header">
+    <div class="header-content">
       <h1 class="page-title">Order Fulfillment</h1>
-      <hr class="page-divider">
-      <p class="page-subtitle">Process orders and returns with invoice-based scanning</p>
     </div>
-  </div>
+    <p class="page-subtitle">Process orders and returns with invoice-based scanning</p>
+  </header>
 
   <!-- Navigation Tabs -->
-  <div class="inner-tabs">
+  <nav class="inner-tabs">
     <button class="tab-button active" onclick="location.href='/orders/order-fulfillment'">
       <i class="fas fa-shopping-cart"></i>
       <span>Order Fulfillment</span>
@@ -27,134 +27,146 @@
       <i class="fas fa-check-circle"></i>
       <span>Order Approval</span>
     </button>
-  </div>
+  </nav>
 
   <!-- Main Content Wrapper -->
-  <div class="pickpack-wrapper">
+  <div class="fulfillment-content">
     
-    <!-- Tracking Board Section (3 columns) -->
-    <div class="tracking-board-section" id="trackingBoardSection">
-      
-      <!-- Action Buttons -->
-      <div class="tracking-actions">
-        <!-- Live Status Indicator -->
-        <div class="live-status" id="liveStatus">
-          <span class="status-dot"></span>
-          <span class="status-text">Connecting...</span>
+    <!-- Tracking Board Section -->
+    <div class="action-block" id="trackingBoardSection">
+      <div class="block-header">
+        <div class="block-icon">
+          <i class="fas fa-columns"></i>
         </div>
-
-        <button class="primary-button" id="refreshBoardBtn">
-          <i class="fas fa-sync-alt"></i>
-          Refresh
-        </button>
-        
-        <!-- Mobile Mode Toggle -->
-        <div class="mobile-mode-toggle">
-          <label class="mobile-mode-switch" for="mobileModeToggle">
-            <input type="checkbox" id="mobileModeToggle">
-            <span class="mobile-mode-slider" role="presentation"></span>
-          </label>
-          <span class="toggle-label">Mobile Mode</span>
+        <div class="block-title-group">
+          <h3 class="block-title">Order Tracking Board</h3>
+          <p class="block-subtitle">Live view of orders in progress</p>
         </div>
       </div>
-      
-      <!-- Mobile Column Tabs (only visible in mobile mode) -->
-      <div class="mobile-column-tabs" id="mobileColumnTabs" style="display: none;">
-        <button class="mobile-tab-button active" data-column="ready-to-pick">
-          <i class="fas fa-clipboard-list"></i>
-          <span>Ready to Pick</span>
-          <span class="mobile-tab-count" id="mobileReadyToPickCount">0</span>
-        </button>
-        <button class="mobile-tab-button" data-column="ready-to-check">
-          <i class="fas fa-search"></i>
-          <span>Ready to Check</span>
-          <span class="mobile-tab-count" id="mobileReadyToCheckCount">0</span>
-        </button>
-        <button class="mobile-tab-button" data-column="completed">
-          <i class="fas fa-check-double"></i>
-          <span>Completed</span>
-          <span class="mobile-tab-count" id="mobileCompletedCount">0</span>
-        </button>
-      </div>
-      
-      <div class="tracking-board" id="trackingBoard">
+
+      <div class="block-content">
+        <!-- Action Controls -->
+        <div class="tracking-actions">
+          <!-- Live Status Indicator -->
+          <div class="live-status" id="liveStatus">
+            <span class="status-dot"></span>
+            <span class="status-text">Connecting...</span>
+          </div>
+
+          <button class="action-btn primary-btn" id="refreshBoardBtn">
+            <i class="fas fa-sync-alt"></i>
+            Refresh
+          </button>
+          
+          <!-- Mobile Mode Toggle -->
+          <div class="mobile-mode-toggle">
+            <label class="mobile-mode-switch" for="mobileModeToggle">
+              <input type="checkbox" id="mobileModeToggle">
+              <span class="mobile-mode-slider" role="presentation"></span>
+            </label>
+            <span class="toggle-label">Mobile Mode</span>
+          </div>
+        </div>
         
-        <!-- Ready to Pick Column -->
-        <div class="tracking-column">
-          <div class="column-header ready-to-pick">
-            <div class="column-icon">
-              <i class="fas fa-clipboard-list"></i>
-            </div>
-            <div class="column-title-group">
-              <h3 class="column-title">Ready to Pick</h3>
-              <span class="column-count" id="readyToPickCount">0</span>
-            </div>
-          </div>
-          <div class="column-content" id="readyToPickColumn">
-            <!-- Order cards will be inserted here -->
-          </div>
+        <!-- Mobile Column Tabs (only visible in mobile mode) -->
+        <div class="mobile-column-tabs" id="mobileColumnTabs" style="display: none;">
+          <button class="mobile-tab-button active" data-column="ready-to-pick">
+            <i class="fas fa-clipboard-list"></i>
+            <span>Ready to Pick</span>
+            <span class="mobile-tab-count" id="mobileReadyToPickCount">0</span>
+          </button>
+          <button class="mobile-tab-button" data-column="ready-to-check">
+            <i class="fas fa-search"></i>
+            <span>Ready to Check</span>
+            <span class="mobile-tab-count" id="mobileReadyToCheckCount">0</span>
+          </button>
+          <button class="mobile-tab-button" data-column="completed">
+            <i class="fas fa-check-double"></i>
+            <span>Completed</span>
+            <span class="mobile-tab-count" id="mobileCompletedCount">0</span>
+          </button>
         </div>
+        
+        <!-- Tracking Board Columns -->
+        <div class="tracking-board" id="trackingBoard">
+          
+          <!-- Ready to Pick Column -->
+          <div class="tracking-column">
+            <div class="column-header ready-to-pick">
+              <div class="column-icon">
+                <i class="fas fa-clipboard-list"></i>
+              </div>
+              <div class="column-title-group">
+                <h3 class="column-title">Ready to Pick</h3>
+                <span class="column-count" id="readyToPickCount">0</span>
+              </div>
+            </div>
+            <div class="column-content" id="readyToPickColumn">
+              <!-- Order cards will be inserted here -->
+            </div>
+          </div>
 
-        <!-- Ready to Check Column -->
-        <div class="tracking-column">
-          <div class="column-header ready-to-check">
-            <div class="column-icon">
-              <i class="fas fa-search"></i>
+          <!-- Ready to Check Column -->
+          <div class="tracking-column">
+            <div class="column-header ready-to-check">
+              <div class="column-icon">
+                <i class="fas fa-search"></i>
+              </div>
+              <div class="column-title-group">
+                <h3 class="column-title">Ready to Check</h3>
+                <span class="column-count" id="readyToCheckCount">0</span>
+              </div>
             </div>
-            <div class="column-title-group">
-              <h3 class="column-title">Ready to Check</h3>
-              <span class="column-count" id="readyToCheckCount">0</span>
+            <div class="column-content" id="readyToCheckColumn">
+              <!-- Order cards will be inserted here -->
             </div>
           </div>
-          <div class="column-content" id="readyToCheckColumn">
-            <!-- Order cards will be inserted here -->
+
+          <!-- Completed Column -->
+          <div class="tracking-column">
+            <div class="column-header completed">
+              <div class="column-icon">
+                <i class="fas fa-check-double"></i>
+              </div>
+              <div class="column-title-group">
+                <h3 class="column-title">Completed</h3>
+                <span class="column-count" id="completedCount">0</span>
+              </div>
+            </div>
+            <div class="column-content" id="completedColumn">
+              <!-- Order cards will be inserted here -->
+            </div>
           </div>
+
         </div>
-
-        <!-- Completed Column -->
-        <div class="tracking-column">
-          <div class="column-header completed">
-            <div class="column-icon">
-              <i class="fas fa-check-double"></i>
-            </div>
-            <div class="column-title-group">
-              <h3 class="column-title">Completed</h3>
-              <span class="column-count" id="completedCount">0</span>
-            </div>
-          </div>
-          <div class="column-content" id="completedColumn">
-            <!-- Order cards will be inserted here -->
-          </div>
-        </div>
-
       </div>
     </div>
     
-    <!-- Order Lookup Section (shown when no active session) -->
-    <div class="order-lookup-section" id="orderLookupSection">
-      <div class="section-header">
-        <div class="section-icon">
+    <!-- Order Lookup Section -->
+    <div class="action-block" id="orderLookupSection">
+      <div class="block-header">
+        <div class="block-icon">
           <i class="fas fa-search"></i>
         </div>
-        <div class="section-title-group">
-          <h3 class="section-title">Start New Session</h3>
-          <p class="section-subtitle">Enter an order number to begin picking or processing returns</p>
+        <div class="block-title-group">
+          <h3 class="block-title">Start New Session</h3>
+          <p class="block-subtitle">Enter an order number to begin picking or processing returns</p>
         </div>
       </div>
 
-      <div class="lookup-card">
-        <div class="form-grid lookup-form">
+      <div class="block-content">
+        <div class="lookup-form">
           <!-- Order Number Input -->
-          <div class="form-field">
+          <div class="form-group">
             <label class="form-label">
               <i class="fas fa-hashtag"></i>
               Order Number
             </label>
-            <input type="text" id="orderNumberInput" class="modern-input" placeholder="Enter order number..." autocomplete="off">
+            <input type="text" id="orderNumberInput" class="form-input" placeholder="Enter order number..." autocomplete="off">
           </div>
 
           <!-- Session Type -->
-          <div class="form-field">
+          <div class="form-group">
             <label class="form-label">
               <i class="fas fa-tasks"></i>
               Session Type
@@ -174,9 +186,9 @@
           </div>
 
           <!-- Lookup Button -->
-          <div class="form-field">
+          <div class="form-group">
             <label class="form-label">&nbsp;</label>
-            <button id="startSessionBtn" class="primary-button">
+            <button id="startSessionBtn" class="action-btn primary-btn">
               <i class="fas fa-play"></i>
               Start Session
             </button>
@@ -188,11 +200,20 @@
       </div>
     </div>
 
-    <!-- Active Session Section (shown when session is active) -->
-    <div class="active-session-section" id="activeSessionSection" style="display: none;">
-      
-      <!-- Session Header with Order Info -->
-      <div class="session-header-card">
+    <!-- Active Session Section -->
+    <div class="action-block" id="activeSessionSection" style="display: none;">
+      <div class="block-header">
+        <div class="block-icon">
+          <i class="fas fa-box"></i>
+        </div>
+        <div class="block-title-group">
+          <h3 class="block-title">Active Session</h3>
+          <p class="block-subtitle">Pick & pack order items</p>
+        </div>
+      </div>
+
+      <div class="block-content">
+        <!-- Session Type Badge -->
         <div class="session-type-badge" id="sessionTypeBadge">
           <i class="fas fa-box"></i>
           <span>PICK & PACK</span>
@@ -200,7 +221,7 @@
 
         <!-- Order Information Grid -->
         <div class="session-info-grid">
-          <!-- Top Section: Order/Invoice/Date in gray header -->
+          <!-- Top Section: Order/Invoice/Date in header -->
           <div class="info-card header-card">
             <div class="header-content">
               <div class="header-item">
@@ -218,7 +239,7 @@
             </div>
           </div>
 
-          <!-- Sold To and Ship To - Two Column -->
+          <!-- Sold To and Ship To -->
           <div class="info-card address-card">
             <div class="info-label">Sold to:</div>
             <div class="info-value address-info">
@@ -239,7 +260,7 @@
             </div>
           </div>
 
-          <!-- Payment Method and Shipping Method - Two Column -->
+          <!-- Payment Method and Shipping Method -->
           <div class="info-card">
             <div class="info-label">Payment Method:</div>
             <div class="info-value" id="sessionPaymentMethod">-</div>
@@ -253,23 +274,35 @@
 
         <!-- Session Action Buttons -->
         <div class="session-actions">
-          <button id="cancelSessionBtn" class="secondary-button">
+          <button id="cancelSessionBtn" class="action-btn secondary-btn">
             <i class="fas fa-times"></i>
             Cancel
           </button>
-          <button id="markReadyToCheckBtn" class="warning-button" style="display: none;">
+          <button id="markReadyToCheckBtn" class="action-btn warning-btn" style="display: none;">
             <i class="fas fa-clipboard-check"></i>
             Ready to Check
           </button>
-          <button id="completeSessionBtn" class="success-button" disabled>
+          <button id="completeSessionBtn" class="action-btn success-btn" disabled>
             <i class="fas fa-check"></i>
             Complete
           </button>
         </div>
       </div>
+    </div>
 
-      <!-- Progress Bars -->
-      <div class="progress-container">
+    <!-- Progress Bars Section -->
+    <div class="action-block" id="progressSection" style="display: none;">
+      <div class="block-header">
+        <div class="block-icon">
+          <i class="fas fa-chart-bar"></i>
+        </div>
+        <div class="block-title-group">
+          <h3 class="block-title">Progress</h3>
+          <p class="block-subtitle">Track scanning completion</p>
+        </div>
+      </div>
+
+      <div class="block-content">
         <!-- Items Completed Progress -->
         <div class="progress-section">
           <div class="progress-info">
@@ -300,85 +333,87 @@
           </div>
         </div>
       </div>
+    </div>
 
-      <!-- Scanner Section -->
-      <div class="scanner-section">
-        <div class="section-header">
-          <div class="section-icon">
-            <i class="fas fa-barcode"></i>
-          </div>
-          <div class="section-title-group">
-            <h3 class="section-title">Scan Products</h3>
-            <p class="section-subtitle">Click input to activate scanner or type SKU manually</p>
-          </div>
+    <!-- Scanner Section -->
+    <div class="action-block" id="scannerSection" style="display: none;">
+      <div class="block-header">
+        <div class="block-icon">
+          <i class="fas fa-barcode"></i>
         </div>
-
-        <div class="scanner-interface-card">
-          <div class="scanner-status-badge" id="scannerStatus">
-            <i class="fas fa-check-circle"></i>
-            <span>Ready to Scan</span>
-          </div>
-
-          <div class="form-grid">
-            <!-- SKU/Barcode Input -->
-            <div class="form-field">
-              <label class="form-label">
-                <i class="fas fa-barcode"></i>
-                SKU / Barcode
-              </label>
-              <input type="text" id="skuInput" class="modern-input barcode-input" placeholder="Scan or type SKU..." autocomplete="off" disabled>
-            </div>
-
-            <!-- Quantity -->
-            <div class="form-field">
-              <label class="form-label">
-                <i class="fas fa-hashtag"></i>
-                Quantity
-              </label>
-              <input type="number" id="scanQuantityInput" class="modern-input qty-input" value="1" min="1" disabled>
-            </div>
-
-            <!-- Shelf Field Selector -->
-            <div class="form-field">
-              <label class="form-label">
-                <i class="fas fa-layer-group"></i>
-                Take From
-              </label>
-              <select id="shelfFieldSelect" class="modern-input" disabled>
-                <option value="auto">Auto (Smart Logic)</option>
-                <option value="shelf_lt1_qty">Shelf &lt;1 Year</option>
-                <option value="shelf_gt1_qty">Shelf &gt;1 Year</option>
-                <option value="top_floor_total">Top Floor</option>
-              </select>
-            </div>
-
-            <!-- Scan Button -->
-            <div class="form-field">
-              <label class="form-label">&nbsp;</label>
-              <button id="scanBtn" class="primary-button" disabled>
-                <i class="fas fa-check"></i>
-                Scan
-              </button>
-            </div>
-          </div>
-
-          <!-- Scan Result Message -->
-          <div id="scanMessage" class="scan-message" style="display: none;"></div>
+        <div class="block-title-group">
+          <h3 class="block-title">Scan Products</h3>
+          <p class="block-subtitle">Click input to activate scanner or type SKU manually</p>
         </div>
       </div>
 
-      <!-- Items List -->
-      <div class="items-section">
-        <div class="section-header">
-          <div class="section-icon">
-            <i class="fas fa-list"></i>
+      <div class="block-content">
+        <div class="scanner-status-badge" id="scannerStatus">
+          <i class="fas fa-check-circle"></i>
+          <span>Ready to Scan</span>
+        </div>
+
+        <div class="scanner-form">
+          <!-- SKU/Barcode Input -->
+          <div class="form-group">
+            <label class="form-label">
+              <i class="fas fa-barcode"></i>
+              SKU / Barcode
+            </label>
+            <input type="text" id="skuInput" class="form-input barcode-input" placeholder="Scan or type SKU..." autocomplete="off" disabled>
           </div>
-          <div class="section-title-group">
-            <h3 class="section-title">Invoice Items</h3>
-            <p class="section-subtitle">Track scanning progress for each item</p>
+
+          <!-- Quantity -->
+          <div class="form-group">
+            <label class="form-label">
+              <i class="fas fa-hashtag"></i>
+              Quantity
+            </label>
+            <input type="number" id="scanQuantityInput" class="form-input qty-input" value="1" min="1" disabled>
+          </div>
+
+          <!-- Shelf Field Selector -->
+          <div class="form-group">
+            <label class="form-label">
+              <i class="fas fa-layer-group"></i>
+              Take From
+            </label>
+            <select id="shelfFieldSelect" class="form-input" disabled>
+              <option value="auto">Auto (Smart Logic)</option>
+              <option value="shelf_lt1_qty">Shelf &lt;1 Year</option>
+              <option value="shelf_gt1_qty">Shelf &gt;1 Year</option>
+              <option value="top_floor_total">Top Floor</option>
+            </select>
+          </div>
+
+          <!-- Scan Button -->
+          <div class="form-group">
+            <label class="form-label">&nbsp;</label>
+            <button id="scanBtn" class="action-btn primary-btn" disabled>
+              <i class="fas fa-check"></i>
+              Scan
+            </button>
           </div>
         </div>
 
+        <!-- Scan Result Message -->
+        <div id="scanMessage" class="scan-message" style="display: none;"></div>
+      </div>
+    </div>
+
+    <!-- Items List Section -->
+    <div class="action-block" id="itemsListSection" style="display: none;">
+      <div class="block-header">
+        <div class="block-icon">
+          <i class="fas fa-list"></i>
+        </div>
+        <div class="block-title-group">
+          <h3 class="block-title">Invoice Items</h3>
+          <p class="block-subtitle">Track scanning progress for each item</p>
+        </div>
+      </div>
+
+      <div class="block-content">
         <div class="items-list" id="itemsList">
           <!-- Items will be populated by JavaScript -->
           <div class="empty-state">
@@ -386,17 +421,13 @@
             <p>No items to display</p>
           </div>
         </div>
-      </div>
-
     </div>
 
-  </div>
-
   <!-- Notification Modal -->
-  <div class="modal" id="notificationModal" style="display: none;">
+  <div class="modal-overlay" id="notificationModal" style="display: none;">
     <div class="modal-content modal-small">
       <div class="modal-header">
-        <h2 id="notificationTitle">Notification</h2>
+        <h2 class="modal-title" id="notificationTitle">Notification</h2>
         <button class="modal-close" id="closeNotificationBtn">&times;</button>
       </div>
       <div class="modal-body">
@@ -406,16 +437,16 @@
         <p id="notificationMessage"></p>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-primary" id="notificationOkBtn">OK</button>
+        <button class="action-btn primary-btn" id="notificationOkBtn">OK</button>
       </div>
     </div>
   </div>
 
   <!-- Confirmation Modal -->
-  <div class="modal" id="confirmationModal" style="display: none;">
+  <div class="modal-overlay" id="confirmationModal" style="display: none;">
     <div class="modal-content modal-small">
       <div class="modal-header">
-        <h2 id="confirmationTitle">Confirm</h2>
+        <h2 class="modal-title" id="confirmationTitle">Confirm</h2>
         <button class="modal-close" id="closeConfirmationBtn">&times;</button>
       </div>
       <div class="modal-body">
@@ -425,17 +456,17 @@
         <p id="confirmationMessage"></p>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-secondary" id="confirmationCancelBtn">Cancel</button>
-        <button class="btn btn-primary" id="confirmationOkBtn">OK</button>
+        <button class="action-btn secondary-btn" id="confirmationCancelBtn">Cancel</button>
+        <button class="action-btn primary-btn" id="confirmationOkBtn">OK</button>
       </div>
     </div>
   </div>
 
   <!-- Order Preview Modal -->
-  <div class="modal" id="orderPreviewModal" style="display: none;">
+  <div class="modal-overlay" id="orderPreviewModal" style="display: none;">
     <div class="modal-content modal-large">
       <div class="modal-header">
-        <h2>Order Preview</h2>
+        <h2 class="modal-title">Order Preview</h2>
         <button class="modal-close" id="closeOrderPreviewBtn">&times;</button>
       </div>
       <div class="modal-body">
@@ -531,8 +562,8 @@
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-secondary" id="cancelOrderPreviewBtn">Cancel</button>
-        <button class="btn btn-primary" id="startSessionFromPreviewBtn">
+        <button class="action-btn secondary-btn" id="cancelOrderPreviewBtn">Cancel</button>
+        <button class="action-btn primary-btn" id="startSessionFromPreviewBtn">
           <i class="fas fa-play"></i> Start Session
         </button>
       </div>

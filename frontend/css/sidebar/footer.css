@@ -90,6 +90,104 @@ html.dark-mode .footer-button:hover {
   background: rgba(231, 76, 60, 0.15);
 }
 
+/* === Sidebar Toggle Items (Dark Mode & Liquid Glass) === */
+.sidebar-toggle-item {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 0.85rem;
+  border-radius: 12px;
+  transition: background 0.3s ease, padding 0.3s ease;
+  min-height: 48px;
+  gap: 0.5rem;
+}
+
+/* Collapsed state */
+.sidebar:not(:hover) .sidebar-toggle-item {
+  padding: 0.5rem 1rem;
+  justify-content: flex-start;
+  gap: 0;
+}
+
+/* Expanded state */
+.sidebar:hover .sidebar-toggle-item {
+  padding: 0.5rem 1rem;
+  justify-content: flex-start;
+  gap: 0.5rem;
+}
+
+.sidebar-toggle-item:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+html.dark-mode .sidebar-toggle-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.sidebar-toggle-item .nav-icon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  line-height: 1;
+  transition: width 0.3s ease, height 0.3s ease, font-size 0.3s ease;
+}
+
+.sidebar:hover .sidebar-toggle-item .nav-icon {
+  width: 28px;
+  height: 28px;
+  font-size: 1.35rem;
+}
+
+/* Toggle label styling */
+.sidebar-toggle-item .nav-label {
+  font-size: 0.95rem;
+  white-space: nowrap;
+  visibility: hidden;
+  max-width: 0;
+  overflow: hidden;
+  transition: max-width 0.3s ease, visibility 0s linear 0.3s;
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+.sidebar:hover .sidebar-toggle-item .nav-label {
+  visibility: visible;
+  max-width: 200px;
+  pointer-events: auto;
+  transition: max-width 0.3s ease, visibility 0s linear 0s;
+}
+
+/* Custom toggle styles for sidebar - HIDDEN BY DEFAULT */
+.sidebar-toggle-item .c-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-shrink: 0;
+  visibility: hidden;
+  transform: scale(0);
+  transform-origin: left center;
+  width: 50px;
+  transition: transform 0.3s ease, visibility 0s linear 0.3s;
+  margin-left: -50px;
+}
+
+/* Show toggle only when sidebar is expanded */
+.sidebar:hover .sidebar-toggle-item .c-toggle {
+  visibility: visible;
+  transform: scale(1);
+  margin-left: 0;
+  transition: transform 0.3s ease, visibility 0s linear 0s;
+}
+
+.sidebar-toggle-item .c-toggle__input-wrapper {
+  width: 50px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
 /* === Dark Mode Toggle === */
 .dark-mode-toggle {
   display: flex;
@@ -218,36 +316,40 @@ input:focus + .toggle-slider {
 @media (max-width: 768px) {
   /* Show labels on mobile when sidebar is open */
   .sidebar.mobile-open .footer-button .nav-label,
-  .sidebar.mobile-open .dark-mode-toggle .nav-label {
-    opacity: 1;
+  .sidebar.mobile-open .sidebar-toggle-item .nav-label {
+    visibility: visible;
     max-width: 200px;
     pointer-events: auto;
   }
   
   .sidebar.mobile-open .footer-button,
-  .sidebar.mobile-open .dark-mode-toggle {
+  .sidebar.mobile-open .sidebar-toggle-item {
     padding: 0.5rem 1rem;
     justify-content: flex-start;
-    gap: 1rem;
+    gap: 0.5rem;
     min-height: 48px;
   }
   
   /* Match icon size to expanded state */
   .sidebar.mobile-open .footer-button .nav-icon,
-  .sidebar.mobile-open .dark-mode-toggle .nav-icon {
+  .sidebar.mobile-open .sidebar-toggle-item .nav-icon {
     width: 28px;
     height: 28px;
     font-size: 1.35rem;
   }
   
-  .sidebar.mobile-open .toggle-switch {
-    opacity: 1;
-    max-width: 44px;
-    transform: translateX(0);
+  .sidebar.mobile-open .sidebar-toggle-item .c-toggle {
+    visibility: visible;
+    transform: scale(1);
+    margin-left: 0;
   }
   
-  .sidebar.mobile-open .dark-mode-toggle {
-    gap: 0.5rem;
+  .sidebar.mobile-open .sidebar-toggle-item .c-toggle__input-wrapper {
+    width: 50px;
+    height: 24px;
+  }
+    width: 50px;
+    height: 24px;
   }
   
   /* Remove hover transform on mobile */
@@ -277,7 +379,7 @@ input:focus + .toggle-slider {
 .sidebar:hover .liquid-glass-toggle {
   padding: 0.5rem 1rem;
   justify-content: flex-start;
-  gap: 0.5rem;
+  gap: 0.75rem;
 }
 
 .liquid-glass-toggle:hover {
@@ -332,7 +434,7 @@ html.dark-mode .liquid-glass-toggle:hover {
   .sidebar.mobile-open .liquid-glass-toggle {
     padding: 0.5rem 1rem;
     justify-content: flex-start;
-    gap: 0.5rem;
+    gap: 0.75rem;
     min-height: 48px;
   }
   

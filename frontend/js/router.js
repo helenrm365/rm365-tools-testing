@@ -52,7 +52,6 @@ const routes = {
   '/enrollment':            '/html/enrollment/home.html',
   '/enrollment/management': '/html/enrollment/management.html',
   '/enrollment/management-depth-test': '/html/enrollment/management-depth-test.html',
-  '/enrollment/card':       '/html/enrollment/nfc.html',
   '/enrollment/nfc':        '/html/enrollment/nfc.html',
 
   '/labels':                '/html/labels/home.html',
@@ -136,7 +135,7 @@ export function generateTabStructure() {
     'overview': 'Overview',
     // Enrollment
     'management': 'Management',
-    'card': 'NFC',
+    'management-depth-test': 'Management Depth Test',
     'nfc': 'NFC',
     // Labels
     'generator': 'Generator',

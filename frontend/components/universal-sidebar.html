@@ -88,22 +88,26 @@
       <span class="nav-label">Logout</span>
     </button>
     
-    <div class="dark-mode-toggle">
+    <div class="sidebar-toggle-item dark-mode-toggle">
       <span class="nav-icon" aria-hidden="true"><i class="fas fa-moon"></i></span>
-      <label class="toggle-switch" aria-label="Toggle dark mode">
-        <input type="checkbox" id="darkModeToggle" aria-checked="false">
-        <span class="toggle-slider"></span>
-      </label>
       <span class="nav-label">Dark Mode</span>
+      <div class="c-toggle">
+        <div class="c-toggle__input-wrapper">
+          <input type="checkbox" id="darkModeToggle" class="c-toggle__input" aria-checked="false">
+          <span class="c-toggle__slider"></span>
+        </div>
+      </div>
     </div>
 
-    <div class="liquid-glass-toggle">
+    <div class="sidebar-toggle-item liquid-glass-toggle">
       <span class="nav-icon" aria-hidden="true"><i class="fas fa-tint"></i></span>
-      <label class="toggle-switch" aria-label="Toggle liquid glass mode">
-        <input type="checkbox" id="liquidGlassToggle" aria-checked="false">
-        <span class="toggle-slider"></span>
-      </label>
       <span class="nav-label">Liquid Glass</span>
+      <div class="c-toggle">
+        <div class="c-toggle__input-wrapper">
+          <input type="checkbox" id="liquidGlassToggle" class="c-toggle__input" aria-checked="false">
+          <span class="c-toggle__slider"></span>
+        </div>
+      </div>
     </div>
   </div>
 </nav>
