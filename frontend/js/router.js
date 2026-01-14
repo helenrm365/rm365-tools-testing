@@ -67,6 +67,14 @@ const routes = {
 
   '/inventory':             '/html/inventory/home.html',
   '/inventory/management':  '/html/inventory/management.html',
+  '/inventory/sourcing':    '/html/inventory/sourcing.html',
+  '/inventory/sourcing/dashboard':     '/html/inventory/sourcing.html',
+  '/inventory/sourcing/comparison':    '/html/inventory/sourcing.html',
+  '/inventory/sourcing/suppliers':     '/html/inventory/sourcing.html',
+  '/inventory/sourcing/mappings':      '/html/inventory/sourcing.html',
+  '/inventory/sourcing/prices':        '/html/inventory/sourcing.html',
+  '/inventory/sourcing/import':        '/html/inventory/sourcing.html',
+  '/inventory/sourcing/margins':       '/html/inventory/sourcing.html',
   
   '/orders':                    '/html/orders/home.html',
   '/orders/order-fulfillment':  '/html/orders/order-fulfillment.html',
@@ -142,6 +150,7 @@ export function generateTabStructure() {
     'history': 'History',
     // Inventory
     'management': 'Management',
+    'sourcing': 'Product Sourcing',
     // Orders
     'order-fulfillment': 'Order Fulfillment',
     'order-progress': 'Order Progress'

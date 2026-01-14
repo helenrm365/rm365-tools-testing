@@ -1,0 +1,806 @@
+<!-- Product Sourcing Page -->
+<!-- Uses css-new/app.css + css-new/pages/inventory/sourcing.css -->
+<div class="product-sourcing">
+  <!-- Header -->
+  <header class="page-header">
+    <div class="header-content">
+      <h1 class="page-title">Product Sourcing</h1>
+    </div>
+    <p class="page-subtitle">Manage supplier pricing, compare costs, and track margins across all products</p>
+  </header>
+
+  <!-- Navigation Tabs -->
+  <nav class="inner-tabs">
+    <button class="tab-button" onclick="location.href='/inventory/management'">
+      <i class="fas fa-boxes"></i>
+      <span>Management</span>
+    </button>
+    <button class="tab-button active" onclick="location.href='/inventory/sourcing'">
+      <i class="fas fa-truck-loading"></i>
+      <span>Product Sourcing</span>
+    </button>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="sourcing-content">
+    
+    <!-- ===== Quick Stats Row ===== -->
+    <div class="sourcing-stats-row">
+      <div class="stat-card">
+        <div class="stat-icon">
+          <i class="fas fa-industry"></i>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value" id="totalSuppliers">--</span>
+          <span class="stat-label">Active Suppliers</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">
+          <i class="fas fa-link"></i>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value" id="totalMappings">--</span>
+          <span class="stat-label">Product Mappings</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">
+          <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value" id="unmappedProducts">--</span>
+          <span class="stat-label">Unmapped Products</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">
+          <i class="fas fa-percentage"></i>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value" id="avgMargin">--</span>
+          <span class="stat-label">Avg Margin</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Sub-Navigation Tabs ===== -->
+    <div class="sourcing-sub-tabs">
+      <button class="sub-tab-button active" data-tab="dashboard" onclick="location.href='/inventory/sourcing'">
+        <i class="fas fa-chart-pie"></i>
+        <span>Dashboard</span>
+      </button>
+      <button class="sub-tab-button" data-tab="comparison" onclick="location.href='/inventory/sourcing/comparison'">
+        <i class="fas fa-balance-scale"></i>
+        <span>Supplier Comparison</span>
+      </button>
+      <button class="sub-tab-button" data-tab="suppliers" onclick="location.href='/inventory/sourcing/suppliers'">
+        <i class="fas fa-building"></i>
+        <span>Suppliers</span>
+      </button>
+      <button class="sub-tab-button" data-tab="mappings" onclick="location.href='/inventory/sourcing/mappings'">
+        <i class="fas fa-project-diagram"></i>
+        <span>Product Mappings</span>
+      </button>
+      <button class="sub-tab-button" data-tab="prices" onclick="location.href='/inventory/sourcing/prices'">
+        <i class="fas fa-pound-sign"></i>
+        <span>Price History</span>
+      </button>
+      <button class="sub-tab-button" data-tab="import" onclick="location.href='/inventory/sourcing/import'">
+        <i class="fas fa-file-import"></i>
+        <span>Import</span>
+      </button>
+      <button class="sub-tab-button" data-tab="margins" onclick="location.href='/inventory/sourcing/margins'">
+        <i class="fas fa-chart-line"></i>
+        <span>Margin Reports</span>
+      </button>
+    </div>
+
+    <!-- ===== Tab Content Panels ===== -->
+    
+    <!-- Dashboard Panel -->
+    <div class="sourcing-tab-panel active" id="panel-dashboard">
+      <div class="panel-header">
+        <h2><i class="fas fa-chart-pie"></i> Sourcing Dashboard</h2>
+      </div>
+      <div class="panel-body">
+        <div class="dashboard-grid">
+          <!-- Quick Actions -->
+          <div class="dashboard-card">
+            <h3><i class="fas fa-bolt"></i> Quick Actions</h3>
+            <div class="dashboard-actions">
+              <button class="dashboard-action-btn" onclick="location.href='/inventory/sourcing/suppliers'">
+                <i class="fas fa-building"></i>
+                <span>Manage Suppliers</span>
+              </button>
+              <button class="dashboard-action-btn" onclick="location.href='/inventory/sourcing/import'">
+                <i class="fas fa-file-import"></i>
+                <span>Import Prices</span>
+              </button>
+              <button class="dashboard-action-btn" onclick="location.href='/inventory/sourcing/mappings'">
+                <i class="fas fa-project-diagram"></i>
+                <span>Product Mappings</span>
+              </button>
+              <button class="dashboard-action-btn" onclick="location.href='/inventory/sourcing/comparison'">
+                <i class="fas fa-balance-scale"></i>
+                <span>Compare Prices</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Recent Activity -->
+          <div class="dashboard-card">
+            <h3><i class="fas fa-clock"></i> Recent Price Updates</h3>
+            <div class="dashboard-list" id="recentPriceUpdates">
+              <p class="text-muted">Loading recent updates...</p>
+            </div>
+          </div>
+
+          <!-- Top Suppliers -->
+          <div class="dashboard-card">
+            <h3><i class="fas fa-star"></i> Top Suppliers by Product Count</h3>
+            <div class="dashboard-list" id="topSuppliers">
+              <p class="text-muted">Loading top suppliers...</p>
+            </div>
+          </div>
+
+          <!-- Margin Insights -->
+          <div class="dashboard-card">
+            <h3><i class="fas fa-chart-line"></i> Margin Insights</h3>
+            <div class="dashboard-insights" id="marginInsights">
+              <div class="insight-item">
+                <span class="insight-label">Average Margin:</span>
+                <span class="insight-value" id="dashAvgMargin">--</span>
+              </div>
+              <div class="insight-item">
+                <span class="insight-label">Best Margin:</span>
+                <span class="insight-value" id="dashBestMargin">--</span>
+              </div>
+              <div class="insight-item">
+                <span class="insight-label">Worst Margin:</span>
+                <span class="insight-value" id="dashWorstMargin">--</span>
+              </div>
+              <div class="insight-item">
+                <span class="insight-label">Products Below 20% Margin:</span>
+                <span class="insight-value" id="dashLowMarginCount">--</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Unmapped Products Alert -->
+          <div class="dashboard-card" id="unmappedAlert" style="display: none;">
+            <h3><i class="fas fa-exclamation-triangle"></i> Attention Required</h3>
+            <div class="dashboard-alert">
+              <p>You have <strong id="dashUnmappedCount">0</strong> unmapped products that need supplier assignments.</p>
+              <button class="action-btn primary-btn btn-sm" onclick="location.href='/inventory/sourcing/mappings'">
+                <i class="fas fa-link"></i>
+                <span>View Mappings</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- System Status -->
+          <div class="dashboard-card">
+            <h3><i class="fas fa-heartbeat"></i> System Status</h3>
+            <div class="dashboard-status" id="systemStatus">
+              <p class="text-muted">Checking system health...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Supplier Comparison Panel -->
+    <div class="sourcing-tab-panel" id="panel-comparison">
+      <div class="panel-header">
+        <h2><i class="fas fa-balance-scale"></i> Supplier Price Comparison</h2>
+        <div class="panel-actions">
+          <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" id="comparisonSearch" placeholder="Search products..." class="search-input">
+          </div>
+          <button class="action-btn secondary-btn btn-sm" id="refreshComparison">
+            <i class="fas fa-sync-alt"></i>
+            <span>Refresh</span>
+          </button>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="table-container">
+          <table class="data-table" id="comparisonTable">
+            <thead>
+              <tr>
+                <th>Internal SKU</th>
+                <th>Product Name</th>
+                <th>Stock</th>
+                <th>Sell Price</th>
+                <th class="supplier-col">Cheapest Supplier</th>
+                <th class="supplier-col">Buy Price</th>
+                <th>Margin</th>
+                <th>Other Suppliers</th>
+              </tr>
+            </thead>
+            <tbody id="comparisonTableBody">
+              <tr class="loading-row">
+                <td colspan="8">
+                  <div class="loading-state">
+                    <div class="loading-spinner"></div>
+                    <span>Loading comparison data...</span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Suppliers Panel -->
+    <div class="sourcing-tab-panel" id="panel-suppliers">
+      <div class="panel-header">
+        <h2><i class="fas fa-building"></i> Suppliers</h2>
+        <div class="panel-actions">
+          <button class="action-btn primary-btn btn-sm" id="addSupplierBtn">
+            <i class="fas fa-plus"></i>
+            <span>Add Supplier</span>
+          </button>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="table-container">
+          <table class="data-table" id="suppliersTable">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Code</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Products</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="suppliersTableBody">
+              <tr class="loading-row">
+                <td colspan="7">
+                  <div class="loading-state">
+                    <div class="loading-spinner"></div>
+                    <span>Loading suppliers...</span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Product Mappings Panel -->
+    <div class="sourcing-tab-panel" id="panel-mappings">
+      <div class="panel-header">
+        <h2><i class="fas fa-project-diagram"></i> Supplier Product Mappings</h2>
+        <div class="panel-actions">
+          <div class="custom-dropdown" id="mappingSupplierDropdown">
+            <div class="dropdown-selected" onclick="toggleDropdown('mappingSupplierDropdown')">
+              <i class="fas fa-building"></i>
+              All Suppliers
+            </div>
+            <div class="dropdown-options" id="mappingSupplierDropdownOptions">
+              <div class="dropdown-option selected" onclick="selectMappingSupplier(this, '', 'All Suppliers')">All Suppliers</div>
+              <!-- Populated by JavaScript -->
+            </div>
+            <input type="hidden" name="mappingSupplierFilter" id="mappingSupplierFilter" value="">
+          </div>
+          <button class="action-btn primary-btn btn-sm" id="addMappingBtn">
+            <i class="fas fa-plus"></i>
+            <span>Add Mapping</span>
+          </button>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="table-container">
+          <table class="data-table" id="mappingsTable">
+            <thead>
+              <tr>
+                <th>Supplier</th>
+                <th>Supplier SKU</th>
+                <th>Supplier Product Name</th>
+                <th>Internal SKU</th>
+                <th>Current Price</th>
+                <th>Pack Size</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="mappingsTableBody">
+              <tr class="loading-row">
+                <td colspan="8">
+                  <div class="loading-state">
+                    <div class="loading-spinner"></div>
+                    <span>Loading mappings...</span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Price History Panel -->
+    <div class="sourcing-tab-panel" id="panel-prices">
+      <div class="panel-header">
+        <h2><i class="fas fa-pound-sign"></i> Price History</h2>
+        <div class="panel-actions">
+          <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" id="priceHistorySearch" placeholder="Search by SKU..." class="search-input">
+          </div>
+          <button class="action-btn primary-btn btn-sm" id="addPriceBtn">
+            <i class="fas fa-plus"></i>
+            <span>Add Price</span>
+          </button>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="table-container">
+          <table class="data-table" id="priceHistoryTable">
+            <thead>
+              <tr>
+                <th>Supplier</th>
+                <th>Supplier SKU</th>
+                <th>Product Name</th>
+                <th>Internal SKU</th>
+                <th>Buy Price</th>
+                <th>Currency</th>
+                <th>Effective Date</th>
+                <th>Added By</th>
+                <th>Source</th>
+              </tr>
+            </thead>
+            <tbody id="priceHistoryTableBody">
+              <tr class="loading-row">
+                <td colspan="9">
+                  <div class="loading-state">
+                    <div class="loading-spinner"></div>
+                    <span>Loading price history...</span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Import Panel -->
+    <div class="sourcing-tab-panel" id="panel-import">
+      <div class="panel-header">
+        <h2><i class="fas fa-file-import"></i> Import Supplier Prices</h2>
+      </div>
+      <div class="panel-body">
+        <div class="import-options-grid">
+          <!-- CSV Import Card -->
+          <div class="import-card">
+            <div class="import-card-icon">
+              <i class="fas fa-file-csv"></i>
+            </div>
+            <h3>CSV Import</h3>
+            <p>Upload a CSV file with supplier SKUs and prices</p>
+            <div class="import-form">
+              <div class="form-group">
+                <label class="form-label">Select Supplier</label>
+                <div class="custom-dropdown" id="importSupplierDropdown">
+                  <div class="dropdown-selected" onclick="toggleDropdown('importSupplierDropdown')">
+                    <i class="fas fa-building"></i>
+                    Select a supplier...
+                  </div>
+                  <div class="dropdown-options" id="importSupplierDropdownOptions">
+                    <!-- Populated by JavaScript -->
+                  </div>
+                  <input type="hidden" name="importSupplierSelect" id="importSupplierSelect" value="">
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">CSV File</label>
+                <div class="file-upload-zone" id="csvDropZone">
+                  <i class="fas fa-cloud-upload-alt"></i>
+                  <span>Drag & drop CSV file here or click to browse</span>
+                  <input type="file" id="csvFileInput" accept=".csv" hidden>
+                </div>
+              </div>
+              <button class="action-btn primary-btn" id="startCsvImport" disabled>
+                <i class="fas fa-upload"></i>
+                <span>Start Import</span>
+              </button>
+            </div>
+            <div class="import-info">
+              <strong>Required columns:</strong> supplier_sku, buy_price<br>
+              <strong>Optional:</strong> product_name, effective_date, currency, internal_sku
+            </div>
+          </div>
+
+          <!-- Manual Entry Card -->
+          <div class="import-card">
+            <div class="import-card-icon">
+              <i class="fas fa-keyboard"></i>
+            </div>
+            <h3>Manual Entry</h3>
+            <p>Add individual price entries manually</p>
+            <button class="action-btn secondary-btn" id="openManualEntryBtn">
+              <i class="fas fa-edit"></i>
+              <span>Open Manual Entry Form</span>
+            </button>
+            <div class="import-info">
+              Best for quick updates to individual products
+            </div>
+          </div>
+
+          <!-- Future: API Integration Card -->
+          <div class="import-card disabled">
+            <div class="import-card-icon">
+              <i class="fas fa-plug"></i>
+            </div>
+            <h3>API Integration</h3>
+            <p>Connect to supplier APIs for automatic updates</p>
+            <button class="action-btn secondary-btn" disabled>
+              <i class="fas fa-lock"></i>
+              <span>Coming Soon</span>
+            </button>
+            <div class="import-info">
+              Automatic price syncing from supplier systems
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Margin Reports Panel -->
+    <div class="sourcing-tab-panel" id="panel-margins">
+      <div class="panel-header">
+        <h2><i class="fas fa-chart-line"></i> Margin Reports</h2>
+        <div class="panel-actions">
+          <div class="custom-dropdown" id="marginReportDropdown">
+            <div class="dropdown-selected" onclick="toggleDropdown('marginReportDropdown')">
+              <i class="fas fa-chart-bar"></i>
+              Low Margin Products
+            </div>
+            <div class="dropdown-options" id="marginReportDropdownOptions">
+              <div class="dropdown-option selected" onclick="selectMarginReport(this, 'low-margin', 'Low Margin Products')">Low Margin Products</div>
+              <div class="dropdown-option" onclick="selectMarginReport(this, 'top-margin', 'Top Margin Products')">Top Margin Products</div>
+              <div class="dropdown-option" onclick="selectMarginReport(this, 'margin-drops', 'Biggest Margin Drops')">Biggest Margin Drops</div>
+              <div class="dropdown-option" onclick="selectMarginReport(this, 'trends', 'Margin Trends')">Margin Trends</div>
+            </div>
+            <input type="hidden" name="marginReportType" id="marginReportType" value="low-margin">
+          </div>
+          <button class="action-btn secondary-btn btn-sm" id="exportMarginReport">
+            <i class="fas fa-download"></i>
+            <span>Export</span>
+          </button>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="margin-report-content">
+          <div class="coming-soon-placeholder">
+            <i class="fas fa-chart-pie"></i>
+            <h3>Margin Reports</h3>
+            <p>This feature will display margin analysis including low margin alerts, trends, and comparisons once price data has been imported.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== Modals ===== -->
+
+<!-- Add Supplier Modal -->
+<div id="addSupplierModal" class="modal-overlay">
+  <div class="modal-content modal-lg">
+    <div class="modal-header">
+      <div class="modal-header-icon">
+        <i class="fas fa-building"></i>
+      </div>
+      <h2 class="modal-title">Add New Supplier</h2>
+      <button class="modal-close" onclick="window.sourcingModule.closeModal('addSupplierModal')">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    
+    <div class="modal-body">
+      <form id="addSupplierForm">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label required">Supplier Name</label>
+            <input type="text" name="name" class="form-input" required placeholder="Enter supplier name">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Supplier Code</label>
+            <input type="text" name="code" class="form-input" placeholder="e.g., SUP001">
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Contact Email</label>
+            <input type="email" name="contact_email" class="form-input" placeholder="supplier@example.com">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Contact Phone</label>
+            <input type="tel" name="contact_phone" class="form-input" placeholder="+44 123 456 7890">
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Currency</label>
+          <input type="text" name="currency" class="form-input" placeholder="GBP" value="GBP">
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Notes</label>
+          <textarea name="notes" class="form-input" rows="3" placeholder="Additional information about this supplier..."></textarea>
+        </div>
+        
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" name="is_active" checked>
+            <span>Active Supplier</span>
+          </label>
+        </div>
+      </form>
+    </div>
+    
+    <div class="modal-footer">
+      <button class="action-btn secondary-btn" onclick="window.sourcingModule.closeModal('addSupplierModal')">
+        Cancel
+      </button>
+      <button class="action-btn primary-btn" onclick="window.sourcingModule.submitSupplierForm()">
+        <i class="fas fa-save"></i>
+        <span>Save Supplier</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Mapping Modal -->
+<div id="addMappingModal" class="modal-overlay">
+  <div class="modal-content modal-lg">
+    <div class="modal-header">
+      <div class="modal-header-icon">
+        <i class="fas fa-project-diagram"></i>
+      </div>
+      <h2 class="modal-title">Add Product Mapping</h2>
+      <button class="modal-close" onclick="window.sourcingModule.closeModal('addMappingModal')">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    
+    <div class="modal-body">
+      <form id="addMappingForm">
+        <div class="form-group">
+          <label class="form-label required">Supplier</label>
+          <div class="custom-dropdown" id="mappingModalSupplierDropdown">
+            <div class="dropdown-selected" onclick="toggleDropdown('mappingModalSupplierDropdown')">
+              <i class="fas fa-building"></i>
+              Select a supplier...
+            </div>
+            <div class="dropdown-options" id="mappingModalSupplierDropdownOptions">
+              <!-- Populated by JavaScript -->
+            </div>
+            <input type="hidden" name="supplier_id" id="mappingModalSupplierId" required>
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label required">Supplier SKU</label>
+            <input type="text" name="supplier_sku" class="form-input" required placeholder="Supplier's product code">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Internal SKU</label>
+            <input type="text" name="internal_sku" class="form-input" placeholder="Your internal SKU (optional)">
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Supplier Product Name</label>
+          <input type="text" name="supplier_product_name" class="form-input" placeholder="Product name from supplier">
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Buy Price</label>
+            <input type="number" name="buy_price" class="form-input" step="0.01" min="0" placeholder="0.00">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Currency</label>
+            <input type="text" name="currency" class="form-input" placeholder="GBP" value="GBP">
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Notes</label>
+          <textarea name="notes" class="form-input" rows="2" placeholder="Additional notes about this mapping..."></textarea>
+        </div>
+        
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" name="is_active" checked>
+            <span>Active Mapping</span>
+          </label>
+        </div>
+      </form>
+    </div>
+    
+    <div class="modal-footer">
+      <button class="action-btn secondary-btn" onclick="window.sourcingModule.closeModal('addMappingModal')">
+        Cancel
+      </button>
+      <button class="action-btn primary-btn" onclick="window.sourcingModule.submitMappingForm()">
+        <i class="fas fa-save"></i>
+        <span>Save Mapping</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Price Entry Modal -->
+<div id="addPriceModal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-header-icon">
+        <i class="fas fa-pound-sign"></i>
+      </div>
+      <h2 class="modal-title">Add Price Entry</h2>
+      <button class="modal-close" onclick="window.sourcingModule.closeModal('addPriceModal')">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    
+    <div class="modal-body">
+      <form id="addPriceForm">
+        <div class="form-group">
+          <label class="form-label required">Supplier Product</label>
+          <div class="custom-dropdown" id="priceModalProductDropdown">
+            <div class="dropdown-selected" onclick="toggleDropdown('priceModalProductDropdown')">
+              <i class="fas fa-box"></i>
+              Select a product...
+            </div>
+            <div class="dropdown-options" id="priceModalProductDropdownOptions">
+              <!-- Populated by JavaScript -->
+            </div>
+            <input type="hidden" name="supplier_product_id" id="priceModalProductId" required>
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label required">Buy Price</label>
+            <input type="number" name="buy_price" class="form-input" step="0.01" min="0" required placeholder="0.00">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Currency</label>
+            <input type="text" name="currency" class="form-input" placeholder="GBP" value="GBP">
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Effective Date</label>
+          <input type="date" name="effective_date" class="form-input" value="">
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Notes</label>
+          <textarea name="notes" class="form-input" rows="2" placeholder="Price change reason or notes..."></textarea>
+        </div>
+      </form>
+    </div>
+    
+    <div class="modal-footer">
+      <button class="action-btn secondary-btn" onclick="window.sourcingModule.closeModal('addPriceModal')">
+        Cancel
+      </button>
+      <button class="action-btn primary-btn" onclick="window.sourcingModule.submitPriceForm()">
+        <i class="fas fa-save"></i>
+        <span>Save Price</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Manual Entry Form Modal -->
+<div id="manualEntryModal" class="modal-overlay">
+  <div class="modal-content modal-lg">
+    <div class="modal-header">
+      <div class="modal-header-icon">
+        <i class="fas fa-keyboard"></i>
+      </div>
+      <h2 class="modal-title">Manual Price Entry</h2>
+      <button class="modal-close" onclick="window.sourcingModule.closeModal('manualEntryModal')">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    
+    <div class="modal-body">
+      <form id="manualEntryForm">
+        <div class="form-group">
+          <label class="form-label required">Supplier</label>
+          <div class="custom-dropdown" id="manualEntrySupplierDropdown">
+            <div class="dropdown-selected" onclick="toggleDropdown('manualEntrySupplierDropdown')">
+              <i class="fas fa-building"></i>
+              Select a supplier...
+            </div>
+            <div class="dropdown-options" id="manualEntrySupplierDropdownOptions">
+              <!-- Populated by JavaScript -->
+            </div>
+            <input type="hidden" name="supplier_id" id="manualEntrySupplierId" required>
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label required">Supplier SKU</label>
+            <input type="text" name="supplier_sku" class="form-input" required placeholder="Supplier's product code">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Internal SKU</label>
+            <input type="text" name="internal_sku" class="form-input" placeholder="Your internal SKU">
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Product Name</label>
+          <input type="text" name="product_name" class="form-input" placeholder="Product name">
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label required">Buy Price</label>
+            <input type="number" name="buy_price" class="form-input" step="0.01" min="0" required placeholder="0.00">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Currency</label>
+            <input type="text" name="currency" class="form-input" placeholder="GBP" value="GBP">
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Effective Date</label>
+          <input type="date" name="effective_date" class="form-input" value="">
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Notes</label>
+          <textarea name="notes" class="form-input" rows="3" placeholder="Additional information..."></textarea>
+        </div>
+      </form>
+    </div>
+    
+    <div class="modal-footer">
+      <button class="action-btn secondary-btn" onclick="window.sourcingModule.closeModal('manualEntryModal')">
+        Cancel
+      </button>
+      <button class="action-btn primary-btn" onclick="window.sourcingModule.submitManualEntryForm()">
+        <i class="fas fa-save"></i>
+        <span>Save Entry</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modals container for dynamic modals -->
+<div id="sourcingModals"></div>
+
+<!-- Universal Footer -->
+<div id="footerPlaceholder"></div>
+<script>
+  if (!document.getElementById('universalFooter')) {
+    fetch('/components/universal-footer.html')
+      .then(response => response.text())
+      .then(html => {
+        document.getElementById('footerPlaceholder').innerHTML = html;
+      })
+      .catch(error => console.error('Error loading footer:', error));
+  }
+</script>

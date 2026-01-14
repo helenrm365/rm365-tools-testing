@@ -330,6 +330,7 @@ working_modules = [
     ('modules.magentodata.api', 'router', f'{API}/magentodata', ['magentodata']),
     ('modules.inventory.management.api', 'router', f'{API}/inventory/management', ['inventory-management']),
     ('modules.inventory.collaboration', 'router', f'{API}/inventory/collaboration', ['inventory-collaboration']),
+    ('modules.inventory.sourcing.api', 'router', f'{API}/inventory/sourcing', ['inventory-sourcing']),
     ('modules.orders.order_fulfillment.api', 'router', f'{API}/magento', ['magento']),
 ]
 

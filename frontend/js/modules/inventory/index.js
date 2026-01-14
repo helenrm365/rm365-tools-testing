@@ -3,6 +3,8 @@ import { navigate } from '../../router.js';
 let currentInventoryModule = null;
 
 export async function init(path) {
+  console.log('[Inventory] init() called with path:', path, '| Type:', typeof path);
+  
   // Clean up previous module if exists
   if (currentInventoryModule?.cleanup) {
     currentInventoryModule.cleanup();
@@ -17,6 +19,10 @@ export async function init(path) {
       const mod = await import('./management.js');
       currentInventoryModule = mod;
       await mod.init();
+    } else if (path.startsWith('/inventory/sourcing')) {
+      const mod = await import('./sourcing.js');
+      currentInventoryModule = mod;
+      await mod.init(path);
     } else {
       console.warn('[Inventory] Unknown inventory path:', path);
     }
