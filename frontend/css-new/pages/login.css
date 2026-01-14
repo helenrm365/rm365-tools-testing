@@ -1,14 +1,21 @@
 /* ===== Login Page Styles ===== */
 /* Page-specific styles for login page */
+/* Uses components from: forms.css, buttons.css, cards.css */
 
 /* 
  * IMPORT PATTERN:
  * <link rel="stylesheet" href="/css-new/app.css">
  * <link rel="stylesheet" href="/css-new/pages/login.css">
+ * 
+ * HTML should use existing component classes:
+ * - .form-group (from forms.css)
+ * - .form-label (from forms.css)
+ * - .form-input (from forms.css)
+ * - .primary-btn (from buttons.css) for the Sign In button
  */
 
 /* ===== Login Container ===== */
-.login-page {
+.login-container {
   min-height: 100vh;
   display: flex;
   align-items: center;
@@ -17,29 +24,35 @@
   padding: var(--space-lg);
 }
 
-.login-card {
+.login-content {
   background: var(--bg-light);
   border-radius: var(--radius-xl);
   padding: var(--space-2xl);
   width: 100%;
-  max-width: 420px;
+  max-width: 480px;
   box-shadow: var(--shadow-l);
+}
+
+/* ===== Logo Section ===== */
+.login-header {
   text-align: center;
+  margin-bottom: var(--space-2xl);
 }
 
-/* ===== Logo ===== */
+.login-logo-wrapper {
+  margin-bottom: var(--space-lg);
+}
+
 .login-logo {
-  margin-bottom: var(--space-xl);
-}
-
-.login-logo img {
-  height: 60px;
+  height: 80px;
   width: auto;
+  max-width: 100%;
+  object-fit: contain;
 }
 
 /* ===== Login Title ===== */
 .login-title {
-  font-size: 1.75rem;
+  font-size: 1.875rem;
   font-weight: 700;
   color: var(--text);
   margin-bottom: var(--space-xs);
@@ -48,82 +61,97 @@
 .login-subtitle {
   font-size: 1rem;
   color: var(--text-muted);
+}
+
+/* ===== Login Card (Form Container) ===== */
+.login-card {
+  background: transparent;
   margin-bottom: var(--space-xl);
 }
 
 /* ===== Login Form ===== */
+/* Most form styles come from forms.css */
+/* Only page-specific overrides here */
+
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: var(--space-md);
+  gap: var(--space-lg);
 }
 
 .login-form .form-group {
   text-align: left;
+  margin-bottom: 0; /* Override default margin since we use gap */
 }
 
-.login-form .form-input {
-  padding: 1rem;
-  font-size: 1rem;
+/* Icon styling for labels */
+.login-form .label-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--text-muted);
 }
 
 /* ===== Login Button ===== */
+/* Uses .primary-btn from buttons.css with page-specific width */
+
 .login-button {
   width: 100%;
-  padding: 1rem;
-  font-size: 1rem;
-  font-weight: 600;
-  background: linear-gradient(135deg, #8bc34a, #7ab82d);
-  color: white;
-  border: none;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(139, 195, 74, 0.3);
-}
-
-.login-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(139, 195, 74, 0.4);
-}
-
-.login-button:active {
-  transform: translateY(0);
-}
-
-/* ===== Remember Me ===== */
-.login-options {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   margin-top: var(--space-md);
 }
 
-.remember-me {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
+.login-button .button-arrow {
+  width: 20px;
+  height: 20px;
+}
+
+/* ===== Login Status Messages ===== */
+.login-status {
+  margin-top: var(--space-md);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.login-status.error {
+  background: rgba(231, 76, 60, 0.1);
+  border: 1px solid rgba(231, 76, 60, 0.3);
+  color: var(--danger);
+}
+
+.login-status.success {
+  background: rgba(139, 195, 74, 0.1);
+  border: 1px solid rgba(139, 195, 74, 0.3);
+  color: var(--accent-dark);
+}
+
+/* ===== Login Footer ===== */
+.login-footer {
+  text-align: center;
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--bg);
+}
+
+.login-footer p {
   font-size: 0.875rem;
   color: var(--text-muted);
 }
 
-.forgot-password {
-  font-size: 0.875rem;
-  color: #8bc34a;
-  text-decoration: none;
-}
-
-.forgot-password:hover {
-  text-decoration: underline;
-}
-
-/* ===== Error Message ===== */
-.login-error {
-  background: rgba(231, 76, 60, 0.1);
-  border: 1px solid rgba(231, 76, 60, 0.3);
-  color: #e74c3c;
-  padding: var(--space-md);
-  border-radius: var(--radius-md);
-  font-size: 0.875rem;
-  margin-bottom: var(--space-md);
+/* ===== Responsive ===== */
+@media (max-width: 640px) {
+  .login-container {
+    padding: var(--space-md);
+  }
+  
+  .login-content {
+    padding: var(--space-xl);
+  }
+  
+  .login-logo {
+    height: 60px;
+  }
+  
+  .login-title {
+    font-size: 1.5rem;
+  }
 }

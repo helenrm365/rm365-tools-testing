@@ -350,6 +350,14 @@ async function loadProducts(isBackground = false) {
   if (errorEl) errorEl.style.display = 'none';
   
   try {
+    // Save current selections by SKU (SKUs are consistent across regions)
+    const previouslySelectedSKUs = new Set(
+      Array.from(state.selectedProducts).map(itemId => {
+        const product = state.allProducts.find(p => p.item_id === itemId);
+        return product ? product.sku : null;
+      }).filter(sku => sku !== null)
+    );
+    
     // Fetch products with current status filters, region preference, and orphaned setting
     state.allProducts = await getProductsToPrint(state.statusFilters, state.region, state.showOrphaned);
     state.filteredProducts = [...state.allProducts];
@@ -374,15 +382,22 @@ async function loadProducts(isBackground = false) {
       state.displayedProducts = [...state.filteredProducts];
     }
     
-    // IMPORTANT: Don't auto-select products - causes lag with large product lists
-    // Products remain unchecked by default
-    // If user generates labels without selecting any, we'll print all filtered products
+    // Restore selections based on SKUs that were previously selected
     state.selectedProducts.clear();
+    if (previouslySelectedSKUs.size > 0) {
+      state.allProducts.forEach(product => {
+        if (previouslySelectedSKUs.has(product.sku)) {
+          state.selectedProducts.add(product.item_id);
+        }
+      });
+    }
     
-    // Ensure select all checkbox is unchecked
+    // Update select all checkbox based on whether all visible products are selected
     const selectAllCheckbox = document.querySelector('#selectAllCheckbox');
     if (selectAllCheckbox) {
-      selectAllCheckbox.checked = false;
+      const allSelected = state.displayedProducts.length > 0 && 
+        state.displayedProducts.every(p => state.selectedProducts.has(p.item_id));
+      selectAllCheckbox.checked = allSelected;
     }
     
     renderProductTable();
@@ -738,7 +753,12 @@ function handleSearch(e) {
 }
 
 function handleSelectAll(e) {
-  if (e.target.checked) {
+  const selectAllCheckbox = e.target;
+  
+  // When change event fires, checked property is already in the NEW state
+  // If now checked → select all
+  // If now unchecked → deselect all
+  if (selectAllCheckbox.checked) {
     // Select all displayed products (filtered + searched)
     state.displayedProducts.forEach(p => state.selectedProducts.add(p.item_id));
   } else {
@@ -779,16 +799,33 @@ function handleProductSelect(itemId, checked) {
 function updateSelectAllCheckbox() {
   const selectAllCheckbox = document.querySelector('#selectAllCheckbox');
   if (!selectAllCheckbox || state.displayedProducts.length === 0) {
-    if (selectAllCheckbox) selectAllCheckbox.checked = false;
+    if (selectAllCheckbox) {
+      selectAllCheckbox.checked = false;
+      selectAllCheckbox.indeterminate = false;
+    }
     return;
   }
   
-  // Check if all displayed products are selected
-  const allDisplayedSelected = state.displayedProducts.every(p => 
+  // Count how many displayed products are selected
+  const selectedCount = state.displayedProducts.filter(p => 
     state.selectedProducts.has(p.item_id)
-  );
+  ).length;
   
-  selectAllCheckbox.checked = allDisplayedSelected;
+  const totalCount = state.displayedProducts.length;
+  
+  if (selectedCount === 0) {
+    // Nothing selected - unchecked
+    selectAllCheckbox.checked = false;
+    selectAllCheckbox.indeterminate = false;
+  } else if (selectedCount === totalCount) {
+    // Everything selected - checked
+    selectAllCheckbox.checked = true;
+    selectAllCheckbox.indeterminate = false;
+  } else {
+    // Some selected - indeterminate (dash)
+    selectAllCheckbox.checked = false;
+    selectAllCheckbox.indeterminate = true;
+  }
 }
 
 function renderProductTable() {
@@ -1133,6 +1170,14 @@ function formatPrice(price) {
     return '-';
   }
 
+  // Backend returns formatted strings: "£24.99", "€24.99", or "N/A"
+  // Return as-is to preserve the correct currency symbol
+  if (typeof price === 'string') {
+    const text = price.trim();
+    return text.length ? text : '-';
+  }
+
+  // Legacy support: if price is a number, format with region-appropriate symbol
   if (typeof price === 'number') {
     if (!Number.isFinite(price)) {
       return '-';
@@ -1141,8 +1186,7 @@ function formatPrice(price) {
     return `${symbol}${price.toFixed(2)}`;
   }
 
-  const text = String(price).trim();
-  return text.length ? text : '-';
+  return '-';
 }
 
 function handleSaveOptionChange(e) {

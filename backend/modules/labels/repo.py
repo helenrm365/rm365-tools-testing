@@ -163,73 +163,140 @@ class LabelsRepo:
             
         return item_id_map
     
-    def _load_latest_prices_psycopg(self, conn, skus: List[str], preferred_region: str = "uk") -> Dict[str, str]:
+    def _load_latest_prices_from_magento_catalog(self, skus: List[str], region: str = "uk") -> Dict[str, str]:
         """
-        Return { sku: price } with the most recent price from magento data.
-        Checks uk_orders_cache, fr_orders_cache, and nl_orders_cache.
-        Queries each table separately to avoid timeout issues.
+        Return { sku: price } from Magento live catalog, EXCLUDING VAT.
+        Queries catalog_product_entity_decimal for special_price and price attributes.
+        Priority: special_price > price > "N/A"
+        
+        VAT handling by region:
+        - UK: Prices entered INCLUDING tax → divide by 1.20 to get excluding tax
+        - FR: Prices entered EXCLUDING tax → use directly (no calculation)
+        - NL: Prices entered INCLUDING tax → divide by 1.20 to get excluding tax
         
         Args:
-            conn: Database connection
             skus: List of SKUs to get prices for
-            preferred_region: "uk" (default), "fr", or "nl" - determines price priority
+            region: Region to query (uk/fr/nl) - determines which Magento database and VAT handling
+            
+        Returns:
+            Dict mapping SKU to formatted price string excluding VAT (e.g., "£24.99" or "€24.99" or "N/A")
         """
         if not skus:
             return {}
         
         prices = {}
+        conn = None
         
-        # Currency mapping for regions
-        region_currency_map = {
-            'uk': 'GBP',
-            'fr': 'EUR', 
-            'nl': 'EUR'
-        }
+        # VAT rate (20% for UK and NL)
+        VAT_RATE = 0.20
+        VAT_MULTIPLIER = 1 + VAT_RATE  # 1.20
         
-        # Query order based on preferred region (preferred region first)
-        tables = [
-            (f'{preferred_region}_orders_cache', preferred_region),
-            ('uk_orders_cache', 'uk'),
-            ('fr_orders_cache', 'fr'),
-            ('nl_orders_cache', 'nl')
-        ]
-        # Remove duplicates while preserving order
-        seen = set()
-        tables = [(t, r) for t, r in tables if not (t in seen or seen.add(t))]
+        # Determine if we need to calculate excluding VAT
+        # UK and NL: prices are entered including tax, need to divide
+        # FR: prices are entered excluding tax, use directly
+        needs_vat_calculation = region.lower() in ['uk', 'nl']
         
-        logger.info(f"Looking up prices for {len(skus)} SKUs. Sample SKUs: {skus[:5]}")
+        # Currency symbol by region
+        currency_symbol = "£" if region.lower() == 'uk' else "€"
         
-        with conn.cursor() as cur:
-            for table_name, region in tables:
-                try:
-                    # Get latest price for each SKU from this table
-                    cur.execute(f"""
-                        SELECT DISTINCT ON (sku) 
-                            sku, 
-                            COALESCE(special_price, original_price) as price,
-                            COALESCE(currency, %s) as currency
-                        FROM {table_name}
-                        WHERE sku = ANY(%s) 
-                          AND (original_price IS NOT NULL OR special_price IS NOT NULL)
-                        ORDER BY sku, created_at DESC
-                    """, (region_currency_map[region], skus))
+        try:
+            conn = get_magento_connection(region)
+            with conn.cursor() as cur:
+                # Get attribute IDs for price and special_price
+                cur.execute("""
+                    SELECT attribute_id, attribute_code
+                    FROM eav_attribute
+                    WHERE attribute_code IN ('price', 'special_price')
+                      AND entity_type_id = (
+                          SELECT entity_type_id 
+                          FROM eav_entity_type 
+                          WHERE entity_type_code = 'catalog_product'
+                      )
+                """)
+                
+                attribute_map = {}
+                for row in cur.fetchall():
+                    attribute_map[row['attribute_code']] = row['attribute_id']
+                
+                if not attribute_map:
+                    logger.warning("Could not find price attribute IDs in Magento")
+                    return {}
+                
+                price_attr_id = attribute_map.get('price')
+                special_price_attr_id = attribute_map.get('special_price')
+                
+                logger.info(f"Looking up prices for {len(skus)} SKUs from {region.upper()} Magento catalog. Sample SKUs: {skus[:5]}")
+                
+                # Query prices for all SKUs
+                # We need to get both base SKUs and their variants (MD, SD, etc.)
+                # Build LIKE patterns for variants
+                import re
+                like_conditions = []
+                like_params = []
+                
+                # Add exact SKU matches
+                for sku in skus:
+                    like_conditions.append("cpe.sku = %s")
+                    like_params.append(sku)
+                    # Also search for variants
+                    like_conditions.append("cpe.sku LIKE %s")
+                    like_params.append(f"{sku}-%")
+                
+                like_clause = " OR ".join(like_conditions)
+                
+                # Get prices and special prices
+                cur.execute(f"""
+                    SELECT 
+                        cpe.sku,
+                        MAX(CASE WHEN cped.attribute_id = %s THEN cped.value END) as price,
+                        MAX(CASE WHEN cped.attribute_id = %s THEN cped.value END) as special_price
+                    FROM catalog_product_entity cpe
+                    LEFT JOIN catalog_product_entity_decimal cped 
+                        ON cpe.entity_id = cped.entity_id
+                        AND cped.attribute_id IN (%s, %s)
+                        AND cped.store_id = 0
+                    WHERE ({like_clause})
+                    GROUP BY cpe.sku
+                """, (price_attr_id, special_price_attr_id, price_attr_id, special_price_attr_id, *like_params))
+                
+                identifier_pattern = re.compile(r'-(?:MD|SD|DP|NP|MV)(?:-.*)?$', re.IGNORECASE)
+                
+                for row in cur.fetchall():
+                    variant_sku = str(row['sku']).strip() if row.get('sku') else ""
+                    price_val = float(row['price']) if row.get('price') else None
+                    special_price_val = float(row['special_price']) if row.get('special_price') else None
                     
-                    for row in cur.fetchall():
-                        sku = str(row[0]).strip()
-                        price = float(row[1]) if row[1] else 0.00
-                        currency = str(row[2]) if len(row) > 2 else region_currency_map[region]
-                        
-                        # Only set if not already found (preferred region wins)
-                        if sku not in prices and price > 0:
-                            currency_symbol = "£" if currency == "GBP" else "€"
-                            prices[sku] = f"{currency_symbol}{price:.2f}"
+                    # Normalize to base SKU
+                    base_sku = identifier_pattern.sub('', variant_sku) if identifier_pattern.search(variant_sku) else variant_sku
                     
-                    logger.debug(f"Loaded {len([s for s in skus if s in prices])} prices from {table_name}")
-                except Exception as e:
-                    logger.debug(f"Could not fetch prices from {table_name}: {e}")
-                    continue
+                    # Only set if we haven't found this base SKU yet
+                    if base_sku and base_sku not in prices:
+                        # Priority: special_price > price > N/A
+                        # Apply VAT calculation only for UK and NL (FR prices are already excluding tax)
+                        if special_price_val and special_price_val > 0:
+                            if needs_vat_calculation:
+                                price_excl_vat = special_price_val / VAT_MULTIPLIER
+                                prices[base_sku] = f"{currency_symbol}{price_excl_vat:.2f}"
+                            else:
+                                prices[base_sku] = f"{currency_symbol}{special_price_val:.2f}"
+                        elif price_val and price_val > 0:
+                            if needs_vat_calculation:
+                                price_excl_vat = price_val / VAT_MULTIPLIER
+                                prices[base_sku] = f"{currency_symbol}{price_excl_vat:.2f}"
+                            else:
+                                prices[base_sku] = f"{currency_symbol}{price_val:.2f}"
+                        else:
+                            prices[base_sku] = "N/A"
+                
+                vat_note = "(excl. VAT)" if needs_vat_calculation else "(already excl. VAT)"
+                logger.info(f"Loaded prices {vat_note} for {len(prices)}/{len(skus)} SKUs from {region.upper()} Magento catalog. Sample prices: {list(prices.items())[:5]}")
+                
+        except Exception as e:
+            logger.error(f"Failed to load prices from UK Magento catalog: {e}", exc_info=True)
+        finally:
+            if conn:
+                conn.close()
         
-        logger.info(f"Loaded prices for {len(prices)}/{len(skus)} SKUs. Sample prices: {list(prices.items())[:5]}")
         return prices
 
     def _load_product_names_psycopg(self, conn, skus: List[str], preferred_region: str = "uk") -> Dict[str, str]:
@@ -466,10 +533,9 @@ class LabelsRepo:
         all_skus = list(set([t[1] for t in resolved.values()]))
         logger.info(f"Loading data for {len(all_skus)} unique SKUs from {len(resolved)} products")
         
-        # Load prices with region preference from magento data
-        with products_conn() as prod_conn:
-            prices = self._load_latest_prices_psycopg(prod_conn, all_skus, preferred_region)
-            logger.info(f"Loaded prices for {len(prices)} SKUs (region: {preferred_region})")
+        # Load prices from selected region's Magento live catalog (special_price > price > N/A)
+        prices = self._load_latest_prices_from_magento_catalog(all_skus, region=preferred_region)
+        logger.info(f"Loaded prices for {len(prices)} SKUs from {preferred_region.upper()} Magento catalog")
         
         # Load product names
         # Stratgy: Catalog (Live) -> History (Cache) -> Catalog (UK Fallback if region != uk)

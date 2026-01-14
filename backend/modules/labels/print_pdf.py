@@ -136,13 +136,13 @@ def stream_pdf_labels(conn: PGConn, job_id: int) -> StreamingResponse:
     """
     tmpdir = None
     try:
-        # 1. fetch data
+        # 1. fetch data with region
         with conn.cursor() as cur:
             cur.execute(
                 """
                 SELECT r.sku, r.product_name, r.uk_6m_data, r.fr_6m_data,
                        COALESCE(r.line_date, j.line_date) AS line_date,
-                       r.item_id, r.price
+                       r.item_id, r.price, COALESCE(j.region, 'uk') AS region
                 FROM label_print_items r
                 JOIN label_print_jobs j ON j.id = r.job_id
                 WHERE r.job_id = %s
@@ -151,6 +151,9 @@ def stream_pdf_labels(conn: PGConn, job_id: int) -> StreamingResponse:
                 (job_id,),
             )
             rows = cur.fetchall()
+            
+        # Determine currency symbol based on region from first row
+        currency_symbol = "£" if not rows else ("£" if rows[0][7] == 'uk' else "€")
 
         if not rows:
             raise ValueError(f"No label items found for job {job_id}")
@@ -167,7 +170,7 @@ def stream_pdf_labels(conn: PGConn, job_id: int) -> StreamingResponse:
         tmpdir = tempfile.mkdtemp()
 
         # 3. render labels
-        for sku, name, uk, fr, line_date, barcode_val, price in rows:
+        for sku, name, uk, fr, line_date, barcode_val, price, region in rows:
             col = label_no % COLS_PER_PAGE
             row_pos = (label_no // COLS_PER_PAGE) % ROWS_PER_PAGE
             x = x0 + col * LABEL_WIDTH
@@ -188,22 +191,16 @@ def stream_pdf_labels(conn: PGConn, job_id: int) -> StreamingResponse:
             right_x = x + LABEL_WIDTH - 69
             max_w = LABEL_WIDTH - (right_x - x) - 4
             
-            # Format price with currency symbol (handle both float and string inputs)
-            if price:
-                if isinstance(price, (int, float)):
-                    # Price is already a number
-                    price_str = f"£{float(price):.2f}"
-                else:
-                    # Price is a string, possibly already formatted
-                    price_clean = str(price).replace("£", "").replace("€", "").replace("$", "").strip()
-                    try:
-                        price_num = float(price_clean)
-                        price_str = f"£{price_num:.2f}"
-                    except ValueError:
-                        # If we can't parse it, use as-is
-                        price_str = str(price)
+            # Format price with region-appropriate currency symbol
+            symbol = "£" if region == 'uk' else "€"
+            if price is not None and price != "":
+                try:
+                    price_float = float(price)
+                    price_str = f"{symbol}{price_float:.2f}"
+                except (ValueError, TypeError):
+                    price_str = "N/A"
             else:
-                price_str = "£0.00"
+                price_str = "N/A"
             
             important = [
                 ("Date:", today),

@@ -56,6 +56,9 @@ thead,
 .table-header {
   background: linear-gradient(135deg, rgba(139, 195, 74, 0.15), rgba(139, 195, 74, 0.08));
   border-bottom: 2px solid var(--accent);
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 th {

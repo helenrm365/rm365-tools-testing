@@ -78,20 +78,45 @@ The Labels Generation system creates product labels with barcodes, prices, and s
 - No need for sku_aliases (labels always use current SKUs)
 - Data refreshed via "Refresh Aggregated Data" or after magento sync
 
-### 4. Prices: Magento Orders Cache
-**Source:** PostgreSQL `{region}_orders_cache` tables
+### 4. Prices: Region-Specific Magento Live Catalog (Excluding VAT)
+**Source:** Magento `catalog_product_entity_decimal` table (Live catalog from selected region)
 
-**Purpose:** Get most recent product pricing with currency
+**Purpose:** Get current product pricing from live Magento database, in excluding-VAT format
 
 **Data Fetched:**
-- Latest `special_price` or `original_price` for each SKU
-- Currency (GBP for UK, EUR for FR/NL)
-- Formatted with symbol: `£24.99` or `€29.99`
+- Product's `special_price` (if exists and > 0)
+- Falls back to `price` (if special_price doesn't exist or is 0)
+- Shows "N/A" if neither price exists
 
-**Region Priority:**
-- User can select preferred region (uk/fr/nl)
-- System checks preferred region first, then falls back to others
-- Ensures most relevant pricing is shown
+**VAT Handling by Region:**
+
+| Region | Price Entry in Magento | Label Display | Calculation |
+|--------|------------------------|---------------|-------------|
+| **UK** | Including 20% VAT | Excluding VAT | Divide by 1.20 |
+| **FR** | Excluding VAT | Excluding VAT | Use directly (no calculation) |
+| **NL** | Including 20% VAT | Excluding VAT | Divide by 1.20 |
+
+**Examples:**
+- **UK**: Magento shows £29.99 (incl. VAT) → Label shows £24.99 (excl. VAT)
+- **FR**: Magento shows €24.99 (excl. VAT) → Label shows €24.99 (excl. VAT) ✓
+- **NL**: Magento shows €29.99 (incl. VAT) → Label shows €24.99 (excl. VAT)
+
+**Priority Logic:**
+1. **Special Price First:** If product has an active special/sale price, use it (apply VAT calculation if needed)
+2. **Regular Price Second:** If no special price, use the regular price (apply VAT calculation if needed)
+3. **N/A Fallback:** If neither price exists, display "N/A"
+
+**Currency:**
+- UK: GBP (£)
+- FR: EUR (€)
+- NL: EUR (€)
+
+**Key Points:**
+- Queries the selected region's Magento catalog directly
+- Gets current pricing from catalog, not historical order prices
+- Searches both base SKUs and their variants (-MD, -SD, etc.)
+- FR prices are used as-is since they're already entered excluding VAT
+- UK and NL prices are converted from including-VAT to excluding-VAT
 
 ### 5. Product Names: Region-Smart Resolution Strategy
 **Source:** Live Magento Catalog + Historical Orders Cache
@@ -190,8 +215,12 @@ The Labels Generation system creates product labels with barcodes, prices, and s
    └─→ sku → (uk_6m, fr_6m) mapping
    
 7. LOAD PRICES
-   ↓ Query orders_cache with region preference
-   └─→ Latest price with currency symbol
+   ↓ Query selected region's Magento live catalog
+   ├─→ Search catalog_product_entity_decimal for base SKUs and variants
+   ├─→ Priority: special_price > price > "N/A"
+   ├─→ UK/NL: Convert from incl. VAT to excl. VAT (÷ 1.20)
+   ├─→ FR: Use directly (already excl. VAT)
+   └─→ Format: £24.99 / €24.99 (excl. VAT) or N/A
    
 8. LOAD PRODUCT NAMES
    ↓ Query orders_cache with region preference
@@ -438,8 +467,8 @@ Each label contains:
 | `sku` | UK Magento catalog | Product SKU (always base form) |
 | `product_name` | orders_cache | Latest product name |
 | `uk_6m_data` | uk_aggregated_orders | UK 6-month sales quantity |
-| `fr_6m_data` | fr + nl aggregated | FR+NL 6-month sales quantity |
-| `price` | orders_cache | Latest price with currency |
+| `fr_6m_datSelected region Magento catalog | Live price excl. VAT (UK/NL: ÷1.20, FR: direct
+| `price` | UK Magento catalog | Live price excluding VAT (special_price > price > N/A) |
 | `variant_statuses` | UK Magento (internal) | Array of all variant statuses (used for filtering) |
 
 **Example Label Data:**
@@ -493,13 +522,13 @@ Each label contains:
 
 Labels module requires connections to:
 
-1. **UK Magento MySQL Database** (read-only)
-   - Host: From magento database config
-   - Purpose: Fetch product catalog with EAV attributes
-   - Tables: `catalog_product_entity`, `eav_attribute`, etc.
+1. **UK/FR/NL Magento MySQL Databases** (read-only)
+   - Host: From magento database config (region-specific)
+   - Purpose: Fetch product catalog with EAV attributes, live prices, and localized names
+   - Tables: `catalog_product_entity`, `catalog_product_entity_decimal`, `eav_attribute`, etc.
 
 2. **Products PostgreSQL Database** (read-only)
-   - Purpose: Fetch aggregated data, prices, names
+   - Purpose: Fetch aggregated sales data and product names
    - Tables: `uk/fr/nl_aggregated_orders`, `uk/fr/nl_orders_cache`
 
 3. **Inventory PostgreSQL Database** (read-only)
@@ -599,11 +628,11 @@ Presets allow saving filter configurations for quick reuse.
 | Variant Normalization | ALL variants → base SKU | ALL variants → base SKU |
 | Status Tracking | `variant_statuses` JSONB array | `variant_statuses` JSONB array |
 | 6M Data Source | aggregated_orders tables | aggregated_orders tables |
-| Item IDs | From inventory_metadata | From inventory_metadata |
-| Prices | From orders_cache (region pref) | Not shown |
+| Item IDs Region-specific Magento catalog (UK/NL: excl. VAT via ÷1.20, FR: direct
+| Prices | UK Magento live catalog (excl. VAT: special_price > price > N/A) | Not shown |
 | Output | PDF/CSV label file | Web table UI |
 | Product Selection | UI checkboxes + manual selection | UI table with inline editing |
-| Region Preference | Yes (price/name) | No (always UK) |
+| Region Preference | Yes (names: localized, prices: region-specific VAT handling) | No (always UK) |
 | Presets | Yes (saveable filter configs) | No |
 | Orphaned Filter | Yes (`show_orphaned` param) | Yes (`show_orphaned` param) |
 

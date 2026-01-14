@@ -22,6 +22,7 @@ def _ensure_label_print_schema(conn: PGConn) -> None:
                     id SERIAL PRIMARY KEY,
                     created_by VARCHAR(255),
                     line_date DATE,
+                    region VARCHAR(10) DEFAULT 'uk',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
                 """
@@ -95,6 +96,36 @@ def _ensure_label_print_schema(conn: PGConn) -> None:
         return
 
     # Avoid re-running ALTER for every insert by checking information_schema first.
+    
+    # Check and migrate label_print_jobs columns
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND table_name = 'label_print_jobs'
+            """
+        )
+        existing_jobs = {row[0] for row in cur.fetchall()}
+
+    jobs_alter_statements = []
+    if 'line_date' not in existing_jobs:
+        jobs_alter_statements.append(
+            "ALTER TABLE label_print_jobs ADD COLUMN IF NOT EXISTS line_date DATE"
+        )
+    if 'region' not in existing_jobs:
+        jobs_alter_statements.append(
+            "ALTER TABLE label_print_jobs ADD COLUMN IF NOT EXISTS region VARCHAR(10) DEFAULT 'uk'"
+        )
+
+    if jobs_alter_statements:
+        with conn.cursor() as cur:
+            for stmt in jobs_alter_statements:
+                logger.info("Applying label_print_jobs schema patch: %s", stmt)
+                cur.execute(stmt)
+    
+    # Check and migrate label_print_items columns
     with conn.cursor() as cur:
         cur.execute(
             """
@@ -120,13 +151,11 @@ def _ensure_label_print_schema(conn: PGConn) -> None:
             "ALTER TABLE label_print_items ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
         )
 
-    if not alter_statements:
-        return
-
-    with conn.cursor() as cur:
-        for stmt in alter_statements:
-            logger.info("Applying label_print_items schema patch: %s", stmt)
-            cur.execute(stmt)
+    if alter_statements:
+        with conn.cursor() as cur:
+            for stmt in alter_statements:
+                logger.info("Applying label_print_items schema patch: %s", stmt)
+                cur.execute(stmt)
 
 # --- helpers ---------------------------------------------------------------
 
@@ -197,17 +226,17 @@ def start_label_job(conn: PGConn, payload: Dict[str, Any]) -> int:
 
     with conn.cursor() as cur:
         try:
-            # 1) insert job
+            # 1) insert job with region
             cur.execute(
                 """
-                INSERT INTO label_print_jobs (created_by, line_date)
-                VALUES (%s, %s)
+                INSERT INTO label_print_jobs (created_by, line_date, region)
+                VALUES (%s, %s, %s)
                 RETURNING id
                 """,
-                (created_by, line_date),
+                (created_by, line_date, region),
             )
             job_id = cur.fetchone()[0]
-            logger.info(f"Created label job {job_id}")
+            logger.info(f"Created label job {job_id} for region {region}")
         except Exception as e:
             logger.error(f"Failed to create job record: {e}")
             raise
