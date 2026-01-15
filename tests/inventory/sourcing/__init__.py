@@ -1,0 +1,1 @@
+"""Inventory sourcing tests"""
