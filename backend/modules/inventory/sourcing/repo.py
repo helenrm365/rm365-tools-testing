@@ -78,6 +78,43 @@ def ensure_tables_exist():
         """)
         conn.commit()
         
+        # Schema migration: create price sync log table if it doesn't exist
+        cur.execute("""
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_name = 'sourcing_price_sync_log'
+            )
+        """)
+        if not cur.fetchone()[0]:
+            logger.info("[Sourcing] Creating sourcing_price_sync_log table...")
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS sourcing_price_sync_log (
+                    id SERIAL PRIMARY KEY,
+                    sync_type VARCHAR(50) NOT NULL,
+                    internal_sku VARCHAR(100),
+                    supplier_product_id INTEGER,
+                    price_id INTEGER,
+                    previous_buy_price DECIMAL(12, 4),
+                    new_buy_price DECIMAL(12, 4),
+                    currency VARCHAR(3) DEFAULT 'GBP',
+                    supplier_name VARCHAR(255),
+                    effective_date DATE,
+                    sync_status VARCHAR(50) DEFAULT 'success',
+                    error_message TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            cur.execute("""
+                CREATE INDEX IF NOT EXISTS idx_sourcing_price_sync_log_created_at 
+                ON sourcing_price_sync_log(created_at DESC)
+            """)
+            cur.execute("""
+                CREATE INDEX IF NOT EXISTS idx_sourcing_price_sync_log_internal_sku 
+                ON sourcing_price_sync_log(internal_sku)
+            """)
+            conn.commit()
+            logger.info("[Sourcing] Created sourcing_price_sync_log table successfully")
+        
         _tables_initialized = True
         
     except Exception as e:
@@ -104,6 +141,25 @@ def _create_tables(cur):
             is_active BOOLEAN DEFAULT TRUE,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    
+    # Price Sync Log table - tracks automated price activations
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS sourcing_price_sync_log (
+            id SERIAL PRIMARY KEY,
+            sync_type VARCHAR(50) NOT NULL,
+            internal_sku VARCHAR(100),
+            supplier_product_id INTEGER REFERENCES sourcing_supplier_products(id) ON DELETE SET NULL,
+            price_id INTEGER REFERENCES sourcing_prices(id) ON DELETE SET NULL,
+            previous_buy_price DECIMAL(12, 4),
+            new_buy_price DECIMAL(12, 4),
+            currency VARCHAR(3) DEFAULT 'GBP',
+            supplier_name VARCHAR(255),
+            effective_date DATE,
+            sync_status VARCHAR(50) DEFAULT 'success',
+            error_message TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
     
@@ -1197,6 +1253,314 @@ class SourcingRepo:
             return [dict(zip(columns, row)) for row in cur.fetchall()]
         except Exception as e:
             logger.error(f"Error in get_comparison_with_inventory: {e}")
+            raise
+        finally:
+            return_inventory_connection(conn)
+
+    # ====== Price Sync Log Operations ======
+    
+    def create_price_sync_log(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Create a price sync log entry for auditing automated price changes.
+        
+        sync_type values:
+        - 'daily_activation': Price became active due to effective_date reaching today
+        - 'manual_activation': Price manually activated
+        - 'margin_report_refresh': Margin report refreshed with new prices
+        """
+        conn = get_inventory_log_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute("""
+                INSERT INTO sourcing_price_sync_log 
+                    (sync_type, internal_sku, supplier_product_id, price_id,
+                     previous_buy_price, new_buy_price, currency, supplier_name,
+                     effective_date, sync_status, error_message)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING id, sync_type, internal_sku, supplier_product_id, price_id,
+                          previous_buy_price, new_buy_price, currency, supplier_name,
+                          effective_date, sync_status, error_message, created_at
+            """, (
+                data['sync_type'],
+                data.get('internal_sku'),
+                data.get('supplier_product_id'),
+                data.get('price_id'),
+                data.get('previous_buy_price'),
+                data.get('new_buy_price'),
+                data.get('currency', 'GBP'),
+                data.get('supplier_name'),
+                data.get('effective_date'),
+                data.get('sync_status', 'success'),
+                data.get('error_message')
+            ))
+            row = cur.fetchone()
+            conn.commit()
+            columns = [desc[0] for desc in cur.description]
+            return dict(zip(columns, row))
+        except Exception as e:
+            conn.rollback()
+            logger.error(f"Error in create_price_sync_log: {e}")
+            raise
+        finally:
+            return_inventory_connection(conn)
+    
+    def get_price_sync_logs(
+        self, 
+        internal_sku: Optional[str] = None,
+        sync_type: Optional[str] = None,
+        limit: int = 100
+    ) -> List[Dict[str, Any]]:
+        """Get price sync log entries for auditing."""
+        conn = get_inventory_log_connection()
+        try:
+            cur = conn.cursor()
+            query = """
+                SELECT id, sync_type, internal_sku, supplier_product_id, price_id,
+                       previous_buy_price, new_buy_price, currency, supplier_name,
+                       effective_date, sync_status, error_message, created_at
+                FROM sourcing_price_sync_log
+                WHERE 1=1
+            """
+            params = []
+            
+            if internal_sku:
+                query += " AND internal_sku = %s"
+                params.append(internal_sku)
+            
+            if sync_type:
+                query += " AND sync_type = %s"
+                params.append(sync_type)
+            
+            query += " ORDER BY created_at DESC LIMIT %s"
+            params.append(limit)
+            
+            cur.execute(query, params)
+            columns = [desc[0] for desc in cur.description]
+            return [dict(zip(columns, row)) for row in cur.fetchall()]
+        except Exception as e:
+            logger.error(f"Error in get_price_sync_logs: {e}")
+            raise
+        finally:
+            return_inventory_connection(conn)
+    
+    def get_prices_becoming_active_today(self) -> List[Dict[str, Any]]:
+        """
+        Get all prices that are becoming active today (effective_date = today).
+        These are prices that were pending yesterday but are now effective.
+        
+        Returns prices where:
+        - effective_date = CURRENT_DATE
+        - status IS NULL OR status != 'cancelled'
+        - Are the newest for their supplier_product_id
+        """
+        conn = get_inventory_log_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute("""
+                WITH today_prices AS (
+                    -- Prices that became effective today
+                    SELECT 
+                        p.id, p.supplier_product_id, p.buy_price, p.currency,
+                        p.effective_date, p.notes, p.created_by, p.created_at,
+                        sp.supplier_sku, sp.supplier_product_name, sp.internal_sku,
+                        sp.supplier_id,
+                        s.name as supplier_name
+                    FROM sourcing_prices p
+                    JOIN sourcing_supplier_products sp ON sp.id = p.supplier_product_id
+                    JOIN sourcing_suppliers s ON s.id = sp.supplier_id
+                    WHERE p.effective_date = CURRENT_DATE
+                      AND (p.status IS NULL OR p.status != 'cancelled')
+                      AND sp.is_active = TRUE
+                      AND s.is_active = TRUE
+                ),
+                previous_active AS (
+                    -- Find what was the active price before today for each supplier_product
+                    SELECT DISTINCT ON (supplier_product_id)
+                        supplier_product_id, buy_price as previous_buy_price
+                    FROM sourcing_prices
+                    WHERE effective_date < CURRENT_DATE
+                      AND (status IS NULL OR status != 'cancelled')
+                    ORDER BY supplier_product_id, effective_date DESC, created_at DESC
+                )
+                SELECT 
+                    tp.*,
+                    pa.previous_buy_price
+                FROM today_prices tp
+                LEFT JOIN previous_active pa ON pa.supplier_product_id = tp.supplier_product_id
+            """)
+            columns = [desc[0] for desc in cur.description]
+            return [dict(zip(columns, row)) for row in cur.fetchall()]
+        except Exception as e:
+            logger.error(f"Error in get_prices_becoming_active_today: {e}")
+            raise
+        finally:
+            return_inventory_connection(conn)
+    
+    def get_comparison_with_pending_prices(self, internal_sku: Optional[str] = None) -> List[Dict[str, Any]]:
+        """
+        Get supplier comparison WITH pending price information.
+        
+        For each supplier product, returns:
+        - Current active price
+        - Next pending price (if any) with days until effective
+        - Whether the pending price is cheaper
+        
+        This is used by the Supplier Comparison tab to show pending price indicators.
+        """
+        conn = get_inventory_log_connection()
+        try:
+            cur = conn.cursor()
+            query = """
+                WITH active_prices AS (
+                    SELECT DISTINCT ON (supplier_product_id)
+                        supplier_product_id, 
+                        id as active_price_id,
+                        buy_price as active_buy_price, 
+                        effective_date as active_effective_date, 
+                        COALESCE(currency, 'GBP') as active_currency
+                    FROM sourcing_prices
+                    WHERE effective_date <= CURRENT_DATE
+                      AND (status IS NULL OR status != 'cancelled')
+                    ORDER BY supplier_product_id, effective_date DESC, created_at DESC
+                ),
+                pending_prices AS (
+                    -- Get the next pending price for each supplier_product (earliest future date)
+                    SELECT DISTINCT ON (supplier_product_id)
+                        supplier_product_id, 
+                        id as pending_price_id,
+                        buy_price as pending_buy_price, 
+                        effective_date as pending_effective_date,
+                        COALESCE(currency, 'GBP') as pending_currency
+                    FROM sourcing_prices
+                    WHERE effective_date > CURRENT_DATE
+                      AND (status IS NULL OR status != 'cancelled')
+                    ORDER BY supplier_product_id, effective_date ASC, created_at DESC
+                )
+                SELECT 
+                    sp.id as supplier_product_id,
+                    sp.internal_sku,
+                    sp.supplier_id,
+                    s.name as supplier_name,
+                    sp.supplier_sku,
+                    sp.supplier_product_name,
+                    sp.pack_size,
+                    -- Active price info
+                    ap.active_price_id,
+                    ap.active_buy_price,
+                    ap.active_currency,
+                    ap.active_effective_date,
+                    -- Pending price info
+                    pp.pending_price_id,
+                    pp.pending_buy_price,
+                    pp.pending_currency,
+                    pp.pending_effective_date,
+                    -- Days until pending price becomes active
+                    CASE WHEN pp.pending_effective_date IS NOT NULL 
+                         THEN (pp.pending_effective_date - CURRENT_DATE)
+                         ELSE NULL 
+                    END as days_until_pending,
+                    -- Whether pending price is cheaper than active
+                    CASE WHEN pp.pending_buy_price IS NOT NULL AND ap.active_buy_price IS NOT NULL
+                         THEN pp.pending_buy_price < ap.active_buy_price
+                         ELSE NULL
+                    END as pending_is_cheaper
+                FROM sourcing_supplier_products sp
+                JOIN sourcing_suppliers s ON s.id = sp.supplier_id
+                LEFT JOIN active_prices ap ON ap.supplier_product_id = sp.id
+                LEFT JOIN pending_prices pp ON pp.supplier_product_id = sp.id
+                WHERE sp.internal_sku IS NOT NULL
+                  AND sp.is_active = TRUE
+                  AND s.is_active = TRUE
+            """
+            params = []
+            
+            if internal_sku:
+                query += " AND sp.internal_sku = %s"
+                params.append(internal_sku)
+            
+            query += " ORDER BY sp.internal_sku, ap.active_buy_price NULLS LAST"
+            
+            cur.execute(query, params)
+            columns = [desc[0] for desc in cur.description]
+            return [dict(zip(columns, row)) for row in cur.fetchall()]
+        except Exception as e:
+            logger.error(f"Error in get_comparison_with_pending_prices: {e}")
+            raise
+        finally:
+            return_inventory_connection(conn)
+    
+    def get_margin_report_data(self, report_type: str = 'all', limit: int = 100) -> List[Dict[str, Any]]:
+        """
+        Get margin report data using ACTIVE prices.
+        
+        report_type options:
+        - 'all': All products with margins
+        - 'low_margin': Products with margin < 20%
+        - 'high_margin': Products with margin > 50%
+        - 'negative_margin': Products with negative margin (loss)
+        
+        Uses the get_active_price() logic:
+        - effective_date <= CURRENT_DATE
+        - status IS NULL OR status != 'cancelled'
+        - Most recent effective_date wins
+        """
+        conn = get_inventory_log_connection()
+        try:
+            cur = conn.cursor()
+            # Base query that finds the cheapest active price per internal_sku
+            query = """
+                WITH active_prices AS (
+                    SELECT DISTINCT ON (supplier_product_id)
+                        supplier_product_id, 
+                        buy_price, 
+                        COALESCE(currency, 'GBP') as currency,
+                        effective_date
+                    FROM sourcing_prices
+                    WHERE effective_date <= CURRENT_DATE
+                      AND (status IS NULL OR status != 'cancelled')
+                    ORDER BY supplier_product_id, effective_date DESC, created_at DESC
+                ),
+                cheapest_per_sku AS (
+                    -- Find the cheapest supplier for each internal_sku
+                    SELECT DISTINCT ON (sp.internal_sku)
+                        sp.internal_sku,
+                        sp.id as supplier_product_id,
+                        sp.supplier_id,
+                        s.name as supplier_name,
+                        sp.supplier_sku,
+                        sp.pack_size,
+                        ap.buy_price,
+                        ap.currency,
+                        ap.effective_date as price_effective_date
+                    FROM sourcing_supplier_products sp
+                    JOIN sourcing_suppliers s ON s.id = sp.supplier_id
+                    JOIN active_prices ap ON ap.supplier_product_id = sp.id
+                    WHERE sp.internal_sku IS NOT NULL
+                      AND sp.is_active = TRUE
+                      AND s.is_active = TRUE
+                    ORDER BY sp.internal_sku, ap.buy_price ASC
+                )
+                SELECT 
+                    c.*,
+                    im.status as inventory_status,
+                    (COALESCE(im.shelf_lt1_qty, 0) + COALESCE(im.shelf_gt1_qty, 0) + COALESCE(im.top_floor_total, 0)) as quantity_available,
+                    im.uk_6m_data,
+                    im.fr_6m_data
+                FROM cheapest_per_sku c
+                LEFT JOIN inventory_metadata im ON im.sku = c.internal_sku
+            """
+            params = []
+            
+            query += " ORDER BY c.internal_sku"
+            if limit:
+                query += " LIMIT %s"
+                params.append(limit)
+            
+            cur.execute(query, params)
+            columns = [desc[0] for desc in cur.description]
+            return [dict(zip(columns, row)) for row in cur.fetchall()]
+        except Exception as e:
+            logger.error(f"Error in get_margin_report_data: {e}")
             raise
         finally:
             return_inventory_connection(conn)

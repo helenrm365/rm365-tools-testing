@@ -61,6 +61,7 @@ export async function init(path = '/inventory/sourcing') {
     '/inventory/sourcing/suppliers': 'suppliers',
     '/inventory/sourcing/mappings': 'mappings',
     '/inventory/sourcing/prices': 'prices',
+    '/inventory/sourcing/pending': 'pending',
     '/inventory/sourcing/import': 'import',
     '/inventory/sourcing/margins': 'margins'
   };
@@ -276,6 +277,9 @@ function switchTab(tabId) {
     case 'pending':
       loadPendingPrices();
       break;
+    case 'margins':
+      loadMargins();
+      break;
   }
 }
 
@@ -367,22 +371,47 @@ async function loadDashboard() {
       }
     }
 
-    // Calculate margin insights from comparison data
-    if (comparison.length > 0) {
-      const margins = comparison
-        .filter(item => item.margin_percent !== null && item.margin_percent !== undefined)
-        .map(item => parseFloat(item.margin_percent));
+    // Load margin insights from margin-reports API (uses active prices only)
+    try {
+      const marginResponse = await get('/v1/inventory/sourcing/margin-reports?report_type=all&limit=500');
+      const products = marginResponse?.products || [];
       
-      if (margins.length > 0) {
-        const avgMargin = (margins.reduce((a, b) => a + b, 0) / margins.length).toFixed(1);
-        const bestMargin = Math.max(...margins).toFixed(1);
-        const worstMargin = Math.min(...margins).toFixed(1);
-        const lowMarginCount = margins.filter(m => m < 20).length;
+      if (products.length > 0) {
+        const margins = products
+          .filter(item => item.margin_percent !== null && item.margin_percent !== undefined)
+          .map(item => parseFloat(item.margin_percent));
         
-        if (elements.dashAvgMargin) elements.dashAvgMargin.textContent = `${avgMargin}%`;
-        if (elements.dashBestMargin) elements.dashBestMargin.textContent = `${bestMargin}%`;
-        if (elements.dashWorstMargin) elements.dashWorstMargin.textContent = `${worstMargin}%`;
-        if (elements.dashLowMarginCount) elements.dashLowMarginCount.textContent = lowMarginCount;
+        if (margins.length > 0) {
+          const avgMargin = (margins.reduce((a, b) => a + b, 0) / margins.length).toFixed(1);
+          const bestMargin = Math.max(...margins).toFixed(1);
+          const worstMargin = Math.min(...margins).toFixed(1);
+          const lowMarginCount = margins.filter(m => m < 20).length;
+          
+          if (elements.dashAvgMargin) elements.dashAvgMargin.textContent = `${avgMargin}%`;
+          if (elements.dashBestMargin) elements.dashBestMargin.textContent = `${bestMargin}%`;
+          if (elements.dashWorstMargin) elements.dashWorstMargin.textContent = `${worstMargin}%`;
+          if (elements.dashLowMarginCount) elements.dashLowMarginCount.textContent = lowMarginCount;
+        }
+      }
+    } catch (marginError) {
+      console.warn('[Sourcing] Could not load margin insights from API:', marginError);
+      // Fallback to comparison data if API not available
+      if (comparison.length > 0) {
+        const margins = comparison
+          .filter(item => item.margin_percent !== null && item.margin_percent !== undefined)
+          .map(item => parseFloat(item.margin_percent));
+        
+        if (margins.length > 0) {
+          const avgMargin = (margins.reduce((a, b) => a + b, 0) / margins.length).toFixed(1);
+          const bestMargin = Math.max(...margins).toFixed(1);
+          const worstMargin = Math.min(...margins).toFixed(1);
+          const lowMarginCount = margins.filter(m => m < 20).length;
+          
+          if (elements.dashAvgMargin) elements.dashAvgMargin.textContent = `${avgMargin}%`;
+          if (elements.dashBestMargin) elements.dashBestMargin.textContent = `${bestMargin}%`;
+          if (elements.dashWorstMargin) elements.dashWorstMargin.textContent = `${worstMargin}%`;
+          if (elements.dashLowMarginCount) elements.dashLowMarginCount.textContent = lowMarginCount;
+        }
       }
     }
 
@@ -421,13 +450,22 @@ async function loadDashboard() {
 
 async function loadComparison() {
   try {
-    // Use the new endpoint that includes inventory metadata
-    const response = await get('/v1/inventory/sourcing/comparison-with-inventory');
+    // Use the new endpoint that includes pending price indicators
+    // This ensures ranking uses only ACTIVE prices while showing pending indicators
+    const response = await get('/v1/inventory/sourcing/comparison-with-pending');
     comparison = response?.products || [];
     renderComparison();
   } catch (error) {
     console.error('[Sourcing] Error loading comparison:', error);
-    comparison = [];
+    // Fallback to old endpoint if new one fails
+    try {
+      const fallback = await get('/v1/inventory/sourcing/comparison-with-inventory');
+      comparison = fallback?.products || [];
+      renderComparison();
+    } catch (fallbackError) {
+      console.error('[Sourcing] Fallback also failed:', fallbackError);
+      comparison = [];
+    }
   }
 }
 
@@ -444,6 +482,143 @@ async function loadPriceHistory() {
 
 // Pending prices state
 let pendingPrices = [];
+
+// Margin reports state
+let marginReportData = [];
+let currentMarginReportType = 'low-margin';
+
+async function loadMargins(reportType = null) {
+  try {
+    if (reportType) {
+      currentMarginReportType = reportType;
+    }
+    
+    const container = document.querySelector('.margin-report-content');
+    if (container) {
+      container.innerHTML = `
+        <div class="loading-state">
+          <div class="loading-spinner"></div>
+          <span>Loading margin report...</span>
+        </div>
+      `;
+    }
+    
+    const response = await get(`/v1/inventory/sourcing/margin-reports?report_type=${currentMarginReportType}&limit=50`);
+    marginReportData = response?.products || [];
+    renderMarginReports();
+  } catch (error) {
+    console.error('[Sourcing] Error loading margin reports:', error);
+    marginReportData = [];
+    renderMarginReports();
+  }
+}
+
+function renderMarginReports() {
+  const container = document.querySelector('.margin-report-content');
+  if (!container) return;
+  
+  if (marginReportData.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <i class="fas fa-chart-pie"></i>
+        <h3>No Data Available</h3>
+        <p>No margin data found for this report type. Ensure you have products with supplier pricing set up.</p>
+      </div>
+    `;
+    return;
+  }
+  
+  const reportTitles = {
+    'low-margin': 'Low Margin Products',
+    'top-margin': 'Top Margin Products',
+    'margin-drops': 'Biggest Margin Changes',
+    'trends': 'Margin Trends'
+  };
+  
+  container.innerHTML = `
+    <div class="margin-report-table-wrapper">
+      <table class="data-table margin-report-table">
+        <thead>
+          <tr>
+            <th>Internal SKU</th>
+            <th>Product Name</th>
+            <th>Supplier</th>
+            <th>Buy Price</th>
+            <th>Sell Price</th>
+            <th>Margin</th>
+            <th>Margin %</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="marginReportTableBody">
+          ${marginReportData.map(product => {
+            const marginClass = (product.margin_percent || 0) >= 30 ? 'text-success' : 
+                                (product.margin_percent || 0) >= 15 ? 'text-warning' : 'text-danger';
+            const statusBadge = getMarginStatusBadge(product.margin_percent);
+            
+            return `
+              <tr>
+                <td class="sku-cell">${escapeHtml(product.internal_sku)}</td>
+                <td>${escapeHtml(product.product_name || product.internal_sku)}</td>
+                <td>${escapeHtml(product.supplier_name || '-')}</td>
+                <td class="price-cell">
+                  ${product.active_buy_price ? formatCurrency(product.active_buy_price, product.currency || 'GBP') : '-'}
+                </td>
+                <td class="price-cell">
+                  ${product.sell_price ? formatCurrency(product.sell_price, 'GBP') : '-'}
+                </td>
+                <td class="price-cell">
+                  ${product.margin !== null ? formatCurrency(product.margin, 'GBP') : '-'}
+                </td>
+                <td class="${marginClass}">
+                  <strong>${product.margin_percent !== null ? product.margin_percent.toFixed(1) + '%' : '-'}</strong>
+                </td>
+                <td>${statusBadge}</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function getMarginStatusBadge(marginPercent) {
+  if (marginPercent === null || marginPercent === undefined) {
+    return '<span class="status-badge inactive">No Data</span>';
+  }
+  if (marginPercent >= 30) {
+    return '<span class="status-badge active">Healthy</span>';
+  }
+  if (marginPercent >= 15) {
+    return '<span class="status-badge warning">Monitor</span>';
+  }
+  return '<span class="status-badge danger">Low</span>';
+}
+
+// Global function for dropdown selection in HTML
+window.selectMarginReport = function(element, reportType, label) {
+  const dropdown = element.closest('.custom-dropdown');
+  const selected = dropdown.querySelector('.dropdown-selected');
+  const options = dropdown.querySelectorAll('.dropdown-option');
+  
+  // Update selected display
+  selected.innerHTML = `<i class="fas fa-chart-bar"></i> ${label}`;
+  
+  // Update hidden input
+  const hiddenInput = dropdown.querySelector('#marginReportType');
+  if (hiddenInput) hiddenInput.value = reportType;
+  
+  // Update option states
+  options.forEach(opt => opt.classList.remove('selected'));
+  element.classList.add('selected');
+  
+  // Close dropdown
+  dropdown.classList.remove('open');
+  
+  // Load new report
+  loadMargins(reportType);
+};
 
 async function loadPendingPrices() {
   try {
@@ -755,11 +930,41 @@ function renderComparison() {
       </div>` :
       `<div>${escapeHtml(displaySupplier.supplier_name)}</div>`;
     
+    // Build pending price indicator for this supplier
+    let pendingIndicator = '';
+    if (displaySupplier && displaySupplier.pending_price_info) {
+      const pending = displaySupplier.pending_price_info;
+      const indicatorClass = pending.is_cheaper ? 'pending-cheaper' : 'pending-change';
+      const iconClass = pending.is_cheaper ? 'fa-arrow-down text-success' : 'fa-clock text-warning';
+      pendingIndicator = `
+        <div class="pending-price-indicator ${indicatorClass}" title="${pending.indicator_text}">
+          <i class="fas ${iconClass}"></i>
+          <span>${pending.indicator_text}</span>
+          <small>${formatCurrency(pending.pending_price, pending.pending_currency)}</small>
+        </div>
+      `;
+    }
+    
+    // Check if product has cheaper pending prices from any supplier
+    let productPendingNote = '';
+    if (product.has_cheaper_pending && product.cheaper_pending_suppliers?.length > 0) {
+      const cheaperList = product.cheaper_pending_suppliers.map(s => 
+        `${s.supplier_name}: ${formatCurrency(s.pending_price, 'GBP')} in ${s.days_until} day${s.days_until !== 1 ? 's' : ''}`
+      ).join(', ');
+      productPendingNote = `
+        <div class="product-pending-note" title="Upcoming cheaper prices">
+          <i class="fas fa-calendar-arrow-down text-info"></i>
+          <small>Cheaper price${product.cheaper_pending_suppliers.length > 1 ? 's' : ''} coming</small>
+        </div>
+      `;
+    }
+    
     return `
-      <tr data-sku="${product.internal_sku}">
+      <tr data-sku="${product.internal_sku}" class="${product.has_cheaper_pending ? 'has-pending-cheaper' : ''}">
         <td class="sku-cell">
           <div>${escapeHtml(product.internal_sku)}</div>
           ${hasInventoryData ? '' : '<small class="text-warning">Not in inventory</small>'}
+          ${productPendingNote}
         </td>
         <td>
           <div>${productName}</div>
@@ -782,6 +987,7 @@ function renderComparison() {
             </div>
             ${displaySupplier.pack_size > 1 && displaySupplier.price_per_unit ? 
               `<small class="text-muted">${formatCurrency(displaySupplier.price_per_unit, 'GBP')}/unit</small>` : ''}
+            ${pendingIndicator}
           ` : displaySupplier ? '<span class="text-warning">No price set</span>' : '<span class="text-muted">-</span>'}
         </td>
         <td class="margin-cell">${marginDisplay}</td>
@@ -1268,17 +1474,34 @@ async function loadPriceHistoryForMapping(mappingId) {
     if (history && history.length > 0) {
       historySection.style.display = 'block';
       
-      historyList.innerHTML = history.map((entry, index) => {
+      historyList.innerHTML = history.map((entry) => {
         const date = new Date(entry.effective_date).toLocaleDateString();
-        const isCurrent = index === 0; // First entry is most recent
+        // Use computed_status from the API to determine the actual current/active price
+        const status = entry.computed_status || 'unknown';
+        const isActive = status === 'active';
+        const isPending = status === 'pending';
+        const isSuperseded = status === 'superseded';
+        const isCancelled = status === 'cancelled';
+        
+        // Build status badge
+        let statusBadge = '';
+        if (isActive) {
+          statusBadge = '<span class="status-badge active">Active</span>';
+        } else if (isPending) {
+          statusBadge = '<span class="status-badge pending">Pending</span>';
+        } else if (isSuperseded) {
+          statusBadge = '<span class="status-badge inactive">Superseded</span>';
+        } else if (isCancelled) {
+          statusBadge = '<span class="status-badge danger">Cancelled</span>';
+        }
         
         return `
-          <div class="price-history-item ${isCurrent ? 'current' : ''}">
+          <div class="price-history-item ${isActive ? 'current' : ''} ${isPending ? 'pending' : ''} ${isSuperseded ? 'superseded' : ''} ${isCancelled ? 'cancelled' : ''}">
             <div class="price-info">
               <div class="price-value">${formatCurrency(entry.buy_price, entry.currency)}</div>
               <div class="price-date">${date}</div>
             </div>
-            ${isCurrent ? '<span class="current-badge">Current</span>' : ''}
+            ${statusBadge}
           </div>
         `;
       }).join('');
@@ -1290,6 +1513,97 @@ async function loadPriceHistoryForMapping(mappingId) {
     console.error('[Sourcing] Error loading price history:', error);
     historySection.style.display = 'none';
   }
+}
+
+/**
+ * Show confirmation dialog for pending price conflict
+ * @returns {Promise<'add'|'replace'|'cancel'>}
+ */
+function showPendingPriceConfirmation(pendingAmount, pendingDate, newAmount) {
+  return new Promise((resolve) => {
+    // Create modal dynamically
+    const modalId = 'pendingPriceConfirmModal';
+    let modal = document.getElementById(modalId);
+    
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = modalId;
+      modal.className = 'modal-overlay';
+      document.body.appendChild(modal);
+    }
+    
+    modal.innerHTML = `
+      <div class="modal-content modal-md">
+        <div class="modal-header">
+          <div class="modal-header-icon warning">
+            <i class="fas fa-clock"></i>
+          </div>
+          <h2 class="modal-title">Pending Price Exists</h2>
+        </div>
+        
+        <div class="modal-body">
+          <div class="pending-price-conflict-info">
+            <div class="conflict-alert">
+              <i class="fas fa-exclamation-triangle"></i>
+              <p>This product mapping has a <strong>scheduled price change</strong>:</p>
+            </div>
+            
+            <div class="pending-price-details">
+              <div class="price-detail-row">
+                <span class="label">Scheduled Price:</span>
+                <span class="value scheduled">${pendingAmount}</span>
+              </div>
+              <div class="price-detail-row">
+                <span class="label">Effective Date:</span>
+                <span class="value">${pendingDate}</span>
+              </div>
+              <div class="price-detail-row">
+                <span class="label">Your New Price:</span>
+                <span class="value new">${newAmount}</span>
+              </div>
+            </div>
+            
+            <p class="conflict-explanation">
+              What would you like to do?
+            </p>
+          </div>
+        </div>
+        
+        <div class="modal-footer pending-price-actions">
+          <button class="action-btn secondary-btn" id="pendingConfirmCancel">
+            <i class="fas fa-times"></i>
+            <span>Don't Save</span>
+          </button>
+          <button class="action-btn warning-btn" id="pendingConfirmAdd">
+            <i class="fas fa-plus"></i>
+            <span>Add Both</span>
+          </button>
+          <button class="action-btn primary-btn" id="pendingConfirmReplace">
+            <i class="fas fa-exchange-alt"></i>
+            <span>Replace Scheduled</span>
+          </button>
+        </div>
+      </div>
+    `;
+    
+    modal.classList.add('active');
+    
+    // Button handlers
+    document.getElementById('pendingConfirmCancel').onclick = () => {
+      modal.classList.remove('active');
+      resolve('cancel');
+    };
+    
+    document.getElementById('pendingConfirmAdd').onclick = () => {
+      modal.classList.remove('active');
+      resolve('add');
+    };
+    
+    document.getElementById('pendingConfirmReplace').onclick = () => {
+      modal.classList.remove('active');
+      resolve('replace');
+    };
+  });
 }
 
 /**
@@ -1539,21 +1853,63 @@ async function submitMappingForm() {
     // Only save price if it changed (or if this is a new mapping)
     let priceSaved = false;
     if (buyPrice && productId && (!isEditMode || hasPriceChanges)) {
-      try {
-        const priceData = {
-          supplier_product_id: productId,
-          buy_price: buyPrice,
-          currency: currency,
-          effective_date: new Date().toISOString().split('T')[0]
-        };
-        
-        console.log('[Sourcing] Creating price entry (price changed):', priceData);
-        
-        await post('/v1/inventory/sourcing/prices', priceData);
-        priceSaved = true;
-      } catch (priceError) {
-        console.error('[Sourcing] Error adding price:', priceError);
-        showToast(`Mapping ${isEditMode ? 'updated' : 'saved'} but failed to add price: ${priceError.message || priceError}`, 'warning');
+      // Check for pending prices before saving (edit mode only)
+      let proceedWithPriceSave = true;
+      if (isEditMode) {
+        try {
+          const pendingResponse = await get(`/v1/inventory/sourcing/prices/pending?supplier_product_id=${productId}`);
+          const pendingPrices = pendingResponse?.pending_prices || [];
+          
+          if (pendingPrices.length > 0) {
+            const pendingPrice = pendingPrices[0]; // Get the nearest pending price
+            const pendingDate = new Date(pendingPrice.effective_date).toLocaleDateString();
+            const pendingAmount = formatCurrency(pendingPrice.buy_price, pendingPrice.currency);
+            
+            const userChoice = await showPendingPriceConfirmation(
+              pendingAmount,
+              pendingDate,
+              formatCurrency(buyPrice, currency)
+            );
+            
+            if (userChoice === 'cancel') {
+              // User chose not to save
+              proceedWithPriceSave = false;
+            } else if (userChoice === 'replace') {
+              // User chose to cancel pending and add new
+              try {
+                await post(`/v1/inventory/sourcing/prices/${pendingPrice.id}/cancel`, {});
+                console.log('[Sourcing] Cancelled pending price:', pendingPrice.id);
+              } catch (cancelError) {
+                console.error('[Sourcing] Error cancelling pending price:', cancelError);
+                showToast('Failed to cancel pending price', 'error');
+                proceedWithPriceSave = false;
+              }
+            }
+            // If userChoice === 'add', proceed without cancelling (both will exist)
+          }
+        } catch (pendingCheckError) {
+          console.error('[Sourcing] Error checking for pending prices:', pendingCheckError);
+          // If we can't check, proceed anyway
+        }
+      }
+      
+      if (proceedWithPriceSave) {
+        try {
+          const priceData = {
+            supplier_product_id: productId,
+            buy_price: buyPrice,
+            currency: currency,
+            effective_date: new Date().toISOString().split('T')[0]
+          };
+          
+          console.log('[Sourcing] Creating price entry (price changed):', priceData);
+          
+          await post('/v1/inventory/sourcing/prices', priceData);
+          priceSaved = true;
+        } catch (priceError) {
+          console.error('[Sourcing] Error adding price:', priceError);
+          showToast(`Mapping ${isEditMode ? 'updated' : 'saved'} but failed to add price: ${priceError.message || priceError}`, 'warning');
+        }
       }
     }
     
@@ -1943,15 +2299,19 @@ function showConflictModal(index) {
     </div>
   `;
   
-  // Show/hide pending change warning
+  // Show/hide pending change warning and disclaimer
   const pendingWarning = document.getElementById('pendingChangeWarning');
+  const updateDisclaimer = document.getElementById('updateDisclaimer');
+  
   if (conflict.conflict_type === 'pending_change' && conflict.current_data?.pending_price) {
     const pending = conflict.current_data.pending_price;
     document.getElementById('pendingChangeDetails').textContent = 
       `A price change to ${formatCurrency(pending.buy_price, pending.currency)} is scheduled for ${pending.effective_date}`;
     pendingWarning.style.display = 'flex';
+    if (updateDisclaimer) updateDisclaimer.style.display = 'flex';
   } else {
     pendingWarning.style.display = 'none';
+    if (updateDisclaimer) updateDisclaimer.style.display = 'none';
   }
   
   // Show modal

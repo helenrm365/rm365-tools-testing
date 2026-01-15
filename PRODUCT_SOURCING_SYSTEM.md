@@ -220,13 +220,40 @@ All API endpoints are prefixed with `/api/v1/inventory/sourcing/`
 |----------|--------|-------------|
 | `/comparison` | GET | Get side-by-side supplier price comparison (optional: `?internal_sku=`) |
 | `/comparison-with-inventory` | GET | Get comparison WITH Magento inventory metadata (name, stock, cost) |
+| `/comparison-with-pending` | GET | **Phase 3**: Get comparison with pending price indicators (shows active prices for ranking + pending price notes) |
 | `/available-skus` | GET | Get available SKUs from inventory_metadata for mapping (optional: `?search=`, `?limit=100`) |
 | `/currency/rates` | GET | Get current exchange rates for multi-currency support (GBP base, 1-hour cache) |
+
+### Margin Reports (Phase 3)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/margin-reports` | GET | Get margin reports using ACTIVE prices (optional: `?report_type=`, `?min_margin=`, `?max_margin=`, `?limit=100`) |
+
+Report types:
+- `all` - All products with margins
+- `low_margin` - Products with margin < 20%
+- `high_margin` - Products with margin > 50%
+- `negative_margin` - Loss-making products
+
+### Price Sync Logs (Phase 3 - Audit Trail)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/sync-logs` | GET | Get price sync log entries (optional: `?internal_sku=`, `?sync_type=`, `?limit=100`) |
+| `/sync-logs/trigger-daily-activation` | POST | Manually trigger the daily price activation job |
+
+Sync types:
+- `daily_activation` - Automatic activation from daily cron job (00:01)
+- `manual_activation` - Manual price activation
+- `margin_report_refresh` - Margin report data refresh
 
 ### Import
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
+| `/import/validate` | POST | Validate CSV file and detect conflicts before importing (multipart form: `file`, `supplier_id`) |
+| `/import/execute` | POST | Execute CSV import with user-provided conflict resolutions (JSON body with rows and resolutions) |
 | `/import/csv` | POST | Upload and process a CSV price file (multipart form: `file`, `supplier_id`) |
 | `/import/manual` | POST | Create a manual import batch for tracking |
 
@@ -266,7 +293,7 @@ The sourcing page has these main sections:
 
 ### Sub-Tabs
 
-The page has **7 sub-tabs** for different functions:
+The page has **8 sub-tabs** for different functions:
 
 #### 1. Dashboard
 Overview and summary view (default landing tab).
@@ -295,14 +322,22 @@ Link supplier products to internal SKUs:
 - **"Add Mapping" button** opens modal form
 - Edit/deactivate mappings
 
-#### 5. Price History
+#### 5. Pending Prices
+View and manage future scheduled price changes:
+- Table showing pending (future) prices that haven't become active yet
+- Displays: Effective Date, Supplier, Supplier SKU, Product Name, Buy Price, Currency, Status, Notes
+- **Future prices** have `effective_date > today`
+- Actions: Edit or cancel pending prices before they become active
+- Helps plan and review upcoming price changes
+
+#### 6. Price History
 Track all price changes over time:
 - Table showing: Date, Supplier, Supplier SKU, Product Name, Buy Price, Currency, Source, Notes
 - Search functionality
 - **"Add Price" button** opens modal form for manual entries
 - Filter by product or supplier
 
-#### 6. Import
+#### 7. Import
 Bulk data import options:
 
 **CSV Import Card:**
@@ -320,15 +355,17 @@ Bulk data import options:
 - Coming soon - locked
 - Future: Connect to supplier APIs for automatic updates
 
-#### 7. Margin Reports
-Analysis and reporting:
-- Report type dropdown: Low Margin, Top Margin, Biggest Drops, Trends
+#### 8. Margin Reports
+Analysis and reporting using **active prices only** (Phase 3):
+- Report type dropdown: Low Margin, Top Margin, Margin Changes, Trends
+- **Uses `/margin-reports` API** to fetch data based on active prices
+- Dashboard also uses this API for margin insights (avg, best, worst, low-margin count)
 - **"Export" button** for downloading reports
-- (Feature partially implemented - shows placeholder)
+- Table shows: Internal SKU, Product Name, Supplier, Buy Price, Sell Price, Margin, Margin %, Status Badge
 
 ### Modals
 
-The page includes **9 modal dialogs**:
+The page includes **8 modal dialogs**:
 
 #### Add Supplier Modal (`#addSupplierModal`)
 | Field | Type | Required | Description |
@@ -666,24 +703,26 @@ All dropdowns use custom components (not native `<select>` elements) for consist
 ```
 backend/modules/inventory/sourcing/
 ├── __init__.py          # Module exports (router, ensure_tables_exist)
-├── api.py               # FastAPI route definitions (356 lines)
+├── api.py               # FastAPI route definitions (657 lines)
 │                        # - Health endpoints
 │                        # - Supplier CRUD
 │                        # - Product mapping CRUD
-│                        # - Price endpoints
+│                        # - Price endpoints (including pending prices)
 │                        # - Comparison endpoint
 │                        # - Currency rates endpoint
-│                        # - Import endpoints
-├── service.py           # Business logic layer (381 lines)
+│                        # - Import endpoints (validate + execute)
+├── service.py           # Business logic layer (844 lines)
 │                        # - Data transformation
 │                        # - Complex operations (CSV processing)
 │                        # - Comparison with inventory
+│                        # - Temporal price management
 │                        # - Calls repo methods
-├── repo.py              # Database operations (839 lines)
+├── repo.py              # Database operations (1203 lines)
 │                        # - ensure_tables_exist() - auto-creates tables
 │                        # - _create_tables() - SQL DDL
 │                        # - SourcingRepo class with all CRUD methods
-└── schemas.py           # Pydantic models (145 lines)
+│                        # - Temporal price queries
+├── schemas.py           # Pydantic models (185 lines)
                          # - SupplierBase/Create/Update/Out
                          # - SupplierProductBase/Create/Update/Out
                          # - SupplierPriceBase/Create/Out
@@ -695,14 +734,14 @@ backend/modules/inventory/sourcing/
 ```
 frontend/
 ├── html/inventory/
-│   └── sourcing.html           # Page structure (986 lines)
+│   └── sourcing.html           # Page structure (1285 lines)
 │                               # - Header and navigation
 │                               # - Stats cards
 │                               # - Sub-tabs navigation
-│                               # - 7 tab panels with tables/forms
-│                               # - 6 modal dialogs
+│                               # - 8 tab panels with tables/forms
+│                               # - 8 modal dialogs
 ├── js/modules/inventory/
-│   └── sourcing.js             # Page logic (2045 lines)
+│   └── sourcing.js             # Page logic (2757 lines)
 │                               # - init() - entry point
 │                               # - cacheElements() - DOM references
 │                               # - setupEventListeners() - all handlers
@@ -712,9 +751,11 @@ frontend/
 │                               # - Modal functions (open, close, submit)
 │                               # - Dropdown handlers
 │                               # - CSV upload handlers
+│                               # - Import conflict resolution workflow
+│                               # - Temporal price management UI
 │                               # - Public API on window.sourcingModule
 └── css-new/pages/inventory/
-    └── sourcing.css            # Page-specific styling (828 lines)
+    └── sourcing.css            # Page-specific styling (1557 lines)
                                 # - Stats cards
                                 # - Sub-tabs
                                 # - Tab panels
@@ -740,9 +781,82 @@ frontend/
 ├── index.html                       # Added: CSS link to sourcing.css
 ├── html/home.html                   # Contains Inventory card (Product Sourcing accessed via tabs)
 ├── js/
-│   ├── router.js                    # Added: /inventory/sourcing route definitions (8 routes)
+│   ├── router.js                    # Added: /inventory/sourcing route definitions (9 routes)
 │   └── modules/inventory/index.js   # Added: sourcing route handler
 ```
+
+---
+
+## Phase 3: Automated Price Propagation & Sourcing Sync
+
+This phase ensures that effective dates drive the system automatically.
+
+### Daily Activation Job
+
+A scheduled task runs daily at **00:01** to:
+
+1. Find all prices where `effective_date = CURRENT_DATE`
+2. Log each activation to `sourcing_price_sync_log` for auditing
+3. The actual price activation is automatic via temporal queries
+
+**Scheduler Configuration** (in `backend/core/scheduler.py`):
+```python
+scheduler.add_job(
+    activate_daily_prices,
+    trigger=CronTrigger(hour=0, minute=1),
+    id='daily_price_activation',
+    name='Daily Price Activation'
+)
+```
+
+### Margin Report Integration
+
+Margin Reports now **always** use active prices resolved by `get_active_price()` logic:
+
+- Queries only prices where `effective_date <= CURRENT_DATE`
+- Excludes cancelled prices (`status != 'cancelled'`)
+- Most recent effective_date wins (with `created_at` as tiebreaker)
+- Calculates margins based on sell prices from Magento catalog
+
+**Report Types:**
+- `all` - All products
+- `low_margin` - Margin < 20%
+- `high_margin` - Margin > 50%
+- `negative_margin` - Loss-making products
+
+### Supplier Comparison with Pending Indicators
+
+The Comparison View now:
+
+1. **Uses ONLY active prices for ranking** - Pending prices don't affect current rankings
+2. **Shows pending price indicators** - Visual notes for upcoming price changes
+3. **Highlights cheaper upcoming prices** - "Cheaper price starting tomorrow" badges
+
+Example indicator:
+```
+Current Price: £12.50
+↓ Cheaper price in 3 days: £10.00
+```
+
+### Sync Logging (Audit Trail)
+
+A new table `sourcing_price_sync_log` tracks automated price updates:
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | SERIAL | Unique identifier |
+| `sync_type` | VARCHAR(50) | 'daily_activation', 'manual_activation', 'margin_report_refresh' |
+| `internal_sku` | VARCHAR(100) | Product SKU |
+| `supplier_product_id` | INTEGER | Links to supplier product |
+| `price_id` | INTEGER | Links to the price record |
+| `previous_buy_price` | DECIMAL(12,4) | Previous active price |
+| `new_buy_price` | DECIMAL(12,4) | New active price |
+| `currency` | VARCHAR(3) | Currency code |
+| `supplier_name` | VARCHAR(255) | Supplier name for reference |
+| `effective_date` | DATE | When price became active |
+| `sync_status` | VARCHAR(50) | 'success' or 'error' |
+| `error_message` | TEXT | Error details if failed |
+| `created_at` | TIMESTAMP | When log entry was created |
 
 ---
 

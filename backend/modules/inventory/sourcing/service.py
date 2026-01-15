@@ -842,3 +842,417 @@ class SourcingService:
             result.append(data)
         
         return result
+
+    # ====== Daily Price Activation & Sync Logging ======
+    
+    def activate_prices_for_today(self) -> Dict[str, Any]:
+        """
+        Daily activation job: Find all prices that became active today
+        and log them to the price sync log for auditing.
+        
+        This runs daily at 00:01 to:
+        1. Find prices where effective_date = today
+        2. Log each activation to sourcing_price_sync_log
+        3. Return summary of activations
+        
+        Note: The actual price activation is automatic via the temporal
+        query system - this just creates audit logs for tracking.
+        """
+        try:
+            # Get all prices becoming active today
+            prices_today = self.repo.get_prices_becoming_active_today()
+            
+            if not prices_today:
+                logger.info("[PriceSync] No prices becoming active today")
+                return {
+                    'status': 'success',
+                    'prices_activated': 0,
+                    'details': []
+                }
+            
+            logger.info(f"[PriceSync] Found {len(prices_today)} prices becoming active today")
+            
+            activated = []
+            errors = []
+            
+            for price in prices_today:
+                try:
+                    # Create sync log entry
+                    log_entry = self.repo.create_price_sync_log({
+                        'sync_type': 'daily_activation',
+                        'internal_sku': price.get('internal_sku'),
+                        'supplier_product_id': price.get('supplier_product_id'),
+                        'price_id': price.get('id'),
+                        'previous_buy_price': price.get('previous_buy_price'),
+                        'new_buy_price': price.get('buy_price'),
+                        'currency': price.get('currency', 'GBP'),
+                        'supplier_name': price.get('supplier_name'),
+                        'effective_date': price.get('effective_date'),
+                        'sync_status': 'success'
+                    })
+                    
+                    activated.append({
+                        'internal_sku': price.get('internal_sku'),
+                        'supplier_name': price.get('supplier_name'),
+                        'supplier_sku': price.get('supplier_sku'),
+                        'previous_price': float(price.get('previous_buy_price')) if price.get('previous_buy_price') else None,
+                        'new_price': float(price.get('buy_price')),
+                        'currency': price.get('currency', 'GBP'),
+                        'log_id': log_entry.get('id')
+                    })
+                    
+                    logger.info(f"[PriceSync] Activated: {price.get('internal_sku')} - "
+                               f"{price.get('supplier_name')} - "
+                               f"£{price.get('previous_buy_price')} → £{price.get('buy_price')}")
+                    
+                except Exception as e:
+                    error_msg = str(e)
+                    logger.error(f"[PriceSync] Error activating price {price.get('id')}: {error_msg}")
+                    
+                    # Log the error
+                    try:
+                        self.repo.create_price_sync_log({
+                            'sync_type': 'daily_activation',
+                            'internal_sku': price.get('internal_sku'),
+                            'supplier_product_id': price.get('supplier_product_id'),
+                            'price_id': price.get('id'),
+                            'new_buy_price': price.get('buy_price'),
+                            'currency': price.get('currency', 'GBP'),
+                            'supplier_name': price.get('supplier_name'),
+                            'effective_date': price.get('effective_date'),
+                            'sync_status': 'error',
+                            'error_message': error_msg
+                        })
+                    except:
+                        pass
+                    
+                    errors.append({
+                        'price_id': price.get('id'),
+                        'internal_sku': price.get('internal_sku'),
+                        'error': error_msg
+                    })
+            
+            result = {
+                'status': 'success' if not errors else 'completed_with_errors',
+                'prices_activated': len(activated),
+                'errors_count': len(errors),
+                'details': activated,
+                'errors': errors if errors else None
+            }
+            
+            logger.info(f"[PriceSync] Daily activation complete: {len(activated)} activated, {len(errors)} errors")
+            return result
+            
+        except Exception as e:
+            logger.error(f"[PriceSync] Daily activation failed: {e}", exc_info=True)
+            return {
+                'status': 'error',
+                'prices_activated': 0,
+                'error': str(e)
+            }
+    
+    def get_price_sync_logs(
+        self,
+        internal_sku: Optional[str] = None,
+        sync_type: Optional[str] = None,
+        limit: int = 100
+    ) -> List[Dict[str, Any]]:
+        """Get price sync log entries for auditing."""
+        return self.repo.get_price_sync_logs(
+            internal_sku=internal_sku,
+            sync_type=sync_type,
+            limit=limit
+        )
+    
+    # ====== Supplier Comparison with Pending Prices ======
+    
+    def get_comparison_with_pending_prices(
+        self, 
+        internal_sku: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Get supplier comparison WITH pending price indicators.
+        
+        For each product, shows:
+        - Current active prices from all suppliers
+        - Pending prices (if any) with visual indicators
+        - Whether a cheaper price is coming (e.g., "Cheaper price starting tomorrow")
+        
+        This ensures the Comparison View uses only ACTIVE prices for ranking,
+        while still showing pending price information as indicators.
+        """
+        raw_data = self.repo.get_comparison_with_pending_prices(internal_sku=internal_sku)
+        
+        # Fetch product names and sell prices from Magento
+        unique_skus = list(set(row['internal_sku'] for row in raw_data if row['internal_sku']))
+        product_names = self.repo.get_product_names_from_magento(unique_skus, region='uk')
+        sell_prices = self.repo.get_sell_prices_from_magento(unique_skus, region='uk')
+        
+        # Group by internal_sku
+        grouped = {}
+        for row in raw_data:
+            sku = row['internal_sku']
+            if sku not in grouped:
+                grouped[sku] = {
+                    'internal_sku': sku,
+                    'product_name': product_names.get(sku, ''),
+                    'sell_price': sell_prices.get(sku),
+                    'suppliers': []
+                }
+            
+            # Only add supplier if it has data
+            if row['supplier_id']:
+                active_price = row.get('active_buy_price')
+                active_currency = row.get('active_currency', 'GBP')
+                pending_price = row.get('pending_buy_price')
+                pending_currency = row.get('pending_currency', 'GBP')
+                
+                # Convert to GBP for comparison
+                active_price_gbp = convert_to_gbp(active_price, active_currency) if active_price else None
+                pending_price_gbp = convert_to_gbp(pending_price, pending_currency) if pending_price else None
+                
+                # Build pending price indicator
+                pending_indicator = None
+                if pending_price is not None:
+                    days_until = row.get('days_until_pending', 0)
+                    is_cheaper = row.get('pending_is_cheaper', False)
+                    
+                    if days_until == 1:
+                        date_text = "tomorrow"
+                    elif days_until <= 7:
+                        date_text = f"in {days_until} days"
+                    else:
+                        pending_date = row.get('pending_effective_date')
+                        date_text = f"on {pending_date}" if pending_date else f"in {days_until} days"
+                    
+                    pending_indicator = {
+                        'pending_price': float(pending_price),
+                        'pending_price_gbp': float(pending_price_gbp) if pending_price_gbp else None,
+                        'pending_currency': pending_currency,
+                        'pending_effective_date': row.get('pending_effective_date'),
+                        'days_until': days_until,
+                        'is_cheaper': is_cheaper,
+                        'indicator_text': f"{'Cheaper' if is_cheaper else 'New'} price {date_text}"
+                    }
+                
+                grouped[sku]['suppliers'].append({
+                    'supplier_id': row['supplier_id'],
+                    'supplier_name': row['supplier_name'],
+                    'supplier_sku': row['supplier_sku'],
+                    'supplier_product_name': row['supplier_product_name'],
+                    'pack_size': row.get('pack_size', 1),
+                    'buy_price': active_price,
+                    'buy_price_gbp': float(active_price_gbp) if active_price_gbp else None,
+                    'currency': active_currency,
+                    'effective_date': row.get('active_effective_date'),
+                    'pending_price_info': pending_indicator
+                })
+        
+        # Process each group to add rankings (based on ACTIVE prices only)
+        result = []
+        for sku, data in grouped.items():
+            suppliers_with_price = [s for s in data['suppliers'] if s['buy_price_gbp'] is not None]
+            suppliers_without_price = [s for s in data['suppliers'] if s['buy_price_gbp'] is None]
+            
+            suppliers_with_price.sort(key=lambda x: float(x['buy_price_gbp']))
+            
+            lowest_price = float(suppliers_with_price[0]['buy_price_gbp']) if suppliers_with_price else None
+            
+            for i, s in enumerate(suppliers_with_price):
+                s['rank'] = i + 1
+                s['is_cheapest'] = (float(s['buy_price_gbp']) == lowest_price)
+                
+                # Calculate per-unit price and margin
+                if s.get('pack_size', 1) > 1:
+                    s['price_per_unit'] = float(s['buy_price_gbp']) / s['pack_size']
+                else:
+                    s['price_per_unit'] = float(s['buy_price_gbp'])
+                
+                if data.get('sell_price'):
+                    margin_data = self.calculate_margin(
+                        Decimal(str(s['price_per_unit'])),
+                        Decimal(str(data['sell_price']))
+                    )
+                    s['margin'] = float(margin_data['margin']) if margin_data['margin'] else None
+                    s['margin_percent'] = margin_data['margin_percent']
+                else:
+                    s['margin'] = None
+                    s['margin_percent'] = None
+            
+            for s in suppliers_without_price:
+                s['rank'] = None
+                s['is_cheapest'] = False
+                s['price_per_unit'] = None
+                s['margin'] = None
+                s['margin_percent'] = None
+            
+            data['suppliers'] = suppliers_with_price + suppliers_without_price
+            
+            # Set cheapest info at product level
+            if suppliers_with_price:
+                cheapest = suppliers_with_price[0]
+                data['cheapest_supplier_id'] = cheapest['supplier_id']
+                data['cheapest_supplier_name'] = cheapest['supplier_name']
+                data['cheapest_buy_price'] = cheapest['buy_price']
+                data['cheapest_price_per_unit'] = cheapest.get('price_per_unit')
+                data['best_margin'] = cheapest.get('margin')
+                data['best_margin_percent'] = cheapest.get('margin_percent')
+                
+                # Check if any supplier has a cheaper pending price
+                pending_cheaper = [
+                    s for s in data['suppliers'] 
+                    if s.get('pending_price_info') and s['pending_price_info'].get('is_cheaper')
+                ]
+                data['has_cheaper_pending'] = len(pending_cheaper) > 0
+                data['cheaper_pending_suppliers'] = [
+                    {
+                        'supplier_name': s['supplier_name'],
+                        'current_price': s['buy_price'],
+                        'pending_price': s['pending_price_info']['pending_price'],
+                        'effective_date': s['pending_price_info']['pending_effective_date'],
+                        'days_until': s['pending_price_info']['days_until']
+                    }
+                    for s in pending_cheaper
+                ]
+            else:
+                data['cheapest_supplier_id'] = None
+                data['cheapest_supplier_name'] = None
+                data['cheapest_buy_price'] = None
+                data['cheapest_price_per_unit'] = None
+                data['best_margin'] = None
+                data['best_margin_percent'] = None
+                data['has_cheaper_pending'] = False
+                data['cheaper_pending_suppliers'] = []
+            
+            result.append(data)
+        
+        return result
+    
+    # ====== Margin Reports ======
+    
+    def get_margin_report(
+        self,
+        report_type: str = 'all',
+        min_margin: Optional[float] = None,
+        max_margin: Optional[float] = None,
+        limit: int = 100
+    ) -> Dict[str, Any]:
+        """
+        Get margin report using ACTIVE prices.
+        
+        Always uses the get_active_price() logic:
+        - effective_date <= today
+        - status != 'cancelled'
+        - Most recent effective_date wins
+        
+        report_type options:
+        - 'all': All products
+        - 'low_margin': < 20% margin
+        - 'high_margin': > 50% margin
+        - 'negative_margin': Loss-making products
+        
+        Returns products with calculated margins based on active buy prices
+        and sell prices from Magento catalog.
+        """
+        # Get base margin data using active prices
+        raw_data = self.repo.get_margin_report_data(report_type=report_type, limit=limit * 2)
+        
+        # Fetch sell prices from Magento
+        unique_skus = list(set(row['internal_sku'] for row in raw_data if row['internal_sku']))
+        product_names = self.repo.get_product_names_from_magento(unique_skus, region='uk')
+        sell_prices = self.repo.get_sell_prices_from_magento(unique_skus, region='uk')
+        
+        # Calculate margins
+        products = []
+        total_margin = 0
+        margin_count = 0
+        low_margin_count = 0
+        negative_margin_count = 0
+        
+        for row in raw_data:
+            sku = row['internal_sku']
+            buy_price = row.get('buy_price')
+            sell_price = sell_prices.get(sku)
+            
+            if not buy_price:
+                continue
+            
+            # Convert buy price to GBP
+            currency = row.get('currency', 'GBP')
+            buy_price_gbp = convert_to_gbp(buy_price, currency)
+            
+            # Account for pack size
+            pack_size = row.get('pack_size', 1) or 1
+            price_per_unit = float(buy_price_gbp) / pack_size if buy_price_gbp else None
+            
+            # Calculate margin if we have sell price
+            margin = None
+            margin_percent = None
+            if sell_price and price_per_unit:
+                margin_data = self.calculate_margin(
+                    Decimal(str(price_per_unit)),
+                    Decimal(str(sell_price))
+                )
+                margin = float(margin_data['margin']) if margin_data['margin'] else None
+                margin_percent = margin_data['margin_percent']
+            
+            # Filter by report type
+            if report_type == 'low_margin' and (margin_percent is None or margin_percent >= 20):
+                continue
+            elif report_type == 'high_margin' and (margin_percent is None or margin_percent <= 50):
+                continue
+            elif report_type == 'negative_margin' and (margin_percent is None or margin_percent >= 0):
+                continue
+            
+            # Filter by custom margin range
+            if min_margin is not None and (margin_percent is None or margin_percent < min_margin):
+                continue
+            if max_margin is not None and (margin_percent is None or margin_percent > max_margin):
+                continue
+            
+            # Track statistics
+            if margin_percent is not None:
+                total_margin += margin_percent
+                margin_count += 1
+                if margin_percent < 20:
+                    low_margin_count += 1
+                if margin_percent < 0:
+                    negative_margin_count += 1
+            
+            products.append({
+                'internal_sku': sku,
+                'product_name': product_names.get(sku, ''),
+                'supplier_name': row.get('supplier_name'),
+                'supplier_sku': row.get('supplier_sku'),
+                'buy_price': float(buy_price),
+                'buy_price_gbp': float(buy_price_gbp) if buy_price_gbp else None,
+                'currency': currency,
+                'price_per_unit': price_per_unit,
+                'sell_price': sell_price,
+                'margin': margin,
+                'margin_percent': margin_percent,
+                'pack_size': pack_size,
+                'price_effective_date': row.get('price_effective_date'),
+                'quantity_available': row.get('quantity_available'),
+                'inventory_status': row.get('inventory_status')
+            })
+            
+            if len(products) >= limit:
+                break
+        
+        # Sort by margin (lowest first for visibility)
+        products.sort(key=lambda x: x['margin_percent'] if x['margin_percent'] is not None else 999)
+        
+        avg_margin = (total_margin / margin_count) if margin_count > 0 else None
+        
+        return {
+            'report_type': report_type,
+            'products': products,
+            'count': len(products),
+            'summary': {
+                'average_margin': round(avg_margin, 2) if avg_margin else None,
+                'low_margin_count': low_margin_count,
+                'negative_margin_count': negative_margin_count,
+                'products_with_margin': margin_count
+            }
+        }

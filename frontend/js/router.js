@@ -73,6 +73,7 @@ const routes = {
   '/inventory/sourcing/suppliers':     '/html/inventory/sourcing.html',
   '/inventory/sourcing/mappings':      '/html/inventory/sourcing.html',
   '/inventory/sourcing/prices':        '/html/inventory/sourcing.html',
+  '/inventory/sourcing/pending':       '/html/inventory/sourcing.html',
   '/inventory/sourcing/import':        '/html/inventory/sourcing.html',
   '/inventory/sourcing/margins':       '/html/inventory/sourcing.html',
   

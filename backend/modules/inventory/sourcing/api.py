@@ -449,6 +449,128 @@ def get_currency_exchange_rates(user=Depends(get_current_user)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# ====== Margin Reports ======
+
+@router.get("/margin-reports")
+def get_margin_reports(
+    report_type: str = "all",
+    min_margin: Optional[float] = None,
+    max_margin: Optional[float] = None,
+    limit: int = 100,
+    user=Depends(get_current_user)
+):
+    """
+    Get margin reports using ACTIVE prices.
+    
+    Always uses the get_active_price() logic:
+    - effective_date <= today
+    - status != 'cancelled'  
+    - Most recent effective_date wins
+    
+    report_type options:
+    - 'all': All products
+    - 'low_margin': < 20% margin
+    - 'high_margin': > 50% margin
+    - 'negative_margin': Loss-making products
+    
+    Optional filters:
+    - min_margin: Minimum margin percentage
+    - max_margin: Maximum margin percentage
+    """
+    try:
+        report = _svc().get_margin_report(
+            report_type=report_type,
+            min_margin=min_margin,
+            max_margin=max_margin,
+            limit=limit
+        )
+        return report
+    except Exception as e:
+        logger.error(f"Error fetching margin reports: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ====== Supplier Comparison with Pending Price Indicators ======
+
+@router.get("/comparison-with-pending")
+def get_comparison_with_pending_prices(
+    internal_sku: Optional[str] = None,
+    user=Depends(get_current_user)
+):
+    """
+    Get supplier comparison with pending price indicators.
+    
+    Uses ONLY active prices for ranking (per get_active_price() logic).
+    Additionally shows pending price information as visual indicators:
+    - Pending prices that are cheaper show "Cheaper price starting tomorrow"
+    - Pending prices show days until effective
+    
+    This ensures rankings are based on current reality while providing
+    visibility into upcoming price changes.
+    """
+    try:
+        comparison = _svc().get_comparison_with_pending_prices(internal_sku=internal_sku)
+        return {"products": comparison}
+    except Exception as e:
+        logger.error(f"Error getting comparison with pending prices: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ====== Price Sync Logs (Audit Trail) ======
+
+@router.get("/sync-logs")
+def get_price_sync_logs(
+    internal_sku: Optional[str] = None,
+    sync_type: Optional[str] = None,
+    limit: int = 100,
+    user=Depends(get_current_user)
+):
+    """
+    Get price sync log entries for auditing automated price changes.
+    
+    This tracks:
+    - Daily price activations (when pending prices become active)
+    - Manual activations
+    - Margin report refreshes
+    
+    sync_type options:
+    - 'daily_activation': Automatic activation from daily job
+    - 'manual_activation': Manual activation
+    - 'margin_report_refresh': Margin report data refresh
+    """
+    try:
+        logs = _svc().get_price_sync_logs(
+            internal_sku=internal_sku,
+            sync_type=sync_type,
+            limit=limit
+        )
+        return {"logs": logs, "count": len(logs)}
+    except Exception as e:
+        logger.error(f"Error fetching price sync logs: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/sync-logs/trigger-daily-activation")
+def trigger_daily_price_activation(user=Depends(get_current_user)):
+    """
+    Manually trigger the daily price activation job.
+    
+    This is the same job that runs automatically at 00:01 daily.
+    Finds all prices where effective_date = today and logs them.
+    
+    Use this for:
+    - Testing the activation logic
+    - Manually triggering after system downtime
+    - Auditing what would be activated today
+    """
+    try:
+        result = _svc().activate_prices_for_today()
+        return result
+    except Exception as e:
+        logger.error(f"Error triggering daily price activation: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # ====== Import Endpoints ======
 
 @router.post("/import/validate")
