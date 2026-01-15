@@ -2,7 +2,7 @@
  * Product Sourcing Module
  * Manages supplier pricing, product mappings, and margin analysis
  */
-import { get, post, patch } from '../../services/api/http.js';
+import { get, post, patch, put } from '../../services/api/http.js';
 import { showToast } from '../../ui/toast.js';
 
 // Module state
@@ -11,9 +11,35 @@ let supplierProducts = [];
 let priceHistory = [];
 let comparison = [];
 let currentTab = 'comparison';
+let exchangeRates = null;
+
+// Import conflict resolution state
+let importConflictState = {
+  validationResult: null,  // Full validation response from API
+  resolvableConflicts: [], // Conflicts that need user resolution
+  currentConflictIndex: 0, // Which conflict we're currently showing
+  resolutions: {},         // Map of row_index -> resolution ('skip' | 'update' | 'overwrite')
+  isActive: false          // Whether conflict resolution workflow is active
+};
 
 // DOM element references
 let elements = {};
+
+/**
+ * Convert amount from any currency to GBP
+ */
+function convertToGBP(amount, fromCurrency) {
+  if (!amount || !fromCurrency || fromCurrency === 'GBP') {
+    return null;
+  }
+  
+  if (!exchangeRates || !exchangeRates[fromCurrency]) {
+    return null;
+  }
+  
+  const rate = exchangeRates[fromCurrency];
+  return amount / rate;
+}
 
 /**
  * Initialize the sourcing module
@@ -89,6 +115,7 @@ function cacheElements() {
     csvDropZone: document.getElementById('csvDropZone'),
     csvFileInput: document.getElementById('csvFileInput'),
     startCsvImport: document.getElementById('startCsvImport'),
+    downloadCsvTemplate: document.getElementById('downloadCsvTemplate'),
     openManualEntryBtn: document.getElementById('openManualEntryBtn'),
     
     // Modals container
@@ -146,6 +173,7 @@ function setupEventListeners() {
   }
   
   elements.startCsvImport?.addEventListener('click', startCsvImport);
+  elements.downloadCsvTemplate?.addEventListener('click', downloadCsvTemplate);
   elements.openManualEntryBtn?.addEventListener('click', openManualEntryModal);
   
   // Modal click-outside-to-close
@@ -174,6 +202,9 @@ async function loadInitialData() {
   try {
     // First, ensure tables are initialized via health check
     await initializeTables();
+    
+    // Load exchange rates first
+    await loadExchangeRates();
     
     // Load in parallel
     await Promise.all([
@@ -242,10 +273,25 @@ function switchTab(tabId) {
     case 'prices':
       loadPriceHistory();
       break;
+    case 'pending':
+      loadPendingPrices();
+      break;
   }
 }
 
 // ====== Data Loading Functions ======
+
+async function loadExchangeRates() {
+  try {
+    const response = await get('/v1/inventory/sourcing/currency/rates');
+    if (response && response.rates) {
+      exchangeRates = response.rates;
+      console.log('[Sourcing] Exchange rates loaded:', exchangeRates);
+    }
+  } catch (error) {
+    console.error('[Sourcing] Error loading exchange rates:', error);
+  }
+}
 
 async function loadSuppliers() {
   try {
@@ -263,6 +309,17 @@ async function loadSupplierProducts() {
   try {
     const response = await get('/v1/inventory/sourcing/products');
     supplierProducts = response || [];
+    console.log('[Sourcing] Loaded supplier products:', supplierProducts);
+    if (supplierProducts.length > 0) {
+      const firstProduct = supplierProducts[0];
+      console.log('[Sourcing] First product details:', {
+        id: firstProduct.id,
+        supplier_sku: firstProduct.supplier_sku,
+        current_buy_price: firstProduct.current_buy_price,
+        currency: firstProduct.currency,
+        currency_type: typeof firstProduct.currency
+      });
+    }
     renderMappings();
   } catch (error) {
     console.error('[Sourcing] Error loading supplier products:', error);
@@ -364,7 +421,8 @@ async function loadDashboard() {
 
 async function loadComparison() {
   try {
-    const response = await get('/v1/inventory/sourcing/comparison');
+    // Use the new endpoint that includes inventory metadata
+    const response = await get('/v1/inventory/sourcing/comparison-with-inventory');
     comparison = response?.products || [];
     renderComparison();
   } catch (error) {
@@ -381,6 +439,139 @@ async function loadPriceHistory() {
   } catch (error) {
     console.error('[Sourcing] Error loading price history:', error);
     priceHistory = [];
+  }
+}
+
+// Pending prices state
+let pendingPrices = [];
+
+async function loadPendingPrices() {
+  try {
+    const tableBody = document.getElementById('pendingPricesTableBody');
+    const emptyState = document.getElementById('pendingEmptyState');
+    
+    // Show loading state
+    if (tableBody) {
+      tableBody.innerHTML = `
+        <tr class="loading-row">
+          <td colspan="10">
+            <div class="loading-state">
+              <div class="loading-spinner"></div>
+              <span>Loading pending prices...</span>
+            </div>
+          </td>
+        </tr>
+      `;
+    }
+    
+    const response = await get('/v1/inventory/sourcing/prices/pending');
+    pendingPrices = response?.pending_prices || [];
+    renderPendingPrices();
+  } catch (error) {
+    console.error('[Sourcing] Error loading pending prices:', error);
+    pendingPrices = [];
+    renderPendingPrices();
+  }
+}
+
+function renderPendingPrices() {
+  const tableBody = document.getElementById('pendingPricesTableBody');
+  const emptyState = document.getElementById('pendingEmptyState');
+  const tableContainer = tableBody?.closest('.table-container');
+  
+  if (!tableBody) return;
+  
+  if (pendingPrices.length === 0) {
+    // Show empty state, hide table
+    if (tableContainer) tableContainer.style.display = 'none';
+    if (emptyState) emptyState.style.display = 'flex';
+    return;
+  }
+  
+  // Show table, hide empty state
+  if (tableContainer) tableContainer.style.display = 'block';
+  if (emptyState) emptyState.style.display = 'none';
+  
+  tableBody.innerHTML = pendingPrices.map(price => {
+    const countdown = renderCountdown(price.effective_date);
+    const statusBadge = renderPriceStatusBadge('pending');
+    
+    return `
+    <tr class="pending-row" data-price-id="${price.id}">
+      <td>${escapeHtml(price.supplier_name || '-')}</td>
+      <td class="sku-cell">${escapeHtml(price.supplier_sku)}</td>
+      <td>${escapeHtml(price.supplier_product_name || '-')}</td>
+      <td class="sku-cell">${escapeHtml(price.internal_sku || '-')}</td>
+      <td class="price-cell">${formatCurrency(price.buy_price, price.currency || 'GBP')}</td>
+      <td>${escapeHtml(price.currency || 'GBP')}</td>
+      <td>${formatDate(price.effective_date)}</td>
+      <td>${countdown}</td>
+      <td>${statusBadge}</td>
+      <td class="actions-cell">
+        <button class="btn btn-icon btn-ghost btn-sm" onclick="window.sourcingModule.editPendingPrice(${price.id})" title="Edit">
+          <i class="fas fa-edit"></i>
+        </button>
+        <button class="btn btn-icon btn-ghost btn-sm cancel-price-btn" onclick="window.sourcingModule.cancelPendingPrice(${price.id})" title="Cancel">
+          <i class="fas fa-times"></i>
+        </button>
+      </td>
+    </tr>
+  `}).join('');
+}
+
+async function cancelPendingPrice(priceId) {
+  if (!confirm('Are you sure you want to cancel this pending price? This action cannot be undone.')) {
+    return;
+  }
+  
+  try {
+    await post(`/v1/inventory/sourcing/prices/${priceId}/cancel`, {});
+    showSuccess('Pending price cancelled successfully');
+    await loadPendingPrices();
+    await loadPriceHistory(); // Refresh price history to show cancelled status
+  } catch (error) {
+    console.error('[Sourcing] Error cancelling pending price:', error);
+    showError('Failed to cancel pending price: ' + (error.message || 'Unknown error'));
+  }
+}
+
+async function editPendingPrice(priceId) {
+  // Find the pending price
+  const price = pendingPrices.find(p => p.id === priceId);
+  if (!price) {
+    showError('Price not found');
+    return;
+  }
+  
+  // For now, show a simple prompt to edit the effective date
+  const newDate = prompt('Enter new effective date (YYYY-MM-DD):', price.effective_date);
+  if (!newDate) return;
+  
+  // Validate date format
+  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+  if (!dateRegex.test(newDate)) {
+    showError('Invalid date format. Please use YYYY-MM-DD.');
+    return;
+  }
+  
+  // Check if date is in the future
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const newEffectiveDate = new Date(newDate);
+  if (newEffectiveDate <= today) {
+    showError('Effective date must be in the future.');
+    return;
+  }
+  
+  try {
+    await put(`/v1/inventory/sourcing/prices/${priceId}`, {
+      effective_date: newDate
+    });
+    showSuccess('Pending price updated successfully');
+    await loadPendingPrices();
+  } catch (error) {
+    console.error('[Sourcing] Error updating pending price:', error);
+    showError('Failed to update pending price: ' + (error.message || 'Unknown error'));
   }
 }
 
@@ -409,7 +600,7 @@ function renderSuppliers() {
       <td>${escapeHtml(supplier.code || '-')}</td>
       <td>${escapeHtml(supplier.contact_email || '-')}</td>
       <td>${escapeHtml(supplier.contact_phone || '-')}</td>
-      <td class="products-count">--</td>
+      <td class="products-count">${supplier.product_count || 0}</td>
       <td>
         <span class="status-badge ${supplier.is_active ? 'active' : 'inactive'}">
           ${supplier.is_active ? 'Active' : 'Inactive'}
@@ -443,7 +634,15 @@ function renderMappings(filteredProducts = null) {
     return;
   }
   
-  elements.mappingsTableBody.innerHTML = products.map(product => `
+  elements.mappingsTableBody.innerHTML = products.map(product => {
+    // Debug currency
+    if (product.current_buy_price) {
+      console.log(`[Sourcing] Rendering product ${product.id} (${product.supplier_sku}): price=${product.current_buy_price}, currency='${product.currency}', type=${typeof product.currency}`);
+      const formattedPrice = formatCurrency(product.current_buy_price, product.currency || 'GBP');
+      console.log(`[Sourcing] Formatted price result: '${formattedPrice}'`);
+    }
+    
+    return `
     <tr data-id="${product.id}">
       <td>${escapeHtml(product.supplier_name || '-')}</td>
       <td class="sku-cell">${escapeHtml(product.supplier_sku)}</td>
@@ -452,7 +651,16 @@ function renderMappings(filteredProducts = null) {
         ${product.internal_sku ? escapeHtml(product.internal_sku) : '<span class="unmapped-badge">Not Mapped</span>'}
       </td>
       <td class="price-cell">
-        ${product.current_buy_price ? formatCurrency(product.current_buy_price) : '-'}
+        ${product.current_buy_price ? (() => {
+          const currency = product.currency || 'GBP';
+          const gbpEquivalent = currency !== 'GBP' ? convertToGBP(parseFloat(product.current_buy_price), currency) : null;
+          return `
+            <div>
+              ${formatCurrency(product.current_buy_price, currency)}
+              ${gbpEquivalent ? `<br><small class="text-muted">≈ ${formatCurrency(gbpEquivalent, 'GBP')}</small>` : ''}
+            </div>
+          `;
+        })() : '-'}
       </td>
       <td>${product.pack_size || 1}</td>
       <td>
@@ -466,7 +674,8 @@ function renderMappings(filteredProducts = null) {
         </button>
       </td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
 }
 
 function renderComparison() {
@@ -478,7 +687,7 @@ function renderComparison() {
         <td colspan="8">
           <div class="empty-state">
             <i class="fas fa-balance-scale"></i>
-            <p>No comparison data available. Add supplier products and prices to see comparisons.</p>
+            <p>No comparison data available. Add supplier products with internal SKUs to see comparisons.</p>
           </div>
         </td>
       </tr>
@@ -487,39 +696,102 @@ function renderComparison() {
   }
   
   elements.comparisonTableBody.innerHTML = comparison.map(product => {
-    const cheapest = product.suppliers?.find(s => s.is_cheapest);
+    const cheapestSuppliers = product.suppliers?.filter(s => s.is_cheapest) || [];
     const others = product.suppliers?.filter(s => !s.is_cheapest) || [];
+    const allSuppliers = product.suppliers || [];
+    
+    // If no cheapest supplier (no prices), show the first supplier anyway
+    const displaySupplier = cheapestSuppliers.length > 0 ? cheapestSuppliers[0] : (allSuppliers.length > 0 ? allSuppliers[0] : null);
+    
+    // Use product name from Magento catalog, fallback to SKU
+    const hasProductName = product.product_name && product.product_name.trim() !== '';
+    const productName = hasProductName ? product.product_name : `<span class="text-muted">${product.internal_sku}</span>`;
+    const currentStock = product.quantity_available !== undefined && product.quantity_available !== null ? product.quantity_available : '-';
+    const inventoryStatus = product.inventory_status || 'Unknown';
+    
+    // Check if product exists in inventory (has quantity data or status)
+    const hasInventoryData = product.quantity_available !== undefined || product.inventory_status;
+    
+    // Format sell price
+    const sellPrice = product.sell_price ? formatCurrency(product.sell_price, 'GBP') : '<span class="text-muted">No price</span>';
+    
+    // Format margin
+    let marginDisplay = '<span class="text-muted">-</span>';
+    if (displaySupplier && displaySupplier.buy_price && displaySupplier.margin_percent !== null && displaySupplier.margin_percent !== undefined) {
+      const marginClass = displaySupplier.margin_percent >= 30 ? 'text-success' : displaySupplier.margin_percent >= 15 ? 'text-warning' : 'text-danger';
+      marginDisplay = `
+        <div class="${marginClass}">
+          <strong>${displaySupplier.margin_percent.toFixed(1)}%</strong>
+        </div>
+        <small class="text-muted">${formatCurrency(displaySupplier.margin, displaySupplier.currency)}</small>
+      `;
+    } else if (!product.sell_price) {
+      marginDisplay = '<span class="text-muted" title="No sell price in Magento">N/A</span>';
+    } else if (!displaySupplier || !displaySupplier.buy_price) {
+      marginDisplay = '<span class="text-muted" title="No supplier pricing">N/A</span>';
+    }
+    
+    // Count other suppliers (excluding all cheapest ones if multiple)
+    const otherCount = others.length;
+    
+    // Show button if there are other suppliers OR if there are multiple tied for cheapest
+    const hasMultipleSuppliers = allSuppliers.length > 1;
+    const showOtherSuppliersButton = hasMultipleSuppliers && (otherCount > 0 || cheapestSuppliers.length > 1);
+    
+    // Create clickable supplier display if there are multiple tied cheapest
+    const supplierDisplay = cheapestSuppliers.length > 1 ? 
+      `<div class="cheapest-badge clickable" 
+            onclick="window.sourcingModule.cycleCheapestSupplier('${product.internal_sku}')" 
+            style="cursor: pointer;"
+            title="Click to see other suppliers with same price">
+        <i class="fas fa-crown"></i>
+        <span id="supplier-${product.internal_sku}">${escapeHtml(displaySupplier.supplier_name)}</span>
+        <small class="text-muted">(1 of ${cheapestSuppliers.length})</small>
+      </div>` :
+      cheapestSuppliers.length === 1 ?
+      `<div class="cheapest-badge" title="Cheapest supplier">
+        <i class="fas fa-crown"></i>
+        ${escapeHtml(displaySupplier.supplier_name)}
+      </div>` :
+      `<div>${escapeHtml(displaySupplier.supplier_name)}</div>`;
     
     return `
       <tr data-sku="${product.internal_sku}">
-        <td class="sku-cell">${escapeHtml(product.internal_sku)}</td>
-        <td>${escapeHtml(product.internal_product_name || product.internal_sku)}</td>
-        <td class="stock-cell">${product.current_stock ?? '-'}</td>
-        <td class="price-cell">${product.magento_sell_price ? formatCurrency(product.magento_sell_price) : '-'}</td>
-        <td class="supplier-cell cheapest">
-          ${cheapest ? `
-            <span class="cheapest-badge" title="Cheapest supplier">
-              <i class="fas fa-crown"></i>
-              ${escapeHtml(cheapest.supplier_name)}
-            </span>
-          ` : '-'}
+        <td class="sku-cell">
+          <div>${escapeHtml(product.internal_sku)}</div>
+          ${hasInventoryData ? '' : '<small class="text-warning">Not in inventory</small>'}
+        </td>
+        <td>
+          <div>${productName}</div>
+          ${inventoryStatus !== 'Active' ? `<small class="text-warning">Status: ${inventoryStatus}</small>` : ''}
+        </td>
+        <td class="stock-cell">${currentStock}</td>
+        <td class="price-cell">${sellPrice}</td>
+        <td class="supplier-cell ${cheapestSuppliers.length > 0 ? 'cheapest' : ''}">
+          ${displaySupplier ? `
+            ${supplierDisplay}
+            ${displaySupplier.pack_size > 1 ? `<small class="text-muted">Pack of ${displaySupplier.pack_size}</small>` : ''}
+            ${!cheapestSuppliers.length ? '<small class="text-warning">No price set</small>' : ''}
+          ` : '<span class="text-muted">No suppliers</span>'}
         </td>
         <td class="price-cell buy-price">
-          ${cheapest ? formatCurrency(cheapest.buy_price) : '-'}
+          ${displaySupplier && displaySupplier.buy_price ? `
+            <div>
+              ${formatCurrency(displaySupplier.buy_price, displaySupplier.currency)}
+              ${displaySupplier.currency !== 'GBP' && displaySupplier.buy_price_gbp ? `<br><small class="text-muted">≈ ${formatCurrency(displaySupplier.buy_price_gbp, 'GBP')}</small>` : ''}
+            </div>
+            ${displaySupplier.pack_size > 1 && displaySupplier.price_per_unit ? 
+              `<small class="text-muted">${formatCurrency(displaySupplier.price_per_unit, 'GBP')}/unit</small>` : ''}
+          ` : displaySupplier ? '<span class="text-warning">No price set</span>' : '<span class="text-muted">-</span>'}
         </td>
-        <td class="margin-cell">
-          ${product.best_margin_percent != null ? `
-            <span class="${getMarginClass(product.best_margin_percent)}">
-              ${product.best_margin_percent.toFixed(1)}%
-            </span>
-          ` : '-'}
-        </td>
+        <td class="margin-cell">${marginDisplay}</td>
         <td class="other-suppliers-cell">
-          ${others.length > 0 ? `
-            <button class="btn btn-ghost btn-xs" onclick="window.sourcingModule.showAllSuppliers('${product.internal_sku}')">
-              +${others.length} more
+          ${showOtherSuppliersButton ? `
+            <button class="action-btn info-btn btn-sm" onclick="window.sourcingModule.showAllSuppliers('${product.internal_sku}')">
+              <i class="fas fa-eye"></i>
+              <span>${otherCount > 0 ? `+${otherCount} more` : `View all (${allSuppliers.length})`}</span>
             </button>
-          ` : '-'}
+          ` : ''}
         </td>
       </tr>
     `;
@@ -532,7 +804,7 @@ function renderPriceHistory() {
   if (priceHistory.length === 0) {
     elements.priceHistoryTableBody.innerHTML = `
       <tr class="empty-row">
-        <td colspan="9">
+        <td colspan="10">
           <div class="empty-state">
             <i class="fas fa-history"></i>
             <p>No price history found. Prices will appear here as they are added or imported.</p>
@@ -543,15 +815,24 @@ function renderPriceHistory() {
     return;
   }
   
-  elements.priceHistoryTableBody.innerHTML = priceHistory.map(price => `
-    <tr>
+  elements.priceHistoryTableBody.innerHTML = priceHistory.map(price => {
+    const status = price.computed_status || 'active';
+    const rowClass = getPriceRowClass(status);
+    const statusBadge = renderPriceStatusBadge(status);
+    const effectiveDateDisplay = status === 'pending' 
+      ? renderCountdown(price.effective_date) 
+      : formatDate(price.effective_date);
+    
+    return `
+    <tr class="${rowClass}" data-price-id="${price.id}">
       <td>${escapeHtml(price.supplier_name || '-')}</td>
       <td class="sku-cell">${escapeHtml(price.supplier_sku)}</td>
       <td>${escapeHtml(price.supplier_product_name || '-')}</td>
       <td class="sku-cell">${escapeHtml(price.internal_sku || '-')}</td>
-      <td class="price-cell">${formatCurrency(price.buy_price)}</td>
+      <td class="price-cell">${formatCurrency(price.buy_price, price.currency || 'GBP')}</td>
       <td>${escapeHtml(price.currency || 'GBP')}</td>
-      <td>${formatDate(price.effective_date)}</td>
+      <td>${effectiveDateDisplay}</td>
+      <td>${statusBadge}</td>
       <td>${escapeHtml(price.created_by || '-')}</td>
       <td>
         ${price.import_batch_id ? 
@@ -559,7 +840,7 @@ function renderPriceHistory() {
           '<span class="source-badge manual">Manual</span>'}
       </td>
     </tr>
-  `).join('');
+  `}).join('');
 }
 
 function updateStats() {
@@ -672,12 +953,342 @@ function openAddMappingModal() {
   if (modal) {
     // Reset form
     const form = document.getElementById('addMappingForm');
-    if (form) form.reset();
+    if (form) {
+      form.reset();
+      form.dataset.mode = 'add';
+      delete form.dataset.mappingId;
+    }
+    
+    // Hide price history section for new mappings
+    const historySection = document.getElementById('mappingPriceHistory');
+    if (historySection) historySection.style.display = 'none';
+    
+    // Update modal title
+    const title = modal.querySelector('.modal-title');
+    if (title) title.textContent = 'Add Product Mapping';
     
     // Populate supplier dropdown
     populateModalSupplierDropdown('mappingModalSupplierDropdown', 'mappingModalSupplierId');
     
+    // Setup SKU autocomplete for internal_sku field
+    const internalSkuInput = form?.querySelector('[name="internal_sku"]');
+    if (internalSkuInput) {
+      setupSkuAutocomplete(internalSkuInput);
+      
+      // Add duplicate check on blur
+      internalSkuInput.addEventListener('blur', checkForDuplicateMapping);
+      internalSkuInput.addEventListener('change', checkForDuplicateMapping);
+    }
+    
+    // Add duplicate check when supplier is selected
+    const supplierInput = form?.querySelector('[name="supplier_id"]');
+    if (supplierInput) {
+      supplierInput.addEventListener('change', checkForDuplicateMapping);
+    }
+    
     modal.classList.add('active');
+  }
+}
+
+/**
+ * Open Edit Mapping Modal
+ */
+async function openEditMappingModal(mappingId) {
+  const mapping = supplierProducts.find(p => p.id === mappingId);
+  if (!mapping) {
+    showToast('Mapping not found', 'error');
+    return;
+  }
+  
+  console.log('[Sourcing] Editing mapping:', mapping);
+  console.log('[Sourcing] Mapping currency:', mapping.currency);
+  
+  const modal = document.getElementById('addMappingModal');
+  if (!modal) return;
+  
+  const form = document.getElementById('addMappingForm');
+  if (!form) return;
+  
+  // Set form to edit mode
+  form.dataset.mode = 'edit';
+  form.dataset.mappingId = mappingId;
+  
+  // Store original values for change detection
+  const originalDataObj = {
+    supplier_id: mapping.supplier_id,
+    supplier_sku: mapping.supplier_sku,
+    internal_sku: mapping.internal_sku || '',
+    supplier_product_name: mapping.supplier_product_name || '',
+    pack_size: mapping.pack_size || 1,
+    notes: mapping.notes || '',
+    is_active: mapping.is_active !== false,
+    buy_price: mapping.current_buy_price || '',
+    currency: mapping.currency || 'GBP'
+  };
+  
+  console.log('[Sourcing] Storing original data for change detection:', originalDataObj);
+  console.log('[Sourcing] Original buy_price type:', typeof originalDataObj.buy_price, 'Value:', originalDataObj.buy_price);
+  
+  form.dataset.originalData = JSON.stringify(originalDataObj);
+  
+  // Update modal title
+  const title = modal.querySelector('.modal-title');
+  if (title) title.textContent = 'Edit Product Mapping';
+  
+  // Populate supplier dropdown
+  populateModalSupplierDropdown('mappingModalSupplierDropdown', 'mappingModalSupplierId');
+  
+  // Set the supplier dropdown display to show the current supplier
+  const supplierDropdown = document.getElementById('mappingModalSupplierDropdown');
+  const supplierHiddenInput = document.getElementById('mappingModalSupplierId');
+  if (supplierDropdown && supplierHiddenInput && mapping.supplier_id) {
+    const supplier = suppliers.find(s => s.id === mapping.supplier_id);
+    if (supplier) {
+      const selectedDisplay = supplierDropdown.querySelector('.dropdown-selected');
+      if (selectedDisplay) {
+        selectedDisplay.innerHTML = `<i class="fas fa-truck"></i> ${escapeHtml(supplier.name)}`;
+      }
+      supplierHiddenInput.value = mapping.supplier_id;
+      
+      // Mark the option as selected
+      supplierDropdown.querySelectorAll('.dropdown-option').forEach(opt => {
+        opt.classList.remove('selected');
+        if (opt.textContent.trim() === supplier.name) {
+          opt.classList.add('selected');
+        }
+      });
+    }
+  }
+  
+  // Fill in form with existing data
+  const supplierIdInput = form.querySelector('[name="supplier_id"]');
+  const supplierSkuInput = form.querySelector('[name="supplier_sku"]');
+  const internalSkuInput = form.querySelector('[name="internal_sku"]');
+  const productNameInput = form.querySelector('[name="supplier_product_name"]');
+  const packSizeInput = form.querySelector('[name="pack_size"]');
+  const buyPriceInput = form.querySelector('[name="buy_price"]');
+  const notesInput = form.querySelector('[name="notes"]');
+  const isActiveInput = form.querySelector('[name="is_active"]');
+  
+  if (supplierIdInput) supplierIdInput.value = mapping.supplier_id || '';
+  if (supplierSkuInput) supplierSkuInput.value = mapping.supplier_sku || '';
+  if (internalSkuInput) internalSkuInput.value = mapping.internal_sku || '';
+  if (productNameInput) productNameInput.value = mapping.supplier_product_name || '';
+  if (packSizeInput) packSizeInput.value = mapping.pack_size || 1;
+  if (notesInput) notesInput.value = mapping.notes || '';
+  if (isActiveInput) isActiveInput.checked = mapping.is_active !== false;
+  
+  // Fill in current buy price and currency if available
+  if (buyPriceInput && mapping.current_buy_price) {
+    buyPriceInput.value = mapping.current_buy_price;
+  }
+  
+  // Set currency dropdown
+  console.log('[Sourcing] editMapping - Full mapping object:', mapping);
+  console.log('[Sourcing] editMapping - currency field:', mapping.currency, 'type:', typeof mapping.currency);
+  
+  const currentCurrency = mapping.currency || 'GBP';
+  console.log('[Sourcing] editMapping - Using currency:', currentCurrency);
+  
+  const currencyDropdown = document.getElementById('mappingModalCurrencyDropdown');
+  const currencyHiddenInput = document.getElementById('mappingModalCurrency');
+  
+  if (currencyDropdown && currencyHiddenInput) {
+    // Map currency codes to display text and icons
+    const currencyMap = {
+      'GBP': { text: 'GBP (£)', icon: 'fa-pound-sign' },
+      'EUR': { text: 'EUR (€)', icon: 'fa-euro-sign' },
+      'USD': { text: 'USD ($)', icon: 'fa-dollar-sign' },
+      'CAD': { text: 'CAD ($)', icon: 'fa-dollar-sign' },
+      'AUD': { text: 'AUD ($)', icon: 'fa-dollar-sign' },
+      'JPY': { text: 'JPY (¥)', icon: 'fa-yen-sign' },
+      'CHF': { text: 'CHF', icon: 'fa-franc-sign' },
+      'CNY': { text: 'CNY (¥)', icon: 'fa-yen-sign' },
+      'SEK': { text: 'SEK', icon: 'fa-coins' },
+      'NOK': { text: 'NOK', icon: 'fa-coins' },
+      'DKK': { text: 'DKK', icon: 'fa-coins' },
+      'PLN': { text: 'PLN', icon: 'fa-coins' }
+    };
+    
+    const currencyInfo = currencyMap[currentCurrency] || currencyMap['GBP'];
+    const selectedDisplay = currencyDropdown.querySelector('.dropdown-selected');
+    
+    if (selectedDisplay) {
+      selectedDisplay.innerHTML = `<i class="fas ${currencyInfo.icon}"></i> ${currencyInfo.text}`;
+      console.log('[Sourcing] Set dropdown display to:', currencyInfo.text);
+    }
+    currencyHiddenInput.value = currentCurrency;
+    console.log('[Sourcing] Set hidden input to:', currentCurrency);
+    
+    // Update selected option - need to match by checking the onclick attribute
+    let foundMatch = false;
+    currencyDropdown.querySelectorAll('.dropdown-option').forEach(opt => {
+      opt.classList.remove('selected');
+      const onclickAttr = opt.getAttribute('onclick');
+      console.log('[Sourcing] Checking option onclick:', onclickAttr);
+      if (onclickAttr && onclickAttr.includes(`'${currentCurrency}'`)) {
+        opt.classList.add('selected');
+        foundMatch = true;
+        console.log('[Sourcing] Found matching option for:', currentCurrency);
+      }
+    });
+    
+    if (!foundMatch) {
+      console.warn('[Sourcing] No matching dropdown option found for currency:', currentCurrency);
+    }
+    
+    console.log('[Sourcing] Currency dropdown set to:', currentCurrency, 'Display:', currencyInfo.text);
+  }
+  
+  // Setup SKU autocomplete
+  if (internalSkuInput) {
+    setupSkuAutocomplete(internalSkuInput);
+    
+    // Add duplicate check on blur (but skip if SKU hasn't changed)
+    const originalSku = mapping.internal_sku;
+    internalSkuInput.addEventListener('blur', function() {
+      if (this.value !== originalSku) {
+        checkForDuplicateMapping.call(this);
+      }
+    });
+  }
+  
+  // Add duplicate check when supplier changes
+  const originalSupplierId = mapping.supplier_id;
+  const supplierInput = form?.querySelector('[name="supplier_id"]');
+  if (supplierInput) {
+    supplierInput.addEventListener('change', function() {
+      if (this.value !== originalSupplierId.toString()) {
+        checkForDuplicateMapping.call(this);
+      }
+    });
+  }
+  
+  // Load and display price history
+  await loadPriceHistoryForMapping(mappingId);
+  
+  modal.classList.add('active');
+}
+
+/**
+ * Check for duplicate mapping when SKU is selected
+ */
+function checkForDuplicateMapping() {
+  const form = document.getElementById('addMappingForm');
+  if (!form) return;
+  
+  const supplierIdInput = form.querySelector('[name="supplier_id"]');
+  const internalSkuInput = form.querySelector('[name="internal_sku"]');
+  const mappingId = form.dataset.mappingId;
+  
+  const supplierId = supplierIdInput?.value;
+  const internalSku = internalSkuInput?.value?.trim();
+  
+  if (!supplierId || !internalSku) return;
+  
+  // Check if this supplier already has a mapping for this SKU
+  const existingMapping = supplierProducts.find(p => 
+    p.supplier_id === parseInt(supplierId) && 
+    p.internal_sku === internalSku &&
+    p.id !== parseInt(mappingId) // Exclude current mapping if editing
+  );
+  
+  if (existingMapping) {
+    showDuplicateMappingWarning(existingMapping);
+  }
+}
+
+/**
+ * Show duplicate mapping warning modal
+ */
+function showDuplicateMappingWarning(existingMapping) {
+  const modal = document.getElementById('duplicateMappingWarning');
+  if (!modal) return;
+  
+  const messageEl = document.getElementById('duplicateWarningMessage');
+  const detailsEl = document.getElementById('existingMappingDetails');
+  
+  if (messageEl) {
+    messageEl.textContent = `This supplier already has a mapping for SKU "${existingMapping.internal_sku}".`;
+  }
+  
+  if (detailsEl) {
+    detailsEl.innerHTML = `
+      <div><strong>Supplier SKU:</strong> ${escapeHtml(existingMapping.supplier_sku)}</div>
+      <div><strong>Product:</strong> ${escapeHtml(existingMapping.supplier_product_name || '-')}</div>
+      ${existingMapping.current_buy_price ? `<div><strong>Current Price:</strong> ${formatCurrency(existingMapping.current_buy_price, 'GBP')}</div>` : ''}
+    `;
+  }
+  
+  modal.classList.add('active');
+}
+
+/**
+ * Handle duplicate mapping warning choice
+ */
+function handleDuplicateChoice(choice) {
+  const warningModal = document.getElementById('duplicateMappingWarning');
+  const mappingModal = document.getElementById('addMappingModal');
+  const form = document.getElementById('addMappingForm');
+  const internalSkuInput = form?.querySelector('[name="internal_sku"]');
+  
+  if (warningModal) {
+    warningModal.classList.remove('active');
+  }
+  
+  switch (choice) {
+    case 'cancel':
+      // Close both modals
+      if (mappingModal) mappingModal.classList.remove('active');
+      break;
+      
+    case 'change':
+      // Keep mapping modal open, focus on SKU field, clear it
+      if (internalSkuInput) {
+        internalSkuInput.value = '';
+        internalSkuInput.focus();
+      }
+      break;
+  }
+}
+
+/**
+ * Load and display price history for a mapping
+ */
+async function loadPriceHistoryForMapping(mappingId) {
+  const historySection = document.getElementById('mappingPriceHistory');
+  const historyList = document.getElementById('mappingPriceHistoryList');
+  
+  if (!historySection || !historyList) return;
+  
+  try {
+    // Fetch price history for this supplier product
+    const history = await get(`/v1/inventory/sourcing/prices?supplier_product_id=${mappingId}`);
+    
+    if (history && history.length > 0) {
+      historySection.style.display = 'block';
+      
+      historyList.innerHTML = history.map((entry, index) => {
+        const date = new Date(entry.effective_date).toLocaleDateString();
+        const isCurrent = index === 0; // First entry is most recent
+        
+        return `
+          <div class="price-history-item ${isCurrent ? 'current' : ''}">
+            <div class="price-info">
+              <div class="price-value">${formatCurrency(entry.buy_price, entry.currency)}</div>
+              <div class="price-date">${date}</div>
+            </div>
+            ${isCurrent ? '<span class="current-badge">Current</span>' : ''}
+          </div>
+        `;
+      }).join('');
+    } else {
+      historySection.style.display = 'block';
+      historyList.innerHTML = '<div class="price-history-empty">No price history available</div>';
+    }
+  } catch (error) {
+    console.error('[Sourcing] Error loading price history:', error);
+    historySection.style.display = 'none';
   }
 }
 
@@ -819,26 +1430,158 @@ async function submitMappingForm() {
     return;
   }
   
+  const isEditMode = form.dataset.mode === 'edit';
+  const mappingId = form.dataset.mappingId;
+  
   const formData = new FormData(form);
   const data = {
     supplier_id: parseInt(formData.get('supplier_id')),
     supplier_sku: formData.get('supplier_sku'),
     internal_sku: formData.get('internal_sku') || null,
     supplier_product_name: formData.get('supplier_product_name') || null,
-    buy_price: formData.get('buy_price') ? parseFloat(formData.get('buy_price')) : null,
-    currency: formData.get('currency') || 'GBP',
+    pack_size: formData.get('pack_size') ? parseInt(formData.get('pack_size')) : 1,
     notes: formData.get('notes') || null,
     is_active: formData.get('is_active') === 'on'
   };
   
+  // Extract price data if provided
+  const buyPrice = formData.get('buy_price') ? parseFloat(formData.get('buy_price')) : null;
+  const currency = formData.get('currency') || 'GBP';
+  
+  // Check for changes in edit mode
+  let hasMappingChanges = true;
+  let hasPriceChanges = true;
+  
+  if (isEditMode && form.dataset.originalData) {
+    try {
+      const originalData = JSON.parse(form.dataset.originalData);
+      console.log('[Sourcing] Original data:', originalData);
+      console.log('[Sourcing] Current data object:', data);
+      console.log('[Sourcing] Current price:', buyPrice, 'Currency:', currency);
+      
+      // Check mapping fields (excluding price and currency)
+      const mappingFields = ['supplier_id', 'supplier_sku', 'internal_sku', 'supplier_product_name', 'pack_size', 'notes', 'is_active'];
+      hasMappingChanges = mappingFields.some(key => {
+        const originalValue = String(originalData[key] || '');
+        const currentValue = String(
+          key === 'supplier_id' ? data.supplier_id :
+          key === 'supplier_sku' ? data.supplier_sku :
+          key === 'internal_sku' ? (data.internal_sku || '') :
+          key === 'supplier_product_name' ? (data.supplier_product_name || '') :
+          key === 'pack_size' ? data.pack_size :
+          key === 'notes' ? (data.notes || '') :
+          key === 'is_active' ? data.is_active : ''
+        );
+        const changed = originalValue !== currentValue;
+        if (changed) {
+          console.log(`[Sourcing] Field ${key} changed: "${originalValue}" -> "${currentValue}"`);
+        }
+        return changed;
+      });
+      
+      // Check price fields separately
+      // Convert to numbers for comparison to avoid "62.0000" vs "62" mismatch
+      const originalPrice = originalData.buy_price ? parseFloat(originalData.buy_price) : null;
+      const currentPrice = buyPrice ? parseFloat(buyPrice) : null;
+      const originalCurrency = String(originalData.currency || 'GBP');
+      const currentCurrency = String(currency || 'GBP');
+      
+      console.log(`[Sourcing] Price comparison:`);
+      console.log(`  - Original price: ${originalPrice} (type: ${typeof originalPrice}, raw: ${originalData.buy_price})`);
+      console.log(`  - Current price: ${currentPrice} (type: ${typeof currentPrice}, raw: ${buyPrice})`);
+      console.log(`  - Prices equal: ${originalPrice === currentPrice}`);
+      console.log(`[Sourcing] Currency comparison:`);
+      console.log(`  - Original currency: "${originalCurrency}"`);
+      console.log(`  - Current currency: "${currentCurrency}"`);
+      console.log(`  - Currencies equal: ${originalCurrency === currentCurrency}`);
+      
+      hasPriceChanges = (originalPrice !== currentPrice) || (originalCurrency !== currentCurrency);
+      
+      console.log('[Sourcing] Has mapping changes:', hasMappingChanges);
+      console.log('[Sourcing] Has price changes:', hasPriceChanges);
+      
+      // If no changes at all, show dialog
+      if (!hasMappingChanges && !hasPriceChanges) {
+        if (confirm('No changes detected. Would you like to continue editing?\n\nClick OK to continue editing, or Cancel to close without saving.')) {
+          return;
+        } else {
+          closeModal('addMappingModal');
+          return;
+        }
+      }
+    } catch (e) {
+      console.error('[Sourcing] Error checking for changes:', e);
+      // If error checking changes, allow save to proceed
+      hasMappingChanges = true;
+      hasPriceChanges = true;
+    }
+  }
+  
   try {
-    await post('/v1/inventory/sourcing/products', data);
-    showToast('Product mapping added successfully', 'success');
+    let productId;
+    let mappingSaved = false;
+    
+    if (isEditMode && mappingId) {
+      // Only update mapping if mapping fields changed
+      if (hasMappingChanges) {
+        await patch(`/v1/inventory/sourcing/products/${mappingId}`, data);
+        mappingSaved = true;
+        console.log('[Sourcing] Mapping updated');
+      }
+      productId = parseInt(mappingId);
+    } else {
+      // Create new mapping
+      const result = await post('/v1/inventory/sourcing/products', data);
+      productId = result.id;
+      mappingSaved = true;
+    }
+    
+    // Only save price if it changed (or if this is a new mapping)
+    let priceSaved = false;
+    if (buyPrice && productId && (!isEditMode || hasPriceChanges)) {
+      try {
+        const priceData = {
+          supplier_product_id: productId,
+          buy_price: buyPrice,
+          currency: currency,
+          effective_date: new Date().toISOString().split('T')[0]
+        };
+        
+        console.log('[Sourcing] Creating price entry (price changed):', priceData);
+        
+        await post('/v1/inventory/sourcing/prices', priceData);
+        priceSaved = true;
+      } catch (priceError) {
+        console.error('[Sourcing] Error adding price:', priceError);
+        showToast(`Mapping ${isEditMode ? 'updated' : 'saved'} but failed to add price: ${priceError.message || priceError}`, 'warning');
+      }
+    }
+    
+    // Show appropriate success message
+    if (isEditMode) {
+      if (mappingSaved && priceSaved) {
+        showToast('Mapping and price updated successfully', 'success');
+      } else if (mappingSaved) {
+        showToast('Mapping updated successfully', 'success');
+      } else if (priceSaved) {
+        showToast('Price updated successfully', 'success');
+      }
+    } else {
+      if (priceSaved) {
+        showToast('Mapping and price added successfully', 'success');
+      } else {
+        showToast('Product mapping added successfully', 'success');
+      }
+    }
+    
     closeModal('addMappingModal');
-    await loadSupplierProducts();
+    await Promise.all([
+      loadSupplierProducts(),
+      loadComparison()
+    ]);
   } catch (error) {
-    console.error('[Sourcing] Error adding mapping:', error);
-    showToast('Failed to add product mapping', 'error');
+    console.error('[Sourcing] Error saving mapping:', error);
+    showToast(`Failed to ${isEditMode ? 'update' : 'add'} product mapping`, 'error');
   }
 }
 
@@ -1033,9 +1776,10 @@ async function startCsvImport() {
   
   try {
     elements.startCsvImport.disabled = true;
-    elements.startCsvImport.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Importing...';
+    elements.startCsvImport.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Validating...';
     
-    const response = await fetch(`${window.location.origin}/api/v1/inventory/sourcing/import/csv`, {
+    // Step 1: Validate CSV and detect conflicts
+    const response = await fetch(`${window.location.origin}/api/v1/inventory/sourcing/import/validate`, {
       method: 'POST',
       body: formData,
       headers: {
@@ -1045,25 +1789,365 @@ async function startCsvImport() {
     
     const result = await response.json();
     
-    if (response.ok) {
-      showToast(`Import complete: ${result.processed_rows} processed, ${result.error_rows} errors`, 'success');
-      
-      // Refresh data
-      await loadSupplierProducts();
-      await loadComparison();
-      
-      // Reset form
-      resetImportForm();
-    } else {
-      showToast(`Import failed: ${result.detail || 'Unknown error'}`, 'error');
+    if (!response.ok) {
+      showToast(`Validation failed: ${result.detail || 'Unknown error'}`, 'error');
+      return;
     }
+    
+    // Check for data errors (blocks import)
+    const dataErrors = result.conflicts.filter(c => c.conflict_type === 'data_error');
+    if (dataErrors.length > 0) {
+      showDataErrorsModal(dataErrors);
+      return;
+    }
+    
+    // Check for resolvable conflicts
+    const resolvableConflicts = result.conflicts.filter(c => c.requires_resolution);
+    
+    if (resolvableConflicts.length > 0) {
+      // Start conflict resolution workflow
+      importConflictState = {
+        validationResult: result,
+        resolvableConflicts: resolvableConflicts,
+        currentConflictIndex: 0,
+        resolutions: {},
+        isActive: true
+      };
+      showConflictModal(0);
+    } else {
+      // No conflicts requiring resolution - proceed directly to import
+      await executeImport(result);
+    }
+    
   } catch (error) {
-    console.error('[Sourcing] Import error:', error);
-    showToast('Import failed', 'error');
+    console.error('[Sourcing] Validation error:', error);
+    showToast('Validation failed', 'error');
   } finally {
     elements.startCsvImport.disabled = false;
     elements.startCsvImport.innerHTML = '<i class="fas fa-upload"></i> Start Import';
   }
+}
+
+/**
+ * Show data errors modal (blocks import until CSV is fixed)
+ */
+function showDataErrorsModal(errors) {
+  const modal = document.getElementById('importDataErrorsModal');
+  if (!modal) {
+    // Fallback to toast if modal doesn't exist
+    showToast(`CSV has ${errors.length} data error(s). Please fix and re-upload.`, 'error');
+    console.error('[Sourcing] Data errors:', errors);
+    return;
+  }
+  
+  const errorListBody = document.getElementById('dataErrorsListBody');
+  if (errorListBody) {
+    errorListBody.innerHTML = errors.map(e => `
+      <div class="data-error-item">
+        <span class="error-row">Row ${e.row_number}</span>
+        <span class="error-message">${escapeHtml(e.message)}</span>
+      </div>
+    `).join('');
+  }
+  
+  modal.classList.add('active');
+  console.error('[Sourcing] Data errors:', errors);
+}
+
+/**
+ * Show conflict resolution modal for a specific conflict
+ */
+function showConflictModal(index) {
+  const conflicts = importConflictState.resolvableConflicts;
+  if (index >= conflicts.length) {
+    // All conflicts resolved - proceed to import
+    executeImportWithResolutions();
+    return;
+  }
+  
+  const conflict = conflicts[index];
+  const modal = document.getElementById('importConflictModal');
+  if (!modal) return;
+  
+  // Update progress
+  document.getElementById('conflictProgressText').textContent = 
+    `Conflict ${index + 1} of ${conflicts.length}`;
+  document.getElementById('conflictProgressFill').style.width = 
+    `${((index + 1) / conflicts.length) * 100}%`;
+  
+  // Update message based on conflict type
+  const messageEl = document.getElementById('conflictMessage');
+  const messageIcon = getConflictIcon(conflict.conflict_type);
+  messageEl.innerHTML = `<i class="${messageIcon}"></i><span>${escapeHtml(conflict.message)}</span>`;
+  
+  // Update row info
+  document.getElementById('conflictRowNumber').textContent = conflict.row_number;
+  document.getElementById('conflictSupplierSku').textContent = conflict.row_data.supplier_sku;
+  
+  // Update current data
+  const currentDataEl = document.getElementById('conflictCurrentData');
+  if (conflict.current_data) {
+    const current = conflict.current_data;
+    const mapping = current.mapping || {};
+    const price = current.price || {};
+    
+    currentDataEl.innerHTML = `
+      <div class="data-row">
+        <span class="data-label">Supplier SKU:</span>
+        <span class="data-value">${escapeHtml(mapping.supplier_sku || '-')}</span>
+      </div>
+      <div class="data-row">
+        <span class="data-label">Internal SKU:</span>
+        <span class="data-value">${escapeHtml(mapping.internal_sku || '-')}</span>
+      </div>
+      <div class="data-row">
+        <span class="data-label">Product Name:</span>
+        <span class="data-value">${escapeHtml(mapping.supplier_product_name || '-')}</span>
+      </div>
+      <div class="data-row">
+        <span class="data-label">Buy Price:</span>
+        <span class="data-value">${price.buy_price ? formatCurrency(price.buy_price, price.currency || 'GBP') : '-'}</span>
+      </div>
+      <div class="data-row">
+        <span class="data-label">Currency:</span>
+        <span class="data-value">${escapeHtml(price.currency || 'GBP')}</span>
+      </div>
+    `;
+  } else {
+    currentDataEl.innerHTML = '<p class="text-muted">No existing data</p>';
+  }
+  
+  // Update new data (from CSV)
+  const newDataEl = document.getElementById('conflictNewData');
+  const newRow = conflict.row_data;
+  newDataEl.innerHTML = `
+    <div class="data-row">
+      <span class="data-label">Supplier SKU:</span>
+      <span class="data-value">${escapeHtml(newRow.supplier_sku || '-')}</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label">Internal SKU:</span>
+      <span class="data-value ${hasChanged(conflict, 'internal_sku') ? 'highlight' : ''}">${escapeHtml(newRow.internal_sku || '-')}</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label">Product Name:</span>
+      <span class="data-value">${escapeHtml(newRow.product_name || '-')}</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label">Buy Price:</span>
+      <span class="data-value ${hasChanged(conflict, 'buy_price') ? 'highlight' : ''}">${formatCurrency(parseFloat(newRow.buy_price), newRow.currency || 'GBP')}</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label">Currency:</span>
+      <span class="data-value">${escapeHtml(newRow.currency || 'GBP')}</span>
+    </div>
+  `;
+  
+  // Show/hide pending change warning
+  const pendingWarning = document.getElementById('pendingChangeWarning');
+  if (conflict.conflict_type === 'pending_change' && conflict.current_data?.pending_price) {
+    const pending = conflict.current_data.pending_price;
+    document.getElementById('pendingChangeDetails').textContent = 
+      `A price change to ${formatCurrency(pending.buy_price, pending.currency)} is scheduled for ${pending.effective_date}`;
+    pendingWarning.style.display = 'flex';
+  } else {
+    pendingWarning.style.display = 'none';
+  }
+  
+  // Show modal
+  modal.classList.add('active');
+}
+
+/**
+ * Check if a field has changed between current and new data
+ */
+function hasChanged(conflict, field) {
+  if (!conflict.current_data) return false;
+  
+  const current = conflict.current_data;
+  const newData = conflict.row_data;
+  
+  if (field === 'buy_price') {
+    const currentPrice = current.price?.buy_price;
+    const newPrice = newData.buy_price;
+    return currentPrice && newPrice && String(currentPrice) !== String(newPrice);
+  }
+  
+  if (field === 'internal_sku') {
+    return current.mapping?.internal_sku !== newData.internal_sku;
+  }
+  
+  return false;
+}
+
+/**
+ * Get icon class for conflict type
+ */
+function getConflictIcon(type) {
+  switch (type) {
+    case 'existing_mapping': return 'fas fa-sync-alt';
+    case 'pending_change': return 'fas fa-clock';
+    case 'duplicate_exact': return 'fas fa-copy';
+    default: return 'fas fa-exclamation-triangle';
+  }
+}
+
+/**
+ * Handle user resolution of a conflict
+ */
+function resolveConflict(resolution) {
+  const conflict = importConflictState.resolvableConflicts[importConflictState.currentConflictIndex];
+  
+  if (resolution === 'amend') {
+    // User wants to amend CSV - exit workflow
+    cancelImportConflict();
+    showToast('Import cancelled. Please amend your CSV and re-upload.', 'info');
+    return;
+  }
+  
+  // Record the resolution
+  importConflictState.resolutions[conflict.row_index] = resolution;
+  
+  // Move to next conflict
+  importConflictState.currentConflictIndex++;
+  
+  if (importConflictState.currentConflictIndex >= importConflictState.resolvableConflicts.length) {
+    // All conflicts resolved - close modal and execute import
+    closeModal('importConflictModal');
+    executeImportWithResolutions();
+  } else {
+    // Show next conflict
+    showConflictModal(importConflictState.currentConflictIndex);
+  }
+}
+
+/**
+ * Cancel import conflict resolution workflow
+ */
+function cancelImportConflict() {
+  importConflictState = {
+    validationResult: null,
+    resolvableConflicts: [],
+    currentConflictIndex: 0,
+    resolutions: {},
+    isActive: false
+  };
+  closeModal('importConflictModal');
+  resetImportForm();
+}
+
+/**
+ * Execute import with user-provided resolutions
+ */
+async function executeImportWithResolutions() {
+  const { validationResult, resolutions } = importConflictState;
+  
+  try {
+    elements.startCsvImport.disabled = true;
+    elements.startCsvImport.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Importing...';
+    
+    const response = await post('/v1/inventory/sourcing/import/execute', {
+      rows: validationResult.rows,
+      supplier_id: validationResult.supplier_id,
+      filename: validationResult.filename,
+      resolutions: resolutions
+    });
+    
+    showImportSummary(response);
+    
+    // Refresh data
+    await loadSupplierProducts();
+    await loadPriceHistory();
+    await loadComparison();
+    
+    // Reset form and state
+    resetImportForm();
+    importConflictState = {
+      validationResult: null,
+      resolvableConflicts: [],
+      currentConflictIndex: 0,
+      resolutions: {},
+      isActive: false
+    };
+    
+  } catch (error) {
+    console.error('[Sourcing] Import error:', error);
+    showToast('Import failed: ' + (error.message || 'Unknown error'), 'error');
+  } finally {
+    elements.startCsvImport.disabled = false;
+    elements.startCsvImport.innerHTML = '<i class="fas fa-upload"></i> Start Import';
+  }
+}
+
+/**
+ * Execute import directly (no conflicts to resolve)
+ */
+async function executeImport(validationResult) {
+  try {
+    elements.startCsvImport.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Importing...';
+    
+    const response = await post('/v1/inventory/sourcing/import/execute', {
+      rows: validationResult.rows,
+      supplier_id: validationResult.supplier_id,
+      filename: validationResult.filename,
+      resolutions: {}
+    });
+    
+    showImportSummary(response);
+    
+    // Refresh data
+    await loadSupplierProducts();
+    await loadPriceHistory();
+    await loadComparison();
+    
+    // Reset form
+    resetImportForm();
+    
+  } catch (error) {
+    console.error('[Sourcing] Import error:', error);
+    showToast('Import failed: ' + (error.message || 'Unknown error'), 'error');
+  } finally {
+    elements.startCsvImport.disabled = false;
+    elements.startCsvImport.innerHTML = '<i class="fas fa-upload"></i> Start Import';
+  }
+}
+
+/**
+ * Show import summary modal
+ */
+function showImportSummary(result) {
+  const modal = document.getElementById('importSummaryModal');
+  if (!modal) {
+    showToast(`Import complete: ${result.processed_rows} processed, ${result.skipped_rows || 0} skipped, ${result.error_rows} errors`, 'success');
+    return;
+  }
+  
+  document.getElementById('summaryTotalRows').textContent = result.total_rows;
+  document.getElementById('summaryProcessed').textContent = result.processed_rows;
+  document.getElementById('summarySkipped').textContent = result.skipped_rows || 0;
+  document.getElementById('summaryErrors').textContent = result.error_rows;
+  
+  // Show error details if any
+  const errorsList = document.getElementById('importErrorsList');
+  const errorsBody = document.getElementById('importErrorsListBody');
+  
+  if (result.errors && result.errors.length > 0) {
+    errorsBody.innerHTML = result.errors.map(e => 
+      `<li><strong>Row ${e.row}:</strong> ${escapeHtml(e.error)}</li>`
+    ).join('');
+    errorsList.style.display = 'block';
+  } else {
+    errorsList.style.display = 'none';
+  }
+  
+  modal.classList.add('active');
+}
+
+/**
+ * Close import summary and refresh
+ */
+function closeImportSummary() {
+  closeModal('importSummaryModal');
 }
 
 function resetImportForm() {
@@ -1079,6 +2163,51 @@ function resetImportForm() {
     elements.csvFileInput.value = '';
   }
   updateImportButtonState();
+}
+
+/**
+ * Download a template CSV file with correct column headers and sample data
+ */
+function downloadCsvTemplate() {
+  // Define the template with headers and example rows
+  const headers = ['supplier_sku', 'buy_price', 'currency', 'internal_sku', 'product_name', 'effective_date'];
+  
+  // Example rows to demonstrate expected format
+  // Required: supplier_sku, buy_price, currency, internal_sku
+  // Optional: product_name, effective_date
+  const exampleRows = [
+    ['SUP-001', '12.50', 'GBP', 'RM-WGT-001', 'Widget A - Standard Size', '2025-01-15'],
+    ['SUP-002', '25.00', 'EUR', 'RM-GDG-002', 'Gadget B - Premium', '2025-01-15'],
+    ['SUP-003', '8.75', 'USD', 'RM-CMP-003', 'Component C Pack of 10', ''],
+    ['SUP-004', '150.00', 'GBP', 'RM-EQP-004', '', ''],
+  ];
+  
+  // Build CSV content
+  const csvContent = [
+    headers.join(','),
+    ...exampleRows.map(row => row.map(cell => {
+      // Escape cells containing commas, quotes, or newlines
+      if (cell.includes(',') || cell.includes('"') || cell.includes('\n')) {
+        return `"${cell.replace(/"/g, '""')}"`;
+      }
+      return cell;
+    }).join(','))
+  ].join('\n');
+  
+  // Create blob and download
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  
+  link.setAttribute('href', url);
+  link.setAttribute('download', 'supplier_pricing_template.csv');
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+  
+  showToast('Template CSV downloaded', 'success');
 }
 
 // ====== Utility Functions ======
@@ -1101,6 +2230,85 @@ function formatCurrency(amount, currency = 'GBP') {
 function formatDate(dateStr) {
   if (!dateStr) return '-';
   return new Date(dateStr).toLocaleDateString('en-GB');
+}
+
+/**
+ * Calculate days until a future date
+ * @param {string} dateStr - ISO date string (e.g., "2026-01-20")
+ * @returns {number|null} - Days until date, or null if invalid/past
+ */
+function getDaysUntil(dateStr) {
+  if (!dateStr) return null;
+  
+  const targetDate = new Date(dateStr);
+  const today = new Date();
+  
+  // Reset time to midnight for accurate day calculation
+  targetDate.setHours(0, 0, 0, 0);
+  today.setHours(0, 0, 0, 0);
+  
+  const diffTime = targetDate - today;
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  return diffDays > 0 ? diffDays : null;
+}
+
+/**
+ * Generate countdown HTML for pending prices
+ * @param {string} effectiveDate - ISO date string
+ * @returns {string} - HTML for countdown label
+ */
+function renderCountdown(effectiveDate) {
+  const days = getDaysUntil(effectiveDate);
+  
+  if (days === null) return '';
+  
+  const isImminent = days <= 3;
+  const imminentClass = isImminent ? 'imminent' : '';
+  
+  if (days === 1) {
+    return `<span class="countdown-label ${imminentClass}"><i class="fas fa-clock"></i> Starts tomorrow</span>`;
+  } else if (days <= 7) {
+    return `<span class="countdown-label ${imminentClass}"><i class="fas fa-clock"></i> Starts in ${days} days</span>`;
+  } else if (days <= 30) {
+    const weeks = Math.floor(days / 7);
+    return `<span class="countdown-label"><i class="fas fa-calendar-alt"></i> Starts in ${weeks} week${weeks > 1 ? 's' : ''}</span>`;
+  } else {
+    return `<span class="countdown-label"><i class="fas fa-calendar"></i> ${formatDate(effectiveDate)}</span>`;
+  }
+}
+
+/**
+ * Generate status badge HTML for price status
+ * @param {string} status - 'active', 'pending', 'superseded', 'cancelled'
+ * @returns {string} - HTML for status badge
+ */
+function renderPriceStatusBadge(status) {
+  const statusLabels = {
+    'active': 'Active',
+    'pending': 'Pending',
+    'superseded': 'Superseded',
+    'cancelled': 'Cancelled'
+  };
+  
+  const label = statusLabels[status] || status || 'Unknown';
+  const statusClass = `status-${status || 'unknown'}`;
+  
+  return `<span class="price-status-badge ${statusClass}">${label}</span>`;
+}
+
+/**
+ * Get CSS row class based on price status
+ * @param {string} status - 'active', 'pending', 'superseded', 'cancelled'
+ * @returns {string} - CSS class name for the row
+ */
+function getPriceRowClass(status) {
+  switch (status) {
+    case 'pending': return 'pending-row';
+    case 'superseded': return 'superseded-row';
+    case 'cancelled': return 'cancelled-row';
+    default: return '';
+  }
 }
 
 function formatFileSize(bytes) {
@@ -1229,6 +2437,46 @@ function setupGlobalDropdownFunctions() {
     // Load selected report
     loadMarginReport(value);
   };
+  
+  // Select mapping currency
+  window.selectMappingCurrency = function(element, value, text, iconClass) {
+    const dropdown = document.getElementById('mappingModalCurrencyDropdown');
+    if (!dropdown) return;
+    
+    const selectedDisplay = dropdown.querySelector('.dropdown-selected');
+    const hiddenInput = document.getElementById('mappingModalCurrency');
+    
+    if (selectedDisplay) {
+      selectedDisplay.innerHTML = `<i class="fas ${iconClass}"></i> ${text}`;
+    }
+    if (hiddenInput) hiddenInput.value = value;
+    
+    dropdown.querySelectorAll('.dropdown-option').forEach(opt => opt.classList.remove('selected'));
+    element.classList.add('selected');
+    dropdown.classList.remove('open');
+    
+    console.log('[Sourcing] Currency selected:', value);
+  };
+  
+  // Select price currency
+  window.selectPriceCurrency = function(element, value, text, iconClass) {
+    const dropdown = document.getElementById('priceModalCurrencyDropdown');
+    if (!dropdown) return;
+    
+    const selectedDisplay = dropdown.querySelector('.dropdown-selected');
+    const hiddenInput = document.getElementById('priceModalCurrency');
+    
+    if (selectedDisplay) {
+      selectedDisplay.innerHTML = `<i class="fas ${iconClass}"></i> ${text}`;
+    }
+    if (hiddenInput) hiddenInput.value = value;
+    
+    dropdown.querySelectorAll('.dropdown-option').forEach(opt => opt.classList.remove('selected'));
+    element.classList.add('selected');
+    dropdown.classList.remove('open');
+    
+    console.log('[Sourcing] Price currency selected:', value);
+  };
 }
 
 /**
@@ -1249,6 +2497,82 @@ function loadMarginReport(reportType) {
   showToast(`Loading ${reportType} report...`, 'info');
 }
 
+/**
+ * Search available SKUs from inventory_metadata
+ */
+async function searchAvailableSkus(query) {
+  try {
+    const response = await get(`/v1/inventory/sourcing/available-skus?search=${encodeURIComponent(query)}&limit=50`);
+    return response?.skus || [];
+  } catch (error) {
+    console.error('[Sourcing] Error searching SKUs:', error);
+    return [];
+  }
+}
+
+/**
+ * Setup SKU autocomplete for internal_sku inputs
+ */
+function setupSkuAutocomplete(inputElement) {
+  if (!inputElement) return;
+  
+  let debounceTimeout;
+  const dropdown = document.createElement('div');
+  dropdown.className = 'sku-autocomplete-dropdown';
+  dropdown.style.cssText = 'position:absolute;background:var(--surface-1);border:1px solid var(--border);border-radius:4px;max-height:300px;overflow-y:auto;z-index:1000;display:none;';
+  inputElement.parentElement.style.position = 'relative';
+  inputElement.parentElement.appendChild(dropdown);
+  
+  inputElement.addEventListener('input', async (e) => {
+    const query = e.target.value.trim();
+    
+    clearTimeout(debounceTimeout);
+    
+    if (query.length < 2) {
+      dropdown.style.display = 'none';
+      return;
+    }
+    
+    debounceTimeout = setTimeout(async () => {
+      const skus = await searchAvailableSkus(query);
+      
+      if (skus.length === 0) {
+        dropdown.style.display = 'none';
+        return;
+      }
+      
+      dropdown.innerHTML = skus.map(sku => `
+        <div class="sku-option" data-sku="${escapeHtml(sku.sku)}" style="padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--border-subtle);">
+          <div style="font-weight:500;">${escapeHtml(sku.sku)}</div>
+          <div style="font-size:0.85em;color:var(--text-2);">Stock: ${sku.quantity_available ?? 'N/A'}</div>
+          <div style="font-size:0.75em;color:var(--text-3);">Status: ${sku.status || 'Unknown'}</div>
+        </div>
+      `).join('');
+      
+      dropdown.style.display = 'block';
+      
+      // Handle selection
+      dropdown.querySelectorAll('.sku-option').forEach(opt => {
+        opt.addEventListener('click', () => {
+          inputElement.value = opt.dataset.sku;
+          dropdown.style.display = 'none';
+          
+          // Trigger change event to activate duplicate check
+          inputElement.dispatchEvent(new Event('change', { bubbles: true }));
+          inputElement.dispatchEvent(new Event('blur', { bubbles: true }));
+        });
+      });
+    }, 300);
+  });
+  
+  // Close dropdown when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!inputElement.contains(e.target) && !dropdown.contains(e.target)) {
+      dropdown.style.display = 'none';
+    }
+  });
+}
+
 // ====== Public API ======
 
 // Expose functions for inline onclick handlers
@@ -1266,12 +2590,147 @@ window.sourcingModule = {
   editSupplier: (id) => {
     showToast(`Edit supplier ${id} - Coming soon`, 'info');
   },
-  editMapping: (id) => {
-    showToast(`Edit mapping ${id} - Coming soon`, 'info');
+  editMapping: async (id) => {
+    await openEditMappingModal(id);
   },
   showAllSuppliers: (sku) => {
-    showToast(`Show all suppliers for ${sku} - Coming soon`, 'info');
-  }
+    const product = comparison.find(p => p.internal_sku === sku);
+    if (!product || !product.suppliers || product.suppliers.length === 0) {
+      showToast('No suppliers found for this product', 'warning');
+      return;
+    }
+    
+    const modal = document.getElementById('allSuppliersModal');
+    if (!modal) return;
+    
+    // Update modal title with product info
+    const title = modal.querySelector('.modal-title');
+    if (title) {
+      title.textContent = `All Suppliers for ${sku}`;
+    }
+    
+    // Show product details
+    const details = document.getElementById('allSuppliersDetails');
+    if (details) {
+      const productName = product.product_name || sku;
+      const sellPrice = product.sell_price ? formatCurrency(product.sell_price, 'GBP') : 'N/A';
+      details.innerHTML = `
+        <div style="margin-bottom: 1rem;">
+          <strong>Product:</strong> ${escapeHtml(productName)}<br>
+          <strong>SKU:</strong> ${escapeHtml(sku)}<br>
+          <strong>Sell Price:</strong> ${sellPrice}<br>
+          <strong>Current Stock:</strong> ${product.quantity_available !== undefined ? product.quantity_available : 'N/A'}
+        </div>
+      `;
+    }
+    
+    // Populate suppliers table
+    const tbody = document.getElementById('allSuppliersTableBody');
+    if (!tbody) return;
+    
+    // Sort suppliers: cheapest first, then by price
+    const sortedSuppliers = [...product.suppliers].sort((a, b) => {
+      // Cheapest badges first
+      if (a.is_cheapest && !b.is_cheapest) return -1;
+      if (!a.is_cheapest && b.is_cheapest) return 1;
+      
+      // Then by price (if both have prices)
+      if (a.buy_price_gbp && b.buy_price_gbp) {
+        const aPerUnit = a.price_per_unit || a.buy_price_gbp;
+        const bPerUnit = b.price_per_unit || b.buy_price_gbp;
+        return aPerUnit - bPerUnit;
+      }
+      
+      // Suppliers with prices before those without
+      if (a.buy_price && !b.buy_price) return -1;
+      if (!a.buy_price && b.buy_price) return 1;
+      
+      // Finally by supplier name
+      return (a.supplier_name || '').localeCompare(b.supplier_name || '');
+    });
+    
+    tbody.innerHTML = sortedSuppliers.map(supplier => {
+      const buyPriceDisplay = supplier.buy_price ? 
+        `<div>
+          ${formatCurrency(supplier.buy_price, supplier.currency)}
+          ${supplier.currency !== 'GBP' && supplier.buy_price_gbp ? `<br><small class="text-muted">≈ ${formatCurrency(supplier.buy_price_gbp, 'GBP')}</small>` : ''}
+        </div>` : 
+        '<span class="text-warning">No price</span>';
+      
+      const pricePerUnit = supplier.price_per_unit ? 
+        formatCurrency(supplier.price_per_unit, 'GBP') : 
+        (supplier.buy_price_gbp ? formatCurrency(supplier.buy_price_gbp, 'GBP') : '-');
+      
+      const statusBadge = supplier.is_cheapest ? 
+        '<span class="status-badge active"><i class="fas fa-crown"></i> Cheapest</span>' : 
+        '<span class="status-badge">Alternative</span>';
+      
+      return `
+        <tr>
+          <td>${escapeHtml(supplier.supplier_name)}</td>
+          <td class="sku-cell">${escapeHtml(supplier.supplier_sku)}</td>
+          <td class="price-cell">${buyPriceDisplay}</td>
+          <td>${supplier.pack_size || 1}</td>
+          <td class="price-cell">${pricePerUnit}</td>
+          <td>${statusBadge}</td>
+        </tr>
+      `;
+    }).join('');
+    
+    modal.classList.add('active');
+  },
+  
+  // Refresh functions
+  refreshMappings: async () => {
+    await loadSupplierProducts();
+    showToast('Mappings refreshed', 'success');
+  },
+  refreshComparison: async () => {
+    await loadComparison();
+    showToast('Comparison refreshed', 'success');
+  },
+  
+  // Duplicate mapping handling
+  handleDuplicateChoice: (choice) => {
+    handleDuplicateChoice(choice);
+  },
+  
+  // Cycle through cheapest suppliers for a product
+  cycleCheapestSupplier: (sku) => {
+    const product = comparison.find(p => p.internal_sku === sku);
+    if (!product) return;
+    
+    const cheapestSuppliers = product.suppliers?.filter(s => s.is_cheapest) || [];
+    if (cheapestSuppliers.length <= 1) return;
+    
+    // Get current index from the element's data attribute, or start at 0
+    const supplierElement = document.getElementById(`supplier-${sku}`);
+    const parentBadge = supplierElement?.closest('.cheapest-badge');
+    if (!parentBadge) return;
+    
+    let currentIndex = parseInt(parentBadge.dataset.currentIndex || '0');
+    currentIndex = (currentIndex + 1) % cheapestSuppliers.length;
+    parentBadge.dataset.currentIndex = currentIndex;
+    
+    const newSupplier = cheapestSuppliers[currentIndex];
+    
+    // Update the supplier name and counter
+    supplierElement.textContent = newSupplier.supplier_name;
+    const counter = parentBadge.querySelector('.text-muted');
+    if (counter) {
+      counter.textContent = `(${currentIndex + 1} of ${cheapestSuppliers.length})`;
+    }
+  },
+  
+  // CSV Import conflict resolution
+  resolveConflict,
+  cancelImportConflict,
+  closeImportSummary,
+  downloadCsvTemplate,
+  
+  // Pending price management
+  cancelPendingPrice,
+  editPendingPrice
 };
 
 /**
@@ -1284,6 +2743,7 @@ export function cleanup() {
   suppliers = [];
   supplierProducts = [];
   priceHistory = [];
+  pendingPrices = [];
   comparison = [];
   selectedFile = null;
   

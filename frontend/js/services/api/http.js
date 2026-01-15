@@ -112,3 +112,4 @@ export const get  = (p, opts={})        => http(p, opts);
 export const del  = (p, opts={})        => http(p, { method: 'DELETE', ...opts });
 export const post = (p, json, opts={})  => http(p, { method: 'POST',  headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(json), ...opts });
 export const patch= (p, json, opts={})  => http(p, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(json), ...opts });
+export const put  = (p, json, opts={})  => http(p, { method: 'PUT',   headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(json), ...opts });

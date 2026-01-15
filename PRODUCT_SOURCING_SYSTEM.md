@@ -14,6 +14,8 @@ A supplier-aware pricing and margin management system that normalises multiple s
 6. [Data Flow](#data-flow)
 7. [Key Features](#key-features)
 8. [File Structure](#file-structure)
+9. [Design System Compliance](#design-system-compliance)
+10. [Future Enhancements](#future-enhancements)
 
 ---
 
@@ -104,7 +106,7 @@ Maps supplier-specific products to your internal SKUs.
 **Unique Constraint:** Each supplier can only have one entry per `supplier_sku`.
 
 ### 3. `sourcing_prices`
-Historical record of all buy prices.
+Historical record of all buy prices with temporal status management.
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -112,11 +114,36 @@ Historical record of all buy prices.
 | `supplier_product_id` | INTEGER | Links to `sourcing_supplier_products` (foreign key) |
 | `buy_price` | DECIMAL(12,4) | The purchase price (4 decimal places for precision) |
 | `currency` | VARCHAR(3) | Currency code, e.g., "GBP" (default: GBP) |
-| `effective_date` | DATE | When this price became valid (required) |
+| `effective_date` | DATE | When this price becomes/became valid (required) |
+| `status` | VARCHAR(20) | Only stores 'cancelled' - other statuses computed dynamically |
 | `notes` | TEXT | Reason for price change, etc. |
 | `created_by` | VARCHAR(255) | Username who added this price |
 | `created_at` | TIMESTAMP | When record was created |
 | `import_batch_id` | INTEGER | Links to import batch if from CSV import |
+
+#### Price Status System
+
+Prices have a **computed status** based on their `effective_date` and `status` column:
+
+| Status | Condition | Description |
+|--------|-----------|-------------|
+| **pending** | `effective_date > today` | Future price, not yet active |
+| **active** | Most recent `effective_date <= today` (not cancelled) | Currently in effect |
+| **superseded** | `effective_date <= today` but not most recent | Replaced by newer price |
+| **cancelled** | `status = 'cancelled'` in DB | Explicitly cancelled (not used) |
+
+**Why hybrid storage?**
+- Only `cancelled` is stored explicitly because it's a deliberate action
+- `pending`, `active`, and `superseded` are calculated dynamically from dates
+- This prevents data inconsistencies (e.g., forgetting to update status when dates pass)
+
+**Active Price Selection:**
+When multiple prices exist for a supplier product, the **active price** is determined by:
+1. `effective_date <= CURRENT_DATE` (must not be pending)
+2. `status IS NULL OR status != 'cancelled'` (not cancelled)
+3. `ORDER BY effective_date DESC, created_at DESC` (most recent wins)
+
+The `created_at` tiebreaker handles edge cases where two prices have the same effective_date.
 
 ### 4. `sourcing_import_batches`
 Tracks CSV import operations for audit purposes.
@@ -178,14 +205,23 @@ All API endpoints are prefixed with `/api/v1/inventory/sourcing/`
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
+| `/prices` | GET | Get price history (optional: `?supplier_product_id=`, `?internal_sku=`, `?limit=100`) |
 | `/prices` | POST | Add a new price entry (manual) |
-| `/prices/history` | GET | Get price history (optional: `?supplier_product_id=`, `?internal_sku=`, `?limit=100`) |
+| `/prices/history` | GET | Get full price history with computed status |
+| `/prices/pending` | GET | Get pending (future) prices (optional: `?supplier_product_id=`, `?supplier_id=`) |
+| `/prices/active/{supplier_product_id}` | GET | Get the currently active price for a supplier product |
+| `/prices/{id}` | GET | Get single price with computed status |
+| `/prices/{id}` | PUT | Update a pending price (only pending prices can be modified) |
+| `/prices/{id}/cancel` | POST | Cancel a pending price (only pending prices can be cancelled) |
 
 ### Comparison & Analysis
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/comparison` | GET | Get side-by-side supplier price comparison (optional: `?internal_sku=`) |
+| `/comparison-with-inventory` | GET | Get comparison WITH Magento inventory metadata (name, stock, cost) |
+| `/available-skus` | GET | Get available SKUs from inventory_metadata for mapping (optional: `?search=`, `?limit=100`) |
+| `/currency/rates` | GET | Get current exchange rates for multi-currency support (GBP base, 1-hour cache) |
 
 ### Import
 
@@ -199,11 +235,12 @@ All API endpoints are prefixed with `/api/v1/inventory/sourcing/`
 **Required columns:**
 - `supplier_sku` - The supplier's product code
 - `buy_price` - The purchase price
+- `currency` - Currency code (e.g., GBP, EUR, USD)
+- `internal_sku` - Your internal SKU (maps to inventory)
 
 **Optional columns:**
 - `product_name` - Supplier's name for the product
 - `effective_date` - Date price is valid from (defaults to today)
-- `currency` - Currency code (defaults to "GBP")
 
 ---
 
@@ -273,6 +310,7 @@ Bulk data import options:
 - Drag-and-drop file upload zone (or click to browse)
 - **"Start Import" button** (enabled when supplier + file selected)
 - Shows required/optional column info
+- **"Download Template CSV" button** - Downloads a template file with correct headers and sample data
 
 **Manual Entry Card:**
 - **"Open Manual Entry Form" button** opens comprehensive modal
@@ -290,7 +328,7 @@ Analysis and reporting:
 
 ### Modals
 
-The page includes **4 modal dialogs**:
+The page includes **9 modal dialogs**:
 
 #### Add Supplier Modal (`#addSupplierModal`)
 | Field | Type | Required | Description |
@@ -337,6 +375,64 @@ All-in-one form that creates both product mapping and price:
 | Effective Date | date | | When price applies |
 | Notes | textarea | | Additional info |
 
+#### Duplicate Mapping Warning Modal (`#duplicateMappingWarning`)
+Warning dialog shown when attempting to create a duplicate supplier SKU mapping:
+- **Warning Message:** Explains the duplicate detected
+- **Existing Mapping Details:** Shows current mapping information
+- **Actions:**
+  - "Quit Mapping" - Cancel and return to form
+  - "Change SKU" - Go back to edit the SKU
+  - "Continue Anyway" - Create duplicate mapping despite warning
+
+#### All Suppliers Modal (`#allSuppliersModal`)
+Shows all supplier options for a specific product with comparison data:
+- **Product Details:** SKU, product name, sell price, current stock
+- **Suppliers Table:** Lists all suppliers with their pricing and details
+- Columns: Supplier, Supplier SKU, Buy Price, Pack Size, Price/Unit (GBP), Status
+- **Sorting:** Cheapest suppliers shown first (marked with gold crown badge), then sorted by price
+- **Visual Indicators:** Cheapest badge, currency symbols, pack size information
+- Accessed via "View All" or "+X more" buttons in Supplier Comparison table
+
+#### Import Data Errors Modal (`#importDataErrorsModal`)
+Displayed when CSV validation detects blocking errors:
+- **Error Summary:** Count of total errors found
+- **Error List:** Each row number with specific error message
+- **Common Issues Help:** Tips for fixing common problems
+  - Missing required fields
+  - Invalid price format (currency symbols, commas)
+  - Invalid currency codes
+  - Invalid date format (must be YYYY-MM-DD)
+  - Duplicate supplier SKUs within CSV
+- **Action:** "Back to Import" button to return and fix CSV
+
+#### Import Conflict Modal (`#importConflictModal`)
+Sequential modal workflow for resolving import conflicts:
+- **Progress Bar:** Shows "Conflict X of Y" with visual progress
+- **Conflict Message:** Description of the conflict detected
+- **Row Info:** Row number and supplier SKU being processed
+- **Side-by-Side Comparison:**
+  - **Current Data:** Existing mapping and price information
+  - **New Data:** Values from CSV row (changes highlighted)
+- **Pending Change Warning:** Shown if future price already scheduled
+- **Actions:**
+  - "Amend CSV" - Exit workflow, cancel import
+  - "Skip" - Skip this row, continue to next conflict
+  - "Update Anyway" - Apply changes despite conflict
+
+**Conflict Types:**
+| Type | Description | Resolution |
+|------|-------------|------------|
+| `existing_mapping` | Supplier SKU already exists | User confirms update or skip |
+| `pending_change` | Future price already scheduled | User confirms overwrite or skip |
+| `duplicate_exact` | Identical to existing record | Auto-skipped |
+| `data_error` | Invalid data (blocks import) | Must fix CSV |
+
+#### Import Summary Modal (`#importSummaryModal`)
+Displayed after successful import completion:
+- **Stats Display:** Total rows, Processed, Skipped, Errors
+- **Error Details:** List of any errors that occurred during processing
+- **Action:** "Done" button closes modal
+
 ---
 
 ## Data Flow
@@ -368,24 +464,58 @@ All-in-one form that creates both product mapping and price:
 4. File name appears in upload zone
 5. "Start Import" button becomes enabled
 6. User clicks "Start Import"
-7. POST (multipart/form-data) → /api/v1/inventory/sourcing/import/csv
-8. Backend:
+7. POST (multipart/form-data) → /api/v1/inventory/sourcing/import/validate
+8. Backend Validation:
    a. Validates file is CSV
    b. Reads and parses content (handles UTF-8 BOM)
-   c. Validates required columns exist (supplier_sku, buy_price)
-   d. Creates import batch record (status: pending)
-   e. For each row:
+   c. Validates required columns exist (supplier_sku, buy_price, currency, internal_sku)
+   d. For each row, validates:
+      - Required fields are not empty
+      - buy_price is a valid positive number (no currency symbols/commas)
+      - currency is one of 12 supported codes
+      - effective_date (if provided) is YYYY-MM-DD format
+      - No duplicate supplier_sku within CSV
+   e. Detects conflicts with existing data:
+      - Existing mapping conflicts (SKU already mapped)
+      - Pending change conflicts (future price scheduled)
+      - Exact duplicates (auto-skipped)
+   f. Returns: { valid, conflicts, clean_rows, can_proceed }
+9. If data errors exist → Show Data Errors Modal (import blocked)
+10. If resolvable conflicts exist → Show Conflict Modal for each
+11. User resolves each conflict (Skip / Update Anyway / Amend CSV)
+12. POST → /api/v1/inventory/sourcing/import/execute with resolutions
+13. Backend:
+   a. Creates import batch record (status: pending)
+   b. For each row (respecting resolutions):
       - Finds existing supplier product OR creates new one
       - Adds price record with:
         - Link to import_batch_id
         - effective_date (from CSV or defaults to today)
         - currency (from CSV or defaults to GBP)
-   f. Updates batch with success/failure counts
-   g. Sets batch status to completed
-9. Returns: { batch info, rows processed, rows failed, errors }
-10. Frontend shows success/warning toast
-11. Price history and comparison tables update
+   c. Updates batch with success/failure counts
+   d. Sets batch status to completed
+14. Returns: { batch info, rows processed, rows skipped, rows failed, errors }
+15. Frontend shows Import Summary Modal
+16. Price history and comparison tables refresh
 ```
+
+#### CSV Validation Rules
+
+| Field | Type | Required | Validation |
+|-------|------|----------|------------|
+| `supplier_sku` | string | ✓ | Must not be empty, unique within CSV |
+| `buy_price` | decimal | ✓ | Positive number, no currency symbols or commas |
+| `currency` | string | ✓ | One of: GBP, EUR, USD, CAD, AUD, JPY, CHF, CNY, SEK, NOK, DKK, PLN |
+| `internal_sku` | string | ✓ | Must not be empty |
+| `product_name` | string | | Optional, defaults to supplier_sku |
+| `effective_date` | date | | Optional, YYYY-MM-DD format, defaults to today |
+
+**Common Errors:**
+- `1,000.00` → Invalid (comma as thousands separator)
+- `$25.00` → Invalid (currency symbol included)
+- `15/01/2026` → Invalid date format (use 2026-01-15)
+- Negative prices → Invalid
+- Duplicate supplier_sku → Error (each SKU once per CSV)
 
 ### Viewing Supplier Comparison
 
@@ -412,10 +542,47 @@ All-in-one form that creates both product mapping and price:
 ### Auto-Table Creation
 Database tables are automatically created on first page load via the `/health` endpoint. The system checks if tables exist and creates them only if needed. This happens once per application session.
 
-### Multi-Currency Support
-Each supplier can have a default currency, and individual prices can specify their currency. Stored as ISO 4217 codes (e.g., "GBP", "EUR", "USD").
+### Multi-Currency Support with Live Exchange Rates
+The system includes comprehensive multi-currency functionality:
 
-*(Note: Currency conversion between different currencies is not yet implemented)*
+**Features:**
+- **12 Supported Currencies:** GBP, EUR, USD, CAD, AUD, JPY, CHF, CNY, SEK, NOK, DKK, PLN
+- **Live Exchange Rates:** Fetched from open.er-api.com API (GBP base)
+- **1-Hour Caching:** Exchange rates cached to minimize API calls
+- **Automatic Conversion:** All non-GBP prices converted to GBP for comparison
+- **Dual Display:** Shows original price with currency symbol + GBP equivalent
+
+**Implementation:**
+```javascript
+// Exchange rates stored in module state
+let exchangeRates = null;
+
+// Fetched on page load
+await loadExchangeRates(); // GET /v1/inventory/sourcing/currency/rates
+
+// Conversion function
+function convertToGBP(amount, fromCurrency) {
+  if (!exchangeRates || !exchangeRates[fromCurrency]) return null;
+  return amount / exchangeRates[fromCurrency];
+}
+```
+
+**Display Examples:**
+- Supplier Comparison: `€62.00` with `≈ £53.45` below
+- Product Mappings: `€62.00` with `≈ £53.45` below
+- Price History: `€62.00` with EUR in currency column
+
+**Custom Currency Dropdowns:**
+All currency selection uses styled custom dropdowns with:
+- Currency icons (£, €, $, ¥, etc.)
+- Currency code and symbol text
+- Proper selection state
+- Hidden input for form submission
+
+**Backend Support:**
+- `GET /currency/rates` endpoint returns live exchange rates
+- `common/currency.py` module handles conversion logic
+- Decimal precision handling for accurate calculations
 
 ### Price History Tracking
 Every price change is permanently recorded with:
@@ -424,6 +591,39 @@ Every price change is permanently recorded with:
 - Source indicator (via import_batch_id - null for manual, set for CSV imports)
 - Optional notes
 - Username who created the entry
+- **Currency code** with proper symbol display
+
+**Smart Change Detection:**
+The system prevents unnecessary price history entries through intelligent change detection:
+
+**Mapping vs Price Changes:**
+- Tracks mapping fields separately from price fields
+- Only updates mapping if supplier, SKU, name, pack size, notes, or status changed
+- Only creates new price entry if price amount or currency changed
+
+**Numeric Comparison:**
+- Compares prices as numbers, not strings
+- `62.0000` (database) = `62` (form input) → No change detected
+- Prevents duplicate price entries with same value but different decimal places
+
+**User Feedback:**
+```javascript
+if (!hasMappingChanges && !hasPriceChanges) {
+  // Show confirmation dialog
+  confirm('No changes detected. Would you like to continue editing?');
+} else {
+  // Save with appropriate messages:
+  // "Mapping and price updated successfully"
+  // "Mapping updated successfully"  
+  // "Price updated successfully"
+}
+```
+
+**Benefits:**
+- Cleaner price history without duplicates
+- Accurate audit trail
+- Better performance (fewer database writes)
+- Clear user feedback on what actually changed
 
 ### Margin Calculation
 Margins are calculated as:
@@ -466,22 +666,24 @@ All dropdowns use custom components (not native `<select>` elements) for consist
 ```
 backend/modules/inventory/sourcing/
 ├── __init__.py          # Module exports (router, ensure_tables_exist)
-├── api.py               # FastAPI route definitions (327 lines)
+├── api.py               # FastAPI route definitions (356 lines)
 │                        # - Health endpoints
 │                        # - Supplier CRUD
 │                        # - Product mapping CRUD
 │                        # - Price endpoints
 │                        # - Comparison endpoint
+│                        # - Currency rates endpoint
 │                        # - Import endpoints
-├── service.py           # Business logic layer
+├── service.py           # Business logic layer (381 lines)
 │                        # - Data transformation
 │                        # - Complex operations (CSV processing)
+│                        # - Comparison with inventory
 │                        # - Calls repo methods
-├── repo.py              # Database operations (525 lines)
+├── repo.py              # Database operations (839 lines)
 │                        # - ensure_tables_exist() - auto-creates tables
 │                        # - _create_tables() - SQL DDL
 │                        # - SourcingRepo class with all CRUD methods
-└── schemas.py           # Pydantic models (185 lines)
+└── schemas.py           # Pydantic models (145 lines)
                          # - SupplierBase/Create/Update/Out
                          # - SupplierProductBase/Create/Update/Out
                          # - SupplierPriceBase/Create/Out
@@ -493,14 +695,14 @@ backend/modules/inventory/sourcing/
 ```
 frontend/
 ├── html/inventory/
-│   └── sourcing.html           # Page structure (807 lines)
+│   └── sourcing.html           # Page structure (986 lines)
 │                               # - Header and navigation
 │                               # - Stats cards
 │                               # - Sub-tabs navigation
 │                               # - 7 tab panels with tables/forms
-│                               # - 4 modal dialogs
+│                               # - 6 modal dialogs
 ├── js/modules/inventory/
-│   └── sourcing.js             # Page logic (1150+ lines)
+│   └── sourcing.js             # Page logic (2045 lines)
 │                               # - init() - entry point
 │                               # - cacheElements() - DOM references
 │                               # - setupEventListeners() - all handlers
@@ -512,7 +714,7 @@ frontend/
 │                               # - CSV upload handlers
 │                               # - Public API on window.sourcingModule
 └── css-new/pages/inventory/
-    └── sourcing.css            # Page-specific styling (700+ lines)
+    └── sourcing.css            # Page-specific styling (828 lines)
                                 # - Stats cards
                                 # - Sub-tabs
                                 # - Tab panels
@@ -536,9 +738,9 @@ backend/
 
 frontend/
 ├── index.html                       # Added: CSS link to sourcing.css
-├── html/home.html                   # Added: Product Sourcing card in Inventory section
+├── html/home.html                   # Contains Inventory card (Product Sourcing accessed via tabs)
 ├── js/
-│   ├── router.js                    # Added: /inventory/sourcing route definition
+│   ├── router.js                    # Added: /inventory/sourcing route definitions (8 routes)
 │   └── modules/inventory/index.js   # Added: sourcing route handler
 ```
 
@@ -593,7 +795,7 @@ All styling adapts to both **light mode** and **dark mode** automatically via CS
 
 Planned features include:
 - [ ] API integration for automatic supplier price syncing
-- [ ] Currency conversion for multi-currency suppliers
+- [x] Currency conversion for multi-currency suppliers (COMPLETED - live exchange rates with 12 currencies)
 - [ ] Margin alert notifications (email/in-app when margins drop)
 - [ ] Supplier performance scoring
 - [ ] Purchase order generation from sourcing data

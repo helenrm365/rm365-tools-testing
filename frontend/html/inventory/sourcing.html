@@ -82,8 +82,12 @@
         <i class="fas fa-project-diagram"></i>
         <span>Product Mappings</span>
       </button>
+      <button class="sub-tab-button" data-tab="pending" onclick="location.href='/inventory/sourcing/pending'">
+        <i class="fas fa-clock"></i>
+        <span>Pending Prices</span>
+      </button>
       <button class="sub-tab-button" data-tab="prices" onclick="location.href='/inventory/sourcing/prices'">
-        <i class="fas fa-pound-sign"></i>
+        <i class="fas fa-history"></i>
         <span>Price History</span>
       </button>
       <button class="sub-tab-button" data-tab="import" onclick="location.href='/inventory/sourcing/import'">
@@ -327,6 +331,49 @@
       </div>
     </div>
 
+    <!-- Pending Prices Panel -->
+    <div class="sourcing-tab-panel" id="panel-pending">
+      <div class="panel-header">
+        <h2><i class="fas fa-clock"></i> Pending Prices</h2>
+        <p class="panel-subtitle">Scheduled price changes that will become active on their effective date</p>
+      </div>
+      <div class="panel-body">
+        <div class="table-container">
+          <table class="data-table" id="pendingPricesTable">
+            <thead>
+              <tr>
+                <th>Supplier</th>
+                <th>Supplier SKU</th>
+                <th>Product Name</th>
+                <th>Internal SKU</th>
+                <th>Buy Price</th>
+                <th>Currency</th>
+                <th>Effective Date</th>
+                <th>Countdown</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="pendingPricesTableBody">
+              <tr class="loading-row">
+                <td colspan="10">
+                  <div class="loading-state">
+                    <div class="loading-spinner"></div>
+                    <span>Loading pending prices...</span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="empty-state" id="pendingEmptyState" style="display: none;">
+          <i class="fas fa-check-circle"></i>
+          <h3>No Pending Prices</h3>
+          <p>All scheduled price changes have been applied. Import new prices with future effective dates to schedule changes.</p>
+        </div>
+      </div>
+    </div>
+
     <!-- Price History Panel -->
     <div class="sourcing-tab-panel" id="panel-prices">
       <div class="panel-header">
@@ -354,13 +401,14 @@
                 <th>Buy Price</th>
                 <th>Currency</th>
                 <th>Effective Date</th>
+                <th>Status</th>
                 <th>Added By</th>
                 <th>Source</th>
               </tr>
             </thead>
             <tbody id="priceHistoryTableBody">
               <tr class="loading-row">
-                <td colspan="9">
+                <td colspan="10">
                   <div class="loading-state">
                     <div class="loading-spinner"></div>
                     <span>Loading price history...</span>
@@ -415,8 +463,14 @@
               </button>
             </div>
             <div class="import-info">
-              <strong>Required columns:</strong> supplier_sku, buy_price<br>
-              <strong>Optional:</strong> product_name, effective_date, currency, internal_sku
+              <strong>Required columns:</strong> supplier_sku, buy_price, currency, internal_sku<br>
+              <strong>Optional:</strong> product_name, effective_date
+            </div>
+            <div class="template-download">
+              <button class="action-btn info-btn btn-sm" id="downloadCsvTemplate">
+                <i class="fas fa-download"></i>
+                <span>Download Template CSV</span>
+              </button>
             </div>
           </div>
 
@@ -563,6 +617,125 @@
   </div>
 </div>
 
+<style>
+.price-history-section {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: var(--bg);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.price-history-section .section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  color: var(--text-1);
+}
+
+.price-history-section .section-header h4 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.price-history-list {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.price-history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  background: var(--bg-light);
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  border: 1px solid var(--border-subtle);
+}
+
+.price-history-item:last-child {
+  margin-bottom: 0;
+}
+
+.price-history-item.current {
+  border: 2px solid var(--warning);
+  background: var(--bg-light);
+}
+
+.price-history-item .price-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.price-history-item .price-value {
+  font-weight: 600;
+  color: var(--text-1);
+}
+
+.price-history-item .price-date {
+  font-size: 0.85rem;
+  color: var(--text-2);
+}
+
+.price-history-item .current-badge {
+  padding: 0.25rem 0.5rem;
+  background: var(--success);
+  color: white;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.price-history-empty {
+  text-align: center;
+  padding: 1rem;
+  color: var(--text-2);
+  font-style: italic;
+}
+</style>
+
+<!-- Duplicate Mapping Warning Modal -->
+<div id="duplicateMappingWarning" class="modal-overlay" style="z-index: 1300;">
+  <div class="modal-content modal-sm" style="z-index: 1400;">
+    <div class="modal-header">
+      <div class="modal-header-icon warning">
+        <i class="fas fa-exclamation-triangle"></i>
+      </div>
+      <h2 class="modal-title">Duplicate Mapping Detected</h2>
+      <button class="modal-close" onclick="window.sourcingModule.closeModal('duplicateMappingWarning')">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    
+    <div class="modal-body">
+      <p id="duplicateWarningMessage" style="margin-bottom: 1.5rem; color: var(--text-1);"></p>
+      <div style="background: var(--bg); padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border: 1px solid var(--border);">
+        <strong>Existing Mapping:</strong>
+        <div id="existingMappingDetails" style="margin-top: 0.5rem; font-size: 0.9rem;"></div>
+      </div>
+      <p style="color: var(--text-2); font-size: 0.9rem;">
+        If you continue, you'll have multiple mappings for the same product from this supplier.
+      </p>
+    </div>
+    
+    <div class="modal-footer">
+      <button class="action-btn secondary-btn" onclick="window.sourcingModule.handleDuplicateChoice('cancel')">
+        <i class="fas fa-times"></i>
+        <span>Quit Mapping</span>
+      </button>
+      <button class="action-btn warning-btn" onclick="window.sourcingModule.handleDuplicateChoice('change')">
+        <i class="fas fa-edit"></i>
+        <span>Change SKU</span>
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- Add Mapping Modal -->
 <div id="addMappingModal" class="modal-overlay">
   <div class="modal-content modal-lg">
@@ -615,7 +788,43 @@
           </div>
           <div class="form-group">
             <label class="form-label">Currency</label>
-            <input type="text" name="currency" class="form-input" placeholder="GBP" value="GBP">
+            <div class="custom-dropdown" id="mappingModalCurrencyDropdown">
+              <div class="dropdown-selected" onclick="toggleDropdown('mappingModalCurrencyDropdown')">
+                <i class="fas fa-pound-sign"></i>
+                GBP (£)
+              </div>
+              <div class="dropdown-options" id="mappingModalCurrencyDropdownOptions">
+                <div class="dropdown-option selected" onclick="selectMappingCurrency(this, 'GBP', 'GBP (£)', 'fa-pound-sign')">GBP (£)</div>
+                <div class="dropdown-option" onclick="selectMappingCurrency(this, 'EUR', 'EUR (€)', 'fa-euro-sign')">EUR (€)</div>
+                <div class="dropdown-option" onclick="selectMappingCurrency(this, 'USD', 'USD ($)', 'fa-dollar-sign')">USD ($)</div>
+                <div class="dropdown-option" onclick="selectMappingCurrency(this, 'CAD', 'CAD ($)', 'fa-dollar-sign')">CAD ($)</div>
+                <div class="dropdown-option" onclick="selectMappingCurrency(this, 'AUD', 'AUD ($)', 'fa-dollar-sign')">AUD ($)</div>
+                <div class="dropdown-option" onclick="selectMappingCurrency(this, 'JPY', 'JPY (¥)', 'fa-yen-sign')">JPY (¥)</div>
+                <div class="dropdown-option" onclick="selectMappingCurrency(this, 'CHF', 'CHF', 'fa-franc-sign')">CHF</div>
+                <div class="dropdown-option" onclick="selectMappingCurrency(this, 'CNY', 'CNY (¥)', 'fa-yen-sign')">CNY (¥)</div>
+                <div class="dropdown-option" onclick="selectMappingCurrency(this, 'SEK', 'SEK', 'fa-coins')">SEK</div>
+                <div class="dropdown-option" onclick="selectMappingCurrency(this, 'NOK', 'NOK', 'fa-coins')">NOK</div>
+                <div class="dropdown-option" onclick="selectMappingCurrency(this, 'DKK', 'DKK', 'fa-coins')">DKK</div>
+                <div class="dropdown-option" onclick="selectMappingCurrency(this, 'PLN', 'PLN', 'fa-coins')">PLN</div>
+              </div>
+              <input type="hidden" name="currency" id="mappingModalCurrency" value="GBP">
+            </div>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Pack Size</label>
+          <input type="number" name="pack_size" class="form-input" min="1" value="1" placeholder="1">
+          <small class="form-hint">Number of units per pack (used to calculate price per unit)</small>
+        </div>
+        
+        <!-- Price History Section (shown when editing) -->
+        <div id="mappingPriceHistory" class="price-history-section" style="display: none;">
+          <div class="section-header">
+            <h4><i class="fas fa-history"></i> Price History</h4>
+          </div>
+          <div class="price-history-list" id="mappingPriceHistoryList">
+            <!-- Populated by JavaScript -->
           </div>
         </div>
         
@@ -681,7 +890,27 @@
           </div>
           <div class="form-group">
             <label class="form-label">Currency</label>
-            <input type="text" name="currency" class="form-input" placeholder="GBP" value="GBP">
+            <div class="custom-dropdown" id="priceModalCurrencyDropdown">
+              <div class="dropdown-selected" onclick="toggleDropdown('priceModalCurrencyDropdown')">
+                <i class="fas fa-pound-sign"></i>
+                GBP (£)
+              </div>
+              <div class="dropdown-options" id="priceModalCurrencyDropdownOptions">
+                <div class="dropdown-option selected" onclick="selectPriceCurrency(this, 'GBP', 'GBP (£)', 'fa-pound-sign')">GBP (£)</div>
+                <div class="dropdown-option" onclick="selectPriceCurrency(this, 'EUR', 'EUR (€)', 'fa-euro-sign')">EUR (€)</div>
+                <div class="dropdown-option" onclick="selectPriceCurrency(this, 'USD', 'USD ($)', 'fa-dollar-sign')">USD ($)</div>
+                <div class="dropdown-option" onclick="selectPriceCurrency(this, 'CAD', 'CAD ($)', 'fa-dollar-sign')">CAD ($)</div>
+                <div class="dropdown-option" onclick="selectPriceCurrency(this, 'AUD', 'AUD ($)', 'fa-dollar-sign')">AUD ($)</div>
+                <div class="dropdown-option" onclick="selectPriceCurrency(this, 'JPY', 'JPY (¥)', 'fa-yen-sign')">JPY (¥)</div>
+                <div class="dropdown-option" onclick="selectPriceCurrency(this, 'CHF', 'CHF', 'fa-franc-sign')">CHF</div>
+                <div class="dropdown-option" onclick="selectPriceCurrency(this, 'CNY', 'CNY (¥)', 'fa-yen-sign')">CNY (¥)</div>
+                <div class="dropdown-option" onclick="selectPriceCurrency(this, 'SEK', 'SEK', 'fa-coins')">SEK</div>
+                <div class="dropdown-option" onclick="selectPriceCurrency(this, 'NOK', 'NOK', 'fa-coins')">NOK</div>
+                <div class="dropdown-option" onclick="selectPriceCurrency(this, 'DKK', 'DKK', 'fa-coins')">DKK</div>
+                <div class="dropdown-option" onclick="selectPriceCurrency(this, 'PLN', 'PLN', 'fa-coins')">PLN</div>
+              </div>
+              <input type="hidden" name="currency" id="priceModalCurrency" value="GBP">
+            </div>
           </div>
         </div>
         
@@ -791,6 +1020,256 @@
 
 <!-- Modals container for dynamic modals -->
 <div id="sourcingModals"></div>
+
+<!-- All Suppliers Modal -->
+<div id="allSuppliersModal" class="modal-overlay">
+  <div class="modal-content modal-lg">
+    <div class="modal-header">
+      <div class="modal-header-icon">
+        <i class="fas fa-truck-loading"></i>
+      </div>
+      <h2 class="modal-title">All Suppliers</h2>
+      <button class="modal-close" onclick="window.sourcingModule.closeModal('allSuppliersModal')">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    
+    <div class="modal-body">
+      <div class="supplier-details" id="allSuppliersDetails">
+        <p class="text-muted">Loading suppliers...</p>
+      </div>
+      
+      <table class="data-table" id="allSuppliersTable">
+        <thead>
+          <tr>
+            <th>Supplier</th>
+            <th>Supplier SKU</th>
+            <th>Buy Price</th>
+            <th>Pack Size</th>
+            <th>Price/Unit (GBP)</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="allSuppliersTableBody">
+          <!-- Populated by JavaScript -->
+        </tbody>
+      </table>
+    </div>
+    
+    <div class="modal-footer">
+      <button class="action-btn secondary-btn" onclick="window.sourcingModule.closeModal('allSuppliersModal')">
+        Close
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Import Conflict Resolution Modal -->
+<div id="importConflictModal" class="modal-overlay">
+  <div class="modal-content modal-lg">
+    <div class="modal-header">
+      <div class="modal-header-icon warning">
+        <i class="fas fa-exclamation-triangle"></i>
+      </div>
+      <h2 class="modal-title">Import Conflict Detected</h2>
+      <button class="modal-close" onclick="window.sourcingModule.cancelImportConflict()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    
+    <div class="modal-body">
+      <!-- Progress indicator -->
+      <div class="conflict-progress">
+        <span id="conflictProgressText">Conflict 1 of 3</span>
+        <div class="progress-bar">
+          <div class="progress-fill" id="conflictProgressFill" style="width: 33%"></div>
+        </div>
+      </div>
+      
+      <!-- Conflict message -->
+      <div class="conflict-message" id="conflictMessage">
+        <i class="fas fa-info-circle"></i>
+        <span>This supplier SKU already exists - importing will update the record</span>
+      </div>
+      
+      <!-- Row info -->
+      <div class="conflict-row-info">
+        <strong>CSV Row <span id="conflictRowNumber">2</span>:</strong>
+        <code id="conflictSupplierSku">SUP-001</code>
+      </div>
+      
+      <!-- Comparison section -->
+      <div class="conflict-comparison">
+        <div class="comparison-column current">
+          <h4><i class="fas fa-database"></i> Current Data</h4>
+          <div class="comparison-data" id="conflictCurrentData">
+            <div class="data-row">
+              <span class="data-label">Supplier SKU:</span>
+              <span class="data-value">SUP-001</span>
+            </div>
+            <div class="data-row">
+              <span class="data-label">Internal SKU:</span>
+              <span class="data-value">RM-WGT-001</span>
+            </div>
+            <div class="data-row">
+              <span class="data-label">Buy Price:</span>
+              <span class="data-value">£12.50</span>
+            </div>
+            <div class="data-row">
+              <span class="data-label">Currency:</span>
+              <span class="data-value">GBP</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="comparison-arrow">
+          <i class="fas fa-arrow-right"></i>
+        </div>
+        
+        <div class="comparison-column new">
+          <h4><i class="fas fa-file-csv"></i> New Data (from CSV)</h4>
+          <div class="comparison-data" id="conflictNewData">
+            <div class="data-row">
+              <span class="data-label">Supplier SKU:</span>
+              <span class="data-value">SUP-001</span>
+            </div>
+            <div class="data-row">
+              <span class="data-label">Internal SKU:</span>
+              <span class="data-value">RM-WGT-001</span>
+            </div>
+            <div class="data-row">
+              <span class="data-label">Buy Price:</span>
+              <span class="data-value highlight">£15.00</span>
+            </div>
+            <div class="data-row">
+              <span class="data-label">Currency:</span>
+              <span class="data-value">GBP</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Pending change warning (shown for pending_change conflicts) -->
+      <div class="pending-change-warning" id="pendingChangeWarning" style="display: none;">
+        <i class="fas fa-clock"></i>
+        <div>
+          <strong>Scheduled Change:</strong>
+          <p id="pendingChangeDetails">A price change to £18.00 is scheduled for 2025-02-01</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="modal-footer conflict-actions">
+      <button class="action-btn secondary-btn" onclick="window.sourcingModule.resolveConflict('amend')">
+        <i class="fas fa-edit"></i>
+        <span>Amend CSV</span>
+      </button>
+      <button class="action-btn warning-btn" onclick="window.sourcingModule.resolveConflict('skip')">
+        <i class="fas fa-forward"></i>
+        <span>Skip This Row</span>
+      </button>
+      <button class="action-btn primary-btn" onclick="window.sourcingModule.resolveConflict('update')">
+        <i class="fas fa-check"></i>
+        <span>Update Anyway</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Import Data Errors Modal -->
+<div id="importDataErrorsModal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-header-icon error">
+        <i class="fas fa-exclamation-circle"></i>
+      </div>
+      <h2 class="modal-title">CSV Validation Errors</h2>
+      <button class="modal-close" onclick="window.sourcingModule.closeModal('importDataErrorsModal')">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    
+    <div class="modal-body">
+      <div class="data-errors-message">
+        <i class="fas fa-ban"></i>
+        <div>
+          <strong>Import cannot proceed.</strong>
+          <p>The following errors must be fixed in your CSV file before importing:</p>
+        </div>
+      </div>
+      
+      <div class="data-errors-list" id="dataErrorsListBody">
+        <!-- Errors will be populated here -->
+      </div>
+      
+      <div class="data-errors-help">
+        <h5><i class="fas fa-lightbulb"></i> Common Issues:</h5>
+        <ul>
+          <li><strong>Missing required fields:</strong> Ensure supplier_sku, buy_price, currency, and internal_sku have values</li>
+          <li><strong>Invalid price format:</strong> Use numbers only (e.g., "10.50"), no currency symbols or commas</li>
+          <li><strong>Invalid currency:</strong> Use 3-letter codes: GBP, EUR, USD, CAD, AUD, JPY, CHF, CNY, SEK, NOK, DKK, PLN</li>
+          <li><strong>Invalid date format:</strong> Use YYYY-MM-DD format (e.g., "2026-01-15")</li>
+          <li><strong>Duplicate SKUs:</strong> Each supplier_sku can only appear once per CSV file</li>
+        </ul>
+      </div>
+    </div>
+    
+    <div class="modal-footer">
+      <button class="action-btn primary-btn" onclick="window.sourcingModule.closeModal('importDataErrorsModal')">
+        <i class="fas fa-arrow-left"></i>
+        <span>Back to Import</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Import Summary Modal -->
+<div id="importSummaryModal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-header-icon success">
+        <i class="fas fa-clipboard-check"></i>
+      </div>
+      <h2 class="modal-title">Import Summary</h2>
+      <button class="modal-close" onclick="window.sourcingModule.closeModal('importSummaryModal')">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    
+    <div class="modal-body">
+      <div class="import-summary-stats">
+        <div class="summary-stat">
+          <div class="stat-number" id="summaryTotalRows">10</div>
+          <div class="stat-label">Total Rows</div>
+        </div>
+        <div class="summary-stat success">
+          <div class="stat-number" id="summaryProcessed">8</div>
+          <div class="stat-label">Processed</div>
+        </div>
+        <div class="summary-stat warning">
+          <div class="stat-number" id="summarySkipped">1</div>
+          <div class="stat-label">Skipped</div>
+        </div>
+        <div class="summary-stat error">
+          <div class="stat-number" id="summaryErrors">1</div>
+          <div class="stat-label">Errors</div>
+        </div>
+      </div>
+      
+      <div id="importErrorsList" style="display: none;">
+        <h4>Error Details:</h4>
+        <ul class="error-list" id="importErrorsListBody"></ul>
+      </div>
+    </div>
+    
+    <div class="modal-footer">
+      <button class="action-btn primary-btn" onclick="window.sourcingModule.closeImportSummary()">
+        <i class="fas fa-check"></i>
+        <span>Done</span>
+      </button>
+    </div>
+  </div>
+</div>
 
 <!-- Universal Footer -->
 <div id="footerPlaceholder"></div>

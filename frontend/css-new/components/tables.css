@@ -47,6 +47,7 @@ table,
 .modern-table,
 .products-table {
   width: 100%;
+  min-width: max-content; /* Allow table to expand for horizontal scroll */
   border-collapse: collapse;
   font-size: 0.95rem;
 }

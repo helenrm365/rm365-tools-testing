@@ -927,7 +927,7 @@ async function saveRowData(row) {
     const nextStockStatus = calculateStockStatus(nextSnapshot);
     const stockStatusChanged = previousStockStatus !== nextStockStatus;
 
-    const patchPath = `/api/v1/inventory/management/metadata/${encodeURIComponent(sku)}`;
+    const patchPath = `/v1/inventory/management/metadata/${encodeURIComponent(sku)}`;
     await patch(patchPath, updated);
     metadataIndex.set(sku, nextSnapshot);
 

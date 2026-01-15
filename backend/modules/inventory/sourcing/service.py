@@ -9,6 +9,7 @@ from datetime import date
 import logging
 
 from .repo import SourcingRepo
+from common.currency import convert_to_gbp
 
 logger = logging.getLogger(__name__)
 
@@ -78,6 +79,59 @@ class SourcingService:
     def create_price(self, data: Dict[str, Any], created_by: Optional[str] = None) -> Dict[str, Any]:
         """Create a new price entry"""
         return self.repo.create_price(data, created_by=created_by)
+    
+    def get_active_price(self, supplier_product_id: int) -> Optional[Dict[str, Any]]:
+        """
+        Get the currently active price for a supplier product.
+        
+        Active price is determined by:
+        - effective_date <= today
+        - status != 'cancelled'
+        - Most recent effective_date wins (with created_at as tiebreaker)
+        """
+        return self.repo.get_active_price(supplier_product_id)
+    
+    def get_pending_prices(
+        self,
+        supplier_product_id: Optional[int] = None,
+        supplier_id: Optional[int] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Get pending (future) prices that haven't become active yet.
+        """
+        return self.repo.get_pending_prices(
+            supplier_product_id=supplier_product_id,
+            supplier_id=supplier_id
+        )
+    
+    def cancel_pending_price(
+        self, 
+        price_id: int, 
+        cancelled_by: Optional[str] = None
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Cancel a pending price.
+        Only pending prices (effective_date > today) can be cancelled.
+        """
+        return self.repo.cancel_pending_price(price_id, cancelled_by=cancelled_by)
+    
+    def update_pending_price(
+        self,
+        price_id: int,
+        data: Dict[str, Any],
+        updated_by: Optional[str] = None
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Update a pending price.
+        Only pending prices (effective_date > today) can be updated.
+        """
+        return self.repo.update_pending_price(price_id, data, updated_by=updated_by)
+    
+    def get_price_with_computed_status(self, price_id: int) -> Optional[Dict[str, Any]]:
+        """
+        Get a single price entry with its computed status.
+        """
+        return self.repo.get_price_with_computed_status(price_id)
     
     # ====== Supplier Comparison ======
     
@@ -173,6 +227,391 @@ class SourcingService:
         """Update import batch status"""
         return self.repo.update_import_batch(batch_id, data)
     
+    def validate_csv_import(
+        self,
+        rows: List[Dict[str, Any]],
+        supplier_id: int
+    ) -> Dict[str, Any]:
+        """
+        Validate CSV import and detect all conflicts before importing.
+        
+        Conflict Types:
+        - data_error: Missing required fields, invalid format
+        - duplicate_exact: Row is identical to existing mapping (skip)
+        - existing_mapping: Will update an existing mapping (update)
+        - pending_change: Future effective date scheduled (overwrite/skip/amend)
+        
+        Returns:
+        {
+            'valid': bool,
+            'total_rows': int,
+            'conflicts': [
+                {
+                    'row_index': int,
+                    'row_data': dict,
+                    'conflict_type': str,
+                    'message': str,
+                    'current_data': dict | None,
+                    'requires_resolution': bool
+                }
+            ],
+            'clean_rows': int,  # Rows with no conflicts
+            'can_proceed': bool  # True if no data_errors
+        }
+        """
+        conflicts = []
+        clean_count = 0
+        has_data_errors = False
+        today = date.today()
+        
+        # Get existing mappings for this supplier
+        existing_mappings = self.repo.get_supplier_products(supplier_id=supplier_id)
+        existing_by_sku = {m['supplier_sku']: m for m in existing_mappings}
+        
+        # Track SKUs seen in this CSV to detect duplicates within the file
+        csv_skus_seen = {}  # supplier_sku -> first row_index
+        
+        for i, row in enumerate(rows):
+            row_conflicts = []
+            
+            # === Data Validation ===
+            supplier_sku = row.get('supplier_sku', '').strip()
+            buy_price = row.get('buy_price', '').strip()
+            currency = row.get('currency', '').strip()
+            internal_sku = row.get('internal_sku', '').strip()
+            product_name = row.get('product_name', '').strip()
+            effective_date_str = row.get('effective_date', '').strip()
+            
+            # Check required fields
+            missing_fields = []
+            if not supplier_sku:
+                missing_fields.append('supplier_sku')
+            if not buy_price:
+                missing_fields.append('buy_price')
+            if not currency:
+                missing_fields.append('currency')
+            if not internal_sku:
+                missing_fields.append('internal_sku')
+            
+            if missing_fields:
+                conflicts.append({
+                    'row_index': i,
+                    'row_number': i + 2,  # +2 for 1-based + header row
+                    'row_data': row,
+                    'conflict_type': 'data_error',
+                    'message': f"Missing required fields: {', '.join(missing_fields)}",
+                    'current_data': None,
+                    'requires_resolution': False  # Can't be resolved, must fix CSV
+                })
+                has_data_errors = True
+                continue
+            
+            # Validate buy_price is a valid number
+            try:
+                # Clean common formatting issues for better error messages
+                cleaned_price = buy_price.replace(',', '').strip()
+                if cleaned_price.startswith('$') or cleaned_price.startswith('£') or cleaned_price.startswith('€'):
+                    raise ValueError("currency_symbol")
+                if ',' in buy_price:
+                    raise ValueError("comma_separator")
+                
+                price_value = Decimal(str(buy_price))
+                if price_value < 0:
+                    raise ValueError("negative_price")
+            except ValueError as ve:
+                error_reason = str(ve)
+                if error_reason == "currency_symbol":
+                    message = f"Invalid buy_price: '{buy_price}' - remove currency symbol, numbers only"
+                elif error_reason == "comma_separator":
+                    message = f"Invalid buy_price: '{buy_price}' - use period as decimal separator, not comma"
+                elif error_reason == "negative_price":
+                    message = f"Invalid buy_price: '{buy_price}' - price cannot be negative"
+                else:
+                    message = f"Invalid buy_price: '{buy_price}' is not a valid number"
+                
+                conflicts.append({
+                    'row_index': i,
+                    'row_number': i + 2,
+                    'row_data': row,
+                    'conflict_type': 'data_error',
+                    'message': message,
+                    'current_data': None,
+                    'requires_resolution': False
+                })
+                has_data_errors = True
+                continue
+            except:
+                conflicts.append({
+                    'row_index': i,
+                    'row_number': i + 2,
+                    'row_data': row,
+                    'conflict_type': 'data_error',
+                    'message': f"Invalid buy_price: '{buy_price}' is not a valid number",
+                    'current_data': None,
+                    'requires_resolution': False
+                })
+                has_data_errors = True
+                continue
+            
+            # Validate currency code
+            valid_currencies = {'GBP', 'EUR', 'USD', 'CAD', 'AUD', 'JPY', 'CHF', 'CNY', 'SEK', 'NOK', 'DKK', 'PLN'}
+            if currency.upper() not in valid_currencies:
+                conflicts.append({
+                    'row_index': i,
+                    'row_number': i + 2,
+                    'row_data': row,
+                    'conflict_type': 'data_error',
+                    'message': f"Invalid currency: '{currency}'. Must be one of: {', '.join(sorted(valid_currencies))}",
+                    'current_data': None,
+                    'requires_resolution': False
+                })
+                has_data_errors = True
+                continue
+            
+            # Validate effective_date format if provided
+            effective_date = None
+            if effective_date_str:
+                try:
+                    effective_date = date.fromisoformat(effective_date_str)
+                except:
+                    conflicts.append({
+                        'row_index': i,
+                        'row_number': i + 2,
+                        'row_data': row,
+                        'conflict_type': 'data_error',
+                        'message': f"Invalid effective_date: '{effective_date_str}'. Use YYYY-MM-DD format",
+                        'current_data': None,
+                        'requires_resolution': False
+                    })
+                    has_data_errors = True
+                    continue
+            else:
+                effective_date = today
+            
+            # === Check for duplicate SKU within CSV ===
+            if supplier_sku in csv_skus_seen:
+                first_row = csv_skus_seen[supplier_sku] + 2  # +2 for 1-based + header
+                conflicts.append({
+                    'row_index': i,
+                    'row_number': i + 2,
+                    'row_data': row,
+                    'conflict_type': 'data_error',
+                    'message': f"Duplicate supplier_sku '{supplier_sku}' - already appears in row {first_row}",
+                    'current_data': None,
+                    'requires_resolution': False
+                })
+                has_data_errors = True
+                continue
+            else:
+                csv_skus_seen[supplier_sku] = i
+            
+            # === Conflict Detection ===
+            existing_mapping = existing_by_sku.get(supplier_sku)
+            
+            if existing_mapping:
+                # Get current price for this mapping
+                current_prices = self.repo.get_price_history(
+                    supplier_product_id=existing_mapping['id'],
+                    limit=10
+                )
+                current_price = current_prices[0] if current_prices else None
+                
+                # Check for exact duplicate
+                if current_price:
+                    is_exact_duplicate = (
+                        str(current_price.get('buy_price')) == str(price_value) and
+                        current_price.get('currency') == currency.upper() and
+                        existing_mapping.get('internal_sku') == internal_sku
+                    )
+                    
+                    if is_exact_duplicate:
+                        conflicts.append({
+                            'row_index': i,
+                            'row_number': i + 2,
+                            'row_data': row,
+                            'conflict_type': 'duplicate_exact',
+                            'message': 'This row is identical to the existing mapping - will be skipped',
+                            'current_data': {
+                                'mapping': existing_mapping,
+                                'price': current_price
+                            },
+                            'requires_resolution': False  # Auto-skip
+                        })
+                        continue
+                
+                # Check for future pending change
+                future_prices = [p for p in current_prices if p.get('effective_date') and p['effective_date'] > today]
+                if future_prices:
+                    future_price = future_prices[0]
+                    conflicts.append({
+                        'row_index': i,
+                        'row_number': i + 2,
+                        'row_data': row,
+                        'conflict_type': 'pending_change',
+                        'message': f"A price change is scheduled for {future_price['effective_date']}. This import would override it.",
+                        'current_data': {
+                            'mapping': existing_mapping,
+                            'current_price': current_price,
+                            'pending_price': future_price
+                        },
+                        'requires_resolution': True  # User must choose
+                    })
+                    continue
+                
+                # Existing mapping will be updated
+                conflicts.append({
+                    'row_index': i,
+                    'row_number': i + 2,
+                    'row_data': row,
+                    'conflict_type': 'existing_mapping',
+                    'message': 'This supplier SKU already exists - importing will update the record',
+                    'current_data': {
+                        'mapping': existing_mapping,
+                        'price': current_price
+                    },
+                    'requires_resolution': True  # User should confirm
+                })
+            else:
+                # No conflict - new mapping
+                clean_count += 1
+        
+        return {
+            'valid': not has_data_errors,
+            'total_rows': len(rows),
+            'conflicts': conflicts,
+            'clean_rows': clean_count,
+            'can_proceed': not has_data_errors,
+            'has_resolvable_conflicts': any(c['requires_resolution'] for c in conflicts)
+        }
+    
+    def process_csv_import_with_resolutions(
+        self,
+        batch_id: int,
+        rows: List[Dict[str, Any]],
+        supplier_id: int,
+        resolutions: Dict[int, str],  # row_index -> 'skip' | 'update' | 'overwrite'
+        created_by: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Process CSV import with user-provided conflict resolutions.
+        
+        Args:
+            resolutions: Dict mapping row_index to resolution action:
+                - 'skip': Skip this row entirely
+                - 'update': Update existing mapping with new data
+                - 'overwrite': Overwrite pending changes
+        """
+        # Re-validate to get conflict info
+        validation = self.validate_csv_import(rows, supplier_id)
+        
+        # Build skip set from resolutions and auto-skip duplicates
+        skip_indices = set()
+        for conflict in validation['conflicts']:
+            idx = conflict['row_index']
+            if conflict['conflict_type'] == 'duplicate_exact':
+                skip_indices.add(idx)
+            elif conflict['conflict_type'] == 'data_error':
+                skip_indices.add(idx)
+            elif resolutions.get(idx) == 'skip':
+                skip_indices.add(idx)
+        
+        # Update batch to processing
+        self.repo.update_import_batch(batch_id, {
+            'status': 'processing',
+            'total_rows': len(rows)
+        })
+        
+        processed = 0
+        skipped = 0
+        errors = 0
+        error_details = []
+        
+        for i, row in enumerate(rows):
+            if i in skip_indices:
+                skipped += 1
+                continue
+            
+            try:
+                supplier_sku = row.get('supplier_sku', '').strip()
+                buy_price = row.get('buy_price', '').strip()
+                currency = row.get('currency', '').strip().upper()
+                internal_sku = row.get('internal_sku', '').strip()
+                product_name = row.get('product_name', '').strip() or supplier_sku
+                effective_date_str = row.get('effective_date', '').strip()
+                
+                effective_date = date.fromisoformat(effective_date_str) if effective_date_str else date.today()
+                
+                # Get or create supplier product mapping
+                existing = self.repo.get_supplier_products(supplier_id=supplier_id)
+                product_match = next(
+                    (p for p in existing if p['supplier_sku'] == supplier_sku),
+                    None
+                )
+                
+                if not product_match:
+                    product = self.repo.create_supplier_product({
+                        'supplier_id': supplier_id,
+                        'supplier_sku': supplier_sku,
+                        'supplier_product_name': product_name,
+                        'internal_sku': internal_sku,
+                        'is_active': True
+                    })
+                    product_id = product['id']
+                else:
+                    product_id = product_match['id']
+                    # Update mapping if internal_sku or product_name changed
+                    updates = {}
+                    if product_match.get('internal_sku') != internal_sku:
+                        updates['internal_sku'] = internal_sku
+                    if product_name and product_match.get('supplier_product_name') != product_name:
+                        updates['supplier_product_name'] = product_name
+                    if updates:
+                        self.repo.update_supplier_product(product_id, updates)
+                
+                # Create price entry
+                self.repo.create_price({
+                    'supplier_product_id': product_id,
+                    'buy_price': Decimal(str(buy_price)),
+                    'currency': currency,
+                    'effective_date': effective_date,
+                    'import_batch_id': batch_id
+                }, created_by=created_by)
+                
+                processed += 1
+                
+            except Exception as e:
+                errors += 1
+                error_details.append({
+                    'row': i + 1,
+                    'error': str(e),
+                    'data': row
+                })
+                logger.warning(f"Import row {i+1} failed: {e}")
+        
+        # Update batch to completed
+        from datetime import datetime
+        status = 'completed'
+        if errors > 0:
+            status = 'completed_with_errors'
+        elif skipped > 0:
+            status = 'completed_with_skips'
+        
+        self.repo.update_import_batch(batch_id, {
+            'status': status,
+            'processed_rows': processed,
+            'error_rows': errors,
+            'completed_at': datetime.utcnow()
+        })
+        
+        return {
+            'batch_id': batch_id,
+            'total_rows': len(rows),
+            'processed_rows': processed,
+            'skipped_rows': skipped,
+            'error_rows': errors,
+            'errors': error_details if errors > 0 else None
+        }
+
     def process_csv_import(
         self,
         batch_id: int,
@@ -182,7 +621,8 @@ class SourcingService:
     ) -> Dict[str, Any]:
         """
         Process CSV import rows.
-        Expected row format: {supplier_sku, product_name, buy_price, effective_date?}
+        Required row format: {supplier_sku, buy_price, currency, internal_sku}
+        Optional: {product_name, effective_date}
         """
         # Update batch to processing
         self.repo.update_import_batch(batch_id, {
@@ -196,12 +636,27 @@ class SourcingService:
         
         for i, row in enumerate(rows):
             try:
+                # Validate required fields have values
+                supplier_sku = row.get('supplier_sku', '').strip()
+                buy_price = row.get('buy_price', '').strip()
+                currency = row.get('currency', '').strip()
+                internal_sku = row.get('internal_sku', '').strip()
+                
+                if not supplier_sku:
+                    raise ValueError("supplier_sku is required")
+                if not buy_price:
+                    raise ValueError("buy_price is required")
+                if not currency:
+                    raise ValueError("currency is required")
+                if not internal_sku:
+                    raise ValueError("internal_sku is required")
+                
                 # Get or create supplier product mapping
                 existing = self.repo.get_supplier_products(
                     supplier_id=supplier_id
                 )
                 product_match = next(
-                    (p for p in existing if p['supplier_sku'] == row.get('supplier_sku')),
+                    (p for p in existing if p['supplier_sku'] == supplier_sku),
                     None
                 )
                 
@@ -209,24 +664,29 @@ class SourcingService:
                     # Create new supplier product
                     product = self.repo.create_supplier_product({
                         'supplier_id': supplier_id,
-                        'supplier_sku': row['supplier_sku'],
-                        'supplier_product_name': row.get('product_name', row['supplier_sku']),
-                        'internal_sku': row.get('internal_sku'),
+                        'supplier_sku': supplier_sku,
+                        'supplier_product_name': row.get('product_name', '').strip() or supplier_sku,
+                        'internal_sku': internal_sku,
                         'is_active': True
                     })
                     product_id = product['id']
                 else:
                     product_id = product_match['id']
+                    # Update internal_sku if changed
+                    if product_match.get('internal_sku') != internal_sku:
+                        self.repo.update_supplier_product(product_id, {'internal_sku': internal_sku})
                 
                 # Create price entry
-                effective_date = row.get('effective_date', date.today())
-                if isinstance(effective_date, str):
-                    effective_date = date.fromisoformat(effective_date)
+                effective_date_str = row.get('effective_date', '').strip()
+                if effective_date_str:
+                    effective_date = date.fromisoformat(effective_date_str)
+                else:
+                    effective_date = date.today()
                 
                 self.repo.create_price({
                     'supplier_product_id': product_id,
-                    'buy_price': Decimal(str(row['buy_price'])),
-                    'currency': row.get('currency', 'GBP'),
+                    'buy_price': Decimal(str(buy_price)),
+                    'currency': currency,
                     'effective_date': effective_date,
                     'import_batch_id': batch_id
                 }, created_by=created_by)
@@ -258,3 +718,127 @@ class SourcingService:
             'error_rows': errors,
             'errors': error_details if errors > 0 else None
         }
+    
+    # ====== Inventory Metadata Integration ======
+    
+    def get_available_skus(self, search: Optional[str] = None, limit: int = 100) -> List[Dict[str, Any]]:
+        """Get available SKUs from inventory_metadata for mapping"""
+        return self.repo.get_available_skus(search=search, limit=limit)
+    
+    def get_comparison_with_inventory(self, internal_sku: Optional[str] = None) -> List[Dict[str, Any]]:
+        """
+        Get supplier price comparison WITH Magento inventory metadata.
+        This shows supplier prices alongside actual Magento product details.
+        """
+        raw_data = self.repo.get_comparison_with_inventory(internal_sku=internal_sku)
+        
+        # Extract unique SKUs to fetch product names and prices
+        unique_skus = list(set(row['internal_sku'] for row in raw_data if row['internal_sku']))
+        
+        # Fetch product names and sell prices from Magento catalog
+        product_names = self.repo.get_product_names_from_magento(unique_skus, region='uk')
+        sell_prices = self.repo.get_sell_prices_from_magento(unique_skus, region='uk')
+        
+        # Group by internal_sku
+        grouped = {}
+        for row in raw_data:
+            sku = row['internal_sku']
+            if sku not in grouped:
+                grouped[sku] = {
+                    'internal_sku': sku,
+                    'product_name': product_names.get(sku, ''),  # Get name from Magento catalog
+                    'sell_price': sell_prices.get(sku),  # Get sell price from Magento catalog
+                    'quantity_available': row.get('quantity_available'),
+                    'inventory_status': row.get('inventory_status'),
+                    'uk_6m_data': row.get('uk_6m_data'),
+                    'fr_6m_data': row.get('fr_6m_data'),
+                    'suppliers': []
+                }
+            
+            # Only add supplier if it has data
+            if row['supplier_id']:
+                original_currency = row.get('currency', 'GBP')
+                buy_price = row['buy_price']
+                buy_price_gbp = convert_to_gbp(buy_price, original_currency) if buy_price else None
+                
+                # Debug logging for conversion
+                if buy_price and original_currency != 'GBP':
+                    logger.info(f"Converting {buy_price} {original_currency} to GBP: {buy_price_gbp}")
+                
+                grouped[sku]['suppliers'].append({
+                    'supplier_id': row['supplier_id'],
+                    'supplier_name': row['supplier_name'],
+                    'supplier_sku': row['supplier_sku'],
+                    'supplier_product_name': row['supplier_product_name'],
+                    'pack_size': row.get('pack_size', 1),
+                    'buy_price': buy_price,
+                    'buy_price_gbp': buy_price_gbp,
+                    'currency': original_currency,
+                    'effective_date': row['effective_date']
+                })
+        
+        # Process each group to add rankings and identify cheapest
+        result = []
+        for sku, data in grouped.items():
+            # Sort suppliers by GBP price (nulls last) for fair comparison
+            suppliers_with_price = [s for s in data['suppliers'] if s['buy_price_gbp'] is not None]
+            suppliers_without_price = [s for s in data['suppliers'] if s['buy_price_gbp'] is None]
+            
+            suppliers_with_price.sort(key=lambda x: float(x['buy_price_gbp']))
+            
+            # Find the lowest GBP price to mark all suppliers with that price as cheapest
+            lowest_price = float(suppliers_with_price[0]['buy_price_gbp']) if suppliers_with_price else None
+            
+            # Add rankings and calculate margins
+            for i, s in enumerate(suppliers_with_price):
+                s['rank'] = i + 1
+                # Mark as cheapest if GBP price equals the lowest price
+                s['is_cheapest'] = (float(s['buy_price_gbp']) == lowest_price)
+                
+                # Calculate per-unit price if pack size > 1 (in GBP for fair comparison)
+                if s.get('pack_size', 1) > 1:
+                    s['price_per_unit'] = float(s['buy_price_gbp']) / s['pack_size']
+                else:
+                    s['price_per_unit'] = float(s['buy_price_gbp'])
+                
+                # Calculate margin if we have sell price (sell price assumed in GBP)
+                if data.get('sell_price'):
+                    margin_data = self.calculate_margin(
+                        Decimal(str(s['price_per_unit'])),
+                        Decimal(str(data['sell_price']))
+                    )
+                    s['margin'] = float(margin_data['margin']) if margin_data['margin'] else None
+                    s['margin_percent'] = margin_data['margin_percent']
+                else:
+                    s['margin'] = None
+                    s['margin_percent'] = None
+            
+            for s in suppliers_without_price:
+                s['rank'] = None
+                s['is_cheapest'] = False
+                s['price_per_unit'] = None
+                s['margin'] = None
+                s['margin_percent'] = None
+            
+            data['suppliers'] = suppliers_with_price + suppliers_without_price
+            
+            # Set cheapest info at product level
+            if suppliers_with_price:
+                cheapest = suppliers_with_price[0]
+                data['cheapest_supplier_id'] = cheapest['supplier_id']
+                data['cheapest_supplier_name'] = cheapest['supplier_name']
+                data['cheapest_buy_price'] = cheapest['buy_price']
+                data['cheapest_price_per_unit'] = cheapest.get('price_per_unit')
+                data['best_margin'] = cheapest.get('margin')
+                data['best_margin_percent'] = cheapest.get('margin_percent')
+            else:
+                data['cheapest_supplier_id'] = None
+                data['cheapest_supplier_name'] = None
+                data['cheapest_buy_price'] = None
+                data['cheapest_price_per_unit'] = None
+                data['best_margin'] = None
+                data['best_margin_percent'] = None
+            
+            result.append(data)
+        
+        return result

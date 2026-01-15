@@ -91,13 +91,14 @@ def convert_to_gbp(amount: float, from_currency: str) -> float:
         The amount in GBP
     """
     if not amount or not from_currency:
+        logger.debug(f"convert_to_gbp: amount={amount}, from_currency={from_currency} - returning amount as-is")
         return amount
     
     from_currency = from_currency.upper().strip()
     
     # Already in GBP - no conversion needed
     if from_currency == 'GBP':
-        return amount
+        return float(amount) if isinstance(amount, Decimal) else amount
     
     try:
         rates = get_exchange_rates()
@@ -105,15 +106,20 @@ def convert_to_gbp(amount: float, from_currency: str) -> float:
         
         if not rate:
             logger.warning(f"No exchange rate found for {from_currency}, returning original amount")
-            return amount
+            return float(amount) if isinstance(amount, Decimal) else amount
+        
+        # Convert amount to Decimal if needed for precise division
+        amount_decimal = Decimal(str(amount)) if not isinstance(amount, Decimal) else amount
+        rate_decimal = Decimal(str(rate))
         
         # Convert to GBP: divide by the rate (since rates are GBP to X)
-        gbp_amount = amount / rate
+        gbp_amount = float(amount_decimal / rate_decimal)
+        logger.debug(f"Converted {amount} {from_currency} to {gbp_amount} GBP (rate: {rate})")
         return round(gbp_amount, 2)
         
     except Exception as e:
         logger.error(f"Error converting {from_currency} to GBP: {e}")
-        return amount
+        return float(amount) if isinstance(amount, Decimal) else amount
 
 
 def convert_to_eur(amount: float, from_currency: str) -> float:

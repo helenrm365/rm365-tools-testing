@@ -211,6 +211,23 @@ html.dark-mode .product-sourcing .panel-header {
   color: var(--accent);
 }
 
+.product-sourcing .panel-header .panel-subtitle {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+/* Allow panel header to stack when it has subtitle */
+.product-sourcing .panel-header:has(.panel-subtitle) {
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.product-sourcing .panel-header:has(.panel-subtitle) h2 {
+  width: 100%;
+}
+
 .product-sourcing .panel-actions {
   display: flex;
   align-items: center;
@@ -313,6 +330,166 @@ html.dark-mode .product-sourcing .data-table td {
 .product-sourcing .status-badge.inactive {
   background: color-mix(in srgb, var(--text-muted) 15%, transparent);
   color: var(--text-muted);
+}
+
+/* ===== Price Status Badges ===== */
+.product-sourcing .price-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.product-sourcing .price-status-badge.status-active {
+  background: color-mix(in srgb, var(--success) 15%, transparent);
+  color: var(--success);
+}
+
+.product-sourcing .price-status-badge.status-active::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--success);
+}
+
+.product-sourcing .price-status-badge.status-pending {
+  background: color-mix(in srgb, var(--info) 15%, transparent);
+  color: var(--info);
+}
+
+.product-sourcing .price-status-badge.status-pending::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--info);
+  animation: pendingPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pendingPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.product-sourcing .price-status-badge.status-superseded {
+  background: color-mix(in srgb, var(--text-muted) 15%, transparent);
+  color: var(--text-muted);
+}
+
+.product-sourcing .price-status-badge.status-superseded::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+
+.product-sourcing .price-status-badge.status-cancelled {
+  background: color-mix(in srgb, var(--error) 15%, transparent);
+  color: var(--error);
+  text-decoration: line-through;
+}
+
+.product-sourcing .price-status-badge.status-cancelled::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--error);
+}
+
+/* ===== Countdown Label ===== */
+.product-sourcing .countdown-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.6875rem;
+  color: var(--info);
+  margin-left: 0.5rem;
+}
+
+.product-sourcing .countdown-label i {
+  font-size: 0.625rem;
+}
+
+.product-sourcing .countdown-label.imminent {
+  color: var(--warning);
+  font-weight: 600;
+}
+
+.product-sourcing .countdown-label.imminent i {
+  animation: imminentPulse 0.8s ease-in-out infinite;
+}
+
+@keyframes imminentPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.1); }
+}
+
+/* ===== Pending Price Row Styling ===== */
+.product-sourcing .data-table tr.pending-row {
+  background: color-mix(in srgb, var(--info) 5%, transparent);
+}
+
+.product-sourcing .data-table tr.pending-row:hover {
+  background: color-mix(in srgb, var(--info) 10%, transparent);
+}
+
+.product-sourcing .data-table tr.superseded-row {
+  opacity: 0.65;
+}
+
+.product-sourcing .data-table tr.cancelled-row {
+  opacity: 0.5;
+  background: color-mix(in srgb, var(--error) 3%, transparent);
+}
+
+.product-sourcing .data-table tr.cancelled-row td {
+  text-decoration: line-through;
+  text-decoration-color: var(--text-muted);
+}
+
+/* Don't strike through the status badge or actions */
+.product-sourcing .data-table tr.cancelled-row td .price-status-badge,
+.product-sourcing .data-table tr.cancelled-row td .btn {
+  text-decoration: none;
+}
+
+/* ===== Pending Actions ===== */
+.product-sourcing .pending-actions {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.product-sourcing .pending-actions .btn {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+.product-sourcing .pending-actions .btn-cancel {
+  color: var(--error);
+}
+
+.product-sourcing .pending-actions .btn-cancel:hover {
+  background: color-mix(in srgb, var(--error) 10%, transparent);
+}
+
+/* Cancel price button in actions column */
+.product-sourcing .cancel-price-btn {
+  color: var(--error);
+  opacity: 0.7;
+}
+
+.product-sourcing .cancel-price-btn:hover {
+  background: color-mix(in srgb, var(--error) 15%, transparent);
+  color: var(--error);
+  opacity: 1;
 }
 
 .product-sourcing .unmapped-badge {
@@ -466,6 +643,23 @@ html.dark-mode .product-sourcing .import-info {
   border-color: rgba(255, 255, 255, 0.08);
 }
 
+/* Template Download Section */
+.product-sourcing .template-download {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  text-align: center;
+}
+
+html.dark-mode .product-sourcing .template-download {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.product-sourcing .template-download .action-btn {
+  width: 100%;
+  justify-content: center;
+}
+
 /* ===== File Upload Zone ===== */
 .product-sourcing .file-upload-zone {
   display: flex;
@@ -534,6 +728,13 @@ html.dark-mode .product-sourcing .import-info {
 .product-sourcing .empty-state p {
   color: var(--text-muted);
   margin: 0;
+}
+
+.product-sourcing .empty-state h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 0.5rem 0;
 }
 
 .product-sourcing .loading-state {
@@ -615,6 +816,7 @@ html.dark-mode .product-sourcing .import-info {
 .product-sourcing .modal-content input[type="tel"],
 .product-sourcing .modal-content input[type="number"],
 .product-sourcing .modal-content input[type="date"],
+.product-sourcing .modal-content select,
 .product-sourcing .modal-content textarea {
   width: 100%;
   padding: 0.75rem 1rem;
@@ -628,8 +830,26 @@ html.dark-mode .product-sourcing .import-info {
   box-shadow: var(--shadow-s);
 }
 
+/* Style select dropdowns specifically */
+.product-sourcing .modal-content select {
+  cursor: pointer;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1.25rem;
+  padding-right: 2.5rem;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+html.dark-mode .product-sourcing .modal-content select {
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+}
+
 .product-sourcing .modal-content .form-input:focus,
 .product-sourcing .modal-content input:focus,
+.product-sourcing .modal-content select:focus,
 .product-sourcing .modal-content textarea:focus {
   outline: 2px solid var(--accent);
   outline-offset: 0;
@@ -648,6 +868,14 @@ html.dark-mode .product-sourcing .import-info {
 .product-sourcing .modal-content .checkbox-label input[type="checkbox"] {
   width: auto;
   cursor: pointer;
+}
+
+.product-sourcing .modal-content .form-hint {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  opacity: 0.8;
 }
 
 /* ===== Responsive Adjustments ===== */
@@ -930,5 +1158,401 @@ html.dark-mode .product-sourcing .status-item {
   
   .product-sourcing .dashboard-actions {
     grid-template-columns: 1fr;
+  }
+}
+
+/* ===== Import Conflict Modal ===== */
+.product-sourcing .conflict-progress {
+  margin-bottom: 1.5rem;
+}
+
+.product-sourcing .conflict-progress-text {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.product-sourcing .conflict-progress-bar {
+  height: 8px;
+  background: var(--bg-dark);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.product-sourcing .conflict-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--success));
+  border-radius: var(--radius-full);
+  transition: width 0.3s ease;
+}
+
+.product-sourcing .conflict-message {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: var(--radius-md);
+  margin-bottom: 1.5rem;
+  color: var(--warning);
+}
+
+.product-sourcing .conflict-message i {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.product-sourcing .conflict-message span {
+  color: var(--text-primary);
+}
+
+.product-sourcing .conflict-row-info {
+  display: flex;
+  gap: 2rem;
+  padding: 0.75rem 1rem;
+  background: var(--bg-dark);
+  border-radius: var(--radius-md);
+  margin-bottom: 1.5rem;
+  font-size: 0.875rem;
+}
+
+.product-sourcing .conflict-row-info strong {
+  color: var(--text-muted);
+  margin-right: 0.5rem;
+}
+
+.product-sourcing .conflict-comparison {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.product-sourcing .comparison-column {
+  background: var(--bg);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+
+html.dark-mode .product-sourcing .comparison-column {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.product-sourcing .comparison-column h4 {
+  padding: 0.75rem 1rem;
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  background: var(--bg-dark);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+html.dark-mode .product-sourcing .comparison-column h4 {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.product-sourcing .comparison-column.current h4 {
+  color: var(--text-muted);
+}
+
+.product-sourcing .comparison-column.new h4 {
+  color: var(--accent);
+}
+
+.product-sourcing .comparison-column .comparison-data {
+  padding: 1rem;
+}
+
+.product-sourcing .comparison-column .data-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px dashed rgba(0, 0, 0, 0.06);
+}
+
+html.dark-mode .product-sourcing .comparison-column .data-row {
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+.product-sourcing .comparison-column .data-row:last-child {
+  border-bottom: none;
+}
+
+.product-sourcing .comparison-column .data-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.product-sourcing .comparison-column .data-value {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.product-sourcing .comparison-column .data-value.highlight {
+  color: var(--accent);
+  font-weight: 600;
+  position: relative;
+}
+
+.product-sourcing .comparison-column .data-value.highlight::after {
+  content: '';
+  position: absolute;
+  left: -4px;
+  right: -4px;
+  top: -2px;
+  bottom: -2px;
+  background: rgba(var(--accent-rgb), 0.1);
+  border-radius: var(--radius-sm);
+  z-index: -1;
+}
+
+.product-sourcing .pending-change-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: var(--radius-md);
+  margin-bottom: 1.5rem;
+}
+
+.product-sourcing .pending-change-warning i {
+  color: var(--info);
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.product-sourcing .pending-change-warning span {
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.product-sourcing .conflict-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+html.dark-mode .product-sourcing .conflict-actions {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.product-sourcing .conflict-actions .btn {
+  min-width: 120px;
+}
+
+/* ===== Import Summary Modal ===== */
+.product-sourcing .import-summary-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.product-sourcing .summary-stat {
+  text-align: center;
+  padding: 1.25rem 1rem;
+  background: var(--bg-dark);
+  border-radius: var(--radius-md);
+}
+
+.product-sourcing .summary-stat .stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+}
+
+.product-sourcing .summary-stat .stat-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.product-sourcing .summary-stat.success .stat-value {
+  color: var(--success);
+}
+
+.product-sourcing .summary-stat.warning .stat-value {
+  color: var(--warning);
+}
+
+.product-sourcing .summary-stat.error .stat-value {
+  color: var(--danger);
+}
+
+.product-sourcing .import-errors-list {
+  background: rgba(239, 68, 68, 0.05);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+.product-sourcing .import-errors-list h5 {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.875rem;
+  color: var(--danger);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.product-sourcing .import-errors-list ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.product-sourcing .import-errors-list li {
+  padding: 0.5rem 0;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  border-bottom: 1px dashed rgba(239, 68, 68, 0.2);
+}
+
+.product-sourcing .import-errors-list li:last-child {
+  border-bottom: none;
+}
+
+/* ===== Import Data Errors Modal ===== */
+.product-sourcing .data-errors-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: var(--radius-md);
+  margin-bottom: 1.5rem;
+}
+
+.product-sourcing .data-errors-message > i {
+  font-size: 1.5rem;
+  color: var(--danger);
+  flex-shrink: 0;
+}
+
+.product-sourcing .data-errors-message strong {
+  color: var(--danger);
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.product-sourcing .data-errors-message p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+}
+
+.product-sourcing .data-errors-list {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: var(--radius-md);
+  margin-bottom: 1.5rem;
+}
+
+html.dark-mode .product-sourcing .data-errors-list {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.product-sourcing .data-error-item {
+  display: flex;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  font-size: 0.875rem;
+}
+
+html.dark-mode .product-sourcing .data-error-item {
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+.product-sourcing .data-error-item:last-child {
+  border-bottom: none;
+}
+
+.product-sourcing .data-error-item:nth-child(even) {
+  background: var(--bg-dark);
+}
+
+.product-sourcing .data-error-item .error-row {
+  font-weight: 600;
+  color: var(--danger);
+  white-space: nowrap;
+  min-width: 60px;
+}
+
+.product-sourcing .data-error-item .error-message {
+  color: var(--text-primary);
+}
+
+.product-sourcing .data-errors-help {
+  background: rgba(59, 130, 246, 0.05);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+}
+
+.product-sourcing .data-errors-help h5 {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.875rem;
+  color: var(--info);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.product-sourcing .data-errors-help ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.product-sourcing .data-errors-help li {
+  padding: 0.5rem 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  border-bottom: 1px dashed rgba(59, 130, 246, 0.1);
+}
+
+.product-sourcing .data-errors-help li:last-child {
+  border-bottom: none;
+}
+
+.product-sourcing .data-errors-help strong {
+  color: var(--text-primary);
+}
+
+@media (max-width: 768px) {
+  .product-sourcing .conflict-comparison {
+    grid-template-columns: 1fr;
+  }
+  
+  .product-sourcing .import-summary-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .product-sourcing .conflict-actions {
+    flex-direction: column;
+  }
+  
+  .product-sourcing .conflict-actions .btn {
+    width: 100%;
   }
 }

@@ -78,6 +78,7 @@ class SupplierProductOut(SupplierProductBase):
     id: int
     supplier_name: Optional[str] = None  # Populated from join
     current_buy_price: Optional[Decimal] = None  # Latest price from price history
+    currency: Optional[str] = None  # Currency of the current price
     current_price_date: Optional[date] = None
     created_at: datetime
     updated_at: datetime
