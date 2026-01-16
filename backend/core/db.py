@@ -27,9 +27,13 @@ def _get_attendance_pool():
         port = os.getenv("ATTENDANCE_DB_PORT", "5432")
         database = os.getenv("ATTENDANCE_DB_NAME", "rm365")
         user = os.getenv("ATTENDANCE_DB_USER", "postgres")
-        password = os.getenv("ATTENDANCE_DB_PASSWORD")
+        password = os.getenv("ATTENDANCE_DB_PASSWORD", "")
+        sslmode = os.getenv("DB_SSLMODE", "prefer")
         
-        if not all([host, password]):
+        # When SSL is disabled, require password. When SSL is enabled, allow passwordless auth
+        if not host:
+            raise ValueError("Missing required database environment variable: ATTENDANCE_DB_HOST")
+        if sslmode == "disable" and not password:
             raise ValueError("Missing required database environment variables: ATTENDANCE_DB_HOST and ATTENDANCE_DB_PASSWORD")
         
         _attendance_pool = pool.SimpleConnectionPool(
@@ -71,9 +75,13 @@ def _get_inventory_pool():
         port = os.getenv("INVENTORY_LOGS_PORT", "5432")
         database = os.getenv("INVENTORY_LOGS_NAME", "rm365")
         user = os.getenv("INVENTORY_LOGS_USER", "postgres")
-        password = os.getenv("INVENTORY_LOGS_PASSWORD")
+        password = os.getenv("INVENTORY_LOGS_PASSWORD", "")
+        sslmode = os.getenv("DB_SSLMODE", "prefer")
         
-        if not all([host, password]):
+        # When SSL is disabled, require password. When SSL is enabled, allow passwordless auth
+        if not host:
+            raise ValueError("Missing required inventory database environment variable: INVENTORY_LOGS_HOST")
+        if sslmode == "disable" and not password:
             raise ValueError("Missing required inventory database environment variables")
         
         _inventory_pool = pool.SimpleConnectionPool(
@@ -111,9 +119,13 @@ def _get_products_pool():
         port = os.getenv("PRODUCTS_DB_PORT", "5432")
         database = os.getenv("PRODUCTS_DB_NAME", "rm365")
         user = os.getenv("PRODUCTS_DB_USER", "postgres")
-        password = os.getenv("PRODUCTS_DB_PASSWORD")
+        password = os.getenv("PRODUCTS_DB_PASSWORD", "")
+        sslmode = os.getenv("DB_SSLMODE", "prefer")
         
-        if not all([host, password]):
+        # When SSL is disabled, require password. When SSL is enabled, allow passwordless auth
+        if not host:
+            raise ValueError("Missing required products database environment variable: PRODUCTS_DB_HOST")
+        if sslmode == "disable" and not password:
             raise ValueError("Missing required products database environment variables")
         
         _products_pool = pool.SimpleConnectionPool(
