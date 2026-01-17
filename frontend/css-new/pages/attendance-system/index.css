@@ -1,0 +1,67 @@
+/* ===== Attendance System - Master CSS File ===== */
+/* 
+   Consolidated styles for the unified Attendance System module.
+   This imports all page-specific styles for the attendance-system routes.
+   
+   Pages covered:
+   - /attendance-system (home)
+   - /attendance-system/employees
+   - /attendance-system/overview
+   - /attendance-system/automatic
+   - /attendance-system/logs
+   
+   Note: /enrollment/nfc and /attendance/manual remain separate
+   and use their respective CSS files in the original folders.
+*/
+
+/* Import page-specific styles */
+@import 'employees.css';
+@import 'overview.css';
+@import 'automatic.css';
+@import 'logs.css';
+
+/* ===== Shared Attendance System Styles ===== */
+/* Common styles used across all attendance-system pages */
+
+/* Shared page container */
+[class*="attendance-"],
+.enrollment-management {
+  display: block;
+  font-family: var(--ff);
+  color: var(--text-muted);
+  transition: all var(--transition);
+  padding: 0.5rem 1rem;
+  min-height: calc(100vh - 40px);
+  background: var(--bg-dark);
+}
+
+/* Shared inner-tabs styling for attendance system */
+[class*="attendance-"] .inner-tabs,
+.enrollment-management .inner-tabs {
+  margin: 2rem 0;
+}
+
+[class*="attendance-"] .tab-button,
+.enrollment-management .tab-button {
+  flex: 1 1 auto;
+  min-width: 120px;
+}
+
+/* Shared responsive breakpoints */
+@media (max-width: 768px) {
+  [class*="attendance-"],
+  .enrollment-management {
+    padding: 1rem;
+  }
+  
+  [class*="attendance-"] .inner-tabs,
+  .enrollment-management .inner-tabs {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  [class*="attendance-"] .tab-button,
+  .enrollment-management .tab-button {
+    min-width: 100%;
+  }
+}

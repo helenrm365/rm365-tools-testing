@@ -16,9 +16,11 @@ from pathlib import Path
 
 # Get the directory of this script
 SCRIPT_DIR = Path(__file__).parent
-REPO_FILE = SCRIPT_DIR / "repo.py"
-SERVICE_FILE = SCRIPT_DIR / "service.py"
-API_FILE = SCRIPT_DIR / "api.py"
+# Reference the actual backend module directory
+BACKEND_MODULE_DIR = SCRIPT_DIR.parent.parent.parent / "backend" / "modules" / "inventory" / "sourcing"
+REPO_FILE = BACKEND_MODULE_DIR / "repo.py"
+SERVICE_FILE = BACKEND_MODULE_DIR / "service.py"
+API_FILE = BACKEND_MODULE_DIR / "api.py"
 
 
 def read_file(filepath):

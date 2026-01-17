@@ -1,5 +1,5 @@
 // frontend/js/modules/magentodata/home.js
-import { initializeTables, checkTablesStatus, refreshAllAggregatedData } from '../../services/api/magentoDataApi.js?v=5';
+import { refreshAllAggregatedData } from '../../services/api/magentoDataApi.js?v=5';
 import { showToast } from '../../ui/toast.js';
 
 /**
@@ -7,7 +7,7 @@ import { showToast } from '../../ui/toast.js';
  */
 export async function initMagentoDataHome() {
   try {
-    console.warn('[Magento Data] Initializing home page (v2)...');
+    console.warn('[Magento Data] Initializing home page...');
     
     // Wait a tick to ensure DOM is fully rendered
     await new Promise(resolve => setTimeout(resolve, 200));
@@ -15,16 +15,7 @@ export async function initMagentoDataHome() {
     // Set up event listeners
     setupEventListeners();
     
-    // Call the backend to initialize tables
-    console.warn('[Magento Data] Calling initializeTables()...');
-    const result = await initializeTables();
-    
-    if (result.status === 'success') {
-      showToast(`✅ Database Ready - Tables initialized: ${result.tables.join(', ')}`, 'success');
-    } else {
-      console.error('[Magento Data] Failed to initialize tables:', result.message);
-      showToast('❌ Failed to initialize tables: ' + result.message, 'error');
-    }
+    console.log('[Magento Data] Home page ready - table checks will occur when loading individual region pages');
   } catch (error) {
     console.error('[Magento Data] Error initializing home page:', error);
     showToast('❌ Error initializing magento data: ' + error.message, 'error');

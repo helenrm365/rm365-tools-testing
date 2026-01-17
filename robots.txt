@@ -18,7 +18,7 @@ User-agent: *
 Allow: /index.html
 Allow: /manifest.webmanifest
 Allow: /assets/
-Allow: /css/
+Allow: /css-new/
 Allow: /js/
 
 # Block application pages from being indexed (but they still work for authenticated users)

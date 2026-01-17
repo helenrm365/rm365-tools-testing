@@ -1,5 +1,5 @@
 // frontend/js/modules/magentodata/uk-magento.js
-import { getUKMagentoData, getUKAggregatedData, refreshAggregatedDataForRegion, initializeTables, syncUKMagentoData } from '../../services/api/magentoDataApi.js?v=5';
+import { getUKMagentoData, getUKAggregatedData, refreshAggregatedDataForRegion, checkTablesStatus, initializeTables, syncUKMagentoData } from '../../services/api/magentoDataApi.js?v=5';
 import { showToast } from '../../ui/toast.js';
 import { showFiltersModal, showCustomRangeModal } from './aggregated-filters.js';
 import { exportToPDF } from '../../utils/pdfExport.js';
@@ -68,12 +68,17 @@ export async function initUKMagentoData(path = '/magentodata/uk-magento') {
   // Update active button based on view mode immediately
   updateViewButtons();
   
-  // Initialize tables first (creates tables if they don't exist)
+  // Check if tables exist (quick status check)
   try {
-    await initializeTables();
+    const status = await checkTablesStatus();
+    if (!status.all_tables_exist) {
+      console.warn('Some Magento tables do not exist, initializing...', status.tables_status);
+      showToast('Initializing database tables...', 'info');
+      await initializeTables();
+    }
   } catch (error) {
-    console.error('Error initializing tables:', error);
-    showToast('Failed to initialize database tables. Please check your connection.', 'error');
+    console.error('Error checking/initializing tables:', error);
+    // Continue loading - tables may still work
   }
   
   // Load initial data based on view mode

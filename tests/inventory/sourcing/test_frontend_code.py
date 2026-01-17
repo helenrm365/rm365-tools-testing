@@ -18,7 +18,9 @@ from pathlib import Path
 
 # Get the frontend file path
 SCRIPT_DIR = Path(__file__).parent
-FRONTEND_FILE = SCRIPT_DIR.parent.parent.parent.parent / "frontend/js/modules/inventory/sourcing.js"
+# tests/inventory/sourcing -> tests/inventory -> tests -> project root
+PROJECT_ROOT = SCRIPT_DIR.parent.parent.parent
+FRONTEND_FILE = PROJECT_ROOT / "frontend/js/modules/inventory/sourcing.js"
 
 def read_file(filepath):
     """Read a file and return its contents"""

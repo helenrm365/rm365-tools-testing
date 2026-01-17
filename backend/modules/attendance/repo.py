@@ -1,12 +1,110 @@
 from __future__ import annotations
 from datetime import date, datetime
 from typing import Any, Dict, List, Optional
+import logging
 
 from common.utils import cursor_to_dicts
 from common.deps import pg_conn
 
+logger = logging.getLogger(__name__)
+
 class AttendanceRepo:
     """All DB I/O for attendance."""
+
+    # ---- Table Initialization ----
+    def check_tables_exist(self) -> Dict[str, Any]:
+        """Check if attendance tables exist in the database."""
+        with pg_conn() as conn:
+            with conn.cursor() as cur:
+                tables_status = {}
+                
+                # Check employees table
+                cur.execute("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables 
+                        WHERE table_schema = 'public' 
+                        AND table_name = 'employees'
+                    )
+                """)
+                tables_status['employees'] = cur.fetchone()[0]
+                
+                # Check attendance_logs table
+                cur.execute("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables 
+                        WHERE table_schema = 'public' 
+                        AND table_name = 'attendance_logs'
+                    )
+                """)
+                tables_status['attendance_logs'] = cur.fetchone()[0]
+                
+                all_exist = all(tables_status.values())
+                return {
+                    'status': 'success',
+                    'tables_status': tables_status,
+                    'all_tables_exist': all_exist
+                }
+
+    def init_tables(self) -> Dict[str, Any]:
+        """Initialize attendance tables if they don't exist."""
+        with pg_conn() as conn:
+            with conn.cursor() as cur:
+                tables_created = []
+                
+                # Check and create employees table
+                cur.execute("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables 
+                        WHERE table_schema = 'public' 
+                        AND table_name = 'employees'
+                    )
+                """)
+                if not cur.fetchone()[0]:
+                    cur.execute("""
+                        CREATE TABLE employees (
+                            id SERIAL PRIMARY KEY,
+                            name VARCHAR(255) NOT NULL,
+                            employee_code VARCHAR(100),
+                            location VARCHAR(255),
+                            nfc_uid VARCHAR(255),
+                            status VARCHAR(50) DEFAULT 'active'
+                        )
+                    """)
+                    tables_created.append('employees')
+                    logger.info("✅ Created table: employees")
+                else:
+                    logger.info("ℹ️  Table already exists: employees")
+                
+                # Check and create attendance_logs table
+                cur.execute("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables 
+                        WHERE table_schema = 'public' 
+                        AND table_name = 'attendance_logs'
+                    )
+                """)
+                if not cur.fetchone()[0]:
+                    cur.execute("""
+                        CREATE TABLE attendance_logs (
+                            id SERIAL PRIMARY KEY,
+                            employee_id INTEGER NOT NULL REFERENCES employees(id),
+                            log_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                            direction VARCHAR(10) NOT NULL
+                        )
+                    """)
+                    tables_created.append('attendance_logs')
+                    logger.info("✅ Created table: attendance_logs")
+                else:
+                    logger.info("ℹ️  Table already exists: attendance_logs")
+                
+                conn.commit()
+                
+                return {
+                    'status': 'success',
+                    'message': 'Attendance tables initialized successfully',
+                    'tables': ['employees', 'attendance_logs'],
+                    'tables_created': tables_created
+                }
 
     # ---- Employees ----
     def list_employees_brief(self) -> List[Dict[str, Any]]:

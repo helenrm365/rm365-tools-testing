@@ -1,0 +1,369 @@
+/* ===== Employee Management Page (Attendance System) ===== */
+/* Page-specific styles for attendance-system/employees.html */
+/* 
+   Global Components Used (from css-new/):
+   - layout/header.css: .page-header, .page-title, .page-subtitle, .help-button, .header-content
+   - components/buttons.css: .action-btn, .primary-btn, .secondary-btn, .danger-btn, .action-buttons-grid
+   - components/cards.css: .action-block, .block-header, .block-icon, .block-title-group, .block-title, .block-subtitle, .block-content, .employee-card, .employee-grid, .employee-avatar, .employee-info
+   - components/badges.css: .status-badge, .location-badge
+   - components/filters.css: .filter-controls, .filter-item, .filter-label
+   - components/forms.css: .search-box, .search-input, .custom-dropdown, .form-group, .form-label, .form-input
+   - components/modals.css: .modal-overlay, .modal-content, .modal-header, .modal-header-icon, .modal-title, .modal-close, .modal-body, .modal-footer, .modal-footer-split, .modal-footer-right
+   - components/tabs.css: .inner-tabs, .tab-button
+   - components/loaders.css: .loading-spinner, .loading-state
+   
+   Shadow System (from SHADOW_SYSTEM.md):
+   - .action-block uses shadow-l (main container)
+   - .employee-card uses shadow-m (nested card)
+   - buttons use shadow-l
+   - inputs use shadow-l
+   - modals use shadow-l
+*/
+
+/* ===== Page Scope ===== */
+.enrollment-management {
+  display: block;
+  font-family: var(--ff);
+  color: var(--text-muted);
+  transition: all var(--transition);
+  padding: 0.5rem 1rem;
+  min-height: calc(100vh - 40px);
+  background: var(--bg-dark);
+}
+
+/* ===== Page-specific Tab Overrides ===== */
+.enrollment-management .inner-tabs {
+  margin: 2rem 0;
+}
+
+.enrollment-management .tab-button {
+  flex: 1 1 auto;
+  min-width: 140px;
+}
+
+/* ===== Management Layout ===== */
+.enrollment-management .management-wrapper {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+  margin-bottom: 3rem;
+}
+
+.enrollment-management .management-card {
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  box-shadow: none;
+  border: none;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .enrollment-management {
+    padding: 1rem;
+  }
+  
+  .enrollment-management .inner-tabs {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .enrollment-management .tab-button {
+    min-width: 100%;
+  }
+  
+  .enrollment-management .action-buttons-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== Employee Card Enhancements ===== */
+.enrollment-management .employee-card {
+  position: relative;
+  padding-left: 2.75rem;
+}
+
+.enrollment-management .card-checkbox {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.enrollment-management .card-checkbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.enrollment-management .employee-name {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.enrollment-management .employee-code {
+  margin: 0.25rem 0 0.5rem;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.enrollment-management .employee-badges {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* Note: .location-badge is now in badges.css */
+
+/* ===== Edit Modal Specific Styles ===== */
+#editEmployeeModal .modal-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+#editEmployeeModal .modal-title-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+#editEmployeeModal .modal-title {
+  margin: 0;
+}
+
+.employee-avatar-modal {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(139, 195, 74, 0.2), rgba(139, 195, 74, 0.1));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.employee-avatar-modal i {
+  font-size: 1.5rem;
+  color: var(--accent);
+}
+
+/* Note: .modal-footer-split and .modal-footer-right are now in modals.css */
+
+/* Readonly/Disabled Input Styling */
+#editEmployeeCode {
+  background: var(--bg-dark);
+  color: var(--text-muted);
+  cursor: not-allowed;
+  border-color: transparent;
+}
+
+html.dark-mode #editEmployeeCode {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* ===== Clock Toggle Button ===== */
+.enrollment-management .clock-toggle-btn {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.875rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-family: var(--ff);
+  cursor: pointer;
+  transition: all var(--transition);
+  box-shadow: var(--shadow-m);
+  z-index: 10;
+}
+
+.enrollment-management .clock-toggle-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.enrollment-management .clock-toggle-btn i {
+  font-size: 0.85rem;
+}
+
+/* Clock In Button (green) */
+.enrollment-management .clock-toggle-btn.clock-in-btn {
+  background: linear-gradient(135deg, var(--success), #27ae60);
+  color: white;
+}
+
+.enrollment-management .clock-toggle-btn.clock-in-btn:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(39, 174, 96, 0.4);
+}
+
+/* Clock Out Button (orange/warning) */
+.enrollment-management .clock-toggle-btn.clock-out-btn {
+  background: linear-gradient(135deg, var(--warning), #e67e22);
+  color: white;
+}
+
+.enrollment-management .clock-toggle-btn.clock-out-btn:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(230, 126, 34, 0.4);
+}
+
+/* Ensure employee card has relative positioning for the button */
+.enrollment-management .employee-card {
+  position: relative;
+  padding-right: 7rem; /* Make room for the clock button */
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .enrollment-management .clock-toggle-btn {
+    position: static;
+    margin-top: 0.75rem;
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .enrollment-management .employee-card {
+    padding-right: 2.75rem;
+  }
+}
+
+/* ===== NFC Card Enrollment Section in Edit Modal ===== */
+.nfc-enrollment-group {
+  margin-top: 1rem;
+}
+
+.nfc-card-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.nfc-uid-display {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 0.75rem 1rem;
+  background: var(--bg-light);
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 1rem;
+  color: var(--text-muted);
+  transition: all 0.3s ease;
+}
+
+.nfc-uid-display.scanning {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.2);
+  animation: pulse-border 1.5s ease-in-out infinite;
+}
+
+.nfc-uid-display.has-uid {
+  border-color: var(--success);
+  color: var(--text);
+}
+
+.nfc-uid-display.no-uid {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+@keyframes pulse-border {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.2); }
+  50% { box-shadow: 0 0 0 6px rgba(var(--accent-rgb), 0.1); }
+}
+
+.nfc-uid-text {
+  flex: 1;
+}
+
+.nfc-action-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.nfc-scan-btn,
+.nfc-delete-btn {
+  flex: 1;
+  padding: 0.6rem 1rem;
+  font-size: 0.85rem;
+}
+
+.nfc-scan-btn.scanning {
+  background: var(--accent);
+  animation: pulse-bg 1.5s ease-in-out infinite;
+}
+
+.nfc-scan-btn.scanning i {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse-bg {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.nfc-delete-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.nfc-status-message {
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  display: none;
+}
+
+.nfc-status-message.visible {
+  display: block;
+}
+
+.nfc-status-message.info {
+  background: rgba(var(--accent-rgb), 0.1);
+  color: var(--accent);
+  border: 1px solid rgba(var(--accent-rgb), 0.3);
+}
+
+.nfc-status-message.success {
+  background: rgba(var(--success-rgb), 0.1);
+  color: var(--success);
+  border: 1px solid rgba(var(--success-rgb), 0.3);
+}
+
+.nfc-status-message.error {
+  background: rgba(var(--danger-rgb), 0.1);
+  color: var(--danger);
+  border: 1px solid rgba(var(--danger-rgb), 0.3);
+}
+
+.nfc-status-message.warning {
+  background: rgba(var(--warning-rgb), 0.1);
+  color: var(--warning);
+  border: 1px solid rgba(var(--warning-rgb), 0.3);
+}

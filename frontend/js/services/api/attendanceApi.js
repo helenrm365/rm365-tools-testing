@@ -1,5 +1,5 @@
 // frontend/js/services/api/attendanceApi.js
-import { get, post } from './http.js';
+import { get, post, http } from './http.js';
 import { apiCache } from '../../utils/cache.js';
 
 const API = '/v1/attendance';  // http.js adds BASE which already includes /api
@@ -7,6 +7,15 @@ const API = '/v1/attendance';  // http.js adds BASE which already includes /api
 // Cache TTLs
 const LOCATIONS_CACHE_TTL = 10 * 60 * 1000; // 10 minutes (locations rarely change)
 const EMPLOYEES_CACHE_TTL = 2 * 60 * 1000;  // 2 minutes
+
+// ---- Table Initialization ----
+export async function checkAttendanceTablesStatus() {
+  return await get(`${API}/status`);
+}
+
+export async function initializeAttendanceTables() {
+  return await http(`${API}/init`, { timeout: 30000 }); // 30 seconds for table creation
+}
 
 export function getEmployees() {
   return apiCache.getOrFetch('attendance-employees', async () => {

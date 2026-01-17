@@ -46,67 +46,55 @@
             const link = document.createElement('link');
             link.id = 'liquid-glass-styles';
             link.rel = 'stylesheet';
-            link.href = `/css/components/liquid-glass/glass-components.css?v=${timestamp}`;
+            link.href = `/css-new/liquid-glass/glass-components.css?v=${timestamp}`;
             document.head.appendChild(link);
             
             const sidebarLink = document.createElement('link');
             sidebarLink.id = 'liquid-glass-sidebar';
             sidebarLink.rel = 'stylesheet';
-            sidebarLink.href = `/css/sidebar/liquid-glass/sidebar.css?v=${timestamp}`;
+            sidebarLink.href = `/css-new/liquid-glass/sidebar.css?v=${timestamp}`;
             document.head.appendChild(sidebarLink);
-
-            const attendanceLink = document.createElement('link');
-            attendanceLink.id = 'liquid-glass-attendance';
-            attendanceLink.rel = 'stylesheet';
-            attendanceLink.href = `/css/attendance/liquid-glass/attendance.css?v=${timestamp}`;
-            document.head.appendChild(attendanceLink);
-
-            const enrollmentLink = document.createElement('link');
-            enrollmentLink.id = 'liquid-glass-enrollment';
-            enrollmentLink.rel = 'stylesheet';
-            enrollmentLink.href = `/css/enrollment/liquid-glass/enrollment.css?v=${timestamp}`;
-            document.head.appendChild(enrollmentLink);
 
             const homeLink = document.createElement('link');
             homeLink.id = 'liquid-glass-home';
             homeLink.rel = 'stylesheet';
-            homeLink.href = `/css/home/liquid-glass/home.css?v=${timestamp}`;
+            homeLink.href = `/css-new/liquid-glass/home.css?v=${timestamp}`;
             document.head.appendChild(homeLink);
 
             const inventoryLink = document.createElement('link');
             inventoryLink.id = 'liquid-glass-inventory';
             inventoryLink.rel = 'stylesheet';
-            inventoryLink.href = `/css/inventory/liquid-glass/inventory.css?v=${timestamp}`;
+            inventoryLink.href = `/css-new/liquid-glass/inventory.css?v=${timestamp}`;
             document.head.appendChild(inventoryLink);
 
             const labelsLink = document.createElement('link');
             labelsLink.id = 'liquid-glass-labels';
             labelsLink.rel = 'stylesheet';
-            labelsLink.href = `/css/labels/liquid-glass/labels.css?v=${timestamp}`;
+            labelsLink.href = `/css-new/liquid-glass/labels.css?v=${timestamp}`;
             document.head.appendChild(labelsLink);
 
             const magentoLink = document.createElement('link');
             magentoLink.id = 'liquid-glass-magentodata';
             magentoLink.rel = 'stylesheet';
-            magentoLink.href = `/css/magentodata/liquid-glass/magentodata.css?v=${timestamp}`;
+            magentoLink.href = `/css-new/liquid-glass/magentodata.css?v=${timestamp}`;
             document.head.appendChild(magentoLink);
 
             const ordersLink = document.createElement('link');
             ordersLink.id = 'liquid-glass-orders';
             ordersLink.rel = 'stylesheet';
-            ordersLink.href = `/css/orders/liquid-glass/orders.css?v=${timestamp}`;
+            ordersLink.href = `/css-new/liquid-glass/orders.css?v=${timestamp}`;
             document.head.appendChild(ordersLink);
 
             const usersLink = document.createElement('link');
             usersLink.id = 'liquid-glass-usermanagement';
             usersLink.rel = 'stylesheet';
-            usersLink.href = `/css/usermanagement/liquid-glass/usermanagement.css?v=${timestamp}`;
+            usersLink.href = `/css-new/liquid-glass/usermanagement.css?v=${timestamp}`;
             document.head.appendChild(usersLink);
 
             const loginLink = document.createElement('link');
             loginLink.id = 'liquid-glass-login';
             loginLink.rel = 'stylesheet';
-            loginLink.href = `/css/login/liquid-glass/login.css?v=${timestamp}`;
+            loginLink.href = `/css-new/liquid-glass/login.css?v=${timestamp}`;
             document.head.appendChild(loginLink);
         }
 

@@ -43,16 +43,13 @@ const routes = {
   '/':                      '/html/home.html',
   '/home':                  '/html/home.html',
   '/login':                 '/html/login.html',
-  '/attendance':            '/html/attendance/home.html',
-  '/attendance/overview':   '/html/attendance/overview.html',
-  '/attendance/logs':       '/html/attendance/logs.html',
-  '/attendance/manual':     '/html/attendance/manual.html',
-  '/attendance/automatic':  '/html/attendance/automatic.html',
-
-  '/enrollment':            '/html/enrollment/home.html',
-  '/enrollment/management': '/html/enrollment/management.html',
-  '/enrollment/management-depth-test': '/html/enrollment/management-depth-test.html',
-  '/enrollment/nfc':        '/html/enrollment/nfc.html',
+  
+  // Attendance System (consolidated)
+  '/attendance-system':           '/html/attendance-system/home.html',
+  '/attendance-system/employees': '/html/attendance-system/employees.html',
+  '/attendance-system/overview':  '/html/attendance-system/overview.html',
+  '/attendance-system/automatic': '/html/attendance-system/automatic.html',
+  '/attendance-system/logs':      '/html/attendance-system/logs.html',
 
   '/labels':                '/html/labels/home.html',
   '/labels/generator':      '/html/labels/generator.html',
@@ -126,6 +123,7 @@ export function generateTabStructure() {
   
   // Map of section keys to their display labels
   const sectionLabels = {
+    'attendance-system': 'Attendance System',
     'attendance': 'Attendance',
     'enrollment': 'Enrollment',
     'labels': 'Labels',
@@ -137,6 +135,8 @@ export function generateTabStructure() {
   
   // Map of subtab keys to their display labels
   const subtabLabels = {
+    // Attendance System
+    'employees': 'Employees',
     // Attendance
     'automatic': 'Automatic',
     'manual': 'Manual',
@@ -351,16 +351,11 @@ export async function navigate(path, replace = false) {
       await mod.init();
       currentModule = mod;
       currentModulePath = 'home';
-    } else if (path.startsWith('/attendance')) {
-      const mod = await import('./modules/attendance/index.js');
+    } else if (path.startsWith('/attendance-system')) {
+      const mod = await import('./modules/attendance-system/index.js');
       await mod.init(path);
       currentModule = mod;
-      currentModulePath = 'attendance';
-    } else if (path.startsWith('/enrollment')) {
-      const mod = await import('./modules/enrollment/index.js');
-      await mod.init(path);
-      currentModule = mod;
-      currentModulePath = 'enrollment';
+      currentModulePath = 'attendance-system';
     } else if (path.startsWith('/labels')) {
       const mod = await import('./modules/labels/index.js');
       await mod.init(path);

@@ -13,6 +13,17 @@ router = APIRouter()
 def _svc() -> AttendanceService:
     return AttendanceService()
 
+# ---- Table Initialization ----
+@router.get("/status")
+def check_tables_status(user=Depends(get_current_user)):
+    """Check which attendance tables exist in the database."""
+    return _svc().check_tables_status()
+
+@router.get("/init")
+def initialize_tables(user=Depends(get_current_user)):
+    """Initialize attendance tables (employees, attendance_logs) if they don't exist."""
+    return _svc().initialize_tables()
+
 # ---- Employees ----
 @router.get("/employees")
 def list_employees(user=Depends(get_current_user)):

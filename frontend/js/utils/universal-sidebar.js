@@ -72,10 +72,10 @@ class UniversalSidebar {
   // Ensure page layout is compatible with sidebar
   ensureLayout() {
     // Make sure we have the required CSS
-    if (!document.querySelector('link[href*="app-shell.css"]')) {
+    if (!document.querySelector('link[href*="app.css"]')) {
       const link = document.createElement('link');
       link.rel = 'stylesheet';
-      link.href = '/css/app-shell.css';
+      link.href = '/css-new/app.css';
       document.head.appendChild(link);
     }
 

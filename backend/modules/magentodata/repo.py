@@ -4,6 +4,7 @@ import csv
 import io
 import json
 from datetime import datetime, timezone
+from psycopg2.extras import execute_values
 from core.db import get_products_connection, return_products_connection
 
 logger = logging.getLogger(__name__)
@@ -1713,19 +1714,19 @@ class MagentoDataRepo:
                 sku_aggregates[sku]['total_qty'] += qty_to_use
                 sku_aggregates[sku]['name'] = name  # Keep the latest name
             
-            # Insert aggregated data
+            # Insert aggregated data using batch insert (much faster than executemany)
             if sku_aggregates:
                 insert_query = f"""
                     INSERT INTO {aggregated_table} (sku, name, total_qty, last_updated)
-                    VALUES (%s, %s, %s, CURRENT_TIMESTAMP)
+                    VALUES %s
                 """
                 
                 insert_data = [
-                    (sku, data['name'], data['total_qty'])
+                    (sku, data['name'], data['total_qty'], datetime.now())
                     for sku, data in sku_aggregates.items()
                 ]
                 
-                cursor.executemany(insert_query, insert_data)
+                execute_values(cursor, insert_query, insert_data, page_size=1000)
             
             rows_affected = len(sku_aggregates)
             

@@ -13,6 +13,15 @@ class AttendanceService:
     def __init__(self, repo: AttendanceRepo | None = None):
         self.repo = repo or AttendanceRepo()
 
+    # ---- Table Initialization ----
+    def check_tables_status(self) -> Dict[str, Any]:
+        """Check if attendance tables exist in the database."""
+        return self.repo.check_tables_exist()
+
+    def initialize_tables(self) -> Dict[str, Any]:
+        """Initialize attendance tables if they don't exist."""
+        return self.repo.init_tables()
+
     # ---- Employees ----
     def list_employees_brief(self) -> List[Dict[str, Any]]:
         return self.repo.list_employees_brief()
