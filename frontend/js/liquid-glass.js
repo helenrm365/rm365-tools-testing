@@ -48,12 +48,6 @@
             link.rel = 'stylesheet';
             link.href = `/css/liquid-glass/glass-components.css?v=${timestamp}`;
             document.head.appendChild(link);
-            
-            const sidebarLink = document.createElement('link');
-            sidebarLink.id = 'liquid-glass-sidebar';
-            sidebarLink.rel = 'stylesheet';
-            sidebarLink.href = `/css/liquid-glass/sidebar.css?v=${timestamp}`;
-            document.head.appendChild(sidebarLink);
 
             const homeLink = document.createElement('link');
             homeLink.id = 'liquid-glass-home';

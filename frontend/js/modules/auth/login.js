@@ -40,17 +40,6 @@ async function doLogin() {
       console.warn('[LOGIN] Tab setup failed:', e);
     }
     
-    // Update sidebar logout button to reflect authenticated state
-    try {
-      if (window.updateSidebarLogoutButton) {
-        window.updateSidebarLogoutButton();
-      }
-      if (window.updateSidebarUserProfile) {
-        window.updateSidebarUserProfile();
-      }
-    } catch (e) {
-      console.warn('[LOGIN] Failed to update sidebar:', e);
-    }
     // Add a small delay to ensure state is properly set
     setTimeout(async () => {
       await navigate('/home', true);

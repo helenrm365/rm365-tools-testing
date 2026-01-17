@@ -10,7 +10,6 @@
 /* 2. Layout - Page structure */
 @import 'layout/grid.css';            /* Grid system & containers */
 @import 'layout/header.css';          /* Header layout */
-@import 'layout/sidebar.css';         /* Sidebar layout */
 @import 'layout/module-home.css';     /* Module home page layouts */
 
 /* 3. Components - Reusable UI elements */

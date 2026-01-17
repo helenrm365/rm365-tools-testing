@@ -21,7 +21,7 @@
   max-width: var(--container-lg);
 }
 
-/* Page wrapper - accounts for sidebar */
+/* Page wrapper */
 .page-wrapper {
   min-height: 100vh;
   padding: var(--space-lg);

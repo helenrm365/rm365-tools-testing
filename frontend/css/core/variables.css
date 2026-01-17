@@ -23,7 +23,6 @@
   --z-dropdown: 100;
   --z-sticky: 200;
   --z-fixed: 300;
-  --z-sidebar: 1000;
   --z-modal-backdrop: 1100;
   --z-modal: 1200;
   --z-popover: 1300;
@@ -40,10 +39,6 @@
   --container-lg: 1024px;
   --container-xl: 1280px;
   --container-2xl: 1536px;
-  
-  /* Sidebar */
-  --sidebar-width: 260px;
-  --sidebar-collapsed-width: 60px;
   
   /* Header */
   --header-height: 60px;

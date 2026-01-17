@@ -189,22 +189,8 @@ body.liquid-glass-mode select option {
     color: #2c3e50;
 }
 
-/* Sidebar Search Specifics */
-body.liquid-glass-mode .sidebar .search-container {
-    background: rgba(255, 255, 255, 0.2) !important;
-    border: 1px solid rgba(255, 255, 255, 0.3) !important;
-    backdrop-filter: blur(4px);
-}
-
 /* Fix for Double Box Issue in Search Containers */
 body.liquid-glass-mode .search-box {
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    backdrop-filter: none !important;
-}
-
-body.liquid-glass-mode .sidebar .search-input {
     background: transparent !important;
     border: none !important;
     box-shadow: none !important;
@@ -281,18 +267,6 @@ html.dark-mode body.liquid-glass-mode .form-textarea:focus {
 html.dark-mode body.liquid-glass-mode select option {
     background-color: #2a2a2a;
     color: #ecf0f1;
-}
-
-/* Dark Mode Sidebar Search */
-html.dark-mode body.liquid-glass-mode .sidebar .search-container {
-    background: rgba(0, 0, 0, 0.3) !important;
-    border-color: rgba(255, 255, 255, 0.05) !important;
-}
-
-html.dark-mode body.liquid-glass-mode .sidebar .search-input {
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
 }
 
 /* Custom Scrollbar for sleek look */

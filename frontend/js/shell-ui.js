@@ -2,7 +2,7 @@
 import { clearToken } from './services/state/sessionStore.js';
 import { clearUser } from './services/state/userStore.js';
 import { navigate } from './router.js';
-import { setupTabsForUser, filterSidebarByPermissions } from './utils/tabs.js';
+import { setupTabsForUser } from './utils/tabs.js';
 
 export function setupShellUI() {
   // Add loaded class to body to show main content
@@ -53,13 +53,6 @@ export function setupShellUI() {
     childList: true,
     subtree: true
   });
-  
-  // NOTE: Sidebar functionality is now handled by the universal-sidebar.html component
-  // which includes its own JavaScript for dark mode, search, navigation, logout, etc.
-  // The universal sidebar will initialize itself when loaded.
-  
-  // Expose filterSidebarByPermissions globally so sidebar can access it
-  window.filterSidebarByPermissions = filterSidebarByPermissions;
   
   // ---- Permissions-based tab filtering (if available)
   try {

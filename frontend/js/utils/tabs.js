@@ -86,46 +86,6 @@ export function enforceRoutePermission(pathname) {
   return { allowed: false, redirect: fallback };
 }
 
-// Hide or show sidebar items according to allowed tabs
-export function filterSidebarByPermissions() {
-  const authenticated = isAuthed();
-  const allowedTabs = getAllowedTabs();
-  
-  // Updated to work with new universal sidebar structure
-  const items = document.querySelectorAll('.sidebar .sidebar-nav > li');
-  items.forEach(li => {
-    const a = li.querySelector('a.nav-item[href^="/"]');
-    if (!a) return;
-    const href = a.getAttribute('href') || '/';
-    const section = href.replace(/^\/+/, '').split('/')[0];
-    
-    // If not authenticated, only show home page
-    if (!authenticated) {
-      const isHome = section === 'home' || href === '/' || href === '/home';
-      if (isHome) {
-        li.style.display = '';
-        li.removeAttribute('data-permission-hidden');
-      } else {
-        li.style.display = 'none';
-        li.setAttribute('data-permission-hidden', 'true');
-      }
-      return;
-    }
-    
-    // If authenticated, check permissions
-    // Always allow home
-    const ok = (section === 'home' || section === '') || isAllowed(section, allowedTabs);
-    
-    if (ok) {
-      li.style.display = '';
-      li.removeAttribute('data-permission-hidden');
-    } else {
-      li.style.display = 'none';
-      li.setAttribute('data-permission-hidden', 'true');
-    }
-  });
-}
-
 // Inside the currently loaded view, hide inner tabs the user can't access.
 export function applyInnerTabPermissions(root = document) {
   const allowedTabs = getAllowedTabs();
@@ -185,7 +145,6 @@ export function filterHomeCardsByPermissions() {
 
 export function setupTabsForUser() {
   try {
-    filterSidebarByPermissions();
     applyInnerTabPermissions(document);
     filterHomeCardsByPermissions();
   } catch (e) {

@@ -190,12 +190,6 @@ html.dark-mode .connection-user-info {
   }
 }
 
-/* Positioning in sidebar/header */
-.sidebar-footer .connection-status-widget {
-  width: 100%;
-  justify-content: flex-start;
-}
-
 .page-header .connection-status-widget {
   position: absolute;
   top: 1rem;

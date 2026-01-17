@@ -415,7 +415,7 @@ export async function navigate(path, replace = false) {
 }
 
 export function setupRouter() {
-  // Expose navigate globally for components like the sidebar
+  // Expose navigate globally for navigation components
   window.navigate = navigate;
   
   // Setup session auto-drafting on page unload/close
@@ -524,7 +524,7 @@ function saveSessionAsDraft(sessionId, reason = 'unspecified') {
 function highlightActive(path) {
   // Highlight main tab
   const mainTab = path.split('/')[1];
-  document.querySelectorAll('.sidebar a[data-nav]').forEach(a => {
+  document.querySelectorAll('[data-nav]').forEach(a => {
     const href = a.getAttribute('href');
     const isActive = href === `/${mainTab}` || (href === path);
     a.parentElement?.classList.toggle('active', isActive);

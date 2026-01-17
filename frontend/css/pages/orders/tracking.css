@@ -80,8 +80,6 @@
 /* Add transitions for smooth minimal mode toggle */
 .page-header,
 .inner-tabs,
-.sidebar,
-#sidebar,
 .tracking-actions .live-status,
 .tracking-actions .action-btn,
 #content,
@@ -98,8 +96,6 @@ body.minimal-mode .inner-tabs {
   display: none;
 }
 
-body.minimal-mode .sidebar,
-body.minimal-mode #sidebar,
 body.minimal-mode .breadcrumb,
 body.minimal-mode .shell-breadcrumb {
   opacity: 0;
