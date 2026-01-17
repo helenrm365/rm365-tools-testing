@@ -11,6 +11,7 @@
 @import 'layout/grid.css';            /* Grid system & containers */
 @import 'layout/header.css';          /* Header layout */
 @import 'layout/module-home.css';     /* Module home page layouts */
+@import 'layout/sidebar.css';         /* Multi-level sidebar navigation */
 
 /* 3. Components - Reusable UI elements */
 @import 'components/buttons.css';     /* All button variants */

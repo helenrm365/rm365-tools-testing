@@ -9,6 +9,16 @@ let currentModule = null;
 let currentModulePath = null;
 let currentRoutePath = null; // Track the actual current route including session URLs
 
+// Sidebar update function (imported dynamically to avoid circular deps)
+let updateSidebarStateFn = null;
+async function getUpdateSidebarState() {
+  if (!updateSidebarStateFn) {
+    const shellUI = await import('./shell-ui.js');
+    updateSidebarStateFn = shellUI.updateSidebarState;
+  }
+  return updateSidebarStateFn;
+}
+
 // Session auto-draft is now only driven by explicit unload/connection events.
 
 /**
@@ -385,6 +395,16 @@ export async function navigate(path, replace = false) {
 
     // Highlight active nav item
     highlightActive(path);
+    
+    // Update sidebar state (show/hide based on route)
+    try {
+      const updateSidebar = await getUpdateSidebarState();
+      if (updateSidebar) {
+        updateSidebar(path);
+      }
+    } catch (err) {
+      console.warn('[Router] Sidebar update error:', err);
+    }
 
     // Success - hide loading overlay
     hideLoading();
