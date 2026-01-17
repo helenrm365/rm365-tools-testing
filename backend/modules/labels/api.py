@@ -144,7 +144,7 @@ def purge_old_jobs(
 @router.get("/to-print")
 def labels_to_print(
     discontinued_statuses: Optional[str] = None,
-    region: str = Query("uk", regex="^(uk|fr|nl)$"),
+    region: str = Query("uk", pattern="^(uk|fr|nl)$"),
     show_orphaned: bool = False,
     user=Depends(get_current_user)
 ):

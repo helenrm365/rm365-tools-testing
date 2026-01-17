@@ -15,6 +15,7 @@ try:
 except ImportError:
     print("⚠️  python-dotenv not installed, using system environment variables")
 
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Response, Request
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -36,11 +37,33 @@ def _normalize_origin(origin: str) -> Optional[str]:
     return sanitized
 
 BOOT_T0 = time.time()
+
+# --- Lifespan handler (replaces deprecated on_event) -------------------------
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Handle startup and shutdown events"""
+    # Startup
+    try:
+        from core.scheduler import start_scheduler
+        start_scheduler()
+    except Exception as e:
+        print(f"⚠️  Scheduler startup failed: {e}")
+    
+    yield  # Server is running
+    
+    # Shutdown
+    try:
+        from core.scheduler import shutdown_scheduler
+        shutdown_scheduler()
+    except Exception as e:
+        print(f"⚠️  Scheduler shutdown failed: {e}")
+
 app = FastAPI(
     title='VK API',
     version='1.0.0',
     docs_url='/api/docs',
     openapi_url='/api/openapi.json',
+    lifespan=lifespan,
 )
 
 # --- WebSocket Integration - Deferred until after middleware ----------------
@@ -57,24 +80,8 @@ except Exception as e:
     print("⚠️  Application will continue but may not function properly")
 
 
-# --- Scheduler Initialization ------------------------------------------------
-try:
-    from core.scheduler import start_scheduler, shutdown_scheduler
-    
-    # Start scheduler on application startup
-    @app.on_event("startup")
-    async def startup_scheduler():
-        start_scheduler()
-    
-    # Shutdown scheduler on application shutdown
-    @app.on_event("shutdown")
-    async def shutdown_scheduler_event():
-        shutdown_scheduler()
-    
-    print("✅ Background scheduler configured")
-except Exception as e:
-    print(f"⚠️  Scheduler initialization failed: {e}")
-    print("⚠️  Daily order resets will not run automatically")
+# --- Scheduler Configuration (handled via lifespan) -------------------------
+print("✅ Background scheduler configured")
 
 
 # --- CORS (From working Label Printer #7 configuration) ---------------------
