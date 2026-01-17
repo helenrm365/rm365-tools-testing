@@ -75,7 +75,7 @@ class UniversalSidebar {
     if (!document.querySelector('link[href*="app.css"]')) {
       const link = document.createElement('link');
       link.rel = 'stylesheet';
-      link.href = '/css-new/app.css';
+      link.href = '/css/app.css';
       document.head.appendChild(link);
     }
 

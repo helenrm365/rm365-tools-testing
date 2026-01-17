@@ -1,7 +1,7 @@
 // frontend/js/ui/confirmationModal.js
 /**
  * Modern confirmation modal component
- * Uses css-new/components/modals.css and buttons.css
+ * Uses css/components/modals.css and buttons.css
  */
 
 let modalContainer = null;

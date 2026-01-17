@@ -103,7 +103,7 @@ def test_css_classes():
     """Test that CSS has required status badge classes"""
     print("\n✅ TEST 4: CSS Status Badge Classes")
     
-    css_path = os.path.join(os.path.dirname(__file__), '..', 'frontend', 'css-new', 'pages', 'inventory', 'sourcing.css')
+    css_path = os.path.join(os.path.dirname(__file__), '..', 'frontend', 'css', 'pages', 'inventory', 'sourcing.css')
     content = read_file(css_path)
     
     required_classes = [

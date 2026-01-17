@@ -12,14 +12,14 @@ A reusable collapsible filter panel component with dynamic height calculation an
 
 ## Files
 
-- **CSS**: `/frontend/css-new/components/filter-control-panel.css`
+- **CSS**: `/frontend/css/components/filter-control-panel.css`
 - **JavaScript**: `/frontend/js/ui/filterControlPanel.js`
 
 ## Installation
 
 ### 1. Include CSS
 ```html
-<link rel="stylesheet" href="/css-new/components/filter-control-panel.css">
+<link rel="stylesheet" href="/css/components/filter-control-panel.css">
 ```
 
 ### 2. Include JavaScript

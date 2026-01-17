@@ -754,7 +754,7 @@ frontend/
 │                               # - Import conflict resolution workflow
 │                               # - Temporal price management UI
 │                               # - Public API on window.sourcingModule
-└── css-new/pages/inventory/
+└── css/pages/inventory/
     └── sourcing.css            # Page-specific styling (1557 lines)
                                 # - Stats cards
                                 # - Sub-tabs
@@ -862,7 +862,7 @@ A new table `sourcing_price_sync_log` tracks automated price updates:
 
 ## Design System Compliance
 
-The Product Sourcing page follows the **css-new** design system:
+The Product Sourcing page follows the **css** design system:
 
 ### Colors
 - Uses `--accent` (green: `#8bc34a`) consistently for branding

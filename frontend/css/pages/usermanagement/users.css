@@ -1,7 +1,7 @@
 /* ===== User Management Page ===== */
 /* Page-specific styles for usermanagement/management.html */
 /* 
-   Global Components Used (from css-new/):
+   Global Components Used (from css/):
    - layout/header.css: .page-header, .page-title, .page-subtitle, .header-content
    - components/buttons.css: .action-btn, .primary-btn, .secondary-btn, .danger-btn, .action-buttons-grid, .action-btn-icon
    - components/cards.css: .action-block, .block-header, .block-icon, .block-title-group, .block-title, .block-subtitle, .block-content

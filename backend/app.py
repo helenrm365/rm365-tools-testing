@@ -345,7 +345,7 @@ for mod, attr, prefix, tags in working_modules:
 # --- Static frontend mounts (after API routers) ------------------------------
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / 'frontend'
 JS_DIR       = FRONTEND_DIR / 'js'
-CSS_NEW_DIR  = FRONTEND_DIR / 'css-new'
+CSS_DIR  = FRONTEND_DIR / 'css'
 HTML_DIR     = FRONTEND_DIR / 'html'
 ASSETS_DIR   = FRONTEND_DIR / 'assets'
 COMPONENTS_DIR = FRONTEND_DIR / 'components'
@@ -358,7 +358,7 @@ def _mount_if_exists(prefix: str, path: Path, *, html: bool = False, name: str =
 
 # 1) Explicit asset mounts
 _mount_if_exists('/js',         JS_DIR,         html=False, name='js')
-_mount_if_exists('/css-new',    CSS_NEW_DIR,    html=False, name='css-new')
+_mount_if_exists('/css',    CSS_DIR,    html=False, name='css')
 _mount_if_exists('/html',       HTML_DIR,       html=False, name='html')
 _mount_if_exists('/assets',     ASSETS_DIR,     html=False, name='assets')
 _mount_if_exists('/components', COMPONENTS_DIR, html=False, name='components')
@@ -401,7 +401,7 @@ if FRONTEND_DIR.is_dir():
         
         # If it's a request for static assets that don't exist, return 404
         # Note: /components/ is handled by StaticFiles mount, but if file doesn't exist, return 404
-        if any(request.url.path.startswith(prefix) for prefix in ['/js/', '/css-new/', '/html/', '/assets/', '/components/', '/ws/']):
+        if any(request.url.path.startswith(prefix) for prefix in ['/js/', '/css/', '/html/', '/assets/', '/components/', '/ws/']):
             return JSONResponse(
                 status_code=404,
                 content={"detail": "File not found"}

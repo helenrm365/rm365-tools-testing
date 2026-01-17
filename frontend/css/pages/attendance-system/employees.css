@@ -1,7 +1,7 @@
 /* ===== Employee Management Page (Attendance System) ===== */
 /* Page-specific styles for attendance-system/employees.html */
 /* 
-   Global Components Used (from css-new/):
+   Global Components Used (from css/):
    - layout/header.css: .page-header, .page-title, .page-subtitle, .help-button, .header-content
    - components/buttons.css: .action-btn, .primary-btn, .secondary-btn, .danger-btn, .action-buttons-grid
    - components/cards.css: .action-block, .block-header, .block-icon, .block-title-group, .block-title, .block-subtitle, .block-content, .employee-card, .employee-grid, .employee-avatar, .employee-info

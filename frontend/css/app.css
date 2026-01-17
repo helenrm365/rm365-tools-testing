@@ -40,6 +40,6 @@
  * Page-specific styles are NOT imported here.
  * They should be loaded separately per page:
  * 
- * <link rel="stylesheet" href="/css-new/app.css">
- * <link rel="stylesheet" href="/css-new/pages/enrollment/management.css">
+ * <link rel="stylesheet" href="/css/app.css">
+ * <link rel="stylesheet" href="/css/pages/enrollment/management.css">
  */

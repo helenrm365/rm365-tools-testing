@@ -196,15 +196,15 @@
         const timestamp = new Date().getTime();
         
         const files = [
-            { id: 'liquid-glass-styles', href: '/css-new/liquid-glass/glass-components.css' },
-            { id: 'liquid-glass-sidebar', href: '/css-new/liquid-glass/sidebar.css' },
-            { id: 'liquid-glass-home', href: '/css-new/liquid-glass/home.css' },
-            { id: 'liquid-glass-inventory', href: '/css-new/liquid-glass/inventory.css' },
-            { id: 'liquid-glass-labels', href: '/css-new/liquid-glass/labels.css' },
-            { id: 'liquid-glass-magentodata', href: '/css-new/liquid-glass/magentodata.css' },
-            { id: 'liquid-glass-orders', href: '/css-new/liquid-glass/orders.css' },
-            { id: 'liquid-glass-usermanagement', href: '/css-new/liquid-glass/usermanagement.css' },
-            { id: 'liquid-glass-login', href: '/css-new/liquid-glass/login.css' }
+            { id: 'liquid-glass-styles', href: '/css/liquid-glass/glass-components.css' },
+            { id: 'liquid-glass-sidebar', href: '/css/liquid-glass/sidebar.css' },
+            { id: 'liquid-glass-home', href: '/css/liquid-glass/home.css' },
+            { id: 'liquid-glass-inventory', href: '/css/liquid-glass/inventory.css' },
+            { id: 'liquid-glass-labels', href: '/css/liquid-glass/labels.css' },
+            { id: 'liquid-glass-magentodata', href: '/css/liquid-glass/magentodata.css' },
+            { id: 'liquid-glass-orders', href: '/css/liquid-glass/orders.css' },
+            { id: 'liquid-glass-usermanagement', href: '/css/liquid-glass/usermanagement.css' },
+            { id: 'liquid-glass-login', href: '/css/liquid-glass/login.css' }
         ];
 
         files.forEach(file => {
