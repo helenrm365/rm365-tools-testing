@@ -8,7 +8,7 @@ from fastapi.responses import StreamingResponse
 def stream_csv_labels(conn: PGConn, job_id: int) -> StreamingResponse:
     """
     Stream a CSV of all rows in a print job.
-    Columns: row_id, job_id, line_date, sku, item_id, product_name, uk_6m_data, fr_6m_data, job_created_at
+    Columns: row_id, job_id, line, sku, item_id, product_name, uk_6m_data, fr_6m_data, job_created_at
     """
     with conn.cursor() as cur:
         cur.execute(
@@ -16,7 +16,7 @@ def stream_csv_labels(conn: PGConn, job_id: int) -> StreamingResponse:
             SELECT
               r.id AS row_id,
               r.job_id,
-              COALESCE(r.line_date, j.line_date) AS line_date,
+              COALESCE(r.line, j.line) AS line,
               r.sku,
               r.item_id,
               r.product_name,

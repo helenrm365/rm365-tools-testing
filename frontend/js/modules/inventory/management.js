@@ -2,6 +2,7 @@ import { get, post, patch, http } from '../../services/api/http.js';
 import { showToast } from '../../ui/toast.js';
 import { collaborationManager } from './collaboration.js';
 import { syncUKMagentoData, syncFRMagentoData, syncNLMagentoData } from '../../services/api/magentoDataApi.js';
+import { checkTablesStatus, initializeTables } from '../../services/api/inventoryApi.js';
 
 // Discontinued status filter preferences key (for checkboxes)
 const DISCONTINUED_STATUS_FILTERS_KEY = 'inventory_discontinued_status_filters';
@@ -172,6 +173,19 @@ function formatMultilineText(text) {
 
 export async function init() {
   try {
+    // Check if tables exist before initializing the UI
+    console.log('[Inventory Management] Checking tables status...');
+    const status = await checkTablesStatus();
+    console.log('[Inventory Management] Tables status:', status);
+    
+    if (!status.all_tables_exist) {
+      console.log('[Inventory Management] Tables not found, initializing...');
+      showToast('Initializing inventory tables...', 'info');
+      const initResult = await initializeTables();
+      console.log('[Inventory Management] Tables initialized:', initResult);
+      showToast('Inventory tables initialized successfully', 'success');
+    }
+    
     await setupInventoryManagement();
   } catch (error) {
     console.error('[Inventory Management] Failed to initialize:', error);

@@ -78,3 +78,21 @@ class LabelsService:
         except Exception as e:
             logger.error(f"Error saving run history: {e}")
             return False
+
+    def check_tables_status(self) -> Dict[str, Any]:
+        """Check the status of labels-related tables"""
+        try:
+            status = self.repo.check_tables_exist()
+            all_exist = all(status.values())
+            
+            return {
+                "status": "success",
+                "tables_status": status,
+                "all_tables_exist": all_exist
+            }
+        except Exception as e:
+            logger.error(f"Error checking tables: {e}")
+            return {
+                "status": "error",
+                "message": f"Failed to check tables: {str(e)}"
+            }

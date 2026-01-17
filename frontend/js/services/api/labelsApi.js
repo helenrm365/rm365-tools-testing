@@ -6,6 +6,31 @@ import { getApiUrl } from '../../config.js';
 const API = '/v1/labels';  // http.js adds BASE which already includes /api
 
 /**
+ * Check status of labels-related tables in the database
+ * @returns {Promise<{status: string, tables_status: object, all_tables_exist: boolean}>}
+ */
+export async function checkTablesStatus() {
+  return await get(`${API}/status`);
+}
+
+/**
+ * Initialize labels tables if they don't exist
+ * @returns {Promise<{status: string, message: string}>}
+ */
+export async function initializeTables() {
+  return await get(`${API}/init`);
+}
+
+/**
+ * Purge old label print jobs and their items
+ * @param {number} months - Delete jobs older than this many months (default 6)
+ * @returns {Promise<{status: string, jobs_deleted: number, items_deleted: number}>}
+ */
+export async function purgeOldJobs(months = 6) {
+  return await http(`${API}/purge-old?months=${months}`, { method: 'DELETE' });
+}
+
+/**
  * Get all products available for label printing
  * @param {Array<string>} discontinuedStatuses - Optional array of discontinued statuses to filter by
  * @param {string} region - Region preference: "uk", "fr", or "nl"
@@ -39,7 +64,7 @@ export async function getProductsToPrint(discontinuedStatuses = null, region = "
 
 /**
  * Create a new label print job
- * @param {Object} payload - { line_date: 'YYYY-MM-DD', created_by: 'email' }
+ * @param {Object} payload - { line: 'optional text', created_by: 'email' }
  */
 export async function createPrintJob(payload = {}) {
   return await post(`${API}/start-job`, payload);

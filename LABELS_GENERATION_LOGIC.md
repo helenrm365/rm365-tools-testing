@@ -159,13 +159,14 @@ The Labels Generation system creates product labels with barcodes, prices, and s
 **Purpose:** Track history of generated labels
 
 **Data Stored:**
-- **Job:** ID, created_by, line_date, created_at
-- **Items:** SKU, product_name, 6M data, price, line_date
+- **Job:** ID, created_by, line (optional text field), created_at
+- **Items:** SKU, product_name, 6M data, price, line (optional text field)
 
 **Key Points:**
 - Every label generation run is saved as a job
 - Allows reviewing past print runs
 - Tracks who generated the labels and when
+- The `line` field is intentionally empty - labels display "Line: " so it can be handwritten
 
 **Data Fetched:**
 - Latest `name` for each SKU

@@ -21,7 +21,7 @@ def _ensure_label_print_schema(conn: PGConn) -> None:
                 CREATE TABLE IF NOT EXISTS label_print_jobs (
                     id SERIAL PRIMARY KEY,
                     created_by VARCHAR(255),
-                    line_date DATE,
+                    line VARCHAR(255),
                     region VARCHAR(10) DEFAULT 'uk',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
@@ -45,7 +45,7 @@ def _ensure_label_print_schema(conn: PGConn) -> None:
                     uk_6m_data INTEGER DEFAULT 0,
                     fr_6m_data INTEGER DEFAULT 0,
                     price DECIMAL(10, 2) DEFAULT 0.00,
-                    line_date DATE,
+                    line VARCHAR(255),
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
                 """
@@ -110,9 +110,9 @@ def _ensure_label_print_schema(conn: PGConn) -> None:
         existing_jobs = {row[0] for row in cur.fetchall()}
 
     jobs_alter_statements = []
-    if 'line_date' not in existing_jobs:
+    if 'line' not in existing_jobs:
         jobs_alter_statements.append(
-            "ALTER TABLE label_print_jobs ADD COLUMN IF NOT EXISTS line_date DATE"
+            "ALTER TABLE label_print_jobs ADD COLUMN IF NOT EXISTS line VARCHAR(255)"
         )
     if 'region' not in existing_jobs:
         jobs_alter_statements.append(
@@ -142,9 +142,9 @@ def _ensure_label_print_schema(conn: PGConn) -> None:
         alter_statements.append(
             "ALTER TABLE label_print_items ADD COLUMN IF NOT EXISTS price DECIMAL(10, 2) DEFAULT 0.00"
         )
-    if 'line_date' not in existing:
+    if 'line' not in existing:
         alter_statements.append(
-            "ALTER TABLE label_print_items ADD COLUMN IF NOT EXISTS line_date DATE"
+            "ALTER TABLE label_print_items ADD COLUMN IF NOT EXISTS line VARCHAR(255)"
         )
     if 'created_at' not in existing:
         alter_statements.append(
@@ -196,14 +196,14 @@ def start_label_job(conn: PGConn, payload: Dict[str, Any]) -> int:
     """
     Create job + bulk insert rows.
     payload: { 
-        'line_date': 'YYYY-MM-DD' (optional), 
+        'line': 'optional text' (optional - for future use), 
         'created_by': 'email' (optional),
         'item_ids': ['id1', 'id2', ...] (optional - if not provided, uses all products),
         'discontinued_statuses': ['Active', ...] (optional - status filters),
         'region': 'uk'|'fr'|'nl' (optional - region preference)
     }
     """
-    line_date = payload.get("line_date")  # let SQL cast DATE if provided
+    line = payload.get("line")  # optional text field for future use
     created_by = payload.get("created_by")
     item_ids = payload.get("item_ids")  # list of selected item IDs
     discontinued_statuses = payload.get("discontinued_statuses")  # status filters
@@ -229,11 +229,11 @@ def start_label_job(conn: PGConn, payload: Dict[str, Any]) -> int:
             # 1) insert job with region
             cur.execute(
                 """
-                INSERT INTO label_print_jobs (created_by, line_date, region)
+                INSERT INTO label_print_jobs (created_by, line, region)
                 VALUES (%s, %s, %s)
                 RETURNING id
                 """,
-                (created_by, line_date, region),
+                (created_by, line, region),
             )
             job_id = cur.fetchone()[0]
             logger.info(f"Created label job {job_id} for region {region}")
@@ -275,7 +275,7 @@ def start_label_job(conn: PGConn, payload: Dict[str, Any]) -> int:
                 uk_6m,
                 fr_6m,
                 price_float,  # Use cleaned price
-                None,  # per-row line_date (override) — keep None now
+                None,  # per-row line (override) — keep None now
             ))
 
         if to_insert:
@@ -283,7 +283,7 @@ def start_label_job(conn: PGConn, payload: Dict[str, Any]) -> int:
                 cur.executemany(
                     """
                     INSERT INTO label_print_items
-                        (job_id, item_id, sku, product_name, uk_6m_data, fr_6m_data, price, line_date)
+                        (job_id, item_id, sku, product_name, uk_6m_data, fr_6m_data, price, line)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                     """,
                     to_insert,
@@ -304,7 +304,7 @@ def get_label_job_rows(conn: PGConn, job_id: int) -> List[Dict[str, Any]]:
     with conn.cursor() as cur:
         cur.execute(
             """
-            SELECT id, job_id, item_id, sku, product_name, uk_6m_data, fr_6m_data, price, line_date
+            SELECT id, job_id, item_id, sku, product_name, uk_6m_data, fr_6m_data, price, line
             FROM label_print_items
             WHERE job_id = %s
             ORDER BY sku

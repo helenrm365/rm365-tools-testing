@@ -599,7 +599,7 @@ class LabelsRepo:
         """
         Fetch products from inventory_metadata (synced from Magento) filtered by status.
         Uses EXACT SAME logic as inventory management:
-        1. Syncs ALL products from Magento to inventory_metadata (refresh)
+        1. Syncs ALL products from Magento to inventory_metadata (batch mode for performance)
         2. Merges all variants to base SKUs
         3. Filters by status from inventory_metadata
         
@@ -610,15 +610,20 @@ class LabelsRepo:
             preferred_region: "uk" (default), "fr", or "nl" - determines price/name priority
             show_orphaned: if False (default), exclude SKUs with no product name (orphaned SKUs)
         """
+        import time
+        start_time = time.time()
+        
         from modules.inventory.management.repo import InventoryManagementRepo
         
         # Default statuses if not provided
         if product_statuses is None:
             product_statuses = ['Active', 'Temporarily OOS', 'Pre Order', 'Samples']
-            
-        # 1. Refresh inventory_metadata from Magento (same as inventory management)
+        
+        # Always sync from Magento to get latest products (uses batch operations for speed)
         inv_repo = InventoryManagementRepo()
-        logger.info("Refreshing inventory_metadata from Magento for label generation...")
+        
+        # 1. Refresh inventory_metadata from Magento (batch mode)
+        logger.info("Syncing inventory_metadata from Magento...")
         inv_repo.sync_magento_products_to_inventory_metadata()
         
         # 2. Merge variants (same as inventory management)
@@ -629,7 +634,10 @@ class LabelsRepo:
         logger.info("Updating variant statuses...")
         inv_repo.update_variant_statuses()
         
-        # 4. Fetch SKUs from inventory_metadata filtered by variant_statuses
+        sync_elapsed = time.time() - start_time
+        logger.info(f"✅ Sync completed in {sync_elapsed:.2f}s")
+        
+        # Fetch SKUs from inventory_metadata filtered by variant_statuses
         # Uses JSONB containment to check if ANY of the variant statuses match the requested statuses
         allowed_skus = []
         try:
@@ -799,3 +807,41 @@ class LabelsRepo:
                 logger.info(f"Deleted label preset {preset_id}")
             
             return deleted
+
+    def check_tables_exist(self) -> dict:
+        """Check which labels-related tables exist"""
+        from core.db import get_inventory_log_connection, return_inventory_connection
+        conn = None
+        try:
+            conn = get_inventory_log_connection()
+            cursor = conn.cursor()
+            
+            # Labels module requires these tables
+            tables = [
+                'label_print_jobs',
+                'label_print_items', 
+                'label_printing_presets',
+                'inventory_metadata'
+            ]
+            status = {}
+            
+            for table_name in tables:
+                cursor.execute("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables 
+                        WHERE table_schema = 'public' 
+                        AND table_name = %s
+                    )
+                """, (table_name,))
+                
+                status[table_name] = cursor.fetchone()[0]
+            
+            cursor.close()
+            return status
+            
+        except Exception as e:
+            logger.error(f"Error checking tables: {e}")
+            raise
+        finally:
+            if conn:
+                return_inventory_connection(conn)

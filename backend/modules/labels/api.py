@@ -1,10 +1,12 @@
 from __future__ import annotations
 from typing import Any, Dict, Optional
+from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Path, Body, Query
-
+import logging
 
 from common.deps import get_current_user, inventory_conn
 from modules.labels.repo import LabelsRepo
+from modules.labels.service import LabelsService
 from modules.labels.schemas import (
     DeleteJobsRequest, 
     DeleteJobsResponse,
@@ -18,7 +20,10 @@ from modules.labels.jobs import start_label_job, get_label_job_rows, delete_labe
 from modules.labels.print_csv import stream_csv_labels
 from modules.labels.print_pdf import stream_pdf_labels
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
+svc = LabelsService()
 
 
 @router.get("/health")
@@ -30,6 +35,111 @@ def labels_health():
         "status": "ready", 
         "message": "Labels module ready"
     }
+
+
+@router.get("/status")
+def check_tables_status(user=Depends(get_current_user)):
+    """
+    Check which labels-related tables exist in the database.
+    Used by frontend to determine if initialization is needed.
+    """
+    return svc.check_tables_status()
+
+
+@router.get("/init")
+def initialize_tables(user=Depends(get_current_user)):
+    """
+    Initialize labels-related tables if they don't exist.
+    This creates label_print_jobs, label_print_items, and label_printing_presets tables.
+    """
+    try:
+        with inventory_conn() as conn:
+            _ensure_label_print_schema(conn)
+            conn.commit()
+        return {
+            "status": "success",
+            "message": "Labels tables initialized successfully"
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to initialize tables: {e}"
+        )
+
+
+@router.delete("/purge-old")
+def purge_old_jobs(
+    months: int = Query(6, ge=1, le=24, description="Delete jobs older than this many months"),
+    user=Depends(get_current_user)
+):
+    """
+    Purge label print jobs (and their items) older than specified months.
+    Uses UTC time for consistency across all systems.
+    Items are automatically deleted via CASCADE when jobs are deleted.
+    """
+    try:
+        # Use UTC for consistent date calculations across all machines
+        cutoff_date = datetime.now(timezone.utc) - timedelta(days=months * 30)
+        
+        with inventory_conn() as conn:
+            with conn.cursor() as cur:
+                # First count how many will be deleted
+                cur.execute(
+                    """
+                    SELECT COUNT(*) FROM label_print_jobs 
+                    WHERE created_at < %s
+                    """,
+                    (cutoff_date,)
+                )
+                jobs_to_delete = cur.fetchone()[0]
+                
+                # Count items that will be deleted (via CASCADE)
+                cur.execute(
+                    """
+                    SELECT COUNT(*) FROM label_print_items i
+                    JOIN label_print_jobs j ON i.job_id = j.id
+                    WHERE j.created_at < %s
+                    """,
+                    (cutoff_date,)
+                )
+                items_to_delete = cur.fetchone()[0]
+                
+                if jobs_to_delete == 0:
+                    return {
+                        "status": "success",
+                        "message": "No old jobs to purge",
+                        "jobs_deleted": 0,
+                        "items_deleted": 0,
+                        "cutoff_date": cutoff_date.isoformat()
+                    }
+                
+                # Delete old jobs (items deleted via CASCADE)
+                cur.execute(
+                    """
+                    DELETE FROM label_print_jobs 
+                    WHERE created_at < %s
+                    """,
+                    (cutoff_date,)
+                )
+                
+                conn.commit()
+                
+                logger.info(f"Purged {jobs_to_delete} jobs and {items_to_delete} items older than {cutoff_date.isoformat()}")
+                
+                return {
+                    "status": "success",
+                    "message": f"Purged {jobs_to_delete} old jobs and {items_to_delete} items",
+                    "jobs_deleted": jobs_to_delete,
+                    "items_deleted": items_to_delete,
+                    "cutoff_date": cutoff_date.isoformat()
+                }
+    except Exception as e:
+        logger.error(f"Failed to purge old jobs: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to purge old jobs: {e}"
+        )
+
 
 @router.get("/to-print")
 def labels_to_print(
@@ -85,14 +195,14 @@ def list_print_jobs(
                     SELECT 
                         j.id,
                         j.created_by,
-                        j.line_date,
+                        j.line,
                         j.created_at,
                         COUNT(i.id) as item_count,
                         SUM(i.uk_6m_data) as total_uk_6m,
                         SUM(i.fr_6m_data) as total_fr_6m
                     FROM label_print_jobs j
                     LEFT JOIN label_print_items i ON j.id = i.job_id
-                    GROUP BY j.id, j.created_by, j.line_date, j.created_at
+                    GROUP BY j.id, j.created_by, j.line, j.created_at
                     ORDER BY j.created_at DESC
                     LIMIT %s
                     """,
@@ -105,8 +215,7 @@ def list_print_jobs(
                 for job in jobs:
                     if job.get('created_at'):
                         job['created_at'] = job['created_at'].isoformat()
-                    if job.get('line_date'):
-                        job['line_date'] = str(job['line_date'])
+                    # line is now a VARCHAR, no conversion needed
                 
                 return {"jobs": jobs, "count": len(jobs)}
     except Exception as e:
@@ -139,7 +248,7 @@ def start_print_job(
         user=Depends(get_current_user),
 ):
     """
-    # Create a new label print job with optional line_date values.
+    # Create a new label print job with optional line text.
     """
     try:
         

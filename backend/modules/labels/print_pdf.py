@@ -141,7 +141,7 @@ def stream_pdf_labels(conn: PGConn, job_id: int) -> StreamingResponse:
             cur.execute(
                 """
                 SELECT r.sku, r.product_name, r.uk_6m_data, r.fr_6m_data,
-                       COALESCE(r.line_date, j.line_date) AS line_date,
+                       COALESCE(r.line, j.line) AS line,
                        r.item_id, r.price, COALESCE(j.region, 'uk') AS region
                 FROM label_print_items r
                 JOIN label_print_jobs j ON j.id = r.job_id
@@ -170,7 +170,7 @@ def stream_pdf_labels(conn: PGConn, job_id: int) -> StreamingResponse:
         tmpdir = tempfile.mkdtemp()
 
         # 3. render labels
-        for sku, name, uk, fr, line_date, barcode_val, price, region in rows:
+        for sku, name, uk, fr, line, barcode_val, price, region in rows:
             col = label_no % COLS_PER_PAGE
             row_pos = (label_no // COLS_PER_PAGE) % ROWS_PER_PAGE
             x = x0 + col * LABEL_WIDTH

@@ -23,6 +23,30 @@ def inventory_management_health():
     return {"status": "Inventory management module ready"}
 
 
+@router.get("/status")
+def check_tables_status(user=Depends(get_current_user)):
+    """Check if inventory management tables exist without creating them"""
+    try:
+        result = _svc().check_tables_status()
+        return result
+    except Exception as e:
+        logger.error(f"Error checking tables status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/init")
+def initialize_tables(user=Depends(get_current_user)):
+    """Initialize inventory management tables if they don't exist"""
+    try:
+        svc = _svc()
+        # This will create tables if needed
+        svc.get_inventory_items_from_magento()
+        return {"status": "success", "message": "Tables initialized successfully"}
+    except Exception as e:
+        logger.error(f"Error initializing tables: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # ---- Inventory Items ----
 @router.get("/items")
 def get_inventory_items(

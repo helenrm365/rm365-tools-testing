@@ -1,5 +1,5 @@
 // js/modules/labels/history.js
-import { listPrintJobs, getPrintJob, deletePrintJob, deletePrintJobs, downloadPDF, downloadCSV } from '../../services/api/labelsApi.js';
+import { listPrintJobs, getPrintJob, deletePrintJob, deletePrintJobs, downloadPDF, downloadCSV, purgeOldJobs } from '../../services/api/labelsApi.js';
 import { showToast } from '../../ui/toast.js';
 import { confirmModal } from '../../ui/confirmationModal.js';
 
@@ -79,7 +79,7 @@ const FALLBACK_TEST_JOBS = [
     id: 1001,
     created_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 min ago
     created_by: 'admin@example.com',
-    line_date: '2026-01-10',
+    line: null,
     item_count: 24,
     total_uk_6m: 156,
     total_fr_6m: 89
@@ -88,7 +88,7 @@ const FALLBACK_TEST_JOBS = [
     id: 1000,
     created_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago
     created_by: 'warehouse@example.com',
-    line_date: '2026-01-09',
+    line: null,
     item_count: 12,
     total_uk_6m: 78,
     total_fr_6m: 45
@@ -97,7 +97,7 @@ const FALLBACK_TEST_JOBS = [
     id: 999,
     created_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), // 1 day ago
     created_by: 'admin@example.com',
-    line_date: null,
+    line: null,
     item_count: 8,
     total_uk_6m: 42,
     total_fr_6m: 28
@@ -106,7 +106,7 @@ const FALLBACK_TEST_JOBS = [
     id: 998,
     created_at: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(), // 2 days ago
     created_by: 'manager@example.com',
-    line_date: '2026-01-07',
+    line: null,
     item_count: 35,
     total_uk_6m: 210,
     total_fr_6m: 125
@@ -115,7 +115,7 @@ const FALLBACK_TEST_JOBS = [
     id: 997,
     created_at: new Date(Date.now() - 1000 * 60 * 60 * 72).toISOString(), // 3 days ago
     created_by: 'admin@example.com',
-    line_date: '2026-01-06',
+    line: null,
     item_count: 18,
     total_uk_6m: 95,
     total_fr_6m: 62
@@ -147,6 +147,18 @@ async function loadHistory() {
         <p>Loading history...</p>
       </div>
     `;
+    
+    // Purge old jobs (older than 6 months) before loading
+    // This keeps the database clean and prevents excessive growth
+    try {
+      const purgeResult = await purgeOldJobs(6);
+      if (purgeResult.jobs_deleted > 0) {
+        console.log(`[Labels History] Purged ${purgeResult.jobs_deleted} old jobs and ${purgeResult.items_deleted} items`);
+      }
+    } catch (purgeError) {
+      // Don't block loading if purge fails - just log it
+      console.warn('[Labels History] Failed to purge old jobs:', purgeError.message);
+    }
     
     let jobs = [];
     
@@ -278,7 +290,7 @@ function renderJobsTable() {
           <th class="col-checkbox"><i class="fas fa-check-square"></i></th>
           <th><i class="fas fa-hashtag"></i> Job ID</th>
           <th><i class="fas fa-calendar-alt"></i> Created</th>
-          <th><i class="fas fa-calendar-day"></i> Line Date</th>
+          <th><i class="fas fa-tag"></i> Line</th>
           <th style="text-align: center;"><i class="fas fa-cubes"></i> Items</th>
           <th style="text-align: center;"><i class="fas fa-flag"></i> UK 6M</th>
           <th style="text-align: center;"><i class="fas fa-flag"></i> FR 6M</th>
@@ -300,7 +312,7 @@ function renderJobsTable() {
               <div class="created-main">${formatDateTime(job.created_at)}</div>
               ${job.created_by ? `<div class="created-by">${job.created_by}</div>` : ''}
             </td>
-            <td class="col-line-date">${job.line_date || '<span class="muted-text">Not set</span>'}</td>
+            <td class="col-line">${job.line || '<span class="muted-text">-</span>'}</td>
             <td class="col-items"><strong>${job.item_count || 0}</strong></td>
             <td class="col-uk">${job.total_uk_6m || 0}</td>
             <td class="col-fr">${job.total_fr_6m || 0}</td>

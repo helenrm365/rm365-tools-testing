@@ -203,6 +203,39 @@ class InventoryManagementRepo:
         finally:
             return_products_connection(conn)
 
+    def check_tables_exist(self) -> dict:
+        """Check which inventory management tables exist"""
+        conn = self.get_metadata_connection()
+        try:
+            cursor = conn.cursor()
+            
+            # Inventory management module requires these tables
+            tables = [
+                'inventory_metadata',
+                'magento_product_list'
+            ]
+            status = {}
+            
+            for table_name in tables:
+                cursor.execute("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables 
+                        WHERE table_schema = 'public' 
+                        AND table_name = %s
+                    )
+                """, (table_name,))
+                
+                status[table_name] = cursor.fetchone()[0]
+            
+            cursor.close()
+            return status
+            
+        except Exception as e:
+            logger.error(f"Error checking tables: {e}")
+            raise
+        finally:
+            self.return_connection(conn)
+
     def init_tables(self) -> None:
         """Initialize inventory metadata tables"""
         conn = self.get_metadata_connection()
@@ -323,7 +356,7 @@ class InventoryManagementRepo:
                 CREATE TABLE IF NOT EXISTS label_print_jobs (
                     id SERIAL PRIMARY KEY,
                     created_by VARCHAR(255),
-                    line_date DATE,
+                    line VARCHAR(255),
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
@@ -338,7 +371,7 @@ class InventoryManagementRepo:
                     uk_6m_data INTEGER DEFAULT 0,
                     fr_6m_data INTEGER DEFAULT 0,
                     price DECIMAL(10, 2) DEFAULT 0.00,
-                    line_date DATE,
+                    line VARCHAR(255),
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
@@ -440,27 +473,26 @@ class InventoryManagementRepo:
     def sync_magento_products_to_inventory_metadata(self) -> Dict[str, int]:
         """
         Sync ALL products (regardless of enabled/disabled status) from UK Magento catalog to inventory_metadata.
+        Uses BATCH operations for performance (similar to magento data module).
         
         Behavior:
         - Fetches ALL products from UK Magento catalog_product_entity table
         - NEW products (SKU not in inventory_metadata): Creates new record with just SKU
-        - EXISTING products (SKU already in inventory_metadata): Preserved completely
-          * Keeps item_id, location, shelf quantities, sales data, etc.
-          * No updates or overwrites
-          * Persists even if product status changes in Magento
+        - EXISTING products (SKU already in inventory_metadata): Updates status only
         - FILTERED OUT: Products with "AW365" in their name are completely ignored
         - Note: We do NOT filter by Magento's enabled/disabled status - all products are synced
         
         Returns stats about the operation.
         """
+        from psycopg2.extras import execute_values
+        
         conn = self.get_metadata_connection()
         try:
             cursor = conn.cursor()
             
             stats = {
                 "total_products": 0,
-                "new_records": 0,
-                "existing_records": 0,
+                "synced_records": 0,
                 "filtered_aw365": 0
             }
             
@@ -539,10 +571,10 @@ class InventoryManagementRepo:
                 if magento_conn.open:
                     magento_conn.close()
             
-            # Process each product, filtering out AW365 categories and products with no categories
+            # Filter products and collect valid ones for batch insert
+            valid_products = []
             for product in products:
                 sku = product['sku']
-                name = product.get('name') or sku
                 categories = product.get('categories') or ""
                 status = product.get('discontinued_status') or "Active"
                 stats["total_products"] += 1
@@ -550,34 +582,37 @@ class InventoryManagementRepo:
                 # Filter: Skip if no categories assigned
                 if not categories or categories.strip() == "":
                     stats["filtered_aw365"] += 1
-                    logger.debug(f"Filtered out {sku} (no categories assigned)")
                     continue
                 
                 # Filter: Skip if categories contain "AW365" (case-insensitive)
                 if categories and "AW365" in categories.upper():
                     stats["filtered_aw365"] += 1
-                    logger.debug(f"Filtered out {sku} (categories contain AW365)")
                     continue
                 
-                # Insert into inventory_metadata (only if SKU doesn't exist)
-                # Note: We never DELETE from inventory_metadata, so products keep their data
-                cursor.execute("""
-                    INSERT INTO inventory_metadata (sku, status)
-                    VALUES (%s, %s)
+                valid_products.append((sku, status))
+            
+            # BATCH upsert using execute_values (much faster than individual inserts)
+            if valid_products:
+                # Use ON CONFLICT to upsert
+                upsert_query = """
+                    INSERT INTO inventory_metadata (sku, status, updated_at)
+                    VALUES %s
                     ON CONFLICT (sku) DO UPDATE SET
-                        status = EXCLUDED.status
-                    RETURNING sku
-                """, (sku, status))
+                        status = EXCLUDED.status,
+                        updated_at = NOW()
+                """
                 
-                if cursor.fetchone():
-                    stats["new_records"] += 1
-                else:
-                    stats["existing_records"] += 1
+                # Prepare data with current timestamp
+                from datetime import datetime
+                upsert_data = [(sku, status, datetime.now()) for sku, status in valid_products]
+                
+                execute_values(cursor, upsert_query, upsert_data, page_size=500)
+                stats["synced_records"] = len(valid_products)
             
             conn.commit()
             
-            if stats["new_records"] > 0:
-                logger.info(f"✅ Synced {stats['new_records']} new products to inventory_metadata from Magento catalog")
+            if stats["synced_records"] > 0:
+                logger.info(f"✅ Synced {stats['synced_records']} products to inventory_metadata from Magento catalog (batch mode)")
             if stats["filtered_aw365"] > 0:
                 logger.info(f"🚫 Filtered out {stats['filtered_aw365']} AW365 products")
             
@@ -594,9 +629,11 @@ class InventoryManagementRepo:
     def update_variant_statuses(self) -> None:
         """
         Fetch all products from Magento, group by base SKU, and update variant_statuses in inventory_metadata.
+        Uses batch operations for performance.
         This ensures that inventory_metadata has the complete list of statuses for all variants of a product.
         """
         import re
+        from psycopg2.extras import execute_batch
         
         # Get all products from Magento (raw list)
         all_products = self.get_magento_products(status_filters=None)
@@ -637,12 +674,12 @@ class InventoryManagementRepo:
                 statuses_list = sorted(list(data['statuses']))
                 updates.append((json.dumps(statuses_list), base_sku))
             
-            # Execute batch update
-            cursor.executemany("""
+            # Execute batch update using execute_batch (faster than executemany)
+            execute_batch(cursor, """
                 UPDATE inventory_metadata
                 SET variant_statuses = %s, updated_at = NOW()
                 WHERE sku = %s
-            """, updates)
+            """, updates, page_size=500)
             
             conn.commit()
             logger.info(f"✅ Updated variant_statuses for {len(updates)} products in inventory_metadata")
@@ -658,6 +695,7 @@ class InventoryManagementRepo:
         """
         Normalize all products to use their base SKU - removes all identifier suffixes (-MD, -SD, -DP, -NP, -MV).
         Also handles extended variants like -MD-xxxx.
+        Uses BATCH operations for performance.
         
         Logic:
         - If base SKU exists: delete the variant (merge into base)
@@ -667,12 +705,6 @@ class InventoryManagementRepo:
         This operates on inventory_metadata table (not magento_product_list).
         This should be called BEFORE ensure_all_products_have_item_ids() so that item IDs are generated
         after merging is complete.
-        
-        Process:
-        1. Find all products with identifier suffixes in inventory_metadata
-        2. For each, extract the base SKU by removing suffix
-        3. If base exists: delete the variant (merge into base)
-        4. If base doesn't exist: rename variant to base SKU
         
         Returns stats about the operation.
         """
@@ -687,59 +719,63 @@ class InventoryManagementRepo:
             stats = {
                 "total_checked": 0,
                 "deleted": 0,
-                "renamed": 0,
-                "base_existed": 0,
-                "base_created": 0
+                "renamed": 0
             }
             
-            # Find all products with identifier suffixes (including -XX-xxxx variants)
-            # Use ILIKE for case-insensitive matching since ~ is case-sensitive by default
+            # Find all products with identifier suffixes
             cursor.execute("""
                 SELECT sku FROM inventory_metadata
                 WHERE sku ~* '-(MD|SD|DP|NP|MV)'
                 ORDER BY sku
             """)
             
-            # Filter to only SKUs that actually match the pattern (avoid false positives)
+            # Filter to only SKUs that actually match the pattern
             all_skus = [row[0] for row in cursor.fetchall()]
             identifier_skus = [sku for sku in all_skus if identifier_pattern_regex.search(sku)]
             stats["total_checked"] = len(identifier_skus)
             
+            if not identifier_skus:
+                logger.info("No products with identifier suffixes found")
+                return stats
+            
             logger.info(f"Found {len(identifier_skus)} products with identifier suffixes in inventory_metadata")
             
-            # Process each identifier SKU
+            # Get all existing base SKUs in one query
+            cursor.execute("SELECT sku FROM inventory_metadata")
+            existing_skus = {row[0] for row in cursor.fetchall()}
+            
+            # Categorize SKUs for batch operations
+            skus_to_delete = []
+            skus_to_rename = []  # list of (new_sku, old_sku) tuples
+            
             for sku in identifier_skus:
-                # Determine base SKU by removing identifier suffix (and any -xxxx extension)
                 base_sku = identifier_pattern_regex.sub('', sku)
                 
-                # Check if base SKU already exists
-                cursor.execute("""
-                    SELECT sku FROM inventory_metadata
-                    WHERE sku = %s
-                """, (base_sku,))
-                
-                base_exists = cursor.fetchone()
-                
-                if base_exists:
-                    # Base exists - delete the variant (merge into base)
-                    # (sales data will be aggregated via the sales aggregation logic)
-                    cursor.execute("""
-                        DELETE FROM inventory_metadata
-                        WHERE sku = %s
-                    """, (sku,))
-                    stats["deleted"] += 1
-                    stats["base_existed"] += 1
-                    logger.debug(f"Deleted {sku} (merged into base {base_sku})")
+                if base_sku in existing_skus:
+                    # Base exists - mark variant for deletion
+                    skus_to_delete.append(sku)
                 else:
-                    # Base doesn't exist - rename variant to base SKU
-                    cursor.execute("""
-                        UPDATE inventory_metadata
-                        SET sku = %s, updated_at = NOW()
-                        WHERE sku = %s
-                    """, (base_sku, sku))
-                    stats["renamed"] += 1
-                    stats["base_created"] += 1
-                    logger.debug(f"Renamed {sku} to {base_sku}")
+                    # Base doesn't exist - mark for rename and add to existing set
+                    skus_to_rename.append((base_sku, sku))
+                    existing_skus.add(base_sku)  # Prevent duplicates in same batch
+            
+            # Batch delete variants that have base SKUs
+            if skus_to_delete:
+                cursor.execute("""
+                    DELETE FROM inventory_metadata
+                    WHERE sku = ANY(%s)
+                """, (skus_to_delete,))
+                stats["deleted"] = len(skus_to_delete)
+            
+            # Batch rename variants to base SKUs (one at a time due to unique constraint)
+            if skus_to_rename:
+                from psycopg2.extras import execute_batch
+                execute_batch(cursor, """
+                    UPDATE inventory_metadata
+                    SET sku = %s, updated_at = NOW()
+                    WHERE sku = %s
+                """, skus_to_rename, page_size=100)
+                stats["renamed"] = len(skus_to_rename)
             
             conn.commit()
             

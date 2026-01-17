@@ -20,6 +20,24 @@ _CACHE_TTL = 3600  # Cache for 1 hour
 class InventoryManagementService:
     def __init__(self, repo: Optional[InventoryManagementRepo] = None):
         self.repo = repo or InventoryManagementRepo()
+
+    def check_tables_status(self) -> Dict[str, Any]:
+        """Check the status of inventory management tables"""
+        try:
+            status = self.repo.check_tables_exist()
+            all_exist = all(status.values())
+            
+            return {
+                "status": "success",
+                "tables_status": status,
+                "all_tables_exist": all_exist
+            }
+        except Exception as e:
+            logger.error(f"Error checking tables: {e}")
+            return {
+                "status": "error",
+                "message": f"Failed to check tables: {str(e)}"
+            }
     
     def _populate_magento_data_for_items(self, items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """

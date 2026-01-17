@@ -3,4 +3,5 @@ export * as enrollmentApi from './enrollmentApi.js';
 // later:
 export * as attendanceApi from './attendanceApi.js';
 export * as usersApi from './usersApi.js';
+export * as inventoryApi from './inventoryApi.js';
 // export other feature APIs the same way

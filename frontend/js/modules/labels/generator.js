@@ -1,5 +1,5 @@
 // js/modules/labels/generator.js
-import { getProductsToPrint, createPrintJob, downloadPDF, downloadCSV, initDependencies, getPresets, createPreset, updatePreset, deletePreset } from '../../services/api/labelsApi.js';
+import { getProductsToPrint, createPrintJob, downloadPDF, downloadCSV, initDependencies, getPresets, createPreset, updatePreset, deletePreset, checkTablesStatus, initializeTables } from '../../services/api/labelsApi.js';
 import { showToast } from '../../ui/toast.js';
 import { getToken } from '../../services/state/sessionStore.js';
 import { getUserData } from '../../services/state/userStore.js';
@@ -130,6 +130,19 @@ document.addEventListener('click', (e) => {
 });
 
 export async function initLabelGenerator() {
+  // Check tables status and initialize if needed (like Magento Data)
+  try {
+    const statusResult = await checkTablesStatus();
+    if (statusResult.status === 'success' && !statusResult.all_tables_exist) {
+      console.log('[Labels] Some tables missing, initializing...', statusResult.tables_status);
+      await initializeTables();
+      console.log('[Labels] Tables initialized successfully');
+    }
+  } catch (error) {
+    console.error('[Labels] Error checking/initializing tables:', error);
+    // Continue anyway - loadProducts will handle errors
+  }
+  
   // Setup status filter checkboxes (all checked by default)
   setupStatusFilterCheckboxes();
   
