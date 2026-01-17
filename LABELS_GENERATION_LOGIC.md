@@ -424,13 +424,18 @@ WHERE cpev_name.value NOT LIKE '%AW365%'
 Labels support **region preference** for pricing and product names:
 
 ### UK Preference (Default)
-- Prices in GBP (£)
-- Product names from UK orders_cache
-- Falls back to FR/NL if UK data unavailable
+- Prices from UK Magento catalog in GBP (£), converted to excl. VAT
+- Product names from UK Magento catalog (fallback: orders_cache)
+- Falls back to other regions if UK data unavailable
 
-### FR/NL Preference
-- Prices in EUR (€)
-- Product names from FR/NL orders_cache
+### FR Preference
+- Prices from FR Magento catalog in EUR (€), already excl. VAT
+- Product names from FR Magento catalog (fallback: orders_cache, then UK catalog)
+- Falls back to UK if regional data unavailable
+
+### NL Preference
+- Prices from NL Magento catalog in EUR (€), converted to excl. VAT
+- Product names from NL Magento catalog (fallback: orders_cache, then UK catalog)
 - Falls back to UK if regional data unavailable
 
 **Use Case:** Generate labels appropriate for specific warehouses or markets
@@ -443,10 +448,10 @@ Labels Generation and Inventory Management use **identical logic** for:
 
 | Aspect | Shared Logic |
 |--------|--------------|
-| Product Source | UK Magento `catalog_product_entity` |
-| Filtering | Custom `discontinued_status` attribute |
-| AW365 Exclusion | Product name contains "AW365" |
-| SKU Merging | Only MD variants merge |
+| Product Source | `inventory_metadata` table (synced from UK Magento) |
+| Filtering | `variant_statuses` JSONB array (ANY match) |
+| AW365 Exclusion | Excluded during Magento sync |
+| SKU Merging | ALL variants (MD, SD, DP, NP, MV) merge to base SKU |
 | 6M Data | Same aggregated_orders tables |
 | Item IDs | Same inventory_metadata table |
 
@@ -454,7 +459,7 @@ Labels Generation and Inventory Management use **identical logic** for:
 - Ensures label data matches inventory data
 - Prevents discrepancies between systems
 - Single source of truth for product information
-- Consistent MD merging across all modules
+- Consistent variant normalization across all modules
 
 ---
 
@@ -465,12 +470,12 @@ Each label contains:
 | Field | Source | Description |
 |-------|--------|-------------|
 | `item_id` | inventory_metadata | 18-digit barcode |
-| `sku` | UK Magento catalog | Product SKU (always base form) |
-| `product_name` | orders_cache | Latest product name |
+| `sku` | inventory_metadata | Product SKU (always base form) |
+| `product_name` | Magento catalog / orders_cache | Product name with region preference |
 | `uk_6m_data` | uk_aggregated_orders | UK 6-month sales quantity |
-| `fr_6m_datSelected region Magento catalog | Live price excl. VAT (UK/NL: ÷1.20, FR: direct
-| `price` | UK Magento catalog | Live price excluding VAT (special_price > price > N/A) |
-| `variant_statuses` | UK Magento (internal) | Array of all variant statuses (used for filtering) |
+| `fr_6m_data` | fr_aggregated_orders + nl_aggregated_orders | FR+NL combined 6-month sales quantity |
+| `price` | Selected region Magento catalog | Live price excl. VAT (special_price > price > N/A) |
+| `variant_statuses` | inventory_metadata (internal) | Array of all variant statuses (used for filtering only) |
 
 **Example Label Data:**
 ```json
@@ -493,27 +498,28 @@ Each label contains:
 
 ### Required for Label Generation:
 
-1. **Inventory Sync Must Run First**
-   - Populates `inventory_metadata` with item IDs
+1. **Inventory Metadata Must Be Synced**
+   - Populates `inventory_metadata` with item IDs and SKUs
    - Without item IDs, labels cannot generate barcodes
-   - Run: Inventory Management → Sync from Magento
+   - Note: Labels API auto-syncs on every request via `sync_magento_products_to_inventory_metadata()`
 
 2. **Aggregated Data Must Be Refreshed**
    - Populates `uk/fr/nl_aggregated_orders` tables
    - Without 6M data, labels show 0 for sales quantities
-   - Run: Magento Data → Refresh Aggregated Data
+   - Run: Magento Data → Refresh Aggregated Data (or auto-syncs on frontend load)
 
-3. **Orders Cache Must Be Populated**
-   - Provides prices and product names
-   - Without orders data, labels may show missing prices/names
+3. **Orders Cache Must Be Populated** (for fallback names)
+   - Provides product names when not found in live Magento catalog
+   - Without orders data, some labels may be skipped as orphaned
    - Run: Magento Data → Sync Orders
 
 ### Data Freshness:
 
-- **Product Catalog:** Real-time (queries Magento directly)
-- **Item IDs:** Updated when inventory sync runs
-- **6M Data:** Updated when aggregated data refreshes (after magento sync)
-- **Prices/Names:** Updated when orders cache syncs
+- **Product Catalog:** Real-time (queries live Magento directly)
+- **Item IDs:** Auto-synced on every labels API request
+- **6M Data:** Updated when aggregated data refreshes
+- **Prices:** Real-time (queries live Magento catalog)
+- **Names:** Real-time from Magento catalog, fallback from orders cache
 
 ---
 
@@ -526,15 +532,15 @@ Labels module requires connections to:
 1. **UK/FR/NL Magento MySQL Databases** (read-only)
    - Host: From magento database config (region-specific)
    - Purpose: Fetch product catalog with EAV attributes, live prices, and localized names
-   - Tables: `catalog_product_entity`, `catalog_product_entity_decimal`, `eav_attribute`, etc.
+   - Tables: `catalog_product_entity`, `catalog_product_entity_decimal`, `catalog_product_entity_varchar`, `eav_attribute`, etc.
 
 2. **Products PostgreSQL Database** (read-only)
-   - Purpose: Fetch aggregated sales data and product names
+   - Purpose: Fetch aggregated sales data and product names from order history
    - Tables: `uk/fr/nl_aggregated_orders`, `uk/fr/nl_orders_cache`
 
-3. **Inventory PostgreSQL Database** (read-only)
-   - Purpose: Fetch item IDs
-   - Table: `inventory_metadata`
+3. **Inventory PostgreSQL Database** (read-write)
+   - Purpose: Fetch item IDs and product list; store label print jobs
+   - Tables: `inventory_metadata`, `label_print_jobs`, `label_print_items`, `label_printing_presets`
 
 ### Performance Considerations
 
@@ -542,10 +548,6 @@ Labels module requires connections to:
 - **Region Tables:** Queries each region table separately to avoid timeouts
 - **Caching:** Results can be cached temporarily during label generation
 - **Index Usage:** Relies on indexes on SKU columns for fast lookups
-
----
-
-## Error Handling
 
 ### Missing Data Scenarios:
 
@@ -560,20 +562,20 @@ Labels module requires connections to:
    - Indicates product has no recent sales
 
 3. **SKU has no price**
-   - Defaults to "£0.00" or "€0.00"
+   - Defaults to "N/A"
    - Label still generates
-   - Indicates product hasn't been ordered recently
+   - Indicates product not found in Magento catalog
 
-4. **SKU has no product name**
-   - Falls back to using SKU as name
-   - Label still generates
-   - Rare scenario (usually has name from catalog)
+4. **SKU has no product name (orphaned)**
+   - By default, SKU is skipped (not included in labels)
+   - Use `show_orphaned=true` to include orphaned SKUs with empty name
+   - Orphaned = exists in inventory_metadata but not in Magento catalog or order history
 
 ### Validation:
 
-- CSV uploads validate all SKUs against Magento catalog
-- Invalid SKUs are filtered out with warning
-- Only valid, active-status SKUs proceed to label generation
+- Invalid SKUs are filtered out during processing
+- Only SKUs with item_ids in inventory_metadata proceed to label generation
+- Orphaned SKUs (no product name found) are skipped unless `show_orphaned=true`
 
 ---
 
@@ -624,16 +626,16 @@ Presets allow saving filter configurations for quick reuse.
 
 | Feature | Labels | Inventory Management |
 |---------|--------|---------------------|
-| Product Source | UK Magento catalog_product_entity | UK Magento catalog_product_entity |
+| Product Source | inventory_metadata (synced from UK Magento) | inventory_metadata (synced from UK Magento) |
 | Filtering | `variant_statuses` (ANY match) | `variant_statuses` (ANY match) |
 | Variant Normalization | ALL variants → base SKU | ALL variants → base SKU |
 | Status Tracking | `variant_statuses` JSONB array | `variant_statuses` JSONB array |
 | 6M Data Source | aggregated_orders tables | aggregated_orders tables |
-| Item IDs Region-specific Magento catalog (UK/NL: excl. VAT via ÷1.20, FR: direct
-| Prices | UK Magento live catalog (excl. VAT: special_price > price > N/A) | Not shown |
+| Item IDs | inventory_metadata | inventory_metadata |
+| Prices | Region-specific Magento catalog (excl. VAT) | Not shown |
 | Output | PDF/CSV label file | Web table UI |
 | Product Selection | UI checkboxes + manual selection | UI table with inline editing |
-| Region Preference | Yes (names: localized, prices: region-specific VAT handling) | No (always UK) |
+| Region Preference | Yes (names: localized, prices: region-specific) | No (always UK) |
 | Presets | Yes (saveable filter configs) | No |
 | Orphaned Filter | Yes (`show_orphaned` param) | Yes (`show_orphaned` param) |
 
@@ -682,7 +684,7 @@ Presets allow saving filter configurations for quick reuse.
 - `_resolve_to_rows()` - Combines all data sources into label rows
 - `_load_6m_data_from_aggregated_tables()` - Loads UK/FR 6M sales data
 - `_load_inventory_item_ids()` - Loads barcodes from inventory_metadata
-- `_load_latest_prices_psycopg()` - Loads prices with region preference
+- `_load_latest_prices_from_magento_catalog()` - Loads prices from live Magento catalog
 - `_load_product_names_psycopg()` - Loads names from orders cache
 - `_load_product_names_from_magento()` - Fallback name loader from catalog
 - `stream_pdf_labels()` - Generates PDF label file
@@ -690,4 +692,4 @@ Presets allow saving filter configurations for quick reuse.
 
 ---
 
-*Last Updated: January 11, 2026*
+*Last Updated: January 17, 2026*

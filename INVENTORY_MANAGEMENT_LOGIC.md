@@ -43,7 +43,8 @@ The Inventory Management system tracks product inventory data, including stock l
 When a product exists in `inventory_metadata` (the warehouse) but is no longer found in the live Magento catalog (e.g., deleted):
 1.  **Check Live Catalog:** Primary source. If found, use live data.
 2.  **Check Order History:** If not found in Live, checks historical `orders_cache` tables to find the product name from past sales.
-3.  **Orphaned:** If not found in Live OR History, it is marked as "Orphaned" (product exists in warehouse but has no name/details).
+3.  **Check Magento Catalog Directly:** If still not found, searches Magento catalog for variants that might match.
+4.  **Orphaned:** If not found after all fallbacks, it is marked as "Orphaned" (product exists in warehouse but has no name/details).
 
 **Key Points:**
 - **All products visible** regardless of Magento enabled/disabled status
@@ -340,8 +341,6 @@ When update_variant_statuses() is called (e.g., by Labels module):
 - Updates variant_statuses = ["Active", "Pre Order"] ✅
 - Product now findable by both statuses
 ```
-- As long as ANY variant exists in Magento, the base SKU displays
-- This matches the normalized form in `inventory_metadata`
 
 **Important Notes:**
 - This operates on `inventory_metadata` (NOT Magento catalog)
@@ -908,4 +907,4 @@ LIMIT per_page OFFSET (page-1)*per_page
 
 ---
 
-*Last Updated: January 11, 2026*
+*Last Updated: January 17, 2026*
