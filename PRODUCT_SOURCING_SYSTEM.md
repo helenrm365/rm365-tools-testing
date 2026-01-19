@@ -779,7 +779,6 @@ backend/
 
 frontend/
 ├── index.html                       # Added: CSS link to sourcing.css
-├── html/home.html                   # Contains Inventory card (Product Sourcing accessed via tabs)
 ├── js/
 │   ├── router.js                    # Added: /inventory/sourcing route definitions (9 routes)
 │   └── modules/inventory/index.js   # Added: sourcing route handler

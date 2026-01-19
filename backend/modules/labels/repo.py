@@ -845,3 +845,43 @@ class LabelsRepo:
         finally:
             if conn:
                 return_inventory_connection(conn)
+
+    def get_today_count(self) -> int:
+        """Get count of labels generated today for dashboard"""
+        from core.db import get_inventory_log_connection, return_inventory_connection
+        from datetime import date
+        conn = None
+        try:
+            conn = get_inventory_log_connection()
+            cursor = conn.cursor()
+            
+            # Check if table exists first
+            cursor.execute("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_schema = 'public' 
+                    AND table_name = 'label_print_jobs'
+                )
+            """)
+            
+            if not cursor.fetchone()[0]:
+                cursor.close()
+                return 0
+            
+            # Count jobs created today
+            cursor.execute("""
+                SELECT COALESCE(SUM(total_rows), 0)
+                FROM label_print_jobs
+                WHERE DATE(created_at) = %s
+            """, (date.today(),))
+            
+            count = cursor.fetchone()[0]
+            cursor.close()
+            return int(count) if count else 0
+            
+        except Exception as e:
+            logger.error(f"Error getting today's label count: {e}")
+            return 0
+        finally:
+            if conn:
+                return_inventory_connection(conn)

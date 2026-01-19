@@ -54,25 +54,27 @@ const routes = {
   '/home':                  '/html/home.html',
   '/login':                 '/html/login.html',
   
-  // Attendance System (consolidated)
-  '/attendance-system':           '/html/attendance-system/home.html',
+  // Attendance System - redirect root to first sub-page
+  '/attendance-system':           '/html/attendance-system/employees.html',
   '/attendance-system/employees': '/html/attendance-system/employees.html',
   '/attendance-system/overview':  '/html/attendance-system/overview.html',
   '/attendance-system/automatic': '/html/attendance-system/automatic.html',
   '/attendance-system/logs':      '/html/attendance-system/logs.html',
 
-  '/labels':                '/html/labels/home.html',
+  // Labels - redirect root to first sub-page
+  '/labels':                '/html/labels/generator.html',
   '/labels/generator':      '/html/labels/generator.html',
   '/labels/history':        '/html/labels/history.html',
 
-  '/magentodata':         '/html/magentodata/home.html',
+  // Magento Data - redirect root to first sub-page
+  '/magentodata':         '/html/magentodata/uk-magento.html',
   '/magentodata/uk-magento':'/html/magentodata/uk-magento.html',
   '/magentodata/fr-magento':'/html/magentodata/fr-magento.html',
   '/magentodata/nl-magento':'/html/magentodata/nl-magento.html',
-  '/magentodata/test-magento':'/html/magentodata/test-magento.html',
   '/magentodata/history': '/html/magentodata/history.html',
 
-  '/inventory':             '/html/inventory/home.html',
+  // Inventory - redirect root to first sub-page
+  '/inventory':             '/html/inventory/management.html',
   '/inventory/management':  '/html/inventory/management.html',
   '/inventory/sourcing':    '/html/inventory/sourcing.html',
   '/inventory/sourcing/dashboard':     '/html/inventory/sourcing.html',
@@ -84,13 +86,15 @@ const routes = {
   '/inventory/sourcing/import':        '/html/inventory/sourcing.html',
   '/inventory/sourcing/margins':       '/html/inventory/sourcing.html',
   
-  '/orders':                    '/html/orders/home.html',
+  // Orders - redirect root to first sub-page
+  '/orders':                    '/html/orders/order-fulfillment.html',
   '/orders/order-fulfillment':  '/html/orders/order-fulfillment.html',
   '/orders/order-progress':     '/html/orders/order-progress.html',
   '/orders/order-tracking':     '/html/orders/order-tracking.html',
   '/orders/order-approval':     '/html/orders/order-approval.html',
   
-  '/usermanagement':            '/html/usermanagement/home.html',
+  // User Management - redirect root to first sub-page
+  '/usermanagement':            '/html/usermanagement/management.html',
   '/usermanagement/management': '/html/usermanagement/management.html',
 };
 
@@ -169,8 +173,8 @@ export function generateTabStructure() {
   
   // Parse routes to build structure
   Object.keys(routes).forEach(route => {
-    // Skip root, home, and login routes
-    if (route === '/' || route === '/home' || route === '/login') return;
+    // Skip login route
+    if (route === '/login') return;
     
     const parts = route.split('/').filter(p => p);
     
@@ -272,11 +276,18 @@ export async function navigate(path, replace = false) {
     if (!url) {
       console.warn('[Router] No route defined for:', path);
       console.warn('[Router] Available routes:', Object.keys(routes));
-      // Fallback to home page
-      const fallbackPath = '/home';
-      if (path !== fallbackPath) {
+      // Fallback to default allowed path or login
+      const fallbackPath = enforceRoutePermission(path).redirect || '/login';
+      // Prevent infinite loop: only redirect if fallback exists and is different
+      if (path !== fallbackPath && routes[fallbackPath]) {
         return navigate(fallbackPath, replace);
       }
+      // If no valid fallback, go to login
+      if (path !== '/login') {
+        return navigate('/login', replace);
+      }
+      // Already at login but it doesn't exist - critical error
+      throw new Error('Login route not configured');
     }
 
     // Fetch the HTML content
@@ -459,7 +470,7 @@ export function setupRouter() {
     navigate(e.state?.path || location.pathname, true);
   });
 
-  // Determine initial route
+  // Determine initial route - use current path or home
   const currentPath = (location.pathname && location.pathname !== '/')
     ? location.pathname
     : '/home';

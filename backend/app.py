@@ -338,7 +338,9 @@ working_modules = [
     ('modules.inventory.management.api', 'router', f'{API}/inventory/management', ['inventory-management']),
     ('modules.inventory.collaboration', 'router', f'{API}/inventory/collaboration', ['inventory-collaboration']),
     ('modules.inventory.sourcing.api', 'router', f'{API}/inventory/sourcing', ['inventory-sourcing']),
+    ('modules.inventory.api', 'router', f'{API}/inventory', ['inventory']),  # Root inventory endpoints
     ('modules.orders.order_fulfillment.api', 'router', f'{API}/magento', ['magento']),
+    ('modules.orders.api', 'router', f'{API}/orders', ['orders']),  # Dashboard stats endpoint
 ]
 
 for mod, attr, prefix, tags in working_modules:

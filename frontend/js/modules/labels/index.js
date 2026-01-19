@@ -1,14 +1,30 @@
 // js/modules/labels/index.js
+// Router for labels module - no longer uses home page
+
+let currentSubModule = null;
+
 export async function init(path) {
-  if (path === '/labels/generator') {
-    const mod = await import('./generator.js');
-    await mod.initLabelGenerator();
-    return;
+  // Clean up previous sub-module
+  if (currentSubModule?.destroy) {
+    await currentSubModule.destroy();
   }
-  if (path === '/labels/history') {
+  
+  // Route to the appropriate sub-module based on path
+  if (path.includes('/history')) {
     const mod = await import('./history.js');
     await mod.init();
-    return;
+    currentSubModule = mod;
+  } else {
+    // Default to generator (first sub-page)
+    const mod = await import('./generator.js');
+    await mod.initLabelGenerator();
+    currentSubModule = mod;
   }
-  // /labels (home) - no initialization needed, it's just a static landing page
+}
+
+export async function destroy() {
+  if (currentSubModule?.destroy) {
+    await currentSubModule.destroy();
+  }
+  currentSubModule = null;
 }

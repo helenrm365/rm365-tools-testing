@@ -1,166 +1,285 @@
-<!-- Home Page -->
-<div class="module-home-hero">
-  <div class="hero-content">
-    <h1 class="hero-title"><img src="/assets/RM365_Logo_New.png" alt="RM365" class="home-title-logo"> Toolbox</h1>
-    <hr class="hero-divider">
-    <p class="hero-subtitle">Reliable Medicare's Business Management Platform</p>
-    
-    <!-- Login prompt for unauthenticated users -->
-    <div id="loginPrompt" class="login-prompt" hidden>
-      <div class="prompt-card">
-        <div class="prompt-icon-wrapper">
-          <svg class="prompt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-          </svg>
-        </div>
-        <h2>Sign in to get started</h2>
-        <p>Access all features and modules with your account</p>
-        <button id="goToLoginBtn" class="primary-button">
-          <span>Login</span>
-          <svg class="button-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-            <polyline points="12 5 19 12 12 19"></polyline>
-          </svg>
-        </button>
+<!-- Dashboard Home Page -->
+<div class="dashboard-container">
+  <!-- Header Section -->
+  <div class="dashboard-header">
+    <div class="header-content">
+      <div class="header-title-section">
+        <h1 class="dashboard-title">
+          <img src="/assets/RM365_Logo_New.png" alt="RM365" class="dashboard-logo">
+          <span>Dashboard</span>
+        </h1>
+        <p class="dashboard-subtitle">Welcome to Reliable Medicare's Business Management Platform</p>
       </div>
-    </div>
-    
-    <!-- Welcome message for authenticated users -->
-    <div id="welcomeMessage" class="welcome-message" hidden>
-      <div class="welcome-card">
-        <div class="welcome-icon-wrapper">
-          <svg class="welcome-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-            <circle cx="12" cy="7" r="4"></circle>
-          </svg>
+      <div class="header-meta">
+        <div class="current-datetime">
+          <span class="date-display" id="currentDate"></span>
+          <span class="time-display" id="currentTime"></span>
         </div>
-        <h2 id="welcomeUserName">Welcome back!</h2>
-        <p>Select a module below to get started</p>
       </div>
     </div>
   </div>
 
-  <div class="module-cards-grid">
-    <div class="module-feature-card" data-module="enrollment">
-      <div class="card-icon">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-          <polyline points="14 2 14 8 20 8"></polyline>
-          <line x1="16" y1="13" x2="8" y2="13"></line>
-          <line x1="16" y1="17" x2="8" y2="17"></line>
-          <polyline points="10 9 9 9 8 9"></polyline>
+  <!-- Login Prompt for Unauthenticated Users -->
+  <div id="loginPrompt" class="login-prompt-section" hidden>
+    <div class="login-prompt-card">
+      <div class="prompt-icon-wrapper">
+        <svg class="prompt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
         </svg>
       </div>
-      <div class="card-content">
-        <h3 class="card-title">Enrollment</h3>
-        <p class="card-description">Manage student and staff enrollment</p>
-      </div>
-      <div class="card-arrow">→</div>
+      <h2>Sign in to access the dashboard</h2>
+      <p>View metrics, manage operations, and access all platform features</p>
+      <button id="goToLoginBtn" class="primary-button">
+        <span>Login</span>
+        <svg class="button-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+          <polyline points="12 5 19 12 12 19"></polyline>
+        </svg>
+      </button>
     </div>
-    
-    <div class="module-feature-card" data-module="attendance">
-      <div class="card-icon">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"></circle>
-          <polyline points="12 6 12 12 16 14"></polyline>
-        </svg>
+  </div>
+
+  <!-- Dashboard Content for Authenticated Users -->
+  <div id="dashboardContent" class="dashboard-content" hidden>
+    <!-- Quick Stats Row -->
+    <div class="stats-row">
+      <div class="stat-card" data-module="attendance-system">
+        <div class="stat-icon attendance">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+        </div>
+        <div class="stat-info">
+          <span class="stat-label">Attendance</span>
+          <span class="stat-value" id="statAttendance">-</span>
+          <span class="stat-sublabel">Today's check-ins</span>
+        </div>
       </div>
-      <div class="card-content">
-        <h3 class="card-title">Attendance</h3>
-        <p class="card-description">Track and monitor attendance records</p>
+
+      <div class="stat-card" data-module="orders">
+        <div class="stat-icon orders">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="9" cy="21" r="1"></circle>
+            <circle cx="20" cy="21" r="1"></circle>
+            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+          </svg>
+        </div>
+        <div class="stat-info">
+          <span class="stat-label">Orders</span>
+          <span class="stat-value" id="statOrders">-</span>
+          <span class="stat-sublabel">Pending fulfillment</span>
+        </div>
       </div>
-      <div class="card-arrow">→</div>
+
+      <div class="stat-card" data-module="inventory">
+        <div class="stat-icon inventory">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+            <line x1="12" y1="22.08" x2="12" y2="12"></line>
+          </svg>
+        </div>
+        <div class="stat-info">
+          <span class="stat-label">Inventory</span>
+          <span class="stat-value" id="statInventory">-</span>
+          <span class="stat-sublabel">Low stock items</span>
+        </div>
+      </div>
+
+      <div class="stat-card" data-module="labels">
+        <div class="stat-icon labels">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+            <line x1="7" y1="7" x2="7.01" y2="7"></line>
+          </svg>
+        </div>
+        <div class="stat-info">
+          <span class="stat-label">Labels</span>
+          <span class="stat-value" id="statLabels">-</span>
+          <span class="stat-sublabel">Generated today</span>
+        </div>
+      </div>
     </div>
-    
-    <div class="module-feature-card" data-module="labels">
-      <div class="card-icon">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
-          <line x1="7" y1="7" x2="7.01" y2="7"></line>
-        </svg>
+
+    <!-- Main Dashboard Grid -->
+    <div class="dashboard-grid">
+      <!-- Quick Actions Panel -->
+      <div class="dashboard-panel quick-actions-panel">
+        <div class="panel-header">
+          <h3>Quick Actions</h3>
+        </div>
+        <div class="panel-content">
+          <div class="quick-actions-grid">
+            <button class="quick-action-btn" data-action="clock-in" data-path="/attendance-system/automatic">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+              <span>Clock In/Out</span>
+            </button>
+            <button class="quick-action-btn" data-action="new-order" data-path="/orders/order-fulfillment">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>Process Order</span>
+            </button>
+            <button class="quick-action-btn" data-action="print-label" data-path="/labels/generator">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                <rect x="6" y="14" width="12" height="8"></rect>
+              </svg>
+              <span>Print Labels</span>
+            </button>
+            <button class="quick-action-btn" data-action="view-inventory" data-path="/inventory/management">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+              </svg>
+              <span>Inventory</span>
+            </button>
+            <button class="quick-action-btn" data-action="magento-data" data-path="/magentodata">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="20" x2="18" y2="10"></line>
+                <line x1="12" y1="20" x2="12" y2="4"></line>
+                <line x1="6" y1="20" x2="6" y2="14"></line>
+              </svg>
+              <span>Magento Data</span>
+            </button>
+            <button class="quick-action-btn" data-action="user-management" data-path="/usermanagement">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+              <span>Users</span>
+            </button>
+          </div>
+        </div>
       </div>
-      <div class="card-content">
-        <h3 class="card-title">Labels</h3>
-        <p class="card-description">Generate and print custom labels</p>
+
+      <!-- Recent Activity Panel -->
+      <div class="dashboard-panel activity-panel">
+        <div class="panel-header">
+          <h3>Recent Activity</h3>
+          <button class="panel-action-btn" id="refreshActivity">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <polyline points="1 20 1 14 7 14"></polyline>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            </svg>
+          </button>
+        </div>
+        <div class="panel-content">
+          <div class="activity-list" id="activityList">
+            <div class="activity-empty">
+              <p>No recent activity to display</p>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="card-arrow">→</div>
-    </div>
-    
-    <div class="module-feature-card" data-module="magentodata">
-      <div class="card-icon">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="18" y1="20" x2="18" y2="10"></line>
-          <line x1="12" y1="20" x2="12" y2="4"></line>
-          <line x1="6" y1="20" x2="6" y2="14"></line>
-        </svg>
+
+      <!-- System Status Panel -->
+      <div class="dashboard-panel status-panel">
+        <div class="panel-header">
+          <h3>System Status</h3>
+        </div>
+        <div class="panel-content">
+          <div class="status-list">
+            <div class="status-item">
+              <div class="status-indicator" id="statusApi"></div>
+              <span class="status-name">API Server</span>
+              <span class="status-value" id="statusApiText">Checking...</span>
+            </div>
+            <div class="status-item">
+              <div class="status-indicator" id="statusDb"></div>
+              <span class="status-name">Database</span>
+              <span class="status-value" id="statusDbText">Checking...</span>
+            </div>
+            <div class="status-item">
+              <div class="status-indicator" id="statusHardware"></div>
+              <span class="status-name">Hardware Bridge</span>
+              <span class="status-value" id="statusHardwareText">Checking...</span>
+            </div>
+            <div class="status-item">
+              <div class="status-indicator" id="statusMagento"></div>
+              <span class="status-name">Magento Sync</span>
+              <span class="status-value" id="statusMagentoText">Checking...</span>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="card-content">
-        <h3 class="card-title">Magento Data</h3>
-        <p class="card-description">View and analyze magento information</p>
+
+      <!-- Module Navigation Panel -->
+      <div class="dashboard-panel modules-panel">
+        <div class="panel-header">
+          <h3>Modules</h3>
+        </div>
+        <div class="panel-content">
+          <div class="module-nav-grid" id="moduleNavGrid">
+            <a href="/attendance-system" class="module-nav-card" data-nav data-module="attendance-system">
+              <div class="module-nav-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+              </div>
+              <span class="module-nav-label">Attendance</span>
+            </a>
+            <a href="/labels" class="module-nav-card" data-nav data-module="labels">
+              <div class="module-nav-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                  <line x1="7" y1="7" x2="7.01" y2="7"></line>
+                </svg>
+              </div>
+              <span class="module-nav-label">Labels</span>
+            </a>
+            <a href="/magentodata" class="module-nav-card" data-nav data-module="magentodata">
+              <div class="module-nav-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="18" y1="20" x2="18" y2="10"></line>
+                  <line x1="12" y1="20" x2="12" y2="4"></line>
+                  <line x1="6" y1="20" x2="6" y2="14"></line>
+                </svg>
+              </div>
+              <span class="module-nav-label">Magento Data</span>
+            </a>
+            <a href="/inventory" class="module-nav-card" data-nav data-module="inventory">
+              <div class="module-nav-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                </svg>
+              </div>
+              <span class="module-nav-label">Inventory</span>
+            </a>
+            <a href="/orders" class="module-nav-card" data-nav data-module="orders">
+              <div class="module-nav-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="9" cy="21" r="1"></circle>
+                  <circle cx="20" cy="21" r="1"></circle>
+                  <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                </svg>
+              </div>
+              <span class="module-nav-label">Orders</span>
+            </a>
+            <a href="/usermanagement" class="module-nav-card" data-nav data-module="usermanagement">
+              <div class="module-nav-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+              </div>
+              <span class="module-nav-label">Users</span>
+            </a>
+          </div>
+        </div>
       </div>
-      <div class="card-arrow">→</div>
-    </div>
-    
-    <div class="module-feature-card" data-module="magentodata">
-      <div class="card-icon">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
-          <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
-          <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
-        </svg>
-      </div>
-      <div class="card-content">
-        <h3 class="card-title">Magento Data</h3>
-        <p class="card-description">View and analyze magento information</p>
-      </div>
-      <div class="card-arrow">→</div>
-    </div>
-    
-    <div class="module-feature-card" data-module="inventory">
-      <div class="card-icon">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-          <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
-          <line x1="12" y1="22.08" x2="12" y2="12"></line>
-        </svg>
-      </div>
-      <div class="card-content">
-        <h3 class="card-title">Inventory</h3>
-        <p class="card-description">Manage inventory and stock levels</p>
-      </div>
-      <div class="card-arrow">→</div>
-    </div>
-    
-    <div class="module-feature-card" data-module="orders">
-      <div class="card-icon">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="9" cy="21" r="1"></circle>
-          <circle cx="20" cy="21" r="1"></circle>
-          <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-        </svg>
-      </div>
-      <div class="card-content">
-        <h3 class="card-title">Orders</h3>
-        <p class="card-description">Process and track order fulfillment</p>
-      </div>
-      <div class="card-arrow">→</div>
-    </div>
-    
-    <div class="module-feature-card" data-module="usermanagement">
-      <div class="card-icon">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-          <circle cx="9" cy="7" r="4"></circle>
-          <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-          <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-        </svg>
-      </div>
-      <div class="card-content">
-        <h3 class="card-title">User Management</h3>
-        <p class="card-description">Manage users and permissions</p>
-      </div>
-      <div class="card-arrow">→</div>
     </div>
   </div>
 </div>

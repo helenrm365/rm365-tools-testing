@@ -40,6 +40,9 @@ def login(body: LoginIn):
         role = row[1] if row[1] else 'user'
         allowed_tabs = parse_allowed_tabs(row[2])
         return {"access_token": token, "role": role, "allowed_tabs": allowed_tabs}
+    except HTTPException:
+        # Re-raise HTTP exceptions (like 401 Invalid credentials)
+        raise
     except ValueError as e:
         # Database not configured
         raise HTTPException(status_code=503, detail="Database not available - only superadmin login is supported")

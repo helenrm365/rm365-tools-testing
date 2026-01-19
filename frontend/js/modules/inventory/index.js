@@ -1,51 +1,30 @@
-import { navigate } from '../../router.js';
+// js/modules/inventory/index.js
+// Router for inventory module - no longer uses home page
 
-let currentInventoryModule = null;
+let currentSubModule = null;
 
 export async function init(path) {
-  console.log('[Inventory] init() called with path:', path, '| Type:', typeof path);
-  
-  // Clean up previous module if exists
-  if (currentInventoryModule?.cleanup) {
-    currentInventoryModule.cleanup();
-    currentInventoryModule = null;
+  // Clean up previous sub-module
+  if (currentSubModule?.destroy) {
+    await currentSubModule.destroy();
   }
   
-  try {
-    if (path === '/inventory' || path === '/inventory/') {
-      // Main inventory home page - no module to load, just display landing page
-      return;
-    } else if (path === '/inventory/management') {
-      const mod = await import('./management.js');
-      currentInventoryModule = mod;
-      await mod.init();
-    } else if (path.startsWith('/inventory/sourcing')) {
-      const mod = await import('./sourcing.js');
-      currentInventoryModule = mod;
-      await mod.init(path);
-    } else {
-      console.warn('[Inventory] Unknown inventory path:', path);
-    }
-  } catch (error) {
-    console.error('[Inventory] Failed to initialize module:', error);
-    
-    // Show error in view
-    const view = document.querySelector('#view');
-    if (view) {
-      view.innerHTML = `
-        <div style="padding: 2rem; text-align: center;">
-          <h2>Error Loading Inventory Module</h2>
-          <p>${error.message}</p>
-          <button onclick="window.location.reload()" class="modern-button">Retry</button>
-        </div>
-      `;
-    }
+  // Route to the appropriate sub-module based on path
+  if (path.includes('/sourcing')) {
+    const mod = await import('./sourcing.js');
+    await mod.init(path);
+    currentSubModule = mod;
+  } else {
+    // Default to management (first sub-page)
+    const mod = await import('./management.js');
+    await mod.init();
+    currentSubModule = mod;
   }
 }
 
-export function cleanup() {
-  if (currentInventoryModule?.cleanup) {
-    currentInventoryModule.cleanup();
-    currentInventoryModule = null;
+export async function destroy() {
+  if (currentSubModule?.destroy) {
+    await currentSubModule.destroy();
   }
+  currentSubModule = null;
 }

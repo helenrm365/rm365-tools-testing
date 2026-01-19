@@ -1,43 +1,38 @@
-// frontend/js/modules/magentodata/index.js
+// js/modules/magentodata/index.js
+// Router for magento data module - no longer uses home page
 
-/**
- * Main entry point for the magento data module
- * Loads the appropriate page based on the path
- */
+let currentSubModule = null;
+
 export async function init(path) {
-  console.log('[Magento Data Module] init() called with path:', path);
-  try {
-    if (path === '/magentodata' || path === '/magentodata/home') {
-      // Load home page and initialize tables
-      console.log('[Magento Data Module] Loading home.js...');
-      // Add timestamp to force reload of the module
-      const { initMagentoDataHome } = await import(`./home.js?t=${Date.now()}`);
-      console.log('[Magento Data Module] home.js loaded, calling initMagentoDataHome()...');
-      await initMagentoDataHome();
-      console.log('[Magento Data Module] initMagentoDataHome() completed');
-    } else if (path.startsWith('/magentodata/uk-magento')) {
-      // Load UK magento page
-      const { initUKMagentoData } = await import(`./uk-magento.js?t=${Date.now()}`);
-      await initUKMagentoData(path);
-    } else if (path.startsWith('/magentodata/fr-magento')) {
-      // Load FR magento page
-      const { initFRMagentoData } = await import(`./fr-magento.js?t=${Date.now()}&v=4`);
-      await initFRMagentoData(path);
-    } else if (path.startsWith('/magentodata/nl-magento')) {
-      // Load NL magento page
-      const { initNLMagentoData } = await import(`./nl-magento.js?t=${Date.now()}&v=4`);
-      await initNLMagentoData(path);
-    } else if (path === '/magentodata/test-magento') {
-      // Load test magento page
-      const { initTestMagentoData } = await import('./test-magento.js');
-      await initTestMagentoData();
-    } else if (path === '/magentodata/history') {
-      // Load history page
-      const { initMagentoDataHistory } = await import('./history.js');
-      await initMagentoDataHistory();
-    }
-  } catch (error) {
-    console.error('[Magento Data] Error initializing module:', error);
-    throw error;
+  // Clean up previous sub-module
+  if (currentSubModule?.destroy) {
+    await currentSubModule.destroy();
   }
+  
+  // Route to the appropriate sub-module based on path
+  if (path.includes('/fr-magento')) {
+    const mod = await import('./fr-magento.js');
+    await mod.initFRMagentoData(path);
+    currentSubModule = mod;
+  } else if (path.includes('/nl-magento')) {
+    const mod = await import('./nl-magento.js');
+    await mod.initNLMagentoData(path);
+    currentSubModule = mod;
+  } else if (path.includes('/history')) {
+    const mod = await import('./history.js');
+    await mod.initMagentoDataHistory();
+    currentSubModule = mod;
+  } else {
+    // Default to UK Magento (first sub-page)
+    const mod = await import('./uk-magento.js');
+    await mod.initUKMagentoData(path);
+    currentSubModule = mod;
+  }
+}
+
+export async function destroy() {
+  if (currentSubModule?.destroy) {
+    await currentSubModule.destroy();
+  }
+  currentSubModule = null;
 }

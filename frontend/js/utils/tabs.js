@@ -29,25 +29,17 @@ export function isAllowed(key, allowed = null) {
 export function getDefaultAllowedPath(allowed = null) {
   const allowedTabs = Array.isArray(allowed) ? allowed : getAllowedTabs();
   if (!allowedTabs || allowedTabs.length === 0) {
-    // No restrictions: allow all, default to enrollment
-    return '/enrollment';
+    // No restrictions: allow all, default to attendance-system
+    return '/attendance-system';
   }
 
-  // Prefer enrollment if present
-  if (isAllowed('enrollment', allowedTabs)) {
-    // pick a sensible default sub-route
-    if (allowedTabs.includes('enrollment.management')) return '/enrollment/management';
-    if (allowedTabs.includes('enrollment.card')) return '/enrollment/card';
-
-    return '/enrollment';
-  }
-  // Then attendance
-  if (isAllowed('attendance', allowedTabs)) {
-    if (allowedTabs.includes('attendance.overview')) return '/attendance/overview';
-    if (allowedTabs.includes('attendance.manual')) return '/attendance/manual';
-    if (allowedTabs.includes('attendance.automatic')) return '/attendance/automatic';
-    if (allowedTabs.includes('attendance.logs')) return '/attendance/logs';
-    return '/attendance';
+  // Prefer attendance-system if present
+  if (isAllowed('attendance-system', allowedTabs)) {
+    if (allowedTabs.includes('attendance-system.overview')) return '/attendance-system/overview';
+    if (allowedTabs.includes('attendance-system.employees')) return '/attendance-system/employees';
+    if (allowedTabs.includes('attendance-system.automatic')) return '/attendance-system/automatic';
+    if (allowedTabs.includes('attendance-system.logs')) return '/attendance-system/logs';
+    return '/attendance-system';
   }
   // Then labels
   if (isAllowed('labels', allowedTabs)) return '/labels';
@@ -60,7 +52,7 @@ export function getDefaultAllowedPath(allowed = null) {
   // Then user management
   if (isAllowed('usermanagement', allowedTabs)) return '/usermanagement';
   
-  // Always fallback to home as it is accessible to everyone
+  // Fallback to home (accessible to everyone when logged in)
   return '/home';
 }
 
@@ -76,7 +68,7 @@ export function enforceRoutePermission(pathname) {
   // Only enforce for known app sections
   if (!section) return { allowed: true, redirect: null };
 
-  // Always allow home
+  // Always allow home - accessible to everyone
   if (section === 'home') return { allowed: true, redirect: null };
 
   const key = sub ? `${section}.${sub}` : section;

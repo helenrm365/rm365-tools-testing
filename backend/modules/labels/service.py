@@ -96,3 +96,11 @@ class LabelsService:
                 "status": "error",
                 "message": f"Failed to check tables: {str(e)}"
             }
+
+    def get_today_count(self) -> int:
+        """Get count of labels generated today for dashboard"""
+        try:
+            return self.repo.get_today_count()
+        except Exception as e:
+            logger.error(f"Error getting today's label count: {e}")
+            return 0

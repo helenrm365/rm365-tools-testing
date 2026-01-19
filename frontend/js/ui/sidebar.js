@@ -34,8 +34,8 @@ let overlay = null;
 // Maps group IDs to their child tabs
 const navigationConfig = {
   'home': {
-    label: 'Home',
-    icon: 'fa-solid fa-house',
+    label: 'Dashboard',
+    icon: 'fa-solid fa-gauge-high',
     directLink: true,
     path: '/home'
   },
@@ -64,7 +64,6 @@ const navigationConfig = {
       { id: 'uk-magento', label: 'UK Magento', icon: 'fa-solid fa-globe', path: '/magentodata/uk-magento' },
       { id: 'fr-magento', label: 'FR Magento', icon: 'fa-solid fa-globe', path: '/magentodata/fr-magento' },
       { id: 'nl-magento', label: 'NL Magento', icon: 'fa-solid fa-globe', path: '/magentodata/nl-magento' },
-      { id: 'test-magento', label: 'Test Magento', icon: 'fa-solid fa-flask', path: '/magentodata/test-magento' },
       { id: 'history', label: 'History', icon: 'fa-solid fa-history', path: '/magentodata/history' }
     ]
   },
@@ -527,9 +526,102 @@ function updateThemeIcon() {
 }
 
 /**
- * Handle logout
+ * Show logout confirmation modal
  */
-async function handleLogout() {
+function showLogoutConfirmModal() {
+  // Remove existing modal if any
+  const existingModal = document.getElementById('logoutConfirmModal');
+  if (existingModal) {
+    existingModal.remove();
+  }
+
+  // Create modal HTML
+  const modalHTML = `
+    <div id="logoutConfirmModal" class="modal-backdrop">
+      <div class="modal modal-sm">
+        <div class="modal-header modal-header-warning">
+          <div class="modal-header-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+          </div>
+          <h3 class="modal-title">Confirm Logout</h3>
+        </div>
+        <div class="modal-body">
+          <p>Are you sure you want to log out? You will need to sign in again to access the dashboard.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="action-btn secondary-btn" id="logoutCancelBtn">Cancel</button>
+          <button type="button" class="action-btn danger-btn" id="logoutConfirmBtn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+            Logout
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Insert modal into DOM
+  document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+  const modal = document.getElementById('logoutConfirmModal');
+  const cancelBtn = document.getElementById('logoutCancelBtn');
+  const confirmBtn = document.getElementById('logoutConfirmBtn');
+
+  // Show modal with animation
+  requestAnimationFrame(() => {
+    modal.classList.add('active');
+  });
+
+  // Cancel button handler
+  cancelBtn.addEventListener('click', () => {
+    closeLogoutModal();
+  });
+
+  // Confirm button handler
+  confirmBtn.addEventListener('click', async () => {
+    closeLogoutModal();
+    await performLogout();
+  });
+
+  // Click outside to close
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      closeLogoutModal();
+    }
+  });
+
+  // ESC key to close
+  const escHandler = (e) => {
+    if (e.key === 'Escape') {
+      closeLogoutModal();
+      document.removeEventListener('keydown', escHandler);
+    }
+  };
+  document.addEventListener('keydown', escHandler);
+}
+
+/**
+ * Close logout modal
+ */
+function closeLogoutModal() {
+  const modal = document.getElementById('logoutConfirmModal');
+  if (modal) {
+    modal.classList.remove('active');
+    setTimeout(() => modal.remove(), 300);
+  }
+}
+
+/**
+ * Perform the actual logout
+ */
+async function performLogout() {
   const { clearToken } = await import('../services/state/sessionStore.js');
   const { clearUser } = await import('../services/state/userStore.js');
   
@@ -537,6 +629,13 @@ async function handleLogout() {
   clearUser();
   hideSidebar();
   navigate('/login');
+}
+
+/**
+ * Handle logout button click - shows confirmation modal
+ */
+async function handleLogout() {
+  showLogoutConfirmModal();
 }
 
 /**

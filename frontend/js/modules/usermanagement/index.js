@@ -1,19 +1,23 @@
 // js/modules/usermanagement/index.js
+// Router for user management module - no longer uses home page
+
+let currentSubModule = null;
+
 export async function init(path) {
-  switch (path) {
-    case '/usermanagement':
-      // Home page - no module needed
-      break;
-    case '/usermanagement/management':
-      // Load and initialize the user management module
-      try {
-        const { init: managementInit } = await import('./management.js');
-        await managementInit();
-      } catch (error) {
-        console.error('[UserManagement] Failed to initialize management module:', error);
-      }
-      break;
-    default:
-      console.warn('[UserManagement] Unknown path:', path);
+  // Clean up previous sub-module
+  if (currentSubModule?.destroy) {
+    await currentSubModule.destroy();
   }
+  
+  // Default to management (only sub-page)
+  const mod = await import('./management.js');
+  await mod.init();
+  currentSubModule = mod;
+}
+
+export async function destroy() {
+  if (currentSubModule?.destroy) {
+    await currentSubModule.destroy();
+  }
+  currentSubModule = null;
 }

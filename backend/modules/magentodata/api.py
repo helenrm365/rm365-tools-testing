@@ -28,6 +28,45 @@ def check_tables_status(user=Depends(get_current_user)):
     return svc.check_tables_status()
 
 
+@router.get("/sync-status")
+def get_sync_status(user=Depends(get_current_user)):
+    """
+    Get Magento sync status for dashboard.
+    Returns status of last sync operations.
+    """
+    try:
+        # Check if tables exist and get last sync info
+        tables_status = svc.check_tables_status()
+        
+        if not tables_status.get("all_tables_exist", False):
+            return {
+                "status": "not_initialized",
+                "message": "Magento data tables not initialized"
+            }
+        
+        # Get last import history
+        history = svc.get_import_history(limit=1)
+        if history.get("imports"):
+            last_sync = history["imports"][0]
+            return {
+                "status": "ok",
+                "last_sync": last_sync.get("imported_at"),
+                "region": last_sync.get("region"),
+                "records": last_sync.get("record_count", 0)
+            }
+        
+        return {
+            "status": "ok",
+            "message": "No sync history available"
+        }
+    except Exception as e:
+        logger.warning(f"Failed to get sync status: {e}")
+        return {
+            "status": "unknown",
+            "message": str(e)
+        }
+
+
 @router.get("/test", response_model=MagentoDataResponse)
 def get_test_magento_data(
     limit: int = Query(100, ge=1, le=1000),

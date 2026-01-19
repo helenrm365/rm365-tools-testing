@@ -75,7 +75,6 @@ frontend/
 │
 ├── html/                       # Page templates
 │   ├── login.html             # Login page
-│   ├── home.html              # Dashboard
 │   ├── reports.html           # Reports
 │   └── [feature]/             # Feature pages
 │

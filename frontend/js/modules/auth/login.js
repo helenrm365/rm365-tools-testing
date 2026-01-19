@@ -42,7 +42,7 @@ async function doLogin() {
     
     // Add a small delay to ensure state is properly set
     setTimeout(async () => {
-      await navigate('/home', true);
+      await navigate(getDefaultAllowedPath(), true);
     }, 500);
     
   } catch (e) {
@@ -64,7 +64,7 @@ export async function init() {
       setAllowedTabs(userData.allowed_tabs);
       setUserData(userData);
       try { setupTabsForUser(); } catch {}
-      await navigate('/home', true);
+      await navigate(getDefaultAllowedPath(), true);
       return;
     } catch (error) {
       console.warn('[LOGIN] Token validation failed:', error);

@@ -37,6 +37,19 @@ def labels_health():
     }
 
 
+@router.get("/today-count")
+def get_today_label_count(user=Depends(get_current_user)):
+    """
+    Get count of labels generated today for dashboard.
+    """
+    try:
+        count = svc.get_today_count()
+        return {"count": count}
+    except Exception as e:
+        logger.warning(f"Failed to get today's label count: {e}")
+        return {"count": 0}
+
+
 @router.get("/status")
 def check_tables_status(user=Depends(get_current_user)):
     """
