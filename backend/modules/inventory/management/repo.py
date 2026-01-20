@@ -794,9 +794,12 @@ class InventoryManagementRepo:
     def ensure_all_products_have_item_ids(self) -> Dict[str, int]:
         """
         Ensure all products in inventory_metadata have generated item IDs.
+        Uses BATCH operations for performance.
         This should be called when loading the inventory management page.
         Returns stats about the operation.
         """
+        from psycopg2.extras import execute_batch
+        
         conn = self.get_metadata_connection()
         try:
             cursor = conn.cursor()
@@ -817,20 +820,24 @@ class InventoryManagementRepo:
             cursor.execute("SELECT COUNT(*) FROM inventory_metadata")
             stats["total_checked"] = cursor.fetchone()[0]
             
-            # Generate and update item IDs
-            for sku in skus_without_ids:
-                item_id = self.generate_item_id(sku)
-                cursor.execute("""
+            # Generate item IDs in batch
+            if skus_without_ids:
+                # Prepare batch updates: (item_id, sku) tuples
+                updates = [(self.generate_item_id(sku), sku) for sku in skus_without_ids]
+                
+                # Use execute_batch for better performance (much faster than individual updates)
+                execute_batch(cursor, """
                     UPDATE inventory_metadata
                     SET item_id = %s, updated_at = NOW()
                     WHERE sku = %s
-                """, (item_id, sku))
-                stats["ids_generated"] += 1
+                """, updates, page_size=500)
+                
+                stats["ids_generated"] = len(updates)
             
             conn.commit()
             
             if stats["ids_generated"] > 0:
-                logger.info(f"✅ Generated {stats['ids_generated']} item IDs for products")
+                logger.info(f"✅ Generated {stats['ids_generated']} item IDs for products (batch mode)")
             
             return stats
             

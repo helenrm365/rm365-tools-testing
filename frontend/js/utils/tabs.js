@@ -35,7 +35,7 @@ export function getDefaultAllowedPath(allowed = null) {
 
   // Prefer attendance-system if present
   if (isAllowed('attendance-system', allowedTabs)) {
-    if (allowedTabs.includes('attendance-system.overview')) return '/attendance-system/overview';
+    if (allowedTabs.includes('attendance-system.dashboard')) return '/attendance-system/dashboard';
     if (allowedTabs.includes('attendance-system.employees')) return '/attendance-system/employees';
     if (allowedTabs.includes('attendance-system.automatic')) return '/attendance-system/automatic';
     if (allowedTabs.includes('attendance-system.logs')) return '/attendance-system/logs';

@@ -5,8 +5,8 @@
    
    Pages covered:
    - /attendance-system (home)
+   - /attendance-system/dashboard
    - /attendance-system/employees
-   - /attendance-system/overview
    - /attendance-system/automatic
    - /attendance-system/logs
    
@@ -15,8 +15,8 @@
 */
 
 /* Import page-specific styles */
+@import 'dashboard.css';
 @import 'employees.css';
-@import 'overview.css';
 @import 'automatic.css';
 @import 'logs.css';
 

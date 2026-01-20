@@ -22,7 +22,7 @@ def get_all_tabs() -> List[str]:
     Regular users will have their allowed_tabs filtered based on their role/permissions.
     """
     return [
-        "attendance", "attendance.overview", "attendance.logs", "attendance.manual", "attendance.automatic",
+        "attendance", "attendance.dashboard", "attendance.employees", "attendance.logs", "attendance.automatic",
         "enrollment", "enrollment.management", "enrollment.nfc", "enrollment.card",
         "labels", "labels.generator", "labels.history",
         "magentodata", "magentodata.uk-magento", "magentodata.fr-magento", "magentodata.nl-magento", "magentodata.history",

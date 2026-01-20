@@ -97,8 +97,8 @@ class InventoryManagementService:
             Dict with items, total count, and pagination info
         """
         try:
-            # Step 0: Ensure tables exist (creates if not present)
-            self.repo.init_tables()
+            # Note: Table initialization is handled by frontend calling /status then /init if needed
+            # This method assumes tables already exist
             
             # Step 1: Sync products from UK Magento database to inventory_metadata
             # This creates inventory_metadata records for any new products

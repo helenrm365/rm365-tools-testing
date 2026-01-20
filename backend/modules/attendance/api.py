@@ -100,3 +100,48 @@ def work_hours(
 ):
     """Calculate work hours for each employee in the date range."""
     return _svc().get_employee_work_hours(from_date, to_date, location, name_search)
+
+# ====== NEW DASHBOARD METRICS ======
+
+@router.get("/realtime-status")
+def realtime_status(
+    location: Optional[str] = Query(None),
+    user=Depends(get_current_user)
+):
+    """Get real-time attendance status for today (attendance, absences, breaks)."""
+    return _svc().get_realtime_status(location)
+
+@router.get("/realtime-status/{status_type}")
+def realtime_status_details(
+    status_type: str,
+    location: Optional[str] = Query(None),
+    user=Depends(get_current_user)
+):
+    """Get detailed list of employees for a specific real-time status type."""
+    if status_type not in ['attendance', 'absences', 'breaks']:
+        return {"error": "Invalid status_type. Use: attendance, absences, or breaks"}
+    return _svc().get_realtime_status_details(status_type, location)
+
+@router.get("/punctuality-metrics")
+def punctuality_metrics(
+    from_date: date = Query(...),
+    to_date: date = Query(...),
+    location: Optional[str] = Query(None),
+    user=Depends(get_current_user)
+):
+    """Get punctuality and compliance metrics for a date range."""
+    return _svc().get_punctuality_metrics(from_date, to_date, location)
+
+@router.get("/punctuality-details/{metric_type}")
+def punctuality_details(
+    metric_type: str,
+    from_date: date = Query(...),
+    to_date: date = Query(...),
+    location: Optional[str] = Query(None),
+    user=Depends(get_current_user)
+):
+    """Get detailed list of employees for a specific punctuality metric."""
+    if metric_type not in ['late', 'early', 'missing']:
+        return {"error": "Invalid metric_type. Use: late, early, or missing"}
+    return _svc().get_punctuality_details(metric_type, from_date, to_date, location)
+

@@ -46,7 +46,16 @@
 
       <div class="block-content">
         <div class="stats-grid">
-          <div class="stat-card pending">
+          <div class="stat-card all active" id="filterAll" role="button" tabindex="0">
+            <div class="stat-icon">
+              <i class="fas fa-list-alt"></i>
+            </div>
+            <div class="stat-content">
+              <div class="stat-value" id="allCount">0</div>
+              <div class="stat-label">All Orders</div>
+            </div>
+          </div>
+          <div class="stat-card pending" id="filterPending" role="button" tabindex="0">
             <div class="stat-icon">
               <i class="fas fa-clock"></i>
             </div>
@@ -55,7 +64,7 @@
               <div class="stat-label">Pending Orders</div>
             </div>
           </div>
-          <div class="stat-card approved">
+          <div class="stat-card approved" id="filterApproved" role="button" tabindex="0">
             <div class="stat-icon">
               <i class="fas fa-check"></i>
             </div>
@@ -137,17 +146,17 @@
         </div>
       </div>
     </div>
-  </div>
+</div>
 </div>
 
 <!-- Order Details Modal -->
-<div id="orderDetailsModal" class="modal-overlay" style="display: none;">
+<div id="orderDetailsModal" class="modal-overlay order-details-modal" style="display: none;" onclick="if(event.target === this) this.style.display='none'">
   <div class="modal-container modal-large">
     <div class="modal-header">
-      <h2 class="modal-title" id="orderDetailsTitle">
+      <div class="modal-header-icon">
         <i class="fas fa-box"></i>
-        Order Details
-      </h2>
+      </div>
+      <h2 class="modal-title" id="orderDetailsTitle">Order Details</h2>
       <button class="modal-close" onclick="document.getElementById('orderDetailsModal').style.display='none'" aria-label="Close modal">
         <i class="fas fa-times"></i>
       </button>
@@ -161,7 +170,7 @@
       <button class="action-btn secondary-btn" onclick="document.getElementById('orderDetailsModal').style.display='none'">
         Close
       </button>
-      <button class="action-btn primary-btn" id="approveFromModalBtn">
+      <button class="action-btn success-btn" id="approveFromModalBtn">
         <i class="fas fa-check"></i>
         <span>Approve Order</span>
       </button>

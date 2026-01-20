@@ -1,23 +1,23 @@
-<!-- Attendance Overview Page (Attendance System) -->
-<!-- Uses css/app.css + css/pages/attendance-system/overview.css -->
-<div class="attendance-overview">
+<!-- Attendance Dashboard Page (Attendance System) -->
+<!-- Uses css/app.css + css/pages/attendance-system/dashboard.css -->
+<div class="attendance-dashboard">
   <!-- Header -->
   <header class="page-header">
     <div class="header-content">
-      <h1 class="page-title">Attendance Overview</h1>
+      <h1 class="page-title">Attendance Dashboard</h1>
     </div>
     <p class="page-subtitle">Real-time insights and comprehensive attendance tracking</p>
   </header>
 
   <!-- Navigation Tabs -->
   <nav class="inner-tabs">
+    <button class="tab-button active" onclick="location.href='/attendance-system/dashboard'">
+      <i class="fas fa-chart-line"></i>
+      <span>Dashboard</span>
+    </button>
     <button class="tab-button" onclick="location.href='/attendance-system/employees'">
       <i class="fas fa-users"></i>
       <span>Employees</span>
-    </button>
-    <button class="tab-button active" onclick="location.href='/attendance-system/overview'">
-      <i class="fas fa-chart-line"></i>
-      <span>Overview</span>
     </button>
     <button class="tab-button" onclick="location.href='/attendance-system/automatic'">
       <i class="fas fa-fingerprint"></i>
@@ -30,7 +30,7 @@
   </nav>
 
   <!-- Main Content -->
-  <div class="overview-content">
+  <div class="dashboard-content">
     <!-- Today's Stats -->
     <div class="action-block">
       <div class="block-header">
@@ -150,53 +150,9 @@
       </div>
     </div>
 
-    <!-- Summary Results (populated by JS) -->
-    <div id="summaryResults" class="action-block" style="display: none;">
-      <!-- Summary content will be populated by JavaScript -->
-    </div>
-
     <!-- Work Hours Results (populated by JS) -->
     <div id="workHoursResults" class="action-block" style="display: none;">
       <!-- Work hours content will be populated by JavaScript -->
-    </div>
-
-    <!-- Weekly Chart Section -->
-    <div class="action-block">
-      <div class="block-header">
-        <div class="block-icon">
-          <i class="fas fa-chart-bar"></i>
-        </div>
-        <div class="block-title-group">
-          <h3 class="block-title">Weekly Attendance Trends</h3>
-          <p class="block-subtitle">Attendance patterns over the past week</p>
-        </div>
-      </div>
-      <div class="block-content">
-        <div class="chart-container">
-          <canvas id="attendanceChart"></canvas>
-        </div>
-      </div>
-    </div>
-
-    <!-- Current Status Section -->
-    <div class="action-block">
-      <div class="block-header">
-        <div class="block-icon">
-          <i class="fas fa-users"></i>
-        </div>
-        <div class="block-title-group">
-          <h3 class="block-title">Current Employee Status</h3>
-          <p class="block-subtitle">Live status of all employees</p>
-        </div>
-      </div>
-      <div class="block-content">
-        <div id="currentStatusTable" class="status-table-wrapper">
-          <div class="loading-state">
-            <i class="fas fa-spinner fa-spin"></i>
-            <p>Loading current employee status...</p>
-          </div>
-        </div>
-      </div>
     </div>
   </div>
 </div>

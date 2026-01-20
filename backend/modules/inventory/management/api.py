@@ -39,7 +39,9 @@ def initialize_tables(user=Depends(get_current_user)):
     """Initialize inventory management tables if they don't exist"""
     try:
         svc = _svc()
-        # This will create tables if needed
+        # Initialize tables first
+        svc.repo.init_tables()
+        # Then do initial sync to populate data
         svc.get_inventory_items_from_magento()
         return {"status": "success", "message": "Tables initialized successfully"}
     except Exception as e:

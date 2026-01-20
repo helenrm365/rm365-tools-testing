@@ -192,7 +192,7 @@ window.initModernUI = initModernBoxes;
       }
       
       // Reset any forced overflow styles on attendance pages
-      const isAttendancePage = document.querySelector('.attendance-overview, .attendance-manual');
+      const isAttendancePage = document.querySelector('.attendance-dashboard, .attendance-manual');
       if (isAttendancePage) {
         const modernBox = w.closest('.modern-box');
         if (modernBox && modernBox.style.overflow) {
@@ -316,7 +316,7 @@ window.initModernUI = initModernBoxes;
       list.removeAttribute('inert');
       
       // Force overflow visible on parent containers for attendance pages
-      const isAttendancePage = document.querySelector('.attendance-overview, .attendance-manual');
+      const isAttendancePage = document.querySelector('.attendance-dashboard, .attendance-manual');
       if (isAttendancePage) {
         const modernBox = wrap.closest('.modern-box');
         if (modernBox) {

@@ -1,0 +1,327 @@
+<!-- Attendance Dashboard Page (Attendance System) -->
+<!-- Uses css/app.css + css/pages/attendance-system/dashboard.css + css/components/filter-control-panel.css -->
+<div class="attendance-dashboard">
+  <!-- Header -->
+  <header class="page-header">
+    <div class="header-content">
+      <h1 class="page-title">Attendance Dashboard</h1>
+    </div>
+    <p class="page-subtitle">Real-time insights and comprehensive attendance tracking</p>
+  </header>
+
+  <!-- Navigation Tabs -->
+  <nav class="inner-tabs">
+    <button class="tab-button active" onclick="location.href='/attendance-system/dashboard'">
+      <i class="fas fa-chart-line"></i>
+      <span>Dashboard</span>
+    </button>
+    <button class="tab-button" onclick="location.href='/attendance-system/employees'">
+      <i class="fas fa-users"></i>
+      <span>Employees</span>
+    </button>
+    <button class="tab-button" onclick="location.href='/attendance-system/automatic'">
+      <i class="fas fa-fingerprint"></i>
+      <span>Automatic</span>
+    </button>
+    <button class="tab-button" onclick="location.href='/attendance-system/logs'">
+      <i class="fas fa-file-alt"></i>
+      <span>Logs</span>
+    </button>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="dashboard-content">
+
+    <!-- ===== Global Filter Panel ===== -->
+    <div class="unified-filter-panel">
+      <!-- Panel Header -->
+      <div class="filter-panel-header">
+        <div class="filter-panel-title">
+          <i class="fas fa-sliders-h"></i>
+          <h2>Filter Control Panel</h2>
+        </div>
+        <div class="filter-panel-header-actions">
+          <button id="applyGlobalFiltersBtn" class="btn btn-sm btn-white panel-header-btn" title="Apply Filters">
+            <i class="fas fa-check"></i>
+            <span>Apply</span>
+          </button>
+          <button class="btn btn-icon btn-sm btn-ghost filter-panel-collapse collapsed" id="filterPanelCollapseBtn" title="Collapse/Expand Panel">
+            <i class="fas fa-chevron-up"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Panel Body -->
+      <div class="filter-panel-body collapsed" id="filterPanelBody">
+        <div class="filter-panel-grid">
+          <!-- Left: Date Range Filters -->
+          <div class="filter-control-group">
+            <div class="control-header">
+              <div class="control-header-left">
+                <i class="fas fa-calendar-alt"></i>
+                <span class="control-title">Date Range</span>
+              </div>
+            </div>
+            <div class="date-range-controls">
+              <!-- Date Presets -->
+              <div class="date-preset-buttons">
+                <button class="preset-btn active" data-preset="today">Today</button>
+                <button class="preset-btn" data-preset="week">This Week</button>
+                <button class="preset-btn" data-preset="month">This Month</button>
+                <button class="preset-btn" data-preset="year">This Year</button>
+              </div>
+              <!-- Custom Date Range -->
+              <div class="custom-date-range">
+                <div class="date-input-group">
+                  <label class="form-label-sm" for="globalFromDate">From</label>
+                  <input type="date" id="globalFromDate" class="form-input">
+                </div>
+                <div class="date-input-group">
+                  <label class="form-label-sm" for="globalToDate">To</label>
+                  <input type="date" id="globalToDate" class="form-input">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Location & Search Filters -->
+          <div class="filter-control-group">
+            <div class="control-header">
+              <div class="control-header-left">
+                <i class="fas fa-filter"></i>
+                <span class="control-title">Additional Filters</span>
+              </div>
+              <button id="clearGlobalFiltersBtn" class="btn-clear-filters" title="Clear All Filters">
+                <i class="fas fa-times"></i>
+                <span>Clear</span>
+              </button>
+            </div>
+            <div class="additional-filters-grid">
+              <div class="form-group-compact">
+                <label class="form-label-sm">
+                  <i class="fas fa-map-marker-alt"></i>
+                  <span>Location</span>
+                </label>
+                <div class="custom-dropdown" id="globalLocationDropdown">
+                  <div class="dropdown-selected" onclick="toggleDropdown('globalLocationDropdown')">All Locations</div>
+                  <div class="dropdown-options" id="globalLocationOptions">
+                    <div class="dropdown-option selected" onclick="selectLocationOption(this, '', 'All Locations')">All Locations</div>
+                    <!-- More options populated by JavaScript -->
+                  </div>
+                  <input type="hidden" name="globalLocationFilter" id="globalLocationFilter" value="">
+                </div>
+              </div>
+              <div class="form-group-compact">
+                <label class="form-label-sm" for="globalNameFilter">
+                  <i class="fas fa-search"></i>
+                  <span>Employee</span>
+                </label>
+                <div class="search-wrapper-compact">
+                  <i class="fas fa-search search-icon"></i>
+                  <input type="text" id="globalNameFilter" class="search-input" placeholder="Search by name...">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Real-Time Status Section -->
+    <div class="action-block" id="realtimeStatusSection">
+      <div class="block-header">
+        <div class="block-icon">
+          <i class="fas fa-signal"></i>
+        </div>
+        <div class="block-title-group">
+          <h3 class="block-title">Real-Time Status</h3>
+          <p class="block-subtitle">Live attendance status for today</p>
+        </div>
+        <button class="toggle-view-btn" id="toggleRealtimeView" title="Toggle list view">
+          <i class="fas fa-list"></i>
+        </button>
+      </div>
+      <div class="block-content">
+        <!-- Stats Cards View -->
+        <div class="stats-grid" id="realtimeStatsView">
+          <div class="stat-card clickable" data-status="attendance">
+            <div class="stat-icon attendance-icon">
+              <i class="fas fa-user-check"></i>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" id="todayAttendance">-</div>
+              <div class="stat-label">Today's Attendance</div>
+            </div>
+          </div>
+          <div class="stat-card clickable" data-status="absences">
+            <div class="stat-icon absent-icon">
+              <i class="fas fa-user-times"></i>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" id="todayAbsences">-</div>
+              <div class="stat-label">Today's Absences</div>
+            </div>
+          </div>
+          <div class="stat-card clickable" data-status="breaks">
+            <div class="stat-icon break-icon">
+              <i class="fas fa-coffee"></i>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" id="activeBreaks">-</div>
+              <div class="stat-label">Active Break Status</div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- List View (hidden by default) -->
+        <div class="list-view" id="realtimeListView" style="display: none;">
+          <div class="list-tabs">
+            <button class="list-tab active" data-tab="attendance">
+              <i class="fas fa-user-check"></i>
+              <span>Attendance</span>
+            </button>
+            <button class="list-tab" data-tab="absences">
+              <i class="fas fa-user-times"></i>
+              <span>Absences</span>
+            </button>
+            <button class="list-tab" data-tab="breaks">
+              <i class="fas fa-coffee"></i>
+              <span>Breaks</span>
+            </button>
+          </div>
+          <div class="list-content" id="realtimeListContent">
+            <!-- Populated by JavaScript -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Punctuality & Compliance Section -->
+    <div class="action-block" id="punctualitySection">
+      <div class="block-header">
+        <div class="block-icon">
+          <i class="fas fa-clipboard-check"></i>
+        </div>
+        <div class="block-title-group">
+          <h3 class="block-title">Punctuality & Compliance</h3>
+          <p class="block-subtitle">Track late arrivals, early departures, and missing punches</p>
+        </div>
+        <button class="toggle-view-btn" id="togglePunctualityView" title="Toggle list view">
+          <i class="fas fa-list"></i>
+        </button>
+      </div>
+      <div class="block-content">
+        <!-- Stats Cards View -->
+        <div class="stats-grid" id="punctualityStatsView">
+          <div class="stat-card clickable" data-metric="late">
+            <div class="stat-icon late-icon">
+              <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">
+                <span id="lateArrivals">-</span>
+                <span class="stat-rate" id="lateRate"></span>
+              </div>
+              <div class="stat-label">Late Arrivals</div>
+            </div>
+          </div>
+          <div class="stat-card clickable" data-metric="early">
+            <div class="stat-icon early-icon">
+              <i class="fas fa-sign-out-alt"></i>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">
+                <span id="earlyDepartures">-</span>
+                <span class="stat-rate" id="earlyRate"></span>
+              </div>
+              <div class="stat-label">Early Departures</div>
+            </div>
+          </div>
+          <div class="stat-card clickable" data-metric="missing">
+            <div class="stat-icon missing-icon">
+              <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">
+                <span id="missingPunches">-</span>
+                <span class="stat-rate" id="missingRate"></span>
+              </div>
+              <div class="stat-label">Missing Punches</div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- List View (hidden by default) -->
+        <div class="list-view" id="punctualityListView" style="display: none;">
+          <div class="list-tabs">
+            <button class="list-tab active" data-tab="late">
+              <i class="fas fa-clock"></i>
+              <span>Late Arrivals</span>
+            </button>
+            <button class="list-tab" data-tab="early">
+              <i class="fas fa-sign-out-alt"></i>
+              <span>Early Departures</span>
+            </button>
+            <button class="list-tab" data-tab="missing">
+              <i class="fas fa-exclamation-triangle"></i>
+              <span>Missing Punches</span>
+            </button>
+          </div>
+          <div class="list-content" id="punctualityListContent">
+            <!-- Populated by JavaScript -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lunchtime Analysis Section -->
+    <div class="action-block" id="lunchtimeSection">
+      <div class="block-header">
+        <div class="block-icon">
+          <i class="fas fa-utensils"></i>
+        </div>
+        <div class="block-title-group">
+          <h3 class="block-title">Lunchtime Analysis</h3>
+          <p class="block-subtitle">Today's summary cards or detailed list view by date range</p>
+        </div>
+        <button class="toggle-view-btn" id="toggleLunchtimeView" title="Toggle list view">
+          <i class="fas fa-list"></i>
+        </button>
+      </div>
+      <div class="block-content">
+        <!-- Cards View (Today's data - default) -->
+        <div class="lunchtime-cards-grid" id="lunchtimeCardsView">
+          <!-- Cards will be populated by JavaScript -->
+          <div class="empty-state">
+            <i class="fas fa-utensils"></i>
+            <p>Loading today's attendance summary...</p>
+          </div>
+        </div>
+        
+        <!-- List View (Date range data - hidden by default) -->
+        <div class="lunchtime-list-view" id="lunchtimeListView" style="display: none;">
+          <div id="lunchtimeContent">
+            <!-- Lunchtime table will be populated by JavaScript -->
+            <div class="empty-state">
+              <i class="fas fa-utensils"></i>
+              <p>Apply date filters above to view lunchtime analysis</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Universal Footer -->
+<div id="footerPlaceholder"></div>
+<script>
+  if (!document.getElementById('universalFooter')) {
+    fetch('/components/universal-footer.html')
+      .then(response => response.text())
+      .then(html => {
+        document.getElementById('footerPlaceholder').innerHTML = html;
+      })
+      .catch(error => console.error('Error loading footer:', error));
+  }
+</script>

@@ -43,8 +43,8 @@ const navigationConfig = {
     label: 'Attendance',
     icon: 'fa-solid fa-clock',
     children: [
+      { id: 'dashboard', label: 'Dashboard', icon: 'fa-solid fa-chart-pie', path: '/attendance-system/dashboard' },
       { id: 'employees', label: 'Employees', icon: 'fa-solid fa-users', path: '/attendance-system/employees' },
-      { id: 'overview', label: 'Overview', icon: 'fa-solid fa-chart-pie', path: '/attendance-system/overview' },
       { id: 'automatic', label: 'Automatic', icon: 'fa-solid fa-fingerprint', path: '/attendance-system/automatic' },
       { id: 'logs', label: 'Logs', icon: 'fa-solid fa-list', path: '/attendance-system/logs' }
     ]

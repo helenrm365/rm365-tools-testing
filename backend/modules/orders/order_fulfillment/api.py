@@ -816,16 +816,112 @@ def get_pending_magento_orders(
 ):
     """
     Get all pending Magento orders that are in 'processing' status
-    These orders need approval before they can be picked
+    These orders need approval before they can be picked.
+    Also returns orders approved today for the approval dashboard.
     """
     try:
-        orders = service.get_pending_magento_orders()
+        from datetime import datetime
+        from .schemas import PendingMagentoOrderSchema
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        # Get all processing orders from Magento (ONE query)
+        processing_orders = service.client.get_processing_orders()
+        logger.info(f"[Pending Orders API] Retrieved {len(processing_orders)} orders from Magento")
+        
+        # Build a lookup dict by order number
+        order_lookup = {order.get('increment_id'): order for order in processing_orders}
+        
+        # Get all sessions (ONE query)
+        today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        all_sessions = service.repo.get_sessions_by_status(['approved', 'in_progress', 'ready_to_check', 'completed'])
+        
+        # Build sets for filtering
+        existing_order_numbers = {session.order_number for session in all_sessions}
+        
+        # Build approved today orders list
+        approved_today_orders = []
+        for session in all_sessions:
+            session_date = session.started_at if hasattr(session, 'started_at') else None
+            
+            if session_date and session_date >= today_start:
+                order_details = order_lookup.get(session.order_number)
+                
+                customer_firstname = order_details.get('customer_firstname', '') if order_details else ''
+                customer_lastname = order_details.get('customer_lastname', '') if order_details else ''
+                customer_name = f"{customer_firstname} {customer_lastname}".strip() if customer_firstname or customer_lastname else None
+                
+                approved_today_orders.append({
+                    "order_id": order_details.get('entity_id') if order_details else session.session_id,
+                    "order_number": session.order_number,
+                    "created_at": session.started_at.isoformat() if session.started_at else None,
+                    "grand_total": float(order_details.get('grand_total', 0)) if order_details else 0,
+                    "status": "approved",
+                    "customer_name": customer_name,
+                    "customer_email": order_details.get('customer_email') if order_details else None,
+                    "total_qty_ordered": int(order_details.get('total_qty_ordered', 0)) if order_details else len(session.items_expected),
+                    "shipping_method": order_details.get('shipping_description') if order_details else None,
+                    "session_status": session.status,
+                    "is_approved": True
+                })
+        
+        # Build pending orders list (orders without sessions)
+        pending_orders = []
+        for order in processing_orders:
+            order_number = order.get('increment_id')
+            
+            # Skip if this order already has a session
+            if order_number in existing_order_numbers:
+                continue
+            
+            customer_firstname = order.get('customer_firstname', '')
+            customer_lastname = order.get('customer_lastname', '')
+            customer_name = f"{customer_firstname} {customer_lastname}".strip() if customer_firstname or customer_lastname else None
+            
+            # Get shipping method
+            shipping_method = None
+            ext_attrs = order.get('extension_attributes', {})
+            if ext_attrs.get('shipping_assignments'):
+                shipping_assignment = ext_attrs['shipping_assignments'][0]
+                if shipping_assignment.get('shipping'):
+                    shipping_info = shipping_assignment['shipping']
+                    shipping_method = (
+                        shipping_info.get('shipping_description') or
+                        order.get('shipping_description') or
+                        shipping_info.get('method')
+                    )
+            
+            payment = order.get('payment', {})
+            payment_method = payment.get('method') if isinstance(payment, dict) else None
+            
+            pending_orders.append(
+                PendingMagentoOrderSchema(
+                    order_id=order.get('entity_id'),
+                    order_number=order_number,
+                    created_at=order.get('created_at'),
+                    grand_total=float(order.get('grand_total', 0)),
+                    status=order.get('status'),
+                    customer_name=customer_name,
+                    customer_email=order.get('customer_email'),
+                    total_qty_ordered=order.get('total_qty_ordered', 0),
+                    payment_method=payment_method,
+                    shipping_method=shipping_method,
+                    items=order.get('items', [])
+                )
+            )
+        
+        logger.info(f"[Pending Orders API] Returning {len(pending_orders)} pending, {len(approved_today_orders)} approved today")
+        
         return {
-            "orders": orders,
-            "count": len(orders)
+            "orders": pending_orders,
+            "count": len(pending_orders),
+            "approved_today": len(approved_today_orders),
+            "approved_today_orders": approved_today_orders
         }
     
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to get pending orders: {str(e)}"

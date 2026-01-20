@@ -54,10 +54,10 @@ const routes = {
   '/home':                  '/html/home.html',
   '/login':                 '/html/login.html',
   
-  // Attendance System - redirect root to first sub-page
-  '/attendance-system':           '/html/attendance-system/employees.html',
+  // Attendance System - redirect root to first sub-page (dashboard)
+  '/attendance-system':           '/html/attendance-system/dashboard.html',
+  '/attendance-system/dashboard': '/html/attendance-system/dashboard.html',
   '/attendance-system/employees': '/html/attendance-system/employees.html',
-  '/attendance-system/overview':  '/html/attendance-system/overview.html',
   '/attendance-system/automatic': '/html/attendance-system/automatic.html',
   '/attendance-system/logs':      '/html/attendance-system/logs.html',
 

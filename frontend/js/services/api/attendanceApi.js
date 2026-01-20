@@ -140,6 +140,55 @@ export function getWorkHours(startDate, endDate, location = null, nameSearch = n
   return get(`${API}/work-hours?${params}`);
 }
 
+// ====== NEW DASHBOARD METRICS ======
+
+/**
+ * Get real-time attendance status for today (attendance, absences, breaks)
+ */
+export function getRealtimeStatus(location = null) {
+  const params = new URLSearchParams();
+  if (location) params.append('location', location);
+  const url = `${API}/realtime-status?${params}`;
+  console.log('[attendanceApi] getRealtimeStatus URL:', url, 'location param:', location);
+  return get(url);
+}
+
+/**
+ * Get detailed list of employees for a specific real-time status type
+ * @param {string} statusType - 'attendance' | 'absences' | 'breaks'
+ */
+export function getRealtimeStatusDetails(statusType, location = null) {
+  const params = new URLSearchParams();
+  if (location) params.append('location', location);
+  return get(`${API}/realtime-status/${statusType}?${params}`);
+}
+
+/**
+ * Get punctuality and compliance metrics for a date range
+ */
+export function getPunctualityMetrics(startDate, endDate, location = null) {
+  const params = new URLSearchParams({
+    from_date: startDate,
+    to_date: endDate
+  });
+  if (location) params.append('location', location);
+  return get(`${API}/punctuality-metrics?${params}`);
+}
+
+/**
+ * Get detailed list of employees for a specific punctuality metric
+ * @param {string} metricType - 'late' | 'early' | 'missing'
+ */
+export function getPunctualityDetails(metricType, startDate, endDate, location = null) {
+  const params = new URLSearchParams({
+    from_date: startDate,
+    to_date: endDate
+  });
+  if (location) params.append('location', location);
+  return get(`${API}/punctuality-details/${metricType}?${params}`);
+}
+
 export function getEmployeeTemplates() {
   return get(`${API}/employees/templates`);
 }
+

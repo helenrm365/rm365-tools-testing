@@ -63,3 +63,22 @@ class AttendanceService:
         """Calculate work hours for each employee in the date range."""
         return self.repo.get_employee_work_hours(from_date, to_date, location, name_search)
 
+    # ====== NEW DASHBOARD METRICS ======
+
+    def get_realtime_status(self, location: Optional[str] = None) -> Dict[str, Any]:
+        """Get real-time attendance status for today."""
+        return self.repo.get_realtime_status(location)
+
+    def get_realtime_status_details(self, status_type: str, location: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Get detailed list of employees for a specific real-time status type."""
+        return self.repo.get_realtime_status_details(status_type, location)
+
+    def get_punctuality_metrics(self, from_date: date, to_date: date, location: Optional[str] = None) -> Dict[str, Any]:
+        """Get punctuality and compliance metrics for a date range."""
+        return self.repo.get_punctuality_metrics(from_date, to_date, location)
+
+    def get_punctuality_details(self, metric_type: str, from_date: date, to_date: date, 
+                                 location: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Get detailed list of employees for a specific punctuality metric."""
+        return self.repo.get_punctuality_details(metric_type, from_date, to_date, location)
+

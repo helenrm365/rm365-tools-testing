@@ -47,10 +47,12 @@ document.addEventListener('click', (e) => {
 class OrderApprovalManager {
   constructor() {
     this.pendingOrders = [];
-    this.approvedToday = 0;
+    this.approvedTodayOrders = [];
+    this.approvedTodayCount = 0;
     this.currentOrderId = null;
     this.searchTerm = '';
     this.sortBy = 'date-desc';
+    this.filterType = 'all'; // 'all', 'pending', 'approved'
   }
 
   async initialize() {
@@ -88,6 +90,50 @@ class OrderApprovalManager {
         this.approveOrder(this.currentOrderId);
       }
     });
+
+    // Stat card filter buttons
+    document.getElementById('filterAll')?.addEventListener('click', () => {
+      this.setFilter('all');
+    });
+    document.getElementById('filterPending')?.addEventListener('click', () => {
+      this.setFilter('pending');
+    });
+    document.getElementById('filterApproved')?.addEventListener('click', () => {
+      this.setFilter('approved');
+    });
+
+    // Keyboard accessibility for stat cards
+    ['filterAll', 'filterPending', 'filterApproved'].forEach(id => {
+      document.getElementById(id)?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          document.getElementById(id)?.click();
+        }
+      });
+    });
+  }
+
+  setFilter(filterType) {
+    this.filterType = filterType;
+    
+    // Update active state on stat cards
+    document.querySelectorAll('.stat-card').forEach(card => {
+      card.classList.remove('active');
+    });
+    
+    const activeCard = document.getElementById(`filter${filterType.charAt(0).toUpperCase() + filterType.slice(1)}`);
+    if (activeCard) {
+      activeCard.classList.add('active');
+    }
+    
+    // Show/hide approve all button based on filter
+    const approveAllBtn = document.getElementById('approveAllBtn');
+    if (approveAllBtn) {
+      // Only show approve all for pending or all views (when there are pending orders)
+      approveAllBtn.style.display = (filterType !== 'approved' && this.pendingOrders.length > 0) ? 'inline-flex' : 'none';
+    }
+    
+    this.filterAndRenderOrders();
   }
 
   async loadPendingOrders() {
@@ -107,7 +153,11 @@ class OrderApprovalManager {
       
       if (response && response.orders) {
         this.pendingOrders = response.orders;
+        this.approvedTodayOrders = response.approved_today_orders || [];
+        this.approvedTodayCount = response.approved_today || 0;
+        
         console.log(`[Order Approval] Loaded ${this.pendingOrders.length} pending orders`);
+        console.log(`[Order Approval] Loaded ${this.approvedTodayOrders.length} approved orders today`);
         
         if (this.pendingOrders.length === 0) {
           console.warn('[Order Approval] No pending orders found. Check backend logs for details.');
@@ -131,14 +181,13 @@ class OrderApprovalManager {
           console.log('[Order Approval] Order numbers:', orderNumbers);
         }
         
-        this.approvedToday = response.approved_today || 0;
         this.updateStatistics();
         this.filterAndRenderOrders();
 
-        // Show/hide approve all button
+        // Show/hide approve all button based on current filter
         const approveAllBtn = document.getElementById('approveAllBtn');
         if (approveAllBtn) {
-          approveAllBtn.style.display = this.pendingOrders.length > 0 ? 'inline-flex' : 'none';
+          approveAllBtn.style.display = (this.filterType !== 'approved' && this.pendingOrders.length > 0) ? 'inline-flex' : 'none';
         }
       }
     } catch (error) {
@@ -155,6 +204,12 @@ class OrderApprovalManager {
   }
 
   updateStatistics() {
+    // All orders count (pending + approved today)
+    const allCount = document.getElementById('allCount');
+    if (allCount) {
+      allCount.textContent = this.pendingOrders.length + this.approvedTodayOrders.length;
+    }
+
     // Pending count
     const pendingCount = document.getElementById('pendingCount');
     if (pendingCount) {
@@ -164,18 +219,32 @@ class OrderApprovalManager {
     // Approved today count
     const approvedTodayCount = document.getElementById('approvedTodayCount');
     if (approvedTodayCount) {
-      approvedTodayCount.textContent = this.approvedToday;
+      approvedTodayCount.textContent = this.approvedTodayOrders.length;
     }
   }
 
   filterAndRenderOrders() {
-    let filteredOrders = [...this.pendingOrders];
+    let ordersToShow = [];
+    
+    // Determine which orders to show based on filter type
+    switch (this.filterType) {
+      case 'pending':
+        ordersToShow = [...this.pendingOrders];
+        break;
+      case 'approved':
+        ordersToShow = [...this.approvedTodayOrders];
+        break;
+      case 'all':
+      default:
+        ordersToShow = [...this.pendingOrders, ...this.approvedTodayOrders];
+        break;
+    }
 
     // Apply search filter
     if (this.searchTerm) {
-      filteredOrders = filteredOrders.filter(order => {
+      ordersToShow = ordersToShow.filter(order => {
         return (
-          order.order_number.toLowerCase().includes(this.searchTerm) ||
+          (order.order_number && order.order_number.toLowerCase().includes(this.searchTerm)) ||
           (order.customer_name && order.customer_name.toLowerCase().includes(this.searchTerm)) ||
           (order.customer_email && order.customer_email.toLowerCase().includes(this.searchTerm))
         );
@@ -183,22 +252,22 @@ class OrderApprovalManager {
     }
 
     // Apply sorting
-    filteredOrders.sort((a, b) => {
+    ordersToShow.sort((a, b) => {
       switch (this.sortBy) {
         case 'date-desc':
           return new Date(b.created_at) - new Date(a.created_at);
         case 'date-asc':
           return new Date(a.created_at) - new Date(b.created_at);
         case 'value-desc':
-          return parseFloat(b.grand_total) - parseFloat(a.grand_total);
+          return parseFloat(b.grand_total || 0) - parseFloat(a.grand_total || 0);
         case 'value-asc':
-          return parseFloat(a.grand_total) - parseFloat(b.grand_total);
+          return parseFloat(a.grand_total || 0) - parseFloat(b.grand_total || 0);
         default:
           return 0;
       }
     });
 
-    this.renderOrders(filteredOrders);
+    this.renderOrders(ordersToShow);
   }
 
   renderOrders(orders) {
@@ -206,11 +275,17 @@ class OrderApprovalManager {
     if (!container) return;
 
     if (orders.length === 0) {
-      this.renderEmptyState(
-        this.searchTerm 
-          ? 'No orders match your search criteria.' 
-          : 'No pending orders to approve.'
-      );
+      let emptyMessage = 'No orders to display.';
+      if (this.searchTerm) {
+        emptyMessage = 'No orders match your search criteria.';
+      } else if (this.filterType === 'pending') {
+        emptyMessage = 'No pending orders to approve.';
+      } else if (this.filterType === 'approved') {
+        emptyMessage = 'No orders have been approved today.';
+      } else {
+        emptyMessage = 'No orders found.';
+      }
+      this.renderEmptyState(emptyMessage);
       return;
     }
 
@@ -298,15 +373,18 @@ class OrderApprovalManager {
     const formattedDate = createdDate.toLocaleDateString();
     const formattedTime = createdDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     
-    const itemCount = order.total_qty_ordered || 0;
+    const itemCount = order.total_qty_ordered || order.total_items || 0;
     const grandTotal = parseFloat(order.grand_total || 0).toFixed(2);
+    const isApproved = order.is_approved === true;
+    const statusText = isApproved ? (order.session_status || 'approved') : (order.status || 'processing');
+    const cardClass = isApproved ? 'pending-order-card approved-card' : 'pending-order-card';
 
     return `
-      <div class="pending-order-card" id="card-${order.order_id}">
+      <div class="${cardClass}" id="card-${order.order_id}">
         <div class="pending-order-info">
           <div class="pending-order-header">
             <span class="pending-order-number">#${order.order_number}</span>
-            <span class="order-status-badge">${order.status || 'processing'}</span>
+            <span class="order-status-badge ${isApproved ? 'approved' : ''}">${statusText}</span>
           </div>
           <div class="pending-order-details">
             ${order.customer_name ? `
@@ -335,10 +413,12 @@ class OrderApprovalManager {
             <i class="fas fa-eye"></i>
             View Details
           </button>
-          <button class="approve-btn" id="approve-${order.order_id}">
-            <i class="fas fa-check"></i>
-            Approve
-          </button>
+          ${!isApproved ? `
+            <button class="approve-btn" id="approve-${order.order_id}">
+              <i class="fas fa-check"></i>
+              Approve
+            </button>
+          ` : ''}
         </div>
       </div>
     `;
@@ -363,17 +443,22 @@ class OrderApprovalManager {
     const modal = document.getElementById('orderDetailsModal');
     const title = document.getElementById('orderDetailsTitle');
     const body = document.getElementById('orderDetailsBody');
+    const approveFromModalBtn = document.getElementById('approveFromModalBtn');
+    const isApproved = order.is_approved === true;
 
     if (title) {
-      title.innerHTML = `
-        <i class="fas fa-box"></i>
-        Order #${order.order_number}
-      `;
+      title.textContent = `Order #${order.order_number}`;
+    }
+
+    // Hide approve button in modal for already approved orders
+    if (approveFromModalBtn) {
+      approveFromModalBtn.style.display = isApproved ? 'none' : 'inline-flex';
     }
 
     if (body) {
       const createdDate = new Date(order.created_at);
       const formattedDate = createdDate.toLocaleString();
+      const statusText = isApproved ? (order.session_status || 'approved') : (order.status || 'processing');
 
       body.innerHTML = `
         <div class="order-details-grid">
@@ -383,7 +468,7 @@ class OrderApprovalManager {
           </div>
           <div class="order-detail-item">
             <div class="order-detail-label">Status</div>
-            <div class="order-detail-value">${order.status || 'processing'}</div>
+            <div class="order-detail-value">${statusText}</div>
           </div>
           <div class="order-detail-item">
             <div class="order-detail-label">Customer Name</div>
@@ -403,7 +488,7 @@ class OrderApprovalManager {
           </div>
           <div class="order-detail-item">
             <div class="order-detail-label">Total Items</div>
-            <div class="order-detail-value">${order.total_qty_ordered || 0}</div>
+            <div class="order-detail-value">${order.total_qty_ordered || order.total_items || 0}</div>
           </div>
           <div class="order-detail-item">
             <div class="order-detail-label">Payment Method</div>
@@ -440,22 +525,47 @@ class OrderApprovalManager {
         return;
       }
 
-      const response = await post('/v1/magento/tracking/approve-order', {
-        order_number: order.order_number
-      });
-
-      if (response && response.session_id) {
-        showToast('Order approved successfully', 'success');
+      // Optimistic UI update - remove from pending immediately
+      const orderIndex = this.pendingOrders.findIndex(o => o.order_id === orderId);
+      if (orderIndex !== -1) {
+        // Remove from pending
+        const [approvedOrder] = this.pendingOrders.splice(orderIndex, 1);
+        
+        // Add to approved today with is_approved flag
+        const approvedOrderData = {
+          ...approvedOrder,
+          is_approved: true,
+          session_status: 'approved',
+          created_at: new Date().toISOString()
+        };
+        this.approvedTodayOrders.push(approvedOrderData);
+        
+        // Update UI immediately
+        this.updateStatistics();
+        this.filterAndRenderOrders();
         
         // Close modal if open
         const modal = document.getElementById('orderDetailsModal');
         if (modal) {
           modal.style.display = 'none';
         }
-
-        // Reload orders
-        await this.loadPendingOrders();
       }
+
+      // Send API request in background (don't await blocking the UI)
+      post('/v1/magento/tracking/approve-order', {
+        order_number: order.order_number
+      }).then(response => {
+        if (response && response.session_id) {
+          showToast(`Order #${order.order_number} approved`, 'success');
+        }
+      }).catch(error => {
+        console.error('[Order Approval] Error approving order:', error);
+        showToast(error.detail || 'Failed to approve order', 'error');
+        
+        // Revert optimistic update on error - reload from server
+        this.loadPendingOrders();
+      });
+
     } catch (error) {
       console.error('[Order Approval] Error approving order:', error);
       showToast(error.detail || 'Failed to approve order', 'error');

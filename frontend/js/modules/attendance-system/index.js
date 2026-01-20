@@ -10,8 +10,8 @@ export async function init(path) {
   }
   
   // Route to the appropriate sub-module based on path
-  if (path.includes('/overview')) {
-    const mod = await import('./overview.js');
+  if (path.includes('/dashboard')) {
+    const mod = await import('./dashboard.js');
     await mod.init();
     currentSubModule = mod;
   } else if (path.includes('/automatic')) {
@@ -22,9 +22,13 @@ export async function init(path) {
     const mod = await import('./logs.js');
     await mod.init();
     currentSubModule = mod;
-  } else {
-    // Default to employees (first sub-page)
+  } else if (path.includes('/employees')) {
     const mod = await import('./employees.js');
+    await mod.init();
+    currentSubModule = mod;
+  } else {
+    // Default to dashboard (first sub-page)
+    const mod = await import('./dashboard.js');
     await mod.init();
     currentSubModule = mod;
   }

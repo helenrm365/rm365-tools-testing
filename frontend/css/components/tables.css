@@ -48,18 +48,18 @@ table,
 .products-table {
   width: 100%;
   min-width: max-content; /* Allow table to expand for horizontal scroll */
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: 0.95rem;
 }
 
 /* ===== Table Header ===== */
 thead,
 .table-header {
-  background: linear-gradient(135deg, rgba(139, 195, 74, 0.15), rgba(139, 195, 74, 0.08));
-  border-bottom: 2px solid var(--accent);
   position: sticky;
   top: 0;
   z-index: 10;
+  background: var(--bg);
 }
 
 th {
@@ -71,6 +71,7 @@ th {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   white-space: nowrap;
+  border-bottom: 1px solid var(--accent);
 }
 
 /* Header icons */
@@ -94,7 +95,7 @@ tbody tr:hover,
 
 td {
   padding: 1rem;
-  color: var(--text-muted);
+  color: var(--text);
   font-size: 0.95rem;
 }
 

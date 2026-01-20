@@ -481,3 +481,387 @@ class AttendanceRepo:
                     "lunch_hours": round(r[7], 2) if r[7] else None
                 } for r in rows]
 
+    # ====== NEW DASHBOARD METRICS ======
+
+    def get_realtime_status(self, location: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Get real-time attendance status for today:
+        - today_attendance: employees who have clocked in at least once today
+        - today_absences: employees who haven't clocked in today
+        - active_breaks: employees currently on break (first out, not clocked back in)
+        """
+        with pg_conn() as conn:
+            with conn.cursor() as cur:
+                # Build employee filter
+                employee_where = ""
+                params = []
+                if location:
+                    employee_where = "WHERE e.location = %s"
+                    params.append(location)
+                
+                # Query for real-time status
+                query = f"""
+                    WITH employee_today_status AS (
+                        SELECT 
+                            e.id,
+                            e.name,
+                            e.location,
+                            -- Has any clock-in today?
+                            EXISTS (
+                                SELECT 1 FROM attendance_logs al 
+                                WHERE al.employee_id = e.id 
+                                AND al.log_time::date = CURRENT_DATE 
+                                AND al.direction = 'in'
+                            ) as has_clocked_in,
+                            -- Get latest log for today
+                            (
+                                SELECT al.direction 
+                                FROM attendance_logs al 
+                                WHERE al.employee_id = e.id 
+                                AND al.log_time::date = CURRENT_DATE 
+                                ORDER BY al.log_time DESC 
+                                LIMIT 1
+                            ) as latest_direction,
+                            -- Count of clock-ins today
+                            (
+                                SELECT COUNT(*) 
+                                FROM attendance_logs al 
+                                WHERE al.employee_id = e.id 
+                                AND al.log_time::date = CURRENT_DATE 
+                                AND al.direction = 'in'
+                            ) as clock_in_count,
+                            -- Count of clock-outs today
+                            (
+                                SELECT COUNT(*) 
+                                FROM attendance_logs al 
+                                WHERE al.employee_id = e.id 
+                                AND al.log_time::date = CURRENT_DATE 
+                                AND al.direction = 'out'
+                            ) as clock_out_count
+                        FROM employees e
+                        {employee_where}
+                    )
+                    SELECT 
+                        -- Today's attendance (clocked in at least once)
+                        COUNT(*) FILTER (WHERE has_clocked_in = true) as today_attendance,
+                        -- Today's absences (never clocked in)
+                        COUNT(*) FILTER (WHERE has_clocked_in = false) as today_absences,
+                        -- Active breaks (has clocked out once, latest is 'out', clock-out count = 1)
+                        COUNT(*) FILTER (
+                            WHERE has_clocked_in = true 
+                            AND latest_direction = 'out' 
+                            AND clock_out_count = 1
+                        ) as active_breaks,
+                        -- Total employees
+                        COUNT(*) as total_employees
+                    FROM employee_today_status
+                """
+                
+                cur.execute(query, params)
+                row = cur.fetchone()
+                
+                return {
+                    "today_attendance": row[0] or 0,
+                    "today_absences": row[1] or 0,
+                    "active_breaks": row[2] or 0,
+                    "total_employees": row[3] or 0
+                }
+
+    def get_realtime_status_details(self, status_type: str, location: Optional[str] = None) -> List[Dict[str, Any]]:
+        """
+        Get detailed list of employees for a specific real-time status type.
+        status_type: 'attendance' | 'absences' | 'breaks'
+        """
+        with pg_conn() as conn:
+            with conn.cursor() as cur:
+                # Build employee filter
+                employee_where = ""
+                params = []
+                if location:
+                    employee_where = "AND e.location = %s"
+                    params.append(location)
+                
+                if status_type == 'attendance':
+                    # Employees who have clocked in at least once today
+                    query = f"""
+                        SELECT DISTINCT 
+                            e.id, e.name, e.location,
+                            (SELECT MIN(al.log_time) FROM attendance_logs al 
+                             WHERE al.employee_id = e.id AND al.log_time::date = CURRENT_DATE AND al.direction = 'in') as first_in,
+                            (SELECT al.direction FROM attendance_logs al 
+                             WHERE al.employee_id = e.id AND al.log_time::date = CURRENT_DATE 
+                             ORDER BY al.log_time DESC LIMIT 1) as current_status
+                        FROM employees e
+                        WHERE EXISTS (
+                            SELECT 1 FROM attendance_logs al 
+                            WHERE al.employee_id = e.id 
+                            AND al.log_time::date = CURRENT_DATE 
+                            AND al.direction = 'in'
+                        )
+                        {employee_where}
+                        ORDER BY e.name
+                    """
+                elif status_type == 'absences':
+                    # Employees who haven't clocked in today
+                    query = f"""
+                        SELECT e.id, e.name, e.location, NULL as first_in, 'absent' as current_status
+                        FROM employees e
+                        WHERE NOT EXISTS (
+                            SELECT 1 FROM attendance_logs al 
+                            WHERE al.employee_id = e.id 
+                            AND al.log_time::date = CURRENT_DATE 
+                            AND al.direction = 'in'
+                        )
+                        {employee_where}
+                        ORDER BY e.name
+                    """
+                elif status_type == 'breaks':
+                    # Employees currently on break (clocked in, then clocked out once, still out)
+                    query = f"""
+                        WITH employee_status AS (
+                            SELECT 
+                                e.id, e.name, e.location,
+                                (SELECT al.log_time FROM attendance_logs al 
+                                 WHERE al.employee_id = e.id AND al.log_time::date = CURRENT_DATE AND al.direction = 'out'
+                                 ORDER BY al.log_time ASC LIMIT 1) as break_start,
+                                (SELECT COUNT(*) FROM attendance_logs al 
+                                 WHERE al.employee_id = e.id AND al.log_time::date = CURRENT_DATE AND al.direction = 'out') as out_count,
+                                (SELECT al.direction FROM attendance_logs al 
+                                 WHERE al.employee_id = e.id AND al.log_time::date = CURRENT_DATE 
+                                 ORDER BY al.log_time DESC LIMIT 1) as latest_direction
+                            FROM employees e
+                            WHERE EXISTS (
+                                SELECT 1 FROM attendance_logs al 
+                                WHERE al.employee_id = e.id 
+                                AND al.log_time::date = CURRENT_DATE 
+                                AND al.direction = 'in'
+                            )
+                            {employee_where}
+                        )
+                        SELECT id, name, location, break_start as first_in, 'on_break' as current_status
+                        FROM employee_status
+                        WHERE latest_direction = 'out' AND out_count = 1
+                        ORDER BY name
+                    """
+                else:
+                    return []
+                
+                cur.execute(query, params)
+                rows = cur.fetchall()
+                
+                return [{
+                    "id": r[0],
+                    "name": r[1],
+                    "location": r[2],
+                    "time": r[3].strftime("%H:%M:%S") if r[3] else None,
+                    "status": r[4]
+                } for r in rows]
+
+    def get_punctuality_metrics(self, from_date: date, to_date: date, location: Optional[str] = None,
+                                late_threshold_minutes: int = 0, early_departure_minutes: int = 0) -> Dict[str, Any]:
+        """
+        Get punctuality and compliance metrics for a date range:
+        - late_arrivals: employees who arrived after 9:00 AM (or late_threshold_minutes after)
+        - early_departures: employees who left before 5:00 PM (or early_departure_minutes before)
+        - missing_punches: days with incomplete clock in/out pairs
+        """
+        with pg_conn() as conn:
+            with conn.cursor() as cur:
+                # Build employee filter
+                employee_where = ""
+                params = [from_date, to_date]
+                if location:
+                    employee_where = "AND e.location = %s"
+                    params.append(location)
+                
+                # Standard work hours (9 AM to 5:30 PM) - can be made configurable later
+                late_time = "09:00:00"
+                early_time = "17:30:00"
+                
+                params_with_times = [from_date, to_date, late_time] + ([location] if location else [])
+                params_with_times2 = [from_date, to_date, early_time] + ([location] if location else [])
+                params_missing = [from_date, to_date] + ([location] if location else [])
+                
+                # Count late arrivals
+                late_query = f"""
+                    WITH first_clock_ins AS (
+                        SELECT 
+                            e.id, e.name, a.log_time::date as work_date,
+                            MIN(a.log_time::time) as first_in_time
+                        FROM employees e
+                        JOIN attendance_logs a ON e.id = a.employee_id
+                        WHERE a.log_time::date BETWEEN %s AND %s
+                        AND a.direction = 'in'
+                        {employee_where}
+                        GROUP BY e.id, e.name, a.log_time::date
+                    )
+                    SELECT 
+                        COUNT(*) as late_count,
+                        COUNT(DISTINCT id) as unique_employees_late
+                    FROM first_clock_ins
+                    WHERE first_in_time > %s::time
+                """
+                cur.execute(late_query, params_with_times)
+                late_row = cur.fetchone()
+                
+                # Count early departures
+                early_query = f"""
+                    WITH last_clock_outs AS (
+                        SELECT 
+                            e.id, e.name, a.log_time::date as work_date,
+                            MAX(a.log_time::time) as last_out_time
+                        FROM employees e
+                        JOIN attendance_logs a ON e.id = a.employee_id
+                        WHERE a.log_time::date BETWEEN %s AND %s
+                        AND a.direction = 'out'
+                        {employee_where}
+                        GROUP BY e.id, e.name, a.log_time::date
+                    )
+                    SELECT 
+                        COUNT(*) as early_count,
+                        COUNT(DISTINCT id) as unique_employees_early
+                    FROM last_clock_outs
+                    WHERE last_out_time < %s::time
+                """
+                cur.execute(early_query, params_with_times2)
+                early_row = cur.fetchone()
+                
+                # Count missing punches (days with odd number of logs - incomplete pairs)
+                missing_query = f"""
+                    WITH daily_logs AS (
+                        SELECT 
+                            e.id, e.name, a.log_time::date as work_date,
+                            SUM(CASE WHEN a.direction = 'in' THEN 1 ELSE 0 END) as in_count,
+                            SUM(CASE WHEN a.direction = 'out' THEN 1 ELSE 0 END) as out_count
+                        FROM employees e
+                        JOIN attendance_logs a ON e.id = a.employee_id
+                        WHERE a.log_time::date BETWEEN %s AND %s
+                        {employee_where}
+                        GROUP BY e.id, e.name, a.log_time::date
+                    )
+                    SELECT 
+                        COUNT(*) as missing_punch_days,
+                        COUNT(DISTINCT id) as unique_employees_missing
+                    FROM daily_logs
+                    WHERE in_count != out_count
+                """
+                cur.execute(missing_query, params_missing)
+                missing_row = cur.fetchone()
+                
+                # Calculate total work days for rate calculation
+                total_query = f"""
+                    SELECT COUNT(DISTINCT (e.id, a.log_time::date))
+                    FROM employees e
+                    JOIN attendance_logs a ON e.id = a.employee_id
+                    WHERE a.log_time::date BETWEEN %s AND %s
+                    {employee_where}
+                """
+                cur.execute(total_query, params_missing)
+                total_workdays = cur.fetchone()[0] or 1
+                
+                late_count = late_row[0] or 0
+                early_count = early_row[0] or 0
+                missing_count = missing_row[0] or 0
+                
+                return {
+                    "late_arrivals": late_count,
+                    "late_arrival_rate": round((late_count / total_workdays) * 100, 1) if total_workdays > 0 else 0,
+                    "early_departures": early_count,
+                    "early_departure_rate": round((early_count / total_workdays) * 100, 1) if total_workdays > 0 else 0,
+                    "missing_punches": missing_count,
+                    "missing_punch_rate": round((missing_count / total_workdays) * 100, 1) if total_workdays > 0 else 0,
+                    "total_workdays": total_workdays
+                }
+
+    def get_punctuality_details(self, metric_type: str, from_date: date, to_date: date, 
+                                 location: Optional[str] = None) -> List[Dict[str, Any]]:
+        """
+        Get detailed list of employees for a specific punctuality metric.
+        metric_type: 'late' | 'early' | 'missing'
+        """
+        with pg_conn() as conn:
+            with conn.cursor() as cur:
+                # Build employee filter
+                employee_where = ""
+                params = [from_date, to_date]
+                if location:
+                    employee_where = "AND e.location = %s"
+                    params.append(location)
+                
+                if metric_type == 'late':
+                    late_time = "09:00:00"
+                    params.append(late_time)
+                    query = f"""
+                        SELECT 
+                            e.id, e.name, e.location, a.log_time::date as work_date,
+                            MIN(a.log_time::time) as first_in_time
+                        FROM employees e
+                        JOIN attendance_logs a ON e.id = a.employee_id
+                        WHERE a.log_time::date BETWEEN %s AND %s
+                        AND a.direction = 'in'
+                        {employee_where}
+                        GROUP BY e.id, e.name, e.location, a.log_time::date
+                        HAVING MIN(a.log_time::time) > %s::time
+                        ORDER BY a.log_time::date DESC, e.name
+                    """
+                elif metric_type == 'early':
+                    early_time = "17:30:00"
+                    params.append(early_time)
+                    query = f"""
+                        SELECT 
+                            e.id, e.name, e.location, a.log_time::date as work_date,
+                            MAX(a.log_time::time) as last_out_time
+                        FROM employees e
+                        JOIN attendance_logs a ON e.id = a.employee_id
+                        WHERE a.log_time::date BETWEEN %s AND %s
+                        AND a.direction = 'out'
+                        {employee_where}
+                        GROUP BY e.id, e.name, e.location, a.log_time::date
+                        HAVING MAX(a.log_time::time) < %s::time
+                        ORDER BY a.log_time::date DESC, e.name
+                    """
+                elif metric_type == 'missing':
+                    query = f"""
+                        WITH daily_logs AS (
+                            SELECT 
+                                e.id, e.name, e.location, a.log_time::date as work_date,
+                                SUM(CASE WHEN a.direction = 'in' THEN 1 ELSE 0 END) as in_count,
+                                SUM(CASE WHEN a.direction = 'out' THEN 1 ELSE 0 END) as out_count
+                            FROM employees e
+                            JOIN attendance_logs a ON e.id = a.employee_id
+                            WHERE a.log_time::date BETWEEN %s AND %s
+                            {employee_where}
+                            GROUP BY e.id, e.name, e.location, a.log_time::date
+                        )
+                        SELECT id, name, location, work_date,
+                            CASE 
+                                WHEN in_count > out_count THEN 'Missing clock-out'
+                                ELSE 'Missing clock-in'
+                            END as issue_type
+                        FROM daily_logs
+                        WHERE in_count != out_count
+                        ORDER BY work_date DESC, name
+                    """
+                else:
+                    return []
+                
+                cur.execute(query, params)
+                rows = cur.fetchall()
+                
+                if metric_type == 'missing':
+                    return [{
+                        "id": r[0],
+                        "name": r[1],
+                        "location": r[2],
+                        "date": r[3].isoformat(),
+                        "issue": r[4]
+                    } for r in rows]
+                else:
+                    return [{
+                        "id": r[0],
+                        "name": r[1],
+                        "location": r[2],
+                        "date": r[3].isoformat(),
+                        "time": r[4].strftime("%H:%M:%S") if r[4] else None
+                    } for r in rows]
+
