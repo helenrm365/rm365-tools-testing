@@ -11,7 +11,7 @@ import {
   getLogs
 } from '../../services/api/attendanceApi.js';
 import { showToast } from '../../ui/toast.js';
-import { exportDashboardToPDF, exportDashboardToCSV, exportCombinedPDF, exportCombinedCSV } from '../../utils/dashboardExport.js';
+import { exportDashboardToPDF, exportDashboardToCSV, exportCombinedPDF, exportCombinedCSV, exportEmployeeCardToPDF, exportEmployeeCardToCSV } from '../../utils/dashboardExport.js';
 
 // FilterControlPanel is loaded globally via script tag in index.html
 
@@ -697,9 +697,27 @@ function displayLunchtimeCards(data) {
   });
 
   const cards = Object.values(employeeData).map(emp => `
-    <div class="employee-card lunchtime-employee-card" data-employee="${emp.name}" style="cursor: pointer;" title="Click to view attendance logs">
-      <div class="employee-avatar">
-        <i class="fas fa-user"></i>
+    <div class="employee-card lunchtime-employee-card" data-employee="${emp.name}" data-first-in="${emp.firstIn || ''}" data-last-out="${emp.lastOut || ''}" data-hours-worked="${emp.hoursWorked || 0}" data-lunch-time="${emp.lunchTime || 0}" title="Click to view attendance logs">
+      <div class="employee-card-header">
+        <div class="employee-avatar">
+          <i class="fas fa-user"></i>
+        </div>
+        <div class="export-dropdown employee-card-export" data-employee="${emp.name}">
+          <button class="export-dropdown-btn btn-sm" title="Export employee data" onclick="event.stopPropagation();">
+            <i class="fas fa-download"></i>
+            <i class="fas fa-chevron-down dropdown-arrow"></i>
+          </button>
+          <div class="export-dropdown-menu">
+            <button class="export-option" data-format="pdf" data-employee="${emp.name}" onclick="event.stopPropagation();">
+              <i class="fas fa-file-pdf"></i>
+              <span>Export as PDF</span>
+            </button>
+            <button class="export-option" data-format="csv" data-employee="${emp.name}" onclick="event.stopPropagation();">
+              <i class="fas fa-file-csv"></i>
+              <span>Export as CSV</span>
+            </button>
+          </div>
+        </div>
       </div>
       <div class="employee-info">
         <h4>${emp.name}</h4>
@@ -731,15 +749,124 @@ function displayLunchtimeCards(data) {
 
   cardsEl.innerHTML = dateLabel + cards;
   
-  // Add click handlers for employee cards
+  // Add click handlers for employee cards (clicking on card area opens logs modal)
   cardsEl.querySelectorAll('.lunchtime-employee-card[data-employee]').forEach(card => {
-    card.addEventListener('click', () => {
+    card.addEventListener('click', (e) => {
+      // Don't open modal if clicking on export dropdown
+      if (e.target.closest('.employee-card-export')) return;
+      
       const employeeName = card.dataset.employee;
       if (employeeName) {
         showEmployeeLogsModal(employeeName);
       }
     });
   });
+  
+  // Setup export dropdowns for employee cards
+  setupEmployeeCardExportDropdowns(cardsEl);
+}
+
+/**
+ * Setup export dropdown handlers for employee cards
+ */
+function setupEmployeeCardExportDropdowns(container) {
+  const exportDropdowns = container.querySelectorAll('.employee-card-export');
+  
+  exportDropdowns.forEach(dropdown => {
+    const btn = dropdown.querySelector('.export-dropdown-btn');
+    const menu = dropdown.querySelector('.export-dropdown-menu');
+    
+    if (!btn || !menu) return;
+    
+    // Toggle dropdown on button click
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      
+      // Close other dropdowns
+      document.querySelectorAll('.employee-card-export.open').forEach(d => {
+        if (d !== dropdown) d.classList.remove('open');
+      });
+      
+      dropdown.classList.toggle('open');
+    });
+    
+    // Handle export option clicks
+    menu.querySelectorAll('.export-option').forEach(option => {
+      option.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        
+        const format = option.dataset.format;
+        const employeeName = option.dataset.employee;
+        
+        dropdown.classList.remove('open');
+        await handleEmployeeCardExport(employeeName, format);
+      });
+    });
+  });
+  
+  // Close dropdowns when clicking outside
+  document.addEventListener('click', () => {
+    exportDropdowns.forEach(d => d.classList.remove('open'));
+  });
+}
+
+/**
+ * Handle export for individual employee card
+ * @param {string} employeeName - Name of the employee
+ * @param {string} format - 'pdf' or 'csv'
+ */
+async function handleEmployeeCardExport(employeeName, format) {
+  try {
+    // Show loading toast
+    showToast(`Generating ${format.toUpperCase()} for ${employeeName}...`, 'info');
+    
+    // Get employee card data
+    const cardEl = document.querySelector(`.lunchtime-employee-card[data-employee="${employeeName}"]`);
+    const employeeData = {
+      name: employeeName,
+      firstIn: cardEl?.dataset.firstIn || '-',
+      lastOut: cardEl?.dataset.lastOut || '-',
+      hoursWorked: formatHoursToHM(parseFloat(cardEl?.dataset.hoursWorked) || 0),
+      lunchTime: formatHoursToHM(parseFloat(cardEl?.dataset.lunchTime) || 0)
+    };
+    
+    // Get date range from filter panel
+    const { fromDate, toDate } = getDateRangeForPreset(state.globalFilters.preset);
+    const fromDateDisplay = new Date(fromDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    const toDateDisplay = new Date(toDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    const dateRangeText = fromDate === toDate ? fromDateDisplay : `${fromDateDisplay} - ${toDateDisplay}`;
+    
+    // Fetch logs for the employee within the date range
+    const logs = await getLogs(fromDate, toDate, null, employeeName, null);
+    
+    // Filter to exact employee match and sort
+    const filteredLogs = (logs || [])
+      .filter(log => log.employee?.toLowerCase() === employeeName.toLowerCase())
+      .sort((a, b) => {
+        const dateTimeA = new Date(`${a.date}T${a.time}`);
+        const dateTimeB = new Date(`${b.date}T${b.time}`);
+        return dateTimeB - dateTimeA;
+      });
+    
+    const filters = {
+      dateRange: dateRangeText,
+      location: state.globalFilters.location || null
+    };
+    
+    let result;
+    if (format === 'pdf') {
+      result = await exportEmployeeCardToPDF(employeeData, filteredLogs, filters);
+    } else if (format === 'csv') {
+      result = exportEmployeeCardToCSV(employeeData, filteredLogs, filters);
+    }
+    
+    if (result?.success) {
+      showToast(`${format.toUpperCase()} exported successfully: ${result.filename}`, 'success');
+    }
+  } catch (error) {
+    console.error('Employee card export error:', error);
+    showToast(`Failed to export ${format.toUpperCase()}: ${error.message}`, 'error');
+  }
 }
 
 // ====== Employee Logs Modal ======
@@ -748,7 +875,9 @@ const employeeLogsModalState = {
   pageSize: 10,
   totalPages: 1,
   allLogs: [],
-  employeeName: ''
+  employeeName: '',
+  dateRange: { fromDate: null, toDate: null },
+  todaySummary: { firstIn: null, lastOut: null, hoursWorked: 0, lunchTime: 0 }
 };
 
 async function showEmployeeLogsModal(employeeName) {
@@ -756,15 +885,37 @@ async function showEmployeeLogsModal(employeeName) {
   employeeLogsModalState.currentPage = 1;
   employeeLogsModalState.allLogs = [];
   
+  // Get date range for display
+  const { fromDate, toDate } = getDateRangeForPreset(state.globalFilters.preset);
+  const fromDateDisplay = new Date(fromDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  const toDateDisplay = new Date(toDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  const dateRangeText = fromDate === toDate ? fromDateDisplay : `${fromDateDisplay} - ${toDateDisplay}`;
+  
+  // Get today's summary from the card data
+  const cardEl = document.querySelector(`.lunchtime-employee-card[data-employee="${employeeName}"]`);
+  const todaySummary = {
+    firstIn: cardEl?.dataset.firstIn || null,
+    lastOut: cardEl?.dataset.lastOut || null,
+    hoursWorked: parseFloat(cardEl?.dataset.hoursWorked) || 0,
+    lunchTime: parseFloat(cardEl?.dataset.lunchTime) || 0
+  };
+  employeeLogsModalState.todaySummary = todaySummary;
+  
   // Create modal HTML
   const modalHtml = `
     <div class="modal-overlay active" id="employeeLogsModal">
       <div class="modal-content" style="max-width: 800px; width: 90%;">
         <div class="modal-header" style="background: var(--bg-light); border-bottom: 1px solid var(--border);">
-          <h3 class="modal-title" style="color: var(--text);">
-            <i class="fas fa-clipboard-list" style="margin-right: 0.5rem; color: var(--accent);"></i>
-            Attendance Logs - ${employeeName}
-          </h3>
+          <div>
+            <h3 class="modal-title" style="color: var(--text); margin-bottom: 0.25rem;">
+              <i class="fas fa-clipboard-list" style="margin-right: 0.5rem; color: var(--accent);"></i>
+              Attendance Logs - ${employeeName}
+            </h3>
+            <p style="font-size: 0.875rem; color: var(--text-muted); margin: 0;">
+              <i class="fas fa-calendar-alt" style="margin-right: 0.25rem;"></i>
+              ${dateRangeText}
+            </p>
+          </div>
           <button class="modal-close" id="closeEmployeeLogsModal" style="color: var(--text-muted);">&times;</button>
         </div>
         <div class="modal-body" style="max-height: 60vh; overflow-y: auto; padding: 0;">
@@ -816,13 +967,10 @@ async function showEmployeeLogsModal(employeeName) {
 
 async function fetchEmployeeLogs(employeeName) {
   try {
-    // Get date range - use a wide range to show all logs (last 30 days)
-    const today = new Date();
-    const thirtyDaysAgo = new Date(today);
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    // Use date range from filter panel
+    const { fromDate, toDate } = getDateRangeForPreset(state.globalFilters.preset);
     
-    const fromDate = `${thirtyDaysAgo.getFullYear()}-${String(thirtyDaysAgo.getMonth() + 1).padStart(2, '0')}-${String(thirtyDaysAgo.getDate()).padStart(2, '0')}`;
-    const toDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    console.log('[Dashboard] Fetching employee logs for:', employeeName, 'Date range:', fromDate, 'to', toDate);
     
     const logs = await getLogs(fromDate, toDate, null, employeeName, null);
     
@@ -837,6 +985,7 @@ async function fetchEmployeeLogs(employeeName) {
       });
     
     employeeLogsModalState.totalPages = Math.ceil(employeeLogsModalState.allLogs.length / employeeLogsModalState.pageSize) || 1;
+    employeeLogsModalState.dateRange = { fromDate, toDate };
     
     renderEmployeeLogsTable();
   } catch (error) {
@@ -858,13 +1007,19 @@ function renderEmployeeLogsTable() {
   const paginationEl = document.getElementById('employeeLogsPagination');
   if (!content) return;
   
-  const { allLogs, currentPage, pageSize, totalPages } = employeeLogsModalState;
+  const { allLogs, currentPage, pageSize, totalPages, dateRange } = employeeLogsModalState;
+  
+  // Format date range for display in empty message
+  const fromDateDisplay = dateRange?.fromDate ? new Date(dateRange.fromDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
+  const toDateDisplay = dateRange?.toDate ? new Date(dateRange.toDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
+  const dateRangeText = dateRange?.fromDate === dateRange?.toDate ? fromDateDisplay : `${fromDateDisplay} to ${toDateDisplay}`;
   
   if (allLogs.length === 0) {
     content.innerHTML = `
       <div class="empty-state" style="text-align: center; padding: 2rem;">
         <i class="fas fa-inbox" style="font-size: 2rem; color: var(--text-muted);"></i>
-        <p style="margin-top: 1rem; color: var(--text-muted);">No attendance logs found for the last 30 days.</p>
+        <p style="margin-top: 1rem; color: var(--text-muted);">No attendance logs found for ${dateRangeText}.</p>
+        <p style="font-size: 0.875rem; color: var(--text-muted);">Try adjusting the date range in the filter panel.</p>
       </div>
     `;
     if (paginationEl) paginationEl.innerHTML = '';
@@ -1181,12 +1336,17 @@ async function handleExport(section, format) {
       if (icon) icon.className = 'fas fa-spinner';
     }
     
+    // Get current date range for the report
+    const { fromDate, toDate } = getDateRangeForPreset(state.globalFilters.preset);
+    const fromDateDisplay = new Date(fromDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    const toDateDisplay = new Date(toDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    const dateRangeText = fromDate === toDate ? fromDateDisplay : `${fromDateDisplay} - ${toDateDisplay}`;
+    
     // Build filters object for the report
     const filters = {
       location: state.globalFilters.location || null,
-      dateRange: section === 'punctuality' 
-        ? `${state.globalFilters.fromDate || 'Today'} to ${state.globalFilters.toDate || 'Today'}`
-        : 'Today'
+      dateRange: dateRangeText,
+      nameSearch: state.globalFilters.nameSearch || null
     };
     
     // Check if we're in grid view (stats view) - export all sections combined
@@ -1244,26 +1404,31 @@ async function handleExport(section, format) {
       }
     } else {
       // List view - export only the selected tab
+      // Always fetch fresh data to ensure current filters are applied
       let reportType;
       let data;
       
       if (section === 'realtime') {
         reportType = state.activeListTabs.realtime;
-        // Fetch data if not already loaded
-        if (!state.realtimeDetails[reportType] || state.realtimeDetails[reportType].length === 0) {
-          data = await fetchRealtimeDetails(reportType);
-          state.realtimeDetails[reportType] = data;
-        } else {
-          data = state.realtimeDetails[reportType];
+        // Always fetch fresh data with current filters
+        data = await fetchRealtimeDetails(reportType);
+        state.realtimeDetails[reportType] = data;
+        
+        // Apply client-side name filter (same as display)
+        const nameFilter = state.globalFilters.nameSearch?.toLowerCase()?.trim();
+        if (nameFilter && Array.isArray(data)) {
+          data = data.filter(emp => emp.name?.toLowerCase().includes(nameFilter));
         }
       } else if (section === 'punctuality') {
         reportType = state.activeListTabs.punctuality;
-        // Fetch data if not already loaded
-        if (!state.punctualityDetails[reportType] || state.punctualityDetails[reportType].length === 0) {
-          data = await fetchPunctualityDetails(reportType);
-          state.punctualityDetails[reportType] = data;
-        } else {
-          data = state.punctualityDetails[reportType];
+        // Always fetch fresh data with current filters
+        data = await fetchPunctualityDetails(reportType);
+        state.punctualityDetails[reportType] = data;
+        
+        // Apply client-side name filter (same as display)
+        const nameFilter = state.globalFilters.nameSearch?.toLowerCase()?.trim();
+        if (nameFilter && Array.isArray(data)) {
+          data = data.filter(item => item.name?.toLowerCase().includes(nameFilter));
         }
       }
       

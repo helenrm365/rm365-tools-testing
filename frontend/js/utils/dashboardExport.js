@@ -280,7 +280,7 @@ export async function exportDashboardToPDF(data, reportType, filters = {}, openP
         
         // Info box with light background
         doc.setFillColor(THEME.lightGray[0], THEME.lightGray[1], THEME.lightGray[2]);
-        const hasFilters = filters.location || filters.dateRange;
+        const hasFilters = filters.location || filters.dateRange || filters.nameSearch;
         const infoBoxHeight = hasFilters ? 20 : 12;
         doc.roundedRect(14, metaY - 3, doc.internal.pageSize.width - 28, infoBoxHeight, 2, 2, 'F');
         
@@ -306,6 +306,7 @@ export async function exportDashboardToPDF(data, reportType, filters = {}, openP
             let filterText = [];
             if (filters.location) filterText.push(`Location: ${filters.location}`);
             if (filters.dateRange) filterText.push(`Date: ${filters.dateRange}`);
+            if (filters.nameSearch) filterText.push(`Employee: ${filters.nameSearch}`);
             doc.text(filterText.join(' | '), 40, metaY + 2);
         }
         
@@ -485,6 +486,7 @@ export function exportDashboardToCSV(data, reportType, filters = {}) {
         csvContent += `# Generated: ${getCurrentDateTime()}\n`;
         if (filters.location) csvContent += `# Location Filter: ${filters.location}\n`;
         if (filters.dateRange) csvContent += `# Date Range: ${filters.dateRange}\n`;
+        if (filters.nameSearch) csvContent += `# Employee Filter: ${filters.nameSearch}\n`;
         csvContent += `# Total Records: ${data.length}\n`;
         csvContent += '#\n';
         
@@ -600,7 +602,7 @@ export async function exportCombinedPDF(sectionsData, sectionName, filters = {})
         
         // Info box with light background
         doc.setFillColor(THEME.lightGray[0], THEME.lightGray[1], THEME.lightGray[2]);
-        const hasFilters = filters.location || filters.dateRange;
+        const hasFilters = filters.location || filters.dateRange || filters.nameSearch;
         const infoBoxHeight = hasFilters ? 20 : 12;
         doc.roundedRect(14, metaY - 3, doc.internal.pageSize.width - 28, infoBoxHeight, 2, 2, 'F');
         
@@ -627,6 +629,7 @@ export async function exportCombinedPDF(sectionsData, sectionName, filters = {})
             let filterText = [];
             if (filters.location) filterText.push(`Location: ${filters.location}`);
             if (filters.dateRange) filterText.push(`Date: ${filters.dateRange}`);
+            if (filters.nameSearch) filterText.push(`Employee: ${filters.nameSearch}`);
             doc.text(filterText.join(' | '), 40, metaY + 2);
         }
         
@@ -778,6 +781,7 @@ export function exportCombinedCSV(sectionsData, sectionName, filters = {}) {
         csvContent += `# Generated: ${getCurrentDateTime()}\n`;
         if (filters.location) csvContent += `# Location Filter: ${filters.location}\n`;
         if (filters.dateRange) csvContent += `# Date Range: ${filters.dateRange}\n`;
+        if (filters.nameSearch) csvContent += `# Employee Filter: ${filters.nameSearch}\n`;
         
         const totalRecords = Object.values(sectionsData).reduce((sum, arr) => sum + (arr?.length || 0), 0);
         csvContent += `# Total Records: ${totalRecords}\n`;
@@ -826,6 +830,306 @@ export function exportCombinedCSV(sectionsData, sectionName, filters = {}) {
         return { success: true, filename };
     } catch (error) {
         console.error('Error generating combined CSV:', error);
+        throw error;
+    }
+}
+
+/**
+ * Export individual employee attendance card to PDF
+ * @param {Object} employeeData - Employee summary data from card
+ * @param {Array} logs - Array of attendance logs for the employee
+ * @param {Object} filters - Current filter settings including date range
+ */
+export async function exportEmployeeCardToPDF(employeeData, logs, filters = {}) {
+    try {
+        // Load jsPDF
+        const jspdf = await loadJsPDF();
+        const { jsPDF } = jspdf;
+        
+        // Create new PDF document (A4, portrait)
+        const doc = new jsPDF();
+        
+        // Try to load and add logo
+        try {
+            const logoImage = await loadImageAsBase64('/assets/RM365_Logo_New.png');
+            const maxLogoWidth = 40;
+            const aspectRatio = logoImage.height / logoImage.width;
+            const logoWidth = maxLogoWidth;
+            const logoHeight = maxLogoWidth * aspectRatio;
+            doc.addImage(logoImage.dataURL, 'PNG', doc.internal.pageSize.width - 54, 10, logoWidth, logoHeight);
+        } catch (error) {
+            console.warn('Could not load logo:', error);
+        }
+        
+        // Header with brand color accent bar
+        doc.setFillColor(THEME.brandGreen[0], THEME.brandGreen[1], THEME.brandGreen[2]);
+        doc.rect(0, 0, doc.internal.pageSize.width, 6, 'F');
+        
+        // Title Section
+        doc.setFontSize(20);
+        doc.setTextColor(THEME.headerText[0], THEME.headerText[1], THEME.headerText[2]);
+        doc.setFont(undefined, 'bold');
+        doc.text('EMPLOYEE ATTENDANCE REPORT', 14, 22);
+        
+        // Employee name subtitle
+        doc.setFontSize(14);
+        doc.setTextColor(THEME.brandGreen[0], THEME.brandGreen[1], THEME.brandGreen[2]);
+        doc.setFont(undefined, 'normal');
+        doc.text(employeeData.name, 14, 30);
+        
+        // Metadata Section
+        let metaY = 38;
+        
+        // Info box with light background
+        doc.setFillColor(THEME.lightGray[0], THEME.lightGray[1], THEME.lightGray[2]);
+        doc.roundedRect(14, metaY - 3, doc.internal.pageSize.width - 28, 12, 2, 2, 'F');
+        
+        doc.setFontSize(9);
+        doc.setTextColor(THEME.bodyText[0], THEME.bodyText[1], THEME.bodyText[2]);
+        doc.setFont(undefined, 'bold');
+        doc.text('Generated:', 18, metaY + 2);
+        doc.setFont(undefined, 'normal');
+        doc.text(getCurrentDateTime(), 40, metaY + 2);
+        
+        if (filters.dateRange) {
+            doc.setFont(undefined, 'bold');
+            doc.text('Date Range:', 100, metaY + 2);
+            doc.setFont(undefined, 'normal');
+            doc.text(filters.dateRange, 125, metaY + 2);
+        }
+        
+        let currentY = metaY + 18;
+        
+        // Today's Summary Section
+        doc.setFontSize(12);
+        doc.setTextColor(THEME.brandGreen[0], THEME.brandGreen[1], THEME.brandGreen[2]);
+        doc.setFont(undefined, 'bold');
+        doc.text("TODAY'S SUMMARY", 14, currentY);
+        currentY += 5;
+        
+        // Summary cards layout
+        const cardWidth = 42;
+        const cardHeight = 25;
+        const cardGap = 4;
+        const startX = 14;
+        
+        const summaryItems = [
+            { label: 'Arrival', value: employeeData.firstIn || '-', icon: '→' },
+            { label: 'Lunch', value: employeeData.lunchTime || '-', icon: '🍽' },
+            { label: 'Hours Worked', value: employeeData.hoursWorked || '-', icon: '⏱' },
+            { label: 'Leave Time', value: employeeData.lastOut || '-', icon: '←' }
+        ];
+        
+        summaryItems.forEach((item, index) => {
+            const x = startX + (cardWidth + cardGap) * index;
+            
+            // Card background
+            doc.setFillColor(THEME.lightGray[0], THEME.lightGray[1], THEME.lightGray[2]);
+            doc.roundedRect(x, currentY, cardWidth, cardHeight, 2, 2, 'F');
+            
+            // Card border
+            doc.setDrawColor(THEME.borderGray[0], THEME.borderGray[1], THEME.borderGray[2]);
+            doc.setLineWidth(0.2);
+            doc.roundedRect(x, currentY, cardWidth, cardHeight, 2, 2, 'S');
+            
+            // Label
+            doc.setFontSize(8);
+            doc.setTextColor(THEME.mediumGray[0], THEME.mediumGray[1], THEME.mediumGray[2]);
+            doc.setFont(undefined, 'normal');
+            doc.text(item.label, x + cardWidth / 2, currentY + 8, { align: 'center' });
+            
+            // Value
+            doc.setFontSize(12);
+            doc.setTextColor(THEME.headerText[0], THEME.headerText[1], THEME.headerText[2]);
+            doc.setFont(undefined, 'bold');
+            doc.text(String(item.value), x + cardWidth / 2, currentY + 18, { align: 'center' });
+        });
+        
+        currentY += cardHeight + 15;
+        
+        // Attendance Logs Section
+        doc.setFontSize(12);
+        doc.setTextColor(THEME.brandGreen[0], THEME.brandGreen[1], THEME.brandGreen[2]);
+        doc.setFont(undefined, 'bold');
+        doc.text(`ATTENDANCE LOGS (${logs.length} records)`, 14, currentY);
+        currentY += 5;
+        
+        if (logs && logs.length > 0) {
+            // Prepare table data
+            const headers = [['Date', 'Time', 'Direction', 'Location']];
+            const rows = logs.map(log => [
+                formatDate(log.date),
+                log.time || '-',
+                log.direction === 'in' ? 'Clock In' : 'Clock Out',
+                log.location || '-'
+            ]);
+            
+            // Add table
+            doc.autoTable({
+                head: headers,
+                body: rows,
+                startY: currentY,
+                theme: 'plain',
+                styles: {
+                    fontSize: 9,
+                    cellPadding: 4,
+                    textColor: THEME.bodyText,
+                    overflow: 'ellipsize',
+                    valign: 'middle',
+                    lineColor: THEME.borderGray,
+                    lineWidth: 0.1
+                },
+                headStyles: {
+                    fillColor: THEME.brandGreen,
+                    textColor: [255, 255, 255],
+                    fontStyle: 'bold',
+                    fontSize: 9,
+                    minCellHeight: 10,
+                    halign: 'left'
+                },
+                columnStyles: {
+                    0: { cellWidth: 45 },
+                    1: { cellWidth: 30, halign: 'center' },
+                    2: { cellWidth: 35, halign: 'center' },
+                    3: { cellWidth: 'auto' }
+                },
+                alternateRowStyles: {
+                    fillColor: THEME.lightGray
+                },
+                didParseCell: function(cellData) {
+                    // Apply special styling for direction column
+                    if (cellData.section === 'body' && cellData.column.index === 2) {
+                        const cellValue = cellData.cell.raw?.toLowerCase();
+                        if (cellValue?.includes('clock in')) {
+                            cellData.cell.styles.textColor = [21, 87, 36];
+                            cellData.cell.styles.fillColor = THEME.clockInGreen;
+                        } else if (cellValue?.includes('clock out')) {
+                            cellData.cell.styles.textColor = [114, 28, 36];
+                            cellData.cell.styles.fillColor = THEME.clockOutRed;
+                        }
+                    }
+                },
+                margin: { top: 20, left: 14, right: 14 },
+                didDrawPage: function(pageData) {
+                    // Header on subsequent pages
+                    if (doc.internal.getCurrentPageInfo().pageNumber > 1) {
+                        doc.setFillColor(THEME.brandGreen[0], THEME.brandGreen[1], THEME.brandGreen[2]);
+                        doc.rect(0, 0, doc.internal.pageSize.width, 4, 'F');
+                        
+                        doc.setFontSize(10);
+                        doc.setTextColor(THEME.mediumGray[0], THEME.mediumGray[1], THEME.mediumGray[2]);
+                        doc.setFont(undefined, 'normal');
+                        doc.text(`${employeeData.name} - Attendance Report`, 14, 10);
+                    }
+                }
+            });
+        } else {
+            doc.setFontSize(10);
+            doc.setTextColor(THEME.mediumGray[0], THEME.mediumGray[1], THEME.mediumGray[2]);
+            doc.text('No attendance logs found for the selected date range.', 14, currentY + 5);
+        }
+        
+        // Add page numbers to all pages
+        const pageCount = doc.internal.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            const pageHeight = doc.internal.pageSize.height;
+            const pageWidth = doc.internal.pageSize.width;
+            
+            // Footer line
+            doc.setDrawColor(THEME.brandGreen[0], THEME.brandGreen[1], THEME.brandGreen[2]);
+            doc.setLineWidth(0.5);
+            doc.line(14, pageHeight - 15, pageWidth - 14, pageHeight - 15);
+            
+            // Page number
+            doc.setFontSize(8);
+            doc.setTextColor(THEME.mediumGray[0], THEME.mediumGray[1], THEME.mediumGray[2]);
+            doc.setFont(undefined, 'normal');
+            doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+            
+            // RM365 branding
+            doc.setFontSize(7);
+            doc.setTextColor(THEME.brandGreen[0], THEME.brandGreen[1], THEME.brandGreen[2]);
+            doc.text('RM365', 14, pageHeight - 10);
+        }
+        
+        // Generate filename
+        const dateStr = new Date().toISOString().split('T')[0];
+        const safeEmployeeName = employeeData.name.replace(/[^a-zA-Z0-9]/g, '_');
+        const filename = `${safeEmployeeName}_attendance_${dateStr}.pdf`;
+        
+        doc.save(filename);
+        
+        return { success: true, filename };
+    } catch (error) {
+        console.error('Error generating employee PDF:', error);
+        throw error;
+    }
+}
+
+/**
+ * Export individual employee attendance card to CSV
+ * @param {Object} employeeData - Employee summary data from card
+ * @param {Array} logs - Array of attendance logs for the employee
+ * @param {Object} filters - Current filter settings including date range
+ */
+export function exportEmployeeCardToCSV(employeeData, logs, filters = {}) {
+    try {
+        // Build CSV content
+        let csvContent = '';
+        
+        // Add metadata as comments
+        csvContent += `# EMPLOYEE ATTENDANCE REPORT\n`;
+        csvContent += `# Employee: ${employeeData.name}\n`;
+        csvContent += `# Generated: ${getCurrentDateTime()}\n`;
+        if (filters.dateRange) csvContent += `# Date Range: ${filters.dateRange}\n`;
+        csvContent += '#\n';
+        
+        // Today's Summary Section
+        csvContent += '\n# TODAY\'S SUMMARY\n';
+        csvContent += '"Metric","Value"\n';
+        csvContent += `"Arrival","${employeeData.firstIn || '-'}"\n`;
+        csvContent += `"Lunch","${employeeData.lunchTime || '-'}"\n`;
+        csvContent += `"Hours Worked","${employeeData.hoursWorked || '-'}"\n`;
+        csvContent += `"Leave Time","${employeeData.lastOut || '-'}"\n`;
+        
+        // Attendance Logs Section
+        csvContent += `\n# ATTENDANCE LOGS (${logs.length} records)\n`;
+        csvContent += '"Date","Time","Direction","Location"\n';
+        
+        // Add data rows
+        logs.forEach(log => {
+            const row = [
+                formatDate(log.date),
+                log.time || '-',
+                log.direction === 'in' ? 'Clock In' : 'Clock Out',
+                log.location || '-'
+            ];
+            csvContent += row.map(cell => {
+                const escaped = String(cell || '').replace(/"/g, '""');
+                return `"${escaped}"`;
+            }).join(',') + '\n';
+        });
+        
+        // Create and download file
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        const dateStr = new Date().toISOString().split('T')[0];
+        const safeEmployeeName = employeeData.name.replace(/[^a-zA-Z0-9]/g, '_');
+        const filename = `${safeEmployeeName}_attendance_${dateStr}.csv`;
+        
+        link.setAttribute('href', url);
+        link.setAttribute('download', filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        return { success: true, filename };
+    } catch (error) {
+        console.error('Error generating employee CSV:', error);
         throw error;
     }
 }
