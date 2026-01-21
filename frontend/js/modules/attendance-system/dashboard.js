@@ -1,4 +1,4 @@
-// js/modules/attendance-system/dashboard.js - Attendance dashboard with real-time status, punctuality, and lunchtime analysis
+// js/modules/attendance-system/dashboard.js - Attendance dashboard with real-time status, punctuality, and employee attendance analysis
 import { 
   getWorkHours, 
   getLocations,
@@ -7,7 +7,8 @@ import {
   getRealtimeStatus,
   getRealtimeStatusDetails,
   getPunctualityMetrics,
-  getPunctualityDetails
+  getPunctualityDetails,
+  getLogs
 } from '../../services/api/attendanceApi.js';
 import { showToast } from '../../ui/toast.js';
 
@@ -622,7 +623,7 @@ function displayLunchtimeCards(data) {
   });
 
   const cards = Object.values(employeeData).map(emp => `
-    <div class="employee-card lunchtime-employee-card">
+    <div class="employee-card lunchtime-employee-card" data-employee="${emp.name}" style="cursor: pointer;" title="Click to view attendance logs">
       <div class="employee-avatar">
         <i class="fas fa-user"></i>
       </div>
@@ -655,6 +656,226 @@ function displayLunchtimeCards(data) {
   `).join('');
 
   cardsEl.innerHTML = dateLabel + cards;
+  
+  // Add click handlers for employee cards
+  cardsEl.querySelectorAll('.lunchtime-employee-card[data-employee]').forEach(card => {
+    card.addEventListener('click', () => {
+      const employeeName = card.dataset.employee;
+      if (employeeName) {
+        showEmployeeLogsModal(employeeName);
+      }
+    });
+  });
+}
+
+// ====== Employee Logs Modal ======
+const employeeLogsModalState = {
+  currentPage: 1,
+  pageSize: 10,
+  totalPages: 1,
+  allLogs: [],
+  employeeName: ''
+};
+
+async function showEmployeeLogsModal(employeeName) {
+  employeeLogsModalState.employeeName = employeeName;
+  employeeLogsModalState.currentPage = 1;
+  employeeLogsModalState.allLogs = [];
+  
+  // Create modal HTML
+  const modalHtml = `
+    <div class="modal-overlay active" id="employeeLogsModal">
+      <div class="modal-content" style="max-width: 800px; width: 90%;">
+        <div class="modal-header" style="background: var(--bg-light); border-bottom: 1px solid var(--border);">
+          <h3 class="modal-title" style="color: var(--text);">
+            <i class="fas fa-clipboard-list" style="margin-right: 0.5rem; color: var(--accent);"></i>
+            Attendance Logs - ${employeeName}
+          </h3>
+          <button class="modal-close" id="closeEmployeeLogsModal" style="color: var(--text-muted);">&times;</button>
+        </div>
+        <div class="modal-body" style="max-height: 60vh; overflow-y: auto; padding: 0;">
+          <div id="employeeLogsContent" style="padding: 1rem;">
+            <div class="loading-state" style="text-align: center; padding: 2rem;">
+              <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: var(--accent);"></i>
+              <p style="margin-top: 1rem; color: var(--text-muted);">Loading logs...</p>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+          <div id="employeeLogsPagination" class="pagination-controls" style="display: flex; align-items: center; gap: 0.5rem;"></div>
+          <button class="action-btn action-btn-secondary" id="confirmEmployeeLogsModal">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // Inject modal into DOM
+  let container = document.getElementById('employeeLogsModalContainer');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'employeeLogsModalContainer';
+    document.body.appendChild(container);
+  }
+  container.innerHTML = modalHtml;
+  
+  // Setup close handlers
+  const modal = document.getElementById('employeeLogsModal');
+  const closeBtn = document.getElementById('closeEmployeeLogsModal');
+  const confirmBtn = document.getElementById('confirmEmployeeLogsModal');
+  
+  const closeModal = () => {
+    modal.classList.remove('active');
+    setTimeout(() => container.innerHTML = '', 300);
+  };
+  
+  closeBtn?.addEventListener('click', closeModal);
+  confirmBtn?.addEventListener('click', closeModal);
+  modal?.addEventListener('click', (e) => {
+    if (e.target === modal) closeModal();
+  });
+  
+  // Fetch logs
+  await fetchEmployeeLogs(employeeName);
+}
+
+async function fetchEmployeeLogs(employeeName) {
+  try {
+    // Get date range - use a wide range to show all logs (last 30 days)
+    const today = new Date();
+    const thirtyDaysAgo = new Date(today);
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    const fromDate = `${thirtyDaysAgo.getFullYear()}-${String(thirtyDaysAgo.getMonth() + 1).padStart(2, '0')}-${String(thirtyDaysAgo.getDate()).padStart(2, '0')}`;
+    const toDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    
+    const logs = await getLogs(fromDate, toDate, null, employeeName, null);
+    
+    // Filter to exact employee match and sort by date descending
+    employeeLogsModalState.allLogs = (logs || [])
+      .filter(log => log.employee?.toLowerCase() === employeeName.toLowerCase())
+      .sort((a, b) => {
+        // Sort by date + time descending
+        const dateTimeA = new Date(`${a.date}T${a.time}`);
+        const dateTimeB = new Date(`${b.date}T${b.time}`);
+        return dateTimeB - dateTimeA;
+      });
+    
+    employeeLogsModalState.totalPages = Math.ceil(employeeLogsModalState.allLogs.length / employeeLogsModalState.pageSize) || 1;
+    
+    renderEmployeeLogsTable();
+  } catch (error) {
+    console.error('Error fetching employee logs:', error);
+    const content = document.getElementById('employeeLogsContent');
+    if (content) {
+      content.innerHTML = `
+        <div class="empty-state" style="text-align: center; padding: 2rem;">
+          <i class="fas fa-exclamation-triangle" style="font-size: 2rem; color: var(--error);"></i>
+          <p style="margin-top: 1rem; color: var(--text-muted);">Failed to load logs. Please try again.</p>
+        </div>
+      `;
+    }
+  }
+}
+
+function renderEmployeeLogsTable() {
+  const content = document.getElementById('employeeLogsContent');
+  const paginationEl = document.getElementById('employeeLogsPagination');
+  if (!content) return;
+  
+  const { allLogs, currentPage, pageSize, totalPages } = employeeLogsModalState;
+  
+  if (allLogs.length === 0) {
+    content.innerHTML = `
+      <div class="empty-state" style="text-align: center; padding: 2rem;">
+        <i class="fas fa-inbox" style="font-size: 2rem; color: var(--text-muted);"></i>
+        <p style="margin-top: 1rem; color: var(--text-muted);">No attendance logs found for the last 30 days.</p>
+      </div>
+    `;
+    if (paginationEl) paginationEl.innerHTML = '';
+    return;
+  }
+  
+  // Get current page data
+  const startIdx = (currentPage - 1) * pageSize;
+  const endIdx = startIdx + pageSize;
+  const pageLogs = allLogs.slice(startIdx, endIdx);
+  
+  // Build table
+  const tableHtml = `
+    <div class="table-container" style="overflow-x: auto;">
+      <table class="modern-table" style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="background: var(--bg-light);">
+            <th style="padding: 0.75rem 1rem; text-align: left; font-weight: 600; color: var(--text);">Date</th>
+            <th style="padding: 0.75rem 1rem; text-align: left; font-weight: 600; color: var(--text);">Time</th>
+            <th style="padding: 0.75rem 1rem; text-align: left; font-weight: 600; color: var(--text);">Direction</th>
+            <th style="padding: 0.75rem 1rem; text-align: left; font-weight: 600; color: var(--text);">Location</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${pageLogs.map(log => {
+            // API returns separate date and time fields
+            const logDate = new Date(log.date);
+            const dateStr = logDate.toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
+            const timeStr = log.time || '-';
+            const directionClass = log.direction === 'in' ? 'color: var(--success);' : 'color: var(--warning);';
+            const directionIcon = log.direction === 'in' ? 'fa-sign-in-alt' : 'fa-sign-out-alt';
+            const directionLabel = log.direction === 'in' ? 'Clock In' : 'Clock Out';
+            
+            return `
+              <tr style="border-bottom: 1px solid var(--border);">
+                <td style="padding: 0.75rem 1rem; color: var(--text);">${dateStr}</td>
+                <td style="padding: 0.75rem 1rem; color: var(--text); font-family: monospace;">${timeStr}</td>
+                <td style="padding: 0.75rem 1rem;">
+                  <span style="display: inline-flex; align-items: center; gap: 0.5rem; ${directionClass}">
+                    <i class="fas ${directionIcon}"></i>
+                    ${directionLabel}
+                  </span>
+                </td>
+                <td style="padding: 0.75rem 1rem; color: var(--text-muted);">${log.location || '-'}</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+    <div style="padding: 0.5rem 1rem; color: var(--text-muted); font-size: 0.875rem;">
+      Showing ${startIdx + 1}-${Math.min(endIdx, allLogs.length)} of ${allLogs.length} logs
+    </div>
+  `;
+  
+  content.innerHTML = tableHtml;
+  
+  // Render pagination
+  if (paginationEl && totalPages > 1) {
+    paginationEl.innerHTML = `
+      <button class="action-btn action-btn-sm" ${currentPage <= 1 ? 'disabled' : ''} id="employeeLogsPrev">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <span style="color: var(--text); font-size: 0.875rem;">Page ${currentPage} of ${totalPages}</span>
+      <button class="action-btn action-btn-sm" ${currentPage >= totalPages ? 'disabled' : ''} id="employeeLogsNext">
+        <i class="fas fa-chevron-right"></i>
+      </button>
+    `;
+    
+    document.getElementById('employeeLogsPrev')?.addEventListener('click', () => {
+      if (employeeLogsModalState.currentPage > 1) {
+        employeeLogsModalState.currentPage--;
+        renderEmployeeLogsTable();
+      }
+    });
+    
+    document.getElementById('employeeLogsNext')?.addEventListener('click', () => {
+      if (employeeLogsModalState.currentPage < employeeLogsModalState.totalPages) {
+        employeeLogsModalState.currentPage++;
+        renderEmployeeLogsTable();
+      }
+    });
+  } else if (paginationEl) {
+    paginationEl.innerHTML = '';
+  }
 }
 
 // ====== Data Loading Functions ======

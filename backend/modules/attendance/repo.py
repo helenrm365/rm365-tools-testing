@@ -403,12 +403,15 @@ class AttendanceRepo:
                 return result
 
     def get_employee_work_hours(self, from_date: date, to_date: date, location: Optional[str] = None, name_search: Optional[str] = None) -> List[Dict[str, Any]]:
-        """Calculate work hours and lunch time for each employee in the date range."""
+        """Calculate work hours and lunch time for each employee in the date range.
+        
+        Always returns all employees, with null values for those without attendance data.
+        """
         with pg_conn() as conn:
             with conn.cursor() as cur:
                 # Build WHERE clause for employee filtering
                 employee_where_conditions = []
-                params = [from_date, to_date]
+                params = []
                 
                 if location:
                     employee_where_conditions.append("e.location = %s")
@@ -420,10 +423,18 @@ class AttendanceRepo:
                 
                 employee_where_clause = ""
                 if employee_where_conditions:
-                    employee_where_clause = "AND " + " AND ".join(employee_where_conditions)
+                    employee_where_clause = "WHERE " + " AND ".join(employee_where_conditions)
+                
+                # Add date params after employee filters
+                params.extend([from_date, to_date])
                 
                 query = f"""
-                    WITH daily_times AS (
+                    WITH all_employees AS (
+                        SELECT id, name
+                        FROM employees e
+                        {employee_where_clause}
+                    ),
+                    daily_times AS (
                         SELECT 
                             e.name,
                             a.log_time::date as work_date,
@@ -433,10 +444,9 @@ class AttendanceRepo:
                                 PARTITION BY e.name, a.log_time::date, a.direction 
                                 ORDER BY a.log_time
                             ) as rn
-                        FROM employees e
+                        FROM all_employees e
                         JOIN attendance_logs a ON e.id = a.employee_id
                         WHERE a.log_time::date BETWEEN %s AND %s
-                        {employee_where_clause}
                     ),
                     daily_pairs AS (
                         SELECT 
@@ -448,31 +458,37 @@ class AttendanceRepo:
                             MAX(CASE WHEN direction = 'out' THEN log_time END) as last_out
                         FROM daily_times
                         GROUP BY name, work_date
-                        HAVING MIN(CASE WHEN direction = 'in' AND rn = 1 THEN log_time END) IS NOT NULL
-                           AND MAX(CASE WHEN direction = 'out' THEN log_time END) IS NOT NULL
+                    ),
+                    employee_data AS (
+                        SELECT 
+                            ae.name,
+                            dp.work_date,
+                            dp.first_in,
+                            dp.first_out,
+                            dp.second_in,
+                            dp.last_out,
+                            CASE 
+                                WHEN dp.first_in IS NOT NULL AND dp.last_out IS NOT NULL 
+                                THEN EXTRACT(EPOCH FROM (dp.last_out - dp.first_in))/3600
+                                ELSE NULL 
+                            END as hours_worked,
+                            CASE 
+                                WHEN dp.first_out IS NOT NULL AND dp.second_in IS NOT NULL 
+                                THEN EXTRACT(EPOCH FROM (dp.second_in - dp.first_out))/3600
+                                ELSE NULL 
+                            END as lunch_hours
+                        FROM all_employees ae
+                        LEFT JOIN daily_pairs dp ON ae.name = dp.name
                     )
-                    SELECT 
-                        name,
-                        work_date,
-                        first_in,
-                        first_out,
-                        second_in,
-                        last_out,
-                        EXTRACT(EPOCH FROM (last_out - first_in))/3600 as hours_worked,
-                        CASE 
-                            WHEN first_out IS NOT NULL AND second_in IS NOT NULL 
-                            THEN EXTRACT(EPOCH FROM (second_in - first_out))/3600
-                            ELSE NULL 
-                        END as lunch_hours
-                    FROM daily_pairs
-                    ORDER BY name, work_date
+                    SELECT * FROM employee_data
+                    ORDER BY name, work_date NULLS LAST
                 """
                 
                 cur.execute(query, params)
                 rows = cur.fetchall()
                 return [{
                     "employee": r[0],
-                    "date": r[1].isoformat(),
+                    "date": r[1].isoformat() if r[1] else None,
                     "first_in": r[2].strftime("%H:%M:%S") if r[2] else None,
                     "first_out": r[3].strftime("%H:%M:%S") if r[3] else None,
                     "second_in": r[4].strftime("%H:%M:%S") if r[4] else None,
