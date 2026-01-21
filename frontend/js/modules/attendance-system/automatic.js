@@ -1,6 +1,6 @@
 // js/modules/attendance-system/automatic.js - Automatic clocking with NFC card support
 import { getEmployees, clockEmployee, checkAttendanceTablesStatus, initializeAttendanceTables } from '../../services/api/attendanceApi.js';
-import { playSuccessSound, playErrorSound, playScanSound } from '../../utils/sound.js';
+import { playSuccessSound, playErrorSound, playScanSound, unlockAudio, isAudioUnlocked, onAudioUnlock } from '../../utils/sound.js';
 import { showToast } from '../../ui/toast.js';
 
 // ====== State Management ======
@@ -154,6 +154,50 @@ function updateHardwareStatus() {
       if (textEl) textEl.textContent = 'Service Unavailable';
       cardStatusEl.style.color = '#dc3545';
     }
+  }
+}
+
+// ====== Sound Prompt Banner ======
+function showSoundPrompt() {
+  // Don't create duplicate
+  if (document.getElementById('soundPromptBanner')) return;
+  
+  const banner = document.createElement('div');
+  banner.id = 'soundPromptBanner';
+  banner.innerHTML = `
+    <div style="
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      font-size: 14px;
+      font-weight: 500;
+      z-index: 9999;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      cursor: pointer;
+    " onclick="this.parentElement.remove()">
+      <i class="fas fa-volume-up" style="font-size: 18px;"></i>
+      <span>🔊 Click anywhere to enable scan sounds</span>
+      <i class="fas fa-times" style="margin-left: 10px; opacity: 0.7;"></i>
+    </div>
+  `;
+  document.body.prepend(banner);
+}
+
+function hideSoundPrompt() {
+  const banner = document.getElementById('soundPromptBanner');
+  if (banner) {
+    banner.style.transition = 'opacity 0.3s, transform 0.3s';
+    banner.style.opacity = '0';
+    banner.style.transform = 'translateY(-100%)';
+    setTimeout(() => banner.remove(), 300);
   }
 }
 
@@ -445,7 +489,11 @@ function setupEventHandlers() {
   const stopBtn = $('#stopScanBtn');
 
   if (startBtn) {
-    startBtn.addEventListener('click', () => startScanning());
+    startBtn.addEventListener('click', () => {
+      // Unlock audio on user gesture (required for sound to work)
+      unlockAudio();
+      startScanning();
+    });
   }
 
   if (stopBtn) {
@@ -506,8 +554,14 @@ export async function init() {
   updateHardwareStatus();
   
   const hardwareReady = await evaluateHardwareStatus({ showSpinner: false });
-  // Always start scanning if hardware is ready OR if we want to poll for it
-  // The polling loop handles the "waiting for hardware" logic gracefully now
+  
+  // Show sound prompt if audio isn't unlocked yet
+  if (!isAudioUnlocked()) {
+    showSoundPrompt();
+    onAudioUnlock(() => hideSoundPrompt());
+  }
+  
+  // Auto-start scanning - sounds will work after user clicks anywhere
   await startScanning({ skipHardwareCheck: true });
   // Return cleanup function for module unloading
   return cleanup;
