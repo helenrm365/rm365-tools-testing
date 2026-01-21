@@ -332,6 +332,7 @@ working_modules = [
     ('modules.users.api', 'router', f'{API}/users', ['users']),
     ('modules.roles.api', 'router', f'{API}/roles', ['roles']),
     ('modules.attendance.api', 'router', f'{API}/attendance', ['attendance']),
+    ('modules.attendance.locations_api', 'router', f'{API}/locations', ['locations']),
     ('modules.enrollment.api', 'router', f'{API}/enrollment', ['enrollment']),
     ('modules.labels.api', 'router', f'{API}/labels', ['labels']),
     ('modules.magentodata.api', 'router', f'{API}/magentodata', ['magentodata']),

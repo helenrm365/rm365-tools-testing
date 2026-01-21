@@ -137,9 +137,28 @@
           <h3 class="block-title">Real-Time Status</h3>
           <p class="block-subtitle">Live attendance status for today</p>
         </div>
-        <button class="toggle-view-btn" id="toggleRealtimeView" title="Toggle list view">
-          <i class="fas fa-list"></i>
-        </button>
+        <div class="block-header-actions">
+          <div class="export-dropdown" id="realtimeExportDropdown">
+            <button class="export-dropdown-btn" id="realtimeExportBtn" title="Export data">
+              <i class="fas fa-download"></i>
+              <span>Export</span>
+              <i class="fas fa-chevron-down dropdown-arrow"></i>
+            </button>
+            <div class="export-dropdown-menu">
+              <button class="export-option" data-format="pdf" data-section="realtime">
+                <i class="fas fa-file-pdf"></i>
+                <span>Export as PDF</span>
+              </button>
+              <button class="export-option" data-format="csv" data-section="realtime">
+                <i class="fas fa-file-csv"></i>
+                <span>Export as CSV</span>
+              </button>
+            </div>
+          </div>
+          <button class="toggle-view-btn" id="toggleRealtimeView" title="Toggle list view">
+            <i class="fas fa-list"></i>
+          </button>
+        </div>
       </div>
       <div class="block-content">
         <!-- Stats Cards View -->
@@ -206,9 +225,28 @@
           <h3 class="block-title">Punctuality & Compliance</h3>
           <p class="block-subtitle">Track late arrivals, early departures, and missing punches</p>
         </div>
-        <button class="toggle-view-btn" id="togglePunctualityView" title="Toggle list view">
-          <i class="fas fa-list"></i>
-        </button>
+        <div class="block-header-actions">
+          <div class="export-dropdown" id="punctualityExportDropdown">
+            <button class="export-dropdown-btn" id="punctualityExportBtn" title="Export data">
+              <i class="fas fa-download"></i>
+              <span>Export</span>
+              <i class="fas fa-chevron-down dropdown-arrow"></i>
+            </button>
+            <div class="export-dropdown-menu">
+              <button class="export-option" data-format="pdf" data-section="punctuality">
+                <i class="fas fa-file-pdf"></i>
+                <span>Export as PDF</span>
+              </button>
+              <button class="export-option" data-format="csv" data-section="punctuality">
+                <i class="fas fa-file-csv"></i>
+                <span>Export as CSV</span>
+              </button>
+            </div>
+          </div>
+          <button class="toggle-view-btn" id="togglePunctualityView" title="Toggle list view">
+            <i class="fas fa-list"></i>
+          </button>
+        </div>
       </div>
       <div class="block-content">
         <!-- Stats Cards View -->

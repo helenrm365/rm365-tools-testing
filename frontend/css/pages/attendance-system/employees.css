@@ -367,3 +367,33 @@ html.dark-mode #editEmployeeCode {
   color: var(--warning);
   border: 1px solid rgba(var(--warning-rgb), 0.3);
 }
+
+/* ===== Create New Location Option in Dropdown ===== */
+.dropdown-option.create-new-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--accent);
+  border-top: 1px solid var(--border);
+  margin-top: 0.25rem;
+  padding-top: 0.75rem;
+  font-weight: 500;
+}
+
+.dropdown-option.create-new-option i {
+  font-size: 0.9rem;
+}
+
+.dropdown-option.create-new-option:hover {
+  background: rgba(var(--accent-rgb), 0.15);
+  color: var(--accent);
+}
+
+/* ===== Form Hint Text ===== */
+.enrollment-management .form-hint {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+  opacity: 0.7;
+}
