@@ -16,6 +16,7 @@ let currentSmartQtyRules = []; // Array of rules
 let pendingCustomerAdds = []; // Customers to be added when Apply is clicked - {email, fullName, region, ruleType, divisor, productSku, productName}
 let pendingCustomerRemoves = []; // Customer IDs to be removed when Apply is clicked
 let pendingCustomerRuleUpdates = []; // Customer rule updates - {customerId, ruleType, divisor, productSku, productName}
+let customersWithNoRules = []; // Customers to keep on list even with no rules - {email, fullName}
 let pendingGroupAdds = []; // Customer groups to be added when Apply is clicked
 let pendingGroupRemoves = []; // Customer group IDs to be removed when Apply is clicked
 let availableStatuses = [];
@@ -38,6 +39,7 @@ export function showFiltersModal(region) {
     pendingCustomerAdds = [];
     pendingCustomerRemoves = [];
     pendingCustomerRuleUpdates = [];
+    customersWithNoRules = []; // Reset customers with no rules tracking
     pendingGroupAdds = [];
     pendingGroupRemoves = [];
     pendingStatusAdds = [];
@@ -1254,6 +1256,18 @@ function displayExcludedCustomers() {
         customerGroups[rule.email].rules.push(rule);
     });
     
+    // Add customers with no rules (kept on list but all rules removed)
+    customersWithNoRules.forEach(customer => {
+        if (!customerGroups[customer.email]) {
+            customerGroups[customer.email] = {
+                email: customer.email,
+                full_name: customer.fullName,
+                rules: [],
+                hasNoRules: true
+            };
+        }
+    });
+    
     const groupedCustomers = Object.values(customerGroups);
     const totalRules = allRules.length;
     
@@ -1281,23 +1295,25 @@ function displayExcludedCustomers() {
     listContainer.innerHTML = groupedCustomers.map(customer => {
         const hasProductRules = customer.rules.some(r => r.rule_type === 'divide_product');
         const hasBaseRule = customer.rules.some(r => r.rule_type === 'exclude_all' || r.rule_type === 'divide_all');
-        const allPending = customer.rules.every(r => r.isPending);
+        const allPending = customer.rules.length > 0 && customer.rules.every(r => r.isPending);
         const anyPendingRemove = customer.rules.some(r => pendingCustomerRemoves.includes(r.id));
-        const allPendingRemove = customer.rules.every(r => pendingCustomerRemoves.includes(r.id) || r.isPending);
+        const allPendingRemove = customer.rules.length > 0 && customer.rules.every(r => pendingCustomerRemoves.includes(r.id) || r.isPending);
         const anyPendingUpdate = customer.rules.some(r => r.hasPendingUpdate);
+        const hasNoRules = customer.hasNoRules || customer.rules.length === 0;
         
         // Get all rule IDs for this customer (for remove all functionality)
         const ruleIds = customer.rules.filter(r => !r.isPending).map(r => r.id);
         const pendingRuleIndices = customer.rules.filter(r => r.isPending).map(r => r.id);
         
         return `
-            <div class="excluded-customer-group ${allPending ? 'pending-add' : ''} ${allPendingRemove ? 'pending-remove' : ''} ${anyPendingUpdate ? 'pending-update' : ''}">
+            <div class="excluded-customer-group ${allPending ? 'pending-add' : ''} ${allPendingRemove ? 'pending-remove' : ''} ${anyPendingUpdate ? 'pending-update' : ''} ${hasNoRules ? 'no-rules' : ''}">
                 <div class="excluded-customer-header">
                     <div class="excluded-item-info">
                         <div class="excluded-item-email">
                             ${escapeHtml(customer.email)}
                             ${allPending ? '<span class="pending-badge">NEW</span>' : ''}
                             ${allPendingRemove && !allPending ? '<span class="pending-badge remove">REMOVING</span>' : ''}
+                            ${hasNoRules && !allPending ? '<span class="pending-badge warning">NO RULES</span>' : ''}
                         </div>
                         ${customer.full_name ? `<div class="excluded-item-name">${escapeHtml(customer.full_name)}</div>` : ''}
                     </div>
@@ -1311,7 +1327,9 @@ function displayExcludedCustomers() {
                     </div>
                 </div>
                 <div class="excluded-customer-rules">
-                    ${customer.rules.map(rule => {
+                    ${customer.rules.length === 0 ? 
+                        '<div class="excluded-rule-empty">This customer currently has no rules. Add a rule or remove the customer.</div>' :
+                        customer.rules.map(rule => {
                         const isPendingRemove = pendingCustomerRemoves.includes(rule.id);
                         const ruleClass = rule.isPending ? 'pending-add' : 
                                          isPendingRemove ? 'pending-remove' : 
@@ -1359,15 +1377,23 @@ function displayExcludedCustomers() {
             const ruleIds = btn.dataset.ruleIds ? btn.dataset.ruleIds.split(',').filter(id => id).map(id => parseInt(id)) : [];
             const pendingIndices = btn.dataset.pendingIndices ? btn.dataset.pendingIndices.split(',').filter(id => id) : [];
             
-            // Check if all rules are already pending removal
-            const allPendingRemove = ruleIds.every(id => pendingCustomerRemoves.includes(id));
+            // Check if this customer is in the "no rules" state
+            const isNoRulesCustomer = customersWithNoRules.some(c => c.email === email);
             
-            if (allPendingRemove && pendingIndices.length === 0) {
+            // Check if all rules are already pending removal
+            const allPendingRemove = ruleIds.length > 0 && ruleIds.every(id => pendingCustomerRemoves.includes(id));
+            
+            if ((allPendingRemove || isNoRulesCustomer) && pendingIndices.length === 0) {
                 // Undo the removal
                 ruleIds.forEach(id => {
                     const idx = pendingCustomerRemoves.indexOf(id);
                     if (idx >= 0) pendingCustomerRemoves.splice(idx, 1);
                 });
+                // Also remove from customersWithNoRules if present
+                const noRulesIdx = customersWithNoRules.findIndex(c => c.email === email);
+                if (noRulesIdx >= 0) {
+                    customersWithNoRules.splice(noRulesIdx, 1);
+                }
                 showToast(`📝 Cancelled removing ${email}`, 'info');
             } else {
                 // Remove all pending adds for this customer
@@ -1382,6 +1408,11 @@ function displayExcludedCustomers() {
                         pendingCustomerRemoves.push(id);
                     }
                 });
+                // Also remove from customersWithNoRules - we're fully deleting this customer
+                const noRulesIdx = customersWithNoRules.findIndex(c => c.email === email);
+                if (noRulesIdx >= 0) {
+                    customersWithNoRules.splice(noRulesIdx, 1);
+                }
                 showToast(`📝 ${email} will be removed (click Apply to save)`, 'info');
             }
             displayExcludedCustomers();
@@ -1414,12 +1445,43 @@ function displayExcludedCustomers() {
                     const idx = pendingCustomerRemoves.indexOf(id);
                     pendingCustomerRemoves.splice(idx, 1);
                     const customer = excludedCustomers.find(c => c.id === id);
+                    
+                    // If customer was in customersWithNoRules because all rules were pending remove,
+                    // and now we're undoing one, remove them from the no-rules list
+                    if (customer) {
+                        const noRulesIdx = customersWithNoRules.findIndex(c => c.email === customer.email);
+                        if (noRulesIdx >= 0) {
+                            customersWithNoRules.splice(noRulesIdx, 1);
+                        }
+                    }
+                    
                     showToast(`📝 Cancelled removing rule for ${customer?.email || 'customer'}`, 'info');
                     displayExcludedCustomers();
                 } else {
                     // Stage for removal (individual rule)
                     const customer = excludedCustomers.find(c => c.id === id);
                     pendingCustomerRemoves.push(id);
+                    
+                    // Check if all rules for this customer are now pending removal
+                    if (customer) {
+                        const customerRules = excludedCustomers.filter(c => c.email === customer.email);
+                        const customerPendingAdds = pendingCustomerAdds.filter(c => c.email === customer.email);
+                        const allRulesRemoved = customerRules.every(r => pendingCustomerRemoves.includes(r.id));
+                        const noPendingAdds = customerPendingAdds.length === 0;
+                        
+                        // If all existing rules are staged for removal and no pending adds,
+                        // keep the customer on the list with no rules
+                        if (allRulesRemoved && noPendingAdds) {
+                            // Add to customersWithNoRules if not already there
+                            if (!customersWithNoRules.some(c => c.email === customer.email)) {
+                                customersWithNoRules.push({
+                                    email: customer.email,
+                                    fullName: customer.full_name || ''
+                                });
+                            }
+                        }
+                    }
+                    
                     showToast(`📝 Rule will be removed (click Apply to save)`, 'info');
                     displayExcludedCustomers();
                 }

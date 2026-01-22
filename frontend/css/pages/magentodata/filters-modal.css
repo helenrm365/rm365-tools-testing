@@ -452,6 +452,10 @@ html.dark-mode .modal .custom-dropdown .dropdown-options {
   background: var(--warning, #f39c12);
 }
 
+.pending-badge.warning {
+  background: var(--warning, #f39c12);
+}
+
 /* ===== Customer Exclusion Rule Styles ===== */
 .excluded-item-rule {
   margin-top: 0.375rem;
@@ -782,6 +786,17 @@ html.dark-mode .rule-edit-modal-overlay .custom-dropdown .dropdown-options {
 .excluded-rule-actions .excluded-item-remove:hover {
   background: var(--danger, #e74c3c);
   color: white;
+}
+
+.excluded-rule-empty {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 0.75rem 1rem;
+  font-style: italic;
+  background: var(--bg-light);
+  border-radius: 6px;
+  margin: 0.25rem 0;
 }
 
 .excluded-item-add-rule {
