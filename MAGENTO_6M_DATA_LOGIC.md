@@ -92,24 +92,74 @@ These suffixes remain **SEPARATE** in Magento 6M data:
 The 6M aggregation applies multiple filters to focus on relevant orders:
 
 ### 1. Customer Exclusions
-**Table:** `aggregated_excluded_customers`
+**Table:** `magento_region_filters` (filter_type: 'excluded_customer')
 
-**Purpose:** Filter out specific customer email addresses
+**Purpose:** Filter or modify orders from specific customer email addresses
 - Configured per region (UK/FR/NL)
-- Example use cases:
-  - Remove test accounts
-  - Exclude staff purchases
-  - Remove problematic/fraudulent customers
-  - Remove potential wholesale customers
+- Supports multiple exclusion rule types
+- **Multiple product rules per customer:** A customer can have multiple `divide_product` rules (one for each product)
+
+**Rule Types:**
+
+| Rule Type | Description | Parameters | Multiple Allowed? |
+|-----------|-------------|------------|-------------------|
+| `exclude_all` | Completely exclude all orders from this customer | None | No (one per customer) |
+| `divide_all` | Divide ALL order quantities from this customer by a divisor | `exclusion_divisor` (default: 2) | No (one per customer) |
+| `divide_product` | Divide only a SPECIFIC product's quantities from this customer | `exclusion_divisor`, `exclusion_product_sku`, `exclusion_product_name` | **Yes** (multiple products) |
+
+**Example Use Cases:**
+- **exclude_all:** Remove test accounts, staff purchases, or fraudulent customers
+- **divide_all:** Customer ordering for themselves AND a business partner (split 50/50)
+- **divide_product:** Customer buys specific products in bulk but orders normally otherwise
+  - Can add multiple products: e.g., divide Product A by 2 AND divide Product B by 3
+
+**Rule Dominance (Combinations):**
+
+Rules can be combined with the following priority/dominance logic:
+
+| Base Rule | + Product Rules | Behavior |
+|-----------|-----------------|----------|
+| `exclude_all` | + `divide_product`(s) | Exclude ALL products EXCEPT the specific products with divide rules (those get divided) |
+| `divide_all` | + `divide_product`(s) | Divide ALL products by base divisor EXCEPT products with their own divide rules (those use their own divisor) |
+| `exclude_all` | + `divide_all` | **NOT ALLOWED** - conflicting base rules (backend returns error) |
+
+**Key Constraints:**
+- **Only ONE base rule per customer:** Cannot have multiple `exclude_all` or `divide_all` rules for the same customer
+- **Cannot mix base rule types:** If customer has `exclude_all`, cannot add `divide_all` (and vice versa) - must delete first
+- **Unlimited product rules:** A customer can have as many `divide_product` rules as needed (one per unique SKU)
+- **Product-specific rules take precedence:** When a product matches a `divide_product` rule, it overrides the base rule for that product
+
+**Key Points:**
+- A customer CAN have a base rule (`exclude_all` or `divide_all`) PLUS multiple `divide_product` rules
+- A customer CANNOT have BOTH `exclude_all` and `divide_all` (these are mutually exclusive base rules)
+- The "+" button on a customer allows adding product-specific overrides without removing the base rule
+- Re-adding the same base rule type updates the existing divisor (doesn't create duplicate)
+
+**Example Scenarios:**
+
+1. **Exclude all except specific products:**
+   - Customer has `exclude_all` + `divide_product(SKU-123, divisor=2)` + `divide_product(SKU-456, divisor=3)`
+   - Result: All products from this customer are excluded EXCEPT SKU-123 (divided by 2) and SKU-456 (divided by 3)
+
+2. **Divide all with custom divisors for some products:**
+   - Customer has `divide_all(divisor=2)` + `divide_product(SKU-789, divisor=4)` + `divide_product(SKU-ABC, divisor=6)`
+   - Result: All products divided by 2 EXCEPT SKU-789 (divided by 4) and SKU-ABC (divided by 6)
 
 **Columns:**
 - `region` - UK/FR/NL
-- `customer_email` - Email to exclude
+- `customer_email` - Email to apply rule to
 - `customer_full_name` - Name for reference
-- `added_by` - Who added the exclusion
+- `exclusion_rule_type` - 'exclude_all', 'divide_all', or 'divide_product'
+- `exclusion_divisor` - Divisor value (default: 2)
+- `exclusion_product_sku` - SKU for divide_product rule
+- `exclusion_product_name` - Product name for display
+- `added_by` - Who added the rule
+
+**Product Selection for divide_product:**
+When selecting `divide_product` rule, a search box allows searching for products that the customer has previously ordered. The system queries the orders cache for all products ordered by that customer. Use the "+" button next to an existing customer to add additional product rules.
 
 ### 2. Customer Group Exclusions
-**Table:** `aggregated_excluded_customer_groups`
+**Table:** `magento_region_filters` (filter_type: 'excluded_group')
 
 **Purpose:** Filter out entire customer groups
 - Configured per region

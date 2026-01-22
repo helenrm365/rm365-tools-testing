@@ -1,7 +1,5 @@
 from typing import List, Dict, Any, Optional
 import logging
-import csv
-import io
 import json
 from datetime import datetime, timezone
 from psycopg2.extras import execute_values
@@ -125,11 +123,27 @@ class MagentoDataRepo:
                         added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         
-                        -- Unique constraints
-                        CONSTRAINT unique_excluded_customer UNIQUE(region, filter_type, customer_email),
+                        -- Unique constraints (note: excluded_customer uses partial indexes instead)
                         CONSTRAINT unique_excluded_group UNIQUE(region, filter_type, customer_group),
                         CONSTRAINT unique_excluded_status UNIQUE(region, filter_type, order_status)
                     )
+                """)
+                
+                # Create partial unique indexes for excluded_customer to allow multiple product rules
+                # One constraint for exclude_all and divide_all (only one per customer)
+                cursor.execute("""
+                    CREATE UNIQUE INDEX unique_excluded_customer_base 
+                    ON magento_region_filters(region, filter_type, customer_email) 
+                    WHERE filter_type = 'excluded_customer' 
+                    AND (exclusion_rule_type IS NULL OR exclusion_rule_type IN ('exclude_all', 'divide_all'))
+                """)
+                
+                # Another constraint for divide_product (one per customer+product combination)
+                cursor.execute("""
+                    CREATE UNIQUE INDEX unique_excluded_customer_product 
+                    ON magento_region_filters(region, filter_type, customer_email, exclusion_product_sku) 
+                    WHERE filter_type = 'excluded_customer' 
+                    AND exclusion_rule_type = 'divide_product'
                 """)
                 
                 # Create partial unique index for thresholds
@@ -289,6 +303,58 @@ class MagentoDataRepo:
                         UNIQUE(region, filter_type, date_rule_start, date_rule_end)
                     """)
                     logger.info("✅ Added constraint: unique_date_rule")
+
+                # Check for customer exclusion rule columns
+                cursor.execute("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.columns 
+                        WHERE table_name = 'magento_region_filters' 
+                        AND column_name = 'exclusion_rule_type'
+                    )
+                """)
+                
+                if not cursor.fetchone()[0]:
+                    cursor.execute("""
+                        ALTER TABLE magento_region_filters 
+                        ADD COLUMN exclusion_rule_type VARCHAR(50) DEFAULT 'exclude_all',
+                        ADD COLUMN exclusion_divisor DECIMAL(10, 2) DEFAULT 2,
+                        ADD COLUMN exclusion_product_sku VARCHAR(255),
+                        ADD COLUMN exclusion_product_name TEXT
+                    """)
+                    logger.info("✅ Added columns: exclusion_rule_type, exclusion_divisor, exclusion_product_sku, exclusion_product_name")
+
+                # Check if old unique_excluded_customer constraint exists and replace with partial indexes
+                cursor.execute("""
+                    SELECT conname 
+                    FROM pg_constraint 
+                    WHERE conname = 'unique_excluded_customer' 
+                    AND conrelid = 'magento_region_filters'::regclass
+                """)
+                
+                if cursor.fetchone():
+                    # Drop the old constraint that prevents multiple rules per customer
+                    cursor.execute("""
+                        ALTER TABLE magento_region_filters 
+                        DROP CONSTRAINT unique_excluded_customer
+                    """)
+                    logger.info("✅ Dropped old constraint: unique_excluded_customer")
+                    
+                    # Create new partial indexes to allow multiple product rules per customer
+                    cursor.execute("""
+                        CREATE UNIQUE INDEX IF NOT EXISTS unique_excluded_customer_base 
+                        ON magento_region_filters(region, filter_type, customer_email) 
+                        WHERE filter_type = 'excluded_customer' 
+                        AND (exclusion_rule_type IS NULL OR exclusion_rule_type IN ('exclude_all', 'divide_all'))
+                    """)
+                    logger.info("✅ Created partial index: unique_excluded_customer_base")
+                    
+                    cursor.execute("""
+                        CREATE UNIQUE INDEX IF NOT EXISTS unique_excluded_customer_product 
+                        ON magento_region_filters(region, filter_type, customer_email, exclusion_product_sku) 
+                        WHERE filter_type = 'excluded_customer' 
+                        AND exclusion_rule_type = 'divide_product'
+                    """)
+                    logger.info("✅ Created partial index: unique_excluded_customer_product")
             
             # Create sync metadata table to track resumable syncs
             cursor.execute("""
@@ -997,177 +1063,6 @@ class MagentoDataRepo:
                 cursor.close()
                 return_products_connection(conn)
     
-    def import_csv_data(self, table_name: str, csv_content: str, filename: str = None, username: str = None) -> Dict[str, Any]:
-        """
-        Import CSV data into a specific magento table using column positions.
-        NOTE: This method is deprecated. Use import_magento_product_rows() for live Magento data.
-        """
-        # Validate table name to prevent SQL injection
-        valid_tables = ['uk_orders_cache', 'fr_orders_cache', 'nl_orders_cache', 'test_magento_data']
-        if table_name not in valid_tables:
-            raise ValueError(f"Invalid table name: {table_name}")
-        
-        # Extract region from table name
-        if table_name == 'test_magento_data':
-            region = 'TEST'
-        else:
-            region = table_name.replace('_orders_cache', '').upper()
-        
-        conn = None
-        try:
-            conn = get_products_connection()
-            cursor = conn.cursor()
-            
-            # Parse CSV - read as list of rows instead of DictReader
-            csv_file = io.StringIO(csv_content)
-            reader = csv.reader(csv_file)
-            
-            rows_imported = 0
-            errors = []
-            
-            # Skip header row
-            try:
-                next(reader)
-            except StopIteration:
-                return {
-                    "rows_imported": 0,
-                    "errors": ["CSV file is empty"],
-                    "success": False
-                }
-            
-            for row_num, row in enumerate(reader, start=2):  # Start at 2 because row 1 is header
-                try:
-                    # Expected column positions (0-indexed):
-                    # 0: order_number
-                    # 1: created_at
-                    # 2: sku (Product SKU)
-                    # 3: name (Product Name)
-                    # 4: qty (Product Qty)
-                    # 5: original_price (Original Product Price)
-                    # 6: special_price (Special/Discounted Price)
-                    # 7: status
-                    # 8: currency
-                    # 9: grand_total
-                    # 10: customer_email
-                    # 11: customer_full_name
-                    # 12: billing_address
-                    # 13: shipping_address
-                    # 14: customer_group_code
-                    
-                    if len(row) < 15:
-                        errors.append(f"Row {row_num}: Not enough columns (expected 15, got {len(row)})")
-                        continue
-                    
-                    order_number = row[0].strip() if len(row) > 0 else ''
-                    created_at = row[1].strip() if len(row) > 1 else ''
-                    sku = row[2].strip() if len(row) > 2 else ''
-                    name = row[3].strip() if len(row) > 3 else ''
-                    qty_str = row[4].strip() if len(row) > 4 else '0'
-                    original_price_str = row[5].strip() if len(row) > 5 else ''
-                    special_price_str = row[6].strip() if len(row) > 6 else ''
-                    status = row[7].strip() if len(row) > 7 else ''
-                    currency = row[8].strip() if len(row) > 8 and row[8].strip() else None
-                    grand_total_str = row[9].strip() if len(row) > 9 and row[9].strip() else ''
-                    customer_email = row[10].strip() if len(row) > 10 and row[10].strip() else None
-                    customer_full_name = row[11].strip() if len(row) > 11 and row[11].strip() else None
-                    billing_address = row[12].strip() if len(row) > 12 and row[12].strip() else None
-                    shipping_address = row[13].strip() if len(row) > 13 and row[13].strip() else None
-                    customer_group_code = row[14].strip() if len(row) > 14 and row[14].strip() else None
-                    
-                    # Validate required fields
-                    if not order_number or not sku:
-                        errors.append(f"Row {row_num}: Missing order_number or SKU")
-                        continue
-                    
-                    # Convert qty and prices to appropriate types
-                    try:
-                        qty = int(float(qty_str))
-                    except (ValueError, TypeError):
-                        qty = 0
-                    
-                    # Convert original_price - allow it to be None if empty
-                    original_price = None
-                    if original_price_str:
-                        try:
-                            original_price = float(original_price_str)
-                        except (ValueError, TypeError):
-                            pass
-                    
-                    # Convert special_price - allow it to be None if empty
-                    special_price = None
-                    if special_price_str:
-                        try:
-                            special_price = float(special_price_str)
-                        except (ValueError, TypeError):
-                            pass
-                    
-                    # Convert grand_total - allow it to be None if empty
-                    grand_total = None
-                    if grand_total_str:
-                        try:
-                            grand_total = float(grand_total_str)
-                        except (ValueError, TypeError):
-                            # If conversion fails, leave as None but don't fail the import
-                            pass
-                    
-                    # Insert into database
-                    insert_query = f"""
-                        INSERT INTO {table_name} 
-                        (order_number, created_at, sku, name, qty, original_price, special_price, status, currency, 
-                         grand_total, customer_email, customer_full_name, billing_address, 
-                         shipping_address, customer_group_code, imported_at, updated_at)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    """
-                    now = datetime.now(timezone.utc)
-                    cursor.execute(insert_query, (
-                        order_number, created_at, sku, name, qty, original_price, special_price, status, currency, 
-                        grand_total, customer_email, customer_full_name, billing_address, 
-                        shipping_address, customer_group_code, now, now
-                    ))
-                    rows_imported += 1
-                    
-                except Exception as e:
-                    errors.append(f"Row {row_num}: {str(e)}")
-                    logger.error(f"Error importing row {row_num}: {e}")
-            
-            conn.commit()
-            
-            # Log to import_history
-            import_status = "success" if rows_imported > 0 else "failed"
-            errors_json = json.dumps(errors) if errors else None
-            
-            history_query = """
-                INSERT INTO import_history 
-                (region, filename, rows_imported, rows_failed, errors, imported_by, status)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
-            """
-            cursor.execute(history_query, (
-                region, 
-                filename, 
-                rows_imported, 
-                len(errors), 
-                errors_json, 
-                username, 
-                import_status
-            ))
-            conn.commit()
-            
-            return {
-                "rows_imported": rows_imported,
-                "errors": errors,
-                "success": rows_imported > 0
-            }
-            
-        except Exception as e:
-            if conn:
-                conn.rollback()
-            logger.error(f"Error importing CSV to {table_name}: {e}")
-            raise
-        finally:
-            if conn:
-                cursor.close()
-                return_products_connection(conn)
-    
     def import_magento_product_rows(self, table_name: str, product_rows: List[Dict[str, Any]], username: str = None) -> Dict[str, Any]:
         """
         Import product-level rows from Magento API into a specific magento table.
@@ -1202,16 +1097,20 @@ class MagentoDataRepo:
             rows_imported = 0
             errors = []
             
+            # Pre-process all rows into a list of tuples for bulk insert
+            now = datetime.now(timezone.utc)
+            valid_rows = []
+            
             for idx, row in enumerate(product_rows, start=1):
                 try:
-                    order_number = row.get('order_number', '').strip()
-                    created_at = row.get('created_at', '').strip()
-                    sku = row.get('sku', '').strip()
-                    name = row.get('name', '').strip()
+                    order_number = (row.get('order_number') or '').strip()
+                    created_at = (row.get('created_at') or '').strip()
+                    sku = (row.get('sku') or '').strip()
+                    name = (row.get('name') or '').strip()
                     qty = int(row.get('qty', 0))
                     original_price = row.get('original_price')
                     special_price = row.get('special_price')
-                    status = row.get('status', '').strip()
+                    status = (row.get('status') or '').strip()
                     currency = row.get('currency')
                     grand_total = row.get('grand_total')
                     customer_email = row.get('customer_email')
@@ -1225,31 +1124,38 @@ class MagentoDataRepo:
                         errors.append(f"Row {idx}: Missing order_number or SKU")
                         continue
                     
-                    # Insert or update on conflict to handle status/qty changes
-                    insert_query = f"""
-                        INSERT INTO {table_name} 
-                        (order_number, created_at, sku, name, qty, original_price, special_price, status, currency, 
-                         grand_total, customer_email, customer_full_name, billing_address, 
-                         shipping_address, customer_group_code, imported_at, updated_at)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                        ON CONFLICT (order_number, sku) DO UPDATE SET
-                            qty = EXCLUDED.qty,
-                            status = EXCLUDED.status,
-                            updated_at = EXCLUDED.updated_at
-                    """
-                    now = datetime.now(timezone.utc)
-                    cursor.execute(insert_query, (
-                        order_number, created_at, sku, name, qty, original_price, special_price, status, currency, 
-                        grand_total, customer_email, customer_full_name, billing_address, 
-                        shipping_address, customer_group_code, now, now
+                    valid_rows.append((
+                        order_number, created_at, sku, name, qty, original_price, special_price, 
+                        status, currency, grand_total, customer_email, customer_full_name, 
+                        billing_address, shipping_address, customer_group_code, now, now
                     ))
-                    # Count as imported if a row was inserted or updated
-                    if cursor.rowcount > 0:
-                        rows_imported += 1
                     
                 except Exception as e:
                     errors.append(f"Row {idx}: {str(e)}")
-                    logger.error(f"Error importing product row {idx}: {e}")
+                    logger.error(f"Error processing product row {idx}: {e}")
+            
+            # Bulk upsert using execute_values (much faster than individual inserts)
+            # ON CONFLICT handles duplicates between Magento and PostgreSQL
+            # The WHERE clause ensures we only update rows where qty or status actually changed
+            # We use RETURNING to count only actually inserted/updated rows
+            if valid_rows:
+                insert_query = f"""
+                    INSERT INTO {table_name} 
+                    (order_number, created_at, sku, name, qty, original_price, special_price, status, currency, 
+                     grand_total, customer_email, customer_full_name, billing_address, 
+                     shipping_address, customer_group_code, imported_at, updated_at)
+                    VALUES %s
+                    ON CONFLICT (order_number, sku) DO UPDATE SET
+                        qty = EXCLUDED.qty,
+                        status = EXCLUDED.status,
+                        updated_at = EXCLUDED.updated_at
+                    WHERE {table_name}.qty IS DISTINCT FROM EXCLUDED.qty
+                       OR {table_name}.status IS DISTINCT FROM EXCLUDED.status
+                    RETURNING 1
+                """
+                # Use execute_values with fetch=True to get RETURNING results
+                result = execute_values(cursor, insert_query, valid_rows, page_size=1000, fetch=True)
+                rows_imported = len(result) if result else 0
             
             conn.commit()
             
@@ -1345,17 +1251,20 @@ class MagentoDataRepo:
             rows_imported = 0
             errors = []
             
-            # Import all product rows
+            # Pre-process all rows into a list of tuples for bulk insert
+            now = datetime.now(timezone.utc)
+            valid_rows = []
+            
             for idx, row in enumerate(product_rows, start=1):
                 try:
-                    order_number = row.get('order_number', '').strip()
-                    created_at = row.get('created_at', '').strip()
-                    sku = row.get('sku', '').strip()
-                    name = row.get('name', '').strip()
+                    order_number = (row.get('order_number') or '').strip()
+                    created_at = (row.get('created_at') or '').strip()
+                    sku = (row.get('sku') or '').strip()
+                    name = (row.get('name') or '').strip()
                     qty = int(row.get('qty', 0))
                     original_price = row.get('original_price')
                     special_price = row.get('special_price')
-                    status = row.get('status', '').strip()
+                    status = (row.get('status') or '').strip()
                     currency = row.get('currency')
                     grand_total = row.get('grand_total')
                     customer_email = row.get('customer_email')
@@ -1368,31 +1277,38 @@ class MagentoDataRepo:
                         errors.append(f"Row {idx}: Missing order_number or SKU")
                         continue
                     
-                    insert_query = f"""
-                        INSERT INTO {table_name} 
-                        (order_number, created_at, sku, name, qty, original_price, special_price, status, currency, 
-                         grand_total, customer_email, customer_full_name, billing_address, 
-                         shipping_address, customer_group_code, imported_at, updated_at)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                        ON CONFLICT (order_number, sku) DO UPDATE SET
-                            qty = EXCLUDED.qty,
-                            status = EXCLUDED.status,
-                            updated_at = EXCLUDED.updated_at
-                        WHERE {table_name}.qty IS DISTINCT FROM EXCLUDED.qty
-                           OR {table_name}.status IS DISTINCT FROM EXCLUDED.status
-                    """
-                    now = datetime.now(timezone.utc)
-                    cursor.execute(insert_query, (
-                        order_number, created_at, sku, name, qty, original_price, special_price, status, currency, 
-                        grand_total, customer_email, customer_full_name, billing_address, 
-                        shipping_address, customer_group_code, now, now
+                    valid_rows.append((
+                        order_number, created_at, sku, name, qty, original_price, special_price, 
+                        status, currency, grand_total, customer_email, customer_full_name, 
+                        billing_address, shipping_address, customer_group_code, now, now
                     ))
-                    if cursor.rowcount > 0:
-                        rows_imported += 1
                     
                 except Exception as e:
                     errors.append(f"Row {idx}: {str(e)}")
-                    logger.error(f"Error importing product row {idx}: {e}")
+                    logger.error(f"Error processing product row {idx}: {e}")
+            
+            # Bulk upsert using execute_values (much faster than individual inserts)
+            # ON CONFLICT handles duplicates between Magento and PostgreSQL
+            # The WHERE clause ensures we only update rows where qty or status actually changed
+            # We use RETURNING to count only actually inserted/updated rows
+            if valid_rows:
+                insert_query = f"""
+                    INSERT INTO {table_name} 
+                    (order_number, created_at, sku, name, qty, original_price, special_price, status, currency, 
+                     grand_total, customer_email, customer_full_name, billing_address, 
+                     shipping_address, customer_group_code, imported_at, updated_at)
+                    VALUES %s
+                    ON CONFLICT (order_number, sku) DO UPDATE SET
+                        qty = EXCLUDED.qty,
+                        status = EXCLUDED.status,
+                        updated_at = EXCLUDED.updated_at
+                    WHERE {table_name}.qty IS DISTINCT FROM EXCLUDED.qty
+                       OR {table_name}.status IS DISTINCT FROM EXCLUDED.status
+                    RETURNING 1
+                """
+                # Use execute_values with fetch=True to get RETURNING results
+                result = execute_values(cursor, insert_query, valid_rows, page_size=1000, fetch=True)
+                rows_imported = len(result) if result else 0
             
             # Update sync metadata in the SAME transaction
             if isinstance(last_order_date, str):
@@ -1556,12 +1472,36 @@ class MagentoDataRepo:
             cursor.execute(fetch_query)
             all_rows = cursor.fetchall()
             
-            # Get excluded customers
+            # Get excluded customers with their rules (now supports multiple rules per customer)
             cursor.execute("""
-                SELECT customer_email FROM magento_region_filters
+                SELECT customer_email, 
+                       COALESCE(exclusion_rule_type, 'exclude_all') as rule_type,
+                       COALESCE(exclusion_divisor, 2) as divisor,
+                       exclusion_product_sku
+                FROM magento_region_filters
                 WHERE region = %s AND filter_type = 'excluded_customer'
             """, (region,))
-            excluded_emails = {row[0] for row in cursor.fetchall()}
+            
+            # Structure: { email: { 'base_rule': {...} or None, 'product_rules': { sku: {...} } } }
+            excluded_customer_rules = {}
+            for row in cursor.fetchall():
+                email = row[0]
+                rule_type = row[1]
+                divisor = float(row[2]) if row[2] else 2.0
+                product_sku = row[3]
+                
+                if email not in excluded_customer_rules:
+                    excluded_customer_rules[email] = {'base_rule': None, 'product_rules': {}}
+                
+                if rule_type in ('exclude_all', 'divide_all'):
+                    excluded_customer_rules[email]['base_rule'] = {
+                        'rule_type': rule_type,
+                        'divisor': divisor
+                    }
+                elif rule_type == 'divide_product' and product_sku:
+                    excluded_customer_rules[email]['product_rules'][product_sku] = {
+                        'divisor': divisor
+                    }
             
             # Get excluded customer groups
             cursor.execute("""
@@ -1593,9 +1533,44 @@ class MagentoDataRepo:
             for row in all_rows:
                 sku, name, qty, grand_total, currency, customer_email, customer_group, created_at, status = row
                 
-                # Skip excluded customers
-                if customer_email in excluded_emails:
+                # Exclude FREE GIFT items from aggregated data (case-insensitive)
+                # UK: "FREE GIFT", FR: "Cadeaux gratuits"
+                name_lower = (name or '').lower()
+                if 'free gift' in name_lower or 'cadeaux gratuits' in name_lower:
                     continue
+                
+                # Initialize qty_to_use for customer exclusion rule processing
+                qty_to_use = qty or 0
+                customer_rule_applied = False
+                
+                # Apply customer exclusion rules with dominance logic:
+                # - exclude_all + divide_product(s): Exclude all EXCEPT specific products which get divided
+                # - divide_all + divide_product(s): Divide all EXCEPT specific products with their own divisor
+                # - Product-specific rules take precedence over base rules
+                if customer_email in excluded_customer_rules:
+                    rules = excluded_customer_rules[customer_email]
+                    base_rule = rules.get('base_rule')
+                    product_rules = rules.get('product_rules', {})
+                    
+                    # Check if this product has a specific rule (takes precedence)
+                    if sku in product_rules:
+                        # Product-specific rule overrides base rule
+                        divisor = product_rules[sku]['divisor']
+                        if divisor and divisor > 0:
+                            qty_to_use = qty_to_use / divisor
+                        customer_rule_applied = True
+                    elif base_rule:
+                        # Apply base rule (no product-specific override)
+                        if base_rule['rule_type'] == 'exclude_all':
+                            # Skip this product (not in product_rules, so excluded)
+                            continue
+                        elif base_rule['rule_type'] == 'divide_all':
+                            # Divide by base divisor (no product-specific override)
+                            divisor = base_rule['divisor']
+                            if divisor and divisor > 0:
+                                qty_to_use = qty_to_use / divisor
+                            customer_rule_applied = True
+                    # If no base rule and not in product_rules, use original qty
                 
                 # Skip excluded customer groups
                 if customer_group in excluded_groups:
@@ -1642,10 +1617,12 @@ class MagentoDataRepo:
                     except Exception:
                         pass # Cannot parse date, skip date rules
 
-                # Apply date rules
+                # Apply date rules (note: qty_to_use may already be modified by customer exclusion rules)
                 date_rule_applied = False
                 should_skip_row = False
-                qty_to_use = qty or 0
+                # Don't reset qty_to_use if customer rule already modified it
+                if not customer_rule_applied:
+                    qty_to_use = qty or 0
                 
                 if order_date and date_rules:
                     for rule in date_rules:
@@ -1888,15 +1865,38 @@ class MagentoDataRepo:
             conn = get_products_connection()
             cursor = conn.cursor()
             
-            # Get exclusions if requested
-            excluded_emails = set()
+            # Get exclusions if requested (now supports multiple rules per customer)
+            excluded_customer_rules = {}
             excluded_groups = set()
             if use_exclusions:
                 cursor.execute("""
-                    SELECT customer_email FROM magento_region_filters
+                    SELECT customer_email, 
+                           COALESCE(exclusion_rule_type, 'exclude_all') as rule_type,
+                           COALESCE(exclusion_divisor, 2) as divisor,
+                           exclusion_product_sku
+                    FROM magento_region_filters
                     WHERE region = %s AND filter_type = 'excluded_customer'
                 """, (region,))
-                excluded_emails = {row[0] for row in cursor.fetchall()}
+                
+                # Structure: { email: { 'base_rule': {...} or None, 'product_rules': { sku: {...} } } }
+                for row in cursor.fetchall():
+                    email = row[0]
+                    rule_type = row[1]
+                    divisor = float(row[2]) if row[2] else 2.0
+                    product_sku = row[3]
+                    
+                    if email not in excluded_customer_rules:
+                        excluded_customer_rules[email] = {'base_rule': None, 'product_rules': {}}
+                    
+                    if rule_type in ('exclude_all', 'divide_all'):
+                        excluded_customer_rules[email]['base_rule'] = {
+                            'rule_type': rule_type,
+                            'divisor': divisor
+                        }
+                    elif rule_type == 'divide_product' and product_sku:
+                        excluded_customer_rules[email]['product_rules'][product_sku] = {
+                            'divisor': divisor
+                        }
                 
                 cursor.execute("""
                     SELECT customer_group FROM magento_region_filters
@@ -1973,9 +1973,38 @@ class MagentoDataRepo:
             for row in all_rows:
                 sku, name, qty, grand_total, currency, customer_email, customer_group, created_at = row
                 
-                # Skip excluded customers
-                if use_exclusions and customer_email in excluded_emails:
-                    continue
+                # Initialize qty_to_use for customer exclusion rule processing
+                qty_to_use = qty or 0
+                customer_rule_applied = False
+                
+                # Apply customer exclusion rules with dominance logic:
+                # - exclude_all + divide_product(s): Exclude all EXCEPT specific products which get divided
+                # - divide_all + divide_product(s): Divide all EXCEPT specific products with their own divisor
+                # - Product-specific rules take precedence over base rules
+                if use_exclusions and customer_email in excluded_customer_rules:
+                    rules = excluded_customer_rules[customer_email]
+                    base_rule = rules.get('base_rule')
+                    product_rules = rules.get('product_rules', {})
+                    
+                    # Check if this product has a specific rule (takes precedence)
+                    if sku in product_rules:
+                        # Product-specific rule overrides base rule
+                        divisor = product_rules[sku]['divisor']
+                        if divisor and divisor > 0:
+                            qty_to_use = qty_to_use / divisor
+                        customer_rule_applied = True
+                    elif base_rule:
+                        # Apply base rule (no product-specific override)
+                        if base_rule['rule_type'] == 'exclude_all':
+                            # Skip this product (not in product_rules, so excluded)
+                            continue
+                        elif base_rule['rule_type'] == 'divide_all':
+                            # Divide by base divisor (no product-specific override)
+                            divisor = base_rule['divisor']
+                            if divisor and divisor > 0:
+                                qty_to_use = qty_to_use / divisor
+                            customer_rule_applied = True
+                    # If no base rule and not in product_rules, use original qty
                 
                 # Skip excluded customer groups
                 if use_exclusions and customer_group in excluded_groups:
@@ -1993,7 +2022,9 @@ class MagentoDataRepo:
                 
                 # Apply smart qty rules (only first matching rule - cutoff behavior)
                 # Check from highest threshold to lowest
-                qty_to_use = qty or 0
+                # Don't reset qty_to_use if customer rule already modified it
+                if not customer_rule_applied:
+                    qty_to_use = qty or 0
                 if smart_rules and qty is not None:
                     for rule in smart_rules:
                         if qty >= rule['threshold']:
@@ -2002,11 +2033,11 @@ class MagentoDataRepo:
                             divisor = rule['divisor']
                             
                             if action == 'divide' and divisor:
-                                qty_to_use = qty / divisor
+                                qty_to_use = (qty if not customer_rule_applied else qty_to_use) / divisor
                             elif action == 'multiply' and divisor:
-                                qty_to_use = qty * divisor
+                                qty_to_use = (qty if not customer_rule_applied else qty_to_use) * divisor
                             elif action == 'subtract' and divisor:
-                                qty_to_use = max(0, qty - divisor)
+                                qty_to_use = max(0, (qty if not customer_rule_applied else qty_to_use) - divisor)
                             elif action == 'set_to' and divisor:
                                 qty_to_use = divisor
                             # Break after applying first matching rule (cutoff point)
@@ -2407,7 +2438,7 @@ class MagentoDataRepo:
                 return_products_connection(conn)
     
     def get_excluded_customers(self, region: str) -> List[Dict[str, Any]]:
-        """Get list of excluded customers for a region"""
+        """Get list of excluded customers for a region with their exclusion rules"""
         conn = None
         try:
             conn = get_products_connection()
@@ -2416,7 +2447,11 @@ class MagentoDataRepo:
             query = """
                 SELECT 
                     id, customer_email, customer_full_name, 
-                    added_by, added_at
+                    added_by, added_at,
+                    COALESCE(exclusion_rule_type, 'exclude_all') as exclusion_rule_type,
+                    COALESCE(exclusion_divisor, 2) as exclusion_divisor,
+                    exclusion_product_sku,
+                    exclusion_product_name
                 FROM magento_region_filters
                 WHERE region = %s AND filter_type = 'excluded_customer'
                 ORDER BY customer_email
@@ -2432,7 +2467,11 @@ class MagentoDataRepo:
                     "email": row[1],
                     "full_name": row[2] or "",
                     "added_by": row[3],
-                    "added_at": row[4].isoformat() if row[4] else None
+                    "added_at": row[4].isoformat() if row[4] else None,
+                    "rule_type": row[5] or "exclude_all",
+                    "divisor": float(row[6]) if row[6] else 2.0,
+                    "product_sku": row[7],
+                    "product_name": row[8]
                 })
             
             return customers
@@ -2445,20 +2484,85 @@ class MagentoDataRepo:
                 cursor.close()
                 return_products_connection(conn)
     
-    def add_excluded_customer(self, region: str, email: str, full_name: str, username: str) -> Dict[str, Any]:
-        """Add a customer to the exclusion list"""
+    def add_excluded_customer(self, region: str, email: str, full_name: str, username: str,
+                               rule_type: str = 'exclude_all', divisor: float = 2.0,
+                               product_sku: str = None, product_name: str = None) -> Dict[str, Any]:
+        """Add a customer to the exclusion list with rule configuration.
+        
+        Rule Dominance Logic:
+        - exclude_all + divide_product(s): Exclude all EXCEPT specific products which get divided
+        - divide_all + divide_product(s): Divide all by base divisor EXCEPT specific products with own divisor
+        - exclude_all + divide_all: NOT ALLOWED (conflict - returns error)
+        
+        For base rules (exclude_all/divide_all): 
+          - Can only have ONE base rule per customer (no duplicates)
+          - Replaces existing base rule of SAME type (update divisor)
+          - REJECTS if different base type exists (must delete first)
+        For divide_product: Adds alongside existing base rule or other product rules
+        """
         conn = None
         try:
             conn = get_products_connection()
             cursor = conn.cursor()
             
-            cursor.execute("""
-                INSERT INTO magento_region_filters 
-                (region, filter_type, customer_email, customer_full_name, added_by)
-                VALUES (%s, 'excluded_customer', %s, %s, %s)
-                ON CONFLICT (region, filter_type, customer_email) DO NOTHING
-                RETURNING id
-            """, (region, email, full_name, username))
+            if rule_type in ('exclude_all', 'divide_all'):
+                # Check for existing base rule
+                cursor.execute("""
+                    SELECT id, exclusion_rule_type FROM magento_region_filters 
+                    WHERE region = %s AND filter_type = 'excluded_customer' 
+                    AND customer_email = %s AND exclusion_rule_type IN ('exclude_all', 'divide_all')
+                """, (region, email))
+                
+                existing_base = cursor.fetchone()
+                if existing_base:
+                    existing_type = existing_base[1]
+                    if existing_type != rule_type:
+                        # Conflict: trying to add different base rule type
+                        return {
+                            "success": False,
+                            "error": f"Cannot add '{rule_type}' - customer already has '{existing_type}' rule. Delete the existing rule first.",
+                            "conflict": True
+                        }
+                    # Same type - update the existing rule
+                    cursor.execute("""
+                        UPDATE magento_region_filters 
+                        SET exclusion_divisor = %s, updated_by = %s, updated_at = CURRENT_TIMESTAMP
+                        WHERE id = %s
+                        RETURNING id
+                    """, (divisor, username, existing_base[0]))
+                    result = cursor.fetchone()
+                    conn.commit()
+                    return {
+                        "success": True,
+                        "message": f"Updated {rule_type} rule for {email}",
+                        "id": result[0]
+                    }
+                
+                # No existing base rule - insert new one
+                cursor.execute("""
+                    INSERT INTO magento_region_filters 
+                    (region, filter_type, customer_email, customer_full_name, added_by,
+                     exclusion_rule_type, exclusion_divisor, exclusion_product_sku, exclusion_product_name)
+                    VALUES (%s, 'excluded_customer', %s, %s, %s, %s, %s, NULL, NULL)
+                    RETURNING id
+                """, (region, email, full_name, username, rule_type, divisor))
+            else:
+                # For divide_product - can coexist with base rules
+                # Insert or update the product-specific rule
+                cursor.execute("""
+                    INSERT INTO magento_region_filters 
+                    (region, filter_type, customer_email, customer_full_name, added_by,
+                     exclusion_rule_type, exclusion_divisor, exclusion_product_sku, exclusion_product_name)
+                    VALUES (%s, 'excluded_customer', %s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (region, filter_type, customer_email, exclusion_product_sku) 
+                    WHERE filter_type = 'excluded_customer' AND exclusion_rule_type = 'divide_product'
+                    DO UPDATE SET
+                        exclusion_divisor = EXCLUDED.exclusion_divisor,
+                        exclusion_product_name = EXCLUDED.exclusion_product_name,
+                        updated_by = EXCLUDED.added_by,
+                        updated_at = CURRENT_TIMESTAMP
+                    RETURNING id
+                """, (region, email, full_name, username, rule_type, divisor, product_sku, product_name))
             
             result = cursor.fetchone()
             conn.commit()
@@ -2466,19 +2570,109 @@ class MagentoDataRepo:
             if result:
                 return {
                     "success": True,
-                    "message": f"Customer {email} added to exclusion list",
+                    "message": f"Customer {email} added/updated in exclusion list",
                     "id": result[0]
                 }
             else:
                 return {
                     "success": False,
-                    "message": f"Customer {email} already in exclusion list"
+                    "message": f"Failed to add customer {email}"
                 }
             
         except Exception as e:
             if conn:
                 conn.rollback()
             logger.error(f"Error adding excluded customer: {e}")
+            raise
+        finally:
+            if conn:
+                cursor.close()
+                return_products_connection(conn)
+    
+    def update_excluded_customer_rule(self, customer_id: int, rule_type: str, divisor: float = 2.0,
+                                       product_sku: str = None, product_name: str = None,
+                                       username: str = None) -> Dict[str, Any]:
+        """Update the exclusion rule for an existing excluded customer"""
+        conn = None
+        try:
+            conn = get_products_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                UPDATE magento_region_filters 
+                SET exclusion_rule_type = %s,
+                    exclusion_divisor = %s,
+                    exclusion_product_sku = %s,
+                    exclusion_product_name = %s,
+                    updated_by = %s,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = %s AND filter_type = 'excluded_customer'
+                RETURNING customer_email
+            """, (rule_type, divisor, product_sku, product_name, username, customer_id))
+            
+            result = cursor.fetchone()
+            conn.commit()
+            
+            if result:
+                return {
+                    "success": True,
+                    "message": f"Exclusion rule updated for {result[0]}"
+                }
+            else:
+                return {
+                    "success": False,
+                    "message": "Customer not found"
+                }
+            
+        except Exception as e:
+            if conn:
+                conn.rollback()
+            logger.error(f"Error updating excluded customer rule: {e}")
+            raise
+        finally:
+            if conn:
+                cursor.close()
+                return_products_connection(conn)
+    
+    def get_customer_products(self, region: str, customer_email: str, search: str = "") -> List[Dict[str, Any]]:
+        """Get products that a customer has ordered in the past (for exclusion rule product selection)"""
+        conn = None
+        try:
+            conn = get_products_connection()
+            cursor = conn.cursor()
+            
+            table_name = f"{region}_orders_cache"
+            
+            # Search for products ordered by this customer
+            query = f"""
+                SELECT DISTINCT sku, name, SUM(qty) as total_qty
+                FROM {table_name}
+                WHERE customer_email = %s
+            """
+            params = [customer_email]
+            
+            if search:
+                query += " AND (LOWER(sku) LIKE %s OR LOWER(name) LIKE %s)"
+                search_pattern = f"%{search.lower()}%"
+                params.extend([search_pattern, search_pattern])
+            
+            query += " GROUP BY sku, name ORDER BY total_qty DESC LIMIT 50"
+            
+            cursor.execute(query, params)
+            rows = cursor.fetchall()
+            
+            products = []
+            for row in rows:
+                products.append({
+                    "sku": row[0],
+                    "name": row[1],
+                    "total_qty": row[2]
+                })
+            
+            return products
+            
+        except Exception as e:
+            logger.error(f"Error getting customer products: {e}")
             raise
         finally:
             if conn:

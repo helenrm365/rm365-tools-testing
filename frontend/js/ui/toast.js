@@ -1,4 +1,4 @@
-// Toast notification system
+// Toast notification system - stacking toasts with newest at bottom
 export function showToast(message, type = 'info') {
     // Create toast container if it doesn't exist
     let container = document.getElementById('toast-container');
@@ -7,20 +7,21 @@ export function showToast(message, type = 'info') {
         container.id = 'toast-container';
         container.style.cssText = `
             position: fixed;
-            top: 20px;
+            bottom: 20px;
             right: 20px;
             z-index: 10000;
             display: flex;
-            flex-direction: column;
+            flex-direction: column-reverse;
             gap: 10px;
             max-width: 400px;
+            pointer-events: none;
         `;
         document.body.appendChild(container);
     }
     
-    // Create toast element
+    // Create toast element - use unique class name to avoid CSS conflicts
     const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
+    toast.className = `stacking-toast stacking-toast-${type}`;
     
     // Set colors based on type
     const colors = {
@@ -32,7 +33,9 @@ export function showToast(message, type = 'info') {
     
     const color = colors[type] || colors.info;
     
+    // Use position: relative (not fixed) so toasts stack in the flex container
     toast.style.cssText = `
+        position: relative;
         background: ${color.bg};
         color: white;
         padding: 12px 16px;
@@ -41,9 +44,10 @@ export function showToast(message, type = 'info') {
         display: flex;
         align-items: center;
         gap: 10px;
-        animation: slideIn 0.3s ease-out;
+        animation: slideInFromBottom 0.3s ease-out;
         font-size: 14px;
         line-height: 1.5;
+        pointer-events: auto;
     `;
     
     toast.innerHTML = `
@@ -51,11 +55,12 @@ export function showToast(message, type = 'info') {
         <span style="flex: 1;">${message}</span>
     `;
     
-    container.appendChild(toast);
+    // Insert at BEGINNING so it appears at bottom visually (due to column-reverse)
+    container.insertBefore(toast, container.firstChild);
     
-    // Auto-remove after 4 seconds
+    // Auto-remove after 4 seconds - fade up and out like a card leaving the deck
     setTimeout(() => {
-        toast.style.animation = 'slideOut 0.3s ease-in';
+        toast.style.animation = 'fadeUpAndOut 0.4s ease-out forwards';
         setTimeout(() => {
             if (toast.parentNode) {
                 toast.parentNode.removeChild(toast);
@@ -64,7 +69,7 @@ export function showToast(message, type = 'info') {
             if (container.children.length === 0 && container.parentNode) {
                 container.parentNode.removeChild(container);
             }
-        }, 300);
+        }, 400);
     }, 4000);
 }
 
@@ -75,23 +80,23 @@ if (typeof document !== 'undefined') {
         const style = document.createElement('style');
         style.id = styleId;
         style.textContent = `
-            @keyframes slideIn {
+            @keyframes slideInFromBottom {
                 from {
-                    transform: translateX(400px);
+                    transform: translateY(50px);
                     opacity: 0;
                 }
                 to {
-                    transform: translateX(0);
+                    transform: translateY(0);
                     opacity: 1;
                 }
             }
-            @keyframes slideOut {
+            @keyframes fadeUpAndOut {
                 from {
-                    transform: translateX(0);
+                    transform: translateY(0);
                     opacity: 1;
                 }
                 to {
-                    transform: translateX(400px);
+                    transform: translateY(-20px);
                     opacity: 0;
                 }
             }

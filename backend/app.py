@@ -375,6 +375,18 @@ _mount_if_exists('/components', COMPONENTS_DIR, html=False, name='components')
 
 # 2) SPA fallback - serve index.html at root and for SPA routes only (not API paths)
 if FRONTEND_DIR.is_dir():
+    # Serve manifest.webmanifest with proper content-type
+    @app.get("/manifest.webmanifest", include_in_schema=False)
+    async def serve_manifest():
+        file_path = FRONTEND_DIR / "manifest.webmanifest"
+        if file_path.is_file():
+            return FileResponse(
+                file_path,
+                media_type="application/manifest+json",
+                headers={"Cache-Control": "public, max-age=86400"}
+            )
+        raise HTTPException(status_code=404, detail="Manifest not found")
+    
     # Serve standalone HTML files from frontend root (like magento-sync-status.html)
     @app.get("/magento-sync-status.html", include_in_schema=False)
     async def serve_magento_sync_status(response: Response):
