@@ -15,6 +15,7 @@ from barcode.writer import ImageWriter
 # ---------------------------------------------------------------------
 # PDF + LABEL CONFIG
 # ---------------------------------------------------------------------
+# Default (UK) page config
 PAGE_WIDTH_MM = 103
 PAGE_HEIGHT_MM = 200
 PAGE_SIZE = (PAGE_WIDTH_MM * mm, PAGE_HEIGHT_MM * mm)
@@ -25,6 +26,45 @@ TOP_MARGIN = 11 * mm
 LEFT_MARGIN = 1 * mm
 ROWS_PER_PAGE = 7
 COLS_PER_PAGE = 1
+
+# Region-specific page configurations
+REGION_PAGE_CONFIG = {
+    'uk': {
+        'page_width': 103 * mm,
+        'page_height': 200 * mm,
+        'label_width': 69 * mm,
+        'label_height': 27 * mm,
+        'top_margin': 11 * mm,
+        'left_margin': 1 * mm,
+        'rows_per_page': 7,
+        'cols_per_page': 1,
+    },
+    'fr': {
+        'page_width': 100 * mm,
+        'page_height': 170 * mm,
+        'label_width': 69 * mm,
+        'label_height': 26 * mm,  # Adjusted to fit 6 labels
+        'top_margin': 8 * mm,
+        'left_margin': 1 * mm,
+        'rows_per_page': 6,
+        'cols_per_page': 1,
+    },
+    'nl': {
+        'page_width': 100 * mm,
+        'page_height': 170 * mm,
+        'label_width': 69 * mm,
+        'label_height': 26 * mm,  # Adjusted to fit 6 labels
+        'top_margin': 8 * mm,
+        'left_margin': 1 * mm,
+        'rows_per_page': 6,
+        'cols_per_page': 1,
+    },
+}
+
+
+def get_page_config(region: str) -> dict:
+    """Get page configuration for a region, defaulting to UK config."""
+    return REGION_PAGE_CONFIG.get(region.lower(), REGION_PAGE_CONFIG['uk'])
 
 # Fonts & layout
 TITLE_FONT = "Helvetica-Bold"
@@ -158,24 +198,35 @@ def stream_pdf_labels(conn: PGConn, job_id: int) -> StreamingResponse:
         if not rows:
             raise ValueError(f"No label items found for job {job_id}")
 
-        # 2. setup PDF
+        # Get region-specific page configuration
+        job_region = rows[0][7] if rows else 'uk'
+        page_cfg = get_page_config(job_region)
+        
+        # 2. setup PDF with region-specific page size
         buf = io.BytesIO()
-        c = canvas.Canvas(buf, pagesize=PAGE_SIZE)
+        page_size = (page_cfg['page_width'], page_cfg['page_height'])
+        c = canvas.Canvas(buf, pagesize=page_size)
         today = datetime.today().strftime("%d/%m/%y")
-        page_w, page_h = PAGE_SIZE
-        x0 = LEFT_MARGIN
-        y0 = page_h - LABEL_HEIGHT - TOP_MARGIN
+        page_w, page_h = page_size
+        x0 = page_cfg['left_margin']
+        y0 = page_h - page_cfg['label_height'] - page_cfg['top_margin']
         label_no = 0
+        
+        # Extract config values for use in label rendering
+        label_width = page_cfg['label_width']
+        label_height = page_cfg['label_height']
+        rows_per_page = page_cfg['rows_per_page']
+        cols_per_page = page_cfg['cols_per_page']
 
         tmpdir = tempfile.mkdtemp()
 
         # 3. render labels
         for sku, name, uk, fr, line, barcode_val, price, region in rows:
-            col = label_no % COLS_PER_PAGE
-            row_pos = (label_no // COLS_PER_PAGE) % ROWS_PER_PAGE
-            x = x0 + col * LABEL_WIDTH
-            y = y0 - row_pos * LABEL_HEIGHT
-            c.rect(x, y, LABEL_WIDTH, LABEL_HEIGHT)
+            col = label_no % cols_per_page
+            row_pos = (label_no // cols_per_page) % rows_per_page
+            x = x0 + col * label_width
+            y = y0 - row_pos * label_height
+            c.rect(x, y, label_width, label_height)
 
             # --- product name block ---
             fit_wrapped_text(
@@ -183,13 +234,13 @@ def stream_pdf_labels(conn: PGConn, job_id: int) -> StreamingResponse:
                 text=str(name or ""),
                 x=x + 4,
                 y=y + 38,
-                width=LABEL_WIDTH - 84,
+                width=label_width - 84,
                 height=38,
             )
 
             # --- right info block ---
-            right_x = x + LABEL_WIDTH - 69
-            max_w = LABEL_WIDTH - (right_x - x) - 4
+            right_x = x + label_width - 69
+            max_w = label_width - (right_x - x) - 4
             
             # Format price with region-appropriate currency symbol
             symbol = "£" if region == 'uk' else "€"
@@ -208,7 +259,7 @@ def stream_pdf_labels(conn: PGConn, job_id: int) -> StreamingResponse:
                 ("Price:", price_str),
                 ("SKU:", str(sku or "")),
             ]
-            start_y = y + LABEL_HEIGHT - 12
+            start_y = y + label_height - 12
             for i, (label, value) in enumerate(important):
                 yy = start_y - i * LINE_SPACING
                 c.setFont(TITLE_FONT, TITLE_SIZE)
@@ -240,9 +291,9 @@ def stream_pdf_labels(conn: PGConn, job_id: int) -> StreamingResponse:
                 barcode_value = str(barcode_val or sku or "NONE")
                 Code128(barcode_value, writer=ImageWriter()).save(barcode_path, BARCODE_OPTIONS)
                 img_path = barcode_path + ".png"
-                barcode_width = LABEL_WIDTH - 10
+                barcode_width = label_width - 10
                 barcode_height = 13 * mm
-                barcode_x = x + (LABEL_WIDTH - barcode_width) / 2
+                barcode_x = x + (label_width - barcode_width) / 2
                 c.drawImage(
                     img_path,
                     barcode_x,
@@ -259,7 +310,7 @@ def stream_pdf_labels(conn: PGConn, job_id: int) -> StreamingResponse:
                 pass
 
             label_no += 1
-            if label_no % (COLS_PER_PAGE * ROWS_PER_PAGE) == 0:
+            if label_no % (cols_per_page * rows_per_page) == 0:
                 c.showPage()
 
         # Save the final page (even if not full)
