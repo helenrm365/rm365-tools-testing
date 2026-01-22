@@ -43,20 +43,20 @@ REGION_PAGE_CONFIG = {
         'page_width': 100 * mm,
         'page_height': 170 * mm,
         'label_width': 69 * mm,
-        'label_height': 26 * mm,  # Adjusted to fit 6 labels
+        'label_height': 31 * mm,  # Adjusted to fit 5 labels
         'top_margin': 8 * mm,
         'left_margin': 1 * mm,
-        'rows_per_page': 6,
+        'rows_per_page': 5,
         'cols_per_page': 1,
     },
     'nl': {
         'page_width': 100 * mm,
         'page_height': 170 * mm,
         'label_width': 69 * mm,
-        'label_height': 26 * mm,  # Adjusted to fit 6 labels
+        'label_height': 31 * mm,  # Adjusted to fit 5 labels
         'top_margin': 8 * mm,
         'left_margin': 1 * mm,
-        'rows_per_page': 6,
+        'rows_per_page': 5,
         'cols_per_page': 1,
     },
 }
