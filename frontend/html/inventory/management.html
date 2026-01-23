@@ -180,7 +180,7 @@
     <!-- ===== Standalone Table (outside any card) ===== -->
     <div class="table-container standalone-table" id="inventoryManagementTableWrapper">
       <div id="inventoryManagementTableScroller">
-        <table id="inventoryManagementTable" class="inventory-table">
+        <table id="inventoryManagementTable" class="inventory-table" data-auto-sort="true">
           <colgroup>
             <col class="col-1">
             <col class="col-2">
@@ -203,24 +203,24 @@
           </colgroup>
           <thead>
             <tr>
-              <th>Location</th>
-              <th>Date</th>
-              <th>Qty Ordered - Jason</th>
-              <th>Product Name</th>
-              <th>SKU</th>
-              <th>UK 6M Data</th>
-              <th>Shelf &lt; 1</th>
-              <th>Shelf &lt; 1 Year Qty</th>
-              <th>Shelf &gt; 1</th>
-              <th>Shelf &gt; 1 Year Qty</th>
-              <th>Shelf Total</th>
-              <th>Top Floor Expiry Date</th>
-              <th>Top Floor Total</th>
-              <th>Total Stock</th>
-              <th>Status</th>
-              <th>UK + FR Pre Order</th>
-              <th>FR 6M Data</th>
-              <th>Discontinued Status</th>
+              <th class="sortable">Location</th>
+              <th class="sortable">Date</th>
+              <th class="sortable">Qty Ordered - Jason</th>
+              <th class="sortable">Product Name</th>
+              <th class="sortable">SKU</th>
+              <th class="sortable">UK 6M Data</th>
+              <th class="sortable">Shelf &lt; 1</th>
+              <th class="sortable">Shelf &lt; 1 Year Qty</th>
+              <th class="sortable">Shelf &gt; 1</th>
+              <th class="sortable">Shelf &gt; 1 Year Qty</th>
+              <th class="sortable">Shelf Total</th>
+              <th class="sortable">Top Floor Expiry Date</th>
+              <th class="sortable">Top Floor Total</th>
+              <th class="sortable">Total Stock</th>
+              <th class="sortable">Status</th>
+              <th class="sortable">UK + FR Pre Order</th>
+              <th class="sortable">FR 6M Data</th>
+              <th class="sortable">Discontinued Status</th>
             </tr>
           </thead>
           <tbody id="inventoryManagementBody">

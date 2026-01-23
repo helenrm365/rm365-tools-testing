@@ -26,7 +26,7 @@ def stream_csv_labels(conn: PGConn, job_id: int) -> StreamingResponse:
             FROM label_print_items r
             JOIN label_print_jobs  j ON j.id = r.job_id
             WHERE r.job_id = %s
-            ORDER BY r.sku
+            ORDER BY r.sort_order, r.id
             """,
             (job_id,),
         )

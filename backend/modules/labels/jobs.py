@@ -150,6 +150,10 @@ def _ensure_label_print_schema(conn: PGConn) -> None:
         alter_statements.append(
             "ALTER TABLE label_print_items ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
         )
+    if 'sort_order' not in existing:
+        alter_statements.append(
+            "ALTER TABLE label_print_items ADD COLUMN IF NOT EXISTS sort_order INTEGER DEFAULT 0"
+        )
 
     if alter_statements:
         with conn.cursor() as cur:
@@ -182,10 +186,12 @@ def _snapshot_rows(item_ids: List[str] = None, discontinued_statuses: List[str] 
         if inventory_conn:
             return_inventory_connection(inventory_conn)
     
-    # Filter by selected item_ids if provided
+    # Filter by selected item_ids if provided, preserving the order from item_ids
     if item_ids:
-        item_ids_set = set(item_ids)
-        filtered_rows = [r for r in all_rows if r.get("item_id") in item_ids_set]
+        # Create a lookup dict for O(1) access
+        rows_by_id = {r.get("item_id"): r for r in all_rows}
+        # Return rows in the same order as item_ids (preserves frontend sort order)
+        filtered_rows = [rows_by_id[item_id] for item_id in item_ids if item_id in rows_by_id]
         return filtered_rows
     
     return all_rows
@@ -243,7 +249,7 @@ def start_label_job(conn: PGConn, payload: Dict[str, Any]) -> int:
 
         # 3) bulk insert items (map keys—adjust if your row keys differ)
         to_insert: List[Tuple[Any, ...]] = []
-        for r in rows:
+        for idx, r in enumerate(rows):
             # Parse price, removing currency symbols
             price_str = str(r.get("price", "0.00"))
             # Remove common currency symbols and whitespace
@@ -276,6 +282,7 @@ def start_label_job(conn: PGConn, payload: Dict[str, Any]) -> int:
                 fr_6m,
                 price_float,  # Use cleaned price
                 None,  # per-row line (override) — keep None now
+                idx,   # sort_order - preserves frontend table sort order
             ))
 
         if to_insert:
@@ -283,8 +290,8 @@ def start_label_job(conn: PGConn, payload: Dict[str, Any]) -> int:
                 cur.executemany(
                     """
                     INSERT INTO label_print_items
-                        (job_id, item_id, sku, product_name, uk_6m_data, fr_6m_data, price, line)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                        (job_id, item_id, sku, product_name, uk_6m_data, fr_6m_data, price, line, sort_order)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """,
                     to_insert,
                 )
@@ -304,10 +311,10 @@ def get_label_job_rows(conn: PGConn, job_id: int) -> List[Dict[str, Any]]:
     with conn.cursor() as cur:
         cur.execute(
             """
-            SELECT id, job_id, item_id, sku, product_name, uk_6m_data, fr_6m_data, price, line
+            SELECT id, job_id, item_id, sku, product_name, uk_6m_data, fr_6m_data, price, line, sort_order
             FROM label_print_items
             WHERE job_id = %s
-            ORDER BY sku
+            ORDER BY sort_order, id
             """,
             (job_id,),
         )

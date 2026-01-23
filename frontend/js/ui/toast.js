@@ -6,16 +6,22 @@ export function showToast(message, type = 'info') {
         container = document.createElement('div');
         container.id = 'toast-container';
         container.style.cssText = `
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 10000;
-            display: flex;
-            flex-direction: column-reverse;
-            gap: 10px;
-            max-width: 400px;
-            pointer-events: none;
+            position: fixed !important;
+            bottom: 20px !important;
+            right: 20px !important;
+            z-index: 2147483647 !important;
+            display: flex !important;
+            flex-direction: column-reverse !important;
+            gap: 10px !important;
+            max-width: 400px !important;
+            pointer-events: none !important;
+            isolation: isolate !important;
         `;
+        document.body.appendChild(container);
+    }
+    
+    // Ensure container is always at the end of body (on top of everything)
+    if (container.parentNode !== document.body || container !== document.body.lastElementChild) {
         document.body.appendChild(container);
     }
     

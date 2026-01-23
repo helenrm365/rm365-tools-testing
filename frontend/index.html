@@ -76,29 +76,41 @@
   <link rel="manifest" href="/manifest.webmanifest">
 
   <style>
-    /* Ensure loading overlay is properly visible */
+    /* Loading overlay visibility - controlled via JavaScript */
     #loadingOverlay {
-      display: flex !important;
       position: fixed !important;
       inset: 0 !important;
-      z-index: 9999 !important;
-      background: rgba(0, 0, 0, 0.9) !important;
+      z-index: 99998 !important;
+      display: flex !important;
       align-items: center !important;
       justify-content: center !important;
       flex-direction: column !important;
+      visibility: visible !important;
+      opacity: 1 !important;
     }
     
+    /* Hidden state - controlled via hidden attribute AND inline styles from JS */
     #loadingOverlay[hidden] {
       display: none !important;
+      visibility: hidden !important;
+      opacity: 0 !important;
     }
     
-    /* Hide main content initially until loaded */
-    body > *:not(#loadingOverlay) {
+    /* Toast container must always be visible and on top */
+    #toast-container {
+      position: fixed !important;
+      z-index: 2147483647 !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+    }
+    
+    /* Hide main content initially until loaded, but keep loading overlay and toasts visible */
+    body > *:not(#loadingOverlay):not(#toast-container) {
       opacity: 0;
       transition: opacity 0.3s ease-in-out;
     }
     
-    body.loaded > *:not(#loadingOverlay) {
+    body.loaded > *:not(#loadingOverlay):not(#toast-container) {
       opacity: 1;
     }
   </style>
@@ -162,6 +174,9 @@
   
   <!-- Filter Control Panel Component -->
   <script src="/js/ui/filterControlPanel.js" defer></script>
+  
+  <!-- Table Sorting Utility (Global) -->
+  <script src="/js/utils/tableSorting.js" defer></script>
 
   <!-- Debug utilities for development -->
   <script type="module" src="/js/debug.js"></script>

@@ -44,16 +44,14 @@ export async function initUKMagentoData(path = '/magentodata/uk-magento') {
   } else if (path.includes('/custom-range')) {
     viewMode = 'custom';
     console.log('[UK Magento] Setting view mode to: custom');
-  } else if (path === '/magentodata/uk-magento' || path === '/magentodata/uk-magento/') {
-    // Redirect base URL to full-data to make URL explicit
-    console.log('[UK Magento] Redirecting base URL to /full-data');
-    window.navigate('/magentodata/uk-magento/full-data', true);
-    return;
   } else {
-    // Default to full data view
+    // Base URL or unknown path - default to full data view
+    // Just update the URL without causing a new navigation
     viewMode = 'full';
     customRangeLabel = '';
-    console.log('[UK Magento] Defaulting view mode to: full');
+    console.log('[UK Magento] Base URL - defaulting to full data view');
+    // Silently update URL to include /full-data for clarity
+    history.replaceState({ path: '/magentodata/uk-magento/full-data' }, '', '/magentodata/uk-magento/full-data');
   }
   
   // Wait for DOM to be ready before setting up event listeners
@@ -92,9 +90,13 @@ export async function initUKMagentoData(path = '/magentodata/uk-magento') {
       currentPage = 0;
       displayCurrentPage();
     } else {
-      // No custom range set, redirect to full data
-      showToast('No custom range data available. Please select a date range first.', 'warning');
-      window.navigate('/magentodata/uk-magento/full-data', true);
+      // No custom range set, switch to full data view instead of redirecting
+      showToast('No custom range data available. Loading full data instead.', 'warning');
+      viewMode = 'full';
+      customRangeLabel = '';
+      history.replaceState({ path: '/magentodata/uk-magento/full-data' }, '', '/magentodata/uk-magento/full-data');
+      updateViewButtons();
+      await syncAndLoadFullData();
     }
   } else if (viewMode === 'aggregated') {
     await handleRefreshAggregatedData();
@@ -877,6 +879,8 @@ function displayMagentoData(data) {
       <th><i class="fas fa-shipping-fast"></i> Shipping Address</th>
       <th><i class="fas fa-users"></i> Customer Group Code</th>
     `;
+    // Update sort indicators after creating headers
+    updateSortIndicators();
   }
   
   if (!data || data.length === 0) {
@@ -923,6 +927,8 @@ function displayAggregatedData(data) {
       <th>Total Quantity (${headerLabel})</th>
       <th>Last Updated</th>
     `;
+    // Update sort indicators after creating headers
+    updateSortIndicators();
   }
   
   if (!data || data.length === 0) {
@@ -1156,6 +1162,9 @@ function setupTableSorting() {
     sortAndRenderData();
   });
   
+  // Show initial sort indicators (neutral state)
+  updateSortIndicators();
+  
   console.log('[UK Magento] Table sorting setup complete');
 }
 
@@ -1240,7 +1249,7 @@ function updateSortIndicators() {
     columnIndex = fullColumns.indexOf(currentSortColumn);
   }
   
-  // Remove all existing sort indicators and add cursor pointer
+  // Update all headers with sort indicators
   ths.forEach((th, index) => {
     th.style.cursor = 'pointer';
     th.style.userSelect = 'none';
@@ -1251,13 +1260,21 @@ function updateSortIndicators() {
       existingSortIcon.remove();
     }
     
-    // Add sort indicator to the active column
+    // Create sort icon
+    const sortIcon = document.createElement('i');
+    sortIcon.style.marginLeft = '5px';
+    sortIcon.style.fontSize = '0.8em';
+    
     if (index === columnIndex && currentSortColumn) {
-      const sortIcon = document.createElement('i');
+      // Active column - show direction arrow
       sortIcon.className = `fas fa-sort-${currentSortDirection === 'asc' ? 'up' : 'down'} sort-indicator`;
-      sortIcon.style.marginLeft = '5px';
-      sortIcon.style.fontSize = '0.8em';
-      th.appendChild(sortIcon);
+      sortIcon.style.opacity = '1';
+    } else {
+      // Inactive column - show neutral sort icon
+      sortIcon.className = 'fas fa-sort sort-indicator';
+      sortIcon.style.opacity = '0.5';
     }
+    
+    th.appendChild(sortIcon);
   });
 }

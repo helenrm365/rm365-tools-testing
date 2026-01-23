@@ -207,24 +207,63 @@ export function generateTabStructure() {
   return structure;
 }
 
-// Show loading overlay
+// Track loading start time for minimum display duration
+let loadingStartTime = null;
+const MIN_LOADING_DURATION = 400; // Minimum 400ms to ensure visibility
+
+// Show loading overlay - returns a promise that resolves after the overlay is rendered
 export function showLoading(message = 'Loading...') {
-  const overlay = document.getElementById('loadingOverlay');
-  const msg = document.getElementById('loadingMessage');
-  if (overlay) {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById('loadingOverlay');
+    const msg = document.getElementById('loadingMessage');
+    
+    if (!overlay) {
+      resolve();
+      return;
+    }
+    
+    loadingStartTime = Date.now();
+    
+    // Remove the hidden attribute
     overlay.removeAttribute('hidden');
-    overlay.style.display = 'flex'; // Make sure it's visible
+    
+    // Explicitly set critical styles to guarantee visibility
+    overlay.style.display = 'flex';
+    overlay.style.visibility = 'visible';
+    overlay.style.opacity = '1';
+    overlay.style.zIndex = '99998';
+    overlay.style.pointerEvents = 'all';
+    
     if (msg) msg.textContent = message;
-  }
+    
+    // Force browser to apply styles immediately
+    void overlay.offsetHeight;
+    
+    // Use RAF to ensure paint before continuing
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        resolve();
+      });
+    });
+  });
 }
 
-// Hide loading overlay
+// Hide loading overlay (with minimum display time)
 export function hideLoading() {
   const overlay = document.getElementById('loadingOverlay');
-  if (overlay) {
+  if (!overlay) return;
+  
+  const elapsed = loadingStartTime ? Date.now() - loadingStartTime : MIN_LOADING_DURATION;
+  const remaining = Math.max(0, MIN_LOADING_DURATION - elapsed);
+  
+  // Ensure overlay is visible for minimum duration
+  setTimeout(() => {
     overlay.setAttribute('hidden', 'true');
     overlay.style.display = 'none';
-  }
+    overlay.style.visibility = 'hidden';
+    overlay.style.pointerEvents = 'none';
+    loadingStartTime = null;
+  }, remaining);
 }
 
 export async function navigate(path, replace = false) {
@@ -233,8 +272,8 @@ export async function navigate(path, replace = false) {
     const oldPath = currentRoutePath || window.location.pathname;
     checkSessionCleanup(oldPath, path);
     
-    // Show loading overlay
-    showLoading('Loading...');
+    // Show loading overlay and wait for it to be visible
+    await showLoading('Loading...');
 
     // Auth gate: everything except /login and /home requires a token
     if (path !== '/login' && path !== '/home' && path !== '/' && !isAuthed()) {

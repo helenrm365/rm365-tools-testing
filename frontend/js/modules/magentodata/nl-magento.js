@@ -39,20 +39,14 @@ export async function initNLMagentoData(path = '/magentodata/nl-magento') {
   } else if (path.includes('/custom-range')) {
     viewMode = 'custom';
     console.log('[NL Magento] Setting view mode to: custom');
-  } else if (path === '/magentodata/nl-magento' || path === '/magentodata/nl-magento/') {
-    // Redirect base URL to full-data to make URL explicit
-    console.log('[NL Magento] Redirecting base URL to /full-data');
-    if (window.navigate) {
-      window.navigate('/magentodata/nl-magento/full-data', true);
-    } else {
-      console.error('[NL Magento] window.navigate is NOT available!');
-    }
-    return;
   } else {
-    // Default to full data view
+    // Base URL or unknown path - default to full data view
+    // Just update the URL without causing a new navigation
     viewMode = 'full';
     customRangeLabel = '';
-    console.log('[NL Magento] Defaulting view mode to: full');
+    console.log('[NL Magento] Base URL - defaulting to full data view');
+    // Silently update URL to include /full-data for clarity
+    history.replaceState({ path: '/magentodata/nl-magento/full-data' }, '', '/magentodata/nl-magento/full-data');
   }
   
   // Wait for DOM to be ready before setting up event listeners
@@ -91,9 +85,13 @@ export async function initNLMagentoData(path = '/magentodata/nl-magento') {
       currentPage = 0;
       displayCurrentPage();
     } else {
-      // No custom range set, redirect to full data
-      showToast('No custom range data available. Please select a date range first.', 'warning');
-      window.navigate('/magentodata/nl-magento/full-data', true);
+      // No custom range set, switch to full data view instead of redirecting
+      showToast('No custom range data available. Loading full data instead.', 'warning');
+      viewMode = 'full';
+      customRangeLabel = '';
+      history.replaceState({ path: '/magentodata/nl-magento/full-data' }, '', '/magentodata/nl-magento/full-data');
+      updateViewButtons();
+      await syncAndLoadFullData();
     }
   } else if (viewMode === 'aggregated') {
     await handleRefreshAggregatedData();

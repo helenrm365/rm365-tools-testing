@@ -40,16 +40,14 @@ export async function initFRMagentoData(path = '/magentodata/fr-magento') {
     customRangeLabel = '';
   } else if (path.includes('/custom-range')) {
     viewMode = 'custom';
-  } else if (path === '/magentodata/fr-magento' || path === '/magentodata/fr-magento/') {
-    // Redirect base URL to full-data to make URL explicit
-    if (window.navigate) {
-      window.navigate('/magentodata/fr-magento/full-data', true);
-    }
-    return;
   } else {
-    // Default to full data view
+    // Base URL or unknown path - default to full data view
+    // Just update the URL without causing a new navigation
     viewMode = 'full';
     customRangeLabel = '';
+    console.log('[FR Magento] Base URL - defaulting to full data view');
+    // Silently update URL to include /full-data for clarity
+    history.replaceState({ path: '/magentodata/fr-magento/full-data' }, '', '/magentodata/fr-magento/full-data');
   }
   
   // Wait for DOM to be ready before setting up event listeners
@@ -88,9 +86,13 @@ export async function initFRMagentoData(path = '/magentodata/fr-magento') {
       currentPage = 0;
       displayCurrentPage();
     } else {
-      // No custom range set, redirect to full data
-      showToast('No custom range data available. Please select a date range first.', 'warning');
-      window.navigate('/magentodata/fr-magento/full-data', true);
+      // No custom range set, switch to full data view instead of redirecting
+      showToast('No custom range data available. Loading full data instead.', 'warning');
+      viewMode = 'full';
+      customRangeLabel = '';
+      history.replaceState({ path: '/magentodata/fr-magento/full-data' }, '', '/magentodata/fr-magento/full-data');
+      updateViewButtons();
+      await syncAndLoadFullData();
     }
   } else if (viewMode === 'aggregated') {
     await handleRefreshAggregatedData();

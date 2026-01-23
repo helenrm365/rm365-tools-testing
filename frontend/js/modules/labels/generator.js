@@ -130,6 +130,11 @@ document.addEventListener('click', (e) => {
 });
 
 export async function initLabelGenerator() {
+  // TEST TOASTS - for testing toast visibility with loading screen
+  showToast('Loading Label Generator...', 'info');
+  setTimeout(() => showToast('Still loading data from server...', 'warning'), 1000);
+  setTimeout(() => showToast('This may take a moment...', 'info'), 2000);
+  
   // Check tables status and initialize if needed (like Magento Data)
   try {
     const statusResult = await checkTablesStatus();
@@ -882,6 +887,11 @@ function renderProductTable() {
   
   // Update select all checkbox state after rendering
   updateSelectAllCheckbox();
+  
+  // Re-initialize table sorting after rendering new content
+  if (typeof initializeTableSorting !== 'undefined') {
+    initializeTableSorting('.products-table');
+  }
 }
 
 // Set up event delegation for product checkboxes once
@@ -953,15 +963,20 @@ async function handleGeneratePdf() {
   
   try {
     // Determine which products to print:
-    // - If products are specifically selected, use those
-    // - If nothing selected but filters/search applied, use all displayed products
+    // Get item IDs in the current visual/sorted order from the DOM
+    // This preserves whatever column sort the user applied
+    const allRowsInOrder = Array.from(document.querySelectorAll('#productsTableBody tr .product-checkbox'))
+      .map(checkbox => checkbox.dataset.itemId)
+      .filter(id => id); // Filter out any undefined/null
+    
     let itemIdsToUse;
     if (state.selectedProducts.size > 0) {
-      // User selected specific products
-      itemIdsToUse = Array.from(state.selectedProducts);
+      // User selected specific products - filter to selected ones but preserve DOM sort order
+      const selectedSet = state.selectedProducts;
+      itemIdsToUse = allRowsInOrder.filter(id => selectedSet.has(id));
     } else {
-      // No selection - use all displayed/filtered products
-      itemIdsToUse = state.displayedProducts.map(p => p.item_id);
+      // No selection - use all products in their current sorted order
+      itemIdsToUse = allRowsInOrder;
     }
     
     // Get current user email
