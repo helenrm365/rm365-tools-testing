@@ -224,13 +224,13 @@ export function showLoading(message = 'Loading...') {
     
     loadingStartTime = Date.now();
     
-    // Remove the hidden attribute
+    // Remove the hidden attribute and fading class
     overlay.removeAttribute('hidden');
+    overlay.classList.remove('fading-out');
     
-    // Explicitly set critical styles to guarantee visibility
-    overlay.style.display = 'flex';
+    // Explicitly set critical styles to guarantee visibility (except opacity - handled by CSS)
+    overlay.style.display = '';
     overlay.style.visibility = 'visible';
-    overlay.style.opacity = '1';
     overlay.style.zIndex = '99998';
     overlay.style.pointerEvents = 'all';
     
@@ -248,7 +248,7 @@ export function showLoading(message = 'Loading...') {
   });
 }
 
-// Hide loading overlay (with minimum display time)
+// Hide loading overlay (with minimum display time and fade transition)
 export function hideLoading() {
   const overlay = document.getElementById('loadingOverlay');
   if (!overlay) return;
@@ -256,13 +256,20 @@ export function hideLoading() {
   const elapsed = loadingStartTime ? Date.now() - loadingStartTime : MIN_LOADING_DURATION;
   const remaining = Math.max(0, MIN_LOADING_DURATION - elapsed);
   
-  // Ensure overlay is visible for minimum duration
+  // Ensure overlay is visible for minimum duration, then fade out
   setTimeout(() => {
-    overlay.setAttribute('hidden', 'true');
-    overlay.style.display = 'none';
-    overlay.style.visibility = 'hidden';
-    overlay.style.pointerEvents = 'none';
-    loadingStartTime = null;
+    // Add fading class to trigger CSS transition
+    overlay.classList.add('fading-out');
+    
+    // Wait for transition to complete before fully hiding
+    setTimeout(() => {
+      overlay.setAttribute('hidden', 'true');
+      overlay.style.display = 'none';
+      overlay.style.visibility = 'hidden';
+      overlay.style.pointerEvents = 'none';
+      // Don't remove fading-out class here - leave for next showLoading to handle
+      loadingStartTime = null;
+    }, 500); // Match CSS transition duration
   }, remaining);
 }
 
@@ -401,43 +408,46 @@ export async function navigate(path, replace = false) {
       currentModulePath = null;
     }
     
+    // Cache-busting timestamp for module imports (ensures fresh versions after updates)
+    const cacheBust = `?t=${Date.now()}`;
+    
     if (path === '/login') {
-      const mod = await import('./modules/auth/login.js');
+      const mod = await import(`./modules/auth/login.js${cacheBust}`);
       await mod.init();
       currentModule = mod;
       currentModulePath = 'login';
     } else if (path === '/home' || path === '/') {
-      const mod = await import('./modules/home/index.js');
+      const mod = await import(`./modules/home/index.js${cacheBust}`);
       await mod.init();
       currentModule = mod;
       currentModulePath = 'home';
     } else if (path.startsWith('/attendance-system')) {
-      const mod = await import('./modules/attendance-system/index.js');
+      const mod = await import(`./modules/attendance-system/index.js${cacheBust}`);
       await mod.init(path);
       currentModule = mod;
       currentModulePath = 'attendance-system';
     } else if (path.startsWith('/labels')) {
-      const mod = await import('./modules/labels/index.js');
+      const mod = await import(`./modules/labels/index.js${cacheBust}`);
       await mod.init(path);
       currentModule = mod;
       currentModulePath = 'labels';
     } else if (path.startsWith('/magentodata')) {
-      const mod = await import(`./modules/magentodata/index.js?t=${Date.now()}&v=2`);
+      const mod = await import(`./modules/magentodata/index.js${cacheBust}`);
       await mod.init(path);
       currentModule = mod;
       currentModulePath = 'magentodata';
     } else if (path.startsWith('/inventory')) {
-      const mod = await import('./modules/inventory/index.js');
+      const mod = await import(`./modules/inventory/index.js${cacheBust}`);
       await mod.init(path);
       currentModule = mod;
       currentModulePath = 'inventory';
     } else if (path.startsWith('/orders')) {
-      const mod = await import('./modules/orders/index.js');
+      const mod = await import(`./modules/orders/index.js${cacheBust}`);
       await mod.init(path); // Pass full path for session URL detection
       currentModule = mod;
       currentModulePath = 'orders';
     } else if (path.startsWith('/usermanagement')) {
-      const mod = await import('./modules/usermanagement/index.js');
+      const mod = await import(`./modules/usermanagement/index.js${cacheBust}`);
       await mod.init(path);
       currentModule = mod;
       currentModulePath = 'usermanagement';

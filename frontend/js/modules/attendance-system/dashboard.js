@@ -1663,6 +1663,8 @@ function setupEventHandlers() {
 
 // ====== Main Init Function ======
 export async function init() {
+  showToast('Checking database status...', 'info');
+  
   // Check if tables exist
   try {
     const status = await checkAttendanceTablesStatus();
@@ -1683,6 +1685,7 @@ export async function init() {
   setDefaultDates();
   setupEventHandlers();
   
+  showToast('Loading work locations...', 'info');
   // Load locations
   try {
     await loadLocations();
@@ -1690,6 +1693,7 @@ export async function init() {
     console.error('Failed to load locations:', error);
   }
   
+  showToast('Loading attendance metrics...', 'info');
   // Load all dashboard data in parallel
   try {
     await Promise.all([

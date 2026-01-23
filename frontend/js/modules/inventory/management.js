@@ -172,6 +172,7 @@ function formatMultilineText(text) {
 }
 
 export async function init() {
+  showToast('Checking database status...', 'info');
   try {
     // Check if tables exist before initializing the UI
     console.log('[Inventory Management] Checking tables status...');
@@ -186,6 +187,7 @@ export async function init() {
       showToast('Inventory tables initialized successfully', 'success');
     }
     
+    showToast('Loading inventory data...', 'info');
     await setupInventoryManagement();
   } catch (error) {
     console.error('[Inventory Management] Failed to initialize:', error);
@@ -199,15 +201,18 @@ async function setupInventoryManagement() {
   // Load initial data
   await loadInventoryData();
   
+  showToast('Setting up filters & controls...', 'info');
   setupDropdowns();
   setupTable();
   setupSearchAndFilters();
   setupZoomControls();
   bindGlobalHandlers();
 
+  showToast('Syncing with Magento...', 'info');
   // Auto sync
   await initAutoSync();
   
+  showToast('Enabling real-time collaboration...', 'info');
   // Initialize collaboration features (non-blocking)
   initCollaboration().catch(err => {
     console.warn('[Inventory Management] Collaboration init failed:', err);

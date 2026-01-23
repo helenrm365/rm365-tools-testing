@@ -14,6 +14,8 @@ let filterStatus = null;
  * Initialize the import history page
  */
 export async function initMagentoDataHistory() {
+  showToast('Setting up history interface...', 'info');
+  
   // Set up custom dropdown functionality
   setupCustomDropdowns();
   
@@ -26,6 +28,7 @@ export async function initMagentoDataHistory() {
   // Set up refresh button
   setupRefreshButton();
   
+  showToast('Loading import history...', 'info');
   // Load initial data
   await loadHistoryData();
 }

@@ -23,6 +23,7 @@ let isSyncing = false; // Track if sync is in progress
  * Initialize FR magento page
  */
 export async function initFRMagentoData(path = '/magentodata/fr-magento') {
+  showToast('Initializing France Magento...', 'info');
   
   // Reset state for new page load
   currentPage = 0;
@@ -62,6 +63,7 @@ export async function initFRMagentoData(path = '/magentodata/fr-magento') {
   // Update active button based on view mode immediately
   updateViewButtons();
   
+  showToast('Checking database tables...', 'info');
   // Check if tables exist (quick status check)
   try {
     const status = await checkTablesStatus();
@@ -79,6 +81,7 @@ export async function initFRMagentoData(path = '/magentodata/fr-magento') {
   if (viewMode === 'custom') {
     // Check if custom range parameters exist
     if (window.customRangeActive) {
+      showToast('Loading custom date range...', 'info');
       customRangeLabel = window.customRangeActive.rangeLabel || 'Custom Range';
       // Load the custom range data
       allData = window.customRangeActive.data || [];
@@ -95,8 +98,10 @@ export async function initFRMagentoData(path = '/magentodata/fr-magento') {
       await syncAndLoadFullData();
     }
   } else if (viewMode === 'aggregated') {
+    showToast('Loading 6-month aggregated data...', 'info');
     await handleRefreshAggregatedData();
   } else {
+    showToast('Syncing with Magento France...', 'info');
     // Full data view: sync from Magento first, then load
     await syncAndLoadFullData();
   }

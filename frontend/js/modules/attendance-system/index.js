@@ -9,26 +9,29 @@ export async function init(path) {
     await currentSubModule.destroy();
   }
   
+  // Cache-busting timestamp for sub-module imports
+  const cacheBust = `?t=${Date.now()}`;
+  
   // Route to the appropriate sub-module based on path
   if (path.includes('/dashboard')) {
-    const mod = await import('./dashboard.js');
+    const mod = await import(`./dashboard.js${cacheBust}`);
     await mod.init();
     currentSubModule = mod;
   } else if (path.includes('/automatic')) {
-    const mod = await import('./automatic.js');
+    const mod = await import(`./automatic.js${cacheBust}`);
     await mod.init();
     currentSubModule = mod;
   } else if (path.includes('/logs')) {
-    const mod = await import('./logs.js');
+    const mod = await import(`./logs.js${cacheBust}`);
     await mod.init();
     currentSubModule = mod;
   } else if (path.includes('/employees')) {
-    const mod = await import('./employees.js');
+    const mod = await import(`./employees.js${cacheBust}`);
     await mod.init();
     currentSubModule = mod;
   } else {
     // Default to dashboard (first sub-page)
-    const mod = await import('./dashboard.js');
+    const mod = await import(`./dashboard.js${cacheBust}`);
     await mod.init();
     currentSubModule = mod;
   }

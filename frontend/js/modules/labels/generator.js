@@ -130,15 +130,14 @@ document.addEventListener('click', (e) => {
 });
 
 export async function initLabelGenerator() {
-  // TEST TOASTS - for testing toast visibility with loading screen
-  showToast('Loading Label Generator...', 'info');
-  setTimeout(() => showToast('Still loading data from server...', 'warning'), 1000);
-  setTimeout(() => showToast('This may take a moment...', 'info'), 2000);
+  showToast('Initializing Label Generator...', 'info');
   
   // Check tables status and initialize if needed (like Magento Data)
   try {
+    showToast('Checking database tables...', 'info');
     const statusResult = await checkTablesStatus();
     if (statusResult.status === 'success' && !statusResult.all_tables_exist) {
+      showToast('Initializing label tables...', 'info');
       console.log('[Labels] Some tables missing, initializing...', statusResult.tables_status);
       await initializeTables();
       console.log('[Labels] Tables initialized successfully');
@@ -148,6 +147,7 @@ export async function initLabelGenerator() {
     // Continue anyway - loadProducts will handle errors
   }
   
+  showToast('Setting up filters & controls...', 'info');
   // Setup status filter checkboxes (all checked by default)
   setupStatusFilterCheckboxes();
   
@@ -163,9 +163,11 @@ export async function initLabelGenerator() {
   // Setup product table event delegation once
   setupProductTableDelegation();
 
+  showToast('Loading product catalog...', 'info');
   // Load initial data
   await loadProducts();
 
+  showToast('Setting up background sync...', 'info');
   // Auto sync in background
   initAutoSync();
   

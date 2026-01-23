@@ -4,11 +4,13 @@ import { isAuthed } from '../../services/state/sessionStore.js';
 import { getUserData } from '../../services/state/userStore.js';
 import { isAllowed } from '../../utils/tabs.js';
 import { get } from '../../services/api/http.js';
+import { showToast } from '../../ui/toast.js';
 
 let clockInterval = null;
 
 export async function init() {
   console.log('[Dashboard] init() called');
+  showToast('Initializing Dashboard...', 'info');
   
   try {
     const authenticated = isAuthed();
@@ -22,6 +24,8 @@ export async function init() {
     clockInterval = setInterval(updateDateTime, 1000);
 
     if (authenticated) {
+      showToast('Checking user permissions...', 'info');
+      
       // Hide login prompt, show dashboard
       if (loginPrompt) {
         loginPrompt.hidden = true;
@@ -41,6 +45,8 @@ export async function init() {
       // Setup stat card navigation
       setupStatCards();
 
+      showToast('Loading dashboard metrics...', 'info');
+      
       // Load dashboard data (don't await - let it run in background)
       loadDashboardData().catch(e => console.warn('[Dashboard] loadDashboardData failed:', e));
 

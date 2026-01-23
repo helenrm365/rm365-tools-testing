@@ -1262,6 +1262,8 @@ export async function refresh() {
 }
 
 export async function init() {
+  showToast('Preparing employee interface...', 'info');
+  
   // Wait for DOM to be ready
   await new Promise(resolve => {
     if (document.readyState === 'loading') {
@@ -1275,6 +1277,7 @@ export async function init() {
   // This is needed because the HTML is dynamically loaded by the router
   await new Promise(resolve => setTimeout(resolve, 100));
   
+  showToast('Checking database status...', 'info');
   // Check if tables exist (quick status check)
   try {
     const status = await checkAttendanceTablesStatus();
@@ -1293,6 +1296,7 @@ export async function init() {
     // Continue loading - tables may still work
   }
   
+  showToast('Loading work locations...', 'info');
   // Load locations for dropdowns
   await loadLocations();
   
@@ -1301,6 +1305,8 @@ export async function init() {
   wireCreateLocationModal();
   wireGuideModal();
   wireDropdownClose();
+  
+  showToast('Loading employee records...', 'info');
   await refresh();
 }
 

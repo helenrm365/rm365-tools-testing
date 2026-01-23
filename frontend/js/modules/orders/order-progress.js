@@ -7,6 +7,7 @@ import { getApiUrl } from '../../config.js';
 import { getToken } from '../../services/state/sessionStore.js';
 import { wsService } from '../../services/websocket.js';
 import * as progressModals from '../../ui/orderProgressModals.js';
+import { showToast } from '../../ui/toast.js';
 
 // Helper to get auth headers
 function getAuthHeaders() {
@@ -21,8 +22,13 @@ let wsConnected = false;
  * Initialize dashboard
  */
 export async function init() {
+    showToast('Setting up progress dashboard...', 'info');
     wireEventHandlers();
+    
+    showToast('Loading active sessions...', 'info');
     await loadSessions();
+    
+    showToast('Connecting to real-time updates...', 'info');
     setupWebSocket();
     // WebSocket handles all real-time updates, no polling needed
 }

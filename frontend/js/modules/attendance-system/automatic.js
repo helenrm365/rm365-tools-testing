@@ -522,9 +522,12 @@ function cleanup() {
 
 // ====== Main Init Function ======
 export async function init() {
+  showToast('Initializing NFC scanner...', 'info');
+  
   // Cleanup any previous instances
   cleanup();
   
+  showToast('Checking database status...', 'info');
   // Check if tables exist (quick status check)
   try {
     const status = await checkAttendanceTablesStatus();
@@ -543,11 +546,13 @@ export async function init() {
     // Continue loading - tables may still work
   }
   
+  showToast('Loading employee data...', 'info');
   // Load employee data
   await loadEmployees();
   
   setupEventHandlers();
   
+  showToast('Connecting to hardware bridge...', 'info');
   updateStatus('Checking hardware...', 'scanning');
   updateScanCount();
   updateRecentScansTable();
@@ -561,6 +566,7 @@ export async function init() {
     onAudioUnlock(() => hideSoundPrompt());
   }
   
+  showToast('Starting NFC listener...', 'info');
   // Auto-start scanning - sounds will work after user clicks anywhere
   await startScanning({ skipHardwareCheck: true });
   // Return cleanup function for module unloading

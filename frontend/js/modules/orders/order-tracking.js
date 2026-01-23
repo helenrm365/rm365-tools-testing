@@ -2,18 +2,22 @@ import { get, post } from '../../services/api/http.js';
 import { navigate } from '../../router.js';
 import { wsService } from '../../services/websocket.js';
 import { getUserData } from '../../services/state/userStore.js';
+import { showToast } from '../../ui/toast.js';
 
 let isMinimalMode = false;
 
 export async function init() {
   console.log('[Order Tracking] Initializing...');
+  showToast('Setting up tracking interface...', 'info');
   
   // Set up event listeners
   setupEventListeners();
   
+  showToast('Loading order tracking board...', 'info');
   // Load the tracking board
   await loadTrackingBoard();
   
+  showToast('Connecting to live updates...', 'info');
   // Initialize WebSocket for real-time updates
   initializeWebSocket();
 }

@@ -1,5 +1,13 @@
 // Toast notification system - stacking toasts with newest at bottom
 export function showToast(message, type = 'info') {
+    // Update loading screen message if it's visible
+    const isLoading = updateLoadingMessage(message);
+    
+    // If loading screen is visible, only update its message - don't show toast
+    if (isLoading) {
+        return;
+    }
+    
     // Create toast container if it doesn't exist
     let container = document.getElementById('toast-container');
     if (!container) {
@@ -77,6 +85,22 @@ export function showToast(message, type = 'info') {
             }
         }, 400);
     }, 4000);
+}
+
+// Update the loading screen message when a toast is shown
+// Returns true if loading screen is visible, false otherwise
+function updateLoadingMessage(message) {
+    const overlay = document.getElementById('loadingOverlay');
+    const loadingMessage = document.getElementById('loadingMessage');
+    
+    // Only update if loading overlay is visible
+    if (overlay && loadingMessage && !overlay.hasAttribute('hidden')) {
+        // Truncate message if too long
+        const displayMessage = message.length > 50 ? message.substring(0, 47) + '...' : message;
+        loadingMessage.textContent = displayMessage;
+        return true;
+    }
+    return false;
 }
 
 // Add animations to document if not already present

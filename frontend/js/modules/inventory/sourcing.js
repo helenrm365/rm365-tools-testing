@@ -45,6 +45,7 @@ function convertToGBP(amount, fromCurrency) {
  * Initialize the sourcing module
  */
 export async function init(path = '/inventory/sourcing') {
+  showToast('Initializing Product Sourcing...', 'info');
   console.log('[Sourcing] Initializing Product Sourcing module with path:', path);
   
   // Cache DOM elements
@@ -201,12 +202,15 @@ function setupModalCloseOnBackdropClick() {
  */
 async function loadInitialData() {
   try {
+    showToast('Checking database tables...', 'info');
     // First, ensure tables are initialized via health check
     await initializeTables();
     
+    showToast('Loading exchange rates...', 'info');
     // Load exchange rates first
     await loadExchangeRates();
     
+    showToast('Loading suppliers & products...', 'info');
     // Load in parallel
     await Promise.all([
       loadSuppliers(),

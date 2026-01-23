@@ -21,6 +21,7 @@ let currentSortDirection = 'asc'; // 'asc' or 'desc'
  * Initialize UK magento page
  */
 export async function initUKMagentoData(path = '/magentodata/uk-magento') {
+  showToast('Initializing UK Magento...', 'info');
   console.log('[UK Magento] initUKMagentoData called with path:', path);
   
   // Reset state for new page load
@@ -66,6 +67,7 @@ export async function initUKMagentoData(path = '/magentodata/uk-magento') {
   // Update active button based on view mode immediately
   updateViewButtons();
   
+  showToast('Checking database tables...', 'info');
   // Check if tables exist (quick status check)
   try {
     const status = await checkTablesStatus();
@@ -83,6 +85,7 @@ export async function initUKMagentoData(path = '/magentodata/uk-magento') {
   if (viewMode === 'custom') {
     // Check if custom range parameters exist
     if (window.customRangeActive) {
+      showToast('Loading custom date range...', 'info');
       customRangeLabel = window.customRangeActive.rangeLabel || 'Custom Range';
       // Load the custom range data
       allData = window.customRangeActive.data || [];
@@ -99,8 +102,10 @@ export async function initUKMagentoData(path = '/magentodata/uk-magento') {
       await syncAndLoadFullData();
     }
   } else if (viewMode === 'aggregated') {
+    showToast('Loading 6-month aggregated data...', 'info');
     await handleRefreshAggregatedData();
   } else {
+    showToast('Syncing with Magento UK...', 'info');
     // Full data view: sync from Magento first, then load
     await syncAndLoadFullData();
   }

@@ -683,7 +683,10 @@ function wireControls() {
 }
 
 export async function init() {
+  showToast('Setting up history interface...', 'info');
   wireControls();
   setupActionHandlers();
+  
+  showToast('Loading print job history...', 'info');
   await loadHistory();
 }
