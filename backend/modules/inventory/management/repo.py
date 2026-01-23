@@ -245,6 +245,7 @@ class InventoryManagementRepo:
                 CREATE TABLE IF NOT EXISTS inventory_metadata (
                     sku VARCHAR(255) PRIMARY KEY,
                     item_id VARCHAR(255) UNIQUE,
+                    product_name TEXT,
                     location VARCHAR(255),
                     date DATE,
                     qty_ordered_jason INTEGER DEFAULT 0,
@@ -255,7 +256,7 @@ class InventoryManagementRepo:
                     shelf_gt1_qty INTEGER DEFAULT 0,
                     top_floor_expiry DATE,
                     top_floor_total INTEGER DEFAULT 0,
-                    status VARCHAR(50) DEFAULT 'Active',
+                    status VARCHAR(50),
                     uk_fr_preorder TEXT,
                     fr_6m_data TEXT,
                     variant_statuses JSONB,
@@ -268,15 +269,6 @@ class InventoryManagementRepo:
                 CREATE INDEX IF NOT EXISTS idx_inventory_metadata_updated_at 
                 ON inventory_metadata (updated_at)
             """)
-            
-            # Add variant_statuses column to inventory_metadata (migration for existing tables)
-            try:
-                cursor.execute("""
-                    ALTER TABLE inventory_metadata 
-                    ADD COLUMN IF NOT EXISTS variant_statuses JSONB
-                """)
-            except Exception as e:
-                logger.debug(f"Column variant_statuses addition skipped (may already exist): {e}")
             
             # Create label print job tables
             cursor.execute("""
@@ -427,8 +419,10 @@ class InventoryManagementRepo:
             valid_products = []
             for product in products:
                 sku = product['sku']
+                name = product.get('name') or ""
                 categories = product.get('categories') or ""
-                status = product.get('discontinued_status') or "Active"
+                # Note: discontinued_status is stored in variant_statuses, not in status column
+                # The status column is for stock level calculations (Low Stock/OK/Overstock)
                 stats["total_products"] += 1
                 
                 # Filter: Skip if no categories assigned
@@ -441,22 +435,28 @@ class InventoryManagementRepo:
                     stats["filtered_aw365"] += 1
                     continue
                 
-                valid_products.append((sku, status))
+                # Clean the name - trim " - Special Offer" from the end
+                if name and name.endswith(" - Special Offer"):
+                    name = name[:-len(" - Special Offer")].strip()
+                
+                valid_products.append((sku, name))
             
             # BATCH upsert using execute_values (much faster than individual inserts)
+            # Only inserts/updates sku and product_name - status column is for stock calculations
             if valid_products:
-                # Use ON CONFLICT to upsert
+                # Use ON CONFLICT to upsert - only update product_name for existing records
+                # Status column is NOT touched - it's for stock level calculations (Low Stock/OK/Overstock)
                 upsert_query = """
-                    INSERT INTO inventory_metadata (sku, status, updated_at)
+                    INSERT INTO inventory_metadata (sku, product_name, updated_at)
                     VALUES %s
                     ON CONFLICT (sku) DO UPDATE SET
-                        status = EXCLUDED.status,
+                        product_name = COALESCE(NULLIF(EXCLUDED.product_name, ''), inventory_metadata.product_name),
                         updated_at = NOW()
                 """
                 
                 # Prepare data with current timestamp
                 from datetime import datetime
-                upsert_data = [(sku, status, datetime.now()) for sku, status in valid_products]
+                upsert_data = [(sku, name, datetime.now()) for sku, name in valid_products]
                 
                 execute_values(cursor, upsert_query, upsert_data, page_size=500)
                 stats["synced_records"] = len(valid_products)

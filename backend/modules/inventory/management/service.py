@@ -116,15 +116,16 @@ class InventoryManagementService:
             self.repo.update_variant_statuses()
             
             # Step 5: Query inventory_metadata for all products (filtered by variant_statuses if requested)
+            # Now includes product_name since it's stored in inventory_metadata
             conn = self.repo.get_metadata_connection()
             try:
                 cursor = conn.cursor()
                 
-                # Build query with optional status filter
+                # Build query with optional status filter - now includes product_name
                 if discontinued_status and discontinued_status.strip():
                     allowed_statuses = [s.strip() for s in discontinued_status.split(",") if s.strip()]
                     cursor.execute("""
-                        SELECT sku, variant_statuses
+                        SELECT sku, variant_statuses, product_name
                         FROM inventory_metadata
                         WHERE sku IS NOT NULL
                         AND EXISTS (
@@ -136,30 +137,33 @@ class InventoryManagementService:
                     """, (allowed_statuses,))
                 else:
                     cursor.execute("""
-                        SELECT sku, variant_statuses
+                        SELECT sku, variant_statuses, product_name
                         FROM inventory_metadata
                         WHERE sku IS NOT NULL
                         ORDER BY sku
                     """)
                 
-                # Collect all SKUs and their variant_statuses from inventory_metadata
+                # Collect all SKUs, variant_statuses, and product_names from inventory_metadata
                 metadata_products = []
                 for row in cursor.fetchall():
                     sku = row[0]
                     variant_statuses_json = row[1]
+                    product_name = row[2] or ""
                     variant_statuses = json.loads(variant_statuses_json) if isinstance(variant_statuses_json, str) else variant_statuses_json
                     metadata_products.append({
                         'sku': sku,
-                        'variant_statuses': variant_statuses or ['Active']
+                        'variant_statuses': variant_statuses or ['Active'],
+                        'product_name': product_name
                     })
             finally:
                 self.repo.return_connection(conn)
             
-            # Step 5: Get Magento product details for display (name, categories, etc.)
+            # Step 6: Build products list using stored product_name from inventory_metadata
+            # Only need Magento for categories and additional_attributes (not for names anymore)
             magento_products = self.repo.get_magento_products(status_filters=None)
             identifier_pattern = re.compile(r'-(?:MD|SD|DP|NP|MV)(?:-.*)?$', re.IGNORECASE)
             
-            # Build lookup dict: base_sku -> magento product details
+            # Build lookup dict: base_sku -> magento product details (for categories only)
             magento_by_base_sku = {}
             for product in magento_products:
                 sku = product.get('sku', '')
@@ -167,26 +171,28 @@ class InventoryManagementService:
                 if base_sku not in magento_by_base_sku:
                     magento_by_base_sku[base_sku] = product
             
-            # Step 6: Combine inventory_metadata products with Magento display data
-            # Filter out orphaned SKUs (exist in inventory_metadata but not in Magento) unless show_orphaned=True
+            # Combine inventory_metadata products with Magento category data
+            # Names now come from inventory_metadata.product_name (synced from Magento catalog)
             all_products = []
             orphaned_count = 0
-            skus_without_names = []  # Track SKUs that need Magento catalog fallback
+            skus_without_names = []  # Track SKUs that need fallback (shouldn't happen often now)
             
             for meta_product in metadata_products:
                 sku = meta_product['sku']
+                stored_name = meta_product.get('product_name', '')
                 magento_product = magento_by_base_sku.get(sku, {})
                 
-                # Check if product has a name
-                has_name = bool(magento_product.get('name'))
+                # Use stored name from inventory_metadata (synced from Magento catalog)
+                # This is much faster than querying Magento on every request
+                product_name = stored_name
                 
-                # Track SKUs without names for Magento catalog fallback
-                if not has_name:
+                # Track SKUs without names for fallback (rare - only for products not synced yet)
+                if not product_name:
                     skus_without_names.append(sku)
                 
                 all_products.append({
                     'sku': sku,
-                    'name': magento_product.get('name', ''),
+                    'name': product_name,
                     'categories': magento_product.get('categories'),
                     'additional_attributes': magento_product.get('additional_attributes'),
                     'discontinued_status': magento_product.get('discontinued_status'),
