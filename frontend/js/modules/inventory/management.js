@@ -48,7 +48,6 @@ testBackendConnectivity();
 
 let inventoryData = [];
 let metadataIndex = new Map();
-let magentoProductsIndex = new Map(); // NEW: Index for magento_product_list data
 let dropdownDocListenersBound = false;
 let dropdownBackdrop;
 let _filterSeq = 0;
@@ -208,9 +207,9 @@ async function setupInventoryManagement() {
   setupZoomControls();
   bindGlobalHandlers();
 
-  showToast('Syncing with Magento...', 'info');
-  // Auto sync
-  await initAutoSync();
+  showToast('Setting up background sync...', 'info');
+  // Auto sync in background (non-blocking like Labels)
+  initAutoSync();
   
   showToast('Enabling real-time collaboration...', 'info');
   // Initialize collaboration features (non-blocking)
@@ -277,21 +276,6 @@ async function loadInventoryData() {
     
     if (!workingPath) {
       throw new Error('No working API endpoints found');
-    }
-    
-    // Load magento_product_list for discontinued status filtering
-    try {
-      const magentoProducts = await get(`/v1/inventory/management/magento-products`);
-      magentoProductsIndex.clear();
-      if (Array.isArray(magentoProducts)) {
-        magentoProducts.forEach(product => {
-          if (product.sku) {
-            magentoProductsIndex.set(product.sku, product);
-          }
-        });
-      }
-    } catch (err) {
-      console.warn('[Inventory Management] Could not load magento products:', err);
     }
     
     // Handle paginated response
@@ -785,9 +769,10 @@ function createTableRow(item, metadata) {
   const shelfTotal = (metadata.shelf_lt1_qty || 0) + (metadata.shelf_gt1_qty || 0);
   const totalStock = shelfTotal + (metadata.top_floor_total || 0);
 
-  // Get discontinued status from magento products
-  const magentoProduct = magentoProductsIndex.get(item.sku);
-  const discontinuedStatus = magentoProduct?.discontinued_status || '';
+  // Get variant statuses (merged from all product variants in inventory_metadata)
+  // This is an array like ["Active", "Temporarily OOS"] - join for display
+  const variantStatuses = item.variant_statuses || [];
+  const discontinuedStatusDisplay = Array.isArray(variantStatuses) ? variantStatuses.join(', ') : '';
   
   // Calculate stock status based on demand
   const stockStatus = calculateStockStatus(metadata);
@@ -814,7 +799,7 @@ function createTableRow(item, metadata) {
     <td contenteditable="false" class="readonly-field ${stockStatusClass}" title="Calculated: Demand (UK+FR 6M) vs Total Stock">${stockStatusDisplay}</td>
     <td contenteditable="true" data-field="uk_fr_preorder">${formatMultilineText(metadata.uk_fr_preorder)}</td>
     <td class="readonly-field" title="Populated from table (FR + NL merged)">${metadata.fr_6m_data || ''}</td>
-    <td class="readonly-field">${discontinuedStatus}</td>
+    <td class="readonly-field" title="Merged from all product variants">${discontinuedStatusDisplay}</td>
   `;
 
   // Add save functionality to editable cells
@@ -923,7 +908,7 @@ async function saveRowData(row) {
     top_floor_expiry: getTextWithLineBreaks(cells[11]) || null,
     top_floor_total: Number(cells[12].textContent.trim()) || 0,
     // status: cell[14] is CALCULATED stock status (not editable), don't save it
-    // The actual status field comes from discontinued_status in magento_product_list
+    // The actual discontinued_status comes from live Magento database
     uk_fr_preorder: getTextWithLineBreaks(cells[15]),
     // fr_6m_data: excluded - populated from table
   };
@@ -1772,7 +1757,6 @@ export function cleanup() {
   // Clear data
   inventoryData = [];
   metadataIndex.clear();
-  magentoProductsIndex.clear();
   // Note: rowEntryByEl is a WeakMap and doesn't have/need .clear()
   
   // Reset pagination

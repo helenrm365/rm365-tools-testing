@@ -63,9 +63,15 @@ def check_tables_status(user=Depends(get_current_user)):
 def initialize_tables(user=Depends(get_current_user)):
     """
     Initialize labels-related tables if they don't exist.
-    This creates label_print_jobs, label_print_items, and label_printing_presets tables.
+    This creates label_print_jobs, label_print_items, label_printing_presets, and inventory_metadata tables.
     """
     try:
+        # Initialize inventory_metadata table (shared with Inventory Management)
+        from modules.inventory.management.repo import InventoryManagementRepo
+        inv_repo = InventoryManagementRepo()
+        inv_repo.init_tables()  # Creates inventory_metadata if not exists
+        
+        # Initialize label-specific tables
         with inventory_conn() as conn:
             _ensure_label_print_schema(conn)
             conn.commit()

@@ -211,8 +211,7 @@ class InventoryManagementRepo:
             
             # Inventory management module requires these tables
             tables = [
-                'inventory_metadata',
-                'magento_product_list'
+                'inventory_metadata'
             ]
             status = {}
             
@@ -270,69 +269,6 @@ class InventoryManagementRepo:
                 ON inventory_metadata (updated_at)
             """)
             
-            # Create magento_product_list table - simple product catalog
-            # This is the source of truth for products (imported from Magento)
-            # Note: discontinued_status is parsed from additional_attributes and stored in a separate indexed column
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS magento_product_list (
-                    sku VARCHAR(255) PRIMARY KEY,
-                    name TEXT,
-                    categories TEXT,
-                    additional_attributes TEXT,
-                    discontinued_status VARCHAR(100) DEFAULT 'Active',
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-            
-            # Add columns if they don't exist (migration for existing tables)
-            try:
-                cursor.execute("""
-                    ALTER TABLE magento_product_list 
-                    ADD COLUMN IF NOT EXISTS additional_attributes TEXT
-                """)
-                cursor.execute("""
-                    ALTER TABLE magento_product_list 
-                    ADD COLUMN IF NOT EXISTS name TEXT
-                """)
-                cursor.execute("""
-                    ALTER TABLE magento_product_list 
-                    ADD COLUMN IF NOT EXISTS categories TEXT
-                """)
-                # Cleanup: Remove columns that shouldn't be in magento_product_list
-                cursor.execute("""
-                    ALTER TABLE magento_product_list 
-                    DROP COLUMN IF EXISTS item_id
-                """)
-                cursor.execute("""
-                    ALTER TABLE magento_product_list 
-                    DROP COLUMN IF EXISTS status
-                """)
-                cursor.execute("""
-                    ALTER TABLE magento_product_list 
-                    DROP COLUMN IF EXISTS product_name
-                """)
-            except Exception as e:
-                logger.debug(f"Column migration skipped: {e}")
-            
-            # Add product_name column if it doesn't exist (migration for existing tables)
-            try:
-                cursor.execute("""
-                    ALTER TABLE magento_product_list 
-                    ADD COLUMN IF NOT EXISTS product_name TEXT
-                """)
-            except Exception as e:
-                logger.debug(f"Column product_name addition skipped (may already exist): {e}")
-            
-            # Add discontinued_status column if it doesn't exist (migration for existing tables)
-            try:
-                cursor.execute("""
-                    ALTER TABLE magento_product_list 
-                    ADD COLUMN IF NOT EXISTS discontinued_status VARCHAR(100) DEFAULT 'Active'
-                """)
-            except Exception as e:
-                logger.debug(f"Column discontinued_status addition skipped (may already exist): {e}")
-            
             # Add variant_statuses column to inventory_metadata (migration for existing tables)
             try:
                 cursor.execute("""
@@ -341,15 +277,6 @@ class InventoryManagementRepo:
                 """)
             except Exception as e:
                 logger.debug(f"Column variant_statuses addition skipped (may already exist): {e}")
-            
-            # Create index on discontinued_status for fast filtering
-            try:
-                cursor.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_magento_product_list_discontinued_status
-                    ON magento_product_list (discontinued_status)
-                """)
-            except Exception as e:
-                logger.debug(f"Index creation on discontinued_status skipped: {e}")
             
             # Create label print job tables
             cursor.execute("""
@@ -394,81 +321,6 @@ class InventoryManagementRepo:
             raise
         finally:
             self.return_connection(conn)
-
-    def sync_items_to_magento_product_list(self, items: List[Dict[str, Any]]) -> Dict[str, int]:
-        """
-        Sync inventory items to magento_product_list table.
-        Can be used to import items from any source (CSV, etc.)
-        Returns stats about sync operation.
-        """
-        conn = self.get_metadata_connection()
-        try:
-            cursor = conn.cursor()
-            
-            stats = {
-                "total_items": len(items),
-                "inserted": 0,
-                "updated": 0,
-                "skipped": 0
-            }
-            
-            for item in items:
-                sku = item.get("sku", "").strip()
-                if not sku:
-                    stats["skipped"] += 1
-                    continue
-                
-                product_name = item.get("product_name", "") or item.get("name", "")
-                item_id = self.generate_item_id(sku)
-                status = item.get("status", "")
-                
-                # Upsert into magento_product_list
-                cursor.execute("""
-                    INSERT INTO magento_product_list (sku, product_name, item_id, status, updated_at)
-                    VALUES (%s, %s, %s, %s, NOW())
-                    ON CONFLICT (sku) DO UPDATE SET
-                        product_name = EXCLUDED.product_name,
-                        item_id = COALESCE(magento_product_list.item_id, EXCLUDED.item_id),
-                        status = EXCLUDED.status,
-                        updated_at = NOW()
-                    RETURNING (xmax = 0) AS inserted
-                """, (sku, product_name, item_id, status))
-                
-                result = cursor.fetchone()
-                if result and result[0]:
-                    stats["inserted"] += 1
-                else:
-                    stats["updated"] += 1
-            
-            conn.commit()
-            logger.info(f"✅ Synced magento_product_list: {stats['inserted']} inserted, {stats['updated']} updated")
-            return stats
-            
-        except psycopg2.Error as e:
-            if conn:
-                conn.rollback()
-            logger.error(f"Database error in sync_items_to_magento_product_list: {e}")
-            raise
-        finally:
-            self.return_connection(conn)
-
-    @staticmethod
-    def parse_discontinued_status_from_additional_attributes(additional_attributes: str) -> str:
-        """
-        Parse discontinued_status from additional_attributes field.
-        Example: "discontinued_status=Active,other_field=value" -> "Active"
-        Returns "Active" as default if not found.
-        """
-        if not additional_attributes:
-            return "Active"
-        
-        # Look for discontinued_status= pattern
-        import re
-        match = re.search(r'discontinued_status=([^,]+)', additional_attributes)
-        if match:
-            return match.group(1).strip()
-        
-        return "Active"
 
     def sync_magento_products_to_inventory_metadata(self) -> Dict[str, int]:
         """
@@ -702,7 +554,7 @@ class InventoryManagementRepo:
         - If base SKU doesn't exist: rename variant to base SKU
         - Result: ALL products use base SKU form, no suffixes remain
         
-        This operates on inventory_metadata table (not magento_product_list).
+        This operates on inventory_metadata table.
         This should be called BEFORE ensure_all_products_have_item_ids() so that item IDs are generated
         after merging is complete.
         
@@ -845,63 +697,6 @@ class InventoryManagementRepo:
             if conn:
                 conn.rollback()
             logger.error(f"Database error in ensure_all_products_have_item_ids: {e}")
-            raise
-        finally:
-            self.return_connection(conn)
-
-    def update_discontinued_status_from_additional_attributes(self) -> Dict[str, int]:
-        """
-        Update discontinued_status column by parsing additional_attributes field.
-        This should be run after importing data that has additional_attributes.
-        Only updates rows where discontinued_status is NULL or needs to be changed.
-        """
-        conn = self.get_metadata_connection()
-        try:
-            cursor = conn.cursor()
-            
-            # Fetch rows where discontinued_status is NULL or additional_attributes is not NULL
-            # (meaning they might need parsing/updating)
-            cursor.execute("""
-                SELECT sku, additional_attributes, discontinued_status
-                FROM magento_product_list
-                WHERE additional_attributes IS NOT NULL
-            """)
-            rows = cursor.fetchall()
-            
-            stats = {
-                "total_processed": len(rows),
-                "updated": 0,
-                "skipped": 0
-            }
-            
-            for sku, additional_attributes, current_status in rows:
-                # Parse the discontinued_status from additional_attributes
-                new_status = self.parse_discontinued_status_from_additional_attributes(additional_attributes)
-                
-                # Only update if status is NULL or different from current
-                if current_status is None or current_status != new_status:
-                    cursor.execute("""
-                        UPDATE magento_product_list
-                        SET discontinued_status = %s, updated_at = NOW()
-                        WHERE sku = %s
-                    """, (new_status, sku))
-                    stats["updated"] += 1
-                else:
-                    stats["skipped"] += 1
-            
-            conn.commit()
-            
-            if stats["updated"] > 0:
-                logger.info(f"✅ Updated discontinued_status: {stats['updated']} of {stats['total_processed']} rows")
-            if stats["skipped"] > 0:
-                logger.debug(f"⏩ Skipped {stats['skipped']} rows (already up-to-date)")
-            
-            return stats
-            
-        except psycopg2.Error as e:
-            if conn:
-                conn.rollback()
-            logger.error(f"Database error in update_discontinued_status_from_additional_attributes: {e}")
             raise
         finally:
             self.return_connection(conn)
@@ -1082,7 +877,7 @@ class InventoryManagementRepo:
     def get_magento_catalog_names(self, skus: List[str]) -> Dict[str, str]:
         """
         Load product names directly from UK Magento catalog for SKUs.
-        Used as fallback when products don't have names in magento_product_list
+        Used as fallback when products don't have names in orders_cache
         (e.g., products that were never ordered but exist in catalog).
         
         Args:

@@ -111,7 +111,11 @@ class InventoryManagementService:
             # Step 3: Ensure all products have item IDs in inventory_metadata (after merging)
             self.repo.ensure_all_products_have_item_ids()
             
-            # Step 4: Query inventory_metadata for all products (filtered by variant_statuses if requested)
+            # Step 4: Update variant_statuses array for all products
+            # This aggregates discontinued_status values from all variants into the variant_statuses JSONB array
+            self.repo.update_variant_statuses()
+            
+            # Step 5: Query inventory_metadata for all products (filtered by variant_statuses if requested)
             conn = self.repo.get_metadata_connection()
             try:
                 cursor = conn.cursor()
@@ -292,7 +296,7 @@ class InventoryManagementService:
                 
                 item = {
                     "item_id": metadata.get("item_id") or "",  # Get from inventory_metadata
-                    "product_name": product.get("name") or "",  # Use 'name' column from magento_product_list
+                    "product_name": product.get("name") or "",  # Name from live Magento database
                     "sku": sku or "",
                     "stock_on_hand": stock_on_hand,  # Total of all locations
                     "location": metadata.get("location"),
@@ -306,6 +310,7 @@ class InventoryManagementService:
                     "top_floor_total": top_floor_total,
                     "status": metadata.get("status"),
                     "uk_fr_preorder": metadata.get("uk_fr_preorder"),
+                    "variant_statuses": product.get("variant_statuses") or [],  # All variant statuses merged from inventory_metadata
                     "custom_fields": {
                         "shelf_total": shelf_total,  # Combined shelf quantities
                         "reserve_stock": reserve_stock  # Top floor total
@@ -346,7 +351,7 @@ class InventoryManagementService:
         return []
     
     def get_inventory_items(self, page: int = 1, per_page: int = 100, search: str = None, discontinued_status: str = None, show_orphaned: bool = False) -> Dict[str, Any]:
-        """Get inventory items from magento_product_list table
+        """Get inventory items from inventory_metadata joined with live Magento data
         
         Args:
             page: Page number (1-indexed)
@@ -396,7 +401,6 @@ class InventoryManagementService:
                 metadata.get('top_floor_total', 0)
             )
 
-            # Note: Live sync is removed as we now use magento_product_list
             logger.info(f"Metadata saved for SKU {sku}, total_stock: {total_stock}")
 
             return {
@@ -410,27 +414,9 @@ class InventoryManagementService:
             logger.error(f"Error saving inventory metadata: {e}")
             raise
 
-    def _sync_shelf_total_legacy(self, item_id: str, total_stock: int) -> None:
-        """
-        DEPRECATED: Legacy method to sync shelf total to external system.
-        No longer used as we now use magento_product_list.
-        Kept for reference only.
-        """
-        logger.warning("_sync_shelf_total_legacy called - this method is deprecated and does nothing")
-        return
-
-    def live_inventory_sync_legacy(self, item_id: str, new_quantity: int, reason: str = "Inventory Re-evaluation") -> Dict[str, Any]:
-        """
-        DEPRECATED: Legacy method to perform live inventory sync with external system.
-        No longer used as we now use magento_product_list.
-        Kept for reference only.
-        """
-        logger.warning("live_inventory_sync_legacy called - this method is deprecated")
-        raise NotImplementedError("Live inventory sync is no longer supported. Inventory is now managed via magento_product_list.")
-
     # Legacy methods for compatibility
     def list_items(self, *, limit: int = 100, search: str = "", low_stock_only: bool = False) -> List[Dict[str, Any]]:
-        """Legacy method - returns items from magento_product_list"""
+        """Legacy method - returns items from inventory_metadata"""
         result = self.get_inventory_items(page=1, per_page=limit, search=search)
         items = result.get("items", [])
         
@@ -448,49 +434,9 @@ class InventoryManagementService:
         """Legacy method - placeholder"""
         return ["Supplier A", "Supplier B", "Supplier C"]
 
-    def sync_items_to_magento_product_list(self, items: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """
-        Sync inventory items to magento_product_list table.
-        Can be used to import items from any source (CSV, API, etc.)
-        Updates SKU, name, item_id, and discontinued_status.
-        """
-        try:
-            logger.info("Starting sync to magento_product_list...")
-            
-            if not items:
-                return {
-                    "status": "error",
-                    "message": "No items provided for sync",
-                    "stats": {}
-                }
-            
-            # Sync to database
-            stats = self.repo.sync_items_to_magento_product_list(items)
-            
-            return {
-                "status": "success",
-                "message": f"Synced {stats['total_items']} items",
-                "stats": stats
-            }
-            
-        except Exception as e:
-            logger.error(f"Error syncing to magento_product_list: {e}")
-            return {
-                "status": "error",
-                "message": f"Sync failed: {str(e)}",
-                "stats": {}
-            }
-
-    def update_discontinued_status_from_additional_attributes(self) -> Dict[str, int]:
-        """
-        Parse discontinued_status from additional_attributes field.
-        Returns stats about the update operation.
-        """
-        return self.repo.update_discontinued_status_from_additional_attributes()
-
     def get_magento_products(self, status_filters: Optional[str] = None) -> List[Dict[str, Any]]:
         """
-        Get products from magento_product_list table, optionally filtered by status.
+        Get products from live Magento database, optionally filtered by status.
         
         Args:
             status_filters: Comma-separated list like "Active,Temporarily OOS,Pre Order,Samples"
