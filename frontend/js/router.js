@@ -96,6 +96,12 @@ const routes = {
   // User Management - redirect root to first sub-page
   '/usermanagement':            '/html/usermanagement/management.html',
   '/usermanagement/management': '/html/usermanagement/management.html',
+  
+  // Settings - redirect root to first sub-page
+  '/settings':                  '/html/settings/appearance.html',
+  '/settings/appearance':       '/html/settings/appearance.html',
+  '/settings/tasks':            '/html/settings/tasks.html',
+  '/settings/system':           '/html/settings/system.html',
 };
 
 function shouldRedirectAfterAutoDraft(reason) {

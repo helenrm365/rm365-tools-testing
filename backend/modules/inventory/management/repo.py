@@ -418,9 +418,13 @@ class InventoryManagementRepo:
             # Filter products and collect valid ones for batch insert
             valid_products = []
             for product in products:
-                sku = product['sku']
-                name = product.get('name') or ""
-                categories = product.get('categories') or ""
+                # Skip None rows (shouldn't happen, but defensive check)
+                if product is None:
+                    continue
+                    
+                sku = product.get('sku') if isinstance(product, dict) else product[0]
+                name = (product.get('name') if isinstance(product, dict) else product[1]) or ""
+                categories = (product.get('categories') if isinstance(product, dict) else product[3]) or ""
                 # Note: discontinued_status is stored in variant_statuses, not in status column
                 # The status column is for stock level calculations (Low Stock/OK/Overstock)
                 stats["total_products"] += 1

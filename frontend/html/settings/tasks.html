@@ -1,0 +1,483 @@
+<!-- Settings - Scheduler Tasks Page -->
+<div class="settings-page-container">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="page-header-content">
+      <div class="page-title-section">
+        <h1 class="page-title">
+          <i class="fa-solid fa-clock-rotate-left"></i>
+          <span>Scheduler Tasks</span>
+        </h1>
+        <p class="page-subtitle">Manually run scheduled background tasks</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Content -->
+  <div class="settings-content-wrapper">
+    <!-- Task Execution Section -->
+    <div class="settings-card">
+      <div class="settings-card-header">
+        <h2 class="settings-card-title">Manual Task Execution</h2>
+        <p class="settings-card-description">
+          These tasks normally run automatically overnight. Use the buttons below to run them manually when needed.
+        </p>
+      </div>
+      <div class="settings-card-body">
+        <div class="task-list">
+          <!-- Nightly Inventory Sync -->
+          <div class="task-item">
+            <div class="task-info">
+              <div class="task-icon">
+                <i class="fa-solid fa-database"></i>
+              </div>
+              <div class="task-details">
+                <span class="task-name">Nightly Inventory Sync</span>
+                <span class="task-description">Sync Magento orders, catalog products, 6M sales data, and variant statuses to inventory_metadata</span>
+                <span class="task-schedule"><i class="fa-regular fa-clock"></i> Runs daily at 02:00</span>
+              </div>
+            </div>
+            <button class="task-btn" data-task="nightly-inventory-sync">
+              <i class="fa-solid fa-play"></i>
+              <span>Run Now</span>
+            </button>
+          </div>
+
+          <!-- Order Session Reset -->
+          <div class="task-item">
+            <div class="task-info">
+              <div class="task-icon">
+                <i class="fa-solid fa-rotate"></i>
+              </div>
+              <div class="task-details">
+                <span class="task-name">Order Session Reset</span>
+                <span class="task-description">Reset all order sessions so orders can be re-approved. Archives completed sessions to history.</span>
+                <span class="task-schedule"><i class="fa-regular fa-clock"></i> Runs daily at 00:00</span>
+              </div>
+            </div>
+            <button class="task-btn" data-task="order-session-reset">
+              <i class="fa-solid fa-play"></i>
+              <span>Run Now</span>
+            </button>
+          </div>
+
+          <!-- Price Activation -->
+          <div class="task-item">
+            <div class="task-info">
+              <div class="task-icon">
+                <i class="fa-solid fa-tag"></i>
+              </div>
+              <div class="task-details">
+                <span class="task-name">Price Activation</span>
+                <span class="task-description">Activate prices that are scheduled to become effective today. Creates audit log entries.</span>
+                <span class="task-schedule"><i class="fa-regular fa-clock"></i> Runs daily at 00:01</span>
+              </div>
+            </div>
+            <button class="task-btn" data-task="price-activation">
+              <i class="fa-solid fa-play"></i>
+              <span>Run Now</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scheduler Status Section -->
+    <div class="settings-card">
+      <div class="settings-card-header">
+        <h2 class="settings-card-title">Scheduler Status</h2>
+        <p class="settings-card-description">Current status of the background scheduler</p>
+      </div>
+      <div class="settings-card-body">
+        <div id="schedulerStatus" class="scheduler-status">
+          <div class="status-loading">
+            <i class="fa-solid fa-spinner fa-spin"></i>
+            <span>Loading scheduler status...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { showToast } from '/js/ui/toast.js';
+  import { getToken } from '/js/services/state/sessionStore.js';
+  import { wsService } from '/js/services/websocket.js';
+  
+  // Task name mapping
+  const taskNames = {
+    'nightly-inventory-sync': 'Nightly Inventory Sync',
+    'order-session-reset': 'Order Session Reset',
+    'price-activation': 'Price Activation'
+  };
+  
+  // Polling interval for running tasks (10 seconds - fallback when WebSocket is connected)
+  const POLL_INTERVAL = 10000;
+  let pollTimer = null;
+  let currentRunningTasks = new Set();
+  
+  // Store handlers for cleanup
+  let wsHandlers = {};
+  
+  // Initialize page
+  (async function init() {
+    // Load scheduler status (includes running tasks)
+    await loadSchedulerStatus();
+    
+    // Attach task button handlers
+    document.querySelectorAll('.task-btn').forEach(btn => {
+      btn.addEventListener('click', handleTaskClick);
+    });
+    
+    // Setup WebSocket listeners for real-time updates
+    setupWebSocketListeners();
+    
+    // Start polling as fallback
+    startPolling();
+  })();
+  
+  // Setup WebSocket listeners for task status changes
+  function setupWebSocketListeners() {
+    // Handler for task started events
+    wsHandlers.taskStarted = (data) => {
+      console.log('🔔 WebSocket: Task started', data);
+      const taskId = data.task_id;
+      if (!currentRunningTasks.has(taskId)) {
+        currentRunningTasks.add(taskId);
+        const btn = document.querySelector(`.task-btn[data-task="${taskId}"]`);
+        if (btn) {
+          setButtonRunning(btn, taskId, data);
+        }
+        updateRunningTasksSectionFromEvent('add', data);
+        showToast(`⚙️ ${taskNames[taskId] || taskId} started by ${data.started_by}`, 'info');
+      }
+    };
+    
+    // Handler for task completed events
+    wsHandlers.taskCompleted = (data) => {
+      console.log('🔔 WebSocket: Task completed', data);
+      const taskId = data.task_id;
+      if (currentRunningTasks.has(taskId)) {
+        currentRunningTasks.delete(taskId);
+        const btn = document.querySelector(`.task-btn[data-task="${taskId}"]`);
+        if (btn) {
+          resetButton(btn, taskId);
+        }
+        updateRunningTasksSectionFromEvent('remove', data);
+        showToast(`✅ ${taskNames[taskId] || taskId} completed`, 'success');
+      }
+    };
+    
+    // Register handlers
+    wsService.on('scheduler:task_started', wsHandlers.taskStarted);
+    wsService.on('scheduler:task_completed', wsHandlers.taskCompleted);
+  }
+  
+  // Start polling for running tasks (fallback/sync)
+  function startPolling() {
+    // Poll immediately, then at intervals
+    pollRunningTasks();
+    pollTimer = setInterval(pollRunningTasks, POLL_INTERVAL);
+  }
+  
+  // Stop polling when leaving page
+  window.addEventListener('beforeunload', () => {
+    if (pollTimer) clearInterval(pollTimer);
+    // Clean up WebSocket listeners
+    if (wsHandlers.taskStarted) wsService.off('scheduler:task_started', wsHandlers.taskStarted);
+    if (wsHandlers.taskCompleted) wsService.off('scheduler:task_completed', wsHandlers.taskCompleted);
+  });
+  
+  // Poll for running tasks (lightweight endpoint)
+  async function pollRunningTasks() {
+    try {
+      const token = getToken();
+      const response = await fetch('/api/v1/scheduler/running', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        updateRunningTasksUI(data.running_tasks || []);
+      }
+    } catch (error) {
+      // Silently fail polling - don't spam errors
+      console.warn('Failed to poll running tasks:', error);
+    }
+  }
+  
+  // Update UI based on running tasks
+  function updateRunningTasksUI(runningTasks) {
+    const runningIds = new Set(runningTasks.map(t => t.task_id));
+    
+    // Update each task button
+    document.querySelectorAll('.task-btn').forEach(btn => {
+      const taskId = btn.dataset.task;
+      if (!taskId) return;
+      
+      const isRunning = runningIds.has(taskId);
+      const wasRunning = currentRunningTasks.has(taskId);
+      
+      if (isRunning && !wasRunning) {
+        // Task just started running (elsewhere)
+        setButtonRunning(btn, taskId, runningTasks.find(t => t.task_id === taskId));
+      } else if (!isRunning && wasRunning) {
+        // Task just finished
+        resetButton(btn, taskId);
+        showToast(`✅ ${taskNames[taskId] || taskId} completed`, 'success');
+      }
+    });
+    
+    currentRunningTasks = runningIds;
+    
+    // Update running tasks section in status
+    updateRunningTasksSection(runningTasks);
+  }
+  
+  // Set button to running state (disabled, showing who started it)
+  function setButtonRunning(btn, taskId, taskInfo) {
+    btn.classList.add('executing');
+    btn.disabled = true;
+    
+    const startedBy = taskInfo?.started_by || 'system';
+    const trigger = taskInfo?.trigger || 'unknown';
+    const triggerText = trigger === 'scheduled' ? 'Scheduled' : `by ${startedBy}`;
+    
+    btn.innerHTML = `
+      <i class="fa-solid fa-spinner fa-spin"></i>
+      <span>Running (${triggerText})</span>
+    `;
+  }
+  
+  // Reset button to normal state
+  function resetButton(btn, taskId) {
+    btn.classList.remove('executing');
+    btn.disabled = false;
+    btn.innerHTML = `
+      <i class="fa-solid fa-play"></i>
+      <span>Run Now</span>
+    `;
+  }
+  
+  // Update running tasks section in status panel
+  function updateRunningTasksSection(runningTasks) {
+    let section = document.getElementById('runningTasksSection');
+    
+    if (runningTasks.length === 0) {
+      if (section) section.remove();
+      return;
+    }
+    
+    const html = `
+      <div class="running-tasks-section" id="runningTasksSection">
+        <h4><i class="fa-solid fa-cogs fa-spin"></i> Currently Running</h4>
+        <div class="running-tasks-list">
+          ${runningTasks.map(task => `
+            <div class="running-task-item">
+              <span class="running-task-name">${task.name}</span>
+              <span class="running-task-info">
+                Started ${formatTimeAgo(task.started_at)} by ${task.started_by}
+                ${task.trigger === 'scheduled' ? '(Scheduled)' : '(Manual)'}
+              </span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+    
+    const schedulerStatus = document.getElementById('schedulerStatus');
+    if (section) {
+      section.outerHTML = html;
+    } else if (schedulerStatus) {
+      schedulerStatus.insertAdjacentHTML('afterbegin', html);
+    }
+  }
+  
+  // Update running tasks section from WebSocket event (add or remove single task)
+  function updateRunningTasksSectionFromEvent(action, taskData) {
+    let section = document.getElementById('runningTasksSection');
+    const schedulerStatus = document.getElementById('schedulerStatus');
+    
+    if (action === 'remove') {
+      // Remove task from section
+      if (section) {
+        const taskItem = section.querySelector(`[data-running-task="${taskData.task_id}"]`);
+        if (taskItem) taskItem.remove();
+        
+        // If no more running tasks, remove the section
+        const remaining = section.querySelectorAll('.running-task-item');
+        if (remaining.length === 0) {
+          section.remove();
+        }
+      }
+    } else if (action === 'add') {
+      // Add task to section
+      const taskName = taskNames[taskData.task_id] || taskData.task_id;
+      const taskHtml = `
+        <div class="running-task-item" data-running-task="${taskData.task_id}">
+          <span class="running-task-name">${taskName}</span>
+          <span class="running-task-info">
+            Started just now by ${taskData.started_by}
+            ${taskData.trigger === 'scheduled' ? '(Scheduled)' : '(Manual)'}
+          </span>
+        </div>
+      `;
+      
+      if (!section) {
+        // Create section if it doesn't exist
+        const sectionHtml = `
+          <div class="running-tasks-section" id="runningTasksSection">
+            <h4><i class="fa-solid fa-cogs fa-spin"></i> Currently Running</h4>
+            <div class="running-tasks-list">${taskHtml}</div>
+          </div>
+        `;
+        if (schedulerStatus) {
+          schedulerStatus.insertAdjacentHTML('afterbegin', sectionHtml);
+        }
+      } else {
+        // Add to existing list
+        const list = section.querySelector('.running-tasks-list');
+        if (list) {
+          list.insertAdjacentHTML('beforeend', taskHtml);
+        }
+      }
+    }
+  }
+  
+  // Format time ago
+  function formatTimeAgo(isoString) {
+    const date = new Date(isoString);
+    const now = new Date();
+    const seconds = Math.floor((now - date) / 1000);
+    
+    if (seconds < 60) return 'just now';
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+    return date.toLocaleString();
+  }
+  
+  // Load scheduler status
+  async function loadSchedulerStatus() {
+    const statusDiv = document.getElementById('schedulerStatus');
+    try {
+      const token = getToken();
+      const response = await fetch('/api/v1/scheduler/status', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        // Update running tasks tracking
+        if (data.running_tasks) {
+          currentRunningTasks = new Set(data.running_tasks.map(t => t.task_id));
+          updateRunningTasksUI(data.running_tasks);
+        }
+        
+        let html = `
+          <div class="status-grid">
+            <div class="status-item">
+              <span class="status-label">Scheduler Enabled</span>
+              <span class="status-value ${data.enabled ? 'status-active' : 'status-inactive'}">
+                <i class="fa-solid ${data.enabled ? 'fa-check-circle' : 'fa-times-circle'}"></i>
+                ${data.enabled ? 'Yes' : 'No'}
+              </span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">Scheduler Running</span>
+              <span class="status-value ${data.running ? 'status-active' : 'status-inactive'}">
+                <i class="fa-solid ${data.running ? 'fa-check-circle' : 'fa-times-circle'}"></i>
+                ${data.running ? 'Yes' : 'No'}
+              </span>
+            </div>
+          </div>
+        `;
+        
+        if (data.jobs && data.jobs.length > 0) {
+          html += `
+            <div class="jobs-section">
+              <h4>Scheduled Jobs</h4>
+              <div class="jobs-list">
+                ${data.jobs.map(job => `
+                  <div class="job-item">
+                    <span class="job-name">${job.name}</span>
+                    <span class="job-next-run">
+                      <i class="fa-regular fa-clock"></i>
+                      Next run: ${job.next_run ? new Date(job.next_run).toLocaleString() : 'Not scheduled'}
+                    </span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `;
+        }
+        
+        statusDiv.innerHTML = html;
+      } else {
+        statusDiv.innerHTML = `<div class="status-error"><i class="fa-solid fa-exclamation-triangle"></i> Failed to load status</div>`;
+      }
+    } catch (error) {
+      statusDiv.innerHTML = `<div class="status-error"><i class="fa-solid fa-exclamation-triangle"></i> ${error.message}</div>`;
+    }
+  }
+  
+  // Handle task button click
+  async function handleTaskClick(e) {
+    const btn = e.currentTarget;
+    const taskId = btn.dataset.task;
+    if (!taskId) return;
+    
+    // Prevent if already running
+    if (btn.classList.contains('executing') || btn.disabled) {
+      showToast('This task is already running', 'warning');
+      return;
+    }
+    
+    const taskName = taskNames[taskId] || taskId;
+    
+    // Set executing state immediately
+    btn.classList.add('executing');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>Starting...</span>';
+    
+    try {
+      const token = getToken();
+      const response = await fetch(`/api/v1/scheduler/run/${taskId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      const result = await response.json();
+      
+      if (response.ok && result.success) {
+        // Task started in background
+        showToast(`🚀 ${taskName} started in background`, 'success');
+        currentRunningTasks.add(taskId);
+        setButtonRunning(btn, taskId, { started_by: 'you', trigger: 'manual' });
+        
+        // Poll immediately to get updated status
+        setTimeout(pollRunningTasks, 1000);
+        
+      } else if (response.status === 409) {
+        // Task already running
+        const detail = result.detail || {};
+        const startedBy = detail.started_by || 'someone';
+        showToast(`⚠️ ${taskName} is already running (started by ${startedBy})`, 'warning');
+        setButtonRunning(btn, taskId, detail);
+        
+      } else {
+        const errorMsg = result.detail?.message || result.detail || result.message || 'Unknown error';
+        showToast(`❌ Failed to start ${taskName}: ${errorMsg}`, 'error');
+        resetButton(btn, taskId);
+      }
+      
+    } catch (error) {
+      showToast(`❌ Failed to start ${taskName}: ${error.message}`, 'error');
+      resetButton(btn, taskId);
+    }
+  }
+</script>

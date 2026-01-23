@@ -12,6 +12,7 @@
 @import 'layout/header.css';          /* Header layout */
 @import 'layout/sidebar.css';         /* Multi-level sidebar navigation */
 @import 'pages/dashboard.css';        /* Dashboard home page */
+@import 'pages/settings.css';         /* Settings pages */
 
 /* 3. Components - Reusable UI elements */
 @import 'components/buttons.css';     /* All button variants */

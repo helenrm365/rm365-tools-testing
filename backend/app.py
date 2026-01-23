@@ -327,6 +327,13 @@ try:
 except Exception as e:
     print(f'[boot] ERROR: {mod} failed to mount at {prefix}:', e)
 
+# Scheduler API for manual task execution
+try:
+    from core.scheduler_api import router as scheduler_router
+    app.include_router(scheduler_router, prefix=f'{API}/scheduler', tags=['scheduler'])
+except Exception as e:
+    print(f'[boot] ERROR: scheduler_api failed to mount:', e)
+
 # Only mount modules that are complete and working
 working_modules = [
     ('modules.users.api', 'router', f'{API}/users', ['users']),

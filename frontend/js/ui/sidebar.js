@@ -94,6 +94,17 @@ const navigationConfig = {
   }
 };
 
+// Settings configuration (separate from main nav - shown in footer)
+const settingsConfig = {
+  label: 'Settings',
+  icon: 'fa-solid fa-gear',
+  children: [
+    { id: 'appearance', label: 'Appearance', icon: 'fa-solid fa-palette', path: '/settings/appearance' },
+    { id: 'tasks', label: 'Scheduler Tasks', icon: 'fa-solid fa-clock-rotate-left', path: '/settings/tasks' },
+    { id: 'system', label: 'System', icon: 'fa-solid fa-server', path: '/settings/system' }
+  ]
+};
+
 /**
  * Initialize the sidebar system
  */
@@ -153,6 +164,10 @@ function buildSidebarHTML() {
         
         <!-- Footer -->
         <div class="sidebar-footer">
+          <button class="sidebar-footer-item" id="sidebarSettings" data-tooltip="Settings">
+            <span class="sidebar-item-icon"><i class="fa-solid fa-gear"></i></span>
+            <span class="sidebar-footer-label">Settings</span>
+          </button>
           <button class="sidebar-footer-item" id="sidebarThemeToggle" data-tooltip="Toggle Theme">
             <span class="sidebar-item-icon"><i class="fa-solid fa-moon"></i></span>
             <span class="sidebar-footer-label">Dark Mode</span>
@@ -256,6 +271,12 @@ function setupEventListeners() {
   const logoutBtn = document.getElementById('sidebarLogout');
   if (logoutBtn) {
     logoutBtn.addEventListener('click', handleLogout);
+  }
+
+  // Settings button - opens subpanel with settings links
+  const settingsBtn = document.getElementById('sidebarSettings');
+  if (settingsBtn) {
+    settingsBtn.addEventListener('click', handleSettingsClick);
   }
 
   // Overlay click
@@ -386,6 +407,12 @@ function closeSubpanel() {
     item.classList.remove('subpanel-active');
   });
   
+  // Remove active from settings button
+  const settingsBtn = document.getElementById('sidebarSettings');
+  if (settingsBtn) {
+    settingsBtn.classList.remove('active');
+  }
+  
   // Re-highlight based on current route (restores 'active' class)
   highlightCurrentRoute();
 }
@@ -416,6 +443,12 @@ function collapseSidebar() {
   container?.querySelectorAll('.sidebar-item').forEach(item => {
     item.classList.remove('subpanel-active');
   });
+  
+  // Remove active from settings button
+  const settingsBtn = document.getElementById('sidebarSettings');
+  if (settingsBtn) {
+    settingsBtn.classList.remove('active');
+  }
   
   // Re-highlight based on current route
   setTimeout(highlightCurrentRoute, 50);
@@ -523,6 +556,72 @@ function updateThemeIcon() {
   if (label) {
     label.textContent = isDark ? 'Light Mode' : 'Dark Mode';
   }
+  
+  // Also update settings panel toggle if it exists
+  const settingsToggle = document.getElementById('settingsThemeToggle');
+  if (settingsToggle) {
+    settingsToggle.checked = isDark;
+  }
+}
+
+// ===== SETTINGS FUNCTIONS =====
+
+/**
+ * Handle settings button click - opens subpanel with settings links
+ */
+function handleSettingsClick() {
+  if (activeGroupId === 'settings' && sidebarState === 'subpanel-open') {
+    // Clicking settings again - close subpanel
+    closeSubpanel();
+  } else {
+    // Open subpanel with settings links
+    openSettingsSubpanel();
+  }
+}
+
+/**
+ * Open the settings subpanel (uses same subpanel as navigation)
+ */
+function openSettingsSubpanel() {
+  activeGroupId = 'settings';
+
+  // Update subpanel title
+  if (subpanelTitle) {
+    subpanelTitle.textContent = settingsConfig.label;
+  }
+
+  // Build subpanel links
+  if (subpanelNav) {
+    const currentPath = window.location.pathname;
+    let html = '';
+    for (const child of settingsConfig.children) {
+      // Check if this link is active
+      const isActive = currentPath === child.path || currentPath.startsWith(child.path + '/');
+      const activeClass = isActive ? 'active' : '';
+
+      html += `
+        <button class="subpanel-link ${activeClass}" data-path="${child.path}">
+          <span class="subpanel-link-icon"><i class="${child.icon}"></i></span>
+          <span>${child.label}</span>
+        </button>
+      `;
+    }
+    subpanelNav.innerHTML = html;
+
+    // Attach click handlers
+    subpanelNav.querySelectorAll('.subpanel-link').forEach(link => {
+      link.addEventListener('click', handleSubpanelLinkClick);
+    });
+  }
+
+  // Highlight settings button
+  const settingsBtn = document.getElementById('sidebarSettings');
+  if (settingsBtn) {
+    settingsBtn.classList.add('active');
+  }
+
+  // Set state
+  setState('subpanel-open');
 }
 
 /**

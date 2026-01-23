@@ -1,0 +1,128 @@
+<!-- Settings - System Page -->
+<div class="settings-page-container">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="page-header-content">
+      <div class="page-title-section">
+        <h1 class="page-title">
+          <i class="fa-solid fa-server"></i>
+          <span>System</span>
+        </h1>
+        <p class="page-subtitle">System information and status</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Content -->
+  <div class="settings-content-wrapper">
+    <!-- System Info Section -->
+    <div class="settings-card">
+      <div class="settings-card-header">
+        <h2 class="settings-card-title">Application Information</h2>
+        <p class="settings-card-description">Current application version and environment details</p>
+      </div>
+      <div class="settings-card-body">
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="info-label">Version</span>
+            <span class="info-value">1.0.0</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Environment</span>
+            <span class="info-value" id="envValue">Loading...</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Backend Status</span>
+            <span class="info-value" id="backendStatus">
+              <i class="fa-solid fa-spinner fa-spin"></i> Checking...
+            </span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">WebSocket</span>
+            <span class="info-value" id="wsStatus">
+              <i class="fa-solid fa-spinner fa-spin"></i> Checking...
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Database Status Section -->
+    <div class="settings-card">
+      <div class="settings-card-header">
+        <h2 class="settings-card-title">Database Connections</h2>
+        <p class="settings-card-description">Status of database connections</p>
+      </div>
+      <div class="settings-card-body">
+        <div class="settings-placeholder">
+          <i class="fa-solid fa-database"></i>
+          <p>Database status monitoring coming soon</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- About Section -->
+    <div class="settings-card">
+      <div class="settings-card-header">
+        <h2 class="settings-card-title">About</h2>
+        <p class="settings-card-description">RM365 Toolbox - Business Management Platform</p>
+      </div>
+      <div class="settings-card-body">
+        <div class="about-content">
+          <p>RM365 Toolbox is a comprehensive business management platform for Reliable Medicare 365.</p>
+          <p class="about-copyright">© 2024-2026 Reliable Medicare 365. All rights reserved.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { getApiUrl } from '/js/config.js';
+  import { wsService } from '/js/services/websocket.js';
+  
+  // Initialize page
+  (async function init() {
+    // Set environment
+    const apiUrl = getApiUrl();
+    const envValue = document.getElementById('envValue');
+    if (apiUrl.includes('localhost') || apiUrl.includes('127.0.0.1')) {
+      envValue.textContent = 'Development';
+    } else {
+      envValue.textContent = 'Production';
+    }
+    
+    // Check backend status
+    await checkBackendStatus();
+    
+    // Check WebSocket status
+    checkWebSocketStatus();
+  })();
+  
+  async function checkBackendStatus() {
+    const statusEl = document.getElementById('backendStatus');
+    try {
+      const response = await fetch('/api/health', {
+        method: 'GET'
+      });
+      
+      if (response.ok) {
+        statusEl.innerHTML = '<span class="status-active"><i class="fa-solid fa-check-circle"></i> Connected</span>';
+      } else {
+        statusEl.innerHTML = '<span class="status-warning"><i class="fa-solid fa-exclamation-circle"></i> Degraded</span>';
+      }
+    } catch (error) {
+      statusEl.innerHTML = '<span class="status-inactive"><i class="fa-solid fa-times-circle"></i> Disconnected</span>';
+    }
+  }
+  
+  function checkWebSocketStatus() {
+    const statusEl = document.getElementById('wsStatus');
+    // Check if WebSocket is connected
+    if (wsService && wsService.isConnected && wsService.isConnected()) {
+      statusEl.innerHTML = '<span class="status-active"><i class="fa-solid fa-check-circle"></i> Connected</span>';
+    } else {
+      statusEl.innerHTML = '<span class="status-inactive"><i class="fa-solid fa-times-circle"></i> Disconnected</span>';
+    }
+  }
+</script>
