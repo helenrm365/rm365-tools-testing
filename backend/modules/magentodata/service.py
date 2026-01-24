@@ -390,11 +390,16 @@ class MagentoDataService:
             if start_date:
                 completeness_check = self.repo.verify_order_completeness(table_name, start_date, region=region)
                 if not completeness_check['is_complete']:
-                    logger.warning(f"Last order incomplete: {completeness_check['message']}")
-                    # Re-sync the incomplete order by using the date before it
+                    # This is normal - the exact sync timestamp may not match any orders
+                    # (e.g., if orders were modified or timestamp was recorded between orders)
+                    # The system handles this by falling back to the previous order date
                     if completeness_check.get('suggested_start_date'):
+                        original_date = start_date
                         start_date = completeness_check['suggested_start_date']
-                        logger.info(f"Re-syncing from {start_date} to complete partial order")
+                        logger.debug(f"Adjusting sync start: {original_date} -> {start_date} ({completeness_check['message']})")
+                    else:
+                        # Only warn if we can't recover
+                        logger.warning(f"Last order incomplete and no fallback available: {completeness_check['message']}")
             
             # Initialize Magento client for this region
             logger.info(f"Initializing Magento client for region: {region}")
