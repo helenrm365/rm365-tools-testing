@@ -82,6 +82,7 @@ export async function initUKMagentoData(path = '/magentodata/uk-magento') {
   }
   
   // Load initial data based on view mode
+  // Note: Syncing is now handled by the nightly scheduler - page load just reads from cache
   if (viewMode === 'custom') {
     // Check if custom range parameters exist
     if (window.customRangeActive) {
@@ -99,15 +100,15 @@ export async function initUKMagentoData(path = '/magentodata/uk-magento') {
       customRangeLabel = '';
       history.replaceState({ path: '/magentodata/uk-magento/full-data' }, '', '/magentodata/uk-magento/full-data');
       updateViewButtons();
-      await syncAndLoadFullData();
+      await loadMagentoData();
     }
   } else if (viewMode === 'aggregated') {
     showToast('Loading 6-month aggregated data...', 'info');
-    await handleRefreshAggregatedData();
+    await loadMagentoData();
   } else {
-    showToast('Syncing with Magento UK...', 'info');
-    // Full data view: sync from Magento first, then load
-    await syncAndLoadFullData();
+    showToast('Loading UK Magento data...', 'info');
+    // Full data view: load from cache (nightly scheduler keeps data fresh)
+    await loadMagentoData();
   }
   
   console.log('[UK Magento] Initialization complete. View mode:', viewMode);

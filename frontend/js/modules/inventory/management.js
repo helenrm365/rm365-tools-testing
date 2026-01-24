@@ -207,10 +207,6 @@ async function setupInventoryManagement() {
   setupZoomControls();
   bindGlobalHandlers();
 
-  showToast('Setting up background sync...', 'info');
-  // Auto sync in background (non-blocking like Labels)
-  initAutoSync();
-  
   showToast('Enabling real-time collaboration...', 'info');
   // Initialize collaboration features (non-blocking)
   initCollaboration().catch(err => {

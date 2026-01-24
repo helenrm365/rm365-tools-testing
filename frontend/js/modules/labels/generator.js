@@ -166,10 +166,6 @@ export async function initLabelGenerator() {
   showToast('Loading product catalog...', 'info');
   // Load initial data
   await loadProducts();
-
-  showToast('Setting up background sync...', 'info');
-  // Auto sync in background
-  initAutoSync();
   
   updateUI();
 }

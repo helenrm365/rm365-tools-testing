@@ -78,6 +78,7 @@ export async function initFRMagentoData(path = '/magentodata/fr-magento') {
   }
   
   // Load initial data based on view mode
+  // Note: Syncing is now handled by the nightly scheduler - page load just reads from cache
   if (viewMode === 'custom') {
     // Check if custom range parameters exist
     if (window.customRangeActive) {
@@ -95,15 +96,15 @@ export async function initFRMagentoData(path = '/magentodata/fr-magento') {
       customRangeLabel = '';
       history.replaceState({ path: '/magentodata/fr-magento/full-data' }, '', '/magentodata/fr-magento/full-data');
       updateViewButtons();
-      await syncAndLoadFullData();
+      await loadMagentoData();
     }
   } else if (viewMode === 'aggregated') {
     showToast('Loading 6-month aggregated data...', 'info');
-    await handleRefreshAggregatedData();
+    await loadMagentoData();
   } else {
-    showToast('Syncing with Magento France...', 'info');
-    // Full data view: sync from Magento first, then load
-    await syncAndLoadFullData();
+    showToast('Loading France Magento data...', 'info');
+    // Full data view: load from cache (nightly scheduler keeps data fresh)
+    await loadMagentoData();
   }
 }
 
