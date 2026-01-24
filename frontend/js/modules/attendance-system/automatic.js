@@ -1,4 +1,5 @@
 // js/modules/attendance-system/automatic.js - Automatic clocking with NFC card support
+// Now uses WebSockets for instant card scan notifications (no polling!)
 import { getEmployees, clockEmployee, checkAttendanceTablesStatus, initializeAttendanceTables } from '../../services/api/attendanceApi.js';
 import { playSuccessSound, playErrorSound, playScanSound, unlockAudio, isAudioUnlocked, onAudioUnlock } from '../../utils/sound.js';
 import { showToast } from '../../ui/toast.js';
@@ -8,12 +9,12 @@ let state = {
   employees: [],
   cardUidToEmployee: {},
   isScanning: false,
-  cardPollingInterval: null,
+  websocket: null,
+  websocketReconnectTimer: null,
   isProcessingCard: false,
   lastScannedUid: null,
   lastScanTime: 0,
   cardScanErrorCount: 0,
-  nextCardPollDelay: 500,
   scanCount: 0,
   recentScans: [],
   cardServiceAvailable: false
@@ -22,15 +23,13 @@ let state = {
 // ====== Constants ======
 const SCAN_COOLDOWN_MS = 1000;
 const MAX_RECENT_SCANS = 10;
-const MAX_CONSECUTIVE_ERRORS = 5;
+const WEBSOCKET_RECONNECT_DELAY = 3000;
 
-// Hardware bridge always runs on HTTPS
+// Hardware bridge always runs on HTTPS (wss for WebSocket)
 const BRIDGE_PROTOCOL = 'https:';
+const WS_PROTOCOL = 'wss:';
 const BRIDGE_BASE = `${BRIDGE_PROTOCOL}//127.0.0.1:8080`;
-
-const CARD_SCAN_ENDPOINTS = [
-  `${BRIDGE_BASE}/card/scan`
-];
+const WS_URL = `${WS_PROTOCOL}//127.0.0.1:8080/ws/nfc`;
 
 // ====== Utility Functions ======
 function $(sel) { return document.querySelector(sel); }
@@ -297,125 +296,149 @@ async function loadEmployees() {
   }
 }
 
-// ====== Card Scanning ======
-async function pollCardScan() {
-  if (state.isProcessingCard || !state.isScanning) return;
-
-  // Use local hardware bridge for card scanning
-  let response = null;
-  
-  // Try local endpoints first
-  for (const endpoint of CARD_SCAN_ENDPOINTS) {
-    try {
-      response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ timeout: 1 }), // 1 second timeout for card check
-        cache: 'no-store',
-        keepalive: false, // Prevent connection pooling interference with main API
-        mode: 'cors',
-        credentials: 'omit'
-      });
-      if (response.ok) break;
-    } catch (e) {
-      continue;
-    }
+// ====== Card Scanning via WebSocket ======
+function connectWebSocket() {
+  // Don't reconnect if already connected or connecting
+  if (state.websocket && (state.websocket.readyState === WebSocket.OPEN || state.websocket.readyState === WebSocket.CONNECTING)) {
+    return;
   }
   
-  if (!response) return; // No local bridge available
-
   try {
-    // Reset error count on successful connection
-    state.cardScanErrorCount = 0;
-    state.cardServiceAvailable = true;
+    console.log('🔌 Connecting to NFC WebSocket...');
+    state.websocket = new WebSocket(WS_URL);
+    
+    state.websocket.onopen = () => {
+      console.log('✅ WebSocket connected to hardware bridge');
+      state.cardServiceAvailable = true;
+      state.cardScanErrorCount = 0;
+      updateHardwareStatus();
+      
+      if (state.isScanning) {
+        updateStatus('Scanning via card reader (WebSocket)', 'scanning');
+      }
+    };
+    
+    state.websocket.onmessage = async (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        
+        if (data.type === 'card_scanned' && data.uid) {
+          await handleCardScan(data.uid);
+        } else if (data.type === 'connected') {
+          console.log('📡 NFC Scanner ready:', data.message);
+          state.cardServiceAvailable = data.nfc_available;
+          updateHardwareStatus();
+        } else if (data.type === 'error') {
+          console.error('NFC Error:', data.error);
+        }
+      } catch (e) {
+        console.error('Failed to parse WebSocket message:', e);
+      }
+    };
+    
+    state.websocket.onclose = (event) => {
+      console.log('🔌 WebSocket disconnected:', event.code, event.reason);
+      state.cardServiceAvailable = false;
+      updateHardwareStatus();
+      
+      // Auto-reconnect if we're supposed to be scanning
+      if (state.isScanning) {
+        scheduleReconnect();
+      }
+    };
+    
+    state.websocket.onerror = (error) => {
+      console.error('WebSocket error:', error);
+      state.cardScanErrorCount++;
+      
+      // Will trigger onclose which handles reconnection
+    };
+    
+  } catch (error) {
+    console.error('Failed to create WebSocket:', error);
+    state.cardServiceAvailable = false;
     updateHardwareStatus();
+    scheduleReconnect();
+  }
+}
 
-    // Treat non-OK responses as "idle" (no card present)
-    if (!response.ok) {
-      state.nextCardPollDelay = 3000;
+function scheduleReconnect() {
+  if (state.websocketReconnectTimer) {
+    clearTimeout(state.websocketReconnectTimer);
+  }
+  
+  if (state.isScanning) {
+    state.websocketReconnectTimer = setTimeout(() => {
+      console.log('🔄 Attempting WebSocket reconnection...');
+      connectWebSocket();
+    }, WEBSOCKET_RECONNECT_DELAY);
+  }
+}
+
+function disconnectWebSocket() {
+  if (state.websocketReconnectTimer) {
+    clearTimeout(state.websocketReconnectTimer);
+    state.websocketReconnectTimer = null;
+  }
+  
+  if (state.websocket) {
+    state.websocket.close(1000, 'User stopped scanning');
+    state.websocket = null;
+  }
+}
+
+async function handleCardScan(uid) {
+  if (state.isProcessingCard || !state.isScanning) return;
+  
+  const normalizedUid = String(uid).toUpperCase();
+  const now = Date.now();
+  
+  // Cooldown check to prevent duplicate scans
+  if (normalizedUid === state.lastScannedUid && now - state.lastScanTime < SCAN_COOLDOWN_MS) {
+    return;
+  }
+  
+  state.lastScannedUid = normalizedUid;
+  state.lastScanTime = now;
+  state.isProcessingCard = true;
+  
+  try {
+    playScanSound();
+    updateStatus(`Card scanned: ${normalizedUid}`, 'scanning');
+    
+    // Find employee by card UID
+    const employee = state.cardUidToEmployee[normalizedUid];
+    
+    if (!employee) {
+      playErrorSound();
+      updateStatus('⚠️ Card not registered to any employee', 'warning');
       return;
     }
-
-    const data = await response.json();
-
-    // Local bridge returns: { status: 'success', uid: '...' } or { status: 'waiting', error: '...' } or { status: 'error', error: '...' }
-    if (data && data.status === 'success' && data.uid) {
-      const uid = String(data.uid).toUpperCase();
-      const now = Date.now();
-
-      // Cooldown check to prevent duplicate scans
-      if (uid === state.lastScannedUid && now - state.lastScanTime < SCAN_COOLDOWN_MS) {
-        return;
-      }
-
-      state.lastScannedUid = uid;
-      state.lastScanTime = now;
-      state.isProcessingCard = true;
-
-      playScanSound();
-      updateStatus(`Card scanned: ${uid}`, 'scanning');
-
-      // Find employee by card UID
-      const employee = state.cardUidToEmployee[uid];
-
-      if (!employee) {
-        playErrorSound();
-        updateStatus('⚠️ Card not registered to any employee', 'warning');
-        return;
-      }
-
-      // Clock the employee
-      try {
-        const clockResult = await clockEmployee(employee.id);
+    
+    // Clock the employee
+    try {
+      const clockResult = await clockEmployee(employee.id);
+      
+      if (clockResult) {
+        playSuccessSound();
+        updateStatus(`✅ ${employee.name} clocked ${clockResult.direction || 'in'}`, 'info');
         
-        if (clockResult) {
-          playSuccessSound();
-          updateStatus(`✅ ${employee.name} clocked ${clockResult.direction || 'in'}`, 'info');
-          
-          state.scanCount++;
-          updateScanCount();
-          updateLastScanTime();
-          addRecentScan(employee, 'card', clockResult.direction || 'in');
-          
-          state.cardScanErrorCount = 0;
-          state.nextCardPollDelay = 500;
-        } else {
-          playErrorSound();
-          updateStatus('❌ Clocking failed', 'error');
-        }
-      } catch (clockError) {
-        console.error('Clock error:', clockError);
+        state.scanCount++;
+        updateScanCount();
+        updateLastScanTime();
+        addRecentScan(employee, 'card', clockResult.direction || 'in');
+        
+        state.cardScanErrorCount = 0;
+      } else {
         playErrorSound();
         updateStatus('❌ Clocking failed', 'error');
       }
-
-    } else if (data && data.status === 'waiting') {
-      // No card present - this is normal during polling
-      state.cardScanErrorCount = 0;
-      state.nextCardPollDelay = 500;
-    } else {
-      // Actual error (reader not found, etc.)
-      state.cardScanErrorCount++;
-      const backoffMs = Math.min(10000, 1000 * Math.pow(1.5, Math.min(state.cardScanErrorCount, 3)));
-      state.nextCardPollDelay = backoffMs;
-    }
-
-  } catch (error) {
-    // Network/service errors - use exponential backoff
-    state.cardScanErrorCount++;
-    const backoffMs = Math.min(30000, 3000 * Math.pow(1.5, Math.min(state.cardScanErrorCount, 5)));
-    state.nextCardPollDelay = backoffMs;
-    
-    // Only log errors periodically to avoid spam
-    if (state.cardScanErrorCount === 1 || state.cardScanErrorCount % 10 === 0) {
-      console.warn('Card service unavailable (attempt ' + state.cardScanErrorCount + ')');
+    } catch (clockError) {
+      console.error('Clock error:', clockError);
+      playErrorSound();
+      updateStatus('❌ Clocking failed', 'error');
     }
     
-    // Update service status
-    if (state.cardScanErrorCount >= MAX_CONSECUTIVE_ERRORS) {
-      state.cardServiceAvailable = false;
-      updateHardwareStatus();
-    }
   } finally {
     state.isProcessingCard = false;
   }
@@ -432,33 +455,12 @@ async function startScanning(options = {}) {
     }
   }
 
-  const usingCard = state.cardServiceAvailable;
-
-  if (!usingCard) {
-    updateStatus('No scanners available to start scanning.', 'warning');
-    return;
-  }
-
   state.isScanning = true;
-  updateStatus('Scanning via card reader', 'scanning');
-  setScannerDisplayState('Scanning Active', 'Card reader will clock employees.', true);
+  updateStatus('Connecting to card reader...', 'scanning');
+  setScannerDisplayState('Scanning Active', 'Card reader will clock employees instantly.', true);
 
-  // Start card polling with backoff-aware logic
-  if (usingCard) {
-    const cardLoop = async () => {
-      try {
-        await pollCardScan();
-      } finally {
-        if (state.isScanning && state.cardServiceAvailable) {
-          clearTimeout(state.cardPollingInterval);
-          state.cardPollingInterval = setTimeout(cardLoop, state.nextCardPollDelay);
-        }
-      }
-    };
-
-    state.nextCardPollDelay = 500;
-    cardLoop();
-  }
+  // Connect to WebSocket for instant card scan notifications
+  connectWebSocket();
 
   setStartButtonState({ disabled: true, label: 'Scanning...' });
   setStopButtonState({ disabled: false });
@@ -470,11 +472,8 @@ function stopScanning() {
   state.isScanning = false;
   state.isProcessingCard = false;
 
-  // Clear intervals
-  if (state.cardPollingInterval) {
-    clearTimeout(state.cardPollingInterval);
-    state.cardPollingInterval = null;
-  }
+  // Disconnect WebSocket
+  disconnectWebSocket();
 
   updateHardwareStatus();
   setScannerDisplayState('Scanning Paused', 'Press Start Scanning when you are ready.', false);
@@ -504,16 +503,17 @@ function setupEventHandlers() {
 // ====== Module Cleanup ======
 function cleanup() {
   stopScanning();
+  disconnectWebSocket();
   state = {
     employees: [],
     cardUidToEmployee: {},
     isScanning: false,
-    cardPollingInterval: null,
+    websocket: null,
+    websocketReconnectTimer: null,
     isProcessingCard: false,
     lastScannedUid: null,
     lastScanTime: 0,
     cardScanErrorCount: 0,
-    nextCardPollDelay: 500,
     scanCount: 0,
     recentScans: [],
     cardServiceAvailable: false
