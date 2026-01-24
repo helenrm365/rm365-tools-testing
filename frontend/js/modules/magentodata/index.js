@@ -9,22 +9,25 @@ export async function init(path) {
     await currentSubModule.destroy();
   }
   
+  // Cache-busting timestamp for sub-module imports
+  const cacheBust = `?t=${Date.now()}`;
+  
   // Route to the appropriate sub-module based on path
   if (path.includes('/fr-magento')) {
-    const mod = await import('./fr-magento.js');
+    const mod = await import(`./fr-magento.js${cacheBust}`);
     await mod.initFRMagentoData(path);
     currentSubModule = mod;
   } else if (path.includes('/nl-magento')) {
-    const mod = await import('./nl-magento.js');
+    const mod = await import(`./nl-magento.js${cacheBust}`);
     await mod.initNLMagentoData(path);
     currentSubModule = mod;
   } else if (path.includes('/history')) {
-    const mod = await import('./history.js');
+    const mod = await import(`./history.js${cacheBust}`);
     await mod.initMagentoDataHistory();
     currentSubModule = mod;
   } else {
     // Default to UK Magento (first sub-page)
-    const mod = await import('./uk-magento.js');
+    const mod = await import(`./uk-magento.js${cacheBust}`);
     await mod.initUKMagentoData(path);
     currentSubModule = mod;
   }

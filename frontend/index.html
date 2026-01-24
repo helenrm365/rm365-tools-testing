@@ -76,29 +76,29 @@
   <link rel="manifest" href="/manifest.webmanifest">
 
   <style>
-    /* Ensure loading overlay is properly visible */
-    #loadingOverlay {
-      display: flex !important;
-      position: fixed !important;
-      inset: 0 !important;
-      z-index: 9999 !important;
-      background: rgba(0, 0, 0, 0.9) !important;
-      align-items: center !important;
-      justify-content: center !important;
-      flex-direction: column !important;
-    }
-    
+    /* Loading overlay visibility - all styles in loaders.css */
+    /* Hidden state - controlled via hidden attribute AND inline styles from JS */
     #loadingOverlay[hidden] {
       display: none !important;
+      visibility: hidden !important;
+      opacity: 0 !important;
     }
     
-    /* Hide main content initially until loaded */
-    body > *:not(#loadingOverlay) {
+    /* Toast container must always be visible and on top */
+    #toast-container {
+      position: fixed !important;
+      z-index: 2147483647 !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+    }
+    
+    /* Hide main content initially until loaded, but keep loading overlay and toasts visible */
+    body > *:not(#loadingOverlay):not(#toast-container) {
       opacity: 0;
       transition: opacity 0.3s ease-in-out;
     }
     
-    body.loaded > *:not(#loadingOverlay) {
+    body.loaded > *:not(#loadingOverlay):not(#toast-container) {
       opacity: 1;
     }
   </style>
@@ -109,19 +109,17 @@
 
   <!-- Loading overlay (visible by default, no hidden attribute) -->
   <div id="loadingOverlay" class="fullscreen-overlay">
-    <div class="loader-logo">
-      <img src="/assets/RM365_Logo_New.png" alt="RM365" class="loader-logo-img">
-    </div>
-    <div class="loader">
-      <div class="loader-ring"></div>
-      <div class="loader-ring"></div>
-      <div class="loader-ring"></div>
-      <div id="loadingMessage" class="loading-message">Loading...</div>
-    </div>
-    <div class="loader-dots">
-      <div class="dot"></div>
-      <div class="dot"></div>
-      <div class="dot"></div>
+    <div id="particles-background" class="vertical-centered-box particles-background"></div>
+    <div id="particles-foreground" class="vertical-centered-box particles-foreground"></div>
+    <div class="vertical-centered-box">
+      <div class="loader-content">
+        <div class="loader-circle"></div>
+        <div class="loader-line-mask">
+          <div class="loader-line"></div>
+        </div>
+        <img src="/assets/RM365_Logo_New.png" alt="RM365" class="loader-logo-img">
+        <div id="loadingMessage" class="loading-message">Loading...</div>
+      </div>
     </div>
   </div>
 
@@ -157,11 +155,88 @@
     });
   </script>
 
+  <!-- Particleground for loading screen -->
+  <script src="/js/utils/particleground.js"></script>
+  <script>
+    // Initialize particle backgrounds for the loading screen
+    (function() {
+      function getParticleColors() {
+        const isDark = document.documentElement.classList.contains('dark-mode');
+        if (isDark) {
+          // Dark mode: use light colors for contrast
+          return {
+            fg: { dot: 'rgba(255, 255, 255, 0.8)', line: 'rgba(255, 255, 255, 0.05)' },
+            bg: { dot: 'rgba(255, 255, 255, 0.4)', line: 'rgba(255, 255, 255, 0.03)' }
+          };
+        } else {
+          // Light mode: use muted dark colors
+          return {
+            fg: { dot: 'rgba(72, 72, 72, 0.4)', line: 'rgba(72, 72, 72, 0.05)' },
+            bg: { dot: 'rgba(72, 72, 72, 0.2)', line: 'rgba(72, 72, 72, 0.03)' }
+          };
+        }
+      }
+
+      var pgForeground, pgBackground;
+
+      function initParticles() {
+        var colors = getParticleColors();
+        var fgEl = document.getElementById('particles-foreground');
+        var bgEl = document.getElementById('particles-background');
+        
+        if (fgEl && typeof particleground !== 'undefined') {
+          pgForeground = particleground(fgEl, {
+            dotColor: colors.fg.dot,
+            lineColor: colors.fg.line,
+            minSpeedX: 0.3,
+            maxSpeedX: 0.6,
+            minSpeedY: 0.3,
+            maxSpeedY: 0.6,
+            density: 25000,
+            proximity: 150,
+            parallaxMultiplier: 10,
+            particleRadius: 3,
+            lineWidth: 1
+          });
+        }
+        
+        if (bgEl && typeof particleground !== 'undefined') {
+          pgBackground = particleground(bgEl, {
+            dotColor: colors.bg.dot,
+            lineColor: colors.bg.line,
+            minSpeedX: 0.075,
+            maxSpeedX: 0.15,
+            minSpeedY: 0.075,
+            maxSpeedY: 0.15,
+            density: 30000,
+            proximity: 20,
+            parallaxMultiplier: 20,
+            particleRadius: 2,
+            lineWidth: 1
+          });
+        }
+      }
+
+      // Initialize when DOM is ready
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initParticles);
+      } else {
+        initParticles();
+      }
+
+      // Store references for cleanup
+      window.__loadingParticles = { fg: pgForeground, bg: pgBackground };
+    })();
+  </script>
+
   <!-- Optional: UI helpers (if you still need them globally) -->
   <script src="/js/ui/components.js" defer></script>
   
   <!-- Filter Control Panel Component -->
   <script src="/js/ui/filterControlPanel.js" defer></script>
+  
+  <!-- Table Sorting Utility (Global) -->
+  <script src="/js/utils/tableSorting.js" defer></script>
 
   <!-- Debug utilities for development -->
   <script type="module" src="/js/debug.js"></script>

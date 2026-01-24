@@ -347,7 +347,7 @@ def get_excluded_customers(
     region: str,
     user=Depends(get_current_user)
 ):
-    """Get list of excluded customers for a region"""
+    """Get list of excluded customers for a region with their exclusion rules"""
     return svc.get_excluded_customers(region)
 
 
@@ -356,10 +356,40 @@ def add_excluded_customer(
     region: str,
     email: str,
     full_name: str = "",
+    rule_type: str = Query("exclude_all", description="Exclusion rule: exclude_all, divide_all, divide_product"),
+    divisor: float = Query(2.0, description="Divisor for divide rules"),
+    product_sku: str = Query(None, description="Product SKU for divide_product rule"),
+    product_name: str = Query(None, description="Product name for divide_product rule"),
     user=Depends(get_current_user)
 ):
-    """Add a customer to the exclusion list"""
-    return svc.add_excluded_customer(region, email, full_name, user.get("username", "unknown"))
+    """Add a customer to the exclusion list with optional rule configuration"""
+    return svc.add_excluded_customer(region, email, full_name, user.get("username", "unknown"),
+                                      rule_type, divisor, product_sku, product_name)
+
+
+@router.put("/filters/customers/{customer_id}")
+def update_excluded_customer_rule(
+    customer_id: int,
+    rule_type: str = Query(..., description="Exclusion rule: exclude_all, divide_all, divide_product"),
+    divisor: float = Query(2.0, description="Divisor for divide rules"),
+    product_sku: str = Query(None, description="Product SKU for divide_product rule"),
+    product_name: str = Query(None, description="Product name for divide_product rule"),
+    user=Depends(get_current_user)
+):
+    """Update the exclusion rule for an existing excluded customer"""
+    return svc.update_excluded_customer_rule(customer_id, rule_type, divisor,
+                                              product_sku, product_name, user.get("username", "unknown"))
+
+
+@router.get("/filters/customer-products/{region}/{email}")
+def get_customer_products(
+    region: str,
+    email: str,
+    search: str = Query("", description="Search filter for products"),
+    user=Depends(get_current_user)
+):
+    """Get products ordered by a specific customer (for exclusion rule product selection)"""
+    return svc.get_customer_products(region, email, search)
 
 
 @router.delete("/filters/customers/{customer_id}")

@@ -327,11 +327,19 @@ try:
 except Exception as e:
     print(f'[boot] ERROR: {mod} failed to mount at {prefix}:', e)
 
+# Scheduler API for manual task execution
+try:
+    from core.scheduler_api import router as scheduler_router
+    app.include_router(scheduler_router, prefix=f'{API}/scheduler', tags=['scheduler'])
+except Exception as e:
+    print(f'[boot] ERROR: scheduler_api failed to mount:', e)
+
 # Only mount modules that are complete and working
 working_modules = [
     ('modules.users.api', 'router', f'{API}/users', ['users']),
     ('modules.roles.api', 'router', f'{API}/roles', ['roles']),
     ('modules.attendance.api', 'router', f'{API}/attendance', ['attendance']),
+    ('modules.attendance.locations_api', 'router', f'{API}/locations', ['locations']),
     ('modules.enrollment.api', 'router', f'{API}/enrollment', ['enrollment']),
     ('modules.labels.api', 'router', f'{API}/labels', ['labels']),
     ('modules.magentodata.api', 'router', f'{API}/magentodata', ['magentodata']),
@@ -374,6 +382,18 @@ _mount_if_exists('/components', COMPONENTS_DIR, html=False, name='components')
 
 # 2) SPA fallback - serve index.html at root and for SPA routes only (not API paths)
 if FRONTEND_DIR.is_dir():
+    # Serve manifest.webmanifest with proper content-type
+    @app.get("/manifest.webmanifest", include_in_schema=False)
+    async def serve_manifest():
+        file_path = FRONTEND_DIR / "manifest.webmanifest"
+        if file_path.is_file():
+            return FileResponse(
+                file_path,
+                media_type="application/manifest+json",
+                headers={"Cache-Control": "public, max-age=86400"}
+            )
+        raise HTTPException(status_code=404, detail="Manifest not found")
+    
     # Serve standalone HTML files from frontend root (like magento-sync-status.html)
     @app.get("/magento-sync-status.html", include_in_schema=False)
     async def serve_magento_sync_status(response: Response):

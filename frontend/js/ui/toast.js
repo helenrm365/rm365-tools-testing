@@ -1,26 +1,41 @@
-// Toast notification system
+// Toast notification system - stacking toasts with newest at bottom
 export function showToast(message, type = 'info') {
+    // Update loading screen message if it's visible
+    const isLoading = updateLoadingMessage(message);
+    
+    // If loading screen is visible, only update its message - don't show toast
+    if (isLoading) {
+        return;
+    }
+    
     // Create toast container if it doesn't exist
     let container = document.getElementById('toast-container');
     if (!container) {
         container = document.createElement('div');
         container.id = 'toast-container';
         container.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 10000;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            max-width: 400px;
+            position: fixed !important;
+            bottom: 20px !important;
+            right: 20px !important;
+            z-index: 2147483647 !important;
+            display: flex !important;
+            flex-direction: column-reverse !important;
+            gap: 10px !important;
+            max-width: 400px !important;
+            pointer-events: none !important;
+            isolation: isolate !important;
         `;
         document.body.appendChild(container);
     }
     
-    // Create toast element
+    // Ensure container is always at the end of body (on top of everything)
+    if (container.parentNode !== document.body || container !== document.body.lastElementChild) {
+        document.body.appendChild(container);
+    }
+    
+    // Create toast element - use unique class name to avoid CSS conflicts
     const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
+    toast.className = `stacking-toast stacking-toast-${type}`;
     
     // Set colors based on type
     const colors = {
@@ -32,7 +47,9 @@ export function showToast(message, type = 'info') {
     
     const color = colors[type] || colors.info;
     
+    // Use position: relative (not fixed) so toasts stack in the flex container
     toast.style.cssText = `
+        position: relative;
         background: ${color.bg};
         color: white;
         padding: 12px 16px;
@@ -41,9 +58,10 @@ export function showToast(message, type = 'info') {
         display: flex;
         align-items: center;
         gap: 10px;
-        animation: slideIn 0.3s ease-out;
+        animation: slideInFromBottom 0.3s ease-out;
         font-size: 14px;
         line-height: 1.5;
+        pointer-events: auto;
     `;
     
     toast.innerHTML = `
@@ -51,11 +69,12 @@ export function showToast(message, type = 'info') {
         <span style="flex: 1;">${message}</span>
     `;
     
-    container.appendChild(toast);
+    // Insert at BEGINNING so it appears at bottom visually (due to column-reverse)
+    container.insertBefore(toast, container.firstChild);
     
-    // Auto-remove after 4 seconds
+    // Auto-remove after 4 seconds - fade up and out like a card leaving the deck
     setTimeout(() => {
-        toast.style.animation = 'slideOut 0.3s ease-in';
+        toast.style.animation = 'fadeUpAndOut 0.4s ease-out forwards';
         setTimeout(() => {
             if (toast.parentNode) {
                 toast.parentNode.removeChild(toast);
@@ -64,8 +83,24 @@ export function showToast(message, type = 'info') {
             if (container.children.length === 0 && container.parentNode) {
                 container.parentNode.removeChild(container);
             }
-        }, 300);
+        }, 400);
     }, 4000);
+}
+
+// Update the loading screen message when a toast is shown
+// Returns true if loading screen is visible, false otherwise
+function updateLoadingMessage(message) {
+    const overlay = document.getElementById('loadingOverlay');
+    const loadingMessage = document.getElementById('loadingMessage');
+    
+    // Only update if loading overlay is visible
+    if (overlay && loadingMessage && !overlay.hasAttribute('hidden')) {
+        // Truncate message if too long
+        const displayMessage = message.length > 50 ? message.substring(0, 47) + '...' : message;
+        loadingMessage.textContent = displayMessage;
+        return true;
+    }
+    return false;
 }
 
 // Add animations to document if not already present
@@ -75,23 +110,23 @@ if (typeof document !== 'undefined') {
         const style = document.createElement('style');
         style.id = styleId;
         style.textContent = `
-            @keyframes slideIn {
+            @keyframes slideInFromBottom {
                 from {
-                    transform: translateX(400px);
+                    transform: translateY(50px);
                     opacity: 0;
                 }
                 to {
-                    transform: translateX(0);
+                    transform: translateY(0);
                     opacity: 1;
                 }
             }
-            @keyframes slideOut {
+            @keyframes fadeUpAndOut {
                 from {
-                    transform: translateX(0);
+                    transform: translateY(0);
                     opacity: 1;
                 }
                 to {
-                    transform: translateX(400px);
+                    transform: translateY(-20px);
                     opacity: 0;
                 }
             }

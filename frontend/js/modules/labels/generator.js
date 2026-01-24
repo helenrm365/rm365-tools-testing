@@ -130,10 +130,14 @@ document.addEventListener('click', (e) => {
 });
 
 export async function initLabelGenerator() {
+  showToast('Initializing Label Generator...', 'info');
+  
   // Check tables status and initialize if needed (like Magento Data)
   try {
+    showToast('Checking database tables...', 'info');
     const statusResult = await checkTablesStatus();
     if (statusResult.status === 'success' && !statusResult.all_tables_exist) {
+      showToast('Initializing label tables...', 'info');
       console.log('[Labels] Some tables missing, initializing...', statusResult.tables_status);
       await initializeTables();
       console.log('[Labels] Tables initialized successfully');
@@ -143,6 +147,7 @@ export async function initLabelGenerator() {
     // Continue anyway - loadProducts will handle errors
   }
   
+  showToast('Setting up filters & controls...', 'info');
   // Setup status filter checkboxes (all checked by default)
   setupStatusFilterCheckboxes();
   
@@ -158,9 +163,11 @@ export async function initLabelGenerator() {
   // Setup product table event delegation once
   setupProductTableDelegation();
 
+  showToast('Loading product catalog...', 'info');
   // Load initial data
   await loadProducts();
 
+  showToast('Setting up background sync...', 'info');
   // Auto sync in background
   initAutoSync();
   
@@ -882,6 +889,11 @@ function renderProductTable() {
   
   // Update select all checkbox state after rendering
   updateSelectAllCheckbox();
+  
+  // Re-initialize table sorting after rendering new content
+  if (typeof initializeTableSorting !== 'undefined') {
+    initializeTableSorting('.products-table');
+  }
 }
 
 // Set up event delegation for product checkboxes once
@@ -953,15 +965,20 @@ async function handleGeneratePdf() {
   
   try {
     // Determine which products to print:
-    // - If products are specifically selected, use those
-    // - If nothing selected but filters/search applied, use all displayed products
+    // Get item IDs in the current visual/sorted order from the DOM
+    // This preserves whatever column sort the user applied
+    const allRowsInOrder = Array.from(document.querySelectorAll('#productsTableBody tr .product-checkbox'))
+      .map(checkbox => checkbox.dataset.itemId)
+      .filter(id => id); // Filter out any undefined/null
+    
     let itemIdsToUse;
     if (state.selectedProducts.size > 0) {
-      // User selected specific products
-      itemIdsToUse = Array.from(state.selectedProducts);
+      // User selected specific products - filter to selected ones but preserve DOM sort order
+      const selectedSet = state.selectedProducts;
+      itemIdsToUse = allRowsInOrder.filter(id => selectedSet.has(id));
     } else {
-      // No selection - use all displayed/filtered products
-      itemIdsToUse = state.displayedProducts.map(p => p.item_id);
+      // No selection - use all products in their current sorted order
+      itemIdsToUse = allRowsInOrder;
     }
     
     // Get current user email

@@ -651,12 +651,14 @@ let approvalManager;
 // Initialize the module
 export async function init() {
   console.log('[Order Approval] Initializing module...');
+  showToast('Initializing approval system...', 'info');
   
   // Clean up previous instance if exists
   if (approvalManager) {
     approvalManager.cleanup();
   }
   
+  showToast('Loading pending approvals...', 'info');
   approvalManager = new OrderApprovalManager();
   await approvalManager.initialize();
 }

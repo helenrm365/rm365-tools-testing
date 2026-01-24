@@ -1,5 +1,5 @@
 // frontend/js/modules/magentodata/aggregated-filters.js
-import { get, post, del } from '../../services/api/http.js';
+import { get, post, del, put } from '../../services/api/http.js';
 import { showToast } from '../../ui/toast.js';
 import { refreshAggregatedDataForRegion, getCustomRangeAggregatedData } from '../../services/api/magentoDataApi.js';
 
@@ -13,8 +13,10 @@ let availableCustomerGroups = [];
 let currentThreshold = null;
 let currentQtyThreshold = null;
 let currentSmartQtyRules = []; // Array of rules
-let pendingCustomerAdds = []; // Customers to be added when Apply is clicked
+let pendingCustomerAdds = []; // Customers to be added when Apply is clicked - {email, fullName, region, ruleType, divisor, productSku, productName}
 let pendingCustomerRemoves = []; // Customer IDs to be removed when Apply is clicked
+let pendingCustomerRuleUpdates = []; // Customer rule updates - {customerId, ruleType, divisor, productSku, productName}
+let customersWithNoRules = []; // Customers to keep on list even with no rules - {email, fullName}
 let pendingGroupAdds = []; // Customer groups to be added when Apply is clicked
 let pendingGroupRemoves = []; // Customer group IDs to be removed when Apply is clicked
 let availableStatuses = [];
@@ -25,6 +27,7 @@ let currentSmartDateRules = []; // Array of date rules
 let exchangeRates = null; // Cached exchange rates
 let conversionDebounceTimer = null; // Debounce timer for currency conversion updates
 let isApplying = false; // Global flag to prevent concurrent apply operations
+let productSearchDebounceTimer = null; // Debounce timer for product search
 
 /**
  * Show the filters modal for a specific region
@@ -35,6 +38,8 @@ export function showFiltersModal(region) {
     // Reset pending changes
     pendingCustomerAdds = [];
     pendingCustomerRemoves = [];
+    pendingCustomerRuleUpdates = [];
+    customersWithNoRules = []; // Reset customers with no rules tracking
     pendingGroupAdds = [];
     pendingGroupRemoves = [];
     pendingStatusAdds = [];
@@ -67,7 +72,8 @@ export function showFiltersModal(region) {
  */
 function createFiltersModal(region) {
     const overlay = document.createElement('div');
-    overlay.className = 'modal-overlay active';
+    overlay.className = 'modal-overlay filters-modal-overlay active';
+    overlay.id = 'filters-modal-overlay';
     overlay.innerHTML = `
         <div class="modal modal-lg" onclick="event.stopPropagation()">
             <div class="modal-header">
@@ -683,104 +689,104 @@ function positionDropdownOptions(dropdown, options) {
  */
 function showConfirmDialog(message) {
     return new Promise((resolve) => {
-        // Create overlay
+        // Hide the parent filters modal while showing confirmation
+        const filtersModal = document.getElementById('filters-modal-overlay');
+        if (filtersModal) {
+            filtersModal.style.display = 'none';
+        }
+        
+        // Create overlay with solid dark background
         const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay active';
         overlay.style.cssText = `
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.9);
             z-index: 10001;
             display: flex;
             align-items: center;
             justify-content: center;
-            animation: fadeIn 0.2s ease;
         `;
         
-        // Create dialog
+        // Create dialog using modal classes for consistency
         const dialog = document.createElement('div');
+        dialog.className = 'modal';
         dialog.style.cssText = `
-            background: var(--surface-color);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 24px;
-            max-width: 400px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-            animation: slideUp 0.3s ease;
+            max-width: 420px;
+            width: 90%;
         `;
+        dialog.onclick = (e) => e.stopPropagation();
         
         dialog.innerHTML = `
-            <div style="margin-bottom: 20px;">
-                <div style="font-size: 1.25rem; font-weight: 600; color: var(--text-primary); margin-bottom: 12px;">
-                    Confirm Filter Changes
+            <div class="modal-header">
+                <div class="modal-header-icon">
+                    <i class="fas fa-sync-alt"></i>
                 </div>
-                <div style="color: var(--text-secondary); line-height: 1.5;">
-                    ${message}
-                </div>
+                <h2 class="modal-title">Confirm Filter Changes</h2>
+                <button class="modal-close" id="confirm-close-btn">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
-            <div style="display: flex; gap: 12px; justify-content: flex-end;">
-                <button id="confirm-cancel" style="
-                    padding: 10px 20px;
-                    background: transparent;
-                    border: 1px solid var(--border-color);
-                    border-radius: 6px;
-                    color: var(--text-primary);
-                    cursor: pointer;
-                    font-size: 0.9375rem;
-                    transition: all 0.2s;
-                ">Cancel</button>
-                <button id="confirm-ok" style="
-                    padding: 10px 20px;
-                    background: var(--accent-color);
-                    border: none;
-                    border-radius: 6px;
-                    color: white;
-                    cursor: pointer;
-                    font-size: 0.9375rem;
-                    font-weight: 600;
-                    transition: all 0.2s;
-                ">Apply & Refresh</button>
+            <div class="modal-body">
+                <p style="color: var(--text-secondary); line-height: 1.5; margin: 0;">
+                    ${message}
+                </p>
+            </div>
+            <div class="modal-footer" style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button id="confirm-cancel" class="btn btn-secondary">Cancel</button>
+                <button id="confirm-ok" class="btn btn-primary">Apply & Refresh</button>
             </div>
         `;
         
         overlay.appendChild(dialog);
         document.body.appendChild(overlay);
         
-        // Add hover effects
+        // Helper function to close and restore parent
+        const closeAndRestore = () => {
+            overlay.remove();
+            if (filtersModal) {
+                filtersModal.style.display = '';
+            }
+        };
+        
+        // Get button references
         const cancelBtn = dialog.querySelector('#confirm-cancel');
         const okBtn = dialog.querySelector('#confirm-ok');
+        const closeBtn = dialog.querySelector('#confirm-close-btn');
         
-        cancelBtn.addEventListener('mouseenter', () => {
-            cancelBtn.style.background = 'var(--hover-bg)';
-        });
-        cancelBtn.addEventListener('mouseleave', () => {
-            cancelBtn.style.background = 'transparent';
-        });
-        
-        okBtn.addEventListener('mouseenter', () => {
-            okBtn.style.background = 'var(--primary-hover)';
-        });
-        okBtn.addEventListener('mouseleave', () => {
-            okBtn.style.background = 'var(--accent-color)';
-        });
-        
-        // Handle buttons
-        cancelBtn.addEventListener('click', () => {
-            overlay.remove();
+        // Handle close button (X)
+        closeBtn.addEventListener('click', () => {
+            closeAndRestore();
             resolve(false);
+        });
+        
+        // Handle cancel button
+        cancelBtn.addEventListener('click', () => {
+            closeAndRestore();
+            resolve(false);
+        });
+        
+        // Handle clicking overlay background
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                closeAndRestore();
+                resolve(false);
+            }
         });
         
         okBtn.addEventListener('click', () => {
             overlay.remove();
+            // Keep the parent modal hidden - it will be closed after apply completes
             resolve(true);
         });
         
         // Handle escape key
         const handleEscape = (e) => {
             if (e.key === 'Escape') {
-                overlay.remove();
+                closeAndRestore();
                 document.removeEventListener('keydown', handleEscape);
                 resolve(false);
             }
@@ -842,9 +848,22 @@ async function applyAllFilters(region) {
         // 1. Save customer exclusions (add and remove)
         for (const customer of pendingCustomerAdds) {
             try {
-                const response = await post(`${API}/filters/customers/${customer.region}?email=${encodeURIComponent(customer.email)}&full_name=${encodeURIComponent(customer.fullName || '')}`);
+                // Build URL with rule parameters
+                let url = `${API}/filters/customers/${customer.region}?email=${encodeURIComponent(customer.email)}&full_name=${encodeURIComponent(customer.fullName || '')}`;
+                url += `&rule_type=${encodeURIComponent(customer.ruleType || 'exclude_all')}`;
+                url += `&divisor=${customer.divisor || 2}`;
+                if (customer.productSku) {
+                    url += `&product_sku=${encodeURIComponent(customer.productSku)}`;
+                }
+                if (customer.productName) {
+                    url += `&product_name=${encodeURIComponent(customer.productName)}`;
+                }
+                
+                const response = await post(url);
                 if (response.status !== 'success' && response.status !== 'info') {
-                    errors.push(`Failed to add ${customer.email}`);
+                    // Use specific error message if available (e.g., conflict message)
+                    const errorMsg = response.error || response.message || `Failed to add ${customer.email}`;
+                    errors.push(errorMsg);
                     hasErrors = true;
                 }
             } catch (error) {
@@ -864,6 +883,30 @@ async function applyAllFilters(region) {
             } catch (error) {
                 console.error('Error removing customer:', error);
                 errors.push(`Error removing customer ID ${customerId}`);
+                hasErrors = true;
+            }
+        }
+        
+        // 1b. Save customer rule updates
+        for (const update of pendingCustomerRuleUpdates) {
+            try {
+                let url = `${API}/filters/customers/${update.customerId}?rule_type=${encodeURIComponent(update.ruleType)}`;
+                url += `&divisor=${update.divisor || 2}`;
+                if (update.productSku) {
+                    url += `&product_sku=${encodeURIComponent(update.productSku)}`;
+                }
+                if (update.productName) {
+                    url += `&product_name=${encodeURIComponent(update.productName)}`;
+                }
+                
+                const response = await put(url, {});
+                if (response.status !== 'success') {
+                    errors.push(`Failed to update rule for customer ID ${update.customerId}`);
+                    hasErrors = true;
+                }
+            } catch (error) {
+                console.error('Error updating customer rule:', error);
+                errors.push(`Error updating customer rule`);
                 hasErrors = true;
             }
         }
@@ -1052,6 +1095,11 @@ async function applyAllFilters(region) {
             isApplying = false;
             applyBtn.disabled = false;
             applyBtn.textContent = 'Apply & Refresh 6M Data';
+            // Restore the modal visibility
+            const filtersModal = document.getElementById('filters-modal-overlay');
+            if (filtersModal) {
+                filtersModal.style.display = '';
+            }
         }
         
     } catch (error) {
@@ -1061,6 +1109,11 @@ async function applyAllFilters(region) {
         isApplying = false;
         applyBtn.disabled = false;
         applyBtn.textContent = 'Apply & Refresh 6M Data';
+        // Restore the modal visibility
+        const filtersModal = document.getElementById('filters-modal-overlay');
+        if (filtersModal) {
+            filtersModal.style.display = '';
+        }
     }
     // Note: No finally block - guards are reset in success path after modal closes, or immediately on error
 }
@@ -1164,7 +1217,7 @@ async function loadExcludedCustomers() {
 }
 
 /**
- * Display excluded customers list
+ * Display excluded customers list - grouped by email with multiple rules
  */
 function displayExcludedCustomers() {
     const listContainer = document.getElementById(`excluded-list-${currentRegion}`);
@@ -1173,48 +1226,209 @@ function displayExcludedCustomers() {
     if (!listContainer) return;
     
     // Combine current + pending adds - pending removes
-    const displayCustomers = [
-        ...excludedCustomers.filter(c => !pendingCustomerRemoves.includes(c.id)),
-        ...pendingCustomerAdds.map((c, idx) => ({ id: `pending-${idx}`, email: c.email, full_name: c.fullName, isPending: true }))
+    const allRules = [
+        ...excludedCustomers.filter(c => !pendingCustomerRemoves.includes(c.id)).map(c => {
+            // Check if there's a pending rule update for this customer
+            const pendingUpdate = pendingCustomerRuleUpdates.find(u => u.customerId === c.id);
+            if (pendingUpdate) {
+                return { ...c, rule_type: pendingUpdate.ruleType, divisor: pendingUpdate.divisor, 
+                         product_sku: pendingUpdate.productSku, product_name: pendingUpdate.productName, hasPendingUpdate: true };
+            }
+            return c;
+        }),
+        ...pendingCustomerAdds.map((c, idx) => ({ 
+            id: `pending-${idx}`, email: c.email, full_name: c.fullName, isPending: true,
+            rule_type: c.ruleType || 'exclude_all', divisor: c.divisor || 2, 
+            product_sku: c.productSku, product_name: c.productName 
+        }))
     ];
+    
+    // Group rules by email
+    const customerGroups = {};
+    allRules.forEach(rule => {
+        if (!customerGroups[rule.email]) {
+            customerGroups[rule.email] = {
+                email: rule.email,
+                full_name: rule.full_name,
+                rules: []
+            };
+        }
+        customerGroups[rule.email].rules.push(rule);
+    });
+    
+    // Add customers with no rules (kept on list but all rules removed)
+    customersWithNoRules.forEach(customer => {
+        if (!customerGroups[customer.email]) {
+            customerGroups[customer.email] = {
+                email: customer.email,
+                full_name: customer.fullName,
+                rules: [],
+                hasNoRules: true
+            };
+        }
+    });
+    
+    const groupedCustomers = Object.values(customerGroups);
+    const totalRules = allRules.length;
     
     // Update count
     if (countElement) {
-        const count = displayCustomers.length;
-        const pendingCount = pendingCustomerAdds.length + pendingCustomerRemoves.length;
+        const uniqueCustomers = groupedCustomers.length;
+        const pendingCount = pendingCustomerAdds.length + pendingCustomerRemoves.length + pendingCustomerRuleUpdates.length;
         const pendingText = pendingCount > 0 ? ` (${pendingCount} pending)` : '';
-        countElement.textContent = count === 0 ? 'No customers excluded' : 
-                                   count === 1 ? `1 customer excluded${pendingText}` : 
-                                   `${count} customers excluded${pendingText}`;
+        
+        if (uniqueCustomers === 0) {
+            countElement.textContent = 'No customers excluded';
+        } else if (totalRules === uniqueCustomers) {
+            countElement.textContent = uniqueCustomers === 1 ? `1 customer excluded${pendingText}` : 
+                                       `${uniqueCustomers} customers excluded${pendingText}`;
+        } else {
+            countElement.textContent = `${uniqueCustomers} customers, ${totalRules} rules${pendingText}`;
+        }
     }
     
-    if (displayCustomers.length === 0) {
+    if (groupedCustomers.length === 0) {
         listContainer.innerHTML = '<div class="excluded-empty">No customers excluded yet</div>';
         return;
     }
     
-    listContainer.innerHTML = displayCustomers.map(customer => {
-        const isPendingRemove = pendingCustomerRemoves.includes(customer.id);
-        const itemClass = customer.isPending ? 'excluded-item pending-add' : 
-                         isPendingRemove ? 'excluded-item pending-remove' : 
-                         'excluded-item';
-        const statusBadge = customer.isPending ? '<span class="pending-badge">NEW</span>' :
-                           isPendingRemove ? '<span class="pending-badge remove">REMOVE</span>' : '';
+    listContainer.innerHTML = groupedCustomers.map(customer => {
+        const hasProductRules = customer.rules.some(r => r.rule_type === 'divide_product');
+        const hasBaseRule = customer.rules.some(r => r.rule_type === 'exclude_all' || r.rule_type === 'divide_all');
+        const allPending = customer.rules.length > 0 && customer.rules.every(r => r.isPending);
+        const anyPendingRemove = customer.rules.some(r => pendingCustomerRemoves.includes(r.id));
+        const allPendingRemove = customer.rules.length > 0 && customer.rules.every(r => pendingCustomerRemoves.includes(r.id) || r.isPending);
+        const anyPendingUpdate = customer.rules.some(r => r.hasPendingUpdate);
+        const hasNoRules = customer.hasNoRules || customer.rules.length === 0;
+        
+        // Get all rule IDs for this customer (for remove all functionality)
+        const ruleIds = customer.rules.filter(r => !r.isPending).map(r => r.id);
+        const pendingRuleIndices = customer.rules.filter(r => r.isPending).map(r => r.id);
         
         return `
-            <div class="${itemClass}">
-                <div class="excluded-item-info">
-                    <div class="excluded-item-email">${escapeHtml(customer.email)} ${statusBadge}</div>
-                    ${customer.full_name ? `<div class="excluded-item-name">${escapeHtml(customer.full_name)}</div>` : ''}
+            <div class="excluded-customer-group ${allPending ? 'pending-add' : ''} ${allPendingRemove ? 'pending-remove' : ''} ${anyPendingUpdate ? 'pending-update' : ''} ${hasNoRules ? 'no-rules' : ''}">
+                <div class="excluded-customer-header">
+                    <div class="excluded-item-info">
+                        <div class="excluded-item-email">
+                            ${escapeHtml(customer.email)}
+                            ${allPending ? '<span class="pending-badge">NEW</span>' : ''}
+                            ${allPendingRemove && !allPending ? '<span class="pending-badge remove">REMOVING</span>' : ''}
+                            ${hasNoRules && !allPending ? '<span class="pending-badge warning">NO RULES</span>' : ''}
+                        </div>
+                        ${customer.full_name ? `<div class="excluded-item-name">${escapeHtml(customer.full_name)}</div>` : ''}
+                    </div>
+                    <div class="excluded-item-actions">
+                        <button class="excluded-item-add-rule" data-email="${escapeHtml(customer.email)}" data-full-name="${escapeHtml(customer.full_name || '')}" data-has-base-rule="${hasBaseRule}" title="Add Rule">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                        <button class="excluded-customer-remove-all" data-rule-ids="${ruleIds.join(',')}" data-pending-indices="${pendingRuleIndices.join(',')}" data-email="${escapeHtml(customer.email)}" title="Remove Customer">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
                 </div>
-                <button class="excluded-item-remove" data-id="${customer.id}">
-                    ${isPendingRemove ? 'Undo' : 'Remove'}
-                </button>
+                <div class="excluded-customer-rules">
+                    ${customer.rules.length === 0 ? 
+                        '<div class="excluded-rule-empty">This customer currently has no rules. Add a rule or remove the customer.</div>' :
+                        customer.rules.map(rule => {
+                        const isPendingRemove = pendingCustomerRemoves.includes(rule.id);
+                        const ruleClass = rule.isPending ? 'pending-add' : 
+                                         isPendingRemove ? 'pending-remove' : 
+                                         rule.hasPendingUpdate ? 'pending-update' : '';
+                        const ruleBadge = rule.isPending ? '<span class="pending-badge small">NEW</span>' :
+                                         isPendingRemove ? '<span class="pending-badge remove small">REMOVE</span>' : 
+                                         rule.hasPendingUpdate ? '<span class="pending-badge update small">UPDATED</span>' : '';
+                        const ruleDisplay = formatRuleDisplay(rule.rule_type, rule.divisor, rule.product_sku, rule.product_name);
+                        
+                        return `
+                            <div class="excluded-rule-item ${ruleClass}" data-rule-id="${rule.id}">
+                                <div class="excluded-rule-content">
+                                    ${ruleDisplay} ${ruleBadge}
+                                </div>
+                                <div class="excluded-rule-actions">
+                                    <button class="excluded-item-edit" data-id="${rule.id}" data-email="${escapeHtml(rule.email)}" title="Edit Rule">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="excluded-item-remove" data-id="${rule.id}" title="${isPendingRemove ? 'Undo' : 'Remove'}">
+                                        ${isPendingRemove ? '<i class="fas fa-undo"></i>' : '<i class="fas fa-times"></i>'}
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
             </div>
         `;
     }).join('');
     
-    // Add remove handlers
+    // Add "Add Rule" handlers - shows modal with rule type selection
+    listContainer.querySelectorAll('.excluded-item-add-rule').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const email = btn.dataset.email;
+            const fullName = btn.dataset.fullName;
+            const hasBaseRule = btn.dataset.hasBaseRule === 'true';
+            showAddRuleModal(email, fullName, hasBaseRule);
+        });
+    });
+    
+    // Add "Remove Customer" handlers - removes all rules for the customer
+    listContainer.querySelectorAll('.excluded-customer-remove-all').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const email = btn.dataset.email;
+            const ruleIds = btn.dataset.ruleIds ? btn.dataset.ruleIds.split(',').filter(id => id).map(id => parseInt(id)) : [];
+            const pendingIndices = btn.dataset.pendingIndices ? btn.dataset.pendingIndices.split(',').filter(id => id) : [];
+            
+            // Check if this customer is in the "no rules" state
+            const isNoRulesCustomer = customersWithNoRules.some(c => c.email === email);
+            
+            // Check if all rules are already pending removal
+            const allPendingRemove = ruleIds.length > 0 && ruleIds.every(id => pendingCustomerRemoves.includes(id));
+            
+            if ((allPendingRemove || isNoRulesCustomer) && pendingIndices.length === 0) {
+                // Undo the removal
+                ruleIds.forEach(id => {
+                    const idx = pendingCustomerRemoves.indexOf(id);
+                    if (idx >= 0) pendingCustomerRemoves.splice(idx, 1);
+                });
+                // Also remove from customersWithNoRules if present
+                const noRulesIdx = customersWithNoRules.findIndex(c => c.email === email);
+                if (noRulesIdx >= 0) {
+                    customersWithNoRules.splice(noRulesIdx, 1);
+                }
+                showToast(`📝 Cancelled removing ${email}`, 'info');
+            } else {
+                // Remove all pending adds for this customer
+                for (let i = pendingCustomerAdds.length - 1; i >= 0; i--) {
+                    if (pendingCustomerAdds[i].email === email) {
+                        pendingCustomerAdds.splice(i, 1);
+                    }
+                }
+                // Stage all existing rules for removal
+                ruleIds.forEach(id => {
+                    if (!pendingCustomerRemoves.includes(id)) {
+                        pendingCustomerRemoves.push(id);
+                    }
+                });
+                // Also remove from customersWithNoRules - we're fully deleting this customer
+                const noRulesIdx = customersWithNoRules.findIndex(c => c.email === email);
+                if (noRulesIdx >= 0) {
+                    customersWithNoRules.splice(noRulesIdx, 1);
+                }
+                showToast(`📝 ${email} will be removed (click Apply to save)`, 'info');
+            }
+            displayExcludedCustomers();
+        });
+    });
+    
+    // Add edit handlers
+    listContainer.querySelectorAll('.excluded-item-edit').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const customerId = btn.dataset.id;
+            const email = btn.dataset.email;
+            showRuleEditModal(customerId, email);
+        });
+    });
+    
+    // Add remove handlers (for individual rules)
     listContainer.querySelectorAll('.excluded-item-remove').forEach(btn => {
         btn.addEventListener('click', () => {
             const customerId = btn.dataset.id;
@@ -1222,7 +1436,7 @@ function displayExcludedCustomers() {
                 // Remove from pending adds
                 const idx = parseInt(customerId.split('-')[1]);
                 const removed = pendingCustomerAdds.splice(idx, 1)[0];
-                showToast(`📝 Cancelled adding ${removed.email}`, 'info');
+                showToast(`📝 Cancelled adding rule for ${removed.email}`, 'info');
                 displayExcludedCustomers();
             } else {
                 const id = parseInt(customerId);
@@ -1231,15 +1445,881 @@ function displayExcludedCustomers() {
                     const idx = pendingCustomerRemoves.indexOf(id);
                     pendingCustomerRemoves.splice(idx, 1);
                     const customer = excludedCustomers.find(c => c.id === id);
-                    showToast(`📝 Cancelled removing ${customer?.email || 'customer'}`, 'info');
+                    
+                    // If customer was in customersWithNoRules because all rules were pending remove,
+                    // and now we're undoing one, remove them from the no-rules list
+                    if (customer) {
+                        const noRulesIdx = customersWithNoRules.findIndex(c => c.email === customer.email);
+                        if (noRulesIdx >= 0) {
+                            customersWithNoRules.splice(noRulesIdx, 1);
+                        }
+                    }
+                    
+                    showToast(`📝 Cancelled removing rule for ${customer?.email || 'customer'}`, 'info');
                     displayExcludedCustomers();
                 } else {
-                    // Stage for removal
-                    removeExcludedCustomer(id);
+                    // Stage for removal (individual rule)
+                    const customer = excludedCustomers.find(c => c.id === id);
+                    pendingCustomerRemoves.push(id);
+                    
+                    // Check if all rules for this customer are now pending removal
+                    if (customer) {
+                        const customerRules = excludedCustomers.filter(c => c.email === customer.email);
+                        const customerPendingAdds = pendingCustomerAdds.filter(c => c.email === customer.email);
+                        const allRulesRemoved = customerRules.every(r => pendingCustomerRemoves.includes(r.id));
+                        const noPendingAdds = customerPendingAdds.length === 0;
+                        
+                        // If all existing rules are staged for removal and no pending adds,
+                        // keep the customer on the list with no rules
+                        if (allRulesRemoved && noPendingAdds) {
+                            // Add to customersWithNoRules if not already there
+                            if (!customersWithNoRules.some(c => c.email === customer.email)) {
+                                customersWithNoRules.push({
+                                    email: customer.email,
+                                    fullName: customer.full_name || ''
+                                });
+                            }
+                        }
+                    }
+                    
+                    showToast(`📝 Rule will be removed (click Apply to save)`, 'info');
+                    displayExcludedCustomers();
                 }
             }
         });
     });
+}
+
+/**
+ * Format rule display for customer exclusion
+ */
+function formatRuleDisplay(ruleType, divisor, productSku, productName) {
+    switch (ruleType) {
+        case 'exclude_all':
+            return '<span class="rule-badge rule-exclude"><i class="fas fa-ban"></i> Exclude All Orders</span>';
+        case 'divide_all':
+            return `<span class="rule-badge rule-divide"><i class="fas fa-divide"></i> Divide All by ${divisor || 2}</span>`;
+        case 'divide_product':
+            const productDisplay = productName ? escapeHtml(productName) : escapeHtml(productSku || 'Unknown');
+            return `<span class="rule-badge rule-divide-product"><i class="fas fa-box"></i> Divide "${productDisplay}" by ${divisor || 2}</span>`;
+        default:
+            return '<span class="rule-badge rule-exclude"><i class="fas fa-ban"></i> Exclude All</span>';
+    }
+}
+
+/**
+ * Show modal to edit customer exclusion rule
+ */
+function showRuleEditModal(customerId, email) {
+    // Hide the parent filters modal
+    const filtersModal = document.getElementById('filters-modal-overlay');
+    if (filtersModal) {
+        filtersModal.style.display = 'none';
+    }
+    
+    // Find the customer data
+    let customer;
+    if (customerId.toString().startsWith('pending-')) {
+        const idx = parseInt(customerId.split('-')[1]);
+        const pending = pendingCustomerAdds[idx];
+        customer = {
+            id: customerId,
+            email: pending.email,
+            full_name: pending.fullName,
+            rule_type: pending.ruleType || 'exclude_all',
+            divisor: pending.divisor || 2,
+            product_sku: pending.productSku,
+            product_name: pending.productName,
+            isPending: true
+        };
+    } else {
+        customer = excludedCustomers.find(c => c.id === parseInt(customerId));
+        if (!customer) return;
+        
+        // Check for pending update
+        const pendingUpdate = pendingCustomerRuleUpdates.find(u => u.customerId === parseInt(customerId));
+        if (pendingUpdate) {
+            customer = { ...customer, rule_type: pendingUpdate.ruleType, divisor: pendingUpdate.divisor,
+                         product_sku: pendingUpdate.productSku, product_name: pendingUpdate.productName };
+        }
+    }
+    
+    // Check if customer already has a base rule (other than the current one being edited)
+    const customerRules = excludedCustomers.filter(c => c.email === customer.email);
+    const existingBaseRule = customerRules.find(c => 
+        c.id !== customer.id && 
+        (c.rule_type === 'exclude_all' || c.rule_type === 'divide_all')
+    );
+    const currentRuleIsBaseRule = customer.rule_type === 'exclude_all' || customer.rule_type === 'divide_all';
+    
+    // Determine which base rule options should be disabled
+    // If there's already a different base rule, disable base rule options (except current rule type if it's a base rule)
+    const disableExcludeAll = existingBaseRule && existingBaseRule.rule_type !== 'exclude_all' && customer.rule_type !== 'exclude_all';
+    const disableDivideAll = existingBaseRule && existingBaseRule.rule_type !== 'divide_all' && customer.rule_type !== 'divide_all';
+    // If current rule is a product rule, and there's already a base rule, disable both base options
+    const hasOtherBaseRule = existingBaseRule !== undefined;
+    
+    const modalOverlay = document.createElement('div');
+    modalOverlay.className = 'modal-overlay rule-edit-modal-overlay active';
+    modalOverlay.innerHTML = `
+        <div class="modal modal-sm" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <div class="modal-header-icon">
+                    <i class="fas fa-user-cog"></i>
+                </div>
+                <h2 class="modal-title">Edit Exclusion Rule</h2>
+                <button class="modal-close rule-edit-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="rule-edit-customer-info">
+                    <strong>${escapeHtml(customer.email)}</strong>
+                    ${customer.full_name ? `<br><span class="text-muted">${escapeHtml(customer.full_name)}</span>` : ''}
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Rule Type</label>
+                    <div class="custom-dropdown" id="rule-type-dropdown">
+                        <div class="dropdown-selected" data-value="${customer.rule_type || 'exclude_all'}">
+                            ${getRuleTypeLabel(customer.rule_type || 'exclude_all')}
+                        </div>
+                        <div class="dropdown-options">
+                            <div class="dropdown-option ${customer.rule_type === 'exclude_all' ? 'selected' : ''} ${hasOtherBaseRule && customer.rule_type !== 'exclude_all' ? 'disabled' : ''}" data-value="exclude_all">
+                                <i class="fas fa-ban"></i> Exclude All Orders
+                                ${hasOtherBaseRule && customer.rule_type !== 'exclude_all' ? '<span class="option-hint">(already has base rule)</span>' : ''}
+                            </div>
+                            <div class="dropdown-option ${customer.rule_type === 'divide_all' ? 'selected' : ''} ${hasOtherBaseRule && customer.rule_type !== 'divide_all' ? 'disabled' : ''}" data-value="divide_all">
+                                <i class="fas fa-divide"></i> Divide All Orders
+                                ${hasOtherBaseRule && customer.rule_type !== 'divide_all' ? '<span class="option-hint">(already has base rule)</span>' : ''}
+                            </div>
+                            <div class="dropdown-option ${customer.rule_type === 'divide_product' ? 'selected' : ''}" data-value="divide_product">
+                                <i class="fas fa-box"></i> Divide Specific Product
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group divisor-group" id="divisor-group" style="display: ${customer.rule_type === 'exclude_all' ? 'none' : 'block'};">
+                    <label class="form-label">Divide By</label>
+                    <input type="number" class="form-input" id="rule-divisor" value="${customer.divisor || 2}" min="1" step="0.5">
+                    <p class="filter-description">The quantity will be divided by this number.</p>
+                </div>
+                
+                <div class="form-group product-search-group" id="product-search-group" style="display: ${customer.rule_type === 'divide_product' ? 'block' : 'none'};">
+                    <label class="form-label">Product</label>
+                    <div class="search-container">
+                        <input 
+                            type="text" 
+                            class="form-input" 
+                            placeholder="Search for a product..."
+                            id="product-search-input"
+                            value="${customer.product_name || customer.product_sku || ''}"
+                        />
+                        <div class="search-results-dropdown" id="product-search-results"></div>
+                    </div>
+                    <input type="hidden" id="selected-product-sku" value="${customer.product_sku || ''}">
+                    <input type="hidden" id="selected-product-name" value="${customer.product_name || ''}">
+                    <p class="filter-description">Search for products this customer has ordered.</p>
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button class="action-btn action-btn-secondary rule-edit-cancel">Cancel</button>
+                <button class="action-btn action-btn-primary rule-edit-save">
+                    <i class="fas fa-check"></i> Save Rule
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modalOverlay);
+    
+    // Rule type dropdown - use portal pattern to escape modal transforms
+    const ruleTypeDropdown = modalOverlay.querySelector('#rule-type-dropdown');
+    const ruleTypeSelected = ruleTypeDropdown.querySelector('.dropdown-selected');
+    const ruleTypeOptions = ruleTypeDropdown.querySelector('.dropdown-options');
+    
+    // Move dropdown options to body to escape modal's transform context
+    document.body.appendChild(ruleTypeOptions);
+    ruleTypeOptions.classList.add('dropdown-portal');
+    
+    // Setup event listeners with cleanup for portal
+    const closeModal = () => {
+        ruleTypeOptions.remove();
+        modalOverlay.remove();
+        // Restore the parent filters modal
+        if (filtersModal) {
+            filtersModal.style.display = '';
+        }
+    };
+    
+    modalOverlay.querySelector('.rule-edit-close').addEventListener('click', closeModal);
+    modalOverlay.querySelector('.rule-edit-cancel').addEventListener('click', closeModal);
+    modalOverlay.addEventListener('click', (e) => {
+        if (e.target === modalOverlay) closeModal();
+    });
+    
+    ruleTypeSelected.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = ruleTypeDropdown.classList.toggle('open');
+        
+        // Position the dropdown options
+        if (isOpen) {
+            const rect = ruleTypeSelected.getBoundingClientRect();
+            ruleTypeOptions.style.position = 'fixed';
+            ruleTypeOptions.style.top = `${rect.bottom + 4}px`;
+            ruleTypeOptions.style.left = `${rect.left}px`;
+            ruleTypeOptions.style.width = `${rect.width}px`;
+            ruleTypeOptions.classList.add('open');
+        } else {
+            ruleTypeOptions.classList.remove('open');
+        }
+    });
+    
+    ruleTypeOptions.querySelectorAll('.dropdown-option').forEach(option => {
+        option.addEventListener('click', (e) => {
+            // Check if option is disabled
+            if (option.classList.contains('disabled')) {
+                e.stopPropagation();
+                showToast('Customer already has a base rule. Delete the existing rule first.', 'warning');
+                return;
+            }
+            
+            const value = option.dataset.value;
+            ruleTypeSelected.dataset.value = value;
+            ruleTypeSelected.innerHTML = option.innerHTML.replace(/<span class="option-hint">.*<\/span>/, '');
+            ruleTypeDropdown.classList.remove('open');
+            ruleTypeOptions.classList.remove('open');
+            
+            // Toggle visibility of divisor and product search
+            const divisorGroup = modalOverlay.querySelector('#divisor-group');
+            const productGroup = modalOverlay.querySelector('#product-search-group');
+            
+            if (value === 'exclude_all') {
+                divisorGroup.style.display = 'none';
+                productGroup.style.display = 'none';
+            } else if (value === 'divide_all') {
+                divisorGroup.style.display = 'block';
+                productGroup.style.display = 'none';
+            } else if (value === 'divide_product') {
+                divisorGroup.style.display = 'block';
+                productGroup.style.display = 'block';
+            }
+            
+            // Update selected state
+            ruleTypeOptions.querySelectorAll('.dropdown-option').forEach(o => o.classList.remove('selected'));
+            option.classList.add('selected');
+        });
+    });
+    
+    // Product search
+    const productSearchInput = modalOverlay.querySelector('#product-search-input');
+    const productSearchResults = modalOverlay.querySelector('#product-search-results');
+    
+    productSearchInput.addEventListener('input', (e) => {
+        const query = e.target.value.trim();
+        if (query.length >= 2) {
+            debounceProductSearch(customer.email, query, productSearchResults, productSearchInput);
+        } else {
+            productSearchResults.classList.remove('visible');
+        }
+    });
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('#rule-type-dropdown')) {
+            ruleTypeDropdown.classList.remove('open');
+        }
+        if (!e.target.closest('.product-search-group')) {
+            productSearchResults.classList.remove('visible');
+        }
+    });
+    
+    // Save button
+    modalOverlay.querySelector('.rule-edit-save').addEventListener('click', () => {
+        const ruleType = ruleTypeSelected.dataset.value;
+        const divisor = parseFloat(modalOverlay.querySelector('#rule-divisor').value) || 2;
+        const productSku = modalOverlay.querySelector('#selected-product-sku').value;
+        const productName = modalOverlay.querySelector('#selected-product-name').value;
+        
+        // Validate product selection for divide_product
+        if (ruleType === 'divide_product' && !productSku) {
+            showToast('Please select a product for the divide rule', 'warning');
+            return;
+        }
+        
+        // Check for conflicting or duplicate base rules when changing to a base rule type
+        if (ruleType === 'exclude_all' || ruleType === 'divide_all') {
+            // Find all rules for this customer (excluding current rule being edited)
+            const customerRules = excludedCustomers.filter(c => c.email === customer.email);
+            const existingBaseRule = customerRules.find(c => 
+                c.id !== customer.id && 
+                (c.rule_type === 'exclude_all' || c.rule_type === 'divide_all')
+            );
+            
+            if (existingBaseRule) {
+                const existingType = existingBaseRule.rule_type === 'exclude_all' ? 'Exclude All' : 'Divide All';
+                const newType = ruleType === 'exclude_all' ? 'Exclude All' : 'Divide All';
+                
+                if (existingBaseRule.rule_type === ruleType) {
+                    // Trying to create duplicate base rule of same type
+                    showToast(`Customer already has "${existingType}" rule. Edit the existing rule instead.`, 'error');
+                } else {
+                    // Trying to mix exclude_all and divide_all
+                    showToast(`Cannot have both "${newType}" and "${existingType}" rules for the same customer. Delete the existing rule first.`, 'error');
+                }
+                return;
+            }
+            
+            // Also check pending adds for duplicate base rules
+            const pendingBaseRule = pendingCustomerAdds.find(c => 
+                c.email === customer.email && 
+                (c.ruleType === 'exclude_all' || c.ruleType === 'divide_all')
+            );
+            if (pendingBaseRule && !customer.isPending) {
+                const pendingType = pendingBaseRule.ruleType === 'exclude_all' ? 'Exclude All' : 'Divide All';
+                showToast(`A pending "${pendingType}" rule already exists for this customer.`, 'error');
+                return;
+            }
+        }
+        
+        // Save the rule update
+        saveCustomerRuleUpdate(customerId, ruleType, divisor, productSku, productName, customer.isPending);
+        closeModal();
+    });
+}
+
+/**
+ * Get human-readable label for rule type
+ */
+function getRuleTypeLabel(ruleType) {
+    switch (ruleType) {
+        case 'exclude_all': return '<i class="fas fa-ban"></i> Exclude All Orders';
+        case 'divide_all': return '<i class="fas fa-divide"></i> Divide All Orders';
+        case 'divide_product': return '<i class="fas fa-box"></i> Divide Specific Product';
+        default: return '<i class="fas fa-ban"></i> Exclude All Orders';
+    }
+}
+
+/**
+ * Debounce product search
+ */
+function debounceProductSearch(customerEmail, query, resultsContainer, inputElement) {
+    if (productSearchDebounceTimer) {
+        clearTimeout(productSearchDebounceTimer);
+    }
+    
+    productSearchDebounceTimer = setTimeout(async () => {
+        try {
+            const response = await get(`${API}/filters/customer-products/${currentRegion}/${encodeURIComponent(customerEmail)}?search=${encodeURIComponent(query)}`);
+            
+            if (response.status === 'success' && response.products && response.products.length > 0) {
+                resultsContainer.innerHTML = response.products.map(product => `
+                    <div class="search-result-item" data-sku="${escapeHtml(product.sku)}" data-name="${escapeHtml(product.name)}">
+                        <div class="result-sku">${escapeHtml(product.sku)}</div>
+                        <div class="result-name">${escapeHtml(product.name)}</div>
+                        <div class="result-qty">${product.total_qty} ordered</div>
+                    </div>
+                `).join('');
+                
+                // Add click handlers
+                resultsContainer.querySelectorAll('.search-result-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        const sku = item.dataset.sku;
+                        const name = item.dataset.name;
+                        
+                        inputElement.value = name || sku;
+                        document.getElementById('selected-product-sku').value = sku;
+                        document.getElementById('selected-product-name').value = name;
+                        resultsContainer.classList.remove('visible');
+                    });
+                });
+                
+                resultsContainer.classList.add('visible');
+            } else {
+                resultsContainer.innerHTML = '<div class="search-no-results">No products found for this customer</div>';
+                resultsContainer.classList.add('visible');
+            }
+        } catch (error) {
+            console.error('Error searching products:', error);
+            resultsContainer.innerHTML = '<div class="search-no-results">Error searching products</div>';
+            resultsContainer.classList.add('visible');
+        }
+    }, 300);
+}
+
+/**
+ * Save customer rule update to pending changes
+ */
+function saveCustomerRuleUpdate(customerId, ruleType, divisor, productSku, productName, isPending) {
+    if (isPending) {
+        // Update the pending add
+        const idx = parseInt(customerId.toString().split('-')[1]);
+        pendingCustomerAdds[idx].ruleType = ruleType;
+        pendingCustomerAdds[idx].divisor = divisor;
+        pendingCustomerAdds[idx].productSku = productSku;
+        pendingCustomerAdds[idx].productName = productName;
+    } else {
+        // Add or update in pendingCustomerRuleUpdates
+        const existingIdx = pendingCustomerRuleUpdates.findIndex(u => u.customerId === parseInt(customerId));
+        const update = {
+            customerId: parseInt(customerId),
+            ruleType,
+            divisor,
+            productSku,
+            productName
+        };
+        
+        if (existingIdx >= 0) {
+            pendingCustomerRuleUpdates[existingIdx] = update;
+        } else {
+            pendingCustomerRuleUpdates.push(update);
+        }
+    }
+    
+    showToast('📝 Rule updated (click Apply to save)', 'info');
+    displayExcludedCustomers();
+}
+
+/**
+ * Show modal to add a new rule for an existing customer
+ * If hasBaseRule is true, only divide_product is available
+ */
+function showAddRuleModal(email, fullName, hasBaseRule) {
+    // Hide the parent filters modal
+    const filtersModal = document.getElementById('filters-modal-overlay');
+    if (filtersModal) {
+        filtersModal.style.display = 'none';
+    }
+    
+    const modalOverlay = document.createElement('div');
+    modalOverlay.className = 'modal-overlay rule-edit-modal-overlay active';
+    modalOverlay.innerHTML = `
+        <div class="modal modal-sm" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <div class="modal-header-icon">
+                    <i class="fas fa-plus-circle"></i>
+                </div>
+                <h2 class="modal-title">Add Rule</h2>
+                <button class="modal-close rule-edit-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="rule-edit-customer-info">
+                    <strong>${escapeHtml(email)}</strong>
+                    ${fullName ? `<br><span class="text-muted">${escapeHtml(fullName)}</span>` : ''}
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Rule Type</label>
+                    <div class="custom-dropdown" id="add-rule-type-dropdown">
+                        <div class="dropdown-selected" data-value="${hasBaseRule ? 'divide_product' : 'exclude_all'}">
+                            ${hasBaseRule ? '<i class="fas fa-box"></i> Divide Specific Product' : '<i class="fas fa-ban"></i> Exclude All Orders'}
+                        </div>
+                        <div class="dropdown-options">
+                            <div class="dropdown-option ${hasBaseRule ? 'disabled' : ''}" data-value="exclude_all" ${hasBaseRule ? 'title="Customer already has a base rule"' : ''}>
+                                <i class="fas fa-ban"></i> Exclude All Orders
+                                ${hasBaseRule ? '<span class="option-hint">(already has base rule)</span>' : ''}
+                            </div>
+                            <div class="dropdown-option ${hasBaseRule ? 'disabled' : ''}" data-value="divide_all" ${hasBaseRule ? 'title="Customer already has a base rule"' : ''}>
+                                <i class="fas fa-divide"></i> Divide All Orders
+                                ${hasBaseRule ? '<span class="option-hint">(already has base rule)</span>' : ''}
+                            </div>
+                            <div class="dropdown-option" data-value="divide_product">
+                                <i class="fas fa-box"></i> Divide Specific Product
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group divisor-group" id="add-divisor-group" style="display: ${hasBaseRule ? 'block' : 'none'};">
+                    <label class="form-label">Divide By</label>
+                    <input type="number" class="form-input" id="add-rule-divisor" value="2" min="1" step="0.5">
+                    <p class="filter-description">The quantity will be divided by this number.</p>
+                </div>
+                
+                <div class="form-group product-search-group" id="add-product-search-group" style="display: ${hasBaseRule ? 'block' : 'none'};">
+                    <label class="form-label">Product</label>
+                    <div class="search-container">
+                        <input 
+                            type="text" 
+                            class="form-input" 
+                            placeholder="Search for a product..."
+                            id="add-product-search-input"
+                        />
+                        <div class="search-results-dropdown" id="add-product-search-results"></div>
+                    </div>
+                    <input type="hidden" id="add-selected-product-sku" value="">
+                    <input type="hidden" id="add-selected-product-name" value="">
+                    <p class="filter-description">Search for products this customer has ordered.</p>
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button class="action-btn action-btn-secondary rule-edit-cancel">Cancel</button>
+                <button class="action-btn action-btn-primary rule-add-save">
+                    <i class="fas fa-plus"></i> Add Rule
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modalOverlay);
+    
+    // Setup dropdown with portal pattern
+    const ruleTypeDropdown = modalOverlay.querySelector('#add-rule-type-dropdown');
+    const ruleTypeSelected = ruleTypeDropdown.querySelector('.dropdown-selected');
+    const ruleTypeOptions = ruleTypeDropdown.querySelector('.dropdown-options');
+    
+    // Move dropdown options to body to escape modal's transform context
+    document.body.appendChild(ruleTypeOptions);
+    ruleTypeOptions.classList.add('dropdown-portal');
+    
+    const closeModal = () => {
+        ruleTypeOptions.remove();
+        modalOverlay.remove();
+        // Restore the parent filters modal
+        if (filtersModal) {
+            filtersModal.style.display = '';
+        }
+    };
+    
+    modalOverlay.querySelector('.rule-edit-close').addEventListener('click', closeModal);
+    modalOverlay.querySelector('.rule-edit-cancel').addEventListener('click', closeModal);
+    modalOverlay.addEventListener('click', (e) => {
+        if (e.target === modalOverlay) closeModal();
+    });
+    
+    // Rule type dropdown toggle
+    ruleTypeSelected.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = ruleTypeDropdown.classList.toggle('open');
+        
+        if (isOpen) {
+            const rect = ruleTypeSelected.getBoundingClientRect();
+            ruleTypeOptions.style.position = 'fixed';
+            ruleTypeOptions.style.top = `${rect.bottom + 4}px`;
+            ruleTypeOptions.style.left = `${rect.left}px`;
+            ruleTypeOptions.style.width = `${rect.width}px`;
+            ruleTypeOptions.classList.add('open');
+        } else {
+            ruleTypeOptions.classList.remove('open');
+        }
+    });
+    
+    // Rule type option selection
+    ruleTypeOptions.querySelectorAll('.dropdown-option').forEach(option => {
+        option.addEventListener('click', (e) => {
+            if (option.classList.contains('disabled')) {
+                e.stopPropagation();
+                showToast('Customer already has a base rule. Delete the existing rule first.', 'warning');
+                return;
+            }
+            
+            const value = option.dataset.value;
+            ruleTypeSelected.dataset.value = value;
+            ruleTypeSelected.innerHTML = option.innerHTML.replace(/<span class="option-hint">.*<\/span>/, '');
+            ruleTypeDropdown.classList.remove('open');
+            ruleTypeOptions.classList.remove('open');
+            
+            // Toggle visibility of divisor and product search
+            const divisorGroup = modalOverlay.querySelector('#add-divisor-group');
+            const productGroup = modalOverlay.querySelector('#add-product-search-group');
+            
+            if (value === 'exclude_all') {
+                divisorGroup.style.display = 'none';
+                productGroup.style.display = 'none';
+            } else if (value === 'divide_all') {
+                divisorGroup.style.display = 'block';
+                productGroup.style.display = 'none';
+            } else if (value === 'divide_product') {
+                divisorGroup.style.display = 'block';
+                productGroup.style.display = 'block';
+            }
+            
+            ruleTypeOptions.querySelectorAll('.dropdown-option').forEach(o => o.classList.remove('selected'));
+            option.classList.add('selected');
+        });
+    });
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function closeDropdown(e) {
+        if (!e.target.closest('#add-rule-type-dropdown') && !e.target.closest('.dropdown-portal')) {
+            ruleTypeDropdown.classList.remove('open');
+            ruleTypeOptions.classList.remove('open');
+        }
+    });
+    
+    // Product search
+    const productSearchInput = modalOverlay.querySelector('#add-product-search-input');
+    const productSearchResults = modalOverlay.querySelector('#add-product-search-results');
+    
+    productSearchInput.addEventListener('input', (e) => {
+        const query = e.target.value.trim();
+        if (query.length >= 2) {
+            debounceProductSearchForAddRule(email, query, productSearchResults, productSearchInput, modalOverlay);
+        } else {
+            productSearchResults.classList.remove('visible');
+        }
+    });
+    
+    // Save button
+    modalOverlay.querySelector('.rule-add-save').addEventListener('click', () => {
+        const ruleType = ruleTypeSelected.dataset.value;
+        const divisor = parseFloat(modalOverlay.querySelector('#add-rule-divisor').value) || 2;
+        const productSku = modalOverlay.querySelector('#add-selected-product-sku').value;
+        const productName = modalOverlay.querySelector('#add-selected-product-name').value;
+        
+        // Validate
+        if (ruleType === 'divide_product' && !productSku) {
+            showToast('Please select a product for the rule', 'warning');
+            return;
+        }
+        
+        // Check for duplicate product rule
+        if (ruleType === 'divide_product') {
+            const existingRule = excludedCustomers.find(c => c.email === email && c.product_sku === productSku);
+            const pendingRule = pendingCustomerAdds.find(c => c.email === email && c.productSku === productSku);
+            
+            if (existingRule || pendingRule) {
+                showToast('This product already has a rule for this customer', 'warning');
+                return;
+            }
+        }
+        
+        // Add to pending adds
+        pendingCustomerAdds.push({
+            email,
+            fullName,
+            region: currentRegion,
+            ruleType,
+            divisor,
+            productSku: ruleType === 'divide_product' ? productSku : null,
+            productName: ruleType === 'divide_product' ? productName : null
+        });
+        
+        const ruleLabel = ruleType === 'exclude_all' ? 'Exclude All' : 
+                         ruleType === 'divide_all' ? 'Divide All' : 'Product rule';
+        showToast(`📝 ${ruleLabel} added for ${email} (click Apply to save)`, 'info');
+        displayExcludedCustomers();
+        closeModal();
+    });
+}
+
+/**
+ * Debounce product search for add rule modal
+ */
+function debounceProductSearchForAddRule(customerEmail, query, resultsContainer, inputElement, modalOverlay) {
+    if (productSearchDebounceTimer) {
+        clearTimeout(productSearchDebounceTimer);
+    }
+    
+    productSearchDebounceTimer = setTimeout(async () => {
+        try {
+            const response = await get(`${API}/filters/customer-products/${currentRegion}/${encodeURIComponent(customerEmail)}?search=${encodeURIComponent(query)}`);
+            
+            if (response.status === 'success' && response.products && response.products.length > 0) {
+                resultsContainer.innerHTML = response.products.map(product => `
+                    <div class="search-result-item" data-sku="${escapeHtml(product.sku)}" data-name="${escapeHtml(product.name)}">
+                        <div class="result-sku">${escapeHtml(product.sku)}</div>
+                        <div class="result-name">${escapeHtml(product.name)}</div>
+                        <div class="result-qty">${product.total_qty} ordered</div>
+                    </div>
+                `).join('');
+                
+                // Add click handlers
+                resultsContainer.querySelectorAll('.search-result-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        const sku = item.dataset.sku;
+                        const name = item.dataset.name;
+                        
+                        inputElement.value = name || sku;
+                        modalOverlay.querySelector('#add-selected-product-sku').value = sku;
+                        modalOverlay.querySelector('#add-selected-product-name').value = name;
+                        resultsContainer.classList.remove('visible');
+                    });
+                });
+                
+                resultsContainer.classList.add('visible');
+            } else {
+                resultsContainer.innerHTML = '<div class="search-no-results">No products found for this customer</div>';
+                resultsContainer.classList.add('visible');
+            }
+        } catch (error) {
+            console.error('Error searching products:', error);
+            resultsContainer.innerHTML = '<div class="search-no-results">Error searching products</div>';
+            resultsContainer.classList.add('visible');
+        }
+    }, 300);
+}
+
+/**
+ * Show modal to add a new product rule for an existing customer
+ */
+function showAddProductRuleModal(email, fullName) {
+    const modalOverlay = document.createElement('div');
+    modalOverlay.className = 'modal-overlay rule-edit-modal-overlay active';
+    modalOverlay.innerHTML = `
+        <div class="modal modal-sm" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <div class="modal-header-icon">
+                    <i class="fas fa-plus-circle"></i>
+                </div>
+                <h2 class="modal-title">Add Product Rule</h2>
+                <button class="modal-close rule-edit-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="rule-edit-customer-info">
+                    <strong>${escapeHtml(email)}</strong>
+                    ${fullName ? `<br><span class="text-muted">${escapeHtml(fullName)}</span>` : ''}
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Divide By</label>
+                    <input type="number" class="form-input" id="new-rule-divisor" value="2" min="1" step="0.5">
+                    <p class="filter-description">The quantity for the selected product will be divided by this number.</p>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Product</label>
+                    <div class="search-container">
+                        <input 
+                            type="text" 
+                            class="form-input" 
+                            placeholder="Search for a product..."
+                            id="new-product-search-input"
+                        />
+                        <div class="search-results-dropdown" id="new-product-search-results"></div>
+                    </div>
+                    <input type="hidden" id="new-selected-product-sku" value="">
+                    <input type="hidden" id="new-selected-product-name" value="">
+                    <p class="filter-description">Search for products this customer has ordered.</p>
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button class="action-btn action-btn-secondary rule-edit-cancel">Cancel</button>
+                <button class="action-btn action-btn-primary rule-add-save">
+                    <i class="fas fa-plus"></i> Add Rule
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modalOverlay);
+    
+    // Setup event listeners
+    const closeModal = () => modalOverlay.remove();
+    
+    modalOverlay.querySelector('.rule-edit-close').addEventListener('click', closeModal);
+    modalOverlay.querySelector('.rule-edit-cancel').addEventListener('click', closeModal);
+    modalOverlay.addEventListener('click', (e) => {
+        if (e.target === modalOverlay) closeModal();
+    });
+    
+    // Product search
+    const productSearchInput = modalOverlay.querySelector('#new-product-search-input');
+    const productSearchResults = modalOverlay.querySelector('#new-product-search-results');
+    
+    productSearchInput.addEventListener('input', (e) => {
+        const query = e.target.value.trim();
+        if (query.length >= 2) {
+            debounceProductSearchForNewRule(email, query, productSearchResults, productSearchInput, modalOverlay);
+        } else {
+            productSearchResults.classList.remove('visible');
+        }
+    });
+    
+    // Save button
+    modalOverlay.querySelector('.rule-add-save').addEventListener('click', () => {
+        const divisor = parseFloat(modalOverlay.querySelector('#new-rule-divisor').value) || 2;
+        const productSku = modalOverlay.querySelector('#new-selected-product-sku').value;
+        const productName = modalOverlay.querySelector('#new-selected-product-name').value;
+        
+        // Validate
+        if (!productSku) {
+            showToast('Please select a product for the rule', 'warning');
+            return;
+        }
+        
+        // Check if this product already has a rule for this customer
+        const existingRule = excludedCustomers.find(c => c.email === email && c.product_sku === productSku);
+        const pendingRule = pendingCustomerAdds.find(c => c.email === email && c.productSku === productSku);
+        
+        if (existingRule || pendingRule) {
+            showToast('This product already has a rule for this customer', 'warning');
+            return;
+        }
+        
+        // Add to pending adds
+        pendingCustomerAdds.push({
+            email,
+            fullName,
+            region: currentRegion,
+            ruleType: 'divide_product',
+            divisor,
+            productSku,
+            productName
+        });
+        
+        showToast(`📝 Product rule added for ${email} (click Apply to save)`, 'info');
+        displayExcludedCustomers();
+        closeModal();
+    });
+}
+
+/**
+ * Debounce product search for new rule modal
+ */
+function debounceProductSearchForNewRule(customerEmail, query, resultsContainer, inputElement, modalOverlay) {
+    if (productSearchDebounceTimer) {
+        clearTimeout(productSearchDebounceTimer);
+    }
+    
+    productSearchDebounceTimer = setTimeout(async () => {
+        try {
+            const response = await get(`${API}/filters/customer-products/${currentRegion}/${encodeURIComponent(customerEmail)}?search=${encodeURIComponent(query)}`);
+            
+            if (response.status === 'success' && response.products && response.products.length > 0) {
+                resultsContainer.innerHTML = response.products.map(product => `
+                    <div class="search-result-item" data-sku="${escapeHtml(product.sku)}" data-name="${escapeHtml(product.name)}">
+                        <div class="result-sku">${escapeHtml(product.sku)}</div>
+                        <div class="result-name">${escapeHtml(product.name)}</div>
+                        <div class="result-qty">${product.total_qty} ordered</div>
+                    </div>
+                `).join('');
+                
+                // Add click handlers
+                resultsContainer.querySelectorAll('.search-result-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        const sku = item.dataset.sku;
+                        const name = item.dataset.name;
+                        
+                        inputElement.value = name || sku;
+                        modalOverlay.querySelector('#new-selected-product-sku').value = sku;
+                        modalOverlay.querySelector('#new-selected-product-name').value = name;
+                        resultsContainer.classList.remove('visible');
+                    });
+                });
+                
+                resultsContainer.classList.add('visible');
+            } else {
+                resultsContainer.innerHTML = '<div class="search-no-results">No products found for this customer</div>';
+                resultsContainer.classList.add('visible');
+            }
+        } catch (error) {
+            console.error('Error searching products:', error);
+            resultsContainer.innerHTML = '<div class="search-no-results">Error searching products</div>';
+            resultsContainer.classList.add('visible');
+        }
+    }, 300);
 }
 
 /**
@@ -1255,8 +2335,16 @@ function addExcludedCustomer(region, email, fullName) {
         return;
     }
     
-    // Add to pending adds
-    pendingCustomerAdds.push({ email, fullName, region });
+    // Add to pending adds with default rule type
+    pendingCustomerAdds.push({ 
+        email, 
+        fullName, 
+        region, 
+        ruleType: 'exclude_all', 
+        divisor: 2,
+        productSku: null,
+        productName: null
+    });
     showToast(`📝 ${email} will be excluded (click Apply to save)`, 'info');
     
     // Refresh display to show pending change

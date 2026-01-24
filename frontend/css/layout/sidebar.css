@@ -555,6 +555,12 @@
   color: var(--danger);
 }
 
+/* Settings button active state when subpanel is open */
+#sidebarSettings.active {
+  background: var(--accent);
+  color: white;
+}
+
 .sidebar-footer-label {
   white-space: nowrap;
   opacity: 0;

@@ -69,16 +69,17 @@ class AttendanceService:
         """Get real-time attendance status for today."""
         return self.repo.get_realtime_status(location)
 
-    def get_realtime_status_details(self, status_type: str, location: Optional[str] = None) -> List[Dict[str, Any]]:
+    def get_realtime_status_details(self, status_type: str, location: Optional[str] = None, 
+                                      from_date: Optional[date] = None, to_date: Optional[date] = None) -> List[Dict[str, Any]]:
         """Get detailed list of employees for a specific real-time status type."""
-        return self.repo.get_realtime_status_details(status_type, location)
+        return self.repo.get_realtime_status_details(status_type, location, from_date, to_date)
 
-    def get_punctuality_metrics(self, from_date: date, to_date: date, location: Optional[str] = None) -> Dict[str, Any]:
+    def get_punctuality_metrics(self, from_date: date, to_date: date, location: Optional[str] = None, name: Optional[str] = None) -> Dict[str, Any]:
         """Get punctuality and compliance metrics for a date range."""
-        return self.repo.get_punctuality_metrics(from_date, to_date, location)
+        return self.repo.get_punctuality_metrics(from_date, to_date, location, name)
 
     def get_punctuality_details(self, metric_type: str, from_date: date, to_date: date, 
-                                 location: Optional[str] = None) -> List[Dict[str, Any]]:
+                                 location: Optional[str] = None, name: Optional[str] = None) -> List[Dict[str, Any]]:
         """Get detailed list of employees for a specific punctuality metric."""
-        return self.repo.get_punctuality_details(metric_type, from_date, to_date, location)
+        return self.repo.get_punctuality_details(metric_type, from_date, to_date, location, name)
 

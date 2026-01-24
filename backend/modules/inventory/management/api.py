@@ -59,7 +59,7 @@ def get_inventory_items(
     show_orphaned: bool = False,
     user=Depends(get_current_user)
 ):
-    """Get inventory items from magento_product_list with pagination, search, discontinued status filter, and orphaned filter"""
+    """Get inventory items from inventory_metadata joined with live Magento data"""
     try:
         result = _svc().get_inventory_items(
             page=page, 
@@ -143,11 +143,11 @@ def update_inventory_metadata(
 def live_inventory_sync(body: LiveSyncIn, user=Depends(get_current_user)):
     """
     DEPRECATED: Live inventory sync is no longer supported.
-    Inventory is now managed via magento_product_list table.
+    Inventory is now managed via inventory_metadata table.
     """
     raise HTTPException(
         status_code=501, 
-        detail="Live sync is no longer supported. Inventory is managed via magento_product_list."
+        detail="Live sync is no longer supported. Inventory is managed via inventory_metadata."
     )
 
 
@@ -164,48 +164,13 @@ def get_suppliers(user=Depends(get_current_user)):
     return _svc().get_suppliers()
 
 
-@router.post("/sync-items-to-magento")
-def sync_items_to_magento(user=Depends(get_current_user)):
-    """
-    Sync inventory items to magento_product_list table.
-    This endpoint can be used to import items from various sources.
-    Note: Items should be provided in the request body if implementing CSV upload.
-    """
-    try:
-        # For now, this is a placeholder that could be extended to accept items
-        # You could modify this to accept items from request body or trigger a sync from another source
-        result = _svc().sync_items_to_magento_product_list([])
-        return result
-    except Exception as e:
-        logger.error(f"Error syncing items to magento: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.post("/parse-discontinued-status")
-def parse_discontinued_status(user=Depends(get_current_user)):
-    """
-    Parse discontinued_status from additional_attributes field in magento_product_list.
-    This should be run after importing Magento product data with additional_attributes.
-    """
-    try:
-        result = _svc().update_discontinued_status_from_additional_attributes()
-        return {
-            "status": "success",
-            "message": f"Updated {result['updated']} of {result['total_processed']} products",
-            "stats": result
-        }
-    except Exception as e:
-        logger.error(f"Error parsing discontinued status: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
 @router.get("/magento-products")
 def get_magento_products(
     status_filters: str = None,  # Comma-separated list: "Active,Temporarily OOS,Pre Order,Samples"
     user=Depends(get_current_user)
 ):
     """
-    Get products from magento_product_list, optionally filtered by discontinued_status.
+    Get products from live Magento database, optionally filtered by discontinued_status.
     If status_filters is None, returns all products.
     """
     try:

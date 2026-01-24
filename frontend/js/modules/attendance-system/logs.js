@@ -614,8 +614,11 @@ function setupEventHandlers() {
 
 // ====== Main Init Function ======
 export async function init() {
+  showToast('Setting up logs interface...', 'info');
+  
   // Check if tables exist (quick status check)
   try {
+    showToast('Checking database status...', 'info');
     const status = await checkAttendanceTablesStatus();
     if (!status.all_tables_exist) {
       console.warn('Attendance tables do not exist, initializing...', status.tables_status);
@@ -638,6 +641,7 @@ export async function init() {
   setupSearch();
   setupEventHandlers();
   
+  showToast('Loading attendance logs...', 'info');
   // Auto-load logs for the last week
   try {
     await loadLogs();

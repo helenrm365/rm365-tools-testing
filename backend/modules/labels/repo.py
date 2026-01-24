@@ -163,6 +163,49 @@ class LabelsRepo:
             
         return item_id_map
     
+    def _load_product_names_from_inventory_metadata(self, inventory_conn, skus: List[str] = None) -> Dict[str, str]:
+        """
+        Load product names from inventory_metadata table.
+        Names are now stored during the catalog sync, so this is much faster than querying Magento.
+        
+        Args:
+            inventory_conn: Connection to inventory database
+            skus: Optional list of SKUs to filter by. If None, loads all.
+            
+        Returns:
+            Dict mapping SKU to product_name
+        """
+        name_map = {}
+        try:
+            with inventory_conn.cursor() as cur:
+                if skus:
+                    cur.execute("""
+                        SELECT sku, product_name
+                        FROM inventory_metadata
+                        WHERE sku = ANY(%s)
+                          AND product_name IS NOT NULL 
+                          AND product_name != ''
+                    """, (skus,))
+                else:
+                    cur.execute("""
+                        SELECT sku, product_name
+                        FROM inventory_metadata
+                        WHERE product_name IS NOT NULL 
+                          AND product_name != ''
+                    """)
+                
+                for row in cur.fetchall():
+                    sku = str(row[0]).strip()
+                    name = str(row[1]).strip() if row[1] else ""
+                    if name:
+                        name_map[sku] = name
+                    
+            logger.info(f"Loaded {len(name_map)} product names from inventory_metadata")
+        except Exception as e:
+            logger.error(f"Failed to load product names from inventory_metadata: {e}")
+            
+        return name_map
+    
     def _load_latest_prices_from_magento_catalog(self, skus: List[str], region: str = "uk") -> Dict[str, str]:
         """
         Return { sku: price } from Magento live catalog, EXCLUDING VAT.
@@ -537,21 +580,30 @@ class LabelsRepo:
         prices = self._load_latest_prices_from_magento_catalog(all_skus, region=preferred_region)
         logger.info(f"Loaded prices for {len(prices)} SKUs from {preferred_region.upper()} Magento catalog")
         
-        # Load product names
-        # Stratgy: Catalog (Live) -> History (Cache) -> Catalog (UK Fallback if region != uk)
+        # Load product names - now primarily from inventory_metadata (synced from Magento catalog)
+        # This is much faster than querying Magento on every request
+        # Strategy: inventory_metadata (primary) -> Magento catalog (fallback) -> orders_cache (fallback)
         
-        # 1. Try Live Magento Catalog (for preferred region)
-        sales_names = self._load_product_names_from_magento(all_skus, region=preferred_region)
+        # 1. Load names from inventory_metadata (synced from Magento catalog during sync)
+        sales_names = self._load_product_names_from_inventory_metadata(inventory_conn, all_skus)
+        logger.info(f"Loaded {len(sales_names)} names from inventory_metadata")
         
-        # 2. Try History (Orders Cache) for missing
+        # 2. Fallback: Try Live Magento Catalog for missing names (rare - only for unsynced products)
         skus_missing_names = [sku for sku in all_skus if sku not in sales_names]
         if skus_missing_names:
+            logger.info(f"Fallback: Loading names from Magento catalog for {len(skus_missing_names)} missing SKUs")
+            magento_names = self._load_product_names_from_magento(skus_missing_names, region=preferred_region)
+            sales_names.update(magento_names)
+        
+        # 3. Fallback: Try History (Orders Cache) for still missing
+        skus_missing_names = [sku for sku in all_skus if sku not in sales_names]
+        if skus_missing_names:
+            logger.info(f"Fallback: Loading names from orders_cache for {len(skus_missing_names)} missing SKUs")
             with products_conn() as prod_conn:
                 history_names = self._load_product_names_psycopg(prod_conn, skus_missing_names, preferred_region)
                 sales_names.update(history_names)
         
-        # 3. Fallback: Try UK Catalog if preferred region was not UK (and still missing)
-        # This covers cases where product exists in UK catalog but not FR/NL catalog or history
+        # 4. Final Fallback: Try UK Catalog if preferred region was not UK (and still missing)
         if preferred_region != "uk":
             skus_missing_names = [sku for sku in all_skus if sku not in sales_names]
             if skus_missing_names:
@@ -559,7 +611,7 @@ class LabelsRepo:
                 uk_catalog_names = self._load_product_names_from_magento(skus_missing_names, region="uk")
                 sales_names.update(uk_catalog_names)
         
-        logger.info(f"Loaded names for {len(sales_names)} SKUs (region: {preferred_region})")
+        logger.info(f"Loaded names for {len(sales_names)}/{len(all_skus)} SKUs total")
         
         if len(sales_names) < len(all_skus):
             missing = [sku for sku in all_skus if sku not in sales_names]
@@ -583,10 +635,10 @@ class LabelsRepo:
             out.append({
                 "item_id": item_id,           # barcode from inventory_metadata
                 "sku": sku_used,              # base SKU (all variants normalized)
-                "product_name": product_name, # from magento orders_cache
+                "product_name": product_name, # from inventory_metadata (synced from Magento catalog)
                 "uk_6m_data": uk_6m,          # from uk_aggregated_orders
                 "fr_6m_data": fr_6m,          # from fr_aggregated_orders + nl_aggregated_orders
-                "price": price,               # from orders_cache (region preference)
+                "price": price,               # from Magento live catalog (special_price > price)
             })
         
         if skipped_orphaned > 0:
@@ -630,7 +682,11 @@ class LabelsRepo:
         logger.info("Merging identifier products...")
         inv_repo.merge_identifier_products()
         
-        # 3. Update variant statuses (same as inventory management)
+        # 3. Ensure all products have item IDs (barcodes)
+        logger.info("Ensuring all products have item IDs...")
+        inv_repo.ensure_all_products_have_item_ids()
+        
+        # 4. Update variant statuses (same as inventory management)
         logger.info("Updating variant statuses...")
         inv_repo.update_variant_statuses()
         

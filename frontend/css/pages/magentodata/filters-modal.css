@@ -108,6 +108,11 @@
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
   z-index: 10002;
   border: 1px solid rgba(0, 0, 0, 0.1);
+  /* Ensure hidden by default */
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: opacity 0.15s ease, visibility 0.15s ease, transform 0.15s ease;
 }
 
 html.dark-mode .modal .custom-dropdown .dropdown-options {
@@ -118,7 +123,7 @@ html.dark-mode .modal .custom-dropdown .dropdown-options {
 .modal .custom-dropdown.open .dropdown-options {
   opacity: 1;
   visibility: visible;
-  transform: none;
+  transform: translateY(0);
 }
 
 .rule-config-row .custom-dropdown {
@@ -223,11 +228,12 @@ html.dark-mode .modal .custom-dropdown .dropdown-options {
 .excluded-item {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  padding: 0.5rem 0.75rem;
+  align-items: flex-start;
+  padding: 0.75rem;
   background: var(--bg);
   border-radius: 8px;
   margin-bottom: 0.5rem;
+  gap: 1rem;
 }
 
 .excluded-item:last-child {
@@ -235,6 +241,8 @@ html.dark-mode .modal .custom-dropdown .dropdown-options {
 }
 
 .excluded-item-info {
+  flex: 1;
+  min-width: 0;
   font-size: 0.9rem;
   color: var(--text);
 }
@@ -420,6 +428,10 @@ html.dark-mode .modal .custom-dropdown .dropdown-options {
   border-left: 3px solid var(--danger, #e74c3c);
 }
 
+.pending-update {
+  border-left: 3px solid var(--warning, #f39c12);
+}
+
 .pending-badge {
   display: inline-block;
   padding: 0.125rem 0.375rem;
@@ -428,6 +440,224 @@ html.dark-mode .modal .custom-dropdown .dropdown-options {
   font-weight: 600;
   text-transform: uppercase;
   background: var(--accent);
+  color: white;
+  margin-left: 0.5rem;
+}
+
+.pending-badge.remove {
+  background: var(--danger, #e74c3c);
+}
+
+.pending-badge.update {
+  background: var(--warning, #f39c12);
+}
+
+.pending-badge.warning {
+  background: var(--warning, #f39c12);
+}
+
+/* ===== Customer Exclusion Rule Styles ===== */
+.excluded-item-rule {
+  margin-top: 0.375rem;
+}
+
+.rule-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.rule-badge i {
+  font-size: 0.7rem;
+}
+
+.rule-badge.rule-exclude {
+  background: color-mix(in srgb, var(--danger, #e74c3c) 15%, transparent);
+  color: var(--danger, #e74c3c);
+}
+
+.rule-badge.rule-divide {
+  background: color-mix(in srgb, var(--warning, #f39c12) 15%, transparent);
+  color: var(--warning, #f39c12);
+}
+
+.rule-badge.rule-divide-product {
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  color: var(--accent);
+}
+
+/* ===== Excluded Item Actions ===== */
+.excluded-item-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.excluded-item-edit {
+  padding: 0.375rem 0.5rem;
+  background: var(--bg-light);
+  border: none;
+  border-radius: 6px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.excluded-item-edit:hover {
+  background: var(--accent);
+  color: white;
+}
+
+.excluded-item-remove {
+  padding: 0.375rem 0.5rem;
+  background: var(--bg-light);
+  border: none;
+  border-radius: 6px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.excluded-item-remove:hover {
+  background: var(--danger, #e74c3c);
+  color: white;
+}
+
+/* ===== Rule Edit Modal Styles ===== */
+.rule-edit-modal-overlay {
+  z-index: 1100;
+}
+
+/* Ensure modal body doesn't clip dropdown */
+.rule-edit-modal-overlay .modal {
+  overflow: visible;
+}
+
+.rule-edit-modal-overlay .modal-body {
+  overflow: visible;
+}
+
+/* Dropdown options in rule edit modal - must escape all overflow */
+.rule-edit-modal-overlay .custom-dropdown .dropdown-options {
+  position: fixed !important;
+  z-index: 11000 !important;
+  max-height: 200px;
+  overflow-y: auto;
+  background: var(--bg, #ffffff);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: opacity 0.15s ease, visibility 0.15s ease, transform 0.15s ease;
+  /* Reset any inherited positioning */
+  right: auto !important;
+  bottom: auto !important;
+}
+
+/* Portal dropdown - attached directly to body */
+.dropdown-portal {
+  position: fixed !important;
+  z-index: 11000 !important;
+  max-height: 200px;
+  overflow-y: auto;
+  background: var(--bg, #ffffff);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: opacity 0.15s ease, visibility 0.15s ease, transform 0.15s ease;
+}
+
+html.dark-mode .dropdown-portal {
+  background: var(--bg-light, #2a2a2a);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.dropdown-portal.open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.dropdown-portal .dropdown-option {
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  color: var(--text, #333);
+  font-size: 0.9375rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+html.dark-mode .dropdown-portal .dropdown-option {
+  color: var(--text, #eee);
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+.dropdown-portal .dropdown-option:last-child {
+  border-bottom: none;
+}
+
+.dropdown-portal .dropdown-option:hover {
+  background: rgba(139, 195, 74, 0.1);
+}
+
+.dropdown-portal .dropdown-option.selected {
+  background: rgba(139, 195, 74, 0.15);
+  color: #8bc34a;
+  font-weight: 600;
+}
+
+html.dark-mode .rule-edit-modal-overlay .custom-dropdown .dropdown-options {
+  background: var(--bg-light, #2a2a2a);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.rule-edit-modal-overlay .custom-dropdown.open .dropdown-options {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.rule-edit-customer-info {
+  padding: 0.75rem 1rem;
+  background: var(--bg-light);
+  border-radius: 8px;
+  margin-bottom: 1.25rem;
+}
+
+.rule-edit-customer-info strong {
+  color: var(--text);
+}
+
+.rule-edit-customer-info .text-muted {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+/* ===== Product Search Result Styles ===== */
+.result-sku {
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.85rem;
+  font-family: monospace;
+}
+
+.result-qty {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}
   color: white;
   margin-left: 0.5rem;
 }
@@ -452,6 +682,175 @@ html.dark-mode .modal .custom-dropdown .dropdown-options {
   border-radius: 4px;
   font-size: 0.75rem;
   font-weight: 500;
+}
+
+/* ===== Grouped Customer Exclusion Styles ===== */
+.excluded-customer-group {
+  background: var(--bg);
+  border-radius: 10px;
+  margin-bottom: 0.75rem;
+  overflow: hidden;
+  border: 1px solid var(--bg-light);
+}
+
+.excluded-customer-group:last-child {
+  margin-bottom: 0;
+}
+
+.excluded-customer-group.pending-add {
+  border-left: 3px solid var(--accent);
+}
+
+.excluded-customer-group.pending-remove {
+  border-left: 3px solid var(--danger, #e74c3c);
+  opacity: 0.7;
+}
+
+.excluded-customer-group.pending-update {
+  border-left: 3px solid var(--warning, #f39c12);
+}
+
+.excluded-customer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: var(--bg-light);
+  border-bottom: 1px solid color-mix(in srgb, var(--bg-light) 50%, var(--bg));
+}
+
+.excluded-customer-rules {
+  padding: 0.5rem;
+}
+
+.excluded-rule-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  margin-bottom: 0.25rem;
+  transition: background 0.15s ease;
+}
+
+.excluded-rule-item:last-child {
+  margin-bottom: 0;
+}
+
+.excluded-rule-item:hover {
+  background: var(--bg-light);
+}
+
+.excluded-rule-item.pending-add {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.excluded-rule-item.pending-remove {
+  background: color-mix(in srgb, var(--danger, #e74c3c) 10%, transparent);
+  opacity: 0.7;
+}
+
+.excluded-rule-item.pending-update {
+  background: color-mix(in srgb, var(--warning, #f39c12) 10%, transparent);
+}
+
+.excluded-rule-content {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.excluded-rule-actions {
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.excluded-rule-actions button {
+  padding: 0.25rem 0.4rem;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.15s ease;
+}
+
+.excluded-rule-actions button:hover {
+  background: var(--bg-light);
+  color: var(--text);
+}
+
+.excluded-rule-actions .excluded-item-remove:hover {
+  background: var(--danger, #e74c3c);
+  color: white;
+}
+
+.excluded-rule-empty {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 0.75rem 1rem;
+  font-style: italic;
+  background: var(--bg-light);
+  border-radius: 6px;
+  margin: 0.25rem 0;
+}
+
+.excluded-item-add-rule {
+  padding: 0.375rem 0.625rem;
+  background: var(--accent);
+  border: none;
+  border-radius: 6px;
+  color: white;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.15s ease;
+}
+
+.excluded-item-add-rule:hover {
+  filter: brightness(1.1);
+}
+
+.pending-badge.small {
+  font-size: 0.65rem;
+  padding: 0.1rem 0.3rem;
+}
+
+/* ===== Remove Customer Button ===== */
+.excluded-customer-remove-all {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  padding: 0.35rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.excluded-customer-remove-all:hover {
+  background: rgba(220, 53, 69, 0.1);
+  color: #dc3545;
+}
+
+/* ===== Disabled Dropdown Options ===== */
+.dropdown-option.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: auto;
+}
+
+.dropdown-option.disabled:hover {
+  background: transparent;
+}
+
+.dropdown-option .option-hint {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-left: 0.5rem;
+  font-style: italic;
 }
 
 /* ===== Apply Options Section ===== */

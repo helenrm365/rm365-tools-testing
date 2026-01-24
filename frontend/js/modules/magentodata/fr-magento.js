@@ -23,6 +23,7 @@ let isSyncing = false; // Track if sync is in progress
  * Initialize FR magento page
  */
 export async function initFRMagentoData(path = '/magentodata/fr-magento') {
+  showToast('Initializing France Magento...', 'info');
   
   // Reset state for new page load
   currentPage = 0;
@@ -40,16 +41,14 @@ export async function initFRMagentoData(path = '/magentodata/fr-magento') {
     customRangeLabel = '';
   } else if (path.includes('/custom-range')) {
     viewMode = 'custom';
-  } else if (path === '/magentodata/fr-magento' || path === '/magentodata/fr-magento/') {
-    // Redirect base URL to full-data to make URL explicit
-    if (window.navigate) {
-      window.navigate('/magentodata/fr-magento/full-data', true);
-    }
-    return;
   } else {
-    // Default to full data view
+    // Base URL or unknown path - default to full data view
+    // Just update the URL without causing a new navigation
     viewMode = 'full';
     customRangeLabel = '';
+    console.log('[FR Magento] Base URL - defaulting to full data view');
+    // Silently update URL to include /full-data for clarity
+    history.replaceState({ path: '/magentodata/fr-magento/full-data' }, '', '/magentodata/fr-magento/full-data');
   }
   
   // Wait for DOM to be ready before setting up event listeners
@@ -64,6 +63,7 @@ export async function initFRMagentoData(path = '/magentodata/fr-magento') {
   // Update active button based on view mode immediately
   updateViewButtons();
   
+  showToast('Checking database tables...', 'info');
   // Check if tables exist (quick status check)
   try {
     const status = await checkTablesStatus();
@@ -81,6 +81,7 @@ export async function initFRMagentoData(path = '/magentodata/fr-magento') {
   if (viewMode === 'custom') {
     // Check if custom range parameters exist
     if (window.customRangeActive) {
+      showToast('Loading custom date range...', 'info');
       customRangeLabel = window.customRangeActive.rangeLabel || 'Custom Range';
       // Load the custom range data
       allData = window.customRangeActive.data || [];
@@ -88,19 +89,88 @@ export async function initFRMagentoData(path = '/magentodata/fr-magento') {
       currentPage = 0;
       displayCurrentPage();
     } else {
-      // No custom range set, redirect to full data
-      showToast('No custom range data available. Please select a date range first.', 'warning');
-      window.navigate('/magentodata/fr-magento/full-data', true);
+      // No custom range set, switch to full data view instead of redirecting
+      showToast('No custom range data available. Loading full data instead.', 'warning');
+      viewMode = 'full';
+      customRangeLabel = '';
+      history.replaceState({ path: '/magentodata/fr-magento/full-data' }, '', '/magentodata/fr-magento/full-data');
+      updateViewButtons();
+      await syncAndLoadFullData();
     }
   } else if (viewMode === 'aggregated') {
+    showToast('Loading 6-month aggregated data...', 'info');
     await handleRefreshAggregatedData();
   } else {
-    await loadMagentoData();
+    showToast('Syncing with Magento France...', 'info');
+    // Full data view: sync from Magento first, then load
+    await syncAndLoadFullData();
   }
 }
 
 /**
+ * Get date string for N days ago in YYYY-MM-DD HH:MM:SS format
+ */
+function getDateNDaysAgo(days) {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return date.toISOString().slice(0, 19).replace('T', ' ');
+}
+
+/**
+ * Sync from Magento and load full data
+ */
+async function syncAndLoadFullData() {
+  const syncBtn = document.getElementById('syncNowBtn');
+  const originalBtnContent = syncBtn ? syncBtn.innerHTML : '';
+  
+  try {
+    showToast('Syncing latest orders from Magento...', 'info');
+    console.log('[FR Magento] Starting sync before loading full data...');
+    
+    if (syncBtn) {
+      syncBtn.disabled = true;
+      syncBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
+    }
+    
+    syncAbortController = new AbortController();
+    isSyncing = true;
+    
+    // Sync orders from the last 7 days (explicit date, not relative to last sync)
+    const startDate = getDateNDaysAgo(7);
+    const syncResult = await syncFRMagentoData(syncAbortController.signal, startDate, null, null, null);
+    
+    if (syncResult.status === 'success') {
+      if (syncResult.rows_synced > 0) {
+        showToast(`✓ Synced ${syncResult.rows_synced} new/updated rows`, 'success');
+      } else {
+        showToast('✓ Cache is up to date', 'info');
+      }
+    } else if (syncResult.status === 'error') {
+      console.warn('[FR Magento] Sync warning:', syncResult.message);
+      showToast('Sync issue: ' + syncResult.message, 'warning');
+    }
+  } catch (error) {
+    if (error.name !== 'AbortError') {
+      console.error('[FR Magento] Sync error:', error);
+      showToast('Sync error: ' + error.message, 'error');
+    }
+  } finally {
+    isSyncing = false;
+    syncAbortController = null;
+    if (syncBtn) {
+      syncBtn.disabled = false;
+      syncBtn.innerHTML = originalBtnContent;
+    }
+  }
+  
+  // Now load the data from cache
+  await loadMagentoData();
+}
+
+/**
  * Trigger background sync to cache latest data
+ * Uses the same date range as automatic sync based on current view mode
+ * In 6-month view, also triggers aggregation after sync
  */
 async function triggerBackgroundSync() {
   if (isSyncing) return;
@@ -110,7 +180,14 @@ async function triggerBackgroundSync() {
   
   try {
     isSyncing = true;
-    console.log('[FR Magento] Starting background sync...');
+    
+    // Use same date range as automatic sync based on view mode
+    // Full Data view: 7 days, Aggregated/6-Month view: 180 days
+    const daysToSync = viewMode === 'aggregated' ? 180 : 7;
+    const startDate = getDateNDaysAgo(daysToSync);
+    console.log(`[FR Magento] Starting manual sync (${daysToSync} days, view: ${viewMode})...`);
+    
+    showToast('Syncing latest orders from Magento...', 'info');
     
     if (syncBtn) {
       syncBtn.disabled = true;
@@ -120,22 +197,40 @@ async function triggerBackgroundSync() {
     // Create abort controller for this sync
     syncAbortController = new AbortController();
     
-    // Sync with 180 days (6 months) lookback to catch status updates
-    const result = await syncFRMagentoData(syncAbortController.signal, null, null, null, 180);
+    // Sync with explicit startDate (same as automatic sync)
+    const result = await syncFRMagentoData(syncAbortController.signal, startDate, null, null, null);
     
     if (result.status === 'success') {
       if (result.rows_synced > 0) {
-        showToast(`Sync Complete: Processed ${result.rows_synced} new/updated rows`, 'success');
-        // Reload data if we're on the first page to show new items
-        if (currentPage === 0 && !isSearchMode) {
-          loadMagentoData();
-        }
+        showToast(`✓ Synced ${result.rows_synced} new/updated rows`, 'success');
       } else {
-        showToast('Sync Complete: No new or updated orders found', 'info');
+        showToast('✓ Cache is up to date', 'info');
       }
     } else if (result.status === 'error') {
       console.warn('[FR Magento] Background sync warning:', result.message);
       showToast('Sync Warning: ' + result.message, 'warning');
+    }
+    
+    // In 6-month view, also refresh aggregated data (same as automatic sync)
+    if (viewMode === 'aggregated') {
+      showToast('Calculating 6-month aggregated data...', 'info');
+      
+      const aggResult = await refreshAggregatedDataForRegion('fr');
+      
+      if (aggResult.status === 'success') {
+        showToast(`✓ Aggregated ${aggResult.rows_aggregated} SKUs`, 'success');
+        // Reload data to show updated aggregation
+        if (currentPage === 0 && !isSearchMode) {
+          loadMagentoData();
+        }
+      } else {
+        showToast('Aggregation failed: ' + aggResult.message, 'error');
+      }
+    } else {
+      // Full data view: just reload data if on first page
+      if (result.status === 'success' && result.rows_synced > 0 && currentPage === 0 && !isSearchMode) {
+        loadMagentoData();
+      }
     }
   } catch (error) {
     if (error.name !== 'AbortError') {
@@ -1092,16 +1187,57 @@ function formatDateTime(dateStr) {
 }
 
 /**
- * Handle refresh aggregated data
+ * Handle refresh aggregated data - syncs from Magento first, then refreshes aggregated view
  */
 async function handleRefreshAggregatedData() {
+  const syncBtn = document.getElementById('syncNowBtn');
+  const originalBtnContent = syncBtn ? syncBtn.innerHTML : '';
+  
   try {
-    showToast('Refreshing aggregated data...', 'info');
+    // Step 1: Sync from Magento first (180 days for 6-month view)
+    showToast('Syncing latest orders from Magento...', 'info');
+    console.log('[FR Magento] Starting automatic sync before aggregated refresh...');
+    
+    if (syncBtn) {
+      syncBtn.disabled = true;
+      syncBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
+    }
+    
+    // Create abort controller for this sync
+    syncAbortController = new AbortController();
+    isSyncing = true;
+    
+    // Sync orders from the last 180 days (explicit date for 6-month view)
+    const startDate = getDateNDaysAgo(180);
+    const syncResult = await syncFRMagentoData(syncAbortController.signal, startDate, null, null, null);
+    
+    // Show sync result toast
+    if (syncResult.status === 'success') {
+      if (syncResult.rows_synced > 0) {
+        showToast(`✓ Synced ${syncResult.rows_synced} new/updated rows`, 'success');
+      } else {
+        showToast('✓ Cache is up to date', 'info');
+      }
+    } else if (syncResult.status === 'error') {
+      console.warn('[FR Magento] Sync warning:', syncResult.message);
+      showToast('Sync issue: ' + syncResult.message, 'warning');
+      // Continue with refresh even if sync had issues
+    } else {
+      // Unknown status - log it
+      console.warn('[FR Magento] Unexpected sync result:', syncResult);
+      showToast('✓ Sync completed', 'info');
+    }
+    
+    // Small delay so user can see the sync result before aggregation starts
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Step 2: Now refresh aggregated data (with FREE GIFT exclusion)
+    showToast('Calculating 6-month aggregated data...', 'info');
     
     const result = await refreshAggregatedDataForRegion('fr');
     
     if (result.status === 'success') {
-      showToast(`Successfully refreshed aggregated data! ${result.rows_aggregated} SKUs processed.`, 'success');
+      showToast(`✓ Aggregated ${result.rows_aggregated} SKUs`, 'success');
       
       // Reload the data if currently viewing aggregated view
       if (viewMode === 'aggregated') {
@@ -1113,11 +1249,20 @@ async function handleRefreshAggregatedData() {
         }
       }
     } else {
-      showToast('Refresh failed: ' + result.message, 'error');
+      showToast('Aggregation failed: ' + result.message, 'error');
     }
   } catch (error) {
-    console.error('[FR Magento] Refresh error:', error);
-    showToast('Refresh error: ' + error.message, 'error');
+    if (error.name !== 'AbortError') {
+      console.error('[FR Magento] Refresh error:', error);
+      showToast('Refresh error: ' + error.message, 'error');
+    }
+  } finally {
+    isSyncing = false;
+    syncAbortController = null;
+    if (syncBtn) {
+      syncBtn.disabled = false;
+      syncBtn.innerHTML = originalBtnContent;
+    }
   }
 }
 

@@ -398,6 +398,7 @@ class MagentoDataService:
             
             # Initialize Magento client for this region
             logger.info(f"Initializing Magento client for region: {region}")
+            logger.info(f"[SYNC DEBUG] Final start_date being used: {start_date}")
             client = MagentoDataClient(region=region)
             
             # Fetch product-level rows from Magento with batch processing
@@ -812,10 +813,19 @@ class MagentoDataService:
                 "customers": []
             }
     
-    def add_excluded_customer(self, region: str, email: str, full_name: str, username: str) -> Dict[str, Any]:
-        """Add customer to exclusion list"""
+    def add_excluded_customer(self, region: str, email: str, full_name: str, username: str,
+                               rule_type: str = 'exclude_all', divisor: float = 2.0,
+                               product_sku: str = None, product_name: str = None) -> Dict[str, Any]:
+        """Add customer to exclusion list with optional rule configuration"""
         try:
-            result = self.repo.add_excluded_customer(region, email, full_name, username)
+            result = self.repo.add_excluded_customer(region, email, full_name, username,
+                                                      rule_type, divisor, product_sku, product_name)
+            # Handle conflict case (e.g., trying to add divide_all when exclude_all exists)
+            if result.get("conflict"):
+                return {
+                    "status": "error",
+                    **result
+                }
             return {
                 "status": "success" if result["success"] else "info",
                 **result
@@ -825,6 +835,40 @@ class MagentoDataService:
             return {
                 "status": "error",
                 "message": f"Failed to add excluded customer: {str(e)}"
+            }
+    
+    def update_excluded_customer_rule(self, customer_id: int, rule_type: str, divisor: float = 2.0,
+                                       product_sku: str = None, product_name: str = None,
+                                       username: str = None) -> Dict[str, Any]:
+        """Update the exclusion rule for an existing excluded customer"""
+        try:
+            result = self.repo.update_excluded_customer_rule(customer_id, rule_type, divisor,
+                                                              product_sku, product_name, username)
+            return {
+                "status": "success" if result["success"] else "error",
+                **result
+            }
+        except Exception as e:
+            logger.error(f"Error updating excluded customer rule: {e}")
+            return {
+                "status": "error",
+                "message": f"Failed to update exclusion rule: {str(e)}"
+            }
+    
+    def get_customer_products(self, region: str, customer_email: str, search: str = "") -> Dict[str, Any]:
+        """Get products that a customer has ordered"""
+        try:
+            products = self.repo.get_customer_products(region, customer_email, search)
+            return {
+                "status": "success",
+                "products": products
+            }
+        except Exception as e:
+            logger.error(f"Error getting customer products: {e}")
+            return {
+                "status": "error",
+                "message": f"Failed to get customer products: {str(e)}",
+                "products": []
             }
     
     def remove_excluded_customer(self, customer_id: int) -> Dict[str, Any]:

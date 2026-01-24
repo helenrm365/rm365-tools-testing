@@ -284,16 +284,16 @@ function renderJobsTable() {
   const container = $('#historyTable');
   
   container.innerHTML = `
-    <table>
+    <table data-auto-sort="true">
       <thead>
         <tr>
           <th class="col-checkbox"><i class="fas fa-check-square"></i></th>
-          <th><i class="fas fa-hashtag"></i> Job ID</th>
-          <th><i class="fas fa-calendar-alt"></i> Created</th>
-          <th><i class="fas fa-tag"></i> Line</th>
-          <th style="text-align: center;"><i class="fas fa-cubes"></i> Items</th>
-          <th style="text-align: center;"><i class="fas fa-flag"></i> UK 6M</th>
-          <th style="text-align: center;"><i class="fas fa-flag"></i> FR 6M</th>
+          <th class="sortable"><i class="fas fa-hashtag"></i> Job ID</th>
+          <th class="sortable"><i class="fas fa-calendar-alt"></i> Created</th>
+          <th class="sortable"><i class="fas fa-tag"></i> Line</th>
+          <th class="sortable" style="text-align: center;"><i class="fas fa-cubes"></i> Items</th>
+          <th class="sortable" style="text-align: center;"><i class="fas fa-flag"></i> UK 6M</th>
+          <th class="sortable" style="text-align: center;"><i class="fas fa-flag"></i> FR 6M</th>
           <th style="text-align: center;"><i class="fas fa-cog"></i> Actions</th>
         </tr>
       </thead>
@@ -307,8 +307,8 @@ function renderJobsTable() {
                 <span class="checkbox-custom"></span>
               </label>
             </td>
-            <td class="col-id">#${job.id}</td>
-            <td class="col-created">
+            <td class="col-id" data-sort-value="${job.id}">#${job.id}</td>
+            <td class="col-created" data-sort-value="${job.created_at}">
               <div class="created-main">${formatDateTime(job.created_at)}</div>
               ${job.created_by ? `<div class="created-by">${job.created_by}</div>` : ''}
             </td>
@@ -340,6 +340,11 @@ function renderJobsTable() {
       </tbody>
     </table>
   `;
+  
+  // Initialize table sorting after rendering
+  if (typeof initializeTableSorting !== 'undefined') {
+    initializeTableSorting(container.querySelector('table'));
+  }
 }
 
 function formatDateTime(isoString) {
@@ -405,15 +410,15 @@ async function viewJobDetails(jobId) {
     }
     
     contentDiv.innerHTML = `
-      <table>
+      <table data-auto-sort="true">
         <thead>
           <tr>
-            <th><i class="fas fa-barcode"></i> SKU</th>
-            <th><i class="fas fa-box"></i> Product Name</th>
-            <th><i class="fas fa-tag"></i> Item ID</th>
-            <th style="text-align: center;"><i class="fas fa-flag"></i> UK 6M</th>
-            <th style="text-align: center;"><i class="fas fa-flag"></i> FR 6M</th>
-            <th style="text-align: right;"><i class="fas fa-pound-sign"></i> Price</th>
+            <th class="sortable"><i class="fas fa-barcode"></i> SKU</th>
+            <th class="sortable"><i class="fas fa-box"></i> Product Name</th>
+            <th class="sortable"><i class="fas fa-tag"></i> Item ID</th>
+            <th class="sortable" style="text-align: center;"><i class="fas fa-flag"></i> UK 6M</th>
+            <th class="sortable" style="text-align: center;"><i class="fas fa-flag"></i> FR 6M</th>
+            <th class="sortable" style="text-align: right;"><i class="fas fa-pound-sign"></i> Price</th>
           </tr>
         </thead>
         <tbody>
@@ -424,12 +429,17 @@ async function viewJobDetails(jobId) {
               <td class="item-id-cell">${row.item_id || 'N/A'}</td>
               <td style="text-align: center;">${row.uk_6m_data || 0}</td>
               <td style="text-align: center;">${row.fr_6m_data || 0}</td>
-              <td class="price-cell">£${parseFloat(row.price || 0).toFixed(2)}</td>
+              <td class="price-cell" data-sort-value="${parseFloat(row.price || 0)}">£${parseFloat(row.price || 0).toFixed(2)}</td>
             </tr>
           `).join('')}
         </tbody>
       </table>
     `;
+    
+    // Initialize table sorting after rendering
+    if (typeof initializeTableSorting !== 'undefined') {
+      initializeTableSorting(contentDiv.querySelector('table'));
+    }
   } catch (e) {
     console.error('Error loading job details:', e);
     showToast('Failed to load job details', 'error');
@@ -673,7 +683,10 @@ function wireControls() {
 }
 
 export async function init() {
+  showToast('Setting up history interface...', 'info');
   wireControls();
   setupActionHandlers();
+  
+  showToast('Loading print job history...', 'info');
   await loadHistory();
 }

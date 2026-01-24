@@ -61,6 +61,10 @@ class Settings(BaseSettings):
     MAGENTO_DB_USER_FR: Optional[str] = None
     MAGENTO_DB_PASSWORD_FR: Optional[str] = None
 
+    # Scheduler settings
+    # Set to false on secondary instances to prevent duplicate scheduled jobs
+    SCHEDULER_ENABLED: bool = False  # Set SCHEDULER_ENABLED=true in .env to enable
+
     class Config:
         # Environment variables provided directly - no .env file needed in production
         case_sensitive = False

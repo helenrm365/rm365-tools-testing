@@ -3,7 +3,22 @@
 ## Overview
 The Inventory Management system tracks product inventory data, including stock levels, locations, and sales data. It uses a **direct connection to the UK Magento database** for product catalog, eliminating the need for manual CSV imports.
 
-**Important:** The system shows **ALL products** from Magento (regardless of enabled/disabled status), except products with "AW365" in their name. Filtering is done via the custom `discontinued_status` attribute, not Magento's system status field.
+**Important:** The system shows **ALL products** from Magento (regardless of enabled/disabled status), except products with "AW365" in their name. Filtering is done via the `variant_statuses` array (which aggregates `discontinued_status` values from all product variants), not Magento's system status field.
+
+---
+
+## Key Terminology
+
+| Term | Location | Description |
+|------|----------|-------------|
+| `discontinued_status` | Magento EAV attribute | The raw status value on each individual product variant in Magento (e.g., "Active", "Pre Order") |
+| `variant_statuses` | `inventory_metadata` JSONB | An array that collects ALL `discontinued_status` values from ALL variants of a base SKU |
+| `status` | `inventory_metadata` column | Calculated stock status (Overstock/Low Stock) - unrelated to product filtering |
+
+**Example:**
+- Magento has: `PROD123` (Active), `PROD123-MD` (Pre Order), `PROD123-SD` (Special Offer)
+- After sync: `inventory_metadata.variant_statuses = ["Active", "Pre Order", "Special Offer"]`
+- Filtering by "Pre Order" finds PROD123 because that status exists in the array
 
 ---
 
@@ -75,7 +90,7 @@ When a product exists in `inventory_metadata` (the warehouse) but is no longer f
 - `top_floor_total` - Total quantity of products in top floor
 - `status` - Product status (Overstock/Low Stock)
 - `uk_fr_preorder` - Pre-order information
-- `variant_statuses` (JSONB) - Array of all discontinued statuses from variants (e.g., ["Active", "Pre Order", "Special Offer"])
+- `variant_statuses` (JSONB) - Array aggregating all `discontinued_status` values from ALL variants of this base SKU (e.g., ["Active", "Pre Order", "Special Offer"])
 - `created_at` - Creation timestamp
 - `updated_at` - Last update timestamp
 
@@ -83,7 +98,7 @@ When a product exists in `inventory_metadata` (the warehouse) but is no longer f
 - This table **persists** warehouse data across catalog re-imports
 - SKU is primary key (item_id is derived from SKU)
 - **All SKUs are normalized to base form** (no -MD, -SD, -DP, -NP, -MV suffixes)
-- `variant_statuses` tracks all discontinued_status values from all variants
+- `variant_statuses` aggregates all `discontinued_status` values from all variants (populated by `update_variant_statuses()` function)
 - **Dynamic Status Updates:** If a variant is deleted from Magento, its status is automatically removed from the base SKU's `variant_statuses` list during the next sync.
 - 6M data fields are **only** updated by magento sync process
 - Manual inventory updates don't touch 6M data fields
@@ -118,27 +133,26 @@ When a product exists in `inventory_metadata` (the warehouse) but is no longer f
 4. **ENSURE ITEM IDS**
    ↓ Generate item IDs for any products missing them
    └─→ Uses hash of SKU to generate consistent 18-digit ID
+
+5. **UPDATE VARIANT STATUSES**
+   ↓ Aggregate all `discontinued_status` values from variants into `variant_statuses` array
+   ├─→ Fetches all products from Magento (base + all variants)
+   ├─→ Groups by base SKU and collects all unique `discontinued_status` values
+   └─→ Updates `inventory_metadata.variant_statuses` JSONB column
    
-5. **FETCH PRODUCTS FROM MAGENTO**
+6. **FETCH PRODUCTS FROM MAGENTO**
    ↓ Get ALL products from UK Magento database (live query)
    └─→ Includes base SKUs and all variants with their discontinued_status
    
-6. **BUILD BASE SKU LOOKUP (In-Memory)**
+7. **BUILD BASE SKU LOOKUP (In-Memory)**
    ↓ Group Magento products by base SKU for display name matching
    ├─→ Uses same regex pattern as Step 3: `-(?:MD|SD|DP|NP|MV)(?:-.*)?$`
    ├─→ Creates lookup dict: base_sku → first matching product details (name, categories)
    └─→ **Note:** This is in-memory only; Magento still has all variants
-   
-7. **READ VARIANT STATUSES FROM METADATA**
-   ↓ Reads existing `variant_statuses` JSONB from inventory_metadata
-   ↓ **Note:** variant_statuses are populated/refreshed by:
-   ├─→ Labels module calling `update_variant_statuses()` before label generation
-   ├─→ Manual sync operation
-   └─→ Inventory Management page load does NOT rebuild variant_statuses
 
-8. **FILTER BY DISCONTINUED STATUS** (if provided)
-   ↓ Check if ANY variant status matches filter
-   └─→ Filter "Active,Pre Order" → finds PROD123 (has both statuses)
+8. **FILTER BY VARIANT STATUSES** (if provided)
+   ↓ Check if ANY status in `variant_statuses` array matches filter
+   └─→ Filter "Active,Pre Order" → finds PROD123 if it has either status
    
 9. **FETCH METADATA**
    ↓ Get all inventory_metadata records
@@ -195,11 +209,17 @@ Inventory Management normalizes **all products to use their base SKU** - no iden
 
 ### Variant Status Tracking
 
-Each product tracks **all discontinued statuses** from its variants in the `variant_statuses` field (JSONB array):
+Each base SKU tracks **all `discontinued_status` values** from its variants in the `variant_statuses` field (JSONB array). This allows filtering by ANY variant's status.
+
+**How It Works:**
+1. Each product variant in Magento has a `discontinued_status` attribute (e.g., "Active", "Pre Order")
+2. When `update_variant_statuses()` runs, it groups all variants by base SKU
+3. All unique `discontinued_status` values are collected into the `variant_statuses` array
+4. Filtering checks if ANY requested status exists in the array (OR logic)
 
 **Example Scenario:**
 
-Magento Catalog:
+Magento Catalog (each has its own `discontinued_status` attribute):
 ```
 PROD123         → discontinued_status: "Active"
 PROD123-MD      → discontinued_status: "Pre Order"
@@ -207,7 +227,7 @@ PROD123-SD-1234 → discontinued_status: "Special Offer"
 PROD123-MV      → discontinued_status: "Discontinued (RM)"
 ```
 
-Result in `inventory_metadata`:
+Result in `inventory_metadata` (all statuses aggregated):
 ```json
 {
   "sku": "PROD123",
@@ -497,29 +517,27 @@ HAVING website_count > 0
 
 **Note:** In CSV exports, these appear as "(Blanks)" in the product_websites column
 
-### 4. Product Status Filter
-**Applied:** When fetching products from UK Magento (optional)
+### 4. Product Status Filter (via variant_statuses)
+**Applied:** When filtering products in the UI
 
-**Logic:**
-```python
-# API accepts comma-separated list of statuses
-status_filters = "Active,Temporarily OOS,Pre Order,Samples"
+**How It Works:**
+1. Each variant in Magento has a `discontinued_status` attribute
+2. `update_variant_statuses()` collects all these into the `variant_statuses` JSONB array
+3. UI filters by checking if ANY status in the array matches the selected filters
 
-# Query fetches discontinued_status from Entity-Attribute-Value attribute tables, then filters in Python:
-# LEFT JOIN catalog_product_entity_varchar cpev_discontinued_status
-#     ON cpe.entity_id = cpev_discontinued_status.entity_id
-#     AND cpev_discontinued_status.attribute_id = (
-#         SELECT attribute_id FROM eav_attribute 
-#         WHERE attribute_code = 'discontinued_status' ...
-#     )
-# Then filters in Python:
-if allowed_statuses and discontinued_status not in allowed_statuses:
-    continue  # Skip this product
+**Query Logic:**
+```sql
+-- Filter by variant_statuses array (ANY match)
+SELECT * FROM inventory_metadata
+WHERE EXISTS (
+    SELECT 1 FROM jsonb_array_elements_text(variant_statuses) AS s
+    WHERE s = ANY(ARRAY['Active', 'Temporarily OOS', ...])
+)
 ```
 
-**Purpose:** Filter products by their custom discontinued_status attribute
+**Purpose:** Filter products by their aggregated `variant_statuses` (which come from each variant's `discontinued_status` attribute in Magento)
 
-**Available Values:**
+**Available Status Values:**
 - `Active` - Currently available products
 - `Temporarily OOS` - Temporarily out of stock
 - `Pre Order` - Available for pre-order
@@ -530,15 +548,16 @@ if allowed_statuses and discontinued_status not in allowed_statuses:
 - `Special Item` - Special items
 
 **Behavior:**
-- If `status_filters` is provided: Only returns products matching those statuses
-- If `status_filters` is `None`: Returns **all products** (default)
+- Products are filtered by `variant_statuses` array (aggregated from all variants' `discontinued_status` values)
+- If ANY status in the array matches the filter, the product is included (OR logic)
+- If no filters specified: Returns **all products** (default)
 - Does NOT filter by Magento's enabled/disabled system status
-- The `status` field in `inventory_metadata` is for overstock/low stock calculation, not filtering
+- The `status` field in `inventory_metadata` is for stock calculations (overstock/low stock), NOT filtering
 
 **Important Notes:**
 - **All products** are visible by default (no status filtering)
 - Magento's enabled/disabled status field is **NOT used** for filtering
-- Custom `discontinued_status` attribute is the correct field for filtering
+- `discontinued_status` (Magento attribute) → aggregated into `variant_statuses` (database array) → used for filtering
 - `inventory_metadata.status` is for warehouse calculations (overstock/low stock), not product visibility
 
 ---
@@ -555,14 +574,16 @@ UK MAGENTO DATABASE (catalog_product_entity)
     ↓ generate IDs
 [inventory_metadata]    ← 18-digit item IDs assigned
     ↓ ↑ ← magento sync updates 6M data
+    ↓ ↑ ← update_variant_statuses() aggregates discontinued_status values
     ↓
 INVENTORY MANAGEMENT PAGE
     ↑
-    ├─ Product catalog from UK Magento (live, optional discontinued_status filter)
+    ├─ Product catalog from UK Magento (live query for names)
     ├─ Warehouse data from inventory_metadata
+    ├─ Filtering via variant_statuses array (aggregated from discontinued_status)
     └─ Live 6M data from aggregated_orders tables
     
-NOTE: All products visible by default (filter by discontinued_status if needed)
+NOTE: All products visible by default (filter by variant_statuses if needed)
 ```
 
 ---
@@ -574,16 +595,17 @@ NOTE: All products visible by default (filter by discontinued_status if needed)
 
 **Process:**
 1. Query `catalog_product_entity` table for ALL products (no status filtering)
-2. Join with Entity-Attribute-Value attribute tables to get product names
+2. Join with Entity-Attribute-Value attribute tables to get product names and `discontinued_status`
 3. Filter out products with categories containing "AW365"
 4. Filter out products with no categories assigned (blank categories)
 5. Filter out products with no website assignment (blank product_websites)
 6. New products automatically added to `inventory_metadata` on page load
+7. `update_variant_statuses()` aggregates all `discontinued_status` values into `variant_statuses` array
 
 **Benefits:**
 - No manual CSV imports required
 - All products synced to `inventory_metadata` for data persistence
-- Use `discontinued_status` custom attribute for filtering in the UI
+- Filter by `variant_statuses` array (aggregated from `discontinued_status` attributes)
 - `inventory_metadata` preserved even if product status changes
 - Always up-to-date with Magento catalog
 
@@ -593,7 +615,7 @@ NOTE: All products visible by default (filter by discontinued_status if needed)
 - Uses UK Magento as canonical source
 - Read-only database access
 - Product names from EAV (Entity-Attribute-Value) attribute system
-- Filter by custom `discontinued_status` attribute in UI, not system status
+- `discontinued_status` (per variant) → `variant_statuses` (aggregated array) → UI filtering
 
 ### Sync Magento Sales Data
 **Endpoint:** `POST /inventory/management/sync-magento-data`
@@ -674,19 +696,24 @@ total_stock = shelf_lt1_qty + shelf_gt1_qty + top_floor_total
 ### Search Functionality
 **Searches across:**
 - Product SKU (`sku`)
-- Product Name (`name` from `magento_product_list`)
+- Product Name (`name` from live Magento database)
 
-**Query:**
+**Query Logic:**
 ```sql
-SELECT * FROM magento_product_list
-WHERE 
-    discontinued_status IN (filters)
-    AND (
-        sku ILIKE '%search%' 
-        OR name ILIKE '%search%'
-    )
+-- Filter by variant_statuses (checks if ANY status in array matches)
+SELECT * FROM inventory_metadata
+WHERE EXISTS (
+    SELECT 1 FROM jsonb_array_elements_text(variant_statuses) AS s
+    WHERE s = ANY(ARRAY['Active', 'Pre Order', ...])
+)
+AND (
+    sku ILIKE '%search%'
+    -- name comes from live Magento, not stored in inventory_metadata
+)
 LIMIT per_page OFFSET (page-1)*per_page
 ```
+
+**Note:** Product names are fetched from live Magento database and joined with `inventory_metadata` at query time - they are not stored locally.
 
 ### Pagination
 - **Default:** 100 items per page
@@ -837,9 +864,9 @@ LIMIT per_page OFFSET (page-1)*per_page
 ### Product Not Visible in UI
 **Check:**
 - Product should be synced to `inventory_metadata` if it passes the filters above
-- UI may be filtering by `discontinued_status` custom attribute
-- Check the product's `discontinued_status` value in Magento
-- Check `variant_statuses` array for all applicable statuses
+- UI filters by `variant_statuses` array (aggregated from each variant's `discontinued_status`)
+- Check the product's variants' `discontinued_status` values in Magento
+- Check `variant_statuses` array in `inventory_metadata` for all applicable statuses
 - Try removing status filters in the UI to see all products
 - `inventory_metadata` persists regardless of Magento status changes
 
@@ -907,4 +934,4 @@ LIMIT per_page OFFSET (page-1)*per_page
 
 ---
 
-*Last Updated: January 17, 2026*
+*Last Updated: January 23, 2026*

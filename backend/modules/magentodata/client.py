@@ -44,13 +44,16 @@ class MagentoDataClient:
         try:
             conn = get_magento_connection(self.region)
             with conn.cursor() as cursor:
-                # Base query
+                # Base query - exclude configurable products and FREE GIFT items
+                # FREE GIFT (UK) and Cadeaux gratuits (FR) items are excluded to prevent duplicate conflicts
                 base_query = """
                     FROM sales_order_item soi
                     JOIN sales_order so ON soi.order_id = so.entity_id
                     LEFT JOIN sales_order_address sab ON so.billing_address_id = sab.entity_id
                     LEFT JOIN sales_order_address sas ON so.shipping_address_id = sas.entity_id
                     WHERE soi.product_type != 'configurable'
+                    AND LOWER(soi.name) NOT LIKE '%%free gift%%'
+                    AND LOWER(soi.name) NOT LIKE '%%cadeaux gratuits%%'
                 """
                 
                 params = []
@@ -72,7 +75,8 @@ class MagentoDataClient:
                 cursor.execute(count_query, params)
                 total_count = cursor.fetchone()['count']
                 
-                # Data query
+                # Data query with GROUP BY to aggregate duplicate SKUs within same order
+                # (can happen when customer adds same product to cart multiple times)
                 data_query = f"""
                     SELECT 
                         so.increment_id as order_number,
@@ -85,26 +89,29 @@ class MagentoDataClient:
                         so.customer_lastname,
                         so.customer_group_id,
                         soi.sku,
-                        soi.name,
-                        soi.qty_invoiced,
-                        soi.original_price,
-                        soi.price,
-                        soi.product_type,
+                        MAX(soi.name) as name,
+                        SUM(soi.qty_invoiced) as qty_invoiced,
+                        MAX(soi.original_price) as original_price,
+                        MAX(soi.price) as price,
+                        MAX(soi.product_type) as product_type,
                         
                         -- Billing Address
-                        sab.street as billing_street,
-                        sab.city as billing_city,
-                        sab.region as billing_region,
-                        sab.postcode as billing_postcode,
-                        sab.country_id as billing_country_id,
+                        MAX(sab.street) as billing_street,
+                        MAX(sab.city) as billing_city,
+                        MAX(sab.region) as billing_region,
+                        MAX(sab.postcode) as billing_postcode,
+                        MAX(sab.country_id) as billing_country_id,
                         
                         -- Shipping Address
-                        sas.street as shipping_street,
-                        sas.city as shipping_city,
-                        sas.region as shipping_region,
-                        sas.postcode as shipping_postcode,
-                        sas.country_id as shipping_country_id
+                        MAX(sas.street) as shipping_street,
+                        MAX(sas.city) as shipping_city,
+                        MAX(sas.region) as shipping_region,
+                        MAX(sas.postcode) as shipping_postcode,
+                        MAX(sas.country_id) as shipping_country_id
                     {base_query}
+                    GROUP BY so.increment_id, so.created_at, so.status, so.order_currency_code,
+                             so.grand_total, so.customer_email, so.customer_firstname,
+                             so.customer_lastname, so.customer_group_id, soi.sku
                     ORDER BY so.created_at DESC 
                     LIMIT %s OFFSET %s
                 """
@@ -174,6 +181,8 @@ class MagentoDataClient:
                 # and joins based on your specific Magento version and schema.
                 # Assuming standard Magento 2 tables: sales_order, sales_order_item, sales_order_address
                 
+                # Use GROUP BY to aggregate duplicate SKUs within the same order
+                # (can happen when customer adds same product to cart multiple times)
                 query = """
                     SELECT 
                         so.increment_id as order_number,
@@ -186,31 +195,33 @@ class MagentoDataClient:
                         so.customer_lastname,
                         so.customer_group_id,
                         soi.sku,
-                        soi.name,
-                        soi.qty_invoiced,
-                        soi.original_price,
-                        soi.price,
-                        soi.product_type,
+                        MAX(soi.name) as name,
+                        SUM(soi.qty_invoiced) as qty_invoiced,
+                        MAX(soi.original_price) as original_price,
+                        MAX(soi.price) as price,
+                        MAX(soi.product_type) as product_type,
                         
                         -- Billing Address
-                        sab.street as billing_street,
-                        sab.city as billing_city,
-                        sab.region as billing_region,
-                        sab.postcode as billing_postcode,
-                        sab.country_id as billing_country_id,
+                        MAX(sab.street) as billing_street,
+                        MAX(sab.city) as billing_city,
+                        MAX(sab.region) as billing_region,
+                        MAX(sab.postcode) as billing_postcode,
+                        MAX(sab.country_id) as billing_country_id,
                         
                         -- Shipping Address
-                        sas.street as shipping_street,
-                        sas.city as shipping_city,
-                        sas.region as shipping_region,
-                        sas.postcode as shipping_postcode,
-                        sas.country_id as shipping_country_id
+                        MAX(sas.street) as shipping_street,
+                        MAX(sas.city) as shipping_city,
+                        MAX(sas.region) as shipping_region,
+                        MAX(sas.postcode) as shipping_postcode,
+                        MAX(sas.country_id) as shipping_country_id
                         
                     FROM sales_order_item soi
                     JOIN sales_order so ON soi.order_id = so.entity_id
                     LEFT JOIN sales_order_address sab ON so.billing_address_id = sab.entity_id
                     LEFT JOIN sales_order_address sas ON so.shipping_address_id = sas.entity_id
                     WHERE soi.product_type != 'configurable'
+                    AND LOWER(soi.name) NOT LIKE '%%free gift%%'
+                    AND LOWER(soi.name) NOT LIKE '%%cadeaux gratuits%%'
                 """
                 
                 params = []
@@ -222,6 +233,11 @@ class MagentoDataClient:
                 if end_date:
                     query += " AND so.created_at < %s"
                     params.append(end_date)
+                
+                # GROUP BY to aggregate duplicate SKUs within the same order
+                query += """ GROUP BY so.increment_id, so.created_at, so.status, so.order_currency_code,
+                             so.grand_total, so.customer_email, so.customer_firstname,
+                             so.customer_lastname, so.customer_group_id, soi.sku"""
                 
                 # Sort order
                 sort_direction = 'DESC' if sort_desc else 'ASC'
@@ -350,6 +366,7 @@ class MagentoDataClient:
     ) -> Dict[str, Any]:
         """
         Fetch orders from Magento DB and process them in batches.
+        Uses keyset pagination for efficient large dataset processing.
         """
         if not repo:
             raise ValueError("repo parameter is required for batched sync")
@@ -359,11 +376,12 @@ class MagentoDataClient:
         was_cancelled = False
         error_occurred = None
         
-        # For DB implementation, we can fetch in larger chunks or stream
-        # But to keep logic similar to API version (resumable, batched commits),
-        # we will implement pagination using LIMIT/OFFSET or keyset pagination on created_at
+        # Use keyset pagination instead of OFFSET for much better performance
+        # Track the last created_at and entity_id to paginate efficiently
+        last_created_at = start_date
+        last_entity_id = 0
         
-        current_offset = 0
+        logger.info(f"[SYNC DEBUG] Starting batched fetch with start_date={start_date}, end_date={end_date}")
         
         while True:
             if cancelled and cancelled():
@@ -374,9 +392,8 @@ class MagentoDataClient:
             try:
                 conn = get_magento_connection(self.region)
                 with conn.cursor() as cursor:
-                    # Query to get a batch of orders first to handle "orders processed" count correctly
-                    # and to group items by order for atomic commits per batch of orders
-                    
+                    # Keyset pagination: use (created_at, entity_id) for stable ordering
+                    # This is much faster than OFFSET for large datasets
                     order_query = """
                         SELECT entity_id, increment_id, created_at 
                         FROM sales_order 
@@ -384,28 +401,38 @@ class MagentoDataClient:
                     """
                     params = []
                     
-                    if start_date:
-                        order_query += " AND created_at > %s"
-                        params.append(start_date)
+                    # Keyset condition: get orders after the last one we processed
+                    if last_created_at:
+                        order_query += " AND (created_at > %s OR (created_at = %s AND entity_id > %s))"
+                        params.extend([last_created_at, last_created_at, last_entity_id])
+                    
                     if end_date:
                         order_query += " AND created_at <= %s"
                         params.append(end_date)
                         
-                    order_query += " ORDER BY created_at ASC LIMIT %s OFFSET %s"
+                    order_query += " ORDER BY created_at ASC, entity_id ASC LIMIT %s"
                     params.append(page_size)
-                    params.append(current_offset)
                     
+                    logger.info(f"[SYNC DEBUG] Executing order query with params: {params}")
                     cursor.execute(order_query, params)
                     orders_batch = cursor.fetchall()
                     
                     if not orders_batch:
+                        logger.info(f"[SYNC DEBUG] No more orders found, ending sync")
                         break
+                    
+                    # Log the date range of orders in this batch
+                    first_order_date = orders_batch[0]['created_at']
+                    last_order_date = orders_batch[-1]['created_at']
+                    logger.info(f"[SYNC DEBUG] Batch has {len(orders_batch)} orders from {first_order_date} to {last_order_date}")
                         
                     order_ids = [o['entity_id'] for o in orders_batch]
                     if not order_ids:
                         break
                         
                     # Now fetch items for these orders
+                    # Use GROUP BY to aggregate duplicate SKUs within the same order
+                    # (can happen when customer adds same product to cart multiple times)
                     placeholders = ','.join(['%s'] * len(order_ids))
                     items_query = f"""
                         SELECT 
@@ -419,31 +446,77 @@ class MagentoDataClient:
                             so.customer_lastname,
                             so.customer_group_id,
                             soi.sku,
-                            soi.name,
-                            soi.qty_invoiced,
-                            soi.original_price,
-                            soi.price,
-                            soi.product_type,
-                            sab.street as billing_street,
-                            sab.city as billing_city,
-                            sab.region as billing_region,
-                            sab.postcode as billing_postcode,
-                            sab.country_id as billing_country_id,
-                            sas.street as shipping_street,
-                            sas.city as shipping_city,
-                            sas.region as shipping_region,
-                            sas.postcode as shipping_postcode,
-                            sas.country_id as shipping_country_id
+                            MAX(soi.name) as name,
+                            SUM(soi.qty_invoiced) as qty_invoiced,
+                            MAX(soi.original_price) as original_price,
+                            MAX(soi.price) as price,
+                            MAX(soi.product_type) as product_type,
+                            MAX(sab.street) as billing_street,
+                            MAX(sab.city) as billing_city,
+                            MAX(sab.region) as billing_region,
+                            MAX(sab.postcode) as billing_postcode,
+                            MAX(sab.country_id) as billing_country_id,
+                            MAX(sas.street) as shipping_street,
+                            MAX(sas.city) as shipping_city,
+                            MAX(sas.region) as shipping_region,
+                            MAX(sas.postcode) as shipping_postcode,
+                            MAX(sas.country_id) as shipping_country_id
                         FROM sales_order_item soi
                         JOIN sales_order so ON soi.order_id = so.entity_id
                         LEFT JOIN sales_order_address sab ON so.billing_address_id = sab.entity_id
                         LEFT JOIN sales_order_address sas ON so.shipping_address_id = sas.entity_id
                         WHERE soi.product_type != 'configurable'
+                        AND LOWER(soi.name) NOT LIKE '%%free gift%%'
+                        AND LOWER(soi.name) NOT LIKE '%%cadeaux gratuits%%'
                         AND so.entity_id IN ({placeholders})
+                        GROUP BY so.increment_id, so.created_at, so.status, so.order_currency_code,
+                                 so.grand_total, so.customer_email, so.customer_firstname,
+                                 so.customer_lastname, so.customer_group_id, soi.sku
                     """
                     
                     cursor.execute(items_query, order_ids)
                     items_rows = cursor.fetchall()
+                    
+                    # Check for duplicates that were grouped - run a detection query
+                    # Show detailed info including product_type and individual quantities
+                    duplicates_query = f"""
+                        SELECT 
+                            so.increment_id as order_number,
+                            soi.sku,
+                            soi.name,
+                            soi.product_type,
+                            soi.qty_invoiced,
+                            soi.qty_ordered,
+                            soi.item_id
+                        FROM sales_order_item soi
+                        JOIN sales_order so ON soi.order_id = so.entity_id
+                        WHERE soi.product_type != 'configurable'
+                        AND LOWER(soi.name) NOT LIKE '%%free gift%%'
+                        AND LOWER(soi.name) NOT LIKE '%%cadeaux gratuits%%'
+                        AND so.entity_id IN ({placeholders})
+                        AND (so.increment_id, soi.sku) IN (
+                            SELECT so2.increment_id, soi2.sku
+                            FROM sales_order_item soi2
+                            JOIN sales_order so2 ON soi2.order_id = so2.entity_id
+                            WHERE soi2.product_type != 'configurable'
+                            AND LOWER(soi2.name) NOT LIKE '%%free gift%%'
+                            AND LOWER(soi2.name) NOT LIKE '%%cadeaux gratuits%%'
+                            AND so2.entity_id IN ({placeholders})
+                            GROUP BY so2.increment_id, soi2.sku
+                            HAVING COUNT(*) > 1
+                        )
+                        ORDER BY so.increment_id, soi.sku
+                    """
+                    cursor.execute(duplicates_query, order_ids + order_ids)
+                    duplicates = cursor.fetchall()
+                    
+                    if duplicates:
+                        logger.warning(f"[GENUINE DUPLICATES] Found {len(duplicates)} duplicate (order_number, sku) rows that were GROUPED:")
+                        for dup in duplicates:
+                            logger.warning(f"  -> Order: {dup['order_number']}, SKU: {dup['sku']}, "
+                                         f"product_type: {dup['product_type']}, "
+                                         f"qty_invoiced: {dup['qty_invoiced']}, qty_ordered: {dup['qty_ordered']}, "
+                                         f"item_id: {dup['item_id']}, name: {dup['name'][:50] if dup['name'] else 'N/A'}...")
                     
                     # Process rows
                     batch_product_rows = []
@@ -454,6 +527,10 @@ class MagentoDataClient:
                             
                     # Determine last order date for metadata
                     last_order_date = orders_batch[-1]['created_at']
+                    
+                    # Update keyset pagination cursors for next iteration
+                    last_created_at = orders_batch[-1]['created_at']
+                    last_entity_id = orders_batch[-1]['entity_id']
                     
                     # Import batch
                     if batch_product_rows:
@@ -486,8 +563,6 @@ class MagentoDataClient:
                             username=username
                         )
                         total_orders_processed += len(orders_batch)
-
-                    current_offset += len(orders_batch)
                     
                     if max_orders and total_orders_processed >= max_orders:
                         break

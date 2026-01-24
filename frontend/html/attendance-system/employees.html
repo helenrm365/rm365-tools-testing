@@ -99,17 +99,46 @@
 
             <div class="filter-item">
               <label class="filter-label">
+                <i class="fas fa-globe"></i>
+                <span>Country</span>
+              </label>
+              <div class="custom-dropdown" id="country-dropdown">
+                <div class="dropdown-selected" onclick="toggleDropdown('country-dropdown')">All Countries</div>
+                <div class="dropdown-options" id="filter-country-options">
+                  <div class="dropdown-option selected" data-value="" onclick="window.selectCountryFilter(this, '')">All Countries</div>
+                  <!-- Countries will be populated dynamically -->
+                </div>
+                <input type="hidden" name="country" id="countryFilter" value="">
+              </div>
+            </div>
+
+            <div class="filter-item">
+              <label class="filter-label">
                 <i class="fas fa-map-marker-alt"></i>
                 <span>Location</span>
               </label>
               <div class="custom-dropdown" id="location-dropdown">
                 <div class="dropdown-selected" onclick="toggleDropdown('location-dropdown')">All Locations</div>
-                <div class="dropdown-options">
-                  <div class="dropdown-option selected" onclick="selectOption(this, 'location-dropdown', '', 'All Locations')">All Locations</div>
-                  <div class="dropdown-option" onclick="selectOption(this, 'location-dropdown', 'UK', 'UK')">UK</div>
-                  <div class="dropdown-option" onclick="selectOption(this, 'location-dropdown', 'FR', 'France')">France</div>
+                <div class="dropdown-options" id="filter-location-options">
+                  <div class="dropdown-option selected" data-value="" onclick="window.selectLocationFilter(this, '')">All Locations</div>
+                  <!-- Locations will be populated dynamically -->
                 </div>
                 <input type="hidden" name="location" id="locationFilter" value="">
+              </div>
+            </div>
+
+            <div class="filter-item">
+              <label class="filter-label">
+                <i class="fas fa-city"></i>
+                <span>City Code</span>
+              </label>
+              <div class="custom-dropdown" id="citycode-dropdown">
+                <div class="dropdown-selected" onclick="toggleDropdown('citycode-dropdown')">All City Codes</div>
+                <div class="dropdown-options" id="filter-citycode-options">
+                  <div class="dropdown-option selected" data-value="" onclick="window.selectCityCodeFilter(this, '')">All City Codes</div>
+                  <!-- City codes will be populated dynamically -->
+                </div>
+                <input type="hidden" name="citycode" id="citycodeFilter" value="">
               </div>
             </div>
           </div>
@@ -208,12 +237,14 @@
           <span>Location *</span>
         </label>
         <div class="custom-dropdown" id="create-location-dropdown">
-          <div class="dropdown-selected" onclick="toggleDropdown('create-location-dropdown')">United Kingdom (UK)</div>
-          <div class="dropdown-options">
-            <div class="dropdown-option selected" onclick="selectOption(this, 'create-location-dropdown', 'UK', 'United Kingdom (UK)')">United Kingdom (UK)</div>
-            <div class="dropdown-option" onclick="selectOption(this, 'create-location-dropdown', 'FR', 'France (FR)')">France (FR)</div>
+          <div class="dropdown-selected" onclick="toggleDropdown('create-location-dropdown')">Select Location</div>
+          <div class="dropdown-options" id="create-location-options">
+            <!-- Locations will be populated dynamically -->
+            <div class="dropdown-option create-new-option" onclick="window.openCreateLocationModal('create')">
+              <i class="fas fa-plus-circle"></i> Create New Location
+            </div>
           </div>
-          <input type="hidden" id="employeeLocation" value="UK">
+          <input type="hidden" id="employeeLocation" value="">
         </div>
       </div>
       <div class="form-group">
@@ -284,12 +315,14 @@
           <span>Location *</span>
         </label>
         <div class="custom-dropdown" id="edit-location-dropdown">
-          <div class="dropdown-selected" onclick="toggleDropdown('edit-location-dropdown')">United Kingdom (UK)</div>
-          <div class="dropdown-options">
-            <div class="dropdown-option selected" onclick="selectOption(this, 'edit-location-dropdown', 'UK', 'United Kingdom (UK)')">United Kingdom (UK)</div>
-            <div class="dropdown-option" onclick="selectOption(this, 'edit-location-dropdown', 'FR', 'France (FR)')">France (FR)</div>
+          <div class="dropdown-selected" onclick="toggleDropdown('edit-location-dropdown')">Select Location</div>
+          <div class="dropdown-options" id="edit-location-options">
+            <!-- Locations will be populated dynamically -->
+            <div class="dropdown-option create-new-option" onclick="window.openCreateLocationModal('edit')">
+              <i class="fas fa-plus-circle"></i> Create New Location
+            </div>
           </div>
-          <input type="hidden" id="editEmployeeLocation" value="UK">
+          <input type="hidden" id="editEmployeeLocation" value="">
         </div>
       </div>
       
@@ -349,6 +382,59 @@
           <span>Save Changes</span>
         </button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Create Location Modal -->
+<div id="createLocationModal" class="modal-overlay">
+  <div class="modal-content modal-sm">
+    <div class="modal-header">
+      <div class="modal-header-icon">
+        <i class="fas fa-map-marker-alt"></i>
+      </div>
+      <div class="modal-title-group">
+        <h3 class="modal-title">Create New Location</h3>
+      </div>
+      <button class="modal-close" id="closeLocationModal">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label" for="newLocationName">
+          <i class="fas fa-building"></i>
+          <span>Location Name *</span>
+        </label>
+        <input type="text" id="newLocationName" class="form-input" placeholder="e.g., Birmingham">
+        <small class="form-hint">Display name for the location</small>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="newLocationCityCode">
+          <i class="fas fa-city"></i>
+          <span>City Code *</span>
+        </label>
+        <input type="text" id="newLocationCityCode" class="form-input" placeholder="e.g., BHX" maxlength="10">
+        <small class="form-hint">Short code for the city (2-10 characters)</small>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="newLocationCountryCode">
+          <i class="fas fa-globe"></i>
+          <span>Country Code *</span>
+        </label>
+        <input type="text" id="newLocationCountryCode" class="form-input" placeholder="e.g., UK" maxlength="5">
+        <small class="form-hint">Short code for the country (2-5 characters)</small>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="action-btn secondary-btn" id="cancelLocationModal">
+        <i class="fas fa-times"></i>
+        <span>Cancel</span>
+      </button>
+      <button class="action-btn primary-btn" id="confirmLocationCreate">
+        <i class="fas fa-plus"></i>
+        <span>Create Location</span>
+      </button>
     </div>
   </div>
 </div>

@@ -1,0 +1,72 @@
+<!-- Settings - Appearance Page -->
+<div class="settings-page-container">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="page-header-content">
+      <div class="page-title-section">
+        <h1 class="page-title">
+          <i class="fa-solid fa-palette"></i>
+          <span>Appearance</span>
+        </h1>
+        <p class="page-subtitle">Customize the look and feel of the application</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Content -->
+  <div class="settings-content-wrapper">
+    <!-- Theme Section -->
+    <div class="settings-card">
+      <div class="settings-card-header">
+        <h2 class="settings-card-title">Theme</h2>
+        <p class="settings-card-description">Choose between light and dark mode</p>
+      </div>
+      <div class="settings-card-body">
+        <div class="settings-row">
+          <div class="settings-label">
+            <span class="settings-label-text">Dark Mode</span>
+            <span class="settings-label-description">Enable dark mode for reduced eye strain in low-light environments</span>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="darkModeToggle">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Placeholder for future settings -->
+    <div class="settings-card">
+      <div class="settings-card-header">
+        <h2 class="settings-card-title">Display</h2>
+        <p class="settings-card-description">Configure display preferences</p>
+      </div>
+      <div class="settings-card-body">
+        <div class="settings-placeholder">
+          <i class="fa-solid fa-wrench"></i>
+          <p>More display settings coming soon</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { showToast } from '/js/ui/toast.js';
+  
+  // Initialize page
+  (async function init() {
+    // Set dark mode toggle to match current state
+    const darkModeToggle = document.getElementById('darkModeToggle');
+    if (darkModeToggle) {
+      darkModeToggle.checked = document.documentElement.classList.contains('dark-mode');
+      
+      darkModeToggle.addEventListener('change', (e) => {
+        const isDark = e.target.checked;
+        document.documentElement.classList.toggle('dark-mode', isDark);
+        localStorage.setItem('darkMode', isDark);
+        showToast(`Theme changed to ${isDark ? 'Dark' : 'Light'} Mode`, 'success');
+      });
+    }
+  })();
+</script>

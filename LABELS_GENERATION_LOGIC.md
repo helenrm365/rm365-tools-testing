@@ -7,6 +7,21 @@ The Labels Generation system creates product labels with barcodes, prices, and s
 
 ---
 
+## Key Terminology
+
+| Term | Location | Description |
+|------|----------|-------------|
+| `discontinued_status` | Magento EAV attribute | The raw status value on each individual product variant in Magento (e.g., "Active", "Pre Order") |
+| `variant_statuses` | `inventory_metadata` JSONB | An array that aggregates ALL `discontinued_status` values from ALL variants of a base SKU |
+
+**How They Relate:**
+- Each product variant in Magento has its own `discontinued_status` attribute
+- When `update_variant_statuses()` runs (triggered by Labels before generation), all variants are grouped by base SKU
+- All unique `discontinued_status` values are collected into the `variant_statuses` array
+- Filtering uses `variant_statuses` (ANY match logic) - if a product has 3 variants with different statuses, selecting any one of those statuses will include the product
+
+---
+
 ## Data Sources
 
 ### 1. Product Catalog: Inventory Metadata (Synced from Magento)
@@ -34,13 +49,14 @@ The Labels Generation system creates product labels with barcodes, prices, and s
 
 **No Saved Preferences:** Filters always reset to default (all checked) on page load
 
-**Variant Status Logic:**
+**Variant Status Logic (How discontinued_status becomes variant_statuses):**
 - **Identical to Inventory Management:**
-- All variants (e.g., `-MD`, `-SD`) are grouped by base SKU.
-- All statuses from these variants are collected into `variant_statuses`.
-- **Dynamic Updates:** If a variant is deleted from Magento, its status is automatically removed from the base SKU's list.
-- Filtering checks if **ANY** of the variant statuses match the requested filter.
-- Example: If Base is "Active" and Variant is "Discontinued", filtering by "Discontinued" **WILL** include the product.
+- Each variant in Magento has a `discontinued_status` attribute (the source)
+- All variants (e.g., `-MD`, `-SD`) are grouped by base SKU
+- All `discontinued_status` values from these variants are collected into `variant_statuses` array
+- **Dynamic Updates:** If a variant is deleted from Magento, its status is automatically removed from the base SKU's array
+- Filtering checks if **ANY** of the `variant_statuses` values match the requested filter
+- Example: If Base has "Active" and Variant has "Discontinued", filtering by "Discontinued" **WILL** include the product
 
 **Key Points:**
 - **Single Source of Truth:** Uses `inventory_metadata` just like Inventory Management.
@@ -194,15 +210,17 @@ The Labels Generation system creates product labels with barcodes, prices, and s
    
 3. COLLECT VARIANT STATUSES
    ↓ For each base SKU, collect ALL discontinued_status values from its variants
-   ├─→ PROD123-MD: "Active" → variant_statuses: ["Active"]
-   ├─→ PROD123-SD: "Discontinued (RM)" → variant_statuses: ["Active", "Discontinued (RM)"]
-   └─→ Store in variant_statuses JSONB array
+   ├─→ Each variant has its own discontinued_status attribute in Magento
+   ├─→ PROD123-MD: "Active" → add "Active" to array
+   ├─→ PROD123-SD: "Discontinued (RM)" → add "Discontinued (RM)" to array
+   ├─→ Result: variant_statuses = ["Active", "Discontinued (RM)"]
+   └─→ Store aggregated array in inventory_metadata.variant_statuses JSONB column
    
 4. FILTER BY VARIANT STATUS
-   ↓ Apply discontinued_status filter to variant_statuses array
+   ↓ Apply filter to variant_statuses array (aggregated from all variant's discontinued_status values)
    ├─→ API Default: ['Active', 'Temporarily OOS', 'Pre Order', 'Samples']
    ├─→ UI Default: ALL 8 status checkboxes checked (overrides API default)
-   ├─→ Keep product if ANY variant status matches filter
+   ├─→ Keep product if ANY status in variant_statuses array matches filter
    └─→ Returns filtered list of base SKUs
    
 5. LOAD ITEM IDs
@@ -288,12 +306,15 @@ Result:
 ## Filtering Logic
 
 ### 1. Variant Status Filter (Primary)
-**Applied:** After variant normalization, during SQL filtering
+**Applied:** After variant normalization, during SQL filtering on `variant_statuses` array
+
+**Terminology Reminder:**
+- `discontinued_status` = raw value per variant in Magento
+- `variant_statuses` = aggregated array in `inventory_metadata` containing all unique `discontinued_status` values
 
 **Logic:**
 ```sql
--- Query inventory_metadata for SKUs where ANY variant status matches
--- Uses variant_statuses JSONB array (identical to Inventory Management)
+-- Query inventory_metadata for SKUs where ANY status in variant_statuses array matches
 SELECT sku FROM inventory_metadata 
 WHERE EXISTS (
     SELECT 1 FROM jsonb_array_elements_text(variant_statuses) AS s 
@@ -449,7 +470,8 @@ Labels Generation and Inventory Management use **identical logic** for:
 | Aspect | Shared Logic |
 |--------|--------------|
 | Product Source | `inventory_metadata` table (synced from UK Magento) |
-| Filtering | `variant_statuses` JSONB array (ANY match) |
+| Filtering | `variant_statuses` JSONB array (ANY match logic) |
+| Status Source | Each variant's `discontinued_status` → aggregated into `variant_statuses` |
 | AW365 Exclusion | Excluded during Magento sync |
 | SKU Merging | ALL variants (MD, SD, DP, NP, MV) merge to base SKU |
 | 6M Data | Same aggregated_orders tables |
@@ -475,7 +497,7 @@ Each label contains:
 | `uk_6m_data` | uk_aggregated_orders | UK 6-month sales quantity |
 | `fr_6m_data` | fr_aggregated_orders + nl_aggregated_orders | FR+NL combined 6-month sales quantity |
 | `price` | Selected region Magento catalog | Live price excl. VAT (special_price > price > N/A) |
-| `variant_statuses` | inventory_metadata (internal) | Array of all variant statuses (used for filtering only) |
+| `variant_statuses` | inventory_metadata (internal) | Aggregated array of all `discontinued_status` values from variants (filtering only) |
 
 **Example Label Data:**
 ```json
@@ -603,7 +625,7 @@ Presets allow saving filter configurations for quick reuse.
 |-------|------|-------------|
 | `name` | string | Preset display name |
 | `description` | string | Optional description |
-| `status_filters` | array | List of discontinued_status values to filter |
+| `status_filters` | array | List of statuses to filter by (matches against `variant_statuses` array) |
 | `region` | string | Price/name region preference (uk/fr/nl) |
 | `product_skus` | array | Specific SKUs to include (empty = all) |
 | `created_by` | string | User who created the preset |
@@ -627,9 +649,10 @@ Presets allow saving filter configurations for quick reuse.
 | Feature | Labels | Inventory Management |
 |---------|--------|---------------------|
 | Product Source | inventory_metadata (synced from UK Magento) | inventory_metadata (synced from UK Magento) |
-| Filtering | `variant_statuses` (ANY match) | `variant_statuses` (ANY match) |
+| Filtering | `variant_statuses` array (ANY match) | `variant_statuses` array (ANY match) |
 | Variant Normalization | ALL variants → base SKU | ALL variants → base SKU |
-| Status Tracking | `variant_statuses` JSONB array | `variant_statuses` JSONB array |
+| Status Source | `discontinued_status` from Magento → `variant_statuses` | `discontinued_status` from Magento → `variant_statuses` |
+| Status Update | Calls `update_variant_statuses()` before generation | Reads existing `variant_statuses` (does NOT auto-refresh) |
 | 6M Data Source | aggregated_orders tables | aggregated_orders tables |
 | Item IDs | inventory_metadata | inventory_metadata |
 | Prices | Region-specific Magento catalog (excl. VAT) | Not shown |
@@ -692,4 +715,4 @@ Presets allow saving filter configurations for quick reuse.
 
 ---
 
-*Last Updated: January 17, 2026*
+*Last Updated: January 23, 2026*

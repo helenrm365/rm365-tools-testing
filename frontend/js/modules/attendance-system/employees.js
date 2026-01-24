@@ -4,6 +4,7 @@ import { getEmployees,
     createEmployee, updateEmployee, deleteEmployee,
     bulkDeleteEmployees, saveNFC, deleteNFC } from '../../services/api/enrollmentApi.js';
 import { checkAttendanceTablesStatus, initializeAttendanceTables, clockEmployee, getEmployeesWithStatus } from '../../services/api/attendanceApi.js';
+import { getLocations, createLocation, initLocations, getCountryCodes, getLocationsByCountry, getLocationByName, getLocationByCityCode } from '../../services/api/locationsApi.js';
 import { confirmModal } from '../../ui/confirmationModal.js';
 import { showToast } from '../../ui/toast.js';
 import { playSuccessSound, playErrorSound, playScanSound } from '../../utils/sound.js';
@@ -11,11 +12,17 @@ import { playSuccessSound, playErrorSound, playScanSound } from '../../utils/sou
 
 let state = {
   employees: [],
+  locations: [], // Array of {id, name, city_code, country_code}
+  countryCodes: [], // Array of unique country codes
   clockStatus: {}, // Map of employee_id -> 'in' | 'out' | 'unknown'
   query: '',
   status: '',
   location: '',
+  cityCode: '',
+  countryCode: '',
   selectedIds: new Set(),
+  returnToModal: null, // 'create' | 'edit' | null - tracks which modal to return to after location creation
+  pendingLocationId: null, // Location ID to select after returning
 };
 
 // NFC Scanning state
@@ -57,19 +64,233 @@ window.selectOption = function(element, dropdownId, value, text) {
   element.classList.add('selected');
   dropdown.classList.remove('open');
   
-  // Trigger filter update for filter dropdowns
-  if (dropdownId === 'status-dropdown' || dropdownId === 'location-dropdown') {
+  // Trigger filter update for status dropdown
+  if (dropdownId === 'status-dropdown') {
     filterEmployees();
   }
 };
+
+// ===== Linked Filter Dropdown Functions =====
+
+/**
+ * Select a country code filter - clears location and city code filters
+ */
+window.selectCountryFilter = async function(element, countryCode) {
+  const dropdown = document.getElementById('country-dropdown');
+  if (!dropdown) return;
+  
+  // Update dropdown display
+  const selectedDisplay = dropdown.querySelector('.dropdown-selected');
+  const hiddenInput = dropdown.querySelector('input[type="hidden"]');
+  
+  if (selectedDisplay) selectedDisplay.textContent = countryCode || 'All Countries';
+  if (hiddenInput) hiddenInput.value = countryCode;
+  
+  dropdown.querySelectorAll('.dropdown-option').forEach(opt => opt.classList.remove('selected'));
+  element.classList.add('selected');
+  dropdown.classList.remove('open');
+  
+  // When selecting a country, clear the other linked filters
+  resetLocationDropdown();
+  resetCityCodeDropdown();
+  
+  state.countryCode = countryCode;
+  state.location = '';
+  state.cityCode = '';
+  
+  filterEmployees();
+};
+
+/**
+ * Select a location filter - auto-fills city code and country code
+ */
+window.selectLocationFilter = async function(element, locationName) {
+  const dropdown = document.getElementById('location-dropdown');
+  if (!dropdown) return;
+  
+  // Update dropdown display
+  const selectedDisplay = dropdown.querySelector('.dropdown-selected');
+  const hiddenInput = dropdown.querySelector('input[type="hidden"]');
+  
+  if (selectedDisplay) selectedDisplay.textContent = locationName || 'All Locations';
+  if (hiddenInput) hiddenInput.value = locationName;
+  
+  dropdown.querySelectorAll('.dropdown-option').forEach(opt => opt.classList.remove('selected'));
+  element.classList.add('selected');
+  dropdown.classList.remove('open');
+  
+  if (locationName) {
+    // Find the location and auto-fill the other filters
+    const location = state.locations.find(l => l.name === locationName);
+    if (location) {
+      // Auto-fill country code dropdown
+      setCountryDropdownValue(location.country_code);
+      // Auto-fill city code dropdown
+      setCityCodeDropdownValue(location.city_code);
+      
+      state.location = locationName;
+      state.cityCode = location.city_code;
+      state.countryCode = location.country_code;
+    }
+  } else {
+    // Clearing location - clear other filters too
+    resetCountryDropdown();
+    resetCityCodeDropdown();
+    
+    state.location = '';
+    state.cityCode = '';
+    state.countryCode = '';
+  }
+  
+  filterEmployees();
+};
+
+/**
+ * Select a city code filter - auto-fills location and country code
+ */
+window.selectCityCodeFilter = async function(element, cityCode) {
+  const dropdown = document.getElementById('citycode-dropdown');
+  if (!dropdown) return;
+  
+  // Update dropdown display
+  const selectedDisplay = dropdown.querySelector('.dropdown-selected');
+  const hiddenInput = dropdown.querySelector('input[type="hidden"]');
+  
+  if (selectedDisplay) selectedDisplay.textContent = cityCode || 'All City Codes';
+  if (hiddenInput) hiddenInput.value = cityCode;
+  
+  dropdown.querySelectorAll('.dropdown-option').forEach(opt => opt.classList.remove('selected'));
+  element.classList.add('selected');
+  dropdown.classList.remove('open');
+  
+  if (cityCode) {
+    // Find the location by city code and auto-fill the other filters
+    const location = state.locations.find(l => l.city_code === cityCode);
+    if (location) {
+      // Auto-fill country code dropdown
+      setCountryDropdownValue(location.country_code);
+      // Auto-fill location dropdown
+      setLocationDropdownValue(location.name);
+      
+      state.cityCode = cityCode;
+      state.location = location.name;
+      state.countryCode = location.country_code;
+    }
+  } else {
+    // Clearing city code - clear other filters too
+    resetCountryDropdown();
+    resetLocationDropdown();
+    
+    state.location = '';
+    state.cityCode = '';
+    state.countryCode = '';
+  }
+  
+  filterEmployees();
+};
+
+// Helper functions to set dropdown values without triggering filters
+function setCountryDropdownValue(countryCode) {
+  const dropdown = document.getElementById('country-dropdown');
+  if (!dropdown) return;
+  
+  const selectedDisplay = dropdown.querySelector('.dropdown-selected');
+  const hiddenInput = dropdown.querySelector('input[type="hidden"]');
+  
+  if (selectedDisplay) selectedDisplay.textContent = countryCode;
+  if (hiddenInput) hiddenInput.value = countryCode;
+  
+  dropdown.querySelectorAll('.dropdown-option').forEach(opt => {
+    opt.classList.toggle('selected', opt.getAttribute('data-value') === countryCode);
+  });
+}
+
+function setLocationDropdownValue(locationName) {
+  const dropdown = document.getElementById('location-dropdown');
+  if (!dropdown) return;
+  
+  const selectedDisplay = dropdown.querySelector('.dropdown-selected');
+  const hiddenInput = dropdown.querySelector('input[type="hidden"]');
+  
+  if (selectedDisplay) selectedDisplay.textContent = locationName;
+  if (hiddenInput) hiddenInput.value = locationName;
+  
+  dropdown.querySelectorAll('.dropdown-option').forEach(opt => {
+    opt.classList.toggle('selected', opt.getAttribute('data-value') === locationName);
+  });
+}
+
+function setCityCodeDropdownValue(cityCode) {
+  const dropdown = document.getElementById('citycode-dropdown');
+  if (!dropdown) return;
+  
+  const selectedDisplay = dropdown.querySelector('.dropdown-selected');
+  const hiddenInput = dropdown.querySelector('input[type="hidden"]');
+  
+  if (selectedDisplay) selectedDisplay.textContent = cityCode;
+  if (hiddenInput) hiddenInput.value = cityCode;
+  
+  dropdown.querySelectorAll('.dropdown-option').forEach(opt => {
+    opt.classList.toggle('selected', opt.getAttribute('data-value') === cityCode);
+  });
+}
+
+function resetCountryDropdown() {
+  const dropdown = document.getElementById('country-dropdown');
+  if (!dropdown) return;
+  
+  const selectedDisplay = dropdown.querySelector('.dropdown-selected');
+  const hiddenInput = dropdown.querySelector('input[type="hidden"]');
+  
+  if (selectedDisplay) selectedDisplay.textContent = 'All Countries';
+  if (hiddenInput) hiddenInput.value = '';
+  
+  dropdown.querySelectorAll('.dropdown-option').forEach(opt => {
+    opt.classList.toggle('selected', opt.getAttribute('data-value') === '');
+  });
+}
+
+function resetLocationDropdown() {
+  const dropdown = document.getElementById('location-dropdown');
+  if (!dropdown) return;
+  
+  const selectedDisplay = dropdown.querySelector('.dropdown-selected');
+  const hiddenInput = dropdown.querySelector('input[type="hidden"]');
+  
+  if (selectedDisplay) selectedDisplay.textContent = 'All Locations';
+  if (hiddenInput) hiddenInput.value = '';
+  
+  dropdown.querySelectorAll('.dropdown-option').forEach(opt => {
+    opt.classList.toggle('selected', opt.getAttribute('data-value') === '');
+  });
+}
+
+function resetCityCodeDropdown() {
+  const dropdown = document.getElementById('citycode-dropdown');
+  if (!dropdown) return;
+  
+  const selectedDisplay = dropdown.querySelector('.dropdown-selected');
+  const hiddenInput = dropdown.querySelector('input[type="hidden"]');
+  
+  if (selectedDisplay) selectedDisplay.textContent = 'All City Codes';
+  if (hiddenInput) hiddenInput.value = '';
+  
+  dropdown.querySelectorAll('.dropdown-option').forEach(opt => {
+    opt.classList.toggle('selected', opt.getAttribute('data-value') === '');
+  });
+}
 
 // Filter employees based on current dropdown values
 function filterEmployees() {
   const statusInput = document.querySelector('#status-dropdown input[type="hidden"]');
   const locationInput = document.querySelector('#location-dropdown input[type="hidden"]');
+  const cityCodeInput = document.querySelector('#citycode-dropdown input[type="hidden"]');
+  const countryCodeInput = document.querySelector('#country-dropdown input[type="hidden"]');
   
   state.status = statusInput?.value || '';
   state.location = locationInput?.value || '';
+  state.cityCode = cityCodeInput?.value || '';
+  state.countryCode = countryCodeInput?.value || '';
   renderTable();
 }
 
@@ -82,11 +303,29 @@ function renderTable() {
 
   const rows = state.employees
     .filter(e => !state.status || (e.status || 'active').toLowerCase() === state.status)
-    .filter(e => !state.location || (e.location || '').toUpperCase() === state.location)
+    .filter(e => {
+      // Filter by location name
+      if (state.location && (e.location || '') !== state.location) return false;
+      
+      // Filter by city code - look up the location to match
+      if (state.cityCode) {
+        const loc = state.locations.find(l => l.name === e.location);
+        if (!loc || loc.city_code !== state.cityCode) return false;
+      }
+      
+      // Filter by country code - look up the location to match
+      if (state.countryCode) {
+        const loc = state.locations.find(l => l.name === e.location);
+        if (!loc || loc.country_code !== state.countryCode) return false;
+      }
+      
+      return true;
+    })
     .filter(e => {
       const q = state.query.trim().toLowerCase();
       if (!q) return true;
-      const hay = `${e.name} ${e.employee_code} ${e.location || ''} ${e.nfc_uid || ''}`.toLowerCase();
+      const loc = state.locations.find(l => l.name === e.location);
+      const hay = `${e.name} ${e.employee_code} ${e.location || ''} ${loc?.city_code || ''} ${loc?.country_code || ''} ${e.nfc_uid || ''}`.toLowerCase();
       return hay.includes(q);
     });
 
@@ -123,12 +362,18 @@ function renderTable() {
     const clockBtnText = isClockedIn ? 'Clock Out' : 'Clock In';
     const clockBtnTitle = isClockedIn ? 'Clock out this employee' : 'Clock in this employee';
     
+    // Format location as "Country Code | Location Name | City Code"
+    const loc = state.locations.find(l => l.name === e.location);
+    const locationDisplay = loc 
+      ? `${loc.country_code} | ${loc.name} | ${loc.city_code}`
+      : (e.location || 'N/A');
+    
     return `
     <div class="employee-card clickable" 
          data-id="${e.id}"
          data-name="${e.name || ''}"
          data-code="${e.employee_code || ''}"
-         data-location="${e.location || 'UK'}"
+         data-location="${e.location || ''}"
          data-status="${e.status || 'active'}"
          data-nfc="${e.nfc_uid || ''}"
          data-clock-status="${clockStatus}"
@@ -144,7 +389,7 @@ function renderTable() {
         <h4 class="employee-name">${e.name || 'Unnamed'}</h4>
         <p class="employee-code">#${e.employee_code || 'N/A'}</p>
         <div class="employee-badges">
-          <span class="location-badge">${e.location || 'N/A'}</span>
+          <span class="location-badge">${locationDisplay}</span>
           <span class="status-badge status-${statusClass}">${statusLabel}</span>
         </div>
       </div>
@@ -238,8 +483,11 @@ window.openEmployeeEditModal = function(cardEl) {
   resetNfcScanButton();
   hideNfcStatus();
   
-  // Update custom dropdown displays
-  updateDropdownDisplay('edit-location-dropdown', cardEl.dataset.location);
+  // Reset save and delete buttons to default state
+  resetEditModalButtons();
+  
+  // Update custom dropdown displays - use selectLocationByName for location dropdown
+  selectLocationByName('edit-location-dropdown', cardEl.dataset.location);
   updateDropdownDisplay('edit-status-dropdown', cardEl.dataset.status);
   
   // Update modal header
@@ -371,6 +619,8 @@ function wireEditModalEvents() {
       // Update other employee details (without nfc_uid if we already handled it)
       await updateEmployee(id, { name, location, status, nfc_uid });
       notify('✅ Changes saved successfully');
+      btn.innerHTML = originalText;
+      btn.disabled = false;
       hideEditEmployeeModal();
       await refresh();
     } catch (e) {
@@ -448,6 +698,24 @@ function resetNfcScanButton() {
     icon.classList.add('fa-wifi');
   }
   if (text) text.textContent = 'Scan Card';
+}
+
+/**
+ * Reset the edit modal buttons (Save and Delete) to their default state
+ */
+function resetEditModalButtons() {
+  const saveBtn = $('#confirmEdit');
+  const deleteBtn = $('#deleteFromEdit');
+  
+  if (saveBtn) {
+    saveBtn.disabled = false;
+    saveBtn.innerHTML = '<i class="fas fa-save"></i><span>Save Changes</span>';
+  }
+  
+  if (deleteBtn) {
+    deleteBtn.disabled = false;
+    deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i><span>Delete</span>';
+  }
 }
 
 function setNfcScanningUI(scanning) {
@@ -771,11 +1039,23 @@ function showCreateEmployeeModal() {
   
   // Reset form
   nameInput.value = '';
-  if (locationInput) locationInput.value = 'UK';
   if (statusInput) statusInput.value = 'active';
   
+  // Set default location (first available or empty)
+  const defaultLocation = state.locations.length > 0 ? state.locations[0] : null;
+  if (locationInput) {
+    locationInput.value = defaultLocation?.code || '';
+  }
+  
   // Reset custom dropdowns to defaults
-  resetDropdownDisplay('create-location-dropdown', 'UK', 'United Kingdom (UK)');
+  if (defaultLocation) {
+    selectLocationByCode('create-location-dropdown', defaultLocation.code);
+  } else {
+    const dropdown = $('#create-location-dropdown');
+    const selectedDisplay = dropdown?.querySelector('.dropdown-selected');
+    if (selectedDisplay) selectedDisplay.textContent = 'Select Location';
+    if (locationInput) locationInput.value = '';
+  }
   resetDropdownDisplay('create-status-dropdown', 'active', 'Active');
   
   // Show modal using class (matches CSS)
@@ -982,6 +1262,8 @@ export async function refresh() {
 }
 
 export async function init() {
+  showToast('Preparing employee interface...', 'info');
+  
   // Wait for DOM to be ready
   await new Promise(resolve => {
     if (document.readyState === 'loading') {
@@ -995,6 +1277,7 @@ export async function init() {
   // This is needed because the HTML is dynamically loaded by the router
   await new Promise(resolve => setTimeout(resolve, 100));
   
+  showToast('Checking database status...', 'info');
   // Check if tables exist (quick status check)
   try {
     const status = await checkAttendanceTablesStatus();
@@ -1013,10 +1296,17 @@ export async function init() {
     // Continue loading - tables may still work
   }
   
+  showToast('Loading work locations...', 'info');
+  // Load locations for dropdowns
+  await loadLocations();
+  
   wireToolbar();
   wireEditModalEvents();
+  wireCreateLocationModal();
   wireGuideModal();
   wireDropdownClose();
+  
+  showToast('Loading employee records...', 'info');
   await refresh();
 }
 
@@ -1054,6 +1344,324 @@ function wireDropdownClose() {
   document.addEventListener('click', (e) => {
     if (!e.target.closest('.custom-dropdown')) {
       document.querySelectorAll('.custom-dropdown').forEach(d => d.classList.remove('open'));
+    }
+  });
+}
+
+// ===== Location Management Functions =====
+
+/**
+ * Load locations from the API and populate all location dropdowns
+ */
+async function loadLocations() {
+  try {
+    // First ensure the locations table exists
+    await initLocations();
+    
+    // Then fetch all locations
+    const locations = await getLocations();
+    state.locations = Array.isArray(locations) ? locations : [];
+    
+    // Get unique country codes
+    state.countryCodes = [...new Set(state.locations.map(l => l.country_code))].sort();
+    
+    // Populate all location dropdowns
+    populateLocationDropdowns();
+  } catch (error) {
+    console.error('[Locations] Failed to load locations:', error);
+    // Use default locations as fallback
+    state.locations = [
+      { id: 1, name: 'Birmingham', city_code: 'BHX', country_code: 'UK' },
+      { id: 2, name: 'Paris', city_code: 'CDG', country_code: 'FR' }
+    ];
+    state.countryCodes = ['FR', 'UK'];
+    populateLocationDropdowns();
+  }
+}
+
+/**
+ * Populate all location dropdowns with current locations
+ */
+function populateLocationDropdowns() {
+  // Populate filter country dropdown
+  const filterCountryOptions = $('#filter-country-options');
+  if (filterCountryOptions) {
+    filterCountryOptions.innerHTML = `
+      <div class="dropdown-option selected" data-value="" onclick="window.selectCountryFilter(this, '')">All Countries</div>
+      ${state.countryCodes.map(code => `
+        <div class="dropdown-option" data-value="${code}" onclick="window.selectCountryFilter(this, '${code}')">${code}</div>
+      `).join('')}
+    `;
+  }
+  
+  // Populate filter location dropdown
+  const filterLocationOptions = $('#filter-location-options');
+  if (filterLocationOptions) {
+    filterLocationOptions.innerHTML = `
+      <div class="dropdown-option selected" data-value="" onclick="window.selectLocationFilter(this, '')">All Locations</div>
+      ${state.locations.map(loc => `
+        <div class="dropdown-option" data-value="${loc.name}" onclick="window.selectLocationFilter(this, '${loc.name}')">${loc.name}</div>
+      `).join('')}
+    `;
+  }
+  
+  // Populate filter city code dropdown
+  const filterCityCodeOptions = $('#filter-citycode-options');
+  if (filterCityCodeOptions) {
+    filterCityCodeOptions.innerHTML = `
+      <div class="dropdown-option selected" data-value="" onclick="window.selectCityCodeFilter(this, '')">All City Codes</div>
+      ${state.locations.map(loc => `
+        <div class="dropdown-option" data-value="${loc.city_code}" onclick="window.selectCityCodeFilter(this, '${loc.city_code}')">${loc.city_code}</div>
+      `).join('')}
+    `;
+  }
+  
+  // Populate create employee dropdown
+  populateLocationDropdown('create-location-dropdown', 'create-location-options', 'employeeLocation');
+  
+  // Populate edit employee dropdown
+  populateLocationDropdown('edit-location-dropdown', 'edit-location-options', 'editEmployeeLocation');
+}
+
+/**
+ * Populate a specific location dropdown (for create/edit employee modals)
+ */
+function populateLocationDropdown(dropdownId, optionsId, hiddenInputId) {
+  const optionsContainer = $(`#${optionsId}`);
+  if (!optionsContainer) return;
+  
+  const currentValue = $(`#${hiddenInputId}`)?.value || '';
+  
+  optionsContainer.innerHTML = `
+    ${state.locations.map(loc => {
+      const displayText = `${loc.country_code} | ${loc.name} | ${loc.city_code}`;
+      return `
+        <div class="dropdown-option${loc.name === currentValue ? ' selected' : ''}" 
+             onclick="selectOption(this, '${dropdownId}', '${loc.name}', '${displayText}')">${displayText}</div>
+      `;
+    }).join('')}
+    <div class="dropdown-option create-new-option" onclick="window.openCreateLocationModal('${dropdownId.includes('create') ? 'create' : 'edit'}')">
+      <i class="fas fa-plus-circle"></i> Create New Location
+    </div>
+  `;
+  
+  // Update the selected display if there's a current value
+  const dropdown = $(`#${dropdownId}`);
+  const selectedDisplay = dropdown?.querySelector('.dropdown-selected');
+  if (currentValue && selectedDisplay) {
+    const location = state.locations.find(l => l.name === currentValue);
+    if (location) {
+      selectedDisplay.textContent = `${location.country_code} | ${location.name} | ${location.city_code}`;
+    }
+  }
+}
+
+/**
+ * Select a location in a dropdown by name
+ */
+function selectLocationByName(dropdownId, name) {
+  const dropdown = $(`#${dropdownId}`);
+  if (!dropdown) return;
+  
+  const location = state.locations.find(l => l.name === name);
+  if (!location) return;
+  
+  const displayText = `${location.country_code} | ${location.name} | ${location.city_code}`;
+  const selectedDisplay = dropdown.querySelector('.dropdown-selected');
+  const hiddenInput = dropdown.querySelector('input[type="hidden"]');
+  const options = dropdown.querySelectorAll('.dropdown-option');
+  
+  if (selectedDisplay) selectedDisplay.textContent = displayText;
+  if (hiddenInput) hiddenInput.value = location.name;
+  
+  options.forEach(opt => {
+    const isMatch = opt.textContent.trim() === displayText;
+    opt.classList.toggle('selected', isMatch);
+  });
+}
+
+/**
+ * Open the create location modal
+ * @param {string} returnTo - 'create' or 'edit' - which employee modal to return to
+ */
+window.openCreateLocationModal = function(returnTo) {
+  state.returnToModal = returnTo;
+  
+  // Close the employee modal temporarily
+  if (returnTo === 'create') {
+    $('#createEmployeeModal')?.classList.remove('active');
+  } else if (returnTo === 'edit') {
+    $('#editEmployeeModal')?.classList.remove('active');
+  }
+  
+  // Reset and show the location modal
+  $('#newLocationName').value = '';
+  $('#newLocationCityCode').value = '';
+  $('#newLocationCountryCode').value = '';
+  $('#createLocationModal')?.classList.add('active');
+  
+  // Focus the name input
+  setTimeout(() => $('#newLocationName')?.focus(), 100);
+};
+
+/**
+ * Close the location modal and return to the previous modal
+ */
+function closeLocationModal(newLocationName = null) {
+  $('#createLocationModal')?.classList.remove('active');
+  
+  const returnTo = state.returnToModal;
+  state.returnToModal = null;
+  
+  if (returnTo === 'create') {
+    $('#createEmployeeModal')?.classList.add('active');
+    if (newLocationName) {
+      selectLocationByName('create-location-dropdown', newLocationName);
+    }
+  } else if (returnTo === 'edit') {
+    $('#editEmployeeModal')?.classList.add('active');
+    if (newLocationName) {
+      selectLocationByName('edit-location-dropdown', newLocationName);
+    }
+  }
+}
+
+/**
+ * Wire up the create location modal events
+ */
+function wireCreateLocationModal() {
+  const modal = $('#createLocationModal');
+  const closeBtn = $('#closeLocationModal');
+  const cancelBtn = $('#cancelLocationModal');
+  const confirmBtn = $('#confirmLocationCreate');
+  const nameInput = $('#newLocationName');
+  const cityCodeInput = $('#newLocationCityCode');
+  const countryCodeInput = $('#newLocationCountryCode');
+  
+  if (!modal) return;
+  
+  // Close modal events
+  closeBtn?.addEventListener('click', () => closeLocationModal());
+  cancelBtn?.addEventListener('click', () => closeLocationModal());
+  
+  // Close on overlay click
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeLocationModal();
+  });
+  
+  // Close on Escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal.classList.contains('active')) {
+      closeLocationModal();
+    }
+  });
+  
+  // Handle form submission
+  confirmBtn?.addEventListener('click', async () => {
+    const name = nameInput?.value.trim();
+    const cityCode = cityCodeInput?.value.trim().toUpperCase();
+    const countryCode = countryCodeInput?.value.trim().toUpperCase();
+    
+    if (!name) {
+      notify('❌ Please enter a location name', true);
+      nameInput?.focus();
+      return;
+    }
+    
+    if (!cityCode) {
+      notify('❌ Please enter a city code', true);
+      cityCodeInput?.focus();
+      return;
+    }
+    
+    if (cityCode.length < 2 || cityCode.length > 10) {
+      notify('❌ City code must be 2-10 characters', true);
+      cityCodeInput?.focus();
+      return;
+    }
+    
+    if (!countryCode) {
+      notify('❌ Please enter a country code', true);
+      countryCodeInput?.focus();
+      return;
+    }
+    
+    if (countryCode.length < 2 || countryCode.length > 5) {
+      notify('❌ Country code must be 2-5 characters', true);
+      countryCodeInput?.focus();
+      return;
+    }
+    
+    // Check if location name already exists
+    if (state.locations.some(l => l.name.toLowerCase() === name.toLowerCase())) {
+      notify('❌ A location with this name already exists', true);
+      nameInput?.focus();
+      return;
+    }
+    
+    // Check if city code already exists
+    if (state.locations.some(l => l.city_code === cityCode)) {
+      notify('❌ A location with this city code already exists', true);
+      cityCodeInput?.focus();
+      return;
+    }
+    
+    confirmBtn.disabled = true;
+    const originalHTML = confirmBtn.innerHTML;
+    confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Creating...</span>';
+    
+    try {
+      const newLocation = await createLocation({ 
+        name, 
+        city_code: cityCode, 
+        country_code: countryCode 
+      });
+      
+      // Add to state
+      state.locations.push(newLocation);
+      
+      // Update country codes if this is a new country
+      if (!state.countryCodes.includes(countryCode)) {
+        state.countryCodes.push(countryCode);
+        state.countryCodes.sort();
+      }
+      
+      // Refresh all dropdowns
+      populateLocationDropdowns();
+      
+      notify(`✅ Location "${name}" created successfully`);
+      
+      // Close and return to previous modal with new location selected
+      closeLocationModal(name);
+      
+    } catch (error) {
+      console.error('[Locations] Failed to create location:', error);
+      notify('❌ Failed to create location: ' + error.message, true);
+    } finally {
+      confirmBtn.disabled = false;
+      confirmBtn.innerHTML = originalHTML;
+    }
+  });
+  
+  // Handle Enter key in inputs
+  nameInput?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      cityCodeInput?.focus();
+    }
+  });
+  
+  cityCodeInput?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      countryCodeInput?.focus();
+    }
+  });
+  
+  countryCodeInput?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      confirmBtn?.click();
     }
   });
 }

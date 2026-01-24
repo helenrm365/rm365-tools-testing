@@ -9,8 +9,11 @@ export async function init(path) {
     await currentSubModule.destroy();
   }
   
+  // Cache-busting timestamp for sub-module imports
+  const cacheBust = `?t=${Date.now()}`;
+  
   // Default to management (only sub-page)
-  const mod = await import('./management.js');
+  const mod = await import(`./management.js${cacheBust}`);
   await mod.init();
   currentSubModule = mod;
 }

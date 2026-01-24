@@ -2,6 +2,7 @@
 import { getUsers, createUser, updateUser, deleteUser } from '../../services/api/usersApi.js';
 import { getRoles, createRole, updateRole, deleteRole } from '../../services/api/rolesApi.js';
 import { generateTabStructure } from '../../router.js';
+import { showToast } from '../../ui/toast.js';
 
 // Dropdown helper functions exposed globally
 window.toggleDropdown = function(id) {
@@ -970,8 +971,11 @@ export async function refresh() {
 }
 
 export async function init() {
+    showToast('Setting up user management...', 'info');
     wireToolbar();
     wireUserModal();
     wireAddRoleModal();
+    
+    showToast('Loading users & roles...', 'info');
     await refresh();
 }

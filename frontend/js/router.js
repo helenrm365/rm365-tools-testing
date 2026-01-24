@@ -96,6 +96,12 @@ const routes = {
   // User Management - redirect root to first sub-page
   '/usermanagement':            '/html/usermanagement/management.html',
   '/usermanagement/management': '/html/usermanagement/management.html',
+  
+  // Settings - redirect root to first sub-page
+  '/settings':                  '/html/settings/appearance.html',
+  '/settings/appearance':       '/html/settings/appearance.html',
+  '/settings/tasks':            '/html/settings/tasks.html',
+  '/settings/system':           '/html/settings/system.html',
 };
 
 function shouldRedirectAfterAutoDraft(reason) {
@@ -207,24 +213,70 @@ export function generateTabStructure() {
   return structure;
 }
 
-// Show loading overlay
+// Track loading start time for minimum display duration
+let loadingStartTime = null;
+const MIN_LOADING_DURATION = 400; // Minimum 400ms to ensure visibility
+
+// Show loading overlay - returns a promise that resolves after the overlay is rendered
 export function showLoading(message = 'Loading...') {
-  const overlay = document.getElementById('loadingOverlay');
-  const msg = document.getElementById('loadingMessage');
-  if (overlay) {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById('loadingOverlay');
+    const msg = document.getElementById('loadingMessage');
+    
+    if (!overlay) {
+      resolve();
+      return;
+    }
+    
+    loadingStartTime = Date.now();
+    
+    // Remove the hidden attribute and fading class
     overlay.removeAttribute('hidden');
-    overlay.style.display = 'flex'; // Make sure it's visible
+    overlay.classList.remove('fading-out');
+    
+    // Explicitly set critical styles to guarantee visibility (except opacity - handled by CSS)
+    overlay.style.display = '';
+    overlay.style.visibility = 'visible';
+    overlay.style.zIndex = '99998';
+    overlay.style.pointerEvents = 'all';
+    
     if (msg) msg.textContent = message;
-  }
+    
+    // Force browser to apply styles immediately
+    void overlay.offsetHeight;
+    
+    // Use RAF to ensure paint before continuing
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        resolve();
+      });
+    });
+  });
 }
 
-// Hide loading overlay
+// Hide loading overlay (with minimum display time and fade transition)
 export function hideLoading() {
   const overlay = document.getElementById('loadingOverlay');
-  if (overlay) {
-    overlay.setAttribute('hidden', 'true');
-    overlay.style.display = 'none';
-  }
+  if (!overlay) return;
+  
+  const elapsed = loadingStartTime ? Date.now() - loadingStartTime : MIN_LOADING_DURATION;
+  const remaining = Math.max(0, MIN_LOADING_DURATION - elapsed);
+  
+  // Ensure overlay is visible for minimum duration, then fade out
+  setTimeout(() => {
+    // Add fading class to trigger CSS transition
+    overlay.classList.add('fading-out');
+    
+    // Wait for transition to complete before fully hiding
+    setTimeout(() => {
+      overlay.setAttribute('hidden', 'true');
+      overlay.style.display = 'none';
+      overlay.style.visibility = 'hidden';
+      overlay.style.pointerEvents = 'none';
+      // Don't remove fading-out class here - leave for next showLoading to handle
+      loadingStartTime = null;
+    }, 500); // Match CSS transition duration
+  }, remaining);
 }
 
 export async function navigate(path, replace = false) {
@@ -233,8 +285,8 @@ export async function navigate(path, replace = false) {
     const oldPath = currentRoutePath || window.location.pathname;
     checkSessionCleanup(oldPath, path);
     
-    // Show loading overlay
-    showLoading('Loading...');
+    // Show loading overlay and wait for it to be visible
+    await showLoading('Loading...');
 
     // Auth gate: everything except /login and /home requires a token
     if (path !== '/login' && path !== '/home' && path !== '/' && !isAuthed()) {
@@ -362,43 +414,46 @@ export async function navigate(path, replace = false) {
       currentModulePath = null;
     }
     
+    // Cache-busting timestamp for module imports (ensures fresh versions after updates)
+    const cacheBust = `?t=${Date.now()}`;
+    
     if (path === '/login') {
-      const mod = await import('./modules/auth/login.js');
+      const mod = await import(`./modules/auth/login.js${cacheBust}`);
       await mod.init();
       currentModule = mod;
       currentModulePath = 'login';
     } else if (path === '/home' || path === '/') {
-      const mod = await import('./modules/home/index.js');
+      const mod = await import(`./modules/home/index.js${cacheBust}`);
       await mod.init();
       currentModule = mod;
       currentModulePath = 'home';
     } else if (path.startsWith('/attendance-system')) {
-      const mod = await import('./modules/attendance-system/index.js');
+      const mod = await import(`./modules/attendance-system/index.js${cacheBust}`);
       await mod.init(path);
       currentModule = mod;
       currentModulePath = 'attendance-system';
     } else if (path.startsWith('/labels')) {
-      const mod = await import('./modules/labels/index.js');
+      const mod = await import(`./modules/labels/index.js${cacheBust}`);
       await mod.init(path);
       currentModule = mod;
       currentModulePath = 'labels';
     } else if (path.startsWith('/magentodata')) {
-      const mod = await import(`./modules/magentodata/index.js?t=${Date.now()}&v=2`);
+      const mod = await import(`./modules/magentodata/index.js${cacheBust}`);
       await mod.init(path);
       currentModule = mod;
       currentModulePath = 'magentodata';
     } else if (path.startsWith('/inventory')) {
-      const mod = await import('./modules/inventory/index.js');
+      const mod = await import(`./modules/inventory/index.js${cacheBust}`);
       await mod.init(path);
       currentModule = mod;
       currentModulePath = 'inventory';
     } else if (path.startsWith('/orders')) {
-      const mod = await import('./modules/orders/index.js');
+      const mod = await import(`./modules/orders/index.js${cacheBust}`);
       await mod.init(path); // Pass full path for session URL detection
       currentModule = mod;
       currentModulePath = 'orders';
     } else if (path.startsWith('/usermanagement')) {
-      const mod = await import('./modules/usermanagement/index.js');
+      const mod = await import(`./modules/usermanagement/index.js${cacheBust}`);
       await mod.init(path);
       currentModule = mod;
       currentModulePath = 'usermanagement';

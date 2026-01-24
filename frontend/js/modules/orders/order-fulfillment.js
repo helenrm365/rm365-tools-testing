@@ -9,6 +9,7 @@ import { wsService } from '../../services/websocket.js';
 import { showNotification } from '../../ui/modal.js';
 import * as orderModals from '../../ui/orderFulfillmentModals.js';
 import { updateRoute, showLoading, hideLoading } from '../../router.js';
+import { showToast } from '../../ui/toast.js';
 
 // Currency symbol mapping
 function getCurrencySymbol(currencyCode) {
@@ -1494,6 +1495,8 @@ class MagentoPickPackManager {
 
 // Module initialization and export
 export async function init(path) {
+  showToast('Initializing Order Fulfillment...', 'info');
+  
   if (!window.__magentoPickPackInitialized) {
     // Wait for DOM to be ready
     if (document.readyState === 'loading') {
@@ -1502,15 +1505,18 @@ export async function init(path) {
       });
     }
     
+    showToast('Setting up tracking board...', 'info');
     const manager = new MagentoPickPackManager(path);
     window.__magentoPickPackManager = manager;
     window.__magentoPickPackInitialized = true;
     
+    showToast('Connecting to WebSocket...', 'info');
     // Wait for initial load to complete
     if (manager.initialLoadPromise) {
       await manager.initialLoadPromise;
     }
   } else if (window.__magentoPickPackManager) {
+    showToast('Loading session data...', 'info');
     // Module already initialized, just check if we need to load a session from path
     await window.__magentoPickPackManager.checkSessionFromPath(path);
   }
