@@ -42,6 +42,14 @@ BOOT_T0 = time.time()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Handle startup and shutdown events"""
+    # Register the main event loop for cross-thread WebSocket emit
+    import asyncio
+    try:
+        from core.websocket import set_main_event_loop
+        set_main_event_loop(asyncio.get_running_loop())
+    except Exception as e:
+        print(f"⚠️  Failed to register event loop: {e}")
+    
     # Startup
     try:
         from core.scheduler import start_scheduler

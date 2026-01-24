@@ -924,11 +924,12 @@ class LabelsRepo:
                 cursor.close()
                 return 0
             
-            # Count jobs created today
+            # Count label items created today (via their jobs)
             cursor.execute("""
-                SELECT COALESCE(SUM(total_rows), 0)
-                FROM label_print_jobs
-                WHERE DATE(created_at) = %s
+                SELECT COUNT(*)
+                FROM label_print_items lpi
+                JOIN label_print_jobs lpj ON lpi.job_id = lpj.id
+                WHERE DATE(lpj.created_at) = %s
             """, (date.today(),))
             
             count = cursor.fetchone()[0]

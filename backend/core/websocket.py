@@ -322,6 +322,15 @@ async def request_presence(sid):
 # Export the presence manager for use in other modules
 __all__ = ['sio', 'presence_manager']
 
+# Global reference to the main event loop (set during startup)
+_main_loop = None
+
+def set_main_event_loop(loop):
+    """Store reference to the main asyncio event loop for cross-thread access."""
+    global _main_loop
+    _main_loop = loop
+    logger.info("[WebSocket] Main event loop registered for cross-thread emit")
+
 # Helper to emit events safely from non-async contexts
 async def _emit_async(event: str, data: dict, room: Optional[str] = None):
     logger.info(f"[WebSocket] Emitting event '{event}' to room '{room}': {data}")
@@ -330,17 +339,34 @@ async def _emit_async(event: str, data: dict, room: Optional[str] = None):
 def emit_background(event: str, data: dict, room: Optional[str] = None):
     """Emit a Socket.IO event using a background task, safe to call from sync code.
     This avoids 'no running event loop' errors when called outside async handlers.
+    Works from scheduler threads by using the stored main event loop.
     """
+    import asyncio
+    
     try:
-        # Try AnyIO bridge first (works in FastAPI thread contexts)
-        import anyio
+        # Method 1: Try to get the running loop (works in async context)
         try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(_emit_async(event, data, room))
+            return
+        except RuntimeError:
+            pass  # No running loop in this thread
+        
+        # Method 2: Use the stored main event loop (works from scheduler threads)
+        if _main_loop is not None and _main_loop.is_running():
+            asyncio.run_coroutine_threadsafe(_emit_async(event, data, room), _main_loop)
+            return
+        
+        # Method 3: Fall back to AnyIO bridge
+        try:
+            import anyio
             anyio.from_thread.run(_emit_async, event, data, room)
             return
         except RuntimeError:
-            # If not in a thread or no portal, fall back to socketio background task
             pass
-
+        
+        # Method 4: Last resort - socketio background task
         sio.start_background_task(_emit_async, event, data, room)
+        
     except Exception as e:
-        logger.error(f"Failed to start background emit for {event}: {e}")
+        logger.warning(f"WebSocket emit for '{event}' skipped (non-critical): {e}")
