@@ -231,28 +231,13 @@ class MagentoDataService:
             }
     
     def get_region_data(self, region: str, limit: int = 100, offset: int = 0, search: str = "", fields: list = None) -> Dict[str, Any]:
-        """Get magento data for a specific region with optional field selection"""
+        """Get magento data for a specific region with optional field selection.
+        
+        Uses the local cache (populated by nightly scheduler) for fast reads.
+        """
         try:
-            # Direct fetch from Magento DB for supported regions
-            if region.lower() in ['uk', 'fr', 'nl']:
-                client = MagentoDataClient(region)
-                result = client.get_data_direct(limit, offset, search)
-                
-                # Filter fields if requested
-                if fields and result.get('data'):
-                    filtered_data = []
-                    for item in result['data']:
-                        filtered_item = {k: v for k, v in item.items() if k in fields}
-                        filtered_data.append(filtered_item)
-                    result['data'] = filtered_data
-                
-                return {
-                    "status": "success",
-                    "region": region,
-                    **result
-                }
-            
-            # Fallback for 'test' or other regions (using local DB)
+            # All regions now use the local cache for fast reads
+            # The cache is populated by the nightly scheduler via sync_magento_data()
             table_name = self._get_table_name(region)
             result = self.repo.get_magento_data(table_name, limit, offset, search, fields)
             return {
@@ -498,16 +483,13 @@ class MagentoDataService:
             }
     
     def get_aggregated_data(self, region: str, limit: int = 100, offset: int = 0, search: str = "") -> Dict[str, Any]:
-        """Get aggregated (6-month aggregated) magento data for a specific region"""
+        """Get aggregated (6-month aggregated) magento data for a specific region.
+        
+        Uses pre-computed aggregated tables that are refreshed by the nightly scheduler.
+        """
         try:
-            # Always refresh aggregated data before retrieving to ensure it's up-to-date
-            try:
-                refresh_result = self.repo.refresh_aggregated_data(region)
-                logger.info(f"Auto-refreshed aggregated data for {region}: {refresh_result['rows_aggregated']} SKUs")
-            except Exception as refresh_error:
-                logger.warning(f"Could not auto-refresh aggregated data for {region}: {refresh_error}")
-                # Continue with existing data even if refresh fails
-            
+            # Aggregated data is pre-computed by the nightly scheduler
+            # Just fetch from the aggregated table directly for fast reads
             result = self.repo.get_aggregated_data(region, limit, offset, search)
             return {
                 "status": "success",

@@ -1,0 +1,99 @@
+{
+  "timestamp": "2026-01-27 22:44:02",
+  "api_base": "http://localhost:8000",
+  "regions": {
+    "uk": {
+      "region": "uk",
+      "steps": [
+        {
+          "name": "UK - Check Tables Status",
+          "url": "http://localhost:8000/api/v1/magentodata/status",
+          "status": 200,
+          "time_seconds": 0.13,
+          "success": true
+        },
+        {
+          "name": "UK - Load Initial Data",
+          "url": "http://localhost:8000/api/v1/magentodata/uk?limit=100&offset=0&search=",
+          "status": 200,
+          "time_seconds": 0.184,
+          "success": true,
+          "total_records": 232638,
+          "returned_records": 100
+        }
+      ],
+      "total_time": 0.315,
+      "aggregated": {
+        "name": "UK - 6-Month Aggregated",
+        "url": "http://localhost:8000/api/v1/magentodata/uk/aggregated?limit=100&offset=0",
+        "status": 200,
+        "time_seconds": 0.112,
+        "success": true,
+        "total_records": 1330,
+        "returned_records": 100
+      }
+    },
+    "fr": {
+      "region": "fr",
+      "steps": [
+        {
+          "name": "FR - Check Tables Status",
+          "url": "http://localhost:8000/api/v1/magentodata/status",
+          "status": 200,
+          "time_seconds": 0.139,
+          "success": true
+        },
+        {
+          "name": "FR - Load Initial Data",
+          "url": "http://localhost:8000/api/v1/magentodata/fr?limit=100&offset=0&search=",
+          "status": 200,
+          "time_seconds": 0.14,
+          "success": true,
+          "total_records": 26411,
+          "returned_records": 100
+        }
+      ],
+      "total_time": 0.28,
+      "aggregated": {
+        "name": "FR - 6-Month Aggregated",
+        "url": "http://localhost:8000/api/v1/magentodata/fr/aggregated?limit=100&offset=0",
+        "status": 200,
+        "time_seconds": 0.118,
+        "success": true,
+        "total_records": 982,
+        "returned_records": 100
+      }
+    },
+    "nl": {
+      "region": "nl",
+      "steps": [
+        {
+          "name": "NL - Check Tables Status",
+          "url": "http://localhost:8000/api/v1/magentodata/status",
+          "status": 200,
+          "time_seconds": 0.14,
+          "success": true
+        },
+        {
+          "name": "NL - Load Initial Data",
+          "url": "http://localhost:8000/api/v1/magentodata/nl?limit=100&offset=0&search=",
+          "status": 200,
+          "time_seconds": 0.148,
+          "success": true,
+          "total_records": 8539,
+          "returned_records": 100
+        }
+      ],
+      "total_time": 0.288,
+      "aggregated": {
+        "name": "NL - 6-Month Aggregated",
+        "url": "http://localhost:8000/api/v1/magentodata/nl/aggregated?limit=100&offset=0",
+        "status": 200,
+        "time_seconds": 0.126,
+        "success": true,
+        "total_records": 679,
+        "returned_records": 100
+      }
+    }
+  }
+}
