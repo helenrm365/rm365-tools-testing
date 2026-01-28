@@ -6,15 +6,18 @@ This module handles:
 - Inventory management: Metadata stored in PostgreSQL
 - Inventory adjustments: Logged to PostgreSQL
 - Collaboration: Real-time collaboration features for inventory management
+- Sourcing: Supplier price comparison and margin analysis
 
 Sub-modules:
 - management: CRUD for inventory metadata, live sync support
 - adjustments: Log and sync inventory adjustments
 - collaboration: Real-time collaboration and presence
+- sourcing: Multi-supplier pricing, FX rates, and analysis dashboard
 """
 
 from .management.api import router as management_router
 from .adjustments.api import router as adjustments_router
 from .collaboration import router as collaboration_router
+from .sourcing.api import router as sourcing_router
 
-__all__ = ["management_router", "adjustments_router", "collaboration_router"]
+__all__ = ["management_router", "adjustments_router", "collaboration_router", "sourcing_router"]

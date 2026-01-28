@@ -1,0 +1,654 @@
+# backend/modules/inventory/sourcing/service.py
+"""
+Service layer for Product Sourcing - Business logic and calculations
+"""
+import logging
+from typing import List, Dict, Optional, Any
+from datetime import datetime
+
+from common.currency import get_exchange_rates, convert_to_gbp
+from .repository import SourcingRepository
+
+logger = logging.getLogger(__name__)
+
+
+class SourcingService:
+    """Business logic for sourcing operations"""
+
+    def __init__(self):
+        self.repo = SourcingRepository()
+
+    # ========================================================================
+    # TABLE MANAGEMENT
+    # ========================================================================
+
+    def ensure_tables(self):
+        """Ensure sourcing tables exist"""
+        return self.repo.init_tables()
+
+    def check_tables_status(self) -> Dict[str, bool]:
+        """Check status of sourcing tables"""
+        return self.repo.check_tables_status()
+
+    # ========================================================================
+    # FX RATES
+    # ========================================================================
+
+    def get_fx_rates(self) -> Dict[str, Any]:
+        """
+        Get combined FX rates (live + overrides)
+        Returns rates relative to GBP (base currency)
+        """
+        try:
+            # Get live rates from API
+            live_rates = get_exchange_rates()
+            
+            # Get manual overrides
+            overrides = self.repo.get_fx_overrides()
+            
+            # Merge (overrides take precedence)
+            combined = {**live_rates, **overrides}
+            
+            # Ensure GBP is always 1.0
+            combined['GBP'] = 1.0
+            
+            return {
+                'base_currency': 'GBP',
+                'rates': combined,
+                'overrides': list(overrides.keys()),
+                'last_updated': datetime.now().isoformat(),
+                'source': 'api+overrides' if overrides else 'api'
+            }
+        except Exception as e:
+            logger.error(f"Error getting FX rates: {e}")
+            raise
+
+    def set_fx_override(self, currency_code: str, rate: float, notes: str = None, user: str = None) -> Dict:
+        """Set a manual FX rate override"""
+        return self.repo.upsert_fx_override(currency_code, rate, notes, user)
+
+    def remove_fx_override(self, currency_code: str) -> bool:
+        """Remove FX override (revert to live rate)"""
+        return self.repo.delete_fx_override(currency_code)
+
+    def normalize_price_to_gbp(self, price: float, currency: str) -> float:
+        """Convert a price to GBP using current rates"""
+        if not price or currency == 'GBP':
+            return price
+        
+        # First check for overrides
+        overrides = self.repo.get_fx_overrides()
+        if currency in overrides:
+            return round(price / overrides[currency], 2)
+        
+        # Fall back to live conversion
+        return convert_to_gbp(price, currency)
+
+    # ========================================================================
+    # SUPPLIERS
+    # ========================================================================
+
+    def get_suppliers(self, active_only: bool = True) -> List[Dict]:
+        """Get all suppliers"""
+        self.ensure_tables()
+        return self.repo.get_suppliers(active_only)
+
+    def get_supplier(self, supplier_id: int) -> Optional[Dict]:
+        """Get supplier by ID"""
+        return self.repo.get_supplier_by_id(supplier_id)
+
+    def create_supplier(self, data: Dict) -> Dict:
+        """Create new supplier"""
+        self.ensure_tables()
+        
+        # Check for duplicate code
+        existing = self.repo.get_supplier_by_code(data['code'])
+        if existing:
+            raise ValueError(f"Supplier with code '{data['code']}' already exists")
+        
+        return self.repo.create_supplier(data)
+
+    def update_supplier(self, supplier_id: int, data: Dict) -> Dict:
+        """Update existing supplier"""
+        existing = self.repo.get_supplier_by_id(supplier_id)
+        if not existing:
+            raise ValueError(f"Supplier {supplier_id} not found")
+        
+        # Check for duplicate code if changing
+        if 'code' in data and data['code'] != existing['code']:
+            code_check = self.repo.get_supplier_by_code(data['code'])
+            if code_check:
+                raise ValueError(f"Supplier with code '{data['code']}' already exists")
+        
+        return self.repo.update_supplier(supplier_id, data)
+
+    def delete_supplier(self, supplier_id: int) -> bool:
+        """Delete supplier and all their pricing"""
+        return self.repo.delete_supplier(supplier_id)
+
+    # ========================================================================
+    # SUPPLIER PRICING
+    # ========================================================================
+
+    def get_pricing_for_sku(self, sku: str, normalize: bool = True) -> List[Dict]:
+        """Get all supplier pricing for a SKU with optional normalization"""
+        pricing = self.repo.get_pricing_for_sku(sku)
+        
+        if normalize:
+            for entry in pricing:
+                entry['normalized_price_gbp'] = self.normalize_price_to_gbp(
+                    entry['unit_price'], 
+                    entry['currency']
+                )
+        
+        return pricing
+
+    def upsert_pricing(self, data: Dict) -> Dict:
+        """Create or update supplier pricing"""
+        self.ensure_tables()
+        
+        # Validate supplier exists
+        supplier = self.repo.get_supplier_by_id(data['supplier_id'])
+        if not supplier:
+            raise ValueError(f"Supplier {data['supplier_id']} not found")
+        
+        result = self.repo.upsert_pricing(data)
+        
+        # Add normalized price
+        result['normalized_price_gbp'] = self.normalize_price_to_gbp(
+            result['unit_price'],
+            result['currency']
+        )
+        
+        return result
+
+    def delete_pricing(self, sku: str, supplier_id: int) -> bool:
+        """Delete a pricing entry"""
+        return self.repo.delete_pricing(sku, supplier_id)
+
+    def bulk_upsert_pricing(self, entries: List[Dict]) -> Dict:
+        """Bulk update pricing from matrix view"""
+        self.ensure_tables()
+        
+        # Validate all suppliers exist
+        supplier_ids = set(e['supplier_id'] for e in entries)
+        for sid in supplier_ids:
+            if not self.repo.get_supplier_by_id(sid):
+                raise ValueError(f"Supplier {sid} not found")
+        
+        count = self.repo.bulk_upsert_pricing(entries)
+        return {'updated': count}
+
+    # ========================================================================
+    # SUPPLIER MATRIX
+    # ========================================================================
+
+    def get_supplier_matrix(
+        self,
+        skus: List[str] = None,
+        include_magento: bool = True,
+        status_filter: List[str] = None,
+        search: str = None,
+        page: int = 1,
+        per_page: int = 100
+    ) -> Dict[str, Any]:
+        """
+        Get the full supplier matrix view with ALL products from inventory_metadata.
+        Products come from inventory_metadata (like label generator), then supplier
+        pricing is overlaid on top.
+        """
+        self.ensure_tables()
+        
+        # Get all suppliers for column headers
+        suppliers = self.repo.get_suppliers(active_only=True)
+        
+        # STEP 1: Get ALL products from inventory_metadata (like label generator)
+        all_products = self.repo.get_all_products_from_inventory_metadata(status_filter)
+        
+        # Build SKU data from inventory_metadata first
+        sku_data: Dict[str, Dict] = {}
+        all_skus = []
+        
+        for product in all_products:
+            sku = product['sku']
+            all_skus.append(sku)
+            sku_data[sku] = {
+                'sku': sku,
+                'product_name': product['product_name'],
+                'category': product['category'],
+                'brand': product['brand'],
+                'status': product['status'],
+                'magento_price': None,  # Will be populated below
+                'stock_level': None,
+                'suppliers': {}
+            }
+        
+        # STEP 2: Get Magento prices (special_price > price > N/A like label generator)
+        if include_magento and all_skus:
+            magento_prices = self.repo.get_magento_prices(all_skus, region="uk")
+            for sku, price_data in magento_prices.items():
+                if sku in sku_data:
+                    sku_data[sku]['magento_price'] = price_data.get('price')
+                    sku_data[sku]['price_source'] = price_data.get('source')
+        
+        # STEP 3: Overlay supplier pricing data
+        matrix_data = self.repo.get_full_matrix(skus if skus else None)
+        
+        for row in matrix_data:
+            sku = row['sku']
+            
+            # If SKU not in inventory_metadata, add it (orphan pricing entry)
+            if sku not in sku_data:
+                sku_data[sku] = {
+                    'sku': sku,
+                    'product_name': None,
+                    'category': None,
+                    'brand': self._extract_brand(sku),
+                    'status': 'unknown',
+                    'magento_price': None,
+                    'stock_level': None,
+                    'suppliers': {}
+                }
+            
+            # Normalize price
+            normalized = self.normalize_price_to_gbp(row['unit_price'], row['currency'])
+            
+            sku_data[sku]['suppliers'][row['supplier_code']] = {
+                'supplier_id': row['supplier_id'],
+                'supplier_code': row['supplier_code'],
+                'supplier_name': row['supplier_name'],
+                'unit_price': float(row['unit_price']) if row['unit_price'] else None,
+                'currency': row['currency'],
+                'normalized_price_gbp': normalized,
+                'moq': row['moq'],
+                'shipping_cost': float(row['shipping_cost']) if row['shipping_cost'] else None,
+                'notes': row['notes'],
+                'is_preferred': row['is_preferred'],
+                'last_verified': row['last_verified'].isoformat() if row['last_verified'] else None
+            }
+        
+        # Convert to list and apply search filter
+        rows = list(sku_data.values())
+        
+        if search:
+            search_lower = search.lower()
+            rows = [r for r in rows if 
+                    search_lower in r['sku'].lower() or 
+                    (r['product_name'] and search_lower in r['product_name'].lower()) or
+                    (r['brand'] and search_lower in r['brand'].lower())]
+        
+        # Sort by SKU
+        rows.sort(key=lambda x: x['sku'])
+        total = len(rows)
+        
+        # Paginate
+        start = (page - 1) * per_page
+        end = start + per_page
+        paginated = rows[start:end]
+        
+        return {
+            'matrix': paginated,
+            'suppliers': [{'id': s['id'], 'code': s['code'], 'name': s['name']} for s in suppliers],
+            'total': total,
+            'page': page,
+            'per_page': per_page,
+            'total_pages': (total + per_page - 1) // per_page
+        }
+
+    # ========================================================================
+    # ANALYSIS DASHBOARD
+    # ========================================================================
+
+    def get_analysis_dashboard(
+        self,
+        search: str = None,
+        category: str = None,
+        margin_status: str = None,
+        status_filter: List[str] = None,
+        page: int = 1,
+        per_page: int = 100
+    ) -> Dict[str, Any]:
+        """
+        Get the analysis dashboard with calculated best prices and margins.
+        Products come from inventory_metadata (like label generator), with Magento
+        prices using special_price > price > N/A logic.
+        """
+        self.ensure_tables()
+        
+        # Get suppliers
+        suppliers = self.repo.get_suppliers(active_only=True)
+        supplier_codes = [s['code'] for s in suppliers]
+        
+        # STEP 1: Get ALL products from inventory_metadata (like label generator)
+        all_products = self.repo.get_all_products_from_inventory_metadata(status_filter)
+        
+        # Initialize analysis data from inventory_metadata
+        sku_analysis: Dict[str, Dict] = {}
+        all_skus = []
+        
+        for product in all_products:
+            sku = product['sku']
+            all_skus.append(sku)
+            sku_analysis[sku] = {
+                'sku': sku,
+                'product_name': product['product_name'],
+                'category': product['category'],
+                'brand': product['brand'],
+                'status': product['status'],
+                'magento_price': None,  # Will be populated below
+                'stock_level': None,
+                'supplier_prices': {},
+                'best_price': None,
+                'winning_supplier': None,
+                'margin_percentage': None,
+                'margin_status': 'no_data',
+                'supplier_count': 0,
+                'last_price_update': None
+            }
+        
+        # STEP 2: Get Magento prices (special_price > price > N/A like label generator)
+        if all_skus:
+            magento_prices = self.repo.get_magento_prices(all_skus, region="uk")
+            for sku, price_data in magento_prices.items():
+                if sku in sku_analysis:
+                    sku_analysis[sku]['magento_price'] = price_data.get('price')
+                    sku_analysis[sku]['price_source'] = price_data.get('source')
+        
+        # STEP 3: Overlay supplier pricing data
+        matrix_data = self.repo.get_full_matrix()
+        
+        for row in matrix_data:
+            sku = row['sku']
+            
+            # If SKU not in inventory_metadata, add it (orphan pricing entry)
+            if sku not in sku_analysis:
+                sku_analysis[sku] = {
+                    'sku': sku,
+                    'product_name': None,
+                    'category': None,
+                    'brand': self._extract_brand(sku),
+                    'status': 'unknown',
+                    'magento_price': None,
+                    'stock_level': None,
+                    'supplier_prices': {},
+                    'best_price': None,
+                    'winning_supplier': None,
+                    'margin_percentage': None,
+                    'margin_status': 'no_data',
+                    'supplier_count': 0,
+                    'last_price_update': None
+                }
+            
+            # Normalize price
+            normalized = self.normalize_price_to_gbp(row['unit_price'], row['currency'])
+            
+            if normalized:
+                sku_analysis[sku]['supplier_prices'][row['supplier_code']] = normalized
+                sku_analysis[sku]['supplier_count'] += 1
+                
+                # Track last update
+                if row['updated_at']:
+                    last = sku_analysis[sku]['last_price_update']
+                    if not last or row['updated_at'] > last:
+                        sku_analysis[sku]['last_price_update'] = row['updated_at']
+        
+        # Calculate best prices and margins
+        summary = {
+            'total_products': 0,
+            'products_with_pricing': 0,
+            'products_with_magento_price': 0,
+            'products_needing_review': 0,
+            'healthy_count': 0,
+            'warning_count': 0,
+            'loss_count': 0,
+            'no_data_count': 0,
+            'average_margin': None,
+            'supplier_wins': {code: 0 for code in supplier_codes}
+        }
+        
+        margin_sum = 0
+        margin_count = 0
+        
+        for sku, data in sku_analysis.items():
+            summary['total_products'] += 1
+            
+            # Check if we have Magento price
+            if data['magento_price']:
+                summary['products_with_magento_price'] += 1
+            
+            if data['supplier_prices']:
+                summary['products_with_pricing'] += 1
+                
+                # Find best price
+                prices = data['supplier_prices']
+                if prices:
+                    best_supplier = min(prices, key=prices.get)
+                    best_price = prices[best_supplier]
+                    
+                    data['best_price'] = round(best_price, 2)
+                    data['winning_supplier'] = best_supplier
+                    summary['supplier_wins'][best_supplier] = summary['supplier_wins'].get(best_supplier, 0) + 1
+                    
+                    # Calculate margin if we have Magento price
+                    magento_price = data['magento_price']
+                    if magento_price and best_price:
+                        margin = ((magento_price - best_price) / magento_price) * 100
+                        data['margin_percentage'] = round(margin, 1)
+                        
+                        margin_sum += margin
+                        margin_count += 1
+                        
+                        if margin >= 20:
+                            data['margin_status'] = 'healthy'
+                            summary['healthy_count'] += 1
+                        elif margin >= 0:
+                            data['margin_status'] = 'warning'
+                            summary['warning_count'] += 1
+                            summary['products_needing_review'] += 1
+                        else:
+                            data['margin_status'] = 'loss'
+                            summary['loss_count'] += 1
+                            summary['products_needing_review'] += 1
+                    else:
+                        # Have supplier price but no Magento price
+                        data['margin_status'] = 'no_magento_price'
+            else:
+                summary['no_data_count'] += 1
+        
+        if margin_count > 0:
+            summary['average_margin'] = round(margin_sum / margin_count, 1)
+        
+        # Filter results
+        rows = list(sku_analysis.values())
+        
+        if search:
+            search_lower = search.lower()
+            rows = [r for r in rows if 
+                    search_lower in r['sku'].lower() or 
+                    (r['product_name'] and search_lower in r['product_name'].lower()) or
+                    (r['brand'] and search_lower in r['brand'].lower())]
+        
+        if category:
+            rows = [r for r in rows if r['category'] == category]
+        
+        if margin_status:
+            rows = [r for r in rows if r['margin_status'] == margin_status]
+        
+        # Sort by SKU
+        rows.sort(key=lambda x: x['sku'])
+        
+        total = len(rows)
+        start = (page - 1) * per_page
+        end = start + per_page
+        paginated = rows[start:end]
+        
+        # Serialize datetime
+        for row in paginated:
+            if row['last_price_update']:
+                row['last_price_update'] = row['last_price_update'].isoformat()
+        
+        return {
+            'products': paginated,
+            'summary': summary,
+            'suppliers': [{'id': s['id'], 'code': s['code'], 'name': s['name']} for s in suppliers],
+            'filters_applied': {
+                'search': search,
+                'category': category,
+                'margin_status': margin_status
+            },
+            'total': total,
+            'page': page,
+            'per_page': per_page,
+            'total_pages': (total + per_page - 1) // per_page
+        }
+
+    def _extract_brand(self, sku: str) -> Optional[str]:
+        """Extract brand prefix from SKU"""
+        import re
+        match = re.match(r'^([A-Za-z]+)', sku)
+        return match.group(1) if match else None
+
+    # ========================================================================
+    # IMPORT/EXPORT
+    # ========================================================================
+
+    def export_matrix_csv(self) -> str:
+        """
+        Export supplier matrix as CSV including ALL products from inventory_metadata.
+        Products without pricing will have empty supplier columns.
+        """
+        import csv
+        import io
+        
+        suppliers = self.repo.get_suppliers(active_only=True)
+        matrix_data = self.repo.get_full_matrix()
+        
+        # Get ALL products from inventory_metadata (same source as label generator)
+        all_products = self.repo.get_all_products_from_inventory_metadata()
+        
+        # Initialize sku_data with all products (including those without pricing)
+        sku_data: Dict[str, Dict] = {}
+        for product in all_products:
+            sku = product['sku']
+            sku_data[sku] = {
+                'sku': sku,
+                'product_name': product.get('product_name', '')
+            }
+        
+        # Add supplier pricing data
+        for row in matrix_data:
+            sku = row['sku']
+            if sku not in sku_data:
+                # SKU exists in pricing but not in inventory_metadata (shouldn't happen, but handle it)
+                sku_data[sku] = {'sku': sku, 'product_name': ''}
+            
+            col_prefix = row['supplier_code']
+            sku_data[sku][f'{col_prefix}_price'] = row['unit_price']
+            sku_data[sku][f'{col_prefix}_currency'] = row['currency']
+            sku_data[sku][f'{col_prefix}_notes'] = row['notes'] or ''
+        
+        # Build CSV
+        output = io.StringIO()
+        
+        # Build headers: sku, product_name, then supplier columns
+        headers = ['sku', 'product_name']
+        for s in suppliers:
+            headers.extend([
+                f"{s['code']}_price",
+                f"{s['code']}_currency",
+                f"{s['code']}_notes"
+            ])
+        
+        writer = csv.DictWriter(output, fieldnames=headers, extrasaction='ignore')
+        writer.writeheader()
+        
+        for row in sorted(sku_data.values(), key=lambda x: x['sku']):
+            writer.writerow(row)
+        
+        return output.getvalue()
+
+    def import_matrix_csv(self, csv_content: str) -> Dict[str, int]:
+        """
+        Import supplier matrix from CSV with UPDATE-ONLY behavior.
+        
+        Rules:
+        - Only updates values that are provided (non-empty cells)
+        - Empty cells preserve existing database values
+        - SKUs must exist in inventory_metadata (cannot add new products)
+        - If a SKU has no pricing and user adds values, creates them
+        - If a SKU has pricing and user updates values, updates them
+        
+        Similar to Magento's Add/Update import, but update-only.
+        """
+        import csv
+        import io
+        
+        reader = csv.DictReader(io.StringIO(csv_content))
+        
+        # Get supplier mappings
+        suppliers = self.repo.get_suppliers(active_only=True)
+        supplier_by_code = {s['code']: s for s in suppliers}
+        
+        # Get valid SKUs from inventory_metadata
+        all_products = self.repo.get_all_products_from_inventory_metadata()
+        valid_skus = {p['sku'] for p in all_products}
+        
+        # Get existing pricing to check what needs updating vs creating
+        existing_pricing = self.repo.get_full_matrix()
+        existing_keys = {(row['sku'], row['supplier_id']) for row in existing_pricing}
+        
+        entries = []
+        skipped_skus = []
+        errors = []
+        
+        for row_num, row in enumerate(reader, start=2):
+            sku = row.get('sku', '').strip()
+            if not sku:
+                continue
+            
+            # Validate SKU exists in inventory_metadata
+            if sku not in valid_skus:
+                skipped_skus.append(sku)
+                continue
+            
+            # Process each supplier column
+            for code, supplier in supplier_by_code.items():
+                price_col = f'{code}_price'
+                currency_col = f'{code}_currency'
+                notes_col = f'{code}_notes'
+                
+                # Only process if price column exists and has a value
+                # Empty cells are skipped to preserve existing values
+                price_value = row.get(price_col, '').strip() if price_col in row else ''
+                
+                if price_value:
+                    try:
+                        price = float(price_value)
+                        # Use provided currency or fall back to supplier default
+                        currency = row.get(currency_col, '').strip()
+                        if not currency:
+                            currency = supplier['default_currency']
+                        notes = row.get(notes_col, '').strip()
+                        
+                        entries.append({
+                            'sku': sku,
+                            'supplier_id': supplier['id'],
+                            'unit_price': price,
+                            'currency': currency.upper(),
+                            'notes': notes if notes else None
+                        })
+                    except (ValueError, TypeError) as e:
+                        errors.append(f"Row {row_num}, {code}: Invalid price '{price_value}'")
+        
+        # Bulk upsert (only entries with values)
+        updated_count = 0
+        if entries:
+            updated_count = self.repo.bulk_upsert_pricing(entries)
+        
+        return {
+            'imported': updated_count,
+            'skipped_invalid_skus': len(skipped_skus),
+            'skipped_sku_list': skipped_skus[:20],  # Show first 20
+            'errors': len(errors),
+            'error_details': errors[:10]  # Limit error details
+        }

@@ -18,7 +18,7 @@ from core.pagination import get_page_params, PageParams  # re-export
 # ---------------------------
 # Auth
 # ---------------------------
-async def get_current_user(authorization: str = Header(...)):
+async def get_current_user(authorization: str = Header(None)):
     """Auth dependency used by protected routes."""
     return await _get_current_user(authorization=authorization)
 

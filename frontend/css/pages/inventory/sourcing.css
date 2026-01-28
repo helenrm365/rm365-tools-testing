@@ -1,5 +1,6 @@
-/* ===== Product Sourcing Page ===== */
-/* Minimal styles for sourcing dashboard placeholder */
+/* ===== Product Sourcing Command Center ===== */
+/* Page-specific styles only - uses core components from css/components/ */
+/* Components used: badges.css, buttons.css, cards.css, forms.css, modals.css, tables.css, tabs.css */
 
 /* ===== Page Scope ===== */
 .product-sourcing {
@@ -11,12 +12,22 @@
   background: var(--bg-dark);
 }
 
+.product-sourcing.loading {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+/* ===== Page Header ===== */
+.product-sourcing .page-header {
+  margin-bottom: 0;
+}
+
 /* ===== Page-specific Tab Overrides ===== */
 .product-sourcing .inner-tabs {
   margin: 2rem 0;
 }
 
-.product-sourcing .tab-button {
+.product-sourcing .inner-tabs .tab-button {
   flex: 1 1 auto;
   min-width: 140px;
 }
@@ -25,7 +36,7 @@
 .product-sourcing .sourcing-content {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--space-md);
   max-width: 100%;
   animation: fadeInUp 0.4s ease-out;
 }
@@ -41,51 +52,58 @@
   }
 }
 
-/* ===== Sub-Navigation Tabs ===== */
+/* ===== Sub-Navigation Tabs (Magento Data Controls style) ===== */
 .product-sourcing .sourcing-sub-tabs {
   display: flex;
-  gap: 0.5rem;
   flex-wrap: wrap;
-  background: var(--bg);
+  gap: 0.5rem;
+  background: var(--bg-light);
   padding: 0.5rem;
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-s);
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+  border: 2px solid var(--bg);
 }
 
 html.dark-mode .product-sourcing .sourcing-sub-tabs {
-  border-color: rgba(255, 255, 255, 0.08);
+  border-color: var(--bg);
 }
 
 .product-sourcing .sub-tab-button {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.25rem;
-  background: transparent;
+  flex: 1 1 auto;
+  min-width: 100px;
+  padding: 0.65rem 1rem;
   border: none;
-  border-radius: var(--radius-md);
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: var(--text-2);
+  border-radius: 8px;
+  font-weight: 600;
+  font-family: var(--ff);
   cursor: pointer;
   transition: all 0.2s ease;
+  background: transparent;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
   white-space: nowrap;
 }
 
 .product-sourcing .sub-tab-button i {
   font-size: 1rem;
-  opacity: 0.7;
+  opacity: 0.8;
 }
 
 .product-sourcing .sub-tab-button:hover {
-  background: var(--bg-light);
-  color: var(--text-1);
+  background: var(--bg);
+  color: var(--text);
 }
 
 .product-sourcing .sub-tab-button.active {
-  background: var(--accent);
+  background: linear-gradient(135deg, #8bc34a, #7ab82d);
   color: white;
+  box-shadow: var(--shadow-s);
+}
+
+.product-sourcing .sub-tab-button.active:hover {
+  box-shadow: var(--shadow-m);
 }
 
 .product-sourcing .sub-tab-button.active i {
@@ -110,52 +128,916 @@ html.dark-mode .product-sourcing .sourcing-tab-panel {
   display: block;
 }
 
+/* ===== Panel Header ===== */
 .product-sourcing .panel-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg);
+  padding: var(--space-lg);
+  border-bottom: 2px solid var(--bg-light);
+  background: linear-gradient(135deg, rgba(139, 195, 74, 0.08), rgba(139, 195, 74, 0.03));
+  flex-wrap: wrap;
+  gap: var(--space-md);
+}
+
+html.dark-mode .product-sourcing .panel-header {
+  background: linear-gradient(135deg, rgba(139, 195, 74, 0.12), rgba(139, 195, 74, 0.05));
 }
 
 .product-sourcing .panel-header h2 {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: var(--space-sm);
   margin: 0;
   font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--text-1);
+  font-weight: 700;
+  color: var(--text);
 }
 
 .product-sourcing .panel-header h2 i {
   color: var(--accent);
 }
 
+.product-sourcing .panel-actions {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
 .product-sourcing .panel-body {
-  padding: 1.5rem;
+  padding: var(--space-lg);
 }
 
-/* ===== Coming Soon Placeholder ===== */
-.product-sourcing .coming-soon-placeholder {
-  text-align: center;
-  padding: 4rem 2rem;
+/* ===== Panel Toolbar ===== */
+.product-sourcing .panel-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md) var(--space-lg);
+  background: var(--bg-light);
+  border-bottom: 1px solid var(--bg-dark);
+  gap: var(--space-md);
+  flex-wrap: wrap;
 }
 
-.product-sourcing .coming-soon-placeholder i {
-  font-size: 4rem;
+/* ===== Summary Cards ===== */
+.product-sourcing .summary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  background: var(--bg-light);
+  border-bottom: 2px solid var(--bg-dark);
+}
+
+.product-sourcing .summary-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  background: var(--bg);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-m);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+
+.product-sourcing .summary-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-l);
+}
+
+html.dark-mode .product-sourcing .summary-card {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.product-sourcing .summary-card .card-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-light);
+  border-radius: var(--radius-md);
+  color: var(--accent);
+  font-size: 1.25rem;
+  box-shadow: var(--shadow-s);
+}
+
+.product-sourcing .summary-card.healthy .card-icon {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--success);
+}
+
+.product-sourcing .summary-card.warning .card-icon {
+  background: rgba(245, 158, 11, 0.15);
   color: var(--warning);
-  margin-bottom: 1rem;
 }
 
-.product-sourcing .coming-soon-placeholder h3 {
-  margin-bottom: 0.5rem;
-  color: var(--text-1);
+.product-sourcing .summary-card.danger .card-icon {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--error);
 }
 
-.product-sourcing .coming-soon-placeholder p {
-  color: var(--text-2);
-  max-width: 500px;
-  margin: 0 auto;
+.product-sourcing .summary-card .card-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.product-sourcing .summary-card .card-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1;
+}
+
+.product-sourcing .summary-card .card-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: var(--space-xs);
+}
+
+/* ===== Search Box (uses forms.css base styles) ===== */
+.product-sourcing .search-box {
+  position: relative;
+  flex: 1;
+  max-width: 400px;
+}
+
+.product-sourcing .search-box i {
+  position: absolute;
+  left: var(--space-md);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+}
+
+.product-sourcing .search-box input {
+  width: 100%;
+  padding: var(--space-sm) var(--space-md) var(--space-sm) 2.5rem;
+  border: 2px solid var(--bg-dark);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.9rem;
+  box-shadow: var(--shadow-s);
+  transition: all var(--transition);
+}
+
+.product-sourcing .search-box input:focus {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.product-sourcing .filter-group select {
+  padding: var(--space-sm) var(--space-md);
+  border: 2px solid var(--bg-dark);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.9rem;
+  min-width: 180px;
+  box-shadow: var(--shadow-s);
+  cursor: pointer;
+}
+
+.product-sourcing .filter-group select:focus {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* ===== Legend ===== */
+.product-sourcing .legend-group {
+  display: flex;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.product-sourcing .legend-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.product-sourcing .legend-item.best-price i { color: var(--success); }
+.product-sourcing .legend-item.has-price i { color: var(--info); }
+.product-sourcing .legend-item.no-price i { color: var(--text-muted); opacity: 0.5; }
+
+/* ===== Data Tables (extends tables.css) ===== */
+.product-sourcing .table-container,
+.product-sourcing .matrix-wrapper {
+  overflow-x: auto;
+  max-height: 60vh;
+}
+
+.product-sourcing .data-table {
+  width: 100%;
+  min-width: max-content;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.875rem;
+}
+
+.product-sourcing .data-table th,
+.product-sourcing .data-table td {
+  padding: var(--space-sm) var(--space-md);
+  text-align: left;
+  border-bottom: 1px solid var(--bg-dark);
+}
+
+.product-sourcing .data-table th {
+  background: var(--bg-light);
+  font-weight: 600;
+  color: var(--text);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  border-bottom: 2px solid var(--accent);
+}
+
+.product-sourcing .data-table tbody tr {
+  background: var(--bg);
+  transition: background-color var(--transition);
+}
+
+.product-sourcing .data-table tbody tr:hover {
+  background: var(--bg-light);
+}
+
+.product-sourcing .data-table .col-sku {
+  min-width: 120px;
+  font-weight: 600;
+}
+
+.product-sourcing .data-table .col-product {
+  min-width: 200px;
+}
+
+.product-sourcing .data-table .col-actions {
+  width: 80px;
+  text-align: center;
+}
+
+/* ===== Matrix Table Specific ===== */
+.product-sourcing .matrix-table .sticky-col {
+  position: sticky;
+  left: 0;
+  background: var(--bg);
+  z-index: 5;
+}
+
+.product-sourcing .matrix-table thead .sticky-col {
+  z-index: 15;
+  background: var(--bg-light);
+}
+
+.product-sourcing .matrix-table .supplier-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.product-sourcing .matrix-table .supplier-code {
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.product-sourcing .matrix-table .supplier-name {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.product-sourcing .matrix-table .col-supplier {
+  min-width: 120px;
+  text-align: center;
+}
+
+.product-sourcing .matrix-table td.best-price {
+  background: rgba(16, 185, 129, 0.15);
+}
+
+.product-sourcing .matrix-table td.has-price {
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.product-sourcing .matrix-table td.pending-change {
+  background: rgba(245, 158, 11, 0.15);
+}
+
+.product-sourcing .matrix-table td.pending-delete {
+  background: rgba(239, 68, 68, 0.15);
+  text-decoration: line-through;
+}
+
+.product-sourcing .matrix-cell {
+  padding: var(--space-xs);
+  min-width: 60px;
+  text-align: center;
+  outline: none;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition);
+}
+
+.product-sourcing .matrix-cell:focus {
+  background: var(--bg);
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+.product-sourcing .cell-note {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  font-size: 0.7rem;
+  cursor: help;
+}
+
+/* ===== Analysis Table Margin Status (uses badge patterns) ===== */
+.product-sourcing .col-margin.margin-healthy {
+  color: var(--success);
+  font-weight: 600;
+}
+
+.product-sourcing .col-margin.margin-warning {
+  color: var(--warning);
+  font-weight: 600;
+}
+
+.product-sourcing .col-margin.margin-loss {
+  color: var(--error);
+  font-weight: 600;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.product-sourcing .winner-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  background: linear-gradient(135deg, var(--success), #059669);
+  color: white;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-shadow: var(--text-shadow-s);
+}
+
+.product-sourcing .supplier-chip {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  margin: 0.1rem;
+  background: var(--bg-light);
+  border-radius: 20px;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  transition: all var(--transition);
+}
+
+.product-sourcing .supplier-chip.winner {
+  background: rgba(16, 185, 129, 0.2);
+  color: var(--success);
+  font-weight: 600;
+}
+
+/* ===== Status Badges (uses badges.css patterns) ===== */
+.product-sourcing .status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.product-sourcing .status-badge.status-available {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--success);
+}
+
+.product-sourcing .status-badge.status-unavailable {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--error);
+}
+
+.product-sourcing .status-badge.status-unknown {
+  background: rgba(107, 114, 128, 0.15);
+  color: var(--text-muted);
+}
+
+html.dark-mode .product-sourcing .status-badge.status-available {
+  background: rgba(16, 185, 129, 0.25);
+}
+
+html.dark-mode .product-sourcing .status-badge.status-unavailable {
+  background: rgba(239, 68, 68, 0.25);
+}
+
+html.dark-mode .product-sourcing .status-badge.status-unknown {
+  background: rgba(107, 114, 128, 0.25);
+}
+
+/* ===== Price Indicators ===== */
+.product-sourcing .price-special {
+  color: var(--warning);
+  font-size: 0.75rem;
+  margin-left: var(--space-xs);
+}
+
+.product-sourcing .no-price {
+  color: var(--text-muted);
+  font-style: italic;
+  opacity: 0.7;
+}
+
+/* ===== Pagination ===== */
+.product-sourcing .pagination-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  border-top: 1px solid var(--bg-dark);
+}
+
+.product-sourcing .page-info {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+/* ===== Supplier Grid (uses cards.css entity-card pattern) ===== */
+.product-sourcing .supplier-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-lg);
+}
+
+.product-sourcing .supplier-card {
+  background: var(--bg-light);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: all var(--transition);
+  box-shadow: var(--shadow-m);
+}
+
+html.dark-mode .product-sourcing .supplier-card {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.product-sourcing .supplier-card:hover {
+  box-shadow: var(--shadow-l);
+  transform: translateY(-3px);
+}
+
+.product-sourcing .supplier-card.inactive {
+  opacity: 0.6;
+}
+
+.product-sourcing .supplier-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  background: linear-gradient(135deg, rgba(139, 195, 74, 0.08), rgba(139, 195, 74, 0.03));
+  border-bottom: 1px solid var(--bg-dark);
+}
+
+html.dark-mode .product-sourcing .supplier-card-header {
+  background: linear-gradient(135deg, rgba(139, 195, 74, 0.12), rgba(139, 195, 74, 0.05));
+}
+
+.product-sourcing .supplier-avatar {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  color: white;
+  font-weight: 700;
+  font-size: 1.1rem;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-m);
+}
+
+.product-sourcing .supplier-info h4 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.product-sourcing .supplier-info .supplier-code {
+  font-size: 0.8rem;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.product-sourcing .supplier-status {
+  margin-left: auto;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.product-sourcing .supplier-status.active {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--success);
+}
+
+.product-sourcing .supplier-status.inactive {
+  background: rgba(107, 114, 128, 0.15);
+  color: var(--text-muted);
+}
+
+.product-sourcing .supplier-card-body {
+  padding: var(--space-md) var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.product-sourcing .supplier-detail {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.product-sourcing .supplier-detail i {
+  width: 20px;
+  color: var(--accent);
+  opacity: 0.7;
+}
+
+.product-sourcing .supplier-card-footer {
+  padding: var(--space-md) var(--space-lg);
+  border-top: 1px solid var(--bg-dark);
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+}
+
+/* ===== FX Rates Section ===== */
+.product-sourcing .fx-header {
+  display: flex;
+  gap: var(--space-xl);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-lg);
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--bg-dark);
+}
+
+.product-sourcing .fx-header > div {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.product-sourcing .fx-header .label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.product-sourcing .fx-header .value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.product-sourcing .fx-rates-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: var(--space-md);
+  margin-bottom: var(--space-xl);
+}
+
+.product-sourcing .fx-rate-card {
+  position: relative;
+  padding: var(--space-md);
+  background: var(--bg-light);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-m);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  text-align: center;
+  transition: all var(--transition);
+}
+
+html.dark-mode .product-sourcing .fx-rate-card {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.product-sourcing .fx-rate-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-l);
+}
+
+.product-sourcing .fx-rate-card.has-override {
+  border-color: var(--warning);
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.product-sourcing .fx-rate-card .currency-code {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: var(--space-xs);
+}
+
+.product-sourcing .fx-rate-card .rate-value {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.product-sourcing .fx-rate-card .override-badge {
+  position: absolute;
+  top: var(--space-xs);
+  right: var(--space-xs);
+  font-size: 0.65rem;
+  padding: 2px 6px;
+  background: var(--warning);
+  color: white;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.product-sourcing .fx-rate-card .remove-override {
+  display: none;
+  margin-top: var(--space-sm);
+  font-size: 0.75rem;
+  color: var(--error);
+  cursor: pointer;
+}
+
+.product-sourcing .fx-rate-card.has-override:hover .remove-override {
+  display: block;
+}
+
+/* ===== FX Override Section ===== */
+.product-sourcing .fx-override-section {
+  padding: var(--space-lg);
+  background: var(--bg-light);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-s);
+}
+
+.product-sourcing .fx-override-section h3 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin: 0 0 var(--space-sm);
+  font-size: 1rem;
+  color: var(--text);
+}
+
+.product-sourcing .fx-override-section h3 i {
+  color: var(--accent);
+}
+
+.product-sourcing .section-description {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  margin-bottom: var(--space-lg);
+}
+
+.product-sourcing .override-form {
+  display: flex;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.product-sourcing .override-form .form-group {
+  flex: 1;
+  min-width: 150px;
+  margin-bottom: 0;
+}
+
+.product-sourcing .override-form label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: var(--space-xs);
+}
+
+.product-sourcing .override-form input,
+.product-sourcing .override-form select {
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  border: 2px solid var(--bg-dark);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.9rem;
+  box-shadow: var(--shadow-s);
+}
+
+.product-sourcing .override-form input:focus,
+.product-sourcing .override-form select:focus {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* ===== Form Row for Modal Forms ===== */
+.product-sourcing .form-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-md);
+}
+
+.product-sourcing .checkbox-group {
+  display: flex;
+  align-items: center;
+}
+
+.product-sourcing .checkbox-group label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.product-sourcing .checkbox-group input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+}
+
+/* ===== Pricing Entries in Modal ===== */
+.product-sourcing .pricing-sku-info {
+  padding: var(--space-md);
+  background: var(--bg-light);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-md);
+  font-size: 0.9rem;
+}
+
+.product-sourcing .pricing-entries {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.product-sourcing .pricing-entry {
+  padding: var(--space-md);
+  background: var(--bg-light);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--bg-dark);
+}
+
+.product-sourcing .pricing-entry-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-sm);
+}
+
+.product-sourcing .pricing-entry-header h4 {
+  margin: 0;
+  color: var(--accent);
+  font-size: 0.9rem;
+}
+
+.product-sourcing .pricing-fields {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-sm);
+}
+
+.product-sourcing .pricing-fields .notes-field {
+  grid-column: span 3;
+}
+
+/* ===== Empty State ===== */
+.product-sourcing .empty-state {
+  text-align: center;
+  padding: var(--space-3xl);
+  color: var(--text-muted);
+}
+
+.product-sourcing .empty-state i {
+  font-size: 3rem;
+  opacity: 0.3;
+  margin-bottom: var(--space-md);
+  display: block;
+}
+
+.product-sourcing .empty-state p {
+  color: var(--text-muted);
+  margin-bottom: var(--space-lg);
+}
+
+.product-sourcing .loading-placeholder {
+  text-align: center;
+  padding: var(--space-3xl);
+  color: var(--text-muted);
+}
+
+.product-sourcing .loading-row td {
+  text-align: center;
+  padding: var(--space-xl);
+  color: var(--text-muted);
+}
+
+/* ===== Button Icon (for table actions) ===== */
+.product-sourcing .btn-icon {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-light);
+  color: var(--text-muted);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition);
+  box-shadow: var(--shadow-s);
+}
+
+.product-sourcing .btn-icon:hover {
+  background: var(--accent);
+  color: white;
+  transform: translateY(-2px);
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .product-sourcing {
+    padding: var(--space-sm);
+  }
+  
+  .product-sourcing .form-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .product-sourcing .summary-cards {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+  
+  .product-sourcing .pricing-fields {
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  .product-sourcing .pricing-fields .notes-field {
+    grid-column: span 2;
+  }
+  
+  .product-sourcing .panel-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .product-sourcing .panel-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .product-sourcing .search-box {
+    max-width: none;
+  }
+  
+  .product-sourcing .override-form {
+    flex-direction: column;
+  }
+  
+  /* Sub-tabs responsive - icons only on mobile */
+  .product-sourcing .sourcing-sub-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 0.25rem;
+    padding: 0.375rem;
+  }
+  
+  .product-sourcing .sub-tab-button {
+    min-width: auto;
+    padding: 0.5rem 0.75rem;
+  }
+  
+  .product-sourcing .sub-tab-button span {
+    display: none;
+  }
+  
+  /* Inner tabs responsive - stack vertically like management page */
+  .product-sourcing .inner-tabs {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .product-sourcing .inner-tabs .tab-button {
+    min-width: 100%;
+  }
 }

@@ -1,4 +1,4 @@
-<!-- Product Sourcing Page -->
+<!-- Product Sourcing Command Center -->
 <!-- Uses css/app.css + css/pages/inventory/sourcing.css -->
 <div class="product-sourcing">
   <!-- Header -->
@@ -6,7 +6,7 @@
     <div class="header-content">
       <h1 class="page-title">Product Sourcing</h1>
     </div>
-    <p class="page-subtitle">Manage supplier pricing, compare costs, and track margins across all products</p>
+    <p class="page-subtitle">Command Center for supplier pricing, currency rates, and margin analysis</p>
   </header>
 
   <!-- Navigation Tabs -->
@@ -28,28 +28,376 @@
     <div class="sourcing-sub-tabs">
       <button class="sub-tab-button active" data-tab="dashboard">
         <i class="fas fa-chart-pie"></i>
-        <span>Dashboard</span>
+        <span>Analysis Dashboard</span>
+      </button>
+      <button class="sub-tab-button" data-tab="matrix">
+        <i class="fas fa-table"></i>
+        <span>Supplier Matrix</span>
+      </button>
+      <button class="sub-tab-button" data-tab="suppliers">
+        <i class="fas fa-users"></i>
+        <span>Suppliers</span>
+      </button>
+      <button class="sub-tab-button" data-tab="fx-rates">
+        <i class="fas fa-exchange-alt"></i>
+        <span>FX Rates</span>
       </button>
     </div>
 
     <!-- ===== Tab Content Panels ===== -->
     
-    <!-- Dashboard Panel -->
+    <!-- ======================== ANALYSIS DASHBOARD ======================== -->
     <div class="sourcing-tab-panel active" id="panel-dashboard">
       <div class="panel-header">
-        <h2><i class="fas fa-chart-pie"></i> Sourcing Dashboard</h2>
+        <h2><i class="fas fa-chart-pie"></i> Analysis Dashboard</h2>
+        <div class="panel-actions">
+          <button class="btn secondary-btn" id="btn-refresh-analysis">
+            <i class="fas fa-sync-alt"></i> Refresh
+          </button>
+        </div>
       </div>
+      
+      <!-- Summary Cards -->
+      <div class="summary-cards" id="analysis-summary-cards">
+        <div class="summary-card">
+          <div class="card-icon"><i class="fas fa-box-open"></i></div>
+          <div class="card-content">
+            <span class="card-value" id="summary-total-products">—</span>
+            <span class="card-label">Total Products</span>
+          </div>
+        </div>
+        <div class="summary-card">
+          <div class="card-icon"><i class="fas fa-tags"></i></div>
+          <div class="card-content">
+            <span class="card-value" id="summary-with-pricing">—</span>
+            <span class="card-label">With Pricing</span>
+          </div>
+        </div>
+        <div class="summary-card healthy">
+          <div class="card-icon"><i class="fas fa-check-circle"></i></div>
+          <div class="card-content">
+            <span class="card-value" id="summary-healthy">—</span>
+            <span class="card-label">Healthy Margin</span>
+          </div>
+        </div>
+        <div class="summary-card warning">
+          <div class="card-icon"><i class="fas fa-exclamation-triangle"></i></div>
+          <div class="card-content">
+            <span class="card-value" id="summary-warning">—</span>
+            <span class="card-label">Low Margin</span>
+          </div>
+        </div>
+        <div class="summary-card danger">
+          <div class="card-icon"><i class="fas fa-times-circle"></i></div>
+          <div class="card-content">
+            <span class="card-value" id="summary-loss">—</span>
+            <span class="card-label">Loss Makers</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Search & Filters -->
+      <div class="panel-toolbar">
+        <div class="search-box">
+          <i class="fas fa-search"></i>
+          <input type="text" id="analysis-search" placeholder="Search SKU, product name, or brand...">
+        </div>
+        <div class="filter-group">
+          <select id="analysis-margin-filter">
+            <option value="">All Margins</option>
+            <option value="healthy">Healthy (≥20%)</option>
+            <option value="warning">Warning (0-20%)</option>
+            <option value="loss">Loss (<0%)</option>
+            <option value="no_magento_price">No Magento Price</option>
+            <option value="no_data">No Supplier Data</option>
+          </select>
+        </div>
+      </div>
+      
+      <!-- Analysis Table -->
       <div class="panel-body">
-        <div class="coming-soon-placeholder" style="text-align: center; padding: 4rem 2rem;">
-          <i class="fas fa-hard-hat" style="font-size: 4rem; color: var(--warning); margin-bottom: 1rem;"></i>
-          <h3 style="margin-bottom: 0.5rem;">Product Sourcing - Coming Soon</h3>
-          <p style="color: var(--text-2); max-width: 500px; margin: 0 auto;">
-            This module is currently being rebuilt. Supplier pricing, product mappings, and margin analysis features will be available soon.
-          </p>
+        <div class="table-container" id="analysis-table-container">
+          <table class="data-table analysis-table" id="analysis-table">
+            <thead>
+              <tr>
+                <th class="col-sku">SKU</th>
+                <th class="col-product">Product</th>
+                <th class="col-status">Status</th>
+                <th class="col-magento">Magento Price</th>
+                <th class="col-best-price">Best Cost</th>
+                <th class="col-winner">Best Supplier</th>
+                <th class="col-margin">Margin %</th>
+                <th class="col-suppliers">Suppliers</th>
+                <th class="col-actions">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="analysis-table-body">
+              <tr class="loading-row">
+                <td colspan="9"><i class="fas fa-spinner fa-spin"></i> Loading analysis data...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        
+        <!-- Pagination -->
+        <div class="pagination-controls" id="analysis-pagination"></div>
+      </div>
+    </div>
+
+    <!-- ======================== SUPPLIER MATRIX ======================== -->
+    <div class="sourcing-tab-panel" id="panel-matrix">
+      <div class="panel-header">
+        <h2><i class="fas fa-table"></i> Supplier Matrix</h2>
+        <div class="panel-actions">
+          <button class="btn secondary-btn" id="btn-export-matrix">
+            <i class="fas fa-download"></i> Export CSV
+          </button>
+          <button class="btn info-btn" id="btn-import-matrix">
+            <i class="fas fa-upload"></i> Import CSV
+          </button>
+          <input type="file" id="import-file-input" accept=".csv" style="display: none;">
+          <button class="btn primary-btn" id="btn-save-matrix">
+            <i class="fas fa-save"></i> Save Changes
+          </button>
+        </div>
+      </div>
+      
+      <!-- Search -->
+      <div class="panel-toolbar">
+        <div class="search-box">
+          <i class="fas fa-search"></i>
+          <input type="text" id="matrix-search" placeholder="Search SKU or product...">
+        </div>
+        <div class="legend-group">
+          <span class="legend-item best-price"><i class="fas fa-circle"></i> Best Price</span>
+          <span class="legend-item has-price"><i class="fas fa-circle"></i> Has Price</span>
+          <span class="legend-item no-price"><i class="fas fa-circle"></i> No Price</span>
+        </div>
+      </div>
+      
+      <!-- Matrix Table (Spreadsheet-like) -->
+      <div class="panel-body">
+        <div class="matrix-wrapper" id="matrix-wrapper">
+          <table class="data-table matrix-table" id="matrix-table">
+            <thead id="matrix-table-head">
+              <tr>
+                <th class="col-sku sticky-col">SKU</th>
+                <!-- Supplier columns will be dynamically generated -->
+              </tr>
+            </thead>
+            <tbody id="matrix-table-body">
+              <tr class="loading-row">
+                <td colspan="10"><i class="fas fa-spinner fa-spin"></i> Loading matrix...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        
+        <!-- Pagination -->
+        <div class="pagination-controls" id="matrix-pagination"></div>
+      </div>
+    </div>
+
+    <!-- ======================== SUPPLIERS ======================== -->
+    <div class="sourcing-tab-panel" id="panel-suppliers">
+      <div class="panel-header">
+        <h2><i class="fas fa-users"></i> Supplier Management</h2>
+        <div class="panel-actions">
+          <button class="btn primary-btn" id="btn-add-supplier">
+            <i class="fas fa-plus"></i> Add Supplier
+          </button>
+        </div>
+      </div>
+      
+      <div class="panel-body">
+        <div class="supplier-grid" id="supplier-grid">
+          <div class="loading-placeholder">
+            <i class="fas fa-spinner fa-spin"></i> Loading suppliers...
+          </div>
         </div>
       </div>
     </div>
 
+    <!-- ======================== FX RATES ======================== -->
+    <div class="sourcing-tab-panel" id="panel-fx-rates">
+      <div class="panel-header">
+        <h2><i class="fas fa-exchange-alt"></i> Currency Engine</h2>
+        <div class="panel-actions">
+          <button class="btn secondary-btn" id="btn-refresh-rates">
+            <i class="fas fa-sync-alt"></i> Refresh Rates
+          </button>
+        </div>
+      </div>
+      
+      <div class="panel-body">
+        <!-- Base Currency Info -->
+        <div class="fx-header">
+          <div class="base-currency-display">
+            <span class="label">Base Currency:</span>
+            <span class="value" id="fx-base-currency">GBP</span>
+          </div>
+          <div class="rates-source">
+            <span class="label">Source:</span>
+            <span class="value" id="fx-source">Live API</span>
+          </div>
+          <div class="last-updated">
+            <span class="label">Last Updated:</span>
+            <span class="value" id="fx-last-updated">—</span>
+          </div>
+        </div>
+        
+        <!-- FX Rates Grid -->
+        <div class="fx-rates-grid" id="fx-rates-grid">
+          <div class="loading-placeholder">
+            <i class="fas fa-spinner fa-spin"></i> Loading exchange rates...
+          </div>
+        </div>
+        
+        <!-- Override Form -->
+        <div class="fx-override-section">
+          <h3><i class="fas fa-edit"></i> Manual Rate Override</h3>
+          <p class="section-description">Lock in a specific rate for calculations. This overrides the live rate.</p>
+          <div class="override-form">
+            <div class="form-group">
+              <label for="override-currency">Currency</label>
+              <select id="override-currency">
+                <option value="">Select currency...</option>
+                <option value="USD">USD - US Dollar</option>
+                <option value="EUR">EUR - Euro</option>
+                <option value="CNY">CNY - Chinese Yuan</option>
+                <option value="JPY">JPY - Japanese Yen</option>
+                <option value="CAD">CAD - Canadian Dollar</option>
+                <option value="AUD">AUD - Australian Dollar</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="override-rate">Rate (to GBP)</label>
+              <input type="number" id="override-rate" step="0.0001" placeholder="e.g., 1.27">
+            </div>
+            <div class="form-group">
+              <label for="override-notes">Notes</label>
+              <input type="text" id="override-notes" placeholder="Reason for override...">
+            </div>
+            <button class="btn primary-btn" id="btn-set-override">
+              <i class="fas fa-lock"></i> Set Override
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ======================== MODALS ======================== -->
+
+<!-- Supplier Modal -->
+<div class="modal-backdrop" id="supplier-modal-overlay">
+  <div class="modal modal-lg" id="supplier-modal">
+    <div class="modal-header">
+      <div class="modal-icon"><i class="fas fa-users"></i></div>
+      <h3 class="modal-title" id="supplier-modal-title">Add Supplier</h3>
+      <button class="modal-close-btn" id="supplier-modal-close"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <form id="supplier-form">
+        <input type="hidden" id="supplier-id">
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="supplier-name">Supplier Name *</label>
+            <input type="text" id="supplier-name" required>
+          </div>
+          <div class="form-group">
+            <label for="supplier-code">Code * <small>(Short identifier)</small></label>
+            <input type="text" id="supplier-code" maxlength="20" required style="text-transform: uppercase;">
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="supplier-currency">Default Currency</label>
+            <select id="supplier-currency">
+              <option value="GBP">GBP - British Pound</option>
+              <option value="USD">USD - US Dollar</option>
+              <option value="EUR">EUR - Euro</option>
+              <option value="CNY">CNY - Chinese Yuan</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="supplier-lead-time">Lead Time (days)</label>
+            <input type="number" id="supplier-lead-time" min="0">
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="supplier-email">Contact Email</label>
+            <input type="email" id="supplier-email">
+          </div>
+          <div class="form-group">
+            <label for="supplier-phone">Contact Phone</label>
+            <input type="tel" id="supplier-phone">
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="supplier-website">Website</label>
+          <input type="url" id="supplier-website" placeholder="https://...">
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="supplier-min-order">Min Order Value</label>
+            <input type="number" id="supplier-min-order" min="0" step="0.01">
+          </div>
+          <div class="form-group">
+            <label for="supplier-payment-terms">Payment Terms</label>
+            <input type="text" id="supplier-payment-terms" placeholder="e.g., Net 30">
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="supplier-notes">Notes</label>
+          <textarea id="supplier-notes" rows="3"></textarea>
+        </div>
+        
+        <div class="form-group checkbox-group">
+          <label>
+            <input type="checkbox" id="supplier-active" checked>
+            Active Supplier
+          </label>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn secondary-btn" id="btn-cancel-supplier">Cancel</button>
+      <button class="btn danger-btn" id="btn-delete-supplier" style="display: none;">Delete</button>
+      <button class="btn primary-btn" id="btn-save-supplier">Save Supplier</button>
+    </div>
+  </div>
+</div>
+
+<!-- Pricing Modal (Quick Edit for Single SKU) -->
+<div class="modal-backdrop" id="pricing-modal-overlay">
+  <div class="modal modal-lg" id="pricing-modal">
+    <div class="modal-header">
+      <div class="modal-icon"><i class="fas fa-tags"></i></div>
+      <h3 class="modal-title" id="pricing-modal-title">Edit Pricing</h3>
+      <button class="modal-close-btn" id="pricing-modal-close"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="pricing-sku-info" id="pricing-sku-info">
+        <strong>SKU:</strong> <span id="pricing-sku-display">—</span>
+      </div>
+      <div class="pricing-entries" id="pricing-entries">
+        <!-- Dynamically populated -->
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn secondary-btn" id="btn-close-pricing">Close</button>
+      <button class="btn primary-btn" id="btn-save-pricing">Save All</button>
+    </div>
   </div>
 </div>
 

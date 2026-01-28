@@ -70,8 +70,12 @@ def parse_allowed_tabs(value) -> list[str]:
         return []
     return [t.strip() for t in s.split(',') if t and t.strip()]
 
-async def get_current_user(authorization: str = Header(...)):
+async def get_current_user(authorization: str = Header(None)):
+    if not authorization:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authorization header required")
     token = authorization.split("Bearer ")[-1]
+    if not token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Bearer token required")
     payload = decode_token(token)
     username = payload.get("sub")
     if not username:

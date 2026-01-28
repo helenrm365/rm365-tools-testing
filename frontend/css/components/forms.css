@@ -147,6 +147,23 @@ select:focus,
 }
 
 /* ===== C-Select (Custom Select Dropdown) ===== */
+
+/* Hide native select when enhanced to c-select */
+.select-hidden,
+.c-select select {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
 .c-select { 
   position: relative; 
   display: inline-block; 
@@ -211,47 +228,66 @@ select:focus,
   z-index: var(--z-dropdown);
   left: 0;
   right: 0;
-  margin-top: 6px;
+  top: calc(100% + 0.5rem);
   background-color: var(--bg-light);
   color: var(--text);
-  border: 1px solid var(--bg);
+  border: 1px solid rgba(0, 0, 0, 0.06);
   border-radius: 12px;
-  padding: 6px;
   box-shadow: var(--shadow-m);
-  max-height: 280px;
+  max-height: 200px;
   overflow-y: auto;
   overflow-x: hidden;
   transform-origin: top center;
-  transform: translateY(-6px) scale(0.95);
+  transform: translateY(-10px);
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  transition: all 0.2s ease;
+  transition: all var(--transition);
   scrollbar-width: thin;
   scrollbar-color: rgba(139, 195, 74, 0.4) transparent;
   width: 100%;
   box-sizing: border-box;
 }
 
+html.dark-mode .c-select__list {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
 .c-select[aria-expanded='true'] .c-select__list {
-  transform: translateY(0) scale(1);
+  transform: translateY(0);
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
 }
 
-.c-select__option {
+.c-select__option,
+.c-select__item {
   padding: 0.75rem 1rem;
-  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background var(--transition);
+  color: var(--text);
+  font-size: 0.9375rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  pointer-events: auto;
 }
 
-.c-select__option:hover {
-  background: var(--bg);
+html.dark-mode .c-select__option,
+html.dark-mode .c-select__item {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
 }
 
-.c-select__option[aria-selected='true'] {
+.c-select__option:last-child,
+.c-select__item:last-child {
+  border-bottom: none;
+}
+
+.c-select__option:hover,
+.c-select__item:hover {
+  background: rgba(139, 195, 74, 0.1);
+}
+
+.c-select__option[aria-selected='true'],
+.c-select__item[aria-selected='true'] {
   background: rgba(139, 195, 74, 0.15);
   color: #8bc34a;
   font-weight: 600;
