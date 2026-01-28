@@ -134,12 +134,12 @@ def start_scheduler():
             replace_existing=True
         )
         
-        # Schedule nightly inventory_metadata sync at 02:00
+        # Schedule nightly inventory_metadata sync at 20:19
         # This runs all the sync operations that Label Generator and Inventory Management
         # would do on page load, keeping the data fresh overnight
         scheduler.add_job(
             _with_task_tracking('nightly-inventory-sync', sync_inventory_metadata_nightly),
-            trigger=CronTrigger(hour=2, minute=0),  # Runs at 02:00 daily
+            trigger=CronTrigger(hour=20, minute=19),  # Runs at 20:19 daily
             id='nightly_inventory_sync',
             name='Nightly Inventory Metadata Sync',
             replace_existing=True
@@ -148,7 +148,7 @@ def start_scheduler():
         logger.info("📅 Scheduler configured:")
         logger.info("  - Daily order reset: 00:00 (midnight)")
         logger.info("  - Daily price activation: 00:01")
-        logger.info("  - Nightly inventory sync: 02:00")
+        logger.info("  - Nightly inventory sync: 20:19")
         
         # Start the scheduler
         scheduler.start()
