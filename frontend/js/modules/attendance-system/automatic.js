@@ -25,9 +25,12 @@ const SCAN_COOLDOWN_MS = 1000;
 const MAX_RECENT_SCANS = 10;
 const WEBSOCKET_RECONNECT_DELAY = 3000;
 
-// Hardware bridge always runs on HTTPS (wss for WebSocket)
-const BRIDGE_PROTOCOL = 'https:';
-const WS_PROTOCOL = 'wss:';
+// Hardware bridge always runs on localhost (client machine)
+// We detect if the current page is HTTPS or HTTP to decide between wss:// and ws://
+const IS_HTTPS = window.location.protocol === 'https:';
+const BRIDGE_PROTOCOL = IS_HTTPS ? 'https:' : 'http:';
+const WS_PROTOCOL = IS_HTTPS ? 'wss:' : 'ws:';
+
 const BRIDGE_BASE = `${BRIDGE_PROTOCOL}//127.0.0.1:8080`;
 const WS_URL = `${WS_PROTOCOL}//127.0.0.1:8080/ws/nfc`;
 
