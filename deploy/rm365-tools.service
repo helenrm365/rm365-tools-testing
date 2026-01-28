@@ -1,0 +1,26 @@
+[Unit]
+Description=RM365 Tools Backend Service
+After=network.target
+
+[Service]
+# === OR ==
+# User=ubuntu
+# Group=ubuntu
+
+# Update this path to where you cloned the repository on your VPS
+WorkingDirectory=/opt/rm365-tools-testing
+
+# The script that manages auto-updates and starting the server
+ExecStart=/bin/bash deploy/start_vps.sh
+
+# Restart settings
+Restart=always
+RestartSec=5
+
+# Logging (view with: journalctl -u rm365-tools -f)
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=rm365-backend
+
+[Install]
+WantedBy=multi-user.target
