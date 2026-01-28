@@ -171,9 +171,6 @@ ATTENDANCE_DB_NAME=rm365
 ATTENDANCE_DB_USER=postgres
 ATTENDANCE_DB_PASSWORD=***
 
-# Database - Labels
-LABELS_DB_URI=postgresql+psycopg2://postgres:***@localhost:5432/labels
-
 # Database - Inventory Logs
 INVENTORY_LOGS_HOST=localhost
 INVENTORY_LOGS_PORT=5432

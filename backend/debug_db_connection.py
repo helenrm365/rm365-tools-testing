@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
 
 host = os.getenv("ATTENDANCE_DB_HOST") or os.getenv("INVENTORY_LOGS_HOST")
+port = os.getenv("ATTENDANCE_DB_PORT") or "5432"
 user = os.getenv("ATTENDANCE_DB_USER") or os.getenv("INVENTORY_LOGS_USER")
 password = os.getenv("ATTENDANCE_DB_PASSWORD") or os.getenv("INVENTORY_LOGS_PASSWORD")
 dbname = os.getenv("ATTENDANCE_DB_NAME") or os.getenv("INVENTORY_LOGS_NAME")
@@ -15,7 +16,7 @@ if not host:
     print("❌ No DB host found in .env")
     sys.exit(1)
 
-print(f"🔧 Testing connection to {host}...")
+print(f"🔧 Testing connection to {host}:{port}...")
 
 modes = ['prefer', 'require', 'disable', 'allow']
 
@@ -24,6 +25,7 @@ for mode in modes:
     try:
         conn = psycopg2.connect(
             host=host,
+            port=port,
             user=user,
             password=password,
             dbname=dbname,

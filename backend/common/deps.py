@@ -7,15 +7,12 @@ from core.db import (
     get_psycopg_connection,
     get_inventory_log_connection,
     get_products_connection,
-    get_sqlalchemy_engine,
     return_attendance_connection,
     return_inventory_connection,
     return_products_connection,
 )
 from core.security import get_current_user as _get_current_user
 from core.pagination import get_page_params, PageParams  # re-export
-
-from sqlalchemy.orm import sessionmaker, Session
 
 
 # ---------------------------
@@ -83,16 +80,6 @@ def products_conn():
         return_products_connection(conn)
 
 
-def labels_engine():
-    """
-    SQLAlchemy Engine for labels DB (if/when needed).
-    Example:
-        engine = labels_engine()
-        with engine.begin() as conn: ...
-    """
-    return get_sqlalchemy_engine()
-
-
 # ---------------------------
 # Upload validation
 # ---------------------------
@@ -111,20 +98,3 @@ def ensure_csv(file: UploadFile):
 # Routers can: params: PageParams = Depends(get_page_params)
 PageParamsDep = PageParams
 GetPageParamsDep = get_page_params
-
-# ---------------------------
-# SQLAlchemy Session (for routers)
-# ---------------------------
-# Factory bound to LABELS_DB_URI (via core.db.get_sqlalchemy_engine)
-SessionLocal = sessionmaker(bind=get_sqlalchemy_engine(), autoflush=False, autocommit=False)
-
-def get_db() -> Generator[Session, None, None]:
-    """
-    FastAPI dependency that yields a SQLAlchemy Session.
-    Used by endpoints that query Postgres (e.g., /inventory/management/to-print).
-    """
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()

@@ -731,10 +731,6 @@ INVENTORY_LOGS_NAME=inventory
 INVENTORY_LOGS_USER=postgres
 INVENTORY_LOGS_PASSWORD=***
 
-# Database - Labels (Local PostgreSQL)
-LABELS_DB_URI=postgresql://postgres:password@localhost:5432/labels
-
-
 ZC_ORG_ID=your-org-id
 
 # Magento Integration
@@ -977,7 +973,6 @@ class Settings(BaseSettings):
     
     # Databases (3 PostgreSQL instances)
     ATTENDANCE_DB_HOST: str
-    LABELS_DB_URI: str
     INVENTORY_LOGS_HOST: str
     PRODUCTS_DB_HOST: str
     

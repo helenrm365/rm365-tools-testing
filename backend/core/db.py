@@ -1,7 +1,6 @@
 import os
 import psycopg2
 from psycopg2 import pool
-from sqlalchemy import create_engine
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -16,7 +15,14 @@ def _conn_common_kwargs():
     timeout = int(os.getenv("DB_CONNECT_TIMEOUT", "5"))
     # Allow overriding SSL mode, default to 'prefer' or 'disable' for local
     sslmode = os.getenv("DB_SSLMODE", "prefer")
-    return {"connect_timeout": timeout, "sslmode": sslmode}
+    
+    kwargs = {"connect_timeout": timeout, "sslmode": sslmode}
+    
+    # Support custom root certificate for IONOS/Cloud DBs
+    if os.getenv("DB_SSLROOTCERT"):
+        kwargs["sslrootcert"] = os.getenv("DB_SSLROOTCERT")
+        
+    return kwargs
 
 
 def _get_attendance_pool():
@@ -165,12 +171,6 @@ def return_products_connection(conn):
     if _products_pool and conn:
         _products_pool.putconn(conn)
 
-def get_sqlalchemy_engine():
-    """Get SQLAlchemy engine for labels module"""
-    labels_db_uri = os.getenv("LABELS_DB_URI")
-    if not labels_db_uri:
-        raise ValueError("LABELS_DB_URI environment variable not set")
-    return create_engine(labels_db_uri)
 
 def initialize_database():
     """Test database connection and initialize roles table"""

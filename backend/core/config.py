@@ -33,9 +33,6 @@ class Settings(BaseSettings):
     ATTENDANCE_DB_USER: Optional[str] = None
     ATTENDANCE_DB_PASSWORD: Optional[str] = None
 
-    # DB: labels (SQLAlchemy URI string)
-    LABELS_DB_URI: Optional[str] = None
-
     # DB: inventory_logs (psycopg2)
     INVENTORY_LOGS_HOST: Optional[str] = None
     INVENTORY_LOGS_PORT: Optional[int] = None
