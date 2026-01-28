@@ -36,17 +36,28 @@ def _get_attendance_pool():
         if sslmode == "disable" and not password:
             raise ValueError("Missing required database environment variables: ATTENDANCE_DB_HOST and ATTENDANCE_DB_PASSWORD")
         
-        _attendance_pool = pool.SimpleConnectionPool(
-            minconn=2,
-            maxconn=20,
-            host=host,
-            port=port,
-            database=database,
-            user=user,
-            password=password,
-            **_conn_common_kwargs(),
-        )
-        print("✅ Attendance database connection pool created (2-20 connections)")
+        try:
+            _attendance_pool = pool.SimpleConnectionPool(
+                minconn=2,
+                maxconn=20,
+                host=host,
+                port=port,
+                database=database,
+                user=user,
+                password=password,
+                **_conn_common_kwargs(),
+            )
+            print("✅ Attendance database connection pool created (2-20 connections)")
+        except psycopg2.OperationalError as e:
+            msg = str(e)
+            if "certificate verify failed" in msg:
+                print(f"❌ SSL Verification Failed: The database certificate could not be verified.")
+                print(f"   SUGGESTION: Set DB_SSLMODE=disable in your .env file (if you trust this network)")
+                print(f"   OR: Ensure you use the correct CA certificate.")
+            elif "no password supplied" in msg:
+                print(f"❌ Missing Password: The database requires a password but none was provided.")
+                print(f"   SUGGESTION: Check ATTENDANCE_DB_PASSWORD in your .env file.")
+            raise e
     
     return _attendance_pool
 

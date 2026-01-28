@@ -65,45 +65,6 @@ def reset_daily_order_sessions():
         logger.error(f"❌ Error during daily order reset: {e}", exc_info=True)
 
 
-def activate_daily_prices():
-    """
-    Daily price activation job - runs at 00:01 to activate pending prices.
-    
-    This job:
-    1. Finds all prices where effective_date = today
-    2. Logs each activation to sourcing_price_sync_log for auditing
-    3. The actual price activation is automatic via temporal queries,
-       this just creates audit trail entries
-    
-    This enables the Margin Reports and Supplier Comparison to always
-    use the correct 'active' price based on effective dates.
-    """
-    try:
-        from modules.inventory.sourcing.service import SourcingService
-        
-        logger.info("💰 Starting daily price activation check...")
-        
-        service = SourcingService()
-        result = service.activate_prices_for_today()
-        
-        if result.get('prices_activated', 0) > 0:
-            logger.info(f"✅ Daily price activation: {result['prices_activated']} prices now active")
-            for detail in result.get('details', []):
-                logger.info(f"   📊 {detail.get('internal_sku')}: "
-                          f"{detail.get('supplier_name')} - "
-                          f"£{detail.get('previous_price')} → £{detail.get('new_price')}")
-        else:
-            logger.info("✅ Daily price activation: No prices to activate today")
-        
-        if result.get('errors'):
-            logger.warning(f"⚠️ {len(result['errors'])} errors during activation")
-            for err in result.get('errors', []):
-                logger.warning(f"   ❌ {err.get('internal_sku')}: {err.get('error')}")
-        
-    except Exception as e:
-        logger.error(f"❌ Error during daily price activation: {e}", exc_info=True)
-
-
 def start_scheduler():
     """Start the background scheduler with all scheduled tasks"""
     from core.config import settings
@@ -124,16 +85,6 @@ def start_scheduler():
             replace_existing=True
         )
         
-        # Schedule daily price activation at 00:01
-        # This runs 1 minute after midnight to ensure date has rolled over
-        scheduler.add_job(
-            _with_task_tracking('price-activation', activate_daily_prices),
-            trigger=CronTrigger(hour=0, minute=1),  # Runs at 00:01 daily
-            id='daily_price_activation',
-            name='Daily Price Activation',
-            replace_existing=True
-        )
-        
         # Schedule nightly inventory_metadata sync at 02:00
         # This runs all the sync operations that Label Generator and Inventory Management
         # would do on page load, keeping the data fresh overnight
@@ -147,7 +98,6 @@ def start_scheduler():
         
         logger.info("📅 Scheduler configured:")
         logger.info("  - Daily order reset: 00:00 (midnight)")
-        logger.info("  - Daily price activation: 00:01")
         logger.info("  - Nightly inventory sync: 02:00")
         
         # Start the scheduler

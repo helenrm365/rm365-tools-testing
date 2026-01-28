@@ -77,14 +77,6 @@ const routes = {
   '/inventory':             '/html/inventory/management.html',
   '/inventory/management':  '/html/inventory/management.html',
   '/inventory/sourcing':    '/html/inventory/sourcing.html',
-  '/inventory/sourcing/dashboard':     '/html/inventory/sourcing.html',
-  '/inventory/sourcing/comparison':    '/html/inventory/sourcing.html',
-  '/inventory/sourcing/suppliers':     '/html/inventory/sourcing.html',
-  '/inventory/sourcing/mappings':      '/html/inventory/sourcing.html',
-  '/inventory/sourcing/prices':        '/html/inventory/sourcing.html',
-  '/inventory/sourcing/pending':       '/html/inventory/sourcing.html',
-  '/inventory/sourcing/import':        '/html/inventory/sourcing.html',
-  '/inventory/sourcing/margins':       '/html/inventory/sourcing.html',
   
   // Orders - redirect root to first sub-page
   '/orders':                    '/html/orders/order-fulfillment.html',
