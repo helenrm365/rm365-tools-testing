@@ -93,6 +93,6 @@ echo "-----------------------------------------------------"
 echo "1. DNS: Point your Cloudflare 'A' record for $DOMAIN to (Your VPS IP)"
 echo "2. SSL: Set Cloudflare SSL/TLS mode to 'Flexible'"
 echo "3. App: If backend script was updated, restart the app:"
-echo "   sudo systemctl restart rm365-backend"
+echo "   sudo systemctl restart rm365-tools"
 echo "-----------------------------------------------------"
 
