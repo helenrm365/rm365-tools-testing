@@ -191,10 +191,6 @@ ZC_CLIENT_SECRET=***
 ZC_REFRESH_TOKEN=***
 ZC_ORG_ID=***
 
-# Magento Integration
-MAGENTO_BASE_URL=https://your-magento-store.com
-MAGENTO_ACCESS_TOKEN=your_magento_api_token
-
 # CORS (for your frontend domain)
 ALLOW_ORIGINS=["http://localhost:3000"]
 ```

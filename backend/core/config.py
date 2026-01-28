@@ -21,10 +21,6 @@ class Settings(BaseSettings):
     # Built-in superadmin account (bypasses database, full access)
     SUPERADMIN_USERNAME: str = "superadmin"
     SUPERADMIN_PASSWORD: str = "admin123"  # Change this in production!
-    
-    # Magento API credentials
-    MAGENTO_BASE_URL: Optional[str] = None
-    MAGENTO_ACCESS_TOKEN: Optional[str] = None
 
     # DB: attendance (psycopg2)
     ATTENDANCE_DB_HOST: Optional[str] = None

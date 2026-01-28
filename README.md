@@ -733,10 +733,6 @@ INVENTORY_LOGS_PASSWORD=***
 
 ZC_ORG_ID=your-org-id
 
-# Magento Integration
-MAGENTO_BASE_URL=https://your-magento-store.com
-MAGENTO_ACCESS_TOKEN=your_magento_api_token
-
 # CORS (JSON array or comma-separated)
 ALLOW_ORIGINS=["http://localhost:3000","https://your-domain.com"]
 ALLOW_ORIGIN_REGEX=https://.*\.pages\.dev
@@ -871,12 +867,6 @@ See `local-hardware-bridge/ACR1252U-SETUP.md` for complete documentation.
 4. Scan product barcodes
 5. Complete when all items scanned
 
-**Configuration:**
-```bash
-MAGENTO_BASE_URL=https://your-store.com
-MAGENTO_ACCESS_TOKEN=your_api_token
-```
-
 ---
 
 ## 📚 Documentation
@@ -977,10 +967,7 @@ class Settings(BaseSettings):
     PRODUCTS_DB_HOST: str
     
     # Integrations
-
     ZC_CLIENT_SECRET: str
-    MAGENTO_BASE_URL: str      # Magento
-    MAGENTO_ACCESS_TOKEN: str
     
     # CORS
     ALLOW_ORIGINS: list = []
