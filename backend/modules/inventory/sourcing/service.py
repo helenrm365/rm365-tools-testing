@@ -755,7 +755,7 @@ class SourcingService:
 
     def sync_matrix_from_gsheet(self, sheet_id: str) -> Dict[str, Any]:
         """
-        Sync from Google Sheet (Update Only)
+        Sync from Google Sheet (Update Only - only imports changed values)
         """
         records = self.gsheets.import_matrix_from_sheet(sheet_id)
         
@@ -767,10 +767,22 @@ class SourcingService:
         all_products = self.repo.get_all_products_from_inventory_metadata()
         valid_skus = {p['sku'] for p in all_products}
         
+        # Get existing pricing to compare against
+        existing_pricing = self.repo.get_full_matrix()
+        existing_map = {}
+        for row in existing_pricing:
+            key = (row['sku'], row['supplier_id'])
+            existing_map[key] = {
+                'unit_price': float(row['unit_price']) if row['unit_price'] else None,
+                'currency': row['currency'],
+                'notes': row['notes']
+            }
+        
         skipped_skus = []
         errors = []
         debug_log = []
         entries_to_upsert = []
+        unchanged_count = 0
         
         if not records:
              return {'imported': 0, 'errors': 0, 'message': 'Sheet is empty'}
@@ -843,25 +855,42 @@ class SourcingService:
                     if notes_key:
                         notes = str(row.get(notes_key, '')).strip()
                     
-                    # Add to batch
+                    # Check if this entry has actually changed
+                    key = (sku, supplier['id'])
+                    existing = existing_map.get(key)
+                    
+                    new_notes = notes if notes else None
+                    
+                    if existing:
+                        # Compare values - only update if different
+                        price_same = abs((existing['unit_price'] or 0) - price) < 0.001
+                        currency_same = existing['currency'] == currency
+                        notes_same = (existing['notes'] or '') == (new_notes or '')
+                        
+                        if price_same and currency_same and notes_same:
+                            unchanged_count += 1
+                            continue  # Skip - no change
+                    
+                    # Add to batch (new or changed)
                     entries_to_upsert.append({
                         'sku': sku,
                         'supplier_id': supplier['id'],
                         'unit_price': price,
                         'currency': currency,  # Can be None
-                        'notes': notes if notes else None
+                        'notes': new_notes
                     })
 
                 except Exception as e:
                     errors.append(f"Row {row_idx+2}: Error processing {sku}: {str(e)}")
 
-        # Bulk upsert all entries
+        # Bulk upsert only changed entries
         updated_count = 0
         if entries_to_upsert:
             updated_count = self.repo.bulk_upsert_pricing(entries_to_upsert)
 
         return {
             'imported': updated_count,
+            'unchanged': unchanged_count,
             'skipped_invalid_skus': len(skipped_skus),
             'skipped_sku_list': skipped_skus[:20],
             'errors': len(errors),
