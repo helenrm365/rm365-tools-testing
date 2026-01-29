@@ -415,15 +415,30 @@
         <input type="text" id="gsheet-id-input" class="form-control" placeholder="e.g. 1BxiMVs0XRA5nFMdKvBdBkJ..." style="width: 100%;">
       </div>
       
-      <!-- Auto-sync link option -->
-      <div class="form-group" style="margin-top: 15px; padding: 15px; background: rgba(15, 157, 88, 0.1); border-radius: 8px;">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
+      <!-- Auto-sync options -->
+      <div class="form-group" style="margin-top: 15px;">
+        <strong><i class="fas fa-sync-alt"></i> Auto-Sync Options</strong>
+        <p class="help-text" style="margin: 5px 0 10px 0;">Enable one-way automatic syncing between the app and sheet.</p>
+        
+        <!-- Auto-Import Toggle -->
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: rgba(66, 133, 244, 0.1); border-radius: 8px; margin-bottom: 10px;">
           <div>
-            <strong><i class="fas fa-sync-alt"></i> Auto-Sync</strong>
-            <p class="help-text" style="margin: 5px 0 0 0;">Changes sync to sheet automatically after 5 seconds of inactivity.</p>
+            <strong><i class="fas fa-download"></i> Auto-Import</strong>
+            <p class="help-text" style="margin: 3px 0 0 0; font-size: 0.85em;">Sheet → App (every 30 seconds)</p>
           </div>
-          <button class="btn" id="btn-gsheet-link" style="min-width: 140px;">
-            <i class="fas fa-link"></i> Link for Auto-Sync
+          <button class="btn" id="btn-auto-import" style="min-width: 160px;">
+            <i class="fas fa-download"></i> Enable Auto-Import
+          </button>
+        </div>
+        
+        <!-- Auto-Export Toggle -->
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: rgba(15, 157, 88, 0.1); border-radius: 8px;">
+          <div>
+            <strong><i class="fas fa-upload"></i> Auto-Export</strong>
+            <p class="help-text" style="margin: 3px 0 0 0; font-size: 0.85em;">App → Sheet (5s after changes)</p>
+          </div>
+          <button class="btn" id="btn-auto-export" style="min-width: 160px;">
+            <i class="fas fa-upload"></i> Enable Auto-Export
           </button>
         </div>
       </div>

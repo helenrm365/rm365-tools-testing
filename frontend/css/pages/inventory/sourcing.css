@@ -1097,21 +1097,38 @@ html.dark-mode .product-sourcing .fx-rate-card {
   background-color: #DB4437 !important;
 }
 
-/* Link button in modal */
-#btn-gsheet-link {
-  background: #0F9D58;
+/* Auto-sync toggle buttons in modal */
+#btn-auto-import,
+#btn-auto-export {
+  background: #666;
   color: white;
   border: none;
+  transition: background-color 0.2s;
 }
 
-#btn-gsheet-link:hover {
+#btn-auto-import:hover,
+#btn-auto-export:hover {
+  background: #555;
+}
+
+#btn-auto-import.active {
+  background: #4285F4;
+}
+
+#btn-auto-import.active:hover {
+  background: #3367d6;
+}
+
+#btn-auto-export.active {
+  background: #0F9D58;
+}
+
+#btn-auto-export.active:hover {
   background: #0b8043;
 }
 
-#btn-gsheet-link.linked {
-  background: #DB4437;
-}
-
-#btn-gsheet-link.linked:hover {
-  background: #c23328;
+#btn-auto-import:disabled,
+#btn-auto-export:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
