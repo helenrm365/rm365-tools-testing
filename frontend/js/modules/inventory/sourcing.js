@@ -524,7 +524,18 @@ function handleMarginFilterChange(e) {
 
 async function loadSupplierMatrix() {
   setLoading(true);
-  showToast('Loading supplier matrix...', 'info');
+  
+  // Check for linked GSheet at start of loading (part of loading screen)
+  const savedSheetId = localStorage.getItem('rm365_gsheet_linked_id');
+  const shouldSync = !state.initialSyncDone && savedSheetId;
+  
+  if (shouldSync) {
+    showToast('Linking to Google Sheet...', 'info');
+    state.linkedSheetId = savedSheetId;
+    updateGSheetSyncIndicator('syncing');
+  } else {
+    showToast('Loading supplier matrix...', 'info');
+  }
   
   try {
     const data = await getSupplierMatrix({
@@ -539,13 +550,10 @@ async function loadSupplierMatrix() {
     renderMatrixTable();
     renderMatrixPagination();
     
-    // Auto-link and sync to GSheet on first load if a linked sheet exists
-    if (!state.initialSyncDone) {
-      const savedSheetId = localStorage.getItem('rm365_gsheet_linked_id');
-      if (savedSheetId) {
-        state.linkedSheetId = savedSheetId;
-        await performInitialGSheetSync();
-      }
+    // Perform initial GSheet sync after matrix loads (still during loading screen)
+    if (shouldSync) {
+      showToast('Syncing with Google Sheet...', 'info');
+      await performInitialGSheetSync();
       state.initialSyncDone = true;
     }
     
@@ -893,14 +901,13 @@ async function performGSheetSync() {
 
 /**
  * Perform immediate sync on initial page load (when a linked sheet exists)
+ * Called during loading screen - toasts are shown by caller
  */
 async function performInitialGSheetSync() {
   if (!state.linkedSheetId) return;
   
   try {
-    showToast('Linking to Google Sheet...', 'info');
     console.log('[Sourcing] Initial sync to GSheet:', state.linkedSheetId);
-    updateGSheetSyncIndicator('syncing');
     
     await syncMatrixToGSheet(state.linkedSheetId);
     
