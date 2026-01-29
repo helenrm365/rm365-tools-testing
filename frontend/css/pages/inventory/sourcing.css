@@ -1132,3 +1132,165 @@ html.dark-mode .product-sourcing .fx-rate-card {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* ===== GSheet Sync Card ===== */
+.gsheet-sync-card {
+  margin-top: 20px;
+  padding: 20px;
+  background: var(--surface-color, #fff);
+  border-radius: 12px;
+  border: 1px solid var(--border-color, #e0e0e0);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.gsheet-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--border-color, #e0e0e0);
+}
+
+.gsheet-card-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--text-color, #333);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gsheet-card-header h3 i {
+  color: #0F9D58;
+}
+
+.gsheet-link-display {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.gsheet-id-text {
+  font-size: 0.9rem;
+  color: var(--text-muted, #666);
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gsheet-id-text.linked {
+  color: #0F9D58;
+  font-weight: 500;
+}
+
+#btn-edit-gsheet-link {
+  padding: 6px 10px;
+  font-size: 0.85rem;
+  background: var(--surface-color, #f5f5f5);
+  border: 1px solid var(--border-color, #ddd);
+}
+
+#btn-edit-gsheet-link:hover {
+  background: var(--hover-color, #eee);
+}
+
+.gsheet-sync-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.gsheet-sync-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  background: var(--surface-alt, #f9f9f9);
+  border-radius: 8px;
+  border: 1px solid var(--border-color, #e0e0e0);
+}
+
+.gsheet-sync-option:first-child {
+  background: rgba(66, 133, 244, 0.08);
+  border-color: rgba(66, 133, 244, 0.2);
+}
+
+.gsheet-sync-option:last-child {
+  background: rgba(15, 157, 88, 0.08);
+  border-color: rgba(15, 157, 88, 0.2);
+}
+
+.sync-option-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sync-option-info strong {
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sync-option-info .fa-download {
+  color: #4285F4;
+}
+
+.sync-option-info .fa-upload {
+  color: #0F9D58;
+}
+
+.sync-description {
+  font-size: 0.8rem;
+  color: var(--text-muted, #666);
+}
+
+.gsheet-manual-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.gsheet-manual-actions .btn {
+  flex: 1;
+}
+
+.gsheet-status {
+  margin-top: 15px;
+  font-size: 0.9em;
+  color: var(--text-muted, #666);
+  text-align: center;
+}
+
+.gsheet-status:empty {
+  display: none;
+}
+
+/* Responsive for GSheet card */
+@media (max-width: 768px) {
+  .gsheet-sync-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .gsheet-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .gsheet-link-display {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .gsheet-id-text {
+    max-width: 180px;
+  }
+  
+  .gsheet-manual-actions {
+    flex-direction: column;
+  }
+}

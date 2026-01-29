@@ -286,18 +286,28 @@ function setupEventListeners() {
     document.getElementById('import-file-input')?.click();
   });
   document.getElementById('import-file-input')?.addEventListener('change', handleImportFile);
-  document.getElementById('btn-gsheet-sync')?.addEventListener('click', openGSheetModal);
   document.getElementById('matrix-search')?.addEventListener('input', debounce(handleMatrixSearch, 300));
   
-  // GSheets Modal
+  // GSheets Card - buttons on the card
   document.getElementById('btn-gsheet-export')?.addEventListener('click', handleGSheetExport);
   document.getElementById('btn-gsheet-import')?.addEventListener('click', handleGSheetImport);
   document.getElementById('btn-auto-import')?.addEventListener('click', handleToggleAutoImport);
   document.getElementById('btn-auto-export')?.addEventListener('click', handleToggleAutoExport);
-  document.getElementById('gsheet-id-input')?.addEventListener('input', updateAutoSyncButtons);
-  document.querySelector('#modal-gsheets .close-modal')?.addEventListener('click', closeGSheetModal);
-  document.getElementById('modal-gsheets')?.addEventListener('click', (e) => {
-    if (e.target === e.currentTarget) closeGSheetModal();
+  document.getElementById('btn-edit-gsheet-link')?.addEventListener('click', openGSheetLinkModal);
+  
+  // GSheet Link Modal
+  document.getElementById('btn-gsheet-link-close')?.addEventListener('click', closeGSheetLinkModal);
+  document.getElementById('btn-gsheet-link-cancel')?.addEventListener('click', closeGSheetLinkModal);
+  document.getElementById('btn-gsheet-link-save')?.addEventListener('click', handleSaveGSheetLink);
+  document.getElementById('modal-gsheet-link')?.addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeGSheetLinkModal();
+  });
+  
+  // Confirm GSheet Modal
+  document.getElementById('btn-confirm-gsheet-cancel')?.addEventListener('click', closeConfirmGSheetModal);
+  document.getElementById('btn-confirm-gsheet-yes')?.addEventListener('click', confirmSaveGSheetLink);
+  document.getElementById('modal-confirm-gsheet')?.addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeConfirmGSheetModal();
   });
   
   // Restore GSheet settings from local storage (but don't auto-enable)
@@ -305,7 +315,7 @@ function setupEventListeners() {
   if (savedId) {
     state.gsheetId = savedId;
   }
-  updateGSheetSyncIndicator();
+  updateGSheetCardDisplay();
   
   // Suppliers
   document.getElementById('btn-add-supplier')?.addEventListener('click', openAddSupplierModal);
@@ -857,7 +867,6 @@ function scheduleGSheetSync() {
   
   // Mark sync as pending
   state.gsheetSyncPending = true;
-  updateGSheetSyncIndicator('pending');
   
   // Schedule sync after 5 seconds of inactivity
   state.gsheetSyncTimeout = setTimeout(async () => {
@@ -873,20 +882,14 @@ async function performGSheetExport() {
   
   try {
     console.log('[Sourcing] Auto-exporting to GSheet:', state.gsheetId);
-    updateGSheetSyncIndicator('exporting');
     
     await syncMatrixToGSheet(state.gsheetId);
     
     state.gsheetSyncPending = false;
-    updateGSheetSyncIndicator('synced');
-    
-    // Clear "synced" indicator after 3 seconds
-    setTimeout(() => updateGSheetSyncIndicator(), 3000);
     
   } catch (error) {
     console.error('[Sourcing] GSheet auto-export failed:', error);
     state.gsheetSyncPending = false;
-    updateGSheetSyncIndicator('error');
     showToast('Failed to export to Google Sheet', 'error');
   }
 }
@@ -899,7 +902,6 @@ async function performGSheetImport() {
   
   try {
     console.log('[Sourcing] Auto-importing from GSheet:', state.gsheetId);
-    updateGSheetSyncIndicator('importing');
     
     const result = await syncMatrixFromGSheet(state.gsheetId);
     
@@ -908,14 +910,8 @@ async function performGSheetImport() {
       await loadSupplierMatrix();
     }
     
-    updateGSheetSyncIndicator('synced');
-    
-    // Clear "synced" indicator after 3 seconds
-    setTimeout(() => updateGSheetSyncIndicator(), 3000);
-    
   } catch (error) {
     console.error('[Sourcing] GSheet auto-import failed:', error);
-    updateGSheetSyncIndicator('error');
     showToast('Failed to import from Google Sheet', 'error');
   }
 }
@@ -946,59 +942,6 @@ function stopAutoImport() {
   if (state.autoImportInterval) {
     clearInterval(state.autoImportInterval);
     state.autoImportInterval = null;
-  }
-}
-
-/**
- * Update the visual indicator for GSheet sync status
- */
-function updateGSheetSyncIndicator(status = null) {
-  const btn = document.getElementById('btn-gsheet-sync');
-  if (!btn) return;
-  
-  // Remove all status classes
-  btn.classList.remove('sync-pending', 'sync-syncing', 'sync-synced', 'sync-error', 'sync-linked', 'sync-import', 'sync-export');
-  
-  const hasAutoSync = state.autoImportEnabled || state.autoExportEnabled;
-  
-  if (!hasAutoSync) {
-    btn.innerHTML = '<i class="fas fa-file-excel"></i> GSheet Sync';
-    return;
-  }
-  
-  // Show linked state
-  btn.classList.add('sync-linked');
-  
-  switch (status) {
-    case 'importing':
-      btn.innerHTML = '<i class="fas fa-download fa-spin"></i> Importing...';
-      btn.classList.add('sync-syncing', 'sync-import');
-      break;
-    case 'exporting':
-      btn.innerHTML = '<i class="fas fa-upload fa-spin"></i> Exporting...';
-      btn.classList.add('sync-syncing', 'sync-export');
-      break;
-    case 'pending':
-      btn.innerHTML = '<i class="fas fa-clock"></i> Pending...';
-      btn.classList.add('sync-pending');
-      break;
-    case 'synced':
-      btn.innerHTML = '<i class="fas fa-check"></i> Synced';
-      btn.classList.add('sync-synced');
-      break;
-    case 'error':
-      btn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Sync Failed';
-      btn.classList.add('sync-error');
-      break;
-    default:
-      // Show which modes are enabled
-      if (state.autoImportEnabled && state.autoExportEnabled) {
-        btn.innerHTML = '<i class="fas fa-sync-alt"></i> Auto ↓↑';
-      } else if (state.autoImportEnabled) {
-        btn.innerHTML = '<i class="fas fa-download"></i> Auto Import';
-      } else if (state.autoExportEnabled) {
-        btn.innerHTML = '<i class="fas fa-upload"></i> Auto Export';
-      }
   }
 }
 
@@ -1103,30 +1046,106 @@ async function handleImportFile(e) {
 }
 
 // ============================================================================
-// GOOGLE SHEETS SYNC (Manual + Auto)
+// GOOGLE SHEETS SYNC (Card-based UI)
 // ============================================================================
 
-function openGSheetModal() {
-  const modal = document.getElementById('modal-gsheets');
+/**
+ * Update the GSheet card display to show linked sheet ID
+ */
+function updateGSheetCardDisplay() {
+  const textEl = document.getElementById('gsheet-id-text');
+  if (!textEl) return;
+  
+  if (state.gsheetId) {
+    // Truncate long IDs for display
+    const displayId = state.gsheetId.length > 20 
+      ? state.gsheetId.substring(0, 8) + '...' + state.gsheetId.substring(state.gsheetId.length - 8)
+      : state.gsheetId;
+    textEl.textContent = displayId;
+    textEl.classList.add('linked');
+    textEl.title = state.gsheetId;
+  } else {
+    textEl.textContent = 'No sheet linked';
+    textEl.classList.remove('linked');
+    textEl.title = '';
+  }
+  
+  updateAutoSyncButtons();
+}
+
+/**
+ * Open the sheet link edit modal
+ */
+function openGSheetLinkModal() {
+  const modal = document.getElementById('modal-gsheet-link');
   if (modal) {
     modal.classList.add('active');
-    // Restore last used sheet ID from local storage
-    const lastId = localStorage.getItem('rm365_gsheet_id');
-    if (lastId) {
-      document.getElementById('gsheet-id-input').value = lastId;
+    // Pre-fill with current ID
+    const input = document.getElementById('gsheet-id-input');
+    if (input) {
+      input.value = state.gsheetId || '';
     }
-    
-    // Update toggle button states
-    updateAutoSyncButtons();
   }
 }
 
-function closeGSheetModal() {
-  const modal = document.getElementById('modal-gsheets');
+/**
+ * Close the sheet link modal
+ */
+function closeGSheetLinkModal() {
+  const modal = document.getElementById('modal-gsheet-link');
   if (modal) {
     modal.classList.remove('active');
   }
-  document.getElementById('gsheet-status').textContent = '';
+}
+
+/**
+ * Handle save button click - show confirmation
+ */
+function handleSaveGSheetLink() {
+  const sheetId = document.getElementById('gsheet-id-input').value.trim();
+  
+  if (!sheetId) {
+    showToast('Please enter a Google Sheet ID', 'warning');
+    return;
+  }
+  
+  // Show confirmation modal
+  const confirmModal = document.getElementById('modal-confirm-gsheet');
+  const confirmIdEl = document.getElementById('confirm-gsheet-id');
+  if (confirmModal && confirmIdEl) {
+    confirmIdEl.textContent = sheetId;
+    confirmModal.classList.add('active');
+  }
+}
+
+/**
+ * Close confirmation modal
+ */
+function closeConfirmGSheetModal() {
+  const modal = document.getElementById('modal-confirm-gsheet');
+  if (modal) {
+    modal.classList.remove('active');
+  }
+}
+
+/**
+ * Confirm and save the sheet link
+ */
+function confirmSaveGSheetLink() {
+  const sheetId = document.getElementById('gsheet-id-input').value.trim();
+  
+  // Save to state and localStorage
+  state.gsheetId = sheetId;
+  localStorage.setItem('rm365_gsheet_id', sheetId);
+  
+  // Close modals
+  closeConfirmGSheetModal();
+  closeGSheetLinkModal();
+  
+  // Update display
+  updateGSheetCardDisplay();
+  
+  showToast('Google Sheet link saved!', 'success');
 }
 
 /**
@@ -1135,29 +1154,28 @@ function closeGSheetModal() {
 function updateAutoSyncButtons() {
   const importBtn = document.getElementById('btn-auto-import');
   const exportBtn = document.getElementById('btn-auto-export');
-  const sheetIdInput = document.getElementById('gsheet-id-input');
-  const currentId = sheetIdInput?.value?.trim() || '';
+  const hasSheet = !!state.gsheetId;
   
   if (importBtn) {
-    if (state.autoImportEnabled && state.gsheetId === currentId) {
-      importBtn.innerHTML = '<i class="fas fa-stop"></i> Stop Auto-Import';
+    if (state.autoImportEnabled) {
+      importBtn.innerHTML = '<i class="fas fa-stop"></i> Stop';
       importBtn.classList.add('active');
     } else {
-      importBtn.innerHTML = '<i class="fas fa-download"></i> Enable Auto-Import';
+      importBtn.innerHTML = '<i class="fas fa-download"></i> Enable';
       importBtn.classList.remove('active');
     }
-    importBtn.disabled = !currentId;
+    importBtn.disabled = !hasSheet;
   }
   
   if (exportBtn) {
-    if (state.autoExportEnabled && state.gsheetId === currentId) {
-      exportBtn.innerHTML = '<i class="fas fa-stop"></i> Stop Auto-Export';
+    if (state.autoExportEnabled) {
+      exportBtn.innerHTML = '<i class="fas fa-stop"></i> Stop';
       exportBtn.classList.add('active');
     } else {
-      exportBtn.innerHTML = '<i class="fas fa-upload"></i> Enable Auto-Export';
+      exportBtn.innerHTML = '<i class="fas fa-upload"></i> Enable';
       exportBtn.classList.remove('active');
     }
-    exportBtn.disabled = !currentId;
+    exportBtn.disabled = !hasSheet;
   }
 }
 
@@ -1165,41 +1183,36 @@ function updateAutoSyncButtons() {
  * Toggle auto-import mode (Sheet → App)
  */
 function handleToggleAutoImport() {
-  const sheetId = document.getElementById('gsheet-id-input').value.trim();
-  if (!sheetId) {
-    showToast('Please enter a Google Sheet ID first', 'warning');
+  if (!state.gsheetId) {
+    showToast('Please link a Google Sheet first', 'warning');
     return;
   }
   
-  if (state.autoImportEnabled && state.gsheetId === sheetId) {
+  if (state.autoImportEnabled) {
     // Disable auto-import
     state.autoImportEnabled = false;
     stopAutoImport();
     showToast('Auto-import disabled', 'info');
   } else {
     // Enable auto-import
-    state.gsheetId = sheetId;
     state.autoImportEnabled = true;
-    localStorage.setItem('rm365_gsheet_id', sheetId);
     showToast('Auto-import enabled! Syncing from sheet every 30 seconds.', 'success');
     startAutoImport();
   }
   
   updateAutoSyncButtons();
-  updateGSheetSyncIndicator();
 }
 
 /**
  * Toggle auto-export mode (App → Sheet)
  */
 function handleToggleAutoExport() {
-  const sheetId = document.getElementById('gsheet-id-input').value.trim();
-  if (!sheetId) {
-    showToast('Please enter a Google Sheet ID first', 'warning');
+  if (!state.gsheetId) {
+    showToast('Please link a Google Sheet first', 'warning');
     return;
   }
   
-  if (state.autoExportEnabled && state.gsheetId === sheetId) {
+  if (state.autoExportEnabled) {
     // Disable auto-export
     state.autoExportEnabled = false;
     // Clear any pending export
@@ -1211,77 +1224,78 @@ function handleToggleAutoExport() {
     showToast('Auto-export disabled', 'info');
   } else {
     // Enable auto-export
-    state.gsheetId = sheetId;
     state.autoExportEnabled = true;
-    localStorage.setItem('rm365_gsheet_id', sheetId);
     showToast('Auto-export enabled! Changes will sync to sheet after 5 seconds.', 'success');
   }
   
   updateAutoSyncButtons();
-  updateGSheetSyncIndicator();
 }
 
 async function handleGSheetExport() {
-  const sheetId = document.getElementById('gsheet-id-input').value.trim();
-  if (!sheetId) {
-    showToast('Please enter a Google Sheet ID', 'warning');
+  if (!state.gsheetId) {
+    showToast('Please link a Google Sheet first', 'warning');
     return;
   }
   
-  // Save ID
-  localStorage.setItem('rm365_gsheet_id', sheetId);
-  
   const statusEl = document.getElementById('gsheet-status');
-  statusEl.textContent = 'Exporting... This may take a few seconds.';
-  statusEl.style.color = '#0066cc';
+  if (statusEl) {
+    statusEl.textContent = 'Exporting...';
+    statusEl.style.color = '#0066cc';
+  }
   
   setLoading(true);
   try {
-    const result = await syncMatrixToGSheet(sheetId);
+    await syncMatrixToGSheet(state.gsheetId);
     showToast('Successfully exported to Google Sheet', 'success');
-    statusEl.textContent = 'Export successful!';
-    statusEl.style.color = 'green';
-    setTimeout(closeGSheetModal, 2000);
+    if (statusEl) {
+      statusEl.textContent = 'Export successful!';
+      statusEl.style.color = 'green';
+      setTimeout(() => { statusEl.textContent = ''; }, 3000);
+    }
   } catch (error) {
     console.error('GSheet Export Error:', error);
     showToast('Export failed: ' + error.message, 'error');
-    statusEl.textContent = 'Error: ' + error.message;
-    statusEl.style.color = 'red';
+    if (statusEl) {
+      statusEl.textContent = 'Error: ' + error.message;
+      statusEl.style.color = 'red';
+    }
   } finally {
     setLoading(false);
   }
 }
 
 async function handleGSheetImport() {
-  const sheetId = document.getElementById('gsheet-id-input').value.trim();
-  if (!sheetId) {
-    showToast('Please enter a Google Sheet ID', 'warning');
+  if (!state.gsheetId) {
+    showToast('Please link a Google Sheet first', 'warning');
     return;
   }
   
-   // Save ID
-  localStorage.setItem('rm365_gsheet_id', sheetId);
-  
   const statusEl = document.getElementById('gsheet-status');
-  statusEl.textContent = 'Importing... This may take a few seconds.';
-  statusEl.style.color = '#0066cc';
+  if (statusEl) {
+    statusEl.textContent = 'Importing...';
+    statusEl.style.color = '#0066cc';
+  }
 
   setLoading(true);
   try {
-    const result = await syncMatrixFromGSheet(sheetId);
+    const result = await syncMatrixFromGSheet(state.gsheetId);
     const unchangedMsg = result.unchanged ? ` (${result.unchanged} unchanged)` : '';
     showToast(`Imported ${result.imported} prices${unchangedMsg}`, 'success');
-    statusEl.textContent = `Import successful! Updated ${result.imported} prices.`;
-    statusEl.style.color = 'green';
+    if (statusEl) {
+      statusEl.textContent = `Import successful! Updated ${result.imported} prices.`;
+      statusEl.style.color = 'green';
+      setTimeout(() => { statusEl.textContent = ''; }, 3000);
+    }
     
     // Refresh matrix
     loadSupplierMatrix();
-    setTimeout(closeGSheetModal, 2000);
   } catch (error) {
     console.error('GSheet Import Error:', error);
     showToast('Import failed: ' + error.message, 'error');
-    statusEl.textContent = 'Error: ' + error.message;
-    statusEl.style.color = 'red';
+    if (statusEl) {
+      statusEl.textContent = 'Error: ' + error.message;
+      statusEl.style.color = 'red';
+    }
   } finally {
     setLoading(false);
   }
