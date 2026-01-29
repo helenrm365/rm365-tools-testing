@@ -1741,7 +1741,7 @@ window.sourcingModule = {
   openEditSupplierModal,
   handleMatrixCellEdit,
   handleRemoveFXOverride,
-  openGSheetModal,
+  openGSheetLinkModal,
   goToAnalysisPage: async (page) => {
     state.analysisPage = page;
     await loadAnalysisDashboard();
