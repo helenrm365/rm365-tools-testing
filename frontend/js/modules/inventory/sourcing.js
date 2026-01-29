@@ -229,8 +229,7 @@ function setupEventListeners() {
   document.getElementById('analysis-search')?.addEventListener('input', debounce(handleAnalysisSearch, 300));
   document.getElementById('analysis-margin-filter')?.addEventListener('change', handleMarginFilterChange);
   
-  // Matrix
-  document.getElementById('btn-save-matrix')?.addEventListener('click', saveMatrixChanges);
+  // Matrix (auto-save on blur - no save button needed)
   document.getElementById('btn-export-matrix')?.addEventListener('click', exportMatrix);
   document.getElementById('btn-import-matrix')?.addEventListener('click', () => {
     document.getElementById('import-file-input')?.click();
@@ -601,7 +600,7 @@ function renderMatrixPagination() {
   `;
 }
 
-function handleMatrixCellEdit(cell) {
+async function handleMatrixCellEdit(cell) {
   const newValue = cell.textContent.trim();
   const originalValue = cell.dataset.original || '';
   const originalCurrency = cell.dataset.currency || '';
@@ -610,113 +609,97 @@ function handleMatrixCellEdit(cell) {
   const sku = td.dataset.sku;
   const supplierId = parseInt(td.dataset.supplierId);
   
-  if (newValue === '') {
-    // Mark for deletion
-    state.pendingMatrixChanges.set(`${sku}-${supplierId}`, { 
-      sku, supplierId, action: 'delete' 
-    });
-    td.classList.add('pending-delete');
-    updateSaveButtonState();
+  // Case 1: Cleared the cell (delete the pricing)
+  if (newValue === '' && originalValue !== '') {
+    try {
+      td.classList.add('saving');
+      await deletePricing(sku, supplierId);
+      
+      // Update local state
+      cell.dataset.original = '';
+      cell.dataset.currency = '';
+      td.classList.remove('has-price', 'best-price');
+      td.classList.add('no-price');
+      
+      showToast('Price removed', 'success');
+    } catch (error) {
+      console.error('[Sourcing] Delete failed:', error);
+      // Restore original value
+      cell.textContent = formatPriceDisplay(originalValue, originalCurrency);
+      showToast('Failed to remove price', 'error');
+    } finally {
+      td.classList.remove('saving');
+    }
+    return;
+  }
+  
+  // Case 2: Cell is empty and was empty - do nothing
+  if (newValue === '' && originalValue === '') {
     return;
   }
   
   // Parse the input - might contain currency symbol
   const { price, currency: detectedCurrency } = parsePriceWithCurrency(newValue);
   
+  // Case 3: Invalid input
   if (price === null) {
-    // Invalid input - restore original display
-    cell.textContent = formatPriceDisplay(originalValue, originalCurrency);
+    // Flash red and restore
+    td.classList.add('invalid-flash');
+    setTimeout(() => td.classList.remove('invalid-flash'), 600);
+    
+    cell.textContent = originalValue ? formatPriceDisplay(originalValue, originalCurrency) : '';
     showToast('Invalid price value', 'error');
     return;
   }
   
-  // Determine final currency:
-  // - If user typed a symbol (£10), use that currency
-  // - If user typed just a number (10), keep as placeholder (no currency)
+  // Determine final currency
   const finalCurrency = detectedCurrency || null;
   
-  // Check if value actually changed
-  const priceChanged = parseFloat(originalValue) !== price;
+  // Case 4: No actual change - just restore display format
+  const originalPrice = originalValue !== '' ? parseFloat(originalValue) : null;
+  const priceChanged = originalPrice === null || Math.abs(originalPrice - price) > 0.001;
   const currencyChanged = originalCurrency !== (finalCurrency || '');
   
   if (!priceChanged && !currencyChanged) {
-    // No change - restore display
+    // Just update display format without saving
     cell.textContent = formatPriceDisplay(price, finalCurrency);
     return;
   }
   
-  // Update the display to show parsed value with symbol
-  cell.textContent = formatPriceDisplay(price, finalCurrency);
-  cell.dataset.currency = finalCurrency || '';
-  
-  state.pendingMatrixChanges.set(`${sku}-${supplierId}`, {
-    sku,
-    supplier_id: supplierId,
-    unit_price: price,
-    currency: finalCurrency  // null = placeholder
-  });
-  td.classList.add('pending-change');
-  td.classList.remove('pending-delete');
-  
-  updateSaveButtonState();
-}
-
-function updateSaveButtonState() {
-  const saveBtn = document.getElementById('btn-save-matrix');
-  if (saveBtn) {
-    const hasChanges = state.pendingMatrixChanges.size > 0;
-    saveBtn.disabled = !hasChanges;
-    saveBtn.classList.toggle('has-changes', hasChanges);
-    
-    if (hasChanges) {
-      saveBtn.innerHTML = `<i class="fas fa-save"></i> Save (${state.pendingMatrixChanges.size})`;
-    } else {
-      saveBtn.innerHTML = `<i class="fas fa-save"></i> Save Changes`;
-    }
-  }
-}
-
-async function saveMatrixChanges() {
-  if (state.pendingMatrixChanges.size === 0) return;
-  
-  setLoading(true);
-  showToast('Saving changes...', 'info');
-  
+  // Case 5: Value changed - save immediately
   try {
-    const updates = [];
-    const deletes = [];
+    td.classList.add('saving');
     
-    state.pendingMatrixChanges.forEach((change, key) => {
-      if (change.action === 'delete') {
-        deletes.push(change);
-      } else {
-        updates.push(change);
-      }
+    await upsertPricing({
+      sku,
+      supplier_id: supplierId,
+      unit_price: price,
+      currency: finalCurrency
     });
     
-    // Process updates
-    if (updates.length > 0) {
-      await bulkUpdatePricing(updates);
-    }
+    // Update local state
+    cell.textContent = formatPriceDisplay(price, finalCurrency);
+    cell.dataset.original = price.toString();
+    cell.dataset.currency = finalCurrency || '';
     
-    // Process deletes
-    for (const del of deletes) {
-      await deletePricing(del.sku, del.supplierId);
-    }
+    td.classList.remove('no-price');
+    td.classList.add('has-price');
+    td.classList.add('save-success');
+    setTimeout(() => td.classList.remove('save-success'), 600);
     
-    state.pendingMatrixChanges.clear();
-    updateSaveButtonState();
-    
-    showToast(`Saved ${updates.length + deletes.length} changes`, 'success');
-    await loadSupplierMatrix();
+    showToast('Price saved', 'success');
     
   } catch (error) {
-    console.error('[Sourcing] Error saving matrix:', error);
-    showToast('Failed to save changes', 'error');
+    console.error('[Sourcing] Save failed:', error);
+    // Restore original value
+    cell.textContent = originalValue ? formatPriceDisplay(originalValue, originalCurrency) : '';
+    showToast('Failed to save price', 'error');
   } finally {
-    setLoading(false);
+    td.classList.remove('saving');
   }
 }
+
+// saveMatrixChanges removed - now using auto-save on blur
 
 async function exportMatrix() {
   try {
