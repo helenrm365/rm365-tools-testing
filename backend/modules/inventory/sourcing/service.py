@@ -630,18 +630,29 @@ class SourcingService:
                 
                 if price_value:
                     try:
-                        price = float(price_value)
-                        # Use provided currency or fall back to supplier default
-                        currency = row.get(currency_col, '').strip()
-                        if not currency:
-                            currency = supplier['default_currency']
+                        # Parse price with potential currency symbol
+                        price, detected_currency = self._parse_price_with_currency(price_value)
+                        
+                        if price is None:
+                            errors.append(f"Row {row_num}, {code}: Invalid price '{price_value}'")
+                            continue
+                        
+                        # Priority: detected currency > explicit column > None (placeholder)
+                        currency = None
+                        if detected_currency:
+                            currency = detected_currency
+                        else:
+                            explicit_currency = row.get(currency_col, '').strip().upper()
+                            if explicit_currency:
+                                currency = explicit_currency
+                        
                         notes = row.get(notes_col, '').strip()
                         
                         entries.append({
                             'sku': sku,
                             'supplier_id': supplier['id'],
                             'unit_price': price,
-                            'currency': currency.upper(),
+                            'currency': currency,  # Can be None
                             'notes': notes if notes else None
                         })
                     except (ValueError, TypeError) as e:
@@ -699,6 +710,49 @@ class SourcingService:
         
         return self.gsheets.export_matrix_to_sheet(sheet_id, sorted_data, suppliers)
 
+    def _parse_price_with_currency(self, raw_value: str) -> tuple:
+        """
+        Parse a price string that may contain a currency symbol.
+        Returns (price: float, currency: str or None)
+        
+        Examples:
+          '£10.50' -> (10.50, 'GBP')
+          '$25' -> (25.0, 'USD')
+          '€15.00' -> (15.0, 'EUR')
+          '10.50' -> (10.50, None)  # No currency detected
+        """
+        if not raw_value:
+            return (None, None)
+        
+        raw_value = str(raw_value).strip()
+        detected_currency = None
+        
+        # Currency symbol mapping
+        currency_symbols = {
+            '£': 'GBP',
+            '$': 'USD', 
+            '€': 'EUR',
+            '¥': 'JPY',
+            'zł': 'PLN',
+            'kr': 'SEK',  # Could also be NOK, DKK
+        }
+        
+        # Detect currency from symbol
+        for symbol, currency in currency_symbols.items():
+            if symbol in raw_value:
+                detected_currency = currency
+                raw_value = raw_value.replace(symbol, '')
+                break
+        
+        # Clean remaining characters
+        clean_price = raw_value.replace(',', '').strip()
+        
+        try:
+            price = float(clean_price)
+            return (price, detected_currency)
+        except (ValueError, TypeError):
+            return (None, None)
+
     def sync_matrix_from_gsheet(self, sheet_id: str) -> Dict[str, Any]:
         """
         Sync from Google Sheet (Update Only)
@@ -713,14 +767,10 @@ class SourcingService:
         all_products = self.repo.get_all_products_from_inventory_metadata()
         valid_skus = {p['sku'] for p in all_products}
         
-        # Get existing pricing
-        existing_pricing = self.repo.get_full_matrix()
-        existing_keys = {(row['sku'], row['supplier_id']) for row in existing_pricing}
-        
-        updated_count = 0
         skipped_skus = []
         errors = []
         debug_log = []
+        entries_to_upsert = []
         
         if not records:
              return {'imported': 0, 'errors': 0, 'message': 'Sheet is empty'}
@@ -773,42 +823,42 @@ class SourcingService:
                     continue  # Skip empty pricing cells
                 
                 try:
-                    # Clean price string (remove currency symbols if user added them)
-                    clean_price = raw_price_str.replace('£', '').replace('$', '').replace('€', '').replace(',', '')
-                    price = float(clean_price)
+                    # Parse price with potential currency symbol
+                    price, detected_currency = self._parse_price_with_currency(raw_price_str)
                     
-                    currency = 'GBP'
-                    if currency_key:
-                        currency = str(row.get(currency_key, 'GBP')).strip() or 'GBP'
+                    if price is None:
+                        errors.append(f"Row {row_idx+2}: Invalid price '{raw_price}' for SKU {sku}")
+                        continue
+                    
+                    # Priority: detected currency > explicit column > None (no currency)
+                    currency = None
+                    if detected_currency:
+                        currency = detected_currency
+                    elif currency_key:
+                        explicit_currency = str(row.get(currency_key, '')).strip().upper()
+                        if explicit_currency:
+                            currency = explicit_currency
                     
                     notes = ''
                     if notes_key:
                         notes = str(row.get(notes_key, '')).strip()
                     
-                    # Update DB
-                    key = (sku, supplier['id'])
-                    if key in existing_keys:
-                         self.repo.update_supplier_price(
-                            sku=sku,
-                            supplier_id=supplier['id'],
-                            price=price,
-                            currency=currency,
-                            notes=notes
-                        )
-                    else:
-                        self.repo.add_supplier_price(
-                            sku=sku,
-                            supplier_id=supplier['id'],
-                            price=price,
-                            currency=currency,
-                            notes=notes
-                        )
-                    updated_count += 1
+                    # Add to batch
+                    entries_to_upsert.append({
+                        'sku': sku,
+                        'supplier_id': supplier['id'],
+                        'unit_price': price,
+                        'currency': currency,  # Can be None
+                        'notes': notes if notes else None
+                    })
 
-                except ValueError:
-                    errors.append(f"Row {row_idx+2}: Invalid price '{raw_price}' for SKU {sku}")
                 except Exception as e:
-                    errors.append(f"Row {row_idx+2}: Error saving {sku}: {str(e)}")
+                    errors.append(f"Row {row_idx+2}: Error processing {sku}: {str(e)}")
+
+        # Bulk upsert all entries
+        updated_count = 0
+        if entries_to_upsert:
+            updated_count = self.repo.bulk_upsert_pricing(entries_to_upsert)
 
         return {
             'imported': updated_count,

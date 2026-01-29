@@ -382,7 +382,7 @@ class SourcingRepository:
             self._return_conn(conn)
 
     def bulk_upsert_pricing(self, entries: List[Dict]) -> int:
-        """Bulk upsert pricing entries"""
+        """Bulk upsert pricing entries. Currency can be None for placeholder prices."""
         conn = self._get_conn()
         try:
             cursor = conn.cursor()
@@ -405,7 +405,7 @@ class SourcingRepository:
                     entry['sku'],
                     entry['supplier_id'],
                     entry['unit_price'],
-                    entry.get('currency', 'GBP'),
+                    entry.get('currency'),  # Allow None for placeholder prices
                     entry.get('moq'),
                     entry.get('shipping_cost'),
                     entry.get('notes'),

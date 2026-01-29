@@ -34,6 +34,84 @@ import {
 } from '../../services/api/sourcingApi.js';
 
 // ============================================================================
+// CURRENCY HELPERS
+// ============================================================================
+
+const CURRENCY_SYMBOLS = {
+  'GBP': '£',
+  'USD': '$',
+  'EUR': '€',
+  'JPY': '¥',
+  'PLN': 'zł',
+  'SEK': 'kr'
+};
+
+const SYMBOL_TO_CURRENCY = {
+  '£': 'GBP',
+  '$': 'USD',
+  '€': 'EUR',
+  '¥': 'JPY',
+  'zł': 'PLN',
+  'kr': 'SEK'
+};
+
+/**
+ * Parse a price string that may contain a currency symbol.
+ * Returns { price: number|null, currency: string|null }
+ * 
+ * Examples:
+ *   '£10.50' -> { price: 10.50, currency: 'GBP' }
+ *   '$25' -> { price: 25.0, currency: 'USD' }
+ *   '10.50' -> { price: 10.50, currency: null }  (placeholder)
+ */
+function parsePriceWithCurrency(rawValue) {
+  if (!rawValue || rawValue === '') {
+    return { price: null, currency: null };
+  }
+  
+  let value = String(rawValue).trim();
+  let detectedCurrency = null;
+  
+  // Detect currency from symbol
+  for (const [symbol, currency] of Object.entries(SYMBOL_TO_CURRENCY)) {
+    if (value.includes(symbol)) {
+      detectedCurrency = currency;
+      value = value.replace(symbol, '');
+      break;
+    }
+  }
+  
+  // Clean remaining characters
+  const cleanPrice = value.replace(/,/g, '').trim();
+  const price = parseFloat(cleanPrice);
+  
+  if (isNaN(price)) {
+    return { price: null, currency: null };
+  }
+  
+  return { price, currency: detectedCurrency };
+}
+
+/**
+ * Format a price with optional currency symbol.
+ * If currency is null/undefined, just show the number (placeholder).
+ */
+function formatPriceDisplay(price, currency) {
+  if (price == null) return '';
+  
+  const numPrice = parseFloat(price);
+  if (isNaN(numPrice)) return '';
+  
+  // No currency = placeholder (just show number)
+  if (!currency) {
+    return numPrice.toFixed(2);
+  }
+  
+  const symbol = CURRENCY_SYMBOLS[currency] || '';
+  return `${symbol}${numPrice.toFixed(2)}`;
+}
+
+// ============================================================================
 // STATE
 // ============================================================================
 
@@ -467,16 +545,22 @@ function renderMatrixTable() {
       
       const cellClass = isBest ? 'best-price' : (hasPrice ? 'has-price' : 'no-price');
       
+      // Display with currency symbol if currency is set, otherwise just number (placeholder)
+      const displayValue = hasPrice ? formatPriceDisplay(pricing.unit_price, pricing.currency) : '';
+      // Store raw values for editing
+      const rawPrice = hasPrice ? pricing.unit_price : '';
+      const rawCurrency = pricing?.currency || '';  // Empty string = no currency (placeholder)
+      
       return `
         <td class="col-supplier ${cellClass}" 
             data-sku="${escapeHtml(row.sku)}" 
             data-supplier-id="${s.id}"
             data-supplier-code="${s.code}">
           <div class="matrix-cell" contenteditable="true" 
-               data-original="${hasPrice ? pricing.unit_price : ''}"
-               data-currency="${pricing?.currency || s.default_currency || 'GBP'}"
+               data-original="${rawPrice}"
+               data-currency="${rawCurrency}"
                onblur="window.sourcingModule.handleMatrixCellEdit(this)">
-            ${hasPrice ? pricing.unit_price : ''}
+            ${displayValue}
           </div>
           ${pricing?.notes ? `<span class="cell-note" title="${escapeHtml(pricing.notes)}">📝</span>` : ''}
         </td>
@@ -520,13 +604,11 @@ function renderMatrixPagination() {
 function handleMatrixCellEdit(cell) {
   const newValue = cell.textContent.trim();
   const originalValue = cell.dataset.original || '';
-  
-  if (newValue === originalValue) return;
+  const originalCurrency = cell.dataset.currency || '';
   
   const td = cell.closest('td');
   const sku = td.dataset.sku;
   const supplierId = parseInt(td.dataset.supplierId);
-  const currency = cell.dataset.currency || 'GBP';
   
   if (newValue === '') {
     // Mark for deletion
@@ -534,23 +616,47 @@ function handleMatrixCellEdit(cell) {
       sku, supplierId, action: 'delete' 
     });
     td.classList.add('pending-delete');
-  } else {
-    const price = parseFloat(newValue);
-    if (isNaN(price)) {
-      cell.textContent = originalValue;
-      showToast('Invalid price value', 'error');
-      return;
-    }
-    
-    state.pendingMatrixChanges.set(`${sku}-${supplierId}`, {
-      sku,
-      supplier_id: supplierId,
-      unit_price: price,
-      currency
-    });
-    td.classList.add('pending-change');
-    td.classList.remove('pending-delete');
+    updateSaveButtonState();
+    return;
   }
+  
+  // Parse the input - might contain currency symbol
+  const { price, currency: detectedCurrency } = parsePriceWithCurrency(newValue);
+  
+  if (price === null) {
+    // Invalid input - restore original display
+    cell.textContent = formatPriceDisplay(originalValue, originalCurrency);
+    showToast('Invalid price value', 'error');
+    return;
+  }
+  
+  // Determine final currency:
+  // - If user typed a symbol (£10), use that currency
+  // - If user typed just a number (10), keep as placeholder (no currency)
+  const finalCurrency = detectedCurrency || null;
+  
+  // Check if value actually changed
+  const priceChanged = parseFloat(originalValue) !== price;
+  const currencyChanged = originalCurrency !== (finalCurrency || '');
+  
+  if (!priceChanged && !currencyChanged) {
+    // No change - restore display
+    cell.textContent = formatPriceDisplay(price, finalCurrency);
+    return;
+  }
+  
+  // Update the display to show parsed value with symbol
+  cell.textContent = formatPriceDisplay(price, finalCurrency);
+  cell.dataset.currency = finalCurrency || '';
+  
+  state.pendingMatrixChanges.set(`${sku}-${supplierId}`, {
+    sku,
+    supplier_id: supplierId,
+    unit_price: price,
+    currency: finalCurrency  // null = placeholder
+  });
+  td.classList.add('pending-change');
+  td.classList.remove('pending-delete');
   
   updateSaveButtonState();
 }
