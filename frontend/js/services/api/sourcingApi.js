@@ -380,3 +380,19 @@ export function calculateMargin(sellPrice, costPrice) {
   if (!sellPrice || !costPrice) return null;
   return ((sellPrice - costPrice) / sellPrice) * 100;
 }
+
+/**
+ * Sync matrix to Google Sheet
+ * @param {string} sheetId
+ */
+export async function syncMatrixToGSheet(sheetId) {
+    return await post(`${BASE_PATH}/sync/google-sheet/export`, { sheet_id: sheetId });
+}
+
+/**
+ * Sync matrix from Google Sheet
+ * @param {string} sheetId
+ */
+export async function syncMatrixFromGSheet(sheetId) {
+    return await post(`${BASE_PATH}/sync/google-sheet/import`, { sheet_id: sheetId });
+}

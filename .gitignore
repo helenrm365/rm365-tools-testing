@@ -42,3 +42,4 @@ local-hardware-bridge/
 .DS_Store
 local-hardware-bridge-nfconly.zip
 local-hardware-bridge-nfc.zip
+backend/service_account.json

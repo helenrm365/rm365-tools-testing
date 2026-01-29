@@ -232,3 +232,7 @@ class AnalysisDashboardResponse(BaseModel):
     page: int
     per_page: int
     total_pages: int
+
+
+class GoogleSheetSyncRequest(BaseModel):
+    sheet_id: str

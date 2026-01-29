@@ -705,9 +705,10 @@ class SourcingRepository:
                         
                         if final_price:
                             if needs_vat_calculation:
-                                price_excl_vat = final_price / VAT_MULTIPLIER
+                                # Ensure final_price is float for division with float VAT_MULTIPLIER
+                                price_excl_vat = float(final_price) / VAT_MULTIPLIER
                             else:
-                                price_excl_vat = final_price
+                                price_excl_vat = float(final_price)
                             
                             prices[base_sku] = {
                                 'price': round(price_excl_vat, 2),

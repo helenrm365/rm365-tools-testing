@@ -8,6 +8,7 @@ from datetime import datetime
 
 from common.currency import get_exchange_rates, convert_to_gbp
 from .repository import SourcingRepository
+from .gsheets_service import GSheetsService
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +18,7 @@ class SourcingService:
 
     def __init__(self):
         self.repo = SourcingRepository()
+        self.gsheets = GSheetsService()
 
     # ========================================================================
     # TABLE MANAGEMENT
@@ -432,23 +434,28 @@ class SourcingService:
                     # Calculate margin if we have Magento price
                     magento_price = data['magento_price']
                     if magento_price and best_price:
-                        margin = ((magento_price - best_price) / magento_price) * 100
-                        data['margin_percentage'] = round(margin, 1)
-                        
-                        margin_sum += margin
-                        margin_count += 1
-                        
-                        if margin >= 20:
-                            data['margin_status'] = 'healthy'
-                            summary['healthy_count'] += 1
-                        elif margin >= 0:
-                            data['margin_status'] = 'warning'
-                            summary['warning_count'] += 1
-                            summary['products_needing_review'] += 1
-                        else:
-                            data['margin_status'] = 'loss'
-                            summary['loss_count'] += 1
-                            summary['products_needing_review'] += 1
+                        # Ensure types are compatible (float)
+                        if hasattr(magento_price, 'real'): # Check if number-like
+                            m_price = float(magento_price)
+                            b_price = float(best_price)
+                            
+                            margin = ((m_price - b_price) / m_price) * 100
+                            data['margin_percentage'] = round(margin, 1)
+                            
+                            margin_sum += margin
+                            margin_count += 1
+                            
+                            if margin >= 20:
+                                data['margin_status'] = 'healthy'
+                                summary['healthy_count'] += 1
+                            elif margin >= 0:
+                                data['margin_status'] = 'warning'
+                                summary['warning_count'] += 1
+                                summary['products_needing_review'] += 1
+                            else:
+                                data['margin_status'] = 'loss'
+                                summary['loss_count'] += 1
+                                summary['products_needing_review'] += 1
                     else:
                         # Have supplier price but no Magento price
                         data['margin_status'] = 'no_magento_price'
@@ -651,4 +658,163 @@ class SourcingService:
             'skipped_sku_list': skipped_skus[:20],  # Show first 20
             'errors': len(errors),
             'error_details': errors[:10]  # Limit error details
+        }
+
+    # ========================================================================
+    # GOOGLE SHEETS SYNC
+    # ========================================================================
+
+    def sync_matrix_to_gsheet(self, sheet_id: str) -> Dict[str, Any]:
+        """
+        Sync FULL matrix to Google Sheet
+        """
+        suppliers = self.repo.get_suppliers(active_only=True)
+        matrix_data = self.repo.get_full_matrix()
+        
+        # Get ALL products
+        all_products = self.repo.get_all_products_from_inventory_metadata()
+        
+        # Initialize sku_data
+        sku_data = {}
+        for product in all_products:
+            sku = product['sku']
+            sku_data[sku] = {
+                'sku': sku,
+                'product_name': product.get('product_name', '')
+            }
+        
+        # Add pricing
+        for row in matrix_data:
+            sku = row['sku']
+            if sku not in sku_data:
+                sku_data[sku] = {'sku': sku, 'product_name': ''}
+            
+            col_prefix = row['supplier_code']
+            sku_data[sku][f'{col_prefix}_price'] = row['unit_price']
+            sku_data[sku][f'{col_prefix}_currency'] = row['currency']
+            sku_data[sku][f'{col_prefix}_notes'] = row['notes'] or ''
+        
+        # Sort by SKU
+        sorted_data = [sku_data[sku] for sku in sorted(sku_data.keys())]
+        
+        return self.gsheets.export_matrix_to_sheet(sheet_id, sorted_data, suppliers)
+
+    def sync_matrix_from_gsheet(self, sheet_id: str) -> Dict[str, Any]:
+        """
+        Sync from Google Sheet (Update Only)
+        """
+        records = self.gsheets.import_matrix_from_sheet(sheet_id)
+        
+        # Get supplier mappings
+        suppliers = self.repo.get_suppliers(active_only=True)
+        supplier_by_code = {s['code']: s for s in suppliers}
+        
+        # Get valid SKUs
+        all_products = self.repo.get_all_products_from_inventory_metadata()
+        valid_skus = {p['sku'] for p in all_products}
+        
+        # Get existing pricing
+        existing_pricing = self.repo.get_full_matrix()
+        existing_keys = {(row['sku'], row['supplier_id']) for row in existing_pricing}
+        
+        updated_count = 0
+        skipped_skus = []
+        errors = []
+        debug_log = []
+        
+        if not records:
+             return {'imported': 0, 'errors': 0, 'message': 'Sheet is empty'}
+
+        # Debugging: Log headers of first record
+        first_row_keys = list(records[0].keys())
+        msg = f"[GSheet Import] Found headers: {first_row_keys}"
+        logger.info(msg)
+        debug_log.append(msg)
+        
+        # Create a mapping for case-insensitive header matching
+        # Normalized key -> Actual Sheet Header
+        header_map = {str(k).strip().lower(): k for k in first_row_keys}
+        
+        debug_log.append(f"DB Suppliers: {[s['code'] for s in suppliers]}")
+
+        for row_idx, row in enumerate(records):
+            sku = str(row.get('sku', '')).strip()
+            if not sku:
+                continue
+                
+            if sku not in valid_skus:
+                skipped_skus.append(sku)
+                continue
+            
+            # For each supplier column
+            for supplier_code, supplier in supplier_by_code.items():
+                # Construct expected keys
+                expected_price_key = f"{supplier_code}_price"
+                expected_currency_key = f"{supplier_code}_currency"
+                expected_notes_key = f"{supplier_code}_notes"
+                
+                # Find actual keys in the row using the map
+                price_key = header_map.get(expected_price_key.lower())
+                currency_key = header_map.get(expected_currency_key.lower())
+                notes_key = header_map.get(expected_notes_key.lower())
+
+                if not price_key:
+                    if row_idx == 0:
+                        debug_log.append(f"Warning: Column '{expected_price_key}' not found in sheet for supplier '{supplier_code}'")
+                    continue
+
+                # Check if we have data for this supplier
+                raw_price = row.get(price_key)
+                
+                # Handle gspread empty string vs None vs numbers
+                raw_price_str = str(raw_price).strip() if raw_price not in (None, '') else ''
+
+                if not raw_price_str:
+                    continue  # Skip empty pricing cells
+                
+                try:
+                    # Clean price string (remove currency symbols if user added them)
+                    clean_price = raw_price_str.replace('£', '').replace('$', '').replace('€', '').replace(',', '')
+                    price = float(clean_price)
+                    
+                    currency = 'GBP'
+                    if currency_key:
+                        currency = str(row.get(currency_key, 'GBP')).strip() or 'GBP'
+                    
+                    notes = ''
+                    if notes_key:
+                        notes = str(row.get(notes_key, '')).strip()
+                    
+                    # Update DB
+                    key = (sku, supplier['id'])
+                    if key in existing_keys:
+                         self.repo.update_supplier_price(
+                            sku=sku,
+                            supplier_id=supplier['id'],
+                            price=price,
+                            currency=currency,
+                            notes=notes
+                        )
+                    else:
+                        self.repo.add_supplier_price(
+                            sku=sku,
+                            supplier_id=supplier['id'],
+                            price=price,
+                            currency=currency,
+                            notes=notes
+                        )
+                    updated_count += 1
+
+                except ValueError:
+                    errors.append(f"Row {row_idx+2}: Invalid price '{raw_price}' for SKU {sku}")
+                except Exception as e:
+                    errors.append(f"Row {row_idx+2}: Error saving {sku}: {str(e)}")
+
+        return {
+            'imported': updated_count,
+            'skipped_invalid_skus': len(skipped_skus),
+            'skipped_sku_list': skipped_skus[:20],
+            'errors': len(errors),
+            'error_details': errors[:10],
+            'debug_info': debug_log
         }

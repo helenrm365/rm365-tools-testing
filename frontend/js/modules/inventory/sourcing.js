@@ -28,7 +28,9 @@ import {
   upsertPricing,
   deletePricing,
   formatCurrency,
-  getMarginStatusClass
+  getMarginStatusClass,
+  syncMatrixToGSheet,
+  syncMatrixFromGSheet
 } from '../../services/api/sourcingApi.js';
 
 // ============================================================================
@@ -156,7 +158,16 @@ function setupEventListeners() {
     document.getElementById('import-file-input')?.click();
   });
   document.getElementById('import-file-input')?.addEventListener('change', handleImportFile);
+  document.getElementById('btn-gsheet-sync')?.addEventListener('click', openGSheetModal);
   document.getElementById('matrix-search')?.addEventListener('input', debounce(handleMatrixSearch, 300));
+  
+  // GSheets Modal
+  document.getElementById('btn-gsheet-export')?.addEventListener('click', handleGSheetExport);
+  document.getElementById('btn-gsheet-import')?.addEventListener('click', handleGSheetImport);
+  document.querySelector('#modal-gsheets .close-modal')?.addEventListener('click', closeGSheetModal);
+  document.getElementById('modal-gsheets')?.addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeGSheetModal();
+  });
   
   // Suppliers
   document.getElementById('btn-add-supplier')?.addEventListener('click', openAddSupplierModal);
@@ -701,6 +712,95 @@ async function handleImportFile(e) {
   e.target.value = '';
 }
 
+// ============================================================================
+// GOOGLE SHEETS SYNC
+// ============================================================================
+
+function openGSheetModal() {
+  const modal = document.getElementById('modal-gsheets');
+  if (modal) {
+    modal.classList.add('active'); // Add active class for transition
+    // Restore last used sheet ID from local storage
+    const lastId = localStorage.getItem('rm365_gsheet_id');
+    if (lastId) {
+        document.getElementById('gsheet-id-input').value = lastId;
+    }
+  }
+}
+
+function closeGSheetModal() {
+  const modal = document.getElementById('modal-gsheets');
+  if (modal) {
+      modal.classList.remove('active');
+  }
+  document.getElementById('gsheet-status').textContent = '';
+}
+
+async function handleGSheetExport() {
+  const sheetId = document.getElementById('gsheet-id-input').value.trim();
+  if (!sheetId) {
+    showToast('Please enter a Google Sheet ID', 'warning');
+    return;
+  }
+  
+  // Save ID
+  localStorage.setItem('rm365_gsheet_id', sheetId);
+  
+  const statusEl = document.getElementById('gsheet-status');
+  statusEl.textContent = 'Exporting... This may take a few seconds.';
+  statusEl.style.color = '#0066cc';
+  
+  setLoading(true);
+  try {
+    const result = await syncMatrixToGSheet(sheetId);
+    showToast('Successfully exported to Google Sheet', 'success');
+    statusEl.textContent = 'Export successful!';
+    statusEl.style.color = 'green';
+    setTimeout(closeGSheetModal, 2000);
+  } catch (error) {
+    console.error('GSheet Export Error:', error);
+    showToast('Export failed: ' + error.message, 'error');
+    statusEl.textContent = 'Error: ' + error.message;
+    statusEl.style.color = 'red';
+  } finally {
+    setLoading(false);
+  }
+}
+
+async function handleGSheetImport() {
+  const sheetId = document.getElementById('gsheet-id-input').value.trim();
+  if (!sheetId) {
+    showToast('Please enter a Google Sheet ID', 'warning');
+    return;
+  }
+  
+   // Save ID
+  localStorage.setItem('rm365_gsheet_id', sheetId);
+  
+  const statusEl = document.getElementById('gsheet-status');
+  statusEl.textContent = 'Importing... This may take a few seconds.';
+  statusEl.style.color = '#0066cc';
+
+  setLoading(true);
+  try {
+    const result = await syncMatrixFromGSheet(sheetId);
+    showToast(`Imported ${result.imported} prices`, 'success');
+    statusEl.textContent = `Import successful! Updated ${result.imported} prices.`;
+    statusEl.style.color = 'green';
+    
+    // Refresh matrix
+    loadSupplierMatrix();
+    setTimeout(closeGSheetModal, 2000);
+  } catch (error) {
+    console.error('GSheet Import Error:', error);
+    showToast('Import failed: ' + error.message, 'error');
+    statusEl.textContent = 'Error: ' + error.message;
+    statusEl.style.color = 'red';
+  } finally {
+    setLoading(false);
+  }
+}
+
 function handleMatrixSearch(e) {
   // TODO: Implement search filtering
   console.log('[Sourcing] Matrix search:', e.target.value);
@@ -1132,7 +1232,6 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
-// ============================================================================
 // EXPOSE TO WINDOW FOR ONCLICK HANDLERS
 // ============================================================================
 
@@ -1142,6 +1241,7 @@ window.sourcingModule = {
   openEditSupplierModal,
   handleMatrixCellEdit,
   handleRemoveFXOverride,
+  openGSheetModal,
   goToAnalysisPage: async (page) => {
     state.analysisPage = page;
     await loadAnalysisDashboard();

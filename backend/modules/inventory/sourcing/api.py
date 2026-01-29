@@ -22,6 +22,7 @@ from .schemas import (
     SupplierPricingOut,
     SupplierMatrixBulkUpdateIn,
     AnalysisFilters,
+    GoogleSheetSyncRequest,
 )
 from .service import SourcingService
 
@@ -391,4 +392,41 @@ async def import_matrix_csv(
         return {"status": "success", **result}
     except Exception as e:
         logger.error(f"Error importing CSV: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================================
+# GOOGLE SHEETS
+# ============================================================================
+
+@router.post("/sync/google-sheet/export")
+def sync_matrix_to_gsheet(
+    request: GoogleSheetSyncRequest,
+    user=Depends(get_current_user)
+):
+    """
+    Sync FULL matrix to Google Sheet.
+    Replaces the content of the first worksheet.
+    """
+    try:
+        result = _svc().sync_matrix_to_gsheet(request.sheet_id)
+        return {"status": "success", **result}
+    except Exception as e:
+        logger.error(f"Error syncing to Google Sheet: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/sync/google-sheet/import")
+def sync_matrix_from_gsheet(
+    request: GoogleSheetSyncRequest,
+    user=Depends(get_current_user)
+):
+    """
+    Sync from Google Sheet (Update Only).
+    """
+    try:
+        result = _svc().sync_matrix_from_gsheet(request.sheet_id)
+        return {"status": "success", **result}
+    except Exception as e:
+        logger.error(f"Error syncing from Google Sheet: {e}")
         raise HTTPException(status_code=500, detail=str(e))
