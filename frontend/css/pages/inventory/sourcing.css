@@ -1135,12 +1135,12 @@ html.dark-mode .product-sourcing .fx-rate-card {
 
 /* ===== GSheet Sync Card ===== */
 .gsheet-sync-card {
-  margin-top: 20px;
+  margin-bottom: 20px;
   padding: 20px;
-  background: var(--surface-color, #fff);
+  background: var(--card-bg, #fff);
   border-radius: 12px;
   border: 1px solid var(--border-color, #e0e0e0);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.05));
 }
 
 .gsheet-card-header {
@@ -1155,7 +1155,7 @@ html.dark-mode .product-sourcing .fx-rate-card {
 .gsheet-card-header h3 {
   margin: 0;
   font-size: 1.1rem;
-  color: var(--text-color, #333);
+  color: var(--text-primary, #333);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1173,7 +1173,7 @@ html.dark-mode .product-sourcing .fx-rate-card {
 
 .gsheet-id-text {
   font-size: 0.9rem;
-  color: var(--text-muted, #666);
+  color: var(--text-secondary, #666);
   max-width: 200px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1188,12 +1188,13 @@ html.dark-mode .product-sourcing .fx-rate-card {
 #btn-edit-gsheet-link {
   padding: 6px 10px;
   font-size: 0.85rem;
-  background: var(--surface-color, #f5f5f5);
+  background: var(--btn-secondary-bg, #f5f5f5);
   border: 1px solid var(--border-color, #ddd);
+  color: var(--text-primary, #333);
 }
 
 #btn-edit-gsheet-link:hover {
-  background: var(--hover-color, #eee);
+  background: var(--btn-secondary-hover, #eee);
 }
 
 .gsheet-sync-row {
@@ -1214,13 +1215,13 @@ html.dark-mode .product-sourcing .fx-rate-card {
 }
 
 .gsheet-sync-option:first-child {
-  background: rgba(66, 133, 244, 0.08);
-  border-color: rgba(66, 133, 244, 0.2);
+  background: rgba(66, 133, 244, 0.1);
+  border-color: rgba(66, 133, 244, 0.25);
 }
 
 .gsheet-sync-option:last-child {
-  background: rgba(15, 157, 88, 0.08);
-  border-color: rgba(15, 157, 88, 0.2);
+  background: rgba(15, 157, 88, 0.1);
+  border-color: rgba(15, 157, 88, 0.25);
 }
 
 .sync-option-info {
@@ -1231,6 +1232,7 @@ html.dark-mode .product-sourcing .fx-rate-card {
 
 .sync-option-info strong {
   font-size: 0.95rem;
+  color: var(--text-primary, #333);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -1246,7 +1248,7 @@ html.dark-mode .product-sourcing .fx-rate-card {
 
 .sync-description {
   font-size: 0.8rem;
-  color: var(--text-muted, #666);
+  color: var(--text-secondary, #666);
 }
 
 .gsheet-manual-actions {
@@ -1258,15 +1260,116 @@ html.dark-mode .product-sourcing .fx-rate-card {
   flex: 1;
 }
 
+/* Action button styling for manual sync buttons */
+.gsheet-manual-actions .action-btn {
+  background: var(--accent-color, #6366f1);
+  color: #fff;
+  border: none;
+  font-weight: 500;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.gsheet-manual-actions .action-btn:hover {
+  background: var(--accent-hover, #4f46e5);
+  transform: translateY(-1px);
+}
+
+.gsheet-manual-actions .action-btn:active {
+  transform: translateY(0);
+}
+
+#btn-gsheet-export.action-btn {
+  background: #4285F4;
+}
+
+#btn-gsheet-export.action-btn:hover {
+  background: #3367d6;
+}
+
+#btn-gsheet-import.action-btn {
+  background: #0F9D58;
+}
+
+#btn-gsheet-import.action-btn:hover {
+  background: #0b8043;
+}
+
 .gsheet-status {
   margin-top: 15px;
   font-size: 0.9em;
-  color: var(--text-muted, #666);
+  color: var(--text-secondary, #666);
   text-align: center;
 }
 
 .gsheet-status:empty {
   display: none;
+}
+
+/* Dark mode support for GSheet card */
+[data-theme="dark"] .gsheet-sync-card,
+.dark-mode .gsheet-sync-card {
+  background: var(--card-bg, #1e1e2e);
+  border-color: var(--border-color, #3a3a4a);
+}
+
+[data-theme="dark"] .gsheet-card-header,
+.dark-mode .gsheet-card-header {
+  border-bottom-color: var(--border-color, #3a3a4a);
+}
+
+[data-theme="dark"] .gsheet-card-header h3,
+.dark-mode .gsheet-card-header h3 {
+  color: var(--text-primary, #e0e0e0);
+}
+
+[data-theme="dark"] .gsheet-id-text,
+.dark-mode .gsheet-id-text {
+  color: var(--text-secondary, #aaa);
+}
+
+[data-theme="dark"] #btn-edit-gsheet-link,
+.dark-mode #btn-edit-gsheet-link {
+  background: var(--btn-secondary-bg, #2a2a3a);
+  border-color: var(--border-color, #4a4a5a);
+  color: var(--text-primary, #e0e0e0);
+}
+
+[data-theme="dark"] #btn-edit-gsheet-link:hover,
+.dark-mode #btn-edit-gsheet-link:hover {
+  background: var(--btn-secondary-hover, #3a3a4a);
+}
+
+[data-theme="dark"] .gsheet-sync-option,
+.dark-mode .gsheet-sync-option {
+  background: var(--surface-alt, #2a2a3a);
+  border-color: var(--border-color, #3a3a4a);
+}
+
+[data-theme="dark"] .gsheet-sync-option:first-child,
+.dark-mode .gsheet-sync-option:first-child {
+  background: rgba(66, 133, 244, 0.15);
+  border-color: rgba(66, 133, 244, 0.3);
+}
+
+[data-theme="dark"] .gsheet-sync-option:last-child,
+.dark-mode .gsheet-sync-option:last-child {
+  background: rgba(15, 157, 88, 0.15);
+  border-color: rgba(15, 157, 88, 0.3);
+}
+
+[data-theme="dark"] .sync-option-info strong,
+.dark-mode .sync-option-info strong {
+  color: var(--text-primary, #e0e0e0);
+}
+
+[data-theme="dark"] .sync-description,
+.dark-mode .sync-description {
+  color: var(--text-secondary, #aaa);
+}
+
+[data-theme="dark"] .gsheet-status,
+.dark-mode .gsheet-status {
+  color: var(--text-secondary, #aaa);
 }
 
 /* Responsive for GSheet card */

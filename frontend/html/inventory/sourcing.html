@@ -159,42 +159,7 @@
         </div>
       </div>
       
-      <!-- Search -->
-      <div class="panel-toolbar">
-        <div class="search-box">
-          <i class="fas fa-search"></i>
-          <input type="text" id="matrix-search" placeholder="Search SKU or product...">
-        </div>
-        <div class="legend-group">
-          <span class="legend-item best-price"><i class="fas fa-circle"></i> Best Price</span>
-          <span class="legend-item has-price"><i class="fas fa-circle"></i> Has Price</span>
-          <span class="legend-item no-price"><i class="fas fa-circle"></i> No Price</span>
-        </div>
-      </div>
-      
-      <!-- Matrix Table (Spreadsheet-like) -->
-      <div class="panel-body">
-        <div class="matrix-wrapper" id="matrix-wrapper">
-          <table class="data-table matrix-table" id="matrix-table">
-            <thead id="matrix-table-head">
-              <tr>
-                <th class="col-sku sticky-col">SKU</th>
-                <!-- Supplier columns will be dynamically generated -->
-              </tr>
-            </thead>
-            <tbody id="matrix-table-body">
-              <tr class="loading-row">
-                <td colspan="10"><i class="fas fa-spinner fa-spin"></i> Loading matrix...</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        
-        <!-- Pagination -->
-        <div class="pagination-controls" id="matrix-pagination"></div>
-      </div>
-      
-      <!-- GOOGLE SHEETS SYNC CARD -->
+      <!-- GOOGLE SHEETS SYNC CARD (at top) -->
       <div class="gsheet-sync-card" id="gsheet-sync-card">
         <div class="gsheet-card-header">
           <h3><i class="fas fa-file-excel"></i> Google Sheets Sync</h3>
@@ -232,16 +197,51 @@
           
           <!-- Manual Sync Buttons -->
           <div class="gsheet-manual-actions">
-            <button class="btn secondary-btn" id="btn-gsheet-export">
+            <button class="btn action-btn" id="btn-gsheet-export">
               <i class="fas fa-upload"></i> Export to Sheet
             </button>
-            <button class="btn primary-btn" id="btn-gsheet-import">
+            <button class="btn action-btn" id="btn-gsheet-import">
               <i class="fas fa-download"></i> Import from Sheet
             </button>
           </div>
           
           <div id="gsheet-status" class="gsheet-status"></div>
         </div>
+      </div>
+      
+      <!-- Search -->
+      <div class="panel-toolbar">
+        <div class="search-box">
+          <i class="fas fa-search"></i>
+          <input type="text" id="matrix-search" placeholder="Search SKU or product...">
+        </div>
+        <div class="legend-group">
+          <span class="legend-item best-price"><i class="fas fa-circle"></i> Best Price</span>
+          <span class="legend-item has-price"><i class="fas fa-circle"></i> Has Price</span>
+          <span class="legend-item no-price"><i class="fas fa-circle"></i> No Price</span>
+        </div>
+      </div>
+      
+      <!-- Matrix Table (Spreadsheet-like) -->
+      <div class="panel-body">
+        <div class="matrix-wrapper" id="matrix-wrapper">
+          <table class="data-table matrix-table" id="matrix-table">
+            <thead id="matrix-table-head">
+              <tr>
+                <th class="col-sku sticky-col">SKU</th>
+                <!-- Supplier columns will be dynamically generated -->
+              </tr>
+            </thead>
+            <tbody id="matrix-table-body">
+              <tr class="loading-row">
+                <td colspan="10"><i class="fas fa-spinner fa-spin"></i> Loading matrix...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        
+        <!-- Pagination -->
+        <div class="pagination-controls" id="matrix-pagination"></div>
       </div>
     </div>
 
