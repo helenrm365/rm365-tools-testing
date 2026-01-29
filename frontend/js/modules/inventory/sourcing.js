@@ -137,6 +137,7 @@ let state = {
   gsheetSyncPending: false,
   gsheetSyncTimeout: null,
   linkedSheetId: null,  // If set, auto-sync is enabled
+  initialSyncDone: false,  // Track if initial sync on page load has been performed
   
   // Analysis
   analysisData: [],
@@ -239,6 +240,7 @@ export function destroy() {
     gsheetSyncPending: false,
     gsheetSyncTimeout: null,
     linkedSheetId: null,
+    initialSyncDone: false,
     analysisData: [],
     analysisSummary: {},
     analysisPage: 1,
@@ -536,6 +538,16 @@ async function loadSupplierMatrix() {
     
     renderMatrixTable();
     renderMatrixPagination();
+    
+    // Auto-link and sync to GSheet on first load if a linked sheet exists
+    if (!state.initialSyncDone) {
+      const savedSheetId = localStorage.getItem('rm365_gsheet_linked_id');
+      if (savedSheetId) {
+        state.linkedSheetId = savedSheetId;
+        await performInitialGSheetSync();
+      }
+      state.initialSyncDone = true;
+    }
     
   } catch (error) {
     console.error('[Sourcing] Error loading matrix:', error);
@@ -876,6 +888,32 @@ async function performGSheetSync() {
     state.gsheetSyncPending = false;
     updateGSheetSyncIndicator('error');
     showToast('Failed to sync to Google Sheet', 'error');
+  }
+}
+
+/**
+ * Perform immediate sync on initial page load (when a linked sheet exists)
+ */
+async function performInitialGSheetSync() {
+  if (!state.linkedSheetId) return;
+  
+  try {
+    showToast('Linking to Google Sheet...', 'info');
+    console.log('[Sourcing] Initial sync to GSheet:', state.linkedSheetId);
+    updateGSheetSyncIndicator('syncing');
+    
+    await syncMatrixToGSheet(state.linkedSheetId);
+    
+    updateGSheetSyncIndicator('synced');
+    showToast('Synced with Google Sheet', 'success');
+    
+    // Clear "synced" indicator after 3 seconds
+    setTimeout(() => updateGSheetSyncIndicator(), 3000);
+    
+  } catch (error) {
+    console.error('[Sourcing] Initial GSheet sync failed:', error);
+    updateGSheetSyncIndicator('error');
+    showToast('Failed to link to Google Sheet', 'error');
   }
 }
 
