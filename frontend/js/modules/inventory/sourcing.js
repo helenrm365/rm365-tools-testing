@@ -132,7 +132,11 @@ let state = {
   matrixPage: 1,
   matrixPerPage: 100,
   matrixTotal: 0,
-  pendingMatrixChanges: new Map(), // Track unsaved edits
+  
+  // GSheet sync (batched to avoid API rate limits)
+  gsheetSyncPending: false,
+  gsheetSyncTimeout: null,
+  linkedSheetId: null,  // If set, auto-sync is enabled
   
   // Analysis
   analysisData: [],
@@ -186,9 +190,9 @@ export async function init(path = '/inventory/sourcing') {
 export function destroy() {
   console.log('[Sourcing] Cleaning up sourcing module');
   
-  // Warn about unsaved changes
-  if (state.pendingMatrixChanges.size > 0) {
-    console.warn('[Sourcing] Discarding unsaved matrix changes');
+  // Cancel any pending GSheet sync
+  if (state.gsheetSyncTimeout) {
+    clearTimeout(state.gsheetSyncTimeout);
   }
   
   // Reset state
@@ -202,7 +206,9 @@ export function destroy() {
     matrixPage: 1,
     matrixPerPage: 100,
     matrixTotal: 0,
-    pendingMatrixChanges: new Map(),
+    gsheetSyncPending: false,
+    gsheetSyncTimeout: null,
+    linkedSheetId: null,
     analysisData: [],
     analysisSummary: {},
     analysisPage: 1,
@@ -241,10 +247,19 @@ function setupEventListeners() {
   // GSheets Modal
   document.getElementById('btn-gsheet-export')?.addEventListener('click', handleGSheetExport);
   document.getElementById('btn-gsheet-import')?.addEventListener('click', handleGSheetImport);
+  document.getElementById('btn-gsheet-link')?.addEventListener('click', handleGSheetLink);
+  document.getElementById('gsheet-id-input')?.addEventListener('input', updateLinkButtonState);
   document.querySelector('#modal-gsheets .close-modal')?.addEventListener('click', closeGSheetModal);
   document.getElementById('modal-gsheets')?.addEventListener('click', (e) => {
     if (e.target === e.currentTarget) closeGSheetModal();
   });
+  
+  // Restore linked sheet from local storage
+  const linkedId = localStorage.getItem('rm365_gsheet_linked_id');
+  if (linkedId) {
+    state.linkedSheetId = linkedId;
+    updateGSheetSyncIndicator();
+  }
   
   // Suppliers
   document.getElementById('btn-add-supplier')?.addEventListener('click', openAddSupplierModal);
@@ -622,6 +637,10 @@ async function handleMatrixCellEdit(cell) {
       td.classList.add('no-price');
       
       showToast('Price removed', 'success');
+      
+      // Trigger debounced GSheet sync if linked
+      scheduleGSheetSync();
+      
     } catch (error) {
       console.error('[Sourcing] Delete failed:', error);
       // Restore original value
@@ -689,6 +708,9 @@ async function handleMatrixCellEdit(cell) {
     
     showToast('Price saved', 'success');
     
+    // Trigger debounced GSheet sync if linked
+    scheduleGSheetSync();
+    
   } catch (error) {
     console.error('[Sourcing] Save failed:', error);
     // Restore original value
@@ -699,7 +721,99 @@ async function handleMatrixCellEdit(cell) {
   }
 }
 
-// saveMatrixChanges removed - now using auto-save on blur
+// ============================================================================
+// GOOGLE SHEETS AUTO-SYNC
+// ============================================================================
+
+/**
+ * Schedule a GSheet sync after a delay (debounced to batch rapid changes)
+ * Google Sheets API has limits: 60 requests/min per user, 300/min per project
+ * We wait 5 seconds after last change before syncing
+ */
+function scheduleGSheetSync() {
+  if (!state.linkedSheetId) return;  // No sheet linked
+  
+  // Clear any pending sync
+  if (state.gsheetSyncTimeout) {
+    clearTimeout(state.gsheetSyncTimeout);
+  }
+  
+  // Mark sync as pending
+  state.gsheetSyncPending = true;
+  updateGSheetSyncIndicator();
+  
+  // Schedule sync after 5 seconds of inactivity
+  state.gsheetSyncTimeout = setTimeout(async () => {
+    await performGSheetSync();
+  }, 5000);
+}
+
+/**
+ * Perform the actual GSheet sync
+ */
+async function performGSheetSync() {
+  if (!state.linkedSheetId) return;
+  
+  try {
+    console.log('[Sourcing] Auto-syncing to GSheet:', state.linkedSheetId);
+    updateGSheetSyncIndicator('syncing');
+    
+    await syncMatrixToGSheet(state.linkedSheetId);
+    
+    state.gsheetSyncPending = false;
+    updateGSheetSyncIndicator('synced');
+    
+    // Clear "synced" indicator after 3 seconds
+    setTimeout(() => updateGSheetSyncIndicator(), 3000);
+    
+  } catch (error) {
+    console.error('[Sourcing] GSheet auto-sync failed:', error);
+    state.gsheetSyncPending = false;
+    updateGSheetSyncIndicator('error');
+    showToast('Failed to sync to Google Sheet', 'error');
+  }
+}
+
+/**
+ * Update the visual indicator for GSheet sync status
+ */
+function updateGSheetSyncIndicator(status = null) {
+  const btn = document.getElementById('btn-gsheet-sync');
+  if (!btn) return;
+  
+  // Remove all status classes
+  btn.classList.remove('sync-pending', 'sync-syncing', 'sync-synced', 'sync-error', 'sync-linked');
+  
+  if (!state.linkedSheetId) {
+    btn.innerHTML = '<i class="fas fa-file-excel"></i> GSheet Sync';
+    return;
+  }
+  
+  // Show linked state
+  btn.classList.add('sync-linked');
+  
+  switch (status) {
+    case 'syncing':
+      btn.innerHTML = '<i class="fas fa-sync fa-spin"></i> Syncing...';
+      btn.classList.add('sync-syncing');
+      break;
+    case 'synced':
+      btn.innerHTML = '<i class="fas fa-check"></i> Synced';
+      btn.classList.add('sync-synced');
+      break;
+    case 'error':
+      btn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Sync Failed';
+      btn.classList.add('sync-error');
+      break;
+    default:
+      if (state.gsheetSyncPending) {
+        btn.innerHTML = '<i class="fas fa-clock"></i> Pending...';
+        btn.classList.add('sync-pending');
+      } else {
+        btn.innerHTML = '<i class="fas fa-link"></i> Linked';
+      }
+  }
+}
 
 async function exportMatrix() {
   try {
@@ -802,27 +916,72 @@ async function handleImportFile(e) {
 }
 
 // ============================================================================
-// GOOGLE SHEETS SYNC
+// GOOGLE SHEETS SYNC (Manual + Auto)
 // ============================================================================
 
 function openGSheetModal() {
   const modal = document.getElementById('modal-gsheets');
   if (modal) {
-    modal.classList.add('active'); // Add active class for transition
+    modal.classList.add('active');
     // Restore last used sheet ID from local storage
     const lastId = localStorage.getItem('rm365_gsheet_id');
     if (lastId) {
-        document.getElementById('gsheet-id-input').value = lastId;
+      document.getElementById('gsheet-id-input').value = lastId;
     }
+    
+    // Update link button state
+    updateLinkButtonState();
   }
 }
 
 function closeGSheetModal() {
   const modal = document.getElementById('modal-gsheets');
   if (modal) {
-      modal.classList.remove('active');
+    modal.classList.remove('active');
   }
   document.getElementById('gsheet-status').textContent = '';
+}
+
+function updateLinkButtonState() {
+  const linkBtn = document.getElementById('btn-gsheet-link');
+  const sheetIdInput = document.getElementById('gsheet-id-input');
+  if (!linkBtn) return;
+  
+  const currentId = sheetIdInput?.value?.trim() || '';
+  const isLinked = state.linkedSheetId && state.linkedSheetId === currentId;
+  
+  if (isLinked) {
+    linkBtn.innerHTML = '<i class="fas fa-unlink"></i> Unlink';
+    linkBtn.classList.add('linked');
+  } else {
+    linkBtn.innerHTML = '<i class="fas fa-link"></i> Link for Auto-Sync';
+    linkBtn.classList.remove('linked');
+  }
+}
+
+function handleGSheetLink() {
+  const sheetId = document.getElementById('gsheet-id-input').value.trim();
+  
+  if (state.linkedSheetId === sheetId) {
+    // Unlink
+    state.linkedSheetId = null;
+    localStorage.removeItem('rm365_gsheet_linked_id');
+    showToast('Sheet unlinked. Auto-sync disabled.', 'info');
+    updateGSheetSyncIndicator();
+  } else {
+    // Link
+    if (!sheetId) {
+      showToast('Please enter a Google Sheet ID first', 'warning');
+      return;
+    }
+    state.linkedSheetId = sheetId;
+    localStorage.setItem('rm365_gsheet_linked_id', sheetId);
+    localStorage.setItem('rm365_gsheet_id', sheetId);
+    showToast('Sheet linked! Changes will auto-sync after 5 seconds of inactivity.', 'success');
+    updateGSheetSyncIndicator();
+  }
+  
+  updateLinkButtonState();
 }
 
 async function handleGSheetExport() {
@@ -873,7 +1032,8 @@ async function handleGSheetImport() {
   setLoading(true);
   try {
     const result = await syncMatrixFromGSheet(sheetId);
-    showToast(`Imported ${result.imported} prices`, 'success');
+    const unchangedMsg = result.unchanged ? ` (${result.unchanged} unchanged)` : '';
+    showToast(`Imported ${result.imported} prices${unchangedMsg}`, 'success');
     statusEl.textContent = `Import successful! Updated ${result.imported} prices.`;
     statusEl.style.color = 'green';
     
