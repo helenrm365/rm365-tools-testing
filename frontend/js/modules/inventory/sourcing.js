@@ -688,6 +688,9 @@ async function handleMatrixCellEdit(cell) {
       td.classList.remove('has-price', 'best-price');
       td.classList.add('no-price');
       
+      // Recalculate best price for this row
+      recalculateRowBestPrice(td.closest('tr'));
+      
       showToast('Price removed', 'success');
       
       // Trigger debounced GSheet sync if linked
@@ -758,6 +761,9 @@ async function handleMatrixCellEdit(cell) {
     td.classList.add('save-success');
     setTimeout(() => td.classList.remove('save-success'), 600);
     
+    // Recalculate best price for this row
+    recalculateRowBestPrice(td.closest('tr'));
+    
     showToast('Price saved', 'success');
     
     // Trigger debounced GSheet sync if linked
@@ -771,6 +777,53 @@ async function handleMatrixCellEdit(cell) {
   } finally {
     td.classList.remove('saving');
   }
+}
+
+/**
+ * Recalculate which cell has the best (lowest) price in a row
+ * and update the CSS classes accordingly
+ */
+function recalculateRowBestPrice(row) {
+  if (!row) return;
+  
+  const supplierCells = row.querySelectorAll('td.col-supplier');
+  let bestPrice = Infinity;
+  let bestCell = null;
+  
+  // First pass: find the best price
+  supplierCells.forEach(td => {
+    const cell = td.querySelector('.matrix-cell');
+    if (!cell) return;
+    
+    const priceStr = cell.dataset.original;
+    if (priceStr && priceStr !== '') {
+      const price = parseFloat(priceStr);
+      if (!isNaN(price) && price < bestPrice) {
+        bestPrice = price;
+        bestCell = td;
+      }
+    }
+  });
+  
+  // Second pass: update classes
+  supplierCells.forEach(td => {
+    const cell = td.querySelector('.matrix-cell');
+    if (!cell) return;
+    
+    const priceStr = cell.dataset.original;
+    const hasPrice = priceStr && priceStr !== '';
+    
+    // Remove both classes first
+    td.classList.remove('best-price', 'has-price', 'no-price');
+    
+    if (td === bestCell) {
+      td.classList.add('best-price');
+    } else if (hasPrice) {
+      td.classList.add('has-price');
+    } else {
+      td.classList.add('no-price');
+    }
+  });
 }
 
 // ============================================================================
