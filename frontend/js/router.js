@@ -76,7 +76,7 @@ const routes = {
   // Inventory - redirect root to first sub-page
   '/inventory':                         '/html/inventory/management.html',
   '/inventory/management':              '/html/inventory/management.html',
-  '/inventory/sourcing':                '/html/inventory/sourcing.html',
+  // /inventory/sourcing redirects to /inventory/sourcing/analysis-dashboard (handled in navigate())
   '/inventory/sourcing/analysis-dashboard': '/html/inventory/sourcing.html',
   '/inventory/sourcing/supplier-matrix':    '/html/inventory/sourcing.html',
   '/inventory/sourcing/suppliers':          '/html/inventory/sourcing.html',
@@ -297,6 +297,11 @@ export async function navigate(path, replace = false) {
         path = perm.redirect;
         replace = true;
       }
+    }
+
+    // Redirect bare sourcing path to default sub-tab
+    if (path === '/inventory/sourcing') {
+      return navigate('/inventory/sourcing/analysis-dashboard', true);
     }
 
     // Check if this is a session-specific URL and map to base template
