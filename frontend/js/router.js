@@ -74,9 +74,13 @@ const routes = {
   '/magentodata/history': '/html/magentodata/history.html',
 
   // Inventory - redirect root to first sub-page
-  '/inventory':             '/html/inventory/management.html',
-  '/inventory/management':  '/html/inventory/management.html',
-  '/inventory/sourcing':    '/html/inventory/sourcing.html',
+  '/inventory':                         '/html/inventory/management.html',
+  '/inventory/management':              '/html/inventory/management.html',
+  '/inventory/sourcing':                '/html/inventory/sourcing.html',
+  '/inventory/sourcing/analysis-dashboard': '/html/inventory/sourcing.html',
+  '/inventory/sourcing/supplier-matrix':    '/html/inventory/sourcing.html',
+  '/inventory/sourcing/suppliers':          '/html/inventory/sourcing.html',
+  '/inventory/sourcing/fx-rates':           '/html/inventory/sourcing.html',
   
   // Orders - redirect root to first sub-page
   '/orders':                    '/html/orders/order-fulfillment.html',

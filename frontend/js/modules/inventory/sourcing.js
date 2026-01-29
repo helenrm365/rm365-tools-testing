@@ -159,7 +159,11 @@ let state = {
  * Initialize the sourcing module
  */
 export async function init(path = '/inventory/sourcing') {
-  console.log('[Sourcing] Initializing Product Sourcing module');
+  console.log('[Sourcing] Initializing Product Sourcing module with path:', path);
+  
+  // Determine which tab to show based on path
+  const tabFromPath = getTabFromPath(path);
+  state.activeTab = tabFromPath;
   
   try {
     // Check if tables exist
@@ -175,6 +179,9 @@ export async function init(path = '/inventory/sourcing') {
     // Set up event listeners
     setupEventListeners();
     
+    // Update UI to show correct tab
+    updateTabUI();
+    
     // Load initial data based on active tab
     await loadActiveTabData();
     
@@ -182,6 +189,29 @@ export async function init(path = '/inventory/sourcing') {
     console.error('[Sourcing] Initialization error:', error);
     showToast('Failed to initialize sourcing module', 'error');
   }
+}
+
+/**
+ * Parse the path to determine which tab to show
+ */
+function getTabFromPath(path) {
+  if (path.includes('/supplier-matrix')) return 'matrix';
+  if (path.includes('/suppliers')) return 'suppliers';
+  if (path.includes('/fx-rates')) return 'fx-rates';
+  // Default to dashboard (analysis-dashboard or just /sourcing)
+  return 'dashboard';
+}
+
+/**
+ * Update tab UI to reflect current state
+ */
+function updateTabUI() {
+  document.querySelectorAll('.sub-tab-button').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === state.activeTab);
+  });
+  document.querySelectorAll('.sourcing-tab-panel').forEach(panel => {
+    panel.classList.toggle('active', panel.id === `panel-${state.activeTab}`);
+  });
 }
 
 /**
@@ -225,9 +255,13 @@ export function destroy() {
 // ============================================================================
 
 function setupEventListeners() {
-  // Tab switching
-  document.querySelectorAll('.sub-tab-button').forEach(btn => {
-    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+  // Tab switching - now uses links with SPA navigation
+  document.querySelectorAll('.sub-tab-button').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();  // Prevent default navigation
+      const tabId = link.dataset.tab;
+      switchTab(tabId);
+    });
   });
   
   // Analysis Dashboard
@@ -289,16 +323,34 @@ function setupEventListeners() {
 // ============================================================================
 
 async function switchTab(tabId) {
-  // Update UI
-  document.querySelectorAll('.sub-tab-button').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.tab === tabId);
-  });
-  document.querySelectorAll('.sourcing-tab-panel').forEach(panel => {
-    panel.classList.toggle('active', panel.id === `panel-${tabId}`);
-  });
+  // Navigate to the new URL - this will re-init the module with the correct tab
+  const tabPaths = {
+    'dashboard': '/inventory/sourcing/analysis-dashboard',
+    'matrix': '/inventory/sourcing/supplier-matrix',
+    'suppliers': '/inventory/sourcing/suppliers',
+    'fx-rates': '/inventory/sourcing/fx-rates'
+  };
   
-  state.activeTab = tabId;
-  await loadActiveTabData();
+  const newPath = tabPaths[tabId] || '/inventory/sourcing/analysis-dashboard';
+  
+  // Use the router to navigate (updates URL and triggers proper init)
+  if (window.router?.navigate) {
+    window.router.navigate(newPath);
+  } else {
+    // Fallback: update history and reload tab content
+    window.history.pushState({}, '', newPath);
+    
+    // Update UI
+    document.querySelectorAll('.sub-tab-button').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.tab === tabId);
+    });
+    document.querySelectorAll('.sourcing-tab-panel').forEach(panel => {
+      panel.classList.toggle('active', panel.id === `panel-${tabId}`);
+    });
+    
+    state.activeTab = tabId;
+    await loadActiveTabData();
+  }
 }
 
 async function loadActiveTabData() {

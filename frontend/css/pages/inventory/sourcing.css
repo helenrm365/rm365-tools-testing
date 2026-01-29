@@ -84,6 +84,7 @@ html.dark-mode .product-sourcing .sourcing-sub-tabs {
   justify-content: center;
   gap: 0.5rem;
   white-space: nowrap;
+  text-decoration: none;  /* Remove underline for links */
 }
 
 .product-sourcing .sub-tab-button i {
