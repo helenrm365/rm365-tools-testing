@@ -264,15 +264,23 @@ class TableSorter {
     // Remove table-level flag
     table.removeAttribute('data-sorting-enabled');
 
-    const headers = table.querySelectorAll('th.sortable[data-sort-enabled="true"]');
+    // Handle both client-side and server-side sorting headers
+    const headers = table.querySelectorAll('th.sortable[data-sort-enabled="true"], th.sortable[data-server-sort-enabled="true"]');
     headers.forEach(header => {
-      // Remove click handler if stored
+      // Remove client-side click handler if stored
       if (header._sortClickHandler) {
         header.removeEventListener('click', header._sortClickHandler);
         delete header._sortClickHandler;
       }
       
+      // Remove server-side click handler if stored
+      if (header._serverSortClickHandler) {
+        header.removeEventListener('click', header._serverSortClickHandler);
+        delete header._serverSortClickHandler;
+      }
+      
       header.removeAttribute('data-sort-enabled');
+      header.removeAttribute('data-server-sort-enabled');
       header.style.cursor = '';
       const icon = header.querySelector('.sort-icon');
       if (icon) icon.remove();

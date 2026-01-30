@@ -132,6 +132,9 @@ let state = {
   matrixPage: 1,
   matrixPerPage: 100,
   matrixTotal: 0,
+  matrixSearch: '',
+  matrixSortBy: 'sku',
+  matrixSortOrder: 'asc',
   
   // GSheet sync (batched to avoid API rate limits)
   gsheetSyncPending: false,
@@ -149,6 +152,8 @@ let state = {
   analysisTotal: 0,
   analysisSearch: '',
   analysisMarginFilter: '',
+  analysisSortBy: 'sku',
+  analysisSortOrder: 'asc',
   
   // UI
   isLoading: false
@@ -218,22 +223,65 @@ function updateTabUI() {
 }
 
 /**
- * Cleanup function called when leaving the module
+ * Stop all auto-sync (import and export) and update UI
+ * Called when leaving the matrix tab or the module
  */
-export function destroy() {
-  console.log('[Sourcing] Cleaning up sourcing module');
+function stopAutoSync() {
+  let stopped = false;
   
-  // Cancel any pending GSheet sync
+  // Stop auto-import
+  if (state.autoImportEnabled) {
+    state.autoImportEnabled = false;
+    stopAutoImport();
+    stopped = true;
+  }
+  
+  // Stop auto-export
+  if (state.autoExportEnabled) {
+    state.autoExportEnabled = false;
+    stopped = true;
+  }
+  
+  // Clear any pending sync timeout
   if (state.gsheetSyncTimeout) {
     clearTimeout(state.gsheetSyncTimeout);
+    state.gsheetSyncTimeout = null;
   }
+  state.gsheetSyncPending = false;
   
-  // Stop auto-import interval
+  // Clear auto-import interval
   if (state.autoImportInterval) {
     clearInterval(state.autoImportInterval);
+    state.autoImportInterval = null;
   }
   
-  // Reset state
+  // Update button UI if we stopped something
+  if (stopped) {
+    const importBtn = document.getElementById('btn-auto-import');
+    const exportBtn = document.getElementById('btn-auto-export');
+    if (importBtn) {
+      importBtn.classList.remove('active');
+      importBtn.innerHTML = '<i class="fas fa-download"></i> Enable';
+    }
+    if (exportBtn) {
+      exportBtn.classList.remove('active');
+      exportBtn.innerHTML = '<i class="fas fa-upload"></i> Enable';
+    }
+    console.log('[Sourcing] Auto-sync stopped');
+  }
+}
+
+/**
+ * Cleanup function called when leaving the module
+ */
+export function cleanup() {
+  console.log('[Sourcing] Cleaning up sourcing module');
+  
+  // Stop all auto-sync
+  stopAutoSync();
+  
+  // Reset state (but keep gsheetId as it's in localStorage)
+  const savedGsheetId = state.gsheetId;
   state = {
     activeTab: 'dashboard',
     fxRates: {},
@@ -244,9 +292,12 @@ export function destroy() {
     matrixPage: 1,
     matrixPerPage: 100,
     matrixTotal: 0,
+    matrixSearch: '',
+    matrixSortBy: 'sku',
+    matrixSortOrder: 'asc',
     gsheetSyncPending: false,
     gsheetSyncTimeout: null,
-    gsheetId: null,
+    gsheetId: savedGsheetId,  // Preserve the linked sheet ID
     autoImportEnabled: false,
     autoExportEnabled: false,
     autoImportInterval: null,
@@ -257,8 +308,12 @@ export function destroy() {
     analysisTotal: 0,
     analysisSearch: '',
     analysisMarginFilter: '',
+    analysisSortBy: 'sku',
+    analysisSortOrder: 'asc',
     isLoading: false
   };
+  
+  console.log('[Sourcing] Auto-sync disabled on navigation');
 }
 
 // ============================================================================
@@ -277,7 +332,7 @@ function setupEventListeners() {
   
   // Analysis Dashboard
   document.getElementById('btn-refresh-analysis')?.addEventListener('click', loadAnalysisDashboard);
-  document.getElementById('analysis-search')?.addEventListener('input', debounce(handleAnalysisSearch, 300));
+  document.getElementById('analysis-search')?.addEventListener('input', debounce(handleAnalysisSearch, 500));
   document.getElementById('analysis-margin-filter')?.addEventListener('change', handleMarginFilterChange);
   
   // Matrix (auto-save on blur - no save button needed)
@@ -285,8 +340,23 @@ function setupEventListeners() {
   document.getElementById('btn-import-matrix')?.addEventListener('click', () => {
     document.getElementById('import-file-input')?.click();
   });
-  document.getElementById('import-file-input')?.addEventListener('change', handleImportFile);
-  document.getElementById('matrix-search')?.addEventListener('input', debounce(handleMatrixSearch, 300));
+  document.getElementById('import-file-input')?.addEventListener('change', handleImportFileSelect);
+  document.getElementById('matrix-search')?.addEventListener('input', debounce(handleMatrixSearch, 500));
+  
+  // CSV Import Confirmation Modal
+  document.getElementById('btn-csv-import-close')?.addEventListener('click', closeCsvImportModal);
+  document.getElementById('btn-csv-import-cancel')?.addEventListener('click', closeCsvImportModal);
+  document.getElementById('btn-csv-import-confirm')?.addEventListener('click', confirmCsvImport);
+  document.getElementById('modal-confirm-csv-import')?.addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeCsvImportModal();
+  });
+  
+  // CSV Import Results Modal
+  document.getElementById('btn-csv-results-close')?.addEventListener('click', closeCsvResultsModal);
+  document.getElementById('btn-csv-results-ok')?.addEventListener('click', closeCsvResultsModal);
+  document.getElementById('modal-csv-import-results')?.addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeCsvResultsModal();
+  });
   
   // GSheets Card - buttons on the card
   document.getElementById('btn-gsheet-export')?.addEventListener('click', handleGSheetExport);
@@ -345,6 +415,11 @@ function setupEventListeners() {
 // ============================================================================
 
 async function switchTab(tabId) {
+  // If leaving the matrix tab, stop auto-sync
+  if (state.activeTab === 'matrix' && tabId !== 'matrix') {
+    stopAutoSync();
+  }
+  
   // Navigate to the new URL - this will re-init the module with the correct tab
   const tabPaths = {
     'dashboard': '/inventory/sourcing/analysis-dashboard',
@@ -376,19 +451,35 @@ async function switchTab(tabId) {
 }
 
 async function loadActiveTabData() {
-  switch (state.activeTab) {
-    case 'dashboard':
-      await loadAnalysisDashboard();
-      break;
-    case 'matrix':
-      await loadSupplierMatrix();
-      break;
-    case 'suppliers':
-      await loadSuppliers();
-      break;
-    case 'fx-rates':
-      await loadFXRates();
-      break;
+  // Show loading overlay with custom message for each tab
+  const loadingMessages = {
+    'dashboard': 'Loading analysis dashboard...',
+    'matrix': 'Loading supplier matrix...',
+    'suppliers': 'Loading suppliers...',
+    'fx-rates': 'Loading exchange rates...'
+  };
+  
+  const message = loadingMessages[state.activeTab] || 'Loading...';
+  showLoading();
+  showToast(message, 'info');
+  
+  try {
+    switch (state.activeTab) {
+      case 'dashboard':
+        await loadAnalysisDashboard({ skipLoadingOverlay: true });
+        break;
+      case 'matrix':
+        await loadSupplierMatrix({ skipLoadingOverlay: true });
+        break;
+      case 'suppliers':
+        await loadSuppliers({ skipLoadingOverlay: true });
+        break;
+      case 'fx-rates':
+        await loadFXRates({ skipLoadingOverlay: true });
+        break;
+    }
+  } finally {
+    hideLoading();
   }
 }
 
@@ -396,16 +487,27 @@ async function loadActiveTabData() {
 // ANALYSIS DASHBOARD (Sheet 4: The Brain)
 // ============================================================================
 
-async function loadAnalysisDashboard() {
-  setLoading(true);
-  showToast('Loading analysis dashboard...', 'info');
+async function loadAnalysisDashboard(options = {}) {
+  const { skipLoadingOverlay = false } = options;
+  
+  if (!skipLoadingOverlay) {
+    setLoading(true);
+    showToast('Loading analysis dashboard...', 'info');
+  }
   
   try {
+    console.log('[loadAnalysisDashboard] Calling API with state:', {
+      sortBy: state.analysisSortBy,
+      sortOrder: state.analysisSortOrder,
+      page: state.analysisPage
+    });
     const data = await getAnalysisDashboard({
       page: state.analysisPage,
       perPage: state.analysisPerPage,
       search: state.analysisSearch,
-      marginStatus: state.analysisMarginFilter
+      marginStatus: state.analysisMarginFilter,
+      sortBy: state.analysisSortBy,
+      sortOrder: state.analysisSortOrder
     });
     
     state.analysisData = data.products || [];
@@ -417,11 +519,16 @@ async function loadAnalysisDashboard() {
     renderAnalysisTable();
     renderAnalysisPagination();
     
+    // Set up server-side sorting (don't use default client-side sorting)
+    setupServerSideSorting('#analysis-table', 'analysis');
+    
   } catch (error) {
     console.error('[Sourcing] Error loading analysis:', error);
     showToast('Failed to load analysis data', 'error');
   } finally {
-    setLoading(false);
+    if (!skipLoadingOverlay) {
+      setLoading(false);
+    }
   }
 }
 
@@ -486,8 +593,8 @@ function renderAnalysisTable() {
     
     return `
       <tr data-sku="${escapeHtml(row.sku)}">
-        <td class="col-sku"><strong>${escapeHtml(row.sku)}</strong></td>
-        <td class="col-product">${escapeHtml(row.product_name || '')}</td>
+        <td class="col-sku sticky-col"><strong>${escapeHtml(row.sku)}</strong></td>
+        <td class="col-product sticky-col-2">${escapeHtml(row.product_name || '')}</td>
         <td class="col-status"><span class="status-badge ${statusClass}">${escapeHtml(row.status || 'Unknown')}</span></td>
         <td class="col-magento">${magentoDisplay}</td>
         <td class="col-best-price ${row.best_price ? 'has-value' : ''}">${row.best_price ? formatCurrency(row.best_price, 'GBP') : '—'}</td>
@@ -538,18 +645,171 @@ function handleMarginFilterChange(e) {
   loadAnalysisDashboard();
 }
 
+/**
+ * Show a loading state inside a table tbody with animated dots
+ * @param {string} tbodyId - The ID of the tbody element
+ * @param {number} colspan - Number of columns for the loading row
+ * @param {string} message - Loading message to display
+ */
+function showTableLoading(tbodyId, colspan, message = 'Loading') {
+  const tbody = document.getElementById(tbodyId);
+  if (!tbody) return;
+  
+  tbody.innerHTML = `
+    <tr class="loading-row">
+      <td colspan="${colspan}">
+        <div class="table-loading-state">
+          <i class="fas fa-spinner fa-spin"></i>
+          <span class="loading-text">${message}<span class="loading-dots"></span></span>
+        </div>
+      </td>
+    </tr>
+  `;
+}
+
+/**
+ * Set up server-side sorting for paginated tables.
+ * Replaces the default client-side sorting with server-side requests.
+ * @param {string} tableSelector - CSS selector for the table
+ * @param {string} tableType - 'matrix' or 'analysis'
+ */
+function setupServerSideSorting(tableSelector, tableType) {
+  const table = document.querySelector(tableSelector);
+  if (!table) return;
+  
+  // Remove any existing sorting setup
+  if (typeof disableTableSorting !== 'undefined') {
+    disableTableSorting(tableSelector);
+  }
+  
+  // Map column index to sort field name
+  const columnMappings = {
+    analysis: {
+      0: 'sku',
+      1: 'product_name',
+      2: 'status',
+      3: 'magento_price',
+      4: 'best_price',
+      5: 'winning_supplier',
+      6: 'margin_percentage',
+      // Column 7 (suppliers) and 8 (actions) not sortable
+    },
+    matrix: {
+      0: 'sku',
+      1: 'product_name',
+      2: 'magento_price',
+      3: 'status',
+      // Supplier columns are dynamic, handled by data-supplier attribute
+    }
+  };
+  
+  const sortState = tableType === 'matrix' 
+    ? { sortBy: state.matrixSortBy, sortOrder: state.matrixSortOrder }
+    : { sortBy: state.analysisSortBy, sortOrder: state.analysisSortOrder };
+  
+  // Get all headers
+  const allHeaders = table.querySelectorAll('thead th');
+  const sortableHeaders = table.querySelectorAll('th.sortable');
+  
+  sortableHeaders.forEach((header) => {
+    // Skip if already initialized for server-side
+    if (header.dataset.serverSortEnabled === 'true') return;
+    header.dataset.serverSortEnabled = 'true';
+    header.style.cursor = 'pointer';
+    header.style.userSelect = 'none';
+    
+    // Find column index
+    let columnIndex = -1;
+    allHeaders.forEach((th, idx) => {
+      if (th === header) columnIndex = idx;
+    });
+    
+    // Determine sort field
+    let sortField = columnMappings[tableType]?.[columnIndex];
+    
+    // For matrix supplier columns, use the supplier code
+    if (!sortField && tableType === 'matrix' && header.dataset.supplier) {
+      sortField = header.dataset.supplier;
+    }
+    
+    if (!sortField) return; // Not a sortable column
+    
+    // Add sort icon if not present
+    let icon = header.querySelector('.sort-icon');
+    if (!icon) {
+      icon = document.createElement('i');
+      icon.className = 'fas fa-sort sort-icon';
+      icon.style.marginLeft = '0.5rem';
+      icon.style.fontSize = '0.75rem';
+      icon.style.opacity = '0.5';
+      header.appendChild(icon);
+    }
+    
+    // Update icon if this is the currently sorted column
+    if (sortField === sortState.sortBy) {
+      icon.className = sortState.sortOrder === 'asc' 
+        ? 'fas fa-sort-up sort-icon' 
+        : 'fas fa-sort-down sort-icon';
+      icon.style.opacity = '1';
+    }
+    
+    // Click handler for sorting
+    const clickHandler = async () => {
+      console.log(`[Sorting] Clicked column: ${sortField}, tableType: ${tableType}`);
+      // Toggle sort order if same column, else reset to asc
+      let newOrder = 'asc';
+      if (tableType === 'matrix') {
+        if (state.matrixSortBy === sortField) {
+          newOrder = state.matrixSortOrder === 'asc' ? 'desc' : 'asc';
+        }
+        state.matrixSortBy = sortField;
+        state.matrixSortOrder = newOrder;
+        state.matrixPage = 1; // Reset to first page on sort
+        console.log(`[Sorting] Matrix - sortBy: ${state.matrixSortBy}, sortOrder: ${state.matrixSortOrder}`);
+        
+        // Show loading and reload
+        const colCount = 4 + (state.matrixSuppliers?.length || 5);
+        showTableLoading('matrix-table-body', colCount, 'Sorting');
+        await loadSupplierMatrix({ skipLoadingOverlay: true });
+      } else {
+        if (state.analysisSortBy === sortField) {
+          newOrder = state.analysisSortOrder === 'asc' ? 'desc' : 'asc';
+        }
+        state.analysisSortBy = sortField;
+        state.analysisSortOrder = newOrder;
+        state.analysisPage = 1; // Reset to first page on sort
+        console.log(`[Sorting] Analysis - sortBy: ${state.analysisSortBy}, sortOrder: ${state.analysisSortOrder}`);
+        
+        // Show loading and reload
+        showTableLoading('analysis-table-body', 9, 'Sorting');
+        await loadAnalysisDashboard({ skipLoadingOverlay: true });
+      }
+    };
+    
+    header.addEventListener('click', clickHandler);
+    header._serverSortClickHandler = clickHandler;
+  });
+}
+
 // ============================================================================
 // SUPPLIER MATRIX (Sheet 3)
 // ============================================================================
 
-async function loadSupplierMatrix() {
-  setLoading(true);
-  showToast('Loading supplier matrix...', 'info');
+async function loadSupplierMatrix(options = {}) {
+  const { skipLoadingOverlay = false } = options;
+  
+  if (!skipLoadingOverlay) {
+    setLoading(true);
+    showToast('Loading supplier matrix...', 'info');
+  }
   
   try {
     const data = await getSupplierMatrix({
       page: state.matrixPage,
-      perPage: state.matrixPerPage
+      perPage: state.matrixPerPage,
+      search: state.matrixSearch,
+      sortBy: state.matrixSortBy,
+      sortOrder: state.matrixSortOrder
     });
     
     state.matrixData = data.matrix || [];
@@ -559,11 +819,16 @@ async function loadSupplierMatrix() {
     renderMatrixTable();
     renderMatrixPagination();
     
+    // Set up server-side sorting (don't use default client-side sorting)
+    setupServerSideSorting('#matrix-table', 'matrix');
+    
   } catch (error) {
     console.error('[Sourcing] Error loading matrix:', error);
     showToast('Failed to load supplier matrix', 'error');
   } finally {
-    setLoading(false);
+    if (!skipLoadingOverlay) {
+      setLoading(false);
+    }
   }
 }
 
@@ -575,12 +840,12 @@ function renderMatrixTable() {
   // Build dynamic headers based on suppliers
   const headerRow = thead.querySelector('tr');
   headerRow.innerHTML = `
-    <th class="col-sku sticky-col">SKU</th>
-    <th class="col-product">Product Name</th>
-    <th class="col-magento">Magento Price</th>
-    <th class="col-status">Status</th>
+    <th class="col-sku sticky-col sortable">SKU</th>
+    <th class="col-product sticky-col-2 sortable">Product Name</th>
+    <th class="col-magento sortable">Magento Price</th>
+    <th class="col-status sortable">Status</th>
     ${state.matrixSuppliers.map(s => `
-      <th class="col-supplier" data-supplier="${s.code}">
+      <th class="col-supplier sortable" data-supplier="${s.code}">
         <div class="supplier-header">
           <span class="supplier-code">${escapeHtml(s.code)}</span>
           <span class="supplier-name">${escapeHtml(s.name)}</span>
@@ -643,7 +908,8 @@ function renderMatrixTable() {
         <td class="col-supplier ${cellClass}" 
             data-sku="${escapeHtml(row.sku)}" 
             data-supplier-id="${s.id}"
-            data-supplier-code="${s.code}">
+            data-supplier-code="${s.code}"
+            data-default-currency="${s.default_currency || 'GBP'}">
           <div class="matrix-cell" contenteditable="true" 
                data-original="${rawPrice}"
                data-currency="${rawCurrency}"
@@ -658,7 +924,7 @@ function renderMatrixTable() {
     return `
       <tr data-sku="${escapeHtml(row.sku)}">
         <td class="col-sku sticky-col"><strong>${escapeHtml(row.sku)}</strong></td>
-        <td class="col-product">${escapeHtml(row.product_name || '')}</td>
+        <td class="col-product sticky-col-2">${escapeHtml(row.product_name || '')}</td>
         <td class="col-magento">${magentoDisplay}</td>
         <td class="col-status"><span class="status-badge ${statusClass}">${escapeHtml(row.status || 'Unknown')}</span></td>
         ${supplierCells}
@@ -748,13 +1014,16 @@ async function handleMatrixCellEdit(cell) {
     return;
   }
   
-  // Determine final currency
-  const finalCurrency = detectedCurrency || null;
+  // Determine final currency - use supplier's default if not specified
+  const supplierDefaultCurrency = td.dataset.defaultCurrency || 'GBP';
+  const finalCurrency = detectedCurrency || supplierDefaultCurrency;
   
   // Case 4: No actual change - just restore display format
   const originalPrice = originalValue !== '' ? parseFloat(originalValue) : null;
   const priceChanged = originalPrice === null || Math.abs(originalPrice - price) > 0.001;
-  const currencyChanged = originalCurrency !== (finalCurrency || '');
+  // Compare currencies (treat empty original as supplier default)
+  const effectiveOriginalCurrency = originalCurrency || supplierDefaultCurrency;
+  const currencyChanged = effectiveOriginalCurrency !== finalCurrency;
   
   if (!priceChanged && !currencyChanged) {
     // Just update display format without saving
@@ -905,14 +1174,103 @@ async function performGSheetImport() {
     
     const result = await syncMatrixFromGSheet(state.gsheetId);
     
-    // Only reload if there were actual changes
-    if (result.imported > 0) {
-      await loadSupplierMatrix();
+    // Update only the changed cells in the DOM (no full reload)
+    if (result.imported > 0 && result.changed_entries) {
+      updateMatrixCells(result.changed_entries);
+      console.log(`[Sourcing] Updated ${result.imported} cells in DOM`);
+    }
+    
+    // Handle deleted entries (prices cleared in sheet)
+    if (result.deleted > 0 && result.deleted_entries) {
+      clearMatrixCells(result.deleted_entries);
+      console.log(`[Sourcing] Cleared ${result.deleted} cells in DOM`);
     }
     
   } catch (error) {
     console.error('[Sourcing] GSheet auto-import failed:', error);
     showToast('Failed to import from Google Sheet', 'error');
+  }
+}
+
+/**
+ * Update specific cells in the matrix DOM without full reload
+ */
+function updateMatrixCells(changedEntries) {
+  for (const entry of changedEntries) {
+    const { sku, supplier_id, unit_price, currency } = entry;
+    
+    // Find the cell by sku and supplier_id
+    const cell = document.querySelector(
+      `td[data-sku="${sku}"][data-supplier-id="${supplier_id}"] .matrix-cell`
+    );
+    
+    if (cell) {
+      const td = cell.closest('td');
+      
+      // Update cell content and data attributes
+      cell.textContent = formatPriceDisplay(unit_price, currency);
+      cell.dataset.original = unit_price.toString();
+      cell.dataset.currency = currency || '';
+      
+      // Update cell styling
+      td.classList.remove('no-price');
+      td.classList.add('has-price');
+      
+      // Flash to indicate update
+      td.classList.add('cell-updated');
+      setTimeout(() => td.classList.remove('cell-updated'), 1000);
+    }
+  }
+  
+  // Recalculate best prices for affected rows
+  const affectedSkus = new Set(changedEntries.map(e => e.sku));
+  for (const sku of affectedSkus) {
+    const row = document.querySelector(`tr[data-sku="${sku}"]`);
+    if (row) {
+      recalculateRowBestPrice(row);
+    }
+  }
+}
+
+/**
+ * Clear specific cells in the matrix DOM (for deleted prices)
+ */
+function clearMatrixCells(deletedEntries) {
+  const affectedSkus = new Set();
+  
+  for (const entry of deletedEntries) {
+    const { sku, supplier_id } = entry;
+    affectedSkus.add(sku);
+    
+    // Find the cell by sku and supplier_id
+    const cell = document.querySelector(
+      `td[data-sku="${sku}"][data-supplier-id="${supplier_id}"] .matrix-cell`
+    );
+    
+    if (cell) {
+      const td = cell.closest('td');
+      
+      // Clear cell content and data attributes
+      cell.textContent = '';
+      cell.dataset.original = '';
+      cell.dataset.currency = '';
+      
+      // Update cell styling
+      td.classList.remove('has-price', 'best-price');
+      td.classList.add('no-price');
+      
+      // Flash to indicate deletion
+      td.classList.add('cell-updated');
+      setTimeout(() => td.classList.remove('cell-updated'), 1000);
+    }
+  }
+  
+  // Recalculate best prices for affected rows
+  for (const sku of affectedSkus) {
+    const row = document.querySelector(`tr[data-sku="${sku}"]`);
+    if (row) {
+      recalculateRowBestPrice(row);
+    }
   }
 }
 
@@ -984,9 +1342,66 @@ async function exportMatrix() {
   }
 }
 
-async function handleImportFile(e) {
+// Store pending import file for confirmation
+let pendingImportFile = null;
+
+/**
+ * Handle file selection - show confirmation modal
+ */
+function handleImportFileSelect(e) {
   const file = e.target.files?.[0];
   if (!file) return;
+  
+  // Store file for later
+  pendingImportFile = file;
+  
+  // Show filename in modal
+  const filenameEl = document.getElementById('csv-import-filename');
+  if (filenameEl) {
+    filenameEl.textContent = file.name;
+  }
+  
+  // Open confirmation modal
+  const modal = document.getElementById('modal-confirm-csv-import');
+  if (modal) {
+    modal.classList.add('active');
+  }
+}
+
+/**
+ * Close CSV import confirmation modal
+ */
+function closeCsvImportModal() {
+  const modal = document.getElementById('modal-confirm-csv-import');
+  if (modal) {
+    modal.classList.remove('active');
+  }
+  
+  // Reset file input
+  const fileInput = document.getElementById('import-file-input');
+  if (fileInput) {
+    fileInput.value = '';
+  }
+  pendingImportFile = null;
+}
+
+/**
+ * Confirm CSV import - proceed with actual import
+ */
+async function confirmCsvImport() {
+  if (!pendingImportFile) {
+    closeCsvImportModal();
+    return;
+  }
+  
+  // Close confirmation modal
+  const confirmModal = document.getElementById('modal-confirm-csv-import');
+  if (confirmModal) {
+    confirmModal.classList.remove('active');
+  }
+  
+  const file = pendingImportFile;
+  pendingImportFile = null;
   
   try {
     showToast('Importing CSV...', 'info');
@@ -1015,16 +1430,8 @@ async function handleImportFile(e) {
     
     const result = await response.json();
     
-    // Show detailed import results
-    let message = `Updated ${result.imported || 0} pricing entries`;
-    if (result.skipped_invalid_skus > 0) {
-      message += ` | Skipped ${result.skipped_invalid_skus} invalid SKUs`;
-    }
-    if (result.errors > 0) {
-      message += ` | ${result.errors} errors`;
-    }
-    
-    showToast(message, result.errors > 0 ? 'warning' : 'success');
+    // Show results modal
+    showCsvImportResults(result, file.name);
     
     // Log details to console for debugging
     if (result.skipped_sku_list?.length > 0) {
@@ -1038,11 +1445,102 @@ async function handleImportFile(e) {
     
   } catch (error) {
     console.error('[Sourcing] Import error:', error);
-    showToast('Import failed', 'error');
+    showToast('Import failed: ' + error.message, 'error');
   }
   
   // Reset file input
-  e.target.value = '';
+  const fileInput = document.getElementById('import-file-input');
+  if (fileInput) {
+    fileInput.value = '';
+  }
+}
+
+/**
+ * Show CSV import results modal
+ */
+function showCsvImportResults(result, filename) {
+  const contentEl = document.getElementById('csv-import-results-content');
+  if (!contentEl) return;
+  
+  const hasErrors = (result.errors || 0) > 0;
+  const hasSkipped = (result.skipped_invalid_skus || 0) > 0;
+  
+  // Build results HTML
+  let html = `
+    <div style="text-align: center; margin-bottom: 1.5rem;">
+      <div style="font-size: 3rem; color: ${hasErrors ? 'var(--warning)' : 'var(--success)'}; margin-bottom: 0.5rem;">
+        <i class="fas ${hasErrors ? 'fa-exclamation-circle' : 'fa-check-circle'}"></i>
+      </div>
+      <p style="font-weight: 600; font-size: 1.1rem;">${hasErrors ? 'Import Completed with Warnings' : 'Import Successful!'}</p>
+      <p class="help-text">${filename}</p>
+    </div>
+    
+    <div style="background: var(--bg-light); border-radius: 8px; padding: 1rem;">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+        <div style="text-align: center; padding: 0.75rem; background: var(--bg); border-radius: 6px;">
+          <div style="font-size: 1.5rem; font-weight: 700; color: var(--success);">${result.imported || 0}</div>
+          <div style="font-size: 0.8rem; color: var(--text-muted);">Updated</div>
+        </div>
+        <div style="text-align: center; padding: 0.75rem; background: var(--bg); border-radius: 6px;">
+          <div style="font-size: 1.5rem; font-weight: 700; color: var(--text);">${result.processed || 0}</div>
+          <div style="font-size: 0.8rem; color: var(--text-muted);">Processed</div>
+        </div>
+      </div>
+  `;
+  
+  if (hasSkipped || hasErrors) {
+    html += `
+      <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--bg-dark);">
+    `;
+    
+    if (hasSkipped) {
+      html += `
+        <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--warning); margin-bottom: 0.5rem;">
+          <i class="fas fa-forward"></i>
+          <span><strong>${result.skipped_invalid_skus}</strong> SKUs skipped (not in system)</span>
+        </div>
+      `;
+    }
+    
+    if (hasErrors) {
+      html += `
+        <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--error);">
+          <i class="fas fa-times-circle"></i>
+          <span><strong>${result.errors}</strong> errors encountered</span>
+        </div>
+      `;
+    }
+    
+    html += `</div>`;
+  }
+  
+  html += `</div>`;
+  
+  contentEl.innerHTML = html;
+  
+  // Update modal header icon based on result
+  const modalHeader = document.querySelector('#modal-csv-import-results .modal-header h3');
+  if (modalHeader) {
+    modalHeader.innerHTML = hasErrors 
+      ? '<i class="fas fa-exclamation-circle"></i> Import Complete'
+      : '<i class="fas fa-check-circle"></i> Import Complete';
+  }
+  
+  // Show modal
+  const modal = document.getElementById('modal-csv-import-results');
+  if (modal) {
+    modal.classList.add('active');
+  }
+}
+
+/**
+ * Close CSV results modal
+ */
+function closeCsvResultsModal() {
+  const modal = document.getElementById('modal-csv-import-results');
+  if (modal) {
+    modal.classList.remove('active');
+  }
 }
 
 // ============================================================================
@@ -1181,6 +1679,7 @@ function updateAutoSyncButtons() {
 
 /**
  * Toggle auto-import mode (Sheet → App)
+ * Auto-import and auto-export are mutually exclusive
  */
 function handleToggleAutoImport() {
   if (!state.gsheetId) {
@@ -1194,6 +1693,16 @@ function handleToggleAutoImport() {
     stopAutoImport();
     showToast('Auto-import disabled', 'info');
   } else {
+    // First, disable auto-export if it's enabled (mutually exclusive)
+    if (state.autoExportEnabled) {
+      state.autoExportEnabled = false;
+      if (state.gsheetSyncTimeout) {
+        clearTimeout(state.gsheetSyncTimeout);
+        state.gsheetSyncTimeout = null;
+      }
+      state.gsheetSyncPending = false;
+    }
+    
     // Enable auto-import
     state.autoImportEnabled = true;
     showToast('Auto-import enabled! Syncing from sheet every 30 seconds.', 'success');
@@ -1205,6 +1714,7 @@ function handleToggleAutoImport() {
 
 /**
  * Toggle auto-export mode (App → Sheet)
+ * Auto-import and auto-export are mutually exclusive
  */
 function handleToggleAutoExport() {
   if (!state.gsheetId) {
@@ -1223,6 +1733,12 @@ function handleToggleAutoExport() {
     state.gsheetSyncPending = false;
     showToast('Auto-export disabled', 'info');
   } else {
+    // First, disable auto-import if it's enabled (mutually exclusive)
+    if (state.autoImportEnabled) {
+      state.autoImportEnabled = false;
+      stopAutoImport();
+    }
+    
     // Enable auto-export
     state.autoExportEnabled = true;
     showToast('Auto-export enabled! Changes will sync to sheet after 5 seconds.', 'success');
@@ -1302,17 +1818,22 @@ async function handleGSheetImport() {
 }
 
 function handleMatrixSearch(e) {
-  // TODO: Implement search filtering
-  console.log('[Sourcing] Matrix search:', e.target.value);
+  state.matrixSearch = e.target.value.trim();
+  state.matrixPage = 1;  // Reset to first page on search
+  loadSupplierMatrix();
 }
 
 // ============================================================================
 // SUPPLIERS
 // ============================================================================
 
-async function loadSuppliers() {
-  setLoading(true);
-  showToast('Loading suppliers...', 'info');
+async function loadSuppliers(options = {}) {
+  const { skipLoadingOverlay = false } = options;
+  
+  if (!skipLoadingOverlay) {
+    setLoading(true);
+    showToast('Loading suppliers...', 'info');
+  }
   
   try {
     state.suppliers = await getSuppliers(false); // Include inactive
@@ -1322,7 +1843,9 @@ async function loadSuppliers() {
     console.error('[Sourcing] Error loading suppliers:', error);
     showToast('Failed to load suppliers', 'error');
   } finally {
-    setLoading(false);
+    if (!skipLoadingOverlay) {
+      setLoading(false);
+    }
   }
 }
 
@@ -1451,6 +1974,19 @@ async function handleSaveSupplier() {
     closeSupplierModal();
     await loadSuppliers();
     
+    // Sync supplier changes to Google Sheet if sheet is linked
+    // This syncs regardless of auto-export setting since supplier changes are explicit saves
+    if (state.gsheetId) {
+      showToast('Syncing to Google Sheet...', 'info');
+      try {
+        await performGSheetExport();
+        showToast('Synced to Google Sheet', 'success');
+      } catch (err) {
+        console.error('[Sourcing] Failed to sync supplier change:', err);
+        // Don't show error toast - supplier was saved successfully
+      }
+    }
+    
   } catch (error) {
     console.error('[Sourcing] Error saving supplier:', error);
     showToast(error.message || 'Failed to save supplier', 'error');
@@ -1471,6 +2007,17 @@ async function handleDeleteSupplier() {
     closeSupplierModal();
     await loadSuppliers();
     
+    // Sync supplier deletion to Google Sheet if sheet is linked
+    if (state.gsheetId) {
+      showToast('Syncing to Google Sheet...', 'info');
+      try {
+        await performGSheetExport();
+        showToast('Synced to Google Sheet', 'success');
+      } catch (err) {
+        console.error('[Sourcing] Failed to sync supplier deletion:', err);
+      }
+    }
+    
   } catch (error) {
     console.error('[Sourcing] Error deleting supplier:', error);
     showToast('Failed to delete supplier', 'error');
@@ -1481,9 +2028,13 @@ async function handleDeleteSupplier() {
 // FX RATES (Sheet 2: Currency Engine)
 // ============================================================================
 
-async function loadFXRates() {
-  setLoading(true);
-  showToast('Loading FX rates...', 'info');
+async function loadFXRates(options = {}) {
+  const { skipLoadingOverlay = false } = options;
+  
+  if (!skipLoadingOverlay) {
+    setLoading(true);
+    showToast('Loading FX rates...', 'info');
+  }
   
   try {
     const data = await getFXRates();
@@ -1502,7 +2053,9 @@ async function loadFXRates() {
     console.error('[Sourcing] Error loading FX rates:', error);
     showToast('Failed to load exchange rates', 'error');
   } finally {
-    setLoading(false);
+    if (!skipLoadingOverlay) {
+      setLoading(false);
+    }
   }
 }
 
@@ -1705,15 +2258,22 @@ async function handleSavePricing() {
 // UTILITIES
 // ============================================================================
 
-function setLoading(isLoading) {
+/**
+ * Set loading state
+ * @param {boolean} isLoading - Whether loading is in progress
+ * @param {boolean} showOverlay - Whether to show the full-page loading overlay (default: false)
+ */
+function setLoading(isLoading, showOverlay = false) {
   state.isLoading = isLoading;
   document.querySelector('.product-sourcing')?.classList.toggle('loading', isLoading);
   
-  // Use global loading overlay for proper page-level loading indicator
-  if (isLoading) {
-    showLoading();
-  } else {
-    hideLoading();
+  // Only show global loading overlay when explicitly requested (e.g., initial page load)
+  if (showOverlay) {
+    if (isLoading) {
+      showLoading();
+    } else {
+      hideLoading();
+    }
   }
 }
 
@@ -1732,8 +2292,74 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
+// ============================================================================
+// CUSTOM DROPDOWN FUNCTIONS
+// ============================================================================
+
+function toggleDropdown(dropdownId) {
+  const dropdown = document.getElementById(dropdownId);
+  if (!dropdown) return;
+
+  // Close all other dropdowns first
+  document.querySelectorAll('.custom-dropdown.open').forEach(d => {
+    if (d.id !== dropdownId) {
+      d.classList.remove('open');
+    }
+  });
+
+  dropdown.classList.toggle('open');
+}
+
+function selectMarginFilter(element, value, text) {
+  const dropdown = document.getElementById('analysisMarginDropdown');
+  if (!dropdown) return;
+
+  // Update the displayed text
+  const selected = dropdown.querySelector('.dropdown-selected');
+  if (selected) {
+    const icon = selected.querySelector('i');
+    selected.innerHTML = '';
+    if (icon) selected.appendChild(icon);
+    selected.appendChild(document.createTextNode(' '));
+    const span = document.createElement('span');
+    span.textContent = text;
+    selected.appendChild(span);
+  }
+
+  // Update the hidden input value
+  const hiddenInput = document.getElementById('analysis-margin-filter');
+  if (hiddenInput) {
+    hiddenInput.value = value;
+  }
+
+  // Update selected state visually
+  dropdown.querySelectorAll('.dropdown-option').forEach(opt => {
+    opt.classList.remove('selected');
+  });
+  element.classList.add('selected');
+
+  // Close the dropdown
+  dropdown.classList.remove('open');
+
+  // Trigger the filter change
+  handleMarginFilterChange();
+}
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.custom-dropdown')) {
+    document.querySelectorAll('.custom-dropdown.open').forEach(d => {
+      d.classList.remove('open');
+    });
+  }
+});
+
 // EXPOSE TO WINDOW FOR ONCLICK HANDLERS
 // ============================================================================
+
+// Global functions for inline onclick handlers
+window.toggleDropdown = toggleDropdown;
+window.selectMarginFilter = selectMarginFilter;
 
 window.sourcingModule = {
   openPricingModal,
@@ -1744,11 +2370,16 @@ window.sourcingModule = {
   openGSheetLinkModal,
   goToAnalysisPage: async (page) => {
     state.analysisPage = page;
-    await loadAnalysisDashboard();
+    // Show table loading state during pagination
+    showTableLoading('analysis-table-body', 9, 'Loading');
+    await loadAnalysisDashboard({ skipLoadingOverlay: true });
   },
   goToMatrixPage: async (page) => {
     state.matrixPage = page;
-    await loadSupplierMatrix();
+    // Show table loading state during pagination (estimate columns: 4 base + suppliers)
+    const colCount = 4 + (state.matrixSuppliers?.length || 5);
+    showTableLoading('matrix-table-body', colCount, 'Loading');
+    await loadSupplierMatrix({ skipLoadingOverlay: true });
   }
 };
 

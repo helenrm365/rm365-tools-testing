@@ -48,121 +48,130 @@
     
     <!-- ======================== ANALYSIS DASHBOARD ======================== -->
     <div class="sourcing-tab-panel active" id="panel-dashboard">
-      <div class="panel-header">
-        <h2><i class="fas fa-chart-pie"></i> Analysis Dashboard</h2>
-        <div class="panel-actions">
-          <button class="btn secondary-btn" id="btn-refresh-analysis">
-            <i class="fas fa-sync-alt"></i> Refresh
-          </button>
+      
+      <!-- Summary Cards (as action-block) -->
+      <div class="action-block">
+        <div class="block-header">
+          <div class="block-icon">
+            <i class="fas fa-chart-pie"></i>
+          </div>
+          <div class="block-title-group">
+            <h3 class="block-title">Analysis Dashboard</h3>
+            <p class="block-subtitle">Margin analysis and pricing insights</p>
+          </div>
+          <div class="block-header-actions">
+            <button class="btn secondary-btn" id="btn-refresh-analysis">
+              <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+          </div>
+        </div>
+        <div class="block-content">
+          <div class="summary-cards-grid" id="analysis-summary-cards">
+            <div class="summary-card">
+              <div class="card-icon"><i class="fas fa-box-open"></i></div>
+              <div class="card-content">
+                <span class="card-value" id="summary-total-products">—</span>
+                <span class="card-label">Total Products</span>
+              </div>
+            </div>
+            <div class="summary-card">
+              <div class="card-icon"><i class="fas fa-tags"></i></div>
+              <div class="card-content">
+                <span class="card-value" id="summary-with-pricing">—</span>
+                <span class="card-label">With Pricing</span>
+              </div>
+            </div>
+            <div class="summary-card healthy">
+              <div class="card-icon"><i class="fas fa-check-circle"></i></div>
+              <div class="card-content">
+                <span class="card-value" id="summary-healthy">—</span>
+                <span class="card-label">Healthy Margin</span>
+              </div>
+            </div>
+            <div class="summary-card warning">
+              <div class="card-icon"><i class="fas fa-exclamation-triangle"></i></div>
+              <div class="card-content">
+                <span class="card-value" id="summary-warning">—</span>
+                <span class="card-label">Low Margin</span>
+              </div>
+            </div>
+            <div class="summary-card danger">
+              <div class="card-icon"><i class="fas fa-times-circle"></i></div>
+              <div class="card-content">
+                <span class="card-value" id="summary-loss">—</span>
+                <span class="card-label">Loss Makers</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
       
-      <!-- Summary Cards -->
-      <div class="summary-cards" id="analysis-summary-cards">
-        <div class="summary-card">
-          <div class="card-icon"><i class="fas fa-box-open"></i></div>
-          <div class="card-content">
-            <span class="card-value" id="summary-total-products">—</span>
-            <span class="card-label">Total Products</span>
+      <!-- Data Controls Bar -->
+      <div class="data-controls-bar">
+        <div class="data-controls-bar-content">
+          <div class="search-box">
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" id="analysis-search" class="search-input" placeholder="Search SKU, product name, or brand...">
           </div>
-        </div>
-        <div class="summary-card">
-          <div class="card-icon"><i class="fas fa-tags"></i></div>
-          <div class="card-content">
-            <span class="card-value" id="summary-with-pricing">—</span>
-            <span class="card-label">With Pricing</span>
-          </div>
-        </div>
-        <div class="summary-card healthy">
-          <div class="card-icon"><i class="fas fa-check-circle"></i></div>
-          <div class="card-content">
-            <span class="card-value" id="summary-healthy">—</span>
-            <span class="card-label">Healthy Margin</span>
-          </div>
-        </div>
-        <div class="summary-card warning">
-          <div class="card-icon"><i class="fas fa-exclamation-triangle"></i></div>
-          <div class="card-content">
-            <span class="card-value" id="summary-warning">—</span>
-            <span class="card-label">Low Margin</span>
-          </div>
-        </div>
-        <div class="summary-card danger">
-          <div class="card-icon"><i class="fas fa-times-circle"></i></div>
-          <div class="card-content">
-            <span class="card-value" id="summary-loss">—</span>
-            <span class="card-label">Loss Makers</span>
+          <div class="custom-dropdown" id="analysisMarginDropdown">
+            <div class="dropdown-selected" onclick="toggleDropdown('analysisMarginDropdown')">
+              <i class="fas fa-filter"></i>
+              <span>All Margins</span>
+            </div>
+            <div class="dropdown-options">
+              <div class="dropdown-option selected" onclick="selectMarginFilter(this, '', 'All Margins')">All Margins</div>
+              <div class="dropdown-option" onclick="selectMarginFilter(this, 'healthy', 'Healthy (≥20%)')">Healthy (≥20%)</div>
+              <div class="dropdown-option" onclick="selectMarginFilter(this, 'warning', 'Warning (0-20%)')">Warning (0-20%)</div>
+              <div class="dropdown-option" onclick="selectMarginFilter(this, 'loss', 'Loss (<0%)')">Loss (<0%)</div>
+              <div class="dropdown-option" onclick="selectMarginFilter(this, 'no_magento_price', 'No Magento Price')">No Magento Price</div>
+              <div class="dropdown-option" onclick="selectMarginFilter(this, 'no_data', 'No Supplier Data')">No Supplier Data</div>
+            </div>
+            <input type="hidden" id="analysis-margin-filter" value="">
           </div>
         </div>
       </div>
       
-      <!-- Search & Filters -->
-      <div class="panel-toolbar">
-        <div class="search-box">
-          <i class="fas fa-search"></i>
-          <input type="text" id="analysis-search" placeholder="Search SKU, product name, or brand...">
-        </div>
-        <div class="filter-group">
-          <select id="analysis-margin-filter">
-            <option value="">All Margins</option>
-            <option value="healthy">Healthy (≥20%)</option>
-            <option value="warning">Warning (0-20%)</option>
-            <option value="loss">Loss (<0%)</option>
-            <option value="no_magento_price">No Magento Price</option>
-            <option value="no_data">No Supplier Data</option>
-          </select>
-        </div>
+      <!-- Standalone Analysis Table -->
+      <div class="table-container standalone-table" id="analysis-table-container">
+        <table class="data-table analysis-table" id="analysis-table" data-auto-sort="true">
+          <thead>
+            <tr>
+              <th class="col-sku sticky-col sortable">SKU</th>
+              <th class="col-product sticky-col-2 sortable">Product</th>
+              <th class="col-status sortable">Status</th>
+              <th class="col-magento sortable">Magento Price</th>
+              <th class="col-best-price sortable">Best Cost</th>
+              <th class="col-winner sortable">Best Supplier</th>
+              <th class="col-margin sortable">Margin %</th>
+              <th class="col-suppliers">Suppliers</th>
+              <th class="col-actions">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="analysis-table-body">
+            <tr class="loading-row">
+              <td colspan="9"><i class="fas fa-spinner fa-spin"></i> Loading analysis data...</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
       
-      <!-- Analysis Table -->
-      <div class="panel-body">
-        <div class="table-container" id="analysis-table-container">
-          <table class="data-table analysis-table" id="analysis-table">
-            <thead>
-              <tr>
-                <th class="col-sku">SKU</th>
-                <th class="col-product">Product</th>
-                <th class="col-status">Status</th>
-                <th class="col-magento">Magento Price</th>
-                <th class="col-best-price">Best Cost</th>
-                <th class="col-winner">Best Supplier</th>
-                <th class="col-margin">Margin %</th>
-                <th class="col-suppliers">Suppliers</th>
-                <th class="col-actions">Actions</th>
-              </tr>
-            </thead>
-            <tbody id="analysis-table-body">
-              <tr class="loading-row">
-                <td colspan="9"><i class="fas fa-spinner fa-spin"></i> Loading analysis data...</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        
-        <!-- Pagination -->
-        <div class="pagination-controls" id="analysis-pagination"></div>
-      </div>
+      <!-- Pagination -->
+      <div class="pagination-controls" id="analysis-pagination"></div>
     </div>
 
     <!-- ======================== SUPPLIER MATRIX ======================== -->
     <div class="sourcing-tab-panel" id="panel-matrix">
-      <div class="panel-header">
-        <h2><i class="fas fa-table"></i> Supplier Matrix</h2>
-        <div class="panel-actions">
-          <button class="btn secondary-btn" id="btn-export-matrix">
-            <i class="fas fa-download"></i> Export CSV
-          </button>
-          <button class="btn info-btn" id="btn-import-matrix">
-            <i class="fas fa-upload"></i> Import CSV
-          </button>
-          <input type="file" id="import-file-input" accept=".csv" style="display: none;">
-        </div>
-      </div>
       
-      <!-- GOOGLE SHEETS SYNC CARD (at top) -->
-      <div class="gsheet-sync-card" id="gsheet-sync-card">
-        <div class="gsheet-card-header">
-          <h3><i class="fas fa-file-excel"></i> Google Sheets Sync</h3>
+      <!-- Google Sheets Sync Card -->
+      <div class="action-block gsheet-sync-card" id="gsheet-sync-card">
+        <div class="block-header">
+          <div class="block-icon gsheet-icon">
+            <i class="fas fa-file-excel"></i>
+          </div>
+          <div class="block-title-group">
+            <h3 class="block-title">Google Sheets Sync</h3>
+            <p class="block-subtitle">Sync supplier matrix with Google Sheets</p>
+          </div>
           <div class="gsheet-link-display" id="gsheet-link-display">
             <span class="gsheet-id-text" id="gsheet-id-text">No sheet linked</span>
             <button class="btn btn-sm" id="btn-edit-gsheet-link" title="Edit Sheet Link">
@@ -171,19 +180,9 @@
           </div>
         </div>
         
-        <div class="gsheet-card-body">
+        <div class="block-content">
           <!-- Auto-Sync Toggles -->
           <div class="gsheet-sync-row">
-            <div class="gsheet-sync-option">
-              <div class="sync-option-info">
-                <strong><i class="fas fa-download"></i> Auto-Import</strong>
-                <span class="sync-description">Sheet → App (every 30s)</span>
-              </div>
-              <button class="btn" id="btn-auto-import">
-                <i class="fas fa-download"></i> Enable
-              </button>
-            </div>
-            
             <div class="gsheet-sync-option">
               <div class="sync-option-info">
                 <strong><i class="fas fa-upload"></i> Auto-Export</strong>
@@ -191,6 +190,16 @@
               </div>
               <button class="btn" id="btn-auto-export">
                 <i class="fas fa-upload"></i> Enable
+              </button>
+            </div>
+            
+            <div class="gsheet-sync-option">
+              <div class="sync-option-info">
+                <strong><i class="fas fa-download"></i> Auto-Import</strong>
+                <span class="sync-description">Sheet → App (every 30s)</span>
+              </div>
+              <button class="btn" id="btn-auto-import">
+                <i class="fas fa-download"></i> Enable
               </button>
             </div>
           </div>
@@ -209,57 +218,79 @@
         </div>
       </div>
       
-      <!-- Search -->
-      <div class="panel-toolbar">
-        <div class="search-box">
-          <i class="fas fa-search"></i>
-          <input type="text" id="matrix-search" placeholder="Search SKU or product...">
-        </div>
-        <div class="legend-group">
-          <span class="legend-item best-price"><i class="fas fa-circle"></i> Best Price</span>
-          <span class="legend-item has-price"><i class="fas fa-circle"></i> Has Price</span>
-          <span class="legend-item no-price"><i class="fas fa-circle"></i> No Price</span>
+      
+      <!-- Data Controls Bar -->
+      <div class="data-controls-bar">
+        <div class="data-controls-bar-content">
+          <!-- Search Box -->
+          <div class="search-box">
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" id="matrix-search" class="search-input" placeholder="Search SKU or product...">
+          </div>
+          
+          <!-- Legend -->
+          <div class="legend-group">
+            <span class="legend-item best-price"><i class="fas fa-circle"></i> Best Price</span>
+            <span class="legend-item has-price"><i class="fas fa-circle"></i> Has Price</span>
+            <span class="legend-item no-price"><i class="fas fa-circle"></i> No Price</span>
+          </div>
+          
+          <!-- CSV Actions -->
+          <button class="btn info-btn" id="btn-export-matrix">
+            <i class="fas fa-upload"></i> Export CSV
+          </button>
+          <button class="btn success-btn" id="btn-import-matrix">
+            <i class="fas fa-download"></i> Import CSV
+          </button>
+          <input type="file" id="import-file-input" accept=".csv" style="display: none;">
         </div>
       </div>
       
-      <!-- Matrix Table (Spreadsheet-like) -->
-      <div class="panel-body">
-        <div class="matrix-wrapper" id="matrix-wrapper">
-          <table class="data-table matrix-table" id="matrix-table">
-            <thead id="matrix-table-head">
-              <tr>
-                <th class="col-sku sticky-col">SKU</th>
-                <!-- Supplier columns will be dynamically generated -->
-              </tr>
-            </thead>
-            <tbody id="matrix-table-body">
-              <tr class="loading-row">
-                <td colspan="10"><i class="fas fa-spinner fa-spin"></i> Loading matrix...</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        
-        <!-- Pagination -->
-        <div class="pagination-controls" id="matrix-pagination"></div>
+      <!-- Standalone Matrix Table -->
+      <div class="table-container standalone-table matrix-wrapper" id="matrix-wrapper">
+        <table class="data-table matrix-table" id="matrix-table" data-auto-sort="true">
+          <thead id="matrix-table-head">
+            <tr>
+              <th class="col-sku sticky-col sortable">SKU</th>
+              <!-- Supplier columns will be dynamically generated -->
+            </tr>
+          </thead>
+          <tbody id="matrix-table-body">
+            <tr class="loading-row">
+              <td colspan="10"><i class="fas fa-spinner fa-spin"></i> Loading matrix...</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
+      
+      <!-- Pagination -->
+      <div class="pagination-controls" id="matrix-pagination"></div>
     </div>
 
     <!-- ======================== SUPPLIERS ======================== -->
     <div class="sourcing-tab-panel" id="panel-suppliers">
-      <div class="panel-header">
-        <h2><i class="fas fa-users"></i> Supplier Management</h2>
-        <div class="panel-actions">
-          <button class="btn primary-btn" id="btn-add-supplier">
-            <i class="fas fa-plus"></i> Add Supplier
-          </button>
-        </div>
-      </div>
       
-      <div class="panel-body">
-        <div class="supplier-grid" id="supplier-grid">
-          <div class="loading-placeholder">
-            <i class="fas fa-spinner fa-spin"></i> Loading suppliers...
+      <!-- Supplier Management Card -->
+      <div class="action-block">
+        <div class="block-header">
+          <div class="block-icon">
+            <i class="fas fa-users"></i>
+          </div>
+          <div class="block-title-group">
+            <h3 class="block-title">Supplier Management</h3>
+            <p class="block-subtitle">Manage supplier details and currencies</p>
+          </div>
+          <div class="block-header-actions">
+            <button class="btn primary-btn" id="btn-add-supplier">
+              <i class="fas fa-plus"></i> Add Supplier
+            </button>
+          </div>
+        </div>
+        <div class="block-content">
+          <div class="supplier-grid" id="supplier-grid">
+            <div class="loading-placeholder">
+              <i class="fas fa-spinner fa-spin"></i> Loading suppliers...
+            </div>
           </div>
         </div>
       </div>
@@ -267,43 +298,61 @@
 
     <!-- ======================== FX RATES ======================== -->
     <div class="sourcing-tab-panel" id="panel-fx-rates">
-      <div class="panel-header">
-        <h2><i class="fas fa-exchange-alt"></i> Currency Engine</h2>
-        <div class="panel-actions">
-          <button class="btn secondary-btn" id="btn-refresh-rates">
-            <i class="fas fa-sync-alt"></i> Refresh Rates
-          </button>
+      
+      <!-- Currency Engine Card -->
+      <div class="action-block">
+        <div class="block-header">
+          <div class="block-icon">
+            <i class="fas fa-exchange-alt"></i>
+          </div>
+          <div class="block-title-group">
+            <h3 class="block-title">Currency Engine</h3>
+            <p class="block-subtitle">Live exchange rates and conversions</p>
+          </div>
+          <div class="block-header-actions">
+            <button class="btn secondary-btn" id="btn-refresh-rates">
+              <i class="fas fa-sync-alt"></i> Refresh Rates
+            </button>
+          </div>
+        </div>
+        <div class="block-content">
+          <!-- Base Currency Info -->
+          <div class="fx-header">
+            <div class="base-currency-display">
+              <span class="label">Base Currency:</span>
+              <span class="value" id="fx-base-currency">GBP</span>
+            </div>
+            <div class="rates-source">
+              <span class="label">Source:</span>
+              <span class="value" id="fx-source">Live API</span>
+            </div>
+            <div class="last-updated">
+              <span class="label">Last Updated:</span>
+              <span class="value" id="fx-last-updated">—</span>
+            </div>
+          </div>
+          
+          <!-- FX Rates Grid -->
+          <div class="fx-rates-grid" id="fx-rates-grid">
+            <div class="loading-placeholder">
+              <i class="fas fa-spinner fa-spin"></i> Loading exchange rates...
+            </div>
+          </div>
         </div>
       </div>
       
-      <div class="panel-body">
-        <!-- Base Currency Info -->
-        <div class="fx-header">
-          <div class="base-currency-display">
-            <span class="label">Base Currency:</span>
-            <span class="value" id="fx-base-currency">GBP</span>
+      <!-- Override Form (separate action-block) -->
+      <div class="action-block">
+        <div class="block-header">
+          <div class="block-icon">
+            <i class="fas fa-edit"></i>
           </div>
-          <div class="rates-source">
-            <span class="label">Source:</span>
-            <span class="value" id="fx-source">Live API</span>
-          </div>
-          <div class="last-updated">
-            <span class="label">Last Updated:</span>
-            <span class="value" id="fx-last-updated">—</span>
+          <div class="block-title-group">
+            <h3 class="block-title">Manual Rate Override</h3>
+            <p class="block-subtitle">Lock in a specific rate for calculations. This overrides the live rate.</p>
           </div>
         </div>
-        
-        <!-- FX Rates Grid -->
-        <div class="fx-rates-grid" id="fx-rates-grid">
-          <div class="loading-placeholder">
-            <i class="fas fa-spinner fa-spin"></i> Loading exchange rates...
-          </div>
-        </div>
-        
-        <!-- Override Form -->
-        <div class="fx-override-section">
-          <h3><i class="fas fa-edit"></i> Manual Rate Override</h3>
-          <p class="section-description">Lock in a specific rate for calculations. This overrides the live rate.</p>
+        <div class="block-content">
           <div class="override-form">
             <div class="form-group">
               <label for="override-currency">Currency</label>
@@ -485,6 +534,50 @@
       <button class="btn secondary-btn" id="btn-confirm-gsheet-cancel">Cancel</button>
       <button class="btn success-btn" id="btn-confirm-gsheet-yes">
         <i class="fas fa-check"></i> Yes, Save
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- CSV IMPORT CONFIRMATION MODAL -->
+<div id="modal-confirm-csv-import" class="modal-overlay">
+  <div class="modal-content" style="max-width: 450px;">
+    <div class="modal-header">
+      <h3><i class="fas fa-file-import"></i> Confirm CSV Import</h3>
+      <button class="close-modal" id="btn-csv-import-close">&times;</button>
+    </div>
+    <div class="modal-body" style="text-align: center; padding: 20px;">
+      <div style="font-size: 3rem; color: var(--warning); margin-bottom: 1rem;">
+        <i class="fas fa-exclamation-triangle"></i>
+      </div>
+      <p style="font-weight: 600; margin-bottom: 0.5rem;">Import CSV Data?</p>
+      <p class="help-text">This will update existing pricing data with values from the CSV file. New SKUs will be added, existing entries will be updated.</p>
+      <p class="help-text" style="margin-top: 1rem;"><strong>File:</strong> <span id="csv-import-filename">—</span></p>
+    </div>
+    <div class="modal-footer" style="display: flex; gap: 10px; justify-content: center;">
+      <button class="btn secondary-btn" id="btn-csv-import-cancel">Cancel</button>
+      <button class="btn primary-btn" id="btn-csv-import-confirm">
+        <i class="fas fa-upload"></i> Import
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- CSV IMPORT RESULTS MODAL -->
+<div id="modal-csv-import-results" class="modal-overlay">
+  <div class="modal-content" style="max-width: 500px;">
+    <div class="modal-header">
+      <h3><i class="fas fa-check-circle"></i> Import Complete</h3>
+      <button class="close-modal" id="btn-csv-results-close">&times;</button>
+    </div>
+    <div class="modal-body" style="padding: 20px;">
+      <div id="csv-import-results-content">
+        <!-- Dynamically populated -->
+      </div>
+    </div>
+    <div class="modal-footer" style="display: flex; gap: 10px; justify-content: center;">
+      <button class="btn primary-btn" id="btn-csv-results-ok">
+        <i class="fas fa-check"></i> OK
       </button>
     </div>
   </div>

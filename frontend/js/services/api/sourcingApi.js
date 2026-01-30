@@ -233,14 +233,20 @@ export async function bulkUpdatePricing(updates) {
  * @param {number} options.page - Page number
  * @param {number} options.perPage - Items per page
  * @param {string} options.search - Search query
+ * @param {string} options.sortBy - Column to sort by
+ * @param {string} options.sortOrder - Sort order (asc/desc)
  * @returns {Promise<{matrix: Array, suppliers: Array, total: number, ...}>}
  */
 export async function getSupplierMatrix(options = {}) {
-  const { page = 1, perPage = 100, search = '' } = options;
+  const { page = 1, perPage = 100, search = '', sortBy = '', sortOrder = 'asc' } = options;
   let url = `${BASE_PATH}/matrix?page=${page}&per_page=${perPage}`;
   if (search) {
     url += `&search=${encodeURIComponent(search)}`;
   }
+  if (sortBy) {
+    url += `&sort_by=${encodeURIComponent(sortBy)}&sort_order=${encodeURIComponent(sortOrder)}`;
+  }
+  console.log('[SourcingApi] getSupplierMatrix URL:', url);
   try {
     return await get(url);
   } catch (error) {
@@ -261,10 +267,13 @@ export async function getSupplierMatrix(options = {}) {
  * @param {string} options.search - Search query
  * @param {string} options.category - Category filter
  * @param {string} options.marginStatus - Filter by margin status (healthy, warning, loss, no_data)
+ * @param {string} options.sortBy - Column to sort by
+ * @param {string} options.sortOrder - Sort order (asc/desc)
  * @returns {Promise<{products: Array, summary: Object, suppliers: Array, ...}>}
  */
 export async function getAnalysisDashboard(options = {}) {
-  const { page = 1, perPage = 100, search = '', category = '', marginStatus = '' } = options;
+  const { page = 1, perPage = 100, search = '', category = '', marginStatus = '', sortBy = '', sortOrder = 'asc' } = options;
+  console.log('[SourcingApi] getAnalysisDashboard options:', { sortBy, sortOrder, page, perPage });
   let url = `${BASE_PATH}/analysis?page=${page}&per_page=${perPage}`;
   if (search) {
     url += `&search=${encodeURIComponent(search)}`;
@@ -275,6 +284,10 @@ export async function getAnalysisDashboard(options = {}) {
   if (marginStatus) {
     url += `&margin_status=${encodeURIComponent(marginStatus)}`;
   }
+  if (sortBy) {
+    url += `&sort_by=${encodeURIComponent(sortBy)}&sort_order=${encodeURIComponent(sortOrder)}`;
+  }
+  console.log('[SourcingApi] getAnalysisDashboard URL:', url);
   try {
     return await get(url);
   } catch (error) {

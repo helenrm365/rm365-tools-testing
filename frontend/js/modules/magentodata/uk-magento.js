@@ -579,21 +579,16 @@ async function loadMagentoData() {
     
     let result;
     if (viewMode === 'aggregated') {
-      result = await getUKAggregatedData(pageSize, offset, '');
+      result = await getUKAggregatedData(pageSize, offset, '', currentSortColumn || '', currentSortDirection);
     } else {
-      result = await getUKMagentoData(pageSize, offset, '');
+      result = await getUKMagentoData(pageSize, offset, '', currentSortColumn || '', currentSortDirection);
     }
     
     if (result.status === 'success' && result.data) {
       allData = result.data;
       totalRecords = result.total_count || 0;
       
-      // Apply current sort if one is active
-      if (currentSortColumn) {
-        applySortToData();
-      }
-      
-      // Display the data
+      // Display the data (server already sorted)
       displayCurrentPage();
     } else {
       console.error('[UK Magento] Failed to load data:', result.message);
@@ -733,20 +728,16 @@ async function loadSearchResults(searchTerm) {
     
     let result;
     if (viewMode === 'aggregated') {
-      result = await getUKAggregatedData(pageSize, offset, searchTerm);
+      result = await getUKAggregatedData(pageSize, offset, searchTerm, currentSortColumn || '', currentSortDirection);
     } else {
-      result = await getUKMagentoData(pageSize, offset, searchTerm);
+      result = await getUKMagentoData(pageSize, offset, searchTerm, currentSortColumn || '', currentSortDirection);
     }
     
     if (result.status === 'success' && result.data) {
       allData = result.data;
       totalRecords = result.total_count || 0;
       
-      // Apply current sort if one is active
-      if (currentSortColumn) {
-        applySortToData();
-      }
-      
+      // Display the data (server already sorted)
       displayCurrentPage();
     } else {
       console.error('[UK Magento] Search failed:', result.message);
@@ -1176,14 +1167,33 @@ function setupTableSorting() {
 
 /**
  * Sort the current data and re-render the table
+ * Uses server-side sorting by reloading data with sort parameters
  */
-function sortAndRenderData() {
-  if (!allData || allData.length === 0) return;
+async function sortAndRenderData() {
+  if (viewMode === 'custom') {
+    // Custom mode uses client-side sorting since data is already loaded
+    applySortToData();
+    displayCurrentPage();
+    updateSortIndicators();
+    return;
+  }
   
-  applySortToData();
+  // Reset to first page when sorting
+  currentPage = 0;
   
-  // Re-render the display
-  displayCurrentPage();
+  // Show loading state
+  const tbody = document.getElementById('magentoTableBody');
+  const colSpan = viewMode === 'aggregated' ? '4' : '14';
+  if (tbody) {
+    tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem;"><i class="fas fa-spinner fa-spin"></i> Sorting...</td></tr>`;
+  }
+  
+  // Reload data with new sort parameters
+  if (currentSearch) {
+    await loadSearchResults(currentSearch);
+  } else {
+    await loadMagentoData();
+  }
   
   // Update sort indicators in headers
   updateSortIndicators();

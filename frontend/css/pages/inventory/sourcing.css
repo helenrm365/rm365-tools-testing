@@ -36,7 +36,7 @@
 .product-sourcing .sourcing-content {
   display: flex;
   flex-direction: column;
-  gap: var(--space-md);
+  gap: 1.5rem;
   max-width: 100%;
   animation: fadeInUp 0.4s ease-out;
 }
@@ -114,49 +114,82 @@ html.dark-mode .product-sourcing .sourcing-sub-tabs {
 /* ===== Tab Panels ===== */
 .product-sourcing .sourcing-tab-panel {
   display: none;
-  background: var(--bg);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-l);
-  overflow: hidden;
-  border: 1px solid rgba(0, 0, 0, 0.06);
-}
-
-html.dark-mode .product-sourcing .sourcing-tab-panel {
-  border-color: rgba(255, 255, 255, 0.08);
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
 .product-sourcing .sourcing-tab-panel.active {
-  display: block;
+  display: flex;
 }
 
-/* ===== Panel Header ===== */
-.product-sourcing .panel-header {
+/* ===== Data Controls Bar (matches inventory management) ===== */
+.product-sourcing .data-controls-bar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: var(--space-lg);
-  border-bottom: 2px solid var(--bg-light);
-  background: linear-gradient(135deg, rgba(139, 195, 74, 0.08), rgba(139, 195, 74, 0.03));
+  padding: 0.75rem 1.25rem;
+  gap: 1rem;
+  background: var(--bg);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-l);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  overflow: visible; /* Allow dropdowns to overflow */
+}
+
+html.dark-mode .product-sourcing .data-controls-bar {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.product-sourcing .data-controls-bar-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
   flex-wrap: wrap;
-  gap: var(--space-md);
 }
 
-html.dark-mode .product-sourcing .panel-header {
-  background: linear-gradient(135deg, rgba(139, 195, 74, 0.12), rgba(139, 195, 74, 0.05));
+/* Search box uses forms.css .search-box styling */
+.product-sourcing .data-controls-bar .search-box {
+  flex: 1;
+  min-width: 200px;
+  max-width: 400px;
 }
 
-.product-sourcing .panel-header h2 {
+/* Custom dropdown uses forms.css styling */
+.product-sourcing .data-controls-bar .custom-dropdown {
+  min-width: 180px;
+  max-width: 220px;
+}
+
+/* Ensure dropdown options show above table */
+.product-sourcing .data-controls-bar .dropdown-options {
+  z-index: 100;
+}
+
+/* ===== Standalone Table ===== */
+.product-sourcing .standalone-table {
+  background: var(--bg);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-l);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  overflow: auto; /* Changed from hidden to allow scrolling */
+  max-height: 60vh;
+}
+
+html.dark-mode .product-sourcing .standalone-table {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* ===== Panel Header (for tabs that still use it) ===== */
+/* Uses .block-header from cards.css with local overrides */
+.product-sourcing .panel-header {
+  /* No margin needed - gap on parent handles spacing */
+}
+
+.product-sourcing .panel-header .block-header-actions {
   display: flex;
-  align-items: center;
   gap: var(--space-sm);
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--text);
-}
-
-.product-sourcing .panel-header h2 i {
-  color: var(--accent);
+  flex-wrap: wrap;
+  margin-left: auto;
 }
 
 .product-sourcing .panel-actions {
@@ -166,10 +199,10 @@ html.dark-mode .product-sourcing .panel-header {
 }
 
 .product-sourcing .panel-body {
-  padding: var(--space-lg);
+  padding: 0;
 }
 
-/* ===== Panel Toolbar ===== */
+/* ===== Panel Toolbar (deprecated - use data-controls-bar) ===== */
 .product-sourcing .panel-toolbar {
   display: flex;
   align-items: center;
@@ -181,31 +214,27 @@ html.dark-mode .product-sourcing .panel-header {
   flex-wrap: wrap;
 }
 
-/* ===== Summary Cards ===== */
-.product-sourcing .summary-cards {
+/* ===== Summary Cards Grid ===== */
+.product-sourcing .summary-cards-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: var(--space-md);
-  padding: var(--space-lg);
-  background: var(--bg-light);
-  border-bottom: 2px solid var(--bg-dark);
+  gap: 1rem;
 }
 
 .product-sourcing .summary-card {
   display: flex;
   align-items: center;
-  gap: var(--space-md);
-  padding: var(--space-md) var(--space-lg);
-  background: var(--bg);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-m);
-  border: 1px solid rgba(0, 0, 0, 0.05);
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: var(--bg-light);
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
   transition: transform var(--transition), box-shadow var(--transition);
 }
 
 .product-sourcing .summary-card:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-l);
+  box-shadow: var(--shadow-m);
 }
 
 html.dark-mode .product-sourcing .summary-card {
@@ -278,7 +307,7 @@ html.dark-mode .product-sourcing .summary-card {
   padding: var(--space-sm) var(--space-md) var(--space-sm) 2.5rem;
   border: 2px solid var(--bg-dark);
   border-radius: var(--radius-md);
-  background: var(--bg);
+  background: var(--bg-light);
   color: var(--text);
   font-size: 0.9rem;
   box-shadow: var(--shadow-s);
@@ -329,8 +358,7 @@ html.dark-mode .product-sourcing .summary-card {
 /* ===== Data Tables (extends tables.css) ===== */
 .product-sourcing .table-container,
 .product-sourcing .matrix-wrapper {
-  overflow-x: auto;
-  max-height: 60vh;
+  /* Scrolling handled by .standalone-table parent */
 }
 
 .product-sourcing .data-table {
@@ -372,11 +400,52 @@ html.dark-mode .product-sourcing .summary-card {
 
 .product-sourcing .data-table .col-sku {
   min-width: 120px;
+  max-width: 120px;
+  width: 120px;
   font-weight: 600;
 }
 
 .product-sourcing .data-table .col-product {
   min-width: 200px;
+  max-width: 250px;
+  width: 200px;
+}
+
+/* ===== Sticky Columns (SKU + Product Name) ===== */
+.product-sourcing .data-table .sticky-col {
+  position: sticky;
+  left: 0;
+  background: var(--bg);
+  z-index: 5;
+}
+
+.product-sourcing .data-table .sticky-col-2 {
+  position: sticky;
+  left: 120px; /* Must match col-sku width exactly */
+  background: var(--bg);
+  z-index: 5;
+  box-shadow: 3px 0 6px -2px rgba(0, 0, 0, 0.15); /* Visual separator */
+}
+
+.product-sourcing .data-table thead .sticky-col,
+.product-sourcing .data-table thead .sticky-col-2 {
+  z-index: 15;
+  background: var(--bg-light);
+}
+
+html.dark-mode .product-sourcing .data-table .sticky-col,
+html.dark-mode .product-sourcing .data-table .sticky-col-2 {
+  background: var(--bg);
+}
+
+html.dark-mode .product-sourcing .data-table thead .sticky-col,
+html.dark-mode .product-sourcing .data-table thead .sticky-col-2 {
+  background: var(--bg-light);
+}
+
+.product-sourcing .data-table tbody tr:hover .sticky-col,
+.product-sourcing .data-table tbody tr:hover .sticky-col-2 {
+  background: var(--bg-light);
 }
 
 .product-sourcing .data-table .col-actions {
@@ -390,9 +459,24 @@ html.dark-mode .product-sourcing .summary-card {
   left: 0;
   background: var(--bg);
   z-index: 5;
+  min-width: 120px;
+  max-width: 120px;
+  width: 120px;
 }
 
-.product-sourcing .matrix-table thead .sticky-col {
+.product-sourcing .matrix-table .sticky-col-2 {
+  position: sticky;
+  left: 120px; /* Must match sticky-col width exactly */
+  background: var(--bg);
+  z-index: 5;
+  min-width: 200px;
+  max-width: 250px;
+  width: 200px;
+  box-shadow: 3px 0 6px -2px rgba(0, 0, 0, 0.15); /* Visual separator */
+}
+
+.product-sourcing .matrix-table thead .sticky-col,
+.product-sourcing .matrix-table thead .sticky-col-2 {
   z-index: 15;
   background: var(--bg-light);
 }
@@ -455,6 +539,16 @@ html.dark-mode .product-sourcing .summary-card {
 @keyframes invalidFlash {
   0%, 50% { background: rgba(239, 68, 68, 0.4); }
   100% { background: transparent; }
+}
+
+/* Cell updated flash (for sync updates) */
+.product-sourcing .matrix-table td.cell-updated {
+  animation: cellUpdated 1s ease-out;
+}
+
+@keyframes cellUpdated {
+  0% { background: rgba(16, 185, 129, 0.5); }
+  100% { background: rgba(59, 130, 246, 0.08); }
 }
 
 /* Legacy pending states (for batch operations like import) */
@@ -1017,7 +1111,7 @@ html.dark-mode .product-sourcing .fx-rate-card {
     grid-template-columns: 1fr;
   }
   
-  .product-sourcing .summary-cards {
+  .product-sourcing .summary-cards-grid {
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   }
   
@@ -1032,6 +1126,27 @@ html.dark-mode .product-sourcing .fx-rate-card {
   .product-sourcing .panel-header {
     flex-direction: column;
     align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .product-sourcing .panel-header .block-header-actions {
+    margin-left: 0;
+    width: 100%;
+  }
+  
+  .product-sourcing .data-controls-bar-content {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+  
+  .product-sourcing .data-controls-bar .search-box {
+    max-width: none;
+    min-width: auto;
+  }
+  
+  .product-sourcing .data-controls-bar .custom-dropdown {
+    max-width: none;
   }
   
   .product-sourcing .panel-toolbar {
@@ -1112,19 +1227,19 @@ html.dark-mode .product-sourcing .fx-rate-card {
 }
 
 #btn-auto-import.active {
-  background: #4285F4;
-}
-
-#btn-auto-import.active:hover {
-  background: #3367d6;
-}
-
-#btn-auto-export.active {
   background: #0F9D58;
 }
 
-#btn-auto-export.active:hover {
+#btn-auto-import.active:hover {
   background: #0b8043;
+}
+
+#btn-auto-export.active {
+  background: #4285F4;
+}
+
+#btn-auto-export.active:hover {
+  background: #3367d6;
 }
 
 #btn-auto-import:disabled,
@@ -1134,46 +1249,30 @@ html.dark-mode .product-sourcing .fx-rate-card {
 }
 
 /* ===== GSheet Sync Card ===== */
-.gsheet-sync-card {
-  margin-bottom: 20px;
-  padding: 20px;
-  background: var(--card-bg, #fff);
-  border-radius: 12px;
-  border: 1px solid var(--border-color, #e0e0e0);
-  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.05));
-}
+/* Uses .action-block base class from components/cards.css */
+/* No margin needed - gap on parent .sourcing-tab-panel handles spacing */
 
-.gsheet-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  padding-bottom: 15px;
-  border-bottom: 1px solid var(--border-color, #e0e0e0);
-}
-
-.gsheet-card-header h3 {
-  margin: 0;
-  font-size: 1.1rem;
-  color: var(--text-primary, #333);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.gsheet-card-header h3 i {
+/* Custom block icon color for GSheet */
+.gsheet-sync-card .gsheet-icon {
+  background: rgba(15, 157, 88, 0.15);
   color: #0F9D58;
+}
+
+/* Link display in header */
+.gsheet-sync-card .block-header {
+  flex-wrap: wrap;
 }
 
 .gsheet-link-display {
   display: flex;
   align-items: center;
   gap: 10px;
+  margin-left: auto;
 }
 
 .gsheet-id-text {
-  font-size: 0.9rem;
-  color: var(--text-secondary, #666);
+  font-size: 0.875rem;
+  color: var(--text-muted);
   max-width: 200px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1188,39 +1287,42 @@ html.dark-mode .product-sourcing .fx-rate-card {
 #btn-edit-gsheet-link {
   padding: 6px 10px;
   font-size: 0.85rem;
-  background: var(--btn-secondary-bg, #f5f5f5);
-  border: 1px solid var(--border-color, #ddd);
-  color: var(--text-primary, #333);
 }
 
-#btn-edit-gsheet-link:hover {
-  background: var(--btn-secondary-hover, #eee);
-}
-
+/* Sync row layout */
 .gsheet-sync-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 15px;
-  margin-bottom: 20px;
+  gap: 1rem;
 }
 
 .gsheet-sync-option {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px;
-  background: var(--surface-alt, #f9f9f9);
-  border-radius: 8px;
-  border: 1px solid var(--border-color, #e0e0e0);
+  padding: 1rem;
+  background: var(--bg-light);
+  border-radius: 12px;
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.06));
 }
 
 .gsheet-sync-option:first-child {
-  background: rgba(66, 133, 244, 0.1);
-  border-color: rgba(66, 133, 244, 0.25);
+  background: rgba(66, 133, 244, 0.08);
+  border-color: rgba(66, 133, 244, 0.2);
 }
 
 .gsheet-sync-option:last-child {
-  background: rgba(15, 157, 88, 0.1);
+  background: rgba(15, 157, 88, 0.08);
+  border-color: rgba(15, 157, 88, 0.2);
+}
+
+html.dark-mode .gsheet-sync-option:first-child {
+  background: rgba(66, 133, 244, 0.12);
+  border-color: rgba(66, 133, 244, 0.25);
+}
+
+html.dark-mode .gsheet-sync-option:last-child {
+  background: rgba(15, 157, 88, 0.12);
   border-color: rgba(15, 157, 88, 0.25);
 }
 
@@ -1232,37 +1334,37 @@ html.dark-mode .product-sourcing .fx-rate-card {
 
 .sync-option-info strong {
   font-size: 0.95rem;
-  color: var(--text-primary, #333);
+  color: var(--text);
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
-.sync-option-info .fa-download {
+/* Export = Blue (upload icon), Import = Green (download icon) */
+.sync-option-info .fa-upload {
   color: #4285F4;
 }
 
-.sync-option-info .fa-upload {
+.sync-option-info .fa-download {
   color: #0F9D58;
 }
 
 .sync-description {
   font-size: 0.8rem;
-  color: var(--text-secondary, #666);
+  color: var(--text-muted);
 }
 
+/* Manual action buttons */
 .gsheet-manual-actions {
   display: flex;
-  gap: 10px;
+  gap: 1rem;
 }
 
 .gsheet-manual-actions .btn {
   flex: 1;
 }
 
-/* Action button styling for manual sync buttons */
 .gsheet-manual-actions .action-btn {
-  background: var(--accent-color, #6366f1);
   color: #fff;
   border: none;
   font-weight: 500;
@@ -1270,7 +1372,6 @@ html.dark-mode .product-sourcing .fx-rate-card {
 }
 
 .gsheet-manual-actions .action-btn:hover {
-  background: var(--accent-hover, #4f46e5);
   transform: translateY(-1px);
 }
 
@@ -1295,9 +1396,8 @@ html.dark-mode .product-sourcing .fx-rate-card {
 }
 
 .gsheet-status {
-  margin-top: 15px;
-  font-size: 0.9em;
-  color: var(--text-secondary, #666);
+  font-size: 0.875rem;
+  color: var(--text-muted);
   text-align: center;
 }
 
@@ -1305,71 +1405,44 @@ html.dark-mode .product-sourcing .fx-rate-card {
   display: none;
 }
 
-/* Dark mode support for GSheet card */
-[data-theme="dark"] .gsheet-sync-card,
-.dark-mode .gsheet-sync-card {
-  background: var(--card-bg, #1e1e2e);
-  border-color: var(--border-color, #3a3a4a);
+/* ===== Table Loading State ===== */
+.product-sourcing .loading-row td {
+  padding: 3rem 1rem;
 }
 
-[data-theme="dark"] .gsheet-card-header,
-.dark-mode .gsheet-card-header {
-  border-bottom-color: var(--border-color, #3a3a4a);
+.product-sourcing .table-loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  color: var(--text-muted);
+  font-size: 1rem;
 }
 
-[data-theme="dark"] .gsheet-card-header h3,
-.dark-mode .gsheet-card-header h3 {
-  color: var(--text-primary, #e0e0e0);
+.product-sourcing .table-loading-state i {
+  font-size: 1.25rem;
+  color: var(--accent);
 }
 
-[data-theme="dark"] .gsheet-id-text,
-.dark-mode .gsheet-id-text {
-  color: var(--text-secondary, #aaa);
+.product-sourcing .loading-text {
+  display: inline-flex;
+  align-items: baseline;
 }
 
-[data-theme="dark"] #btn-edit-gsheet-link,
-.dark-mode #btn-edit-gsheet-link {
-  background: var(--btn-secondary-bg, #2a2a3a);
-  border-color: var(--border-color, #4a4a5a);
-  color: var(--text-primary, #e0e0e0);
+.product-sourcing .loading-dots::after {
+  content: '';
+  animation: loadingDots 1.5s infinite steps(4);
+  display: inline-block;
+  width: 1.5em;
+  text-align: left;
 }
 
-[data-theme="dark"] #btn-edit-gsheet-link:hover,
-.dark-mode #btn-edit-gsheet-link:hover {
-  background: var(--btn-secondary-hover, #3a3a4a);
-}
-
-[data-theme="dark"] .gsheet-sync-option,
-.dark-mode .gsheet-sync-option {
-  background: var(--surface-alt, #2a2a3a);
-  border-color: var(--border-color, #3a3a4a);
-}
-
-[data-theme="dark"] .gsheet-sync-option:first-child,
-.dark-mode .gsheet-sync-option:first-child {
-  background: rgba(66, 133, 244, 0.15);
-  border-color: rgba(66, 133, 244, 0.3);
-}
-
-[data-theme="dark"] .gsheet-sync-option:last-child,
-.dark-mode .gsheet-sync-option:last-child {
-  background: rgba(15, 157, 88, 0.15);
-  border-color: rgba(15, 157, 88, 0.3);
-}
-
-[data-theme="dark"] .sync-option-info strong,
-.dark-mode .sync-option-info strong {
-  color: var(--text-primary, #e0e0e0);
-}
-
-[data-theme="dark"] .sync-description,
-.dark-mode .sync-description {
-  color: var(--text-secondary, #aaa);
-}
-
-[data-theme="dark"] .gsheet-status,
-.dark-mode .gsheet-status {
-  color: var(--text-secondary, #aaa);
+@keyframes loadingDots {
+  0% { content: ''; }
+  25% { content: '.'; }
+  50% { content: '..'; }
+  75% { content: '...'; }
+  100% { content: ''; }
 }
 
 /* Responsive for GSheet card */
@@ -1378,13 +1451,14 @@ html.dark-mode .product-sourcing .fx-rate-card {
     grid-template-columns: 1fr;
   }
   
-  .gsheet-card-header {
+  .gsheet-sync-card .block-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 10px;
+    gap: 1rem;
   }
   
   .gsheet-link-display {
+    margin-left: 0;
     width: 100%;
     justify-content: space-between;
   }

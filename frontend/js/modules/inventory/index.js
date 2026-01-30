@@ -3,11 +3,23 @@
 
 let currentSubModule = null;
 
-export async function init(path) {
-  // Clean up previous sub-module
-  if (currentSubModule?.destroy) {
-    await currentSubModule.destroy();
+/**
+ * Cleanup the current sub-module (supports both cleanup and destroy for backwards compatibility)
+ */
+function cleanupSubModule() {
+  if (currentSubModule) {
+    if (typeof currentSubModule.cleanup === 'function') {
+      currentSubModule.cleanup();
+    } else if (typeof currentSubModule.destroy === 'function') {
+      currentSubModule.destroy();
+    }
+    currentSubModule = null;
   }
+}
+
+export async function init(path) {
+  // Clean up previous sub-module before loading new one
+  cleanupSubModule();
   
   // Cache-busting timestamp for sub-module imports
   const cacheBust = `?t=${Date.now()}`;
@@ -25,9 +37,9 @@ export async function init(path) {
   }
 }
 
-export async function destroy() {
-  if (currentSubModule?.destroy) {
-    await currentSubModule.destroy();
-  }
-  currentSubModule = null;
+/**
+ * Cleanup function called by router when leaving inventory section
+ */
+export function cleanup() {
+  cleanupSubModule();
 }

@@ -106,6 +106,32 @@ class SourcingRepository:
                 ON sourcing_suppliers(is_active)
             """)
 
+            # Migration: Add missing columns to existing tables
+            # These are safe to run multiple times - they check if column exists first
+            migration_columns = [
+                ("sourcing_suppliers", "default_currency", "VARCHAR(3) DEFAULT 'GBP'"),
+                ("sourcing_suppliers", "contact_email", "VARCHAR(255)"),
+                ("sourcing_suppliers", "contact_phone", "VARCHAR(50)"),
+                ("sourcing_suppliers", "website", "VARCHAR(255)"),
+                ("sourcing_suppliers", "notes", "TEXT"),
+                ("sourcing_suppliers", "lead_time_days", "INTEGER"),
+                ("sourcing_suppliers", "min_order_value", "DECIMAL(10,2)"),
+                ("sourcing_suppliers", "payment_terms", "VARCHAR(100)"),
+            ]
+            
+            for table, column, col_type in migration_columns:
+                cursor.execute(f"""
+                    DO $$
+                    BEGIN
+                        IF NOT EXISTS (
+                            SELECT 1 FROM information_schema.columns 
+                            WHERE table_name = '{table}' AND column_name = '{column}'
+                        ) THEN
+                            ALTER TABLE {table} ADD COLUMN {column} {col_type};
+                        END IF;
+                    END $$;
+                """)
+
             conn.commit()
             self._tables_initialized = True
             logger.info("✅ Sourcing tables initialized")

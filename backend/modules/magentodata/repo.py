@@ -961,8 +961,8 @@ class MagentoDataRepo:
                 cursor.close()
                 return_products_connection(conn)
     
-    def get_magento_data(self, table_name: str, limit: int = 100, offset: int = 0, search: str = "", fields: list = None) -> Dict[str, Any]:
-        """Get magento data from a specific table with pagination, search, and optional field selection"""
+    def get_magento_data(self, table_name: str, limit: int = 100, offset: int = 0, search: str = "", fields: list = None, sort_by: str = None, sort_order: str = "desc") -> Dict[str, Any]:
+        """Get magento data from a specific table with pagination, search, sorting, and optional field selection"""
         # Validate table name to prevent SQL injection
         valid_tables = ['uk_orders_cache', 'fr_orders_cache', 'nl_orders_cache', 'test_magento_data']
         if table_name not in valid_tables:
@@ -986,6 +986,13 @@ class MagentoDataRepo:
         
         # Build SELECT clause with validated columns
         select_clause = ', '.join(columns)
+        
+        # Validate and build ORDER BY clause
+        order_column = 'imported_at'  # Default sort column
+        if sort_by and sort_by in all_columns:
+            order_column = sort_by
+        order_direction = 'DESC' if (sort_order or 'desc').upper() == 'DESC' else 'ASC'
+        order_clause = f"ORDER BY {order_column} {order_direction}"
         
         conn = None
         try:
@@ -1013,7 +1020,7 @@ class MagentoDataRepo:
                        OR status ILIKE %s
                        OR customer_email ILIKE %s
                        OR customer_full_name ILIKE %s
-                    ORDER BY imported_at DESC
+                    {order_clause}
                     LIMIT %s OFFSET %s
                 """
                 cursor.execute(count_query, (search_pattern, search_pattern, search_pattern, search_pattern, search_pattern, search_pattern))
@@ -1025,7 +1032,7 @@ class MagentoDataRepo:
                 data_query = f"""
                     SELECT {select_clause}
                     FROM {table_name}
-                    ORDER BY imported_at DESC
+                    {order_clause}
                     LIMIT %s OFFSET %s
                 """
                 cursor.execute(count_query)
@@ -1727,7 +1734,7 @@ class MagentoDataRepo:
                 cursor.close()
                 return_products_connection(conn)
     
-    def get_aggregated_data(self, region: str, limit: int = 100, offset: int = 0, search: str = "") -> Dict[str, Any]:
+    def get_aggregated_data(self, region: str, limit: int = 100, offset: int = 0, search: str = "", sort_by: str = "", sort_order: str = "desc") -> Dict[str, Any]:
         """Get aggregated magento data for a specific region"""
         # Map region to aggregated table
         region_mapping = {
@@ -1740,6 +1747,18 @@ class MagentoDataRepo:
             raise ValueError(f"Invalid region: {region}")
         
         aggregated_table = region_mapping[region]
+        
+        # Validate and build ORDER BY clause
+        allowed_columns = ['sku', 'name', 'total_qty', 'last_updated']
+        order_column = 'total_qty'  # Default sort column
+        order_direction = 'DESC'  # Default direction
+        
+        if sort_by and sort_by in allowed_columns:
+            order_column = sort_by
+        if sort_order and sort_order.lower() in ['asc', 'desc']:
+            order_direction = sort_order.upper()
+        
+        order_clause = f"ORDER BY {order_column} {order_direction}"
         
         conn = None
         try:
@@ -1757,7 +1776,7 @@ class MagentoDataRepo:
                     SELECT id, sku, name, total_qty, last_updated
                     FROM {aggregated_table}
                     WHERE sku ILIKE %s OR name ILIKE %s
-                    ORDER BY total_qty DESC
+                    {order_clause}
                     LIMIT %s OFFSET %s
                 """
                 cursor.execute(count_query, (search_pattern, search_pattern))
@@ -1769,7 +1788,7 @@ class MagentoDataRepo:
                 data_query = f"""
                     SELECT id, sku, name, total_qty, last_updated
                     FROM {aggregated_table}
-                    ORDER BY total_qty DESC
+                    {order_clause}
                     LIMIT %s OFFSET %s
                 """
                 cursor.execute(count_query)

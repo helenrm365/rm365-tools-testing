@@ -14,6 +14,8 @@ let isSearchMode = false; // Whether we're in search mode (all matching results 
 let customRangeLabel = ''; // Label for custom range (e.g., "Last 30 Days")
 let syncAbortController = null; // AbortController for cancelling ongoing sync
 let isSyncing = false; // Track if sync is in progress
+let currentSortColumn = null; // Currently sorted column
+let currentSortDirection = 'asc'; // 'asc' or 'desc'
 
 /**
  * Initialize NL magento page
@@ -473,6 +475,9 @@ function setupEventListeners() {
     });
   }
   
+  // Set up table header sorting
+  setupTableSorting();
+  
   // Listen for aggregated data refresh events from filter modal
   document.addEventListener('aggregated-data-refreshed', (e) => {
     if (e.detail.region === 'nl' && viewMode === 'aggregated') {
@@ -551,17 +556,16 @@ async function loadMagentoData() {
     
     let result;
     if (viewMode === 'aggregated') {
-      result = await getNLAggregatedData(pageSize, offset, '');
+      result = await getNLAggregatedData(pageSize, offset, '', currentSortColumn || '', currentSortDirection);
     } else {
-      result = await getNLMagentoData(pageSize, offset, '');
+      result = await getNLMagentoData(pageSize, offset, '', currentSortColumn || '', currentSortDirection);
     }
     
     if (result.status === 'success' && result.data) {
       allData = result.data;
       totalRecords = result.total_count || 0;
       
-      
-      // Display the data
+      // Display the data (server already sorted)
       displayCurrentPage();
     } else {
       console.error('[NL Magento] Failed to load data:', result.message);
@@ -700,16 +704,16 @@ async function loadSearchResults(searchTerm) {
     
     let result;
     if (viewMode === 'aggregated') {
-      result = await getNLAggregatedData(pageSize, offset, searchTerm);
+      result = await getNLAggregatedData(pageSize, offset, searchTerm, currentSortColumn || '', currentSortDirection);
     } else {
-      result = await getNLMagentoData(pageSize, offset, searchTerm);
+      result = await getNLMagentoData(pageSize, offset, searchTerm, currentSortColumn || '', currentSortDirection);
     }
     
     if (result.status === 'success' && result.data) {
       allData = result.data;
       totalRecords = result.total_count || 0;
       
-      
+      // Display the data (server already sorted)
       displayCurrentPage();
     } else {
       console.error('[NL Magento] Search failed:', result.message);
@@ -862,6 +866,9 @@ function displayCurrentPage() {
   }
   
   updatePaginationButtons();
+  
+  // Update sort indicators after table is rendered
+  updateSortIndicators();
 }
 
 /**
@@ -1233,6 +1240,201 @@ async function handleRefreshAggregatedData() {
       syncBtn.innerHTML = originalBtnContent;
     }
   }
+}
+
+/**
+ * Set up table header sorting functionality
+ */
+function setupTableSorting() {
+  // Use event delegation on the table to handle clicks on header cells
+  const table = document.getElementById('magentoTable');
+  if (!table) {
+    console.warn('[NL Magento] Table not found for sorting setup');
+    return;
+  }
+  
+  console.log('[NL Magento] Setting up table sorting...');
+  
+  table.addEventListener('click', (e) => {
+    // Find the closest th element
+    const th = e.target.closest('th');
+    if (!th) return;
+    
+    const thead = th.closest('thead');
+    if (!thead) return;
+    
+    // Get the column index
+    const columnIndex = Array.from(th.parentElement.children).indexOf(th);
+    
+    // Determine the column key based on view mode and column index
+    let columnKey;
+    if (viewMode === 'aggregated' || viewMode === 'custom') {
+      // Aggregated view columns: SKU, Product Name, Total Quantity, Last Updated
+      const aggregatedColumns = ['sku', 'name', 'total_qty', 'last_updated'];
+      columnKey = aggregatedColumns[columnIndex];
+    } else {
+      // Full view columns
+      const fullColumns = [
+        'order_number', 'created_at', 'sku', 'name', 'qty', 
+        'original_price', 'special_price', 'status', 'currency', 'grand_total',
+        'customer_email', 'customer_full_name', 'billing_address', 'shipping_address', 'customer_group_code'
+      ];
+      columnKey = fullColumns[columnIndex];
+    }
+    
+    if (!columnKey) {
+      console.warn('[NL Magento] No column key found for index:', columnIndex);
+      return;
+    }
+    
+    // Toggle sort direction if clicking the same column
+    if (currentSortColumn === columnKey) {
+      currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+      currentSortColumn = columnKey;
+      currentSortDirection = 'asc';
+    }
+    
+    console.log(`[NL Magento] Sorting by ${columnKey} (${currentSortDirection})`);
+    
+    // Sort the data and re-render
+    sortAndRenderData();
+  });
+  
+  // Show initial sort indicators (neutral state)
+  updateSortIndicators();
+  
+  console.log('[NL Magento] Table sorting setup complete');
+}
+
+/**
+ * Sort the current data and re-render the table
+ * Uses server-side sorting by reloading data with sort parameters
+ */
+async function sortAndRenderData() {
+  if (viewMode === 'custom') {
+    // Custom mode uses client-side sorting since data is already loaded
+    applySortToData();
+    displayCurrentPage();
+    updateSortIndicators();
+    return;
+  }
+  
+  // Reset to first page when sorting
+  currentPage = 0;
+  
+  // Show loading state
+  const tbody = document.getElementById('magentoTableBody');
+  const colSpan = viewMode === 'aggregated' ? '4' : '14';
+  if (tbody) {
+    tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem;"><i class="fas fa-spinner fa-spin"></i> Sorting...</td></tr>`;
+  }
+  
+  // Reload data with new sort parameters
+  if (currentSearch) {
+    await loadSearchResults(currentSearch);
+  } else {
+    await loadMagentoData();
+  }
+  
+  // Update sort indicators in headers
+  updateSortIndicators();
+}
+
+/**
+ * Apply sorting to the current data (without rendering)
+ */
+function applySortToData() {
+  if (!allData || allData.length === 0 || !currentSortColumn) return;
+  
+  // Create a copy to sort
+  const sortedData = [...allData];
+  
+  // Sort the data
+  sortedData.sort((a, b) => {
+    let aVal = a[currentSortColumn];
+    let bVal = b[currentSortColumn];
+    
+    // Handle null/undefined values
+    if (aVal == null) aVal = '';
+    if (bVal == null) bVal = '';
+    
+    // Determine if numeric comparison
+    const isNumeric = ['qty', 'total_qty', 'original_price', 'special_price', 'grand_total'].includes(currentSortColumn);
+    
+    let comparison;
+    if (isNumeric) {
+      const numA = parseFloat(aVal) || 0;
+      const numB = parseFloat(bVal) || 0;
+      comparison = numA - numB;
+    } else if (currentSortColumn === 'created_at' || currentSortColumn === 'last_updated') {
+      // Date comparison
+      const dateA = new Date(aVal);
+      const dateB = new Date(bVal);
+      comparison = dateA - dateB;
+    } else {
+      // String comparison
+      comparison = String(aVal).localeCompare(String(bVal), undefined, { sensitivity: 'base' });
+    }
+    
+    return currentSortDirection === 'asc' ? comparison : -comparison;
+  });
+  
+  // Update allData with sorted data
+  allData = sortedData;
+}
+
+/**
+ * Update sort indicators in table headers
+ */
+function updateSortIndicators() {
+  const thead = document.querySelector('#magentoTable thead tr');
+  if (!thead) return;
+  
+  const ths = thead.querySelectorAll('th');
+  
+  // Determine column index from current sort column
+  let columnIndex = -1;
+  if (viewMode === 'aggregated' || viewMode === 'custom') {
+    const aggregatedColumns = ['sku', 'name', 'total_qty', 'last_updated'];
+    columnIndex = aggregatedColumns.indexOf(currentSortColumn);
+  } else {
+    const fullColumns = [
+      'order_number', 'created_at', 'sku', 'name', 'qty', 
+      'original_price', 'special_price', 'status', 'currency', 'grand_total',
+      'customer_email', 'customer_full_name', 'billing_address', 'shipping_address', 'customer_group_code'
+    ];
+    columnIndex = fullColumns.indexOf(currentSortColumn);
+  }
+  
+  // Update all headers with sort indicators
+  ths.forEach((th, index) => {
+    th.style.cursor = 'pointer';
+    th.style.userSelect = 'none';
+    
+    // Remove any existing sort icons
+    const existingSortIcon = th.querySelector('.sort-indicator');
+    if (existingSortIcon) {
+      existingSortIcon.remove();
+    }
+    
+    // Create sort icon
+    const sortIcon = document.createElement('i');
+    sortIcon.style.marginLeft = '5px';
+    sortIcon.style.fontSize = '0.8em';
+    
+    if (index === columnIndex && currentSortColumn) {
+      // Active column - show direction arrow
+      sortIcon.className = `fas fa-sort-${currentSortDirection === 'asc' ? 'up' : 'down'} sort-indicator`;
+      sortIcon.style.opacity = '1';
+    } else {
+      // Inactive column - show neutral sort icon
+      sortIcon.className = 'fas fa-sort sort-indicator';
+      sortIcon.style.opacity = '0.5';
+    }
+    
+    th.appendChild(sortIcon);
+  });
 }
 
 

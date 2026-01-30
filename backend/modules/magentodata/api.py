@@ -103,11 +103,13 @@ def get_uk_magento_data(
     offset: int = Query(0, ge=0),
     search: str = Query(""),
     fields: str = Query(None, description="Comma-separated list of fields to return (e.g., 'sku,name,qty,original_price,special_price')"),
+    sort_by: str = Query(None, description="Column to sort by (e.g., 'sku', 'name', 'qty', 'imported_at')"),
+    sort_order: str = Query("desc", description="Sort order: 'asc' or 'desc'"),
     user=Depends(get_current_user)
 ):
     """Get UK magento data with pagination, search, and optional field selection"""
     field_list = fields.split(',') if fields else None
-    result = svc.get_region_data("uk", limit, offset, search, field_list)
+    result = svc.get_region_data("uk", limit, offset, search, field_list, sort_by, sort_order)
     return MagentoDataResponse(**result)
 
 
@@ -140,11 +142,13 @@ def get_fr_magento_orders_cache(
     offset: int = Query(0, ge=0),
     search: str = Query(""),
     fields: str = Query(None, description="Comma-separated list of fields to return"),
+    sort_by: str = Query(None, description="Column to sort by (e.g., 'sku', 'name', 'qty', 'imported_at')"),
+    sort_order: str = Query("desc", description="Sort order: 'asc' or 'desc'"),
     user=Depends(get_current_user)
 ):
     """Get FR magento data with pagination, search, and optional field selection"""
     field_list = fields.split(',') if fields else None
-    result = svc.get_region_data("fr", limit, offset, search, field_list)
+    result = svc.get_region_data("fr", limit, offset, search, field_list, sort_by, sort_order)
     return MagentoDataResponse(**result)
 
 
@@ -177,11 +181,13 @@ def get_nl_magento_orders_cache(
     offset: int = Query(0, ge=0),
     search: str = Query(""),
     fields: str = Query(None, description="Comma-separated list of fields to return"),
+    sort_by: str = Query(None, description="Column to sort by (e.g., 'sku', 'name', 'qty', 'imported_at')"),
+    sort_order: str = Query("desc", description="Sort order: 'asc' or 'desc'"),
     user=Depends(get_current_user)
 ):
     """Get NL magento data with pagination, search, and optional field selection"""
     field_list = fields.split(',') if fields else None
-    result = svc.get_region_data("nl", limit, offset, search, field_list)
+    result = svc.get_region_data("nl", limit, offset, search, field_list, sort_by, sort_order)
     return MagentoDataResponse(**result)
 
 
@@ -213,10 +219,12 @@ def get_uk_aggregated_data(
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0),
     search: str = Query(""),
+    sort_by: str = Query("", description="Column to sort by"),
+    sort_order: str = Query("desc", description="Sort order: asc or desc"),
     user=Depends(get_current_user)
 ):
     """Get UK aggregated magento data (6-month aggregated by SKU)"""
-    result = svc.get_aggregated_data("uk", limit, offset, search)
+    result = svc.get_aggregated_data("uk", limit, offset, search, sort_by, sort_order)
     return MagentoDataResponse(**result)
 
 
@@ -225,10 +233,12 @@ def get_fr_aggregated_data(
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0),
     search: str = Query(""),
+    sort_by: str = Query("", description="Column to sort by"),
+    sort_order: str = Query("desc", description="Sort order: asc or desc"),
     user=Depends(get_current_user)
 ):
     """Get FR aggregated magento data (6-month aggregated by SKU)"""
-    result = svc.get_aggregated_data("fr", limit, offset, search)
+    result = svc.get_aggregated_data("fr", limit, offset, search, sort_by, sort_order)
     return MagentoDataResponse(**result)
 
 
@@ -237,10 +247,12 @@ def get_nl_aggregated_data(
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0),
     search: str = Query(""),
+    sort_by: str = Query("", description="Column to sort by"),
+    sort_order: str = Query("desc", description="Sort order: asc or desc"),
     user=Depends(get_current_user)
 ):
     """Get NL aggregated magento data (6-month aggregated by SKU)"""
-    result = svc.get_aggregated_data("nl", limit, offset, search)
+    result = svc.get_aggregated_data("nl", limit, offset, search, sort_by, sort_order)
     return MagentoDataResponse(**result)
 
 

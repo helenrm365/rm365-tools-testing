@@ -91,7 +91,7 @@ class SupplierPricingBase(BaseModel):
     sku: str = Field(..., description="Product SKU")
     supplier_id: int
     unit_price: float = Field(..., ge=0)
-    currency: str = Field(default="GBP", max_length=3)
+    currency: Optional[str] = Field(None, max_length=3, description="Currency code. If None, supplier's default currency will be used.")
     moq: Optional[int] = Field(None, description="Minimum Order Quantity")
     shipping_cost: Optional[float] = Field(None, ge=0)
     notes: Optional[str] = None

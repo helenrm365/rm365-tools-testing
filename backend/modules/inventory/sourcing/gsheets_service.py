@@ -55,7 +55,7 @@ class GSheetsService:
     def export_matrix_to_sheet(self, sheet_id: str, matrix_data: List[Dict[str, Any]], suppliers: List[Dict]):
         """
         Export the provided matrix data to the Google Sheet.
-        Replaces the content of the first worksheet.
+        Uses batch update to only change cells that are different (incremental sync).
         """
         client = self.get_client()
         try:
@@ -72,8 +72,8 @@ class GSheetsService:
                 ])
             
             # 2. Prepare Data Rows
-            rows = []
-            rows.append(headers) # Header row
+            new_rows = []
+            new_rows.append(headers)  # Header row
             
             for row_data in matrix_data:
                 row = [
@@ -94,20 +94,112 @@ class GSheetsService:
                         format_val(row_data.get(f"{code}_currency")),
                         format_val(row_data.get(f"{code}_notes"))
                     ])
-                rows.append(row)
+                new_rows.append(row)
             
-            # 3. Update Sheet
-            worksheet.clear()
-            worksheet.update(rows)
+            # 3. Get existing data to compare
+            try:
+                existing_data = worksheet.get_all_values()
+            except:
+                existing_data = []
             
-            # 4. Optional: Formatting (freeze header)
+            # 4. Calculate what needs to be updated
+            cells_to_update = []
+            
+            for row_idx, new_row in enumerate(new_rows):
+                # Get existing row if it exists
+                existing_row = existing_data[row_idx] if row_idx < len(existing_data) else []
+                
+                for col_idx, new_val in enumerate(new_row):
+                    # Get existing value
+                    existing_val = existing_row[col_idx] if col_idx < len(existing_row) else ''
+                    
+                    # Normalize for comparison
+                    new_val_str = str(new_val) if new_val is not None else ''
+                    existing_val_str = str(existing_val) if existing_val is not None else ''
+                    
+                    # Compare (handle numeric comparison)
+                    values_differ = False
+                    try:
+                        # Try numeric comparison for price values
+                        if new_val_str and existing_val_str:
+                            new_float = float(new_val_str)
+                            existing_float = float(existing_val_str)
+                            values_differ = abs(new_float - existing_float) > 0.001
+                        else:
+                            values_differ = new_val_str != existing_val_str
+                    except (ValueError, TypeError):
+                        values_differ = new_val_str != existing_val_str
+                    
+                    if values_differ:
+                        # gspread uses 1-based indexing
+                        cells_to_update.append({
+                            'range': f"{self._col_letter(col_idx + 1)}{row_idx + 1}",
+                            'value': new_val
+                        })
+            
+            # 5. Check if we need to add new rows (sheet is smaller than data)
+            if len(new_rows) > len(existing_data):
+                # Add remaining new rows
+                for row_idx in range(len(existing_data), len(new_rows)):
+                    for col_idx, val in enumerate(new_rows[row_idx]):
+                        cells_to_update.append({
+                            'range': f"{self._col_letter(col_idx + 1)}{row_idx + 1}",
+                            'value': val
+                        })
+            
+            # 5b. Clear extra rows if sheet has more data than we're exporting
+            rows_cleared = 0
+            if len(existing_data) > len(new_rows):
+                # Clear the extra rows by setting them to empty
+                num_cols = len(headers)
+                for row_idx in range(len(new_rows), len(existing_data)):
+                    for col_idx in range(num_cols):
+                        existing_val = existing_data[row_idx][col_idx] if col_idx < len(existing_data[row_idx]) else ''
+                        if existing_val:  # Only clear non-empty cells
+                            cells_to_update.append({
+                                'range': f"{self._col_letter(col_idx + 1)}{row_idx + 1}",
+                                'value': ''
+                            })
+                            rows_cleared += 1
+            
+            # 6. Batch update only changed cells
+            if cells_to_update:
+                # Use batch_update for efficiency
+                batch_data = []
+                for cell in cells_to_update:
+                    batch_data.append({
+                        'range': cell['range'],
+                        'values': [[cell['value']]]
+                    })
+                
+                # gspread batch_update
+                worksheet.batch_update(batch_data, value_input_option='USER_ENTERED')
+                
+                logger.info(f"[GSheet Export] Updated {len(cells_to_update)} cells (cleared {rows_cleared} from extra rows)")
+            else:
+                logger.info("[GSheet Export] No changes detected, sheet is up to date")
+            
+            # 7. Ensure header row is frozen
             worksheet.freeze(rows=1)
             
-            return {"status": "success", "rows_exported": len(rows) - 1}
+            return {
+                "status": "success", 
+                "rows_exported": len(new_rows) - 1,
+                "cells_updated": len(cells_to_update),
+                "rows_cleared": rows_cleared
+            }
             
         except Exception as e:
             logger.error(f"Error exporting to Google Sheet: {str(e)}")
             raise e
+
+    def _col_letter(self, col_num: int) -> str:
+        """Convert column number (1-based) to letter (A, B, ..., Z, AA, AB, ...)"""
+        result = ""
+        while col_num > 0:
+            col_num, remainder = divmod(col_num - 1, 26)
+            result = chr(65 + remainder) + result
+        return result
 
     def import_matrix_from_sheet(self, sheet_id: str) -> List[Dict]:
         """

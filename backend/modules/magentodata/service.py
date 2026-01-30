@@ -230,7 +230,7 @@ class MagentoDataService:
                 "orders_processed": 0
             }
     
-    def get_region_data(self, region: str, limit: int = 100, offset: int = 0, search: str = "", fields: list = None) -> Dict[str, Any]:
+    def get_region_data(self, region: str, limit: int = 100, offset: int = 0, search: str = "", fields: list = None, sort_by: str = None, sort_order: str = "desc") -> Dict[str, Any]:
         """Get magento data for a specific region with optional field selection.
         
         Uses the local cache (populated by nightly scheduler) for fast reads.
@@ -239,7 +239,7 @@ class MagentoDataService:
             # All regions now use the local cache for fast reads
             # The cache is populated by the nightly scheduler via sync_magento_data()
             table_name = self._get_table_name(region)
-            result = self.repo.get_magento_data(table_name, limit, offset, search, fields)
+            result = self.repo.get_magento_data(table_name, limit, offset, search, fields, sort_by, sort_order)
             return {
                 "status": "success",
                 "region": region,
@@ -482,7 +482,7 @@ class MagentoDataService:
                 "orders_processed": 0
             }
     
-    def get_aggregated_data(self, region: str, limit: int = 100, offset: int = 0, search: str = "") -> Dict[str, Any]:
+    def get_aggregated_data(self, region: str, limit: int = 100, offset: int = 0, search: str = "", sort_by: str = "", sort_order: str = "desc") -> Dict[str, Any]:
         """Get aggregated (6-month aggregated) magento data for a specific region.
         
         Uses pre-computed aggregated tables that are refreshed by the nightly scheduler.
@@ -490,7 +490,7 @@ class MagentoDataService:
         try:
             # Aggregated data is pre-computed by the nightly scheduler
             # Just fetch from the aggregated table directly for fast reads
-            result = self.repo.get_aggregated_data(region, limit, offset, search)
+            result = self.repo.get_aggregated_data(region, limit, offset, search, sort_by, sort_order)
             return {
                 "status": "success",
                 "region": region,

@@ -35,12 +35,16 @@ export async function checkTablesStatus() {
 }
 
 // UK Magento Data operations
-export async function getUKMagentoData(limit = 100, offset = 0, search = '') {
+export async function getUKMagentoData(limit = 100, offset = 0, search = '', sortBy = '', sortOrder = 'desc') {
   const params = new URLSearchParams({
     limit: limit.toString(),
     offset: offset.toString(),
     search: search
   });
+  if (sortBy) {
+    params.append('sort_by', sortBy);
+    params.append('sort_order', sortOrder);
+  }
   return await get(`${API}/uk?${params.toString()}`);
 }
 
@@ -87,12 +91,16 @@ export async function uploadUKMagentoCSV(file) {
 }
 
 // FR Magento Data operations
-export async function getFRMagentoData(limit = 100, offset = 0, search = '') {
+export async function getFRMagentoData(limit = 100, offset = 0, search = '', sortBy = '', sortOrder = 'desc') {
   const params = new URLSearchParams({
     limit: limit.toString(),
     offset: offset.toString(),
     search: search
   });
+  if (sortBy) {
+    params.append('sort_by', sortBy);
+    params.append('sort_order', sortOrder);
+  }
   return await get(`${API}/fr?${params.toString()}`);
 }
 
@@ -139,12 +147,16 @@ export async function uploadFRMagentoCSV(file) {
 }
 
 // NL Magento Data operations
-export async function getNLMagentoData(limit = 100, offset = 0, search = '') {
+export async function getNLMagentoData(limit = 100, offset = 0, search = '', sortBy = '', sortOrder = 'desc') {
   const params = new URLSearchParams({
     limit: limit.toString(),
     offset: offset.toString(),
     search: search
   });
+  if (sortBy) {
+    params.append('sort_by', sortBy);
+    params.append('sort_order', sortOrder);
+  }
   return await get(`${API}/nl?${params.toString()}`);
 }
 
@@ -270,29 +282,35 @@ export async function checkHealth() {
 }
 
 // Aggregated data operations (6-month aggregated by SKU)
-export async function getUKAggregatedData(limit = 100, offset = 0, search = '') {
+export async function getUKAggregatedData(limit = 100, offset = 0, search = '', sortBy = '', sortOrder = 'desc') {
   const params = new URLSearchParams({
     limit: limit.toString(),
     offset: offset.toString(),
-    search: search
+    search: search,
+    sort_by: sortBy,
+    sort_order: sortOrder
   });
   return await get(`${API}/uk/aggregated?${params.toString()}`);
 }
 
-export async function getFRAggregatedData(limit = 100, offset = 0, search = '') {
+export async function getFRAggregatedData(limit = 100, offset = 0, search = '', sortBy = '', sortOrder = 'desc') {
   const params = new URLSearchParams({
     limit: limit.toString(),
     offset: offset.toString(),
-    search: search
+    search: search,
+    sort_by: sortBy,
+    sort_order: sortOrder
   });
   return await get(`${API}/fr/aggregated?${params.toString()}`);
 }
 
-export async function getNLAggregatedData(limit = 100, offset = 0, search = '') {
+export async function getNLAggregatedData(limit = 100, offset = 0, search = '', sortBy = '', sortOrder = 'desc') {
   const params = new URLSearchParams({
     limit: limit.toString(),
     offset: offset.toString(),
-    search: search
+    search: search,
+    sort_by: sortBy,
+    sort_order: sortOrder
   });
   return await get(`${API}/nl/aggregated?${params.toString()}`);
 }

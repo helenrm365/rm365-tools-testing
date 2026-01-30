@@ -5,6 +5,7 @@ Service layer for Product Sourcing - Business logic and calculations
 import logging
 from typing import List, Dict, Optional, Any
 from datetime import datetime
+from decimal import Decimal
 
 from common.currency import get_exchange_rates, convert_to_gbp
 from .repository import SourcingRepository
@@ -154,6 +155,10 @@ class SourcingService:
         if not supplier:
             raise ValueError(f"Supplier {data['supplier_id']} not found")
         
+        # Apply supplier's default currency if not specified
+        if not data.get('currency'):
+            data['currency'] = supplier.get('default_currency', 'GBP')
+        
         result = self.repo.upsert_pricing(data)
         
         # Add normalized price
@@ -172,11 +177,20 @@ class SourcingService:
         """Bulk update pricing from matrix view"""
         self.ensure_tables()
         
-        # Validate all suppliers exist
+        # Build supplier lookup for default currencies
         supplier_ids = set(e['supplier_id'] for e in entries)
+        supplier_map = {}
         for sid in supplier_ids:
-            if not self.repo.get_supplier_by_id(sid):
+            supplier = self.repo.get_supplier_by_id(sid)
+            if not supplier:
                 raise ValueError(f"Supplier {sid} not found")
+            supplier_map[sid] = supplier
+        
+        # Apply supplier's default currency if not specified
+        for entry in entries:
+            if not entry.get('currency'):
+                supplier = supplier_map.get(entry['supplier_id'])
+                entry['currency'] = supplier.get('default_currency', 'GBP') if supplier else 'GBP'
         
         count = self.repo.bulk_upsert_pricing(entries)
         return {'updated': count}
@@ -192,7 +206,9 @@ class SourcingService:
         status_filter: List[str] = None,
         search: str = None,
         page: int = 1,
-        per_page: int = 100
+        per_page: int = 100,
+        sort_by: str = None,
+        sort_order: str = "asc"
     ) -> Dict[str, Any]:
         """
         Get the full supplier matrix view with ALL products from inventory_metadata.
@@ -279,8 +295,8 @@ class SourcingService:
                     (r['product_name'] and search_lower in r['product_name'].lower()) or
                     (r['brand'] and search_lower in r['brand'].lower())]
         
-        # Sort by SKU
-        rows.sort(key=lambda x: x['sku'])
+        # Sort by specified column (default: SKU)
+        rows = self._sort_rows(rows, sort_by or 'sku', sort_order or 'asc', suppliers)
         total = len(rows)
         
         # Paginate
@@ -308,7 +324,9 @@ class SourcingService:
         margin_status: str = None,
         status_filter: List[str] = None,
         page: int = 1,
-        per_page: int = 100
+        per_page: int = 100,
+        sort_by: str = None,
+        sort_order: str = "asc"
     ) -> Dict[str, Any]:
         """
         Get the analysis dashboard with calculated best prices and margins.
@@ -481,8 +499,8 @@ class SourcingService:
         if margin_status:
             rows = [r for r in rows if r['margin_status'] == margin_status]
         
-        # Sort by SKU
-        rows.sort(key=lambda x: x['sku'])
+        # Sort by specified column (default: SKU)
+        rows = self._sort_rows(rows, sort_by or 'sku', sort_order or 'asc', suppliers)
         
         total = len(rows)
         start = (page - 1) * per_page
@@ -508,6 +526,49 @@ class SourcingService:
             'per_page': per_page,
             'total_pages': (total + per_page - 1) // per_page
         }
+
+    def _sort_rows(self, rows: List[Dict], sort_by: str, sort_order: str, suppliers: List[Dict] = None) -> List[Dict]:
+        """
+        Sort rows by a specified column with proper handling of None values.
+        Supports sorting by supplier price columns (supplier code as sort_by).
+        """
+        reverse = sort_order.lower() == 'desc'
+        
+        # Check if sorting by a supplier column
+        supplier_codes = [s['code'] for s in suppliers] if suppliers else []
+        
+        def get_sort_key(row):
+            # Handle supplier column sorting (e.g., sort_by = "SUP1")
+            if sort_by in supplier_codes:
+                # For matrix: check suppliers dict
+                if 'suppliers' in row:
+                    supplier_data = row['suppliers'].get(sort_by, {})
+                    return supplier_data.get('normalized_price_gbp') or float('inf')
+                # For analysis: check supplier_prices dict
+                if 'supplier_prices' in row:
+                    return row['supplier_prices'].get(sort_by) or float('inf')
+                return float('inf')
+            
+            # Standard column sorting
+            value = row.get(sort_by)
+            
+            # Handle None values - push to end
+            if value is None:
+                if sort_by in ['magento_price', 'best_price', 'margin_percentage']:
+                    return float('inf') if not reverse else float('-inf')
+                return '' if not reverse else chr(0x10FFFF)  # Max unicode char
+            
+            # Handle numeric fields
+            if sort_by in ['magento_price', 'best_price', 'margin_percentage']:
+                return float(value) if value else float('inf')
+            
+            # String comparison (case-insensitive)
+            if isinstance(value, str):
+                return value.lower()
+            
+            return value
+        
+        return sorted(rows, key=get_sort_key, reverse=reverse)
 
     def _extract_brand(self, sku: str) -> Optional[str]:
         """Extract brand prefix from SKU"""
@@ -675,12 +736,51 @@ class SourcingService:
     # GOOGLE SHEETS SYNC
     # ========================================================================
 
+    def _format_price_with_currency(self, price, currency: str, default_currency: str) -> str:
+        """
+        Format a price with its currency symbol for export.
+        If currency is None or matches default, use the default currency.
+        Returns a formatted string like '£10.50' or '$25.00'
+        """
+        if price is None:
+            return ''
+        
+        # Use default currency if none specified or if it matches
+        effective_currency = currency if currency else default_currency
+        if not effective_currency:
+            effective_currency = 'GBP'  # Fallback
+        
+        # Currency symbol mapping
+        currency_symbols = {
+            'GBP': '£',
+            'USD': '$',
+            'EUR': '€',
+            'JPY': '¥',
+            'PLN': 'zł',
+            'SEK': 'kr',
+            'NOK': 'kr',
+            'DKK': 'kr',
+        }
+        
+        symbol = currency_symbols.get(effective_currency.upper(), '')
+        
+        # Format price
+        if isinstance(price, Decimal):
+            price = float(price)
+        
+        return f"{symbol}{price:.2f}"
+
     def sync_matrix_to_gsheet(self, sheet_id: str) -> Dict[str, Any]:
         """
-        Sync FULL matrix to Google Sheet
+        Sync FULL matrix to Google Sheet.
+        Prices are formatted with currency symbols.
+        Currency column only shows value if different from supplier's default.
         """
         suppliers = self.repo.get_suppliers(active_only=True)
         matrix_data = self.repo.get_full_matrix()
+        
+        # Build supplier lookup for default currencies
+        supplier_defaults = {s['code']: s.get('default_currency', 'GBP') for s in suppliers}
         
         # Get ALL products
         all_products = self.repo.get_all_products_from_inventory_metadata()
@@ -694,16 +794,39 @@ class SourcingService:
                 'product_name': product.get('product_name', '')
             }
         
-        # Add pricing
+        # Add pricing - raw numeric values with currency codes in separate column
         for row in matrix_data:
             sku = row['sku']
             if sku not in sku_data:
                 sku_data[sku] = {'sku': sku, 'product_name': ''}
             
             col_prefix = row['supplier_code']
-            sku_data[sku][f'{col_prefix}_price'] = row['unit_price']
-            sku_data[sku][f'{col_prefix}_currency'] = row['currency']
+            supplier_default = supplier_defaults.get(col_prefix, 'GBP')
+            price = row['unit_price']
+            currency = row['currency']
+            
+            # Store raw numeric price (no currency symbol)
+            if price is not None:
+                if isinstance(price, Decimal):
+                    price = float(price)
+                sku_data[sku][f'{col_prefix}_price'] = price
+            else:
+                sku_data[sku][f'{col_prefix}_price'] = ''
+            
+            # Currency column: show explicit currency if set, otherwise supplier default
+            effective_currency = currency if currency else supplier_default
+            
+            sku_data[sku][f'{col_prefix}_currency'] = effective_currency
             sku_data[sku][f'{col_prefix}_notes'] = row['notes'] or ''
+        
+        # For SKUs without pricing, pre-fill currency columns with supplier defaults
+        for sku in sku_data:
+            for s in suppliers:
+                code = s['code']
+                currency_key = f'{code}_currency'
+                # Only set default currency if not already set (no pricing exists)
+                if currency_key not in sku_data[sku]:
+                    sku_data[sku][currency_key] = s.get('default_currency', 'GBP')
         
         # Sort by SKU
         sorted_data = [sku_data[sku] for sku in sorted(sku_data.keys())]
@@ -782,6 +905,7 @@ class SourcingService:
         errors = []
         debug_log = []
         entries_to_upsert = []
+        entries_to_delete = []
         unchanged_count = 0
         
         if not records:
@@ -831,8 +955,18 @@ class SourcingService:
                 # Handle gspread empty string vs None vs numbers
                 raw_price_str = str(raw_price).strip() if raw_price not in (None, '') else ''
 
+                # Check if this entry exists in database
+                key = (sku, supplier['id'])
+                existing = existing_map.get(key)
+                
+                # If price is empty in sheet but exists in DB, mark for deletion
                 if not raw_price_str:
-                    continue  # Skip empty pricing cells
+                    if existing:
+                        entries_to_delete.append({
+                            'sku': sku,
+                            'supplier_id': supplier['id']
+                        })
+                    continue
                 
                 try:
                     # Parse price with potential currency symbol
@@ -842,7 +976,10 @@ class SourcingService:
                         errors.append(f"Row {row_idx+2}: Invalid price '{raw_price}' for SKU {sku}")
                         continue
                     
-                    # Priority: detected currency > explicit column > None (no currency)
+                    # Get supplier's default currency
+                    supplier_default = supplier.get('default_currency', 'GBP')
+                    
+                    # Priority: detected currency (from symbol) > explicit column > supplier default
                     currency = None
                     if detected_currency:
                         currency = detected_currency
@@ -850,6 +987,10 @@ class SourcingService:
                         explicit_currency = str(row.get(currency_key, '')).strip().upper()
                         if explicit_currency:
                             currency = explicit_currency
+                    
+                    # If still no currency, use supplier's default
+                    if not currency:
+                        currency = supplier_default
                     
                     notes = ''
                     if notes_key:
@@ -888,9 +1029,44 @@ class SourcingService:
         if entries_to_upsert:
             updated_count = self.repo.bulk_upsert_pricing(entries_to_upsert)
 
+        # Delete entries that were cleared in the sheet
+        deleted_count = 0
+        if entries_to_delete:
+            for entry in entries_to_delete:
+                try:
+                    self.repo.delete_pricing(entry['sku'], entry['supplier_id'])
+                    deleted_count += 1
+                except Exception as e:
+                    errors.append(f"Error deleting {entry['sku']}: {str(e)}")
+
+        # Return the changed entries so frontend can update DOM directly
+        changed_entries = [
+            {
+                'sku': e['sku'],
+                'supplier_id': e['supplier_id'],
+                'unit_price': e['unit_price'],
+                'currency': e['currency'],
+                'notes': e.get('notes')
+            }
+            for e in entries_to_upsert
+        ]
+        
+        # Also return deleted entries so frontend can clear those cells
+        deleted_entries = [
+            {
+                'sku': e['sku'],
+                'supplier_id': e['supplier_id'],
+                'deleted': True
+            }
+            for e in entries_to_delete
+        ]
+
         return {
             'imported': updated_count,
+            'deleted': deleted_count,
             'unchanged': unchanged_count,
+            'changed_entries': changed_entries,  # For frontend DOM updates
+            'deleted_entries': deleted_entries,  # For frontend DOM deletions
             'skipped_invalid_skus': len(skipped_skus),
             'skipped_sku_list': skipped_skus[:20],
             'errors': len(errors),

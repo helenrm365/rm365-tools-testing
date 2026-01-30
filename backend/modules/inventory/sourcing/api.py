@@ -288,6 +288,8 @@ def get_supplier_matrix(
     per_page: int = Query(100, ge=1, le=500),
     search: Optional[str] = Query(None, description="Search by SKU, product name, or brand"),
     status: Optional[str] = Query(None, description="Filter by status: Available, Unavailable, or comma-separated"),
+    sort_by: Optional[str] = Query(None, description="Column to sort by: sku, product_name, magento_price, status"),
+    sort_order: Optional[str] = Query("asc", description="Sort order: asc or desc"),
     user=Depends(get_current_user)
 ):
     """
@@ -305,7 +307,9 @@ def get_supplier_matrix(
             search=search,
             status_filter=status_filter,
             page=page,
-            per_page=per_page
+            per_page=per_page,
+            sort_by=sort_by,
+            sort_order=sort_order
         )
         return matrix
     except Exception as e:
@@ -328,6 +332,8 @@ def get_analysis_dashboard(
         None, 
         description="Filter by margin status: healthy, warning, loss, no_data, no_magento_price"
     ),
+    sort_by: Optional[str] = Query(None, description="Column to sort by: sku, product_name, magento_price, best_price, margin_percentage, status"),
+    sort_order: Optional[str] = Query("asc", description="Sort order: asc or desc"),
     user=Depends(get_current_user)
 ):
     """
@@ -347,7 +353,9 @@ def get_analysis_dashboard(
             margin_status=margin_status,
             status_filter=status_filter,
             page=page,
-            per_page=per_page
+            per_page=per_page,
+            sort_by=sort_by,
+            sort_order=sort_order
         )
     except Exception as e:
         logger.error(f"Error fetching analysis: {e}")
