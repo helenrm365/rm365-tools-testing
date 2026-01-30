@@ -272,21 +272,6 @@
           </div>
         </div>
 
-        <!-- Session Action Buttons -->
-        <div class="session-actions">
-          <button id="cancelSessionBtn" class="action-btn secondary-btn">
-            <i class="fas fa-times"></i>
-            Cancel
-          </button>
-          <button id="markReadyToCheckBtn" class="action-btn warning-btn" style="display: none;">
-            <i class="fas fa-clipboard-check"></i>
-            Ready to Check
-          </button>
-          <button id="completeSessionBtn" class="action-btn success-btn" disabled>
-            <i class="fas fa-check"></i>
-            Complete
-          </button>
-        </div>
       </div>
     </div>
 
@@ -335,93 +320,67 @@
       </div>
     </div>
 
-    <!-- Scanner Section -->
-    <div class="action-block" id="scannerSection" style="display: none;">
-      <div class="block-header">
-        <div class="block-icon">
-          <i class="fas fa-barcode"></i>
-        </div>
-        <div class="block-title-group">
-          <h3 class="block-title">Scan Products</h3>
-          <p class="block-subtitle">Click input to activate scanner or type SKU manually</p>
-        </div>
-      </div>
-
-      <div class="block-content">
-        <div class="scanner-status-badge" id="scannerStatus">
-          <i class="fas fa-check-circle"></i>
-          <span>Ready to Scan</span>
-        </div>
-
+    <!-- Sticky Bottom Panel (Scanner + Items + Actions) -->
+    <div class="sticky-bottom-panel" id="stickyBottomPanel" style="display: none;">
+      
+      <!-- Scanner Section -->
+      <div class="bottom-panel-section scanner-panel" id="scannerSection">
         <div class="scanner-form">
-          <!-- SKU/Barcode Input -->
           <div class="form-group">
-            <label class="form-label">
-              <i class="fas fa-barcode"></i>
-              SKU / Barcode
-            </label>
             <input type="text" id="skuInput" class="form-input barcode-input" placeholder="Scan or type SKU..." autocomplete="off" disabled>
           </div>
-
-          <!-- Quantity -->
-          <div class="form-group">
-            <label class="form-label">
-              <i class="fas fa-hashtag"></i>
-              Quantity
-            </label>
+          <div class="form-group qty-group">
             <input type="number" id="scanQuantityInput" class="form-input qty-input" value="1" min="1" disabled>
           </div>
-
-          <!-- Shelf Field Selector -->
-          <div class="form-group">
-            <label class="form-label">
-              <i class="fas fa-layer-group"></i>
-              Take From
-            </label>
+          <div class="form-group shelf-group">
             <select id="shelfFieldSelect" class="form-input" disabled>
-              <option value="auto">Auto (Smart Logic)</option>
-              <option value="shelf_lt1_qty">Shelf &lt;1 Year</option>
-              <option value="shelf_gt1_qty">Shelf &gt;1 Year</option>
+              <option value="auto">Auto</option>
+              <option value="shelf_lt1_qty">&lt;1 Year</option>
+              <option value="shelf_gt1_qty">&gt;1 Year</option>
               <option value="top_floor_total">Top Floor</option>
             </select>
           </div>
-
-          <!-- Scan Button -->
-          <div class="form-group">
-            <label class="form-label">&nbsp;</label>
+          <div class="form-group scan-btn-group">
             <button id="scanBtn" class="action-btn primary-btn" disabled>
               <i class="fas fa-check"></i>
-              Scan
             </button>
           </div>
         </div>
-
-        <!-- Scan Result Message -->
         <div id="scanMessage" class="scan-message" style="display: none;"></div>
-      </div>
-    </div>
-
-    <!-- Items List Section -->
-    <div class="action-block" id="itemsListSection" style="display: none;">
-      <div class="block-header">
-        <div class="block-icon">
-          <i class="fas fa-list"></i>
-        </div>
-        <div class="block-title-group">
-          <h3 class="block-title">Invoice Items</h3>
-          <p class="block-subtitle">Track scanning progress for each item</p>
+        <div class="scanner-status-badge compact" id="scannerStatus" style="display: none;">
+          <i class="fas fa-check-circle"></i>
+          <span>Ready</span>
         </div>
       </div>
 
-      <div class="block-content">
+      <!-- Items List Section -->
+      <div class="bottom-panel-section items-panel" id="itemsListSection">
         <div class="items-list" id="itemsList">
-          <!-- Items will be populated by JavaScript -->
           <div class="empty-state">
             <i class="fas fa-inbox"></i>
             <p>No items to display</p>
           </div>
         </div>
+      </div>
+
+      <!-- Session Action Buttons -->
+      <div class="session-actions" id="sessionActionsSection">
+        <button id="cancelSessionBtn" class="action-btn secondary-btn">
+          <i class="fas fa-times"></i>
+          Cancel
+        </button>
+        <button id="markReadyToCheckBtn" class="action-btn warning-btn">
+          <i class="fas fa-clipboard-check"></i>
+          Ready to Check
+        </button>
+        <button id="completeSessionBtn" class="action-btn success-btn" style="display: none;">
+          <i class="fas fa-check"></i>
+          Complete
+        </button>
+      </div>
     </div>
+
+  </div>
 
   <!-- Notification Modal -->
   <div class="modal-overlay" id="notificationModal" style="display: none;">
@@ -463,8 +422,8 @@
   </div>
 
   <!-- Order Preview Modal -->
-  <div class="modal-overlay" id="orderPreviewModal" style="display: none;">
-    <div class="modal-content modal-large">
+  <div class="modal-overlay" id="orderPreviewModal">
+    <div class="modal-content modal-lg">
       <div class="modal-header">
         <h2 class="modal-title">Order Preview</h2>
         <button class="modal-close" id="closeOrderPreviewBtn">&times;</button>
@@ -572,4 +531,4 @@
 </div>
 
 <!-- Include the JavaScript module -->
-<script type="module" src="/js/modules/magento-pickpack.js"></script>
+<script type="module" src="/js/modules/orders/order-fulfillment.js"></script>

@@ -102,24 +102,60 @@ export function confirmModal(options = {}) {
     const cancelBtn = container.querySelector('#orderFulfillmentModalCancel');
     const closeBtn = container.querySelector('#orderFulfillmentModalClose');
     
+    console.log('[Modal] Showing modal:', options.title);
+    
+    // For alerts (no cancel button), we need different behavior
+    const isAlertOnly = !options.cancelText;
+    
+    // Prevent double-handling
+    let isResolved = false;
+    
     // Event handlers
-    const handleConfirm = () => {
+    const handleConfirm = (e) => {
+      if (e) {
+        e.stopPropagation();
+        e.preventDefault();
+      }
+      if (isResolved) {
+        console.log('[Modal] Already resolved, ignoring confirm');
+        return;
+      }
+      isResolved = true;
+      console.log('[Modal] Confirm clicked');
       cleanup();
       resolve(true);
     };
     
-    const handleCancel = () => {
+    const handleCancel = (e) => {
+      if (e) {
+        e.stopPropagation();
+        e.preventDefault();
+      }
+      if (isResolved) {
+        console.log('[Modal] Already resolved, ignoring cancel');
+        return;
+      }
+      isResolved = true;
+      console.log('[Modal] Cancel triggered');
       cleanup();
       resolve(false);
     };
     
     const handleEscape = (e) => {
       if (e.key === 'Escape') {
-        handleCancel();
+        e.stopPropagation();
+        e.preventDefault();
+        // For alerts, ESC should act as confirm (OK)
+        if (isAlertOnly) {
+          handleConfirm();
+        } else {
+          handleCancel();
+        }
       }
     };
     
     const cleanup = () => {
+      console.log('[Modal] Cleaning up modal');
       modal.classList.remove('active');
       setTimeout(() => {
         container.innerHTML = '';
@@ -127,29 +163,41 @@ export function confirmModal(options = {}) {
       document.removeEventListener('keydown', handleEscape);
     };
     
-    // Bind events
-    confirmBtn.addEventListener('click', handleConfirm);
-    if (cancelBtn) {
-      cancelBtn.addEventListener('click', handleCancel);
-    }
-    closeBtn.addEventListener('click', handleCancel);
-    document.addEventListener('keydown', handleEscape);
-    
-    // Close on overlay click
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) {
-        handleCancel();
-      }
-    });
-    
-    // Focus the cancel button by default for safety (prevents accidental confirms)
+    // Delay binding events to prevent click-through from previous modal
     setTimeout(() => {
+      if (isResolved) return; // Already handled somehow
+      
+      // Bind events
+      confirmBtn.addEventListener('click', handleConfirm);
       if (cancelBtn) {
+        cancelBtn.addEventListener('click', handleCancel);
+      }
+      // For alerts, close button should act as confirm
+      closeBtn.addEventListener('click', isAlertOnly ? handleConfirm : handleCancel);
+      document.addEventListener('keydown', handleEscape);
+      
+      // Close on overlay click - but NOT for alerts
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          // Only allow overlay dismiss for confirm dialogs, not alerts
+          if (!isAlertOnly) {
+            handleCancel(e);
+          }
+          // For alerts, ignore overlay clicks - user must click OK
+        }
+      });
+      
+      // Focus the confirm button for alerts, cancel button for confirmations
+      if (isAlertOnly) {
+        confirmBtn.focus();
+      } else if (cancelBtn) {
         cancelBtn.focus();
       } else {
         confirmBtn.focus();
       }
-    }, 100);
+      
+      console.log('[Modal] Events bound, modal ready for interaction');
+    }, 50); // Small delay to prevent click-through
   });
 }
 

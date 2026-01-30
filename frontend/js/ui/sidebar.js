@@ -439,6 +439,13 @@ function collapseSidebar() {
   // Close mobile sidebar
   container?.classList.remove('mobile-open');
   
+  // Reset hamburger icon
+  const mobileToggle = document.querySelector('.sidebar-mobile-toggle i');
+  if (mobileToggle) {
+    mobileToggle.classList.remove('fa-xmark');
+    mobileToggle.classList.add('fa-bars');
+  }
+  
   // Remove subpanel-active from all items
   container?.querySelectorAll('.sidebar-item').forEach(item => {
     item.classList.remove('subpanel-active');
@@ -741,7 +748,19 @@ async function handleLogout() {
  * Toggle mobile sidebar
  */
 function toggleMobileSidebar() {
-  container?.classList.toggle('mobile-open');
+  const isOpen = container?.classList.toggle('mobile-open');
+  
+  // Update hamburger icon
+  const mobileToggle = document.querySelector('.sidebar-mobile-toggle i');
+  if (mobileToggle) {
+    if (isOpen) {
+      mobileToggle.classList.remove('fa-bars');
+      mobileToggle.classList.add('fa-xmark');
+    } else {
+      mobileToggle.classList.remove('fa-xmark');
+      mobileToggle.classList.add('fa-bars');
+    }
+  }
 }
 
 /**

@@ -66,6 +66,7 @@ class ScanResultSchema(BaseModel):
     is_complete: bool = False
     is_overpicked: bool = False
     all_items_complete: bool = False
+    warning: Optional[str] = None  # For inventory deduction issues
 
 
 class StartSessionSchema(BaseModel):

@@ -687,10 +687,15 @@ html.dark-mode .sidebar-overlay.subpanel-open {
   .sidebar-container {
     transform: translateX(-100%);
     transition: transform var(--sidebar-transition-duration) var(--sidebar-transition-easing);
+    padding-top: 64px; /* Space for hamburger button */
   }
   
   .sidebar-container.mobile-open {
     transform: translateX(0);
+  }
+  
+  .sidebar-primary {
+    padding-top: 0; /* Reset since container has padding */
   }
   
   .sidebar-primary {
@@ -715,30 +720,41 @@ html.dark-mode .sidebar-overlay.subpanel-open {
   
   body.has-sidebar #content {
     margin-left: 0;
+    padding-top: 64px; /* Space for mobile hamburger */
   }
   
   /* Mobile menu toggle button */
   .sidebar-mobile-toggle {
     display: flex;
     position: fixed;
-    bottom: var(--space-lg);
-    left: var(--space-md);
-    width: 52px;
-    height: 52px;
+    top: var(--space-sm);
+    left: var(--space-sm);
+    width: 48px;
+    height: 48px;
     background: linear-gradient(135deg, var(--accent), rgba(139, 195, 74, 0.9));
     color: white;
     border: none;
-    border-radius: 50%;
+    border-radius: var(--radius-md);
     align-items: center;
     justify-content: center;
     box-shadow: 
       0 4px 16px rgba(139, 195, 74, 0.4),
       0 0 0 3px rgba(139, 195, 74, 0.15);
-    z-index: var(--z-sidebar);
+    z-index: calc(var(--z-sidebar) + 10);
     cursor: pointer;
     transition: 
       transform var(--sidebar-fast-transition) var(--sidebar-spring-easing),
       box-shadow var(--sidebar-fast-transition) ease;
+  }
+  
+  .sidebar-mobile-toggle i {
+    font-size: 1.25rem;
+    transition: transform 0.3s ease;
+  }
+  
+  /* Animate hamburger to X when sidebar is open */
+  .sidebar-container.mobile-open ~ .sidebar-mobile-toggle i {
+    transform: rotate(90deg);
   }
   
   .sidebar-mobile-toggle:hover {

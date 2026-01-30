@@ -91,6 +91,22 @@ class OrderApprovalManager {
       }
     });
 
+    // Modal close buttons
+    const orderDetailsModal = document.getElementById('orderDetailsModal');
+    document.getElementById('closeOrderDetailsModal')?.addEventListener('click', () => {
+      orderDetailsModal?.classList.remove('active');
+    });
+    document.getElementById('closeOrderDetailsBtn')?.addEventListener('click', () => {
+      orderDetailsModal?.classList.remove('active');
+    });
+    
+    // Close modal when clicking on overlay background
+    orderDetailsModal?.addEventListener('click', (e) => {
+      if (e.target === orderDetailsModal) {
+        orderDetailsModal.classList.remove('active');
+      }
+    });
+
     // Stat card filter buttons
     document.getElementById('filterAll')?.addEventListener('click', () => {
       this.setFilter('all');
@@ -512,7 +528,7 @@ class OrderApprovalManager {
     }
 
     if (modal) {
-      modal.style.display = 'flex';
+      modal.classList.add('active');
     }
   }
 
@@ -547,7 +563,7 @@ class OrderApprovalManager {
         // Close modal if open
         const modal = document.getElementById('orderDetailsModal');
         if (modal) {
-          modal.style.display = 'none';
+          modal.classList.remove('active');
         }
       }
 

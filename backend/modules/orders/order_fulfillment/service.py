@@ -108,6 +108,21 @@ class MagentoService:
                     "You cannot start a new session while it's being processed."
                 )
             
+            elif existing_session.status == "approved":
+                # Approved but not yet started - user can claim it
+                approved_by = existing_session.last_modified_by or existing_session.created_by or "Unknown"
+                raise ValueError(
+                    f"Order #{invoice.order_number} is already approved by {approved_by}. "
+                    "Use the claim endpoint to start picking this order."
+                )
+            
+            elif existing_session.status == "ready_to_check":
+                # Ready to check - cannot start picking, needs checking
+                raise ValueError(
+                    f"Order #{invoice.order_number} is ready for checking. "
+                    "Cannot start a new picking session."
+                )
+            
             elif existing_session.status == "draft":
                 # Draft exists - warn user but they can take over by claiming
                 created_by = existing_session.created_by or existing_session.last_modified_by or "Unknown"
@@ -204,7 +219,7 @@ class MagentoService:
         
         # Check if it's an item_id (numeric, 15+ digits, starts with 7)
         if scanned_value.isdigit() and len(scanned_value) >= 15 and scanned_value.startswith('7'):
-            # This is an item_id - look up the SKU
+            # This is an item_id - look up the SKU from database
             lookup_sku = self.repo.get_sku_by_item_id(scanned_value)
             if not lookup_sku:
                 return ScanResultSchema(
@@ -230,51 +245,100 @@ class MagentoService:
         # Get current scanned quantity (use the actual SKU, not the item_id)
         current_qty = self.repo.get_scanned_quantity(request.session_id, lookup_sku)
         new_qty = current_qty + request.quantity
-        expected_qty = expected_item['qty_expected']
+        # Handle both qty_expected and qty_invoiced for backwards compatibility
+        expected_qty = expected_item.get('qty_expected') or expected_item.get('qty_invoiced') or 1
         
-        # Add the scanned item (use the actual SKU)
-        self.repo.add_scanned_item(request.session_id, lookup_sku, request.quantity)
+        # Check for overpicking BEFORE allowing the scan
+        if new_qty > expected_qty:
+            return ScanResultSchema(
+                success=False,
+                message=f"❌ Cannot scan: Would exceed expected quantity. Expected {int(expected_qty)}, already scanned {int(current_qty)}. Use 'Remove Scan' to correct.",
+                sku=lookup_sku,
+                item_name=expected_item['name'],
+                qty_expected=expected_qty,
+                qty_scanned=current_qty,
+                qty_remaining=max(0, expected_qty - current_qty),
+                is_complete=False,
+                is_overpicked=True,
+                all_items_complete=False
+            )
         
-        # Update inventory_metadata to deduct stock (like inventory adjustments)
+        # Check inventory availability BEFORE allowing the scan
         try:
-            # Look up item_id for this SKU
             item_id = self._get_item_id_by_sku(lookup_sku)
             if item_id:
-                # Apply shelf logic to deduct stock (auto or specific field)
+                # Check if there's enough stock
+                available_stock = self._check_inventory_availability(item_id, request.quantity, request.field)
+                if not available_stock['has_stock']:
+                    return ScanResultSchema(
+                        success=False,
+                        message=f"❌ INSUFFICIENT STOCK: Cannot scan this item.\n\n{available_stock['detail']}\n\n⚠️ If you believe stock exists, there may be a count discrepancy. Please cancel this order and investigate the inventory.",
+                        sku=lookup_sku,
+                        item_name=expected_item['name'],
+                        qty_expected=expected_qty,
+                        qty_scanned=current_qty,
+                        qty_remaining=max(0, expected_qty - current_qty),
+                        is_complete=False,
+                        is_overpicked=False,
+                        all_items_complete=False,
+                        warning="Insufficient inventory - order should be cancelled"
+                    )
+                # Deduct the stock
                 self._deduct_inventory_stock(item_id, request.quantity, request.field)
             else:
-                print(f"[MagentoService] Warning: No item_id found for SKU {lookup_sku}, skipping inventory deduction")
-        except ValueError as e:
-            # Insufficient stock - but allow the scan to succeed with a warning
-            print(f"[MagentoService] Warning: {e}")
+                # No item_id found - block the scan
+                return ScanResultSchema(
+                    success=False,
+                    message=f"❌ Cannot scan: SKU {lookup_sku} not found in inventory database. Please verify this product exists in the system.",
+                    sku=lookup_sku,
+                    item_name=expected_item['name'],
+                    qty_expected=expected_qty,
+                    qty_scanned=current_qty,
+                    qty_remaining=max(0, expected_qty - current_qty),
+                    is_complete=False,
+                    is_overpicked=False,
+                    all_items_complete=False
+                )
         except Exception as e:
-            print(f"[MagentoService] Error deducting inventory: {e}")
+            print(f"[MagentoService] Error checking/deducting inventory: {e}")
+            return ScanResultSchema(
+                success=False,
+                message=f"❌ Inventory error: {str(e)}\n\nPlease investigate before continuing.",
+                sku=lookup_sku,
+                item_name=expected_item['name'],
+                qty_expected=expected_qty,
+                qty_scanned=current_qty,
+                qty_remaining=max(0, expected_qty - current_qty),
+                is_complete=False,
+                is_overpicked=False,
+                all_items_complete=False
+            )
+        
+        # Stock is available - now add the scanned item
+        self.repo.add_scanned_item(request.session_id, lookup_sku, request.quantity)
         
         # Determine result
         is_complete = new_qty >= expected_qty
-        is_overpicked = new_qty > expected_qty
         qty_remaining = max(0, expected_qty - new_qty)
         
         # Check if all items are complete
         all_complete = self._check_all_items_complete(session)
         
-        if is_overpicked:
-            message = f"⚠️ WARNING: Overpicked! Expected {expected_qty}, scanned {new_qty}"
-        elif is_complete:
+        if is_complete:
             message = f"✅ Complete! {expected_item['name']} ({lookup_sku})"
         else:
-            message = f"✓ Scanned {lookup_sku}. {qty_remaining} remaining"
+            message = f"✓ Scanned {lookup_sku}. {int(qty_remaining)} remaining"
         
         return ScanResultSchema(
             success=True,
             message=message,
-            sku=lookup_sku,  # Return the actual SKU, not the item_id
+            sku=lookup_sku,
             item_name=expected_item['name'],
             qty_expected=expected_qty,
             qty_scanned=new_qty,
             qty_remaining=qty_remaining,
             is_complete=is_complete,
-            is_overpicked=is_overpicked,
+            is_overpicked=False,
             all_items_complete=all_complete
         )
     
@@ -459,7 +523,8 @@ class MagentoService:
         """Check if all expected items have been scanned"""
         for expected_item in session.items_expected:
             sku = expected_item['sku']
-            qty_expected = expected_item['qty_expected']
+            # Handle both qty_expected and qty_invoiced for backwards compatibility
+            qty_expected = expected_item.get('qty_expected') or expected_item.get('qty_invoiced') or 1
             qty_scanned = self.repo.get_scanned_quantity(session.session_id, sku)
             
             if qty_scanned < qty_expected:
@@ -470,32 +535,159 @@ class MagentoService:
 
     def _get_item_id_by_sku(self, sku: str) -> Optional[str]:
         """Get item_id for a SKU from inventory_metadata"""
+        conn = None
+        conn_type = None
         try:
-            from core.db import get_psycopg_connection
-            conn = get_psycopg_connection()
-            cursor = conn.cursor()
+            # Try inventory database first, fallback to main database
+            try:
+                from core.db import get_inventory_log_connection, return_inventory_connection
+                conn = get_inventory_log_connection()
+                conn_type = 'inventory'
+            except (ValueError, Exception) as e:
+                print(f"[MagentoService] Inventory database not available ({e}), using main database")
+                from core.db import get_psycopg_connection, return_psycopg_connection
+                conn = get_psycopg_connection()
+                conn_type = 'psycopg'
             
+            cursor = conn.cursor()
             cursor.execute(
                 "SELECT item_id FROM inventory_metadata WHERE sku = %s",
                 (sku,)
             )
             result = cursor.fetchone()
             cursor.close()
-            conn.close()
+            
+            # Return connection to appropriate pool
+            if conn_type == 'inventory':
+                from core.db import return_inventory_connection
+                return_inventory_connection(conn)
+            else:
+                from core.db import return_psycopg_connection
+                return_psycopg_connection(conn)
             
             return result[0] if result else None
         except Exception as e:
             print(f"[MagentoService] Error looking up item_id: {e}")
             return None
     
+    def _check_inventory_availability(self, item_id: str, quantity: int, field: str = "auto") -> dict:
+        """
+        Check if there's sufficient inventory available for scanning.
+        Returns dict with 'has_stock' (bool) and 'detail' (str) with availability info.
+        """
+        conn = None
+        conn_type = None
+        
+        def return_conn():
+            if conn:
+                if conn_type == 'inventory':
+                    from core.db import return_inventory_connection
+                    return_inventory_connection(conn)
+                else:
+                    from core.db import return_psycopg_connection
+                    return_psycopg_connection(conn)
+        
+        try:
+            # Try inventory database first, fallback to main database
+            try:
+                from core.db import get_inventory_log_connection
+                conn = get_inventory_log_connection()
+                conn_type = 'inventory'
+            except (ValueError, Exception) as e:
+                print(f"[MagentoService] Inventory database not available ({e}), using main database")
+                from core.db import get_psycopg_connection
+                conn = get_psycopg_connection()
+                conn_type = 'psycopg'
+            
+            cursor = conn.cursor()
+            
+            # Get current inventory levels
+            cursor.execute(
+                """
+                SELECT shelf_lt1_qty, shelf_gt1_qty, top_floor_total
+                FROM inventory_metadata
+                WHERE item_id = %s
+                """,
+                (item_id,)
+            )
+            result = cursor.fetchone()
+            cursor.close()
+            return_conn()
+            
+            if not result:
+                return {
+                    'has_stock': False,
+                    'detail': f"Item {item_id} not found in inventory database."
+                }
+            
+            shelf_lt1, shelf_gt1, top_floor = result
+            shelf_lt1 = shelf_lt1 or 0
+            shelf_gt1 = shelf_gt1 or 0
+            top_floor = top_floor or 0
+            total_available = shelf_lt1 + shelf_gt1 + top_floor
+            
+            detail = f"Requested: {quantity}, Available: {int(total_available)} (Shelf <1: {int(shelf_lt1)}, Shelf >1: {int(shelf_gt1)}, Top Floor: {int(top_floor)})"
+            
+            # If specific field selected, check only that field
+            if field != "auto":
+                field_values = {
+                    'shelf_lt1_qty': shelf_lt1,
+                    'shelf_gt1_qty': shelf_gt1,
+                    'top_floor_total': top_floor
+                }
+                available_in_field = field_values.get(field, 0)
+                if available_in_field < quantity:
+                    return {
+                        'has_stock': False,
+                        'detail': f"Requested: {quantity} from {field}, Available: {int(available_in_field)}"
+                    }
+                return {'has_stock': True, 'detail': detail}
+            
+            # Auto mode - check total availability
+            if total_available < quantity:
+                return {
+                    'has_stock': False,
+                    'detail': detail
+                }
+            
+            return {'has_stock': True, 'detail': detail}
+            
+        except Exception as e:
+            print(f"[MagentoService] Error checking inventory availability: {e}")
+            return {
+                'has_stock': False,
+                'detail': f"Error checking inventory: {str(e)}"
+            }
+    
     def _deduct_inventory_stock(self, item_id: str, quantity: int, field: str = "auto"):
         """
         Deduct stock from inventory_metadata
         field: 'auto' (smart shelf logic), 'shelf_lt1_qty', 'shelf_gt1_qty', or 'top_floor_total'
         """
+        conn = None
+        conn_type = None
+        
+        def return_conn():
+            if conn:
+                if conn_type == 'inventory':
+                    from core.db import return_inventory_connection
+                    return_inventory_connection(conn)
+                else:
+                    from core.db import return_psycopg_connection
+                    return_psycopg_connection(conn)
+        
         try:
-            from core.db import get_psycopg_connection
-            conn = get_psycopg_connection()
+            # Try inventory database first, fallback to main database
+            try:
+                from core.db import get_inventory_log_connection
+                conn = get_inventory_log_connection()
+                conn_type = 'inventory'
+            except (ValueError, Exception) as e:
+                print(f"[MagentoService] Inventory database not available ({e}), using main database")
+                from core.db import get_psycopg_connection
+                conn = get_psycopg_connection()
+                conn_type = 'psycopg'
+            
             cursor = conn.cursor()
             
             # Get current inventory levels
@@ -511,7 +703,7 @@ class MagentoService:
             
             if not result:
                 cursor.close()
-                conn.close()
+                return_conn()
                 return
             
             shelf_lt1, shelf_gt1, top_floor = result
@@ -532,7 +724,7 @@ class MagentoService:
                 
                 if current_value < needed:
                     cursor.close()
-                    conn.close()
+                    return_conn()
                     raise ValueError(
                         f"Insufficient stock in {field} for item {item_id}. "
                         f"Requested: {quantity}, Available: {current_value}"
@@ -562,7 +754,7 @@ class MagentoService:
                 # If we couldn't fulfill the entire request, raise an error
                 if needed > 0:
                     cursor.close()
-                    conn.close()
+                    return_conn()
                     total_available = shelf_lt1 + shelf_gt1 + top_floor
                     raise ValueError(
                         f"Insufficient stock for item {item_id}. "
@@ -583,7 +775,7 @@ class MagentoService:
             
             conn.commit()
             cursor.close()
-            conn.close()
+            return_conn()
             
         except Exception as e:
             print(f"[MagentoService] Error deducting inventory: {e}")
@@ -869,7 +1061,7 @@ class MagentoService:
         from .schemas import OrderTrackingBoardSchema, OrderTrackingColumnSchema
         
         # Get sessions for each column
-        # Ready to Pick: cancelled, drafted, approved, in-progress
+        # Ready to Pick: cancelled, draft, approved, in-progress
         ready_to_pick_sessions = self.repo.get_sessions_by_status(
             ["cancelled", "draft", "approved", "in_progress"]
         )
@@ -879,6 +1071,27 @@ class MagentoService:
         
         # Completed
         completed_sessions = self.repo.get_sessions_by_status(["completed"])
+        
+        # Deduplicate: keep only the latest session per order number
+        def dedupe_sessions(sessions):
+            """Keep only the most recent session per order number"""
+            order_map = {}
+            for session in sessions:
+                order_num = session.order_number
+                if order_num not in order_map:
+                    order_map[order_num] = session
+                else:
+                    # Keep the one with the more recent last_modified_at
+                    existing = order_map[order_num]
+                    existing_time = existing.last_modified_at or existing.started_at
+                    new_time = session.last_modified_at or session.started_at
+                    if new_time and existing_time and new_time > existing_time:
+                        order_map[order_num] = session
+            return list(order_map.values())
+        
+        ready_to_pick_sessions = dedupe_sessions(ready_to_pick_sessions)
+        ready_to_check_sessions = dedupe_sessions(ready_to_check_sessions)
+        completed_sessions = dedupe_sessions(completed_sessions)
         
         # Convert to column schemas
         ready_to_pick = [self._session_to_column_schema(s) for s in ready_to_pick_sessions]

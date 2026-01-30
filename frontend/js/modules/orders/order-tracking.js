@@ -44,6 +44,32 @@ function setupEventListeners() {
     };
   }
   
+  // Modal close buttons
+  const modal = document.getElementById('orderDetailsModal');
+  const closeBtn = document.getElementById('closeOrderDetailsBtn');
+  const cancelBtn = document.getElementById('cancelOrderDetailsBtn');
+  
+  if (closeBtn && modal) {
+    closeBtn.addEventListener('click', () => {
+      modal.classList.remove('active');
+    });
+  }
+  
+  if (cancelBtn && modal) {
+    cancelBtn.addEventListener('click', () => {
+      modal.classList.remove('active');
+    });
+  }
+  
+  // Close modal on overlay click
+  if (modal) {
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.classList.remove('active');
+      }
+    });
+  }
+  
   // Minimal mode toggle
   const minimalModeToggle = document.getElementById('minimalModeToggle');
   if (minimalModeToggle) {
@@ -208,7 +234,7 @@ function updateColumn(columnName, orders) {
       
       // Add orders in this group
       group.orders.forEach(order => {
-        const card = createOrderCard(order);
+        const card = createOrderCard(order, columnName);
         columnEl.appendChild(card);
       });
     });
@@ -244,13 +270,26 @@ function groupOrdersByShippingMethod(orders) {
   return groupArray;
 }
 
-function createOrderCard(order) {
+function createOrderCard(order, columnName) {
   const card = document.createElement('div');
   card.className = 'order-card';
-  card.onclick = () => showOrderDetails(order);
+  card.dataset.orderId = order.order_id;
+  card.dataset.orderNumber = order.order_number;
   
-  const statusBadgeClass = order.status.replace('_', '-');
+  const statusBadgeClass = order.status.replace(/_/g, '-');
   const statusLabel = order.status.replace(/_/g, ' ').toUpperCase();
+  const progressPercentage = order.progress_percentage || 0;
+  const completedItems = order.completed_items || 0;
+  const totalItems = order.total_items || 0;
+  
+  // Order tracking only shows View Details - no start/continue actions
+  // Use order-fulfillment page for starting picking sessions
+  const actionButtonHtml = `
+    <button class="card-action-btn view-btn" data-action="view">
+      <i class="fas fa-eye"></i>
+      <span>View Details</span>
+    </button>
+  `;
   
   card.innerHTML = `
     <div class="order-card-header">
@@ -265,8 +304,62 @@ function createOrderCard(order) {
           <span>${order.customer_name}</span>
         </div>
       ` : ''}
+      ${order.grand_total ? `
+        <div class="order-info-row">
+          <i class="fas fa-dollar-sign"></i>
+          <span>$${parseFloat(order.grand_total).toFixed(2)}</span>
+        </div>
+      ` : ''}
+      <div class="order-info-row">
+        <i class="fas fa-box"></i>
+        <span>${totalItems} item${totalItems !== 1 ? 's' : ''}</span>
+      </div>
+      ${order.picker_name || order.created_by ? `
+        <div class="order-info-row">
+          <i class="fas fa-user-tag"></i>
+          <span>${order.picker_name || order.created_by}</span>
+        </div>
+      ` : ''}
+    </div>
+    
+    <div class="order-card-footer">
+      <div class="card-progress">
+        <div class="card-progress-bar">
+          <div class="card-progress-fill" style="width: ${progressPercentage}%"></div>
+        </div>
+        <div class="card-progress-text">${completedItems} / ${totalItems} items</div>
+      </div>
+      <div class="order-card-actions">
+        <button class="card-action-btn preview-btn" data-action="preview">
+          <i class="fas fa-eye"></i>
+          <span>Preview</span>
+        </button>
+        ${actionButtonHtml}
+      </div>
     </div>
   `;
+  
+  // Add event listeners for buttons - order tracking only has view functionality
+  const previewBtn = card.querySelector('[data-action="preview"]');
+  if (previewBtn) {
+    previewBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      showOrderDetails(order);
+    });
+  }
+  
+  const viewBtn = card.querySelector('[data-action="view"]');
+  if (viewBtn) {
+    viewBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      showOrderDetails(order);
+    });
+  }
+  
+  // Add click handler for the whole card
+  card.addEventListener('click', () => {
+    showOrderDetails(order);
+  });
   
   return card;
 }
@@ -348,21 +441,21 @@ function showOrderDetails(order) {
   if (order.status === 'ready_to_check') {
     actionBtn.innerHTML = '<i class="fas fa-clipboard-check"></i> Start Checking';
     actionBtn.onclick = () => {
-      modal.style.display = 'none';
+      modal.classList.remove('active');
       navigate(`/orders/order-fulfillment/session-${order.session_id}`);
     };
     actionBtn.style.display = 'block';
   } else if (order.status === 'approved' || order.status === 'draft' || order.status === 'cancelled') {
     actionBtn.innerHTML = '<i class="fas fa-play"></i> Start Picking';
     actionBtn.onclick = () => {
-      modal.style.display = 'none';
+      modal.classList.remove('active');
       navigate(`/orders/order-fulfillment/session-${order.session_id}`);
     };
     actionBtn.style.display = 'block';
   } else if (order.status === 'in_progress') {
     actionBtn.innerHTML = '<i class="fas fa-eye"></i> View Session';
     actionBtn.onclick = () => {
-      modal.style.display = 'none';
+      modal.classList.remove('active');
       navigate(`/orders/order-fulfillment/session-${order.session_id}`);
     };
     actionBtn.style.display = 'block';
@@ -373,7 +466,7 @@ function showOrderDetails(order) {
   }
   
   // Show modal
-  modal.style.display = 'flex';
+  modal.classList.add('active');
 }
 
 function showSuccess(message) {

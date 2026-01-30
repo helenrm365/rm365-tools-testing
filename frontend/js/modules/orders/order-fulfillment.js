@@ -272,9 +272,6 @@ class MagentoPickPackManager {
       const invoiceNumber = sessionMatch[2];
       // Try to find and load this session
       try {
-        // Prefer status endpoint by matching session URL after module loads
-        // Fallback: attempt to get status by known pattern or ignore if not available
-        // If this fetch returns HTML (e.g., due to auth redirect), catch and fallback gracefully
         const statusUrl = `${getApiUrl()}/v1/magento/session/check/${orderNumber}`;
         const response = await fetch(statusUrl, { headers: getAuthHeaders() });
         if (response.ok) {
@@ -286,24 +283,48 @@ class MagentoPickPackManager {
             await this.showOrderLookup();
             return;
           }
-          // If an in-progress session exists for this order, we still rely on websocket-assigned event to inject session_id
-          // Here just keep UI stable on order lookup if not in progress
+          
+          // If session exists and is active (not available/cancelled), load it
+          if (info && info.session_id && ['in_progress', 'draft', 'approved', 'ready_to_check'].includes(info.status)) {
+            console.log('[MagentoPickPack] Found active session, loading:', info.session_id);
+            this.currentSessionId = info.session_id;
+            window.__currentMagentoSession = info.session_id;
+            
+            // Load the full session data
+            await this.refreshSessionStatus();
+            
+            if (this.currentSession) {
+              // Update the path to match the session
+              this.currentPath = path;
+              this.showActiveSession();
+              return;
+            }
+          } else {
+            console.log('[MagentoPickPack] Session not active or not found, status:', info?.status);
+          }
         }
       } catch (error) {
         console.error('[MagentoPickPack] Error loading session from path:', error);
-        // Avoid crashing the module; show lookup view
-        await this.showOrderLookup();
       }
 
       // If we couldn't load the session, redirect to base path
       await this.showOrderLookup();
+      return;
     }
+    
+    // Unknown path format, show lookup
+    await this.showOrderLookup();
   }
 
   initializeElements() {
     // Sections
     this.orderLookupSection = document.getElementById('orderLookupSection');
     this.activeSessionSection = document.getElementById('activeSessionSection');
+    this.progressSection = document.getElementById('progressSection');
+    this.stickyBottomPanel = document.getElementById('stickyBottomPanel');
+    this.scannerSection = document.getElementById('scannerSection');
+    this.itemsListSection = document.getElementById('itemsListSection');
+    this.sessionActionsSection = document.getElementById('sessionActionsSection');
 
     // Order Lookup Elements
     this.orderNumberInput = document.getElementById('orderNumberInput');
@@ -499,13 +520,16 @@ class MagentoPickPackManager {
   toggleMobileMode(enabled) {
     const mobileColumnTabs = document.getElementById('mobileColumnTabs');
     const trackingBoard = document.getElementById('trackingBoard');
+    const pageContainer = document.querySelector('.order-fulfillment');
     
     if (enabled) {
       document.body.classList.add('mobile-mode');
+      if (pageContainer) pageContainer.classList.add('mobile-mode-active');
       if (mobileColumnTabs) mobileColumnTabs.style.display = 'flex';
       this.updateMobileColumnVisibility();
     } else {
       document.body.classList.remove('mobile-mode');
+      if (pageContainer) pageContainer.classList.remove('mobile-mode-active');
       if (mobileColumnTabs) mobileColumnTabs.style.display = 'none';
       // Show all columns
       if (trackingBoard) {
@@ -576,6 +600,13 @@ class MagentoPickPackManager {
 
       const statusData = await checkResponse.json();
       // Handle different statuses
+      
+      if (statusData.status === 'approved') {
+        // Session is approved and ready to pick - claim it directly
+        await this.claimSession(statusData.session_id);
+        return;
+      }
+      
       if (statusData.status === 'in_progress') {
         let confirmed;
         if (statusData.can_claim) {
@@ -751,6 +782,10 @@ class MagentoPickPackManager {
     this.orderLookupSection.style.display = 'none';
     this.activeSessionSection.style.display = 'block';
     
+    // Show progress section and sticky bottom panel
+    if (this.progressSection) this.progressSection.style.display = 'block';
+    if (this.stickyBottomPanel) this.stickyBottomPanel.style.display = 'flex';
+    
     // Hide tracking board section when in active session
     const trackingBoardSection = document.getElementById('trackingBoardSection');
     if (trackingBoardSection) {
@@ -771,8 +806,19 @@ class MagentoPickPackManager {
   }
 
   async showOrderLookup(isInitialLoad = false) {
+    console.log('[showOrderLookup] Starting - hiding session, showing lookup');
+    
     this.activeSessionSection.style.display = 'none';
     this.orderLookupSection.style.display = 'block';
+    
+    console.log('[showOrderLookup] Section visibility updated:', {
+      activeSession: this.activeSessionSection?.style.display,
+      orderLookup: this.orderLookupSection?.style.display
+    });
+    
+    // Hide progress section and sticky bottom panel
+    if (this.progressSection) this.progressSection.style.display = 'none';
+    if (this.stickyBottomPanel) this.stickyBottomPanel.style.display = 'none';
     
     // Show tracking board section
     const trackingBoardSection = document.getElementById('trackingBoardSection');
@@ -786,6 +832,7 @@ class MagentoPickPackManager {
     // Navigate back to base order fulfillment URL
     const baseUrl = '/orders/order-fulfillment';
     if (this.currentPath !== baseUrl) {
+      console.log('[showOrderLookup] Updating route to:', baseUrl);
       updateRoute(baseUrl, false, {});
       this.currentPath = baseUrl;
     }
@@ -796,6 +843,8 @@ class MagentoPickPackManager {
     this.orderNumberInput.value = '';
     this.currentSession = null;
     this.currentSessionId = null;
+    
+    console.log('[showOrderLookup] Complete');
   }
   
   async loadTrackingBoard() {
@@ -907,9 +956,48 @@ class MagentoPickPackManager {
   createOrderCard(order, columnName) {
     const card = document.createElement('div');
     card.className = 'order-card';
+    card.dataset.orderId = order.order_id;
+    card.dataset.orderNumber = order.order_number;
     
-    const statusBadgeClass = order.status.replace('_', '-');
+    const statusBadgeClass = order.status.replace(/_/g, '-');
     const statusLabel = order.status.replace(/_/g, ' ').toUpperCase();
+    const progressPercentage = order.progress_percentage || 0;
+    const completedItems = order.completed_items || 0;
+    const totalItems = order.total_items || 0;
+    
+    // Determine action button based on column and status
+    let actionButtonHtml = '';
+    if (columnName === 'readyToPick') {
+      if (order.status === 'in_progress') {
+        actionButtonHtml = `
+          <button class="card-action-btn continue-btn" data-action="continue">
+            <i class="fas fa-play"></i>
+            <span>Continue</span>
+          </button>
+        `;
+      } else {
+        actionButtonHtml = `
+          <button class="card-action-btn start-btn" data-action="start-pick">
+            <i class="fas fa-clipboard-list"></i>
+            <span>Start Picking</span>
+          </button>
+        `;
+      }
+    } else if (columnName === 'readyToCheck') {
+      actionButtonHtml = `
+        <button class="card-action-btn start-btn" data-action="start-check">
+          <i class="fas fa-search"></i>
+          <span>Start Checking</span>
+        </button>
+      `;
+    } else if (columnName === 'completed') {
+      actionButtonHtml = `
+        <button class="card-action-btn view-btn" data-action="view">
+          <i class="fas fa-eye"></i>
+          <span>View Details</span>
+        </button>
+      `;
+    }
     
     card.innerHTML = `
       <div class="order-card-header">
@@ -924,36 +1012,96 @@ class MagentoPickPackManager {
             <span>${order.customer_name}</span>
           </div>
         ` : ''}
+        ${order.grand_total ? `
+          <div class="order-info-row">
+            <i class="fas fa-dollar-sign"></i>
+            <span>$${parseFloat(order.grand_total).toFixed(2)}</span>
+          </div>
+        ` : ''}
+        <div class="order-info-row">
+          <i class="fas fa-box"></i>
+          <span>${totalItems} item${totalItems !== 1 ? 's' : ''}</span>
+        </div>
+        ${order.picker_name ? `
+          <div class="order-info-row">
+            <i class="fas fa-user-tag"></i>
+            <span>${order.picker_name}</span>
+          </div>
+        ` : ''}
       </div>
       
       <div class="order-card-footer">
-        <div class="order-progress">
-          <div class="progress-bar">
-            <div class="progress-fill" style="width: ${order.progress_percentage}%"></div>
+        <div class="card-progress">
+          <div class="card-progress-bar">
+            <div class="card-progress-fill" style="width: ${progressPercentage}%"></div>
           </div>
-          <div class="progress-text">${order.completed_items} / ${order.total_items}</div>
+          <div class="card-progress-text">${completedItems} / ${totalItems} items</div>
+        </div>
+        <div class="order-card-actions">
+          <button class="card-action-btn preview-btn" data-action="preview">
+            <i class="fas fa-eye"></i>
+            <span>Preview</span>
+          </button>
+          ${actionButtonHtml}
         </div>
       </div>
     `;
     
-    // Add click handler based on column
-    card.onclick = () => {
+    // Add event listeners for buttons
+    const previewBtn = card.querySelector('[data-action="preview"]');
+    if (previewBtn) {
+      previewBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.startSessionFromCard(order.order_number, 'preview');
+      });
+    }
+    
+    const startPickBtn = card.querySelector('[data-action="start-pick"]');
+    if (startPickBtn) {
+      startPickBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.startSessionFromCard(order.order_number, 'pick');
+      });
+    }
+    
+    const startCheckBtn = card.querySelector('[data-action="start-check"]');
+    if (startCheckBtn) {
+      startCheckBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.startSessionFromCard(order.order_number, 'check');
+      });
+    }
+    
+    const continueBtn = card.querySelector('[data-action="continue"]');
+    if (continueBtn) {
+      continueBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.navigateToSession(order);
+      });
+    }
+    
+    const viewBtn = card.querySelector('[data-action="view"]');
+    if (viewBtn) {
+      viewBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.navigateToSession(order);
+      });
+    }
+    
+    // Add click handler for the whole card as fallback
+    card.addEventListener('click', () => {
       if (columnName === 'readyToPick') {
-        // Start picking session (only if not in_progress)
         if (order.status !== 'in_progress') {
           this.startSessionFromCard(order.order_number, 'pick');
         } else {
-          // View the session
           this.navigateToSession(order);
         }
       } else if (columnName === 'readyToCheck') {
-        // Start checking session
         this.startSessionFromCard(order.order_number, 'check');
       } else {
-        // Just view the completed order (read-only)
         this.navigateToSession(order);
       }
-    };
+    });
     
     return card;
   }
@@ -1040,13 +1188,13 @@ class MagentoPickPackManager {
 
     // Show modal
     if (this.orderPreviewModal) {
-      this.orderPreviewModal.style.display = 'flex';
+      this.orderPreviewModal.classList.add('active');
     }
   }
 
   hideOrderPreview() {
     if (this.orderPreviewModal) {
-      this.orderPreviewModal.style.display = 'none';
+      this.orderPreviewModal.classList.remove('active');
     }
     this.pendingPreviewOrder = null;
     this.pendingPreviewSessionType = null;
@@ -1146,12 +1294,33 @@ class MagentoPickPackManager {
     this.qtyProgressPercent.textContent = `${qtyPercent}%`;
     this.qtyProgressFill.style.width = `${qtyPercent}%`;
 
-    // Enable/disable complete button - all items must be complete
-    this.completeSessionBtn.disabled = completedItems !== totalItems;
+    // Show buttons based on session status
+    const sessionStatus = this.currentSession.status;
+    const allItemsComplete = completedItems === totalItems && totalItems > 0;
     
-    // Show "Mark Ready to Check" button if at least one item is scanned
+    // Complete button only shows when session is ready_to_check
+    if (this.completeSessionBtn) {
+      if (sessionStatus === 'ready_to_check') {
+        this.completeSessionBtn.style.display = 'inline-flex';
+        this.completeSessionBtn.disabled = false;
+      } else {
+        this.completeSessionBtn.style.display = 'none';
+      }
+    }
+    
+    // "Ready to Check" button is always visible but disabled until all items scanned
     if (this.markReadyToCheckBtn) {
-      this.markReadyToCheckBtn.style.display = totalQtyScanned > 0 ? 'inline-flex' : 'none';
+      if (sessionStatus === 'in_progress') {
+        this.markReadyToCheckBtn.style.display = 'inline-flex';
+        this.markReadyToCheckBtn.disabled = !allItemsComplete;
+        if (!allItemsComplete) {
+          this.markReadyToCheckBtn.classList.add('disabled');
+        } else {
+          this.markReadyToCheckBtn.classList.remove('disabled');
+        }
+      } else {
+        this.markReadyToCheckBtn.style.display = 'none';
+      }
     }
 
     // Update items list
@@ -1192,18 +1361,21 @@ class MagentoPickPackManager {
 
       return `
         <div class="item-card ${statusClass}">
-          <div class="item-status-icon">
-            <i class="fas ${statusIcon}"></i>
+          <div class="item-left">
+            <div class="item-status-icon">
+              <i class="fas ${statusIcon}"></i>
+            </div>
+            <div class="item-details">
+              <div class="item-name">${this.escapeHtml(item.name)}</div>
+              <div class="item-sku">${this.escapeHtml(item.sku)}</div>
+            </div>
           </div>
-          <div class="item-details">
-            <div class="item-name">${this.escapeHtml(item.name)}</div>
-            <div class="item-sku">${this.escapeHtml(item.sku)}</div>
+          <div class="item-right">
+            <div class="item-quantity">
+              <div class="qty-numbers">${item.qty_scanned} / ${item.qty_invoiced}</div>
+              <div class="qty-label">Scanned</div>
+            </div>
           </div>
-          <div class="item-quantity">
-            <div class="qty-numbers">${item.qty_scanned} / ${item.qty_invoiced}</div>
-            <div class="qty-label">Scanned / Expected</div>
-          </div>
-          <div class="item-badge">${badgeText}</div>
         </div>
       `;
     }).join('');
@@ -1251,22 +1423,27 @@ class MagentoPickPackManager {
         await this.refreshSessionStatus();
 
         // Show scan result
-        let messageType = 'success';
-        if (result.is_overpicked) {
-          messageType = 'warning';
-        }
-        this.showScanMessage(result.message, messageType);
+        this.showScanMessage(result.message, 'success');
 
         // Clear input and focus
         this.skuInput.value = '';
         this.scanQuantityInput.value = '1';
         this.skuInput.focus();
 
-        // Play success sound (optional)
+        // Play success sound
         this.playBeep();
 
       } else {
+        // Scan was blocked (insufficient stock, overpicking, etc.)
         this.showScanMessage(result.message, 'error');
+        
+        // Play error sound
+        this.playErrorBeep();
+        
+        // If there's a warning about inventory issues, show a prominent alert
+        if (result.warning) {
+          showToast(result.warning, 'error');
+        }
       }
 
     } catch (error) {
@@ -1350,10 +1527,22 @@ class MagentoPickPackManager {
     
     if (!confirmed) return;
 
-    try {
-      this.markReadyToCheckBtn.disabled = true;
-      this.markReadyToCheckBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Marking...';
+    // Cache button reference before async operations
+    const btn = this.markReadyToCheckBtn;
+    const resetButton = () => {
+      if (btn && document.body.contains(btn)) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-clipboard-check"></i> Ready to Check';
+      }
+    };
 
+    try {
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Marking...';
+      }
+
+      console.log('[markReadyToCheck] Calling API...');
       const response = await fetch(`${getApiUrl()}/v1/magento/tracking/mark-ready-to-check`, {
         method: 'POST',
         headers: {
@@ -1365,26 +1554,46 @@ class MagentoPickPackManager {
         })
       });
 
+      console.log('[markReadyToCheck] Response status:', response.status);
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.detail || 'Failed to mark as ready to check');
       }
 
-      // Show success message
-      await orderModals.alert('Success', `Order #${this.currentSession?.order_number} has been marked as ready to check.`);
+      const result = await response.json();
+      console.log('[markReadyToCheck] Success:', result);
 
-      // Clear global session tracking
+      // Reset button before showing modal (since modal is blocking)
+      resetButton();
+
+      // Clear global session tracking FIRST before any UI changes
+      // This prevents the auto-draft from re-drafting the session
+      const orderNumber = this.currentSession?.order_number;
       window.__currentMagentoSession = null;
+      this.currentSession = null;
+      this.currentSessionId = null;
+
+      // Wait a moment for the previous modal to fully clean up
+      await new Promise(r => setTimeout(r, 350));
+
+      // Show success message - modal will wait for user to click OK
+      console.log('[markReadyToCheck] Showing success modal...');
+      await orderModals.alert('Success', `Order #${orderNumber} has been marked as ready to check.`);
+      console.log('[markReadyToCheck] Modal dismissed by user');
       
-      // Return to order lookup
-      this.showOrderLookup();
+      // Also show a toast for extra visibility
+      showToast(`Order #${orderNumber} marked ready to check`, 'success');
+      
+      // Return to order lookup and navigate back to order fulfillment page
+      console.log('[markReadyToCheck] Navigating back to order fulfillment...');
+      await this.showOrderLookup();
+      console.log('[markReadyToCheck] Navigation complete');
 
     } catch (error) {
-      console.error('Error marking ready to check:', error);
+      console.error('[markReadyToCheck] Error:', error);
+      resetButton();
       await orderModals.alertError('Error: ' + error.message);
-    } finally {
-      this.markReadyToCheckBtn.disabled = false;
-      this.markReadyToCheckBtn.innerHTML = '<i class="fas fa-clipboard-check"></i> Ready to Check';
     }
   }
 
@@ -1465,8 +1674,7 @@ class MagentoPickPackManager {
   }
 
   playBeep() {
-    // Optional: Play a beep sound for successful scans
-    // Can be implemented with Web Audio API or audio element
+    // Play a beep sound for successful scans
     try {
       const audioContext = new (window.AudioContext || window.webkitAudioContext)();
       const oscillator = audioContext.createOscillator();
@@ -1481,6 +1689,27 @@ class MagentoPickPackManager {
 
       oscillator.start(audioContext.currentTime);
       oscillator.stop(audioContext.currentTime + 0.1);
+    } catch (e) {
+      // Audio not supported or not allowed
+    }
+  }
+
+  playErrorBeep() {
+    // Play a lower, longer beep for errors/blocked scans
+    try {
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+
+      oscillator.frequency.value = 300; // Lower frequency for error
+      oscillator.type = 'square'; // Harsher sound
+      gainNode.gain.value = 0.15;
+
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.3); // Longer duration
     } catch (e) {
       // Audio not supported or not allowed
     }

@@ -1,1 +1,71 @@
-{}
+{
+  "9dc7337f-f7b9-4548-bb02-86fd3feb6328": {
+    "session_id": "9dc7337f-f7b9-4548-bb02-86fd3feb6328",
+    "invoice_id": "1003215470",
+    "order_number": "1045335077",
+    "session_type": "pick",
+    "started_at": "2026-01-30T16:26:03.221009",
+    "completed_at": null,
+    "items_expected": [
+      {
+        "sku": "ME084",
+        "name": "Mesoestetic m.pen [pro] Ultimate Microneedling Needles (1 x 10)",
+        "qty_ordered": 1.0,
+        "qty_invoiced": 1.0,
+        "qty_scanned": 0,
+        "price": 49.0,
+        "row_total": 49.0,
+        "product_id": 2301,
+        "is_complete": false
+      },
+      {
+        "sku": "ME003",
+        "name": "Mesoestetic C.Prof 210 Depigmentation Solution (5 x 5ml)",
+        "qty_ordered": 1.0,
+        "qty_invoiced": 1.0,
+        "qty_scanned": 0,
+        "price": 63.5,
+        "row_total": 63.5,
+        "product_id": 1535,
+        "is_complete": false
+      }
+    ],
+    "items_scanned": [
+      {
+        "sku": "ME003",
+        "qty_scanned": 1.0,
+        "scanned_at": "2026-01-30T16:27:10.036391"
+      },
+      {
+        "sku": "ME084",
+        "qty_scanned": 1.0,
+        "scanned_at": "2026-01-30T16:27:13.671100"
+      }
+    ],
+    "status": "ready_to_check",
+    "user_id": "ian",
+    "created_by": null,
+    "last_modified_by": "ian",
+    "last_modified_at": "2026-01-30T16:27:20.311667",
+    "audit_logs": [
+      {
+        "timestamp": "2026-01-30T16:26:03.221360",
+        "action": "approved",
+        "user": "ian",
+        "details": "Approved for picking"
+      },
+      {
+        "timestamp": "2026-01-30T16:26:10.153994",
+        "action": "claimed",
+        "user": "ian",
+        "details": "Claimed approved session from Unknown"
+      },
+      {
+        "timestamp": "2026-01-30T16:27:20.311685",
+        "action": "ready_to_check",
+        "user": "ian",
+        "details": "Marked as ready to check"
+      }
+    ]
+  }
+}

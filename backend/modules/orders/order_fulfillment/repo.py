@@ -36,18 +36,35 @@ class MagentoRepo:
         Look up SKU by item_id from inventory_metadata table.
         READ-ONLY operation.
         """
+        conn = None
+        conn_type = None
         try:
-            from core.db import get_psycopg_connection
-            conn = get_psycopg_connection()
-            cursor = conn.cursor()
+            # Try inventory database first, fallback to main database
+            try:
+                from core.db import get_inventory_log_connection, return_inventory_connection
+                conn = get_inventory_log_connection()
+                conn_type = 'inventory'
+            except (ValueError, Exception) as e:
+                logger.warning(f"Inventory database not available ({e}), using main database")
+                from core.db import get_psycopg_connection, return_psycopg_connection
+                conn = get_psycopg_connection()
+                conn_type = 'psycopg'
             
+            cursor = conn.cursor()
             cursor.execute(
                 "SELECT sku FROM inventory_metadata WHERE item_id = %s",
                 (item_id,)
             )
             result = cursor.fetchone()
             cursor.close()
-            conn.close()
+            
+            # Return connection to appropriate pool
+            if conn_type == 'inventory':
+                from core.db import return_inventory_connection
+                return_inventory_connection(conn)
+            else:
+                from core.db import return_psycopg_connection
+                return_psycopg_connection(conn)
             
             if result:
                 logger.info(f"Found SKU '{result[0]}' for item_id '{item_id}'")
@@ -338,21 +355,22 @@ class MagentoRepo:
     # Collaborative session management methods
     
     def claim_session(self, session_id: str, user_id: str) -> bool:
-        """Claim a draft session and make it in_progress"""
+        """Claim a draft or approved session and make it in_progress"""
         session = self._sessions.get(session_id)
         if not session:
             return False
         
-        if session.status != "draft":
-            return False  # Can only claim draft sessions
+        if session.status not in ("draft", "approved"):
+            return False  # Can only claim draft or approved sessions
         
         previous_owner = session.created_by or "Unknown"
+        previous_status = session.status
         session.status = "in_progress"
         session.user_id = user_id
         session.last_modified_by = user_id
         session.last_modified_at = datetime.now()
         
-        self._add_audit_log(session_id, "claimed", user_id, f"Claimed draft session from {previous_owner}")
+        self._add_audit_log(session_id, "claimed", user_id, f"Claimed {previous_status} session from {previous_owner}")
         self._save_sessions()
         return True
     
