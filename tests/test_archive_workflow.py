@@ -35,13 +35,13 @@ def test_archive_workflow():
     print("\n2. Testing get_all_sessions():")
     active = repo.get_all_sessions(include_archived=False)
     total = repo.get_all_sessions(include_archived=True)
-    print(f"   Active (exclude archived/expired/cancelled): {len(active)}")
+    print(f"   Active (exclude archived/cancelled): {len(active)}")
     print(f"   Total (include all): {len(total)}")
     
-    # 3. Test get_any_session_for_invoice excludes archived/expired/cancelled
+    # 3. Test get_any_session_for_invoice excludes archived/cancelled
     print("\n3. Testing get_any_session_for_invoice():")
     for s in sessions:
-        if s.status in ('expired', 'archived', 'cancelled'):
+        if s.status in ('archived', 'cancelled'):
             found = repo.get_any_session_for_invoice(s.invoice_id)
             if found:
                 print(f"   FAIL: {s.status} session for {s.order_number} returned {found.status}")

@@ -330,18 +330,18 @@ class MagentoDbRepo:
     def get_any_session_for_invoice(self, invoice_id: str) -> Optional[ScanSession]:
         """
         Get the most recent ACTIVE session for an invoice.
-        Excludes archived, expired and cancelled sessions so orders can be re-approved.
+        Excludes archived and cancelled sessions so orders can be re-approved.
         """
         conn = None
         try:
             conn = self._get_connection()
             cursor = conn.cursor()
             
-            # Exclude archived, expired and cancelled sessions - they should not block new sessions
+            # Exclude archived and cancelled sessions - they should not block new sessions
             cursor.execute("""
                 SELECT * FROM order_fulfillment_sessions 
                 WHERE invoice_id = %s
-                AND status NOT IN ('archived', 'expired', 'cancelled')
+                AND status NOT IN ('archived', 'cancelled')
                 ORDER BY started_at DESC
                 LIMIT 1
             """, (invoice_id,))
@@ -364,7 +364,7 @@ class MagentoDbRepo:
     
     def get_archived_session_for_invoice(self, invoice_id: str) -> Optional[ScanSession]:
         """
-        Get the most recent archived/expired session for an invoice.
+        Get the most recent archived session for an invoice.
         Used when reactivating an order that was archived but still processing on Magento.
         """
         conn = None
@@ -375,7 +375,7 @@ class MagentoDbRepo:
             cursor.execute("""
                 SELECT * FROM order_fulfillment_sessions 
                 WHERE invoice_id = %s
-                AND status IN ('archived', 'expired')
+                AND status = 'archived'
                 ORDER BY last_modified_at DESC
                 LIMIT 1
             """, (invoice_id,))
@@ -398,7 +398,7 @@ class MagentoDbRepo:
     
     def reactivate_session(self, session_id: str, user_id: str) -> bool:
         """
-        Reactivate an archived/expired session by setting status to 'approved'.
+        Reactivate an archived session by setting status to 'approved'.
         Preserves all audit history and adds a reactivation entry.
         
         Args:
@@ -468,7 +468,7 @@ class MagentoDbRepo:
         """Get all sessions from the database.
         
         Args:
-            include_archived: If True, includes archived/expired/cancelled sessions. Default False.
+            include_archived: If True, includes archived/cancelled sessions. Default False.
         """
         conn = None
         try:
@@ -481,10 +481,10 @@ class MagentoDbRepo:
                     ORDER BY started_at DESC
                 """)
             else:
-                # Exclude archived, expired (legacy), and cancelled sessions from active view
+                # Exclude archived and cancelled sessions from active view
                 cursor.execute("""
                     SELECT * FROM order_fulfillment_sessions 
-                    WHERE status NOT IN ('archived', 'expired', 'cancelled')
+                    WHERE status NOT IN ('archived', 'cancelled')
                     ORDER BY started_at DESC
                 """)
             

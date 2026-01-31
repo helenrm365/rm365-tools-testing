@@ -48,8 +48,7 @@ def reset_daily_order_sessions():
     
     The reset:
     - Returns scanned items to inventory for all incomplete sessions
-    - Marks incomplete sessions (draft, in_progress, ready_to_check, ready_to_pick, approved) as 'expired'
-    - Keeps completed/cancelled sessions for historical tracking
+    - Marks ALL sessions as 'archived' (preserving original status in audit log)
     - Clears all takeover requests
     - Orders still in 'processing' on Magento will appear in pending list again
     """

@@ -248,7 +248,7 @@ class SessionResetTester:
         for status, session_id in created:
             session = self.repo.get_session(session_id)
             if session and session.order_number not in filter_order_numbers:
-                if status not in ('completed', 'cancelled', 'expired'):
+                if status not in ('completed', 'cancelled', 'archived'):
                     missing_from_filter.append(status)
         
         # If draft or ready_to_pick are missing, the filter is incomplete
@@ -270,10 +270,10 @@ class SessionResetTester:
         result = self.service.reset_daily_sessions()
         print(f"  Reset result: {result}")
         
-        # Check that all sessions are now expired
+        # Check that all sessions are now archived
         for status, session_id in created.items():
             new_status = self.get_session_status(session_id)
-            assert new_status == 'expired', f"Session with original status '{status}' should be 'expired', got '{new_status}'"
+            assert new_status == 'archived', f"Session with original status '{status}' should be 'archived', got '{new_status}'"
     
     def test_reset_returns_inventory_for_draft_picking(self):
         """Test that reset returns inventory for draft picking sessions with scanned items"""
@@ -372,27 +372,27 @@ class SessionResetTester:
         assert inv_after_reset['shelf_lt1_qty'] == inv_before['shelf_lt1_qty'], \
             f"Inventory should be restored. Before: {inv_before['shelf_lt1_qty']}, After reset: {inv_after_reset['shelf_lt1_qty']}"
     
-    def test_reset_preserves_completed_sessions(self):
-        """Test that reset does NOT expire completed sessions"""
+    def test_reset_archives_completed_sessions(self):
+        """Test that reset DOES archive completed sessions (but doesn't return inventory)"""
         session_id = self.create_test_order(status='completed', session_type='pick')
         
         # Run reset using SERVICE
         result = self.service.reset_daily_sessions()
         
-        # Check status is still completed
+        # Check status is now archived (completed sessions are archived at end of day)
         new_status = self.get_session_status(session_id)
-        assert new_status == 'completed', f"Completed session should remain 'completed', got '{new_status}'"
+        assert new_status == 'archived', f"Completed session should be 'archived', got '{new_status}'"
     
-    def test_reset_preserves_cancelled_sessions(self):
-        """Test that reset does NOT expire cancelled sessions"""
+    def test_reset_archives_cancelled_sessions(self):
+        """Test that reset DOES archive cancelled sessions"""
         session_id = self.create_test_order(status='cancelled', session_type='pick')
         
         # Run reset using SERVICE
         result = self.service.reset_daily_sessions()
         
-        # Check status is still cancelled
+        # Check status is now archived (cancelled sessions are archived at end of day)
         new_status = self.get_session_status(session_id)
-        assert new_status == 'cancelled', f"Cancelled session should remain 'cancelled', got '{new_status}'"
+        assert new_status == 'archived', f"Cancelled session should be 'archived', got '{new_status}'"
     
     def run_all_tests(self):
         """Run all reset tests"""
@@ -408,8 +408,8 @@ class SessionResetTester:
             ("Reset returns inventory for draft picking", self.test_reset_returns_inventory_for_draft_picking),
             ("Reset returns inventory for in_progress picking", self.test_reset_returns_inventory_for_in_progress_picking),
             ("Reset returns inventory for ready_to_check", self.test_reset_returns_inventory_for_ready_to_check),
-            ("Reset preserves completed sessions", self.test_reset_preserves_completed_sessions),
-            ("Reset preserves cancelled sessions", self.test_reset_preserves_cancelled_sessions),
+            ("Reset archives completed sessions", self.test_reset_archives_completed_sessions),
+            ("Reset archives cancelled sessions", self.test_reset_archives_cancelled_sessions),
         ]
         
         for name, test_func in tests:

@@ -1512,7 +1512,7 @@ class OrderFulfillmentService:
         
         Logic:
         1. If an active session exists (draft, approved, in_progress, etc.) - approve it
-        2. If an archived/expired session exists - reactivate it (preserves audit history)
+        2. If an archived session exists - reactivate it (preserves audit history)
         3. Otherwise create a new session
         
         Args:
@@ -1535,7 +1535,7 @@ class OrderFulfillmentService:
             logger.info(f"Approved existing active session {existing_session.session_id} for order {order_number}")
             return existing_session.session_id
         
-        # Check if an ARCHIVED/EXPIRED session exists - reactivate instead of creating new
+        # Check if an ARCHIVED session exists - reactivate instead of creating new
         archived_session = self.repo.get_archived_session_for_invoice(invoice.invoice_number)
         if archived_session:
             # Reactivate the archived session - preserves audit history!
@@ -1573,7 +1573,7 @@ class OrderFulfillmentService:
             logger.info(f"Retrieved {len(processing_orders)} orders from Magento with 'processing' status")
             
             # Get all order numbers that already have ACTIVE sessions
-            # Excludes: archived, expired, cancelled - those orders should reappear for re-approval
+            # Excludes: archived, cancelled - those orders should reappear for re-approval
             existing_sessions = self.repo.get_sessions_by_status(['draft', 'approved', 'in_progress', 'ready_to_check', 'ready_to_pick', 'completed'])
             existing_order_numbers = {session.order_number for session in existing_sessions}
             logger.info(f"Found {len(existing_order_numbers)} orders that already have active sessions: {existing_order_numbers}")
