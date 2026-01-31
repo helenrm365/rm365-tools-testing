@@ -25,7 +25,7 @@ def get_pending_orders_count(user=Depends(get_current_user)):
     Returns the number of active fulfillment sessions.
     """
     try:
-        from .order_fulfillment.repo import OrderFulfillmentRepo
+        from .order_fulfillment.db_repo import MagentoDbRepo as OrderFulfillmentRepo
         repo = OrderFulfillmentRepo()
         
         # Count active sessions (sessions that are in progress)
