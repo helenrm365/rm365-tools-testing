@@ -330,18 +330,18 @@ class MagentoDbRepo:
     def get_any_session_for_invoice(self, invoice_id: str) -> Optional[ScanSession]:
         """
         Get the most recent ACTIVE session for an invoice.
-        Excludes expired and cancelled sessions so orders can be re-approved.
+        Excludes archived, expired and cancelled sessions so orders can be re-approved.
         """
         conn = None
         try:
             conn = self._get_connection()
             cursor = conn.cursor()
             
-            # Exclude expired and cancelled sessions - they should not block new sessions
+            # Exclude archived, expired and cancelled sessions - they should not block new sessions
             cursor.execute("""
                 SELECT * FROM order_fulfillment_sessions 
                 WHERE invoice_id = %s
-                AND status NOT IN ('expired', 'cancelled')
+                AND status NOT IN ('archived', 'expired', 'cancelled')
                 ORDER BY started_at DESC
                 LIMIT 1
             """, (invoice_id,))
@@ -362,11 +362,113 @@ class MagentoDbRepo:
             if conn:
                 self._return_connection(conn)
     
+    def get_archived_session_for_invoice(self, invoice_id: str) -> Optional[ScanSession]:
+        """
+        Get the most recent archived/expired session for an invoice.
+        Used when reactivating an order that was archived but still processing on Magento.
+        """
+        conn = None
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                SELECT * FROM order_fulfillment_sessions 
+                WHERE invoice_id = %s
+                AND status IN ('archived', 'expired')
+                ORDER BY last_modified_at DESC
+                LIMIT 1
+            """, (invoice_id,))
+            
+            row = cursor.fetchone()
+            if not row:
+                cursor.close()
+                return None
+            
+            session = self._row_to_session(row, cursor)
+            cursor.close()
+            return session
+            
+        except Exception as e:
+            logger.error(f"Error getting archived session for invoice: {e}")
+            return None
+        finally:
+            if conn:
+                self._return_connection(conn)
+    
+    def reactivate_session(self, session_id: str, user_id: str) -> bool:
+        """
+        Reactivate an archived/expired session by setting status to 'approved'.
+        Preserves all audit history and adds a reactivation entry.
+        
+        Args:
+            session_id: The session to reactivate
+            user_id: The user reactivating the session
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        conn = None
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
+            # Get current session for audit log
+            cursor.execute("""
+                SELECT status, audit_logs FROM order_fulfillment_sessions 
+                WHERE session_id = %s
+            """, (session_id,))
+            row = cursor.fetchone()
+            if not row:
+                cursor.close()
+                return False
+                
+            old_status, audit_logs = row
+            
+            # Parse existing audit logs
+            if isinstance(audit_logs, str):
+                audit_logs = json.loads(audit_logs) if audit_logs else []
+            elif audit_logs is None:
+                audit_logs = []
+            
+            # Add reactivation entry
+            audit_logs.append({
+                'timestamp': datetime.now().isoformat(),
+                'action': 'reactivated',
+                'user': user_id,
+                'details': f'Session reactivated from {old_status} status - order still processing on Magento'
+            })
+            
+            # Update session
+            cursor.execute("""
+                UPDATE order_fulfillment_sessions 
+                SET status = 'approved',
+                    audit_logs = %s::jsonb,
+                    last_modified_at = NOW(),
+                    last_modified_by = %s
+                WHERE session_id = %s
+            """, (json.dumps(audit_logs), user_id, session_id))
+            
+            conn.commit()
+            cursor.close()
+            
+            logger.info(f"✅ Reactivated session {session_id} from {old_status} to approved by {user_id}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"❌ Error reactivating session: {e}")
+            if conn:
+                conn.rollback()
+            return False
+        finally:
+            if conn:
+                self._return_connection(conn)
+
     def get_all_sessions(self, include_archived: bool = False) -> List[ScanSession]:
         """Get all sessions from the database.
         
         Args:
-            include_archived: If True, includes archived sessions. Default False.
+            include_archived: If True, includes archived/expired/cancelled sessions. Default False.
         """
         conn = None
         try:
@@ -379,9 +481,10 @@ class MagentoDbRepo:
                     ORDER BY started_at DESC
                 """)
             else:
+                # Exclude archived, expired (legacy), and cancelled sessions from active view
                 cursor.execute("""
                     SELECT * FROM order_fulfillment_sessions 
-                    WHERE status != 'archived'
+                    WHERE status NOT IN ('archived', 'expired', 'cancelled')
                     ORDER BY started_at DESC
                 """)
             
@@ -1444,7 +1547,6 @@ class MagentoDbRepo:
             for session_id, original_status, audit_logs in sessions_to_archive:
                 # Parse existing audit logs
                 if isinstance(audit_logs, str):
-                    import json
                     audit_logs = json.loads(audit_logs) if audit_logs else []
                 elif audit_logs is None:
                     audit_logs = []

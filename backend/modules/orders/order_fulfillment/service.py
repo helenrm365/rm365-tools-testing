@@ -1505,29 +1505,46 @@ class OrderFulfillmentService:
     
     def approve_order_for_picking(self, order_number: str, user_id: str):
         """
-        Approve a Magento order for picking by creating an approved session.
+        Approve a Magento order for picking by creating or reactivating a session.
         
         IMPORTANT: This does NOT modify Magento. The order remains in 'processing' status
         in Magento. We only track the approval state locally in our database.
+        
+        Logic:
+        1. If an active session exists (draft, approved, in_progress, etc.) - approve it
+        2. If an archived/expired session exists - reactivate it (preserves audit history)
+        3. Otherwise create a new session
         
         Args:
             order_number: The Magento order number
             user_id: The user approving the order
             
         Returns:
-            session_id: The ID of the created/approved session
+            session_id: The ID of the created/reactivated/approved session
         """
         # Lookup the invoice
         invoice = self.lookup_invoice(order_number)
         if not invoice:
             raise ValueError(f"No invoice found for order number: {order_number}")
         
-        # Check if session already exists
+        # Check if an ACTIVE session already exists
         existing_session = self._get_any_session_for_invoice(invoice.invoice_number)
         if existing_session:
             # Just approve the existing session
             self.repo.approve_session(existing_session.session_id, user_id)
+            logger.info(f"Approved existing active session {existing_session.session_id} for order {order_number}")
             return existing_session.session_id
+        
+        # Check if an ARCHIVED/EXPIRED session exists - reactivate instead of creating new
+        archived_session = self.repo.get_archived_session_for_invoice(invoice.invoice_number)
+        if archived_session:
+            # Reactivate the archived session - preserves audit history!
+            success = self.repo.reactivate_session(archived_session.session_id, user_id)
+            if success:
+                logger.info(f"Reactivated archived session {archived_session.session_id} for order {order_number}")
+                return archived_session.session_id
+            else:
+                logger.warning(f"Failed to reactivate session {archived_session.session_id}, creating new one")
         
         # Create new session in approved status
         session = self.repo.create_session(
@@ -1540,6 +1557,7 @@ class OrderFulfillmentService:
         
         # Set status to approved
         self.repo.approve_session(session.session_id, user_id)
+        logger.info(f"Created and approved new session {session.session_id} for order {order_number}")
         
         return session.session_id
     
@@ -1554,10 +1572,11 @@ class OrderFulfillmentService:
             processing_orders = self.client.get_processing_orders()
             logger.info(f"Retrieved {len(processing_orders)} orders from Magento with 'processing' status")
             
-            # Get all order numbers that already have sessions (approved or in progress)
-            existing_sessions = self.repo.get_sessions_by_status(['approved', 'in_progress', 'ready_to_check', 'completed'])
+            # Get all order numbers that already have ACTIVE sessions
+            # Excludes: archived, expired, cancelled - those orders should reappear for re-approval
+            existing_sessions = self.repo.get_sessions_by_status(['draft', 'approved', 'in_progress', 'ready_to_check', 'ready_to_pick', 'completed'])
             existing_order_numbers = {session.order_number for session in existing_sessions}
-            logger.info(f"Found {len(existing_order_numbers)} orders that already have sessions: {existing_order_numbers}")
+            logger.info(f"Found {len(existing_order_numbers)} orders that already have active sessions: {existing_order_numbers}")
             
             # Filter out orders that already have sessions
             pending_orders = []
