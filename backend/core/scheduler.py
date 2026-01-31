@@ -47,18 +47,19 @@ def reset_daily_order_sessions():
     were previously approved/in-progress/completed.
     
     The reset:
-    - Marks incomplete sessions (draft, in_progress, ready_to_check) as 'expired'
+    - Returns scanned items to inventory for all incomplete sessions
+    - Marks incomplete sessions (draft, in_progress, ready_to_check, ready_to_pick, approved) as 'expired'
     - Keeps completed/cancelled sessions for historical tracking
     - Clears all takeover requests
     - Orders still in 'processing' on Magento will appear in pending list again
     """
     try:
-        from modules.orders.order_fulfillment.db_repo import MagentoDbRepo
+        from modules.orders.order_fulfillment.service import OrderFulfillmentService
         
         logger.info("🔄 Starting daily order session reset...")
         
-        repo = MagentoDbRepo()
-        result = repo.reset_daily_sessions()
+        service = OrderFulfillmentService()
+        result = service.reset_daily_sessions()
         
         logger.info(f"✅ Daily reset completed: {result}")
         

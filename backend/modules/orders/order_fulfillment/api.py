@@ -936,8 +936,9 @@ def get_pending_magento_orders(
         order_lookup = {order.get('increment_id'): order for order in processing_orders}
         
         # Get all sessions (ONE query)
+        # Include ALL active statuses to properly exclude them from pending approvals
         today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
-        all_sessions = service.repo.get_sessions_by_status(['approved', 'in_progress', 'ready_to_check', 'completed'])
+        all_sessions = service.repo.get_sessions_by_status(['draft', 'approved', 'in_progress', 'ready_to_check', 'ready_to_pick', 'completed'])
         
         # Build sets for filtering
         existing_order_numbers = {session.order_number for session in all_sessions}
@@ -1048,8 +1049,8 @@ def debug_pending_orders(
         # Get raw processing orders from Magento
         processing_orders = service.client.get_processing_orders()
         
-        # Get existing sessions
-        existing_sessions = service.repo.get_sessions_by_status(['approved', 'in_progress', 'ready_to_check', 'completed'])
+        # Get existing sessions - include ALL active statuses
+        existing_sessions = service.repo.get_sessions_by_status(['draft', 'approved', 'in_progress', 'ready_to_check', 'ready_to_pick', 'completed'])
         existing_order_numbers = {session.order_number for session in existing_sessions}
         
         # Categorize orders

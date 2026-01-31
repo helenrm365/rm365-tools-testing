@@ -1627,6 +1627,95 @@ class OrderFulfillmentService:
         except Exception as e:
             logger.error(f"Failed to get pending Magento orders: {e}", exc_info=True)
             return []
+    
+    def reset_daily_sessions(self) -> dict:
+        """
+        Reset all order sessions daily.
+        
+        This runs at midnight (or configured time) and:
+        1. Returns scanned items to inventory for all incomplete sessions with scanned items
+        2. Marks incomplete sessions (draft, in_progress, ready_to_check, ready_to_pick, approved) as 'expired'
+        3. Clears all pending takeover requests
+        4. Orders still in 'processing' on Magento will reappear in pending approvals
+        
+        The key difference from cancel is that BOTH picking AND checking sessions
+        have their items returned to inventory since they're being expired/reset.
+        """
+        try:
+            logger.info("🔄 Starting daily order session reset with inventory returns...")
+            
+            # Get all incomplete sessions that have scanned items
+            incomplete_statuses = ['draft', 'in_progress', 'ready_to_check', 'ready_to_pick', 'approved']
+            sessions_with_items = []
+            
+            for status in incomplete_statuses:
+                sessions = self.repo.get_sessions_by_status([status])
+                for session in sessions:
+                    if session.items_scanned:
+                        sessions_with_items.append(session)
+            
+            # Return inventory for each session with scanned items
+            total_items_returned = 0
+            sessions_with_returns = 0
+            return_errors = []
+            
+            for session in sessions_with_items:
+                session_items_returned = 0
+                
+                for scanned_item in session.items_scanned:
+                    sku = scanned_item.get('sku')
+                    qty_scanned = scanned_item.get('qty_scanned', 0)
+                    deduction_sources = scanned_item.get('deduction_sources', [])
+                    
+                    if qty_scanned > 0 and deduction_sources:
+                        item_id = self._get_item_id_from_sku(sku)
+                        if not item_id:
+                            logger.warning(f"Could not find item_id for SKU {sku} during reset")
+                            continue
+                        
+                        for source in deduction_sources:
+                            field = source.get('field')
+                            remaining = source.get('remaining', 0)
+                            
+                            if remaining > 0 and field:
+                                try:
+                                    self._return_inventory_stock(item_id, remaining, field)
+                                    session_items_returned += remaining
+                                    logger.info(f"  Reset return: {remaining} of {sku} to {field}")
+                                except Exception as e:
+                                    error_msg = f"Error returning {sku} to {field}: {e}"
+                                    logger.error(error_msg)
+                                    return_errors.append(error_msg)
+                
+                if session_items_returned > 0:
+                    sessions_with_returns += 1
+                    total_items_returned += session_items_returned
+                    logger.info(f"  Session {session.session_id} ({session.order_number}): returned {session_items_returned} items")
+            
+            # Now expire all incomplete sessions in the database
+            result = self.repo.reset_daily_sessions()
+            
+            # Add inventory return info to result
+            result['items_returned_to_inventory'] = int(total_items_returned)
+            result['sessions_with_inventory_returns'] = sessions_with_returns
+            
+            if return_errors:
+                result['return_errors'] = return_errors
+            
+            logger.info(f"✅ Daily reset completed:")
+            logger.info(f"   - Expired {result.get('sessions_expired', 0)} incomplete sessions")
+            logger.info(f"   - Returned {total_items_returned} items to inventory from {sessions_with_returns} sessions")
+            logger.info(f"   - Cleared {result.get('takeover_requests_cleared', 0)} takeover requests")
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"❌ Error during daily reset: {e}", exc_info=True)
+            return {
+                'success': False,
+                'error': str(e),
+                'items_returned_to_inventory': 0
+            }
 
 
 
