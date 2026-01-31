@@ -32,105 +32,67 @@
   <!-- Main Content Wrapper -->
   <div class="fulfillment-content">
     
-    <!-- Tracking Board Section -->
-    <div class="action-block" id="trackingBoardSection">
-      <div class="block-header">
-        <div class="block-icon">
-          <i class="fas fa-columns"></i>
-        </div>
-        <div class="block-title-group">
-          <h3 class="block-title">Order Tracking Board</h3>
-          <p class="block-subtitle">Live view of orders in progress</p>
-        </div>
+    <!-- Board Controls -->
+    <div class="ot-controls" id="trackingBoardSection">
+      <div class="ot-live-status" id="liveStatus">
+        <span class="ot-dot"></span>
+        <span class="status-text">Connecting...</span>
       </div>
-
-      <div class="block-content">
-        <!-- Action Controls -->
-        <div class="tracking-actions">
-          <!-- Live Status Indicator -->
-          <div class="live-status" id="liveStatus">
-            <span class="status-dot"></span>
-            <span class="status-text">Connecting...</span>
-          </div>
-
-          <button class="action-btn primary-btn" id="refreshBoardBtn">
-            <i class="fas fa-sync-alt"></i>
-            Refresh
-          </button>
+      <button class="ot-refresh-btn" id="refreshBoardBtn">
+        <i class="fas fa-sync-alt"></i>
+      </button>
+    </div>
+    
+    <!-- Mobile Column Tabs (only visible in mobile mode) -->
+    <div class="mobile-column-tabs" id="mobileColumnTabs" style="display: none;">
+      <button class="mobile-tab-button active" data-column="ready-to-pick">
+        <i class="fas fa-clipboard-list"></i>
+        <span>Ready to Pick</span>
+        <span class="mobile-tab-count" id="mobileReadyToPickCount">0</span>
+      </button>
+      <button class="mobile-tab-button" data-column="ready-to-check">
+        <i class="fas fa-search"></i>
+        <span>Ready to Check</span>
+        <span class="mobile-tab-count" id="mobileReadyToCheckCount">0</span>
+      </button>
+      <button class="mobile-tab-button" data-column="completed">
+        <i class="fas fa-check-double"></i>
+        <span>Completed</span>
+        <span class="mobile-tab-count" id="mobileCompletedCount">0</span>
+      </button>
+    </div>
+    
+    <!-- 3-Column Board -->
+    <div class="ot-board" id="trackingBoard">
+      <!-- Ready to Pick Column -->
+      <section class="ot-column ot-column-pick">
+        <div class="ot-column-header">
+          <div class="ot-column-icon"><i class="fas fa-clipboard-list"></i></div>
+          <span class="ot-column-title">Ready to Pick</span>
+          <span class="ot-column-count" id="readyToPickCount">0</span>
         </div>
-        
-        <!-- Mobile Column Tabs (only visible in mobile mode) -->
-        <div class="mobile-column-tabs" id="mobileColumnTabs" style="display: none;">
-          <button class="mobile-tab-button active" data-column="ready-to-pick">
-            <i class="fas fa-clipboard-list"></i>
-            <span>Ready to Pick</span>
-            <span class="mobile-tab-count" id="mobileReadyToPickCount">0</span>
-          </button>
-          <button class="mobile-tab-button" data-column="ready-to-check">
-            <i class="fas fa-search"></i>
-            <span>Ready to Check</span>
-            <span class="mobile-tab-count" id="mobileReadyToCheckCount">0</span>
-          </button>
-          <button class="mobile-tab-button" data-column="completed">
-            <i class="fas fa-check-double"></i>
-            <span>Completed</span>
-            <span class="mobile-tab-count" id="mobileCompletedCount">0</span>
-          </button>
+        <div class="ot-column-body" id="readyToPickColumn"></div>
+      </section>
+
+      <!-- Ready to Check Column -->
+      <section class="ot-column ot-column-check">
+        <div class="ot-column-header">
+          <div class="ot-column-icon"><i class="fas fa-search"></i></div>
+          <span class="ot-column-title">Ready to Check</span>
+          <span class="ot-column-count" id="readyToCheckCount">0</span>
         </div>
-        
-        <!-- Tracking Board Columns -->
-        <div class="tracking-board" id="trackingBoard">
-          
-          <!-- Ready to Pick Column -->
-          <div class="tracking-column">
-            <div class="column-header ready-to-pick">
-              <div class="column-icon">
-                <i class="fas fa-clipboard-list"></i>
-              </div>
-              <div class="column-title-group">
-                <h3 class="column-title">Ready to Pick</h3>
-                <span class="column-count" id="readyToPickCount">0</span>
-              </div>
-            </div>
-            <div class="column-content" id="readyToPickColumn">
-              <!-- Order cards will be inserted here -->
-            </div>
-          </div>
+        <div class="ot-column-body" id="readyToCheckColumn"></div>
+      </section>
 
-          <!-- Ready to Check Column -->
-          <div class="tracking-column">
-            <div class="column-header ready-to-check">
-              <div class="column-icon">
-                <i class="fas fa-search"></i>
-              </div>
-              <div class="column-title-group">
-                <h3 class="column-title">Ready to Check</h3>
-                <span class="column-count" id="readyToCheckCount">0</span>
-              </div>
-            </div>
-            <div class="column-content" id="readyToCheckColumn">
-              <!-- Order cards will be inserted here -->
-            </div>
-          </div>
-
-          <!-- Completed Column -->
-          <div class="tracking-column">
-            <div class="column-header completed">
-              <div class="column-icon">
-                <i class="fas fa-check-double"></i>
-              </div>
-              <div class="column-title-group">
-                <h3 class="column-title">Completed</h3>
-                <span class="column-count" id="completedCount">0</span>
-              </div>
-            </div>
-            <div class="column-content" id="completedColumn">
-              <!-- Order cards will be inserted here -->
-            </div>
-          </div>
-
+      <!-- Completed Column -->
+      <section class="ot-column ot-column-done">
+        <div class="ot-column-header">
+          <div class="ot-column-icon"><i class="fas fa-check-double"></i></div>
+          <span class="ot-column-title">Completed</span>
+          <span class="ot-column-count" id="completedCount">0</span>
         </div>
-      </div>
+        <div class="ot-column-body" id="completedColumn"></div>
+      </section>
     </div>
     
     <!-- Order Lookup Section -->

@@ -539,8 +539,14 @@ class MagentoRepo:
         self._save_sessions()
         return True
     
-    def send_back_for_picking(self, session_id: str, user_id: Optional[str] = None) -> bool:
-        """Send an order back for picking from the checking phase"""
+    def send_back_for_picking(self, session_id: str, user_id: Optional[str] = None, items_counted: Optional[list] = None) -> bool:
+        """Send an order back for picking from the checking phase
+        
+        Args:
+            session_id: The session ID
+            user_id: The user sending the order back
+            items_counted: List of {sku, qty_counted} from the checker's count
+        """
         session = self._sessions.get(session_id)
         if not session:
             return False
@@ -550,6 +556,10 @@ class MagentoRepo:
         session.session_type = "pick"  # Reset back to pick session type
         session.last_modified_by = sending_user
         session.last_modified_at = datetime.now()
+        
+        # Store counted items if provided
+        if items_counted is not None:
+            session.items_counted = items_counted
         
         self._add_audit_log(session_id, "sent_back_for_picking", sending_user, "Sent back for picking from checking phase")
         self._save_sessions()

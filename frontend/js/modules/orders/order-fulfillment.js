@@ -257,10 +257,10 @@ class MagentoPickPackManager {
     if (!liveStatus) return;
     
     if (wsService.isConnected()) {
-      liveStatus.className = 'live-status connected';
+      liveStatus.className = 'ot-live-status connected';
       liveStatus.querySelector('.status-text').textContent = 'Live';
     } else {
-      liveStatus.className = 'live-status disconnected';
+      liveStatus.className = 'ot-live-status disconnected';
       liveStatus.querySelector('.status-text').textContent = 'Offline';
     }
   }
@@ -472,10 +472,10 @@ class MagentoPickPackManager {
     if (refreshBtn) {
       refreshBtn.addEventListener('click', async () => {
         refreshBtn.disabled = true;
-        refreshBtn.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i> Refreshing...';
+        refreshBtn.classList.add('spinning');
         await this.loadTrackingBoard();
         refreshBtn.disabled = false;
-        refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
+        refreshBtn.classList.remove('spinning');
       });
     }
     
@@ -564,7 +564,7 @@ class MagentoPickPackManager {
       if (mobileColumnTabs) mobileColumnTabs.style.display = 'none';
       // Show all columns
       if (trackingBoard) {
-        const columns = trackingBoard.querySelectorAll('.tracking-column');
+        const columns = trackingBoard.querySelectorAll('.ot-column');
         columns.forEach(col => col.style.display = 'flex');
       }
     }
@@ -594,7 +594,7 @@ class MagentoPickPackManager {
     };
     
     Object.entries(columnMap).forEach(([key, _]) => {
-      const column = document.querySelector(`[id="${columnMap[key]}"]`)?.closest('.tracking-column');
+      const column = document.querySelector(`[id="${columnMap[key]}"]`)?.closest('.ot-column');
       if (column) {
         column.style.display = key === this.activeColumn ? 'flex' : 'none';
       }
@@ -823,6 +823,16 @@ class MagentoPickPackManager {
       trackingBoardSection.style.display = 'none';
     }
     
+    // Hide the tracking board and mobile column tabs during active session
+    const trackingBoard = document.getElementById('trackingBoard');
+    if (trackingBoard) {
+      trackingBoard.style.display = 'none';
+    }
+    const mobileColumnTabs = document.getElementById('mobileColumnTabs');
+    if (mobileColumnTabs) {
+      mobileColumnTabs.style.display = 'none';
+    }
+    
     // Ensure tab stays highlighted
     ensureTabHighlighted();
     
@@ -854,7 +864,22 @@ class MagentoPickPackManager {
     // Show tracking board section
     const trackingBoardSection = document.getElementById('trackingBoardSection');
     if (trackingBoardSection) {
-      trackingBoardSection.style.display = 'block';
+      trackingBoardSection.style.display = 'flex';
+    }
+    
+    // Show the tracking board
+    const trackingBoard = document.getElementById('trackingBoard');
+    if (trackingBoard) {
+      trackingBoard.style.display = 'grid';
+    }
+    
+    // Restore mobile column tabs visibility if in mobile mode
+    if (this.isMobileMode) {
+      const mobileColumnTabs = document.getElementById('mobileColumnTabs');
+      if (mobileColumnTabs) {
+        mobileColumnTabs.style.display = 'flex';
+      }
+      this.updateMobileColumnVisibility();
     }
     
     // Load the tracking board and wait for it
@@ -901,9 +926,9 @@ class MagentoPickPackManager {
   
   updateColumn(columnName, orders) {
     const columnMap = {
-      readyToPick: { id: 'readyToPickColumn', count: 'readyToPickCount', mobileCount: 'mobileReadyToPickCount' },
-      readyToCheck: { id: 'readyToCheckColumn', count: 'readyToCheckCount', mobileCount: 'mobileReadyToCheckCount' },
-      completed: { id: 'completedColumn', count: 'completedCount', mobileCount: 'mobileCompletedCount' }
+      readyToPick: { id: 'readyToPickColumn', count: 'readyToPickCount', mobileCount: 'mobileReadyToPickCount', type: 'pick' },
+      readyToCheck: { id: 'readyToCheckColumn', count: 'readyToCheckCount', mobileCount: 'mobileReadyToCheckCount', type: 'check' },
+      completed: { id: 'completedColumn', count: 'completedCount', mobileCount: 'mobileCompletedCount', type: 'done' }
     };
     
     const column = columnMap[columnName];
@@ -923,9 +948,9 @@ class MagentoPickPackManager {
     // Add orders
     if (orders.length === 0) {
       columnEl.innerHTML = `
-        <div class="column-empty">
+        <div class="ot-empty">
           <i class="fas fa-inbox"></i>
-          <p>No orders in this column</p>
+          <span>No orders</span>
         </div>
       `;
     } else {
@@ -936,19 +961,17 @@ class MagentoPickPackManager {
       groupedOrders.forEach(group => {
         // Add shipping method header
         const headerDiv = document.createElement('div');
-        headerDiv.className = 'shipping-method-header';
+        headerDiv.className = 'ot-group-header';
         headerDiv.innerHTML = `
-          <div class="shipping-method-title">
-            <i class="fas fa-shipping-fast"></i>
-            <span>${group.shippingMethod}</span>
-          </div>
-          <span class="shipping-method-count">${group.orders.length}</span>
+          <i class="fas fa-truck"></i>
+          <span>${group.shippingMethod}</span>
+          <span class="ot-group-count">${group.orders.length}</span>
         `;
         columnEl.appendChild(headerDiv);
         
         // Add orders in this group
         group.orders.forEach(order => {
-          const card = this.createOrderCard(order, columnName);
+          const card = this.createOrderCard(order, columnName, column.type);
           columnEl.appendChild(card);
         });
       });
@@ -984,171 +1007,72 @@ class MagentoPickPackManager {
     return groupArray;
   }
   
-  createOrderCard(order, columnName) {
+  createOrderCard(order, columnName, type) {
     const card = document.createElement('div');
-    card.className = 'order-card';
+    card.className = `ot-card ot-card-${type}`;
     card.dataset.orderId = order.order_id;
     card.dataset.orderNumber = order.order_number;
     
-    const statusBadgeClass = order.status.replace(/_/g, '-');
-    const statusLabel = order.status.replace(/_/g, ' ').toUpperCase();
-    const progressPercentage = order.progress_percentage || 0;
+    const progressPercent = order.progress_percentage || 0;
     const completedItems = order.completed_items || 0;
     const totalItems = order.total_items || 0;
     
-    // Determine action button based on column and status
-    let actionButtonHtml = '';
-    if (columnName === 'readyToPick') {
-      if (order.status === 'in_progress') {
-        actionButtonHtml = `
-          <button class="card-action-btn continue-btn" data-action="continue">
-            <i class="fas fa-play"></i>
-            <span>Continue</span>
-          </button>
-        `;
-      } else if (order.status === 'draft') {
-        actionButtonHtml = `
-          <button class="card-action-btn continue-btn" data-action="continue">
-            <i class="fas fa-play"></i>
-            <span>Continue Draft</span>
-          </button>
-        `;
-      } else {
-        actionButtonHtml = `
-          <button class="card-action-btn start-btn" data-action="start-pick">
-            <i class="fas fa-clipboard-list"></i>
-            <span>Start Picking</span>
-          </button>
-        `;
-      }
-    } else if (columnName === 'readyToCheck') {
-      // Check if there's an active checking session (in_progress or draft with session_type=check)
-      if (order.session_type === 'check' && (order.status === 'in_progress' || order.status === 'draft')) {
-        actionButtonHtml = `
-          <button class="card-action-btn continue-btn" data-action="continue">
-            <i class="fas fa-play"></i>
-            <span>Continue Checking</span>
-          </button>
-        `;
-      } else {
-        actionButtonHtml = `
-          <button class="card-action-btn start-btn" data-action="start-check">
-            <i class="fas fa-search"></i>
-            <span>Start Checking</span>
-          </button>
-        `;
-      }
-    } else if (columnName === 'completed') {
-      actionButtonHtml = `
-        <button class="card-action-btn view-btn" data-action="view">
-          <i class="fas fa-eye"></i>
-          <span>View Details</span>
-        </button>
-      `;
-    }
+    // Status badge
+    const status = order.status || 'pending';
+    const statusClass = status.replace(/_/g, '-');
+    const statusLabel = status.replace(/_/g, ' ');
+    
+    // Progress ring
+    const radius = 14;
+    const circumference = 2 * Math.PI * radius;
+    const offset = circumference - (progressPercent / 100) * circumference;
     
     card.innerHTML = `
-      <div class="order-card-header">
-        <div class="order-number">#${order.order_number}</div>
-        <span class="order-status-badge ${statusBadgeClass}">${statusLabel}</span>
-      </div>
-      
-      <div class="order-card-info">
-        ${order.customer_name ? `
-          <div class="order-info-row">
-            <i class="fas fa-user"></i>
-            <span>${order.customer_name}</span>
-          </div>
-        ` : ''}
-        ${order.grand_total ? `
-          <div class="order-info-row">
-            <i class="fas fa-dollar-sign"></i>
-            <span>$${parseFloat(order.grand_total).toFixed(2)}</span>
-          </div>
-        ` : ''}
-        <div class="order-info-row">
-          <i class="fas fa-box"></i>
-          <span>${totalItems} item${totalItems !== 1 ? 's' : ''}</span>
+      <div class="ot-card-main">
+        <div class="ot-card-header">
+          <span class="ot-card-order">#${order.order_number}</span>
+          <span class="ot-card-status ${statusClass}">${statusLabel}</span>
         </div>
-        ${order.picker_name ? `
-          <div class="order-info-row">
-            <i class="fas fa-user-tag"></i>
-            <span>${order.picker_name}</span>
-          </div>
-        ` : ''}
-      </div>
-      
-      <div class="order-card-footer">
-        <div class="card-progress">
-          <div class="card-progress-bar">
-            <div class="card-progress-fill" style="width: ${progressPercentage}%"></div>
-          </div>
-          <div class="card-progress-text">${completedItems} / ${totalItems} items</div>
-        </div>
-        <div class="order-card-actions">
-          <button class="card-action-btn preview-btn" data-action="preview">
-            <i class="fas fa-eye"></i>
-            <span>Preview</span>
-          </button>
-          ${actionButtonHtml}
+        <div class="ot-card-details">
+          ${order.customer_name ? `<span><i class="fas fa-user"></i> ${order.customer_name}</span>` : ''}
+          ${order.grand_total ? `<span><i class="fas fa-dollar-sign"></i> $${parseFloat(order.grand_total).toFixed(2)}</span>` : ''}
+          <span><i class="fas fa-box"></i> ${totalItems} item${totalItems !== 1 ? 's' : ''}</span>
         </div>
       </div>
+      <div class="ot-card-progress">
+        <svg viewBox="0 0 32 32">
+          <circle class="ring-bg" cx="16" cy="16" r="${radius}" fill="none" stroke="rgba(0,0,0,0.06)" stroke-width="3"></circle>
+          <circle class="ring-fill" cx="16" cy="16" r="${radius}" fill="none" stroke-width="3" stroke-linecap="round"
+            stroke-dasharray="${circumference}" 
+            stroke-dashoffset="${offset}"></circle>
+        </svg>
+        <span>${completedItems}/${totalItems}</span>
+      </div>
+      <i class="fas fa-chevron-right ot-card-arrow"></i>
     `;
     
-    // Add event listeners for buttons
-    const previewBtn = card.querySelector('[data-action="preview"]');
-    if (previewBtn) {
-      previewBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.startSessionFromCard(order.order_number, 'preview');
-      });
-    }
-    
-    const startPickBtn = card.querySelector('[data-action="start-pick"]');
-    if (startPickBtn) {
-      startPickBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.startSessionFromCard(order.order_number, 'pick');
-      });
-    }
-    
-    const startCheckBtn = card.querySelector('[data-action="start-check"]');
-    if (startCheckBtn) {
-      startCheckBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.startSessionFromCard(order.order_number, 'check');
-      });
-    }
-    
-    const continueBtn = card.querySelector('[data-action="continue"]');
-    if (continueBtn) {
-      continueBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.navigateToSession(order);
-      });
-    }
-    
-    const viewBtn = card.querySelector('[data-action="view"]');
-    if (viewBtn) {
-      viewBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.navigateToSession(order);
-      });
-    }
-    
-    // Add click handler for the whole card as fallback
+    // Add click handler for the whole card
     card.addEventListener('click', () => {
       if (columnName === 'readyToPick') {
-        if (order.status === 'in_progress' || order.status === 'draft') {
+        if (order.status === 'in_progress') {
+          // In-progress sessions go directly to session
           this.navigateToSession(order);
+        } else if (order.status === 'draft') {
+          // Draft sessions show preview modal with "Continue" option
+          this.startSessionFromCard(order.order_number, 'pick', true);
         } else {
+          // New sessions show preview modal
           this.startSessionFromCard(order.order_number, 'pick');
         }
       } else if (columnName === 'readyToCheck') {
-        // If there's an existing check session in progress/draft, navigate to it
-        if (order.session_type === 'check' && (order.status === 'in_progress' || order.status === 'draft')) {
+        if (order.session_type === 'check' && order.status === 'in_progress') {
+          // In-progress check sessions go directly
           this.navigateToSession(order);
+        } else if (order.session_type === 'check' && order.status === 'draft') {
+          // Draft check sessions show preview modal
+          this.startSessionFromCard(order.order_number, 'check', true);
         } else {
+          // New check sessions show preview modal
           this.startSessionFromCard(order.order_number, 'check');
         }
       } else {
@@ -1159,7 +1083,7 @@ class MagentoPickPackManager {
     return card;
   }
   
-  async startSessionFromCard(orderNumber, sessionType = 'pick') {
+  async startSessionFromCard(orderNumber, sessionType = 'pick', isDraft = false) {
     try {
       // Navigate to the session by order number
       const url = `${getApiUrl()}/v1/magento/invoice/lookup/${orderNumber}`;
@@ -1172,17 +1096,18 @@ class MagentoPickPackManager {
       const invoice = await response.json();
       
       // Show preview modal before starting session
-      this.showOrderPreview(invoice, sessionType);
+      this.showOrderPreview(invoice, sessionType, isDraft);
     } catch (error) {
       console.error('[Order Fulfillment] Error starting session from card:', error);
       showNotification(`Failed to start session: ${error.message}`, 'error');
     }
   }
 
-  showOrderPreview(invoice, sessionType = 'pick') {
+  showOrderPreview(invoice, sessionType = 'pick', isDraft = false) {
     // Store pending order and session type
     this.pendingPreviewOrder = invoice;
     this.pendingPreviewSessionType = sessionType;
+    this.pendingPreviewIsDraft = isDraft;
 
     // Populate order information
     document.getElementById('previewOrderNumber').textContent = invoice.order_number || '-';
@@ -1190,7 +1115,7 @@ class MagentoPickPackManager {
     document.getElementById('previewOrderDate').textContent = invoice.order_date 
       ? new Date(invoice.order_date).toLocaleDateString() 
       : (invoice.created_at ? new Date(invoice.created_at).toLocaleDateString() : '-');
-    document.getElementById('previewStatus').textContent = invoice.state || '-';
+    document.getElementById('previewStatus').textContent = isDraft ? 'Draft' : (invoice.state || '-');
 
     // Populate billing address
     document.getElementById('previewBillingName').textContent = invoice.billing_name || '-';
@@ -1233,11 +1158,17 @@ class MagentoPickPackManager {
       ? `${currencySymbol}${invoice.grand_total.toFixed(2)}` 
       : '-';
 
-    // Update button text based on session type
+    // Update button text based on session type and draft status
     const startBtn = document.getElementById('startSessionFromPreviewBtn');
-    startBtn.innerHTML = sessionType === 'pick' 
-      ? '<i class="fas fa-play"></i> Start Picking' 
-      : '<i class="fas fa-play"></i> Start Checking';
+    if (isDraft) {
+      startBtn.innerHTML = sessionType === 'pick' 
+        ? '<i class="fas fa-play"></i> Continue Picking' 
+        : '<i class="fas fa-play"></i> Continue Checking';
+    } else {
+      startBtn.innerHTML = sessionType === 'pick' 
+        ? '<i class="fas fa-play"></i> Start Picking' 
+        : '<i class="fas fa-play"></i> Start Checking';
+    }
 
     // Show modal
     if (this.orderPreviewModal) {
@@ -1251,6 +1182,7 @@ class MagentoPickPackManager {
     }
     this.pendingPreviewOrder = null;
     this.pendingPreviewSessionType = null;
+    this.pendingPreviewIsDraft = false;
   }
 
   async confirmStartSessionFromPreview() {
@@ -1258,15 +1190,27 @@ class MagentoPickPackManager {
       return;
     }
 
-    const orderNumber = this.pendingPreviewOrder.order_number;
+    // Store all values before hiding (which clears them)
+    const invoice = this.pendingPreviewOrder;
+    const orderNumber = invoice.order_number;
+    const invoiceNumber = invoice.invoice_number;
     const sessionType = this.pendingPreviewSessionType;
+    const isDraft = this.pendingPreviewIsDraft;
 
     // Hide the preview modal
     this.hideOrderPreview();
 
-    // Start the session
+    // Start or continue the session
     try {
-      await this.startSession(orderNumber, sessionType);
+      if (isDraft) {
+        // For drafts, navigate to the existing session
+        await this.navigateToSession({ 
+          order_number: orderNumber, 
+          invoice_number: invoiceNumber 
+        });
+      } else {
+        await this.startSession(orderNumber, sessionType);
+      }
     } catch (error) {
       console.error('[Order Fulfillment] Error starting session:', error);
       showNotification(`Failed to start session: ${error.message}`, 'error');
@@ -1680,8 +1624,17 @@ class MagentoPickPackManager {
           badgeText = 'In Progress';
         }
 
+        // Build counted quantity display (shown when order was sent back from checker)
+        const hasCounted = item.qty_counted !== null && item.qty_counted !== undefined;
+        const countedHtml = hasCounted ? `
+              <div class="item-quantity counted-qty">
+                <div class="qty-numbers">${item.qty_counted}</div>
+                <div class="qty-label">Counted</div>
+              </div>
+        ` : '';
+
         return `
-          <div class="item-card ${statusClass}">
+          <div class="item-card ${statusClass}${hasCounted ? ' has-counted' : ''}">
             <div class="item-left">
               <div class="item-status-icon">
                 <i class="fas ${statusIcon}"></i>
@@ -1692,6 +1645,7 @@ class MagentoPickPackManager {
               </div>
             </div>
             <div class="item-right">
+              ${countedHtml}
               <div class="item-quantity">
                 <div class="qty-numbers">${item.qty_scanned} / ${item.qty_invoiced}</div>
                 <div class="qty-label">Scanned</div>
@@ -2109,7 +2063,16 @@ class MagentoPickPackManager {
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
       }
 
-      console.log('[sendBackForPicking] Calling API...');
+      // Build items_counted array from checkedQuantities
+      let itemsCounted = null;
+      if (this.checkedQuantities && Object.keys(this.checkedQuantities).length > 0) {
+        itemsCounted = Object.entries(this.checkedQuantities).map(([sku, qty]) => ({
+          sku: sku,
+          qty_counted: qty
+        }));
+      }
+
+      console.log('[sendBackForPicking] Calling API with counted items:', itemsCounted);
       const response = await fetch(`${getApiUrl()}/v1/magento/tracking/send-back-for-picking`, {
         method: 'POST',
         headers: {
@@ -2117,7 +2080,8 @@ class MagentoPickPackManager {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          session_id: this.currentSessionId
+          session_id: this.currentSessionId,
+          items_counted: itemsCounted
         })
       });
 

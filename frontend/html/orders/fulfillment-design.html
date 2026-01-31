@@ -1,0 +1,82 @@
+<!-- Order Fulfillment Design Page -->
+<!-- A clear, visual board for order management -->
+<div class="fulfillment-design">
+  <!-- Minimal Header -->
+  <header class="fd-header">
+    <h1 class="fd-title">Order Board</h1>
+    <div class="fd-header-actions">
+      <div class="fd-live-status" id="fdLiveStatus">
+        <span class="fd-status-dot"></span>
+        <span>Live</span>
+      </div>
+      <button class="fd-refresh-btn" id="fdRefreshBtn" title="Refresh">
+        <i class="fas fa-sync-alt"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Three Column Board -->
+  <div class="fd-board">
+    
+    <!-- READY TO PICK -->
+    <section class="fd-column fd-column-pick">
+      <div class="fd-column-header">
+        <div class="fd-column-icon">
+          <i class="fas fa-clipboard-list"></i>
+        </div>
+        <div class="fd-column-title">Ready to Pick</div>
+        <div class="fd-column-count" id="fdPickCount">0</div>
+      </div>
+      <div class="fd-column-body" id="fdPickList">
+        <!-- Cards inserted here -->
+      </div>
+    </section>
+
+    <!-- READY TO CHECK -->
+    <section class="fd-column fd-column-check">
+      <div class="fd-column-header">
+        <div class="fd-column-icon">
+          <i class="fas fa-search"></i>
+        </div>
+        <div class="fd-column-title">Ready to Check</div>
+        <div class="fd-column-count" id="fdCheckCount">0</div>
+      </div>
+      <div class="fd-column-body" id="fdCheckList">
+        <!-- Cards inserted here -->
+      </div>
+    </section>
+
+    <!-- COMPLETED -->
+    <section class="fd-column fd-column-done">
+      <div class="fd-column-header">
+        <div class="fd-column-icon">
+          <i class="fas fa-check-double"></i>
+        </div>
+        <div class="fd-column-title">Completed</div>
+        <div class="fd-column-count" id="fdDoneCount">0</div>
+      </div>
+      <div class="fd-column-body" id="fdDoneList">
+        <!-- Cards inserted here -->
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<!-- Order Details Modal -->
+<div id="fdOrderModal" class="fd-modal-backdrop">
+  <div class="fd-modal">
+    <div class="fd-modal-header">
+      <h2 class="fd-modal-title" id="fdModalTitle">Order Details</h2>
+      <button class="fd-modal-close" id="fdModalCloseBtn">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="fd-modal-body" id="fdModalBody">
+      <!-- Order details will be inserted here -->
+    </div>
+    <div class="fd-modal-footer">
+      <button class="fd-btn fd-btn-secondary" id="fdModalCancelBtn">Close</button>
+    </div>
+  </div>
+</div>

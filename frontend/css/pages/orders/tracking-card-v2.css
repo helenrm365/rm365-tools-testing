@@ -1,0 +1,328 @@
+/* ===== Order Card V2 - Redesigned Compact Card ===== */
+/* A clean, compact card design optimized for all screen sizes */
+/* No embedded buttons - entire card is clickable */
+
+/* Container for side-by-side comparison */
+.order-tracking .card-comparison-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.order-tracking .card-version-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-muted, #888);
+  opacity: 0.6;
+  margin-bottom: 0.25rem;
+}
+
+/* Hide the old card (V1) and its label in tablet/mobile - only show V2 */
+@media (max-width: 1200px) {
+  .order-tracking .card-comparison-wrapper .card-version-label:first-child,
+  .order-tracking .card-comparison-wrapper .order-card {
+    display: none !important;
+  }
+  
+  .order-tracking .card-comparison-wrapper .card-version-label {
+    display: none;
+  }
+  
+  .order-tracking .card-comparison-wrapper {
+    gap: 0;
+  }
+}
+
+/* ===== Order Card V2 Base Styles ===== */
+.order-tracking .order-card-v2 {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.875rem 1rem;
+  background: var(--bg, #ffffff);
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-left: 4px solid var(--card-accent, #8bc34a);
+  --card-accent: var(--accent, #8bc34a);
+}
+
+.order-tracking .order-card-v2:hover {
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  background: var(--bg-light, #fafafa);
+}
+
+.order-tracking .order-card-v2:active {
+  transform: translateX(2px);
+}
+
+/* Column-specific accent colors */
+.order-tracking #readyToPickColumn .order-card-v2 {
+  --card-accent: var(--warning, #f59e0b);
+}
+
+.order-tracking #readyToCheckColumn .order-card-v2 {
+  --card-accent: var(--info, #3b82f6);
+}
+
+.order-tracking #completedColumn .order-card-v2 {
+  --card-accent: var(--success, #10b981);
+}
+
+/* ===== Left Section - Order Number & Status ===== */
+.order-tracking .card-v2-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 100px;
+  flex-shrink: 0;
+}
+
+.order-tracking .card-v2-order-number {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text, #1f2937);
+  line-height: 1.2;
+}
+
+.order-tracking .card-v2-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--card-accent);
+}
+
+.order-tracking .card-v2-status .status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--card-accent);
+  flex-shrink: 0;
+}
+
+/* ===== Center Section - Info Items ===== */
+.order-tracking .card-v2-center {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.order-tracking .card-v2-info-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--text-muted, #6b7280);
+  white-space: nowrap;
+}
+
+.order-tracking .card-v2-info-item i {
+  font-size: 0.7rem;
+  color: var(--card-accent);
+  width: 14px;
+  text-align: center;
+}
+
+.order-tracking .card-v2-info-item span {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ===== Right Section - Progress & Arrow ===== */
+.order-tracking .card-v2-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.order-tracking .card-v2-progress-ring {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+}
+
+.order-tracking .card-v2-progress-ring svg {
+  transform: rotate(-90deg);
+  width: 36px;
+  height: 36px;
+  display: block;
+}
+
+.order-tracking .card-v2-progress-ring circle {
+  fill: none;
+  stroke-width: 3;
+}
+
+.order-tracking .card-v2-progress-ring .ring-bg {
+  stroke: var(--bg-dark, #e5e7eb);
+}
+
+.order-tracking .card-v2-progress-ring .ring-fill {
+  stroke: var(--card-accent);
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.3s ease;
+}
+
+.order-tracking .card-v2-progress-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.55rem;
+  font-weight: 700;
+  color: var(--text, #1f2937);
+}
+
+.order-tracking .card-v2-arrow {
+  font-size: 0.75rem;
+  color: var(--text-muted, #9ca3af);
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.order-tracking .order-card-v2:hover .card-v2-arrow {
+  transform: translateX(3px);
+  color: var(--card-accent);
+}
+
+/* ===== Responsive - Tablet (max-width: 1200px) ===== */
+@media (max-width: 1200px) {
+  .order-tracking .order-card-v2 {
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-left-width: 3px;
+  }
+  
+  .order-tracking .card-v2-left {
+    min-width: auto;
+  }
+  
+  .order-tracking .card-v2-order-number {
+    font-size: 0.8rem;
+  }
+  
+  .order-tracking .card-v2-status {
+    font-size: 0.5rem;
+  }
+  
+  .order-tracking .card-v2-status .status-dot {
+    width: 5px;
+    height: 5px;
+  }
+  
+  .order-tracking .card-v2-center {
+    gap: 0.5rem;
+  }
+  
+  .order-tracking .card-v2-info-item {
+    font-size: 0.7rem;
+    gap: 0.25rem;
+  }
+  
+  .order-tracking .card-v2-info-item i {
+    font-size: 0.6rem;
+    width: 12px;
+  }
+  
+  .order-tracking .card-v2-progress-ring {
+    width: 30px;
+    height: 30px;
+  }
+  
+  .order-tracking .card-v2-progress-ring svg {
+    width: 30px;
+    height: 30px;
+  }
+  
+  .order-tracking .card-v2-progress-ring circle {
+    stroke-width: 2.5;
+  }
+  
+  .order-tracking .card-v2-progress-text {
+    font-size: 0.45rem;
+  }
+  
+  .order-tracking .card-v2-arrow {
+    font-size: 0.6rem;
+  }
+  
+  .order-tracking .card-v2-right {
+    gap: 0.5rem;
+  }
+}
+
+/* ===== Responsive - Mobile (max-width: 600px) ===== */
+@media (max-width: 600px) {
+  .order-tracking .order-card-v2 {
+    padding: 0.4rem 0.6rem;
+    gap: 0.4rem;
+    border-left-width: 3px;
+    border-radius: 8px;
+  }
+  
+  .order-tracking .card-v2-order-number {
+    font-size: 0.75rem;
+  }
+  
+  .order-tracking .card-v2-status {
+    font-size: 0.45rem;
+  }
+  
+  .order-tracking .card-v2-status .status-dot {
+    width: 4px;
+    height: 4px;
+  }
+  
+  .order-tracking .card-v2-info-item {
+    font-size: 0.65rem;
+    gap: 0.2rem;
+  }
+  
+  .order-tracking .card-v2-info-item i {
+    font-size: 0.55rem;
+    width: 10px;
+  }
+  
+  .order-tracking .card-v2-info-item span {
+    max-width: 80px;
+  }
+  
+  .order-tracking .card-v2-progress-ring {
+    width: 26px;
+    height: 26px;
+  }
+  
+  .order-tracking .card-v2-progress-ring svg {
+    width: 26px;
+    height: 26px;
+  }
+  
+  .order-tracking .card-v2-progress-ring circle {
+    stroke-width: 2;
+  }
+  
+  .order-tracking .card-v2-progress-text {
+    font-size: 0.4rem;
+  }
+  
+  .order-tracking .card-v2-arrow {
+    font-size: 0.55rem;
+  }
+  
+  .order-tracking .card-v2-right {
+    gap: 0.35rem;
+  }
+}

@@ -70,6 +70,7 @@ class ScanSession(BaseModel):
     completed_at: Optional[datetime] = None
     items_expected: List[dict] = []
     items_scanned: List[dict] = []
+    items_counted: List[dict] = []  # Counted quantities from checker (sku -> qty_counted)
     status: str = "draft"  # draft, approved, in_progress, ready_to_check, completed, cancelled
     user_id: Optional[str] = None  # Current owner of the session
     created_by: Optional[str] = None  # Original creator

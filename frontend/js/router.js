@@ -88,6 +88,7 @@ const routes = {
   '/orders/order-progress':     '/html/orders/order-progress.html',
   '/orders/order-tracking':     '/html/orders/order-tracking.html',
   '/orders/order-approval':     '/html/orders/order-approval.html',
+  '/orders/fulfillment-design': '/html/orders/fulfillment-design.html',
   
   // User Management - redirect root to first sub-page
   '/usermanagement':            '/html/usermanagement/management.html',
@@ -170,7 +171,8 @@ export function generateTabStructure() {
     'sourcing': 'Product Sourcing',
     // Orders
     'order-fulfillment': 'Order Fulfillment',
-    'order-progress': 'Order Progress'
+    'order-progress': 'Order Progress',
+    'fulfillment-design': 'Fulfillment Design'
   };
   
   // Parse routes to build structure

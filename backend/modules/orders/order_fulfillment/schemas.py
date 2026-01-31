@@ -11,6 +11,7 @@ class InvoiceItemSchema(BaseModel):
     qty_ordered: float
     qty_invoiced: float
     qty_scanned: float = 0
+    qty_counted: Optional[float] = None  # Counted quantity from checker (when sent back for picking)
     price: float
     row_total: float
     product_id: Optional[int] = None

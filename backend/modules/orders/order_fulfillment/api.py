@@ -867,9 +867,14 @@ async def send_back_for_picking(
     Send an order back for picking from the checking phase.
     This creates a draft in the Ready to Pick column so the picker
     can continue where they left off.
+    
+    Request body:
+    - session_id: The session ID (required)
+    - items_counted: List of {sku, qty_counted} from the checker's count (optional)
     """
     try:
         session_id = request.get('session_id')
+        items_counted = request.get('items_counted')  # List of {sku, qty_counted}
         user_id = current_user.get('user_id') or current_user.get('username')
         
         if not session_id:
@@ -878,7 +883,7 @@ async def send_back_for_picking(
                 detail="session_id is required"
             )
         
-        success = service.send_back_for_picking(session_id, user_id)
+        success = service.send_back_for_picking(session_id, user_id, items_counted)
         
         if not success:
             raise HTTPException(

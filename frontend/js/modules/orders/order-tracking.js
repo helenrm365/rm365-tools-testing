@@ -36,11 +36,9 @@ function setupEventListeners() {
   const refreshBtn = document.getElementById('refreshBoardBtn');
   if (refreshBtn) {
     refreshBtn.onclick = async () => {
-      refreshBtn.disabled = true;
-      refreshBtn.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i> Refreshing...';
+      refreshBtn.classList.add('spinning');
       await loadTrackingBoard();
-      refreshBtn.disabled = false;
-      refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
+      setTimeout(() => refreshBtn.classList.remove('spinning'), 500);
     };
   }
   
@@ -104,7 +102,7 @@ function initializeWebSocket() {
   wsService.on('connected', () => {
     console.log('[Order Tracking] WebSocket connected');
     if (liveStatus) {
-      liveStatus.className = 'live-status connected';
+      liveStatus.classList.add('connected');
       liveStatus.querySelector('.status-text').textContent = 'Live';
     }
   });
@@ -112,16 +110,16 @@ function initializeWebSocket() {
   wsService.on('disconnected', () => {
     console.log('[Order Tracking] WebSocket disconnected');
     if (liveStatus) {
-      liveStatus.className = 'live-status disconnected';
-      liveStatus.querySelector('.status-text').textContent = 'Disconnected';
+      liveStatus.classList.remove('connected');
+      liveStatus.querySelector('.status-text').textContent = 'Offline';
     }
   });
   
   wsService.on('connection_error', () => {
     console.log('[Order Tracking] WebSocket connection error');
     if (liveStatus) {
-      liveStatus.className = 'live-status connecting';
-      liveStatus.querySelector('.status-text').textContent = 'Connecting...';
+      liveStatus.classList.remove('connected');
+      liveStatus.querySelector('.status-text').textContent = 'Connecting';
     }
   });
   
@@ -153,20 +151,20 @@ function initializeWebSocket() {
       
       // Update status indicator
       if (liveStatus) {
-        liveStatus.className = 'live-status connected';
+        liveStatus.classList.add('connected');
         liveStatus.querySelector('.status-text').textContent = 'Live';
       }
     }).catch(error => {
       console.error('[Order Tracking] WebSocket connection failed:', error);
       if (liveStatus) {
-        liveStatus.className = 'live-status disconnected';
+        liveStatus.classList.remove('connected');
         liveStatus.querySelector('.status-text').textContent = 'Offline';
       }
     });
   } else {
     console.warn('[Order Tracking] No user found, WebSocket not initialized');
     if (liveStatus) {
-      liveStatus.className = 'live-status disconnected';
+      liveStatus.classList.remove('connected');
       liveStatus.querySelector('.status-text').textContent = 'Offline';
     }
   }
@@ -189,9 +187,9 @@ async function loadTrackingBoard() {
 
 function updateColumn(columnName, orders) {
   const columnMap = {
-    readyToPick: { id: 'readyToPickColumn', count: 'readyToPickCount' },
-    readyToCheck: { id: 'readyToCheckColumn', count: 'readyToCheckCount' },
-    completed: { id: 'completedColumn', count: 'completedCount' }
+    readyToPick: { id: 'readyToPickColumn', count: 'readyToPickCount', type: 'pick' },
+    readyToCheck: { id: 'readyToCheckColumn', count: 'readyToCheckCount', type: 'check' },
+    completed: { id: 'completedColumn', count: 'completedCount', type: 'done' }
   };
   
   const column = columnMap[columnName];
@@ -209,9 +207,9 @@ function updateColumn(columnName, orders) {
   // Add orders
   if (orders.length === 0) {
     columnEl.innerHTML = `
-      <div class="column-empty">
+      <div class="ot-empty">
         <i class="fas fa-inbox"></i>
-        <p>No orders in this column</p>
+        <span>No orders</span>
       </div>
     `;
   } else {
@@ -222,23 +220,62 @@ function updateColumn(columnName, orders) {
     groupedOrders.forEach(group => {
       // Add shipping method header
       const headerDiv = document.createElement('div');
-      headerDiv.className = 'shipping-method-header';
+      headerDiv.className = 'ot-group-header';
       headerDiv.innerHTML = `
-        <div class="shipping-method-title">
-          <i class="fas fa-shipping-fast"></i>
-          <span>${group.shippingMethod}</span>
-        </div>
-        <span class="shipping-method-count">${group.orders.length}</span>
+        <i class="fas fa-truck"></i>
+        <span>${group.shippingMethod}</span>
+        <span class="ot-group-count">${group.orders.length}</span>
       `;
       columnEl.appendChild(headerDiv);
       
       // Add orders in this group
       group.orders.forEach(order => {
-        const card = createOrderCard(order, columnName);
+        const card = createCompactCard(order, column.type);
         columnEl.appendChild(card);
       });
     });
   }
+}
+
+function createCompactCard(order, type) {
+  const card = document.createElement('div');
+  card.className = `ot-card ot-card-${type}`;
+  card.dataset.orderId = order.order_id;
+  card.dataset.orderNumber = order.order_number;
+  
+  const progressPercent = order.progress_percentage || 0;
+  const completedItems = order.completed_items || 0;
+  const totalItems = order.total_items || 0;
+  
+  // Progress ring
+  const radius = 14;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (progressPercent / 100) * circumference;
+  
+  card.innerHTML = `
+    <div class="ot-card-main">
+      <div class="ot-card-order">#${order.order_number}</div>
+      <div class="ot-card-details">
+        ${order.customer_name ? `<span><i class="fas fa-user"></i> ${order.customer_name}</span>` : ''}
+        ${order.grand_total ? `<span><i class="fas fa-dollar-sign"></i> $${parseFloat(order.grand_total).toFixed(2)}</span>` : ''}
+        <span><i class="fas fa-box"></i> ${totalItems} item${totalItems !== 1 ? 's' : ''}</span>
+      </div>
+    </div>
+    <div class="ot-card-progress">
+      <svg viewBox="0 0 32 32">
+        <circle class="ring-bg" cx="16" cy="16" r="${radius}" fill="none" stroke="rgba(0,0,0,0.06)" stroke-width="3"></circle>
+        <circle class="ring-fill" cx="16" cy="16" r="${radius}" fill="none" stroke-width="3" stroke-linecap="round"
+          stroke-dasharray="${circumference}" 
+          stroke-dashoffset="${offset}"></circle>
+      </svg>
+      <span>${completedItems}/${totalItems}</span>
+    </div>
+    <i class="fas fa-chevron-right ot-card-arrow"></i>
+  `;
+  
+  card.addEventListener('click', () => showOrderDetails(order));
+  
+  return card;
 }
 
 function groupOrdersByShippingMethod(orders) {
@@ -365,6 +402,77 @@ function createOrderCard(order, columnName) {
 }
 
 /**
+ * Creates the new V2 order card design - compact and optimized for mobile/tablet
+ * No embedded buttons - entire card is clickable
+ */
+function createOrderCardV2(order, columnName) {
+  const card = document.createElement('div');
+  card.className = 'order-card-v2';
+  card.dataset.orderId = order.order_id;
+  card.dataset.orderNumber = order.order_number;
+  
+  const statusLabel = order.status.replace(/_/g, ' ').toUpperCase();
+  const progressPercentage = order.progress_percentage || 0;
+  const completedItems = order.completed_items || 0;
+  const totalItems = order.total_items || 0;
+  
+  // Calculate SVG circle values for progress ring
+  const radius = 15;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (progressPercentage / 100) * circumference;
+  
+  card.innerHTML = `
+    <div class="card-v2-left">
+      <div class="card-v2-order-number">#${order.order_number}</div>
+      <div class="card-v2-status">
+        <span class="status-dot"></span>
+        ${statusLabel}
+      </div>
+    </div>
+    
+    <div class="card-v2-center">
+      ${order.customer_name ? `
+        <div class="card-v2-info-item">
+          <i class="fas fa-user"></i>
+          <span>${order.customer_name}</span>
+        </div>
+      ` : ''}
+      ${order.grand_total ? `
+        <div class="card-v2-info-item">
+          <i class="fas fa-dollar-sign"></i>
+          <span>$${parseFloat(order.grand_total).toFixed(2)}</span>
+        </div>
+      ` : ''}
+      <div class="card-v2-info-item">
+        <i class="fas fa-box"></i>
+        <span>${totalItems} item${totalItems !== 1 ? 's' : ''}</span>
+      </div>
+    </div>
+    
+    <div class="card-v2-right">
+      <div class="card-v2-progress-ring">
+        <svg viewBox="0 0 36 36">
+          <circle class="ring-bg" cx="18" cy="18" r="${radius}"></circle>
+          <circle class="ring-fill" cx="18" cy="18" r="${radius}" 
+            stroke-dasharray="${circumference}" 
+            stroke-dashoffset="${offset}">
+          </circle>
+        </svg>
+        <span class="card-v2-progress-text">${completedItems}/${totalItems}</span>
+      </div>
+      <i class="fas fa-chevron-right card-v2-arrow"></i>
+    </div>
+  `;
+  
+  // Add click handler for the whole card
+  card.addEventListener('click', () => {
+    showOrderDetails(order);
+  });
+  
+  return card;
+}
+
+/**
  * Cancel a session (order) from the tracking board
  * For pick-phase drafts: Returns items to inventory
  * For check-phase drafts: Just resets checking
@@ -407,7 +515,7 @@ async function releaseSession(sessionId, modal) {
   }
 }
 
-function showOrderDetails(order) {
+async function showOrderDetails(order) {
   const modal = document.getElementById('orderDetailsModal');
   const titleEl = document.getElementById('orderDetailsTitle');
   const bodyEl = document.getElementById('orderDetailsBody');
@@ -418,65 +526,177 @@ function showOrderDetails(order) {
   if (!modal || !titleEl || !bodyEl || !actionBtn) return;
   
   // Set title
-  titleEl.innerHTML = `
-    <i class="fas fa-box"></i>
-    Order #${order.order_number}
+  titleEl.textContent = `Order #${order.order_number}`;
+  
+  // Show loading state
+  bodyEl.innerHTML = `
+    <div style="text-align: center; padding: 3rem;">
+      <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: var(--accent);"></i>
+      <p style="margin-top: 1rem; color: var(--text-muted);">Loading order details...</p>
+    </div>
   `;
   
-  // Set body
+  // Show modal immediately with loading
+  modal.classList.add('active');
+  
+  // Fetch full invoice details
+  let invoice = null;
+  try {
+    invoice = await get(`/v1/magento/invoice/lookup/${order.order_number}`);
+  } catch (error) {
+    console.error('[Order Tracking] Failed to fetch invoice details:', error);
+  }
+  
+  // Format dates
   const createdDate = new Date(order.created_at);
   const formattedDate = createdDate.toLocaleDateString() + ' ' + createdDate.toLocaleTimeString();
+  const statusLabel = order.status?.replace(/_/g, ' ').toUpperCase() || 'PENDING';
+  const progressPercentage = order.progress_percentage || 0;
+  const completedItems = order.completed_items || 0;
+  const totalItems = order.total_items || 0;
   
+  // Build items table
+  let itemsHtml = '';
+  if (invoice && invoice.items && invoice.items.length > 0) {
+    itemsHtml = invoice.items.map(item => `
+      <tr>
+        <td>${item.sku}</td>
+        <td>${item.name}</td>
+        <td class="text-center">${item.qty_invoiced || item.qty_ordered || 0}</td>
+        <td class="text-right">$${parseFloat(item.price || 0).toFixed(2)}</td>
+        <td class="text-right">$${parseFloat(item.row_total || 0).toFixed(2)}</td>
+      </tr>
+    `).join('');
+  } else {
+    itemsHtml = '<tr><td colspan="5" class="text-center">No items available</td></tr>';
+  }
+  
+  // Build detailed body content
   bodyEl.innerHTML = `
-    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
-      <div>
-        <label style="font-weight: 600; color: var(--text-secondary); font-size: 0.875rem;">Order Number</label>
-        <p style="margin: 0.25rem 0 0 0; font-size: 1rem;">#${order.order_number}</p>
-      </div>
-      <div>
-        <label style="font-weight: 600; color: var(--text-secondary); font-size: 0.875rem;">Invoice Number</label>
-        <p style="margin: 0.25rem 0 0 0; font-size: 1rem;">${order.invoice_number}</p>
-      </div>
-      <div>
-        <label style="font-weight: 600; color: var(--text-secondary); font-size: 0.875rem;">Status</label>
-        <p style="margin: 0.25rem 0 0 0; font-size: 1rem; text-transform: capitalize;">${order.status.replace(/_/g, ' ')}</p>
-      </div>
-      <div>
-        <label style="font-weight: 600; color: var(--text-secondary); font-size: 0.875rem;">Session Type</label>
-        <p style="margin: 0.25rem 0 0 0; font-size: 1rem; text-transform: capitalize;">${order.session_type}</p>
-      </div>
-      ${order.customer_name ? `
-        <div>
-          <label style="font-weight: 600; color: var(--text-secondary); font-size: 0.875rem;">Customer</label>
-          <p style="margin: 0.25rem 0 0 0; font-size: 1rem;">${order.customer_name}</p>
-        </div>
-      ` : ''}
-      ${order.grand_total ? `
-        <div>
-          <label style="font-weight: 600; color: var(--text-secondary); font-size: 0.875rem;">Total</label>
-          <p style="margin: 0.25rem 0 0 0; font-size: 1rem;">$${order.grand_total.toFixed(2)}</p>
-        </div>
-      ` : ''}
-      <div>
-        <label style="font-weight: 600; color: var(--text-secondary); font-size: 0.875rem;">Created By</label>
-        <p style="margin: 0.25rem 0 0 0; font-size: 1rem;">${order.created_by}</p>
-      </div>
-      <div>
-        <label style="font-weight: 600; color: var(--text-secondary); font-size: 0.875rem;">Created</label>
-        <p style="margin: 0.25rem 0 0 0; font-size: 1rem;">${formattedDate}</p>
-      </div>
-    </div>
-    
-    <div style="background: var(--background); padding: 1rem; border-radius: 8px;">
-      <label style="font-weight: 600; color: var(--text-secondary); font-size: 0.875rem; display: block; margin-bottom: 0.5rem;">Progress</label>
-      <div style="display: flex; align-items: center; gap: 1rem;">
-        <div style="flex: 1;">
-          <div style="height: 8px; background: var(--border-color); border-radius: 4px; overflow: hidden;">
-            <div style="height: 100%; background: var(--primary); width: ${order.progress_percentage}%; transition: width 0.3s ease;"></div>
+    <div class="order-preview-container">
+      <!-- Order Summary -->
+      <div class="preview-section">
+        <h3><i class="fas fa-info-circle"></i> Order Information</h3>
+        <div class="preview-grid">
+          <div class="preview-item">
+            <label>Order Number:</label>
+            <span>#${order.order_number}</span>
+          </div>
+          <div class="preview-item">
+            <label>Invoice Number:</label>
+            <span>${invoice?.invoice_number || order.invoice_number || 'N/A'}</span>
+          </div>
+          <div class="preview-item">
+            <label>Order Date:</label>
+            <span>${invoice?.order_date || invoice?.created_at || formattedDate}</span>
+          </div>
+          <div class="preview-item">
+            <label>Status:</label>
+            <span class="status-badge">${statusLabel}</span>
           </div>
         </div>
-        <div style="font-size: 0.875rem; color: var(--text-secondary); white-space: nowrap;">
-          ${order.completed_items} / ${order.total_items} items (${Math.round(order.progress_percentage)}%)
+      </div>
+      
+      <!-- Customer Information -->
+      <div class="preview-section">
+        <h3><i class="fas fa-user"></i> Customer Information</h3>
+        <div class="preview-grid two-column">
+          <div class="preview-column">
+            <h4>Billing Address</h4>
+            <div class="preview-address">
+              <div class="address-name">${invoice?.billing_name || order.customer_name || 'N/A'}</div>
+              <div class="address-line">${invoice?.billing_address || 'N/A'}</div>
+              <div class="address-line">${invoice?.billing_postcode || ''}</div>
+              <div class="address-line">${invoice?.billing_phone || ''}</div>
+            </div>
+          </div>
+          <div class="preview-column">
+            <h4>Shipping Address</h4>
+            <div class="preview-address">
+              <div class="address-name">${invoice?.shipping_name || 'N/A'}</div>
+              <div class="address-line">${invoice?.shipping_address || 'N/A'}</div>
+              <div class="address-line">${invoice?.shipping_postcode || ''}</div>
+              <div class="address-line">${invoice?.shipping_phone || ''}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Shipping & Payment -->
+      <div class="preview-section">
+        <h3><i class="fas fa-truck"></i> Shipping & Payment</h3>
+        <div class="preview-grid">
+          <div class="preview-item">
+            <label>Shipping Method:</label>
+            <span>${invoice?.shipping_method || order.shipping_method || 'N/A'}</span>
+          </div>
+          <div class="preview-item">
+            <label>Payment Method:</label>
+            <span>${invoice?.payment_method || 'N/A'}</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Order Items -->
+      <div class="preview-section">
+        <h3><i class="fas fa-box"></i> Order Items</h3>
+        <div class="preview-items-table">
+          <table>
+            <thead>
+              <tr>
+                <th>SKU</th>
+                <th>Product Name</th>
+                <th class="text-center">Qty</th>
+                <th class="text-right">Price</th>
+                <th class="text-right">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemsHtml}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      
+      <!-- Order Totals -->
+      <div class="preview-section">
+        <div class="preview-totals">
+          <div class="preview-total-row">
+            <label>Subtotal:</label>
+            <span>$${parseFloat(invoice?.subtotal || 0).toFixed(2)}</span>
+          </div>
+          <div class="preview-total-row">
+            <label>Tax:</label>
+            <span>$${parseFloat(invoice?.tax_amount || 0).toFixed(2)}</span>
+          </div>
+          <div class="preview-total-row grand-total">
+            <label>Grand Total:</label>
+            <span>$${parseFloat(invoice?.grand_total || order.grand_total || 0).toFixed(2)}</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Progress Section -->
+      <div class="preview-section">
+        <h3><i class="fas fa-tasks"></i> Fulfillment Progress</h3>
+        <div class="progress-display">
+          <div class="progress-bar-container">
+            <div class="progress-bar-fill" style="width: ${progressPercentage}%;"></div>
+          </div>
+          <div class="progress-stats">
+            <span class="progress-count">${completedItems} / ${totalItems} items picked</span>
+            <span class="progress-percent">${Math.round(progressPercentage)}%</span>
+          </div>
+        </div>
+        <div class="preview-grid" style="margin-top: 1rem;">
+          <div class="preview-item">
+            <label>Session Type:</label>
+            <span style="text-transform: capitalize;">${order.session_type || 'pick'}</span>
+          </div>
+          <div class="preview-item">
+            <label>Created By:</label>
+            <span>${order.created_by || 'N/A'}</span>
+          </div>
         </div>
       </div>
     </div>

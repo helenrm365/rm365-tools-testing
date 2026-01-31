@@ -25,6 +25,10 @@ export async function init(path) {
     const mod = await import(`./order-approval.js${cacheBust}`);
     await mod.init();
     currentSubModule = mod;
+  } else if (path.includes('/fulfillment-design')) {
+    const mod = await import(`./fulfillment-design.js${cacheBust}`);
+    await mod.init();
+    currentSubModule = mod;
   } else {
     // Default to order-fulfillment (first sub-page)
     const mod = await import(`./order-fulfillment.js${cacheBust}`);

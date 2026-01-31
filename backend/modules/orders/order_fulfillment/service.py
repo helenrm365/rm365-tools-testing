@@ -562,16 +562,15 @@ class OrderFulfillmentService:
     
     def cancel_session(self, session_id: str, user_id: Optional[str] = None) -> dict:
         """
-        Cancel a session and return scanned items to inventory.
+        Cancel a session and return scanned items to inventory (for pick-phase only).
         
-        IMPORTANT: Any session with scanned items that is NOT completed will have
-        those items returned to inventory. This includes:
-        - draft: Paused picking session being cancelled
-        - in_progress: Actively picking session being cancelled
-        - ready_to_check: Picked items waiting for verification - items should still return
-        - approved: Not started yet, nothing to return
-        
-        Completed sessions should NOT be cancelled (they're already done/shipped).
+        BEHAVIOR BY STATUS:
+        - draft: Returns inventory, marks as cancelled
+        - in_progress: Returns inventory, marks as cancelled
+        - ready_to_check: Just clears items_counted (checker's count), stays in ready_to_check
+                          Does NOT return inventory - use "send back for picking" then cancel there
+        - approved: Nothing to return, marks as cancelled
+        - completed: Cannot be cancelled
         
         Returns dict with success status, message, and items_returned count.
         """
@@ -584,15 +583,28 @@ class OrderFulfillmentService:
         if session.status == 'completed':
             return {"success": False, "message": "Cannot cancel a completed session", "items_returned": 0}
         
+        # Special handling for ready_to_check: just reset the checker's count
+        if session.status == 'ready_to_check':
+            # Clear items_counted but keep the session in ready_to_check
+            success = self.repo.clear_items_counted(session_id, user_id)
+            if success:
+                return {
+                    "success": True, 
+                    "message": "Checker's count cleared. Order remains ready to check.", 
+                    "items_returned": 0,
+                    "action": "count_cleared"
+                }
+            else:
+                return {"success": False, "message": "Failed to clear count", "items_returned": 0}
+        
         items_returned = 0
         return_details = []
         
-        # Return items for ANY incomplete session that has scanned items
-        # This includes: draft, in_progress, ready_to_check
-        # Does NOT include: approved (nothing scanned), completed (already shipped)
-        incomplete_with_scans = session.status in ('draft', 'in_progress', 'ready_to_check')
+        # Return items for pick-phase sessions only (draft, in_progress)
+        # Does NOT include: approved (nothing scanned), ready_to_check (handled above), completed
+        pick_phase_with_scans = session.status in ('draft', 'in_progress')
         
-        if incomplete_with_scans and session.items_scanned:
+        if pick_phase_with_scans and session.items_scanned:
             for scanned_item in session.items_scanned:
                 sku = scanned_item.get('sku')
                 qty_scanned = scanned_item.get('qty_scanned', 0)
@@ -754,16 +766,27 @@ class OrderFulfillmentService:
     
     def _session_to_status(self, session, invoice: InvoiceDetailSchema) -> SessionStatusSchema:
         """Convert session and invoice to status schema"""
+        # Build a lookup for items_counted (sku -> qty_counted)
+        counted_lookup = {}
+        if session.items_counted:
+            for counted_item in session.items_counted:
+                sku = counted_item.get('sku')
+                qty = counted_item.get('qty_counted', 0)
+                if sku:
+                    counted_lookup[sku] = qty
+        
         # Merge invoice items with scanned quantities
         items = []
         for inv_item in invoice.items:
             qty_scanned = self.repo.get_scanned_quantity(session.session_id, inv_item.sku)
+            qty_counted = counted_lookup.get(inv_item.sku)  # Will be None if not counted
             item = InvoiceItemSchema(
                 sku=inv_item.sku,
                 name=inv_item.name,
                 qty_ordered=inv_item.qty_ordered,
                 qty_invoiced=inv_item.qty_invoiced,
                 qty_scanned=qty_scanned,
+                qty_counted=qty_counted,
                 price=inv_item.price,
                 row_total=inv_item.row_total,
                 product_id=inv_item.product_id,
@@ -1451,6 +1474,17 @@ class OrderFulfillmentService:
         ready_to_check_sessions = dedupe_sessions(ready_to_check_sessions)
         completed_sessions = dedupe_sessions(completed_sessions)
         
+        # Exclude from Ready to Pick any orders that are already in Ready to Check or Completed
+        # This prevents an order from showing in multiple columns
+        ready_to_check_order_nums = {s.order_number for s in ready_to_check_sessions}
+        completed_order_nums = {s.order_number for s in completed_sessions}
+        excluded_order_nums = ready_to_check_order_nums | completed_order_nums
+        
+        ready_to_pick_sessions = [s for s in ready_to_pick_sessions if s.order_number not in excluded_order_nums]
+        
+        # Also exclude from Ready to Check any orders that are already Completed
+        ready_to_check_sessions = [s for s in ready_to_check_sessions if s.order_number not in completed_order_nums]
+        
         # Convert to column schemas
         ready_to_pick = [self._session_to_column_schema(s) for s in ready_to_pick_sessions]
         ready_to_check = [self._session_to_column_schema(s) for s in ready_to_check_sessions]
@@ -1498,9 +1532,15 @@ class OrderFulfillmentService:
         """Mark a session as ready to check instead of completing it"""
         return self.repo.mark_session_ready_to_check(session_id, user_id)
     
-    def send_back_for_picking(self, session_id: str, user_id: Optional[str] = None) -> bool:
-        """Send an order back for picking from the checking phase"""
-        return self.repo.send_back_for_picking(session_id, user_id)
+    def send_back_for_picking(self, session_id: str, user_id: Optional[str] = None, items_counted: Optional[list] = None) -> bool:
+        """Send an order back for picking from the checking phase
+        
+        Args:
+            session_id: The session ID
+            user_id: The user sending the order back
+            items_counted: List of {sku, qty_counted} from the checker's count
+        """
+        return self.repo.send_back_for_picking(session_id, user_id, items_counted)
     
     def approve_order_for_picking(self, order_number: str, user_id: str):
         """

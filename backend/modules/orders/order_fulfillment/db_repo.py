@@ -40,6 +40,7 @@ def init_order_fulfillment_tables():
                 last_modified_at TIMESTAMPTZ DEFAULT NOW(),
                 items_expected JSONB DEFAULT '[]'::jsonb,
                 items_scanned JSONB DEFAULT '[]'::jsonb,
+                items_counted JSONB DEFAULT '[]'::jsonb,
                 audit_logs JSONB DEFAULT '[]'::jsonb,
                 created_at TIMESTAMPTZ DEFAULT NOW()
             )
@@ -86,6 +87,12 @@ def init_order_fulfillment_tables():
         cursor.execute("""
             CREATE INDEX IF NOT EXISTS idx_takeover_current_owner 
             ON order_fulfillment_takeover_requests(current_owner)
+        """)
+        
+        # Migration: Add items_counted column if it doesn't exist (for existing databases)
+        cursor.execute("""
+            ALTER TABLE order_fulfillment_sessions 
+            ADD COLUMN IF NOT EXISTS items_counted JSONB DEFAULT '[]'::jsonb
         """)
         
         conn.commit()
@@ -140,6 +147,7 @@ class MagentoDbRepo:
             last_modified_at=data['last_modified_at'],
             items_expected=data['items_expected'] or [],
             items_scanned=data['items_scanned'] or [],
+            items_counted=data.get('items_counted') or [],
             audit_logs=data['audit_logs'] or []
         )
     
@@ -1434,8 +1442,14 @@ class MagentoDbRepo:
             if conn:
                 self._return_connection(conn)
     
-    def send_back_for_picking(self, session_id: str, user_id: Optional[str] = None) -> bool:
-        """Send an order back for picking from the checking phase"""
+    def send_back_for_picking(self, session_id: str, user_id: Optional[str] = None, items_counted: Optional[List[dict]] = None) -> bool:
+        """Send an order back for picking from the checking phase
+        
+        Args:
+            session_id: The session ID
+            user_id: The user sending the order back
+            items_counted: List of {sku, qty_counted} from the checker's count
+        """
         conn = None
         try:
             conn = self._get_connection()
@@ -1453,12 +1467,22 @@ class MagentoDbRepo:
             
             sending_user = user_id or row[0] or row[1] or "Unknown"
             
-            cursor.execute("""
-                UPDATE order_fulfillment_sessions 
-                SET status = 'draft', session_type = 'pick',
-                    last_modified_by = %s, last_modified_at = NOW()
-                WHERE session_id = %s
-            """, (sending_user, session_id))
+            # Build update query - include items_counted if provided
+            if items_counted is not None:
+                cursor.execute("""
+                    UPDATE order_fulfillment_sessions 
+                    SET status = 'draft', session_type = 'pick',
+                        items_counted = %s::jsonb,
+                        last_modified_by = %s, last_modified_at = NOW()
+                    WHERE session_id = %s
+                """, (json.dumps(items_counted), sending_user, session_id))
+            else:
+                cursor.execute("""
+                    UPDATE order_fulfillment_sessions 
+                    SET status = 'draft', session_type = 'pick',
+                        last_modified_by = %s, last_modified_at = NOW()
+                    WHERE session_id = %s
+                """, (sending_user, session_id))
             
             self._add_audit_log(conn, session_id, "sent_back_for_picking", sending_user, 
                                "Sent back for picking from checking phase")
@@ -1469,6 +1493,50 @@ class MagentoDbRepo:
             
         except Exception as e:
             logger.error(f"Error sending session back for picking: {e}")
+            if conn:
+                conn.rollback()
+            return False
+        finally:
+            if conn:
+                self._return_connection(conn)
+    
+    def clear_items_counted(self, session_id: str, user_id: Optional[str] = None) -> bool:
+        """Clear the items_counted field for a ready_to_check session
+        
+        This is used when a checker wants to restart their count without
+        sending the order back for picking.
+        
+        Args:
+            session_id: The session ID
+            user_id: The user clearing the count
+        """
+        conn = None
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
+            clearing_user = user_id or "Unknown"
+            
+            cursor.execute("""
+                UPDATE order_fulfillment_sessions 
+                SET items_counted = '[]'::jsonb,
+                    last_modified_by = %s, last_modified_at = NOW()
+                WHERE session_id = %s AND status = 'ready_to_check'
+            """, (clearing_user, session_id))
+            
+            if cursor.rowcount == 0:
+                cursor.close()
+                return False
+            
+            self._add_audit_log(conn, session_id, "count_cleared", clearing_user, 
+                               "Checker count cleared, order remains ready to check")
+            
+            conn.commit()
+            cursor.close()
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error clearing items_counted: {e}")
             if conn:
                 conn.rollback()
             return False
