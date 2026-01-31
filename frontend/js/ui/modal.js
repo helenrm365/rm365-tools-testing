@@ -1,6 +1,22 @@
 /**
  * Modal utility for showing styled alerts and confirmations
+ * Uses css/components/modals.css and buttons.css
  */
+
+// Helper function to get header class based on type
+function getHeaderClass(type) {
+  switch (type) {
+    case 'success':
+      return 'modal-header-primary'; // Green tint header
+    case 'error':
+      return 'modal-header-danger';
+    case 'warning':
+      return 'modal-header-warning';
+    case 'info':
+    default:
+      return 'modal-header-primary';
+  }
+}
 
 /**
  * Show a notification modal (replaces alert)
@@ -15,6 +31,7 @@ export function showNotification(message, type = 'info', title = null) {
     const titleEl = document.getElementById('notificationTitle');
     const messageEl = document.getElementById('notificationMessage');
     const iconEl = document.getElementById('notificationIcon');
+    const headerEl = document.getElementById('notificationHeader');
     const okBtn = document.getElementById('notificationOkBtn');
     const closeBtn = document.getElementById('closeNotificationBtn');
 
@@ -42,18 +59,27 @@ export function showNotification(message, type = 'info', title = null) {
       info: 'fa-info-circle'
     };
     
-    iconEl.className = 'notification-icon ' + type;
-    iconEl.innerHTML = `<i class="fas ${icons[type] || icons.info}"></i>`;
+    // Update icon class (icon is now inside modal-header-icon wrapper)
+    iconEl.className = `fas ${icons[type] || icons.info}`;
+    
+    // Update header class based on type
+    if (headerEl) {
+      headerEl.className = `modal-header ${getHeaderClass(type)}`;
+    }
 
     // Set message
     messageEl.textContent = message;
 
-    // Show modal
-    modal.style.display = 'flex';
+    // Show modal with animation
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        modal.classList.add('active');
+      });
+    });
 
     // Handle close
     const closeHandler = () => {
-      modal.style.display = 'none';
+      modal.classList.remove('active');
       okBtn.removeEventListener('click', closeHandler);
       closeBtn.removeEventListener('click', closeHandler);
       resolve();
@@ -63,11 +89,13 @@ export function showNotification(message, type = 'info', title = null) {
     closeBtn.addEventListener('click', closeHandler);
 
     // Close on background click
-    modal.addEventListener('click', (e) => {
+    const backgroundHandler = (e) => {
       if (e.target === modal) {
+        modal.removeEventListener('click', backgroundHandler);
         closeHandler();
       }
-    });
+    };
+    modal.addEventListener('click', backgroundHandler);
   });
 }
 
@@ -102,19 +130,23 @@ export function showConfirm(message, title = 'Confirm', okText = 'OK', cancelTex
     okBtn.textContent = okText;
     cancelBtn.textContent = cancelText;
 
-    // Show modal
-    modal.style.display = 'flex';
+    // Show modal with animation
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        modal.classList.add('active');
+      });
+    });
 
     // Handle OK
     const okHandler = () => {
-      modal.style.display = 'none';
+      modal.classList.remove('active');
       cleanup();
       resolve(true);
     };
 
     // Handle Cancel
     const cancelHandler = () => {
-      modal.style.display = 'none';
+      modal.classList.remove('active');
       cleanup();
       resolve(false);
     };
@@ -131,11 +163,13 @@ export function showConfirm(message, title = 'Confirm', okText = 'OK', cancelTex
     closeBtn.addEventListener('click', cancelHandler);
 
     // Close on background click = cancel
-    modal.addEventListener('click', (e) => {
+    const backgroundHandler = (e) => {
       if (e.target === modal) {
+        modal.removeEventListener('click', backgroundHandler);
         cancelHandler();
       }
-    });
+    };
+    modal.addEventListener('click', backgroundHandler);
   });
 }
 

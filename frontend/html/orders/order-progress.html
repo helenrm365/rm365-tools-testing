@@ -135,9 +135,12 @@
   </div>
 
   <!-- Session Detail Modal -->
-  <div class="modal-overlay" id="sessionDetailModal" style="display: none;">
-    <div class="modal-container">
+  <div class="modal-backdrop" id="sessionDetailModal">
+    <div class="modal modal-lg">
       <div class="modal-header">
+        <div class="modal-header-icon">
+          <i class="fas fa-clipboard-list"></i>
+        </div>
         <h2 class="modal-title">Session Details</h2>
         <button class="modal-close" id="closeModalBtn" aria-label="Close modal">
           <i class="fas fa-times"></i>
@@ -150,16 +153,19 @@
   </div>
 
   <!-- Action Confirmation Modal -->
-  <div class="modal-overlay" id="confirmModal" style="display: none;">
-    <div class="modal-container modal-small">
-      <div class="modal-header">
+  <div class="modal-backdrop" id="confirmModal">
+    <div class="modal modal-sm">
+      <div class="modal-header modal-header-warning" id="confirmModalHeader">
+        <div class="modal-header-icon">
+          <i class="fas fa-exclamation-triangle" id="confirmModalIcon"></i>
+        </div>
         <h2 class="modal-title" id="confirmTitle">Confirm Action</h2>
-        <button class="modal-close" id="closeConfirmBtn" aria-label="Close modal">
+        <button class="modal-close modal-close-contrast" id="closeConfirmBtn" aria-label="Close modal">
           <i class="fas fa-times"></i>
         </button>
       </div>
       <div class="modal-body">
-        <p id="confirmMessage"></p>
+        <p class="modal-message" id="confirmMessage"></p>
         <div class="form-group" id="reasonGroup" style="display: none;">
           <label for="actionReason" class="form-label">Reason (optional):</label>
           <textarea id="actionReason" class="form-input" rows="3" placeholder="Enter reason..."></textarea>
@@ -177,19 +183,19 @@
   </div>
 
   <!-- Notification Modal -->
-  <div class="modal-overlay" id="notificationModal" style="display: none;">
-    <div class="modal-container modal-small">
-      <div class="modal-header">
+  <div class="modal-backdrop" id="notificationModal">
+    <div class="modal modal-sm">
+      <div class="modal-header modal-header-primary" id="notificationHeader">
+        <div class="modal-header-icon" id="notificationIconWrapper">
+          <i class="fas fa-info-circle" id="notificationIcon"></i>
+        </div>
         <h2 class="modal-title" id="notificationTitle">Notification</h2>
-        <button class="modal-close" id="closeNotificationBtn" aria-label="Close modal">
+        <button class="modal-close modal-close-contrast" id="closeNotificationBtn" aria-label="Close modal">
           <i class="fas fa-times"></i>
         </button>
       </div>
       <div class="modal-body">
-        <div class="notification-icon" id="notificationIcon">
-          <i class="fas fa-info-circle"></i>
-        </div>
-        <p id="notificationMessage"></p>
+        <p class="modal-message" id="notificationMessage"></p>
       </div>
       <div class="modal-footer">
         <button class="action-btn primary-btn" id="notificationOkBtn">OK</button>
@@ -198,19 +204,19 @@
   </div>
 
   <!-- Confirmation Modal -->
-  <div class="modal-overlay" id="confirmationModal" style="display: none;">
-    <div class="modal-container modal-small">
-      <div class="modal-header">
+  <div class="modal-backdrop" id="confirmationModal">
+    <div class="modal modal-sm">
+      <div class="modal-header modal-header-warning" id="confirmationHeader">
+        <div class="modal-header-icon">
+          <i class="fas fa-question-circle" id="confirmationIcon"></i>
+        </div>
         <h2 class="modal-title" id="confirmationTitle">Confirm</h2>
-        <button class="modal-close" id="closeConfirmationBtn" aria-label="Close modal">
+        <button class="modal-close modal-close-contrast" id="closeConfirmationBtn" aria-label="Close modal">
           <i class="fas fa-times"></i>
         </button>
       </div>
       <div class="modal-body">
-        <div class="notification-icon warning" id="confirmationIcon">
-          <i class="fas fa-question-circle"></i>
-        </div>
-        <p id="confirmationMessage"></p>
+        <p class="modal-message" id="confirmationMessage"></p>
       </div>
       <div class="modal-footer">
         <button class="action-btn secondary-btn" id="confirmationCancelBtn">Cancel</button>

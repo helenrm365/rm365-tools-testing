@@ -10,9 +10,81 @@ function ensureModalContainer() {
   if (!modalContainer) {
     modalContainer = document.createElement('div');
     modalContainer.id = 'orderFulfillmentModalContainer';
+    modalContainer.style.position = 'relative';
+    modalContainer.style.zIndex = '9999';
     document.body.appendChild(modalContainer);
   }
   return modalContainer;
+}
+
+function getHeaderClass(variant) {
+  switch (variant) {
+    case 'danger':
+      return 'modal-header-danger';
+    case 'warning':
+      return 'modal-header-warning';
+    case 'primary':
+      return 'modal-header-primary';
+    case 'success':
+      return 'modal-header-primary'; // Success uses primary styling with green icon
+    default:
+      return 'modal-header-primary';
+  }
+}
+
+function getConfirmButtonClass(variant) {
+  switch (variant) {
+    case 'danger':
+      return 'danger-btn';
+    case 'warning':
+      return 'warning-btn';
+    case 'primary':
+      return 'primary-btn';
+    case 'success':
+      return 'success-btn';
+    default:
+      return 'primary-btn';
+  }
+}
+
+function getIconClass(variant, emojiIcon) {
+  // Map emoji icons to FontAwesome equivalents
+  const emojiToFontAwesome = {
+    '📦': 'fa-box',
+    '⚠️': 'fa-exclamation-triangle',
+    '📝': 'fa-edit',
+    '✅': 'fa-check-circle',
+    '🔄': 'fa-sync-alt',
+    '🗑️': 'fa-trash-alt',
+    '▶️': 'fa-play',
+    '⛔': 'fa-ban',
+    '👤': 'fa-user',
+    '👋': 'fa-hand-paper',
+    '🎉': 'fa-check-double',
+    '❌': 'fa-times-circle',
+    'ℹ️': 'fa-info-circle',
+    '❓': 'fa-question-circle',
+    '↩️': 'fa-undo-alt',
+    '📋': 'fa-clipboard-list'
+  };
+  
+  if (emojiIcon && emojiToFontAwesome[emojiIcon]) {
+    return emojiToFontAwesome[emojiIcon];
+  }
+  
+  // Fallback based on variant
+  switch (variant) {
+    case 'danger':
+      return 'fa-exclamation-triangle';
+    case 'warning':
+      return 'fa-exclamation-circle';
+    case 'primary':
+      return 'fa-info-circle';
+    case 'success':
+      return 'fa-check-circle';
+    default:
+      return 'fa-info-circle';
+  }
 }
 
 function createModal(options) {
@@ -25,26 +97,29 @@ function createModal(options) {
     icon = '📦'
   } = options;
 
-  const headerStyle = getHeaderStyle(confirmVariant);
+  const headerClass = getHeaderClass(confirmVariant);
+  const confirmBtnClass = getConfirmButtonClass(confirmVariant);
+  const iconClass = getIconClass(confirmVariant, icon);
 
+  // Note: Don't add 'active' class here - it's added via JS for animation
   const modalHtml = `
-    <div class="modal-overlay active" id="orderFulfillmentConfirmModal">
-      <div class="modal-content" style="max-width: 450px; animation: modalSlideIn 0.3s ease-out;">
-        <div class="modal-header" style="${headerStyle}">
-          <h3 class="modal-title" style="color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 0.75rem;">
-            <span style="background: rgba(255,255,255,0.2); border-radius: 8px; width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; font-size: 1.2rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 1px solid rgba(255,255,255,0.2);">${icon}</span>
-            <span>${title}</span>
-          </h3>
-          <button class="modal-close modal-close-contrast" id="orderFulfillmentModalClose">&times;</button>
+    <div class="modal-backdrop" id="orderFulfillmentConfirmModal">
+      <div class="modal modal-sm">
+        <div class="modal-header ${headerClass}">
+          <div class="modal-header-icon">
+            <i class="fas ${iconClass}"></i>
+          </div>
+          <h3 class="modal-title">${title}</h3>
+          <button class="modal-close modal-close-contrast" id="orderFulfillmentModalClose">
+            <i class="fas fa-times"></i>
+          </button>
         </div>
-        <div class="modal-body" style="padding-top: 0;">
-          <p class="modal-message" style="white-space: pre-line; line-height: 1.6;">
-            ${message}
-          </p>
+        <div class="modal-body">
+          <p class="modal-message">${message.replace(/\n/g, '<br>')}</p>
         </div>
-        <div class="modal-footer" style="display: flex; gap: 0.75rem; justify-content: flex-end; padding: 1rem 1.5rem;">
-          ${cancelText ? `<button class="modern-button" id="orderFulfillmentModalCancel" style="background: #6c757d; color: white;">${cancelText}</button>` : ''}
-          <button class="modern-button" id="orderFulfillmentModalConfirm" style="background: ${getVariantColor(confirmVariant)}; color: white;">
+        <div class="modal-footer">
+          ${cancelText ? `<button class="action-btn secondary-btn" id="orderFulfillmentModalCancel">${cancelText}</button>` : ''}
+          <button class="action-btn ${confirmBtnClass}" id="orderFulfillmentModalConfirm">
             ${confirmText}
           </button>
         </div>
@@ -53,36 +128,6 @@ function createModal(options) {
   `;
 
   return modalHtml;
-}
-
-function getHeaderStyle(variant) {
-  switch (variant) {
-    case 'danger':
-      return 'background: linear-gradient(to right, #e74c3c, #c0392b); border-bottom: none;';
-    case 'warning':
-      return 'background: linear-gradient(to right, #f39c12, #e67e22); border-bottom: none;';
-    case 'primary':
-      return 'background: linear-gradient(to right, #3498db, #2980b9); border-bottom: none;';
-    case 'success':
-      return 'background: linear-gradient(to right, #27ae60, #229954); border-bottom: none;';
-    default:
-      return 'background: linear-gradient(to right, #3498db, #2980b9); border-bottom: none;';
-  }
-}
-
-function getVariantColor(variant) {
-  switch (variant) {
-    case 'danger':
-      return 'linear-gradient(to bottom right, #e74c3c, #c0392b)';
-    case 'warning':
-      return 'linear-gradient(to bottom right, #f39c12, #e67e22)';
-    case 'primary':
-      return 'linear-gradient(to bottom right, #3498db, #2980b9)';
-    case 'success':
-      return 'linear-gradient(to bottom right, #27ae60, #229954)';
-    default:
-      return 'linear-gradient(to bottom right, #3498db, #2980b9)';
-  }
 }
 
 /**
@@ -109,6 +154,13 @@ export function confirmModal(options = {}) {
     
     // Prevent double-handling
     let isResolved = false;
+    
+    // Trigger animation by adding active class after a frame
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        modal.classList.add('active');
+      });
+    });
     
     // Event handlers
     const handleConfirm = (e) => {
@@ -157,13 +209,13 @@ export function confirmModal(options = {}) {
     const cleanup = () => {
       console.log('[Modal] Cleaning up modal');
       modal.classList.remove('active');
+      document.removeEventListener('keydown', handleEscape);
       setTimeout(() => {
         container.innerHTML = '';
       }, 300); // Wait for animation
-      document.removeEventListener('keydown', handleEscape);
     };
     
-    // Delay binding events to prevent click-through from previous modal
+    // Delay binding events slightly to prevent click-through from previous modal
     setTimeout(() => {
       if (isResolved) return; // Already handled somehow
       

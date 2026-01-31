@@ -81,7 +81,7 @@ def start_scheduler():
         # Uses tracking wrapper to prevent duplicate runs
         scheduler.add_job(
             _with_task_tracking('order-session-reset', reset_daily_order_sessions),
-            trigger=CronTrigger(hour=1, minute=45),  # Runs at 1:45 AM daily (testing)
+            trigger=CronTrigger(hour=12, minute=53),  # Runs at 12:53 PM daily (testing)
             id='daily_order_reset',
             name='Daily Order Session Reset',
             replace_existing=True

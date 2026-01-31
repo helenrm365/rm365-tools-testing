@@ -391,17 +391,19 @@
   </div>
 
   <!-- Notification Modal -->
-  <div class="modal-overlay" id="notificationModal" style="display: none;">
-    <div class="modal-content modal-small">
-      <div class="modal-header">
+  <div class="modal-backdrop" id="notificationModal">
+    <div class="modal modal-sm">
+      <div class="modal-header modal-header-primary" id="notificationHeader">
+        <div class="modal-header-icon" id="notificationIconWrapper">
+          <i class="fas fa-info-circle" id="notificationIcon"></i>
+        </div>
         <h2 class="modal-title" id="notificationTitle">Notification</h2>
-        <button class="modal-close" id="closeNotificationBtn">&times;</button>
+        <button class="modal-close modal-close-contrast" id="closeNotificationBtn">
+          <i class="fas fa-times"></i>
+        </button>
       </div>
       <div class="modal-body">
-        <div class="notification-icon" id="notificationIcon">
-          <i class="fas fa-info-circle"></i>
-        </div>
-        <p id="notificationMessage"></p>
+        <p class="modal-message" id="notificationMessage"></p>
       </div>
       <div class="modal-footer">
         <button class="action-btn primary-btn" id="notificationOkBtn">OK</button>
@@ -410,17 +412,19 @@
   </div>
 
   <!-- Confirmation Modal -->
-  <div class="modal-overlay" id="confirmationModal" style="display: none;">
-    <div class="modal-content modal-small">
-      <div class="modal-header">
+  <div class="modal-backdrop" id="confirmationModal">
+    <div class="modal modal-sm">
+      <div class="modal-header modal-header-warning" id="confirmationHeader">
+        <div class="modal-header-icon">
+          <i class="fas fa-question-circle" id="confirmationIcon"></i>
+        </div>
         <h2 class="modal-title" id="confirmationTitle">Confirm</h2>
-        <button class="modal-close" id="closeConfirmationBtn">&times;</button>
+        <button class="modal-close modal-close-contrast" id="closeConfirmationBtn">
+          <i class="fas fa-times"></i>
+        </button>
       </div>
       <div class="modal-body">
-        <div class="notification-icon warning" id="confirmationIcon">
-          <i class="fas fa-question-circle"></i>
-        </div>
-        <p id="confirmationMessage"></p>
+        <p class="modal-message" id="confirmationMessage"></p>
       </div>
       <div class="modal-footer">
         <button class="action-btn secondary-btn" id="confirmationCancelBtn">Cancel</button>
@@ -430,11 +434,16 @@
   </div>
 
   <!-- Order Preview Modal -->
-  <div class="modal-overlay" id="orderPreviewModal">
-    <div class="modal-content modal-lg">
+  <div class="modal-backdrop" id="orderPreviewModal">
+    <div class="modal modal-lg">
       <div class="modal-header">
+        <div class="modal-header-icon">
+          <i class="fas fa-file-invoice"></i>
+        </div>
         <h2 class="modal-title">Order Preview</h2>
-        <button class="modal-close" id="closeOrderPreviewBtn">&times;</button>
+        <button class="modal-close" id="closeOrderPreviewBtn">
+          <i class="fas fa-times"></i>
+        </button>
       </div>
       <div class="modal-body">
         <div class="order-preview-container">
