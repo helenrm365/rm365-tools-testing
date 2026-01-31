@@ -35,33 +35,107 @@
   background: var(--bg-dark);
 }
 
-/* Shared inner-tabs styling for attendance system */
-[class*="attendance-"] .inner-tabs,
-.enrollment-management .inner-tabs {
-  margin: 2rem 0;
+/* ===== Shared Responsive Breakpoints ===== */
+
+/* Tablet: 769px - 1024px */
+@media (max-width: 1024px) {
+  [class*="attendance-"],
+  .enrollment-management {
+    padding: 0.75rem;
+  }
+  
+  /* Adjust page header for tablet */
+  [class*="attendance-"] .page-header,
+  .enrollment-management .page-header {
+    padding: 0.75rem 0;
+  }
+  
+  /* Make block headers stack on tablet if needed */
+  [class*="attendance-"] .block-header,
+  .enrollment-management .block-header {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
 }
 
-[class*="attendance-"] .tab-button,
-.enrollment-management .tab-button {
-  flex: 1 1 auto;
-  min-width: 120px;
-}
-
-/* Shared responsive breakpoints */
+/* Mobile: <= 768px */
 @media (max-width: 768px) {
   [class*="attendance-"],
   .enrollment-management {
+    padding: 0.5rem;
+    /* Add padding for bottom navigation bar */
+    padding-bottom: calc(70px + env(safe-area-inset-bottom));
+  }
+  
+  /* Page header adjustments */
+  [class*="attendance-"] .page-header,
+  .enrollment-management .page-header {
+    padding: 0.5rem 0;
+    margin-bottom: 0.75rem;
+  }
+  
+  [class*="attendance-"] .page-title,
+  .enrollment-management .page-title {
+    font-size: 1.375rem;
+  }
+  
+  [class*="attendance-"] .page-subtitle,
+  .enrollment-management .page-subtitle {
+    font-size: 0.8rem;
+  }
+  
+  /* Block header adjustments - keep row layout but allow wrapping */
+  [class*="attendance-"] .block-header,
+  .enrollment-management .block-header {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  
+  [class*="attendance-"] .block-header-actions,
+  .enrollment-management .block-header-actions {
+    margin-left: auto;
+  }
+  
+  /* Action block padding */
+  [class*="attendance-"] .action-block,
+  .enrollment-management .action-block {
     padding: 1rem;
   }
   
-  [class*="attendance-"] .inner-tabs,
-  .enrollment-management .inner-tabs {
-    flex-direction: column;
-    gap: 0.75rem;
+  /* Block content spacing */
+  [class*="attendance-"] .block-content,
+  .enrollment-management .block-content {
+    gap: 0.875rem;
+  }
+}
+
+/* Small Mobile: <= 480px */
+@media (max-width: 480px) {
+  [class*="attendance-"],
+  .enrollment-management {
+    padding: 0.375rem;
+    padding-bottom: calc(70px + env(safe-area-inset-bottom));
   }
   
-  [class*="attendance-"] .tab-button,
-  .enrollment-management .tab-button {
-    min-width: 100%;
+  [class*="attendance-"] .page-title,
+  .enrollment-management .page-title {
+    font-size: 1.25rem;
+  }
+  
+  [class*="attendance-"] .page-subtitle,
+  .enrollment-management .page-subtitle {
+    font-size: 0.75rem;
+  }
+  
+  [class*="attendance-"] .action-block,
+  .enrollment-management .action-block {
+    padding: 0.75rem;
+    border-radius: 12px;
+  }
+  
+  /* Compact block subtitles on very small screens */
+  [class*="attendance-"] .block-subtitle,
+  .enrollment-management .block-subtitle {
+    font-size: 0.7rem;
   }
 }

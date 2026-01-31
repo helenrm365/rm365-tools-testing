@@ -31,16 +31,6 @@
   background: var(--bg-dark);
 }
 
-/* ===== Page-specific Tab Overrides ===== */
-.enrollment-management .inner-tabs {
-  margin: 2rem 0;
-}
-
-.enrollment-management .tab-button {
-  flex: 1 1 auto;
-  min-width: 140px;
-}
-
 /* ===== Management Layout ===== */
 .enrollment-management .management-wrapper {
   display: grid;
@@ -61,22 +51,140 @@
 }
 
 /* ===== Responsive ===== */
-@media (max-width: 768px) {
-  .enrollment-management {
-    padding: 1rem;
-  }
-  
-  .enrollment-management .inner-tabs {
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-  
-  .enrollment-management .tab-button {
-    min-width: 100%;
+
+/* Tablet: 769px - 1024px */
+@media (max-width: 1024px) {
+  .enrollment-management .employee-grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   }
   
   .enrollment-management .action-buttons-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+  
+  .enrollment-management .filter-controls {
+    flex-wrap: wrap;
+  }
+  
+  .enrollment-management .filter-item {
+    flex: 1 1 45%;
+    min-width: 200px;
+  }
+}
+
+/* Mobile: <= 768px */
+@media (max-width: 768px) {
+  .enrollment-management .action-buttons-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+  
+  .enrollment-management .action-btn {
+    justify-content: center;
+  }
+  
+  .enrollment-management .employee-grid {
     grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  
+  .enrollment-management .employee-card {
+    padding: 0.875rem;
+    padding-left: 2.5rem;
+  }
+  
+  /* Keep filter controls in grid layout, not stacked */
+  .enrollment-management .filter-controls {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.625rem;
+  }
+  
+  .enrollment-management .filter-item {
+    min-width: unset;
+  }
+  
+  .enrollment-management .search-box {
+    width: 100%;
+  }
+  
+  /* Modal adjustments */
+  .enrollment-management .modal-content {
+    margin: 0.5rem;
+    max-height: calc(100vh - 1rem);
+  }
+  
+  .enrollment-management .modal-body {
+    padding: 1rem;
+  }
+  
+  .enrollment-management .modal-footer {
+    padding: 0.75rem 1rem;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  
+  .enrollment-management .modal-footer button {
+    flex: 1 1 auto;
+    min-width: 100px;
+  }
+}
+
+/* Small Mobile: <= 480px */
+@media (max-width: 480px) {
+  .enrollment-management .employee-card {
+    padding: 0.75rem;
+    padding-left: 2.25rem;
+    padding-right: 0.75rem;
+  }
+  
+  .enrollment-management .card-checkbox {
+    left: 0.5rem;
+  }
+  
+  .enrollment-management .employee-name {
+    font-size: 0.9rem;
+  }
+  
+  .enrollment-management .employee-code {
+    font-size: 0.8rem;
+  }
+  
+  .enrollment-management .employee-badges {
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+  
+  .enrollment-management .status-badge,
+  .enrollment-management .location-badge {
+    padding: 0.2rem 0.5rem;
+    font-size: 0.7rem;
+  }
+  
+  /* Filter controls - 2 columns on small mobile */
+  .enrollment-management .filter-controls {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+  
+  /* Last filter item spans full width if odd */
+  .enrollment-management .filter-item:last-child:nth-child(odd) {
+    grid-column: span 2;
+  }
+  
+  /* Form groups in modals */
+  .enrollment-management .form-group {
+    margin-bottom: 0.75rem;
+  }
+  
+  .enrollment-management .form-label {
+    font-size: 0.8rem;
+  }
+  
+  .enrollment-management .form-input {
+    font-size: 0.9rem;
+    padding: 0.625rem 0.75rem;
   }
 }
 

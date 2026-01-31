@@ -11,16 +11,6 @@
   background: var(--bg-dark);
 }
 
-/* ===== Tab Spacing ===== */
-.order-tracking .inner-tabs {
-  margin: 2rem 0;
-}
-
-.order-tracking .tab-button {
-  flex: 1 1 auto;
-  min-width: 160px;
-}
-
 /* ===== Main Content Layout ===== */
 .order-tracking .tracking-content {
   display: flex;

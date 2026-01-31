@@ -23,35 +23,15 @@
   display: flex;
   gap: var(--space-sm);
   padding: var(--space-md);
+  margin: 2rem 0;
   background: var(--bg);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-m);
-  overflow-x: auto;
-  
-  /* Hide scrollbar but allow scroll */
-  scrollbar-width: thin;
-  scrollbar-color: var(--bg-light) transparent;
-}
-
-.tabs::-webkit-scrollbar,
-.inner-tabs::-webkit-scrollbar {
-  height: 6px;
-}
-
-.tabs::-webkit-scrollbar-track,
-.inner-tabs::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.tabs::-webkit-scrollbar-thumb,
-.inner-tabs::-webkit-scrollbar-thumb {
-  background: var(--bg-light);
-  border-radius: 3px;
 }
 
 /* ===== Tab Button ===== */
 .tab-button {
-  flex: 0 0 auto;
+  flex: 1 1 auto;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -60,6 +40,7 @@
   /* Sizing */
   padding: var(--space-sm) var(--space-lg);
   min-height: 44px;
+  min-width: 120px;
   
   /* Appearance */
   background: var(--bg-light);
@@ -148,17 +129,165 @@
   border-bottom-color: #8bc34a;
 }
 
-/* ===== Responsive ===== */
-@media (max-width: 768px) {
+/* ===== Responsive - Desktop, Tablet, Mobile ===== */
+
+/* Desktop: > 1024px - Standard horizontal tabs at top */
+/* (Default styles above apply) */
+
+/* Tablet: 768px - 1024px - Fixed bottom navigation bar */
+@media (max-width: 1024px) {
   .tabs,
   .inner-tabs {
-    gap: var(--space-xs);
-    padding: var(--space-sm);
+    /* Fixed bottom bar */
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 400; /* Below sidebar overlay (498) and sidebar (500) */
+    
+    /* Reset margins and sizing */
+    margin: 0;
+    padding: 0.5rem 1rem;
+    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
+    
+    /* Appearance */
+    background: var(--bg);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+    
+    /* Layout */
+    display: flex;
+    justify-content: space-around;
+    gap: 0.25rem;
+    
+    /* Transition for sidebar blur effect */
+    transition: filter 0.3s ease, opacity 0.3s ease;
   }
   
   .tab-button {
-    padding: var(--space-sm) var(--space-md);
-    font-size: 0.875rem;
-    min-height: 40px;
+    /* Vertical layout: icon on top, label below */
+    flex-direction: column;
+    flex: 1 1 0;
+    gap: 0.25rem;
+    
+    /* Sizing */
+    padding: 0.5rem 0.25rem;
+    min-height: 56px;
+    min-width: 0;
+    
+    /* Appearance */
+    background: transparent;
+    box-shadow: none;
+    border-radius: var(--radius-md);
+    
+    /* Typography */
+    font-size: 0.7rem;
+    font-weight: 500;
+  }
+  
+  .tab-button:hover {
+    transform: none;
+    box-shadow: none;
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+  }
+  
+  .tab-button.active {
+    background: color-mix(in srgb, var(--accent) 15%, transparent);
+    color: var(--accent);
+    box-shadow: none;
+  }
+  
+  .tab-button i,
+  .tab-button svg {
+    font-size: 1.25rem;
+  }
+  
+  /* Add padding to page content so it doesn't hide behind bottom bar */
+  [class*="attendance-"],
+  [class*="order-"],
+  [class*="inventory-"],
+  [class*="labels-"],
+  [class*="magentodata-"],
+  [class*="user-management"],
+  .enrollment-management,
+  .product-sourcing {
+    padding-bottom: 80px !important;
+  }
+}
+
+/* Mobile: < 768px - Compact bottom navigation bar */
+@media (max-width: 768px) {
+  .tabs,
+  .inner-tabs {
+    padding: 0.375rem 0.5rem;
+    padding-bottom: calc(0.375rem + env(safe-area-inset-bottom));
+    gap: 0.125rem;
+  }
+  
+  .tab-button {
+    padding: 0.375rem 0.125rem;
+    min-height: 52px;
+    font-size: 0.65rem;
+  }
+  
+  .tab-button i,
+  .tab-button svg {
+    font-size: 1.125rem;
+  }
+  
+  /* Optionally hide text labels on very small screens */
+  .tab-button span {
+    display: block;
+    max-width: 60px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+/* Very small mobile: < 480px - Icons only option */
+@media (max-width: 480px) {
+  .tab-button {
+    min-height: 48px;
+    padding: 0.5rem 0.25rem;
+  }
+  
+  /* Hide text on very small screens if too many tabs */
+  .inner-tabs:has(.tab-button:nth-child(5)) .tab-button span {
+    display: none;
+  }
+  
+  .inner-tabs:has(.tab-button:nth-child(5)) .tab-button {
+    min-height: 44px;
+  }
+  
+  .inner-tabs:has(.tab-button:nth-child(5)) .tab-button i,
+  .inner-tabs:has(.tab-button:nth-child(5)) .tab-button svg {
+    font-size: 1.375rem;
+  }
+}
+
+/* ===== Special Mode Overrides ===== */
+/* When minimal-mode or mobile-mode-active is enabled, hide the bottom bar */
+/* Note: mobile-mode-active is only added at ≤768px by JS */
+@media (max-width: 768px) {
+  .order-fulfillment.mobile-mode-active .inner-tabs {
+    display: none !important;
+  }
+  
+  /* Remove bottom padding when tabs are hidden */
+  .order-fulfillment.mobile-mode-active {
+    padding-bottom: 0 !important;
+  }
+}
+
+/* minimal-mode can apply at tablet sizes too */
+@media (max-width: 1024px) {
+  body.minimal-mode .inner-tabs {
+    display: none !important;
+  }
+  
+  body.minimal-mode [class*="order-"] {
+    padding-bottom: 0 !important;
   }
 }

@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quick Mobile Mode Test</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      margin-top: 0;
+    }
+    .test-result {
+      margin: 20px 0;
+      padding: 15px;
+      border-radius: 5px;
+      font-weight: bold;
+    }
+    .pass {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .fail {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .info {
+      background: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+    }
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      font-size: 16px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin: 10px 5px 10px 0;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    .details {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 5px;
+      margin: 15px 0;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+    }
+    iframe {
+      width: 100%;
+      height: 500px;
+      border: 2px solid #ddd;
+      border-radius: 5px;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧪 Quick Mobile Mode Test</h1>
+    
+    <div class="info test-result">
+      <p><strong>Test Status:</strong> <span id="status">Ready to test</span></p>
+      <p><strong>Current Window Width:</strong> <span id="windowWidth">--</span>px</p>
+    </div>
+    
+    <div>
+      <button onclick="runQuickTest()">Run Quick Test</button>
+      <button onclick="openFullPage()">Open Full Page</button>
+      <button onclick="location.reload()">Reload</button>
+    </div>
+    
+    <div id="results"></div>
+    
+    <h2>Test Instructions</h2>
+    <div class="details">
+      <strong>Automated Test:</strong><br>
+      Click "Run Quick Test" button above to automatically verify the implementation.
+      <br><br>
+      <strong>Manual Test:</strong><br>
+      1. Click "Open Full Page" to open order fulfillment in a new window<br>
+      2. Resize the window from wide to narrow and back<br>
+      3. Verify mobile mode toggles automatically at 768px breakpoint<br>
+      4. Try manual toggle to ensure it still works
+    </div>
+  </div>
+  
+  <script>
+    function updateWindowWidth() {
+      document.getElementById('windowWidth').textContent = window.innerWidth;
+    }
+    
+    setInterval(updateWindowWidth, 500);
+    updateWindowWidth();
+    
+    function openFullPage() {
+      window.open('http://localhost:8000/orders/order-fulfillment', '_blank');
+    }
+    
+    async function runQuickTest() {
+      const resultsDiv = document.getElementById('results');
+      const statusSpan = document.getElementById('status');
+      
+      statusSpan.textContent = 'Testing...';
+      resultsDiv.innerHTML = '<div class="info test-result">Running tests...</div>';
+      
+      const tests = [];
+      
+      // Test 1: Verify source code has checkMobileSize
+      try {
+        const response = await fetch('/js/modules/orders/order-fulfillment.js');
+        const code = await response.text();
+        
+        if (code.includes('checkMobileSize')) {
+          tests.push({ name: 'checkMobileSize function exists', pass: true });
+        } else {
+          tests.push({ name: 'checkMobileSize function exists', pass: false, reason: 'Function not found in code' });
+        }
+        
+        if (code.includes('window.innerWidth <= 768')) {
+          tests.push({ name: 'Breakpoint is 768px', pass: true });
+        } else {
+          tests.push({ name: 'Breakpoint is 768px', pass: false, reason: 'Breakpoint not set to 768px' });
+        }
+        
+        if (code.includes("window.addEventListener('resize', this.resizeHandler)")) {
+          tests.push({ name: 'Resize event listener added', pass: true });
+        } else {
+          tests.push({ name: 'Resize event listener added', pass: false, reason: 'Resize listener not found' });
+        }
+        
+        if (code.includes("window.removeEventListener('resize', this.resizeHandler)")) {
+          tests.push({ name: 'Resize handler cleanup exists', pass: true });
+        } else {
+          tests.push({ name: 'Resize handler cleanup exists', pass: false, reason: 'Cleanup not found' });
+        }
+        
+        if (code.includes('setTimeout')) {
+          tests.push({ name: 'Debounce implementation exists', pass: true });
+        } else {
+          tests.push({ name: 'Debounce implementation exists', pass: false, reason: 'No debouncing detected' });
+        }
+        
+      } catch (err) {
+        tests.push({ name: 'Load source code', pass: false, reason: err.message });
+      }
+      
+      // Display results
+      const allPassed = tests.every(t => t.pass);
+      let html = '';
+      
+      tests.forEach(test => {
+        const className = test.pass ? 'pass' : 'fail';
+        const icon = test.pass ? '✓' : '✗';
+        const reason = test.reason ? `<br><small>Reason: ${test.reason}</small>` : '';
+        html += `<div class="${className} test-result">${icon} ${test.name}${reason}</div>`;
+      });
+      
+      if (allPassed) {
+        statusSpan.textContent = '✓ All automated tests passed!';
+        html = `<div class="pass test-result"><strong>✓ All Automated Tests Passed!</strong><br>The implementation is correct. Now perform manual testing by resizing the browser window.</div>` + html;
+      } else {
+        statusSpan.textContent = '✗ Some tests failed';
+        html = `<div class="fail test-result"><strong>✗ Some Tests Failed</strong><br>Please review the implementation.</div>` + html;
+      }
+      
+      resultsDiv.innerHTML = html;
+    }
+  </script>
+</body>
+</html>

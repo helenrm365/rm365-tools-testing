@@ -161,10 +161,49 @@ th.sortable:hover .sort-icon {
 }
 
 /* ===== Responsive ===== */
+
+/* Table container for horizontal scroll on mobile */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Mobile: <= 768px */
 @media (max-width: 768px) {
   th,
   td {
     padding: var(--space-sm) var(--space-md);
     font-size: 0.875rem;
+  }
+  
+  /* Make tables scrollable horizontally */
+  table {
+    min-width: 600px;
+  }
+  
+  .empty-state {
+    padding: 2rem 1rem;
+  }
+  
+  .empty-icon i {
+    font-size: 2.5rem;
+  }
+  
+  .empty-title {
+    font-size: 1.125rem;
+  }
+}
+
+/* Small Mobile: <= 480px */
+@media (max-width: 480px) {
+  th,
+  td {
+    padding: var(--space-xs) var(--space-sm);
+    font-size: 0.8125rem;
+  }
+  
+  th {
+    font-size: 0.75rem;
   }
 }

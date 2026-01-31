@@ -27,16 +27,6 @@
   background: var(--bg-dark);
 }
 
-/* ===== Page-specific Tab Overrides ===== */
-.order-fulfillment .inner-tabs {
-  margin: 2rem 0;
-}
-
-.order-fulfillment .tab-button {
-  flex: 1 1 auto;
-  min-width: 160px;
-}
-
 /* ===== Main Content Layout ===== */
 .order-fulfillment .fulfillment-content {
   display: flex;
@@ -157,17 +147,28 @@
   grid-template-columns: repeat(3, 1fr);
   gap: 0.5rem;
   margin-bottom: 1rem;
+  width: 100%;
+}
+
+/* When shown via JS (display: flex), force grid behavior */
+.order-fulfillment .mobile-column-tabs[style*="display: flex"],
+.order-fulfillment .mobile-column-tabs[style*="display:flex"] {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
 }
 
 .order-fulfillment .mobile-tab-button {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
   padding: 0.75rem;
   background: var(--bg-light);
   border: 2px solid var(--bg);
   border-radius: var(--radius-md);
+  min-width: 0;
+  width: 100%;
   cursor: pointer;
   transition: all var(--transition);
   box-shadow: var(--shadow-m);
@@ -1689,18 +1690,50 @@ body:has(.order-fulfillment.mobile-mode-active) #universalFooter {
   right: 0.5rem;
   z-index: 100;
   margin: 0;
-  background: transparent;
+  background: var(--bg);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-m);
+  padding: 0.25rem;
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
 }
 
-.order-fulfillment.mobile-mode-active .tracking-actions .live-status,
-.order-fulfillment.mobile-mode-active .tracking-actions > button:not(.mobile-mode-toggle) {
+/* Show live indicator and refresh button in mobile mode */
+.order-fulfillment.mobile-mode-active .tracking-actions .live-status {
+  display: flex;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  order: 1;
+}
+
+.order-fulfillment.mobile-mode-active .tracking-actions .live-indicator {
+  width: 6px;
+  height: 6px;
+}
+
+/* Show refresh button (primary-btn) in mobile mode */
+.order-fulfillment.mobile-mode-active .tracking-actions .action-btn.primary-btn {
+  display: flex;
+  padding: 0.375rem 0.5rem;
+  font-size: 0.8rem;
+  min-height: 32px;
+  background: var(--bg-light);
+  color: var(--text);
+  order: 2;
+}
+
+/* Hide other buttons except refresh and mobile toggle */
+.order-fulfillment.mobile-mode-active .tracking-actions > button:not(.mobile-mode-toggle):not(.primary-btn) {
   display: none;
 }
 
 .order-fulfillment.mobile-mode-active .tracking-actions .mobile-mode-toggle {
-  background: var(--bg);
-  box-shadow: var(--shadow-m);
-  border-radius: var(--radius-md);
+  background: var(--accent);
+  color: white;
+  order: 3;
+  box-shadow: none;
+  border-radius: var(--radius-sm);
 }
 
 .order-fulfillment.mobile-mode-active #activeSessionSection,
@@ -1951,11 +1984,72 @@ body:has(.order-fulfillment.mobile-mode-active) #universalFooter {
 }
 
 /* ===== Responsive Design ===== */
-@media (max-width: 1200px) {
+/* Tablet: 1024px */
+@media (max-width: 1024px) {
   .order-fulfillment .tracking-board {
     grid-template-columns: repeat(2, 1fr);
   }
+  
+  .order-fulfillment .mobile-column-tabs {
+    gap: 0.75rem;
+  }
+  
+  .order-fulfillment .mobile-tab-button {
+    padding: 1rem;
+  }
+}
 
+/* Mobile: 768px */
+@media (max-width: 768px) {
+  .order-fulfillment .mobile-column-tabs {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  .order-fulfillment .mobile-tab-button {
+    padding: 0.875rem 0.5rem;
+  }
+  
+  .order-fulfillment .mobile-tab-button i {
+    font-size: 1.5rem;
+  }
+  
+  .order-fulfillment .mobile-tab-button span {
+    font-size: 0.8rem;
+  }
+  
+  .order-fulfillment .tracking-board {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Small Mobile: 480px */
+@media (max-width: 480px) {
+  .order-fulfillment .mobile-column-tabs {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.375rem;
+  }
+  
+  .order-fulfillment .mobile-tab-button {
+    padding: 0.75rem 0.375rem;
+  }
+  
+  .order-fulfillment .mobile-tab-button i {
+    font-size: 1.25rem;
+  }
+  
+  .order-fulfillment .mobile-tab-button span {
+    font-size: 0.75rem;
+  }
+  
+  .order-fulfillment .mobile-tab-count {
+    font-size: 1.25rem;
+    padding: 0.1rem 0.375rem;
+  }
+}
+
+@media (max-width: 1200px) {
   .order-fulfillment .scanner-form {
     grid-template-columns: 1fr 1fr;
   }
@@ -2003,15 +2097,6 @@ body:has(.order-fulfillment.mobile-mode-active) #universalFooter {
 @media (max-width: 600px) {
   .order-fulfillment {
     padding: 0.5rem;
-  }
-
-  .order-fulfillment .tab-button {
-    min-width: 120px;
-    font-size: 0.85rem;
-  }
-
-  .order-fulfillment .tab-button span {
-    display: none;
   }
 
   /* Keep tracking actions horizontal but more compact */

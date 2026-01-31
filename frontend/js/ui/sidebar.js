@@ -748,7 +748,13 @@ async function handleLogout() {
  * Toggle mobile sidebar
  */
 function toggleMobileSidebar() {
+  console.log('[Sidebar Debug] Container:', container);
+  console.log('[Sidebar Debug] Has mobile-open before toggle:', container?.classList.contains('mobile-open'));
+  
   const isOpen = container?.classList.toggle('mobile-open');
+  
+  console.log('[Sidebar Debug] Has mobile-open after toggle:', isOpen);
+  console.log('[Sidebar Debug] Container classList:', container?.classList.toString());
   
   // Update hamburger icon
   const mobileToggle = document.querySelector('.sidebar-mobile-toggle i');

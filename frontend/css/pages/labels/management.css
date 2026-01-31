@@ -76,6 +76,79 @@ html.dark-mode .labels-management .page-title {
   margin-bottom: var(--space-sm);
 }
 
+/* ===== Responsive ===== */
+
+/* Tablet: 769px - 1024px */
+@media (max-width: 1024px) {
+  .labels-management .page-header {
+    margin-bottom: 1.5rem;
+    padding: 1.5rem 0 0.75rem 0;
+  }
+  
+  .labels-management .page-title {
+    font-size: 2rem;
+  }
+  
+  .label-preview {
+    min-height: 250px;
+    padding: var(--space-lg);
+  }
+  
+  .print-queue {
+    padding: var(--space-md);
+  }
+}
+
+/* Mobile: <= 768px */
+@media (max-width: 768px) {
+  .labels-management .page-header {
+    margin-bottom: 1rem;
+    padding: 1rem 0 0.5rem 0;
+  }
+  
+  .labels-management .page-title {
+    font-size: 1.75rem;
+  }
+  
+  .label-preview {
+    min-height: 200px;
+    padding: var(--space-md);
+  }
+  
+  .print-queue-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-sm);
+  }
+  
+  .print-queue-item {
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    padding: var(--space-sm);
+  }
+}
+
+/* Small Mobile: <= 480px */
+@media (max-width: 480px) {
+  .labels-management .page-title {
+    font-size: 1.5rem;
+  }
+  
+  .label-preview {
+    min-height: 150px;
+    padding: var(--space-sm);
+  }
+  
+  .print-queue {
+    padding: var(--space-sm);
+  }
+  
+  .print-queue-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
 /* 
  * TODO: Migrate remaining page-specific styles from:
  * /css/labels/*.css

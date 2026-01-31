@@ -11,16 +11,6 @@
   background: var(--bg-dark);
 }
 
-/* ===== Tab Spacing ===== */
-.order-approval .inner-tabs {
-  margin: 2rem 0;
-}
-
-.order-approval .tab-button {
-  flex: 1 1 auto;
-  min-width: 160px;
-}
-
 /* ===== Main Content Layout ===== */
 .order-approval .approval-content {
   display: flex;

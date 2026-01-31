@@ -989,9 +989,11 @@ function wireToolbar() {
   // Wire up the modern modal
   wireCreateEmployeeModal();
 
-  createBtn?.addEventListener('click', () => {
-    showCreateEmployeeModal();
-  });
+  if (createBtn) {
+    createBtn.addEventListener('click', () => {
+      showCreateEmployeeModal();
+    });
+  }
 
   bulkBtn?.addEventListener('click', async () => {
     const ids = Array.from(state.selectedIds);
@@ -1049,7 +1051,7 @@ function showCreateEmployeeModal() {
   
   // Reset custom dropdowns to defaults
   if (defaultLocation) {
-    selectLocationByCode('create-location-dropdown', defaultLocation.code);
+    selectLocationByName('create-location-dropdown', defaultLocation.name);
   } else {
     const dropdown = $('#create-location-dropdown');
     const selectedDisplay = dropdown?.querySelector('.dropdown-selected');

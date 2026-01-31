@@ -26,16 +26,6 @@
   background: var(--bg-dark);
 }
 
-/* ===== Page-specific Tab Overrides ===== */
-.attendance-logs .inner-tabs {
-  margin: 2rem 0;
-}
-
-.attendance-logs .tab-button {
-  flex: 1 1 auto;
-  min-width: 120px;
-}
-
 /* ===== Logs Content Layout ===== */
 .attendance-logs .logs-wrapper {
   display: flex;
@@ -406,43 +396,108 @@
 }
 
 /* ===== Responsive ===== */
-@media (max-width: 768px) {
-  .attendance-logs {
-    padding: 1rem;
+
+/* Tablet: 769px - 1024px */
+@media (max-width: 1024px) {
+  .attendance-logs .stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   }
   
-  .attendance-logs .inner-tabs {
-    flex-direction: column;
+  .attendance-logs .filter-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .attendance-logs .export-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Mobile: <= 768px */
+@media (max-width: 768px) {
+  .attendance-logs .stats-grid {
+    grid-template-columns: 1fr 1fr;
     gap: 0.75rem;
   }
   
-  .attendance-logs .tab-button {
-    min-width: 100%;
+  .attendance-logs .stat-card {
+    padding: 0.875rem;
   }
   
-  .attendance-logs .stats-grid {
-    grid-template-columns: 1fr 1fr;
+  .attendance-logs .stat-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 1rem;
+  }
+  
+  .attendance-logs .stat-value {
+    font-size: 1.25rem;
   }
   
   .attendance-logs .filter-grid {
     grid-template-columns: 1fr;
+    gap: 0.75rem;
   }
   
   .attendance-logs .filter-actions {
-    flex-direction: column;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.5rem;
   }
   
   .attendance-logs .filter-actions .action-btn {
-    width: 100%;
+    flex: 1 1 auto;
+    min-width: 100px;
+    justify-content: center;
   }
   
   .attendance-logs .export-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+  
+  /* Tables become scrollable */
+  .attendance-logs .block-content:has(table) {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .attendance-logs table {
+    min-width: 600px;
+  }
+  
+  .attendance-logs .loading-state {
+    padding: 2rem;
   }
 }
 
+/* Small Mobile: <= 480px */
 @media (max-width: 480px) {
   .attendance-logs .stats-grid {
     grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  
+  .attendance-logs .stat-card {
+    padding: 0.75rem;
+    gap: 0.75rem;
+  }
+  
+  .attendance-logs .stat-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 0.9rem;
+  }
+  
+  .attendance-logs .stat-value {
+    font-size: 1.125rem;
+  }
+  
+  .attendance-logs .stat-label {
+    font-size: 0.7rem;
+  }
+  
+  .attendance-logs .action-btn {
+    padding: 0.625rem 0.875rem;
+    font-size: 0.85rem;
   }
 }

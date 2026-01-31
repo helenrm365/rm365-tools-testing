@@ -27,16 +27,6 @@
   background: var(--bg-dark);
 }
 
-/* ===== Page-specific Tab Overrides ===== */
-.magentodata-page .inner-tabs {
-  margin: 2rem 0;
-}
-
-.magentodata-page .tab-button {
-  flex: 1 1 auto;
-  min-width: 120px;
-}
-
 /* ===== Main Content Layout ===== */
 .magentodata-page .magento-content {
   display: flex;
@@ -313,47 +303,221 @@ html.dark-mode .magentodata-page .stat-card {
   opacity: 0.8;
 }
 
-/* ===== Responsive ===== */
-@media (max-width: 768px) {
+/* ===== Responsive: Tablet (1024px) ===== */
+@media (max-width: 1024px) {
   .magentodata-page {
     padding: 0.75rem;
   }
   
-  .magentodata-page .inner-tabs {
-    flex-direction: column;
-    gap: 0.75rem;
+  .magentodata-page .stats-grid {
+    grid-template-columns: repeat(3, 1fr);
   }
   
-  .magentodata-page .tab-button {
-    min-width: 100%;
+  .magentodata-page .filters-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
   
+  .magentodata-page .stat-card {
+    padding: 1rem;
+  }
+  
+  .magentodata-page .stat-icon {
+    width: 42px;
+    height: 42px;
+    font-size: 1.1rem;
+  }
+  
+  .magentodata-page .stat-value {
+    font-size: 1.35rem;
+  }
+}
+
+/* ===== Responsive: Mobile (768px) ===== */
+@media (max-width: 768px) {
+  .magentodata-page {
+    padding: 0.5rem;
+  }
+  
+  /* View toggle - stays horizontal, wraps naturally */
   .magentodata-page .view-toggle {
-    flex-direction: column;
+    gap: 0.375rem;
+    padding: 0.375rem;
   }
   
   .magentodata-page .toggle-btn {
-    min-width: 100%;
+    min-width: 80px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
   }
   
+  /* Search controls - row wrap, not column stack */
   .magentodata-page .search-controls {
-    flex-direction: column;
+    flex-wrap: wrap;
+    gap: 0.5rem;
   }
   
   .magentodata-page .search-wrapper {
-    width: 100%;
+    flex: 1 1 auto;
+    min-width: 0;
   }
   
+  /* Hide search button on mobile - Enter key works */
+  .magentodata-page .search-controls #searchBtn {
+    display: none;
+  }
+  
+  /* Clear button stays inline with search */
+  .magentodata-page .search-controls #clearSearchBtn {
+    flex-shrink: 0;
+  }
+  
+  /* Action buttons - row wrap, maintain proper height */
   .magentodata-page .action-buttons-row {
-    flex-direction: column;
+    gap: 0.375rem;
   }
   
   .magentodata-page .action-buttons-row .action-btn {
-    width: 100%;
+    flex: 1 1 auto;
+    min-width: 100px;
   }
   
+  /* Pagination - row wrap */
   .magentodata-page .pagination-controls {
-    flex-direction: column;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.75rem;
+  }
+  
+  .magentodata-page .page-info {
+    order: -1;
+    width: 100%;
+    text-align: center;
+    font-size: 0.85rem;
+    padding: 0.375rem 0.75rem;
+  }
+  
+  .magentodata-page .pagination-controls .action-btn {
+    flex: 1;
+    min-width: 100px;
+  }
+  
+  /* Stats grid - 2 columns on mobile */
+  .magentodata-page .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
     gap: 0.75rem;
+  }
+  
+  .magentodata-page .stat-card {
+    padding: 0.875rem;
+  }
+  
+  .magentodata-page .stat-icon {
+    width: 38px;
+    height: 38px;
+    font-size: 1rem;
+  }
+  
+  .magentodata-page .stat-value {
+    font-size: 1.25rem;
+  }
+  
+  .magentodata-page .stat-label {
+    font-size: 0.8rem;
+  }
+  
+  /* Filters grid - 1 column on mobile */
+  .magentodata-page .filters-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  
+  .magentodata-page .filter-actions {
+    gap: 0.5rem;
+  }
+  
+  .magentodata-page .filter-actions .action-btn {
+    min-width: auto;
+    flex: 1;
+  }
+  
+  /* Empty state compact */
+  .magentodata-page .empty-state-message {
+    padding: 2rem 1rem;
+  }
+  
+  .magentodata-page .empty-state-message i {
+    font-size: 2.5rem;
+  }
+}
+
+/* ===== Responsive: Small Mobile (480px) ===== */
+@media (max-width: 480px) {
+  .magentodata-page {
+    padding: 0.375rem;
+  }
+  
+  /* Toggle buttons - more compact */
+  .magentodata-page .view-toggle {
+    gap: 0.25rem;
+  }
+  
+  .magentodata-page .toggle-btn {
+    min-width: 70px;
+    padding: 0.45rem 0.5rem;
+    font-size: 0.8rem;
+    gap: 0.25rem;
+  }
+  
+  .magentodata-page .toggle-btn span {
+    display: none;
+  }
+  
+  /* Action buttons - smaller width on very small screens but maintain height */
+  .magentodata-page .action-buttons-row .action-btn {
+    min-width: 80px;
+    font-size: 0.8rem;
+  }
+  
+  /* Search clear button more compact */
+  .magentodata-page .search-controls #clearSearchBtn {
+    min-width: auto;
+    padding: 0.6rem 0.75rem;
+  }
+  
+  /* Stats grid - 1 column on very small screens */
+  .magentodata-page .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .magentodata-page .stat-card {
+    padding: 0.75rem;
+    gap: 0.75rem;
+  }
+  
+  .magentodata-page .stat-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 0.9rem;
+  }
+  
+  .magentodata-page .stat-value {
+    font-size: 1.15rem;
+  }
+  
+  /* Pagination more compact */
+  .magentodata-page .pagination-controls {
+    padding: 0.5rem;
+    gap: 0.375rem;
+  }
+  
+  .magentodata-page .page-info {
+    font-size: 0.8rem;
+    padding: 0.25rem 0.5rem;
+  }
+  
+  .magentodata-page .pagination-controls .action-btn {
+    min-width: 80px;
+    padding: 0.5rem 0.6rem;
+    font-size: 0.8rem;
   }
 }

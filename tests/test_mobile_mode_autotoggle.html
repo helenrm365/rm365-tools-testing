@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mobile Mode Auto-Toggle Test</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    
+    .test-container {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    h1 {
+      color: #333;
+      border-bottom: 3px solid #4CAF50;
+      padding-bottom: 10px;
+    }
+    
+    h2 {
+      color: #666;
+      margin-top: 0;
+    }
+    
+    .test-step {
+      background: #f9f9f9;
+      padding: 15px;
+      margin: 10px 0;
+      border-left: 4px solid #2196F3;
+      border-radius: 4px;
+    }
+    
+    .test-step h3 {
+      margin-top: 0;
+      color: #2196F3;
+    }
+    
+    .instructions {
+      background: #FFF9C4;
+      padding: 15px;
+      border-radius: 4px;
+      margin: 15px 0;
+      border-left: 4px solid #FBC02D;
+    }
+    
+    .important {
+      background: #FFEBEE;
+      padding: 15px;
+      border-radius: 4px;
+      margin: 15px 0;
+      border-left: 4px solid #F44336;
+    }
+    
+    button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      font-size: 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    
+    button:hover {
+      background: #45a049;
+    }
+    
+    .big-button {
+      font-size: 18px;
+      padding: 15px 30px;
+      background: #FF9800;
+    }
+    
+    .big-button:hover {
+      background: #F57C00;
+    }
+    
+    .checklist {
+      background: #E8F5E9;
+      padding: 15px;
+      border-radius: 4px;
+      margin: 15px 0;
+    }
+    
+    .checklist ul {
+      margin: 10px 0;
+    }
+    
+    .checklist li {
+      margin: 8px 0;
+      padding-left: 10px;
+    }
+    
+    .code {
+      font-family: 'Courier New', monospace;
+      background: #f5f5f5;
+      padding: 2px 6px;
+      border-radius: 3px;
+      color: #d63384;
+    }
+  </style>
+</head>
+<body>
+  <div class="test-container">
+    <h1>🧪 Order Fulfillment Mobile Mode Auto-Toggle Test</h1>
+    
+    <div class="instructions">
+      <strong>📋 Test Objective:</strong> Verify that mobile mode automatically toggles based on window size (≤768px = mobile mode ON)
+    </div>
+    
+    <div class="important">
+      <strong>⚠️ Important:</strong> This test will open multiple browser windows at different sizes. Please:
+      <ul>
+        <li>Allow popups from this page</li>
+        <li>Don't close the test windows until instructed</li>
+        <li>Follow the manual verification steps in each window</li>
+      </ul>
+    </div>
+  </div>
+  
+  <div class="test-container">
+    <h2>Test Execution</h2>
+    
+    <div class="test-step">
+      <h3>Manual Test - Resize Browser Window</h3>
+      <p><strong>Best approach:</strong> Open the order fulfillment page in a separate window and manually resize it to test the auto-toggle feature.</p>
+      <button onclick="openTestWindow()">Open Order Fulfillment Page</button>
+      
+      <div class="checklist">
+        <strong>Manual Test Steps:</strong>
+        <ol>
+          <li>Click the button above to open the order fulfillment page</li>
+          <li><strong>Desktop Size (>768px):</strong> Make the window wide (e.g., 1440px)
+            <ul>
+              <li>✓ Mobile Mode toggle should be <strong>OFF</strong></li>
+              <li>✓ You should see all three columns side-by-side</li>
+            </ul>
+          </li>
+          <li><strong>Mobile Size (≤768px):</strong> Narrow the window (e.g., 600px)
+            <ul>
+              <li>✓ Mobile Mode toggle should automatically turn <strong>ON</strong></li>
+              <li>✓ You should see tabs at the top for switching between columns</li>
+              <li>✓ Only one column should be visible at a time</li>
+            </ul>
+          </li>
+          <li><strong>Back to Desktop:</strong> Widen the window again (>768px)
+            <ul>
+              <li>✓ Mobile Mode toggle should automatically turn <strong>OFF</strong></li>
+              <li>✓ All columns should be visible again</li>
+            </ul>
+          </li>
+          <li><strong>Edge Case:</strong> Try exactly 768px width
+            <ul>
+              <li>✓ Mobile Mode should be <strong>ON</strong> (breakpoint is ≤768px)</li>
+            </ul>
+          </li>
+        </ol>
+      </div>
+    </div>
+    
+    <div class="test-step">
+      <h3>Automated Window Tests</h3>
+      <p>These buttons will open windows at specific sizes for testing. Check each window matches the expected behavior:</p>
+      
+      <button onclick="openDesktop()">Test Desktop (1440x900)</button>
+      <button onclick="openTablet()">Test Tablet (1024x768)</button>
+      <button onclick="openSmallMobile()">Test Small Mobile (768x1024)</button>
+      <button onclick="openMobile()">Test Mobile (375x667)</button>
+      
+      <div class="checklist">
+        <strong>Expected Results:</strong>
+        <ul>
+          <li><strong>Desktop (1440x900):</strong> Mobile Mode OFF, all columns visible</li>
+          <li><strong>Tablet (1024x768):</strong> Mobile Mode OFF, all columns visible (tablet uses desktop layout)</li>
+          <li><strong>Small Mobile (768x1024):</strong> Mobile Mode ON, tabs visible (768px is the breakpoint)</li>
+          <li><strong>Mobile (375x667):</strong> Mobile Mode ON, tabs visible</li>
+        </ul>
+      </div>
+    </div>
+    
+    <div class="test-step">
+      <h3>🎯 Browser Console Test</h3>
+      <p>Open the order fulfillment page and run this JavaScript in the browser console to test programmatically:</p>
+      <pre style="background: #f5f5f5; padding: 10px; border-radius: 4px; overflow-x: auto;"><code>// Test the resize functionality
+async function testMobileMode() {
+  const toggle = document.getElementById('mobileModeToggle');
+  const body = document.body;
+  
+  console.log('=== Mobile Mode Auto-Toggle Test ===');
+  console.log('Current window width:', window.innerWidth);
+  console.log('Mobile mode toggle checked:', toggle.checked);
+  console.log('Body has mobile-mode class:', body.classList.contains('mobile-mode'));
+  console.log('');
+  
+  // Test: Resize to desktop
+  console.log('Test 1: Desktop size (>768px)');
+  console.log('Expected: Mobile Mode OFF');
+  console.log('Current width:', window.innerWidth);
+  console.log('Toggle:', toggle.checked ? 'ON' : 'OFF');
+  console.log('Result:', window.innerWidth > 768 && !toggle.checked ? '✓ PASS' : '✗ FAIL');
+  console.log('');
+  
+  alert('Resize window to ≤768px and check console again');
+}
+
+testMobileMode();</code></pre>
+      <button onclick="copyConsoleTest()">Copy Console Test Code</button>
+    </div>
+  </div>
+  
+  <script>
+    function openTestWindow() {
+      window.open('http://localhost:8000/orders/order-fulfillment', '_blank', 'width=1200,height=800');
+    }
+    
+    function openDesktop() {
+      window.open('http://localhost:8000/orders/order-fulfillment', 'desktop', 'width=1440,height=900');
+    }
+    
+    function openTablet() {
+      window.open('http://localhost:8000/orders/order-fulfillment', 'tablet', 'width=1024,height=768');
+    }
+    
+    function openSmallMobile() {
+      window.open('http://localhost:8000/orders/order-fulfillment', 'smallmobile', 'width=768,height=1024');
+    }
+    
+    function openMobile() {
+      window.open('http://localhost:8000/orders/order-fulfillment', 'mobile', 'width=375,height=667');
+    }
+    
+    function copyConsoleTest() {
+      const code = `// Test the resize functionality
+async function testMobileMode() {
+  const toggle = document.getElementById('mobileModeToggle');
+  const body = document.body;
+  
+  console.log('=== Mobile Mode Auto-Toggle Test ===');
+  console.log('Current window width:', window.innerWidth);
+  console.log('Mobile mode toggle checked:', toggle.checked);
+  console.log('Body has mobile-mode class:', body.classList.contains('mobile-mode'));
+  console.log('');
+  
+  // Test: Resize to desktop
+  console.log('Test 1: Desktop size (>768px)');
+  console.log('Expected: Mobile Mode OFF');
+  console.log('Current width:', window.innerWidth);
+  console.log('Toggle:', toggle.checked ? 'ON' : 'OFF');
+  console.log('Result:', window.innerWidth > 768 && !toggle.checked ? '✓ PASS' : '✗ FAIL');
+  console.log('');
+  
+  alert('Resize window to ≤768px and check console again');
+}
+
+testMobileMode();`;
+      
+      navigator.clipboard.writeText(code).then(() => {
+        alert('Test code copied! Paste it in the browser console of the order fulfillment page.');
+      }).catch(() => {
+        alert('Failed to copy. Please copy the code manually from the text box above.');
+      });
+    }
+  </script>
+</body>
+</html>

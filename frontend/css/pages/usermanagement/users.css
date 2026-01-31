@@ -46,16 +46,6 @@ html.dark-mode .user-management .page-title {
   background-clip: text;
 }
 
-/* ===== Page-specific Tab Overrides ===== */
-.user-management .inner-tabs {
-  margin: 2rem 0;
-}
-
-.user-management .tab-button {
-  flex: 1 1 auto;
-  min-width: 140px;
-}
-
 /* ===== Management Layout ===== */
 .user-management .management-wrapper {
   display: grid;
@@ -304,15 +294,6 @@ html.dark-mode .user-management .role-list-item:hover {
 @media (max-width: 768px) {
   .user-management {
     padding: 1rem;
-  }
-  
-  .user-management .inner-tabs {
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-  
-  .user-management .tab-button {
-    min-width: 100%;
   }
   
   .user-management .action-buttons-grid {

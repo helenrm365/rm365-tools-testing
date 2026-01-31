@@ -42,20 +42,35 @@ const FilterControlPanel = {
     };
 
     const getContentHeight = () => {
+      // Get computed styles for padding
+      const computedStyle = window.getComputedStyle(filterPanelBody);
+      const paddingTop = parseFloat(computedStyle.paddingTop) || 0;
+      const paddingBottom = parseFloat(computedStyle.paddingBottom) || 0;
+      const gap = parseFloat(computedStyle.gap) || 0;
+      
       // Use getBoundingClientRect for precise measurement of the entire body content
       // This works for any content structure inside filter-panel-body
       const children = Array.from(filterPanelBody.children);
-      if (children.length === 0) return 0;
+      if (children.length === 0) return paddingTop + paddingBottom;
       
-      // Calculate total height by measuring from top of first child to bottom of last child
-      const firstChild = children[0];
-      const lastChild = children[children.length - 1];
+      // Calculate total height by measuring each child and their margins
+      let totalHeight = 0;
+      children.forEach((child, index) => {
+        const rect = child.getBoundingClientRect();
+        const childStyle = window.getComputedStyle(child);
+        const marginTop = parseFloat(childStyle.marginTop) || 0;
+        const marginBottom = parseFloat(childStyle.marginBottom) || 0;
+        
+        totalHeight += rect.height + marginTop + marginBottom;
+        
+        // Add gap between children (not after last child)
+        if (index < children.length - 1 && gap > 0) {
+          totalHeight += gap;
+        }
+      });
       
-      const firstRect = firstChild.getBoundingClientRect();
-      const lastRect = lastChild.getBoundingClientRect();
-      
-      // Height = (bottom of last child - top of first child)
-      return (lastRect.bottom - firstRect.top);
+      // Add container padding and a small buffer for safety
+      return totalHeight + paddingTop + paddingBottom + 16;
     };
     
     // Set initial height when expanded (with slight delay for DOM)

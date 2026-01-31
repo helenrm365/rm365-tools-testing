@@ -48,6 +48,7 @@ class MagentoPickPackManager {
     this.initialLoadPromise = null;
     this.isMobileMode = false;
     this.activeColumn = 'ready-to-pick';
+    this.resizeHandler = null; // Store resize handler for cleanup
     this.initializeElements();
     this.attachEventListeners();
     this.setupMobileMode();
@@ -139,6 +140,12 @@ class MagentoPickPackManager {
     wsService.off('connected', this.updateLiveStatus);
     wsService.off('disconnected', this.updateLiveStatus);
     wsService.off('connection_error', this.updateLiveStatus);
+    
+    // Clean up resize handler
+    if (this.resizeHandler) {
+      window.removeEventListener('resize', this.resizeHandler);
+      this.resizeHandler = null;
+    }
   }
 
   async handleTakeoverRequest(data) {
@@ -498,31 +505,35 @@ class MagentoPickPackManager {
   }
 
   setupMobileMode() {
-    const mobileModeToggle = document.getElementById('mobileModeToggle');
     const mobileColumnTabs = document.getElementById('mobileColumnTabs');
     
-    if (!mobileModeToggle) return;
+    // Function to check if we should be in mobile mode based on window size
+    // Using 768px as breakpoint for phones only (iPad portrait and smaller)
+    // This allows "Request Desktop Site" to work (browsers report ~980px)
+    // CSS still handles responsive layout at 1024px for tablets
+    const checkMobileSize = () => {
+      return window.innerWidth <= 768;
+    };
     
-    // Check if on mobile device
-    const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
-    
-    // Restore saved preference or default to on for mobile devices
-    const savedMode = localStorage.getItem('orderFulfillmentMobileMode');
-    if (savedMode !== null) {
-      this.isMobileMode = savedMode === 'true';
-    } else {
-      this.isMobileMode = isMobileDevice;
-    }
-    
-    mobileModeToggle.checked = this.isMobileMode;
+    // Set initial state based on window size
+    this.isMobileMode = checkMobileSize();
     this.toggleMobileMode(this.isMobileMode);
     
-    // Toggle listener
-    mobileModeToggle.addEventListener('change', (e) => {
-      this.isMobileMode = e.target.checked;
-      this.toggleMobileMode(this.isMobileMode);
-      localStorage.setItem('orderFulfillmentMobileMode', this.isMobileMode);
-    });
+    // Create resize handler
+    let resizeTimeout;
+    this.resizeHandler = () => {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => {
+        const shouldBeMobile = checkMobileSize();
+        if (this.isMobileMode !== shouldBeMobile) {
+          this.isMobileMode = shouldBeMobile;
+          this.toggleMobileMode(shouldBeMobile);
+        }
+      }, 100); // Debounce resize events
+    };
+    
+    // Listen for window resize to automatically toggle mobile mode
+    window.addEventListener('resize', this.resizeHandler);
     
     // Mobile tab listeners
     if (mobileColumnTabs) {
