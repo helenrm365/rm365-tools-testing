@@ -1630,19 +1630,21 @@ class OrderFulfillmentService:
     
     def reset_daily_sessions(self) -> dict:
         """
-        Reset all order sessions daily.
+        Archive all order sessions at end of day.
         
-        This runs at midnight (or configured time) and:
-        1. Returns scanned items to inventory for all incomplete sessions with scanned items
-        2. Marks incomplete sessions (draft, in_progress, ready_to_check, ready_to_pick, approved) as 'expired'
-        3. Clears all pending takeover requests
-        4. Orders still in 'processing' on Magento will reappear in pending approvals
+        This runs at configured time and:
+        1. Returns scanned items to inventory for INCOMPLETE sessions only
+           (draft, in_progress, ready_to_check, ready_to_pick, approved)
+        2. Archives ALL sessions (including completed/cancelled) so they don't show next day
+        3. Adds audit log entry preserving the original status before archiving
+        4. Clears all pending takeover requests
         
-        The key difference from cancel is that BOTH picking AND checking sessions
-        have their items returned to inventory since they're being expired/reset.
+        The next day:
+        - Completed orders won't appear (they're done)
+        - Incomplete orders still 'processing' on Magento will reappear in pending approvals
         """
         try:
-            logger.info("🔄 Starting daily order session reset with inventory returns...")
+            logger.info("🔄 Starting daily order session archive with inventory returns...")
             
             # Get all incomplete sessions that have scanned items
             incomplete_statuses = ['draft', 'in_progress', 'ready_to_check', 'ready_to_pick', 'approved']
@@ -1692,7 +1694,7 @@ class OrderFulfillmentService:
                     total_items_returned += session_items_returned
                     logger.info(f"  Session {session.session_id} ({session.order_number}): returned {session_items_returned} items")
             
-            # Now expire all incomplete sessions in the database
+            # Now archive all sessions in the database (including completed/cancelled)
             result = self.repo.reset_daily_sessions()
             
             # Add inventory return info to result
@@ -1702,9 +1704,10 @@ class OrderFulfillmentService:
             if return_errors:
                 result['return_errors'] = return_errors
             
-            logger.info(f"✅ Daily reset completed:")
-            logger.info(f"   - Expired {result.get('sessions_expired', 0)} incomplete sessions")
-            logger.info(f"   - Returned {total_items_returned} items to inventory from {sessions_with_returns} sessions")
+            logger.info(f"✅ Daily archive completed:")
+            logger.info(f"   - Archived {result.get('sessions_archived', 0)} total sessions")
+            logger.info(f"   - By original status: {result.get('sessions_before', {})}")
+            logger.info(f"   - Returned {total_items_returned} items to inventory from {sessions_with_returns} incomplete sessions")
             logger.info(f"   - Cleared {result.get('takeover_requests_cleared', 0)} takeover requests")
             
             return result

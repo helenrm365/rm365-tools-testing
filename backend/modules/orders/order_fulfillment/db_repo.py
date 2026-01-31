@@ -362,17 +362,28 @@ class MagentoDbRepo:
             if conn:
                 self._return_connection(conn)
     
-    def get_all_sessions(self) -> List[ScanSession]:
-        """Get all sessions from the database"""
+    def get_all_sessions(self, include_archived: bool = False) -> List[ScanSession]:
+        """Get all sessions from the database.
+        
+        Args:
+            include_archived: If True, includes archived sessions. Default False.
+        """
         conn = None
         try:
             conn = self._get_connection()
             cursor = conn.cursor()
             
-            cursor.execute("""
-                SELECT * FROM order_fulfillment_sessions 
-                ORDER BY started_at DESC
-            """)
+            if include_archived:
+                cursor.execute("""
+                    SELECT * FROM order_fulfillment_sessions 
+                    ORDER BY started_at DESC
+                """)
+            else:
+                cursor.execute("""
+                    SELECT * FROM order_fulfillment_sessions 
+                    WHERE status != 'archived'
+                    ORDER BY started_at DESC
+                """)
             
             rows = cursor.fetchall()
             sessions = []
@@ -1393,48 +1404,69 @@ class MagentoDbRepo:
     
     def reset_daily_sessions(self) -> dict:
         """
-        Reset order sessions daily so incomplete orders can be re-approved.
+        Archive all order sessions at end of day.
         
-        This runs at midnight and:
-        1. Marks incomplete sessions (draft, in_progress, ready_to_check) as 'expired'
-           - These orders will reappear in pending approvals if still 'processing' on Magento
-        2. Keeps completed/cancelled sessions for historical tracking
+        This runs at configured time and:
+        1. Adds audit log entry to ALL sessions recording their final status before archiving
+        2. Marks ALL sessions as 'archived' so they don't show in the next day's list
+           - Completed orders won't appear again (they're done)
+           - Incomplete orders still 'processing' on Magento will reappear in pending approvals
         3. Clears all pending takeover requests
         
-        Returns a summary of what was reset.
+        Note: Inventory returns are handled by the service layer BEFORE this is called,
+        only for incomplete sessions (not completed/cancelled).
+        
+        Returns a summary of what was archived.
         """
         conn = None
         try:
             conn = self._get_connection()
             cursor = conn.cursor()
             
-            # Count sessions before reset
+            # Count sessions before reset by status
             cursor.execute("""
-                SELECT status, COUNT(*) FROM order_fulfillment_sessions GROUP BY status
+                SELECT status, COUNT(*) FROM order_fulfillment_sessions 
+                WHERE status != 'archived'
+                GROUP BY status
             """)
             status_counts_before = dict(cursor.fetchall())
             
-            # Get the incomplete statuses to expire
-            incomplete_statuses = ('draft', 'in_progress', 'ready_to_check', 'ready_to_pick', 'approved')
-            
-            # Count how many we're about to expire
+            # Get all non-archived sessions to add audit log entries
             cursor.execute("""
-                SELECT COUNT(*) FROM order_fulfillment_sessions 
-                WHERE status IN %s
-            """, (incomplete_statuses,))
-            sessions_to_expire = cursor.fetchone()[0]
+                SELECT session_id, status, audit_logs 
+                FROM order_fulfillment_sessions 
+                WHERE status != 'archived'
+            """)
+            sessions_to_archive = cursor.fetchall()
             
-            # Mark incomplete sessions as 'expired' so they don't block new sessions
-            # The orders will reappear in pending approvals if still 'processing' on Magento
-            cursor.execute("""
-                UPDATE order_fulfillment_sessions 
-                SET status = 'expired', 
-                    last_modified_at = NOW(),
-                    last_modified_by = 'system_daily_reset'
-                WHERE status IN %s
-            """, (incomplete_statuses,))
-            
-            expired_count = cursor.rowcount
+            # Add audit log entry to each session recording its final status
+            archived_count = 0
+            for session_id, original_status, audit_logs in sessions_to_archive:
+                # Parse existing audit logs
+                if isinstance(audit_logs, str):
+                    import json
+                    audit_logs = json.loads(audit_logs) if audit_logs else []
+                elif audit_logs is None:
+                    audit_logs = []
+                
+                # Add archive entry with original status
+                audit_logs.append({
+                    'timestamp': datetime.now().isoformat(),
+                    'action': 'archived',
+                    'user': 'system_daily_reset',
+                    'details': f'Daily reset - original status was: {original_status}'
+                })
+                
+                # Update session with new audit log and archived status
+                cursor.execute("""
+                    UPDATE order_fulfillment_sessions 
+                    SET status = 'archived',
+                        audit_logs = %s::jsonb,
+                        last_modified_at = NOW(),
+                        last_modified_by = 'system_daily_reset'
+                    WHERE session_id = %s
+                """, (json.dumps(audit_logs), session_id))
+                archived_count += 1
             
             # Clear all takeover requests
             cursor.execute("DELETE FROM order_fulfillment_takeover_requests")
@@ -1444,13 +1476,13 @@ class MagentoDbRepo:
             cursor.close()
             
             logger.info(f"✅ Daily reset completed:")
-            logger.info(f"   - Expired {expired_count} incomplete sessions")
+            logger.info(f"   - Archived {archived_count} sessions (by original status: {status_counts_before})")
             logger.info(f"   - Cleared {takeover_cleared} takeover requests")
             
             return {
                 'success': True,
                 'sessions_before': status_counts_before,
-                'sessions_expired': expired_count,
+                'sessions_archived': archived_count,
                 'takeover_requests_cleared': takeover_cleared,
                 'reset_at': datetime.now().isoformat()
             }
