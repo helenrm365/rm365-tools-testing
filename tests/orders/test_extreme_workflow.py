@@ -24,11 +24,11 @@ from collections import Counter
 import traceback
 import json
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'backend'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'backend'))
 
 from dotenv import load_dotenv
 from pathlib import Path
-load_dotenv(dotenv_path=Path(__file__).parent.parent / '.env')
+load_dotenv(dotenv_path=Path(__file__).parent.parent.parent / '.env')
 
 from modules.orders.order_fulfillment.db_repo import MagentoDbRepo
 from modules.orders.order_fulfillment.service import OrderFulfillmentService
