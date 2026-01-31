@@ -3,9 +3,11 @@
 Test script to verify cancel functionality for draft sessions
 Tests:
 1. Cancel pick-phase draft -> should return items to inventory
-2. Cancel check-phase draft -> should NOT return items
-3. Cancel ready_to_check -> should NOT return items
+2. Cancel check-phase draft -> should NOT return items (no deduction sources)
+3. Cancel ready_to_check -> SHOULD return items (has scanned items)
 4. Release session -> should set status to draft
+
+NOTE: The comprehensive cancel inventory tests are in test_cancel_inventory_returns.py
 """
 
 import sys
@@ -128,9 +130,9 @@ def test_check_draft_cancel():
         conn.close()
 
 def test_ready_to_check_cancel():
-    """Test that cancelling a ready_to_check session does NOT return items"""
+    """Test that cancelling a ready_to_check session DOES return items (has scanned items)"""
     print("\n" + "="*60)
-    print("TEST 3: Cancel ready_to_check should NOT return items")
+    print("TEST 3: Cancel ready_to_check SHOULD return items")
     print("="*60)
     
     conn = get_connection()

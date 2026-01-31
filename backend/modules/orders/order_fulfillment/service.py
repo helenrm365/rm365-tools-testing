@@ -562,18 +562,16 @@ class OrderFulfillmentService:
     
     def cancel_session(self, session_id: str, user_id: Optional[str] = None) -> dict:
         """
-        Cancel a session and optionally return scanned items to inventory.
+        Cancel a session and return scanned items to inventory.
         
-        PICKING SESSIONS (session_type == 'pick' or 'return'):
-        - in_progress: Returns items to inventory (actively undoing picking)
-        - draft: Returns items to inventory (paused picking session being cancelled)
+        IMPORTANT: Any session with scanned items that is NOT completed will have
+        those items returned to inventory. This includes:
+        - draft: Paused picking session being cancelled
+        - in_progress: Actively picking session being cancelled
+        - ready_to_check: Picked items waiting for verification - items should still return
+        - approved: Not started yet, nothing to return
         
-        CHECKING SESSIONS (session_type == 'check'):
-        - in_progress (check): Just resets checking, does NOT return items
-        - draft (check): Just resets checking, does NOT return items
-        - ready_to_check: Same as above, items stay picked
-        
-        To return items during checking phase, user must send back to picking first.
+        Completed sessions should NOT be cancelled (they're already done/shipped).
         
         Returns dict with success status, message, and items_returned count.
         """
@@ -582,16 +580,19 @@ class OrderFulfillmentService:
         if not session:
             return {"success": False, "message": "Session not found", "items_returned": 0}
         
+        # Don't allow cancelling completed sessions
+        if session.status == 'completed':
+            return {"success": False, "message": "Cannot cancel a completed session", "items_returned": 0}
+        
         items_returned = 0
         return_details = []
-        is_checking_session = session.session_type == 'check' or session.status == 'ready_to_check'
-        is_picking_session = session.session_type in ('pick', 'return') and session.status != 'ready_to_check'
         
-        # Return items to inventory for PICKING sessions (in_progress or draft)
-        # For checking sessions, items stay out - user must send back to picking first
-        should_return_items = is_picking_session and session.status in ('in_progress', 'draft')
+        # Return items for ANY incomplete session that has scanned items
+        # This includes: draft, in_progress, ready_to_check
+        # Does NOT include: approved (nothing scanned), completed (already shipped)
+        incomplete_with_scans = session.status in ('draft', 'in_progress', 'ready_to_check')
         
-        if should_return_items and session.items_scanned:
+        if incomplete_with_scans and session.items_scanned:
             for scanned_item in session.items_scanned:
                 sku = scanned_item.get('sku')
                 qty_scanned = scanned_item.get('qty_scanned', 0)
@@ -630,8 +631,6 @@ class OrderFulfillmentService:
         if success:
             if items_returned > 0:
                 message = f"Session cancelled. {int(items_returned)} item(s) returned to inventory."
-            elif is_checking_session:
-                message = "Checking cancelled. Items remain picked - send back to picking first to return them to inventory."
             else:
                 message = "Session cancelled."
             return {"success": True, "message": message, "items_returned": int(items_returned), "details": return_details}
