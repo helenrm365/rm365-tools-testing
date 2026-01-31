@@ -25,7 +25,8 @@ class CollaborationManager {
     if (this.isInitialized) {
       return;
     }
-    this.currentUserId = currentUser?.username || 'unknown';
+    // Use user_id if available, otherwise fall back to username - must match what websocket.js sends
+    this.currentUserId = currentUser?.user_id || currentUser?.username || 'unknown';
     this.currentUsername = currentUser?.username || 'Guest';
 
     try {

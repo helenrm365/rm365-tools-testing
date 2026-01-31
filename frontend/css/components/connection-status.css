@@ -196,3 +196,142 @@ html.dark-mode .connection-user-info {
   right: 0;
   width: auto;
 }
+
+/* ===== Collaboration Users List ===== */
+.collab-users-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-left: 0.75rem;
+  margin-left: 0.5rem;
+  border-left: 1px solid var(--border);
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+html.dark-mode .collab-users-list {
+  border-left-color: rgba(255, 255, 255, 0.1);
+}
+
+.collab-user {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-s);
+  background: var(--bg-subtle);
+  transition: background-color 0.15s ease;
+}
+
+html.dark-mode .collab-user {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.collab-user:hover {
+  background: var(--bg-hover);
+}
+
+html.dark-mode .collab-user:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.collab-user-avatar {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.collab-user-name {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+}
+
+html.dark-mode .collab-user-name {
+  color: var(--text);
+}
+
+.collab-no-users {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 0.25rem 0;
+}
+
+html.dark-mode .collab-no-users {
+  color: var(--text-muted);
+}
+
+/* ===== Cell Editing Indicators ===== */
+.collab-cell-editing {
+  position: relative;
+  box-shadow: inset 0 0 0 2px var(--collab-user-color-1, #4ECDC4);
+}
+
+.collab-cell-editing[data-collab-count="2"] {
+  box-shadow: 
+    inset 0 0 0 2px var(--collab-user-color-1, #4ECDC4),
+    inset 0 0 0 4px var(--collab-user-color-2, #FF6B6B);
+}
+
+.collab-user-indicator {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 0.5rem;
+  font-weight: 700;
+  z-index: 10;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  border: 2px solid var(--bg);
+}
+
+html.dark-mode .collab-user-indicator {
+  border-color: var(--bg);
+}
+
+/* Flash animation for updated rows */
+.collab-flash-update {
+  animation: collab-flash 2s ease-out;
+}
+
+@keyframes collab-flash {
+  0% {
+    background-color: rgba(78, 205, 196, 0.3);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+html.dark-mode .collab-flash-update {
+  animation: collab-flash-dark 2s ease-out;
+}
+
+@keyframes collab-flash-dark {
+  0% {
+    background-color: rgba(78, 205, 196, 0.2);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
