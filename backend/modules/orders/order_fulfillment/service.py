@@ -1574,7 +1574,7 @@ class OrderFulfillmentService:
             
             # Get all order numbers that already have ACTIVE sessions
             # Excludes: archived, cancelled - those orders should reappear for re-approval
-            existing_sessions = self.repo.get_sessions_by_status(['draft', 'approved', 'in_progress', 'ready_to_check', 'ready_to_pick', 'completed'])
+            existing_sessions = self.repo.get_sessions_by_status(['draft', 'approved', 'in_progress', 'ready_to_check', 'completed'])
             existing_order_numbers = {session.order_number for session in existing_sessions}
             logger.info(f"Found {len(existing_order_numbers)} orders that already have active sessions: {existing_order_numbers}")
             
@@ -1653,7 +1653,7 @@ class OrderFulfillmentService:
         
         This runs at configured time and:
         1. Returns scanned items to inventory for INCOMPLETE sessions only
-           (draft, in_progress, ready_to_check, ready_to_pick, approved)
+           (draft, in_progress, ready_to_check, approved)
         2. Archives ALL sessions (including completed/cancelled) so they don't show next day
         3. Adds audit log entry preserving the original status before archiving
         4. Clears all pending takeover requests
@@ -1666,7 +1666,7 @@ class OrderFulfillmentService:
             logger.info("🔄 Starting daily order session archive with inventory returns...")
             
             # Get all incomplete sessions that have scanned items
-            incomplete_statuses = ['draft', 'in_progress', 'ready_to_check', 'ready_to_pick', 'approved']
+            incomplete_statuses = ['draft', 'in_progress', 'ready_to_check', 'approved']
             sessions_with_items = []
             
             for status in incomplete_statuses:

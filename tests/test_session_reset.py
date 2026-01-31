@@ -3,7 +3,7 @@
 Test Session Reset Functionality
 
 Tests that the daily session reset:
-1. Expires all incomplete sessions (draft, in_progress, ready_to_check, ready_to_pick, approved)
+1. Archives all incomplete sessions (draft, in_progress, ready_to_check, approved)
 2. Returns inventory for sessions that had items scanned
 3. Orders reappear in pending approvals after reset
 4. Pending orders filter correctly excludes all active session statuses
@@ -225,7 +225,7 @@ class SessionResetTester:
     def test_pending_filter_includes_all_active_statuses(self):
         """Test that pending orders filter correctly excludes all active session statuses"""
         # Create sessions with each active status
-        statuses_to_test = ['draft', 'approved', 'in_progress', 'ready_to_check', 'ready_to_pick']
+        statuses_to_test = ['draft', 'approved', 'in_progress', 'ready_to_check']
         created = []
         
         for status in statuses_to_test:
@@ -240,7 +240,7 @@ class SessionResetTester:
                 excluded_order_numbers.add(session.order_number)
         
         # Get the pending orders filter logic - now includes all active statuses
-        all_sessions = self.repo.get_sessions_by_status(['draft', 'approved', 'in_progress', 'ready_to_check', 'ready_to_pick', 'completed'])
+        all_sessions = self.repo.get_sessions_by_status(['draft', 'approved', 'in_progress', 'ready_to_check', 'completed'])
         filter_order_numbers = {s.order_number for s in all_sessions}
         
         # draft and ready_to_pick should now be in the filter
@@ -251,14 +251,14 @@ class SessionResetTester:
                 if status not in ('completed', 'cancelled', 'archived'):
                     missing_from_filter.append(status)
         
-        # If draft or ready_to_pick are missing, the filter is incomplete
-        assert 'draft' not in missing_from_filter and 'ready_to_pick' not in missing_from_filter, \
+        # If draft is missing, the filter is incomplete
+        assert 'draft' not in missing_from_filter, \
             f"Pending filter is missing statuses: {missing_from_filter}"
     
     def test_reset_expires_all_incomplete_statuses(self):
         """Test that reset expires all incomplete session statuses"""
         # Create sessions with each incomplete status
-        incomplete_statuses = ['draft', 'approved', 'in_progress', 'ready_to_check', 'ready_to_pick']
+        incomplete_statuses = ['draft', 'approved', 'in_progress', 'ready_to_check']
         created = {}
         
         for status in incomplete_statuses:
