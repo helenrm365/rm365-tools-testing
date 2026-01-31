@@ -1,39 +1,30 @@
 """
-Service layer for Magento invoice pick/pack operations
+Order Fulfillment Service - Business logic for order picking and checking operations
 
 ARCHITECTURE OVERVIEW:
 ======================
-This system integrates with Magento in a READ-ONLY manner:
+This service manages the order fulfillment workflow:
+- Session management (start, pause/resume, complete, cancel)
+- Inventory deduction and return during picking
+- Order approval and tracking
+- Integration with Magento for READ-ONLY order data
 
-1. READ from Magento:
-   - Fetch orders in 'processing' status
-   - Fetch invoice details
-   - Fetch product information
-   
-2. NEVER WRITE to Magento:
-   - Order approvals are tracked locally only
-   - Order status changes are tracked locally only
-   - Picking/packing progress is tracked locally only
-   - Orders remain in their original Magento status (typically 'processing')
+Magento Integration (READ-ONLY):
+- Fetch orders in 'processing' status
+- Fetch invoice details and product information
+- Never writes to Magento - all state is managed locally
 
-3. Local State Management:
-   - Sessions are created locally when orders are approved
-   - Session status tracks: approved → in_progress → ready_to_check → completed
-   - All state changes are persisted in local JSON files (could be database)
-   - Magento is queried only to fetch initial order/invoice data
-
-This architecture ensures:
-- Magento remains the source of truth for order data
-- We don't interfere with Magento's order management
-- We can track our fulfillment process independently
-- No risk of corrupting Magento data
+Session Workflow:
+- approved → in_progress → ready_to_check → completed
+- Sessions can be cancelled at various stages
+- Inventory is returned when pick-phase sessions are cancelled
 """
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 
 from .client import get_magento_client
-from .repo import MagentoRepo
+from .db_repo import MagentoDbRepo as OrderFulfillmentRepo  # Use database-backed repo
 from .models import MagentoInvoice
 from .schemas import (
     InvoiceDetailSchema,
@@ -48,12 +39,12 @@ from .schemas import (
 logger = logging.getLogger(__name__)
 
 
-class MagentoService:
-    """Business logic for invoice scanning and pick/pack operations"""
+class OrderFulfillmentService:
+    """Business logic for order fulfillment - picking, checking, and session management"""
     
     def __init__(self):
         self.client = get_magento_client()
-        self.repo = MagentoRepo()
+        self.repo = OrderFulfillmentRepo()
     
     def lookup_invoice(self, order_number: str) -> Optional[InvoiceDetailSchema]:
         """
@@ -117,11 +108,20 @@ class MagentoService:
                 )
             
             elif existing_session.status == "ready_to_check":
-                # Ready to check - cannot start picking, needs checking
-                raise ValueError(
-                    f"Order #{invoice.order_number} is ready for checking. "
-                    "Cannot start a new picking session."
-                )
+                # Ready to check - if session_type is 'check', allow resuming for verification
+                if request.session_type == "check":
+                    # Resume the session for checking
+                    session = self.repo.start_checking_session(
+                        session_id=existing_session.session_id,
+                        user_id=user_id
+                    )
+                    return self._session_to_status(session, invoice)
+                else:
+                    # Not a check session - cannot start picking
+                    raise ValueError(
+                        f"Order #{invoice.order_number} is ready for checking. "
+                        "Cannot start a new picking session."
+                    )
             
             elif existing_session.status == "draft":
                 # Draft exists - warn user but they can take over by claiming
@@ -177,18 +177,7 @@ class MagentoService:
     
     def _get_any_session_for_invoice(self, invoice_id: str) -> Optional:
         """Get the most recent session for an invoice, regardless of status"""
-        from .models import ScanSession
-        sessions = [
-            s for s in self.repo._sessions.values()
-            if s.invoice_id == invoice_id
-        ]
-        
-        if not sessions:
-            return None
-        
-        # Sort by started_at descending to get most recent
-        sessions.sort(key=lambda s: s.started_at, reverse=True)
-        return sessions[0]
+        return self.repo.get_any_session_for_invoice(invoice_id)
 
     
     def scan_product(self, request: ScanRequestSchema) -> ScanResultSchema:
@@ -248,6 +237,17 @@ class MagentoService:
         # Handle both qty_expected and qty_invoiced for backwards compatibility
         expected_qty = expected_item.get('qty_expected') or expected_item.get('qty_invoiced') or 1
         
+        # Handle negative quantities (returns/undos)
+        if request.quantity < 0:
+            return self._handle_return_scan(
+                request=request,
+                lookup_sku=lookup_sku,
+                expected_item=expected_item,
+                session=session,
+                current_qty=current_qty,
+                expected_qty=expected_qty
+            )
+        
         # Check for overpicking BEFORE allowing the scan
         if new_qty > expected_qty:
             return ScanResultSchema(
@@ -283,8 +283,8 @@ class MagentoService:
                         all_items_complete=False,
                         warning="Insufficient inventory - order should be cancelled"
                     )
-                # Deduct the stock
-                self._deduct_inventory_stock(item_id, request.quantity, request.field)
+                # Deduct the stock and get deduction records
+                deduction_records = self._deduct_inventory_stock(item_id, request.quantity, request.field)
             else:
                 # No item_id found - block the scan
                 return ScanResultSchema(
@@ -300,7 +300,7 @@ class MagentoService:
                     all_items_complete=False
                 )
         except Exception as e:
-            print(f"[MagentoService] Error checking/deducting inventory: {e}")
+            print(f"[OrderFulfillmentService] Error checking/deducting inventory: {e}")
             return ScanResultSchema(
                 success=False,
                 message=f"❌ Inventory error: {str(e)}\n\nPlease investigate before continuing.",
@@ -314,8 +314,8 @@ class MagentoService:
                 all_items_complete=False
             )
         
-        # Stock is available - now add the scanned item
-        self.repo.add_scanned_item(request.session_id, lookup_sku, request.quantity)
+        # Stock is available - now add the scanned item with deduction tracking
+        self.repo.add_scanned_item(request.session_id, lookup_sku, request.quantity, deduction_records)
         
         # Determine result
         is_complete = new_qty >= expected_qty
@@ -341,6 +341,189 @@ class MagentoService:
             is_overpicked=False,
             all_items_complete=all_complete
         )
+
+    def _handle_return_scan(self, request: ScanRequestSchema, lookup_sku: str, 
+                           expected_item: dict, session, current_qty: float, 
+                           expected_qty: float) -> ScanResultSchema:
+        """
+        Handle negative quantity scans (returning items to inventory).
+        
+        If field is 'auto': Returns items in REVERSE order of how they were taken:
+        - Taking order:   shelf_lt1_qty → shelf_gt1_qty → top_floor_total
+        - Return order:   top_floor_total → shelf_gt1_qty → shelf_lt1_qty
+        
+        If field is specific (e.g. 'shelf_lt1_qty'): Returns directly to that location.
+        
+        Uses deduction sources to track what's available to return from each location.
+        """
+        return_qty = abs(request.quantity)  # Make positive for calculations
+        
+        # Validate: can't return more than scanned
+        if return_qty > current_qty:
+            return ScanResultSchema(
+                success=False,
+                message=f"❌ Cannot return {int(return_qty)}: Only {int(current_qty)} have been scanned.",
+                sku=lookup_sku,
+                item_name=expected_item['name'],
+                qty_expected=expected_qty,
+                qty_scanned=current_qty,
+                qty_remaining=max(0, expected_qty - current_qty),
+                is_complete=False,
+                is_overpicked=False,
+                all_items_complete=False
+            )
+        
+        # Get item_id for inventory updates
+        item_id = self._get_item_id_by_sku(lookup_sku)
+        if not item_id:
+            return ScanResultSchema(
+                success=False,
+                message=f"❌ Cannot return: SKU {lookup_sku} not found in inventory.",
+                sku=lookup_sku,
+                item_name=expected_item['name'],
+                qty_expected=expected_qty,
+                qty_scanned=current_qty,
+                qty_remaining=max(0, expected_qty - current_qty),
+                is_complete=False,
+                is_overpicked=False,
+                all_items_complete=False
+            )
+        
+        field_names = {
+            'shelf_lt1_qty': 'Shelf <1 Year',
+            'shelf_gt1_qty': 'Shelf >1 Year', 
+            'top_floor_total': 'Top Floor'
+        }
+        
+        # Get deduction sources to know total remaining to return
+        deduction_sources = self.repo.get_deduction_sources(request.session_id, lookup_sku)
+        
+        # Case 1: Specific field selected (not 'auto') - return directly to that location
+        # User can return items to ANY location, we just track total remaining to return
+        if request.field != 'auto':
+            try:
+                # Return to the specified inventory location
+                self._return_inventory_stock(item_id, return_qty, request.field)
+                
+                # Update tracked quantities
+                self.repo.reduce_scanned_quantity(request.session_id, lookup_sku, return_qty)
+                
+                # Reduce remaining from deduction sources (any sources, in reverse order)
+                # This just tracks "how many still need to be returned" - not per location
+                remaining_to_deduct = return_qty
+                for field in ['top_floor_total', 'shelf_gt1_qty', 'shelf_lt1_qty']:
+                    if remaining_to_deduct <= 0:
+                        break
+                    for source in deduction_sources:
+                        if source['field'] == field:
+                            available = source.get('remaining', source['quantity'])
+                            if available > 0:
+                                deduct_from_here = min(remaining_to_deduct, available)
+                                self.repo.update_deduction_source_remaining(
+                                    request.session_id, lookup_sku, field, deduct_from_here
+                                )
+                                remaining_to_deduct -= deduct_from_here
+                            break
+                
+                new_qty = current_qty - return_qty
+                location_name = field_names.get(request.field, request.field)
+                
+                return ScanResultSchema(
+                    success=True,
+                    message=f"↩️ Returned {int(return_qty)} to {location_name}. {expected_item['name']} ({lookup_sku})",
+                    sku=lookup_sku,
+                    item_name=expected_item['name'],
+                    qty_expected=expected_qty,
+                    qty_scanned=new_qty,
+                    qty_remaining=max(0, expected_qty - new_qty),
+                    is_complete=new_qty >= expected_qty,
+                    is_overpicked=False,
+                    all_items_complete=self._check_all_items_complete(session)
+                )
+            except Exception as e:
+                return ScanResultSchema(
+                    success=False,
+                    message=f"❌ Error returning to inventory: {str(e)}",
+                    sku=lookup_sku,
+                    item_name=expected_item['name'],
+                    qty_expected=expected_qty,
+                    qty_scanned=current_qty,
+                    qty_remaining=max(0, expected_qty - current_qty),
+                    is_complete=False,
+                    is_overpicked=False,
+                    all_items_complete=False
+                )
+        
+        # Case 2: Auto mode - use reverse order based on deduction sources
+        # Build a map of remaining by field (deduction_sources already fetched above)
+        remaining_by_field = {}
+        for source in deduction_sources:
+            remaining_by_field[source['field']] = source.get('remaining', source['quantity'])
+        
+        # REVERSE order for returns: top_floor_total → shelf_gt1_qty → shelf_lt1_qty
+        return_priority = ['top_floor_total', 'shelf_gt1_qty', 'shelf_lt1_qty']
+        
+        try:
+            remaining_to_return = return_qty
+            returned_locations = []
+            
+            for field in return_priority:
+                if remaining_to_return <= 0:
+                    break
+                
+                available = remaining_by_field.get(field, 0)
+                if available <= 0:
+                    continue
+                
+                # Return as many as possible to this location
+                qty_to_return_here = min(remaining_to_return, available)
+                
+                # Return to inventory
+                self._return_inventory_stock(item_id, qty_to_return_here, field)
+                
+                # Update deduction source remaining
+                self.repo.update_deduction_source_remaining(request.session_id, lookup_sku, field, qty_to_return_here)
+                
+                returned_locations.append(f"{field_names.get(field, field)}: {int(qty_to_return_here)}")
+                remaining_to_return -= qty_to_return_here
+            
+            # Update scanned quantity
+            self.repo.reduce_scanned_quantity(request.session_id, lookup_sku, return_qty)
+            new_qty = current_qty - return_qty
+            
+            # Build message
+            if len(returned_locations) == 1:
+                location_msg = returned_locations[0].split(':')[0]  # Just the location name
+                message = f"↩️ Returned {int(return_qty)} to {location_msg}. {expected_item['name']} ({lookup_sku})"
+            else:
+                message = f"↩️ Returned {int(return_qty)} to stock ({', '.join(returned_locations)}). {expected_item['name']} ({lookup_sku})"
+            
+            return ScanResultSchema(
+                success=True,
+                message=message,
+                sku=lookup_sku,
+                item_name=expected_item['name'],
+                qty_expected=expected_qty,
+                qty_scanned=new_qty,
+                qty_remaining=max(0, expected_qty - new_qty),
+                is_complete=new_qty >= expected_qty,
+                is_overpicked=False,
+                all_items_complete=self._check_all_items_complete(session)
+            )
+            
+        except Exception as e:
+            return ScanResultSchema(
+                success=False,
+                message=f"❌ Error returning to inventory: {str(e)}",
+                sku=lookup_sku,
+                item_name=expected_item['name'],
+                qty_expected=expected_qty,
+                qty_scanned=current_qty,
+                qty_remaining=max(0, expected_qty - current_qty),
+                is_complete=False,
+                is_overpicked=False,
+                all_items_complete=False
+            )
     
     def get_session_status(self, session_id: str) -> Optional[SessionStatusSchema]:
         """Get current status of a scanning session"""
@@ -377,9 +560,112 @@ class MagentoService:
         
         return self.repo.complete_session(request.session_id, user_id=user_id)
     
-    def cancel_session(self, session_id: str, user_id: Optional[str] = None) -> bool:
-        """Cancel a session"""
-        return self.repo.cancel_session(session_id, user_id=user_id)
+    def cancel_session(self, session_id: str, user_id: Optional[str] = None) -> dict:
+        """
+        Cancel a session and optionally return scanned items to inventory.
+        
+        PICKING SESSIONS (session_type == 'pick' or 'return'):
+        - in_progress: Returns items to inventory (actively undoing picking)
+        - draft: Returns items to inventory (paused picking session being cancelled)
+        
+        CHECKING SESSIONS (session_type == 'check'):
+        - in_progress (check): Just resets checking, does NOT return items
+        - draft (check): Just resets checking, does NOT return items
+        - ready_to_check: Same as above, items stay picked
+        
+        To return items during checking phase, user must send back to picking first.
+        
+        Returns dict with success status, message, and items_returned count.
+        """
+        session = self.repo.get_session(session_id)
+        
+        if not session:
+            return {"success": False, "message": "Session not found", "items_returned": 0}
+        
+        items_returned = 0
+        return_details = []
+        is_checking_session = session.session_type == 'check' or session.status == 'ready_to_check'
+        is_picking_session = session.session_type in ('pick', 'return') and session.status != 'ready_to_check'
+        
+        # Return items to inventory for PICKING sessions (in_progress or draft)
+        # For checking sessions, items stay out - user must send back to picking first
+        should_return_items = is_picking_session and session.status in ('in_progress', 'draft')
+        
+        if should_return_items and session.items_scanned:
+            for scanned_item in session.items_scanned:
+                sku = scanned_item.get('sku')
+                qty_scanned = scanned_item.get('qty_scanned', 0)
+                deduction_sources = scanned_item.get('deduction_sources', [])
+                
+                if qty_scanned > 0 and deduction_sources:
+                    # Get item_id from inventory_metadata for this SKU
+                    item_id = self._get_item_id_from_sku(sku)
+                    if not item_id:
+                        print(f"[OrderFulfillmentService] Warning: Could not find item_id for SKU {sku}")
+                        continue
+                    
+                    # Return each item to its original location based on deduction sources
+                    for source in deduction_sources:
+                        field = source.get('field')
+                        remaining = source.get('remaining', 0)  # Items still held from this location
+                        
+                        if remaining > 0 and field:
+                            try:
+                                self._return_inventory_stock(item_id, remaining, field)
+                                items_returned += remaining
+                                
+                                field_names = {
+                                    'shelf_lt1_qty': 'Shelf <1 Year',
+                                    'shelf_gt1_qty': 'Shelf >1 Year',
+                                    'top_floor_total': 'Top Floor'
+                                }
+                                return_details.append(f"{sku}: {int(remaining)} → {field_names.get(field, field)}")
+                                print(f"[OrderFulfillmentService] Cancel return: {remaining} of {sku} to {field}")
+                            except Exception as e:
+                                print(f"[OrderFulfillmentService] Error returning {sku} to {field}: {e}")
+        
+        # Now actually cancel the session in the database
+        success = self.repo.cancel_session(session_id, user_id=user_id)
+        
+        if success:
+            if items_returned > 0:
+                message = f"Session cancelled. {int(items_returned)} item(s) returned to inventory."
+            elif is_checking_session:
+                message = "Checking cancelled. Items remain picked - send back to picking first to return them to inventory."
+            else:
+                message = "Session cancelled."
+            return {"success": True, "message": message, "items_returned": int(items_returned), "details": return_details}
+        else:
+            return {"success": False, "message": "Failed to cancel session", "items_returned": 0}
+    
+    def _get_item_id_from_sku(self, sku: str) -> Optional[str]:
+        """Get item_id from inventory_metadata table for a given SKU"""
+        conn = None
+        try:
+            try:
+                from core.db import get_inventory_log_connection
+                conn = get_inventory_log_connection()
+            except (ValueError, Exception):
+                from core.db import get_psycopg_connection
+                conn = get_psycopg_connection()
+            
+            cursor = conn.cursor()
+            cursor.execute("SELECT item_id FROM inventory_metadata WHERE sku = %s", (sku,))
+            row = cursor.fetchone()
+            cursor.close()
+            
+            if conn:
+                try:
+                    from core.db import return_inventory_connection
+                    return_inventory_connection(conn)
+                except:
+                    from core.db import return_psycopg_connection
+                    return_psycopg_connection(conn)
+            
+            return row[0] if row else None
+        except Exception as e:
+            print(f"[OrderFulfillmentService] Error getting item_id for SKU {sku}: {e}")
+            return None
     
     def get_active_sessions(self, user_id: Optional[str] = None) -> List[SessionStatusSchema]:
         """Get all active (in_progress) sessions"""
@@ -544,7 +830,7 @@ class MagentoService:
                 conn = get_inventory_log_connection()
                 conn_type = 'inventory'
             except (ValueError, Exception) as e:
-                print(f"[MagentoService] Inventory database not available ({e}), using main database")
+                print(f"[OrderFulfillmentService] Inventory database not available ({e}), using main database")
                 from core.db import get_psycopg_connection, return_psycopg_connection
                 conn = get_psycopg_connection()
                 conn_type = 'psycopg'
@@ -567,7 +853,7 @@ class MagentoService:
             
             return result[0] if result else None
         except Exception as e:
-            print(f"[MagentoService] Error looking up item_id: {e}")
+            print(f"[OrderFulfillmentService] Error looking up item_id: {e}")
             return None
     
     def _check_inventory_availability(self, item_id: str, quantity: int, field: str = "auto") -> dict:
@@ -594,7 +880,7 @@ class MagentoService:
                 conn = get_inventory_log_connection()
                 conn_type = 'inventory'
             except (ValueError, Exception) as e:
-                print(f"[MagentoService] Inventory database not available ({e}), using main database")
+                print(f"[OrderFulfillmentService] Inventory database not available ({e}), using main database")
                 from core.db import get_psycopg_connection
                 conn = get_psycopg_connection()
                 conn_type = 'psycopg'
@@ -653,19 +939,22 @@ class MagentoService:
             return {'has_stock': True, 'detail': detail}
             
         except Exception as e:
-            print(f"[MagentoService] Error checking inventory availability: {e}")
+            print(f"[OrderFulfillmentService] Error checking inventory availability: {e}")
             return {
                 'has_stock': False,
                 'detail': f"Error checking inventory: {str(e)}"
             }
     
-    def _deduct_inventory_stock(self, item_id: str, quantity: int, field: str = "auto"):
+    def _deduct_inventory_stock(self, item_id: str, quantity: int, field: str = "auto") -> list:
         """
         Deduct stock from inventory_metadata
         field: 'auto' (smart shelf logic), 'shelf_lt1_qty', 'shelf_gt1_qty', or 'top_floor_total'
+        
+        Returns: List of deduction records [{'field': str, 'quantity': int}, ...]
         """
         conn = None
         conn_type = None
+        deduction_records = []
         
         def return_conn():
             if conn:
@@ -683,7 +972,7 @@ class MagentoService:
                 conn = get_inventory_log_connection()
                 conn_type = 'inventory'
             except (ValueError, Exception) as e:
-                print(f"[MagentoService] Inventory database not available ({e}), using main database")
+                print(f"[OrderFulfillmentService] Inventory database not available ({e}), using main database")
                 from core.db import get_psycopg_connection
                 conn = get_psycopg_connection()
                 conn_type = 'psycopg'
@@ -704,7 +993,7 @@ class MagentoService:
             if not result:
                 cursor.close()
                 return_conn()
-                return
+                return deduction_records
             
             shelf_lt1, shelf_gt1, top_floor = result
             shelf_lt1 = shelf_lt1 or 0
@@ -731,24 +1020,28 @@ class MagentoService:
                     )
                 
                 updates.append((field, -needed))
+                deduction_records.append({'field': field, 'quantity': needed})
             else:
                 # Auto mode: Use smart shelf priority
                 # Priority 1: Take from shelf_lt1_qty first
                 if shelf_lt1 > 0:
                     take_from_lt1 = min(needed, shelf_lt1)
                     updates.append(('shelf_lt1_qty', -take_from_lt1))
+                    deduction_records.append({'field': 'shelf_lt1_qty', 'quantity': take_from_lt1})
                     needed -= take_from_lt1
                 
                 # Priority 2: Take from shelf_gt1_qty if needed
                 if needed > 0 and shelf_gt1 > 0:
                     take_from_gt1 = min(needed, shelf_gt1)
                     updates.append(('shelf_gt1_qty', -take_from_gt1))
+                    deduction_records.append({'field': 'shelf_gt1_qty', 'quantity': take_from_gt1})
                     needed -= take_from_gt1
                 
                 # Priority 3: Take from top_floor_total if still needed
                 if needed > 0 and top_floor > 0:
                     take_from_top = min(needed, top_floor)
                     updates.append(('top_floor_total', -take_from_top))
+                    deduction_records.append({'field': 'top_floor_total', 'quantity': take_from_top})
                     needed -= take_from_top
                 
                 # If we couldn't fulfill the entire request, raise an error
@@ -777,8 +1070,61 @@ class MagentoService:
             cursor.close()
             return_conn()
             
+            return deduction_records
+            
         except Exception as e:
-            print(f"[MagentoService] Error deducting inventory: {e}")
+            print(f"[OrderFulfillmentService] Error deducting inventory: {e}")
+            raise
+
+    def _return_inventory_stock(self, item_id: str, quantity: int, field: str):
+        """
+        Return stock to a specific location in inventory_metadata
+        field: 'shelf_lt1_qty', 'shelf_gt1_qty', or 'top_floor_total'
+        """
+        conn = None
+        conn_type = None
+        
+        def return_conn():
+            if conn:
+                if conn_type == 'inventory':
+                    from core.db import return_inventory_connection
+                    return_inventory_connection(conn)
+                else:
+                    from core.db import return_psycopg_connection
+                    return_psycopg_connection(conn)
+        
+        try:
+            # Try inventory database first, fallback to main database
+            try:
+                from core.db import get_inventory_log_connection
+                conn = get_inventory_log_connection()
+                conn_type = 'inventory'
+            except (ValueError, Exception) as e:
+                print(f"[OrderFulfillmentService] Inventory database not available ({e}), using main database")
+                from core.db import get_psycopg_connection
+                conn = get_psycopg_connection()
+                conn_type = 'psycopg'
+            
+            cursor = conn.cursor()
+            
+            # Add stock back to the specified field
+            cursor.execute(
+                f"""
+                UPDATE inventory_metadata
+                SET {field} = COALESCE({field}, 0) + %s
+                WHERE item_id = %s
+                """,
+                (quantity, item_id)
+            )
+            
+            conn.commit()
+            cursor.close()
+            return_conn()
+            
+            print(f"[OrderFulfillmentService] Returned {quantity} to {field} for item {item_id}")
+            
+        except Exception as e:
+            print(f"[OrderFulfillmentService] Error returning inventory: {e}")
             raise
     
     # Collaborative session management methods
@@ -894,13 +1240,19 @@ class MagentoService:
         
         sessions = []
         
-        # Get all sessions based on filters
-        for session in self.repo._sessions.values():
+        # Get all sessions from database
+        all_sessions = self.repo.get_all_sessions()
+        
+        for session in all_sessions:
             # Skip completed/cancelled unless explicitly requested
             if not include_completed and session.status in ["completed", "cancelled"]:
                 # Only include recently completed/cancelled (last 24 hours)
                 if session.completed_at:
-                    hours_ago = (datetime.now() - session.completed_at).total_seconds() / 3600
+                    # Use timezone-aware datetime for comparison
+                    completed_at = session.completed_at
+                    if completed_at.tzinfo is None:
+                        completed_at = completed_at.replace(tzinfo=timezone.utc)
+                    hours_ago = (datetime.now(timezone.utc) - completed_at).total_seconds() / 3600
                     if hours_ago > 24:
                         continue
             
@@ -1061,13 +1413,20 @@ class MagentoService:
         from .schemas import OrderTrackingBoardSchema, OrderTrackingColumnSchema
         
         # Get sessions for each column
-        # Ready to Pick: cancelled, draft, approved, in-progress
+        # Ready to Pick: cancelled, draft, approved, in-progress (only for pick/return session types)
         ready_to_pick_sessions = self.repo.get_sessions_by_status(
             ["cancelled", "draft", "approved", "in_progress"]
         )
+        # Filter to only include picking sessions (not checking sessions)
+        ready_to_pick_sessions = [s for s in ready_to_pick_sessions if s.session_type != 'check']
         
-        # Ready to Check
+        # Ready to Check: includes ready_to_check status AND in-progress/draft check sessions
         ready_to_check_sessions = self.repo.get_sessions_by_status(["ready_to_check"])
+        
+        # Also add checking sessions that are in_progress or draft
+        checking_sessions = self.repo.get_sessions_by_status(["in_progress", "draft"])
+        checking_sessions = [s for s in checking_sessions if s.session_type == 'check']
+        ready_to_check_sessions.extend(checking_sessions)
         
         # Completed
         completed_sessions = self.repo.get_sessions_by_status(["completed"])
@@ -1139,6 +1498,10 @@ class MagentoService:
     def mark_ready_to_check(self, session_id: str, user_id: Optional[str] = None) -> bool:
         """Mark a session as ready to check instead of completing it"""
         return self.repo.mark_session_ready_to_check(session_id, user_id)
+    
+    def send_back_for_picking(self, session_id: str, user_id: Optional[str] = None) -> bool:
+        """Send an order back for picking from the checking phase"""
+        return self.repo.send_back_for_picking(session_id, user_id)
     
     def approve_order_for_picking(self, order_number: str, user_id: str):
         """

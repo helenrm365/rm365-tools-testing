@@ -41,11 +41,11 @@ def test_orders_service_load_time():
     print("Testing Orders Service Load Time")
     print("=" * 60)
     
-    from modules.orders.order_fulfillment.service import MagentoService
+    from modules.orders.order_fulfillment.service import OrderFulfillmentService
     
-    print("\n1. Instantiating MagentoService...")
+    print("\n1. Instantiating OrderFulfillmentService...")
     start = time.time()
-    service = MagentoService()
+    service = OrderFulfillmentService()
     elapsed = time.time() - start
     
     print(f"   Time: {elapsed:.3f}s")

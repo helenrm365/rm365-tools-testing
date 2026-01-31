@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from common.deps import get_current_user
 from core.websocket import sio
-from .service import MagentoService
+from .service import OrderFulfillmentService
 from .schemas import (
     InvoiceDetailSchema,
     ScanRequestSchema,
@@ -30,9 +30,9 @@ from .schemas import (
 router = APIRouter()
 
 
-def _service() -> MagentoService:
+def _service() -> OrderFulfillmentService:
     """Dependency to get service instance"""
-    return MagentoService()
+    return OrderFulfillmentService()
 
 
 @router.get("/health")
@@ -55,7 +55,7 @@ def magento_health():
 def lookup_invoice(
     order_number: str,
     current_user: dict = Depends(get_current_user),
-    service: MagentoService = Depends(_service)
+    service: OrderFulfillmentService = Depends(_service)
 ) -> InvoiceDetailSchema:
     """
     Look up an invoice by order number or invoice number
@@ -85,7 +85,7 @@ def lookup_invoice(
 def check_order_status(
     order_number: str,
     current_user: dict = Depends(get_current_user),
-    service: MagentoService = Depends(_service)
+    service: OrderFulfillmentService = Depends(_service)
 ):
     """
     Check if an order has any existing sessions and their status
@@ -122,6 +122,7 @@ def check_order_status(
         response = {
             "status": existing_session.status,
             "session_id": existing_session.session_id,
+            "session_type": existing_session.session_type,
             "order_number": invoice.order_number,
             "invoice_id": invoice.invoice_number
         }
@@ -166,7 +167,7 @@ def check_order_status(
 async def start_session(
     request: StartSessionSchema,
     current_user: dict = Depends(get_current_user),
-    service: MagentoService = Depends(_service)
+    service: OrderFulfillmentService = Depends(_service)
 ) -> SessionStatusSchema:
     """
     Start a new pick/pack or return session for an order
@@ -227,7 +228,7 @@ async def start_session(
 def scan_product(
     request: ScanRequestSchema,
     current_user: dict = Depends(get_current_user),
-    service: MagentoService = Depends(_service)
+    service: OrderFulfillmentService = Depends(_service)
 ) -> ScanResultSchema:
     """
     Scan a product during a pick/pack session
@@ -244,11 +245,52 @@ def scan_product(
         )
 
 
+@router.get("/session/{session_id}/deduction-sources/{sku}")
+def get_deduction_sources(
+    session_id: str,
+    sku: str,
+    current_user: dict = Depends(get_current_user),
+    service: OrderFulfillmentService = Depends(_service)
+):
+    """
+    Get deduction sources for a specific SKU in a session.
+    Returns where items were taken from (shelf_lt1_qty, shelf_gt1_qty, top_floor_total)
+    with remaining counts for returns.
+    """
+    try:
+        sources = service.repo.get_deduction_sources(session_id, sku)
+        
+        field_names = {
+            'shelf_lt1_qty': 'Shelf <1 Year',
+            'shelf_gt1_qty': 'Shelf >1 Year', 
+            'top_floor_total': 'Top Floor'
+        }
+        
+        return {
+            "sku": sku,
+            "session_id": session_id,
+            "deduction_sources": [
+                {
+                    "field": s['field'],
+                    "display_name": field_names.get(s['field'], s['field']),
+                    "quantity": s['quantity'],
+                    "remaining": s.get('remaining', s['quantity'])
+                }
+                for s in sources
+            ]
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get deduction sources: {str(e)}"
+        )
+
+
 @router.get("/session/status/{session_id}")
 def get_session_status(
     session_id: str,
     current_user: dict = Depends(get_current_user),
-    service: MagentoService = Depends(_service)
+    service: OrderFulfillmentService = Depends(_service)
 ) -> SessionStatusSchema:
     """
     Get current status of a scanning session
@@ -278,7 +320,7 @@ def get_session_status(
 async def complete_session(
     request: CompleteSessionSchema,
     current_user: dict = Depends(get_current_user),
-    service: MagentoService = Depends(_service)
+    service: OrderFulfillmentService = Depends(_service)
 ):
     """
     Complete a scanning session
@@ -321,25 +363,31 @@ async def complete_session(
 def cancel_session(
     session_id: str,
     current_user: dict = Depends(get_current_user),
-    service: MagentoService = Depends(_service)
+    service: OrderFulfillmentService = Depends(_service)
 ):
     """
-    Cancel a scanning session
+    Cancel a scanning session and return any scanned items to inventory.
+    
+    During picking phase: Returns all scanned items to their original locations
+    using deduction sources to know where each item came from.
+    
+    During checking phase: Simply resets the session (no inventory changes).
     """
     try:
         user_id = current_user.get('user_id') or current_user.get('username')
-        success = service.cancel_session(session_id, user_id=user_id)
+        result = service.cancel_session(session_id, user_id=user_id)
         
-        if not success:
+        if not result.get('success'):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Session not found: {session_id}"
+                detail=result.get('message', f"Session not found: {session_id}")
             )
         
         return {
-            "success": success,
-            "message": "Session cancelled",
-            "session_id": session_id
+            "success": True,
+            "message": result.get('message', "Session cancelled"),
+            "session_id": session_id,
+            "items_returned": result.get('items_returned', 0)
         }
     
     except HTTPException:
@@ -354,7 +402,7 @@ def cancel_session(
 @router.get("/sessions/active")
 def get_active_sessions(
     current_user: dict = Depends(get_current_user),
-    service: MagentoService = Depends(_service)
+    service: OrderFulfillmentService = Depends(_service)
 ) -> List[SessionStatusSchema]:
     """
     Get all active scanning sessions for the current user
@@ -374,7 +422,7 @@ def get_active_sessions(
 @router.get("/sessions/drafts")
 def get_draft_sessions(
     current_user: dict = Depends(get_current_user),
-    service: MagentoService = Depends(_service)
+    service: OrderFulfillmentService = Depends(_service)
 ) -> List[SessionStatusSchema]:
     """
     Get all draft sessions available to claim
@@ -397,7 +445,7 @@ def get_draft_sessions(
 def check_session_ownership(
     session_id: str,
     current_user: dict = Depends(get_current_user),
-    service: MagentoService = Depends(_service)
+    service: OrderFulfillmentService = Depends(_service)
 ) -> SessionOwnershipSchema:
     """
     Check session ownership and access permissions
@@ -417,7 +465,7 @@ def check_session_ownership(
 def claim_session(
     session_id: str,
     current_user: dict = Depends(get_current_user),
-    service: MagentoService = Depends(_service)
+    service: OrderFulfillmentService = Depends(_service)
 ):
     """
     Claim a draft session and make it in_progress
@@ -451,7 +499,7 @@ def claim_session(
 def release_session(
     session_id: str,
     current_user: dict = Depends(get_current_user),
-    service: MagentoService = Depends(_service)
+    service: OrderFulfillmentService = Depends(_service)
 ):
     """
     Release a session back to draft status
@@ -485,7 +533,7 @@ def release_session(
 def request_session_takeover(
     session_id: str,
     current_user: dict = Depends(get_current_user),
-    service: MagentoService = Depends(_service)
+    service: OrderFulfillmentService = Depends(_service)
 ):
     """
     Request to take over an in-progress session from another user
@@ -520,7 +568,7 @@ def respond_to_takeover_request(
     request_id: str,
     response: TakeoverResponseSchema,
     current_user: dict = Depends(get_current_user),
-    service: MagentoService = Depends(_service)
+    service: OrderFulfillmentService = Depends(_service)
 ):
     """
     Accept or decline a takeover request
@@ -554,7 +602,7 @@ def respond_to_takeover_request(
 @router.get("/takeover-requests/pending")
 def get_pending_takeover_requests(
     current_user: dict = Depends(get_current_user),
-    service: MagentoService = Depends(_service)
+    service: OrderFulfillmentService = Depends(_service)
 ):
     """
     Get all pending takeover requests for the current user's sessions
@@ -588,7 +636,7 @@ def get_pending_takeover_requests(
 def get_dashboard_sessions(
     include_completed: bool = False,
     current_user: dict = Depends(get_current_user),
-    service: MagentoService = Depends(_service)
+    service: OrderFulfillmentService = Depends(_service)
 ):
     """
     Get all sessions for dashboard monitoring
@@ -617,7 +665,7 @@ def force_cancel_session(
     session_id: str,
     request: "ForceCancelSchema",
     current_user: dict = Depends(get_current_user),
-    service: MagentoService = Depends(_service)
+    service: OrderFulfillmentService = Depends(_service)
 ):
     """
     Force cancel a session (admin action)
@@ -653,7 +701,7 @@ def force_assign_session(
     session_id: str,
     request: "ForceAssignSchema",
     current_user: dict = Depends(get_current_user),
-    service: MagentoService = Depends(_service)
+    service: OrderFulfillmentService = Depends(_service)
 ):
     """
     Force assign/transfer a session to another user (admin action)
@@ -693,7 +741,7 @@ def force_assign_session(
 def admin_takeover_session(
     session_id: str,
     current_user: dict = Depends(get_current_user),
-    service: MagentoService = Depends(_service)
+    service: OrderFulfillmentService = Depends(_service)
 ):
     """
     Admin takes over a session themselves (admin action)
@@ -738,7 +786,7 @@ def admin_takeover_session(
 @router.get("/tracking/board")
 def get_order_tracking_board(
     current_user: dict = Depends(get_current_user),
-    service: MagentoService = Depends(_service)
+    service: OrderFulfillmentService = Depends(_service)
 ):
     """
     Get the full order tracking board with all columns
@@ -759,7 +807,7 @@ def get_order_tracking_board(
 async def mark_order_ready_to_check(
     request: dict,
     current_user: dict = Depends(get_current_user),
-    service: MagentoService = Depends(_service)
+    service: OrderFulfillmentService = Depends(_service)
 ):
     """
     Mark an order as ready to check instead of completing it
@@ -809,10 +857,65 @@ async def mark_order_ready_to_check(
         )
 
 
+@router.post("/tracking/send-back-for-picking")
+async def send_back_for_picking(
+    request: dict,
+    current_user: dict = Depends(get_current_user),
+    service: OrderFulfillmentService = Depends(_service)
+):
+    """
+    Send an order back for picking from the checking phase.
+    This creates a draft in the Ready to Pick column so the picker
+    can continue where they left off.
+    """
+    try:
+        session_id = request.get('session_id')
+        user_id = current_user.get('user_id') or current_user.get('username')
+        
+        if not session_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="session_id is required"
+            )
+        
+        success = service.send_back_for_picking(session_id, user_id)
+        
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Session not found: {session_id}"
+            )
+        
+        # Emit WebSocket event for real-time updates
+        await sio.emit(
+            'order_status_changed',
+            {
+                'session_id': session_id,
+                'status': 'draft',
+                'changed_by': user_id
+            },
+            room='order-tracking'
+        )
+        
+        return {
+            "success": True,
+            "message": "Order sent back for picking",
+            "session_id": session_id
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to send back for picking: {str(e)}"
+        )
+
+
 @router.get("/tracking/pending-orders")
 def get_pending_magento_orders(
     current_user: dict = Depends(get_current_user),
-    service: MagentoService = Depends(_service)
+    service: OrderFulfillmentService = Depends(_service)
 ):
     """
     Get all pending Magento orders that are in 'processing' status
@@ -820,7 +923,7 @@ def get_pending_magento_orders(
     Also returns orders approved today for the approval dashboard.
     """
     try:
-        from datetime import datetime
+        from datetime import datetime, timezone
         from .schemas import PendingMagentoOrderSchema
         import logging
         logger = logging.getLogger(__name__)
@@ -833,7 +936,7 @@ def get_pending_magento_orders(
         order_lookup = {order.get('increment_id'): order for order in processing_orders}
         
         # Get all sessions (ONE query)
-        today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
         all_sessions = service.repo.get_sessions_by_status(['approved', 'in_progress', 'ready_to_check', 'completed'])
         
         # Build sets for filtering
@@ -844,26 +947,30 @@ def get_pending_magento_orders(
         for session in all_sessions:
             session_date = session.started_at if hasattr(session, 'started_at') else None
             
-            if session_date and session_date >= today_start:
-                order_details = order_lookup.get(session.order_number)
-                
-                customer_firstname = order_details.get('customer_firstname', '') if order_details else ''
-                customer_lastname = order_details.get('customer_lastname', '') if order_details else ''
-                customer_name = f"{customer_firstname} {customer_lastname}".strip() if customer_firstname or customer_lastname else None
-                
-                approved_today_orders.append({
-                    "order_id": order_details.get('entity_id') if order_details else session.session_id,
-                    "order_number": session.order_number,
-                    "created_at": session.started_at.isoformat() if session.started_at else None,
-                    "grand_total": float(order_details.get('grand_total', 0)) if order_details else 0,
-                    "status": "approved",
-                    "customer_name": customer_name,
-                    "customer_email": order_details.get('customer_email') if order_details else None,
-                    "total_qty_ordered": int(order_details.get('total_qty_ordered', 0)) if order_details else len(session.items_expected),
-                    "shipping_method": order_details.get('shipping_description') if order_details else None,
-                    "session_status": session.status,
-                    "is_approved": True
-                })
+            # Handle timezone-aware comparison
+            if session_date:
+                if session_date.tzinfo is None:
+                    session_date = session_date.replace(tzinfo=timezone.utc)
+                if session_date >= today_start:
+                    order_details = order_lookup.get(session.order_number)
+                    
+                    customer_firstname = order_details.get('customer_firstname', '') if order_details else ''
+                    customer_lastname = order_details.get('customer_lastname', '') if order_details else ''
+                    customer_name = f"{customer_firstname} {customer_lastname}".strip() if customer_firstname or customer_lastname else None
+                    
+                    approved_today_orders.append({
+                        "order_id": order_details.get('entity_id') if order_details else session.session_id,
+                        "order_number": session.order_number,
+                        "created_at": session.started_at.isoformat() if session.started_at else None,
+                        "grand_total": float(order_details.get('grand_total', 0)) if order_details else 0,
+                        "status": "approved",
+                        "customer_name": customer_name,
+                        "customer_email": order_details.get('customer_email') if order_details else None,
+                        "total_qty_ordered": int(order_details.get('total_qty_ordered', 0)) if order_details else len(session.items_expected),
+                        "shipping_method": order_details.get('shipping_description') if order_details else None,
+                        "session_status": session.status,
+                        "is_approved": True
+                    })
         
         # Build pending orders list (orders without sessions)
         pending_orders = []
@@ -931,7 +1038,7 @@ def get_pending_magento_orders(
 @router.get("/tracking/pending-orders/debug")
 def debug_pending_orders(
     current_user: dict = Depends(get_current_user),
-    service: MagentoService = Depends(_service)
+    service: OrderFulfillmentService = Depends(_service)
 ):
     """
     Debug endpoint to see what's happening with pending orders
@@ -986,7 +1093,7 @@ def debug_pending_orders(
 async def approve_order_for_picking(
     request: dict,
     current_user: dict = Depends(get_current_user),
-    service: MagentoService = Depends(_service)
+    service: OrderFulfillmentService = Depends(_service)
 ):
     """
     Approve a Magento order for picking.
@@ -1043,7 +1150,7 @@ async def approve_order_for_picking(
 @router.post("/admin/reset-sessions")
 def reset_order_sessions_manually(
     current_user: dict = Depends(get_current_user),
-    service: MagentoService = Depends(_service)
+    service: OrderFulfillmentService = Depends(_service)
 ):
     """
     Manually trigger the daily order session reset.

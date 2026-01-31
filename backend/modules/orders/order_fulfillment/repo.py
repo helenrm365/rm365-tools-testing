@@ -314,6 +314,26 @@ class MagentoRepo:
         self._save_sessions()
         return session
     
+    def start_checking_session(self, session_id: str, user_id: Optional[str] = None) -> Optional[ScanSession]:
+        """Start checking a session that's in ready_to_check status"""
+        session = self._sessions.get(session_id)
+        if not session:
+            return None
+        
+        if session.status != "ready_to_check":
+            return None  # Can only check ready_to_check sessions
+        
+        checking_user = user_id or "Unknown"
+        session.status = "in_progress"
+        session.session_type = "check"  # Mark this as a check session
+        session.user_id = checking_user
+        session.last_modified_by = checking_user
+        session.last_modified_at = datetime.now()
+        
+        self._add_audit_log(session_id, "checking_started", checking_user, "Started checking session")
+        self._save_sessions()
+        return session
+    
     def get_active_sessions(self, user_id: Optional[str] = None) -> List[ScanSession]:
         """Get all active (in_progress) sessions, optionally filtered by user"""
         sessions = [
@@ -516,6 +536,22 @@ class MagentoRepo:
         session.last_modified_at = datetime.now()
         
         self._add_audit_log(session_id, "ready_to_check", marking_user, "Marked as ready to check")
+        self._save_sessions()
+        return True
+    
+    def send_back_for_picking(self, session_id: str, user_id: Optional[str] = None) -> bool:
+        """Send an order back for picking from the checking phase"""
+        session = self._sessions.get(session_id)
+        if not session:
+            return False
+        
+        sending_user = user_id or session.user_id or session.last_modified_by or "Unknown"
+        session.status = "draft"
+        session.session_type = "pick"  # Reset back to pick session type
+        session.last_modified_by = sending_user
+        session.last_modified_at = datetime.now()
+        
+        self._add_audit_log(session_id, "sent_back_for_picking", sending_user, "Sent back for picking from checking phase")
         self._save_sessions()
         return True
     

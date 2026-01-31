@@ -47,16 +47,17 @@ def reset_daily_order_sessions():
     were previously approved/in-progress/completed.
     
     The reset:
-    - Archives completed sessions to a history file
-    - Clears all active session data
-    - Allows orders to flow through the approval process again
+    - Marks incomplete sessions (draft, in_progress, ready_to_check) as 'expired'
+    - Keeps completed/cancelled sessions for historical tracking
+    - Clears all takeover requests
+    - Orders still in 'processing' on Magento will appear in pending list again
     """
     try:
-        from modules.orders.order_fulfillment.repo import MagentoRepo
+        from modules.orders.order_fulfillment.db_repo import MagentoDbRepo
         
         logger.info("🔄 Starting daily order session reset...")
         
-        repo = MagentoRepo()
+        repo = MagentoDbRepo()
         result = repo.reset_daily_sessions()
         
         logger.info(f"✅ Daily reset completed: {result}")
@@ -79,7 +80,7 @@ def start_scheduler():
         # Uses tracking wrapper to prevent duplicate runs
         scheduler.add_job(
             _with_task_tracking('order-session-reset', reset_daily_order_sessions),
-            trigger=CronTrigger(hour=0, minute=0),  # Runs at midnight daily
+            trigger=CronTrigger(hour=1, minute=45),  # Runs at 1:45 AM daily (testing)
             id='daily_order_reset',
             name='Daily Order Session Reset',
             replace_existing=True

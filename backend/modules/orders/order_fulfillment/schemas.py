@@ -72,7 +72,7 @@ class ScanResultSchema(BaseModel):
 class StartSessionSchema(BaseModel):
     """Schema to start a pick/pack session"""
     order_number: str
-    session_type: Literal["pick", "return"] = "pick"
+    session_type: Literal["pick", "return", "check"] = "pick"
 
 
 class SessionStatusSchema(BaseModel):

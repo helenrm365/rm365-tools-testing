@@ -429,11 +429,13 @@ if FRONTEND_DIR.is_dir():
     @app.exception_handler(404)
     async def custom_404_handler(request: Request, exc: HTTPException):
         
-        # If it's an API request, return JSON 404
+        # If it's an API request, return JSON 404 with the original detail message
         if request.url.path.startswith('/api/'):
+            # Preserve the original exception detail if it's a real HTTPException
+            detail = getattr(exc, 'detail', None) or "API endpoint not found"
             return JSONResponse(
                 status_code=404,
-                content={"detail": "API endpoint not found"}
+                content={"detail": detail}
             )
         
         # If it's a request for static assets that don't exist, return 404

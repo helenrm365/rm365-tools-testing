@@ -55,7 +55,7 @@ Instead of using the slow and rate-limited Magento REST API, the system connects
 This module facilitates the warehouse operations described above.
 
 ### Architecture
-*   **Service Layer (`MagentoService`)**: Handles business logic, session state transitions.
+*   **Service Layer (`OrderFulfillmentService`)**: Handles business logic, session state transitions.
 *   **Data Access (`MagentoDBClient`)**: Fetches live order/invoice data from Magento DB.
 *   **Repository (`MagentoRepo`)**: Manages local persistence of picking sessions (JSON/DB).
 

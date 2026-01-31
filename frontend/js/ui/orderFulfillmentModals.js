@@ -291,8 +291,56 @@ export function confirmCompleteSession(orderNumber) {
 
 /**
  * Cancel Session Confirmation (destructive)
+ * Shows different messages for picking vs checking phases
+ * @param {string} orderNumber - The order number
+ * @param {object} sessionInfo - Optional session info { status, items_scanned_count }
  */
-export function confirmCancelSession(orderNumber) {
+export function confirmCancelSession(orderNumber, sessionInfo = {}) {
+  const { status, items_scanned_count = 0 } = sessionInfo;
+  
+  // During ACTIVE picking (in_progress) with scanned items - warn about inventory return
+  if (status === 'in_progress' && items_scanned_count > 0) {
+    return confirmModal({
+      title: 'Cancel Session - Items Will Be Returned',
+      message: `⚠️ You have ${items_scanned_count} item(s) already scanned.\n\n` +
+        `Cancelling will automatically return all scanned items to their original inventory locations.\n\n` +
+        `Please ensure any physically picked items are returned to their shelves before confirming.`,
+      confirmText: 'Cancel & Return Items',
+      cancelText: 'Keep Working',
+      confirmVariant: 'danger',
+      icon: '↩️'
+    });
+  }
+  
+  // Draft session with items - should resume first, but if cancelled items won't auto-return
+  if (status === 'draft' && items_scanned_count > 0) {
+    return confirmModal({
+      title: 'Cancel Draft Session',
+      message: `⚠️ This draft has ${items_scanned_count} item(s) that were previously scanned.\n\n` +
+        `To return items to inventory, resume the session first, then cancel.\n\n` +
+        `Cancelling now will NOT return items automatically.`,
+      confirmText: 'Cancel Draft',
+      cancelText: 'Keep Draft',
+      confirmVariant: 'danger',
+      icon: '📋'
+    });
+  }
+  
+  // During ready_to_check (checking phase) - items stay out, not returned
+  if (status === 'ready_to_check' && items_scanned_count > 0) {
+    return confirmModal({
+      title: 'Cancel Checking',
+      message: `⚠️ This order has ${items_scanned_count} item(s) that were already picked.\n\n` +
+        `Cancelling will NOT return items to inventory - they remain physically picked.\n\n` +
+        `To return items to inventory, first "Send Back to Picking" then cancel from there.`,
+      confirmText: 'Cancel Checking',
+      cancelText: 'Keep Checking',
+      confirmVariant: 'danger',
+      icon: '❌'
+    });
+  }
+  
+  // Default - no items scanned or unknown status
   return confirmModal({
     title: 'Cancel Session',
     message: 'Are you sure you want to cancel this session?\n\nAll progress will be lost and cannot be recovered.',

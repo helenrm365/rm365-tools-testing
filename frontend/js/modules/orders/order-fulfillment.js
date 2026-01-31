@@ -286,7 +286,23 @@ class MagentoPickPackManager {
           
           // If session exists and is active (not available/cancelled), load it
           if (info && info.session_id && ['in_progress', 'draft', 'approved', 'ready_to_check'].includes(info.status)) {
-            console.log('[MagentoPickPack] Found active session, loading:', info.session_id);
+            console.log('[MagentoPickPack] Found active session, loading:', info.session_id, 'type:', info.session_type);
+            
+            // If session is ready_to_check (status), it's waiting for a checker to start
+            // If there's an existing check session (session_type=check), just claim/continue it
+            if (info.status === 'ready_to_check' && info.session_type !== 'check') {
+              console.log('[MagentoPickPack] Starting check session for ready_to_check order');
+              await this.startSession(orderNumber, 'check');
+              return;
+            }
+            
+            // If session is draft or approved, claim it to start/resume work
+            if (info.status === 'draft' || info.status === 'approved') {
+              console.log('[MagentoPickPack] Claiming draft/approved session:', info.session_id);
+              await this.claimSession(info.session_id);
+              return;
+            }
+            
             this.currentSessionId = info.session_id;
             window.__currentMagentoSession = info.session_id;
             
@@ -377,6 +393,8 @@ class MagentoPickPackManager {
     this.cancelSessionBtn = document.getElementById('cancelSessionBtn');
     this.completeSessionBtn = document.getElementById('completeSessionBtn');
     this.markReadyToCheckBtn = document.getElementById('markReadyToCheckBtn');
+    this.sendBackForPickingBtn = document.getElementById('sendBackForPickingBtn');
+    this.saveAsDraftBtn = document.getElementById('saveAsDraftBtn');
     // Initialize custom dropdowns
     this.initializeDropdowns();
   }
@@ -475,6 +493,8 @@ class MagentoPickPackManager {
     this.cancelSessionBtn?.addEventListener('click', () => this.cancelSession());
     this.completeSessionBtn?.addEventListener('click', () => this.completeSession());
     this.markReadyToCheckBtn?.addEventListener('click', () => this.markReadyToCheck());
+    this.sendBackForPickingBtn?.addEventListener('click', () => this.sendBackForPicking());
+    this.saveAsDraftBtn?.addEventListener('click', () => this.saveAsDraft());
   }
 
   setupMobileMode() {
@@ -975,6 +995,13 @@ class MagentoPickPackManager {
             <span>Continue</span>
           </button>
         `;
+      } else if (order.status === 'draft') {
+        actionButtonHtml = `
+          <button class="card-action-btn continue-btn" data-action="continue">
+            <i class="fas fa-play"></i>
+            <span>Continue Draft</span>
+          </button>
+        `;
       } else {
         actionButtonHtml = `
           <button class="card-action-btn start-btn" data-action="start-pick">
@@ -984,12 +1011,22 @@ class MagentoPickPackManager {
         `;
       }
     } else if (columnName === 'readyToCheck') {
-      actionButtonHtml = `
-        <button class="card-action-btn start-btn" data-action="start-check">
-          <i class="fas fa-search"></i>
-          <span>Start Checking</span>
-        </button>
-      `;
+      // Check if there's an active checking session (in_progress or draft with session_type=check)
+      if (order.session_type === 'check' && (order.status === 'in_progress' || order.status === 'draft')) {
+        actionButtonHtml = `
+          <button class="card-action-btn continue-btn" data-action="continue">
+            <i class="fas fa-play"></i>
+            <span>Continue Checking</span>
+          </button>
+        `;
+      } else {
+        actionButtonHtml = `
+          <button class="card-action-btn start-btn" data-action="start-check">
+            <i class="fas fa-search"></i>
+            <span>Start Checking</span>
+          </button>
+        `;
+      }
     } else if (columnName === 'completed') {
       actionButtonHtml = `
         <button class="card-action-btn view-btn" data-action="view">
@@ -1091,13 +1128,18 @@ class MagentoPickPackManager {
     // Add click handler for the whole card as fallback
     card.addEventListener('click', () => {
       if (columnName === 'readyToPick') {
-        if (order.status !== 'in_progress') {
-          this.startSessionFromCard(order.order_number, 'pick');
-        } else {
+        if (order.status === 'in_progress' || order.status === 'draft') {
           this.navigateToSession(order);
+        } else {
+          this.startSessionFromCard(order.order_number, 'pick');
         }
       } else if (columnName === 'readyToCheck') {
-        this.startSessionFromCard(order.order_number, 'check');
+        // If there's an existing check session in progress/draft, navigate to it
+        if (order.session_type === 'check' && (order.status === 'in_progress' || order.status === 'draft')) {
+          this.navigateToSession(order);
+        } else {
+          this.startSessionFromCard(order.order_number, 'check');
+        }
       } else {
         this.navigateToSession(order);
       }
@@ -1220,14 +1262,15 @@ class MagentoPickPackManager {
     }
   }
   
-  navigateToSession(order) {
+  async navigateToSession(order) {
     const path = `/orders/order-fulfillment/session-${order.order_number}-${order.invoice_number}`;
-    if (window.navigate) {
-      window.navigate(path);
-    } else {
-      history.pushState({ path }, '', path);
-      location.reload();
-    }
+    
+    // Just update the URL without triggering full navigation (which would destroy DOM)
+    history.pushState({ path }, '', path);
+    
+    // Update our internal path and load the session
+    this.currentPath = path;
+    await this.checkSessionFromPath(path);
   }
 
   updateSessionDisplay() {
@@ -1262,55 +1305,88 @@ class MagentoPickPackManager {
     this.sessionShippingPhone.textContent = this.currentSession.shipping_phone || '-';
 
     // Update session type badge
-    const badgeIcon = this.currentSession.session_type === 'pick' ? 'fa-box' : 'fa-undo';
-    const badgeText = this.currentSession.session_type === 'pick' ? 'PICK & PACK' : 'RETURNS';
+    let badgeIcon, badgeText;
+    switch (this.currentSession.session_type) {
+      case 'check':
+        badgeIcon = 'fa-clipboard-check';
+        badgeText = 'CHECKING';
+        break;
+      case 'return':
+        badgeIcon = 'fa-undo';
+        badgeText = 'RETURNS';
+        break;
+      default: // 'pick'
+        badgeIcon = 'fa-box';
+        badgeText = 'PICK & PACK';
+    }
     this.sessionTypeBadge.innerHTML = `<i class="fas ${badgeIcon}"></i><span>${badgeText}</span>`;
+
+    // Hide scanner section for checking sessions
+    const isCheckingSession = this.currentSession.session_type === 'check';
+    if (this.scannerSection) {
+      this.scannerSection.style.display = isCheckingSession ? 'none' : 'block';
+    }
 
     // Calculate progress metrics
     const completedItems = this.currentSession.completed_items;
     const totalItems = this.currentSession.total_items;
-    const itemsPercent = this.currentSession.progress_percentage;
-
-    // Calculate quantity progress
+    
+    // Calculate quantity progress - for checking mode, use checkedQuantities
     let totalQtyExpected = 0;
-    let totalQtyScanned = 0;
+    let totalQtyVerified = 0;
+    let itemsVerified = 0;
     
     if (this.currentSession.items && this.currentSession.items.length > 0) {
       this.currentSession.items.forEach(item => {
-        totalQtyExpected += item.qty_invoiced || 0;
-        totalQtyScanned += item.qty_scanned || 0;
+        const expectedQty = item.qty_expected || item.qty_invoiced || 0;
+        totalQtyExpected += expectedQty;
+        
+        if (isCheckingSession) {
+          const checkedQty = this.checkedQuantities?.[item.sku] || 0;
+          totalQtyVerified += Math.min(checkedQty, expectedQty); // Don't count over-picked
+          if (checkedQty === expectedQty) {
+            itemsVerified++;
+          }
+        } else {
+          totalQtyVerified += item.qty_scanned || 0;
+        }
       });
     }
     
-    const qtyPercent = totalQtyExpected > 0 ? Math.round((totalQtyScanned / totalQtyExpected) * 100) : 0;
+    // For checking mode, use verified items count
+    const displayCompletedItems = isCheckingSession ? itemsVerified : completedItems;
+    const itemsPercent = totalItems > 0 ? Math.round((displayCompletedItems / totalItems) * 100) : 0;
+    const qtyPercent = totalQtyExpected > 0 ? Math.round((totalQtyVerified / totalQtyExpected) * 100) : 0;
 
     // Update Items Completed Progress
-    this.itemsProgressText.textContent = `${completedItems} of ${totalItems} items`;
+    const itemsLabel = isCheckingSession ? 'verified' : 'items';
+    this.itemsProgressText.textContent = `${displayCompletedItems} of ${totalItems} ${itemsLabel}`;
     this.itemsProgressPercent.textContent = `${itemsPercent}%`;
     this.itemsProgressFill.style.width = `${itemsPercent}%`;
 
-    // Update Quantity Scanned Progress
-    this.qtyProgressText.textContent = `${totalQtyScanned} of ${totalQtyExpected} units`;
+    // Update Quantity Progress
+    const qtyLabel = isCheckingSession ? 'Verified' : 'Scanned';
+    this.qtyProgressText.textContent = `${totalQtyVerified} of ${totalQtyExpected} units`;
     this.qtyProgressPercent.textContent = `${qtyPercent}%`;
     this.qtyProgressFill.style.width = `${qtyPercent}%`;
 
-    // Show buttons based on session status
+    // Show buttons based on session status and session type
     const sessionStatus = this.currentSession.status;
     const allItemsComplete = completedItems === totalItems && totalItems > 0;
     
-    // Complete button only shows when session is ready_to_check
+    // Complete button shows for checking sessions
     if (this.completeSessionBtn) {
-      if (sessionStatus === 'ready_to_check') {
+      if (isCheckingSession) {
         this.completeSessionBtn.style.display = 'inline-flex';
-        this.completeSessionBtn.disabled = false;
+        // Initial disabled state will be set by updateCompleteButtonState()
       } else {
         this.completeSessionBtn.style.display = 'none';
       }
     }
     
-    // "Ready to Check" button is always visible but disabled until all items scanned
+    // "Ready to Check" button only shows for picking sessions (not checking)
     if (this.markReadyToCheckBtn) {
-      if (sessionStatus === 'in_progress') {
+      if (sessionStatus === 'in_progress' && !isCheckingSession) {
         this.markReadyToCheckBtn.style.display = 'inline-flex';
         this.markReadyToCheckBtn.disabled = !allItemsComplete;
         if (!allItemsComplete) {
@@ -1322,9 +1398,182 @@ class MagentoPickPackManager {
         this.markReadyToCheckBtn.style.display = 'none';
       }
     }
+    
+    // "Send Back for Picking" button only shows for checking sessions
+    if (this.sendBackForPickingBtn) {
+      if (isCheckingSession) {
+        this.sendBackForPickingBtn.style.display = 'inline-flex';
+        this.sendBackForPickingBtn.disabled = false;
+      } else {
+        this.sendBackForPickingBtn.style.display = 'none';
+      }
+    }
+    
+    // "Save as Draft" button shows for in_progress sessions (both picking and checking)
+    if (this.saveAsDraftBtn) {
+      if (sessionStatus === 'in_progress') {
+        this.saveAsDraftBtn.style.display = 'inline-flex';
+      } else {
+        this.saveAsDraftBtn.style.display = 'none';
+      }
+    }
 
     // Update items list
     this.updateItemsList();
+    
+    // Update complete button for checking mode
+    this.updateCompleteButtonState();
+  }
+  
+  // Initialize checked quantities tracking for checking mode
+  initCheckedQuantities() {
+    // Reset checked quantities for new session
+    this.checkedQuantities = {};
+    if (this.currentSession?.items) {
+      this.currentSession.items.forEach(item => {
+        this.checkedQuantities[item.sku] = 0;
+      });
+    }
+  }
+  
+  updateCheckedQuantity(sku, delta) {
+    if (!this.checkedQuantities) this.checkedQuantities = {};
+    const current = this.checkedQuantities[sku] || 0;
+    const newValue = Math.max(0, current + delta);
+    this.checkedQuantities[sku] = newValue;
+    
+    // Update the input field
+    const input = document.querySelector(`input[data-sku="${sku}"]`);
+    if (input) {
+      input.value = newValue;
+    }
+    
+    // Update item card status
+    this.updateItemCardStatus(sku);
+    this.updateCompleteButtonState();
+    this.updateProgressBars();
+  }
+  
+  setCheckedQuantity(sku, value) {
+    if (!this.checkedQuantities) this.checkedQuantities = {};
+    const newValue = Math.max(0, parseInt(value) || 0);
+    this.checkedQuantities[sku] = newValue;
+    
+    // Update item card status
+    this.updateItemCardStatus(sku);
+    this.updateCompleteButtonState();
+    this.updateProgressBars();
+  }
+  
+  updateItemCardStatus(sku) {
+    const item = this.currentSession?.items?.find(i => i.sku === sku);
+    if (!item) return;
+    
+    const card = document.querySelector(`.item-card[data-sku="${sku}"]`);
+    if (!card) return;
+    
+    const checkedQty = this.checkedQuantities[sku] || 0;
+    const requiredQty = item.qty_expected || item.qty_invoiced || 0;
+    
+    // Remove all status classes
+    card.classList.remove('complete', 'in-progress', 'overpicked', 'pending');
+    
+    // Update status icon and class
+    const iconEl = card.querySelector('.item-status-icon i');
+    
+    if (checkedQty === requiredQty) {
+      card.classList.add('complete');
+      if (iconEl) iconEl.className = 'fas fa-check';
+    } else if (checkedQty > requiredQty) {
+      card.classList.add('overpicked');
+      if (iconEl) iconEl.className = 'fas fa-exclamation-triangle';
+    } else if (checkedQty > 0) {
+      card.classList.add('in-progress');
+      if (iconEl) iconEl.className = 'fas fa-clock';
+    } else {
+      card.classList.add('pending');
+      if (iconEl) iconEl.className = 'fas fa-circle';
+    }
+  }
+  
+  updateCompleteButtonState() {
+    if (!this.completeSessionBtn) return;
+    
+    const isCheckingSession = this.currentSession?.session_type === 'check';
+    
+    if (isCheckingSession) {
+      // For checking sessions, all items must have correct quantities
+      const allCorrect = this.currentSession?.items?.every(item => {
+        const checkedQty = this.checkedQuantities?.[item.sku] || 0;
+        const requiredQty = item.qty_expected || item.qty_invoiced || 0;
+        return checkedQty === requiredQty;
+      }) ?? false;
+      
+      this.completeSessionBtn.disabled = !allCorrect;
+      if (!allCorrect) {
+        this.completeSessionBtn.classList.add('disabled');
+      } else {
+        this.completeSessionBtn.classList.remove('disabled');
+      }
+    }
+  }
+  
+  updateProgressBars() {
+    if (!this.currentSession) return;
+    
+    const isCheckingSession = this.currentSession.session_type === 'check';
+    const completedItems = this.currentSession.completed_items;
+    const totalItems = this.currentSession.total_items;
+    
+    // Calculate quantity progress - for checking mode, use checkedQuantities
+    let totalQtyExpected = 0;
+    let totalQtyVerified = 0;
+    let itemsVerified = 0;
+    
+    if (this.currentSession.items && this.currentSession.items.length > 0) {
+      this.currentSession.items.forEach(item => {
+        const expectedQty = item.qty_expected || item.qty_invoiced || 0;
+        totalQtyExpected += expectedQty;
+        
+        if (isCheckingSession) {
+          const checkedQty = this.checkedQuantities?.[item.sku] || 0;
+          totalQtyVerified += Math.min(checkedQty, expectedQty);
+          if (checkedQty === expectedQty) {
+            itemsVerified++;
+          }
+        } else {
+          totalQtyVerified += item.qty_scanned || 0;
+        }
+      });
+    }
+    
+    // For checking mode, use verified items count
+    const displayCompletedItems = isCheckingSession ? itemsVerified : completedItems;
+    const itemsPercent = totalItems > 0 ? Math.round((displayCompletedItems / totalItems) * 100) : 0;
+    const qtyPercent = totalQtyExpected > 0 ? Math.round((totalQtyVerified / totalQtyExpected) * 100) : 0;
+
+    // Update Items Progress
+    if (this.itemsProgressText) {
+      const itemsLabel = isCheckingSession ? 'verified' : 'items';
+      this.itemsProgressText.textContent = `${displayCompletedItems} of ${totalItems} ${itemsLabel}`;
+    }
+    if (this.itemsProgressPercent) {
+      this.itemsProgressPercent.textContent = `${itemsPercent}%`;
+    }
+    if (this.itemsProgressFill) {
+      this.itemsProgressFill.style.width = `${itemsPercent}%`;
+    }
+
+    // Update Quantity Progress
+    if (this.qtyProgressText) {
+      this.qtyProgressText.textContent = `${totalQtyVerified} of ${totalQtyExpected} units`;
+    }
+    if (this.qtyProgressPercent) {
+      this.qtyProgressPercent.textContent = `${qtyPercent}%`;
+    }
+    if (this.qtyProgressFill) {
+      this.qtyProgressFill.style.width = `${qtyPercent}%`;
+    }
   }
 
   updateItemsList() {
@@ -1338,49 +1587,148 @@ class MagentoPickPackManager {
       return;
     }
 
-    const itemsHtml = this.currentSession.items.map(item => {
-      let statusClass = '';
-      let statusIcon = 'fa-circle';
-      let badgeText = 'Pending';
+    const isCheckingSession = this.currentSession.session_type === 'check';
+    
+    // Initialize checked quantities for checking mode
+    if (isCheckingSession) {
+      this.initCheckedQuantities();
+    }
 
-      if (item.is_complete) {
-        if (item.qty_scanned > item.qty_invoiced) {
-          statusClass = 'overpicked';
-          statusIcon = 'fa-exclamation-triangle';
-          badgeText = 'Overpicked';
-        } else {
+    const itemsHtml = this.currentSession.items.map(item => {
+      if (isCheckingSession) {
+        // Checking mode: show counter controls
+        const checkedQty = this.checkedQuantities?.[item.sku] || 0;
+        const requiredQty = item.qty_expected || item.qty_invoiced || 0;
+        
+        let statusClass = 'pending';
+        let statusIcon = 'fa-circle';
+        
+        if (checkedQty === requiredQty) {
           statusClass = 'complete';
           statusIcon = 'fa-check';
-          badgeText = 'Complete';
+        } else if (checkedQty > requiredQty) {
+          statusClass = 'overpicked';
+          statusIcon = 'fa-exclamation-triangle';
+        } else if (checkedQty > 0) {
+          statusClass = 'in-progress';
+          statusIcon = 'fa-clock';
         }
-      } else if (item.qty_scanned > 0) {
-        statusClass = 'in-progress';
-        statusIcon = 'fa-clock';
-        badgeText = 'In Progress';
-      }
+        
+        return `
+          <div class="item-card checking-mode ${statusClass}" data-sku="${this.escapeHtml(item.sku)}">
+            <div class="item-left">
+              <div class="item-status-icon">
+                <i class="fas ${statusIcon}"></i>
+              </div>
+              <div class="item-details">
+                <div class="item-name">${this.escapeHtml(item.name)}</div>
+                <div class="item-sku">${this.escapeHtml(item.sku)}</div>
+              </div>
+            </div>
+            <div class="item-right checking-controls">
+              <div class="required-qty">
+                <span class="required-label">Required:</span>
+                <span class="required-value">${requiredQty}</span>
+              </div>
+              <div class="counter-controls">
+                <button class="counter-btn minus-btn" data-sku="${this.escapeHtml(item.sku)}" data-action="minus">
+                  <i class="fas fa-minus"></i>
+                </button>
+                <input type="number" 
+                       class="counter-input" 
+                       data-sku="${this.escapeHtml(item.sku)}" 
+                       value="${checkedQty}" 
+                       min="0"
+                       inputmode="numeric">
+                <button class="counter-btn plus-btn" data-sku="${this.escapeHtml(item.sku)}" data-action="plus">
+                  <i class="fas fa-plus"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      } else {
+        // Normal picking mode: show scanned quantities
+        let statusClass = '';
+        let statusIcon = 'fa-circle';
+        let badgeText = 'Pending';
 
-      return `
-        <div class="item-card ${statusClass}">
-          <div class="item-left">
-            <div class="item-status-icon">
-              <i class="fas ${statusIcon}"></i>
+        if (item.is_complete) {
+          if (item.qty_scanned > item.qty_invoiced) {
+            statusClass = 'overpicked';
+            statusIcon = 'fa-exclamation-triangle';
+            badgeText = 'Overpicked';
+          } else {
+            statusClass = 'complete';
+            statusIcon = 'fa-check';
+            badgeText = 'Complete';
+          }
+        } else if (item.qty_scanned > 0) {
+          statusClass = 'in-progress';
+          statusIcon = 'fa-clock';
+          badgeText = 'In Progress';
+        }
+
+        return `
+          <div class="item-card ${statusClass}">
+            <div class="item-left">
+              <div class="item-status-icon">
+                <i class="fas ${statusIcon}"></i>
+              </div>
+              <div class="item-details">
+                <div class="item-name">${this.escapeHtml(item.name)}</div>
+                <div class="item-sku">${this.escapeHtml(item.sku)}</div>
+              </div>
             </div>
-            <div class="item-details">
-              <div class="item-name">${this.escapeHtml(item.name)}</div>
-              <div class="item-sku">${this.escapeHtml(item.sku)}</div>
+            <div class="item-right">
+              <div class="item-quantity">
+                <div class="qty-numbers">${item.qty_scanned} / ${item.qty_invoiced}</div>
+                <div class="qty-label">Scanned</div>
+              </div>
             </div>
           </div>
-          <div class="item-right">
-            <div class="item-quantity">
-              <div class="qty-numbers">${item.qty_scanned} / ${item.qty_invoiced}</div>
-              <div class="qty-label">Scanned</div>
-            </div>
-          </div>
-        </div>
-      `;
+        `;
+      }
     }).join('');
 
     this.itemsList.innerHTML = itemsHtml;
+    
+    // Attach event listeners for checking mode controls
+    if (isCheckingSession) {
+      this.attachCheckingControls();
+    }
+  }
+  
+  attachCheckingControls() {
+    // Minus buttons
+    this.itemsList.querySelectorAll('.minus-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const sku = btn.dataset.sku;
+        this.updateCheckedQuantity(sku, -1);
+      });
+    });
+    
+    // Plus buttons
+    this.itemsList.querySelectorAll('.plus-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const sku = btn.dataset.sku;
+        this.updateCheckedQuantity(sku, 1);
+      });
+    });
+    
+    // Input fields
+    this.itemsList.querySelectorAll('.counter-input').forEach(input => {
+      input.addEventListener('change', (e) => {
+        const sku = input.dataset.sku;
+        this.setCheckedQuantity(sku, e.target.value);
+      });
+      
+      input.addEventListener('focus', (e) => {
+        e.target.select();
+      });
+    });
   }
 
   async scanProduct() {
@@ -1398,6 +1746,11 @@ class MagentoPickPackManager {
       return;
     }
 
+    // Call the internal scan method with ability to specify field override
+    await this._performScan(sku, quantity, field);
+  }
+
+  async _performScan(sku, quantity, field) {
     try {
       this.scanBtn.disabled = true;
       this.scanBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Scanning...';
@@ -1482,6 +1835,9 @@ class MagentoPickPackManager {
       this.completeSessionBtn.disabled = true;
       this.completeSessionBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Completing...';
 
+      // For checking sessions, use force_complete since the checker is verifying, not re-scanning
+      const isCheckingSession = this.currentSession?.session_type === 'check';
+      
       const response = await fetch(`${getApiUrl()}/v1/magento/session/complete`, {
         method: 'POST',
         headers: {
@@ -1490,7 +1846,7 @@ class MagentoPickPackManager {
         },
         body: JSON.stringify({
           session_id: this.currentSessionId,
-          force_complete: false
+          force_complete: isCheckingSession  // Checking sessions don't require re-scanning
         })
       });
 
@@ -1597,10 +1953,92 @@ class MagentoPickPackManager {
     }
   }
 
+  async saveAsDraft() {
+    if (!this.currentSessionId) return;
+
+    const isCheckingSession = this.currentSession?.session_type === 'check';
+    const sessionPhase = isCheckingSession ? 'checking' : 'picking';
+
+    // Build confirmation message
+    const orderNumber = this.currentSession?.order_number;
+    const message = `Save order #${orderNumber} as draft?\n\nYour ${sessionPhase} progress will be saved. You or another user can continue later from the tracking board.`;
+
+    const confirmed = await orderModals.confirm('Save as Draft?', message);
+    if (!confirmed) return;
+
+    // Cache button reference before async operations
+    const btn = this.saveAsDraftBtn;
+    const resetButton = () => {
+      if (btn && document.body.contains(btn)) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-save"></i> Save as Draft';
+      }
+    };
+
+    try {
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+      }
+
+      console.log('[saveAsDraft] Calling release API for session:', this.currentSessionId);
+      const response = await fetch(`${getApiUrl()}/v1/magento/sessions/${this.currentSessionId}/release`, {
+        method: 'POST',
+        headers: getAuthHeaders()
+      });
+
+      console.log('[saveAsDraft] Response status:', response.status);
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to save session as draft');
+      }
+
+      const result = await response.json();
+      console.log('[saveAsDraft] Success:', result);
+
+      // Clear global session tracking FIRST
+      window.__currentMagentoSession = null;
+      this.currentSession = null;
+      this.currentSessionId = null;
+
+      resetButton();
+
+      // Wait a moment for modal cleanup
+      await new Promise(r => setTimeout(r, 350));
+
+      // Show success message
+      await orderModals.alert('Draft Saved', `Order #${orderNumber} has been saved as draft. Progress has been preserved.`);
+      
+      // Also show a toast for extra visibility
+      showToast(`Order #${orderNumber} saved as draft`, 'success');
+
+      // Return to order lookup
+      console.log('[saveAsDraft] Navigating back to order fulfillment...');
+      await this.showOrderLookup();
+
+    } catch (error) {
+      console.error('[saveAsDraft] Error:', error);
+      resetButton();
+      await orderModals.alertError('Error: ' + error.message);
+    }
+  }
+
   async cancelSession() {
     if (!this.currentSessionId) return;
 
-    const confirmed = await orderModals.confirmCancelSession(this.currentSession?.order_number);
+    // Calculate items scanned count for the modal
+    const itemsScannedCount = this.currentSession?.items?.reduce((total, item) => {
+      return total + (item.qty_scanned || 0);
+    }, 0) || 0;
+
+    const confirmed = await orderModals.confirmCancelSession(
+      this.currentSession?.order_number,
+      {
+        status: this.currentSession?.status,
+        items_scanned_count: Math.floor(itemsScannedCount)
+      }
+    );
     if (!confirmed) return;
 
     try {
@@ -1609,9 +2047,18 @@ class MagentoPickPackManager {
         headers: getAuthHeaders()
       });
 
+      const result = await response.json();
+      
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || 'Failed to cancel session');
+        throw new Error(result.detail || 'Failed to cancel session');
+      }
+
+      // Show message about items returned if any
+      if (result.items_returned > 0) {
+        await orderModals.alert(
+          'Session Cancelled',
+          `Session cancelled successfully.\n\n${result.items_returned} item(s) have been returned to inventory.`
+        );
       }
 
       // Clear global session tracking
@@ -1622,6 +2069,80 @@ class MagentoPickPackManager {
 
     } catch (error) {
       console.error('Error cancelling session:', error);
+      await orderModals.alertError('Error: ' + error.message);
+    }
+  }
+
+  async sendBackForPicking() {
+    if (!this.currentSessionId) return;
+
+    const confirmed = await orderModals.confirm(
+      'Send Back for Picking?',
+      `Are you sure you want to send order #${this.currentSession?.order_number} back for picking? The picker will need to complete the order before sending it back for checking.`
+    );
+    
+    if (!confirmed) return;
+
+    // Cache button reference before async operations
+    const btn = this.sendBackForPickingBtn;
+    const resetButton = () => {
+      if (btn && document.body.contains(btn)) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-undo"></i> Send Back for Picking';
+      }
+    };
+
+    try {
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+      }
+
+      console.log('[sendBackForPicking] Calling API...');
+      const response = await fetch(`${getApiUrl()}/v1/magento/tracking/send-back-for-picking`, {
+        method: 'POST',
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          session_id: this.currentSessionId
+        })
+      });
+
+      console.log('[sendBackForPicking] Response status:', response.status);
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to send back for picking');
+      }
+
+      const result = await response.json();
+      console.log('[sendBackForPicking] Success:', result);
+
+      // Clear global session tracking FIRST
+      const orderNumber = this.currentSession?.order_number;
+      window.__currentMagentoSession = null;
+      this.currentSession = null;
+      this.currentSessionId = null;
+
+      resetButton();
+
+      // Wait a moment for modal cleanup
+      await new Promise(r => setTimeout(r, 350));
+
+      // Show success message
+      await orderModals.alert('Sent Back', `Order #${orderNumber} has been sent back for picking.`);
+      
+      // Toast for visibility
+      showToast(`Order #${orderNumber} sent back for picking`, 'success');
+      
+      // Return to order lookup
+      await this.showOrderLookup();
+
+    } catch (error) {
+      console.error('[sendBackForPicking] Error:', error);
+      resetButton();
       await orderModals.alertError('Error: ' + error.message);
     }
   }

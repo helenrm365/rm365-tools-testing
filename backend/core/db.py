@@ -198,6 +198,13 @@ def initialize_database():
         except Exception as e:
             print(f"⚠️  Could not initialize magento data tables: {e}")
         
+        try:
+            from modules.orders.order_fulfillment.db_repo import init_order_fulfillment_tables
+            init_order_fulfillment_tables()
+            print("✅ Order fulfillment tables initialized")
+        except Exception as e:
+            print(f"⚠️  Could not initialize order fulfillment tables: {e}")
+        
         return True
     except Exception as e:
         print(f"❌ Database connection failed: {e}")

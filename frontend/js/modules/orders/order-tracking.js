@@ -364,11 +364,56 @@ function createOrderCard(order, columnName) {
   return card;
 }
 
+/**
+ * Cancel a session (order) from the tracking board
+ * For pick-phase drafts: Returns items to inventory
+ * For check-phase drafts: Just resets checking
+ */
+async function cancelSession(sessionId, modal) {
+  try {
+    const result = await post(`/api/v1/magento/sessions/${sessionId}/cancel`, {});
+    
+    if (result.success) {
+      showToast(result.message || 'Session cancelled successfully', 'success');
+      modal.classList.remove('active');
+      await loadTrackingBoard();
+    } else {
+      showToast(result.message || 'Failed to cancel session', 'error');
+    }
+  } catch (error) {
+    console.error('[Order Tracking] Error cancelling session:', error);
+    showToast('Failed to cancel session. Please try again.', 'error');
+  }
+}
+
+/**
+ * Release a session back to draft status
+ * Removes user assignment so another user can pick it up
+ */
+async function releaseSession(sessionId, modal) {
+  try {
+    const result = await post(`/api/v1/magento/sessions/${sessionId}/release`, {});
+    
+    if (result.success) {
+      showToast(result.message || 'Session released to draft', 'success');
+      modal.classList.remove('active');
+      await loadTrackingBoard();
+    } else {
+      showToast(result.message || 'Failed to release session', 'error');
+    }
+  } catch (error) {
+    console.error('[Order Tracking] Error releasing session:', error);
+    showToast('Failed to release session. Please try again.', 'error');
+  }
+}
+
 function showOrderDetails(order) {
   const modal = document.getElementById('orderDetailsModal');
   const titleEl = document.getElementById('orderDetailsTitle');
   const bodyEl = document.getElementById('orderDetailsBody');
   const actionBtn = document.getElementById('orderDetailsActionBtn');
+  const cancelSessionBtn = document.getElementById('orderDetailsCancelSessionBtn');
+  const releaseBtn = document.getElementById('orderDetailsReleaseBtn');
   
   if (!modal || !titleEl || !bodyEl || !actionBtn) return;
   
@@ -438,6 +483,10 @@ function showOrderDetails(order) {
   `;
   
   // Set action button based on status
+  // Hide all optional buttons by default
+  if (cancelSessionBtn) cancelSessionBtn.style.display = 'none';
+  if (releaseBtn) releaseBtn.style.display = 'none';
+  
   if (order.status === 'ready_to_check') {
     actionBtn.innerHTML = '<i class="fas fa-clipboard-check"></i> Start Checking';
     actionBtn.onclick = () => {
@@ -445,13 +494,68 @@ function showOrderDetails(order) {
       navigate(`/orders/order-fulfillment/session-${order.session_id}`);
     };
     actionBtn.style.display = 'block';
+    
+    // Show release button for ready_to_check sessions
+    if (releaseBtn) {
+      releaseBtn.style.display = 'inline-flex';
+      releaseBtn.onclick = async () => {
+        if (confirm('Release this session back to draft? Another user can then pick it up.')) {
+          await releaseSession(order.session_id, modal);
+        }
+      };
+    }
+    
+    // Show cancel button for ready_to_check sessions
+    if (cancelSessionBtn) {
+      cancelSessionBtn.style.display = 'inline-flex';
+      cancelSessionBtn.onclick = async () => {
+        const confirmMessage = '⚠️ Cancel this checking session?\n\nThe picking is complete - items will remain picked. To return items to inventory, send back to picking first.';
+        if (confirm(confirmMessage)) {
+          await cancelSession(order.session_id, modal);
+        }
+      };
+    }
   } else if (order.status === 'approved' || order.status === 'draft' || order.status === 'cancelled') {
-    actionBtn.innerHTML = '<i class="fas fa-play"></i> Start Picking';
+    // Determine if this is a check-phase draft or pick-phase draft
+    const isCheckDraft = order.session_type === 'check';
+    
+    if (isCheckDraft) {
+      actionBtn.innerHTML = '<i class="fas fa-clipboard-check"></i> Start Checking';
+    } else {
+      actionBtn.innerHTML = '<i class="fas fa-play"></i> Start Picking';
+    }
     actionBtn.onclick = () => {
       modal.classList.remove('active');
       navigate(`/orders/order-fulfillment/session-${order.session_id}`);
     };
     actionBtn.style.display = 'block';
+    
+    // Show cancel button for draft sessions
+    if (cancelSessionBtn && order.status === 'draft') {
+      cancelSessionBtn.style.display = 'inline-flex';
+      
+      if (isCheckDraft) {
+        // Check-phase draft: Just reset checking, items stay picked
+        cancelSessionBtn.onclick = async () => {
+          const confirmMessage = '⚠️ Cancel this checking session?\n\nPicking is complete - items will remain picked. To return items to inventory, send back to picking first.';
+          if (confirm(confirmMessage)) {
+            await cancelSession(order.session_id, modal);
+          }
+        };
+      } else {
+        // Pick-phase draft: Return items to inventory
+        cancelSessionBtn.onclick = async () => {
+          const hasPickedItems = order.completed_items > 0;
+          let confirmMessage = 'Are you sure you want to cancel this order?';
+          if (hasPickedItems) {
+            confirmMessage = `⚠️ WARNING: This order has ${order.completed_items} picked item(s).\n\nCancelling will return ALL picked items back to inventory.\n\nAre you sure you want to cancel?`;
+          }
+          if (confirm(confirmMessage)) {
+            await cancelSession(order.session_id, modal);
+          }
+        };
+      }
+    }
   } else if (order.status === 'in_progress') {
     actionBtn.innerHTML = '<i class="fas fa-eye"></i> View Session';
     actionBtn.onclick = () => {
@@ -459,6 +563,16 @@ function showOrderDetails(order) {
       navigate(`/orders/order-fulfillment/session-${order.session_id}`);
     };
     actionBtn.style.display = 'block';
+    
+    // Show release button for in_progress sessions (to release for another user)
+    if (releaseBtn) {
+      releaseBtn.style.display = 'inline-flex';
+      releaseBtn.onclick = async () => {
+        if (confirm('Release this session? Progress will be saved and another user can continue.')) {
+          await releaseSession(order.session_id, modal);
+        }
+      };
+    }
   } else if (order.status === 'completed') {
     actionBtn.style.display = 'none';
   } else {

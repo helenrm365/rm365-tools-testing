@@ -1,70 +1,215 @@
 {
-  "9dc7337f-f7b9-4548-bb02-86fd3feb6328": {
-    "session_id": "9dc7337f-f7b9-4548-bb02-86fd3feb6328",
-    "invoice_id": "1003215470",
-    "order_number": "1045335077",
+  "453dc86d-f0c2-40f0-89a7-017619db2606": {
+    "session_id": "453dc86d-f0c2-40f0-89a7-017619db2606",
+    "invoice_id": "INV-9ab9caf1",
+    "order_number": "TEST-6ef46171",
     "session_type": "pick",
-    "started_at": "2026-01-30T16:26:03.221009",
+    "started_at": "2026-01-31T01:02:53.988693",
     "completed_at": null,
     "items_expected": [
       {
-        "sku": "ME084",
-        "name": "Mesoestetic m.pen [pro] Ultimate Microneedling Needles (1 x 10)",
-        "qty_ordered": 1.0,
-        "qty_invoiced": 1.0,
-        "qty_scanned": 0,
-        "price": 49.0,
-        "row_total": 49.0,
-        "product_id": 2301,
-        "is_complete": false
-      },
-      {
-        "sku": "ME003",
-        "name": "Mesoestetic C.Prof 210 Depigmentation Solution (5 x 5ml)",
-        "qty_ordered": 1.0,
-        "qty_invoiced": 1.0,
-        "qty_scanned": 0,
-        "price": 63.5,
-        "row_total": 63.5,
-        "product_id": 1535,
-        "is_complete": false
+        "sku": "TEST_SKU",
+        "name": "Test Product",
+        "qty_expected": 5,
+        "price": 10.0
       }
     ],
     "items_scanned": [
       {
-        "sku": "ME003",
-        "qty_scanned": 1.0,
-        "scanned_at": "2026-01-30T16:27:10.036391"
-      },
-      {
-        "sku": "ME084",
-        "qty_scanned": 1.0,
-        "scanned_at": "2026-01-30T16:27:13.671100"
+        "sku": "TEST_SKU",
+        "quantity": 2,
+        "timestamp": "2026-01-31T00:00:00",
+        "scanned_by": "test_user",
+        "deduction_source": "shelf_lt1_qty"
       }
     ],
-    "status": "ready_to_check",
-    "user_id": "ian",
-    "created_by": null,
-    "last_modified_by": "ian",
-    "last_modified_at": "2026-01-30T16:27:20.311667",
+    "status": "draft",
+    "user_id": null,
+    "created_by": "test_user",
+    "last_modified_by": "test_user",
+    "last_modified_at": "2026-01-31T01:02:53.989533",
     "audit_logs": [
       {
-        "timestamp": "2026-01-30T16:26:03.221360",
-        "action": "approved",
-        "user": "ian",
-        "details": "Approved for picking"
+        "timestamp": "2026-01-31T01:02:53.988718",
+        "action": "started",
+        "user": "test_user",
+        "details": "Started pick session"
       },
       {
-        "timestamp": "2026-01-30T16:26:10.153994",
-        "action": "claimed",
-        "user": "ian",
-        "details": "Claimed approved session from Unknown"
+        "timestamp": "2026-01-31T01:02:53.989537",
+        "action": "drafted",
+        "user": "test_user",
+        "details": "Released session as draft"
+      }
+    ]
+  },
+  "2da6f8bb-8f2e-4e47-b8cf-e3b903632205": {
+    "session_id": "2da6f8bb-8f2e-4e47-b8cf-e3b903632205",
+    "invoice_id": "INV-20e681ff",
+    "order_number": "TEST-a2c7ef50",
+    "session_type": "pick",
+    "started_at": "2026-01-31T01:02:53.990011",
+    "completed_at": null,
+    "items_expected": [
+      {
+        "sku": "TEST_SKU",
+        "name": "Test Product",
+        "qty_expected": 5,
+        "price": 10.0
+      }
+    ],
+    "items_scanned": [
+      {
+        "sku": "TEST_SKU",
+        "quantity": 2,
+        "timestamp": "2026-01-31T00:00:00",
+        "scanned_by": "test_user",
+        "deduction_source": "shelf_lt1_qty"
+      }
+    ],
+    "status": "draft",
+    "user_id": null,
+    "created_by": "test_user",
+    "last_modified_by": "test_user",
+    "last_modified_at": "2026-01-31T01:02:53.990379",
+    "audit_logs": [
+      {
+        "timestamp": "2026-01-31T01:02:53.990017",
+        "action": "started",
+        "user": "test_user",
+        "details": "Started pick session"
       },
       {
-        "timestamp": "2026-01-30T16:27:20.311685",
-        "action": "ready_to_check",
-        "user": "ian",
-        "details": "Marked as ready to check"
+        "timestamp": "2026-01-31T01:02:53.990380",
+        "action": "drafted",
+        "user": "test_user",
+        "details": "Released session as draft"
+      }
+    ]
+  },
+  "39b69719-d9dc-4610-980e-d6fc54b07544": {
+    "session_id": "39b69719-d9dc-4610-980e-d6fc54b07544",
+    "invoice_id": "INV-91a61ae2",
+    "order_number": "TEST-3f6ee8b6",
+    "session_type": "pick",
+    "started_at": "2026-01-31T01:02:54.047775",
+    "completed_at": null,
+    "items_expected": [
+      {
+        "sku": "TEST_SKU",
+        "name": "Test Product",
+        "qty_expected": 5,
+        "price": 10.0
+      }
+    ],
+    "items_scanned": [
+      {
+        "sku": "TEST_SKU",
+        "quantity": 2,
+        "timestamp": "2026-01-31T00:00:00",
+        "scanned_by": "test_user",
+        "deduction_source": "shelf_lt1_qty"
+      }
+    ],
+    "status": "draft",
+    "user_id": null,
+    "created_by": "test_user",
+    "last_modified_by": "test_user",
+    "last_modified_at": "2026-01-31T01:02:54.048153",
+    "audit_logs": [
+      {
+        "timestamp": "2026-01-31T01:02:54.047785",
+        "action": "started",
+        "user": "test_user",
+        "details": "Started pick session"
+      },
+      {
+        "timestamp": "2026-01-31T01:02:54.048155",
+        "action": "drafted",
+        "user": "test_user",
+        "details": "Released session as draft"
+      }
+    ]
+  },
+  "a2afeed4-0c5d-450c-bd32-97fc5eac35b9": {
+    "session_id": "a2afeed4-0c5d-450c-bd32-97fc5eac35b9",
+    "invoice_id": "INV-53a767f0",
+    "order_number": "TEST-92ee0e29",
+    "session_type": "check",
+    "started_at": "2026-01-31T01:02:54.593999",
+    "completed_at": null,
+    "items_expected": [
+      {
+        "sku": "TEST_SKU",
+        "name": "Test Product",
+        "qty_expected": 5,
+        "price": 10.0
+      }
+    ],
+    "items_scanned": [
+      {
+        "sku": "TEST_SKU",
+        "quantity": 2,
+        "timestamp": "2026-01-31T00:00:00",
+        "scanned_by": "test_user",
+        "deduction_source": "shelf_lt1_qty"
+      }
+    ],
+    "status": "draft",
+    "user_id": null,
+    "created_by": "test_user",
+    "last_modified_by": "test_user",
+    "last_modified_at": "2026-01-31T01:02:54.594964",
+    "audit_logs": [
+      {
+        "timestamp": "2026-01-31T01:02:54.594011",
+        "action": "started",
+        "user": "test_user",
+        "details": "Started check session"
+      },
+      {
+        "timestamp": "2026-01-31T01:02:54.594966",
+        "action": "drafted",
+        "user": "test_user",
+        "details": "Released session as draft"
+      }
+    ]
+  },
+  "d63746cc-b396-4b3a-949c-dd15ced184d6": {
+    "session_id": "d63746cc-b396-4b3a-949c-dd15ced184d6",
+    "invoice_id": "INV-5aaab488",
+    "order_number": "TEST-6b4ca88c",
+    "session_type": "pick",
+    "started_at": "2026-01-31T01:02:54.980437",
+    "completed_at": null,
+    "items_expected": [
+      {
+        "sku": "TEST_SKU",
+        "name": "Test Product",
+        "qty_expected": 5,
+        "price": 10.0
+      }
+    ],
+    "items_scanned": [
+      {
+        "sku": "TEST_SKU",
+        "quantity": 2,
+        "timestamp": "2026-01-31T00:00:00",
+        "scanned_by": "test_user",
+        "deduction_source": "shelf_lt1_qty"
+      }
+    ],
+    "status": "in_progress",
+    "user_id": "test_user",
+    "created_by": "test_user",
+    "last_modified_by": "test_user",
+    "last_modified_at": "2026-01-31T01:02:54.980444",
+    "audit_logs": [
+      {
+        "timestamp": "2026-01-31T01:02:54.980451",
+        "action": "started",
+        "user": "test_user",
+        "details": "Started pick session"
       }
     ]
   }

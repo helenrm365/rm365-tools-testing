@@ -980,6 +980,121 @@
   color: var(--danger);
 }
 
+/* Checking Mode Counter Controls */
+.order-fulfillment .items-panel .item-card.checking-mode {
+  padding: 0.75rem;
+}
+
+.order-fulfillment .items-panel .item-card.checking-mode .item-right.checking-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.order-fulfillment .items-panel .item-card.checking-mode .required-qty {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+}
+
+.order-fulfillment .items-panel .item-card.checking-mode .required-label {
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.order-fulfillment .items-panel .item-card.checking-mode .required-value {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--text);
+}
+
+.order-fulfillment .items-panel .item-card.checking-mode .counter-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.order-fulfillment .items-panel .item-card.checking-mode .counter-btn {
+  width: 48px;
+  height: 48px;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 1.25rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  touch-action: manipulation;
+}
+
+.order-fulfillment .items-panel .item-card.checking-mode .minus-btn {
+  background: var(--danger);
+  color: white;
+}
+
+.order-fulfillment .items-panel .item-card.checking-mode .minus-btn:hover {
+  background: #c62828;
+  transform: scale(1.05);
+}
+
+.order-fulfillment .items-panel .item-card.checking-mode .minus-btn:active {
+  transform: scale(0.95);
+}
+
+.order-fulfillment .items-panel .item-card.checking-mode .plus-btn {
+  background: var(--success);
+  color: white;
+}
+
+.order-fulfillment .items-panel .item-card.checking-mode .plus-btn:hover {
+  background: #2e7d32;
+  transform: scale(1.05);
+}
+
+.order-fulfillment .items-panel .item-card.checking-mode .plus-btn:active {
+  transform: scale(0.95);
+}
+
+.order-fulfillment .items-panel .item-card.checking-mode .counter-input {
+  width: 60px;
+  height: 48px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-md);
+  text-align: center;
+  font-size: 1.25rem;
+  font-weight: 700;
+  background: var(--bg);
+  color: var(--text);
+  -moz-appearance: textfield;
+}
+
+.order-fulfillment .items-panel .item-card.checking-mode .counter-input::-webkit-outer-spin-button,
+.order-fulfillment .items-panel .item-card.checking-mode .counter-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.order-fulfillment .items-panel .item-card.checking-mode .counter-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.2);
+}
+
+.order-fulfillment .items-panel .item-card.checking-mode.complete .counter-input {
+  border-color: var(--success);
+  background: rgba(76, 175, 80, 0.1);
+}
+
+.order-fulfillment .items-panel .item-card.checking-mode.overpicked .counter-input {
+  border-color: var(--danger);
+  background: rgba(244, 67, 54, 0.1);
+}
+
 .order-fulfillment .items-panel .empty-state {
   padding: 1rem;
   font-size: 0.8rem;
