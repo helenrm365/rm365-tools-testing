@@ -728,15 +728,15 @@ function updatePaginationControls() {
   const endItem = Math.min((currentPage + 1) * ITEMS_PER_PAGE, totalFilteredItems);
   // Show pagination section if there are items
   if (totalFilteredItems > 0) {
-    paginationSection.style.display = 'flex';
+    paginationSection.style.display = '';
   } else {
     paginationSection.style.display = 'none';
     return;
   }
   
-  // Update pagination info
+  // Update pagination info (showing X-Y of Z)
   if (paginationInfo) {
-    paginationInfo.textContent = `Showing ${startItem}-${endItem} of ${totalFilteredItems} items`;
+    paginationInfo.innerHTML = `Showing <strong>${startItem}-${endItem}</strong> of <strong>${totalFilteredItems}</strong> items`;
   }
   
   // Update page indicator

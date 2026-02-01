@@ -23,6 +23,16 @@ let wsConnected = false;
  */
 export async function init() {
     showToast('Setting up progress dashboard...', 'info');
+    
+    // First ensure tables exist
+    try {
+        const { ensureOrderTablesExist } = await import('../../services/api/ordersApi.js');
+        await ensureOrderTablesExist();
+    } catch (error) {
+        console.error('[Order Progress] Failed to check/initialize tables:', error);
+        showToast('Warning: Could not verify database tables', 'warning');
+    }
+    
     wireEventHandlers();
     
     showToast('Loading active sessions...', 'info');

@@ -669,6 +669,15 @@ export async function init() {
   console.log('[Order Approval] Initializing module...');
   showToast('Initializing approval system...', 'info');
   
+  // First ensure tables exist
+  try {
+    const { ensureOrderTablesExist } = await import('../../services/api/ordersApi.js');
+    await ensureOrderTablesExist();
+  } catch (error) {
+    console.error('[Order Approval] Failed to check/initialize tables:', error);
+    showToast('Warning: Could not verify database tables', 'warning');
+  }
+  
   // Clean up previous instance if exists
   if (approvalManager) {
     approvalManager.cleanup();

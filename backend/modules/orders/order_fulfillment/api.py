@@ -51,6 +51,36 @@ def magento_health():
         }
 
 
+@router.get("/status")
+def check_tables_status(user=Depends(get_current_user)):
+    """
+    Check which order fulfillment tables exist in the database.
+    Used by frontend to determine if initialization is needed.
+    """
+    service = _service()
+    return service.check_tables_status()
+
+
+@router.get("/init")
+def initialize_tables(user=Depends(get_current_user)):
+    """
+    Initialize order fulfillment tables if they don't exist.
+    Creates order_fulfillment_sessions and order_fulfillment_takeover_requests tables.
+    """
+    try:
+        from .db_repo import init_order_fulfillment_tables
+        init_order_fulfillment_tables()
+        return {
+            "status": "success",
+            "message": "Order fulfillment tables initialized successfully"
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to initialize tables: {e}"
+        )
+
+
 @router.get("/invoice/lookup/{order_number}")
 def lookup_invoice(
     order_number: str,

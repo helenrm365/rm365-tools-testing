@@ -2222,6 +2222,15 @@ class MagentoPickPackManager {
 export async function init(path) {
   showToast('Initializing Order Fulfillment...', 'info');
   
+  // First ensure tables exist
+  try {
+    const { ensureOrderTablesExist } = await import('../../services/api/ordersApi.js');
+    await ensureOrderTablesExist();
+  } catch (error) {
+    console.error('[OrderFulfillment] Failed to check/initialize tables:', error);
+    showToast('Warning: Could not verify database tables', 'warning');
+  }
+  
   if (!window.__magentoPickPackInitialized) {
     // Wait for DOM to be ready
     if (document.readyState === 'loading') {

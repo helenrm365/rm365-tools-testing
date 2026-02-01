@@ -796,6 +796,7 @@ async function loadAllDataForAggregated() {
 function displayCurrentPage() {
   const tbody = document.getElementById('magentoTableBody');
   const pageInfo = document.getElementById('pageInfo');
+  const paginationInfo = document.getElementById('paginationInfo');
   
   if (!tbody) {
     console.warn('[NL Magento] Table body not found');
@@ -808,6 +809,9 @@ function displayCurrentPage() {
     tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem;">No data available</td></tr>`;
     if (pageInfo) {
       pageInfo.textContent = 'No data loaded';
+    }
+    if (paginationInfo) {
+      paginationInfo.innerHTML = 'Showing <strong>0</strong> of <strong>0</strong> items';
     }
     updatePaginationButtons();
     return;
@@ -844,25 +848,18 @@ function displayCurrentPage() {
     }
   }
   
-  // Update pagination info
+  // Calculate showing range
+  const startItem = currentPage * pageSize + 1;
+  const endItem = Math.min((currentPage + 1) * pageSize, totalRecords);
+  
+  // Update pagination info (showing X-Y of Z)
+  if (paginationInfo) {
+    paginationInfo.innerHTML = `Showing <strong>${startItem}-${endItem}</strong> of <strong>${totalRecords}</strong> items`;
+  }
+  
+  // Update page indicator
   if (pageInfo) {
-    let viewLabel;
-    if (viewMode === 'custom') {
-      viewLabel = `Custom Range (${customRangeLabel})`;
-    } else if (viewMode === 'aggregated') {
-      viewLabel = 'Aggregated (6-Month)';
-    } else {
-      viewLabel = 'Full Magento';
-    }
-    const searchLabel = currentSearch ? ` (search: "${currentSearch}")` : '';
-    
-    if (isSearchMode) {
-      pageInfo.textContent = `${viewLabel}${searchLabel} - Page ${currentPage + 1} of ${totalPages} (${totalRecords} matching records)`;
-    } else if (viewMode === 'aggregated' || viewMode === 'custom') {
-      pageInfo.textContent = `${viewLabel} - Page ${currentPage + 1} of ${totalPages} (${totalRecords} total SKUs)`;
-    } else {
-      pageInfo.textContent = `${viewLabel} - Page ${currentPage + 1} of ${totalPages} (${totalRecords} total records)`;
-    }
+    pageInfo.textContent = `Page ${currentPage + 1} of ${totalPages}`;
   }
   
   updatePaginationButtons();

@@ -202,17 +202,22 @@
     </div>
 
     <!-- Pagination Section -->
-    <section class="pagination-section">
-      <div class="pagination-controls">
-        <button id="prevPageBtn" class="action-btn secondary-btn">
-          <i class="fas fa-chevron-left"></i>
-          <span>Previous</span>
-        </button>
-        <span id="pageInfo" class="page-info">Page 1 of 0 (0 total records)</span>
-        <button id="nextPageBtn" class="action-btn secondary-btn">
-          <span>Next</span>
-          <i class="fas fa-chevron-right"></i>
-        </button>
+    <section class="table-pagination">
+      <div class="pagination-wrapper">
+        <div class="pagination-info" id="paginationInfo">
+          Showing <strong>0</strong> of <strong>0</strong> items
+        </div>
+        <div class="pagination-controls">
+          <button id="prevPageBtn" class="pagination-btn" disabled>
+            <i class="fas fa-chevron-left"></i>
+            <span>Previous</span>
+          </button>
+          <span id="pageInfo" class="page-indicator">Page 1 of 1</span>
+          <button id="nextPageBtn" class="pagination-btn" disabled>
+            <span>Next</span>
+            <i class="fas fa-chevron-right"></i>
+          </button>
+        </div>
       </div>
     </section>
   </div>

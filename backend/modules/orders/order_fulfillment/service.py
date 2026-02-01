@@ -46,6 +46,25 @@ class OrderFulfillmentService:
         self.client = get_magento_client()
         self.repo = OrderFulfillmentRepo()
     
+    def check_tables_status(self) -> dict:
+        """Check the status of order fulfillment tables"""
+        try:
+            from .db_repo import check_order_fulfillment_tables_exist
+            status = check_order_fulfillment_tables_exist()
+            all_exist = all(status.values())
+            
+            return {
+                "status": "success",
+                "tables_status": status,
+                "all_tables_exist": all_exist
+            }
+        except Exception as e:
+            logger.error(f"Error checking tables: {e}")
+            return {
+                "status": "error",
+                "message": f"Failed to check tables: {str(e)}"
+            }
+    
     def lookup_invoice(self, order_number: str) -> Optional[InvoiceDetailSchema]:
         """
         Look up an invoice by order number

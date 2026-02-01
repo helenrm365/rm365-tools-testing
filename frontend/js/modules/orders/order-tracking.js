@@ -10,6 +10,15 @@ export async function init() {
   console.log('[Order Tracking] Initializing...');
   showToast('Setting up tracking interface...', 'info');
   
+  // First ensure tables exist
+  try {
+    const { ensureOrderTablesExist } = await import('../../services/api/ordersApi.js');
+    await ensureOrderTablesExist();
+  } catch (error) {
+    console.error('[Order Tracking] Failed to check/initialize tables:', error);
+    showToast('Warning: Could not verify database tables', 'warning');
+  }
+  
   // Set up event listeners
   setupEventListeners();
   

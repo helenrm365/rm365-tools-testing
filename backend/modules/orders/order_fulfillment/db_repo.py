@@ -110,6 +110,42 @@ def init_order_fulfillment_tables():
             return_inventory_connection(conn)
 
 
+def check_order_fulfillment_tables_exist() -> dict:
+    """Check which order fulfillment tables exist in the database"""
+    conn = None
+    try:
+        conn = get_inventory_log_connection()
+        cursor = conn.cursor()
+        
+        # Order fulfillment module requires these tables
+        tables = [
+            'order_fulfillment_sessions',
+            'order_fulfillment_takeover_requests'
+        ]
+        status = {}
+        
+        for table_name in tables:
+            cursor.execute("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_schema = 'public' 
+                    AND table_name = %s
+                )
+            """, (table_name,))
+            
+            status[table_name] = cursor.fetchone()[0]
+        
+        cursor.close()
+        return status
+        
+    except Exception as e:
+        logger.error(f"Error checking tables: {e}")
+        raise
+    finally:
+        if conn:
+            return_inventory_connection(conn)
+
+
 class MagentoDbRepo:
     """Database-backed repository for Magento invoice scanning sessions (uses INVENTORY database)"""
     

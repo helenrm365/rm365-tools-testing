@@ -616,20 +616,31 @@ function renderAnalysisPagination() {
   if (!container) return;
   
   const totalPages = Math.ceil(state.analysisTotal / state.analysisPerPage);
+  const startItem = (state.analysisPage - 1) * state.analysisPerPage + 1;
+  const endItem = Math.min(state.analysisPage * state.analysisPerPage, state.analysisTotal);
   
-  if (totalPages <= 1) {
+  if (totalPages <= 1 && state.analysisTotal === 0) {
     container.innerHTML = '';
     return;
   }
   
   container.innerHTML = `
-    <button class="btn btn-secondary" ${state.analysisPage <= 1 ? 'disabled' : ''} onclick="window.sourcingModule.goToAnalysisPage(${state.analysisPage - 1})">
-      <i class="fas fa-chevron-left"></i>
-    </button>
-    <span class="page-info">Page ${state.analysisPage} of ${totalPages}</span>
-    <button class="btn btn-secondary" ${state.analysisPage >= totalPages ? 'disabled' : ''} onclick="window.sourcingModule.goToAnalysisPage(${state.analysisPage + 1})">
-      <i class="fas fa-chevron-right"></i>
-    </button>
+    <div class="pagination-wrapper">
+      <div class="pagination-info">
+        Showing <strong>${startItem}-${endItem}</strong> of <strong>${state.analysisTotal}</strong> items
+      </div>
+      <div class="pagination-controls">
+        <button class="pagination-btn" ${state.analysisPage <= 1 ? 'disabled' : ''} onclick="window.sourcingModule.goToAnalysisPage(${state.analysisPage - 1})">
+          <i class="fas fa-chevron-left"></i>
+          <span>Previous</span>
+        </button>
+        <span class="page-indicator">Page ${state.analysisPage} of ${totalPages}</span>
+        <button class="pagination-btn" ${state.analysisPage >= totalPages ? 'disabled' : ''} onclick="window.sourcingModule.goToAnalysisPage(${state.analysisPage + 1})">
+          <span>Next</span>
+          <i class="fas fa-chevron-right"></i>
+        </button>
+      </div>
+    </div>
   `;
 }
 
@@ -938,20 +949,31 @@ function renderMatrixPagination() {
   if (!container) return;
   
   const totalPages = Math.ceil(state.matrixTotal / state.matrixPerPage);
+  const startItem = (state.matrixPage - 1) * state.matrixPerPage + 1;
+  const endItem = Math.min(state.matrixPage * state.matrixPerPage, state.matrixTotal);
   
-  if (totalPages <= 1) {
+  if (totalPages <= 1 && state.matrixTotal === 0) {
     container.innerHTML = '';
     return;
   }
   
   container.innerHTML = `
-    <button class="btn btn-secondary" ${state.matrixPage <= 1 ? 'disabled' : ''} onclick="window.sourcingModule.goToMatrixPage(${state.matrixPage - 1})">
-      <i class="fas fa-chevron-left"></i>
-    </button>
-    <span class="page-info">Page ${state.matrixPage} of ${totalPages}</span>
-    <button class="btn btn-secondary" ${state.matrixPage >= totalPages ? 'disabled' : ''} onclick="window.sourcingModule.goToMatrixPage(${state.matrixPage + 1})">
-      <i class="fas fa-chevron-right"></i>
-    </button>
+    <div class="pagination-wrapper">
+      <div class="pagination-info">
+        Showing <strong>${startItem}-${endItem}</strong> of <strong>${state.matrixTotal}</strong> items
+      </div>
+      <div class="pagination-controls">
+        <button class="pagination-btn" ${state.matrixPage <= 1 ? 'disabled' : ''} onclick="window.sourcingModule.goToMatrixPage(${state.matrixPage - 1})">
+          <i class="fas fa-chevron-left"></i>
+          <span>Previous</span>
+        </button>
+        <span class="page-indicator">Page ${state.matrixPage} of ${totalPages}</span>
+        <button class="pagination-btn" ${state.matrixPage >= totalPages ? 'disabled' : ''} onclick="window.sourcingModule.goToMatrixPage(${state.matrixPage + 1})">
+          <span>Next</span>
+          <i class="fas fa-chevron-right"></i>
+        </button>
+      </div>
+    </div>
   `;
 }
 

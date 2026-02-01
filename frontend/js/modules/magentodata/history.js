@@ -450,11 +450,26 @@ window.showImportErrors = function(recordId) {
 function updatePagination() {
   const totalPages = Math.ceil(totalCount / itemsPerPage);
   const pageInfo = document.querySelector('#pageInfo');
+  const paginationInfo = document.querySelector('#paginationInfo');
   const prevBtn = document.querySelector('#prevPageBtn');
   const nextBtn = document.querySelector('#nextPageBtn');
   
+  // Calculate showing range
+  const startItem = (currentPage - 1) * itemsPerPage + 1;
+  const endItem = Math.min(currentPage * itemsPerPage, totalCount);
+  
+  // Update pagination info (showing X-Y of Z)
+  if (paginationInfo) {
+    if (totalCount > 0) {
+      paginationInfo.innerHTML = `Showing <strong>${startItem}-${endItem}</strong> of <strong>${totalCount}</strong> items`;
+    } else {
+      paginationInfo.innerHTML = 'Showing <strong>0</strong> of <strong>0</strong> items';
+    }
+  }
+  
+  // Update page indicator
   if (pageInfo) {
-    pageInfo.textContent = `Page ${currentPage} of ${totalPages || 1} (${totalCount} total imports)`;
+    pageInfo.textContent = `Page ${currentPage} of ${totalPages || 1}`;
   }
   
   if (prevBtn) {

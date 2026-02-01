@@ -160,6 +160,168 @@ th.sortable:hover .sort-icon {
   opacity: 0.8;
 }
 
+/* ===== Table Pagination ===== */
+/* Universal pagination component for tables */
+
+.table-pagination,
+.pagination-section,
+.pagination-block {
+  margin-top: var(--space-md);
+}
+
+.pagination-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  background: var(--bg);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-m);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+html.dark-mode .pagination-wrapper {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Pagination info text - "Showing X-Y of Z items" */
+.pagination-info {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.pagination-info strong,
+.pagination-info .pagination-highlight {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* Pagination controls container */
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+/* Page indicator - "Page X of Y" */
+.page-indicator,
+.page-info {
+  padding: var(--space-sm) var(--space-md);
+  background: linear-gradient(135deg, var(--accent), #7ab82d);
+  color: white;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 0.875rem;
+  min-width: 80px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* Alternative muted style for page info */
+.page-info.muted {
+  background: var(--bg-light);
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* Pagination buttons */
+.pagination-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-light);
+  border: 1px solid var(--bg-dark);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-family: var(--ff);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-m);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination-btn i {
+  font-size: 0.75rem;
+}
+
+/* Page number buttons (if using numbered pagination) */
+.pagination-numbers {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.pagination-number {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-light);
+  border: 1px solid var(--bg-dark);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-family: var(--ff);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.pagination-number:hover:not(.active):not(:disabled) {
+  background: var(--bg-dark);
+  color: var(--text);
+}
+
+.pagination-number.active {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+.pagination-ellipsis {
+  padding: 0 var(--space-xs);
+  color: var(--text-muted);
+}
+
+/* Items per page selector */
+.pagination-per-page {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.pagination-per-page select {
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--bg-light);
+  border: 1px solid var(--bg-dark);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: var(--ff);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
 /* ===== Responsive ===== */
 
 /* Table container for horizontal scroll on mobile */
@@ -169,8 +331,59 @@ th.sortable:hover .sort-icon {
   -webkit-overflow-scrolling: touch;
 }
 
+/* Tablet: <= 1024px */
+@media (max-width: 1024px) {
+  .pagination-wrapper {
+    padding: var(--space-sm) var(--space-md);
+    gap: var(--space-sm);
+  }
+  
+  .pagination-info {
+    font-size: 0.85rem;
+  }
+  
+  .pagination-btn {
+    padding: var(--space-xs) var(--space-sm);
+    font-size: 0.8rem;
+  }
+  
+  .page-indicator,
+  .page-info {
+    padding: var(--space-xs) var(--space-sm);
+    font-size: 0.8rem;
+    min-width: 70px;
+  }
+}
+
 /* Mobile: <= 768px */
 @media (max-width: 768px) {
+  .pagination-wrapper {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+    padding: var(--space-sm);
+  }
+  
+  .pagination-controls {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  
+  .pagination-btn span {
+    display: none;
+  }
+  
+  .pagination-btn {
+    padding: var(--space-sm);
+    min-width: 40px;
+    justify-content: center;
+  }
+  
+  .pagination-per-page {
+    justify-content: center;
+    order: -1;
+  }
+  
   th,
   td {
     padding: var(--space-sm) var(--space-md);
