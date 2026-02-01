@@ -1,0 +1,496 @@
+<!-- France Orders - Order Fulfillment Page -->
+<!-- Uses css/app.css + css/pages/orders/fulfillment.css -->
+<div class="order-fulfillment">
+  <!-- Header -->
+  <header class="page-header">
+    <div class="header-content">
+      <h1 class="page-title">France Orders - Order Fulfillment</h1>
+    </div>
+    <p class="page-subtitle">Process France (FR/NL) region orders and returns with invoice-based scanning</p>
+  </header>
+
+  <!-- Navigation Tabs -->
+  <nav class="inner-tabs">
+    <button class="tab-button active" onclick="location.href='/france-orders/order-fulfillment'">
+      <i class="fas fa-shopping-cart"></i>
+      <span>Order Fulfillment</span>
+    </button>
+    <button class="tab-button" onclick="location.href='/france-orders/order-progress'">
+      <i class="fas fa-chart-line"></i>
+      <span>Order Progress</span>
+    </button>
+    <button class="tab-button" onclick="location.href='/france-orders/order-tracking'">
+      <i class="fas fa-tasks"></i>
+      <span>Order Tracking</span>
+    </button>
+    <button class="tab-button" onclick="location.href='/france-orders/order-approval'">
+      <i class="fas fa-check-circle"></i>
+      <span>Order Approval</span>
+    </button>
+  </nav>
+
+  <!-- Main Content Wrapper -->
+  <div class="fulfillment-content">
+    
+    <!-- Board Controls -->
+    <div class="ot-controls" id="trackingBoardSection">
+      <div class="ot-live-status" id="liveStatus">
+        <span class="ot-dot"></span>
+        <span class="status-text">Connecting...</span>
+      </div>
+      <button class="ot-refresh-btn" id="refreshBoardBtn">
+        <i class="fas fa-sync-alt"></i>
+      </button>
+    </div>
+    
+    <!-- Mobile Column Tabs (only visible in mobile mode) -->
+    <div class="mobile-column-tabs" id="mobileColumnTabs" style="display: none;">
+      <button class="mobile-tab-button active" data-column="ready-to-pick">
+        <i class="fas fa-clipboard-list"></i>
+        <span>Ready to Pick</span>
+        <span class="mobile-tab-count" id="mobileReadyToPickCount">0</span>
+      </button>
+      <button class="mobile-tab-button" data-column="ready-to-check">
+        <i class="fas fa-search"></i>
+        <span>Ready to Check</span>
+        <span class="mobile-tab-count" id="mobileReadyToCheckCount">0</span>
+      </button>
+      <button class="mobile-tab-button" data-column="completed">
+        <i class="fas fa-check-double"></i>
+        <span>Completed</span>
+        <span class="mobile-tab-count" id="mobileCompletedCount">0</span>
+      </button>
+    </div>
+    
+    <!-- 3-Column Board -->
+    <div class="ot-board" id="trackingBoard">
+      <!-- Ready to Pick Column -->
+      <section class="ot-column ot-column-pick">
+        <div class="ot-column-header">
+          <div class="ot-column-icon"><i class="fas fa-clipboard-list"></i></div>
+          <span class="ot-column-title">Ready to Pick</span>
+          <span class="ot-column-count" id="readyToPickCount">0</span>
+        </div>
+        <div class="ot-column-body" id="readyToPickColumn"></div>
+      </section>
+
+      <!-- Ready to Check Column -->
+      <section class="ot-column ot-column-check">
+        <div class="ot-column-header">
+          <div class="ot-column-icon"><i class="fas fa-search"></i></div>
+          <span class="ot-column-title">Ready to Check</span>
+          <span class="ot-column-count" id="readyToCheckCount">0</span>
+        </div>
+        <div class="ot-column-body" id="readyToCheckColumn"></div>
+      </section>
+
+      <!-- Completed Column -->
+      <section class="ot-column ot-column-done">
+        <div class="ot-column-header">
+          <div class="ot-column-icon"><i class="fas fa-check-double"></i></div>
+          <span class="ot-column-title">Completed</span>
+          <span class="ot-column-count" id="completedCount">0</span>
+        </div>
+        <div class="ot-column-body" id="completedColumn"></div>
+      </section>
+    </div>
+    
+    <!-- Order Lookup Section -->
+    <div class="action-block" id="orderLookupSection">
+      <div class="block-header">
+        <div class="block-icon">
+          <i class="fas fa-search"></i>
+        </div>
+        <div class="block-title-group">
+          <h3 class="block-title">Start New Session</h3>
+          <p class="block-subtitle">Enter an order number to begin picking or processing returns</p>
+        </div>
+      </div>
+
+      <div class="block-content">
+        <div class="lookup-form">
+          <!-- Order Number Input -->
+          <div class="form-group">
+            <label class="form-label">
+              <i class="fas fa-hashtag"></i>
+              Order Number
+            </label>
+            <input type="text" id="orderNumberInput" class="form-input" placeholder="Enter order number..." autocomplete="off">
+          </div>
+
+          <!-- Session Type -->
+          <div class="form-group">
+            <label class="form-label" for="sessionTypeSelect">
+              <i class="fas fa-tasks"></i>
+              Session Type
+            </label>
+            <select id="sessionTypeSelect" data-enhance="c-select">
+              <option value="pick" selected>Fulfillment</option>
+              <option value="return">Returns</option>
+            </select>
+          </div>
+
+          <!-- Lookup Button -->
+          <div class="form-group">
+            <label class="form-label">&nbsp;</label>
+            <button id="startSessionBtn" class="action-btn primary-btn">
+              <i class="fas fa-play"></i>
+              Start Session
+            </button>
+          </div>
+        </div>
+
+        <!-- Error/Info Message -->
+        <div id="lookupMessage" class="message-area" style="display: none;"></div>
+      </div>
+    </div>
+
+    <!-- Active Session Section -->
+    <div class="action-block" id="activeSessionSection" style="display: none;">
+      <div class="block-header">
+        <div class="block-icon">
+          <i class="fas fa-box"></i>
+        </div>
+        <div class="block-title-group">
+          <h3 class="block-title">Active Session</h3>
+          <p class="block-subtitle">Pick & pack order items</p>
+        </div>
+      </div>
+
+      <div class="block-content">
+        <!-- Session Type Badge -->
+        <div class="session-type-badge" id="sessionTypeBadge">
+          <i class="fas fa-box"></i>
+          <span>PICK & PACK</span>
+        </div>
+
+        <!-- Order Information Grid -->
+        <div class="session-info-grid">
+          <!-- Top Section: Order/Invoice/Date in header -->
+          <div class="info-card header-card">
+            <div class="header-content">
+              <div class="header-item">
+                <div class="info-label">Invoice #</div>
+                <div class="info-value" id="sessionInvoiceNumber">-</div>
+              </div>
+              <div class="header-item">
+                <div class="info-label">Order #</div>
+                <div class="info-value" id="sessionOrderNumber">-</div>
+              </div>
+              <div class="header-item">
+                <div class="info-label">Order Date:</div>
+                <div class="info-value" id="sessionOrderDate">-</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sold To and Ship To -->
+          <div class="info-card address-card">
+            <div class="info-label">Sold to:</div>
+            <div class="info-value address-info">
+              <div id="sessionBillingName">-</div>
+              <div id="sessionBillingAddress">-</div>
+              <div id="sessionBillingPostcode">-</div>
+              <div>T: <span id="sessionBillingPhone">-</span></div>
+            </div>
+          </div>
+          
+          <div class="info-card address-card">
+            <div class="info-label">Ship to:</div>
+            <div class="info-value address-info">
+              <div id="sessionShippingName">-</div>
+              <div id="sessionShippingAddress">-</div>
+              <div id="sessionShippingPostcode">-</div>
+              <div>T: <span id="sessionShippingPhone">-</span></div>
+            </div>
+          </div>
+
+          <!-- Payment Method and Shipping Method -->
+          <div class="info-card">
+            <div class="info-label">Payment Method:</div>
+            <div class="info-value" id="sessionPaymentMethod">-</div>
+          </div>
+          
+          <div class="info-card">
+            <div class="info-label">Shipping Method:</div>
+            <div class="info-value" id="sessionShippingMethod">-</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Progress Bars Section -->
+    <div class="action-block" id="progressSection" style="display: none;">
+      <div class="block-header">
+        <div class="block-icon">
+          <i class="fas fa-chart-bar"></i>
+        </div>
+        <div class="block-title-group">
+          <h3 class="block-title">Progress</h3>
+          <p class="block-subtitle">Track scanning completion</p>
+        </div>
+      </div>
+
+      <div class="block-content">
+        <!-- Items Completed Progress -->
+        <div class="progress-section">
+          <div class="progress-info">
+            <span class="progress-label">
+              <i class="fas fa-check-circle"></i>
+              Items Completed
+            </span>
+            <span id="itemsProgressText">0 of 0 items</span>
+            <span id="itemsProgressPercent">0%</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="itemsProgressFill" style="width: 0%;"></div>
+          </div>
+        </div>
+
+        <!-- Quantity Scanned Progress -->
+        <div class="progress-section">
+          <div class="progress-info">
+            <span class="progress-label">
+              <i class="fas fa-boxes"></i>
+              Total Quantity
+            </span>
+            <span id="qtyProgressText">0 of 0 units</span>
+            <span id="qtyProgressPercent">0%</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill quantity-fill" id="qtyProgressFill" style="width: 0%;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sticky Bottom Panel (Scanner + Items + Actions) -->
+    <div class="sticky-bottom-panel" id="stickyBottomPanel" style="display: none;">
+      
+      <!-- Scanner Section -->
+      <div class="bottom-panel-section scanner-panel" id="scannerSection">
+        <div class="scanner-form">
+          <div class="form-group">
+            <input type="text" id="skuInput" class="form-input barcode-input" placeholder="Scan or type SKU..." autocomplete="off" disabled>
+          </div>
+          <div class="form-group qty-group">
+            <input type="number" id="scanQuantityInput" class="form-input qty-input" value="1" min="1" disabled>
+          </div>
+          <div class="form-group shelf-group">
+            <select id="shelfFieldSelect" data-enhance="c-select" disabled>
+              <option value="auto">Auto</option>
+              <option value="shelf_lt1_qty">&lt;1 Year</option>
+              <option value="shelf_gt1_qty">&gt;1 Year</option>
+              <option value="top_floor_total">Top Floor</option>
+            </select>
+          </div>
+          <div class="form-group scan-btn-group">
+            <button id="scanBtn" class="action-btn primary-btn" disabled>
+              <i class="fas fa-check"></i>
+            </button>
+          </div>
+        </div>
+        <div id="scanMessage" class="scan-message" style="display: none;"></div>
+        <div class="scanner-status-badge compact" id="scannerStatus" style="display: none;">
+          <i class="fas fa-check-circle"></i>
+          <span>Ready</span>
+        </div>
+      </div>
+
+      <!-- Items List Section -->
+      <div class="bottom-panel-section items-panel" id="itemsListSection">
+        <div class="items-list" id="itemsList">
+          <div class="empty-state">
+            <i class="fas fa-inbox"></i>
+            <p>No items to display</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Session Action Buttons -->
+      <div class="session-actions" id="sessionActionsSection">
+        <button id="cancelSessionBtn" class="action-btn secondary-btn">
+          <i class="fas fa-times"></i>
+          Cancel
+        </button>
+        <button id="saveAsDraftBtn" class="action-btn warning-btn" style="display: none;">
+          <i class="fas fa-save"></i>
+          Save as Draft
+        </button>
+        <button id="markReadyToCheckBtn" class="action-btn warning-btn">
+          <i class="fas fa-clipboard-check"></i>
+          Ready to Check
+        </button>
+        <button id="sendBackForPickingBtn" class="action-btn warning-btn" style="display: none;">
+          <i class="fas fa-undo"></i>
+          Send Back for Picking
+        </button>
+        <button id="completeSessionBtn" class="action-btn success-btn" style="display: none;">
+          <i class="fas fa-check"></i>
+          Complete
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Notification Modal -->
+  <div class="modal-backdrop" id="notificationModal">
+    <div class="modal modal-sm">
+      <div class="modal-header modal-header-primary" id="notificationHeader">
+        <div class="modal-header-icon" id="notificationIconWrapper">
+          <i class="fas fa-info-circle" id="notificationIcon"></i>
+        </div>
+        <h2 class="modal-title" id="notificationTitle">Notification</h2>
+        <button class="modal-close modal-close-contrast" id="closeNotificationBtn">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-message" id="notificationMessage"></p>
+      </div>
+      <div class="modal-footer">
+        <button class="action-btn primary-btn" id="notificationOkBtn">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirmation Modal -->
+  <div class="modal-backdrop" id="confirmationModal">
+    <div class="modal modal-sm">
+      <div class="modal-header modal-header-warning" id="confirmationHeader">
+        <div class="modal-header-icon">
+          <i class="fas fa-question-circle" id="confirmationIcon"></i>
+        </div>
+        <h2 class="modal-title" id="confirmationTitle">Confirm</h2>
+        <button class="modal-close modal-close-contrast" id="closeConfirmationBtn">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-message" id="confirmationMessage"></p>
+      </div>
+      <div class="modal-footer">
+        <button class="action-btn secondary-btn" id="confirmationCancelBtn">Cancel</button>
+        <button class="action-btn primary-btn" id="confirmationOkBtn">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Order Preview Modal -->
+  <div class="modal-backdrop" id="orderPreviewModal">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <div class="modal-header-icon">
+          <i class="fas fa-file-invoice"></i>
+        </div>
+        <h2 class="modal-title">Order Preview</h2>
+        <button class="modal-close" id="closeOrderPreviewBtn">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="order-preview-container">
+          <!-- Order Summary -->
+          <div class="preview-section">
+            <h3><i class="fas fa-info-circle"></i> Order Information</h3>
+            <div class="preview-grid">
+              <div class="preview-item">
+                <label>Order Number:</label>
+                <span id="previewOrderNumber">-</span>
+              </div>
+              <div class="preview-item">
+                <label>Invoice Number:</label>
+                <span id="previewInvoiceNumber">-</span>
+              </div>
+              <div class="preview-item">
+                <label>Order Date:</label>
+                <span id="previewOrderDate">-</span>
+              </div>
+              <div class="preview-item">
+                <label>Status:</label>
+                <span id="previewStatus">-</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Customer Information -->
+          <div class="preview-section">
+            <h3><i class="fas fa-user"></i> Customer Information</h3>
+            <div class="preview-grid two-column">
+              <div class="preview-column">
+                <h4>Billing Address</h4>
+                <div class="preview-address">
+                  <div id="previewBillingName" class="address-name">-</div>
+                  <div id="previewBillingAddress" class="address-line">-</div>
+                  <div id="previewBillingPostcode" class="address-line">-</div>
+                  <div id="previewBillingPhone" class="address-line">-</div>
+                </div>
+              </div>
+              <div class="preview-column">
+                <h4>Shipping Address</h4>
+                <div class="preview-address">
+                  <div id="previewShippingName" class="address-name">-</div>
+                  <div id="previewShippingAddress" class="address-line">-</div>
+                  <div id="previewShippingPostcode" class="address-line">-</div>
+                  <div id="previewShippingPhone" class="address-line">-</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Order Items -->
+          <div class="preview-section">
+            <h3><i class="fas fa-box"></i> Order Items</h3>
+            <div class="preview-items-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>SKU</th>
+                    <th>Product Name</th>
+                    <th class="text-center">Qty</th>
+                    <th class="text-right">Price</th>
+                    <th class="text-right">Total</th>
+                  </tr>
+                </thead>
+                <tbody id="previewItemsList">
+                  <tr>
+                    <td colspan="5" class="text-center">No items</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Order Totals -->
+          <div class="preview-section">
+            <div class="preview-totals">
+              <div class="preview-total-row">
+                <label>Subtotal:</label>
+                <span id="previewSubtotal">-</span>
+              </div>
+              <div class="preview-total-row">
+                <label>Tax:</label>
+                <span id="previewTax">-</span>
+              </div>
+              <div class="preview-total-row grand-total">
+                <label>Grand Total:</label>
+                <span id="previewGrandTotal">-</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="action-btn secondary-btn" id="cancelOrderPreviewBtn">Cancel</button>
+        <button class="action-btn primary-btn" id="startSessionFromPreviewBtn">
+          <i class="fas fa-play"></i> Start Session
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Include the JavaScript module -->
+<script type="module" src="/js/modules/france-orders/order-fulfillment.js"></script>

@@ -1,0 +1,229 @@
+<!-- France Orders - Progress Dashboard -->
+<!-- Uses css/app.css + css/pages/orders/progress.css -->
+<div class="order-progress">
+  <!-- Header -->
+  <header class="page-header">
+    <div class="header-content">
+      <h1 class="page-title">France Orders - Progress Dashboard</h1>
+    </div>
+    <p class="page-subtitle">Monitor and manage all fulfillment sessions for France (FR/NL) region</p>
+  </header>
+
+  <!-- Navigation Tabs -->
+  <nav class="inner-tabs">
+    <button class="tab-button" onclick="location.href='/france-orders/order-fulfillment'">
+      <i class="fas fa-shopping-cart"></i>
+      <span>Order Fulfillment</span>
+    </button>
+    <button class="tab-button active" onclick="location.href='/france-orders/order-progress'">
+      <i class="fas fa-chart-line"></i>
+      <span>Order Progress</span>
+    </button>
+    <button class="tab-button" onclick="location.href='/france-orders/order-tracking'">
+      <i class="fas fa-tasks"></i>
+      <span>Order Tracking</span>
+    </button>
+    <button class="tab-button" onclick="location.href='/france-orders/order-approval'">
+      <i class="fas fa-check-circle"></i>
+      <span>Order Approval</span>
+    </button>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="progress-content">
+    <!-- Controls Block -->
+    <div class="action-block">
+    <div class="block-header">
+      <div class="block-icon">
+        <i class="fas fa-sliders-h"></i>
+      </div>
+      <div class="block-title-group">
+        <h3 class="block-title">Controls</h3>
+        <p class="block-subtitle">Manage dashboard display</p>
+      </div>
+    </div>
+
+    <div class="block-content">
+      <div class="dashboard-controls">
+        <div class="control-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="showCompleted" />
+            <span>Show all completed/cancelled orders</span>
+          </label>
+          
+          <button class="action-btn primary-btn" id="refreshBtn">
+            <i class="fas fa-sync-alt"></i>
+            <span>Refresh</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Statistics Block -->
+  <div class="action-block">
+    <div class="block-header">
+      <div class="block-icon">
+        <i class="fas fa-chart-bar"></i>
+      </div>
+      <div class="block-title-group">
+        <h3 class="block-title">Statistics</h3>
+        <p class="block-subtitle">Current session overview</p>
+      </div>
+    </div>
+
+    <div class="block-content">
+      <div class="stats-grid">
+        <div class="stat-card info">
+          <div class="stat-icon">
+            <i class="fas fa-spinner"></i>
+          </div>
+          <div class="stat-content">
+            <div class="stat-label">In Progress</div>
+            <div class="stat-value" id="statInProgress">0</div>
+          </div>
+        </div>
+        <div class="stat-card warning">
+          <div class="stat-icon">
+            <i class="fas fa-file-alt"></i>
+          </div>
+          <div class="stat-content">
+            <div class="stat-label">Draft</div>
+            <div class="stat-value" id="statDraft">0</div>
+          </div>
+        </div>
+        <div class="stat-card success">
+          <div class="stat-icon">
+            <i class="fas fa-check"></i>
+          </div>
+          <div class="stat-content">
+            <div class="stat-label">Completed (24h)</div>
+            <div class="stat-value" id="statCompleted">0</div>
+          </div>
+        </div>
+        <div class="stat-card danger">
+          <div class="stat-icon">
+            <i class="fas fa-times"></i>
+          </div>
+          <div class="stat-content">
+            <div class="stat-label">Cancelled (24h)</div>
+            <div class="stat-value" id="statCancelled">0</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sessions List Block -->
+  <div class="action-block">
+    <div class="block-header">
+      <div class="block-icon">
+        <i class="fas fa-list"></i>
+      </div>
+      <div class="block-title-group">
+        <h3 class="block-title">Active Sessions</h3>
+        <p class="block-subtitle">All current fulfillment sessions</p>
+      </div>
+    </div>
+
+    <div class="block-content">
+      <div class="sessions-list" id="sessionsList">
+        <!-- Sessions will be loaded here dynamically -->
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <!-- Session Detail Modal -->
+  <div class="modal-backdrop" id="sessionDetailModal">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <div class="modal-header-icon">
+          <i class="fas fa-clipboard-list"></i>
+        </div>
+        <h2 class="modal-title">Session Details</h2>
+        <button class="modal-close" id="closeModalBtn" aria-label="Close modal">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body" id="modalBody">
+        <!-- Session details will be loaded here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Action Confirmation Modal -->
+  <div class="modal-backdrop" id="confirmModal">
+    <div class="modal modal-sm">
+      <div class="modal-header modal-header-warning" id="confirmModalHeader">
+        <div class="modal-header-icon">
+          <i class="fas fa-exclamation-triangle" id="confirmModalIcon"></i>
+        </div>
+        <h2 class="modal-title" id="confirmTitle">Confirm Action</h2>
+        <button class="modal-close modal-close-contrast" id="closeConfirmBtn" aria-label="Close modal">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-message" id="confirmMessage"></p>
+        <div class="form-group" id="reasonGroup" style="display: none;">
+          <label for="actionReason" class="form-label">Reason (optional):</label>
+          <textarea id="actionReason" class="form-input" rows="3" placeholder="Enter reason..."></textarea>
+        </div>
+        <div class="form-group" id="userSelectGroup" style="display: none;">
+          <label for="targetUser" class="form-label">Assign to user:</label>
+          <input type="text" id="targetUser" class="form-input" placeholder="Enter username...">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="action-btn secondary-btn" type="button" id="cancelActionBtn">Cancel</button>
+        <button class="action-btn primary-btn" type="button" id="confirmActionBtn">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification Modal -->
+  <div class="modal-backdrop" id="notificationModal">
+    <div class="modal modal-sm">
+      <div class="modal-header modal-header-primary" id="notificationHeader">
+        <div class="modal-header-icon" id="notificationIconWrapper">
+          <i class="fas fa-info-circle" id="notificationIcon"></i>
+        </div>
+        <h2 class="modal-title" id="notificationTitle">Notification</h2>
+        <button class="modal-close modal-close-contrast" id="closeNotificationBtn" aria-label="Close modal">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-message" id="notificationMessage"></p>
+      </div>
+      <div class="modal-footer">
+        <button class="action-btn primary-btn" id="notificationOkBtn">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirmation Modal -->
+  <div class="modal-backdrop" id="confirmationModal">
+    <div class="modal modal-sm">
+      <div class="modal-header modal-header-warning" id="confirmationHeader">
+        <div class="modal-header-icon">
+          <i class="fas fa-question-circle" id="confirmationIcon"></i>
+        </div>
+        <h2 class="modal-title" id="confirmationTitle">Confirm</h2>
+        <button class="modal-close modal-close-contrast" id="closeConfirmationBtn" aria-label="Close modal">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-message" id="confirmationMessage"></p>
+      </div>
+      <div class="modal-footer">
+        <button class="action-btn secondary-btn" id="confirmationCancelBtn">Cancel</button>
+        <button class="action-btn primary-btn" id="confirmationOkBtn">OK</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="/js/modules/france-orders/order-progress.js"></script>

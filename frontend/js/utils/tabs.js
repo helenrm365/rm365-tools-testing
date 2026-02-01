@@ -47,6 +47,10 @@ export function getDefaultAllowedPath(allowed = null) {
   if (isAllowed('magentodata', allowedTabs)) return '/magentodata';
   // Then inventory
   if (isAllowed('inventory', allowedTabs)) return '/inventory';
+  // Then birmingham-orders (UK Birmingham branch orders)
+  if (isAllowed('birmingham-orders', allowedTabs)) return '/birmingham-orders';
+  // Then france-orders (FR/NL region orders)
+  if (isAllowed('france-orders', allowedTabs)) return '/france-orders';
   // Then orders
   if (isAllowed('orders', allowedTabs)) return '/orders';
   // Then user management

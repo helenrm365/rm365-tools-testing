@@ -37,8 +37,8 @@ export function updateRoute(path, replace = false, state = {}) {
 // Check if we're navigating away from an active session
 function checkSessionCleanup(oldPath, newPath) {
   // Check if we're leaving the order fulfillment module entirely
-  const wasInOrderFulfillment = oldPath && oldPath.startsWith('/orders/order-fulfillment');
-  const stillInOrderFulfillment = newPath && newPath.startsWith('/orders/order-fulfillment');
+  const wasInOrderFulfillment = oldPath && oldPath.startsWith('/birmingham-orders/order-fulfillment');
+  const stillInOrderFulfillment = newPath && newPath.startsWith('/birmingham-orders/order-fulfillment');
   
   // Only draft if we're leaving the order fulfillment module completely
   if (wasInOrderFulfillment && !stillInOrderFulfillment) {
@@ -73,9 +73,12 @@ const routes = {
   '/magentodata/nl-magento':'/html/magentodata/nl-magento.html',
   '/magentodata/history': '/html/magentodata/history.html',
 
-  // Inventory - redirect root to first sub-page
-  '/inventory':                         '/html/inventory/management.html',
-  '/inventory/management':              '/html/inventory/management.html',
+  // Inventory - redirect root to first sub-page (management redirects to uk-birmingham)
+  '/inventory':                                '/html/inventory/management/uk-birmingham.html',
+  '/inventory/management':                     '/html/inventory/management/uk-birmingham.html',
+  '/inventory/management/uk-birmingham':       '/html/inventory/management/uk-birmingham.html',
+  '/inventory/management/uk-london':           '/html/inventory/management/uk-london.html',
+  '/inventory/management/fr-paris':            '/html/inventory/management/fr-paris.html',
   // /inventory/sourcing redirects to /inventory/sourcing/analysis-dashboard (handled in navigate())
   '/inventory/sourcing/analysis-dashboard': '/html/inventory/sourcing.html',
   '/inventory/sourcing/supplier-matrix':    '/html/inventory/sourcing.html',
@@ -89,6 +92,20 @@ const routes = {
   '/orders/order-tracking':     '/html/orders/order-tracking.html',
   '/orders/order-approval':     '/html/orders/order-approval.html',
   '/orders/fulfillment-design': '/html/orders/fulfillment-design.html',
+  
+  // Birmingham Orders - UK Birmingham branch fulfillment
+  '/birmingham-orders':                    '/html/birmingham-orders/order-fulfillment.html',
+  '/birmingham-orders/order-fulfillment':  '/html/birmingham-orders/order-fulfillment.html',
+  '/birmingham-orders/order-progress':     '/html/birmingham-orders/order-progress.html',
+  '/birmingham-orders/order-tracking':     '/html/birmingham-orders/order-tracking.html',
+  '/birmingham-orders/order-approval':     '/html/birmingham-orders/order-approval.html',
+  
+  // France Orders - FR/NL region fulfillment (shipped from Paris)
+  '/france-orders':                    '/html/france-orders/order-fulfillment.html',
+  '/france-orders/order-fulfillment':  '/html/france-orders/order-fulfillment.html',
+  '/france-orders/order-progress':     '/html/france-orders/order-progress.html',
+  '/france-orders/order-tracking':     '/html/france-orders/order-tracking.html',
+  '/france-orders/order-approval':     '/html/france-orders/order-approval.html',
   
   // User Management - redirect root to first sub-page
   '/usermanagement':            '/html/usermanagement/management.html',
@@ -120,15 +137,15 @@ function shouldRedirectAfterAutoDraft(reason) {
 
 function redirectToOrderFulfillmentHome(reason) {
   const currentPath = currentRoutePath || window.location.pathname;
-  if (!currentPath || !currentPath.startsWith('/orders/order-fulfillment')) {
+  if (!currentPath || !currentPath.startsWith('/birmingham-orders/order-fulfillment')) {
     return;
   }
 
-  if (currentPath === '/orders/order-fulfillment') {
+  if (currentPath === '/birmingham-orders/order-fulfillment') {
     return;
   }
 
-  navigate('/orders/order-fulfillment', true);
+  navigate('/birmingham-orders/order-fulfillment', true);
 }
 
 /**
@@ -147,6 +164,8 @@ export function generateTabStructure() {
     'magentodata': 'Magento Data',
     'inventory': 'Inventory',
     'orders': 'Orders',
+    'birmingham-orders': 'Birmingham Orders',
+    'france-orders': 'France Orders',
     'usermanagement': 'User Management'
   };
   
@@ -308,9 +327,15 @@ export async function navigate(path, replace = false) {
 
     // Check if this is a session-specific URL and map to base template
     let url = routes[path];
-    if (!url && path.match(/^\/orders\/order-fulfillment\/session-/)) {
-      // Session-specific URL, use the base order fulfillment template
-      url = routes['/orders/order-fulfillment'];
+    if (!url && path.match(/^\/birmingham-orders\/order-fulfillment\/session-/)) {
+      // Session-specific URL, use the base Birmingham orders fulfillment template
+      url = routes['/birmingham-orders/order-fulfillment'];
+    }
+    
+    // Check if this is a France orders session-specific URL
+    if (!url && path.match(/^\/france-orders\/order-fulfillment\/session-/)) {
+      // Session-specific URL, use the base France orders fulfillment template
+      url = routes['/france-orders/order-fulfillment'];
     }
     
     // Check if this is a magento data view-specific URL (full-data, 6-month, custom-range)
@@ -450,6 +475,16 @@ export async function navigate(path, replace = false) {
       await mod.init(path);
       currentModule = mod;
       currentModulePath = 'inventory';
+    } else if (path.startsWith('/birmingham-orders')) {
+      const mod = await import(`./modules/birmingham-orders/index.js${cacheBust}`);
+      await mod.init(path);
+      currentModule = mod;
+      currentModulePath = 'birmingham-orders';
+    } else if (path.startsWith('/france-orders')) {
+      const mod = await import(`./modules/france-orders/index.js${cacheBust}`);
+      await mod.init(path);
+      currentModule = mod;
+      currentModulePath = 'france-orders';
     } else if (path.startsWith('/orders')) {
       const mod = await import(`./modules/orders/index.js${cacheBust}`);
       await mod.init(path); // Pass full path for session URL detection

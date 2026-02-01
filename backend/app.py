@@ -352,10 +352,15 @@ working_modules = [
     ('modules.labels.api', 'router', f'{API}/labels', ['labels']),
     ('modules.magentodata.api', 'router', f'{API}/magentodata', ['magentodata']),
     ('modules.inventory.management.api', 'router', f'{API}/inventory/management', ['inventory-management']),
+    # Branch-specific inventory management routes
+    ('modules.inventory.management.branches', 'uk_birmingham_router', f'{API}/inventory/management/uk-birmingham', ['inventory-uk-birmingham']),
+    ('modules.inventory.management.branches', 'uk_london_router', f'{API}/inventory/management/uk-london', ['inventory-uk-london']),
+    ('modules.inventory.management.branches', 'fr_paris_router', f'{API}/inventory/management/fr-paris', ['inventory-fr-paris']),
     ('modules.inventory.collaboration', 'router', f'{API}/inventory/collaboration', ['inventory-collaboration']),
     ('modules.inventory.sourcing.api', 'router', f'{API}/inventory/sourcing', ['inventory-sourcing']),
     ('modules.inventory.api', 'router', f'{API}/inventory', ['inventory']),  # Root inventory endpoints
-    ('modules.orders.order_fulfillment.api', 'router', f'{API}/magento', ['magento']),
+    ('modules.orders.order_fulfillment.api', 'router', f'{API}/magento', ['magento']),  # Birmingham Orders
+    ('modules.orders.france_fulfillment.api', 'router', f'{API}/france-magento', ['france-magento']),  # France Orders
     ('modules.orders.api', 'router', f'{API}/orders', ['orders']),  # Dashboard stats endpoint
 ]
 

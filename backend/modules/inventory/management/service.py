@@ -319,13 +319,17 @@ class InventoryManagementService:
                     "variant_statuses": product.get("variant_statuses") or [],  # All variant statuses merged from inventory_metadata
                     "custom_fields": {
                         "shelf_total": shelf_total,  # Combined shelf quantities
-                        "reserve_stock": reserve_stock  # Top floor total
+                        "reserve_stock": reserve_stock,  # Top floor total
+                        # 6M data from inventory_metadata (synced overnight from aggregated_orders)
+                        # FR 6M = FR + NL combined (done in overnight sync)
+                        "uk_6m_data": int(metadata.get("uk_6m_data") or 0),
+                        "fr_6m_data": int(metadata.get("fr_6m_data") or 0)
                     }
                 }
                 items.append(item)
             
-            # Populate magento data from aggregated_orders tables
-            items = self._populate_magento_data_for_items(items)
+            # 6M data now comes from inventory_metadata (synced overnight), no need for runtime query
+            # items = self._populate_magento_data_for_items(items)  # REMOVED - was slow, queried aggregated_orders
             
             logger.info(f"Returning page {page}/{total_pages}: items {start_idx+1}-{end_idx} of {total_items} (search: '{search or 'none'}', show_orphaned={show_orphaned})")
             

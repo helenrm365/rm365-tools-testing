@@ -2,10 +2,23 @@ import { get, post, patch, http } from '../../services/api/http.js';
 import { showToast } from '../../ui/toast.js';
 import { collaborationManager } from './collaboration.js';
 import { syncUKMagentoData, syncFRMagentoData, syncNLMagentoData } from '../../services/api/magentoDataApi.js';
-import { checkTablesStatus, initializeTables } from '../../services/api/inventoryApi.js';
+import { checkTablesStatus, initializeTables, getCurrentBranch, getBranchConfig } from '../../services/api/inventoryApi.js';
 
-// Discontinued status filter preferences key (for checkboxes)
-const DISCONTINUED_STATUS_FILTERS_KEY = 'inventory_discontinued_status_filters';
+// Get current branch from URL/page
+let currentBranch = 'uk-birmingham';
+let currentBranchConfig = null;
+
+// Initialize branch settings
+function initBranchSettings() {
+  currentBranch = getCurrentBranch();
+  currentBranchConfig = getBranchConfig(currentBranch);
+  console.log(`[Inventory Management] Branch: ${currentBranch}, Table: ${currentBranchConfig.tableName}`);
+}
+
+// Discontinued status filter preferences key (for checkboxes) - branch-specific
+function getDiscontinuedStatusFiltersKey() {
+  return `inventory_discontinued_status_filters_${currentBranch}`;
+}
 
 // Default discontinued status filters (all checked by default)
 const DEFAULT_DISCONTINUED_STATUS_FILTERS = ['Active', 'Temporarily OOS', 'Pre Order', 'Samples'];
@@ -13,7 +26,7 @@ const DEFAULT_DISCONTINUED_STATUS_FILTERS = ['Active', 'Temporarily OOS', 'Pre O
 // Get saved discontinued status filters from localStorage
 function getSavedDiscontinuedStatusFilters() {
   try {
-    const saved = localStorage.getItem(DISCONTINUED_STATUS_FILTERS_KEY);
+    const saved = localStorage.getItem(getDiscontinuedStatusFiltersKey());
     if (saved) {
       return JSON.parse(saved);
     }
@@ -26,7 +39,7 @@ function getSavedDiscontinuedStatusFilters() {
 // Save discontinued status filters to localStorage
 function saveDiscontinuedStatusFilters(filters) {
   try {
-    localStorage.setItem(DISCONTINUED_STATUS_FILTERS_KEY, JSON.stringify(filters));
+    localStorage.setItem(getDiscontinuedStatusFiltersKey(), JSON.stringify(filters));
   } catch (e) {
     console.error('[Inventory] Error saving discontinued filters:', e);
   }
@@ -171,22 +184,26 @@ function formatMultilineText(text) {
 }
 
 export async function init() {
-  showToast('Checking database status...', 'info');
+  // Initialize branch settings first
+  initBranchSettings();
+  
+  const branchDisplay = currentBranchConfig?.displayName || currentBranch;
+  showToast(`Checking ${branchDisplay} database status...`, 'info');
   try {
     // Check if tables exist before initializing the UI
-    console.log('[Inventory Management] Checking tables status...');
-    const status = await checkTablesStatus();
+    console.log(`[Inventory Management] Checking tables status for ${currentBranch}...`);
+    const status = await checkTablesStatus(currentBranch);
     console.log('[Inventory Management] Tables status:', status);
     
     if (!status.all_tables_exist) {
       console.log('[Inventory Management] Tables not found, initializing...');
-      showToast('Initializing inventory tables...', 'info');
-      const initResult = await initializeTables();
+      showToast(`Initializing ${branchDisplay} inventory tables...`, 'info');
+      const initResult = await initializeTables(currentBranch);
       console.log('[Inventory Management] Tables initialized:', initResult);
-      showToast('Inventory tables initialized successfully', 'success');
+      showToast(`${branchDisplay} inventory tables initialized successfully`, 'success');
     }
     
-    showToast('Loading inventory data...', 'info');
+    showToast(`Loading ${branchDisplay} inventory data...`, 'info');
     await setupInventoryManagement();
   } catch (error) {
     console.error('[Inventory Management] Failed to initialize:', error);
@@ -216,11 +233,11 @@ async function setupInventoryManagement() {
 
 async function loadInventoryData() {
   try {
-    // Try multiple possible API paths
+    // Use branch-specific API paths
+    const branchBasePath = currentBranchConfig?.basePath || '/v1/inventory/management/uk-birmingham';
     const possiblePaths = [
-      { items: `/v1/inventory/management/items`, metadata: `/v1/inventory/management/metadata` },
-      { items: `/inventory/management/items`, metadata: `/inventory/management/metadata` },
-      { items: `/inventory/items`, metadata: `/inventory/metadata` }
+      { items: `${branchBasePath}/items`, metadata: `${branchBasePath}/metadata` },
+      { items: `/v1/inventory/management/${currentBranch}/items`, metadata: `/v1/inventory/management/${currentBranch}/metadata` }
     ];
     
     let itemsData = null;
@@ -240,7 +257,7 @@ async function loadInventoryData() {
         // Check if orphaned products should be shown
         const showOrphanedCheckbox = document.getElementById('showOrphanedCheckbox');
         const showOrphaned = showOrphanedCheckbox?.checked || false;
-        console.log('[Inventory] Loading data with showOrphaned:', showOrphaned);
+        console.log(`[Inventory] Loading data for branch ${currentBranch} with showOrphaned:`, showOrphaned);
         
         // Build URL with search and discontinued status parameters
         let itemsUrl = `${pathSet.items}?page=${currentPage + 1}&per_page=${ITEMS_PER_PAGE}`;
@@ -627,8 +644,8 @@ function createTableRow(item, metadata) {
     <td contenteditable="true" data-field="location">${formatMultilineText(metadata.location)}</td>
     <td contenteditable="true" data-field="date">${formatMultilineText(metadata.date)}</td>
     <td contenteditable="true" data-field="qty_ordered_jason">${metadata.qty_ordered_jason || 0}</td>
+    <td class="wrap sku-cell"><strong>${item.sku || ''}</strong></td>
     <td class="wrap">${item.product_name || ''}</td>
-    <td class="wrap">${item.sku || ''}</td>
     <td class="readonly-field" title="Populated from table">${metadata.uk_6m_data || ''}</td>
     <td contenteditable="true" data-field="shelf_lt1">${formatMultilineText(metadata.shelf_lt1)}</td>
     <td contenteditable="true" data-field="shelf_lt1_qty">${metadata.shelf_lt1_qty || 0}</td>
@@ -773,7 +790,9 @@ async function saveRowData(row) {
     const nextStockStatus = calculateStockStatus(nextSnapshot);
     const stockStatusChanged = previousStockStatus !== nextStockStatus;
 
-    const patchPath = `/v1/inventory/management/metadata/${encodeURIComponent(sku)}`;
+    // Use branch-specific API path
+    const branchBasePath = currentBranchConfig?.basePath || `/v1/inventory/management/${currentBranch}`;
+    const patchPath = `${branchBasePath}/metadata/${encodeURIComponent(sku)}`;
     await patch(patchPath, updated);
     metadataIndex.set(sku, nextSnapshot);
 
@@ -1206,7 +1225,9 @@ async function handleUpdate(row) {
   cells[12].textContent = newTotalStock;
 
   try {
-    await post(`/v1/inventory/management/metadata`, updated);
+    // Use branch-specific API path
+    const branchBasePath = currentBranchConfig?.basePath || `/v1/inventory/management/${currentBranch}`;
+    await post(`${branchBasePath}/metadata`, updated);
     
     metadataIndex.set(sku, updated);
   } catch (err) {

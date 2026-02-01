@@ -347,6 +347,7 @@ html.dark-mode .inventory-management .standalone-table {
   position: sticky;
   top: 0;
   z-index: 10;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 #inventoryManagementTable th {
@@ -357,117 +358,191 @@ html.dark-mode .inventory-management .standalone-table {
   text-transform: uppercase;
   letter-spacing: 0.3px;
   color: var(--text);
-  border-bottom: 2px solid var(--accent);
+  border-bottom: 3px solid var(--accent);
   border-right: 1px solid rgba(0, 0, 0, 0.05);
   white-space: nowrap;
   line-height: 1.2;
   vertical-align: middle;
 }
 
+/* First header cell alignment */
+#inventoryManagementTable th:first-child {
+  padding-left: 1.25rem;
+}
+
 html.dark-mode #inventoryManagementTable th {
   border-right-color: rgba(255, 255, 255, 0.05);
 }
 
-/* Header group visual grouping with subtle solid colors */
-#inventoryManagementTable th:nth-child(1) {
-  background: rgba(241, 245, 249, 0.4);
+/* Header group visual grouping with solid colors */
+/* Columns 1-3: Location, Date, Qty Ordered-Jason - Neutral/Slate */
+#inventoryManagementTable th:nth-child(1),
+#inventoryManagementTable th:nth-child(2),
+#inventoryManagementTable th:nth-child(3) {
+  background: #f1f5f9;
 }
 
-#inventoryManagementTable th:nth-child(2),
-#inventoryManagementTable th:nth-child(3),
+/* Columns 4-5: Product Name, SKU - Blue */
 #inventoryManagementTable th:nth-child(4),
 #inventoryManagementTable th:nth-child(5) {
-  background: rgba(219, 234, 254, 0.25);
+  background: #dbeafe;
 }
 
+/* Columns 6-10: UK 6M Data, Shelf <1, Shelf <1 Qty, Shelf >1, Shelf >1 Qty - Yellow */
 #inventoryManagementTable th:nth-child(6),
 #inventoryManagementTable th:nth-child(7),
 #inventoryManagementTable th:nth-child(8),
 #inventoryManagementTable th:nth-child(9),
 #inventoryManagementTable th:nth-child(10) {
-  background: rgba(254, 243, 199, 0.25);
+  background: #fef3c7;
 }
 
-#inventoryManagementTable th:nth-child(11),
-#inventoryManagementTable th:nth-child(12) {
-  background: rgba(236, 253, 245, 0.25);
+/* Column 11: Shelf Total - Green */
+#inventoryManagementTable th:nth-child(11) {
+  background: #d1fae5;
 }
 
+/* Columns 12-13: Top Floor Expiry Date, Top Floor Total - Purple */
+#inventoryManagementTable th:nth-child(12),
 #inventoryManagementTable th:nth-child(13) {
-  background: rgba(254, 242, 242, 0.25);
+  background: #f3e8ff;
 }
 
+/* Columns 14-15: Total Stock, Status - Red */
 #inventoryManagementTable th:nth-child(14),
-#inventoryManagementTable th:nth-child(15),
-#inventoryManagementTable th:nth-child(16) {
-  background: rgba(243, 232, 255, 0.25);
+#inventoryManagementTable th:nth-child(15) {
+  background: #fee2e2;
+}
+
+/* Columns 16-18: UK + FR Pre Order, FR 6M Data, Variant Statuses - Neutral/Slate */
+#inventoryManagementTable th:nth-child(16),
+#inventoryManagementTable th:nth-child(17),
+#inventoryManagementTable th:nth-child(18) {
+  background: #f1f5f9;
 }
 
 /* Dark mode header groups */
-html.dark-mode #inventoryManagementTable th:nth-child(1) {
-  background: rgba(58, 58, 58, 0.25);
+/* Columns 1-3: Location, Date, Qty Ordered-Jason - Neutral/Slate */
+html.dark-mode #inventoryManagementTable th:nth-child(1),
+html.dark-mode #inventoryManagementTable th:nth-child(2),
+html.dark-mode #inventoryManagementTable th:nth-child(3) {
+  background: #3a3a3a;
 }
 
-html.dark-mode #inventoryManagementTable th:nth-child(2),
-html.dark-mode #inventoryManagementTable th:nth-child(3),
+/* Columns 4-5: Product Name, SKU - Blue */
 html.dark-mode #inventoryManagementTable th:nth-child(4),
 html.dark-mode #inventoryManagementTable th:nth-child(5) {
-  background: rgba(42, 52, 65, 0.25);
+  background: #2a3441;
 }
 
+/* Columns 6-10: UK 6M Data, Shelf <1, Shelf <1 Qty, Shelf >1, Shelf >1 Qty - Yellow */
 html.dark-mode #inventoryManagementTable th:nth-child(6),
 html.dark-mode #inventoryManagementTable th:nth-child(7),
 html.dark-mode #inventoryManagementTable th:nth-child(8),
 html.dark-mode #inventoryManagementTable th:nth-child(9),
 html.dark-mode #inventoryManagementTable th:nth-child(10) {
-  background: rgba(61, 56, 40, 0.25);
+  background: #3d3828;
 }
 
-html.dark-mode #inventoryManagementTable th:nth-child(11),
-html.dark-mode #inventoryManagementTable th:nth-child(12) {
-  background: rgba(42, 61, 47, 0.25);
+/* Column 11: Shelf Total - Green */
+html.dark-mode #inventoryManagementTable th:nth-child(11) {
+  background: #2a3d2f;
 }
 
+/* Columns 12-13: Top Floor Expiry Date, Top Floor Total - Purple */
+html.dark-mode #inventoryManagementTable th:nth-child(12),
 html.dark-mode #inventoryManagementTable th:nth-child(13) {
-  background: rgba(61, 42, 42, 0.25);
+  background: #352a3d;
 }
 
+/* Columns 14-15: Total Stock, Status - Red */
 html.dark-mode #inventoryManagementTable th:nth-child(14),
-html.dark-mode #inventoryManagementTable th:nth-child(15),
-html.dark-mode #inventoryManagementTable th:nth-child(16) {
-  background: rgba(53, 42, 61, 0.25);
+html.dark-mode #inventoryManagementTable th:nth-child(15) {
+  background: #3d2a2a;
 }
 
-/* Table Rows */
+/* Columns 16-18: UK + FR Pre Order, FR 6M Data, Variant Statuses - Neutral/Slate */
+html.dark-mode #inventoryManagementTable th:nth-child(16),
+html.dark-mode #inventoryManagementTable th:nth-child(17),
+html.dark-mode #inventoryManagementTable th:nth-child(18) {
+  background: #3a3a3a;
+}
+
+/* Table Rows - Enhanced Row Clarity */
 #inventoryManagementTable tbody tr {
-  border-bottom: 1px solid var(--bg-light);
   background: var(--bg);
-  transition: background-color 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  border-left: 4px solid transparent;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+/* Alternating row pattern with better contrast */
+#inventoryManagementTable tbody tr:nth-child(odd) {
+  background: var(--bg);
 }
 
 #inventoryManagementTable tbody tr:nth-child(even) {
   background: var(--bg-light);
+  border-left: 4px solid rgba(139, 195, 74, 0.25);
 }
 
+html.dark-mode #inventoryManagementTable tbody tr {
+  border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+
+html.dark-mode #inventoryManagementTable tbody tr:nth-child(even) {
+  border-left-color: rgba(139, 195, 74, 0.3);
+}
+
+/* Stronger separator every 5th row for easier scanning */
+#inventoryManagementTable tbody tr:nth-child(5n) {
+  border-bottom: 2px solid rgba(139, 195, 74, 0.3);
+}
+
+html.dark-mode #inventoryManagementTable tbody tr:nth-child(5n) {
+  border-bottom-color: rgba(139, 195, 74, 0.35);
+}
+
+/* Hover state for row identification */
 #inventoryManagementTable tbody tr:hover {
-  background: var(--bg-dark);
+  background: rgba(139, 195, 74, 0.1);
+  border-left-color: var(--accent);
 }
 
-/* Table Cells */
+html.dark-mode #inventoryManagementTable tbody tr:hover {
+  background: rgba(139, 195, 74, 0.15);
+}
+
+/* Row focus state when editing cells */
+#inventoryManagementTable tbody tr:focus-within {
+  background: rgba(59, 130, 246, 0.08);
+  border-left-color: #3b82f6;
+}
+
+html.dark-mode #inventoryManagementTable tbody tr:focus-within {
+  background: rgba(59, 130, 246, 0.12);
+}
+
+/* Table Cells - Enhanced for row clarity */
 #inventoryManagementTable td {
-  padding: 1rem;
+  padding: 0.875rem 1rem;
   color: var(--text-muted);
   vertical-align: middle;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   border-right: 1px solid rgba(0, 0, 0, 0.05);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.03);
+  transition: background-color 0.15s ease;
+  position: relative;
+}
+
+/* First cell gets extra left padding to account for row border indicator */
+#inventoryManagementTable td:first-child {
+  padding-left: 1.25rem;
 }
 
 html.dark-mode #inventoryManagementTable td {
   border-right-color: rgba(255, 255, 255, 0.05);
-  border-bottom-color: rgba(255, 255, 255, 0.03);
 }
 
 /* Product name and SKU - allow wrapping but constrain width */
@@ -481,54 +556,84 @@ html.dark-mode #inventoryManagementTable td {
 }
 
 /* Numeric columns - center align */
-#inventoryManagementTable td:nth-child(5),
-#inventoryManagementTable td:nth-child(7),
-#inventoryManagementTable td:nth-child(9),
+#inventoryManagementTable td:nth-child(8),
 #inventoryManagementTable td:nth-child(10),
-#inventoryManagementTable td:nth-child(12),
+#inventoryManagementTable td:nth-child(11),
 #inventoryManagementTable td:nth-child(13),
-#inventoryManagementTable td:nth-child(16) {
+#inventoryManagementTable td:nth-child(14) {
   text-align: center;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
-/* Important columns - highlighted */
+/* Column 4-5: Product Name, SKU - Blue cells */
+#inventoryManagementTable td:nth-child(4),
 #inventoryManagementTable td:nth-child(5) {
-  background: rgba(219, 234, 254, 0.3);
-  font-weight: 600;
+  background: rgba(219, 234, 254, 0.4);
 }
 
+/* Column 8: Shelf <1 Qty - Yellow cell */
+#inventoryManagementTable td:nth-child(8) {
+  background: rgba(254, 243, 199, 0.5);
+  font-weight: 700;
+}
+
+/* Column 10: Shelf >1 Qty - Yellow cell */
 #inventoryManagementTable td:nth-child(10) {
-  background: rgba(254, 243, 199, 0.4);
+  background: rgba(254, 243, 199, 0.5);
   font-weight: 700;
 }
 
-#inventoryManagementTable td:nth-child(12) {
-  background: rgba(236, 253, 245, 0.4);
+/* Column 11: Shelf Total - Green cell */
+#inventoryManagementTable td:nth-child(11) {
+  background: rgba(209, 250, 229, 0.5);
   font-weight: 700;
 }
 
+/* Column 13: Top Floor Total - Purple cell */
 #inventoryManagementTable td:nth-child(13) {
-  background: rgba(254, 242, 242, 0.4);
+  background: rgba(243, 232, 255, 0.5);
   font-weight: 700;
+}
+
+/* Column 14: Total Stock - Red cell (not editable, pre-populated) */
+#inventoryManagementTable td:nth-child(14) {
+  background: rgba(254, 226, 226, 0.5);
+  font-weight: 700;
+}
+
+/* Column 15: Status - Greyed out cell (pre-populated) */
+#inventoryManagementTable td:nth-child(15) {
+  background: rgba(148, 163, 184, 0.15);
+  color: var(--text-muted);
+  font-style: italic;
 }
 
 /* Dark mode highlighted columns */
+html.dark-mode #inventoryManagementTable td:nth-child(4),
 html.dark-mode #inventoryManagementTable td:nth-child(5) {
-  background: rgba(42, 52, 65, 0.3);
+  background: rgba(42, 52, 65, 0.4);
 }
 
+html.dark-mode #inventoryManagementTable td:nth-child(8),
 html.dark-mode #inventoryManagementTable td:nth-child(10) {
-  background: rgba(61, 56, 40, 0.3);
+  background: rgba(61, 56, 40, 0.4);
 }
 
-html.dark-mode #inventoryManagementTable td:nth-child(12) {
-  background: rgba(42, 61, 47, 0.3);
+html.dark-mode #inventoryManagementTable td:nth-child(11) {
+  background: rgba(42, 61, 47, 0.4);
 }
 
 html.dark-mode #inventoryManagementTable td:nth-child(13) {
-  background: rgba(61, 42, 42, 0.3);
+  background: rgba(53, 42, 61, 0.4);
+}
+
+html.dark-mode #inventoryManagementTable td:nth-child(14) {
+  background: rgba(61, 42, 42, 0.4);
+}
+
+html.dark-mode #inventoryManagementTable td:nth-child(15) {
+  background: rgba(100, 116, 139, 0.2);
 }
 
 /* Read-only fields */
@@ -573,6 +678,50 @@ html.dark-mode #inventoryManagementTable td:nth-child(13) {
   font-weight: 600;
 }
 
+/* Stock Status Colors - Based on calculated demand vs stock */
+/* Normal Stock - No special color, inherits default styling */
+#inventoryManagementTable td.stock-status-normal {
+  font-weight: 700;
+  font-style: normal;
+}
+
+/* Low Stock - Yellow/Amber warning */
+#inventoryManagementTable td.stock-status-lowstock {
+  background: rgba(245, 158, 11, 0.25) !important;
+  color: #b45309 !important;
+  font-weight: 700;
+  font-style: normal;
+}
+
+/* Over Stock - Red alert */
+#inventoryManagementTable td.stock-status-overstock {
+  background: rgba(239, 68, 68, 0.25) !important;
+  color: #dc2626 !important;
+  font-weight: 700;
+  font-style: normal;
+}
+
+/* Dark mode stock status colors */
+html.dark-mode #inventoryManagementTable td.stock-status-normal {
+  font-weight: 700;
+  font-style: normal;
+}
+
+html.dark-mode #inventoryManagementTable td.stock-status-lowstock {
+  background: rgba(251, 191, 36, 0.3) !important;
+  color: #fbbf24 !important;
+  font-weight: 700;
+  font-style: normal;
+}
+
+html.dark-mode #inventoryManagementTable td.stock-status-overstock {
+  background: rgba(248, 113, 113, 0.3) !important;
+  color: #f87171 !important;
+  font-weight: 700;
+  font-style: normal;
+}
+
+/* Legacy status classes (keep for backwards compatibility) */
 #inventoryManagementTable td.status-overstock {
   background: rgba(239, 68, 68, 0.1) !important;
   color: #ef4444 !important;
@@ -617,8 +766,8 @@ html.dark-mode #inventoryManagementTable td.status-lowstock {
 }
 
 .row-highlight {
-  background: rgba(139, 195, 74, 0.1) !important;
-  border-left: 3px solid var(--accent);
+  background: rgba(139, 195, 74, 0.12) !important;
+  border-left-color: var(--accent) !important;
 }
 
 /* Column visibility toggles */
@@ -916,9 +1065,67 @@ html.dark-mode #inventoryManagementTable td.status-lowstock {
     font-size: 10px;
   }
   
-  #inventoryManagementTable tbody tr:hover {
-    background: transparent !important;
-    transform: none !important;
-    box-shadow: none !important;
+  #inventoryManagementTable tbody tr {
+    border-left: none !important;
   }
+  
+  #inventoryManagementTable tbody tr:nth-child(even) {
+    background: #f5f5f5 !important;
+    border-left: none !important;
+  }
+  
+  #inventoryManagementTable tbody tr:hover {
+    background: inherit !important;
+  }
+}
+
+/* ===== Branch Tabs (Sub-navigation for different warehouse locations) ===== */
+.inventory-management .branch-tabs {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid var(--divider);
+}
+
+.inventory-management .branch-tab-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-m);
+  cursor: pointer;
+  transition: all var(--transition);
+  text-decoration: none;
+}
+
+.inventory-management .branch-tab-button:hover {
+  color: var(--primary);
+  background: var(--primary-subtle);
+  border-color: var(--primary);
+}
+
+.inventory-management .branch-tab-button.active {
+  color: white;
+  background: var(--primary);
+  border-color: var(--primary);
+  box-shadow: var(--shadow-m);
+}
+
+.inventory-management .branch-tab-button i {
+  font-size: 0.875rem;
+}
+
+/* Dark mode adjustments for branch tabs */
+html.dark-mode .inventory-management .branch-tab-button {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+html.dark-mode .inventory-management .branch-tab-button:hover {
+  border-color: var(--primary);
 }

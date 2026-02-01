@@ -50,6 +50,9 @@ class MagentoInvoice(BaseModel):
     payment_method: Optional[str] = None
     shipping_method: Optional[str] = None
     
+    # Source tracking (for multi-region support)
+    source_region: Optional[str] = None  # 'uk', 'fr', 'nl' - which Magento DB this came from
+    
     @field_validator('state')
     @classmethod
     def convert_state_to_string(cls, v):

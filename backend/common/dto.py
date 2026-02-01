@@ -63,6 +63,8 @@ class LogInventoryAdjustmentIn(BaseModel):
 class InventoryItemCustomFields(BaseModel):
     shelf_total: Optional[int] = None
     reserve_stock: Optional[int] = None
+    uk_6m_data: Optional[int] = None
+    fr_6m_data: Optional[int] = None
 
 
 class InventoryItemOut(BaseModel):
@@ -72,7 +74,18 @@ class InventoryItemOut(BaseModel):
     stock_on_hand: Optional[int] = None
     custom_fields: InventoryItemCustomFields
     variant_statuses: Optional[List[str]] = None
-# :contentReference[oaicite:5]{index=5}
+    # Branch-specific metadata fields
+    location: Optional[str] = None
+    date: Optional[str] = None
+    qty_ordered_jason: Optional[int] = None
+    shelf_lt1: Optional[str] = None
+    shelf_lt1_qty: Optional[int] = None
+    shelf_gt1: Optional[str] = None
+    shelf_gt1_qty: Optional[int] = None
+    top_floor_expiry: Optional[str] = None
+    top_floor_total: Optional[int] = None
+    status: Optional[str] = None
+    uk_fr_preorder: Optional[str] = None
 
 
 class InventoryMetadataRecord(BaseModel):

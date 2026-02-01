@@ -1,10 +1,10 @@
 """
-Database-backed repository for managing Birmingham Orders fulfillment sessions.
+Database-backed repository for managing France Orders fulfillment sessions.
 Replaces the JSON file-based storage with PostgreSQL for better reliability,
 concurrency, and historical analysis.
 
 Uses the INVENTORY database (rm365) for storage.
-Inventory operations use the uk_birmingham_inventory table.
+Inventory operations use the fr_paris_inventory table.
 """
 from typing import Dict, Optional, List
 from datetime import datetime
@@ -13,19 +13,19 @@ import json
 import logging
 
 from core.db import get_inventory_log_connection, return_inventory_connection
-from .models import ScanSession, TakeoverRequest
+from modules.orders.order_fulfillment.models import ScanSession, TakeoverRequest
 
 logger = logging.getLogger(__name__)
 
-# Birmingham branch inventory table
-BIRMINGHAM_INVENTORY_TABLE = 'uk_birmingham_inventory'
+# France branch inventory table
+FRANCE_INVENTORY_TABLE = 'fr_paris_inventory'
 
-# Birmingham session tables (renamed from order_fulfillment_* to birmingham_order_fulfillment_*)
-BIRMINGHAM_SESSIONS_TABLE = 'birmingham_order_fulfillment_sessions'
-BIRMINGHAM_TAKEOVER_TABLE = 'birmingham_order_fulfillment_takeover_requests'
+# France session tables (renamed from order_fulfillment_* to france_order_fulfillment_*)
+FRANCE_SESSIONS_TABLE = 'france_order_fulfillment_sessions'
+FRANCE_TAKEOVER_TABLE = 'france_order_fulfillment_takeover_requests'
 
 
-def init_order_fulfillment_tables():
+def init_france_fulfillment_tables():
     """Initialize the order fulfillment database tables in the INVENTORY database"""
     conn = None
     try:
@@ -38,23 +38,23 @@ def init_order_fulfillment_tables():
             BEGIN
                 -- Rename sessions table if old name exists and new name doesn't
                 IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'order_fulfillment_sessions')
-                   AND NOT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'birmingham_order_fulfillment_sessions') THEN
-                    ALTER TABLE order_fulfillment_sessions RENAME TO birmingham_order_fulfillment_sessions;
-                    RAISE NOTICE 'Renamed order_fulfillment_sessions to birmingham_order_fulfillment_sessions';
+                   AND NOT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'france_order_fulfillment_sessions') THEN
+                    ALTER TABLE order_fulfillment_sessions RENAME TO france_order_fulfillment_sessions;
+                    RAISE NOTICE 'Renamed order_fulfillment_sessions to france_order_fulfillment_sessions';
                 END IF;
                 
                 -- Rename takeover table if old name exists and new name doesn't
                 IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'order_fulfillment_takeover_requests')
-                   AND NOT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'birmingham_order_fulfillment_takeover_requests') THEN
-                    ALTER TABLE order_fulfillment_takeover_requests RENAME TO birmingham_order_fulfillment_takeover_requests;
-                    RAISE NOTICE 'Renamed order_fulfillment_takeover_requests to birmingham_order_fulfillment_takeover_requests';
+                   AND NOT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'france_order_fulfillment_takeover_requests') THEN
+                    ALTER TABLE order_fulfillment_takeover_requests RENAME TO france_order_fulfillment_takeover_requests;
+                    RAISE NOTICE 'Renamed order_fulfillment_takeover_requests to france_order_fulfillment_takeover_requests';
                 END IF;
             END $$;
         """)
         
-        # Main sessions table (now with birmingham_ prefix)
+        # Main sessions table (now with france_ prefix)
         cursor.execute(f"""
-            CREATE TABLE IF NOT EXISTS {BIRMINGHAM_SESSIONS_TABLE} (
+            CREATE TABLE IF NOT EXISTS {FRANCE_SESSIONS_TABLE} (
                 session_id UUID PRIMARY KEY,
                 invoice_id VARCHAR(100) NOT NULL,
                 order_number VARCHAR(100) NOT NULL,
@@ -76,9 +76,9 @@ def init_order_fulfillment_tables():
         
         # Takeover requests table
         cursor.execute(f"""
-            CREATE TABLE IF NOT EXISTS {BIRMINGHAM_TAKEOVER_TABLE} (
+            CREATE TABLE IF NOT EXISTS {FRANCE_TAKEOVER_TABLE} (
                 request_id UUID PRIMARY KEY,
-                session_id UUID REFERENCES {BIRMINGHAM_SESSIONS_TABLE}(session_id) ON DELETE CASCADE,
+                session_id UUID REFERENCES {FRANCE_SESSIONS_TABLE}(session_id) ON DELETE CASCADE,
                 requested_by VARCHAR(100) NOT NULL,
                 current_owner VARCHAR(100) NOT NULL,
                 status VARCHAR(30) NOT NULL DEFAULT 'pending',
@@ -89,43 +89,43 @@ def init_order_fulfillment_tables():
         
         # Create indexes for common queries
         cursor.execute(f"""
-            CREATE INDEX IF NOT EXISTS idx_birmingham_sessions_order_number 
-            ON {BIRMINGHAM_SESSIONS_TABLE}(order_number)
+            CREATE INDEX IF NOT EXISTS idx_france_sessions_order_number 
+            ON {FRANCE_SESSIONS_TABLE}(order_number)
         """)
         cursor.execute(f"""
-            CREATE INDEX IF NOT EXISTS idx_birmingham_sessions_status 
-            ON {BIRMINGHAM_SESSIONS_TABLE}(status)
+            CREATE INDEX IF NOT EXISTS idx_france_sessions_status 
+            ON {FRANCE_SESSIONS_TABLE}(status)
         """)
         cursor.execute(f"""
-            CREATE INDEX IF NOT EXISTS idx_birmingham_sessions_user_id 
-            ON {BIRMINGHAM_SESSIONS_TABLE}(user_id)
+            CREATE INDEX IF NOT EXISTS idx_france_sessions_user_id 
+            ON {FRANCE_SESSIONS_TABLE}(user_id)
         """)
         cursor.execute(f"""
-            CREATE INDEX IF NOT EXISTS idx_birmingham_sessions_started_at 
-            ON {BIRMINGHAM_SESSIONS_TABLE}(started_at)
+            CREATE INDEX IF NOT EXISTS idx_france_sessions_started_at 
+            ON {FRANCE_SESSIONS_TABLE}(started_at)
         """)
         cursor.execute(f"""
-            CREATE INDEX IF NOT EXISTS idx_birmingham_sessions_invoice_id 
-            ON {BIRMINGHAM_SESSIONS_TABLE}(invoice_id)
+            CREATE INDEX IF NOT EXISTS idx_france_sessions_invoice_id 
+            ON {FRANCE_SESSIONS_TABLE}(invoice_id)
         """)
         cursor.execute(f"""
-            CREATE INDEX IF NOT EXISTS idx_birmingham_takeover_session_id 
-            ON {BIRMINGHAM_TAKEOVER_TABLE}(session_id)
+            CREATE INDEX IF NOT EXISTS idx_france_takeover_session_id 
+            ON {FRANCE_TAKEOVER_TABLE}(session_id)
         """)
         cursor.execute(f"""
-            CREATE INDEX IF NOT EXISTS idx_birmingham_takeover_current_owner 
-            ON {BIRMINGHAM_TAKEOVER_TABLE}(current_owner)
+            CREATE INDEX IF NOT EXISTS idx_france_takeover_current_owner 
+            ON {FRANCE_TAKEOVER_TABLE}(current_owner)
         """)
         
         # Migration: Add items_counted column if it doesn't exist (for existing databases)
         cursor.execute(f"""
-            ALTER TABLE {BIRMINGHAM_SESSIONS_TABLE} 
+            ALTER TABLE {FRANCE_SESSIONS_TABLE} 
             ADD COLUMN IF NOT EXISTS items_counted JSONB DEFAULT '[]'::jsonb
         """)
         
         conn.commit()
         cursor.close()
-        logger.info("✅ Order fulfillment tables initialized in INVENTORY database")
+        logger.info("✅ France order fulfillment tables initialized in INVENTORY database")
         return True
         
     except Exception as e:
@@ -138,17 +138,17 @@ def init_order_fulfillment_tables():
             return_inventory_connection(conn)
 
 
-def check_order_fulfillment_tables_exist() -> dict:
+def check_france_fulfillment_tables_exist() -> dict:
     """Check which order fulfillment tables exist in the database"""
     conn = None
     try:
         conn = get_inventory_log_connection()
         cursor = conn.cursor()
         
-        # Birmingham order fulfillment module requires these tables
+        # France order fulfillment module requires these tables
         tables = [
-            BIRMINGHAM_SESSIONS_TABLE,
-            BIRMINGHAM_TAKEOVER_TABLE
+            FRANCE_SESSIONS_TABLE,
+            FRANCE_TAKEOVER_TABLE
         ]
         status = {}
         
@@ -174,13 +174,13 @@ def check_order_fulfillment_tables_exist() -> dict:
             return_inventory_connection(conn)
 
 
-class MagentoDbRepo:
+class FranceDbRepo:
     """Database-backed repository for Magento invoice scanning sessions (uses INVENTORY database)"""
     
     def __init__(self):
         # Initialize tables on first use
         try:
-            init_order_fulfillment_tables()
+            init_france_fulfillment_tables()
         except Exception as e:
             logger.warning(f"Could not initialize tables (may already exist): {e}")
     
@@ -232,7 +232,7 @@ class MagentoDbRepo:
     
     def get_sku_by_item_id(self, item_id: str) -> Optional[str]:
         """
-        Look up SKU by item_id from Birmingham inventory table.
+        Look up SKU by item_id from France inventory table.
         READ-ONLY operation.
         """
         conn = None
@@ -250,7 +250,7 @@ class MagentoDbRepo:
             
             cursor = conn.cursor()
             cursor.execute(
-                f"SELECT sku FROM {BIRMINGHAM_INVENTORY_TABLE} WHERE item_id = %s",
+                f"SELECT sku FROM {FRANCE_INVENTORY_TABLE} WHERE item_id = %s",
                 (item_id,)
             )
             result = cursor.fetchone()
@@ -287,7 +287,7 @@ class MagentoDbRepo:
         
         # Append to the audit_logs JSONB array
         cursor.execute("""
-            UPDATE birmingham_order_fulfillment_sessions 
+            UPDATE france_order_fulfillment_sessions 
             SET audit_logs = COALESCE(audit_logs, '[]'::jsonb) || %s::jsonb
             WHERE session_id = %s
         """, (json.dumps([log_entry]), session_id))
@@ -313,7 +313,7 @@ class MagentoDbRepo:
             cursor = conn.cursor()
             
             cursor.execute("""
-                INSERT INTO birmingham_order_fulfillment_sessions 
+                INSERT INTO france_order_fulfillment_sessions 
                 (session_id, invoice_id, order_number, session_type, status, 
                  user_id, created_by, last_modified_by, started_at, last_modified_at,
                  items_expected, items_scanned, audit_logs)
@@ -351,7 +351,7 @@ class MagentoDbRepo:
             cursor = conn.cursor()
             
             cursor.execute("""
-                SELECT * FROM birmingham_order_fulfillment_sessions WHERE session_id = %s
+                SELECT * FROM france_order_fulfillment_sessions WHERE session_id = %s
             """, (session_id,))
             
             row = cursor.fetchone()
@@ -378,7 +378,7 @@ class MagentoDbRepo:
             cursor = conn.cursor()
             
             cursor.execute("""
-                SELECT * FROM birmingham_order_fulfillment_sessions 
+                SELECT * FROM france_order_fulfillment_sessions 
                 WHERE invoice_id = %s AND status = 'in_progress'
                 LIMIT 1
             """, (invoice_id,))
@@ -411,7 +411,7 @@ class MagentoDbRepo:
             
             # Exclude archived and cancelled sessions - they should not block new sessions
             cursor.execute("""
-                SELECT * FROM birmingham_order_fulfillment_sessions 
+                SELECT * FROM france_order_fulfillment_sessions 
                 WHERE invoice_id = %s
                 AND status NOT IN ('archived', 'cancelled')
                 ORDER BY started_at DESC
@@ -445,7 +445,7 @@ class MagentoDbRepo:
             cursor = conn.cursor()
             
             cursor.execute("""
-                SELECT * FROM birmingham_order_fulfillment_sessions 
+                SELECT * FROM france_order_fulfillment_sessions 
                 WHERE invoice_id = %s
                 AND status = 'archived'
                 ORDER BY last_modified_at DESC
@@ -487,7 +487,7 @@ class MagentoDbRepo:
             
             # Get current session for audit log
             cursor.execute("""
-                SELECT status, audit_logs FROM birmingham_order_fulfillment_sessions 
+                SELECT status, audit_logs FROM france_order_fulfillment_sessions 
                 WHERE session_id = %s
             """, (session_id,))
             row = cursor.fetchone()
@@ -513,7 +513,7 @@ class MagentoDbRepo:
             
             # Update session
             cursor.execute("""
-                UPDATE birmingham_order_fulfillment_sessions 
+                UPDATE france_order_fulfillment_sessions 
                 SET status = 'approved',
                     audit_logs = %s::jsonb,
                     last_modified_at = NOW(),
@@ -549,13 +549,13 @@ class MagentoDbRepo:
             
             if include_archived:
                 cursor.execute("""
-                    SELECT * FROM birmingham_order_fulfillment_sessions 
+                    SELECT * FROM france_order_fulfillment_sessions 
                     ORDER BY started_at DESC
                 """)
             else:
                 # Exclude archived and cancelled sessions from active view
                 cursor.execute("""
-                    SELECT * FROM birmingham_order_fulfillment_sessions 
+                    SELECT * FROM france_order_fulfillment_sessions 
                     WHERE status NOT IN ('archived', 'cancelled')
                     ORDER BY started_at DESC
                 """)
@@ -603,7 +603,7 @@ class MagentoDbRepo:
             values.append(session_id)
             
             cursor.execute(f"""
-                UPDATE birmingham_order_fulfillment_sessions 
+                UPDATE france_order_fulfillment_sessions 
                 SET {', '.join(set_clauses)}
                 WHERE session_id = %s
             """, values)
@@ -639,7 +639,7 @@ class MagentoDbRepo:
             
             # Get current items_scanned
             cursor.execute("""
-                SELECT items_scanned FROM birmingham_order_fulfillment_sessions WHERE session_id = %s
+                SELECT items_scanned FROM france_order_fulfillment_sessions WHERE session_id = %s
             """, (session_id,))
             
             row = cursor.fetchone()
@@ -692,7 +692,7 @@ class MagentoDbRepo:
                 items_scanned.append(new_item)
             
             cursor.execute("""
-                UPDATE birmingham_order_fulfillment_sessions 
+                UPDATE france_order_fulfillment_sessions 
                 SET items_scanned = %s::jsonb, last_modified_at = NOW()
                 WHERE session_id = %s
             """, (json.dumps(items_scanned), session_id))
@@ -718,7 +718,7 @@ class MagentoDbRepo:
             cursor = conn.cursor()
             
             cursor.execute("""
-                SELECT items_scanned FROM birmingham_order_fulfillment_sessions WHERE session_id = %s
+                SELECT items_scanned FROM france_order_fulfillment_sessions WHERE session_id = %s
             """, (session_id,))
             
             row = cursor.fetchone()
@@ -753,7 +753,7 @@ class MagentoDbRepo:
             cursor = conn.cursor()
             
             cursor.execute("""
-                SELECT items_scanned FROM birmingham_order_fulfillment_sessions WHERE session_id = %s
+                SELECT items_scanned FROM france_order_fulfillment_sessions WHERE session_id = %s
             """, (session_id,))
             
             row = cursor.fetchone()
@@ -788,7 +788,7 @@ class MagentoDbRepo:
             
             # Get current items_scanned
             cursor.execute("""
-                SELECT items_scanned FROM birmingham_order_fulfillment_sessions WHERE session_id = %s
+                SELECT items_scanned FROM france_order_fulfillment_sessions WHERE session_id = %s
             """, (session_id,))
             
             row = cursor.fetchone()
@@ -810,7 +810,7 @@ class MagentoDbRepo:
                     break
             
             cursor.execute("""
-                UPDATE birmingham_order_fulfillment_sessions 
+                UPDATE france_order_fulfillment_sessions 
                 SET items_scanned = %s::jsonb, last_modified_at = NOW()
                 WHERE session_id = %s
             """, (json.dumps(items_scanned), session_id))
@@ -837,7 +837,7 @@ class MagentoDbRepo:
             
             # Get current items_scanned
             cursor.execute("""
-                SELECT items_scanned FROM birmingham_order_fulfillment_sessions WHERE session_id = %s
+                SELECT items_scanned FROM france_order_fulfillment_sessions WHERE session_id = %s
             """, (session_id,))
             
             row = cursor.fetchone()
@@ -854,7 +854,7 @@ class MagentoDbRepo:
                     break
             
             cursor.execute("""
-                UPDATE birmingham_order_fulfillment_sessions 
+                UPDATE france_order_fulfillment_sessions 
                 SET items_scanned = %s::jsonb, last_modified_at = NOW()
                 WHERE session_id = %s
             """, (json.dumps(items_scanned), session_id))
@@ -881,7 +881,7 @@ class MagentoDbRepo:
             
             # Get current session info
             cursor.execute("""
-                SELECT user_id, last_modified_by FROM birmingham_order_fulfillment_sessions WHERE session_id = %s
+                SELECT user_id, last_modified_by FROM france_order_fulfillment_sessions WHERE session_id = %s
             """, (session_id,))
             
             row = cursor.fetchone()
@@ -892,7 +892,7 @@ class MagentoDbRepo:
             completing_user = user_id or row[0] or row[1] or "Unknown"
             
             cursor.execute("""
-                UPDATE birmingham_order_fulfillment_sessions 
+                UPDATE france_order_fulfillment_sessions 
                 SET status = 'completed', completed_at = NOW(), 
                     last_modified_by = %s, last_modified_at = NOW()
                 WHERE session_id = %s
@@ -922,7 +922,7 @@ class MagentoDbRepo:
             
             # Get current session info
             cursor.execute("""
-                SELECT user_id, last_modified_by FROM birmingham_order_fulfillment_sessions WHERE session_id = %s
+                SELECT user_id, last_modified_by FROM france_order_fulfillment_sessions WHERE session_id = %s
             """, (session_id,))
             
             row = cursor.fetchone()
@@ -933,7 +933,7 @@ class MagentoDbRepo:
             cancelling_user = user_id or row[0] or row[1] or "Unknown"
             
             cursor.execute("""
-                UPDATE birmingham_order_fulfillment_sessions 
+                UPDATE france_order_fulfillment_sessions 
                 SET status = 'cancelled', completed_at = NOW(), 
                     last_modified_by = %s, last_modified_at = NOW(),
                     items_scanned = '[]'::jsonb
@@ -964,7 +964,7 @@ class MagentoDbRepo:
             
             # Check if session is cancelled
             cursor.execute("""
-                SELECT status FROM birmingham_order_fulfillment_sessions WHERE session_id = %s
+                SELECT status FROM france_order_fulfillment_sessions WHERE session_id = %s
             """, (session_id,))
             
             row = cursor.fetchone()
@@ -975,7 +975,7 @@ class MagentoDbRepo:
             restarting_user = user_id or "Unknown"
             
             cursor.execute("""
-                UPDATE birmingham_order_fulfillment_sessions 
+                UPDATE france_order_fulfillment_sessions 
                 SET status = 'in_progress', user_id = %s,
                     last_modified_by = %s, last_modified_at = NOW(),
                     completed_at = NULL
@@ -1007,7 +1007,7 @@ class MagentoDbRepo:
             
             # Check if session is ready_to_check
             cursor.execute("""
-                SELECT status FROM birmingham_order_fulfillment_sessions WHERE session_id = %s
+                SELECT status FROM france_order_fulfillment_sessions WHERE session_id = %s
             """, (session_id,))
             
             row = cursor.fetchone()
@@ -1018,7 +1018,7 @@ class MagentoDbRepo:
             checking_user = user_id or "Unknown"
             
             cursor.execute("""
-                UPDATE birmingham_order_fulfillment_sessions 
+                UPDATE france_order_fulfillment_sessions 
                 SET status = 'in_progress', session_type = 'check',
                     user_id = %s, last_modified_by = %s, last_modified_at = NOW()
                 WHERE session_id = %s
@@ -1049,13 +1049,13 @@ class MagentoDbRepo:
             
             if user_id:
                 cursor.execute("""
-                    SELECT * FROM birmingham_order_fulfillment_sessions 
+                    SELECT * FROM france_order_fulfillment_sessions 
                     WHERE status = 'in_progress' AND user_id = %s
                     ORDER BY started_at DESC
                 """, (user_id,))
             else:
                 cursor.execute("""
-                    SELECT * FROM birmingham_order_fulfillment_sessions 
+                    SELECT * FROM france_order_fulfillment_sessions 
                     WHERE status = 'in_progress'
                     ORDER BY started_at DESC
                 """)
@@ -1080,7 +1080,7 @@ class MagentoDbRepo:
             cursor = conn.cursor()
             
             cursor.execute("""
-                SELECT * FROM birmingham_order_fulfillment_sessions 
+                SELECT * FROM france_order_fulfillment_sessions 
                 WHERE status = 'draft'
                 ORDER BY started_at DESC
             """)
@@ -1108,14 +1108,14 @@ class MagentoDbRepo:
             
             if user_id:
                 cursor.execute("""
-                    SELECT * FROM birmingham_order_fulfillment_sessions 
+                    SELECT * FROM france_order_fulfillment_sessions 
                     WHERE started_at >= NOW() - INTERVAL '%s days'
                     AND user_id = %s
                     ORDER BY started_at DESC
                 """, (days, user_id))
             else:
                 cursor.execute("""
-                    SELECT * FROM birmingham_order_fulfillment_sessions 
+                    SELECT * FROM france_order_fulfillment_sessions 
                     WHERE started_at >= NOW() - INTERVAL '%s days'
                     ORDER BY started_at DESC
                 """, (days,))
@@ -1143,7 +1143,7 @@ class MagentoDbRepo:
             
             # Check if session is claimable
             cursor.execute("""
-                SELECT status, created_by FROM birmingham_order_fulfillment_sessions WHERE session_id = %s
+                SELECT status, created_by FROM france_order_fulfillment_sessions WHERE session_id = %s
             """, (session_id,))
             
             row = cursor.fetchone()
@@ -1155,7 +1155,7 @@ class MagentoDbRepo:
             previous_status = row[0]
             
             cursor.execute("""
-                UPDATE birmingham_order_fulfillment_sessions 
+                UPDATE france_order_fulfillment_sessions 
                 SET status = 'in_progress', user_id = %s,
                     last_modified_by = %s, last_modified_at = NOW()
                 WHERE session_id = %s
@@ -1186,7 +1186,7 @@ class MagentoDbRepo:
             
             # Get current session info
             cursor.execute("""
-                SELECT user_id FROM birmingham_order_fulfillment_sessions WHERE session_id = %s
+                SELECT user_id FROM france_order_fulfillment_sessions WHERE session_id = %s
             """, (session_id,))
             
             row = cursor.fetchone()
@@ -1197,7 +1197,7 @@ class MagentoDbRepo:
             releasing_user = user_id or row[0] or "Unknown"
             
             cursor.execute("""
-                UPDATE birmingham_order_fulfillment_sessions 
+                UPDATE france_order_fulfillment_sessions 
                 SET status = 'draft', user_id = NULL, last_modified_at = NOW()
                 WHERE session_id = %s
             """, (session_id,))
@@ -1247,7 +1247,7 @@ class MagentoDbRepo:
             
             # Get current session info
             cursor.execute("""
-                SELECT user_id FROM birmingham_order_fulfillment_sessions WHERE session_id = %s
+                SELECT user_id FROM france_order_fulfillment_sessions WHERE session_id = %s
             """, (session_id,))
             
             row = cursor.fetchone()
@@ -1259,7 +1259,7 @@ class MagentoDbRepo:
             transfer_initiator = transferred_by or new_owner
             
             cursor.execute("""
-                UPDATE birmingham_order_fulfillment_sessions 
+                UPDATE france_order_fulfillment_sessions 
                 SET user_id = %s, last_modified_by = %s, last_modified_at = NOW()
                 WHERE session_id = %s
             """, (new_owner, new_owner, session_id))
@@ -1299,7 +1299,7 @@ class MagentoDbRepo:
             
             # Check if there's already a pending request from this user
             cursor.execute("""
-                SELECT * FROM birmingham_order_fulfillment_takeover_requests 
+                SELECT * FROM france_order_fulfillment_takeover_requests 
                 WHERE session_id = %s AND requested_by = %s AND status = 'pending'
             """, (session_id, requested_by))
             
@@ -1312,7 +1312,7 @@ class MagentoDbRepo:
             request_id = str(uuid.uuid4())
             
             cursor.execute("""
-                INSERT INTO birmingham_order_fulfillment_takeover_requests 
+                INSERT INTO france_order_fulfillment_takeover_requests 
                 (request_id, session_id, requested_by, current_owner, status, requested_at)
                 VALUES (%s, %s, %s, %s, 'pending', NOW())
             """, (request_id, session_id, requested_by, session.user_id or "Unknown"))
@@ -1321,7 +1321,7 @@ class MagentoDbRepo:
             
             # Fetch the created request
             cursor.execute("""
-                SELECT * FROM birmingham_order_fulfillment_takeover_requests WHERE request_id = %s
+                SELECT * FROM france_order_fulfillment_takeover_requests WHERE request_id = %s
             """, (request_id,))
             
             row = cursor.fetchone()
@@ -1346,7 +1346,7 @@ class MagentoDbRepo:
             cursor = conn.cursor()
             
             cursor.execute("""
-                SELECT * FROM birmingham_order_fulfillment_takeover_requests WHERE request_id = %s
+                SELECT * FROM france_order_fulfillment_takeover_requests WHERE request_id = %s
             """, (request_id,))
             
             row = cursor.fetchone()
@@ -1373,7 +1373,7 @@ class MagentoDbRepo:
             cursor = conn.cursor()
             
             cursor.execute("""
-                SELECT * FROM birmingham_order_fulfillment_takeover_requests 
+                SELECT * FROM france_order_fulfillment_takeover_requests 
                 WHERE current_owner = %s AND status = 'pending'
                 ORDER BY requested_at DESC
             """, (user_id,))
@@ -1399,7 +1399,7 @@ class MagentoDbRepo:
             
             # Get the request
             cursor.execute("""
-                SELECT * FROM birmingham_order_fulfillment_takeover_requests 
+                SELECT * FROM france_order_fulfillment_takeover_requests 
                 WHERE request_id = %s AND status = 'pending'
             """, (request_id,))
             
@@ -1412,7 +1412,7 @@ class MagentoDbRepo:
             new_status = 'accepted' if accept else 'declined'
             
             cursor.execute("""
-                UPDATE birmingham_order_fulfillment_takeover_requests 
+                UPDATE france_order_fulfillment_takeover_requests 
                 SET status = %s, responded_at = NOW()
                 WHERE request_id = %s
             """, (new_status, request_id))
@@ -1448,7 +1448,7 @@ class MagentoDbRepo:
             
             placeholders = ','.join(['%s'] * len(statuses))
             cursor.execute(f"""
-                SELECT * FROM birmingham_order_fulfillment_sessions 
+                SELECT * FROM france_order_fulfillment_sessions 
                 WHERE status IN ({placeholders})
                 ORDER BY started_at DESC
             """, statuses)
@@ -1474,7 +1474,7 @@ class MagentoDbRepo:
             
             # Get current session info
             cursor.execute("""
-                SELECT user_id, last_modified_by FROM birmingham_order_fulfillment_sessions WHERE session_id = %s
+                SELECT user_id, last_modified_by FROM france_order_fulfillment_sessions WHERE session_id = %s
             """, (session_id,))
             
             row = cursor.fetchone()
@@ -1485,7 +1485,7 @@ class MagentoDbRepo:
             marking_user = user_id or row[0] or row[1] or "Unknown"
             
             cursor.execute("""
-                UPDATE birmingham_order_fulfillment_sessions 
+                UPDATE france_order_fulfillment_sessions 
                 SET status = 'ready_to_check', 
                     last_modified_by = %s, last_modified_at = NOW()
                 WHERE session_id = %s
@@ -1521,7 +1521,7 @@ class MagentoDbRepo:
             
             # Get current session info
             cursor.execute("""
-                SELECT user_id, last_modified_by FROM birmingham_order_fulfillment_sessions WHERE session_id = %s
+                SELECT user_id, last_modified_by FROM france_order_fulfillment_sessions WHERE session_id = %s
             """, (session_id,))
             
             row = cursor.fetchone()
@@ -1534,7 +1534,7 @@ class MagentoDbRepo:
             # Build update query - include items_counted if provided
             if items_counted is not None:
                 cursor.execute("""
-                    UPDATE birmingham_order_fulfillment_sessions 
+                    UPDATE france_order_fulfillment_sessions 
                     SET status = 'draft', session_type = 'pick',
                         items_counted = %s::jsonb,
                         last_modified_by = %s, last_modified_at = NOW()
@@ -1542,7 +1542,7 @@ class MagentoDbRepo:
                 """, (json.dumps(items_counted), sending_user, session_id))
             else:
                 cursor.execute("""
-                    UPDATE birmingham_order_fulfillment_sessions 
+                    UPDATE france_order_fulfillment_sessions 
                     SET status = 'draft', session_type = 'pick',
                         last_modified_by = %s, last_modified_at = NOW()
                     WHERE session_id = %s
@@ -1582,7 +1582,7 @@ class MagentoDbRepo:
             clearing_user = user_id or "Unknown"
             
             cursor.execute("""
-                UPDATE birmingham_order_fulfillment_sessions 
+                UPDATE france_order_fulfillment_sessions 
                 SET items_counted = '[]'::jsonb,
                     last_modified_by = %s, last_modified_at = NOW()
                 WHERE session_id = %s AND status = 'ready_to_check'
@@ -1616,7 +1616,7 @@ class MagentoDbRepo:
             cursor = conn.cursor()
             
             cursor.execute("""
-                UPDATE birmingham_order_fulfillment_sessions 
+                UPDATE france_order_fulfillment_sessions 
                 SET status = 'approved', 
                     last_modified_by = %s, last_modified_at = NOW()
                 WHERE session_id = %s
@@ -1660,7 +1660,7 @@ class MagentoDbRepo:
             
             # Count sessions before reset by status
             cursor.execute("""
-                SELECT status, COUNT(*) FROM birmingham_order_fulfillment_sessions 
+                SELECT status, COUNT(*) FROM france_order_fulfillment_sessions 
                 WHERE status != 'archived'
                 GROUP BY status
             """)
@@ -1669,7 +1669,7 @@ class MagentoDbRepo:
             # Get all non-archived sessions to add audit log entries
             cursor.execute("""
                 SELECT session_id, status, audit_logs 
-                FROM birmingham_order_fulfillment_sessions 
+                FROM france_order_fulfillment_sessions 
                 WHERE status != 'archived'
             """)
             sessions_to_archive = cursor.fetchall()
@@ -1693,7 +1693,7 @@ class MagentoDbRepo:
                 
                 # Update session with new audit log and archived status
                 cursor.execute("""
-                    UPDATE birmingham_order_fulfillment_sessions 
+                    UPDATE france_order_fulfillment_sessions 
                     SET status = 'archived',
                         audit_logs = %s::jsonb,
                         last_modified_at = NOW(),
@@ -1703,7 +1703,7 @@ class MagentoDbRepo:
                 archived_count += 1
             
             # Clear all takeover requests
-            cursor.execute("DELETE FROM birmingham_order_fulfillment_takeover_requests")
+            cursor.execute("DELETE FROM france_order_fulfillment_takeover_requests")
             takeover_cleared = cursor.rowcount
             
             conn.commit()

@@ -71,18 +71,30 @@ const navigationConfig = {
     label: 'Inventory',
     icon: 'fa-solid fa-boxes-stacked',
     children: [
-      { id: 'management', label: 'Management', icon: 'fa-solid fa-warehouse', path: '/inventory/management' },
+      { id: 'uk-birmingham', label: 'UK Birmingham', icon: 'fa-solid fa-warehouse', path: '/inventory/management/uk-birmingham' },
+      { id: 'uk-london', label: 'UK London', icon: 'fa-solid fa-warehouse', path: '/inventory/management/uk-london' },
+      { id: 'fr-paris', label: 'FR Paris', icon: 'fa-solid fa-warehouse', path: '/inventory/management/fr-paris' },
       { id: 'sourcing', label: 'Product Sourcing', icon: 'fa-solid fa-truck', path: '/inventory/sourcing' }
     ]
   },
-  'orders': {
-    label: 'Orders',
+  'birmingham-orders': {
+    label: 'Birmingham Orders',
     icon: 'fa-solid fa-cart-shopping',
     children: [
-      { id: 'order-fulfillment', label: 'Order Fulfillment', icon: 'fa-solid fa-box', path: '/orders/order-fulfillment' },
-      { id: 'order-progress', label: 'Order Progress', icon: 'fa-solid fa-tasks', path: '/orders/order-progress' },
-      { id: 'order-tracking', label: 'Order Tracking', icon: 'fa-solid fa-location-dot', path: '/orders/order-tracking' },
-      { id: 'order-approval', label: 'Order Approval', icon: 'fa-solid fa-check-circle', path: '/orders/order-approval' }
+      { id: 'order-fulfillment', label: 'Order Fulfillment', icon: 'fa-solid fa-box', path: '/birmingham-orders/order-fulfillment' },
+      { id: 'order-progress', label: 'Order Progress', icon: 'fa-solid fa-tasks', path: '/birmingham-orders/order-progress' },
+      { id: 'order-tracking', label: 'Order Tracking', icon: 'fa-solid fa-location-dot', path: '/birmingham-orders/order-tracking' },
+      { id: 'order-approval', label: 'Order Approval', icon: 'fa-solid fa-check-circle', path: '/birmingham-orders/order-approval' }
+    ]
+  },
+  'france-orders': {
+    label: 'France Orders',
+    icon: 'fa-solid fa-cart-shopping',
+    children: [
+      { id: 'order-fulfillment', label: 'Order Fulfillment', icon: 'fa-solid fa-box', path: '/france-orders/order-fulfillment' },
+      { id: 'order-progress', label: 'Order Progress', icon: 'fa-solid fa-tasks', path: '/france-orders/order-progress' },
+      { id: 'order-tracking', label: 'Order Tracking', icon: 'fa-solid fa-location-dot', path: '/france-orders/order-tracking' },
+      { id: 'order-approval', label: 'Order Approval', icon: 'fa-solid fa-check-circle', path: '/france-orders/order-approval' }
     ]
   },
   'usermanagement': {
