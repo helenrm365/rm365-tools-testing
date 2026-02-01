@@ -116,15 +116,11 @@
               <i class="fas fa-map-marker-alt"></i>
               <span>Location</span>
             </label>
-            <div class="custom-dropdown" id="location-dropdown">
-              <div class="dropdown-selected" onclick="toggleDropdown('location-dropdown')">All Locations</div>
-              <div class="dropdown-options" id="locationDropdownOptions">
-                <div class="dropdown-option selected" onclick="selectOption(this, 'location-dropdown', '', 'All Locations')">All Locations</div>
-                <div class="dropdown-option" onclick="selectOption(this, 'location-dropdown', 'UK', 'UK')">UK</div>
-                <div class="dropdown-option" onclick="selectOption(this, 'location-dropdown', 'FR', 'France')">France</div>
-              </div>
-              <input type="hidden" name="locationFilter" id="locationFilter" value="">
-            </div>
+            <select id="locationFilter" data-enhance="c-select">
+              <option value="" selected>All Locations</option>
+              <option value="UK">UK</option>
+              <option value="FR">France</option>
+            </select>
           </div>
           <div class="form-group">
             <label class="form-label" for="nameFilter">

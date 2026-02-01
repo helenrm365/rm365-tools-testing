@@ -34,18 +34,13 @@
           <p class="block-subtitle" id="jobCountSubtitle">Loading...</p>
         </div>
         <div class="header-actions">
-          <div class="custom-dropdown" id="limit-dropdown">
-            <div class="dropdown-selected" onclick="window.toggleHistoryDropdown('limit-dropdown')">
-              <i class="fas fa-list-ol"></i>
-              <span>Last 10</span>
-            </div>
-            <div class="dropdown-options">
-              <div class="dropdown-option selected" onclick="window.selectHistoryLimit(this, '10', 'Last 10')">Last 10</div>
-              <div class="dropdown-option" onclick="window.selectHistoryLimit(this, '25', 'Last 25')">Last 25</div>
-              <div class="dropdown-option" onclick="window.selectHistoryLimit(this, '50', 'Last 50')">Last 50</div>
-              <div class="dropdown-option" onclick="window.selectHistoryLimit(this, '100', 'Last 100')">Last 100</div>
-            </div>
-            <input type="hidden" id="limitSelect" value="10">
+          <div class="form-group" style="margin: 0;">
+            <select id="limitSelect" data-enhance="c-select">
+              <option value="10" selected>Last 10</option>
+              <option value="25">Last 25</option>
+              <option value="50">Last 50</option>
+              <option value="100">Last 100</option>
+            </select>
           </div>
           <button id="refreshHistoryBtn" class="action-btn secondary-btn">
             <i class="fas fa-sync-alt"></i>

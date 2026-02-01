@@ -144,15 +144,10 @@ html.dark-mode .product-sourcing .data-controls-bar {
   max-width: 400px;
 }
 
-/* Custom dropdown uses forms.css styling */
-.product-sourcing .data-controls-bar .custom-dropdown {
+/* c-select uses forms.css styling */
+.product-sourcing .data-controls-bar .c-select {
   min-width: 180px;
   max-width: 220px;
-}
-
-/* Ensure dropdown options show above table */
-.product-sourcing .data-controls-bar .dropdown-options {
-  z-index: 100;
 }
 
 /* ===== Standalone Table ===== */
@@ -1202,7 +1197,7 @@ html.dark-mode .product-sourcing .fx-rate-card {
     gap: 0.75rem;
   }
   
-  .product-sourcing .data-controls-bar .custom-dropdown {
+  .product-sourcing .data-controls-bar .c-select {
     flex: 0 1 auto;
     min-width: 140px;
     max-width: 200px;

@@ -7,7 +7,7 @@
    - components/cards.css: .action-block, .block-header, .block-icon, .block-title-group, .block-title, .block-subtitle, .block-content, .employee-card, .employee-grid, .employee-avatar, .employee-info
    - components/badges.css: .status-badge, .location-badge
    - components/filters.css: .filter-controls, .filter-item, .filter-label
-   - components/forms.css: .search-box, .search-input, .custom-dropdown, .form-group, .form-label, .form-input
+   - components/forms.css: .search-box, .search-input, .c-select, .form-group, .form-label, .form-input
    - components/modals.css: .modal-overlay, .modal-content, .modal-header, .modal-header-icon, .modal-title, .modal-close, .modal-body, .modal-footer, .modal-footer-split, .modal-footer-right
    - components/tabs.css: .inner-tabs, .tab-button
    - components/loaders.css: .loading-spinner, .loading-state

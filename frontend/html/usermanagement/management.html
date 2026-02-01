@@ -121,17 +121,13 @@
               <input type="text" id="formUsername" name="username" class="form-input" placeholder="Enter username" required>
             </div>
             <div class="form-group">
-              <label class="form-label">
+              <label class="form-label" for="formRole">
                 <i class="fas fa-user-tag"></i>
                 <span>Role</span>
               </label>
-              <div class="custom-dropdown" id="role-dropdown">
-                <div class="dropdown-selected" onclick="toggleDropdown('role-dropdown')">Select Role</div>
-                <div class="dropdown-options">
-                  <!-- Populated by JS -->
-                </div>
-                <input type="hidden" name="role" id="formRole">
-              </div>
+              <select id="formRole" name="role" data-enhance="c-select">
+                <!-- Populated by JS -->
+              </select>
             </div>
           </div>
           

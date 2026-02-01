@@ -351,8 +351,7 @@ class MagentoPickPackManager {
 
     // Order Lookup Elements
     this.orderNumberInput = document.getElementById('orderNumberInput');
-    this.sessionTypeDropdown = document.getElementById('sessionTypeDropdown');
-    this.sessionTypeToggle = document.getElementById('sessionTypeToggle');
+    this.sessionTypeSelect = document.getElementById('sessionTypeSelect');
     this.startSessionBtn = document.getElementById('startSessionBtn');
     this.lookupMessage = document.getElementById('lookupMessage');
 
@@ -393,6 +392,7 @@ class MagentoPickPackManager {
     this.scannerStatus = document.getElementById('scannerStatus');
     this.skuInput = document.getElementById('skuInput');
     this.scanQuantityInput = document.getElementById('scanQuantityInput');
+    this.shelfFieldSelectWrapper = null; // Will be set after c-select enhancement
     this.shelfFieldSelect = document.getElementById('shelfFieldSelect');
     this.scanBtn = document.getElementById('scanBtn');
     this.scanMessage = document.getElementById('scanMessage');
@@ -406,64 +406,48 @@ class MagentoPickPackManager {
     this.initializeDropdowns();
   }
 
+
   initializeDropdowns() {
-    // Session Type Dropdown
+    // Session Type Dropdown - now using native c-select enhancement
     this.selectedSessionType = 'pick';
-    this.initDropdown('sessionTypeDropdown', (value) => {
-      this.selectedSessionType = value;
-    });
-  }
-
-  initDropdown(dropdownId, onSelect) {
-    const dropdown = document.getElementById(dropdownId);
-    if (!dropdown) {
-      console.warn(`Dropdown not found: ${dropdownId}`);
-      return;
-    }
-    const toggle = dropdown.querySelector('.c-select__button');
-    const list = dropdown.querySelector('.c-select__list');
-    const label = dropdown.querySelector('.c-select__label');
-    const items = dropdown.querySelectorAll('.c-select__item');
-
-    if (!toggle || !label || items.length === 0) {
-      console.warn(`Dropdown elements not found for: ${dropdownId}`, { toggle: !!toggle, label: !!label, itemsCount: items.length });
-      return;
-    }
-    // Prevent button from submitting or triggering other actions
-    toggle.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const isExpanded = dropdown.getAttribute('aria-expanded') === 'true';
-      dropdown.setAttribute('aria-expanded', !isExpanded);
-      toggle.setAttribute('aria-expanded', !isExpanded);
-    });
-
-    items.forEach(item => {
-      item.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const value = item.getAttribute('data-value');
-        const text = item.textContent.trim();
-        label.textContent = text;
-        dropdown.setAttribute('aria-expanded', 'false');
-        toggle.setAttribute('aria-expanded', 'false');
-        if (onSelect) onSelect(value, text);
-      });
-    });
-
-    // Close dropdown when clicking outside
-    const closeHandler = (e) => {
-      if (!dropdown.contains(e.target)) {
-        dropdown.setAttribute('aria-expanded', 'false');
-        toggle.setAttribute('aria-expanded', 'false');
-      }
-    };
     
-    // Store handler reference for potential cleanup
-    if (!dropdown._closeHandler) {
-      dropdown._closeHandler = closeHandler;
-      document.addEventListener('click', closeHandler);
-    }
+    // Wait for c-select enhancement to complete, then attach listener
+    setTimeout(() => {
+      // The select might be enhanced (wrapped in c-select), so we need to find the actual select element
+      let sessionTypeSelect = document.getElementById('sessionTypeSelect');
+      
+      // If c-select already enhanced it, the ID is on the wrapper, so find the native select inside
+      if (sessionTypeSelect && sessionTypeSelect.classList.contains('c-select')) {
+        sessionTypeSelect = sessionTypeSelect.querySelector('select');
+      }
+      
+      // Fallback to direct query if not enhanced yet
+      if (!sessionTypeSelect || sessionTypeSelect.tagName !== 'SELECT') {
+        sessionTypeSelect = document.querySelector('select[id="sessionTypeSelect"]');
+      }
+      
+      if (sessionTypeSelect) {
+        // Set initial value
+        this.selectedSessionType = sessionTypeSelect.value;
+        
+        // Listen to native change event
+        sessionTypeSelect.addEventListener('change', (e) => {
+          this.selectedSessionType = e.target.value;
+          console.log('Session type changed to:', this.selectedSessionType);
+        });
+      } else {
+        console.warn('Session type select not found');
+      }
+      
+      // Handle shelf field select wrapper for enable/disable
+      let shelfFieldSelect = document.getElementById('shelfFieldSelect');
+      if (shelfFieldSelect && shelfFieldSelect.classList.contains('c-select')) {
+        this.shelfFieldSelectWrapper = shelfFieldSelect;
+        this.shelfFieldSelect = shelfFieldSelect.querySelector('select');
+      } else {
+        this.shelfFieldSelect = shelfFieldSelect;
+      }
+    }, 300); // Wait for c-select enhancement
   }
 
   attachEventListeners() {
@@ -839,7 +823,15 @@ class MagentoPickPackManager {
     // Enable scanner inputs
     this.skuInput.disabled = false;
     this.scanQuantityInput.disabled = false;
-    this.shelfFieldSelect.disabled = false;
+    if (this.shelfFieldSelect) {
+      this.shelfFieldSelect.disabled = false;
+      // Also update the c-select wrapper appearance if it exists
+      if (this.shelfFieldSelectWrapper) {
+        this.shelfFieldSelectWrapper.classList.remove('disabled');
+        const button = this.shelfFieldSelectWrapper.querySelector('.c-select__button');
+        if (button) button.disabled = false;
+      }
+    }
     this.scanBtn.disabled = false;
     
     // Focus on SKU input

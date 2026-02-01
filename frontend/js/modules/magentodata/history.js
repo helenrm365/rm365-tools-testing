@@ -16,9 +16,6 @@ let filterStatus = null;
 export async function initMagentoDataHistory() {
   showToast('Setting up history interface...', 'info');
   
-  // Set up custom dropdown functionality
-  setupCustomDropdowns();
-  
   // Set up filters
   setupFilters();
   
@@ -31,64 +28,6 @@ export async function initMagentoDataHistory() {
   showToast('Loading import history...', 'info');
   // Load initial data
   await loadHistoryData();
-}
-
-/**
- * Setup custom dropdown functionality
- */
-function setupCustomDropdowns() {
-  // Toggle dropdown on click
-  window.toggleDropdown = function(dropdownId) {
-    const dropdown = document.getElementById(dropdownId);
-    if (!dropdown) return;
-    
-    // Close any other open dropdowns
-    document.querySelectorAll('.custom-dropdown.open').forEach(d => {
-      if (d.id !== dropdownId) {
-        d.classList.remove('open');
-      }
-    });
-    
-    dropdown.classList.toggle('open');
-  };
-  
-  // Select option handler
-  window.selectOption = function(element, dropdownId, value, text) {
-    const dropdown = document.getElementById(dropdownId);
-    if (!dropdown) return;
-    
-    // Update selected display
-    const selected = dropdown.querySelector('.dropdown-selected');
-    if (selected) {
-      selected.textContent = text;
-    }
-    
-    // Update hidden input
-    const hiddenInput = dropdown.querySelector('input[type="hidden"]');
-    if (hiddenInput) {
-      hiddenInput.value = value;
-      // Dispatch change event
-      hiddenInput.dispatchEvent(new Event('change', { bubbles: true }));
-    }
-    
-    // Update selected class
-    dropdown.querySelectorAll('.dropdown-option').forEach(opt => {
-      opt.classList.remove('selected');
-    });
-    element.classList.add('selected');
-    
-    // Close dropdown
-    dropdown.classList.remove('open');
-  };
-  
-  // Close dropdowns when clicking outside
-  document.addEventListener('click', (e) => {
-    if (!e.target.closest('.custom-dropdown')) {
-      document.querySelectorAll('.custom-dropdown.open').forEach(d => {
-        d.classList.remove('open');
-      });
-    }
-  });
 }
 
 /**
@@ -128,27 +67,15 @@ function setupFilters() {
       filterRegion = null;
       filterStatus = null;
       
-      // Reset dropdown displays
-      const regionDropdown = document.getElementById('region-dropdown');
-      if (regionDropdown) {
-        const selected = regionDropdown.querySelector('.dropdown-selected');
-        if (selected) selected.textContent = 'All Regions';
-        const hiddenInput = regionDropdown.querySelector('input[type="hidden"]');
-        if (hiddenInput) hiddenInput.value = '';
-        regionDropdown.querySelectorAll('.dropdown-option').forEach((opt, i) => {
-          opt.classList.toggle('selected', i === 0);
-        });
+      // Reset select elements
+      const regionSelect = document.getElementById('regionFilter');
+      if (regionSelect) {
+        regionSelect.value = '';
       }
       
-      const statusDropdown = document.getElementById('status-dropdown');
-      if (statusDropdown) {
-        const selected = statusDropdown.querySelector('.dropdown-selected');
-        if (selected) selected.textContent = 'All Statuses';
-        const hiddenInput = statusDropdown.querySelector('input[type="hidden"]');
-        if (hiddenInput) hiddenInput.value = '';
-        statusDropdown.querySelectorAll('.dropdown-option').forEach((opt, i) => {
-          opt.classList.toggle('selected', i === 0);
-        });
+      const statusSelect = document.getElementById('statusFilter');
+      if (statusSelect) {
+        statusSelect.value = '';
       }
       
       // Reset date inputs

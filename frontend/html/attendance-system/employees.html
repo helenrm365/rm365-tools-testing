@@ -82,64 +82,48 @@
 
           <div class="filter-controls">
             <div class="filter-item">
-              <label class="filter-label">
+              <label class="filter-label" for="statusFilter">
                 <i class="fas fa-toggle-on"></i>
                 <span>Status</span>
               </label>
-              <div class="custom-dropdown" id="status-dropdown">
-                <div class="dropdown-selected" onclick="toggleDropdown('status-dropdown')">All Status</div>
-                <div class="dropdown-options">
-                  <div class="dropdown-option selected" onclick="selectOption(this, 'status-dropdown', '', 'All Status')">All Status</div>
-                  <div class="dropdown-option" onclick="selectOption(this, 'status-dropdown', 'active', 'Active')">Active</div>
-                  <div class="dropdown-option" onclick="selectOption(this, 'status-dropdown', 'inactive', 'Inactive')">Inactive</div>
-                </div>
-                <input type="hidden" name="status" id="statusFilter" value="">
-              </div>
+              <select id="statusFilter" data-enhance="c-select">
+                <option value="" selected>All Status</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
             </div>
 
             <div class="filter-item">
-              <label class="filter-label">
+              <label class="filter-label" for="countryFilter">
                 <i class="fas fa-globe"></i>
                 <span>Country</span>
               </label>
-              <div class="custom-dropdown" id="country-dropdown">
-                <div class="dropdown-selected" onclick="toggleDropdown('country-dropdown')">All Countries</div>
-                <div class="dropdown-options" id="filter-country-options">
-                  <div class="dropdown-option selected" data-value="" onclick="window.selectCountryFilter(this, '')">All Countries</div>
-                  <!-- Countries will be populated dynamically -->
-                </div>
-                <input type="hidden" name="country" id="countryFilter" value="">
-              </div>
+              <select id="countryFilter" data-enhance="c-select">
+                <option value="" selected>All Countries</option>
+                <!-- Countries will be populated dynamically -->
+              </select>
             </div>
 
             <div class="filter-item">
-              <label class="filter-label">
+              <label class="filter-label" for="locationFilter">
                 <i class="fas fa-map-marker-alt"></i>
                 <span>Location</span>
               </label>
-              <div class="custom-dropdown" id="location-dropdown">
-                <div class="dropdown-selected" onclick="toggleDropdown('location-dropdown')">All Locations</div>
-                <div class="dropdown-options" id="filter-location-options">
-                  <div class="dropdown-option selected" data-value="" onclick="window.selectLocationFilter(this, '')">All Locations</div>
-                  <!-- Locations will be populated dynamically -->
-                </div>
-                <input type="hidden" name="location" id="locationFilter" value="">
-              </div>
+              <select id="locationFilter" data-enhance="c-select">
+                <option value="" selected>All Locations</option>
+                <!-- Locations will be populated dynamically -->
+              </select>
             </div>
 
             <div class="filter-item">
-              <label class="filter-label">
+              <label class="filter-label" for="citycodeFilter">
                 <i class="fas fa-city"></i>
                 <span>City Code</span>
               </label>
-              <div class="custom-dropdown" id="citycode-dropdown">
-                <div class="dropdown-selected" onclick="toggleDropdown('citycode-dropdown')">All City Codes</div>
-                <div class="dropdown-options" id="filter-citycode-options">
-                  <div class="dropdown-option selected" data-value="" onclick="window.selectCityCodeFilter(this, '')">All City Codes</div>
-                  <!-- City codes will be populated dynamically -->
-                </div>
-                <input type="hidden" name="citycode" id="citycodeFilter" value="">
-              </div>
+              <select id="citycodeFilter" data-enhance="c-select">
+                <option value="" selected>All City Codes</option>
+                <!-- City codes will be populated dynamically -->
+              </select>
             </div>
           </div>
         </div>
@@ -232,34 +216,28 @@
         <input type="text" id="employeeName" class="form-input" placeholder="Enter full name" required>
       </div>
       <div class="form-group">
-        <label class="form-label">
+        <label class="form-label" for="employeeLocation">
           <i class="fas fa-map-marker-alt"></i>
           <span>Location *</span>
         </label>
-        <div class="custom-dropdown" id="create-location-dropdown">
-          <div class="dropdown-selected" onclick="toggleDropdown('create-location-dropdown')">Select Location</div>
-          <div class="dropdown-options" id="create-location-options">
-            <!-- Locations will be populated dynamically -->
-            <div class="dropdown-option create-new-option" onclick="window.openCreateLocationModal('create')">
-              <i class="fas fa-plus-circle"></i> Create New Location
-            </div>
-          </div>
-          <input type="hidden" id="employeeLocation" value="">
-        </div>
+        <select id="employeeLocation" data-enhance="c-select" required>
+          <option value="" selected disabled>Select Location</option>
+          <!-- Locations will be populated dynamically -->
+        </select>
+        <button type="button" class="action-btn secondary-btn create-location-btn" onclick="window.openCreateLocationModal('create')">
+          <i class="fas fa-plus-circle"></i>
+          <span>Create New Location</span>
+        </button>
       </div>
       <div class="form-group">
-        <label class="form-label">
+        <label class="form-label" for="employeeStatus">
           <i class="fas fa-toggle-on"></i>
           <span>Status</span>
         </label>
-        <div class="custom-dropdown" id="create-status-dropdown">
-          <div class="dropdown-selected" onclick="toggleDropdown('create-status-dropdown')">Active</div>
-          <div class="dropdown-options">
-            <div class="dropdown-option selected" onclick="selectOption(this, 'create-status-dropdown', 'active', 'Active')">Active</div>
-            <div class="dropdown-option" onclick="selectOption(this, 'create-status-dropdown', 'inactive', 'Inactive')">Inactive</div>
-          </div>
-          <input type="hidden" id="employeeStatus" value="active">
-        </div>
+        <select id="employeeStatus" data-enhance="c-select">
+          <option value="active" selected>Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
       </div>
     </div>
     <div class="modal-footer">
@@ -310,35 +288,29 @@
       </div>
       
       <div class="form-group">
-        <label class="form-label">
+        <label class="form-label" for="editEmployeeLocation">
           <i class="fas fa-map-marker-alt"></i>
           <span>Location *</span>
         </label>
-        <div class="custom-dropdown" id="edit-location-dropdown">
-          <div class="dropdown-selected" onclick="toggleDropdown('edit-location-dropdown')">Select Location</div>
-          <div class="dropdown-options" id="edit-location-options">
-            <!-- Locations will be populated dynamically -->
-            <div class="dropdown-option create-new-option" onclick="window.openCreateLocationModal('edit')">
-              <i class="fas fa-plus-circle"></i> Create New Location
-            </div>
-          </div>
-          <input type="hidden" id="editEmployeeLocation" value="">
-        </div>
+        <select id="editEmployeeLocation" data-enhance="c-select" required>
+          <option value="" selected disabled>Select Location</option>
+          <!-- Locations will be populated dynamically -->
+        </select>
+        <button type="button" class="action-btn secondary-btn create-location-btn" onclick="window.openCreateLocationModal('edit')">
+          <i class="fas fa-plus-circle"></i>
+          <span>Create New Location</span>
+        </button>
       </div>
       
       <div class="form-group">
-        <label class="form-label">
+        <label class="form-label" for="editEmployeeStatusSelect">
           <i class="fas fa-toggle-on"></i>
           <span>Status</span>
         </label>
-        <div class="custom-dropdown" id="edit-status-dropdown">
-          <div class="dropdown-selected" onclick="toggleDropdown('edit-status-dropdown')">Active</div>
-          <div class="dropdown-options">
-            <div class="dropdown-option selected" onclick="selectOption(this, 'edit-status-dropdown', 'active', 'Active')">Active</div>
-            <div class="dropdown-option" onclick="selectOption(this, 'edit-status-dropdown', 'inactive', 'Inactive')">Inactive</div>
-          </div>
-          <input type="hidden" id="editEmployeeStatusSelect" value="active">
-        </div>
+        <select id="editEmployeeStatusSelect" data-enhance="c-select">
+          <option value="active" selected>Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
       </div>
       
       <div class="form-group nfc-enrollment-group">

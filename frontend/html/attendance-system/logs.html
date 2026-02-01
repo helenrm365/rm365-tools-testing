@@ -119,19 +119,15 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label">
+            <label class="form-label" for="locationFilter">
               <i class="fas fa-map-marker-alt"></i>
               <span>Location</span>
             </label>
-            <div class="custom-dropdown" id="location-dropdown">
-              <div class="dropdown-selected" onclick="toggleDropdown('location-dropdown')">All Locations</div>
-              <div class="dropdown-options">
-                <div class="dropdown-option selected" onclick="selectOption(this, 'location-dropdown', '', 'All Locations')">All Locations</div>
-                <div class="dropdown-option" onclick="selectOption(this, 'location-dropdown', 'UK', 'UK')">UK</div>
-                <div class="dropdown-option" onclick="selectOption(this, 'location-dropdown', 'FR', 'FR')">FR</div>
-              </div>
-              <input type="hidden" name="locationFilter" id="locationFilter" value="">
-            </div>
+            <select id="locationFilter" data-enhance="c-select">
+              <option value="" selected>All Locations</option>
+              <option value="UK">UK</option>
+              <option value="FR">FR</option>
+            </select>
           </div>
 
           <div class="form-group">
@@ -146,36 +142,28 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label">
+            <label class="form-label" for="actionFilter">
               <i class="fas fa-toggle-on"></i>
               <span>Action Type</span>
             </label>
-            <div class="custom-dropdown" id="action-dropdown">
-              <div class="dropdown-selected" onclick="toggleDropdown('action-dropdown')">All Actions</div>
-              <div class="dropdown-options">
-                <div class="dropdown-option selected" onclick="selectOption(this, 'action-dropdown', '', 'All Actions')">All Actions</div>
-                <div class="dropdown-option" onclick="selectOption(this, 'action-dropdown', 'in', 'Clock In')">Clock In</div>
-                <div class="dropdown-option" onclick="selectOption(this, 'action-dropdown', 'out', 'Clock Out')">Clock Out</div>
-              </div>
-              <input type="hidden" name="actionFilter" id="actionFilter" value="">
-            </div>
+            <select id="actionFilter" data-enhance="c-select">
+              <option value="" selected>All Actions</option>
+              <option value="in">Clock In</option>
+              <option value="out">Clock Out</option>
+            </select>
           </div>
 
           <div class="form-group">
-            <label class="form-label">
+            <label class="form-label" for="sortFilter">
               <i class="fas fa-sort-amount-down"></i>
               <span>Sort By</span>
             </label>
-            <div class="custom-dropdown" id="sort-dropdown">
-              <div class="dropdown-selected" onclick="toggleDropdown('sort-dropdown')">Date (Newest First)</div>
-              <div class="dropdown-options">
-                <div class="dropdown-option selected" onclick="selectOption(this, 'sort-dropdown', 'date_desc', 'Date (Newest First)')">Date (Newest First)</div>
-                <div class="dropdown-option" onclick="selectOption(this, 'sort-dropdown', 'date_asc', 'Date (Oldest First)')">Date (Oldest First)</div>
-                <div class="dropdown-option" onclick="selectOption(this, 'sort-dropdown', 'name_asc', 'Name (A-Z)')">Name (A-Z)</div>
-                <div class="dropdown-option" onclick="selectOption(this, 'sort-dropdown', 'name_desc', 'Name (Z-A)')">Name (Z-A)</div>
-              </div>
-              <input type="hidden" name="sortFilter" id="sortFilter" value="date_desc">
-            </div>
+            <select id="sortFilter" data-enhance="c-select">
+              <option value="date_desc" selected>Date (Newest First)</option>
+              <option value="date_asc">Date (Oldest First)</option>
+              <option value="name_asc">Name (A-Z)</option>
+              <option value="name_desc">Name (Z-A)</option>
+            </select>
           </div>
         </div>
 

@@ -4,38 +4,6 @@ import { getRoles, createRole, updateRole, deleteRole } from '../../services/api
 import { generateTabStructure } from '../../router.js';
 import { showToast } from '../../ui/toast.js';
 
-// Dropdown helper functions exposed globally
-window.toggleDropdown = function(id) {
-  const dropdown = document.getElementById(id);
-  if (!dropdown) return;
-  
-  // Close other dropdowns
-  document.querySelectorAll('.custom-dropdown').forEach(d => {
-    if (d.id !== id) d.classList.remove('open');
-  });
-  dropdown.classList.toggle('open');
-};
-
-window.selectOption = function(element, dropdownId, value, text) {
-  const dropdown = document.getElementById(dropdownId);
-  if (!dropdown) return;
-  
-  const selectedDisplay = dropdown.querySelector('.dropdown-selected');
-  const hiddenInput = dropdown.querySelector('input[type="hidden"]');
-  
-  if (selectedDisplay) selectedDisplay.textContent = text;
-  if (hiddenInput) hiddenInput.value = value;
-  
-  dropdown.querySelectorAll('.dropdown-option').forEach(opt => opt.classList.remove('selected'));
-  element.classList.add('selected');
-  dropdown.classList.remove('open');
-  
-  // Auto-select tabs when role changes in user modal
-  if (dropdownId === 'role-dropdown') {
-    autoSelectTabsForRole(value);
-  }
-};
-
 // Get the tab structure dynamically from the router
 const TAB_STRUCTURE = generateTabStructure();
 let state = {
@@ -843,28 +811,30 @@ function renderTabCheckboxes(container) {
 }
 
 function populateRolesDropdown(currentRole = null) {
-    const dropdown = $('#role-dropdown');
-    if (!dropdown) return;
-    
-    const optionsContainer = dropdown.querySelector('.dropdown-options');
-    const selectedDisplay = dropdown.querySelector('.dropdown-selected');
-    const hiddenInput = dropdown.querySelector('input[type="hidden"]');
+    const selectEl = $('#formRole');
+    if (!selectEl) return;
     
     // Populate options
-    optionsContainer.innerHTML = state.roles.map(r => {
+    selectEl.innerHTML = state.roles.map(r => {
         const isSelected = currentRole === r.role_name;
-        return `<div class="dropdown-option ${isSelected ? 'selected' : ''}" onclick="selectOption(this, 'role-dropdown', '${r.role_name}', '${r.role_name}')">${r.role_name}</div>`;
+        return `<option value="${r.role_name}" ${isSelected ? 'selected' : ''}>${r.role_name}</option>`;
     }).join('');
     
     // Set current selection
     if (currentRole) {
-        selectedDisplay.textContent = currentRole;
-        hiddenInput.value = currentRole;
+        selectEl.value = currentRole;
     } else if (state.roles.length > 0) {
         // Default to first role (usually 'user')
         const defaultRole = state.roles.find(r => r.role_name === 'user') || state.roles[0];
-        selectedDisplay.textContent = defaultRole.role_name;
-        hiddenInput.value = defaultRole.role_name;
+        selectEl.value = defaultRole.role_name;
+    }
+    
+    // Attach change listener for role selection (if not already attached)
+    if (!selectEl.dataset.listenerAttached) {
+        selectEl.addEventListener('change', (e) => {
+            autoSelectTabsForRole(e.target.value);
+        });
+        selectEl.dataset.listenerAttached = 'true';
     }
 }
 

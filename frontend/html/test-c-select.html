@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>C-Select Test - RM365 Tools</title>
+  
+  <!-- Core Styles -->
+  <link rel="stylesheet" href="../css/core/variables.css">
+  <link rel="stylesheet" href="../css/core/reset.css">
+  <link rel="stylesheet" href="../css/core/typography.css">
+  <link rel="stylesheet" href="../css/layout/container.css">
+  <link rel="stylesheet" href="../css/components/forms.css">
+  <link rel="stylesheet" href="../css/components/buttons.css">
+  
+  <style>
+    body {
+      padding: 2rem;
+      background: var(--bg);
+      color: var(--text);
+    }
+    
+    .test-container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: var(--bg-light);
+      padding: 2rem;
+      border-radius: 16px;
+      box-shadow: var(--shadow-l);
+    }
+    
+    .test-section {
+      margin-bottom: 2rem;
+      padding-bottom: 2rem;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    }
+    
+    .test-section:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+    
+    .test-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: #8bc34a;
+    }
+    
+    .test-subtitle {
+      font-size: 1.125rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: var(--text);
+    }
+    
+    .test-description {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+    }
+    
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+    
+    .form-label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: var(--text);
+    }
+    
+    .output-box {
+      background: var(--bg);
+      padding: 1rem;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 0.875rem;
+      color: var(--text);
+      min-height: 60px;
+      margin-top: 1rem;
+    }
+    
+    .theme-toggle {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      padding: 0.5rem 1rem;
+      background: #8bc34a;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  
+  <button class="theme-toggle" onclick="toggleTheme()">Toggle Dark Mode</button>
+  
+  <div class="test-container">
+    <h1 class="test-title">C-Select Component Test</h1>
+    <p class="test-description">
+      Testing single-select and multi-select dropdown functionality with proper styling and checkbox support.
+    </p>
+    
+    <!-- Single Select Test -->
+    <div class="test-section">
+      <h2 class="test-subtitle">Single Select</h2>
+      <p class="test-description">Standard dropdown with single selection</p>
+      
+      <div class="form-group">
+        <label class="form-label" for="singleSelect">Choose a fruit:</label>
+        <select id="singleSelect" data-enhance="c-select">
+          <option value="">Select...</option>
+          <option value="apple">Apple</option>
+          <option value="banana">Banana</option>
+          <option value="orange">Orange</option>
+          <option value="grape">Grape</option>
+          <option value="mango">Mango</option>
+          <option value="strawberry">Strawberry</option>
+        </select>
+      </div>
+      
+      <div class="output-box" id="singleOutput">
+        Selected: None
+      </div>
+    </div>
+    
+    <!-- Multi Select Test -->
+    <div class="test-section">
+      <h2 class="test-subtitle">Multi-Select with Checkboxes</h2>
+      <p class="test-description">Dropdown with multiple selection support and checkboxes</p>
+      
+      <div class="form-group">
+        <label class="form-label" for="multiSelect">Choose programming languages:</label>
+        <select id="multiSelect" multiple data-enhance="c-select">
+          <option value="javascript">JavaScript</option>
+          <option value="python">Python</option>
+          <option value="java">Java</option>
+          <option value="csharp">C#</option>
+          <option value="php">PHP</option>
+          <option value="ruby">Ruby</option>
+          <option value="go">Go</option>
+          <option value="rust">Rust</option>
+        </select>
+      </div>
+      
+      <div class="output-box" id="multiOutput">
+        Selected: None
+      </div>
+    </div>
+    
+    <!-- Dynamic Population Test -->
+    <div class="test-section">
+      <h2 class="test-subtitle">Dynamic Population</h2>
+      <p class="test-description">Test dynamic option updates</p>
+      
+      <div class="form-group">
+        <label class="form-label" for="dynamicSelect">Dynamic options:</label>
+        <select id="dynamicSelect" data-enhance="c-select">
+          <option value="1">Option 1</option>
+          <option value="2">Option 2</option>
+        </select>
+      </div>
+      
+      <button class="btn btn--primary" onclick="addDynamicOptions()">Add More Options</button>
+      <button class="btn btn--secondary" onclick="clearDynamicOptions()">Clear Options</button>
+      
+      <div class="output-box" id="dynamicOutput">
+        Selected: None
+      </div>
+    </div>
+    
+    <!-- Multi-Select Dynamic Test -->
+    <div class="test-section">
+      <h2 class="test-subtitle">Multi-Select Dynamic</h2>
+      <p class="test-description">Multi-select with dynamic population</p>
+      
+      <div class="form-group">
+        <label class="form-label" for="multiDynamicSelect">Dynamic multi-select:</label>
+        <select id="multiDynamicSelect" multiple data-enhance="c-select">
+          <option value="cat">Cat</option>
+          <option value="dog">Dog</option>
+        </select>
+      </div>
+      
+      <button class="btn btn--primary" onclick="addAnimals()">Add More Animals</button>
+      
+      <div class="output-box" id="multiDynamicOutput">
+        Selected: None
+      </div>
+    </div>
+  </div>
+  
+  <!-- Load Components Script -->
+  <script src="../js/ui/components.js"></script>
+  
+  <script>
+    // Single select listener
+    document.getElementById('singleSelect').addEventListener('change', (e) => {
+      const selected = e.target.value;
+      const text = e.target.options[e.target.selectedIndex]?.text || 'None';
+      document.getElementById('singleOutput').textContent = `Selected: ${text} (value: ${selected})`;
+    });
+    
+    // Multi select listener
+    document.getElementById('multiSelect').addEventListener('change', (e) => {
+      const selected = Array.from(e.target.selectedOptions).map(opt => opt.text);
+      const values = Array.from(e.target.selectedOptions).map(opt => opt.value);
+      document.getElementById('multiOutput').innerHTML = `
+        Selected: ${selected.length > 0 ? selected.join(', ') : 'None'}<br>
+        Values: ${values.length > 0 ? values.join(', ') : 'None'}<br>
+        Count: ${selected.length}
+      `;
+    });
+    
+    // Dynamic select listener
+    document.getElementById('dynamicSelect').addEventListener('change', (e) => {
+      const selected = e.target.value;
+      const text = e.target.options[e.target.selectedIndex]?.text || 'None';
+      document.getElementById('dynamicOutput').textContent = `Selected: ${text} (value: ${selected})`;
+    });
+    
+    // Multi dynamic select listener
+    document.getElementById('multiDynamicSelect').addEventListener('change', (e) => {
+      const selected = Array.from(e.target.selectedOptions).map(opt => opt.text);
+      document.getElementById('multiDynamicOutput').textContent = `Selected: ${selected.join(', ') || 'None'}`;
+    });
+    
+    // Dynamic options functions
+    let optionCounter = 3;
+    function addDynamicOptions() {
+      const select = document.getElementById('dynamicSelect').querySelector('select') || 
+                     document.getElementById('dynamicSelect');
+      for (let i = 0; i < 3; i++) {
+        const option = document.createElement('option');
+        option.value = optionCounter;
+        option.textContent = `Option ${optionCounter}`;
+        select.appendChild(option);
+        optionCounter++;
+      }
+    }
+    
+    function clearDynamicOptions() {
+      const select = document.getElementById('dynamicSelect').querySelector('select') || 
+                     document.getElementById('dynamicSelect');
+      select.innerHTML = '<option value="">Select...</option>';
+      optionCounter = 1;
+      document.getElementById('dynamicOutput').textContent = 'Selected: None';
+    }
+    
+    function addAnimals() {
+      const select = document.getElementById('multiDynamicSelect').querySelector('select') || 
+                     document.getElementById('multiDynamicSelect');
+      const animals = ['Bird', 'Fish', 'Rabbit', 'Hamster', 'Turtle'];
+      animals.forEach(animal => {
+        const option = document.createElement('option');
+        option.value = animal.toLowerCase();
+        option.textContent = animal;
+        select.appendChild(option);
+      });
+    }
+    
+    // Theme toggle
+    function toggleTheme() {
+      document.documentElement.classList.toggle('dark-mode');
+    }
+  </script>
+</body>
+</html>

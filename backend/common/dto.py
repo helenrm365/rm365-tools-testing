@@ -71,6 +71,7 @@ class InventoryItemOut(BaseModel):
     sku: str
     stock_on_hand: Optional[int] = None
     custom_fields: InventoryItemCustomFields
+    variant_statuses: Optional[List[str]] = None
 # :contentReference[oaicite:5]{index=5}
 
 

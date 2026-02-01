@@ -130,12 +130,9 @@ function createFiltersModal(region) {
                     </p>
                     
                     <div class="select-with-button">
-                        <div class="custom-dropdown" id="customer-group-dropdown-${region}">
-                            <div class="dropdown-selected" data-value="">Select a customer group to exclude...</div>
-                            <div class="dropdown-options" id="customer-group-options-${region}">
-                                <!-- Options populated by JavaScript -->
-                            </div>
-                        </div>
+                        <select id="customer-group-select-${region}" data-enhance="c-select">
+                            <option value="">Select a customer group to exclude...</option>
+                        </select>
                         <button class="action-btn action-btn-primary action-btn-sm" id="add-group-btn-${region}">
                             <i class="fas fa-plus"></i> Add
                         </button>
@@ -164,12 +161,9 @@ function createFiltersModal(region) {
                     </p>
                     
                     <div class="select-with-button">
-                        <div class="custom-dropdown" id="status-dropdown-${region}">
-                            <div class="dropdown-selected" data-value="">Select a status to exclude...</div>
-                            <div class="dropdown-options" id="status-options-${region}">
-                                <!-- Options populated by JavaScript -->
-                            </div>
-                        </div>
+                        <select id="status-select-${region}" data-enhance="c-select">
+                            <option value="">Select a status to exclude...</option>
+                        </select>
                         <button class="action-btn action-btn-primary action-btn-sm" id="add-status-btn-${region}">
                             <i class="fas fa-plus"></i> Add
                         </button>
@@ -278,15 +272,12 @@ function createFiltersModal(region) {
                         
                         <div class="rule-config-row">
                             <label class="rule-label">Then</label>
-                            <div class="custom-dropdown" id="smart-qty-action-dropdown-${region}">
-                                <div class="dropdown-selected" data-value="divide">Divide by</div>
-                                <div class="dropdown-options">
-                                    <div class="dropdown-option selected" data-value="divide">Divide by</div>
-                                    <div class="dropdown-option" data-value="multiply">Multiply by</div>
-                                    <div class="dropdown-option" data-value="subtract">Subtract</div>
-                                    <div class="dropdown-option" data-value="set_to">Set to</div>
-                                </div>
-                            </div>
+                            <select id="smart-qty-action-select-${region}" data-enhance="c-select">
+                                <option value="divide" selected>Divide by</option>
+                                <option value="multiply">Multiply by</option>
+                                <option value="subtract">Subtract</option>
+                                <option value="set_to">Set to</option>
+                            </select>
                             <input 
                                 type="number" 
                                 class="form-input" 
@@ -341,15 +332,12 @@ function createFiltersModal(region) {
                         
                         <div class="rule-config-row">
                             <label class="rule-label">Action</label>
-                            <div class="custom-dropdown" id="smart-date-action-dropdown-${region}">
-                                <div class="dropdown-selected" data-value="exclude">Exclude Entirely</div>
-                                <div class="dropdown-options">
-                                    <div class="dropdown-option selected" data-value="exclude">Exclude Entirely</div>
-                                    <div class="dropdown-option" data-value="divide">Divide Qty by</div>
-                                    <div class="dropdown-option" data-value="multiply">Multiply Qty by</div>
-                                    <div class="dropdown-option" data-value="set_to">Set Qty to</div>
-                                </div>
-                            </div>
+                            <select id="smart-date-action-select-${region}" data-enhance="c-select">
+                                <option value="exclude" selected>Exclude Entirely</option>
+                                <option value="divide">Divide Qty by</option>
+                                <option value="multiply">Multiply Qty by</option>
+                                <option value="set_to">Set Qty to</option>
+                            </select>
                             <input 
                                 type="number" 
                                 class="form-input" 
@@ -429,8 +417,8 @@ function setupEventListeners(region) {
         });
     }
     
-    // Setup custom dropdown handlers
-    setupCustomDropdownHandlers(region);
+    // Setup native select handlers
+    setupSelectHandlers(region);
     
     // Excluded customers list toggle
     const toggleBtn = document.getElementById(`excluded-toggle-${region}`);
@@ -450,18 +438,14 @@ function setupEventListeners(region) {
     
     // Customer group add button
     const addGroupBtn = document.getElementById(`add-group-btn-${region}`);
-    const groupDropdown = document.getElementById(`customer-group-dropdown-${region}`);
-    if (addGroupBtn && groupDropdown) {
+    const groupSelect = document.getElementById(`customer-group-select-${region}`);
+    if (addGroupBtn && groupSelect) {
         addGroupBtn.addEventListener('click', () => {
-            const selected = groupDropdown.querySelector('.dropdown-selected');
-            const selectedGroup = selected?.dataset.value;
+            const selectedGroup = groupSelect.value;
             if (selectedGroup) {
                 addCustomerGroupToPending(selectedGroup);
-                // Reset dropdown
-                if (selected) {
-                    selected.textContent = 'Select a customer group to exclude...';
-                    selected.dataset.value = '';
-                }
+                // Reset select
+                groupSelect.value = '';
             }
         });
     }
@@ -500,18 +484,14 @@ function setupEventListeners(region) {
 
     // Status add button
     const addStatusBtn = document.getElementById(`add-status-btn-${region}`);
-    const statusDropdown = document.getElementById(`status-dropdown-${region}`);
-    if (addStatusBtn && statusDropdown) {
+    const statusSelect = document.getElementById(`status-select-${region}`);
+    if (addStatusBtn && statusSelect) {
         addStatusBtn.addEventListener('click', () => {
-            const selected = statusDropdown.querySelector('.dropdown-selected');
-            const status = selected?.dataset.value;
+            const status = statusSelect.value;
             if (status) {
                 addExcludedStatus(status);
-                // Reset dropdown
-                if (selected) {
-                    selected.textContent = 'Select a status to exclude...';
-                    selected.dataset.value = '';
-                }
+                // Reset select
+                statusSelect.value = '';
             } else {
                 showToast('Please select a status to exclude', 'warning');
             }
@@ -562,125 +542,36 @@ function setupEventListeners(region) {
 /**
  * Setup custom dropdown handlers for the modal
  */
-function setupCustomDropdownHandlers(region) {
-    // Close dropdowns when clicking outside
-    document.addEventListener('click', (e) => {
-        if (!e.target.closest('.custom-dropdown')) {
-            document.querySelectorAll('.custom-dropdown.open').forEach(d => {
-                d.classList.remove('open');
-            });
-        }
-    });
-    
-    // Setup all custom dropdowns
-    const dropdownIds = [
-        `customer-group-dropdown-${region}`,
-        `status-dropdown-${region}`,
-        `smart-qty-action-dropdown-${region}`,
-        `smart-date-action-dropdown-${region}`
-    ];
-    
-    dropdownIds.forEach(dropdownId => {
-        const dropdown = document.getElementById(dropdownId);
-        if (!dropdown) return;
-        
-        const selected = dropdown.querySelector('.dropdown-selected');
-        const options = dropdown.querySelector('.dropdown-options');
-        
-        // Toggle dropdown on click and position the options
-        if (selected) {
-            selected.addEventListener('click', (e) => {
-                e.stopPropagation();
-                // Close other dropdowns
-                document.querySelectorAll('.custom-dropdown.open').forEach(d => {
-                    if (d.id !== dropdownId) {
-                        d.classList.remove('open');
-                    }
-                });
-                
-                // Don't open if no options available
-                if (!options || !options.children.length) {
-                    return;
-                }
-                
-                const wasOpen = dropdown.classList.contains('open');
-                dropdown.classList.toggle('open');
-                
-                // Position the dropdown options using fixed positioning
-                if (!wasOpen && options) {
-                    positionDropdownOptions(dropdown, options);
-                }
-            });
-        }
-        
-        // Handle option selection
-        if (options) {
-            options.addEventListener('click', (e) => {
-                const option = e.target.closest('.dropdown-option');
-                if (!option) return;
-                
-                const value = option.dataset.value;
-                const text = option.textContent;
-                
-                // Update selected display
-                if (selected) {
-                    selected.textContent = text;
-                    selected.dataset.value = value;
-                }
-                
-                // Update selected state
-                options.querySelectorAll('.dropdown-option').forEach(opt => opt.classList.remove('selected'));
-                option.classList.add('selected');
-                
-                // Close dropdown
-                dropdown.classList.remove('open');
-                
-                // Trigger specific actions for certain dropdowns
-                if (dropdownId === `smart-qty-action-dropdown-${region}`) {
-                    updateSmartFilterPreview();
-                }
-                if (dropdownId === `smart-date-action-dropdown-${region}`) {
-                    const valueInput = document.getElementById(`smart-date-value-${region}`);
-                    if (valueInput) {
-                        valueInput.style.display = value === 'exclude' ? 'none' : 'block';
-                    }
-                }
-            });
-        }
-    });
-}
-
 /**
- * Position dropdown options using fixed positioning to escape modal overflow
+ * Setup native select change handlers for the modal
  */
-function positionDropdownOptions(dropdown, options) {
-    // Don't position if no options
-    if (!options.children.length) return;
+function setupSelectHandlers(region) {
+    // Smart qty action select - show/hide value input based on action
+    const smartQtyActionSelect = document.getElementById(`smart-qty-action-select-${region}`);
+    if (smartQtyActionSelect) {
+        smartQtyActionSelect.addEventListener('change', () => {
+            updateSmartFilterPreview();
+        });
+    }
     
-    const rect = dropdown.getBoundingClientRect();
-    const viewportHeight = window.innerHeight;
+    // Smart date action select - show/hide value input based on action
+    const smartDateActionSelect = document.getElementById(`smart-date-action-select-${region}`);
+    if (smartDateActionSelect) {
+        smartDateActionSelect.addEventListener('change', () => {
+            const value = smartDateActionSelect.value;
+            const valueInput = document.getElementById(`smart-date-value-${region}`);
+            if (valueInput) {
+                valueInput.style.display = value === 'exclude' ? 'none' : 'block';
+            }
+        });
+    }
     
-    // Calculate available space below and above
-    const spaceBelow = viewportHeight - rect.bottom - 10;
-    const spaceAbove = rect.top - 10;
-    
-    // Set width to match dropdown
-    options.style.width = `${rect.width}px`;
-    options.style.left = `${rect.left}px`;
-    
-    // Determine max-height based on available space
-    const maxHeight = Math.min(200, Math.max(spaceBelow, spaceAbove) - 10);
-    options.style.maxHeight = `${maxHeight}px`;
-    
-    // Position below or above depending on space
-    if (spaceBelow >= 100 || spaceBelow >= spaceAbove) {
-        // Position below
-        options.style.top = `${rect.bottom + 4}px`;
-        options.style.bottom = 'auto';
-    } else {
-        // Position above
-        options.style.top = 'auto';
-        options.style.bottom = `${viewportHeight - rect.top + 4}px`;
+    // Initialize c-select enhancement for dynamically added selects
+    if (window.initCSelects) {
+        const modal = document.getElementById('filters-modal-overlay');
+        if (modal) {
+            window.initCSelects(modal);
+        }
     }
 }
 
@@ -1581,24 +1472,17 @@ function showRuleEditModal(customerId, email) {
                 
                 <div class="form-group">
                     <label class="form-label">Rule Type</label>
-                    <div class="custom-dropdown" id="rule-type-dropdown">
-                        <div class="dropdown-selected" data-value="${customer.rule_type || 'exclude_all'}">
-                            ${getRuleTypeLabel(customer.rule_type || 'exclude_all')}
-                        </div>
-                        <div class="dropdown-options">
-                            <div class="dropdown-option ${customer.rule_type === 'exclude_all' ? 'selected' : ''} ${hasOtherBaseRule && customer.rule_type !== 'exclude_all' ? 'disabled' : ''}" data-value="exclude_all">
-                                <i class="fas fa-ban"></i> Exclude All Orders
-                                ${hasOtherBaseRule && customer.rule_type !== 'exclude_all' ? '<span class="option-hint">(already has base rule)</span>' : ''}
-                            </div>
-                            <div class="dropdown-option ${customer.rule_type === 'divide_all' ? 'selected' : ''} ${hasOtherBaseRule && customer.rule_type !== 'divide_all' ? 'disabled' : ''}" data-value="divide_all">
-                                <i class="fas fa-divide"></i> Divide All Orders
-                                ${hasOtherBaseRule && customer.rule_type !== 'divide_all' ? '<span class="option-hint">(already has base rule)</span>' : ''}
-                            </div>
-                            <div class="dropdown-option ${customer.rule_type === 'divide_product' ? 'selected' : ''}" data-value="divide_product">
-                                <i class="fas fa-box"></i> Divide Specific Product
-                            </div>
-                        </div>
-                    </div>
+                    <select id="rule-type-select" data-enhance="c-select">
+                        <option value="exclude_all" ${customer.rule_type === 'exclude_all' || !customer.rule_type ? 'selected' : ''} ${hasOtherBaseRule && customer.rule_type !== 'exclude_all' ? 'disabled' : ''}>
+                            Exclude All Orders
+                        </option>
+                        <option value="divide_all" ${customer.rule_type === 'divide_all' ? 'selected' : ''} ${hasOtherBaseRule && customer.rule_type !== 'divide_all' ? 'disabled' : ''}>
+                            Divide All Orders
+                        </option>
+                        <option value="divide_product" ${customer.rule_type === 'divide_product' ? 'selected' : ''}>
+                            Divide Specific Product
+                        </option>
+                    </select>
                 </div>
                 
                 <div class="form-group divisor-group" id="divisor-group" style="display: ${customer.rule_type === 'exclude_all' ? 'none' : 'block'};">
@@ -1636,18 +1520,15 @@ function showRuleEditModal(customerId, email) {
     
     document.body.appendChild(modalOverlay);
     
-    // Rule type dropdown - use portal pattern to escape modal transforms
-    const ruleTypeDropdown = modalOverlay.querySelector('#rule-type-dropdown');
-    const ruleTypeSelected = ruleTypeDropdown.querySelector('.dropdown-selected');
-    const ruleTypeOptions = ruleTypeDropdown.querySelector('.dropdown-options');
+    // Initialize c-select enhancement for the rule type select
+    if (window.initCSelects) {
+        window.initCSelects(modalOverlay);
+    }
     
-    // Move dropdown options to body to escape modal's transform context
-    document.body.appendChild(ruleTypeOptions);
-    ruleTypeOptions.classList.add('dropdown-portal');
+    // Rule type select change handler
+    const ruleTypeSelect = modalOverlay.querySelector('#rule-type-select');
     
-    // Setup event listeners with cleanup for portal
     const closeModal = () => {
-        ruleTypeOptions.remove();
         modalOverlay.remove();
         // Restore the parent filters modal
         if (filtersModal) {
@@ -1661,57 +1542,23 @@ function showRuleEditModal(customerId, email) {
         if (e.target === modalOverlay) closeModal();
     });
     
-    ruleTypeSelected.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const isOpen = ruleTypeDropdown.classList.toggle('open');
+    ruleTypeSelect.addEventListener('change', (e) => {
+        const value = e.target.value;
         
-        // Position the dropdown options
-        if (isOpen) {
-            const rect = ruleTypeSelected.getBoundingClientRect();
-            ruleTypeOptions.style.position = 'fixed';
-            ruleTypeOptions.style.top = `${rect.bottom + 4}px`;
-            ruleTypeOptions.style.left = `${rect.left}px`;
-            ruleTypeOptions.style.width = `${rect.width}px`;
-            ruleTypeOptions.classList.add('open');
-        } else {
-            ruleTypeOptions.classList.remove('open');
+        // Toggle visibility of divisor and product search
+        const divisorGroup = modalOverlay.querySelector('#divisor-group');
+        const productGroup = modalOverlay.querySelector('#product-search-group');
+        
+        if (value === 'exclude_all') {
+            divisorGroup.style.display = 'none';
+            productGroup.style.display = 'none';
+        } else if (value === 'divide_all') {
+            divisorGroup.style.display = 'block';
+            productGroup.style.display = 'none';
+        } else if (value === 'divide_product') {
+            divisorGroup.style.display = 'block';
+            productGroup.style.display = 'block';
         }
-    });
-    
-    ruleTypeOptions.querySelectorAll('.dropdown-option').forEach(option => {
-        option.addEventListener('click', (e) => {
-            // Check if option is disabled
-            if (option.classList.contains('disabled')) {
-                e.stopPropagation();
-                showToast('Customer already has a base rule. Delete the existing rule first.', 'warning');
-                return;
-            }
-            
-            const value = option.dataset.value;
-            ruleTypeSelected.dataset.value = value;
-            ruleTypeSelected.innerHTML = option.innerHTML.replace(/<span class="option-hint">.*<\/span>/, '');
-            ruleTypeDropdown.classList.remove('open');
-            ruleTypeOptions.classList.remove('open');
-            
-            // Toggle visibility of divisor and product search
-            const divisorGroup = modalOverlay.querySelector('#divisor-group');
-            const productGroup = modalOverlay.querySelector('#product-search-group');
-            
-            if (value === 'exclude_all') {
-                divisorGroup.style.display = 'none';
-                productGroup.style.display = 'none';
-            } else if (value === 'divide_all') {
-                divisorGroup.style.display = 'block';
-                productGroup.style.display = 'none';
-            } else if (value === 'divide_product') {
-                divisorGroup.style.display = 'block';
-                productGroup.style.display = 'block';
-            }
-            
-            // Update selected state
-            ruleTypeOptions.querySelectorAll('.dropdown-option').forEach(o => o.classList.remove('selected'));
-            option.classList.add('selected');
-        });
     });
     
     // Product search
@@ -1727,11 +1574,8 @@ function showRuleEditModal(customerId, email) {
         }
     });
     
-    // Close dropdown when clicking outside
+    // Close product search results when clicking outside
     document.addEventListener('click', (e) => {
-        if (!e.target.closest('#rule-type-dropdown')) {
-            ruleTypeDropdown.classList.remove('open');
-        }
         if (!e.target.closest('.product-search-group')) {
             productSearchResults.classList.remove('visible');
         }
@@ -1739,7 +1583,7 @@ function showRuleEditModal(customerId, email) {
     
     // Save button
     modalOverlay.querySelector('.rule-edit-save').addEventListener('click', () => {
-        const ruleType = ruleTypeSelected.dataset.value;
+        const ruleType = ruleTypeSelect.value;
         const divisor = parseFloat(modalOverlay.querySelector('#rule-divisor').value) || 2;
         const productSku = modalOverlay.querySelector('#selected-product-sku').value;
         const productName = modalOverlay.querySelector('#selected-product-name').value;
@@ -1916,24 +1760,17 @@ function showAddRuleModal(email, fullName, hasBaseRule) {
                 
                 <div class="form-group">
                     <label class="form-label">Rule Type</label>
-                    <div class="custom-dropdown" id="add-rule-type-dropdown">
-                        <div class="dropdown-selected" data-value="${hasBaseRule ? 'divide_product' : 'exclude_all'}">
-                            ${hasBaseRule ? '<i class="fas fa-box"></i> Divide Specific Product' : '<i class="fas fa-ban"></i> Exclude All Orders'}
-                        </div>
-                        <div class="dropdown-options">
-                            <div class="dropdown-option ${hasBaseRule ? 'disabled' : ''}" data-value="exclude_all" ${hasBaseRule ? 'title="Customer already has a base rule"' : ''}>
-                                <i class="fas fa-ban"></i> Exclude All Orders
-                                ${hasBaseRule ? '<span class="option-hint">(already has base rule)</span>' : ''}
-                            </div>
-                            <div class="dropdown-option ${hasBaseRule ? 'disabled' : ''}" data-value="divide_all" ${hasBaseRule ? 'title="Customer already has a base rule"' : ''}>
-                                <i class="fas fa-divide"></i> Divide All Orders
-                                ${hasBaseRule ? '<span class="option-hint">(already has base rule)</span>' : ''}
-                            </div>
-                            <div class="dropdown-option" data-value="divide_product">
-                                <i class="fas fa-box"></i> Divide Specific Product
-                            </div>
-                        </div>
-                    </div>
+                    <select id="add-rule-type-select" data-enhance="c-select">
+                        <option value="exclude_all" ${hasBaseRule ? 'disabled' : ''} ${!hasBaseRule ? 'selected' : ''}>
+                            Exclude All Orders
+                        </option>
+                        <option value="divide_all" ${hasBaseRule ? 'disabled' : ''}>
+                            Divide All Orders
+                        </option>
+                        <option value="divide_product" ${hasBaseRule ? 'selected' : ''}>
+                            Divide Specific Product
+                        </option>
+                    </select>
                 </div>
                 
                 <div class="form-group divisor-group" id="add-divisor-group" style="display: ${hasBaseRule ? 'block' : 'none'};">
@@ -1970,17 +1807,14 @@ function showAddRuleModal(email, fullName, hasBaseRule) {
     
     document.body.appendChild(modalOverlay);
     
-    // Setup dropdown with portal pattern
-    const ruleTypeDropdown = modalOverlay.querySelector('#add-rule-type-dropdown');
-    const ruleTypeSelected = ruleTypeDropdown.querySelector('.dropdown-selected');
-    const ruleTypeOptions = ruleTypeDropdown.querySelector('.dropdown-options');
+    // Initialize c-select enhancement for the rule type select
+    if (window.initCSelects) {
+        window.initCSelects(modalOverlay);
+    }
     
-    // Move dropdown options to body to escape modal's transform context
-    document.body.appendChild(ruleTypeOptions);
-    ruleTypeOptions.classList.add('dropdown-portal');
+    const ruleTypeSelect = modalOverlay.querySelector('#add-rule-type-select');
     
     const closeModal = () => {
-        ruleTypeOptions.remove();
         modalOverlay.remove();
         // Restore the parent filters modal
         if (filtersModal) {
@@ -1994,63 +1828,23 @@ function showAddRuleModal(email, fullName, hasBaseRule) {
         if (e.target === modalOverlay) closeModal();
     });
     
-    // Rule type dropdown toggle
-    ruleTypeSelected.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const isOpen = ruleTypeDropdown.classList.toggle('open');
+    // Rule type select change handler
+    ruleTypeSelect.addEventListener('change', (e) => {
+        const value = e.target.value;
         
-        if (isOpen) {
-            const rect = ruleTypeSelected.getBoundingClientRect();
-            ruleTypeOptions.style.position = 'fixed';
-            ruleTypeOptions.style.top = `${rect.bottom + 4}px`;
-            ruleTypeOptions.style.left = `${rect.left}px`;
-            ruleTypeOptions.style.width = `${rect.width}px`;
-            ruleTypeOptions.classList.add('open');
-        } else {
-            ruleTypeOptions.classList.remove('open');
-        }
-    });
-    
-    // Rule type option selection
-    ruleTypeOptions.querySelectorAll('.dropdown-option').forEach(option => {
-        option.addEventListener('click', (e) => {
-            if (option.classList.contains('disabled')) {
-                e.stopPropagation();
-                showToast('Customer already has a base rule. Delete the existing rule first.', 'warning');
-                return;
-            }
-            
-            const value = option.dataset.value;
-            ruleTypeSelected.dataset.value = value;
-            ruleTypeSelected.innerHTML = option.innerHTML.replace(/<span class="option-hint">.*<\/span>/, '');
-            ruleTypeDropdown.classList.remove('open');
-            ruleTypeOptions.classList.remove('open');
-            
-            // Toggle visibility of divisor and product search
-            const divisorGroup = modalOverlay.querySelector('#add-divisor-group');
-            const productGroup = modalOverlay.querySelector('#add-product-search-group');
-            
-            if (value === 'exclude_all') {
-                divisorGroup.style.display = 'none';
-                productGroup.style.display = 'none';
-            } else if (value === 'divide_all') {
-                divisorGroup.style.display = 'block';
-                productGroup.style.display = 'none';
-            } else if (value === 'divide_product') {
-                divisorGroup.style.display = 'block';
-                productGroup.style.display = 'block';
-            }
-            
-            ruleTypeOptions.querySelectorAll('.dropdown-option').forEach(o => o.classList.remove('selected'));
-            option.classList.add('selected');
-        });
-    });
-    
-    // Close dropdown when clicking outside
-    document.addEventListener('click', function closeDropdown(e) {
-        if (!e.target.closest('#add-rule-type-dropdown') && !e.target.closest('.dropdown-portal')) {
-            ruleTypeDropdown.classList.remove('open');
-            ruleTypeOptions.classList.remove('open');
+        // Toggle visibility of divisor and product search
+        const divisorGroup = modalOverlay.querySelector('#add-divisor-group');
+        const productGroup = modalOverlay.querySelector('#add-product-search-group');
+        
+        if (value === 'exclude_all') {
+            divisorGroup.style.display = 'none';
+            productGroup.style.display = 'none';
+        } else if (value === 'divide_all') {
+            divisorGroup.style.display = 'block';
+            productGroup.style.display = 'none';
+        } else if (value === 'divide_product') {
+            divisorGroup.style.display = 'block';
+            productGroup.style.display = 'block';
         }
     });
     
@@ -2069,7 +1863,7 @@ function showAddRuleModal(email, fullName, hasBaseRule) {
     
     // Save button
     modalOverlay.querySelector('.rule-add-save').addEventListener('click', () => {
-        const ruleType = ruleTypeSelected.dataset.value;
+        const ruleType = ruleTypeSelect.value;
         const divisor = parseFloat(modalOverlay.querySelector('#add-rule-divisor').value) || 2;
         const productSku = modalOverlay.querySelector('#add-selected-product-sku').value;
         const productName = modalOverlay.querySelector('#add-selected-product-name').value;
@@ -2387,23 +2181,30 @@ async function loadCustomerGroups() {
 }
 
 /**
- * Display customer groups in dropdown
+ * Display customer groups in select dropdown
  */
 function displayCustomerGroupsDropdown() {
-    const dropdown = document.getElementById(`customer-group-dropdown-${currentRegion}`);
-    const optionsContainer = document.getElementById(`customer-group-options-${currentRegion}`);
-    if (!dropdown || !optionsContainer) return;
+    const select = document.getElementById(`customer-group-select-${currentRegion}`);
+    if (!select) return;
     
-    // Clear existing options
-    optionsContainer.innerHTML = '';
+    // Keep the first placeholder option, clear others
+    const placeholderOption = select.querySelector('option[value=""]');
+    select.innerHTML = '';
+    if (placeholderOption) {
+        select.appendChild(placeholderOption);
+    } else {
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = 'Select a customer group to exclude...';
+        select.appendChild(placeholder);
+    }
     
     // Add options for each customer group
     availableCustomerGroups.forEach(group => {
-        const option = document.createElement('div');
-        option.className = 'dropdown-option';
-        option.dataset.value = group;
+        const option = document.createElement('option');
+        option.value = group;
         option.textContent = group;
-        optionsContainer.appendChild(option);
+        select.appendChild(option);
     });
 }
 
@@ -2507,15 +2308,13 @@ function displayExcludedCustomerGroups() {
 }
 
 /**
- * Update customer group dropdown to exclude already-excluded groups
+ * Update customer group select to exclude already-excluded groups
  */
 function updateCustomerGroupDropdown() {
     if (!currentRegion) return;
     
-    const dropdown = document.getElementById(`customer-group-dropdown-${currentRegion}`);
-    const optionsContainer = document.getElementById(`customer-group-options-${currentRegion}`);
-    const selected = dropdown?.querySelector('.dropdown-selected');
-    if (!optionsContainer) return;
+    const select = document.getElementById(`customer-group-select-${currentRegion}`);
+    if (!select) return;
     
     // Get all currently excluded groups (including pending adds)
     const currentlyExcluded = [
@@ -2527,26 +2326,28 @@ function updateCustomerGroupDropdown() {
     const filteredGroups = availableCustomerGroups.filter(group => !currentlyExcluded.includes(group));
     
     // Clear and populate options
-    optionsContainer.innerHTML = '';
+    select.innerHTML = '';
     
     if (filteredGroups.length === 0 && availableCustomerGroups.length > 0) {
-        // All groups excluded - show message in selected display
-        if (selected) {
-            selected.textContent = 'All customer groups are already excluded';
-            selected.dataset.value = '';
-        }
+        // All groups excluded - show message in placeholder
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = 'All customer groups are already excluded';
+        placeholder.disabled = true;
+        placeholder.selected = true;
+        select.appendChild(placeholder);
     } else {
-        // Reset selected display if needed
-        if (selected && !selected.dataset.value) {
-            selected.textContent = 'Select a customer group to exclude...';
-        }
+        // Add placeholder option
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = 'Select a customer group to exclude...';
+        select.appendChild(placeholder);
         
         filteredGroups.forEach(group => {
-            const option = document.createElement('div');
-            option.className = 'dropdown-option';
-            option.dataset.value = group;
+            const option = document.createElement('option');
+            option.value = group;
             option.textContent = group;
-            optionsContainer.appendChild(option);
+            select.appendChild(option);
         });
     }
 }
@@ -2820,15 +2621,14 @@ function displaySmartQtyRules() {
  */
 function updateSmartFilterPreview() {
     const thresholdInput = document.getElementById(`smart-qty-threshold-${currentRegion}`);
-    const actionDropdown = document.getElementById(`smart-qty-action-dropdown-${currentRegion}`);
+    const actionSelect = document.getElementById(`smart-qty-action-select-${currentRegion}`);
     const divisorInput = document.getElementById(`smart-qty-divisor-${currentRegion}`);
     const previewText = document.getElementById(`smart-filter-preview-text-${currentRegion}`);
     
-    if (!thresholdInput || !actionDropdown || !divisorInput || !previewText) return;
+    if (!thresholdInput || !actionSelect || !divisorInput || !previewText) return;
     
     const threshold = parseInt(thresholdInput.value);
-    const actionSelected = actionDropdown.querySelector('.dropdown-selected');
-    const action = actionSelected?.dataset.value || 'divide';
+    const action = actionSelect.value || 'divide';
     const divisor = parseFloat(divisorInput.value);
     
     if (isNaN(threshold) || isNaN(divisor) || threshold < 1 || divisor < 0.1) {
@@ -2864,14 +2664,13 @@ async function addSmartQtyRule() {
     if (!currentRegion) return;
     
     const thresholdInput = document.getElementById(`smart-qty-threshold-${currentRegion}`);
-    const actionDropdown = document.getElementById(`smart-qty-action-dropdown-${currentRegion}`);
+    const actionSelect = document.getElementById(`smart-qty-action-select-${currentRegion}`);
     const divisorInput = document.getElementById(`smart-qty-divisor-${currentRegion}`);
     
-    if (!thresholdInput || !actionDropdown || !divisorInput) return;
+    if (!thresholdInput || !actionSelect || !divisorInput) return;
     
     const threshold = parseInt(thresholdInput.value);
-    const actionSelected = actionDropdown.querySelector('.dropdown-selected');
-    const action = actionSelected?.dataset.value || 'divide';
+    const action = actionSelect.value || 'divide';
     const divisor = parseFloat(divisorInput.value);
     
     if (isNaN(threshold) || threshold < 1) {
@@ -3049,15 +2848,14 @@ async function addSmartDateRule() {
     
     const startInput = document.getElementById(`smart-date-start-${currentRegion}`);
     const endInput = document.getElementById(`smart-date-end-${currentRegion}`);
-    const actionDropdown = document.getElementById(`smart-date-action-dropdown-${currentRegion}`);
+    const actionSelect = document.getElementById(`smart-date-action-select-${currentRegion}`);
     const valueInput = document.getElementById(`smart-date-value-${currentRegion}`);
     
-    if (!startInput || !endInput || !actionDropdown || !valueInput) return;
+    if (!startInput || !endInput || !actionSelect || !valueInput) return;
     
     const startDate = startInput.value;
     const endDate = endInput.value;
-    const actionSelected = actionDropdown.querySelector('.dropdown-selected');
-    const action = actionSelected?.dataset.value || 'exclude';
+    const action = actionSelect.value || 'exclude';
     let value = null;
     
     if (!startDate || !endDate) {
@@ -3096,14 +2894,8 @@ async function addSmartDateRule() {
             valueInput.value = '';
             valueInput.style.display = 'none'; // Hide value input
             
-            // Reset dropdown to default
-            if (actionSelected) {
-                actionSelected.textContent = 'Exclude Entirely';
-                actionSelected.dataset.value = 'exclude';
-            }
-            actionDropdown.querySelectorAll('.dropdown-option').forEach(opt => {
-                opt.classList.toggle('selected', opt.dataset.value === 'exclude');
-            });
+            // Reset select to default
+            actionSelect.value = 'exclude';
             
             // Reload rules
             await loadSmartDateRules();
@@ -3523,43 +3315,37 @@ function showCustomRangeResults(results) {
  * Load available order statuses
  */
 async function loadAvailableStatuses(region) {
-    const dropdown = document.getElementById(`status-dropdown-${region}`);
-    const selected = dropdown?.querySelector('.dropdown-selected');
-    if (!dropdown) return;
+    const select = document.getElementById(`status-select-${region}`);
+    if (!select) return;
     
     try {
-        if (selected) {
-            selected.textContent = 'Loading statuses...';
-            selected.dataset.value = '';
-        }
+        // Show loading state
+        select.innerHTML = '<option value="">Loading statuses...</option>';
+        select.disabled = true;
+        
         const response = await get(`${API}/filters/status/available/${region}`);
         
         if (response && response.status === 'success') {
             availableStatuses = response.statuses || [];
             updateStatusDropdown();
+            select.disabled = false;
         } else {
-            if (selected) {
-                selected.textContent = 'Failed to load statuses';
-            }
+            select.innerHTML = '<option value="">Failed to load statuses</option>';
         }
     } catch (error) {
         console.error('Error loading statuses:', error);
-        if (selected) {
-            selected.textContent = 'Error loading statuses';
-        }
+        select.innerHTML = '<option value="">Error loading statuses</option>';
     }
 }
 
 /**
- * Update the status dropdown to exclude already-excluded statuses
+ * Update the status select to exclude already-excluded statuses
  */
 function updateStatusDropdown() {
     if (!currentRegion) return;
     
-    const dropdown = document.getElementById(`status-dropdown-${currentRegion}`);
-    const optionsContainer = document.getElementById(`status-options-${currentRegion}`);
-    const selected = dropdown?.querySelector('.dropdown-selected');
-    if (!optionsContainer) return;
+    const select = document.getElementById(`status-select-${currentRegion}`);
+    if (!select) return;
     
     // Get all currently excluded statuses (including pending adds)
     const currentlyExcluded = [
@@ -3571,26 +3357,28 @@ function updateStatusDropdown() {
     const filteredStatuses = availableStatuses.filter(status => !currentlyExcluded.includes(status));
     
     // Clear and populate options
-    optionsContainer.innerHTML = '';
+    select.innerHTML = '';
     
     if (filteredStatuses.length === 0 && availableStatuses.length > 0) {
-        // All statuses excluded - show message in selected display
-        if (selected) {
-            selected.textContent = 'All statuses are already excluded';
-            selected.dataset.value = '';
-        }
+        // All statuses excluded - show message
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = 'All statuses are already excluded';
+        placeholder.disabled = true;
+        placeholder.selected = true;
+        select.appendChild(placeholder);
     } else {
-        // Reset selected display if needed
-        if (selected && !selected.dataset.value) {
-            selected.textContent = 'Select a status to exclude...';
-        }
+        // Add placeholder option
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = 'Select a status to exclude...';
+        select.appendChild(placeholder);
         
         filteredStatuses.forEach(status => {
-            const option = document.createElement('div');
-            option.className = 'dropdown-option';
-            option.dataset.value = status;
+            const option = document.createElement('option');
+            option.value = status;
             option.textContent = status;
-            optionsContainer.appendChild(option);
+            select.appendChild(option);
         });
     }
 }

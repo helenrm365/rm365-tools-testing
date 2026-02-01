@@ -340,76 +340,17 @@ async function loadInventoryData() {
 }
 
 function setupDropdowns() {
-  // Expose global dropdown functions for onclick handlers in HTML
-  setupGlobalDropdownFunctions();
-  
-  // Column visibility dropdown - new custom-dropdown pattern
+  // Column visibility dropdown using native multi-select
   setupColumnDropdown();
 
-  // Stock status dropdown - handled by onclick handlers in HTML
-  // Set initial selected value for status dropdown (default: empty string for "All")
-  const statusContainer = document.getElementById('statusDropdown');
-  if (statusContainer) {
-    statusContainer.dataset.selectedValue = '';
-  }
+  // Stock status dropdown - native select
+  setupStockStatusFilter();
 }
 
-// Global dropdown functions for onclick handlers in HTML (custom-dropdown pattern)
-function setupGlobalDropdownFunctions() {
-  // Toggle dropdown open/close
-  window.toggleDropdown = function(id) {
-    const dropdown = document.getElementById(id);
-    if (!dropdown) return;
-    
-    // Close other dropdowns
-    document.querySelectorAll('.custom-dropdown').forEach(d => {
-      if (d.id !== id) d.classList.remove('open');
-    });
-    dropdown.classList.toggle('open');
-  };
-  
-  // Close dropdowns when clicking outside (only bind once)
-  if (!dropdownDocListenersBound) {
-    document.addEventListener('click', function(e) {
-      if (!e.target.closest('.custom-dropdown')) {
-        document.querySelectorAll('.custom-dropdown').forEach(d => d.classList.remove('open'));
-      }
-    });
-    dropdownDocListenersBound = true;
-  }
-  
-  // Select stock status option
-  window.selectStockStatus = function(element, value, text) {
-    const dropdown = document.getElementById('statusDropdown');
-    if (!dropdown) return;
-    
-    const selectedDisplay = dropdown.querySelector('.dropdown-selected');
-    const hiddenInput = dropdown.querySelector('input[type="hidden"]');
-    
-    if (selectedDisplay) {
-      const icon = selectedDisplay.querySelector('i');
-      const iconHTML = icon ? icon.outerHTML : '';
-      selectedDisplay.innerHTML = `${iconHTML} ${text}`;
-    }
-    if (hiddenInput) hiddenInput.value = value;
-    
-    dropdown.querySelectorAll('.dropdown-option').forEach(opt => opt.classList.remove('selected'));
-    element.classList.add('selected');
-    dropdown.classList.remove('open');
-    
-    // Store value and trigger filter
-    dropdown.dataset.selectedValue = value;
-    onStockStatusFilterChange();
-  };
-}
-
-// Setup column dropdown with checkboxes
+// Setup column dropdown with checkboxes using native multi-select
 function setupColumnDropdown() {
-  const container = document.getElementById('columnDropdown');
-  if (!container) return;
-  
-  const optionsContainer = container.querySelector('.dropdown-options') || document.getElementById('columnDropdownOptions');
-  if (!optionsContainer) return;
+  const columnSelect = document.getElementById('columnSelect');
+  if (!columnSelect) return;
   
   const columns = [
     { value: 'col-1', text: 'Location', checked: true },
@@ -428,127 +369,32 @@ function setupColumnDropdown() {
     { value: 'col-14', text: 'Total Stock', checked: true },
     { value: 'col-15', text: 'Status', checked: true },
     { value: 'col-16', text: 'UK + FR Pre Order', checked: true },
-    { value: 'col-17', text: 'FR 6M Data', checked: true }
+    { value: 'col-17', text: 'FR 6M Data', checked: true },
+    { value: 'col-18', text: 'Variant Statuses', checked: true }
   ];
   
-  // Populate with checkbox options
-  optionsContainer.innerHTML = columns.map(col => 
-    `<label class="dropdown-option checkbox-item" data-value="${col.value}">
-      <input type="checkbox" ${col.checked ? 'checked' : ''} data-column="${col.value}">
-      <span>${col.text}</span>
-    </label>`
+  // Populate with options
+  columnSelect.innerHTML = columns.map(col => 
+    `<option value="${col.value}" ${col.checked ? 'selected' : ''}>${col.text}</option>`
   ).join('');
   
   // Handle column visibility changes
-  optionsContainer.addEventListener('change', e => {
-    if (e.target.type === 'checkbox') {
-      const column = e.target.dataset.column;
-      const isVisible = e.target.checked;
-      toggleColumn(column, isVisible);
-    }
-  });
-  
-  // Prevent dropdown from closing when clicking checkboxes
-  optionsContainer.addEventListener('click', e => {
-    if (e.target.type === 'checkbox' || e.target.closest('label.checkbox-item')) {
-      e.stopPropagation();
-    }
+  columnSelect.addEventListener('change', () => {
+    const selectedValues = Array.from(columnSelect.selectedOptions).map(opt => opt.value);
+    columns.forEach(col => {
+      toggleColumn(col.value, selectedValues.includes(col.value));
+    });
   });
 }
 
-function bindDropdown(containerId, toggleId, options, isColumnDropdown = false) {
-  const container = document.getElementById(containerId);
+// Setup stock status filter
+function setupStockStatusFilter() {
+  const stockStatusSelect = document.getElementById('stockStatusFilter');
+  if (!stockStatusSelect) return;
   
-  // For new .custom-dropdown pattern, check for that class
-  if (container && container.classList.contains('custom-dropdown')) {
-    if (isColumnDropdown) {
-      setupColumnDropdown();
-    }
-    return; // Custom dropdown pattern is handled by onclick handlers in HTML
-  }
-  
-  // Legacy c-select pattern (fallback)
-  const toggle = document.getElementById(toggleId);
-  if (!container || !toggle) return;
-
-  let dropdownContent = container.querySelector('.c-select__list');
-  if (!dropdownContent) {
-    dropdownContent = document.createElement('div');
-    dropdownContent.className = 'c-select__list';
-    dropdownContent.setAttribute('role', 'listbox');
-    dropdownContent.setAttribute('aria-hidden', 'true');
-    container.appendChild(dropdownContent);
-  }
-
-  // Populate options (always update content)
-  if (isColumnDropdown) {
-    // Column visibility dropdown with checkboxes
-    dropdownContent.innerHTML = options.map(opt => 
-      `<label class="c-select__item checkbox-item" data-value="${opt.value}" role="option">
-        <input type="checkbox" ${opt.checked ? 'checked' : ''} data-column="${opt.value}">
-        <span>${opt.text}</span>
-      </label>`
-    ).join('');
-
-    // Handle column visibility changes (only bind once)
-    if (!dropdownContent.dataset.boundChange) {
-      dropdownContent.dataset.boundChange = 'true';
-      dropdownContent.addEventListener('change', e => {
-        if (e.target.type === 'checkbox') {
-          const column = e.target.dataset.column;
-          const isVisible = e.target.checked;
-          toggleColumn(column, isVisible);
-        }
-      });
-    }
-  } else {
-    // Regular dropdown (for stock status filter)
-    dropdownContent.innerHTML = options.map(opt => 
-      `<div class="c-select__item" data-value="${opt.value}" role="option">${opt.text}</div>`
-    ).join('');
-
-    // Handle regular dropdown selection (only bind once)
-    if (!dropdownContent.dataset.boundClick) {
-      dropdownContent.dataset.boundClick = 'true';
-      dropdownContent.addEventListener('click', e => {
-        if (e.target.classList.contains('c-select__item')) {
-          const value = e.target.dataset.value;
-          const text = e.target.textContent;
-          
-          // Store the selected value in the container's data attribute
-          container.dataset.selectedValue = value;
-          
-          const labelSpan = toggle.querySelector('.c-select__label');
-          if (labelSpan) {
-            const icon = labelSpan.querySelector('i');
-            const iconHTML = icon ? icon.outerHTML : '';
-            labelSpan.innerHTML = `${iconHTML} ${text}`;
-          }
-          closeAllDropdowns();
-          
-          // Trigger stock status filter change
-          onStockStatusFilterChange();
-        }
-      });
-    }
-  }
-  
-  // Bind toggle click handler (only once)
-  if (!toggle.dataset.boundClick) {
-    toggle.dataset.boundClick = 'true';
-    toggle.addEventListener('click', e => {
-      e.stopPropagation();
-      const isOpen = container.getAttribute('aria-expanded') === 'true';
-      closeAllDropdowns();
-      if (!isOpen) {
-        container.setAttribute('aria-expanded', 'true');
-        container.classList.add('open');
-        const list = container.querySelector('.c-select__list');
-        if (list) list.setAttribute('aria-hidden', 'false');
-        // No backdrop needed - dropdowns should not darken the background
-      }
-    });
-  }
+  stockStatusSelect.addEventListener('change', () => {
+    onStockStatusFilterChange();
+  });
 }
 
 function toggleColumn(columnClass, isVisible) {
@@ -1131,49 +977,12 @@ function applyFilters() {
 }
 
 function getSelectedValue(toggle) {
-  if (!toggle) {
-    // Try to get the status dropdown directly
-    const statusDropdown = document.getElementById('statusDropdown');
-    if (statusDropdown) {
-      // For custom-dropdown pattern, check for hidden input or data attribute
-      const hiddenInput = statusDropdown.querySelector('input[type="hidden"]');
-      if (hiddenInput) return hiddenInput.value || '';
-      if (statusDropdown.dataset.selectedValue !== undefined) {
-        return statusDropdown.dataset.selectedValue;
-      }
-    }
-    return '';
+  // For native select element
+  const stockStatusSelect = document.getElementById('stockStatusFilter');
+  if (stockStatusSelect) {
+    return stockStatusSelect.value || '';
   }
-  
-  // For custom-dropdown pattern
-  const customDropdown = toggle.closest('.custom-dropdown');
-  if (customDropdown) {
-    const hiddenInput = customDropdown.querySelector('input[type="hidden"]');
-    if (hiddenInput) return hiddenInput.value || '';
-    if (customDropdown.dataset.selectedValue !== undefined) {
-      return customDropdown.dataset.selectedValue;
-    }
-  }
-  
-  // For c-select dropdowns, get the value from the container's data attribute
-  const container = toggle.closest('.c-select');
-  if (container && container.dataset.selectedValue !== undefined) {
-    return container.dataset.selectedValue;
-  }
-  
-  // Fallback for legacy dropdowns (if any)
-  const text = toggle.textContent;
-  const match = text.match(/^(.+?)\s*▼?$/);
-  const value = match ? match[1].trim() : text.trim();
-  
-  const valueMap = {
-    'All Stock Status': '',
-    'Over Stock': 'overstock',
-    'Low Stock': 'lowstock',
-    'Normal Stock': 'normal'
-  };
-  
-  return valueMap[value] || '';
+  return '';
 }
 
 // Zoom control functionality
@@ -1428,12 +1237,7 @@ function getBackdrop() {
 }
 
 function closeAllDropdowns() {
-  // Close custom-dropdown pattern
-  document.querySelectorAll('.custom-dropdown.open').forEach(el => {
-    el.classList.remove('open');
-  });
-  
-  // Close c-select dropdowns
+  // Close c-select dropdowns (enhanced native selects don't need closing)
   document.querySelectorAll('.c-select[aria-expanded="true"]').forEach(el => {
     el.setAttribute('aria-expanded', 'false');
     el.classList.remove('open');
@@ -1441,19 +1245,6 @@ function closeAllDropdowns() {
   document.querySelectorAll('.c-select__list[aria-hidden="false"]').forEach(el => {
     el.setAttribute('aria-hidden', 'true');
   });
-  
-  // Legacy support - close old dropdown-container style (if any remain)
-  document.querySelectorAll('.dropdown-container.open').forEach(el => {
-    el.classList.remove('open');
-  });
-  document.querySelectorAll('.dropdown-toggle.open').forEach(el => {
-    el.classList.remove('open');
-  });
-  document.querySelectorAll('.dropdown-content.show').forEach(el => {
-    el.classList.remove('show');
-  });
-  
-  // No backdrop to remove - dropdowns don't use backdrop
 }
 
 // State management

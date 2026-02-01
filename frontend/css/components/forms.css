@@ -193,14 +193,20 @@ select:focus,
   box-sizing: border-box;
 }
 
+.c-select__button:hover {
+  background: var(--bg);
+  border-color: rgba(139, 195, 74, 0.3);
+}
+
 .c-select__button:focus-visible { 
-  outline: 1px solid #8bc34a;
+  outline: 2px solid #8bc34a;
   outline-offset: 1px;
 }
 
 .c-select[aria-expanded='true'] .c-select__button {
-  outline: 1px solid #8bc34a;
+  outline: 2px solid #8bc34a;
   outline-offset: 1px;
+  background: var(--bg);
 }
 
 .c-select__label {
@@ -217,6 +223,7 @@ select:focus,
   font-size: 0.8rem;
   color: #8bc34a;
   font-weight: bold;
+  flex-shrink: 0;
 }
 
 .c-select[aria-expanded='true'] .c-select__caret { 
@@ -233,8 +240,8 @@ select:focus,
   color: var(--text);
   border: 1px solid rgba(0, 0, 0, 0.06);
   border-radius: 12px;
-  box-shadow: var(--shadow-m);
-  max-height: 200px;
+  box-shadow: var(--shadow-l);
+  max-height: 250px;
   overflow-y: auto;
   overflow-x: hidden;
   transform-origin: top center;
@@ -249,8 +256,26 @@ select:focus,
   box-sizing: border-box;
 }
 
+.c-select__list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.c-select__list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.c-select__list::-webkit-scrollbar-thumb {
+  background-color: rgba(139, 195, 74, 0.4);
+  border-radius: 4px;
+}
+
+.c-select__list::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(139, 195, 74, 0.6);
+}
+
 html.dark-mode .c-select__list {
   border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: var(--shadow-l), 0 0 0 1px rgba(255, 255, 255, 0.05);
 }
 
 .c-select[aria-expanded='true'] .c-select__list {
@@ -264,11 +289,14 @@ html.dark-mode .c-select__list {
 .c-select__item {
   padding: 0.75rem 1rem;
   cursor: pointer;
-  transition: background var(--transition);
+  transition: all 0.15s ease;
   color: var(--text);
   font-size: 0.9375rem;
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
   pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
 }
 
 html.dark-mode .c-select__option,
@@ -286,11 +314,168 @@ html.dark-mode .c-select__item {
   background: rgba(139, 195, 74, 0.1);
 }
 
-.c-select__option[aria-selected='true'],
-.c-select__item[aria-selected='true'] {
+/* Single select: highlight selected option */
+.c-select:not(.c-select--multiple) .c-select__option[aria-selected='true'],
+.c-select:not(.c-select--multiple) .c-select__item[aria-selected='true'] {
   background: rgba(139, 195, 74, 0.15);
   color: #8bc34a;
   font-weight: 600;
+}
+
+/* Multi-select: no row highlight (checkbox is sufficient indicator) */
+.c-select--multiple .c-select__item[aria-selected='true'] {
+  background: transparent;
+  color: inherit;
+  font-weight: inherit;
+}
+
+.c-select--multiple .c-select__item[aria-selected='true']:hover {
+  background: rgba(139, 195, 74, 0.1);
+}
+
+/* ===== Multi-Select Mode ===== */
+.c-select--multiple .c-select__button {
+  min-height: calc(var(--input-height) + 0.25rem);
+}
+
+.c-select--multiple .c-select__label {
+  white-space: normal;
+  line-height: 1.4;
+}
+
+.c-select--multiple .c-select__list {
+  max-height: 300px;
+}
+
+.c-select--multiple .c-select__item {
+  padding: 0.625rem 1rem;
+}
+
+/* Checkbox within c-select item */
+.c-select__checkbox {
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  accent-color: #8bc34a;
+  cursor: pointer;
+  margin: 0;
+}
+
+.c-select__item-text {
+  flex: 1;
+  text-align: left;
+}
+
+.c-select__item--with-checkbox {
+  cursor: pointer;
+  user-select: none;
+}
+
+.c-select__item--with-checkbox:active {
+  transform: scale(0.98);
+}
+
+/* Selection count badge */
+.c-select__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  background: #8bc34a;
+  color: white;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-left: 0.5rem;
+}
+
+/* Multi-select header with Select All */
+.c-select__header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  background: var(--bg-light);
+  border-radius: 12px 12px 0 0;
+  position: sticky;
+  top: 0;
+  cursor: pointer;
+  user-select: none;
+  font-weight: 600;
+  color: var(--text);
+  z-index: 1;
+}
+
+.c-select__header:hover {
+  background: rgba(139, 195, 74, 0.08);
+}
+
+html.dark-mode .c-select__header {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+.c-select__select-all-label {
+  flex: 1;
+}
+
+/* Multi-select footer */
+.c-select__footer {
+  padding: 0.75rem 1rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  display: flex;
+  gap: 0.5rem;
+  background: var(--bg-light);
+  border-radius: 0 0 12px 12px;
+  position: sticky;
+  bottom: 0;
+}
+
+html.dark-mode .c-select__footer {
+  border-top-color: rgba(255, 255, 255, 0.08);
+}
+
+.c-select__footer-btn {
+  flex: 1;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: var(--ff);
+}
+
+.c-select__footer-btn--done {
+  background: #8bc34a;
+  color: white;
+}
+
+.c-select__footer-btn--done:hover {
+  background: #7cb342;
+}
+
+/* Full width done button when no clear button */
+.c-select__footer-btn--full {
+  width: 100%;
+}
+
+/* ===== Disabled State ===== */
+.c-select:has(select:disabled) .c-select__button,
+.c-select.disabled .c-select__button {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: var(--bg);
+  pointer-events: none;
+}
+
+.c-select:has(select:disabled) .c-select__button:hover,
+.c-select.disabled .c-select__button:hover {
+  border-color: var(--bg);
+  background: var(--bg);
 }
 
 /* ===== File Input ===== */
@@ -426,119 +611,6 @@ input[type="radio"] {
   opacity: 0.7;
 }
 
-/* ===== Custom Dropdown ===== */
-.custom-dropdown {
-  position: relative;
-  width: 100%;
-  overflow: visible; /* Ensure dropdown options can extend beyond container bounds */
-}
-
-.dropdown-selected {
-  height: var(--input-height);
-  padding: 0 2.5rem 0 1.125rem;
-  background: var(--bg-light);
-  border: 2px solid var(--bg);
-  border-radius: 12px;
-  font-size: 1rem;
-  font-family: var(--ff);
-  color: var(--text);
-  cursor: pointer;
-  transition: all var(--transition);
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: var(--space-sm);
-  box-shadow: var(--shadow-m);
-  box-sizing: border-box;
-}
-
-.dropdown-selected i {
-  color: var(--accent);
-}
-
-.dropdown-selected::after {
-  content: '\f107';
-  font-family: "Font Awesome 6 Free";
-  font-weight: 900;
-  position: absolute;
-  right: 1rem;
-  color: var(--text-muted);
-  transition: transform var(--transition);
-}
-
-.custom-dropdown.open .dropdown-selected::after {
-  transform: rotate(180deg);
-}
-
-.custom-dropdown.open .dropdown-selected {
-  outline: 1px solid #8bc34a;
-  outline-offset: 1px;
-}
-
-.dropdown-options {
-  position: absolute;
-  top: calc(100% + 0.5rem);
-  left: 0;
-  right: 0;
-  background: var(--bg-light);
-  border-radius: 12px;
-  box-shadow: var(--shadow-m);
-  z-index: var(--z-dropdown);
-  overflow: hidden;
-  opacity: 0;
-  visibility: hidden;
-  transform: translateY(-10px);
-  transition: all var(--transition);
-  max-height: 200px;
-  overflow-y: auto;
-  border: 1px solid rgba(0, 0, 0, 0.06);
-}
-
-html.dark-mode .dropdown-options {
-  border-color: rgba(255, 255, 255, 0.08);
-}
-
-.custom-dropdown.open .dropdown-options {
-  opacity: 1;
-  visibility: visible;
-  transform: translateY(0);
-}
-
-.dropdown-option {
-  padding: 0.75rem 1rem;
-  cursor: pointer;
-  transition: background var(--transition);
-  color: var(--text);
-  font-size: 0.9375rem;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-}
-
-html.dark-mode .dropdown-option {
-  border-bottom-color: rgba(255, 255, 255, 0.08);
-}
-
-.dropdown-option:last-child {
-  border-bottom: none;
-}
-
-.dropdown-option:hover {
-  background: rgba(139, 195, 74, 0.1);
-}
-
-.dropdown-option.selected {
-  background: rgba(139, 195, 74, 0.15);
-  color: #8bc34a;
-  font-weight: 600;
-}
-
-/* ===== Modal Dropdown Overflow Fix ===== */
-/* Use fixed positioning for dropdown options in modals */
-.modal-content .custom-dropdown .dropdown-options,
-.modal .custom-dropdown .dropdown-options {
-  z-index: var(--z-dropdown, 9999);
-  font-weight: 600;
-}
-
 /* ===== Styled Checkbox ===== */
 .card-checkbox {
   position: relative;
@@ -648,28 +720,7 @@ html.dark-mode .dropdown-option {
     font-size: 0.875rem;
   }
   
-  .custom-dropdown .dropdown-selected {
-    font-size: 16px; /* Prevents zoom on iOS */
-    height: 44px;
-    padding: 0 2rem 0 0.875rem;
-    border-radius: 10px;
-  }
-  
-  .custom-dropdown .dropdown-selected::after {
-    right: 0.75rem;
-    font-size: 0.75rem;
-  }
-  
-  .custom-dropdown .dropdown-options {
-    max-height: 50vh;
-    border-radius: 10px;
-  }
-  
-  .dropdown-option {
-    padding: 0.625rem 0.875rem;
-    font-size: 0.875rem;
-  }
-  
+  /* c-select responsive - no custom-dropdown needed */
   .c-select__button {
     height: 44px;
     padding: 0.625rem 0.875rem;
@@ -713,18 +764,7 @@ html.dark-mode .dropdown-option {
     left: 0.75rem;
   }
   
-  .custom-dropdown .dropdown-selected {
-    height: 40px;
-    padding: 0 1.75rem 0 0.625rem;
-    font-size: 0.875rem;
-    border-radius: 8px;
-  }
-  
-  .dropdown-option {
-    padding: 0.5rem 0.625rem;
-    font-size: 0.8125rem;
-  }
-  
+  /* c-select responsive */
   .c-select__button {
     height: 40px;
     padding: 0.5rem 0.625rem;

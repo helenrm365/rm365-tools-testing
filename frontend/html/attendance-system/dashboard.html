@@ -98,18 +98,14 @@
             </div>
             <div class="additional-filters-grid">
               <div class="form-group-compact">
-                <label class="form-label-sm">
+                <label class="form-label-sm" for="globalLocationFilter">
                   <i class="fas fa-map-marker-alt"></i>
                   <span>Location</span>
                 </label>
-                <div class="custom-dropdown" id="globalLocationDropdown">
-                  <div class="dropdown-selected" onclick="toggleDropdown('globalLocationDropdown')">All Locations</div>
-                  <div class="dropdown-options" id="globalLocationOptions">
-                    <div class="dropdown-option selected" onclick="selectLocationOption(this, '', 'All Locations')">All Locations</div>
-                    <!-- More options populated by JavaScript -->
-                  </div>
-                  <input type="hidden" name="globalLocationFilter" id="globalLocationFilter" value="">
-                </div>
+                <select id="globalLocationFilter" data-enhance="c-select">
+                  <option value="" selected>All Locations</option>
+                  <!-- More options populated by JavaScript -->
+                </select>
               </div>
               <div class="form-group-compact">
                 <label class="form-label-sm" for="globalNameFilter">

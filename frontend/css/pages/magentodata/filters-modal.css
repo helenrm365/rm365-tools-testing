@@ -85,54 +85,17 @@
 }
 
 .select-with-button .form-select,
-.select-with-button .custom-dropdown {
+.select-with-button .c-select {
   flex: 1;
 }
 
-/* ===== Custom Dropdown in Modal with Fixed Positioning ===== */
-.modal .custom-dropdown {
+/* ===== c-select in Modal ===== */
+.modal .c-select {
   min-width: 0;
 }
 
-.modal .custom-dropdown .dropdown-selected {
-  font-size: 0.9375rem;
-}
-
-/* Use fixed positioning for dropdown options to escape modal overflow */
-.modal .custom-dropdown .dropdown-options {
-  position: fixed;
-  max-height: 180px;
-  min-width: 200px;
-  background: var(--bg-light, #f5f5f5);
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-  z-index: 10002;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  /* Ensure hidden by default */
-  opacity: 0;
-  visibility: hidden;
-  transform: translateY(-10px);
-  transition: opacity 0.15s ease, visibility 0.15s ease, transform 0.15s ease;
-}
-
-html.dark-mode .modal .custom-dropdown .dropdown-options {
-  background: var(--bg-light, #2a2a2a);
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
-.modal .custom-dropdown.open .dropdown-options {
-  opacity: 1;
-  visibility: visible;
-  transform: translateY(0);
-}
-
-.rule-config-row .custom-dropdown {
+.rule-config-row .c-select {
   min-width: 120px;
-}
-
-.rule-config-row .custom-dropdown .dropdown-selected {
-  font-size: 0.875rem;
-  padding: 0 2rem 0 0.875rem;
 }
 
 /* ===== Input with Prefix ===== */
@@ -532,101 +495,13 @@ html.dark-mode .modal .custom-dropdown .dropdown-options {
   z-index: 1100;
 }
 
-/* Ensure modal body doesn't clip dropdown */
+/* Ensure modal body doesn't clip c-select dropdown */
 .rule-edit-modal-overlay .modal {
   overflow: visible;
 }
 
 .rule-edit-modal-overlay .modal-body {
   overflow: visible;
-}
-
-/* Dropdown options in rule edit modal - must escape all overflow */
-.rule-edit-modal-overlay .custom-dropdown .dropdown-options {
-  position: fixed !important;
-  z-index: 11000 !important;
-  max-height: 200px;
-  overflow-y: auto;
-  background: var(--bg, #ffffff);
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  opacity: 0;
-  visibility: hidden;
-  transform: translateY(-10px);
-  transition: opacity 0.15s ease, visibility 0.15s ease, transform 0.15s ease;
-  /* Reset any inherited positioning */
-  right: auto !important;
-  bottom: auto !important;
-}
-
-/* Portal dropdown - attached directly to body */
-.dropdown-portal {
-  position: fixed !important;
-  z-index: 11000 !important;
-  max-height: 200px;
-  overflow-y: auto;
-  background: var(--bg, #ffffff);
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  opacity: 0;
-  visibility: hidden;
-  transform: translateY(-10px);
-  transition: opacity 0.15s ease, visibility 0.15s ease, transform 0.15s ease;
-}
-
-html.dark-mode .dropdown-portal {
-  background: var(--bg-light, #2a2a2a);
-  border-color: rgba(255, 255, 255, 0.15);
-}
-
-.dropdown-portal.open {
-  opacity: 1;
-  visibility: visible;
-  transform: translateY(0);
-}
-
-.dropdown-portal .dropdown-option {
-  padding: 0.75rem 1rem;
-  cursor: pointer;
-  transition: background 0.15s ease;
-  color: var(--text, #333);
-  font-size: 0.9375rem;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-html.dark-mode .dropdown-portal .dropdown-option {
-  color: var(--text, #eee);
-  border-bottom-color: rgba(255, 255, 255, 0.08);
-}
-
-.dropdown-portal .dropdown-option:last-child {
-  border-bottom: none;
-}
-
-.dropdown-portal .dropdown-option:hover {
-  background: rgba(139, 195, 74, 0.1);
-}
-
-.dropdown-portal .dropdown-option.selected {
-  background: rgba(139, 195, 74, 0.15);
-  color: #8bc34a;
-  font-weight: 600;
-}
-
-html.dark-mode .rule-edit-modal-overlay .custom-dropdown .dropdown-options {
-  background: var(--bg-light, #2a2a2a);
-  border-color: rgba(255, 255, 255, 0.15);
-}
-
-.rule-edit-modal-overlay .custom-dropdown.open .dropdown-options {
-  opacity: 1;
-  visibility: visible;
-  transform: translateY(0);
 }
 
 .rule-edit-customer-info {

@@ -44,67 +44,6 @@ let state = {
   }
 };
 
-// ====== Custom Dropdown Functions ======
-function toggleDropdown(dropdownId) {
-  const dropdown = document.getElementById(dropdownId);
-  if (!dropdown) return;
-
-  // Close all other dropdowns first
-  document.querySelectorAll('.custom-dropdown.open').forEach(d => {
-    if (d.id !== dropdownId) {
-      d.classList.remove('open');
-    }
-  });
-
-  dropdown.classList.toggle('open');
-}
-
-function selectLocationOption(element, value, text) {
-  const dropdown = document.getElementById('globalLocationDropdown');
-  if (!dropdown) return;
-
-  // Update the displayed text
-  const selected = dropdown.querySelector('.dropdown-selected');
-  if (selected) {
-    selected.textContent = text;
-  }
-
-  // Update the hidden input value
-  const hiddenInput = dropdown.querySelector('input[type="hidden"]');
-  if (hiddenInput) {
-    hiddenInput.value = value;
-  }
-
-  // Update selected state visually
-  dropdown.querySelectorAll('.dropdown-option').forEach(opt => {
-    opt.classList.remove('selected');
-  });
-  element.classList.add('selected');
-
-  // Close the dropdown
-  dropdown.classList.remove('open');
-  
-  // Update state and apply filters
-  state.globalFilters.location = value;
-  console.log('[Dashboard] Location changed via custom dropdown:', value);
-  applyGlobalFilters();
-}
-
-// Expose dropdown functions globally for inline onclick handlers
-window.toggleDropdown = toggleDropdown;
-window.selectLocationOption = selectLocationOption;
-
-// Close dropdowns when clicking outside
-function setupDropdownCloseHandler() {
-  document.addEventListener('click', (e) => {
-    if (!e.target.closest('.custom-dropdown')) {
-      document.querySelectorAll('.custom-dropdown.open').forEach(d => {
-        d.classList.remove('open');
-      });
-    }
-  });
-}
-
 // ====== Utility Functions ======
 function $(sel) { return document.querySelector(sel); }
 function $$(sel) { return document.querySelectorAll(sel); }
@@ -1150,22 +1089,22 @@ async function loadLocations() {
 }
 
 function populateLocationFilter() {
-  const optionsContainer = $("#globalLocationOptions");
-  console.log('[Dashboard] Populating location filter. Element:', optionsContainer, 'Locations:', state.locations);
-  if (!optionsContainer || state.locations.length === 0) return;
+  const locationSelect = $("#globalLocationFilter");
+  console.log('[Dashboard] Populating location filter. Element:', locationSelect, 'Locations:', state.locations);
+  if (!locationSelect || state.locations.length === 0) return;
+  
+  // Preserve current value
+  const currentValue = locationSelect.value;
   
   // Clear existing options and rebuild with "All Locations" + dynamic locations
-  optionsContainer.innerHTML = `
-    <div class="dropdown-option selected" onclick="selectLocationOption(this, '', 'All Locations')">All Locations</div>
+  locationSelect.innerHTML = `
+    <option value="">All Locations</option>
+    ${state.locations.map(loc => `<option value="${loc}">${loc}</option>`).join('')}
   `;
   
-  state.locations.forEach(location => {
-    const option = document.createElement('div');
-    option.className = 'dropdown-option';
-    option.setAttribute('onclick', `selectLocationOption(this, '${location}', '${location}')`);
-    option.textContent = location;
-    optionsContainer.appendChild(option);
-  });
+  // Restore current value
+  if (currentValue) locationSelect.value = currentValue;
+  
   console.log('[Dashboard] Location filter populated with', state.locations.length, 'options');
 }
 
@@ -1234,24 +1173,10 @@ function clearGlobalFilters() {
   const locationFilter = $("#globalLocationFilter");
   const nameFilter = $("#globalNameFilter");
   const presetBtns = $$('.date-preset-buttons .preset-btn');
-  const locationDropdown = $("#globalLocationDropdown");
   
-  // Reset hidden input value
+  // Reset select value
   if (locationFilter) locationFilter.value = '';
   if (nameFilter) nameFilter.value = '';
-  
-  // Reset custom dropdown visual state
-  if (locationDropdown) {
-    const selected = locationDropdown.querySelector('.dropdown-selected');
-    if (selected) selected.textContent = 'All Locations';
-    
-    // Reset selected option visually
-    locationDropdown.querySelectorAll('.dropdown-option').forEach(opt => {
-      opt.classList.remove('selected');
-    });
-    const allOption = locationDropdown.querySelector('.dropdown-option');
-    if (allOption) allOption.classList.add('selected');
-  }
   
   // Reset to Today preset
   presetBtns.forEach(btn => btn.classList.remove('active'));
@@ -1466,8 +1391,15 @@ function setupEventHandlers() {
   // Initialize Filter Control Panel (collapse/expand)
   FilterControlPanel.init('filterPanelCollapseBtn', 'filterPanelBody');
   
-  // Setup custom dropdown close handler
-  setupDropdownCloseHandler();
+  // Setup location filter change listener
+  const locationFilter = $('#globalLocationFilter');
+  if (locationFilter) {
+    locationFilter.addEventListener('change', (e) => {
+      state.globalFilters.location = e.target.value;
+      console.log('[Dashboard] Location changed:', e.target.value);
+      applyGlobalFilters();
+    });
+  }
   
   // Setup export dropdown handlers
   setupExportDropdowns();

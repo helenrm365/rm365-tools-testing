@@ -125,27 +125,7 @@ html.dark-mode .attendance-dashboard .preset-btn {
   gap: 0.25rem;
 }
 
-/* Custom dropdown in compact filter area */
-.attendance-dashboard .form-group-compact .custom-dropdown .dropdown-selected {
-  height: var(--input-height);
-  padding: 0 2rem 0 0.875rem;
-  font-size: 0.875rem;
-  border-radius: 8px;
-}
-
-.attendance-dashboard .form-group-compact .custom-dropdown .dropdown-selected::after {
-  right: 0.75rem;
-  font-size: 0.75rem;
-}
-
-.attendance-dashboard .form-group-compact .custom-dropdown .dropdown-options {
-  border-radius: 8px;
-}
-
-.attendance-dashboard .form-group-compact .custom-dropdown .dropdown-option {
-  padding: 0.5rem 0.875rem;
-  font-size: 0.875rem;
-}
+/* c-select in compact filter area - uses forms.css base styling */
 
 .attendance-dashboard .search-wrapper-compact {
   position: relative;

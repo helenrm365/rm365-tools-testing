@@ -9,69 +9,16 @@ let selectedJobIds = new Set();
 
 function $(sel) { return document.querySelector(sel); }
 
-// ====== Custom Dropdown Functions ======
-function toggleHistoryDropdown(dropdownId) {
-  const dropdown = document.getElementById(dropdownId);
-  if (!dropdown) return;
-
-  // Close all other dropdowns first
-  document.querySelectorAll('.custom-dropdown.open').forEach(d => {
-    if (d.id !== dropdownId) {
-      d.classList.remove('open');
-    }
+// Setup limit filter
+function setupLimitFilter() {
+  const limitSelect = document.getElementById('limitSelect');
+  if (!limitSelect) return;
+  
+  limitSelect.addEventListener('change', (e) => {
+    currentLimit = parseInt(e.target.value);
+    loadHistory();
   });
-
-  dropdown.classList.toggle('open');
 }
-
-function selectHistoryLimit(element, value, text) {
-  const dropdown = document.getElementById('limit-dropdown');
-  if (!dropdown) return;
-
-  // Update the displayed text (preserve the icon, only update the span)
-  const selected = dropdown.querySelector('.dropdown-selected');
-  if (selected) {
-    const textSpan = selected.querySelector('span');
-    if (textSpan) {
-      textSpan.textContent = text;
-    } else {
-      // Fallback if no span exists
-      selected.innerHTML = `<i class="fas fa-list-ol"></i><span>${text}</span>`;
-    }
-  }
-
-  // Update the hidden input value
-  const hiddenInput = document.getElementById('limitSelect');
-  if (hiddenInput) {
-    hiddenInput.value = value;
-  }
-
-  // Update selected state visually
-  dropdown.querySelectorAll('.dropdown-option').forEach(opt => {
-    opt.classList.remove('selected');
-  });
-  element.classList.add('selected');
-
-  // Close the dropdown
-  dropdown.classList.remove('open');
-
-  // Trigger reload with new limit
-  currentLimit = parseInt(value);
-  loadHistory();
-}
-
-// Expose dropdown functions globally for inline onclick handlers
-window.toggleHistoryDropdown = toggleHistoryDropdown;
-window.selectHistoryLimit = selectHistoryLimit;
-
-// Close dropdowns when clicking outside
-document.addEventListener('click', (e) => {
-  if (!e.target.closest('.custom-dropdown')) {
-    document.querySelectorAll('.custom-dropdown.open').forEach(d => {
-      d.classList.remove('open');
-    });
-  }
-});
 
 // Fallback test data for when API is unavailable
 const FALLBACK_TEST_JOBS = [
@@ -686,6 +633,7 @@ export async function init() {
   showToast('Setting up history interface...', 'info');
   wireControls();
   setupActionHandlers();
+  setupLimitFilter();
   
   showToast('Loading print job history...', 'info');
   await loadHistory();

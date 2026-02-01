@@ -73,62 +73,6 @@ function debounce(func, wait) {
   };
 }
 
-// ====== Custom Dropdown Functions ======
-function toggleDropdown(dropdownId) {
-  const dropdown = document.getElementById(dropdownId);
-  if (!dropdown) return;
-
-  // Close all other dropdowns first
-  document.querySelectorAll('.custom-dropdown.open').forEach(d => {
-    if (d.id !== dropdownId) {
-      d.classList.remove('open');
-    }
-  });
-
-  dropdown.classList.toggle('open');
-}
-
-function selectPresetOption(element, dropdownId, value, text) {
-  const dropdown = document.getElementById(dropdownId);
-  if (!dropdown) return;
-
-  // Update the displayed text
-  const selected = dropdown.querySelector('.dropdown-selected');
-  if (selected) {
-    selected.textContent = text;
-  }
-
-  // Update the hidden input value
-  const hiddenInput = dropdown.querySelector('input[type="hidden"]');
-  if (hiddenInput) {
-    hiddenInput.value = value;
-    // Trigger the change handler
-    handleOverwritePresetChange({ target: hiddenInput });
-  }
-
-  // Update selected state visually
-  dropdown.querySelectorAll('.dropdown-option').forEach(opt => {
-    opt.classList.remove('selected');
-  });
-  element.classList.add('selected');
-
-  // Close the dropdown
-  dropdown.classList.remove('open');
-}
-
-// Expose dropdown functions globally for inline onclick handlers
-window.toggleDropdown = toggleDropdown;
-window.selectPresetOption = selectPresetOption;
-
-// Close dropdowns when clicking outside
-document.addEventListener('click', (e) => {
-  if (!e.target.closest('.custom-dropdown')) {
-    document.querySelectorAll('.custom-dropdown.open').forEach(d => {
-      d.classList.remove('open');
-    });
-  }
-});
-
 export async function initLabelGenerator() {
   showToast('Initializing Label Generator...', 'info');
   
@@ -1226,21 +1170,17 @@ function handleSaveOptionChange(e) {
   // Handle specific options
   if (option === 'overwrite-other') {
     // Populate overwrite dropdown with all presets except current
-    const dropdown = document.getElementById('overwrite-preset-dropdown');
-    const optionsContainer = dropdown.querySelector('.dropdown-options');
-    const selectedDisplay = dropdown.querySelector('.dropdown-selected');
-    const hiddenInput = document.getElementById('overwritePresetSelect');
+    const selectEl = document.getElementById('overwritePresetSelect');
     
     // Reset the dropdown
-    selectedDisplay.textContent = '-- Select a preset --';
-    hiddenInput.value = '';
+    selectEl.value = '';
     
-    // Build dropdown options
+    // Build select options
     const availablePresets = presets.filter(p => p.id !== state.currentPresetId);
-    optionsContainer.innerHTML = 
-      `<div class="dropdown-option" onclick="selectPresetOption(this, 'overwrite-preset-dropdown', '', '-- Select a preset --')">-- Select a preset --</div>` +
+    selectEl.innerHTML = 
+      `<option value="" disabled selected>-- Select a preset --</option>` +
       availablePresets
-        .map(p => `<div class="dropdown-option" onclick="selectPresetOption(this, 'overwrite-preset-dropdown', '${p.id}', '${escapeHtml(p.name)}')">${escapeHtml(p.name)}</div>`)
+        .map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`)
         .join('');
     
     document.getElementById('presetDescription').value = '';
@@ -1642,15 +1582,6 @@ function showSavePresetModal() {
   document.getElementById('presetName').value = '';
   document.getElementById('presetDescription').value = '';
   document.getElementById('overwritePresetSelect').value = '';
-  
-  // Reset the custom dropdown display
-  const dropdown = document.getElementById('overwrite-preset-dropdown');
-  if (dropdown) {
-    const selectedDisplay = dropdown.querySelector('.dropdown-selected');
-    if (selectedDisplay) {
-      selectedDisplay.textContent = '-- Select a preset --';
-    }
-  }
   
   // Populate product list with currently selected products
   renderSavePresetProductList();

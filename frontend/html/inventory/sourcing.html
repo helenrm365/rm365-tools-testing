@@ -113,20 +113,15 @@
             <i class="fas fa-search search-icon"></i>
             <input type="text" id="analysis-search" class="search-input" placeholder="Search SKU, product name, or brand...">
           </div>
-          <div class="custom-dropdown" id="analysisMarginDropdown">
-            <div class="dropdown-selected" onclick="toggleDropdown('analysisMarginDropdown')">
-              <i class="fas fa-filter"></i>
-              <span>All Margins</span>
-            </div>
-            <div class="dropdown-options">
-              <div class="dropdown-option selected" onclick="selectMarginFilter(this, '', 'All Margins')">All Margins</div>
-              <div class="dropdown-option" onclick="selectMarginFilter(this, 'healthy', 'Healthy (≥20%)')">Healthy (≥20%)</div>
-              <div class="dropdown-option" onclick="selectMarginFilter(this, 'warning', 'Warning (0-20%)')">Warning (0-20%)</div>
-              <div class="dropdown-option" onclick="selectMarginFilter(this, 'loss', 'Loss (<0%)')">Loss (<0%)</div>
-              <div class="dropdown-option" onclick="selectMarginFilter(this, 'no_magento_price', 'No Magento Price')">No Magento Price</div>
-              <div class="dropdown-option" onclick="selectMarginFilter(this, 'no_data', 'No Supplier Data')">No Supplier Data</div>
-            </div>
-            <input type="hidden" id="analysis-margin-filter" value="">
+          <div class="form-group" style="margin: 0;">
+            <select id="analysis-margin-filter" data-enhance="c-select">
+              <option value="" selected>All Margins</option>
+              <option value="healthy">Healthy (≥20%)</option>
+              <option value="warning">Warning (0-20%)</option>
+              <option value="loss">Loss (&lt;0%)</option>
+              <option value="no_magento_price">No Magento Price</option>
+              <option value="no_data">No Supplier Data</option>
+            </select>
           </div>
         </div>
       </div>

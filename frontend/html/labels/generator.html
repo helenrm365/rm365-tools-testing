@@ -284,17 +284,14 @@
         <input type="text" id="presetName" class="form-input" placeholder="e.g., Weekly Active Products" required>
       </div>
       <div class="form-group" id="overwriteOtherPresetField" style="display: none;">
-        <label class="form-label">
+        <label class="form-label" for="overwritePresetSelect">
           <i class="fas fa-list"></i>
           Select Preset to Overwrite <span class="required">*</span>
         </label>
-        <div class="custom-dropdown" id="overwrite-preset-dropdown">
-          <div class="dropdown-selected" onclick="toggleDropdown('overwrite-preset-dropdown')">-- Select a preset --</div>
-          <div class="dropdown-options">
-            <!-- Options populated dynamically by JS -->
-          </div>
-          <input type="hidden" name="overwritePreset" id="overwritePresetSelect" value="">
-        </div>
+        <select id="overwritePresetSelect" data-enhance="c-select">
+          <option value="" selected disabled>-- Select a preset --</option>
+          <!-- Options populated dynamically by JS -->
+        </select>
       </div>
       <div class="form-group">
         <label for="presetDescription" class="form-label">

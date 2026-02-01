@@ -105,40 +105,27 @@
             <div class="dropdowns-grid">
               <!-- Column Filter Dropdown -->
               <div class="dropdown-group">
-                <label class="dropdown-label">
+                <label class="dropdown-label" for="columnSelect">
                   <i class="fas fa-columns"></i>
                   <span>Columns</span>
                 </label>
-                <div class="custom-dropdown" id="columnDropdown">
-                  <div class="dropdown-selected" onclick="toggleDropdown('columnDropdown')">
-                    <i class="fas fa-columns"></i>
-                    Show/Hide Columns
-                  </div>
-                  <div class="dropdown-options" id="columnDropdownOptions">
-                    <!-- Populated by JavaScript -->
-                  </div>
-                </div>
+                <select id="columnSelect" data-enhance="c-select" multiple>
+                  <!-- Populated by JavaScript -->
+                </select>
               </div>
 
               <!-- Stock Status Dropdown -->
               <div class="dropdown-group">
-                <label class="dropdown-label">
+                <label class="dropdown-label" for="stockStatusFilter">
                   <i class="fas fa-warehouse"></i>
                   <span>Stock Status</span>
                 </label>
-                <div class="custom-dropdown" id="statusDropdown">
-                  <div class="dropdown-selected" onclick="toggleDropdown('statusDropdown')">
-                    <i class="fas fa-warehouse"></i>
-                    All Stock Status
-                  </div>
-                  <div class="dropdown-options" id="statusDropdownOptions">
-                    <div class="dropdown-option selected" onclick="selectStockStatus(this, '', 'All Stock Status')">All Stock Status</div>
-                    <div class="dropdown-option" onclick="selectStockStatus(this, 'low', 'Low Stock')">Low Stock</div>
-                    <div class="dropdown-option" onclick="selectStockStatus(this, 'ok', 'OK Stock')">OK Stock</div>
-                    <div class="dropdown-option" onclick="selectStockStatus(this, 'overstock', 'Overstock')">Overstock</div>
-                  </div>
-                  <input type="hidden" name="stockStatus" id="stockStatusFilter" value="">
-                </div>
+                <select id="stockStatusFilter" data-enhance="c-select">
+                  <option value="" selected>All Stock Status</option>
+                  <option value="low">Low Stock</option>
+                  <option value="ok">OK Stock</option>
+                  <option value="overstock">Overstock</option>
+                </select>
               </div>
             </div>
           </div>
@@ -220,7 +207,7 @@
               <th class="sortable">Status</th>
               <th class="sortable">UK + FR Pre Order</th>
               <th class="sortable">FR 6M Data</th>
-              <th class="sortable">Discontinued Status</th>
+              <th class="sortable">Variant Statuses</th>
             </tr>
           </thead>
           <tbody id="inventoryManagementBody">

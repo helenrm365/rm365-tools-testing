@@ -2318,70 +2318,8 @@ function escapeHtml(str) {
 // CUSTOM DROPDOWN FUNCTIONS
 // ============================================================================
 
-function toggleDropdown(dropdownId) {
-  const dropdown = document.getElementById(dropdownId);
-  if (!dropdown) return;
-
-  // Close all other dropdowns first
-  document.querySelectorAll('.custom-dropdown.open').forEach(d => {
-    if (d.id !== dropdownId) {
-      d.classList.remove('open');
-    }
-  });
-
-  dropdown.classList.toggle('open');
-}
-
-function selectMarginFilter(element, value, text) {
-  const dropdown = document.getElementById('analysisMarginDropdown');
-  if (!dropdown) return;
-
-  // Update the displayed text
-  const selected = dropdown.querySelector('.dropdown-selected');
-  if (selected) {
-    const icon = selected.querySelector('i');
-    selected.innerHTML = '';
-    if (icon) selected.appendChild(icon);
-    selected.appendChild(document.createTextNode(' '));
-    const span = document.createElement('span');
-    span.textContent = text;
-    selected.appendChild(span);
-  }
-
-  // Update the hidden input value
-  const hiddenInput = document.getElementById('analysis-margin-filter');
-  if (hiddenInput) {
-    hiddenInput.value = value;
-  }
-
-  // Update selected state visually
-  dropdown.querySelectorAll('.dropdown-option').forEach(opt => {
-    opt.classList.remove('selected');
-  });
-  element.classList.add('selected');
-
-  // Close the dropdown
-  dropdown.classList.remove('open');
-
-  // Trigger the filter change
-  handleMarginFilterChange();
-}
-
-// Close dropdowns when clicking outside
-document.addEventListener('click', (e) => {
-  if (!e.target.closest('.custom-dropdown')) {
-    document.querySelectorAll('.custom-dropdown.open').forEach(d => {
-      d.classList.remove('open');
-    });
-  }
-});
-
 // EXPOSE TO WINDOW FOR ONCLICK HANDLERS
 // ============================================================================
-
-// Global functions for inline onclick handlers
-window.toggleDropdown = toggleDropdown;
-window.selectMarginFilter = selectMarginFilter;
 
 window.sourcingModule = {
   openPricingModal,

@@ -220,9 +220,15 @@ window.initModernUI = initModernBoxes;
     if (!parent) return;
     
     native.dataset.enhanced = '1';
+    
+    // Check if this is a multi-select
+    const isMultiple = native.hasAttribute('multiple');
 
     const wrap = document.createElement('div');
     wrap.className = 'c-select';
+    if (isMultiple) {
+      wrap.classList.add('c-select--multiple');
+    }
     wrap.setAttribute('role', 'combobox');
     wrap.setAttribute('aria-haspopup', 'listbox');
     wrap.setAttribute('aria-expanded', 'false');
@@ -253,58 +259,167 @@ window.initModernUI = initModernBoxes;
     parent.insertBefore(wrap, next);
     native.classList.add('select-hidden');
     wrap.append(native, btn, list);
+    
+    // Add header with "Select All" checkbox for multi-select
+    let header = null;
+    let selectAllCheckbox = null;
+    if (isMultiple) {
+      header = document.createElement('div');
+      header.className = 'c-select__header';
+      
+      selectAllCheckbox = document.createElement('input');
+      selectAllCheckbox.type = 'checkbox';
+      selectAllCheckbox.className = 'c-select__checkbox c-select__select-all';
+      selectAllCheckbox.tabIndex = -1;
+      // Make checkbox non-interactive - header handles all clicks
+      selectAllCheckbox.style.pointerEvents = 'none';
+      
+      const selectAllLabel = document.createElement('span');
+      selectAllLabel.className = 'c-select__select-all-label';
+      selectAllLabel.textContent = 'Select All';
+      
+      header.appendChild(selectAllCheckbox);
+      header.appendChild(selectAllLabel);
+      list.appendChild(header);
+      
+      // Handle select all click on header
+      header.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const opts = Array.from(native.options);
+        const allSelected = opts.every(opt => opt.selected);
+        // If all are selected, deselect all; otherwise select all
+        const newState = !allSelected;
+        opts.forEach(opt => opt.selected = newState);
+        native.dispatchEvent(new Event('change', { bubbles: true }));
+        syncFromNative();
+      });
+    }
+    
+    // Add footer for multi-select
+    let footer = null;
+    if (isMultiple) {
+      footer = document.createElement('div');
+      footer.className = 'c-select__footer';
+      
+      const doneBtn = document.createElement('button');
+      doneBtn.type = 'button';
+      doneBtn.className = 'c-select__footer-btn c-select__footer-btn--done c-select__footer-btn--full';
+      doneBtn.textContent = 'Done';
+      doneBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeAll();
+      });
+      
+      footer.appendChild(doneBtn);
+      list.appendChild(footer);
+    }
+    
+    // Update select all checkbox state
+    function updateSelectAllState() {
+      if (!selectAllCheckbox) return;
+      const opts = Array.from(native.options);
+      const selectedCount = opts.filter(opt => opt.selected).length;
+      const totalCount = opts.length;
+      
+      if (selectedCount === 0) {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.indeterminate = false;
+      } else if (selectedCount === totalCount) {
+        selectAllCheckbox.checked = true;
+        selectAllCheckbox.indeterminate = false;
+      } else {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.indeterminate = true;
+      }
+    }
 
     // Build items from <option>s
     function syncFromNative() {
-      list.innerHTML = '';
+      // Remove all items (but keep footer if multi-select)
+      const items = list.querySelectorAll('.c-select__item');
+      items.forEach(item => item.remove());
+      
       const opts = Array.from(native.options).map((opt, idx) => {
         const item = document.createElement('div');
         item.className = 'c-select__item';
         item.setAttribute('role', 'option');
         item.dataset.value = opt.value;
-        item.textContent = opt.textContent;
-        item.tabIndex = -1; // Prevent focus when list is hidden
+        item.tabIndex = -1;
         if (opt.disabled) item.setAttribute('aria-disabled', 'true');
         if (opt.selected) item.setAttribute('aria-selected', 'true');
         
-        // Add click handler with animation feedback
-        item.addEventListener('click', (e) => {
-          if (opt.disabled) return;
-          e.preventDefault();
-          e.stopPropagation();
+        if (isMultiple) {
+          // Add checkbox for multi-select
+          item.classList.add('c-select__item--with-checkbox');
           
-          // Visual feedback
-          item.style.transform = 'translateX(4px) scale(0.95)';
-          setTimeout(() => {
-            item.style.transform = '';
-          }, 150);
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.className = 'c-select__checkbox';
+          checkbox.checked = opt.selected;
+          checkbox.tabIndex = -1;
+          // Make checkbox non-interactive - item handles all clicks
+          checkbox.style.pointerEvents = 'none';
           
-          native.selectedIndex = idx;
-          native.dispatchEvent(new Event('change', { bubbles: true }));
-          updateLabel();
+          const textSpan = document.createElement('span');
+          textSpan.className = 'c-select__item-text';
+          textSpan.textContent = opt.textContent;
           
-          // Return focus to button before closing to avoid aria-hidden/inert issues
-          btn.focus();
+          item.appendChild(checkbox);
+          item.appendChild(textSpan);
           
-          closeAll();
-        });
+          // Click handler for multi-select (don't close dropdown)
+          item.addEventListener('click', (e) => {
+            if (opt.disabled) return;
+            e.preventDefault();
+            e.stopPropagation();
+            
+            opt.selected = !opt.selected;
+            checkbox.checked = opt.selected;
+            item.toggleAttribute('aria-selected', opt.selected);
+            
+            native.dispatchEvent(new Event('change', { bubbles: true }));
+            updateLabel();
+            updateSelectAllState();
+          });
+        } else {
+          // Single select - just text
+          item.textContent = opt.textContent;
+          
+          // Add click handler with animation feedback
+          item.addEventListener('click', (e) => {
+            if (opt.disabled) return;
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Visual feedback
+            item.style.transform = 'translateX(4px) scale(0.95)';
+            setTimeout(() => {
+              item.style.transform = '';
+            }, 150);
+            
+            native.selectedIndex = idx;
+            native.dispatchEvent(new Event('change', { bubbles: true }));
+            updateLabel();
+            
+            // Return focus to button before closing to avoid aria-hidden/inert issues
+            btn.focus();
+            
+            closeAll();
+          });
+        }
         
-        list.appendChild(item);
+        // Insert before footer if multi-select, otherwise just append
+        if (footer) {
+          list.insertBefore(item, footer);
+        } else {
+          list.appendChild(item);
+        }
         return item;
       });
 
-      // label
-      const sel =
-        native.selectedOptions?.[0] ||
-        native.options?.[native.selectedIndex] ||
-        native.options?.[0];
-      labelSpan.textContent = sel ? sel.textContent : 'Select';
-
-      // manage aria-selected
-      const val = native.value;
-      opts.forEach(o =>
-        o.toggleAttribute('aria-selected', o.dataset.value === val)
-      );
+      updateLabel();
+      updateSelectAllState();
     }
 
     function open() {
@@ -325,28 +440,74 @@ window.initModernUI = initModernBoxes;
         }
       }
       
-      // For closing on outside click
-      const once = ev => {
-        if (!wrap.contains(ev.target)) {
-          document.removeEventListener('click', once, true);
-          closeAll();
-        }
-      };
-      setTimeout(() => document.addEventListener('click', once, true), 0);
+      // For closing on outside click (don't auto-close for multi-select)
+      if (!isMultiple) {
+        const once = ev => {
+          if (!wrap.contains(ev.target)) {
+            document.removeEventListener('click', once, true);
+            closeAll();
+          }
+        };
+        setTimeout(() => document.addEventListener('click', once, true), 0);
+      } else {
+        // Multi-select: close only via Done button or clicking outside
+        const onceMulti = ev => {
+          if (!wrap.contains(ev.target)) {
+            document.removeEventListener('click', onceMulti, true);
+            closeAll();
+          }
+        };
+        setTimeout(() => document.addEventListener('click', onceMulti, true), 0);
+      }
     }
 
     function updateLabel() {
-      const sel =
-        native.selectedOptions?.[0] ||
-        native.options?.[native.selectedIndex] ||
-        native.options?.[0];
-      labelSpan.textContent = sel ? sel.textContent : 'Select';
-      // keep aria-selected in sync
-      list
-        .querySelectorAll('.c-select__item')
-        .forEach(el =>
+      if (isMultiple) {
+        // Multi-select label
+        const selectedOpts = Array.from(native.selectedOptions);
+        const count = selectedOpts.length;
+        
+        // Remove any existing count badge
+        const existingCount = labelSpan.querySelector('.c-select__count');
+        if (existingCount) existingCount.remove();
+        
+        if (count === 0) {
+          labelSpan.textContent = 'Select items...';
+        } else if (count === 1) {
+          labelSpan.textContent = selectedOpts[0].textContent;
+        } else {
+          const firstItem = selectedOpts[0].textContent;
+          labelSpan.textContent = firstItem;
+          
+          const countBadge = document.createElement('span');
+          countBadge.className = 'c-select__count';
+          countBadge.textContent = `+${count - 1}`;
+          labelSpan.appendChild(countBadge);
+        }
+        
+        // Update aria-selected on all items
+        list.querySelectorAll('.c-select__item').forEach(item => {
+          const optValue = item.dataset.value;
+          const isSelected = selectedOpts.some(opt => opt.value === optValue);
+          item.toggleAttribute('aria-selected', isSelected);
+          const checkbox = item.querySelector('.c-select__checkbox');
+          if (checkbox) {
+            checkbox.checked = isSelected;
+          }
+        });
+      } else {
+        // Single select label
+        const sel =
+          native.selectedOptions?.[0] ||
+          native.options?.[native.selectedIndex] ||
+          native.options?.[0];
+        labelSpan.textContent = sel ? sel.textContent : 'Select';
+        
+        // keep aria-selected in sync
+        list.querySelectorAll('.c-select__item').forEach(el =>
           el.toggleAttribute('aria-selected', el.dataset.value === native.value)
         );
+      }
     }
 
     // Events

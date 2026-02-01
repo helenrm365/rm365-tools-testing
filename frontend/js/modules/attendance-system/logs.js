@@ -10,62 +10,6 @@ let state = {
   currentSortAsc: false // default: most recent first
 };
 
-// ====== Custom Dropdown Functions ======
-function toggleDropdown(dropdownId) {
-  const dropdown = document.getElementById(dropdownId);
-  if (!dropdown) return;
-
-  // Close all other dropdowns first
-  document.querySelectorAll('.custom-dropdown.open').forEach(d => {
-    if (d.id !== dropdownId) {
-      d.classList.remove('open');
-    }
-  });
-
-  dropdown.classList.toggle('open');
-}
-
-function selectOption(element, dropdownId, value, text) {
-  const dropdown = document.getElementById(dropdownId);
-  if (!dropdown) return;
-
-  // Update the displayed text
-  const selected = dropdown.querySelector('.dropdown-selected');
-  if (selected) {
-    selected.textContent = text;
-  }
-
-  // Update the hidden input value
-  const hiddenInput = dropdown.querySelector('input[type="hidden"]');
-  if (hiddenInput) {
-    hiddenInput.value = value;
-  }
-
-  // Update selected state visually
-  dropdown.querySelectorAll('.dropdown-option').forEach(opt => {
-    opt.classList.remove('selected');
-  });
-  element.classList.add('selected');
-
-  // Close the dropdown
-  dropdown.classList.remove('open');
-}
-
-// Expose dropdown functions globally for inline onclick handlers
-window.toggleDropdown = toggleDropdown;
-window.selectOption = selectOption;
-
-// Close dropdowns when clicking outside
-function setupDropdownCloseHandler() {
-  document.addEventListener('click', (e) => {
-    if (!e.target.closest('.custom-dropdown')) {
-      document.querySelectorAll('.custom-dropdown.open').forEach(d => {
-        d.classList.remove('open');
-      });
-    }
-  });
-}
-
 // ====== Utility Functions ======
 function $(sel) { return document.querySelector(sel); }
 
@@ -378,25 +322,6 @@ function clearFilters() {
   if (actionFilter) actionFilter.value = "";
   if (sortFilter) sortFilter.value = "date_desc";
   
-  // Reset dropdown displays
-  const locationDropdown = document.getElementById('location-dropdown');
-  if (locationDropdown) {
-    const selected = locationDropdown.querySelector('.dropdown-selected');
-    if (selected) selected.textContent = 'All Locations';
-  }
-  
-  const actionDropdown = document.getElementById('action-dropdown');
-  if (actionDropdown) {
-    const selected = actionDropdown.querySelector('.dropdown-selected');
-    if (selected) selected.textContent = 'All Actions';
-  }
-  
-  const sortDropdown = document.getElementById('sort-dropdown');
-  if (sortDropdown) {
-    const selected = sortDropdown.querySelector('.dropdown-selected');
-    if (selected) selected.textContent = 'Date (Newest First)';
-  }
-  
   // Reset date defaults
   setDateDefaults();
   
@@ -637,7 +562,6 @@ export async function init() {
   
   setDateDefaults();
   
-  setupDropdownCloseHandler();
   setupSearch();
   setupEventHandlers();
   
