@@ -4,7 +4,8 @@
  */
 
 import { getApiUrl } from '../../config.js';
-import { getToken, getUserData } from '../../services/state/sessionStore.js';
+import { getToken } from '../../services/state/sessionStore.js';
+import { getUserData } from '../../services/state/userStore.js';
 import { wsService } from '../../services/websocket.js';
 import * as progressModals from '../../ui/orderProgressModals.js';
 import { showToast } from '../../ui/toast.js';

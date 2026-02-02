@@ -1,7 +1,7 @@
 import { get, post } from '../../services/api/http.js';
 import { showToast } from '../../ui/toast.js';
 import { wsService } from '../../services/websocket.js';
-import { getUserData } from '../../services/state/sessionStore.js';
+import { getUserData } from '../../services/state/userStore.js';
 
 class OrderApprovalManager {
   constructor() {
