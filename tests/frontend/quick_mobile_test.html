@@ -126,7 +126,7 @@
       
       // Test 1: Verify source code has checkMobileSize
       try {
-        const response = await fetch('/js/modules/orders/order-fulfillment.js');
+        const response = await fetch('/js/modules/birmingham-orders/order-fulfillment.js');
         const code = await response.text();
         
         if (code.includes('checkMobileSize')) {

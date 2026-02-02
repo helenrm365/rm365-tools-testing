@@ -51,8 +51,8 @@ export function getDefaultAllowedPath(allowed = null) {
   if (isAllowed('birmingham-orders', allowedTabs)) return '/birmingham-orders';
   // Then france-orders (FR/NL region orders)
   if (isAllowed('france-orders', allowedTabs)) return '/france-orders';
-  // Then orders
-  if (isAllowed('orders', allowedTabs)) return '/orders';
+  // Then london-orders (UK London region orders)
+  if (isAllowed('london-orders', allowedTabs)) return '/london-orders';
   // Then user management
   if (isAllowed('usermanagement', allowedTabs)) return '/usermanagement';
   

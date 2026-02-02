@@ -25,21 +25,21 @@ echo ""
 
 # Check 1: Verify file exists and has our changes
 echo -e "${BLUE}Check 1:${NC} Verifying implementation in source file..."
-if grep -q "checkMobileSize" /Users/ianhjweng/Documents/github/rm365-tools-testing/frontend/js/modules/orders/order-fulfillment.js; then
+if grep -q "checkMobileSize" /Users/ianhjweng/Documents/github/rm365-tools-testing/frontend/js/modules/birmingham-orders/order-fulfillment.js; then
     echo -e "${GREEN}✓${NC} checkMobileSize function found"
 else
     echo -e "${RED}✗${NC} checkMobileSize function NOT found"
     exit 1
 fi
 
-if grep -q "window.addEventListener('resize', this.resizeHandler)" /Users/ianhjweng/Documents/github/rm365-tools-testing/frontend/js/modules/orders/order-fulfillment.js; then
+if grep -q "window.addEventListener('resize', this.resizeHandler)" /Users/ianhjweng/Documents/github/rm365-tools-testing/frontend/js/modules/birmingham-orders/order-fulfillment.js; then
     echo -e "${GREEN}✓${NC} Resize event listener found"
 else
     echo -e "${RED}✗${NC} Resize event listener NOT found"
     exit 1
 fi
 
-if grep -q "window.removeEventListener('resize', this.resizeHandler)" /Users/ianhjweng/Documents/github/rm365-tools-testing/frontend/js/modules/orders/order-fulfillment.js; then
+if grep -q "window.removeEventListener('resize', this.resizeHandler)" /Users/ianhjweng/Documents/github/rm365-tools-testing/frontend/js/modules/birmingham-orders/order-fulfillment.js; then
     echo -e "${GREEN}✓${NC} Resize handler cleanup found"
 else
     echo -e "${RED}✗${NC} Resize handler cleanup NOT found"
@@ -50,7 +50,7 @@ echo ""
 
 # Check 2: Verify breakpoint value
 echo -e "${BLUE}Check 2:${NC} Verifying mobile mode breakpoint..."
-if grep -q "window.innerWidth <= 768" /Users/ianhjweng/Documents/github/rm365-tools-testing/frontend/js/modules/orders/order-fulfillment.js; then
+if grep -q "window.innerWidth <= 768" /Users/ianhjweng/Documents/github/rm365-tools-testing/frontend/js/modules/birmingham-orders/order-fulfillment.js; then
     echo -e "${GREEN}✓${NC} Breakpoint is 768px (≤768 = mobile mode)"
 else
     echo -e "${RED}✗${NC} Breakpoint is NOT 768px"
@@ -61,7 +61,7 @@ echo ""
 
 # Check 3: Verify debounce
 echo -e "${BLUE}Check 3:${NC} Verifying debounce implementation..."
-if grep -q "setTimeout" /Users/ianhjweng/Documents/github/rm365-tools-testing/frontend/js/modules/orders/order-fulfillment.js | head -1; then
+if grep -q "setTimeout" /Users/ianhjweng/Documents/github/rm365-tools-testing/frontend/js/modules/birmingham-orders/order-fulfillment.js | head -1; then
     echo -e "${GREEN}✓${NC} Debounce implementation found"
 else
     echo -e "${YELLOW}⚠${NC} Debounce might not be implemented"

@@ -85,14 +85,6 @@ const routes = {
   '/inventory/sourcing/suppliers':          '/html/inventory/sourcing.html',
   '/inventory/sourcing/fx-rates':           '/html/inventory/sourcing.html',
   
-  // Orders - redirect root to first sub-page
-  '/orders':                    '/html/orders/order-fulfillment.html',
-  '/orders/order-fulfillment':  '/html/orders/order-fulfillment.html',
-  '/orders/order-progress':     '/html/orders/order-progress.html',
-  '/orders/order-tracking':     '/html/orders/order-tracking.html',
-  '/orders/order-approval':     '/html/orders/order-approval.html',
-  '/orders/fulfillment-design': '/html/orders/fulfillment-design.html',
-  
   // Birmingham Orders - UK Birmingham branch fulfillment
   '/birmingham-orders':                    '/html/birmingham-orders/order-fulfillment.html',
   '/birmingham-orders/order-fulfillment':  '/html/birmingham-orders/order-fulfillment.html',
@@ -504,11 +496,6 @@ export async function navigate(path, replace = false) {
       await mod.init(path);
       currentModule = mod;
       currentModulePath = 'london-orders';
-    } else if (path.startsWith('/orders')) {
-      const mod = await import(`./modules/orders/index.js${cacheBust}`);
-      await mod.init(path); // Pass full path for session URL detection
-      currentModule = mod;
-      currentModulePath = 'orders';
     } else if (path.startsWith('/usermanagement')) {
       const mod = await import(`./modules/usermanagement/index.js${cacheBust}`);
       await mod.init(path);
