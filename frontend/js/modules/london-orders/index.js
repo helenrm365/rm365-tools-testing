@@ -1,5 +1,5 @@
-// js/modules/france-orders/index.js
-// Router for France Orders module - uses France (FR/NL) inventory
+// js/modules/london-orders/index.js
+// Router for London Orders module - uses UK London branch inventory (London Office Collection)
 
 let currentSubModule = null;
 

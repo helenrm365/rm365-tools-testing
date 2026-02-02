@@ -490,6 +490,116 @@
       </div>
     </div>
   </div>
+
+  <!-- Completed Session View Modal -->
+  <div class="modal-backdrop" id="completedSessionModal">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <div class="modal-header-icon completed">
+          <i class="fas fa-clipboard-check"></i>
+        </div>
+        <h2 class="modal-title">Completed Session</h2>
+        <button class="modal-close" id="closeCompletedSessionBtn">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="order-preview-container">
+          <!-- Session Summary -->
+          <div class="preview-section">
+            <h3><i class="fas fa-info-circle"></i> Session Information</h3>
+            <div class="preview-grid">
+              <div class="preview-item">
+                <label>Order Number:</label>
+                <span id="completedOrderNumber">-</span>
+              </div>
+              <div class="preview-item">
+                <label>Invoice Number:</label>
+                <span id="completedInvoiceNumber">-</span>
+              </div>
+              <div class="preview-item">
+                <label>Session Type:</label>
+                <span id="completedSessionType">-</span>
+              </div>
+              <div class="preview-item">
+                <label>Completed By:</label>
+                <span id="completedByUser">-</span>
+              </div>
+              <div class="preview-item">
+                <label>Order Date:</label>
+                <span id="completedOrderDate">-</span>
+              </div>
+              <div class="preview-item">
+                <label>Completed At:</label>
+                <span id="completedAtDate">-</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Progress Summary -->
+          <div class="preview-section">
+            <h3><i class="fas fa-tasks"></i> Fulfillment Progress</h3>
+            <div class="completed-progress-summary">
+              <div class="progress-stat">
+                <span class="progress-label">Items Completed:</span>
+                <span class="progress-value" id="completedItemsProgress">0/0</span>
+              </div>
+              <div class="progress-stat">
+                <span class="progress-label">Status:</span>
+                <span class="progress-badge" id="completedStatusBadge">Completed</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Items Detail -->
+          <div class="preview-section">
+            <h3><i class="fas fa-box"></i> Items Detail</h3>
+            <div class="preview-items-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>SKU</th>
+                    <th>Product Name</th>
+                    <th class="text-center">Expected</th>
+                    <th class="text-center">Scanned</th>
+                    <th class="text-center">Status</th>
+                  </tr>
+                </thead>
+                <tbody id="completedItemsList">
+                  <tr>
+                    <td colspan="5" class="text-center">Loading...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Order Totals -->
+          <div class="preview-section">
+            <div class="preview-totals">
+              <div class="preview-total-row">
+                <label>Subtotal:</label>
+                <span id="completedSubtotal">-</span>
+              </div>
+              <div class="preview-total-row">
+                <label>Tax:</label>
+                <span id="completedTax">-</span>
+              </div>
+              <div class="preview-total-row grand-total">
+                <label>Grand Total:</label>
+                <span id="completedGrandTotal">-</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="action-btn primary-btn" id="closeCompletedSessionOkBtn">
+          <i class="fas fa-check"></i> Close
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- Include the JavaScript module -->

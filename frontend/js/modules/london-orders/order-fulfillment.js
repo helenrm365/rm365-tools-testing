@@ -1,6 +1,6 @@
-// frontend/js/modules/birmingham-orders/order-fulfillment.js
-// Birmingham Orders - Order Fulfillment Module
-// Uses UK Birmingham branch inventory (uk_birmingham_inventory table)
+// frontend/js/modules/london-orders/order-fulfillment.js
+// London Orders - Order Fulfillment Module
+// Uses UK London branch inventory (uk_london_inventory table)
 
 import { getApiUrl } from '../../config.js';
 import { getToken } from '../../services/state/sessionStore.js';
@@ -45,7 +45,7 @@ class MagentoPickPackManager {
   constructor(initialPath) {
     this.currentSession = null;
     this.currentSessionId = null;
-    this.currentPath = initialPath || '/birmingham-orders/order-fulfillment';
+    this.currentPath = initialPath || '/london-orders/order-fulfillment';
     this.initialLoadPromise = null;
     this.isMobileMode = false;
     this.activeColumn = 'ready-to-pick';
@@ -205,18 +205,18 @@ class MagentoPickPackManager {
       try {
         // Check if we're already on this session page - avoid re-navigation
         const currentPath = window.location.pathname;
-        const targetPath = `/birmingham-orders/order-fulfillment/session-${orderNumber}-`;
+        const targetPath = `/london-orders/order-fulfillment/session-${orderNumber}-`;
         if (currentPath && currentPath.startsWith(targetPath)) {
           return;
         }
         
         // Load session status to retrieve invoice_number for deep-link
-        const url = `${getApiUrl()}/v1/magento/session/status/${sessionId}`;
+        const url = `${getApiUrl()}/v1/london-magento/session/status/${sessionId}`;
         const response = await fetch(url, { headers: getAuthHeaders() });
         if (response.ok) {
           const status = await response.json();
           if (status?.order_number && status?.invoice_number) {
-            const path = `/birmingham-orders/order-fulfillment/session-${status.order_number}-${status.invoice_number}`;
+            const path = `/london-orders/order-fulfillment/session-${status.order_number}-${status.invoice_number}`;
             if (window.navigate) {
               window.navigate(path);
             } else {
@@ -267,20 +267,20 @@ class MagentoPickPackManager {
   }
 
   async checkSessionFromPath(path) {
-    if (!path || path === '/birmingham-orders/order-fulfillment') {
+    if (!path || path === '/london-orders/order-fulfillment') {
       // Base path, show order lookup (this is initial load)
       await this.showOrderLookup(true);
       return;
     }
 
-    // Check if path matches session URL pattern: /birmingham-orders/order-fulfillment/session-{order}-{invoice}
-    const sessionMatch = path.match(/\/birmingham-orders\/order-fulfillment\/session-([^-]+)-(.+)/);
+    // Check if path matches session URL pattern: /london-orders/order-fulfillment/session-{order}-{invoice}
+    const sessionMatch = path.match(/\/london-orders\/order-fulfillment\/session-([^-]+)-(.+)/);
     if (sessionMatch) {
       const orderNumber = sessionMatch[1];
       const invoiceNumber = sessionMatch[2];
       // Try to find and load this session
       try {
-        const statusUrl = `${getApiUrl()}/v1/magento/session/check/${orderNumber}`;
+        const statusUrl = `${getApiUrl()}/v1/london-magento/session/check/${orderNumber}`;
         const response = await fetch(statusUrl, { headers: getAuthHeaders() });
         if (response.ok) {
           let info = null;
@@ -611,7 +611,7 @@ class MagentoPickPackManager {
       }
 
       // First, check the order status
-      const checkUrl = `${getApiUrl()}/v1/magento/session/check/${encodeURIComponent(order)}`;
+      const checkUrl = `${getApiUrl()}/v1/london-magento/session/check/${encodeURIComponent(order)}`;
       const checkResponse = await fetch(checkUrl, {
         method: 'GET',
         headers: getAuthHeaders()
@@ -710,7 +710,7 @@ class MagentoPickPackManager {
         this.startSessionBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Starting...';
       }
 
-      const url = `${getApiUrl()}/v1/magento/session/start`;
+      const url = `${getApiUrl()}/v1/london-magento/session/start`;
       const response = await fetch(url, {
         method: 'POST',
         headers: {
@@ -736,7 +736,7 @@ class MagentoPickPackManager {
       window.__currentMagentoSession = session.session_id;
 
       // Navigate to session-specific URL
-      const sessionUrl = `/birmingham-orders/order-fulfillment/session-${session.order_number}-${session.invoice_number}`;
+      const sessionUrl = `/london-orders/order-fulfillment/session-${session.order_number}-${session.invoice_number}`;
       updateRoute(sessionUrl, false, { sessionId: session.session_id });
       this.currentPath = sessionUrl;
 
@@ -760,7 +760,7 @@ class MagentoPickPackManager {
     try {
       this.startSessionBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Claiming...';
 
-      const url = `${getApiUrl()}/v1/magento/sessions/${sessionId}/claim`;
+      const url = `${getApiUrl()}/v1/london-magento/sessions/${sessionId}/claim`;
       const response = await fetch(url, {
         method: 'POST',
         headers: {
@@ -786,7 +786,7 @@ class MagentoPickPackManager {
         throw new Error('Failed to load claimed session data');
       }
 
-      const sessionUrl = `/birmingham-orders/order-fulfillment/session-${this.currentSession.order_number}-${this.currentSession.invoice_number}`;
+      const sessionUrl = `/london-orders/order-fulfillment/session-${this.currentSession.order_number}-${this.currentSession.invoice_number}`;
       updateRoute(sessionUrl, false, { sessionId: claimedSessionId });
       this.currentPath = sessionUrl;
 
@@ -888,7 +888,7 @@ class MagentoPickPackManager {
     await this.loadTrackingBoard();
     
     // Navigate back to base order fulfillment URL
-    const baseUrl = '/birmingham-orders/order-fulfillment';
+    const baseUrl = '/london-orders/order-fulfillment';
     if (this.currentPath !== baseUrl) {
       console.log('[showOrderLookup] Updating route to:', baseUrl);
       updateRoute(baseUrl, false, {});
@@ -908,7 +908,7 @@ class MagentoPickPackManager {
   async loadTrackingBoard() {
     // No loading screen - router handles initial load, WebSocket handles updates
     try {
-      const url = `${getApiUrl()}/v1/magento/tracking/board`;
+      const url = `${getApiUrl()}/v1/london-magento/tracking/board`;
       const response = await fetch(url, { headers: getAuthHeaders() });
       
       if (!response.ok) {
@@ -1091,7 +1091,7 @@ class MagentoPickPackManager {
   async startSessionFromCard(orderNumber, sessionType = 'pick', isDraft = false) {
     try {
       // Navigate to the session by order number
-      const url = `${getApiUrl()}/v1/magento/invoice/lookup/${orderNumber}`;
+      const url = `${getApiUrl()}/v1/london-magento/invoice/lookup/${orderNumber}`;
       const response = await fetch(url, { headers: getAuthHeaders() });
       
       if (!response.ok) {
@@ -1193,7 +1193,7 @@ class MagentoPickPackManager {
   async showCompletedSessionModal(order) {
     try {
       // First get the session ID from the order check endpoint
-      const checkUrl = `${getApiUrl()}/v1/magento/session/check/${order.order_number}`;
+      const checkUrl = `${getApiUrl()}/v1/london-magento/session/check/${order.order_number}`;
       const checkResponse = await fetch(checkUrl, { headers: getAuthHeaders() });
       
       if (!checkResponse.ok) {
@@ -1208,7 +1208,7 @@ class MagentoPickPackManager {
       }
       
       // Now get the full session status
-      const statusUrl = `${getApiUrl()}/v1/magento/session/status/${checkData.session_id}`;
+      const statusUrl = `${getApiUrl()}/v1/london-magento/session/status/${checkData.session_id}`;
       const statusResponse = await fetch(statusUrl, { headers: getAuthHeaders() });
       
       if (!statusResponse.ok) {
@@ -1343,7 +1343,7 @@ class MagentoPickPackManager {
   }
   
   async navigateToSession(order) {
-    const path = `/birmingham-orders/order-fulfillment/session-${order.order_number}-${order.invoice_number}`;
+    const path = `/london-orders/order-fulfillment/session-${order.order_number}-${order.invoice_number}`;
     
     // Just update the URL without triggering full navigation (which would destroy DOM)
     history.pushState({ path }, '', path);
@@ -1845,7 +1845,7 @@ class MagentoPickPackManager {
       this.scanBtn.disabled = true;
       this.scanBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Scanning...';
 
-      const response = await fetch(`${getApiUrl()}/v1/magento/session/scan`, {
+      const response = await fetch(`${getApiUrl()}/v1/london-magento/session/scan`, {
         method: 'POST',
         headers: {
           ...getAuthHeaders(),
@@ -1902,7 +1902,7 @@ class MagentoPickPackManager {
     if (!this.currentSessionId) return;
 
     try {
-      const response = await fetch(`${getApiUrl()}/v1/magento/session/status/${this.currentSessionId}`, {
+      const response = await fetch(`${getApiUrl()}/v1/london-magento/session/status/${this.currentSessionId}`, {
         headers: getAuthHeaders()
       });
 
@@ -1928,7 +1928,7 @@ class MagentoPickPackManager {
       // For checking sessions, use force_complete since the checker is verifying, not re-scanning
       const isCheckingSession = this.currentSession?.session_type === 'check';
       
-      const response = await fetch(`${getApiUrl()}/v1/magento/session/complete`, {
+      const response = await fetch(`${getApiUrl()}/v1/london-magento/session/complete`, {
         method: 'POST',
         headers: {
           ...getAuthHeaders(),
@@ -1989,7 +1989,7 @@ class MagentoPickPackManager {
       }
 
       console.log('[markReadyToCheck] Calling API...');
-      const response = await fetch(`${getApiUrl()}/v1/magento/tracking/mark-ready-to-check`, {
+      const response = await fetch(`${getApiUrl()}/v1/london-magento/tracking/mark-ready-to-check`, {
         method: 'POST',
         headers: {
           ...getAuthHeaders(),
@@ -2072,7 +2072,7 @@ class MagentoPickPackManager {
       }
 
       console.log('[saveAsDraft] Calling release API for session:', this.currentSessionId);
-      const response = await fetch(`${getApiUrl()}/v1/magento/sessions/${this.currentSessionId}/release`, {
+      const response = await fetch(`${getApiUrl()}/v1/london-magento/sessions/${this.currentSessionId}/release`, {
         method: 'POST',
         headers: getAuthHeaders()
       });
@@ -2132,7 +2132,7 @@ class MagentoPickPackManager {
     if (!confirmed) return;
 
     try {
-      const response = await fetch(`${getApiUrl()}/v1/magento/session/${this.currentSessionId}`, {
+      const response = await fetch(`${getApiUrl()}/v1/london-magento/session/${this.currentSessionId}`, {
         method: 'DELETE',
         headers: getAuthHeaders()
       });
@@ -2198,7 +2198,7 @@ class MagentoPickPackManager {
       }
 
       console.log('[sendBackForPicking] Calling API with counted items:', itemsCounted);
-      const response = await fetch(`${getApiUrl()}/v1/magento/tracking/send-back-for-picking`, {
+      const response = await fetch(`${getApiUrl()}/v1/london-magento/tracking/send-back-for-picking`, {
         method: 'POST',
         headers: {
           ...getAuthHeaders(),
@@ -2249,7 +2249,7 @@ class MagentoPickPackManager {
 
   async loadActiveSessions() {
     try {
-      const response = await fetch(`${getApiUrl()}/v1/magento/sessions/active`, {
+      const response = await fetch(`${getApiUrl()}/v1/london-magento/sessions/active`, {
         headers: getAuthHeaders()
       });
 

@@ -1,16 +1,16 @@
 """
-Order Fulfillment Service - Business logic for order picking and checking operations
+London Order Fulfillment Service - Business logic for order picking and checking operations
 
 ARCHITECTURE OVERVIEW:
 ======================
-This service manages the order fulfillment workflow:
+This service manages the order fulfillment workflow for London region:
 - Session management (start, pause/resume, complete, cancel)
 - Inventory deduction and return during picking
 - Order approval and tracking
-- Integration with Magento for READ-ONLY order data
+- Integration with UK London Magento for READ-ONLY order data
 
 Magento Integration (READ-ONLY):
-- Fetch orders in 'processing' status
+- Fetch orders in 'processing' status from UK databases
 - Fetch invoice details and product information
 - Never writes to Magento - all state is managed locally
 
@@ -20,21 +20,21 @@ Session Workflow:
 - Inventory is returned when pick-phase sessions are cancelled
 
 Inventory Integration:
-- Uses Birmingham branch inventory (uk_birmingham_inventory table)
-- All stock deductions and returns go to/from Birmingham inventory
+- Uses London branch inventory (uk_london_inventory table)
+- All stock deductions and returns go to/from London inventory
 """
 
-# Birmingham branch inventory table name
-BIRMINGHAM_INVENTORY_TABLE = 'uk_birmingham_inventory'
+# London branch inventory table name
+LONDON_INVENTORY_TABLE = 'uk_london_inventory'
 
 from typing import Optional, List
 from datetime import datetime, timezone
 import logging
 
-from .client import get_magento_client
-from .db_repo import MagentoDbRepo as OrderFulfillmentRepo  # Use database-backed repo
-from .models import MagentoInvoice
-from .schemas import (
+from .db_client import get_london_magento_client
+from .db_repo import LondonDbRepo
+from modules.orders.order_fulfillment.models import MagentoInvoice
+from modules.orders.order_fulfillment.schemas import (
     InvoiceDetailSchema,
     InvoiceItemSchema,
     ScanResultSchema,
@@ -47,18 +47,18 @@ from .schemas import (
 logger = logging.getLogger(__name__)
 
 
-class OrderFulfillmentService:
-    """Business logic for order fulfillment - picking, checking, and session management"""
+class LondonOrderFulfillmentService:
+    """Business logic for London order fulfillment - picking, checking, and session management"""
     
     def __init__(self):
-        self.client = get_magento_client()
-        self.repo = OrderFulfillmentRepo()
+        self.client = get_london_magento_client()
+        self.repo = LondonDbRepo()
     
     def check_tables_status(self) -> dict:
-        """Check the status of order fulfillment tables"""
+        """Check the status of London order fulfillment tables"""
         try:
-            from .db_repo import check_order_fulfillment_tables_exist
-            status = check_order_fulfillment_tables_exist()
+            from .db_repo import check_london_fulfillment_tables_exist
+            status = check_london_fulfillment_tables_exist()
             all_exist = all(status.values())
             
             return {
@@ -105,12 +105,6 @@ class OrderFulfillmentService:
         if not invoice:
             raise ValueError(f"No invoice found for order number: {request.order_number}")
         
-        # Block London Office Collection orders - they should be handled by London Orders
-        if invoice.shipping_method and 'london office collection' in invoice.shipping_method.lower():
-            raise ValueError(
-                f"Order {request.order_number} is a London Office Collection order. "
-                "Please use the London Orders system to process this order."
-            )
         
         # Check for any existing session for this invoice (any status)
         existing_session = self._get_any_session_for_invoice(invoice.invoice_number)
@@ -333,7 +327,7 @@ class OrderFulfillmentService:
                     all_items_complete=False
                 )
         except Exception as e:
-            print(f"[OrderFulfillmentService] Error checking/deducting inventory: {e}")
+            print(f"[LondonOrderFulfillmentService] Error checking/deducting inventory: {e}")
             return ScanResultSchema(
                 success=False,
                 message=f"❌ Inventory error: {str(e)}\n\nPlease investigate before continuing.",
@@ -644,10 +638,10 @@ class OrderFulfillmentService:
                 deduction_sources = scanned_item.get('deduction_sources', [])
                 
                 if qty_scanned > 0 and deduction_sources:
-                    # Get item_id from Birmingham inventory for this SKU
+                    # Get item_id from London inventory for this SKU
                     item_id = self._get_item_id_from_sku(sku)
                     if not item_id:
-                        print(f"[BirminghamOrdersService] Warning: Could not find item_id for SKU {sku}")
+                        print(f"[FranceOrdersService] Warning: Could not find item_id for SKU {sku}")
                         continue
                     
                     # Return each item to its original location based on deduction sources
@@ -666,9 +660,9 @@ class OrderFulfillmentService:
                                     'top_floor_total': 'Top Floor'
                                 }
                                 return_details.append(f"{sku}: {int(remaining)} → {field_names.get(field, field)}")
-                                print(f"[OrderFulfillmentService] Cancel return: {remaining} of {sku} to {field}")
+                                print(f"[LondonOrderFulfillmentService] Cancel return: {remaining} of {sku} to {field}")
                             except Exception as e:
-                                print(f"[OrderFulfillmentService] Error returning {sku} to {field}: {e}")
+                                print(f"[LondonOrderFulfillmentService] Error returning {sku} to {field}: {e}")
         
         # Now actually cancel the session in the database
         success = self.repo.cancel_session(session_id, user_id=user_id)
@@ -683,7 +677,7 @@ class OrderFulfillmentService:
             return {"success": False, "message": "Failed to cancel session", "items_returned": 0}
     
     def _get_item_id_from_sku(self, sku: str) -> Optional[str]:
-        """Get item_id from Birmingham inventory table for a given SKU"""
+        """Get item_id from London inventory table for a given SKU"""
         conn = None
         try:
             try:
@@ -694,7 +688,7 @@ class OrderFulfillmentService:
                 conn = get_psycopg_connection()
             
             cursor = conn.cursor()
-            cursor.execute(f"SELECT item_id FROM {BIRMINGHAM_INVENTORY_TABLE} WHERE sku = %s", (sku,))
+            cursor.execute(f"SELECT item_id FROM {LONDON_INVENTORY_TABLE} WHERE sku = %s", (sku,))
             row = cursor.fetchone()
             cursor.close()
             
@@ -708,7 +702,7 @@ class OrderFulfillmentService:
             
             return row[0] if row else None
         except Exception as e:
-            print(f"[BirminghamOrdersService] Error getting item_id for SKU {sku}: {e}")
+            print(f"[FranceOrdersService] Error getting item_id for SKU {sku}: {e}")
             return None
     
     def get_active_sessions(self, user_id: Optional[str] = None) -> List[SessionStatusSchema]:
@@ -875,7 +869,7 @@ class OrderFulfillmentService:
 
 
     def _get_item_id_by_sku(self, sku: str) -> Optional[str]:
-        """Get item_id for a SKU from Birmingham inventory table"""
+        """Get item_id for a SKU from London inventory table"""
         conn = None
         conn_type = None
         try:
@@ -885,14 +879,14 @@ class OrderFulfillmentService:
                 conn = get_inventory_log_connection()
                 conn_type = 'inventory'
             except (ValueError, Exception) as e:
-                print(f"[BirminghamOrdersService] Inventory database not available ({e}), using main database")
+                print(f"[FranceOrdersService] Inventory database not available ({e}), using main database")
                 from core.db import get_psycopg_connection, return_psycopg_connection
                 conn = get_psycopg_connection()
                 conn_type = 'psycopg'
             
             cursor = conn.cursor()
             cursor.execute(
-                f"SELECT item_id FROM {BIRMINGHAM_INVENTORY_TABLE} WHERE sku = %s",
+                f"SELECT item_id FROM {LONDON_INVENTORY_TABLE} WHERE sku = %s",
                 (sku,)
             )
             result = cursor.fetchone()
@@ -908,7 +902,7 @@ class OrderFulfillmentService:
             
             return result[0] if result else None
         except Exception as e:
-            print(f"[BirminghamOrdersService] Error looking up item_id: {e}")
+            print(f"[FranceOrdersService] Error looking up item_id: {e}")
             return None
     
     def _check_inventory_availability(self, item_id: str, quantity: int, field: str = "auto") -> dict:
@@ -935,18 +929,18 @@ class OrderFulfillmentService:
                 conn = get_inventory_log_connection()
                 conn_type = 'inventory'
             except (ValueError, Exception) as e:
-                print(f"[OrderFulfillmentService] Inventory database not available ({e}), using main database")
+                print(f"[LondonOrderFulfillmentService] Inventory database not available ({e}), using main database")
                 from core.db import get_psycopg_connection
                 conn = get_psycopg_connection()
                 conn_type = 'psycopg'
             
             cursor = conn.cursor()
             
-            # Get current inventory levels from Birmingham branch
+            # Get current inventory levels from France branch
             cursor.execute(
                 f"""
                 SELECT shelf_lt1_qty, shelf_gt1_qty, top_floor_total
-                FROM {BIRMINGHAM_INVENTORY_TABLE}
+                FROM {LONDON_INVENTORY_TABLE}
                 WHERE item_id = %s
                 """,
                 (item_id,)
@@ -958,7 +952,7 @@ class OrderFulfillmentService:
             if not result:
                 return {
                     'has_stock': False,
-                    'detail': f"Item {item_id} not found in Birmingham inventory."
+                    'detail': f"Item {item_id} not found in London inventory."
                 }
             
             shelf_lt1, shelf_gt1, top_floor = result
@@ -994,7 +988,7 @@ class OrderFulfillmentService:
             return {'has_stock': True, 'detail': detail}
             
         except Exception as e:
-            print(f"[OrderFulfillmentService] Error checking inventory availability: {e}")
+            print(f"[LondonOrderFulfillmentService] Error checking inventory availability: {e}")
             return {
                 'has_stock': False,
                 'detail': f"Error checking inventory: {str(e)}"
@@ -1002,7 +996,7 @@ class OrderFulfillmentService:
     
     def _deduct_inventory_stock(self, item_id: str, quantity: int, field: str = "auto") -> list:
         """
-        Deduct stock from Birmingham inventory (uk_birmingham_inventory table)
+        Deduct stock from London inventory (uk_london_inventory table)
         field: 'auto' (smart shelf logic), 'shelf_lt1_qty', 'shelf_gt1_qty', or 'top_floor_total'
         
         Returns: List of deduction records [{'field': str, 'quantity': int}, ...]
@@ -1027,18 +1021,18 @@ class OrderFulfillmentService:
                 conn = get_inventory_log_connection()
                 conn_type = 'inventory'
             except (ValueError, Exception) as e:
-                print(f"[OrderFulfillmentService] Inventory database not available ({e}), using main database")
+                print(f"[LondonOrderFulfillmentService] Inventory database not available ({e}), using main database")
                 from core.db import get_psycopg_connection
                 conn = get_psycopg_connection()
                 conn_type = 'psycopg'
             
             cursor = conn.cursor()
             
-            # Get current inventory levels from Birmingham branch
+            # Get current inventory levels from France branch
             cursor.execute(
                 f"""
                 SELECT shelf_lt1_qty, shelf_gt1_qty, top_floor_total
-                FROM {BIRMINGHAM_INVENTORY_TABLE}
+                FROM {LONDON_INVENTORY_TABLE}
                 WHERE item_id = %s
                 """,
                 (item_id,)
@@ -1110,11 +1104,11 @@ class OrderFulfillmentService:
                         f"(Shelf <1: {shelf_lt1}, Shelf >1: {shelf_gt1}, Top Floor: {top_floor})"
                     )
             
-            # Apply the updates to Birmingham inventory
+            # Apply the updates to London inventory
             for update_field, delta in updates:
                 cursor.execute(
                     f"""
-                    UPDATE {BIRMINGHAM_INVENTORY_TABLE}
+                    UPDATE {LONDON_INVENTORY_TABLE}
                     SET {update_field} = {update_field} + %s
                     WHERE item_id = %s
                     """,
@@ -1128,12 +1122,12 @@ class OrderFulfillmentService:
             return deduction_records
             
         except Exception as e:
-            print(f"[OrderFulfillmentService] Error deducting inventory: {e}")
+            print(f"[LondonOrderFulfillmentService] Error deducting inventory: {e}")
             raise
 
     def _return_inventory_stock(self, item_id: str, quantity: int, field: str):
         """
-        Return stock to a specific location in Birmingham inventory
+        Return stock to a specific location in London inventory
         field: 'shelf_lt1_qty', 'shelf_gt1_qty', or 'top_floor_total'
         """
         conn = None
@@ -1155,17 +1149,17 @@ class OrderFulfillmentService:
                 conn = get_inventory_log_connection()
                 conn_type = 'inventory'
             except (ValueError, Exception) as e:
-                print(f"[OrderFulfillmentService] Inventory database not available ({e}), using main database")
+                print(f"[LondonOrderFulfillmentService] Inventory database not available ({e}), using main database")
                 from core.db import get_psycopg_connection
                 conn = get_psycopg_connection()
                 conn_type = 'psycopg'
             
             cursor = conn.cursor()
             
-            # Add stock back to Birmingham inventory
+            # Add stock back to London inventory
             cursor.execute(
                 f"""
-                UPDATE {BIRMINGHAM_INVENTORY_TABLE}
+                UPDATE {LONDON_INVENTORY_TABLE}
                 SET {field} = COALESCE({field}, 0) + %s
                 WHERE item_id = %s
                 """,
@@ -1176,17 +1170,17 @@ class OrderFulfillmentService:
             cursor.close()
             return_conn()
             
-            print(f"[BirminghamOrdersService] Returned {quantity} to {field} for item {item_id}")
+            print(f"[FranceOrdersService] Returned {quantity} to {field} for item {item_id}")
             
         except Exception as e:
-            print(f"[OrderFulfillmentService] Error returning inventory: {e}")
+            print(f"[LondonOrderFulfillmentService] Error returning inventory: {e}")
             raise
     
     # Collaborative session management methods
     
     def check_session_access(self, session_id: str, user_id: str):
         """Check if user can access a session and return ownership info"""
-        from .schemas import SessionOwnershipSchema
+        from modules.orders.order_fulfillment.schemas import SessionOwnershipSchema
         
         session = self.repo.get_session(session_id)
         if not session:
@@ -1291,7 +1285,7 @@ class OrderFulfillmentService:
     
     def get_all_sessions_for_dashboard(self, include_completed: bool = False) -> List:
         """Get all sessions for dashboard view with full details"""
-        from .schemas import DashboardSessionSchema, SessionAuditLogSchema
+        from modules.orders.order_fulfillment.schemas import DashboardSessionSchema, SessionAuditLogSchema
         
         sessions = []
         
@@ -1465,7 +1459,7 @@ class OrderFulfillmentService:
     
     def get_order_tracking_board(self):
         """Get all orders organized by status for the order tracking board"""
-        from .schemas import OrderTrackingBoardSchema, OrderTrackingColumnSchema
+        from modules.orders.order_fulfillment.schemas import OrderTrackingBoardSchema, OrderTrackingColumnSchema
         
         # Get sessions for each column
         # Ready to Pick: cancelled, draft, approved, in-progress (only for pick/return session types)
@@ -1531,7 +1525,7 @@ class OrderFulfillmentService:
     
     def _session_to_column_schema(self, session):
         """Convert a session to column schema for order tracking"""
-        from .schemas import OrderTrackingColumnSchema
+        from modules.orders.order_fulfillment.schemas import OrderTrackingColumnSchema
         
         # Calculate progress by comparing items_expected with items_scanned
         total_items = len(session.items_expected)
@@ -1615,13 +1609,6 @@ class OrderFulfillmentService:
         if not invoice:
             raise ValueError(f"No invoice found for order number: {order_number}")
         
-        # Block London Office Collection orders - they should be handled by London Orders
-        if invoice.shipping_method and 'london office collection' in invoice.shipping_method.lower():
-            raise ValueError(
-                f"Order {order_number} is a London Office Collection order. "
-                "Please use the London Orders system to process this order."
-            )
-        
         # Check if an ACTIVE session already exists
         existing_session = self._get_any_session_for_invoice(invoice.invoice_number)
         if existing_session:
@@ -1658,7 +1645,7 @@ class OrderFulfillmentService:
     
     def get_pending_magento_orders(self):
         """Get all pending Magento orders that need approval"""
-        from .schemas import PendingMagentoOrderSchema
+        from modules.orders.order_fulfillment.schemas import PendingMagentoOrderSchema
         
         try:
             logger.info("Starting to fetch pending Magento orders")

@@ -361,6 +361,7 @@ working_modules = [
     ('modules.inventory.api', 'router', f'{API}/inventory', ['inventory']),  # Root inventory endpoints
     ('modules.orders.order_fulfillment.api', 'router', f'{API}/magento', ['magento']),  # Birmingham Orders
     ('modules.orders.france_fulfillment.api', 'router', f'{API}/france-magento', ['france-magento']),  # France Orders
+    ('modules.orders.london_fulfillment.api', 'router', f'{API}/london-magento', ['london-magento']),  # London Orders
     ('modules.orders.api', 'router', f'{API}/orders', ['orders']),  # Dashboard stats endpoint
 ]
 

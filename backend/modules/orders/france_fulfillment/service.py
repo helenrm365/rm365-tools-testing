@@ -1527,9 +1527,25 @@ class FranceOrderFulfillmentService:
         """Convert a session to column schema for order tracking"""
         from modules.orders.order_fulfillment.schemas import OrderTrackingColumnSchema
         
-        # Calculate progress
+        # Calculate progress by comparing items_expected with items_scanned
         total_items = len(session.items_expected)
-        completed_items = sum(1 for item in session.items_expected if item.get('is_complete', False))
+        
+        # Build a map of scanned quantities by SKU
+        scanned_map = {}
+        for item in (session.items_scanned or []):
+            sku = item.get('sku')
+            if sku:
+                scanned_map[sku] = item.get('qty_scanned', 0)
+        
+        # Count how many items are complete (scanned >= expected)
+        completed_items = 0
+        for item in session.items_expected:
+            sku = item.get('sku')
+            qty_expected = item.get('qty_expected') or item.get('qty_invoiced') or 1
+            qty_scanned = scanned_map.get(sku, 0)
+            if qty_scanned >= qty_expected:
+                completed_items += 1
+        
         progress_percentage = (completed_items / total_items * 100) if total_items > 0 else 0
         
         # Get invoice details for customer name, total, and shipping method

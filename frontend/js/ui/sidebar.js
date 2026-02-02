@@ -97,6 +97,16 @@ const navigationConfig = {
       { id: 'order-approval', label: 'Order Approval', icon: 'fa-solid fa-check-circle', path: '/france-orders/order-approval' }
     ]
   },
+  'london-orders': {
+    label: 'London Orders',
+    icon: 'fa-solid fa-cart-shopping',
+    children: [
+      { id: 'order-fulfillment', label: 'Order Fulfillment', icon: 'fa-solid fa-box', path: '/london-orders/order-fulfillment' },
+      { id: 'order-progress', label: 'Order Progress', icon: 'fa-solid fa-tasks', path: '/london-orders/order-progress' },
+      { id: 'order-tracking', label: 'Order Tracking', icon: 'fa-solid fa-location-dot', path: '/london-orders/order-tracking' },
+      { id: 'order-approval', label: 'Order Approval', icon: 'fa-solid fa-check-circle', path: '/london-orders/order-approval' }
+    ]
+  },
   'usermanagement': {
     label: 'User Management',
     icon: 'fa-solid fa-user-gear',

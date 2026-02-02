@@ -1,13 +1,13 @@
 """
-FastAPI routes for Magento invoice pick/pack system
+FastAPI routes for London Magento invoice pick/pack system
 """
 from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from common.deps import get_current_user
 from core.websocket import sio
-from .service import OrderFulfillmentService
-from .schemas import (
+from .service import LondonOrderFulfillmentService
+from modules.orders.order_fulfillment.schemas import (
     InvoiceDetailSchema,
     ScanRequestSchema,
     ScanResultSchema,
@@ -27,12 +27,12 @@ from .schemas import (
 )
 
 
-router = APIRouter()
+router = APIRouter(tags=["London Orders"])
 
 
-def _service() -> OrderFulfillmentService:
+def _service() -> LondonOrderFulfillmentService:
     """Dependency to get service instance"""
-    return OrderFulfillmentService()
+    return LondonOrderFulfillmentService()
 
 
 @router.get("/health")
@@ -68,8 +68,8 @@ def initialize_tables(user=Depends(get_current_user)):
     Creates order_fulfillment_sessions and order_fulfillment_takeover_requests tables.
     """
     try:
-        from .db_repo import init_order_fulfillment_tables
-        init_order_fulfillment_tables()
+        from .db_repo import init_london_fulfillment_tables
+        init_london_fulfillment_tables()
         return {
             "status": "success",
             "message": "Order fulfillment tables initialized successfully"
@@ -85,7 +85,7 @@ def initialize_tables(user=Depends(get_current_user)):
 def lookup_invoice(
     order_number: str,
     current_user: dict = Depends(get_current_user),
-    service: OrderFulfillmentService = Depends(_service)
+    service: LondonOrderFulfillmentService = Depends(_service)
 ) -> InvoiceDetailSchema:
     """
     Look up an invoice by order number or invoice number
@@ -115,7 +115,7 @@ def lookup_invoice(
 def check_order_status(
     order_number: str,
     current_user: dict = Depends(get_current_user),
-    service: OrderFulfillmentService = Depends(_service)
+    service: LondonOrderFulfillmentService = Depends(_service)
 ):
     """
     Check if an order has any existing sessions and their status
@@ -197,7 +197,7 @@ def check_order_status(
 async def start_session(
     request: StartSessionSchema,
     current_user: dict = Depends(get_current_user),
-    service: OrderFulfillmentService = Depends(_service)
+    service: LondonOrderFulfillmentService = Depends(_service)
 ) -> SessionStatusSchema:
     """
     Start a new pick/pack or return session for an order
@@ -258,7 +258,7 @@ async def start_session(
 def scan_product(
     request: ScanRequestSchema,
     current_user: dict = Depends(get_current_user),
-    service: OrderFulfillmentService = Depends(_service)
+    service: LondonOrderFulfillmentService = Depends(_service)
 ) -> ScanResultSchema:
     """
     Scan a product during a pick/pack session
@@ -280,7 +280,7 @@ def get_deduction_sources(
     session_id: str,
     sku: str,
     current_user: dict = Depends(get_current_user),
-    service: OrderFulfillmentService = Depends(_service)
+    service: LondonOrderFulfillmentService = Depends(_service)
 ):
     """
     Get deduction sources for a specific SKU in a session.
@@ -320,7 +320,7 @@ def get_deduction_sources(
 def get_session_status(
     session_id: str,
     current_user: dict = Depends(get_current_user),
-    service: OrderFulfillmentService = Depends(_service)
+    service: LondonOrderFulfillmentService = Depends(_service)
 ) -> SessionStatusSchema:
     """
     Get current status of a scanning session
@@ -350,7 +350,7 @@ def get_session_status(
 async def complete_session(
     request: CompleteSessionSchema,
     current_user: dict = Depends(get_current_user),
-    service: OrderFulfillmentService = Depends(_service)
+    service: LondonOrderFulfillmentService = Depends(_service)
 ):
     """
     Complete a scanning session
@@ -393,7 +393,7 @@ async def complete_session(
 def cancel_session(
     session_id: str,
     current_user: dict = Depends(get_current_user),
-    service: OrderFulfillmentService = Depends(_service)
+    service: LondonOrderFulfillmentService = Depends(_service)
 ):
     """
     Cancel a scanning session and return any scanned items to inventory.
@@ -432,7 +432,7 @@ def cancel_session(
 @router.get("/sessions/active")
 def get_active_sessions(
     current_user: dict = Depends(get_current_user),
-    service: OrderFulfillmentService = Depends(_service)
+    service: LondonOrderFulfillmentService = Depends(_service)
 ) -> List[SessionStatusSchema]:
     """
     Get all active scanning sessions for the current user
@@ -452,7 +452,7 @@ def get_active_sessions(
 @router.get("/sessions/drafts")
 def get_draft_sessions(
     current_user: dict = Depends(get_current_user),
-    service: OrderFulfillmentService = Depends(_service)
+    service: LondonOrderFulfillmentService = Depends(_service)
 ) -> List[SessionStatusSchema]:
     """
     Get all draft sessions available to claim
@@ -475,7 +475,7 @@ def get_draft_sessions(
 def check_session_ownership(
     session_id: str,
     current_user: dict = Depends(get_current_user),
-    service: OrderFulfillmentService = Depends(_service)
+    service: LondonOrderFulfillmentService = Depends(_service)
 ) -> SessionOwnershipSchema:
     """
     Check session ownership and access permissions
@@ -495,7 +495,7 @@ def check_session_ownership(
 def claim_session(
     session_id: str,
     current_user: dict = Depends(get_current_user),
-    service: OrderFulfillmentService = Depends(_service)
+    service: LondonOrderFulfillmentService = Depends(_service)
 ):
     """
     Claim a draft session and make it in_progress
@@ -529,7 +529,7 @@ def claim_session(
 def release_session(
     session_id: str,
     current_user: dict = Depends(get_current_user),
-    service: OrderFulfillmentService = Depends(_service)
+    service: LondonOrderFulfillmentService = Depends(_service)
 ):
     """
     Release a session back to draft status
@@ -563,7 +563,7 @@ def release_session(
 def request_session_takeover(
     session_id: str,
     current_user: dict = Depends(get_current_user),
-    service: OrderFulfillmentService = Depends(_service)
+    service: LondonOrderFulfillmentService = Depends(_service)
 ):
     """
     Request to take over an in-progress session from another user
@@ -598,7 +598,7 @@ def respond_to_takeover_request(
     request_id: str,
     response: TakeoverResponseSchema,
     current_user: dict = Depends(get_current_user),
-    service: OrderFulfillmentService = Depends(_service)
+    service: LondonOrderFulfillmentService = Depends(_service)
 ):
     """
     Accept or decline a takeover request
@@ -632,7 +632,7 @@ def respond_to_takeover_request(
 @router.get("/takeover-requests/pending")
 def get_pending_takeover_requests(
     current_user: dict = Depends(get_current_user),
-    service: OrderFulfillmentService = Depends(_service)
+    service: LondonOrderFulfillmentService = Depends(_service)
 ):
     """
     Get all pending takeover requests for the current user's sessions
@@ -666,7 +666,7 @@ def get_pending_takeover_requests(
 def get_dashboard_sessions(
     include_completed: bool = False,
     current_user: dict = Depends(get_current_user),
-    service: OrderFulfillmentService = Depends(_service)
+    service: LondonOrderFulfillmentService = Depends(_service)
 ):
     """
     Get all sessions for dashboard monitoring
@@ -695,7 +695,7 @@ def force_cancel_session(
     session_id: str,
     request: "ForceCancelSchema",
     current_user: dict = Depends(get_current_user),
-    service: OrderFulfillmentService = Depends(_service)
+    service: LondonOrderFulfillmentService = Depends(_service)
 ):
     """
     Force cancel a session (admin action)
@@ -731,7 +731,7 @@ def force_assign_session(
     session_id: str,
     request: "ForceAssignSchema",
     current_user: dict = Depends(get_current_user),
-    service: OrderFulfillmentService = Depends(_service)
+    service: LondonOrderFulfillmentService = Depends(_service)
 ):
     """
     Force assign/transfer a session to another user (admin action)
@@ -771,7 +771,7 @@ def force_assign_session(
 def admin_takeover_session(
     session_id: str,
     current_user: dict = Depends(get_current_user),
-    service: OrderFulfillmentService = Depends(_service)
+    service: LondonOrderFulfillmentService = Depends(_service)
 ):
     """
     Admin takes over a session themselves (admin action)
@@ -816,7 +816,7 @@ def admin_takeover_session(
 @router.get("/tracking/board")
 def get_order_tracking_board(
     current_user: dict = Depends(get_current_user),
-    service: OrderFulfillmentService = Depends(_service)
+    service: LondonOrderFulfillmentService = Depends(_service)
 ):
     """
     Get the full order tracking board with all columns
@@ -837,7 +837,7 @@ def get_order_tracking_board(
 async def mark_order_ready_to_check(
     request: dict,
     current_user: dict = Depends(get_current_user),
-    service: OrderFulfillmentService = Depends(_service)
+    service: LondonOrderFulfillmentService = Depends(_service)
 ):
     """
     Mark an order as ready to check instead of completing it
@@ -891,7 +891,7 @@ async def mark_order_ready_to_check(
 async def send_back_for_picking(
     request: dict,
     current_user: dict = Depends(get_current_user),
-    service: OrderFulfillmentService = Depends(_service)
+    service: LondonOrderFulfillmentService = Depends(_service)
 ):
     """
     Send an order back for picking from the checking phase.
@@ -950,7 +950,7 @@ async def send_back_for_picking(
 @router.get("/tracking/pending-orders")
 def get_pending_magento_orders(
     current_user: dict = Depends(get_current_user),
-    service: OrderFulfillmentService = Depends(_service)
+    service: LondonOrderFulfillmentService = Depends(_service)
 ):
     """
     Get all pending Magento orders that are in 'processing' status
@@ -959,7 +959,7 @@ def get_pending_magento_orders(
     """
     try:
         from datetime import datetime, timezone
-        from .schemas import PendingMagentoOrderSchema
+        from modules.orders.order_fulfillment.schemas import PendingMagentoOrderSchema
         import logging
         logger = logging.getLogger(__name__)
         
@@ -1034,10 +1034,6 @@ def get_pending_magento_orders(
                         shipping_info.get('method')
                     )
             
-            # Skip London Office Collection orders - they will be handled by London Orders
-            if shipping_method and 'london office collection' in shipping_method.lower():
-                continue
-            
             payment = order.get('payment', {})
             payment_method = payment.get('method') if isinstance(payment, dict) else None
             
@@ -1078,7 +1074,7 @@ def get_pending_magento_orders(
 @router.get("/tracking/pending-orders/debug")
 def debug_pending_orders(
     current_user: dict = Depends(get_current_user),
-    service: OrderFulfillmentService = Depends(_service)
+    service: LondonOrderFulfillmentService = Depends(_service)
 ):
     """
     Debug endpoint to see what's happening with pending orders
@@ -1133,7 +1129,7 @@ def debug_pending_orders(
 async def approve_order_for_picking(
     request: dict,
     current_user: dict = Depends(get_current_user),
-    service: OrderFulfillmentService = Depends(_service)
+    service: LondonOrderFulfillmentService = Depends(_service)
 ):
     """
     Approve a Magento order for picking.
@@ -1190,7 +1186,7 @@ async def approve_order_for_picking(
 @router.post("/admin/reset-sessions")
 def reset_order_sessions_manually(
     current_user: dict = Depends(get_current_user),
-    service: OrderFulfillmentService = Depends(_service)
+    service: LondonOrderFulfillmentService = Depends(_service)
 ):
     """
     Manually trigger the daily order session reset.

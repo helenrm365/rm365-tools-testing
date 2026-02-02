@@ -107,6 +107,13 @@ const routes = {
   '/france-orders/order-tracking':     '/html/france-orders/order-tracking.html',
   '/france-orders/order-approval':     '/html/france-orders/order-approval.html',
   
+  // London Orders - UK London region fulfillment (London Office Collection)
+  '/london-orders':                    '/html/london-orders/order-fulfillment.html',
+  '/london-orders/order-fulfillment':  '/html/london-orders/order-fulfillment.html',
+  '/london-orders/order-progress':     '/html/london-orders/order-progress.html',
+  '/london-orders/order-tracking':     '/html/london-orders/order-tracking.html',
+  '/london-orders/order-approval':     '/html/london-orders/order-approval.html',
+  
   // User Management - redirect root to first sub-page
   '/usermanagement':            '/html/usermanagement/management.html',
   '/usermanagement/management': '/html/usermanagement/management.html',
@@ -166,6 +173,7 @@ export function generateTabStructure() {
     'orders': 'Orders',
     'birmingham-orders': 'Birmingham Orders',
     'france-orders': 'France Orders',
+    'london-orders': 'London Orders',
     'usermanagement': 'User Management'
   };
   
@@ -338,6 +346,12 @@ export async function navigate(path, replace = false) {
       url = routes['/france-orders/order-fulfillment'];
     }
     
+    // Check if this is a London orders session-specific URL
+    if (!url && path.match(/^\/london-orders\/order-fulfillment\/session-/)) {
+      // Session-specific URL, use the base London orders fulfillment template
+      url = routes['/london-orders/order-fulfillment'];
+    }
+    
     // Check if this is a magento data view-specific URL (full-data, 6-month, custom-range)
     // Use simple prefix matching instead of complex regex
     if (!url) {
@@ -485,6 +499,11 @@ export async function navigate(path, replace = false) {
       await mod.init(path);
       currentModule = mod;
       currentModulePath = 'france-orders';
+    } else if (path.startsWith('/london-orders')) {
+      const mod = await import(`./modules/london-orders/index.js${cacheBust}`);
+      await mod.init(path);
+      currentModule = mod;
+      currentModulePath = 'london-orders';
     } else if (path.startsWith('/orders')) {
       const mod = await import(`./modules/orders/index.js${cacheBust}`);
       await mod.init(path); // Pass full path for session URL detection

@@ -363,6 +363,11 @@ class MagentoPickPackManager {
     this.pendingPreviewOrder = null;
     this.pendingPreviewSessionType = null;
 
+    // Completed Session Modal Elements
+    this.completedSessionModal = document.getElementById('completedSessionModal');
+    this.closeCompletedSessionBtn = document.getElementById('closeCompletedSessionBtn');
+    this.closeCompletedSessionOkBtn = document.getElementById('closeCompletedSessionOkBtn');
+
     // Active Session Elements
     this.sessionOrderNumber = document.getElementById('sessionOrderNumber');
     this.sessionInvoiceNumber = document.getElementById('sessionInvoiceNumber');
@@ -473,6 +478,10 @@ class MagentoPickPackManager {
     this.closeOrderPreviewBtn?.addEventListener('click', () => this.hideOrderPreview());
     this.cancelOrderPreviewBtn?.addEventListener('click', () => this.hideOrderPreview());
     this.startSessionFromPreviewBtn?.addEventListener('click', () => this.confirmStartSessionFromPreview());
+
+    // Completed Session Modal
+    this.closeCompletedSessionBtn?.addEventListener('click', () => this.hideCompletedSessionModal());
+    this.closeCompletedSessionOkBtn?.addEventListener('click', () => this.hideCompletedSessionModal());
 
     // Scanning
     this.scanBtn?.addEventListener('click', () => this.scanProduct());
@@ -1067,6 +1076,9 @@ class MagentoPickPackManager {
           // New check sessions show preview modal
           this.startSessionFromCard(order.order_number, 'check');
         }
+      } else if (columnName === 'completed') {
+        // Completed orders show read-only session details modal
+        this.showCompletedSessionModal(order);
       } else {
         this.navigateToSession(order);
       }
@@ -1175,6 +1187,126 @@ class MagentoPickPackManager {
     this.pendingPreviewOrder = null;
     this.pendingPreviewSessionType = null;
     this.pendingPreviewIsDraft = false;
+  }
+
+  async showCompletedSessionModal(order) {
+    try {
+      // First get the session ID from the order check endpoint
+      const checkUrl = `${getApiUrl()}/v1/magento/session/check/${order.order_number}`;
+      const checkResponse = await fetch(checkUrl, { headers: getAuthHeaders() });
+      
+      if (!checkResponse.ok) {
+        throw new Error('Failed to lookup session');
+      }
+      
+      const checkData = await checkResponse.json();
+      
+      if (!checkData.session_id) {
+        showNotification('No session found for this order', 'error');
+        return;
+      }
+      
+      // Now get the full session status
+      const statusUrl = `${getApiUrl()}/v1/magento/session/status/${checkData.session_id}`;
+      const statusResponse = await fetch(statusUrl, { headers: getAuthHeaders() });
+      
+      if (!statusResponse.ok) {
+        throw new Error('Failed to get session details');
+      }
+      
+      const session = await statusResponse.json();
+      
+      // Populate modal with session data
+      document.getElementById('completedOrderNumber').textContent = session.order_number || '-';
+      document.getElementById('completedInvoiceNumber').textContent = session.invoice_number || '-';
+      
+      // Session type badge
+      const sessionTypeText = session.session_type === 'check' ? 'Checking' : 
+                             session.session_type === 'return' ? 'Returns' : 'Pick & Pack';
+      document.getElementById('completedSessionType').textContent = sessionTypeText;
+      
+      // Completed by
+      document.getElementById('completedByUser').textContent = checkData.user || '-';
+      
+      // Dates
+      document.getElementById('completedOrderDate').textContent = session.order_date 
+        ? new Date(session.order_date).toLocaleDateString() 
+        : '-';
+      document.getElementById('completedAtDate').textContent = session.started_at 
+        ? new Date(session.started_at).toLocaleDateString() 
+        : '-';
+      
+      // Progress
+      const completedItems = session.completed_items || 0;
+      const totalItems = session.total_items || 0;
+      document.getElementById('completedItemsProgress').textContent = `${completedItems}/${totalItems}`;
+      
+      // Status badge with color
+      const statusBadge = document.getElementById('completedStatusBadge');
+      statusBadge.textContent = session.status === 'completed' ? 'Completed' : session.status;
+      statusBadge.className = 'progress-badge';
+      if (completedItems < totalItems) {
+        statusBadge.classList.add('partial');
+        statusBadge.textContent = 'Partially Complete';
+      }
+      
+      // Populate items table
+      const currencySymbol = getCurrencySymbol(session.order_currency_code);
+      const itemsList = document.getElementById('completedItemsList');
+      
+      if (session.items && session.items.length > 0) {
+        itemsList.innerHTML = session.items.map(item => {
+          const qtyExpected = item.qty_invoiced || item.qty_ordered || 1;
+          const qtyScanned = item.qty_scanned || 0;
+          const isComplete = qtyScanned >= qtyExpected;
+          const statusClass = isComplete ? 'status-complete' : 'status-incomplete';
+          const statusIcon = isComplete ? 'fa-check-circle' : 'fa-exclamation-circle';
+          const statusText = isComplete ? 'Complete' : `Missing ${qtyExpected - qtyScanned}`;
+          
+          return `
+            <tr class="${statusClass}">
+              <td><strong>${item.sku}</strong></td>
+              <td>${item.name}</td>
+              <td class="text-center">${qtyExpected}</td>
+              <td class="text-center">${qtyScanned}</td>
+              <td class="text-center">
+                <span class="item-status ${statusClass}">
+                  <i class="fas ${statusIcon}"></i> ${statusText}
+                </span>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } else {
+        itemsList.innerHTML = '<tr><td colspan="5" class="text-center">No items</td></tr>';
+      }
+      
+      // Totals
+      document.getElementById('completedSubtotal').textContent = session.subtotal != null 
+        ? `${currencySymbol}${session.subtotal.toFixed(2)}` 
+        : '-';
+      document.getElementById('completedTax').textContent = session.tax_amount != null 
+        ? `${currencySymbol}${session.tax_amount.toFixed(2)}` 
+        : '-';
+      document.getElementById('completedGrandTotal').textContent = session.grand_total != null 
+        ? `${currencySymbol}${session.grand_total.toFixed(2)}` 
+        : '-';
+      
+      // Show modal
+      if (this.completedSessionModal) {
+        this.completedSessionModal.classList.add('active');
+      }
+      
+    } catch (error) {
+      console.error('[Order Fulfillment] Error showing completed session:', error);
+      showNotification(`Failed to load session details: ${error.message}`, 'error');
+    }
+  }
+
+  hideCompletedSessionModal() {
+    if (this.completedSessionModal) {
+      this.completedSessionModal.classList.remove('active');
+    }
   }
 
   async confirmStartSessionFromPreview() {
