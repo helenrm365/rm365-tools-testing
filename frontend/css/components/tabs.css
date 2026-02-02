@@ -268,21 +268,8 @@
 }
 
 /* ===== Special Mode Overrides ===== */
-/* When minimal-mode or mobile-mode-active is enabled, hide the bottom bar */
-/* Note: mobile-mode-active is only added at ≤768px by JS */
-@media (max-width: 768px) {
-  .order-fulfillment.mobile-mode-active .inner-tabs {
-    display: none !important;
-  }
-  
-  /* Remove bottom padding when tabs are hidden */
-  .order-fulfillment.mobile-mode-active {
-    padding-bottom: 0 !important;
-  }
-}
-
-/* minimal-mode can apply at tablet sizes too */
-@media (max-width: 1024px) {
+/* minimal-mode hides inner-tabs, but mobile-mode-active now shows them fixed at bottom */
+/* Note: mobile-mode-active styling is handled in page-specific CSS files */
   body.minimal-mode .inner-tabs {
     display: none !important;
   }

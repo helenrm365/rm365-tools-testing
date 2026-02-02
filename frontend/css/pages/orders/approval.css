@@ -726,20 +726,23 @@
 /* These are just specific overrides for order details content */
 
 /* ===== Order Details Modal Content ===== */
-.order-details-modal .order-details-grid {
+.order-approval .order-details-grid,
+.modal-backdrop .order-details-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1rem;
   margin-bottom: 1.5rem;
 }
 
-.order-details-modal .order-detail-item {
+.order-approval .order-detail-item,
+.modal-backdrop .order-detail-item {
   background: var(--bg-light);
   border-radius: var(--radius-md);
   padding: 1rem;
 }
 
-.order-details-modal .order-detail-label {
+.order-approval .order-detail-label,
+.modal-backdrop .order-detail-label {
   font-size: 0.75rem;
   font-weight: 500;
   color: var(--text-muted);
@@ -748,33 +751,38 @@
   margin-bottom: 0.35rem;
 }
 
-.order-details-modal .order-detail-value {
+.order-approval .order-detail-value,
+.modal-backdrop .order-detail-value {
   font-size: 1rem;
   font-weight: 600;
   color: var(--text);
   word-break: break-word;
 }
 
-.order-details-modal .order-items-section {
+.order-approval .order-items-section,
+.modal-backdrop .order-items-section {
   margin-top: 1.5rem;
   padding-top: 1.5rem;
   border-top: 1px solid color-mix(in srgb, var(--text) 10%, transparent);
 }
 
-.order-details-modal .order-items-title {
+.order-approval .order-items-title,
+.modal-backdrop .order-items-title {
   font-size: 1rem;
   font-weight: 600;
   color: var(--text);
   margin-bottom: 1rem;
 }
 
-.order-details-modal .order-items-list {
+.order-approval .order-items-list,
+.modal-backdrop .order-items-list {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
-.order-details-modal .order-item {
+.order-approval .order-item,
+.modal-backdrop .order-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -783,16 +791,601 @@
   border-radius: var(--radius-md);
 }
 
-.order-details-modal .order-item-name {
+.order-approval .order-item-name,
+.modal-backdrop .order-item-name {
   font-size: 0.9rem;
   color: var(--text);
   flex: 1;
 }
 
-.order-details-modal .order-item-qty {
+.order-approval .order-item-qty,
+.modal-backdrop .order-item-qty {
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--accent);
   white-space: nowrap;
   margin-left: 1rem;
+}
+
+/* ===== Mobile Column Tabs (matching fulfillment) ===== */
+.order-approval .mobile-column-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  width: 100%;
+}
+
+.order-approval .mobile-tab-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: var(--bg-light);
+  border: 2px solid var(--bg);
+  border-radius: var(--radius-md);
+  min-width: 0;
+  width: 100%;
+  cursor: pointer;
+  transition: all var(--transition);
+  box-shadow: var(--shadow-m);
+  color: var(--text);
+}
+
+.order-approval .mobile-tab-button:hover {
+  background: var(--bg);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-l);
+}
+
+/* All Orders - Accent Color */
+.order-approval .mobile-tab-button[data-column="all-orders"] {
+  border-color: var(--bg);
+}
+
+.order-approval .mobile-tab-button[data-column="all-orders"]:hover {
+  border-color: var(--accent);
+}
+
+.order-approval .mobile-tab-button[data-column="all-orders"].active {
+  background: color-mix(in srgb, var(--accent) 15%, var(--bg-light));
+  box-shadow: var(--shadow-m), inset 0 1px 3px rgba(139, 195, 74, 0.15);
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+  border-color: var(--accent);
+}
+
+.order-approval .mobile-tab-button[data-column="all-orders"].active i,
+.order-approval .mobile-tab-button[data-column="all-orders"].active span {
+  color: var(--accent);
+}
+
+/* Pending - Warning Color */
+.order-approval .mobile-tab-button[data-column="pending"] {
+  border-color: var(--bg);
+}
+
+.order-approval .mobile-tab-button[data-column="pending"]:hover {
+  border-color: var(--warning);
+}
+
+.order-approval .mobile-tab-button[data-column="pending"].active {
+  background: color-mix(in srgb, var(--warning) 15%, var(--bg-light));
+  box-shadow: var(--shadow-m), inset 0 1px 3px rgba(245, 158, 11, 0.15);
+  outline: 1px solid var(--warning);
+  outline-offset: 1px;
+  border-color: var(--warning);
+}
+
+.order-approval .mobile-tab-button[data-column="pending"].active i,
+.order-approval .mobile-tab-button[data-column="pending"].active span {
+  color: var(--warning);
+}
+
+/* Approved Today - Success Color */
+.order-approval .mobile-tab-button[data-column="approved-today"] {
+  border-color: var(--bg);
+}
+
+.order-approval .mobile-tab-button[data-column="approved-today"]:hover {
+  border-color: var(--success);
+}
+
+.order-approval .mobile-tab-button[data-column="approved-today"].active {
+  background: color-mix(in srgb, var(--success) 15%, var(--bg-light));
+  box-shadow: var(--shadow-m), inset 0 1px 3px rgba(16, 185, 129, 0.15);
+  outline: 1px solid var(--success);
+  outline-offset: 1px;
+  border-color: var(--success);
+}
+
+.order-approval .mobile-tab-button[data-column="approved-today"].active i,
+.order-approval .mobile-tab-button[data-column="approved-today"].active span {
+  color: var(--success);
+}
+
+.order-approval .mobile-tab-button i {
+  font-size: 1.2rem;
+}
+
+.order-approval .mobile-tab-button span {
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.order-approval .mobile-tab-count {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+/* ===== Order Board Layout (same as fulfillment) ===== */
+.order-approval .ot-board {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  min-height: 400px;
+}
+
+.order-approval .ot-column {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg, #ffffff);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.order-approval .ot-column.ot-column-all {
+  border-top: 3px solid var(--accent);
+}
+
+.order-approval .ot-column.ot-column-pending {
+  border-top: 3px solid var(--warning);
+}
+
+.order-approval .ot-column.ot-column-approved {
+  border-top: 3px solid var(--success);
+}
+
+.order-approval .ot-column-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  flex-shrink: 0;
+}
+
+.order-approval .ot-column-icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-size: 1rem;
+}
+
+.order-approval .ot-column-all .ot-column-icon {
+  background: rgba(139, 195, 74, 0.12);
+  color: var(--accent, #8bc34a);
+}
+
+.order-approval .ot-column-pending .ot-column-icon {
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--warning, #f59e0b);
+}
+
+.order-approval .ot-column-approved .ot-column-icon {
+  background: rgba(16, 185, 129, 0.12);
+  color: var(--success, #10b981);
+}
+
+.order-approval .ot-column-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text, #1f2937);
+  flex: 1;
+}
+
+.order-approval .ot-column-count {
+  padding: 0.2rem 0.6rem;
+  background: var(--bg-light, #f3f4f6);
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted, #6b7280);
+}
+
+.order-approval .ot-column-all .ot-column-count {
+  background: rgba(139, 195, 74, 0.12);
+  color: var(--accent, #8bc34a);
+}
+
+.order-approval .ot-column-pending .ot-column-count {
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--warning, #f59e0b);
+}
+
+.order-approval .ot-column-approved .ot-column-count {
+  background: rgba(16, 185, 129, 0.12);
+  color: var(--success, #10b981);
+}
+
+.order-approval .ot-column-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  overflow-y: auto;
+}
+
+/* ===== Group Headers (matching fulfillment) ===== */
+.order-approval .ot-group-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.5rem 0.35rem;
+  margin-top: 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted, #6b7280);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  border-bottom: 1px dashed rgba(0, 0, 0, 0.08);
+}
+
+.order-approval .ot-group-header:first-child {
+  margin-top: 0;
+}
+
+.order-approval .ot-group-header i {
+  font-size: 0.65rem;
+  color: var(--accent, #8bc34a);
+}
+
+.order-approval .ot-group-header span:first-of-type {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.order-approval .ot-group-count {
+  padding: 0.1rem 0.4rem;
+  background: var(--bg-light, #f3f4f6);
+  border-radius: 8px;
+  font-size: 0.6rem;
+  font-weight: 700;
+}
+
+/* ===== Order Cards (matching fulfillment style) ===== */
+.order-approval .ot-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: var(--bg-light, #fafafa);
+  border-radius: 8px;
+  border-left: 3px solid var(--card-color, #9ca3af);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.order-approval .ot-card:hover {
+  background: var(--bg, #ffffff);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transform: translateX(2px);
+}
+
+.order-approval .ot-card-pending { --card-color: var(--warning, #f59e0b); }
+.order-approval .ot-card-approved { --card-color: var(--success, #10b981); }
+
+.order-approval .ot-card-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.order-approval .ot-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.order-approval .ot-card-order {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text, #1f2937);
+}
+
+.order-approval .ot-card-status {
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+.order-approval .ot-card-status.pending {
+  background: color-mix(in srgb, var(--warning) 15%, var(--bg-light));
+  color: var(--warning);
+}
+
+.order-approval .ot-card-status.approved {
+  background: color-mix(in srgb, var(--success) 15%, var(--bg-light));
+  color: var(--success);
+}
+
+.order-approval .ot-card-status.cancelled {
+  background: color-mix(in srgb, var(--danger) 15%, var(--bg-light));
+  color: var(--danger);
+}
+
+.order-approval .ot-card-status.draft {
+  background: color-mix(in srgb, var(--text-muted) 15%, var(--bg-light));
+  color: var(--text-muted);
+}
+
+.order-approval .ot-card-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  color: var(--text-muted, #6b7280);
+}
+
+.order-approval .ot-card-details span {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.order-approval .ot-card-details i {
+  font-size: 0.65rem;
+  color: var(--card-color);
+}
+
+.order-approval .ot-card-approve-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  background: linear-gradient(135deg, var(--success), color-mix(in srgb, var(--success) 80%, black));
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  font-size: 0.9rem;
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--success) 40%, transparent);
+}
+
+.order-approval .ot-card-approve-btn:hover {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--success) 90%, white), var(--success));
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--success) 50%, transparent);
+}
+
+.order-approval .ot-card-approve-btn:active {
+  transform: scale(0.95);
+}
+
+.order-approval .ot-card-arrow {
+  color: var(--text-muted);
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
+/* ===== Empty State ===== */
+.order-approval .ot-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 2rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.order-approval .ot-empty i {
+  font-size: 2rem;
+  opacity: 0.5;
+}
+
+.order-approval .ot-empty span {
+  font-size: 0.9rem;
+}
+
+/* ===== Mobile Exclusive Mode (matching fulfillment) ===== */
+/* Hide page header, description in mobile mode - keep inner-tabs at bottom */
+.order-approval.mobile-mode-active .page-header,
+.order-approval.mobile-mode-active .page-title,
+.order-approval.mobile-mode-active .page-subtitle {
+  display: none !important;
+}
+
+/* Inner tabs - fixed at very bottom as page navigation */
+.order-approval.mobile-mode-active .inner-tabs {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--bg);
+  padding: 0.5rem;
+  margin: 0;
+  border-radius: 0;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.15);
+  z-index: 101;
+  display: flex !important;
+  justify-content: space-around;
+  gap: 0.25rem;
+}
+
+.order-approval.mobile-mode-active .inner-tabs .tab-button {
+  flex: 1;
+  min-width: 0;
+  padding: 0.5rem 0.25rem;
+  font-size: 0.7rem;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.order-approval.mobile-mode-active .inner-tabs .tab-button span {
+  font-size: 0.65rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Mobile mode board - single column, full height */
+.order-approval.mobile-mode-active .ot-board {
+  grid-template-columns: 1fr;
+  gap: 0;
+  min-height: calc(100vh - 200px);
+}
+
+/* Hide columns not selected */
+.order-approval.mobile-mode-active .ot-column {
+  max-height: none;
+  min-height: 300px;
+}
+
+/* Mobile controls - compact fixed position */
+.order-approval.mobile-mode-active .ot-controls {
+  position: fixed;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 100;
+  margin: 0;
+  background: var(--bg);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-m);
+  padding: 0.25rem 0.5rem;
+  width: auto;
+}
+
+/* Mobile column tabs styling when in mobile mode - positioned above inner-tabs */
+.order-approval.mobile-mode-active .mobile-column-tabs {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr);
+  position: fixed;
+  bottom: 70px; /* Above the inner-tabs */
+  left: 0;
+  right: 0;
+  background: var(--bg);
+  padding: 0.5rem;
+  margin: 0;
+  border-radius: 0;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  gap: 0.5rem;
+}
+
+.order-approval.mobile-mode-active .mobile-tab-button {
+  border-radius: var(--radius-sm);
+  padding: 0.5rem;
+}
+
+/* Add padding at bottom to account for both fixed bars */
+.order-approval.mobile-mode-active .approval-content {
+  padding-bottom: 180px;
+}
+
+/* ===== Mobile Responsive Styles ===== */
+@media (max-width: 768px) {
+  .order-approval .mobile-column-tabs {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  .order-approval .mobile-tab-button {
+    padding: 0.875rem 0.5rem;
+  }
+  
+  .order-approval .mobile-tab-button i {
+    font-size: 1.5rem;
+  }
+  
+  .order-approval .mobile-tab-button span {
+    font-size: 0.8rem;
+  }
+  
+  .order-approval .ot-column-header {
+    padding: 0.75rem 1rem;
+  }
+  
+  .order-approval .ot-column-body {
+    padding: 0.75rem;
+  }
+  
+  .order-approval .ot-card {
+    padding: 0.75rem;
+    gap: 0.5rem;
+  }
+  
+  .order-approval .ot-card-order {
+    font-size: 0.875rem;
+  }
+  
+  .order-approval .ot-card-details {
+    font-size: 0.75rem;
+    gap: 0.5rem;
+  }
+  
+  .order-approval .ot-card-approve-btn {
+    width: 2rem;
+    height: 2rem;
+    font-size: 0.8rem;
+  }
+  
+  .order-approval .order-details-grid,
+  .modal-backdrop .order-details-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  
+  .order-approval .order-detail-item,
+  .modal-backdrop .order-detail-item {
+    padding: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .order-approval .mobile-column-tabs {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.375rem;
+  }
+  
+  .order-approval .mobile-tab-button {
+    padding: 0.75rem 0.375rem;
+  }
+  
+  .order-approval .mobile-tab-button i {
+    font-size: 1.25rem;
+  }
+  
+  .order-approval .mobile-tab-button span {
+    font-size: 0.75rem;
+  }
+  
+  .order-approval .mobile-tab-count {
+    font-size: 1.25rem;
+    padding: 0.1rem 0.375rem;
+  }
+  
+  .order-approval .ot-card-details span:not(:first-child) {
+    display: none;
+  }
 }

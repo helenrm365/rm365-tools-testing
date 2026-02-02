@@ -112,11 +112,51 @@ html.dark-mode .footer-disclaimer {
 
 @media (max-width: 768px) {
   .universal-footer {
-    padding: 1.5rem 1rem 0.75rem;
+    padding: 0.5rem 1rem;
+    margin-top: 1.5rem;
+    text-align: right;
   }
   
+  .footer-content {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+  }
+  
+  /* Hide all sections except first one with copyright */
+  .footer-section:not(:first-child),
   .footer-links {
+    display: none;
+  }
+  
+  .footer-section:first-child {
+    margin-bottom: 0;
+  }
+  
+  .footer-section:first-child h4 {
     font-size: 0.75rem;
+    font-weight: 500;
+    margin: 0;
+  }
+  
+  .footer-section:first-child p {
+    font-size: 0.7rem;
+    margin: 0.1rem 0 0 0;
+    opacity: 0.8;
+  }
+}
+
+@media (max-width: 480px) {
+  .universal-footer {
+    padding: 0.4rem 0.75rem;
+  }
+  
+  .footer-section:first-child h4 {
+    font-size: 0.7rem;
+  }
+  
+  .footer-section:first-child p {
+    font-size: 0.65rem;
   }
 }
 </style>

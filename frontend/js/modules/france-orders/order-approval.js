@@ -7,40 +7,140 @@ class OrderApprovalManager {
   constructor() {
     this.pendingOrders = [];
     this.approvedTodayOrders = [];
-    this.approvedTodayCount = 0;
     this.currentOrderId = null;
-    this.searchTerm = '';
-    this.sortBy = 'date-desc';
-    this.filterType = 'all'; // 'all', 'pending', 'approved'
+    this.activeColumn = 'all-orders'; // 'all-orders', 'pending', 'approved-today'
+    this.isMobileMode = false;
+    this.resizeHandler = null;
   }
 
   async initialize() {
     this.setupEventListeners();
+    this.setupMobileMode();
     await this.loadPendingOrders();
     await this.setupWebSocket();
   }
 
+  setupMobileMode() {
+    const mobileColumnTabs = document.getElementById('mobileColumnTabs');
+    
+    // Function to check if we should be in mobile mode based on window size
+    const checkMobileSize = () => {
+      return window.innerWidth <= 768;
+    };
+    
+    // Set initial state based on window size
+    this.isMobileMode = checkMobileSize();
+    this.toggleMobileMode(this.isMobileMode);
+    
+    // Create resize handler
+    let resizeTimeout;
+    this.resizeHandler = () => {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => {
+        const shouldBeMobile = checkMobileSize();
+        if (this.isMobileMode !== shouldBeMobile) {
+          this.isMobileMode = shouldBeMobile;
+          this.toggleMobileMode(shouldBeMobile);
+        }
+      }, 100);
+    };
+    
+    // Listen for window resize to automatically toggle mobile mode
+    window.addEventListener('resize', this.resizeHandler);
+    
+    // Mobile tab listeners
+    if (mobileColumnTabs) {
+      const tabButtons = mobileColumnTabs.querySelectorAll('.mobile-tab-button');
+      tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+          this.activeColumn = button.getAttribute('data-column');
+          this.updateMobileTabs();
+          this.updateMobileColumnVisibility();
+          this.updateApproveAllButton();
+        });
+      });
+    }
+  }
+
+  toggleMobileMode(enabled) {
+    const mobileColumnTabs = document.getElementById('mobileColumnTabs');
+    const approvalBoard = document.getElementById('approvalBoard');
+    const pageContainer = document.querySelector('.order-approval');
+    
+    if (enabled) {
+      document.body.classList.add('mobile-mode');
+      if (pageContainer) pageContainer.classList.add('mobile-mode-active');
+      if (mobileColumnTabs) mobileColumnTabs.style.display = 'flex';
+      this.updateMobileColumnVisibility();
+    } else {
+      document.body.classList.remove('mobile-mode');
+      if (pageContainer) pageContainer.classList.remove('mobile-mode-active');
+      if (mobileColumnTabs) mobileColumnTabs.style.display = 'none';
+      // Show all columns
+      if (approvalBoard) {
+        const columns = approvalBoard.querySelectorAll('.ot-column');
+        columns.forEach(col => col.style.display = 'flex');
+      }
+    }
+    this.updateApproveAllButton();
+  }
+
+  updateMobileTabs() {
+    const mobileColumnTabs = document.getElementById('mobileColumnTabs');
+    if (!mobileColumnTabs) return;
+    
+    const tabButtons = mobileColumnTabs.querySelectorAll('.mobile-tab-button');
+    tabButtons.forEach(button => {
+      if (button.getAttribute('data-column') === this.activeColumn) {
+        button.classList.add('active');
+      } else {
+        button.classList.remove('active');
+      }
+    });
+  }
+
+  updateMobileColumnVisibility() {
+    if (!this.isMobileMode) return;
+    
+    const columnMap = {
+      'all-orders': 'allOrdersSection',
+      'pending': 'pendingSection',
+      'approved-today': 'approvedTodaySection'
+    };
+    
+    Object.entries(columnMap).forEach(([key, sectionId]) => {
+      const column = document.getElementById(sectionId);
+      if (column) {
+        column.style.display = key === this.activeColumn ? 'flex' : 'none';
+      }
+    });
+  }
+
+  updateApproveAllButton() {
+    const approveAllBtn = document.getElementById('approveAllBtn');
+    if (approveAllBtn) {
+      // Show only when in mobile mode and on pending or all-orders column with pending orders
+      const showButton = this.isMobileMode && 
+                         this.activeColumn !== 'approved-today' && 
+                         this.pendingOrders.length > 0;
+      approveAllBtn.style.display = showButton ? 'inline-flex' : 'none';
+    }
+  }
+
   setupEventListeners() {
     // Refresh button
-    document.getElementById('refreshOrdersBtn')?.addEventListener('click', () => {
-      this.loadPendingOrders();
-    });
+    const refreshBtn = document.getElementById('refreshOrdersBtn');
+    if (refreshBtn) {
+      refreshBtn.addEventListener('click', async () => {
+        refreshBtn.classList.add('spinning');
+        await this.loadPendingOrders();
+        setTimeout(() => refreshBtn.classList.remove('spinning'), 500);
+      });
+    }
 
     // Approve all button
     document.getElementById('approveAllBtn')?.addEventListener('click', () => {
       this.approveAllOrders();
-    });
-
-    // Search input
-    document.getElementById('searchOrders')?.addEventListener('input', (e) => {
-      this.searchTerm = e.target.value.toLowerCase();
-      this.filterAndRenderOrders();
-    });
-
-    // Sort filter (monitors hidden input)
-    document.getElementById('sortFilter')?.addEventListener('change', (e) => {
-      this.sortBy = e.target.value;
-      this.filterAndRenderOrders();
     });
 
     // Modal approve button
@@ -52,10 +152,10 @@ class OrderApprovalManager {
 
     // Modal close buttons
     const orderDetailsModal = document.getElementById('orderDetailsModal');
-    document.getElementById('closeOrderDetailsModal')?.addEventListener('click', () => {
+    document.getElementById('closeOrderDetailsBtn')?.addEventListener('click', () => {
       orderDetailsModal?.classList.remove('active');
     });
-    document.getElementById('closeOrderDetailsBtn')?.addEventListener('click', () => {
+    document.getElementById('cancelOrderDetailsBtn')?.addEventListener('click', () => {
       orderDetailsModal?.classList.remove('active');
     });
     
@@ -65,257 +165,130 @@ class OrderApprovalManager {
         orderDetailsModal.classList.remove('active');
       }
     });
-
-    // Stat card filter buttons
-    document.getElementById('filterAll')?.addEventListener('click', () => {
-      this.setFilter('all');
-    });
-    document.getElementById('filterPending')?.addEventListener('click', () => {
-      this.setFilter('pending');
-    });
-    document.getElementById('filterApproved')?.addEventListener('click', () => {
-      this.setFilter('approved');
-    });
-
-    // Keyboard accessibility for stat cards
-    ['filterAll', 'filterPending', 'filterApproved'].forEach(id => {
-      document.getElementById(id)?.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          document.getElementById(id)?.click();
-        }
-      });
-    });
-  }
-
-  setFilter(filterType) {
-    this.filterType = filterType;
-    
-    // Update active state on stat cards
-    document.querySelectorAll('.stat-card').forEach(card => {
-      card.classList.remove('active');
-    });
-    
-    const activeCard = document.getElementById(`filter${filterType.charAt(0).toUpperCase() + filterType.slice(1)}`);
-    if (activeCard) {
-      activeCard.classList.add('active');
-    }
-    
-    // Show/hide approve all button based on filter
-    const approveAllBtn = document.getElementById('approveAllBtn');
-    if (approveAllBtn) {
-      // Only show approve all for pending or all views (when there are pending orders)
-      approveAllBtn.style.display = (filterType !== 'approved' && this.pendingOrders.length > 0) ? 'inline-flex' : 'none';
-    }
-    
-    this.filterAndRenderOrders();
   }
 
   async loadPendingOrders() {
     try {
       console.log('[Order Approval] Loading pending orders...');
-      console.log('[Order Approval] API endpoint: /v1/france-magento/tracking/pending-orders');
       
-      const refreshBtn = document.getElementById('refreshOrdersBtn');
-      if (refreshBtn) {
-        refreshBtn.disabled = true;
-        refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
-      }
-
-      const response = await get('/v1/france-magento/tracking/pending-orders');
-      console.log('[Order Approval] API Response:', response);
-      console.log('[Order Approval] Response type:', typeof response);
+      const response = await get('/v1/magento/tracking/pending-orders?source=france');
       
       if (response && response.orders) {
         this.pendingOrders = response.orders;
         this.approvedTodayOrders = response.approved_today_orders || [];
-        this.approvedTodayCount = response.approved_today || 0;
         
         console.log(`[Order Approval] Loaded ${this.pendingOrders.length} pending orders`);
         console.log(`[Order Approval] Loaded ${this.approvedTodayOrders.length} approved orders today`);
         
-        if (this.pendingOrders.length === 0) {
-          console.warn('[Order Approval] No pending orders found. Check backend logs for details.');
-          
-          // Auto-fetch debug info to help diagnose why
-          try {
-            console.log('[Order Approval] 🔍 Fetching debug info to diagnose empty list...');
-            const debugResponse = await get('/v1/france-magento/tracking/pending-orders/debug');
-            console.log('[Order Approval] 🔍 Debug Info:', debugResponse);
-            
-            if (debugResponse.summary) {
-              console.log(`[Order Approval] 📊 Summary: Found ${debugResponse.summary.total_processing_orders} processing orders in Magento.`);
-              console.log(`[Order Approval] 🧹 Filtered: ${debugResponse.summary.filtered_orders_count} orders already have sessions.`);
-              console.log(`[Order Approval] 📋 Pending: ${debugResponse.summary.pending_orders_count} orders available for approval.`);
-            }
-          } catch (e) {
-            console.error('[Order Approval] Failed to fetch debug info:', e);
-          }
-        } else {
-          const orderNumbers = this.pendingOrders.map(o => o.order_number);
-          console.log('[Order Approval] Order numbers:', orderNumbers);
-        }
-        
         this.updateStatistics();
-        this.filterAndRenderOrders();
+        this.renderAllColumns();
 
-        // Show/hide approve all button based on current filter
+        // Update live status
+        const liveStatus = document.getElementById('liveStatus');
+        if (liveStatus) {
+          liveStatus.classList.add('connected');
+          liveStatus.querySelector('.status-text').textContent = 'Live';
+        }
+
+        // Show/hide approve all button
         const approveAllBtn = document.getElementById('approveAllBtn');
         if (approveAllBtn) {
-          approveAllBtn.style.display = (this.filterType !== 'approved' && this.pendingOrders.length > 0) ? 'inline-flex' : 'none';
+          approveAllBtn.style.display = (this.activeColumn !== 'approved-today' && this.pendingOrders.length > 0) ? 'inline-flex' : 'none';
         }
       }
     } catch (error) {
       console.error('[Order Approval] Error loading pending orders:', error);
       showToast('Failed to load pending orders', 'error');
-      this.renderEmptyState('Failed to load orders. Please try again.');
-    } finally {
-      const refreshBtn = document.getElementById('refreshOrdersBtn');
-      if (refreshBtn) {
-        refreshBtn.disabled = false;
-        refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh Orders';
+      
+      const liveStatus = document.getElementById('liveStatus');
+      if (liveStatus) {
+        liveStatus.classList.remove('connected');
+        liveStatus.querySelector('.status-text').textContent = 'Offline';
       }
     }
   }
 
   updateStatistics() {
-    // All orders count (pending + approved today)
-    const allCount = document.getElementById('allCount');
-    if (allCount) {
-      allCount.textContent = this.pendingOrders.length + this.approvedTodayOrders.length;
-    }
-
-    // Pending count
-    const pendingCount = document.getElementById('pendingCount');
-    if (pendingCount) {
-      pendingCount.textContent = this.pendingOrders.length;
-    }
-
-    // Approved today count
-    const approvedTodayCount = document.getElementById('approvedTodayCount');
-    if (approvedTodayCount) {
-      approvedTodayCount.textContent = this.approvedTodayOrders.length;
-    }
-  }
-
-  filterAndRenderOrders() {
-    let ordersToShow = [];
+    const allOrders = [...this.pendingOrders, ...this.approvedTodayOrders];
     
-    // Determine which orders to show based on filter type
-    switch (this.filterType) {
-      case 'pending':
-        ordersToShow = [...this.pendingOrders];
-        break;
-      case 'approved':
-        ordersToShow = [...this.approvedTodayOrders];
-        break;
-      case 'all':
-      default:
-        ordersToShow = [...this.pendingOrders, ...this.approvedTodayOrders];
-        break;
-    }
-
-    // Apply search filter
-    if (this.searchTerm) {
-      ordersToShow = ordersToShow.filter(order => {
-        return (
-          (order.order_number && order.order_number.toLowerCase().includes(this.searchTerm)) ||
-          (order.customer_name && order.customer_name.toLowerCase().includes(this.searchTerm)) ||
-          (order.customer_email && order.customer_email.toLowerCase().includes(this.searchTerm))
-        );
-      });
-    }
-
-    // Apply sorting
-    ordersToShow.sort((a, b) => {
-      switch (this.sortBy) {
-        case 'date-desc':
-          return new Date(b.created_at) - new Date(a.created_at);
-        case 'date-asc':
-          return new Date(a.created_at) - new Date(b.created_at);
-        case 'value-desc':
-          return parseFloat(b.grand_total || 0) - parseFloat(a.grand_total || 0);
-        case 'value-asc':
-          return parseFloat(a.grand_total || 0) - parseFloat(b.grand_total || 0);
-        default:
-          return 0;
-      }
-    });
-
-    this.renderOrders(ordersToShow);
+    // Update mobile tab counts
+    const mobileAllCount = document.getElementById('mobileAllCount');
+    if (mobileAllCount) mobileAllCount.textContent = allOrders.length;
+    
+    const mobilePendingCount = document.getElementById('mobilePendingCount');
+    if (mobilePendingCount) mobilePendingCount.textContent = this.pendingOrders.length;
+    
+    const mobileApprovedTodayCount = document.getElementById('mobileApprovedTodayCount');
+    if (mobileApprovedTodayCount) mobileApprovedTodayCount.textContent = this.approvedTodayOrders.length;
+    
+    // Update column header counts
+    const allOrdersColumnCount = document.getElementById('allOrdersColumnCount');
+    if (allOrdersColumnCount) allOrdersColumnCount.textContent = allOrders.length;
+    
+    const pendingColumnCount = document.getElementById('pendingColumnCount');
+    if (pendingColumnCount) pendingColumnCount.textContent = this.pendingOrders.length;
+    
+    const approvedTodayColumnCount = document.getElementById('approvedTodayColumnCount');
+    if (approvedTodayColumnCount) approvedTodayColumnCount.textContent = this.approvedTodayOrders.length;
   }
 
-  renderOrders(orders) {
-    const container = document.getElementById('pendingOrdersList');
-    if (!container) return;
+  renderAllColumns() {
+    // All orders column
+    const allOrders = [...this.pendingOrders, ...this.approvedTodayOrders];
+    this.renderColumn('allOrdersColumn', allOrders, 'all');
+    
+    // Pending column
+    this.renderColumn('pendingColumn', this.pendingOrders, 'pending');
+    
+    // Approved today column
+    this.renderColumn('approvedTodayColumn', this.approvedTodayOrders, 'approved');
+  }
 
+  renderColumn(columnId, orders, type) {
+    const columnEl = document.getElementById(columnId);
+    if (!columnEl) return;
+    
+    columnEl.innerHTML = '';
+    
     if (orders.length === 0) {
-      let emptyMessage = 'No orders to display.';
-      if (this.searchTerm) {
-        emptyMessage = 'No orders match your search criteria.';
-      } else if (this.filterType === 'pending') {
-        emptyMessage = 'No pending orders to approve.';
-      } else if (this.filterType === 'approved') {
-        emptyMessage = 'No orders have been approved today.';
-      } else {
-        emptyMessage = 'No orders found.';
-      }
-      this.renderEmptyState(emptyMessage);
+      const emptyMessages = {
+        all: 'No orders to display',
+        pending: 'No pending orders',
+        approved: 'No orders approved today'
+      };
+      columnEl.innerHTML = `
+        <div class="ot-empty">
+          <i class="fas fa-inbox"></i>
+          <span>${emptyMessages[type]}</span>
+        </div>
+      `;
       return;
     }
-
+    
     // Group orders by shipping method
     const groupedOrders = this.groupOrdersByShippingMethod(orders);
     
-    // Build HTML with shipping method sections
-    let html = '';
+    // Render each shipping method group
     groupedOrders.forEach(group => {
       // Add shipping method header
-      html += `
-        <div class="shipping-method-header">
-          <div class="shipping-method-title">
-            <i class="fas fa-shipping-fast"></i>
-            <span>${group.shippingMethod}</span>
-          </div>
-          <span class="shipping-method-count">${group.orders.length}</span>
-        </div>
+      const headerDiv = document.createElement('div');
+      headerDiv.className = 'ot-group-header';
+      headerDiv.innerHTML = `
+        <i class="fas fa-truck"></i>
+        <span>${group.shippingMethod}</span>
+        <span class="ot-group-count">${group.orders.length}</span>
       `;
+      columnEl.appendChild(headerDiv);
       
       // Add orders in this group
-      html += group.orders.map(order => this.createOrderCard(order)).join('');
-    });
-    
-    container.innerHTML = html;
-
-    // Add event listeners to approve buttons
-    orders.forEach(order => {
-      const approveBtn = document.getElementById(`approve-${order.order_id}`);
-      if (approveBtn) {
-        approveBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          this.approveOrder(order.order_id);
-        });
-      }
-
-      const viewBtn = document.getElementById(`view-${order.order_id}`);
-      if (viewBtn) {
-        viewBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          this.showOrderDetails(order);
-        });
-      }
-
-      const card = document.getElementById(`card-${order.order_id}`);
-      if (card) {
-        card.addEventListener('click', () => {
-          this.showOrderDetails(order);
-        });
-      }
+      group.orders.forEach(order => {
+        const card = this.createOrderCard(order, type);
+        columnEl.appendChild(card);
+      });
     });
   }
 
   groupOrdersByShippingMethod(orders) {
-    // Group orders by shipping method
     const groups = {};
     
     orders.forEach(order => {
@@ -326,90 +299,68 @@ class OrderApprovalManager {
       groups[shippingMethod].push(order);
     });
     
-    // Convert to array and sort - "Shipping - Free Standard Delivery" first
     const groupArray = Object.entries(groups).map(([shippingMethod, orders]) => ({
       shippingMethod,
       orders
     }));
     
     groupArray.sort((a, b) => {
-      // "Shipping - Free Standard Delivery" always first
       if (a.shippingMethod === 'Shipping - Free Standard Delivery') return -1;
       if (b.shippingMethod === 'Shipping - Free Standard Delivery') return 1;
-      // Then alphabetically
       return a.shippingMethod.localeCompare(b.shippingMethod);
     });
     
     return groupArray;
   }
 
-  createOrderCard(order) {
-    const createdDate = new Date(order.created_at);
-    const formattedDate = createdDate.toLocaleDateString();
-    const formattedTime = createdDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  createOrderCard(order, type) {
+    const card = document.createElement('div');
+    const isApproved = order.is_approved === true;
+    const cardType = isApproved ? 'approved' : 'pending';
+    card.className = `ot-card ot-card-${cardType}`;
+    card.dataset.orderId = order.order_id;
+    card.dataset.orderNumber = order.order_number;
     
     const itemCount = order.total_qty_ordered || order.total_items || 0;
     const grandTotal = parseFloat(order.grand_total || 0).toFixed(2);
-    const isApproved = order.is_approved === true;
-    const statusText = isApproved ? (order.session_status || 'approved') : (order.status || 'processing');
-    const cardClass = isApproved ? 'pending-order-card approved-card' : 'pending-order-card';
-
-    return `
-      <div class="${cardClass}" id="card-${order.order_id}">
-        <div class="pending-order-info">
-          <div class="pending-order-header">
-            <span class="pending-order-number">#${order.order_number}</span>
-            <span class="order-status-badge ${isApproved ? 'approved' : ''}">${statusText}</span>
-          </div>
-          <div class="pending-order-details">
-            ${order.customer_name ? `
-              <div class="pending-order-detail">
-                <i class="fas fa-user"></i>
-                <span>${order.customer_name}</span>
-              </div>
-            ` : ''}
-            <div class="pending-order-detail">
-              <i class="fas fa-box"></i>
-              <span>${itemCount} item${itemCount !== 1 ? 's' : ''}</span>
-            </div>
-            <div class="pending-order-detail">
-              <i class="fas fa-dollar-sign"></i>
-              <span>$${grandTotal}</span>
-            </div>
-          </div>
-          <div class="pending-order-meta">
-            <span><i class="fas fa-calendar"></i> ${formattedDate}</span>
-            <span><i class="fas fa-clock"></i> ${formattedTime}</span>
-            ${order.customer_email ? `<span><i class="fas fa-envelope"></i> ${order.customer_email}</span>` : ''}
-          </div>
+    const statusText = isApproved ? (order.session_status || 'approved') : 'pending';
+    const statusClass = statusText.replace(/_/g, '-');
+    
+    card.innerHTML = `
+      <div class="ot-card-main">
+        <div class="ot-card-header">
+          <span class="ot-card-order">#${order.order_number}</span>
+          <span class="ot-card-status ${statusClass}">${statusText}</span>
         </div>
-        <div class="pending-order-actions">
-          <button class="view-details-btn" id="view-${order.order_id}">
-            <i class="fas fa-eye"></i>
-            View Details
-          </button>
-          ${!isApproved ? `
-            <button class="approve-btn" id="approve-${order.order_id}">
-              <i class="fas fa-check"></i>
-              Approve
-            </button>
-          ` : ''}
+        <div class="ot-card-details">
+          ${order.customer_name ? `<span><i class="fas fa-user"></i> ${order.customer_name}</span>` : ''}
+          <span><i class="fas fa-dollar-sign"></i> $${grandTotal}</span>
+          <span><i class="fas fa-box"></i> ${itemCount} item${itemCount !== 1 ? 's' : ''}</span>
         </div>
       </div>
+      ${!isApproved ? `
+        <button class="ot-card-approve-btn" title="Approve Order">
+          <i class="fas fa-check"></i>
+        </button>
+      ` : ''}
+      <i class="fas fa-chevron-right ot-card-arrow"></i>
     `;
-  }
-
-  renderEmptyState(message) {
-    const container = document.getElementById('pendingOrdersList');
-    if (!container) return;
-
-    container.innerHTML = `
-      <div class="empty-state">
-        <i class="fas fa-inbox"></i>
-        <h3>No Orders Found</h3>
-        <p>${message}</p>
-      </div>
-    `;
+    
+    // Add click handler for approve button
+    const approveBtn = card.querySelector('.ot-card-approve-btn');
+    if (approveBtn) {
+      approveBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.approveOrder(order.order_id);
+      });
+    }
+    
+    // Add click handler for card (view details)
+    card.addEventListener('click', () => {
+      this.showOrderDetails(order);
+    });
+    
+    return card;
   }
 
   async showOrderDetails(order) {
@@ -425,7 +376,6 @@ class OrderApprovalManager {
       title.textContent = `Order #${order.order_number}`;
     }
 
-    // Hide approve button in modal for already approved orders
     if (approveFromModalBtn) {
       approveFromModalBtn.style.display = isApproved ? 'none' : 'inline-flex';
     }
@@ -493,20 +443,17 @@ class OrderApprovalManager {
 
   async approveOrder(orderId) {
     try {
-      // Find the order to get its order_number
       const order = this.pendingOrders.find(o => o.order_id === orderId);
       if (!order) {
         showToast('Order not found', 'error');
         return;
       }
 
-      // Optimistic UI update - remove from pending immediately
+      // Optimistic UI update
       const orderIndex = this.pendingOrders.findIndex(o => o.order_id === orderId);
       if (orderIndex !== -1) {
-        // Remove from pending
         const [approvedOrder] = this.pendingOrders.splice(orderIndex, 1);
         
-        // Add to approved today with is_approved flag
         const approvedOrderData = {
           ...approvedOrder,
           is_approved: true,
@@ -515,19 +462,17 @@ class OrderApprovalManager {
         };
         this.approvedTodayOrders.push(approvedOrderData);
         
-        // Update UI immediately
         this.updateStatistics();
-        this.filterAndRenderOrders();
+        this.renderAllColumns();
         
-        // Close modal if open
         const modal = document.getElementById('orderDetailsModal');
         if (modal) {
           modal.classList.remove('active');
         }
       }
 
-      // Send API request in background (don't await blocking the UI)
-      post('/v1/france-magento/tracking/approve-order', {
+      // Send API request in background
+      post('/v1/magento/tracking/approve-order', {
         order_number: order.order_number
       }).then(response => {
         if (response && response.session_id) {
@@ -536,8 +481,6 @@ class OrderApprovalManager {
       }).catch(error => {
         console.error('[Order Approval] Error approving order:', error);
         showToast(error.detail || 'Failed to approve order', 'error');
-        
-        // Revert optimistic update on error - reload from server
         this.loadPendingOrders();
       });
 
@@ -570,7 +513,7 @@ class OrderApprovalManager {
 
     for (const order of this.pendingOrders) {
       try {
-        await post('/v1/france-magento/tracking/approve-order', {
+        await post('/v1/magento/tracking/approve-order', {
           order_number: order.order_number
         });
         successCount++;
@@ -588,7 +531,6 @@ class OrderApprovalManager {
       showToast(`Failed to approve ${failCount} order${failCount !== 1 ? 's' : ''}`, 'error');
     }
 
-    // Reload orders
     await this.loadPendingOrders();
 
     if (approveAllBtn) {
@@ -598,7 +540,6 @@ class OrderApprovalManager {
   }
 
   async setupWebSocket() {
-    // Connect to WebSocket if not already connected
     const currentUser = getUserData();
     if (currentUser && currentUser.username) {
       try {
@@ -608,12 +549,22 @@ class OrderApprovalManager {
         }
         wsService.joinRoom('france_orders');
         console.log('[France Order Approval] Joined france_orders room');
+        
+        const liveStatus = document.getElementById('liveStatus');
+        if (liveStatus) {
+          liveStatus.classList.add('connected');
+          liveStatus.querySelector('.status-text').textContent = 'Live';
+        }
       } catch (error) {
         console.error('[France Order Approval] WebSocket connection failed:', error);
+        const liveStatus = document.getElementById('liveStatus');
+        if (liveStatus) {
+          liveStatus.classList.remove('connected');
+          liveStatus.querySelector('.status-text').textContent = 'Offline';
+        }
       }
     }
     
-    // Listen for order events to refresh pending orders
     wsService.on('order_status_changed', this.handleOrderUpdate.bind(this));
     wsService.on('order_created', this.handleOrderUpdate.bind(this));
     wsService.on('order_deleted', this.handleOrderUpdate.bind(this));
@@ -623,36 +574,29 @@ class OrderApprovalManager {
 
   handleOrderUpdate(data) {
     console.log('[Order Approval] Order update received:', data);
-    // Reload pending orders without showing loading state
     this.loadPendingOrders();
   }
 
   cleanup() {
     console.log('[France Order Approval] Cleaning up...');
-    // Clean up WebSocket listeners
     wsService.off('order_status_changed', this.handleOrderUpdate);
     wsService.off('order_created', this.handleOrderUpdate);
     wsService.off('order_deleted', this.handleOrderUpdate);
     
-    // Leave room if connected
     if (wsService.isConnected()) {
       wsService.leaveRoom('france_orders');
     }
   }
 }
 
-// Module instance
 let approvalManager;
 
-// Initialize the module
 export async function init() {
   console.log('[Order Approval] Initializing module...');
   showToast('Initializing approval system...', 'info');
   
-  // Wait for DOM to be ready - use requestAnimationFrame to ensure DOM is painted after innerHTML injection
   await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   
-  // First ensure tables exist
   try {
     const { ensureOrderTablesExist } = await import('../../services/api/ordersApi.js');
     await ensureOrderTablesExist();
@@ -661,7 +605,6 @@ export async function init() {
     showToast('Warning: Could not verify database tables', 'warning');
   }
   
-  // Clean up previous instance if exists
   if (approvalManager) {
     approvalManager.cleanup();
   }
@@ -671,7 +614,6 @@ export async function init() {
   await approvalManager.initialize();
 }
 
-// Cleanup function
 export function cleanup() {
   console.log('[Order Approval] Cleaning up module...');
   if (approvalManager) {
