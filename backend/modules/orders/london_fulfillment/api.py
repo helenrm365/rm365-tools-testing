@@ -222,7 +222,7 @@ async def start_session(
                 'status': 'in_progress',
                 'user_id': user_id
             },
-            room='order-tracking'
+            room='london_orders'
         )
         
         return session
@@ -368,7 +368,7 @@ async def complete_session(
                 'status': 'completed',
                 'completed_by': user_id
             },
-            room='order-tracking'
+            room='london_orders'
         )
         
         return {
@@ -869,7 +869,7 @@ async def mark_order_ready_to_check(
                 'status': 'ready_to_check',
                 'changed_by': user_id
             },
-            room='order-tracking'
+            room='london_orders'
         )
         
         return {
@@ -929,7 +929,7 @@ async def send_back_for_picking(
                 'status': 'draft',
                 'changed_by': user_id
             },
-            room='order-tracking'
+            room='london_orders'
         )
         
         return {
@@ -1159,7 +1159,7 @@ async def approve_order_for_picking(
                 'status': 'approved',
                 'approved_by': user_id
             },
-            room='order-tracking'
+            room='london_orders'
         )
         
         return {

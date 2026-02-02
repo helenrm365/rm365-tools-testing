@@ -1,6 +1,7 @@
 import { get, post } from '../../services/api/http.js';
 import { showToast } from '../../ui/toast.js';
 import { wsService } from '../../services/websocket.js';
+import { getUserData } from '../../services/state/sessionStore.js';
 
 class OrderApprovalManager {
   constructor() {
@@ -16,7 +17,7 @@ class OrderApprovalManager {
   async initialize() {
     this.setupEventListeners();
     await this.loadPendingOrders();
-    this.setupWebSocket();
+    await this.setupWebSocket();
   }
 
   setupEventListeners() {
@@ -596,13 +597,28 @@ class OrderApprovalManager {
     }
   }
 
-  setupWebSocket() {
+  async setupWebSocket() {
+    // Connect to WebSocket if not already connected
+    const currentUser = getUserData();
+    if (currentUser && currentUser.username) {
+      try {
+        if (!wsService.isConnected()) {
+          await wsService.connect(currentUser);
+          console.log('[London Order Approval] WebSocket connected');
+        }
+        wsService.joinRoom('london_orders');
+        console.log('[London Order Approval] Joined london_orders room');
+      } catch (error) {
+        console.error('[London Order Approval] WebSocket connection failed:', error);
+      }
+    }
+    
     // Listen for order events to refresh pending orders
     wsService.on('order_status_changed', this.handleOrderUpdate.bind(this));
     wsService.on('order_created', this.handleOrderUpdate.bind(this));
     wsService.on('order_deleted', this.handleOrderUpdate.bind(this));
     
-    console.log('[Order Approval] WebSocket listeners set up for real-time updates');
+    console.log('[London Order Approval] WebSocket listeners set up for real-time updates');
   }
 
   handleOrderUpdate(data) {
@@ -612,10 +628,16 @@ class OrderApprovalManager {
   }
 
   cleanup() {
+    console.log('[London Order Approval] Cleaning up...');
     // Clean up WebSocket listeners
     wsService.off('order_status_changed', this.handleOrderUpdate);
     wsService.off('order_created', this.handleOrderUpdate);
     wsService.off('order_deleted', this.handleOrderUpdate);
+    
+    // Leave room if connected
+    if (wsService.isConnected()) {
+      wsService.leaveRoom('london_orders');
+    }
   }
 }
 

@@ -35,11 +35,11 @@ export async function init() {
 }
 
 export function cleanup() {
-  console.log('[Order Tracking] Cleaning up...');
+  console.log('[London Order Tracking] Cleaning up...');
   
   // Leave WebSocket room (if connected)
   if (wsService.isConnected()) {
-    wsService.leaveRoom('order-tracking');
+    wsService.leaveRoom('london_orders');
   }
 }
 
@@ -158,8 +158,8 @@ function initializeWebSocket() {
   const currentUser = getUserData();
   if (currentUser && currentUser.username) {
     wsService.connect(currentUser).then(() => {
-      console.log('[Order Tracking] WebSocket connected, joining room');
-      wsService.joinRoom('order-tracking');
+      console.log('[London Order Tracking] WebSocket connected, joining london_orders room');
+      wsService.joinRoom('london_orders');
       
       // Update status indicator
       if (liveStatus) {
@@ -167,7 +167,7 @@ function initializeWebSocket() {
         liveStatus.querySelector('.status-text').textContent = 'Live';
       }
     }).catch(error => {
-      console.error('[Order Tracking] WebSocket connection failed:', error);
+      console.error('[London Order Tracking] WebSocket connection failed:', error);
       if (liveStatus) {
         liveStatus.classList.remove('connected');
         liveStatus.querySelector('.status-text').textContent = 'Offline';

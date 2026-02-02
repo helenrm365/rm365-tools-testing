@@ -238,10 +238,26 @@ async def disconnect(sid):
 
 @sio.event
 async def join_inventory_room(sid, data):
-    """User joins inventory management room"""
+    """User joins inventory/order management room
+    
+    Supports region-specific rooms for order fulfillment:
+    - 'birmingham_orders' - Birmingham branch orders
+    - 'france_orders' - France/NL orders  
+    - 'london_orders' - London branch orders
+    - 'inventory_management' - General inventory (legacy/default)
+    """
     user_id = data.get('user_id')
     username = data.get('username')
-    room_id = 'inventory_management'  # Single room for inventory management
+    # Use room from client, default to inventory_management for backwards compatibility
+    room_id = data.get('room', 'inventory_management')
+    
+    # Validate room name (whitelist allowed rooms)
+    allowed_rooms = {'inventory_management', 'birmingham_orders', 'france_orders', 'london_orders'}
+    if room_id not in allowed_rooms:
+        logger.warning(f"[WebSocket] Invalid room requested: {room_id}, defaulting to inventory_management")
+        room_id = 'inventory_management'
+    
+    logger.info(f"[WebSocket] User {username} (sid: {sid}) joining room: {room_id}")
     
     # Join Socket.IO room
     await sio.enter_room(sid, room_id)
@@ -264,6 +280,29 @@ async def join_inventory_room(sid, data):
         'username': username,
         'color': room_state['user']['color']
     }, room=room_id, skip_sid=sid)
+
+
+@sio.event
+async def leave_room(sid, data):
+    """User leaves a room (e.g., when navigating to different page)"""
+    room_id = data.get('room')
+    if not room_id:
+        logger.warning(f"[WebSocket] leave_room called without room name from sid: {sid}")
+        return
+    
+    logger.info(f"[WebSocket] Client {sid} leaving room: {room_id}")
+    
+    # Leave Socket.IO room
+    await sio.leave_room(sid, room_id)
+    
+    # Notify others in room
+    session_info = presence_manager.sessions.get(sid, {})
+    if session_info:
+        await sio.emit('user_left', {
+            'user_id': session_info.get('user_id'),
+            'username': session_info.get('username'),
+            'room_id': room_id
+        }, room=room_id, skip_sid=sid)
 
 
 @sio.event

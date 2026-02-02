@@ -20,6 +20,7 @@ class WebSocketService {
 
   /**
    * Initialize WebSocket connection
+   * Returns a promise that resolves when the connection is established
    */
   async connect(user) {
     if (this.connected) {
@@ -53,6 +54,31 @@ class WebSocketService {
       });
 
       this._setupEventHandlers();
+      
+      // Wait for the connection to be established (or fail)
+      await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('WebSocket connection timeout after 10s'));
+        }, 10000);
+        
+        // Resolve on successful connection
+        this.socket.once('connect', () => {
+          clearTimeout(timeout);
+          resolve();
+        });
+        
+        // Also resolve if already connected (connection might be faster than this promise setup)
+        if (this.socket.connected) {
+          clearTimeout(timeout);
+          resolve();
+        }
+        
+        // Reject on connection error
+        this.socket.once('connect_error', (err) => {
+          clearTimeout(timeout);
+          reject(err);
+        });
+      });
       
     } catch (error) {
       console.error('[WebSocket] Connection error:', error);
@@ -212,6 +238,23 @@ class WebSocketService {
     }
 
     this._attemptRoomJoin();
+  }
+
+  /**
+   * Leave a room
+   */
+  leaveRoom(roomName) {
+    if (!this.socket || !this.connected) {
+      console.warn('[WebSocket] Cannot leave room - not connected');
+      return;
+    }
+
+    console.log('[WebSocket] Leaving room:', roomName);
+    this.socket.emit('leave_room', { room: roomName });
+    
+    if (this.activeRoom === roomName) {
+      this.activeRoom = null;
+    }
   }
 
   /**

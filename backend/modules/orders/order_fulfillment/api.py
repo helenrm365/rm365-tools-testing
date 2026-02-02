@@ -222,7 +222,7 @@ async def start_session(
                 'status': 'in_progress',
                 'user_id': user_id
             },
-            room='order-tracking'
+            room='birmingham_orders'
         )
         
         return session
@@ -368,7 +368,7 @@ async def complete_session(
                 'status': 'completed',
                 'completed_by': user_id
             },
-            room='order-tracking'
+            room='birmingham_orders'
         )
         
         return {
@@ -492,7 +492,7 @@ def check_session_ownership(
 
 
 @router.post("/sessions/{session_id}/claim")
-def claim_session(
+async def claim_session(
     session_id: str,
     current_user: dict = Depends(get_current_user),
     service: OrderFulfillmentService = Depends(_service)
@@ -510,6 +510,17 @@ def claim_session(
                 detail="Cannot claim this session. It may already be in progress or not in draft status."
             )
         
+        # Emit WebSocket event for real-time updates
+        await sio.emit(
+            'board_update',
+            {
+                'action': 'session_claimed',
+                'session_id': session_id,
+                'claimed_by': user_id
+            },
+            room='birmingham_orders'
+        )
+        
         return {
             "success": True,
             "message": "Session claimed successfully",
@@ -526,7 +537,7 @@ def claim_session(
 
 
 @router.post("/sessions/{session_id}/release")
-def release_session(
+async def release_session(
     session_id: str,
     current_user: dict = Depends(get_current_user),
     service: OrderFulfillmentService = Depends(_service)
@@ -543,6 +554,17 @@ def release_session(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Cannot release this session"
             )
+        
+        # Emit WebSocket event for real-time updates
+        await sio.emit(
+            'board_update',
+            {
+                'action': 'session_released',
+                'session_id': session_id,
+                'released_by': user_id
+            },
+            room='birmingham_orders'
+        )
         
         return {
             "success": True,
@@ -869,7 +891,7 @@ async def mark_order_ready_to_check(
                 'status': 'ready_to_check',
                 'changed_by': user_id
             },
-            room='order-tracking'
+            room='birmingham_orders'
         )
         
         return {
@@ -929,7 +951,7 @@ async def send_back_for_picking(
                 'status': 'draft',
                 'changed_by': user_id
             },
-            room='order-tracking'
+            room='birmingham_orders'
         )
         
         return {
@@ -1163,7 +1185,7 @@ async def approve_order_for_picking(
                 'status': 'approved',
                 'approved_by': user_id
             },
-            room='order-tracking'
+            room='birmingham_orders'
         )
         
         return {

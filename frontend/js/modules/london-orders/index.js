@@ -1,12 +1,37 @@
 // js/modules/london-orders/index.js
 // Router for London Orders module - uses UK London branch inventory (London Office Collection)
 
-let currentSubModule = null;
+// Use window-scoped state to survive cache-busting reimports
+const MODULE_KEY = '__londonOrdersModule';
+
+function getState() {
+  if (!window[MODULE_KEY]) {
+    window[MODULE_KEY] = { currentSubModule: null, currentSubModulePath: null };
+  }
+  return window[MODULE_KEY];
+}
 
 export async function init(path) {
-  // Clean up previous sub-module
-  if (currentSubModule?.destroy) {
-    await currentSubModule.destroy();
+  console.log('[London index.js] init() called with path:', path);
+  const state = getState();
+  
+  // Determine which sub-module we're routing to
+  let targetSubModule = 'order-fulfillment';
+  if (path.includes('/order-progress')) targetSubModule = 'order-progress';
+  else if (path.includes('/order-tracking')) targetSubModule = 'order-tracking';
+  else if (path.includes('/order-approval')) targetSubModule = 'order-approval';
+  
+  console.log('[London index.js] Target sub-module:', targetSubModule, 'Current:', state.currentSubModulePath);
+  
+  // Clean up previous sub-module if switching to a different one
+  if (state.currentSubModule && state.currentSubModulePath !== targetSubModule) {
+    console.log('[London index.js] Cleaning up previous sub-module:', state.currentSubModulePath);
+    if (state.currentSubModule.cleanup) {
+      await state.currentSubModule.cleanup();
+    } else if (state.currentSubModule.destroy) {
+      await state.currentSubModule.destroy();
+    }
+    state.currentSubModule = null;
   }
   
   // Cache-busting timestamp for sub-module imports
@@ -16,26 +41,43 @@ export async function init(path) {
   if (path.includes('/order-progress')) {
     const mod = await import(`./order-progress.js${cacheBust}`);
     await mod.init();
-    currentSubModule = mod;
+    state.currentSubModule = mod;
+    state.currentSubModulePath = 'order-progress';
   } else if (path.includes('/order-tracking')) {
     const mod = await import(`./order-tracking.js${cacheBust}`);
     await mod.init();
-    currentSubModule = mod;
+    state.currentSubModule = mod;
+    state.currentSubModulePath = 'order-tracking';
   } else if (path.includes('/order-approval')) {
     const mod = await import(`./order-approval.js${cacheBust}`);
     await mod.init();
-    currentSubModule = mod;
+    state.currentSubModule = mod;
+    state.currentSubModulePath = 'order-approval';
   } else {
     // Default to order-fulfillment (first sub-page)
     const mod = await import(`./order-fulfillment.js${cacheBust}`);
     await mod.init(path);
-    currentSubModule = mod;
+    state.currentSubModule = mod;
+    state.currentSubModulePath = 'order-fulfillment';
   }
+  console.log('[London index.js] init() complete, current sub-module:', state.currentSubModulePath);
 }
 
 export async function destroy() {
-  if (currentSubModule?.destroy) {
-    await currentSubModule.destroy();
+  console.log('[London index.js] destroy() called');
+  const state = getState();
+  if (state.currentSubModule) {
+    console.log('[London index.js] Destroying sub-module:', state.currentSubModulePath);
+    if (state.currentSubModule.cleanup) {
+      await state.currentSubModule.cleanup();
+    } else if (state.currentSubModule.destroy) {
+      await state.currentSubModule.destroy();
+    }
   }
-  currentSubModule = null;
+  state.currentSubModule = null;
+  state.currentSubModulePath = null;
+  console.log('[London index.js] destroy() complete');
 }
+
+// Alias for router compatibility
+export { destroy as cleanup };

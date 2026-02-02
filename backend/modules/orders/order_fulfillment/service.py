@@ -1383,7 +1383,7 @@ class OrderFulfillmentService:
                     'cancelled_by': admin_user_id,
                     'reason': reason,
                     'message': message
-                }, room='inventory_management')
+                }, room='birmingham_orders')
             except Exception as e:
                 pass
         

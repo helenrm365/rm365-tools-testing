@@ -438,14 +438,19 @@ export async function navigate(path, replace = false) {
     // Lazy-load tab-specific JavaScript
     // First, cleanup the previous module if it exists and we're changing sections
     const newSection = path.split('/')[1];
+    console.log('[Router] Section transition:', currentModulePath, '→', newSection);
     if (currentModule && currentModule.cleanup && currentModulePath !== newSection) {
+      console.log('[Router] Calling cleanup() on previous module:', currentModulePath);
       try {
-        currentModule.cleanup();
+        await currentModule.cleanup();
+        console.log('[Router] Cleanup completed for:', currentModulePath);
       } catch (e) {
         console.warn('[Router] Cleanup error:', e);
       }
       currentModule = null;
       currentModulePath = null;
+    } else if (currentModulePath === newSection) {
+      console.log('[Router] Same section, skipping cleanup');
     }
     
     // Cache-busting timestamp for module imports (ensures fresh versions after updates)

@@ -1377,7 +1377,7 @@ class FranceOrderFulfillmentService:
                     'cancelled_by': admin_user_id,
                     'reason': reason,
                     'message': message
-                }, room='inventory_management')
+                }, room='france_orders')
             except Exception as e:
                 pass
         

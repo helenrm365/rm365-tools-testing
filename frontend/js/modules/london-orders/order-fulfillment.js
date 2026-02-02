@@ -88,8 +88,8 @@ class MagentoPickPackManager {
         console.log('[MagentoPickPack] WebSocket already connected');
       }
 
-      wsService.joinRoom('inventory_management');
-      console.log('[MagentoPickPack] Requested to join inventory_management room');
+      wsService.joinRoom('london_orders');
+      console.log('[MagentoPickPack] Requested to join london_orders room');
     } catch (error) {
       console.warn('[MagentoPickPack] Failed to ensure realtime connection:', error);
     }
@@ -125,9 +125,13 @@ class MagentoPickPackManager {
     wsService.on('connected', this.updateLiveStatus);
     wsService.on('disconnected', this.updateLiveStatus);
     wsService.on('connection_error', this.updateLiveStatus);
+    
+    // Update live status immediately to reflect current connection state
+    this.updateLiveStatus();
   }
 
   cleanupWebSocket() {
+    console.log('[London cleanupWebSocket] Removing WebSocket handlers');
     wsService.off('takeover_request', this.handleTakeoverRequest);
     wsService.off('takeover_response', this.handleTakeoverResponse);
     wsService.off('session_transferred', this.handleSessionTransferred);
@@ -140,6 +144,7 @@ class MagentoPickPackManager {
     wsService.off('connected', this.updateLiveStatus);
     wsService.off('disconnected', this.updateLiveStatus);
     wsService.off('connection_error', this.updateLiveStatus);
+    console.log('[London cleanupWebSocket] Handlers removed');
     
     // Clean up resize handler
     if (this.resizeHandler) {
@@ -848,12 +853,22 @@ class MagentoPickPackManager {
   }
 
   async showOrderLookup(isInitialLoad = false) {
-    console.log('[showOrderLookup] Starting - hiding session, showing lookup');
+    console.log('[London showOrderLookup] Starting - hiding session, showing lookup');
+    console.log('[London showOrderLookup] DOM elements:', {
+      activeSessionSection: !!this.activeSessionSection,
+      orderLookupSection: !!this.orderLookupSection
+    });
+    
+    if (!this.activeSessionSection || !this.orderLookupSection) {
+      console.error('[London showOrderLookup] CRITICAL: Missing DOM elements!');
+      showToast('Error: Missing DOM elements - please refresh', 'error');
+      return;
+    }
     
     this.activeSessionSection.style.display = 'none';
     this.orderLookupSection.style.display = 'block';
     
-    console.log('[showOrderLookup] Section visibility updated:', {
+    console.log('[London showOrderLookup] Section visibility updated:', {
       activeSession: this.activeSessionSection?.style.display,
       orderLookup: this.orderLookupSection?.style.display
     });
@@ -937,7 +952,12 @@ class MagentoPickPackManager {
     const countEl = document.getElementById(column.count);
     const mobileCountEl = document.getElementById(column.mobileCount);
     
-    if (!columnEl || !countEl) return;
+    console.log('[London updateColumn]', columnName, '- columnEl:', !!columnEl, 'countEl:', !!countEl, 'orders:', orders.length);
+    
+    if (!columnEl || !countEl) {
+      console.error('[London updateColumn] Missing DOM element for column:', columnName, 'columnEl:', !!columnEl, 'countEl:', !!countEl);
+      return;
+    }
     
     // Update count
     countEl.textContent = orders.length;
@@ -2355,28 +2375,33 @@ export async function init(path) {
     showToast('Warning: Could not verify database tables', 'warning');
   }
   
-  if (!window.__magentoPickPackInitialized) {
-    // Wait for DOM to be ready - use requestAnimationFrame to ensure DOM is painted after innerHTML injection
-    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-    
-    showToast('Setting up tracking board...', 'info');
-    const manager = new MagentoPickPackManager(path);
-    window.__magentoPickPackManager = manager;
-    window.__magentoPickPackInitialized = true;
-    
-    // Ensure WebSocket connection is established BEFORE loading data
-    showToast('Connecting to WebSocket...', 'info');
-    await manager.ensureRealtimeConnection();
-    
-    // Now load the tracking board data
-    showToast('Loading tracking data...', 'info');
-    manager.initialLoadPromise = manager.checkSessionFromPath(path);
-    await manager.initialLoadPromise;
-  } else if (window.__magentoPickPackManager) {
-    showToast('Loading session data...', 'info');
-    // Module already initialized, just check if we need to load a session from path
-    await window.__magentoPickPackManager.checkSessionFromPath(path);
+  // Always clean up any existing manager first (DOM elements are new after navigation)
+  if (window.__magentoPickPackManager) {
+    try {
+      window.__magentoPickPackManager.cleanupWebSocket();
+    } catch (e) {
+      console.warn('[OrderFulfillment] Error cleaning up previous manager:', e);
+    }
+    window.__magentoPickPackManager = null;
   }
+  window.__magentoPickPackInitialized = false;
+  
+  // Wait for DOM to be ready - use requestAnimationFrame to ensure DOM is painted after innerHTML injection
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  
+  showToast('Setting up tracking board...', 'info');
+  const manager = new MagentoPickPackManager(path);
+  window.__magentoPickPackManager = manager;
+  window.__magentoPickPackInitialized = true;
+  
+  // Ensure WebSocket connection is established BEFORE loading data
+  showToast('Connecting to WebSocket...', 'info');
+  await manager.ensureRealtimeConnection();
+  
+  // Now load the tracking board data
+  showToast('Loading tracking data...', 'info');
+  manager.initialLoadPromise = manager.checkSessionFromPath(path);
+  await manager.initialLoadPromise;
 }
 
 // Helper function to ensure tab highlighting
@@ -2411,17 +2436,5 @@ export function cleanup() {
 }
 
 // Also support direct script inclusion (fallback) - but this shouldn't run when using router
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    // Only init if not already initialized by router
-    if (!window.__magentoPickPackInitialized) {
-      window.__magentoPickPackInitialized = true;
-      window.__magentoPickPackManager = new MagentoPickPackManager();
-    }
-  });
-} else {
-  if (!window.__magentoPickPackInitialized) {
-    window.__magentoPickPackInitialized = true;
-    window.__magentoPickPackManager = new MagentoPickPackManager();
-  }
-}
+// REMOVED: Legacy auto-init code that bypassed proper init() function
+// The router now always calls init() which handles DOM readiness and WebSocket connection

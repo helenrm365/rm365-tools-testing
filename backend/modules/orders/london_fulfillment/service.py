@@ -1377,7 +1377,7 @@ class LondonOrderFulfillmentService:
                     'cancelled_by': admin_user_id,
                     'reason': reason,
                     'message': message
-                }, room='inventory_management')
+                }, room='london_orders')
             except Exception as e:
                 pass
         

@@ -39,7 +39,7 @@ export function cleanup() {
   
   // Leave WebSocket room (if connected)
   if (wsService.isConnected()) {
-    wsService.leaveRoom('order-tracking');
+    wsService.leaveRoom('birmingham_orders');
   }
 }
 
@@ -158,8 +158,8 @@ function initializeWebSocket() {
   const currentUser = getUserData();
   if (currentUser && currentUser.username) {
     wsService.connect(currentUser).then(() => {
-      console.log('[Order Tracking] WebSocket connected, joining room');
-      wsService.joinRoom('order-tracking');
+      console.log('[Order Tracking] WebSocket connected, joining birmingham_orders room');
+      wsService.joinRoom('birmingham_orders');
       
       // Update status indicator
       if (liveStatus) {

@@ -88,8 +88,8 @@ class MagentoPickPackManager {
         console.log('[MagentoPickPack] WebSocket already connected');
       }
 
-      wsService.joinRoom('inventory_management');
-      console.log('[MagentoPickPack] Requested to join inventory_management room');
+      wsService.joinRoom('france_orders');
+      console.log('[MagentoPickPack] Requested to join france_orders room');
     } catch (error) {
       console.warn('[MagentoPickPack] Failed to ensure realtime connection:', error);
     }
@@ -125,9 +125,13 @@ class MagentoPickPackManager {
     wsService.on('connected', this.updateLiveStatus);
     wsService.on('disconnected', this.updateLiveStatus);
     wsService.on('connection_error', this.updateLiveStatus);
+    
+    // Update live status immediately to reflect current connection state
+    this.updateLiveStatus();
   }
 
   cleanupWebSocket() {
+    console.log('[France cleanupWebSocket] Removing WebSocket handlers');
     wsService.off('takeover_request', this.handleTakeoverRequest);
     wsService.off('takeover_response', this.handleTakeoverResponse);
     wsService.off('session_transferred', this.handleSessionTransferred);
@@ -140,6 +144,7 @@ class MagentoPickPackManager {
     wsService.off('connected', this.updateLiveStatus);
     wsService.off('disconnected', this.updateLiveStatus);
     wsService.off('connection_error', this.updateLiveStatus);
+    console.log('[France cleanupWebSocket] Handlers removed');
     
     // Clean up resize handler
     if (this.resizeHandler) {
@@ -848,12 +853,22 @@ class MagentoPickPackManager {
   }
 
   async showOrderLookup(isInitialLoad = false) {
-    console.log('[showOrderLookup] Starting - hiding session, showing lookup');
+    console.log('[France showOrderLookup] Starting - hiding session, showing lookup');
+    console.log('[France showOrderLookup] DOM elements:', {
+      activeSessionSection: !!this.activeSessionSection,
+      orderLookupSection: !!this.orderLookupSection
+    });
+    
+    if (!this.activeSessionSection || !this.orderLookupSection) {
+      console.error('[France showOrderLookup] CRITICAL: Missing DOM elements!');
+      showToast('Error: Missing DOM elements - please refresh', 'error');
+      return;
+    }
     
     this.activeSessionSection.style.display = 'none';
     this.orderLookupSection.style.display = 'block';
     
-    console.log('[showOrderLookup] Section visibility updated:', {
+    console.log('[France showOrderLookup] Section visibility updated:', {
       activeSession: this.activeSessionSection?.style.display,
       orderLookup: this.orderLookupSection?.style.display
     });
@@ -905,23 +920,35 @@ class MagentoPickPackManager {
   }
   
   async loadTrackingBoard() {
+    console.log('[France loadTrackingBoard] Starting...');
     // No loading screen - router handles initial load, WebSocket handles updates
     try {
       const url = `${getApiUrl()}/v1/france-magento/tracking/board`;
+      console.log('[France loadTrackingBoard] Fetching from:', url);
       const response = await fetch(url, { headers: getAuthHeaders() });
       
       if (!response.ok) {
+        console.error('[France loadTrackingBoard] Response not OK:', response.status, response.statusText);
+        showToast(`API Error: ${response.status} ${response.statusText}`, 'error');
         throw new Error('Failed to load tracking board');
       }
       
       const data = await response.json();
+      console.log('[France loadTrackingBoard] Data received:', {
+        ready_to_pick: data.ready_to_pick?.length || 0,
+        ready_to_check: data.ready_to_check?.length || 0,
+        completed: data.completed?.length || 0
+      });
       
       // Update each column
       this.updateColumn('readyToPick', data.ready_to_pick || []);
       this.updateColumn('readyToCheck', data.ready_to_check || []);
       this.updateColumn('completed', data.completed || []);
+      console.log('[France loadTrackingBoard] Complete');
+      showToast(`Loaded ${(data.ready_to_pick?.length || 0) + (data.ready_to_check?.length || 0)} orders`, 'success');
     } catch (error) {
-      console.error('[Order Fulfillment] Error loading tracking board:', error);
+      console.error('[France Order Fulfillment] Error loading tracking board:', error);
+      showToast(`Failed to load: ${error.message}`, 'error');
     }
   }
   
@@ -937,7 +964,12 @@ class MagentoPickPackManager {
     const countEl = document.getElementById(column.count);
     const mobileCountEl = document.getElementById(column.mobileCount);
     
-    if (!columnEl || !countEl) return;
+    console.log('[France updateColumn]', columnName, '- columnEl:', !!columnEl, 'countEl:', !!countEl, 'orders:', orders.length);
+    
+    if (!columnEl || !countEl) {
+      console.error('[France updateColumn] Missing DOM element for column:', columnName, 'columnEl:', !!columnEl, 'countEl:', !!countEl);
+      return;
+    }
     
     // Update count
     countEl.textContent = orders.length;
@@ -2344,6 +2376,7 @@ class MagentoPickPackManager {
 
 // Module initialization and export
 export async function init(path) {
+  console.log('[France OrderFulfillment] init() called with path:', path);
   showToast('Initializing Order Fulfillment...', 'info');
   
   // First ensure tables exist
@@ -2351,32 +2384,60 @@ export async function init(path) {
     const { ensureOrderTablesExist } = await import('../../services/api/ordersApi.js');
     await ensureOrderTablesExist();
   } catch (error) {
-    console.error('[OrderFulfillment] Failed to check/initialize tables:', error);
+    console.error('[France OrderFulfillment] Failed to check/initialize tables:', error);
     showToast('Warning: Could not verify database tables', 'warning');
   }
   
-  if (!window.__magentoPickPackInitialized) {
-    // Wait for DOM to be ready - use requestAnimationFrame to ensure DOM is painted after innerHTML injection
-    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-    
-    showToast('Setting up tracking board...', 'info');
-    const manager = new MagentoPickPackManager(path);
-    window.__magentoPickPackManager = manager;
-    window.__magentoPickPackInitialized = true;
-    
-    // Ensure WebSocket connection is established BEFORE loading data
-    showToast('Connecting to WebSocket...', 'info');
-    await manager.ensureRealtimeConnection();
-    
-    // Now load the tracking board data
-    showToast('Loading tracking data...', 'info');
-    manager.initialLoadPromise = manager.checkSessionFromPath(path);
-    await manager.initialLoadPromise;
-  } else if (window.__magentoPickPackManager) {
-    showToast('Loading session data...', 'info');
-    // Module already initialized, just check if we need to load a session from path
-    await window.__magentoPickPackManager.checkSessionFromPath(path);
+  // Always clean up any existing manager first (DOM elements are new after navigation)
+  if (window.__magentoPickPackManager) {
+    console.log('[France OrderFulfillment] Cleaning up existing manager');
+    try {
+      window.__magentoPickPackManager.cleanupWebSocket();
+    } catch (e) {
+      console.warn('[France OrderFulfillment] Error cleaning up previous manager:', e);
+    }
+    window.__magentoPickPackManager = null;
   }
+  window.__magentoPickPackInitialized = false;
+  
+  // Wait for DOM to be ready - use requestAnimationFrame to ensure DOM is painted after innerHTML injection
+  console.log('[France OrderFulfillment] Waiting for DOM with double RAF...');
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  console.log('[France OrderFulfillment] DOM should be ready now');
+  
+  // Verify DOM elements exist
+  const orderLookupSection = document.getElementById('orderLookupSection');
+  const trackingBoard = document.getElementById('trackingBoard');
+  console.log('[France OrderFulfillment] DOM check - orderLookupSection:', !!orderLookupSection, 'trackingBoard:', !!trackingBoard);
+  
+  if (!orderLookupSection) {
+    console.error('[France OrderFulfillment] CRITICAL: orderLookupSection not found in DOM!');
+    showToast('Error: Page structure not loaded correctly', 'error');
+    return;
+  }
+  
+  showToast('Setting up tracking board...', 'info');
+  const manager = new MagentoPickPackManager(path);
+  window.__magentoPickPackManager = manager;
+  window.__magentoPickPackInitialized = true;
+  
+  console.log('[France OrderFulfillment] Manager created, elements:', {
+    orderLookupSection: !!manager.orderLookupSection,
+    activeSessionSection: !!manager.activeSessionSection
+  });
+  
+  // Ensure WebSocket connection is established BEFORE loading data
+  showToast('Connecting to WebSocket...', 'info');
+  console.log('[France OrderFulfillment] Calling ensureRealtimeConnection...');
+  await manager.ensureRealtimeConnection();
+  console.log('[France OrderFulfillment] WebSocket connection attempt complete');
+  
+  // Now load the tracking board data
+  showToast('Loading tracking data...', 'info');
+  console.log('[France OrderFulfillment] Calling checkSessionFromPath...');
+  manager.initialLoadPromise = manager.checkSessionFromPath(path);
+  await manager.initialLoadPromise;
+  console.log('[France OrderFulfillment] init() complete');
 }
 
 // Helper function to ensure tab highlighting
@@ -2396,8 +2457,10 @@ function ensureTabHighlighted() {
 
 // Cleanup on navigation away
 export function cleanup() {
+  console.log('[France OrderFulfillment] cleanup() called');
   // Cleanup WebSocket listeners if manager exists
   if (window.__magentoPickPackManager) {
+    console.log('[France OrderFulfillment] Cleaning up WebSocket listeners');
     window.__magentoPickPackManager.cleanupWebSocket();
   }
   
@@ -2408,20 +2471,9 @@ export function cleanup() {
   
   window.__magentoPickPackInitialized = false;
   window.__magentoPickPackManager = null;
+  console.log('[France OrderFulfillment] cleanup() complete');
 }
 
 // Also support direct script inclusion (fallback) - but this shouldn't run when using router
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    // Only init if not already initialized by router
-    if (!window.__magentoPickPackInitialized) {
-      window.__magentoPickPackInitialized = true;
-      window.__magentoPickPackManager = new MagentoPickPackManager();
-    }
-  });
-} else {
-  if (!window.__magentoPickPackInitialized) {
-    window.__magentoPickPackInitialized = true;
-    window.__magentoPickPackManager = new MagentoPickPackManager();
-  }
-}
+// REMOVED: Legacy auto-init code that bypassed proper init() function
+// The router now always calls init() which handles DOM readiness and WebSocket connection

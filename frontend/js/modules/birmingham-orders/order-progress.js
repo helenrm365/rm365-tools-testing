@@ -4,7 +4,7 @@
  */
 
 import { getApiUrl } from '../../config.js';
-import { getToken } from '../../services/state/sessionStore.js';
+import { getToken, getUserData } from '../../services/state/sessionStore.js';
 import { wsService } from '../../services/websocket.js';
 import * as progressModals from '../../ui/orderProgressModals.js';
 import { showToast } from '../../ui/toast.js';
@@ -42,14 +42,30 @@ export async function init() {
     await loadSessions();
     
     showToast('Connecting to real-time updates...', 'info');
-    setupWebSocket();
+    await setupWebSocket();
     // WebSocket handles all real-time updates, no polling needed
 }
 
 /**
  * Setup WebSocket for live updates
  */
-function setupWebSocket() {
+async function setupWebSocket() {
+    // Connect to WebSocket if not already connected
+    const currentUser = getUserData();
+    if (currentUser && currentUser.username) {
+        try {
+            if (!wsService.isConnected()) {
+                await wsService.connect(currentUser);
+                console.log('[Birmingham Order Progress] WebSocket connected');
+            }
+            wsService.joinRoom('birmingham_orders');
+            console.log('[Birmingham Order Progress] Joined birmingham_orders room');
+            wsConnected = true;
+        } catch (error) {
+            console.error('[Birmingham Order Progress] WebSocket connection failed:', error);
+        }
+    }
+    
     // Listen for session events
     wsService.on('session_started', handleSessionUpdate);
     wsService.on('session_updated', handleSessionUpdate);
@@ -62,7 +78,7 @@ function setupWebSocket() {
     wsService.on('session_assigned', handleSessionUpdate);
     
     // Check connection status
-    if (wsService.connected) {
+    if (wsService.isConnected()) {
         wsConnected = true;
     }
 }
@@ -81,6 +97,7 @@ function handleSessionUpdate(data) {
  * Cleanup WebSocket listeners
  */
 export function cleanup() {
+    console.log('[Birmingham Order Progress] Cleaning up...');
     wsService.off('session_started', handleSessionUpdate);
     wsService.off('session_updated', handleSessionUpdate);
     wsService.off('session_completed', handleSessionUpdate);
@@ -90,6 +107,11 @@ export function cleanup() {
     wsService.off('session_forced_cancel', handleSessionUpdate);
     wsService.off('session_forced_takeover', handleSessionUpdate);
     wsService.off('session_assigned', handleSessionUpdate);
+    
+    // Leave room if connected
+    if (wsService.isConnected()) {
+        wsService.leaveRoom('birmingham_orders');
+    }
     
     wsConnected = false;
 }
@@ -523,9 +545,6 @@ function updateStats() {
     cancelledEl.textContent = stats.cancelled;
 }
 
-// Initialize on module load
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-} else {
-    init();
-}
+// Initialize on module load - REMOVED
+// Legacy auto-init code removed - the router now always calls init()
+// which properly handles DOM readiness after SPA navigation
