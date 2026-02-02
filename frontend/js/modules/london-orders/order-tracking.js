@@ -7,6 +7,9 @@ import { showToast } from '../../ui/toast.js';
 let isMinimalMode = false;
 
 export async function init() {
+  // Wait for DOM to be ready after SPA navigation
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  
   console.log('[Order Tracking] Initializing...');
   showToast('Setting up tracking interface...', 'info');
   

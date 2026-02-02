@@ -54,9 +54,8 @@ class MagentoPickPackManager {
     this.attachEventListeners();
     this.setupMobileMode();
     this.setupWebSocket();
-    this.ensureRealtimeConnection();
-    // Check if we're loading a specific session from URL
-    this.initialLoadPromise = this.checkSessionFromPath(initialPath);
+    // NOTE: ensureRealtimeConnection() is now called from init() to ensure proper awaiting
+    // The initialLoadPromise is set after WebSocket connection in init()
     // WebSocket handles all real-time updates, no auto-refresh needed
     // TODO: Implement active sessions endpoint on backend
     // this.loadActiveSessions();
@@ -2357,23 +2356,22 @@ export async function init(path) {
   }
   
   if (!window.__magentoPickPackInitialized) {
-    // Wait for DOM to be ready
-    if (document.readyState === 'loading') {
-      await new Promise(resolve => {
-        document.addEventListener('DOMContentLoaded', resolve);
-      });
-    }
+    // Wait for DOM to be ready - use requestAnimationFrame to ensure DOM is painted after innerHTML injection
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     
     showToast('Setting up tracking board...', 'info');
     const manager = new MagentoPickPackManager(path);
     window.__magentoPickPackManager = manager;
     window.__magentoPickPackInitialized = true;
     
+    // Ensure WebSocket connection is established BEFORE loading data
     showToast('Connecting to WebSocket...', 'info');
-    // Wait for initial load to complete
-    if (manager.initialLoadPromise) {
-      await manager.initialLoadPromise;
-    }
+    await manager.ensureRealtimeConnection();
+    
+    // Now load the tracking board data
+    showToast('Loading tracking data...', 'info');
+    manager.initialLoadPromise = manager.checkSessionFromPath(path);
+    await manager.initialLoadPromise;
   } else if (window.__magentoPickPackManager) {
     showToast('Loading session data...', 'info');
     // Module already initialized, just check if we need to load a session from path

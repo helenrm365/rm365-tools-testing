@@ -22,6 +22,9 @@ let wsConnected = false;
  * Initialize dashboard
  */
 export async function init() {
+    // Wait for DOM to be ready after SPA navigation
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    
     showToast('Setting up progress dashboard...', 'info');
     
     // First ensure tables exist

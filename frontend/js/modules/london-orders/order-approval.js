@@ -627,6 +627,9 @@ export async function init() {
   console.log('[Order Approval] Initializing module...');
   showToast('Initializing approval system...', 'info');
   
+  // Wait for DOM to be ready - use requestAnimationFrame to ensure DOM is painted after innerHTML injection
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  
   // First ensure tables exist
   try {
     const { ensureOrderTablesExist } = await import('../../services/api/ordersApi.js');
