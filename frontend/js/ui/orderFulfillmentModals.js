@@ -254,20 +254,6 @@ export function confirmModal(options = {}) {
 }
 
 /**
- * Order In Progress - Request takeover
- */
-export function confirmTakeoverRequest(orderNumber, currentUser) {
-  return confirmModal({
-    title: 'Order In Progress',
-    message: `This order is currently being worked on by ${currentUser}.\n\nWould you like to request to take it over?`,
-    confirmText: 'Request Takeover',
-    cancelText: 'Cancel',
-    confirmVariant: 'warning',
-    icon: '⚠️'
-  });
-}
-
-/**
  * Own order in progress elsewhere
  */
 export function confirmOwnOrderInProgress() {
@@ -282,20 +268,133 @@ export function confirmOwnOrderInProgress() {
 }
 
 /**
- * Draft Session Available - Claim or continue
+ * Draft Session Available - Claim or continue (for own draft)
  */
 export function confirmClaimDraft(orderNumber, userName, isOwnDraft = false) {
-  const message = isOwnDraft
-    ? `You have a draft session for this order.\n\nWould you like to continue where you left off?`
-    : `There is a draft session for this order started by ${userName}.\n\nWould you like to claim it and continue?`;
+  // For own draft, use standard 2-button modal
+  if (isOwnDraft) {
+    return confirmModal({
+      title: 'Draft Session Available',
+      message: `You have a draft session for this order.\n\nWould you like to continue where you left off?`,
+      confirmText: 'Continue',
+      cancelText: 'Cancel',
+      confirmVariant: 'primary',
+      icon: '📝'
+    });
+  }
   
-  return confirmModal({
-    title: 'Draft Session Available',
-    message,
-    confirmText: 'Continue',
-    cancelText: 'Cancel',
-    confirmVariant: 'primary',
-    icon: '📝'
+  // For someone else's draft, use 3-button modal
+  return confirmDraftFromOtherUser(orderNumber, userName);
+}
+
+/**
+ * Draft from another user - Three-button modal
+ * Returns: 'continue' | 'cancel' | 'cancel_order'
+ */
+export function confirmDraftFromOtherUser(orderNumber, userName) {
+  return new Promise((resolve) => {
+    const container = ensureModalContainer();
+    
+    const modalHtml = `
+      <div class="modal-backdrop" id="orderFulfillmentConfirmModal">
+        <div class="modal modal-sm">
+          <div class="modal-header modal-header-warning">
+            <div class="modal-header-icon">
+              <i class="fas fa-user-edit"></i>
+            </div>
+            <h3 class="modal-title">Draft Started by Another User</h3>
+            <button class="modal-close modal-close-contrast" id="orderFulfillmentModalClose">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          <div class="modal-body">
+            <p class="modal-message">This order was originally drafted/started by <strong>${userName}</strong>.<br><br>What would you like to do?</p>
+          </div>
+          <div class="modal-footer" style="flex-direction: column; gap: 8px;">
+            <div style="display: flex; gap: 8px; width: 100%;">
+              <button class="action-btn secondary-btn" id="orderFulfillmentModalCancel" style="flex: 1;">Go Back</button>
+              <button class="action-btn primary-btn" id="orderFulfillmentModalContinue" style="flex: 1;">Continue Draft</button>
+            </div>
+            <button class="action-btn danger-btn" id="orderFulfillmentModalCancelOrder" style="width: 100%;">
+              <i class="fas fa-times-circle"></i> Cancel Order
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    container.innerHTML = modalHtml;
+    
+    const modal = container.querySelector('#orderFulfillmentConfirmModal');
+    const continueBtn = container.querySelector('#orderFulfillmentModalContinue');
+    const cancelBtn = container.querySelector('#orderFulfillmentModalCancel');
+    const cancelOrderBtn = container.querySelector('#orderFulfillmentModalCancelOrder');
+    const closeBtn = container.querySelector('#orderFulfillmentModalClose');
+    
+    let isResolved = false;
+    
+    // Trigger animation
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        modal.classList.add('active');
+      });
+    });
+    
+    const cleanup = () => {
+      modal.classList.remove('active');
+      document.removeEventListener('keydown', handleEscape);
+      setTimeout(() => {
+        container.innerHTML = '';
+      }, 300);
+    };
+    
+    const handleContinue = (e) => {
+      if (e) e.stopPropagation();
+      if (isResolved) return;
+      isResolved = true;
+      cleanup();
+      resolve('continue');
+    };
+    
+    const handleCancel = (e) => {
+      if (e) e.stopPropagation();
+      if (isResolved) return;
+      isResolved = true;
+      cleanup();
+      resolve('cancel');
+    };
+    
+    const handleCancelOrder = (e) => {
+      if (e) e.stopPropagation();
+      if (isResolved) return;
+      isResolved = true;
+      cleanup();
+      resolve('cancel_order');
+    };
+    
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        handleCancel(e);
+      }
+    };
+    
+    // Bind events
+    setTimeout(() => {
+      if (isResolved) return;
+      continueBtn.addEventListener('click', handleContinue);
+      cancelBtn.addEventListener('click', handleCancel);
+      cancelOrderBtn.addEventListener('click', handleCancelOrder);
+      closeBtn.addEventListener('click', handleCancel);
+      document.addEventListener('keydown', handleEscape);
+      
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          handleCancel(e);
+        }
+      });
+      
+      continueBtn.focus();
+    }, 50);
   });
 }
 
@@ -461,20 +560,6 @@ export function alertSessionForceTakeover(newOwner) {
 }
 
 /**
- * Takeover Request Received (from another user)
- */
-export function confirmAllowTakeover(requesterUsername, orderNumber) {
-  return confirmModal({
-    title: 'Takeover Request',
-    message: `${requesterUsername} is requesting to take over your session for order ${orderNumber}.\n\nDo you want to allow this takeover?`,
-    confirmText: 'Allow',
-    cancelText: 'Deny',
-    confirmVariant: 'warning',
-    icon: '👋'
-  });
-}
-
-/**
  * Success notification for completed session
  */
 export function alertSessionCompleted() {
@@ -485,34 +570,6 @@ export function alertSessionCompleted() {
     cancelText: '',
     confirmVariant: 'success',
     icon: '🎉'
-  });
-}
-
-/**
- * Takeover Request Accepted
- */
-export function alertTakeoverAccepted(orderNumber) {
-  return confirmModal({
-    title: 'Request Accepted',
-    message: `Your takeover request for order ${orderNumber} was accepted!`,
-    confirmText: 'OK',
-    cancelText: '',
-    confirmVariant: 'success',
-    icon: '✅'
-  });
-}
-
-/**
- * Takeover Request Rejected
- */
-export function alertTakeoverRejected(orderNumber) {
-  return confirmModal({
-    title: 'Request Rejected',
-    message: `Your takeover request for order ${orderNumber} was rejected.`,
-    confirmText: 'OK',
-    cancelText: '',
-    confirmVariant: 'warning',
-    icon: '❌'
   });
 }
 

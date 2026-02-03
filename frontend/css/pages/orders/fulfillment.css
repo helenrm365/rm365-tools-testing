@@ -1618,6 +1618,23 @@ body:has(.order-fulfillment.mobile-mode-active) #universalFooter {
   text-overflow: ellipsis;
 }
 
+/* ===== Hide bottom bars during active session ===== */
+/* When session is active, hide inner-tabs (bottom navigation) and mobile-column-tabs */
+.order-fulfillment.session-active .inner-tabs,
+.order-fulfillment.session-active.mobile-mode-active .inner-tabs {
+  display: none !important;
+}
+
+.order-fulfillment.session-active .mobile-column-tabs,
+.order-fulfillment.session-active.mobile-mode-active .mobile-column-tabs {
+  display: none !important;
+}
+
+/* Remove bottom padding when session is active since bars are hidden */
+.order-fulfillment.session-active.mobile-mode-active .fulfillment-content {
+  padding-bottom: 0;
+}
+
 /* Mobile mode board - single column, full height */
 .order-fulfillment.mobile-mode-active .ot-board {
   grid-template-columns: 1fr;

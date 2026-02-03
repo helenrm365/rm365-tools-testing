@@ -97,8 +97,6 @@ class MagentoPickPackManager {
 
   setupWebSocket() {
     // Bind methods to this instance
-    this.handleTakeoverRequest = this.handleTakeoverRequest.bind(this);
-    this.handleTakeoverResponse = this.handleTakeoverResponse.bind(this);
     this.handleSessionTransferred = this.handleSessionTransferred.bind(this);
     this.handleSessionForcedCancel = this.handleSessionForcedCancel.bind(this);
     this.handleSessionForcedTakeover = this.handleSessionForcedTakeover.bind(this);
@@ -108,9 +106,7 @@ class MagentoPickPackManager {
     this.handleOrderDeleted = this.handleOrderDeleted.bind(this);
     this.updateLiveStatus = this.updateLiveStatus.bind(this);
     
-    // Listen for takeover and session events
-    wsService.on('takeover_request', this.handleTakeoverRequest);
-    wsService.on('takeover_response', this.handleTakeoverResponse);
+    // Listen for session events
     wsService.on('session_transferred', this.handleSessionTransferred);
     wsService.on('session_forced_cancel', this.handleSessionForcedCancel);
     wsService.on('session_forced_takeover', this.handleSessionForcedTakeover);
@@ -132,8 +128,6 @@ class MagentoPickPackManager {
 
   cleanupWebSocket() {
     console.log('[Birmingham cleanupWebSocket] Removing WebSocket handlers');
-    wsService.off('takeover_request', this.handleTakeoverRequest);
-    wsService.off('takeover_response', this.handleTakeoverResponse);
     wsService.off('session_transferred', this.handleSessionTransferred);
     wsService.off('session_forced_cancel', this.handleSessionForcedCancel);
     wsService.off('session_forced_takeover', this.handleSessionForcedTakeover);
@@ -150,25 +144,6 @@ class MagentoPickPackManager {
     if (this.resizeHandler) {
       window.removeEventListener('resize', this.resizeHandler);
       this.resizeHandler = null;
-    }
-  }
-
-  async handleTakeoverRequest(data) {
-    // Only show if this is our session
-    if (this.currentSessionId === data.session_id) {
-      const requester = data.requester_username || data.requester;
-      const confirmed = await orderModals.confirmAllowTakeover(requester, data.order_number);
-      
-      // TODO: Send response to backend
-      // For now, just log it
-    }
-  }
-
-  async handleTakeoverResponse(data) {
-    if (data.accepted) {
-      await orderModals.alertTakeoverAccepted(data.order_number);
-    } else {
-      await orderModals.alertTakeoverRejected(data.order_number);
     }
   }
 
@@ -637,30 +612,18 @@ class MagentoPickPackManager {
       }
       
       if (statusData.status === 'in_progress') {
-        let confirmed;
+        // Order is currently being worked on
         if (statusData.can_claim) {
-          confirmed = await orderModals.confirmTakeoverRequest(order, statusData.user);
+          // Another user is working on this order - inform them
+          await orderModals.alertInfo(
+            `This order is currently being processed by ${statusData.user}.\n\nPlease wait until they are finished or contact an administrator if urgent.`,
+            'Order In Progress'
+          );
         } else {
+          // User's own session is in progress
           await orderModals.confirmOwnOrderInProgress();
-          this.showLookupMessage('Session start cancelled', 'info');
-          if (this.startSessionBtn) {
-            this.startSessionBtn.disabled = false;
-            this.startSessionBtn.innerHTML = '<i class="fas fa-play"></i> Start Session';
-          }
-          return;
         }
-        
-        if (!confirmed) {
-          this.showLookupMessage('Session start cancelled', 'info');
-          if (this.startSessionBtn) {
-            this.startSessionBtn.disabled = false;
-            this.startSessionBtn.innerHTML = '<i class="fas fa-play"></i> Start Session';
-          }
-          return;
-        }
-        
-        // TODO: Implement takeover request
-        await orderModals.alertInfo('Takeover requests are not yet implemented. Please contact an administrator.');
+        this.showLookupMessage('Session start cancelled', 'info');
         if (this.startSessionBtn) {
           this.startSessionBtn.disabled = false;
           this.startSessionBtn.innerHTML = '<i class="fas fa-play"></i> Start Session';
@@ -670,9 +633,45 @@ class MagentoPickPackManager {
 
       if (statusData.status === 'draft') {
         const isOwnDraft = !statusData.can_claim;
-        const confirmed = await orderModals.confirmClaimDraft(order, statusData.user, isOwnDraft);
+        const result = await orderModals.confirmClaimDraft(order, statusData.user, isOwnDraft);
         
-        if (!confirmed) {
+        // Handle the modal response
+        // For own draft: true/false, for other user's draft: 'continue'/'cancel'/'cancel_order'
+        const shouldContinue = result === true || result === 'continue';
+        const shouldCancelOrder = result === 'cancel_order';
+        
+        if (shouldCancelOrder) {
+          // Cancel the order/session
+          try {
+            const cancelUrl = `${getApiUrl()}/v1/birmingham-magento/session/${statusData.session_id}/cancel`;
+            const cancelResponse = await fetch(cancelUrl, {
+              method: 'POST',
+              headers: {
+                ...getAuthHeaders(),
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ reason: 'Cancelled by user - draft from another user' })
+            });
+            
+            if (cancelResponse.ok) {
+              this.showLookupMessage('Order draft cancelled successfully', 'success');
+              await this.loadTrackingBoard();
+            } else {
+              const errorData = await cancelResponse.json().catch(() => ({}));
+              this.showLookupMessage(errorData.detail || 'Failed to cancel order', 'error');
+            }
+          } catch (e) {
+            console.error('Error cancelling order:', e);
+            this.showLookupMessage('Failed to cancel order', 'error');
+          }
+          if (this.startSessionBtn) {
+            this.startSessionBtn.disabled = false;
+            this.startSessionBtn.innerHTML = '<i class="fas fa-play"></i> Start Session';
+          }
+          return;
+        }
+        
+        if (!shouldContinue) {
           this.showLookupMessage('Session start cancelled', 'info');
           if (this.startSessionBtn) {
             this.startSessionBtn.disabled = false;
@@ -811,6 +810,12 @@ class MagentoPickPackManager {
     this.orderLookupSection.style.display = 'none';
     this.activeSessionSection.style.display = 'block';
     
+    // Add session-active class to container for CSS-based hiding of bottom bars
+    const container = document.querySelector('.order-fulfillment');
+    if (container) {
+      container.classList.add('session-active');
+    }
+    
     // Show progress section and sticky bottom panel
     if (this.progressSection) this.progressSection.style.display = 'block';
     if (this.stickyBottomPanel) this.stickyBottomPanel.style.display = 'flex';
@@ -829,6 +834,12 @@ class MagentoPickPackManager {
     const mobileColumnTabs = document.getElementById('mobileColumnTabs');
     if (mobileColumnTabs) {
       mobileColumnTabs.style.display = 'none';
+    }
+    
+    // Hide navigation tabs during active session
+    const innerTabs = document.querySelector('.inner-tabs');
+    if (innerTabs) {
+      innerTabs.style.display = 'none';
     }
     
     // Ensure tab stays highlighted
@@ -865,6 +876,12 @@ class MagentoPickPackManager {
       return;
     }
     
+    // Remove session-active class from container
+    const container = document.querySelector('.order-fulfillment');
+    if (container) {
+      container.classList.remove('session-active');
+    }
+    
     this.activeSessionSection.style.display = 'none';
     this.orderLookupSection.style.display = 'block';
     
@@ -896,6 +913,12 @@ class MagentoPickPackManager {
         mobileColumnTabs.style.display = 'flex';
       }
       this.updateMobileColumnVisibility();
+    }
+    
+    // Show navigation tabs when returning to order lookup
+    const innerTabs = document.querySelector('.inner-tabs');
+    if (innerTabs) {
+      innerTabs.style.display = 'flex';
     }
     
     // Load the tracking board and wait for it

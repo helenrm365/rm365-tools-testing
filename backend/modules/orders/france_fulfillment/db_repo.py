@@ -13,7 +13,7 @@ import json
 import logging
 
 from core.db import get_inventory_log_connection, return_inventory_connection
-from modules.orders.order_fulfillment.models import ScanSession, TakeoverRequest
+from modules.orders.order_fulfillment.models import ScanSession
 
 logger = logging.getLogger(__name__)
 
@@ -213,21 +213,6 @@ class FranceDbRepo:
             items_scanned=data['items_scanned'] or [],
             items_counted=data.get('items_counted') or [],
             audit_logs=data['audit_logs'] or []
-        )
-    
-    def _row_to_takeover_request(self, row, cursor) -> TakeoverRequest:
-        """Convert a database row to a TakeoverRequest object"""
-        columns = [desc[0] for desc in cursor.description]
-        data = dict(zip(columns, row))
-        
-        return TakeoverRequest(
-            request_id=str(data['request_id']),
-            session_id=str(data['session_id']),
-            requested_by=data['requested_by'],
-            current_owner=data['current_owner'],
-            status=data['status'],
-            requested_at=data['requested_at'],
-            responded_at=data['responded_at']
         )
     
     def get_sku_by_item_id(self, item_id: str) -> Optional[str]:
@@ -1280,159 +1265,6 @@ class FranceDbRepo:
             if conn:
                 conn.rollback()
             return False
-        finally:
-            if conn:
-                self._return_connection(conn)
-    
-    # Takeover request methods
-    
-    def create_takeover_request(self, session_id: str, requested_by: str) -> Optional[TakeoverRequest]:
-        """Create a new takeover request"""
-        session = self.get_session(session_id)
-        if not session or session.status != "in_progress":
-            return None
-        
-        conn = None
-        try:
-            conn = self._get_connection()
-            cursor = conn.cursor()
-            
-            # Check if there's already a pending request from this user
-            cursor.execute("""
-                SELECT * FROM france_order_fulfillment_takeover_requests 
-                WHERE session_id = %s AND requested_by = %s AND status = 'pending'
-            """, (session_id, requested_by))
-            
-            existing = cursor.fetchone()
-            if existing:
-                req = self._row_to_takeover_request(existing, cursor)
-                cursor.close()
-                return req
-            
-            request_id = str(uuid.uuid4())
-            
-            cursor.execute("""
-                INSERT INTO france_order_fulfillment_takeover_requests 
-                (request_id, session_id, requested_by, current_owner, status, requested_at)
-                VALUES (%s, %s, %s, %s, 'pending', NOW())
-            """, (request_id, session_id, requested_by, session.user_id or "Unknown"))
-            
-            conn.commit()
-            
-            # Fetch the created request
-            cursor.execute("""
-                SELECT * FROM france_order_fulfillment_takeover_requests WHERE request_id = %s
-            """, (request_id,))
-            
-            row = cursor.fetchone()
-            req = self._row_to_takeover_request(row, cursor)
-            cursor.close()
-            return req
-            
-        except Exception as e:
-            logger.error(f"Error creating takeover request: {e}")
-            if conn:
-                conn.rollback()
-            return None
-        finally:
-            if conn:
-                self._return_connection(conn)
-    
-    def get_takeover_request(self, request_id: str) -> Optional[TakeoverRequest]:
-        """Get a specific takeover request"""
-        conn = None
-        try:
-            conn = self._get_connection()
-            cursor = conn.cursor()
-            
-            cursor.execute("""
-                SELECT * FROM france_order_fulfillment_takeover_requests WHERE request_id = %s
-            """, (request_id,))
-            
-            row = cursor.fetchone()
-            if not row:
-                cursor.close()
-                return None
-            
-            req = self._row_to_takeover_request(row, cursor)
-            cursor.close()
-            return req
-            
-        except Exception as e:
-            logger.error(f"Error getting takeover request: {e}")
-            return None
-        finally:
-            if conn:
-                self._return_connection(conn)
-    
-    def get_pending_takeover_requests(self, user_id: str) -> List[TakeoverRequest]:
-        """Get all pending takeover requests for a user's sessions"""
-        conn = None
-        try:
-            conn = self._get_connection()
-            cursor = conn.cursor()
-            
-            cursor.execute("""
-                SELECT * FROM france_order_fulfillment_takeover_requests 
-                WHERE current_owner = %s AND status = 'pending'
-                ORDER BY requested_at DESC
-            """, (user_id,))
-            
-            rows = cursor.fetchall()
-            requests = [self._row_to_takeover_request(row, cursor) for row in rows]
-            cursor.close()
-            return requests
-            
-        except Exception as e:
-            logger.error(f"Error getting pending takeover requests: {e}")
-            return []
-        finally:
-            if conn:
-                self._return_connection(conn)
-    
-    def respond_to_takeover_request(self, request_id: str, accept: bool) -> Optional[TakeoverRequest]:
-        """Respond to a takeover request"""
-        conn = None
-        try:
-            conn = self._get_connection()
-            cursor = conn.cursor()
-            
-            # Get the request
-            cursor.execute("""
-                SELECT * FROM france_order_fulfillment_takeover_requests 
-                WHERE request_id = %s AND status = 'pending'
-            """, (request_id,))
-            
-            row = cursor.fetchone()
-            if not row:
-                cursor.close()
-                return None
-            
-            req = self._row_to_takeover_request(row, cursor)
-            new_status = 'accepted' if accept else 'declined'
-            
-            cursor.execute("""
-                UPDATE france_order_fulfillment_takeover_requests 
-                SET status = %s, responded_at = NOW()
-                WHERE request_id = %s
-            """, (new_status, request_id))
-            
-            conn.commit()
-            cursor.close()
-            
-            if accept:
-                # Transfer the session
-                self.transfer_session(req.session_id, req.requested_by)
-            
-            req.status = new_status
-            req.responded_at = datetime.now()
-            return req
-            
-        except Exception as e:
-            logger.error(f"Error responding to takeover request: {e}")
-            if conn:
-                conn.rollback()
-            return None
         finally:
             if conn:
                 self._return_connection(conn)

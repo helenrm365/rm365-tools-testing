@@ -15,8 +15,6 @@ from modules.orders.order_fulfillment.schemas import (
     SessionStatusSchema,
     CompleteSessionSchema,
     SessionOwnershipSchema,
-    TakeoverRequestSchema,
-    TakeoverResponseSchema,
     DashboardSessionSchema,
     ForceAssignSchema,
     ForceCancelSchema,
@@ -556,107 +554,6 @@ def release_session(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to release session: {str(e)}"
-        )
-
-
-@router.post("/sessions/{session_id}/request-takeover")
-def request_session_takeover(
-    session_id: str,
-    current_user: dict = Depends(get_current_user),
-    service: LondonOrderFulfillmentService = Depends(_service)
-):
-    """
-    Request to take over an in-progress session from another user
-    """
-    try:
-        user_id = current_user.get('user_id') or current_user.get('username')
-        request = service.request_takeover(session_id, user_id)
-        
-        return {
-            "success": True,
-            "message": f"Takeover request sent to {request.current_owner}",
-            "request_id": request.request_id,
-            "session_id": session_id
-        }
-    
-    except HTTPException:
-        raise
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to request takeover: {str(e)}"
-        )
-
-
-@router.post("/takeover-requests/{request_id}/respond")
-def respond_to_takeover_request(
-    request_id: str,
-    response: TakeoverResponseSchema,
-    current_user: dict = Depends(get_current_user),
-    service: LondonOrderFulfillmentService = Depends(_service)
-):
-    """
-    Accept or decline a takeover request
-    """
-    try:
-        user_id = current_user.get('user_id') or current_user.get('username')
-        updated_request = service.respond_to_takeover(request_id, response.accept, user_id)
-        
-        return {
-            "success": True,
-            "message": f"Takeover request {'accepted' if response.accept else 'declined'}",
-            "request_id": request_id,
-            "session_id": updated_request.session_id,
-            "transferred": response.accept
-        }
-    
-    except HTTPException:
-        raise
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to respond to takeover request: {str(e)}"
-        )
-
-
-@router.get("/takeover-requests/pending")
-def get_pending_takeover_requests(
-    current_user: dict = Depends(get_current_user),
-    service: LondonOrderFulfillmentService = Depends(_service)
-):
-    """
-    Get all pending takeover requests for the current user's sessions
-    """
-    try:
-        user_id = current_user.get('user_id') or current_user.get('username')
-        requests = service.get_pending_requests(user_id)
-        
-        return {
-            "requests": [
-                {
-                    "request_id": req.request_id,
-                    "session_id": req.session_id,
-                    "requested_by": req.requested_by,
-                    "requested_at": req.requested_at.isoformat(),
-                }
-                for req in requests
-            ]
-        }
-    
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get pending requests: {str(e)}"
         )
 
 
