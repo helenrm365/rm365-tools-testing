@@ -32,6 +32,8 @@ class AdjustmentOut(BaseModel):
     response_message: Optional[str] = None
     adjusted_by: Optional[str] = None
     created_at: Optional[str] = None
+    metadata_updated: Optional[List[Dict[str, Any]]] = None
+    smart_shelf_applied: Optional[bool] = None
 
 
 class AdjustmentHistoryResponse(BaseModel):

@@ -20,6 +20,8 @@ export async function init(path) {
   if (path.includes('/order-progress')) targetSubModule = 'order-progress';
   else if (path.includes('/order-tracking')) targetSubModule = 'order-tracking';
   else if (path.includes('/order-approval')) targetSubModule = 'order-approval';
+  else if (path.includes('/scanning-logs')) targetSubModule = 'scanning-logs';
+  else if (path.includes('/scanner')) targetSubModule = 'scanner';
   
   console.log('[France index.js] Target sub-module:', targetSubModule, 'Current:', state.currentSubModulePath);
   
@@ -53,6 +55,16 @@ export async function init(path) {
     await mod.init();
     state.currentSubModule = mod;
     state.currentSubModulePath = 'order-approval';
+  } else if (path.includes('/scanning-logs')) {
+    const mod = await import(`./scanning-logs.js${cacheBust}`);
+    await mod.init();
+    state.currentSubModule = mod;
+    state.currentSubModulePath = 'scanning-logs';
+  } else if (path.includes('/scanner')) {
+    const mod = await import(`./scanner.js${cacheBust}`);
+    await mod.init(path);
+    state.currentSubModule = mod;
+    state.currentSubModulePath = 'scanner';
   } else {
     // Default to order-fulfillment (first sub-page)
     const mod = await import(`./order-fulfillment.js${cacheBust}`);

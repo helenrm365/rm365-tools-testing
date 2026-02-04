@@ -91,6 +91,8 @@ const routes = {
   '/birmingham-orders/order-progress':     '/html/birmingham-orders/order-progress.html',
   '/birmingham-orders/order-tracking':     '/html/birmingham-orders/order-tracking.html',
   '/birmingham-orders/order-approval':     '/html/birmingham-orders/order-approval.html',
+  '/birmingham-orders/scanner':            '/html/birmingham-orders/scanner.html',
+  '/birmingham-orders/scanning-logs':      '/html/birmingham-orders/scanning-logs.html',
   
   // France Orders - FR/NL region fulfillment (shipped from Paris)
   '/france-orders':                    '/html/france-orders/order-fulfillment.html',
@@ -98,6 +100,8 @@ const routes = {
   '/france-orders/order-progress':     '/html/france-orders/order-progress.html',
   '/france-orders/order-tracking':     '/html/france-orders/order-tracking.html',
   '/france-orders/order-approval':     '/html/france-orders/order-approval.html',
+  '/france-orders/scanner':            '/html/france-orders/scanner.html',
+  '/france-orders/scanning-logs':      '/html/france-orders/scanning-logs.html',
   
   // London Orders - UK London region fulfillment (London Office Collection)
   '/london-orders':                    '/html/london-orders/order-fulfillment.html',
@@ -105,6 +109,8 @@ const routes = {
   '/london-orders/order-progress':     '/html/london-orders/order-progress.html',
   '/london-orders/order-tracking':     '/html/london-orders/order-tracking.html',
   '/london-orders/order-approval':     '/html/london-orders/order-approval.html',
+  '/london-orders/scanner':            '/html/london-orders/scanner.html',
+  '/london-orders/scanning-logs':      '/html/london-orders/scanning-logs.html',
   
   // User Management - redirect root to first sub-page
   '/usermanagement':            '/html/usermanagement/management.html',

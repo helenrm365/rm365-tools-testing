@@ -1,0 +1,202 @@
+<!-- France Orders - Inventory Scanner Page -->
+<!-- Uses css/app.css + css/pages/orders/scanner.css -->
+<div class="inventory-scanner">
+  <!-- Header -->
+  <header class="page-header">
+    <div class="header-content">
+      <h1 class="page-title">France Orders - Scanner</h1>
+    </div>
+    <p class="page-subtitle">Scan items to adjust FR Paris branch inventory</p>
+  </header>
+
+  <!-- Navigation Tabs -->
+  <nav class="inner-tabs">
+    <button class="tab-button" onclick="location.href='/france-orders/order-fulfillment'">
+      <i class="fas fa-shopping-cart"></i>
+      <span>Order Fulfillment</span>
+    </button>
+    <button class="tab-button" onclick="location.href='/france-orders/order-progress'">
+      <i class="fas fa-chart-line"></i>
+      <span>Order Progress</span>
+    </button>
+    <button class="tab-button" onclick="location.href='/france-orders/order-tracking'">
+      <i class="fas fa-tasks"></i>
+      <span>Order Tracking</span>
+    </button>
+    <button class="tab-button" onclick="location.href='/france-orders/order-approval'">
+      <i class="fas fa-check-circle"></i>
+      <span>Order Approval</span>
+    </button>
+    <button class="tab-button active" onclick="location.href='/france-orders/scanner'">
+      <i class="fas fa-barcode"></i>
+      <span>Scanner</span>
+    </button>
+    <button class="tab-button" onclick="location.href='/france-orders/scanning-logs'">
+      <i class="fas fa-history"></i>
+      <span>Scanning Logs</span>
+    </button>
+  </nav>
+
+  <!-- Main Content Wrapper -->
+  <div class="scanner-content">
+    
+    <!-- Scanner Section -->
+    <div class="action-block" id="scannerSection">
+      <div class="block-header">
+        <div class="block-icon">
+          <i class="fas fa-barcode"></i>
+        </div>
+        <div class="block-title-group">
+          <h3 class="block-title">Scan Item</h3>
+          <p class="block-subtitle">Scan or enter a barcode/SKU to add to the adjustment list</p>
+        </div>
+      </div>
+
+      <div class="block-content">
+        <div class="scanner-form">
+          <!-- SKU Input with Search Dropdown -->
+          <div class="form-group sku-input-group">
+            <label class="form-label">
+              <i class="fas fa-search"></i>
+              Search Product
+            </label>
+            <div class="search-input-wrapper">
+              <input type="text" id="skuInput" class="form-input barcode-input" placeholder="Search by SKU, barcode or product name..." autocomplete="off" autofocus>
+              <div class="search-spinner" id="searchSpinner" style="display: none;">
+                <i class="fas fa-spinner fa-spin"></i>
+              </div>
+              <!-- Search Results Dropdown -->
+              <div class="search-dropdown" id="searchDropdown">
+                <div class="search-dropdown-content" id="searchDropdownContent">
+                  <!-- Results populated by JS -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Scan Message -->
+        <div id="scanMessage" class="message-area" style="display: none;"></div>
+      </div>
+    </div>
+
+    <!-- Pending Adjustments Section -->
+    <div class="action-block" id="pendingSection">
+      <div class="block-header">
+        <div class="block-icon">
+          <i class="fas fa-clipboard-list"></i>
+        </div>
+        <div class="block-title-group">
+          <h3 class="block-title">Pending Adjustments</h3>
+          <p class="block-subtitle" id="pendingSubtitle">0 items ready to submit</p>
+        </div>
+        <div class="block-actions">
+          <button id="clearAllBtn" class="action-btn secondary-btn" style="display: none;">
+            <i class="fas fa-trash"></i>
+            Clear All
+          </button>
+        </div>
+      </div>
+
+      <div class="block-content">
+        <!-- Items List -->
+        <div class="pending-items-list" id="pendingItemsList">
+          <div class="empty-state">
+            <i class="fas fa-inbox"></i>
+            <p>No items scanned yet</p>
+            <span class="empty-hint">Scan a barcode or enter an SKU above to get started</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Submit Section -->
+    <div class="action-block submit-block" id="submitSection" style="display: none;">
+      <div class="block-header">
+        <div class="block-icon">
+          <i class="fas fa-paper-plane"></i>
+        </div>
+        <div class="block-title-group">
+          <h3 class="block-title">Submit Adjustments</h3>
+          <p class="block-subtitle">Review and submit all pending inventory changes</p>
+        </div>
+      </div>
+
+      <div class="block-content">
+        <!-- Reason Input -->
+        <div class="form-group reason-group">
+          <label class="form-label">
+            <i class="fas fa-comment"></i>
+            Reason for Adjustment
+          </label>
+          <input type="text" id="reasonInput" class="form-input" placeholder="e.g., Stock count correction, Received shipment, Damaged goods...">
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="submit-actions">
+          <button id="cancelBtn" class="action-btn secondary-btn">
+            <i class="fas fa-times"></i>
+            Cancel
+          </button>
+          <button id="submitBtn" class="action-btn success-btn">
+            <i class="fas fa-check"></i>
+            Submit All Adjustments
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Confirmation Modal -->
+  <div class="modal-backdrop" id="confirmModal">
+    <div class="modal modal-sm">
+      <div class="modal-header modal-header-primary">
+        <div class="modal-header-icon">
+          <i class="fas fa-check-circle"></i>
+        </div>
+        <h2 class="modal-title">Confirm Submission</h2>
+        <button class="modal-close modal-close-contrast" id="closeConfirmModalBtn">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p id="confirmMessage">Are you sure you want to submit these inventory adjustments?</p>
+        <div class="confirm-summary" id="confirmSummary"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="action-btn secondary-btn" id="confirmCancelBtn">Cancel</button>
+        <button class="action-btn success-btn" id="confirmSubmitBtn">
+          <i class="fas fa-check"></i>
+          Confirm
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Success Modal -->
+  <div class="modal-backdrop" id="successModal">
+    <div class="modal modal-sm">
+      <div class="modal-header modal-header-success">
+        <div class="modal-header-icon">
+          <i class="fas fa-check-circle"></i>
+        </div>
+        <h2 class="modal-title">Adjustments Submitted</h2>
+        <button class="modal-close modal-close-contrast" id="closeSuccessModalBtn">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p id="successMessage">All inventory adjustments have been successfully applied.</p>
+        <div class="success-details" id="successDetails"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="action-btn primary-btn" id="successOkBtn">
+          <i class="fas fa-check"></i>
+          Done
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>

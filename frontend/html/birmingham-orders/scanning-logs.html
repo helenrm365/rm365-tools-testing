@@ -1,0 +1,223 @@
+<!-- Birmingham Orders - Scanning Logs Page -->
+<!-- Uses css/app.css + css/pages/orders/scanning-logs.css -->
+<div class="scanning-logs">
+  <!-- Header -->
+  <header class="page-header">
+    <div class="header-content">
+      <h1 class="page-title">Birmingham Orders - Scanning Logs</h1>
+    </div>
+    <p class="page-subtitle">View and search scanner submission history</p>
+  </header>
+
+  <!-- Navigation Tabs -->
+  <nav class="inner-tabs">
+    <button class="tab-button" onclick="location.href='/birmingham-orders/order-fulfillment'">
+      <i class="fas fa-shopping-cart"></i>
+      <span>Order Fulfillment</span>
+    </button>
+    <button class="tab-button" onclick="location.href='/birmingham-orders/order-progress'">
+      <i class="fas fa-chart-line"></i>
+      <span>Order Progress</span>
+    </button>
+    <button class="tab-button" onclick="location.href='/birmingham-orders/order-tracking'">
+      <i class="fas fa-tasks"></i>
+      <span>Order Tracking</span>
+    </button>
+    <button class="tab-button" onclick="location.href='/birmingham-orders/order-approval'">
+      <i class="fas fa-check-circle"></i>
+      <span>Order Approval</span>
+    </button>
+    <button class="tab-button" onclick="location.href='/birmingham-orders/scanner'">
+      <i class="fas fa-barcode"></i>
+      <span>Scanner</span>
+    </button>
+    <button class="tab-button active" onclick="location.href='/birmingham-orders/scanning-logs'">
+      <i class="fas fa-history"></i>
+      <span>Scanning Logs</span>
+    </button>
+  </nav>
+
+  <!-- Main Content Wrapper -->
+  <div class="logs-content">
+    
+    <!-- Filters Section -->
+    <div class="action-block" id="filtersSection">
+      <div class="block-header">
+        <div class="block-icon">
+          <i class="fas fa-filter"></i>
+        </div>
+        <div class="block-title-group">
+          <h3 class="block-title">Filters</h3>
+          <p class="block-subtitle">Search and filter scanning logs</p>
+        </div>
+        <div class="block-actions">
+          <button id="clearFiltersBtn" class="action-btn secondary-btn">
+            <i class="fas fa-times"></i>
+            Clear Filters
+          </button>
+        </div>
+      </div>
+
+      <div class="block-content">
+        <div class="filters-form">
+          <!-- Product Search -->
+          <div class="form-group">
+            <label class="form-label">
+              <i class="fas fa-search"></i>
+              Search Product
+            </label>
+            <input type="text" id="productSearch" class="form-input" placeholder="Search by SKU, item ID, or product name...">
+          </div>
+
+          <!-- User Filter -->
+          <div class="form-group">
+            <label class="form-label">
+              <i class="fas fa-user"></i>
+              Submitted By
+            </label>
+            <input type="text" id="userFilter" class="form-input" placeholder="Filter by username...">
+          </div>
+
+          <!-- Date Range -->
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">
+                <i class="fas fa-calendar"></i>
+                From Date
+              </label>
+              <input type="date" id="dateFrom" class="form-input">
+            </div>
+            <div class="form-group">
+              <label class="form-label">
+                <i class="fas fa-calendar"></i>
+                To Date
+              </label>
+              <input type="date" id="dateTo" class="form-input">
+            </div>
+          </div>
+
+          <!-- Search Button -->
+          <div class="filter-actions">
+            <button id="searchBtn" class="action-btn primary-btn">
+              <i class="fas fa-search"></i>
+              Search Logs
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Results Section -->
+    <div class="action-block" id="resultsSection">
+      <div class="block-header">
+        <div class="block-icon">
+          <i class="fas fa-list"></i>
+        </div>
+        <div class="block-title-group">
+          <h3 class="block-title">Submission History</h3>
+          <p class="block-subtitle" id="resultsSubtitle">Loading...</p>
+        </div>
+      </div>
+
+      <div class="block-content">
+        <!-- Loading State -->
+        <div class="loading-state" id="loadingState">
+          <i class="fas fa-spinner fa-spin"></i>
+          <p>Loading submissions...</p>
+        </div>
+
+        <!-- Empty State -->
+        <div class="empty-state" id="emptyState" style="display: none;">
+          <i class="fas fa-inbox"></i>
+          <p>No submissions found</p>
+          <span class="empty-hint">Try adjusting your filters or scan some items first</span>
+        </div>
+
+        <!-- Submissions List -->
+        <div class="submissions-list" id="submissionsList" style="display: none;">
+          <!-- Populated by JavaScript -->
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination" id="pagination" style="display: none;">
+          <button class="pagination-btn" id="prevPageBtn" disabled>
+            <i class="fas fa-chevron-left"></i>
+            Previous
+          </button>
+          <span class="pagination-info" id="paginationInfo">Page 1 of 1</span>
+          <button class="pagination-btn" id="nextPageBtn" disabled>
+            Next
+            <i class="fas fa-chevron-right"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Submission Detail Modal -->
+  <div class="modal-backdrop" id="detailModal">
+    <div class="modal modal-lg">
+      <div class="modal-header modal-header-primary">
+        <div class="modal-header-icon">
+          <i class="fas fa-clipboard-list"></i>
+        </div>
+        <h2 class="modal-title">Submission Details</h2>
+        <button class="modal-close modal-close-contrast" id="closeDetailModalBtn">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <!-- Submission Info -->
+        <div class="submission-info" id="submissionInfo">
+          <div class="info-row">
+            <span class="info-label">Submission ID:</span>
+            <span class="info-value" id="detailId"></span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Submitted By:</span>
+            <span class="info-value" id="detailUser"></span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Date/Time:</span>
+            <span class="info-value" id="detailDate"></span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Reason:</span>
+            <span class="info-value" id="detailReason"></span>
+          </div>
+          <div class="info-row summary-row">
+            <span class="info-badge added" id="detailAdded">+0 added</span>
+            <span class="info-badge removed" id="detailRemoved">-0 removed</span>
+            <span class="info-badge total" id="detailTotal">0 items</span>
+          </div>
+        </div>
+
+        <!-- Items Table -->
+        <div class="detail-items-container">
+          <h4 class="items-title">Items in Submission</h4>
+          <div class="items-table-wrapper">
+            <table class="items-table" id="detailItemsTable">
+              <thead>
+                <tr>
+                  <th>SKU</th>
+                  <th>Product</th>
+                  <th>Quantity</th>
+                  <th>Shelf</th>
+                  <th>Allocation Details</th>
+                </tr>
+              </thead>
+              <tbody id="detailItemsBody">
+                <!-- Populated by JavaScript -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="action-btn secondary-btn" id="closeDetailBtn">Close</button>
+      </div>
+    </div>
+  </div>
+
+</div>

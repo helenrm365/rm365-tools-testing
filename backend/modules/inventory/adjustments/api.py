@@ -158,11 +158,13 @@ async def log_inventory_adjustment(body: AdjustmentLogIn, user=Depends(get_curre
         
         # Handle both single adjustment and multiple adjustments (smart shelf logic)
         adjustment_data = result["adjustment"]
-        if isinstance(adjustment_data, list):
-            # Return the first adjustment (primary one requested)
-            return AdjustmentOut(**adjustment_data[0])
-        else:
-            return AdjustmentOut(**adjustment_data)
+        response_payload = adjustment_data[0] if isinstance(adjustment_data, list) else adjustment_data
+        response_payload = {
+            **response_payload,
+            "metadata_updated": result.get("metadata_updated"),
+            "smart_shelf_applied": result.get("smart_shelf_applied")
+        }
+        return AdjustmentOut(**response_payload)
     
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

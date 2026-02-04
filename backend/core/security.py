@@ -28,6 +28,15 @@ def get_all_tabs() -> List[str]:
         "magentodata", "magentodata.uk-magento", "magentodata.fr-magento", "magentodata.nl-magento", "magentodata.history",
         "inventory", "inventory.management",
         "orders", "orders.order-fulfillment", "orders.order-progress", "orders.order-tracking", "orders.order-approval",
+        "birmingham-orders", "birmingham-orders.order-fulfillment", "birmingham-orders.order-progress",
+        "birmingham-orders.order-tracking", "birmingham-orders.order-approval", "birmingham-orders.scanner",
+        "birmingham-orders.scanning-logs",
+        "france-orders", "france-orders.order-fulfillment", "france-orders.order-progress",
+        "france-orders.order-tracking", "france-orders.order-approval", "france-orders.scanner",
+        "france-orders.scanning-logs",
+        "london-orders", "london-orders.order-fulfillment", "london-orders.order-progress",
+        "london-orders.order-tracking", "london-orders.order-approval", "london-orders.scanner",
+        "london-orders.scanning-logs",
         "usermanagement", "usermanagement.management"
     ]
 
