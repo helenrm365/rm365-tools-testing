@@ -40,18 +40,8 @@
   <!-- Main Content Wrapper -->
   <div class="scanner-content">
     
-    <!-- Scanner Section -->
-    <div class="action-block" id="scannerSection">
-      <div class="block-header">
-        <div class="block-icon">
-          <i class="fas fa-barcode"></i>
-        </div>
-        <div class="block-title-group">
-          <h3 class="block-title">Scan Item</h3>
-          <p class="block-subtitle">Scan or enter a barcode/SKU to add to the adjustment list</p>
-        </div>
-      </div>
-
+    <!-- Unified Scanner Block -->
+    <div class="action-block scanner-unified" id="scannerSection">
       <div class="block-content">
         <div class="scanner-form">
           <!-- SKU Input with Search Dropdown -->
@@ -74,31 +64,18 @@
             </div>
           </div>
         </div>
-
-        <!-- Scan Message -->
-        <div id="scanMessage" class="message-area" style="display: none;"></div>
       </div>
-    </div>
 
-    <!-- Pending Adjustments Section -->
-    <div class="action-block" id="pendingSection">
-      <div class="block-header">
-        <div class="block-icon">
-          <i class="fas fa-clipboard-list"></i>
-        </div>
-        <div class="block-title-group">
-          <h3 class="block-title">Pending Adjustments</h3>
-          <p class="block-subtitle" id="pendingSubtitle">0 items ready to submit</p>
-        </div>
-        <div class="block-actions">
-          <button id="clearAllBtn" class="action-btn secondary-btn" style="display: none;">
+      <!-- Pending Adjustments Subsection -->
+      <div class="block-subsection pending-subsection">
+        <!-- Clear All Button -->
+        <div class="pending-actions" style="display: none;" id="pendingActionsWrapper">
+          <button id="clearAllBtn" class="action-btn secondary-btn">
             <i class="fas fa-trash"></i>
             Clear All
           </button>
         </div>
-      </div>
 
-      <div class="block-content">
         <!-- Items List -->
         <div class="pending-items-list" id="pendingItemsList">
           <div class="empty-state">
@@ -108,37 +85,40 @@
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Submit Section -->
-    <div class="action-block submit-block" id="submitSection" style="display: none;">
-      <div class="block-header">
-        <div class="block-icon">
-          <i class="fas fa-paper-plane"></i>
+      <!-- Submit Subsection -->
+      <div class="block-subsection submit-subsection" id="submitSection">
+        <div class="subsection-header">
+          <div class="subsection-icon">
+            <i class="fas fa-paper-plane"></i>
+          </div>
+          <div class="subsection-title-group">
+            <h4 class="subsection-title">Submit Adjustments</h4>
+            <p class="subsection-subtitle">Review and submit all pending inventory changes</p>
+          </div>
         </div>
-        <div class="block-title-group">
-          <h3 class="block-title">Submit Adjustments</h3>
-          <p class="block-subtitle">Review and submit all pending inventory changes</p>
-        </div>
-      </div>
 
-      <div class="block-content">
+        <!-- Items Count -->
+        <div class="submit-items-count" id="submitItemsCount">
+          <p class="items-count-text" id="pendingSubtitle">0 items ready to submit</p>
+        </div>
+
         <!-- Reason Input -->
         <div class="form-group reason-group">
           <label class="form-label">
             <i class="fas fa-comment"></i>
             Reason for Adjustment
           </label>
-          <input type="text" id="reasonInput" class="form-input" placeholder="e.g., Stock count correction, Received shipment, Damaged goods...">
+          <input type="text" id="reasonInput" class="form-input" placeholder="e.g., Stock count correction, Received shipment, Damaged goods..." disabled>
         </div>
 
         <!-- Action Buttons -->
         <div class="submit-actions">
-          <button id="cancelBtn" class="action-btn secondary-btn">
+          <button id="cancelBtn" class="action-btn secondary-btn" disabled>
             <i class="fas fa-times"></i>
             Cancel
           </button>
-          <button id="submitBtn" class="action-btn success-btn">
+          <button id="submitBtn" class="action-btn success-btn" disabled>
             <i class="fas fa-check"></i>
             Submit All Adjustments
           </button>

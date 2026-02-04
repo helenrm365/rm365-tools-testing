@@ -14,6 +14,7 @@ import { getApiUrl } from '../../config.js';
 import { getToken } from '../../services/state/sessionStore.js';
 import { showNotification } from '../../ui/modal.js';
 import { showToast } from '../../ui/toast.js';
+import { checkTablesStatus, initializeTables } from '../../services/api/inventoryApi.js';
 
 // Branch configuration
 const BRANCH_CONFIG = {
@@ -66,10 +67,12 @@ class InventoryScannerManager {
     this.searchSpinner = document.getElementById('searchSpinner');
     
     // Messages and lists
-    this.scanMessage = document.getElementById('scanMessage');
+    
+    // Messages and lists
     this.pendingItemsList = document.getElementById('pendingItemsList');
     this.pendingSubtitle = document.getElementById('pendingSubtitle');
     this.clearAllBtn = document.getElementById('clearAllBtn');
+    this.pendingActionsWrapper = document.getElementById('pendingActionsWrapper');
     
     // Submit section
     this.submitSection = document.getElementById('submitSection');
@@ -96,8 +99,8 @@ class InventoryScannerManager {
         if (this.searchDropdown?.classList.contains('active') && this.searchResults.length > 0) {
           this.selectSearchResult(this.searchResults[0]);
         } else if (this.skuInput.value.trim()) {
-          // Fallback: try exact scan
-          this.scanItem();
+          // Barcode scan: add to list (no auto-submit)
+          this.scanItem(false);
         }
       } else if (e.key === 'Escape') {
         this.hideSearchDropdown();
@@ -113,6 +116,14 @@ class InventoryScannerManager {
         this.hideSearchDropdown();
       }
     });
+
+    // Close dropdown on scroll/touch (mobile) to prevent it staying open after navigating
+    const closeDropdown = () => this.hideSearchDropdown();
+    window.addEventListener('scroll', closeDropdown, { passive: true, capture: true });
+    document.addEventListener('scroll', closeDropdown, { passive: true, capture: true });
+    document.addEventListener('touchmove', closeDropdown, { passive: true });
+    window.addEventListener('touchstart', closeDropdown, { passive: true });
+    this.pendingItemsList?.addEventListener('scroll', closeDropdown, { passive: true });
     
     // Clear all button
     this.clearAllBtn?.addEventListener('click', () => this.clearAllItems());
@@ -141,21 +152,23 @@ class InventoryScannerManager {
     
     const trimmedQuery = query.trim();
     
-    // Hide dropdown if query is empty
-    if (!trimmedQuery) {
+    // Hide dropdown and spinner if query is empty or too short
+    if (!trimmedQuery || trimmedQuery.length < 2) {
       this.hideSearchDropdown();
+      if (this.searchSpinner) {
+        this.searchSpinner.style.display = 'none';
+      }
       return;
     }
     
-    // Show spinner
-    if (this.searchSpinner) {
-      this.searchSpinner.style.display = 'flex';
-    }
-    
-    // Debounce: wait 300ms after user stops typing
+    // Debounce: wait 500ms after user stops typing
     this.searchDebounceTimer = setTimeout(() => {
+      // Show spinner before search
+      if (this.searchSpinner) {
+        this.searchSpinner.style.display = 'flex';
+      }
       this.performSearch(trimmedQuery);
-    }, 300);
+    }, 500);
   }
 
   async performSearch(query) {
@@ -395,19 +408,10 @@ class InventoryScannerManager {
   }
 
   showMessage(message, type = 'info') {
-    if (!this.scanMessage) return;
-    
-    this.scanMessage.textContent = message;
-    this.scanMessage.className = `message-area ${type}`;
-    this.scanMessage.style.display = 'block';
-    
-    // Auto-hide after 5 seconds
-    setTimeout(() => {
-      this.scanMessage.style.display = 'none';
-    }, 5000);
+    showToast(message, type);
   }
 
-  async scanItem() {
+  async scanItem(autoSubmit = false) {
     const sku = this.skuInput?.value.trim();
     
     if (!sku) {
@@ -483,6 +487,11 @@ class InventoryScannerManager {
       this.skuInput.value = '';
       this.skuInput.focus();
       
+      // Auto-submit the scanned item immediately (bypass confirm)
+      if (autoSubmit) {
+        await this.submitAdjustments(true);
+      }
+      
     } catch (error) {
       console.error('Error scanning item:', error);
       this.showMessage(`Error: ${error.message}`, 'error');
@@ -542,13 +551,29 @@ class InventoryScannerManager {
     }
     
     // Show/hide clear all button
-    if (this.clearAllBtn) {
-      this.clearAllBtn.style.display = totalItems > 0 ? 'flex' : 'none';
+    if (this.pendingActionsWrapper) {
+      this.pendingActionsWrapper.style.display = totalItems > 0 ? 'flex' : 'none';
     }
     
-    // Show/hide submit section
+    // Enable/disable submit section based on valid items (quantity !== 0)
+    const hasValidItems = this.pendingItems.some(item => item.quantity !== 0);
     if (this.submitSection) {
-      this.submitSection.style.display = totalItems > 0 ? 'block' : 'none';
+      // Toggle disabled state on inputs and buttons
+      if (this.reasonInput) {
+        this.reasonInput.disabled = !hasValidItems;
+      }
+      if (this.cancelBtn) {
+        this.cancelBtn.disabled = !hasValidItems;
+      }
+      if (this.submitBtn) {
+        this.submitBtn.disabled = !hasValidItems;
+      }
+      // Add/remove visual disabled state
+      if (hasValidItems) {
+        this.submitSection.classList.remove('disabled');
+      } else {
+        this.submitSection.classList.add('disabled');
+      }
     }
     
     // Update items list
@@ -574,6 +599,9 @@ class InventoryScannerManager {
       return `
         <div class="pending-item ${typeClass}" data-index="${index}">
           <div class="pending-item-main">
+            <button class="pending-item-remove" data-index="${index}" title="Remove item">
+              <i class="fas fa-trash"></i>
+            </button>
             <div class="pending-item-icon ${typeClass}">
               <i class="fas ${typeIcon}"></i>
             </div>
@@ -586,6 +614,11 @@ class InventoryScannerManager {
             </div>
           </div>
           <div class="pending-item-controls">
+            <div class="pending-item-shelf">
+              <select class="shelf-select" data-index="${index}">
+                ${shelfOptions}
+              </select>
+            </div>
             <div class="pending-item-qty">
               <button class="qty-adjust-btn minus" data-index="${index}" data-action="decrease" title="Decrease (more negative)">
                 <i class="fas fa-minus"></i>
@@ -595,15 +628,7 @@ class InventoryScannerManager {
                 <i class="fas fa-plus"></i>
               </button>
             </div>
-            <div class="pending-item-shelf">
-              <select class="shelf-select" data-index="${index}">
-                ${shelfOptions}
-              </select>
-            </div>
           </div>
-          <button class="pending-item-remove" data-index="${index}" title="Remove item">
-            <i class="fas fa-trash"></i>
-          </button>
         </div>
       `;
     }).join('');
@@ -839,14 +864,18 @@ class InventoryScannerManager {
     }
   }
 
-  async submitAdjustments() {
-    this.hideConfirmModal();
+  async submitAdjustments(autoTrigger = false) {
+    if (!autoTrigger) {
+      this.hideConfirmModal();
+    }
     
     const reason = this.reasonInput?.value.trim() || 'Scanner adjustment';
     
     try {
-      this.submitBtn.disabled = true;
-      this.submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+      if (!autoTrigger) {
+        this.submitBtn.disabled = true;
+        this.submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+      }
       
       const results = {
         success: [],
@@ -867,7 +896,8 @@ class InventoryScannerManager {
               barcode: item.itemId || item.sku,
               quantity: item.quantity, // Already signed
               reason: reason,
-              field: item.shelfField
+              field: item.shelfField,
+              branch_id: BRANCH_CONFIG.branchId
             })
           });
           
@@ -888,8 +918,16 @@ class InventoryScannerManager {
         await this.logSubmissionToScanningLogs(results.success, reason);
       }
       
-      // Show results
-      this.showSuccessModal(results);
+      // Show results - skip modal for auto-triggered (barcode scan)
+      if (autoTrigger) {
+        if (results.failed.length === 0) {
+          this.showMessage(`Submitted: ${results.success.map(i => i.name || i.sku).join(', ')}`, 'success');
+        } else {
+          this.showMessage(`Failed to submit: ${results.failed.map(f => f.item.sku).join(', ')}`, 'error');
+        }
+      } else {
+        this.showSuccessModal(results);
+      }
       
       // Clear pending items if all succeeded
       if (results.failed.length === 0) {
@@ -902,8 +940,10 @@ class InventoryScannerManager {
       console.error('Error submitting adjustments:', error);
       showNotification(`Error submitting adjustments: ${error.message}`, 'error');
     } finally {
-      this.submitBtn.disabled = false;
-      this.submitBtn.innerHTML = '<i class="fas fa-check"></i> Submit All Adjustments';
+      if (!autoTrigger) {
+        this.submitBtn.disabled = false;
+        this.submitBtn.innerHTML = '<i class="fas fa-check"></i> Submit All Adjustments';
+      }
     }
   }
 
@@ -1053,6 +1093,21 @@ let scannerManager = null;
 
 export async function init(path) {
   console.log('[London Scanner] Initializing...');
+  
+  // Check tables status and initialize if needed (like Label Generator)
+  try {
+    showToast('Checking database tables...', 'info');
+    const statusResult = await checkTablesStatus(BRANCH_CONFIG.branchId);
+    if (statusResult.status === 'success' && !statusResult.all_tables_exist) {
+      showToast('Initializing inventory tables...', 'info');
+      console.log('[London Scanner] Some tables missing, initializing...', statusResult.tables_status);
+      await initializeTables(BRANCH_CONFIG.branchId);
+      console.log('[London Scanner] Tables initialized successfully');
+    }
+  } catch (error) {
+    console.error('[London Scanner] Error checking/initializing tables:', error);
+    // Continue anyway - scanner operations will handle errors
+  }
   
   if (scannerManager) {
     scannerManager.destroy();

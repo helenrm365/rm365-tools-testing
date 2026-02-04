@@ -112,9 +112,20 @@ html.dark-mode .footer-disclaimer {
 
 @media (max-width: 768px) {
   .universal-footer {
+    /* Convert to header - fixed at top right */
+    position: fixed;
+    top: 0;
+    right: 0;
+    left: auto;
+    z-index: 999;
     padding: 0.5rem 1rem;
-    margin-top: 1.5rem;
+    margin-top: 0;
     text-align: right;
+    background: transparent;
+    border-top: none;
+    border-bottom: none;
+    width: auto;
+    max-width: 200px;
   }
   
   .footer-content {
@@ -135,28 +146,41 @@ html.dark-mode .footer-disclaimer {
   
   .footer-section:first-child h4 {
     font-size: 0.75rem;
-    font-weight: 500;
+    font-weight: 400;
     margin: 0;
+    opacity: 0.4;
+    color: var(--text-color, #333);
   }
   
   .footer-section:first-child p {
     font-size: 0.7rem;
     margin: 0.1rem 0 0 0;
-    opacity: 0.8;
+    opacity: 0.35;
+    color: var(--text-color, #333);
   }
+}
+
+html.dark-mode .universal-footer {
+  background: transparent;
+}
+
+html.dark-mode .footer-section:first-child h4,
+html.dark-mode .footer-section:first-child p {
+  color: #fff;
 }
 
 @media (max-width: 480px) {
   .universal-footer {
     padding: 0.4rem 0.75rem;
+    max-width: 180px;
   }
   
   .footer-section:first-child h4 {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
   }
   
   .footer-section:first-child p {
-    font-size: 0.65rem;
+    font-size: 0.6rem;
   }
 }
 </style>

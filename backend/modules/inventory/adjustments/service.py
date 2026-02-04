@@ -22,12 +22,13 @@ class AdjustmentsService:
         """Get all adjustments (renamed from pending for backwards compatibility)"""
         return self.repo.get_pending_adjustments()
     
-    def log_adjustment(self, *, barcode: str, quantity: int, reason: str, field: str, adjusted_by: str = None) -> Dict[str, Any]:
+    def log_adjustment(self, *, barcode: str, quantity: int, reason: str, field: str, adjusted_by: str = None, branch_id: str) -> Dict[str, Any]:
         """
-        Log an inventory adjustment to PostgreSQL and update inventory_metadata immediately.
+        Log an inventory adjustment to PostgreSQL and update branch-specific inventory immediately.
         
-        The adjustment is applied to inventory_metadata in real-time, providing immediate 
-        local inventory tracking. Smart shelf logic is applied:
+        Updates the branch-specific inventory table based on branch_id.
+        
+        Smart shelf logic is applied:
         - If shelf_lt1_qty would go negative, it automatically takes from shelf_gt1_qty
         - If shelf_gt1_qty would go negative, it automatically takes from top_floor_total
         
@@ -37,8 +38,18 @@ class AdjustmentsService:
             reason: The reason for the adjustment
             field: The field to adjust (auto, shelf_lt1_qty, shelf_gt1_qty, top_floor_total)
             adjusted_by: The username of the user making this adjustment
+            branch_id: Branch ID (required) - e.g., 'uk-birmingham', 'uk-london', 'fr-paris'
         """
+        # Valid branch IDs
+        VALID_BRANCHES = ['uk-birmingham', 'uk-london', 'fr-paris']
+        
         try:
+            # Validate branch_id
+            if not branch_id:
+                raise ValueError("branch_id is required. Valid values: uk-birmingham, uk-london, fr-paris")
+            if branch_id not in VALID_BRANCHES:
+                raise ValueError(f"Invalid branch_id: '{branch_id}'. Valid values: {', '.join(VALID_BRANCHES)}")
+            
             if quantity == 0:
                 raise ValueError("Adjustment quantity cannot be zero")
             
@@ -84,11 +95,11 @@ class AdjustmentsService:
             
             # Apply smart shelf logic ONLY if 'auto' is selected and removing stock
             if field == 'auto' and quantity < 0:
-                adjustment_result = self._apply_smart_shelf_logic(sanitized_barcode, actual_field, quantity)
+                adjustment_result = self._apply_smart_shelf_logic(sanitized_barcode, actual_field, quantity, branch_id)
                 smart_shelf_message = self._build_smart_shelf_message(adjustment_result, quantity)
             elif quantity < 0:
                 # Specific field selected - check if enough stock exists
-                adjustment_result = self._apply_specific_field_adjustment(sanitized_barcode, actual_field, quantity)
+                adjustment_result = self._apply_specific_field_adjustment(sanitized_barcode, actual_field, quantity, branch_id)
                 smart_shelf_message = None
             else:
                 # For adding stock, just update the specified field
@@ -108,31 +119,31 @@ class AdjustmentsService:
                     'reason': reason,
                     'field': adj['field'],
                     'status': 'Success',  # Immediate success since no external sync
-                    'response_message': 'Adjustment applied to inventory_metadata',
+                    'response_message': f'Adjustment applied to {branch_id} inventory',
                     'adjusted_by': adjusted_by
                 }
                 
                 adjustment = self.repo.create_adjustment_log(adjustment_data)
                 adjustments.append(adjustment)
                 
-                # Update inventory_metadata
+                # Update the branch-specific inventory table
                 try:
-                    logger.info(f"🚀 IMMEDIATE UPDATE: Starting metadata update for real-time tracking")
+                    logger.info(f"🚀 BRANCH UPDATE: Starting {branch_id} inventory update for real-time tracking")
                     logger.info(f"   item_id={adj['item_id']}, field={adj['field']}, delta={adj['delta']}")
-                    self.repo.update_metadata_quantity(adj['item_id'], adj['field'], adj['delta'])
-                    logger.info(f"✅ IMMEDIATE UPDATE SUCCESS: inventory_metadata updated immediately")
+                    self.repo.update_branch_inventory_quantity(adj['item_id'], adj['field'], adj['delta'], branch_id)
+                    logger.info(f"✅ BRANCH UPDATE SUCCESS: {branch_id} inventory updated immediately")
                     logger.info(f"   {adj['item_id']} {adj['field']} += {adj['delta']}")
                 except Exception as e:
-                    logger.error(f"❌ IMMEDIATE UPDATE FAILED: inventory_metadata update failed for {adj['item_id']}")
-                    logger.error(f"   Field: {adj['field']}, Quantity: {adj['delta']}")
+                    logger.error(f"❌ INVENTORY UPDATE FAILED: update failed for {adj['item_id']}")
+                    logger.error(f"   Branch: {branch_id}, Field: {adj['field']}, Quantity: {adj['delta']}")
                     logger.error(f"   Error: {e}")
                     raise
             
-            logger.info(f"Adjustment logged for barcode {sanitized_barcode}, field {field}, quantity {quantity} - metadata updated immediately")
+            logger.info(f"Adjustment logged for barcode {sanitized_barcode}, field {field}, quantity {quantity} - {branch_id} inventory updated")
             
             return {
                 "status": "success", 
-                "message": smart_shelf_message or f"Adjustment logged and inventory updated immediately.",
+                "message": smart_shelf_message or f"Adjustment logged and {branch_id} inventory updated.",
                 "adjustment": adjustments[0] if len(adjustments) == 1 else adjustments,
                 "metadata_updated": adjustment_result,
                 "smart_shelf_applied": len(adjustment_result) > 1
@@ -142,11 +153,17 @@ class AdjustmentsService:
             logger.error(f"Error logging adjustment: {e}")
             raise
     
-    def _apply_smart_shelf_logic(self, item_id: str, initial_field: str, quantity: int) -> List[Dict[str, Any]]:
+    def _apply_smart_shelf_logic(self, item_id: str, initial_field: str, quantity: int, branch_id: str = None) -> List[Dict[str, Any]]:
         """
         Apply smart shelf logic for stock removal:
         - If shelf_lt1_qty < abs(quantity), take remaining from shelf_gt1_qty
         - If shelf_gt1_qty < remaining, take from top_floor_total
+        
+        Args:
+            item_id: The item barcode/ID
+            initial_field: The starting field to try
+            quantity: The quantity to remove (should be negative)
+            branch_id: Optional branch ID for branch-specific inventory lookup
         
         Returns list of field updates to apply
         """
@@ -154,8 +171,12 @@ class AdjustmentsService:
             # Not removing stock, no smart logic needed
             return [{'field': initial_field, 'delta': quantity, 'item_id': item_id}]
         
-        # Get current inventory levels
-        metadata = self.repo.get_item_metadata(item_id)
+        # Get current inventory levels from appropriate table
+        if branch_id:
+            metadata = self.repo.get_branch_item_metadata(item_id, branch_id)
+        else:
+            metadata = self.repo.get_item_metadata(item_id)
+            
         if not metadata:
             # Item doesn't exist yet, just apply the adjustment as-is
             return [{'field': initial_field, 'delta': quantity, 'item_id': item_id}]
@@ -215,13 +236,23 @@ class AdjustmentsService:
         
         return updates
     
-    def _apply_specific_field_adjustment(self, item_id: str, field: str, quantity: int) -> List[Dict[str, Any]]:
+    def _apply_specific_field_adjustment(self, item_id: str, field: str, quantity: int, branch_id: str = None) -> List[Dict[str, Any]]:
         """
         Apply adjustment to a specific field only - no smart logic.
         Raises ValueError if insufficient stock.
+        
+        Args:
+            item_id: The item barcode/ID
+            field: The field to adjust
+            quantity: The quantity to remove (should be negative)
+            branch_id: Optional branch ID for branch-specific inventory lookup
         """
-        # Get current inventory levels
-        metadata = self.repo.get_item_metadata(item_id)
+        # Get current inventory levels from appropriate table
+        if branch_id:
+            metadata = self.repo.get_branch_item_metadata(item_id, branch_id)
+        else:
+            metadata = self.repo.get_item_metadata(item_id)
+            
         if not metadata:
             # Item doesn't exist yet, allow negative adjustment
             return [{'field': field, 'delta': quantity, 'item_id': item_id}]

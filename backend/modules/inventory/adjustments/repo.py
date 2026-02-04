@@ -304,12 +304,21 @@ class AdjustmentsRepo:
                     'top_floor_total': max(0, delta) if field == 'top_floor_total' else 0
                 }
                 
+                # Generate a temporary SKU based on item_id for new records
+                temp_sku = f"SCAN-{item_id[-8:]}"
+                
                 cursor.execute("""
                     INSERT INTO inventory_metadata 
-                    (item_id, location, date, shelf_lt1, shelf_lt1_qty, shelf_gt1, shelf_gt1_qty, 
+                    (sku, item_id, location, date, shelf_lt1, shelf_lt1_qty, shelf_gt1, shelf_gt1_qty, 
                      top_floor_expiry, top_floor_total, status, uk_fr_preorder)
-                    VALUES (%s, '', '', '', %s, '', %s, '', %s, '', '')
+                    VALUES (%s, %s, NULL, NULL, NULL, %s, NULL, %s, NULL, %s, NULL, NULL)
+                    ON CONFLICT (sku) DO UPDATE SET
+                        shelf_lt1_qty = GREATEST(0, COALESCE(inventory_metadata.shelf_lt1_qty, 0) + EXCLUDED.shelf_lt1_qty),
+                        shelf_gt1_qty = GREATEST(0, COALESCE(inventory_metadata.shelf_gt1_qty, 0) + EXCLUDED.shelf_gt1_qty),
+                        top_floor_total = GREATEST(0, COALESCE(inventory_metadata.top_floor_total, 0) + EXCLUDED.top_floor_total),
+                        updated_at = CURRENT_TIMESTAMP
                 """, (
+                    temp_sku,
                     item_id,
                     initial_values['shelf_lt1_qty'],
                     initial_values['shelf_gt1_qty'],
@@ -321,6 +330,88 @@ class AdjustmentsRepo:
             
         except psycopg2.Error as e:
             logger.error(f"Failed to update inventory_metadata for {item_id}: {e}")
+            conn.rollback()
+            raise
+        finally:
+            self.return_connection(conn)
+
+    def update_branch_inventory_quantity(self, item_id: str, field: str, delta: int, branch_id: str) -> None:
+        """Update branch-specific inventory quantity for real-time tracking
+        
+        Args:
+            item_id: The item barcode/ID
+            field: The field to update (shelf_lt1_qty, shelf_gt1_qty, top_floor_total)
+            delta: The quantity change (positive or negative)
+            branch_id: The branch ID (e.g., 'uk-birmingham', 'uk-london', 'fr-paris')
+        """
+        # Map branch_id to table name
+        branch_table_map = {
+            'uk-birmingham': 'uk_birmingham_inventory',
+            'uk-london': 'uk_london_inventory',
+            'fr-paris': 'fr_paris_inventory'
+        }
+        
+        table_name = branch_table_map.get(branch_id)
+        if not table_name:
+            logger.error(f"Unknown branch_id: {branch_id}")
+            raise ValueError(f"Unknown branch_id: {branch_id}")
+        
+        allowed_fields = ["shelf_lt1_qty", "shelf_gt1_qty", "top_floor_total"]
+        if field not in allowed_fields:
+            logger.warning(f"Invalid field ignored: {field}. Allowed: {allowed_fields}")
+            return
+
+        logger.info(f"Updating branch inventory: table={table_name}, item_id={item_id}, field={field}, delta={delta}")
+        
+        conn = self.get_metadata_connection()
+        try:
+            cursor = conn.cursor()
+            
+            # First check if record exists
+            logger.info(f"Checking if record exists in {table_name} for item_id: {item_id}")
+            cursor.execute(f"SELECT item_id FROM {table_name} WHERE item_id = %s", (item_id,))
+            exists = cursor.fetchone()
+            logger.info(f"Record exists check: {exists is not None}")
+            
+            if exists:
+                cursor.execute(f"""
+                    UPDATE {table_name} 
+                    SET {field} = GREATEST(0, COALESCE({field}, 0) + %s),
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE item_id = %s
+                """, (delta, item_id))
+                logger.info(f"Updated existing {table_name}: {item_id} [{field} += {delta}]")
+            else:
+                initial_values = {
+                    'shelf_lt1_qty': max(0, delta) if field == 'shelf_lt1_qty' else 0,
+                    'shelf_gt1_qty': max(0, delta) if field == 'shelf_gt1_qty' else 0,
+                    'top_floor_total': max(0, delta) if field == 'top_floor_total' else 0
+                }
+                
+                # Generate a temporary SKU based on item_id for new records
+                temp_sku = f"SCAN-{item_id[-8:]}"
+                
+                cursor.execute(f"""
+                    INSERT INTO {table_name} 
+                    (sku, item_id, location, date, shelf_lt1, shelf_lt1_qty, shelf_gt1, shelf_gt1_qty, 
+                     top_floor_expiry, top_floor_total, status, uk_fr_preorder)
+                    VALUES (%s, %s, NULL, NULL, NULL, %s, NULL, %s, NULL, %s, NULL, NULL)
+                    ON CONFLICT (sku) DO UPDATE SET
+                        {field} = GREATEST(0, COALESCE({table_name}.{field}, 0) + EXCLUDED.{field}),
+                        updated_at = CURRENT_TIMESTAMP
+                """, (
+                    temp_sku,
+                    item_id,
+                    initial_values['shelf_lt1_qty'],
+                    initial_values['shelf_gt1_qty'],
+                    initial_values['top_floor_total']
+                ))
+                logger.info(f"Created new record in {table_name}: {item_id} with {field}={delta}")
+            
+            conn.commit()
+            
+        except psycopg2.Error as e:
+            logger.error(f"Failed to update {table_name} for {item_id}: {e}")
             conn.rollback()
             raise
         finally:
@@ -361,7 +452,7 @@ class AdjustmentsRepo:
             self.return_connection(conn)
 
     def get_item_metadata(self, item_id: str) -> Optional[Dict[str, Any]]:
-        """Get inventory metadata for a specific item"""
+        """Get inventory metadata for a specific item from global table"""
         conn = self.get_metadata_connection()
         try:
             cursor = conn.cursor()
@@ -383,6 +474,50 @@ class AdjustmentsRepo:
             
         except psycopg2.Error as e:
             logger.error(f"Database error in get_item_metadata: {e}")
+            return None
+        finally:
+            self.return_connection(conn)
+
+    def get_branch_item_metadata(self, item_id: str, branch_id: str) -> Optional[Dict[str, Any]]:
+        """Get inventory metadata for a specific item from branch-specific table
+        
+        Args:
+            item_id: The item barcode/ID
+            branch_id: The branch ID (e.g., 'uk-birmingham', 'uk-london', 'fr-paris')
+        """
+        # Map branch_id to table name
+        branch_table_map = {
+            'uk-birmingham': 'uk_birmingham_inventory',
+            'uk-london': 'uk_london_inventory',
+            'fr-paris': 'fr_paris_inventory'
+        }
+        
+        table_name = branch_table_map.get(branch_id)
+        if not table_name:
+            logger.error(f"Unknown branch_id: {branch_id}")
+            return None
+        
+        conn = self.get_metadata_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(f"""
+                SELECT item_id, shelf_lt1_qty, shelf_gt1_qty, top_floor_total
+                FROM {table_name}
+                WHERE item_id = %s
+            """, (item_id,))
+            
+            row = cursor.fetchone()
+            if row:
+                return {
+                    'item_id': row[0],
+                    'shelf_lt1_qty': row[1],
+                    'shelf_gt1_qty': row[2],
+                    'top_floor_total': row[3]
+                }
+            return None
+            
+        except psycopg2.Error as e:
+            logger.error(f"Database error in get_branch_item_metadata for {branch_id}: {e}")
             return None
         finally:
             self.return_connection(conn)

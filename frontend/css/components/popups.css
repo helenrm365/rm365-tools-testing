@@ -116,6 +116,17 @@
   animation: toastSlideIn 0.3s ease;
 }
 
+/* Mobile: Position toasts at top right */
+@media (max-width: 768px) {
+  .toast {
+    top: 1rem !important;
+    bottom: auto !important;
+    right: 1rem !important;
+    left: auto !important;
+    max-width: calc(100vw - 2rem);
+  }
+}
+
 .toast.success {
   border-left: 4px solid #10b981;
 }

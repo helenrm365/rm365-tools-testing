@@ -280,6 +280,66 @@ class BranchInventoryRepo:
             return 0
         finally:
             self.return_connection(conn)
+    
+    def sync_from_inventory_metadata(self) -> Dict[str, Any]:
+        """
+        Sync products from inventory_metadata to this branch table.
+        
+        This inserts any products from inventory_metadata that don't exist in
+        the branch table yet. Existing products are NOT overwritten to preserve
+        branch-specific data (quantities, locations, etc.).
+        
+        Returns:
+            Dict with stats: inserted_count, existing_count, total_metadata_count
+        """
+        conn = self.get_metadata_connection()
+        try:
+            cursor = conn.cursor()
+            
+            # Get count of items in inventory_metadata
+            cursor.execute("SELECT COUNT(*) FROM inventory_metadata")
+            metadata_count = cursor.fetchone()[0]
+            
+            # Get count of items in branch table before sync
+            cursor.execute(f"SELECT COUNT(*) FROM {self.table_name}")
+            before_count = cursor.fetchone()[0]
+            
+            # Insert products from inventory_metadata that don't exist in branch table
+            # We copy: sku, item_id, product_name, uk_6m_data, fr_6m_data, variant_statuses
+            # We leave branch-specific fields (location, quantities) as defaults/NULL
+            cursor.execute(f"""
+                INSERT INTO {self.table_name} (
+                    sku, item_id, product_name, uk_6m_data, fr_6m_data, variant_statuses,
+                    created_at, updated_at
+                )
+                SELECT 
+                    m.sku, m.item_id, m.product_name, m.uk_6m_data, m.fr_6m_data, m.variant_statuses,
+                    NOW(), NOW()
+                FROM inventory_metadata m
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM {self.table_name} b WHERE b.sku = m.sku
+                )
+            """)
+            
+            inserted_count = cursor.rowcount
+            conn.commit()
+            
+            logger.info(f"[{self.branch_id}] Synced {inserted_count} new products from inventory_metadata")
+            
+            return {
+                "branch": self.branch_id,
+                "table": self.table_name,
+                "inserted_count": inserted_count,
+                "existing_count": before_count,
+                "total_metadata_count": metadata_count
+            }
+            
+        except Exception as e:
+            logger.error(f"Error syncing from inventory_metadata for {self.branch_id}: {e}")
+            conn.rollback()
+            raise
+        finally:
+            self.return_connection(conn)
 
 
 __all__ = ['BranchInventoryRepo']

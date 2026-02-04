@@ -208,6 +208,33 @@ def sync_inventory_metadata_nightly():
         except Exception as e:
             logger.error(f"  ❌ Failed to update 6M sales data: {e}")
         
+        # ============================================================
+        # STEP 4: Sync branch inventory tables from inventory_metadata
+        # (Must happen AFTER catalog sync so all products are in inventory_metadata)
+        # ============================================================
+        try:
+            from modules.inventory.management.branches.repo import BranchInventoryRepo
+            
+            logger.info("  🏢 Syncing branch inventory tables from inventory_metadata...")
+            
+            branch_configs = [
+                ('uk-birmingham', 'uk_birmingham_inventory'),
+                ('uk-london', 'uk_london_inventory'),
+                ('fr-paris', 'fr_paris_inventory')
+            ]
+            
+            for branch_id, table_name in branch_configs:
+                try:
+                    repo = BranchInventoryRepo(branch_id=branch_id, table_name=table_name)
+                    result = repo.sync_from_inventory_metadata()
+                    logger.info(f"  ✅ {branch_id}: {result.get('inserted_count', 0)} new products synced")
+                except Exception as e:
+                    logger.error(f"  ❌ Failed to sync {branch_id}: {e}")
+                    # Continue with other branches even if one fails
+                    
+        except Exception as e:
+            logger.error(f"  ❌ Failed branch inventory sync: {e}")
+        
         
         logger.info("🌙 Nightly inventory_metadata sync completed!")
         

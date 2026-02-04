@@ -10,6 +10,7 @@ class AdjustmentLogIn(BaseModel):
     quantity: int = Field(..., description="Quantity to adjust")
     reason: str = Field(..., description="Reason for adjustment")
     field: str = Field(..., description="Field to affect: shelf_lt1_qty, shelf_gt1_qty, or top_floor_total")
+    branch_id: str = Field(..., description="Branch ID (required) - e.g., 'uk-birmingham', 'uk-london', 'fr-paris'")
 
 
 # Legacy input schema for compatibility

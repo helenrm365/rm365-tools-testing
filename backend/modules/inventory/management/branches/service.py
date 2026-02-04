@@ -77,6 +77,15 @@ class BranchInventoryService:
                                   'status', 'uk_fr_preorder']:
                         if field in branch_data and branch_data[field] is not None:
                             item[field] = branch_data[field]
+                    
+                    # Compute total_qty from branch-specific shelf quantities
+                    shelf_lt1_qty = branch_data.get('shelf_lt1_qty') or 0
+                    shelf_gt1_qty = branch_data.get('shelf_gt1_qty') or 0
+                    top_floor_total = branch_data.get('top_floor_total') or 0
+                    item['total_qty'] = shelf_lt1_qty + shelf_gt1_qty + top_floor_total
+                else:
+                    # No branch-specific data, set total_qty to 0
+                    item['total_qty'] = 0
             
             main_result["branch"] = self.branch_id
             return main_result

@@ -120,9 +120,11 @@ def get_pending_adjustments_public():
 @router.post("/log", response_model=AdjustmentOut)
 async def log_inventory_adjustment(body: AdjustmentLogIn, user=Depends(get_current_user)):
     """
-    Log an inventory adjustment and update inventory_metadata immediately.
+    Log an inventory adjustment and update branch-specific or global inventory immediately.
     
-    The adjustment is applied to local inventory tracking in real-time.
+    If branch_id is provided (e.g., 'uk-birmingham'), updates the branch-specific inventory table.
+    Otherwise, updates the global inventory_metadata table.
+    
     Smart shelf logic automatically allocates stock across shelf_lt1, shelf_gt1, and top_floor.
     """
     try:
@@ -134,7 +136,8 @@ async def log_inventory_adjustment(body: AdjustmentLogIn, user=Depends(get_curre
             quantity=body.quantity,
             reason=body.reason,
             field=body.field,
-            adjusted_by=username
+            adjusted_by=username,
+            branch_id=body.branch_id
         )
         
         # Broadcast the adjustment to all connected users via WebSocket

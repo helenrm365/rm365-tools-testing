@@ -86,6 +86,8 @@ class InventoryItemOut(BaseModel):
     top_floor_total: Optional[int] = None
     status: Optional[str] = None
     uk_fr_preorder: Optional[str] = None
+    # Computed total quantity from branch shelves
+    total_qty: Optional[int] = None
 
 
 class InventoryMetadataRecord(BaseModel):
