@@ -1,0 +1,39 @@
+/* ===== Glow Effects Toggle ===== */
+/* 
+  Global glow management utility.
+  
+  USAGE:
+  1. Add the class 'has-glow' to any element that has glow effects
+  2. When html.glow-enabled is NOT set, glows will be replaced with standard shadows
+  3. When html.glow-enabled IS set, glows work normally
+  
+  EXAMPLE:
+  <button class="preset-btn has-glow">Today</button>
+  
+  The button's CSS can define glow box-shadows normally.
+  When glow is disabled, this utility will override them.
+*/
+
+/* ===== Utility Class for Custom Elements ===== */
+/* Add .has-glow to any element that has glow effects in its CSS */
+
+html:not(.glow-enabled) .has-glow:hover,
+html:not(.glow-enabled) .has-glow:focus-visible,
+html:not(.glow-enabled) .has-glow.active,
+html:not(.glow-enabled) .has-glow[aria-expanded="true"] {
+  box-shadow: var(--shadow-m) !important;
+}
+
+/* Larger shadow variant for cards and larger elements */
+html:not(.glow-enabled) .has-glow-lg:hover,
+html:not(.glow-enabled) .has-glow-lg:focus-visible,
+html:not(.glow-enabled) .has-glow-lg.active {
+  box-shadow: var(--shadow-l) !important;
+}
+
+/* No shadow variant for elements that should have no shadow when glow is off */
+html:not(.glow-enabled) .has-glow-none:hover,
+html:not(.glow-enabled) .has-glow-none:focus-visible,
+html:not(.glow-enabled) .has-glow-none.active {
+  box-shadow: none !important;
+}

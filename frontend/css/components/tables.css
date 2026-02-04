@@ -210,7 +210,7 @@ html.dark-mode .pagination-wrapper {
 .page-indicator,
 .page-info {
   padding: var(--space-sm) var(--space-md);
-  background: linear-gradient(135deg, var(--accent), #7ab82d);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   color: white;
   border-radius: var(--radius-md);
   font-weight: 600;

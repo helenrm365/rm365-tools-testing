@@ -68,11 +68,11 @@
 }
 
 input:checked + .lg-slider {
-    background-color: #8bc34a;
+    background-color: var(--accent);
 }
 
 input:focus + .lg-slider {
-    box-shadow: 0 0 1px #8bc34a;
+    box-shadow: 0 0 1px var(--accent);
 }
 
 input:checked + .lg-slider:before {

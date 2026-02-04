@@ -1,5 +1,6 @@
-from typing import Optional, Tuple, List
+from typing import Optional, Tuple, List, Dict
 from common.deps import pg_conn
+import json
 
 class UsersRepo:
     def get(self, username: str) -> Optional[Tuple[str, str, str]]:
@@ -40,3 +41,29 @@ class UsersRepo:
         with pg_conn() as conn, conn.cursor() as cur:
             cur.execute("DELETE FROM login_users WHERE username=%s", (username,))
             conn.commit()
+
+    # ===== User Preferences =====
+    def get_preferences(self, username: str) -> Optional[Dict]:
+        """Get user appearance preferences"""
+        with pg_conn() as conn, conn.cursor() as cur:
+            cur.execute("""
+                SELECT preferences FROM login_users WHERE username=%s
+            """, (username,))
+            row = cur.fetchone()
+            if row and row[0]:
+                try:
+                    return json.loads(row[0]) if isinstance(row[0], str) else row[0]
+                except (json.JSONDecodeError, TypeError):
+                    return None
+            return None
+
+    def save_preferences(self, username: str, preferences: Dict) -> bool:
+        """Save user appearance preferences. Returns True if saved successfully."""
+        with pg_conn() as conn, conn.cursor() as cur:
+            prefs_json = json.dumps(preferences)
+            cur.execute("""
+                UPDATE login_users SET preferences = %s WHERE username = %s
+            """, (prefs_json, username))
+            rows_affected = cur.rowcount
+            conn.commit()
+            return rows_affected > 0

@@ -65,6 +65,12 @@ html.dark-mode .settings-card-header {
   padding: var(--space-sm) 0;
 }
 
+.settings-row-stack {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-sm);
+}
+
 .settings-row + .settings-row {
   border-top: 1px solid rgba(0, 0, 0, 0.06);
 }
@@ -95,6 +101,89 @@ html.dark-mode .settings-row + .settings-row {
 .settings-label-description {
   font-size: 0.8125rem;
   color: var(--text-muted);
+}
+
+/* ===== Appearance - Color Picker ===== */
+.color-picker-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.color-picker-input {
+  width: 48px;
+  height: 48px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-m);
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  position: relative;
+  z-index: 1;
+}
+
+.color-picker-input::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.color-picker-input::-webkit-color-swatch {
+  border: none;
+  border-radius: calc(var(--radius-m) - 2px);
+}
+
+.color-picker-input::-moz-color-swatch {
+  border: none;
+  border-radius: calc(var(--radius-m) - 2px);
+}
+
+.color-picker-input:not(:disabled):hover {
+  border-color: var(--accent);
+  transform: scale(1.05);
+}
+
+.color-picker-input:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.accent-preview {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.accent-preview-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.accent-chip {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-s);
+}
+
+html.dark-mode .accent-chip {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.accent-chip-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.settings-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-md);
 }
 
 /* ===== Toggle Switch ===== */
@@ -226,48 +315,17 @@ html.dark-mode .settings-row + .settings-row {
   color: var(--accent);
 }
 
-/* ===== Task Button ===== */
-/* Uses button patterns from buttons.css */
-.task-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-sm);
-  padding: var(--space-sm) var(--space-md);
-  min-width: 100px;
-  
-  font-family: var(--ff);
-  font-size: 0.875rem;
-  font-weight: 600;
-  
-  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
-  color: white;
-  border: none;
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-m);
-  text-shadow: var(--text-shadow-s);
-  
-  cursor: pointer;
-  transition: all var(--transition);
-}
-
-.task-btn:hover:not(.executing) {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-l);
-}
-
-.task-btn:active:not(.executing) {
-  transform: translateY(0);
-}
-
+/* ===== Task Button State ===== */
+/* Base styling from .btn .secondary-btn .accent-btn in buttons.css */
+/* Only need to define the executing state override */
 .task-btn.executing {
-  background: var(--bg-light);
-  color: var(--text-muted);
+  background: var(--bg-light) !important;
+  color: var(--text-muted) !important;
   text-shadow: none;
   cursor: wait;
 }
 
-/* ===== Status Grid ===== */
+/* ===== Status Grid ===== */ */
 .status-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -450,7 +508,7 @@ html.dark-mode .settings-row + .settings-row {
 .running-tasks-section {
   margin-bottom: var(--space-lg);
   padding: var(--space-md);
-  background: rgba(139, 195, 74, 0.1);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
   border-radius: var(--radius-md);
   border-left: 4px solid var(--accent);
 }
@@ -489,22 +547,6 @@ html.dark-mode .settings-row + .settings-row {
 .running-task-info {
   font-size: 0.75rem;
   color: var(--text-muted);
-}
-
-/* Task button disabled/running state */
-.task-btn:disabled,
-.task-btn.executing {
-  background: var(--bg-light);
-  color: var(--text-muted);
-  text-shadow: none;
-  cursor: not-allowed;
-  opacity: 0.8;
-}
-
-.task-btn:disabled:hover,
-.task-btn.executing:hover {
-  transform: none;
-  box-shadow: var(--shadow-m);
 }
 
 /* ===== Page Header (shared with other pages) ===== */

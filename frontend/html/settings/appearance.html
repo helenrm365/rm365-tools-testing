@@ -35,7 +35,78 @@
       </div>
     </div>
 
+    <!-- Accent Color Section -->
+    <div class="settings-card">
+      <div class="settings-card-header">
+        <h2 class="settings-card-title">Accent Colors</h2>
+        <p class="settings-card-description">Customize the accent color family used across the app</p>
+      </div>
+      <div class="settings-card-body">
+        <div class="settings-row">
+          <div class="settings-label">
+            <span class="settings-label-text">Custom Accent Colors</span>
+            <span class="settings-label-description">Pick an accent light color and we’ll generate matching accent and accent-dark shades</span>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="accentToggle">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="settings-row settings-row-stack" id="accentControls">
+          <div class="settings-label">
+            <span class="settings-label-text">Accent Light Color</span>
+            <span class="settings-label-description">Changes live as you pick from the color wheel</span>
+          </div>
+          <div class="color-picker-row">
+            <input type="color" id="accentLightPicker" class="color-picker-input" value="#a5d461" disabled>
+            <div class="accent-preview">
+              <div class="accent-preview-item">
+                <span class="accent-chip" id="accentLightChip"></span>
+                <span class="accent-chip-label">Light</span>
+              </div>
+              <div class="accent-preview-item">
+                <span class="accent-chip" id="accentChip"></span>
+                <span class="accent-chip-label">Accent</span>
+              </div>
+              <div class="accent-preview-item">
+                <span class="accent-chip" id="accentDarkChip"></span>
+                <span class="accent-chip-label">Dark</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-actions">
+          <button id="saveAppearanceBtn" class="action-btn primary-btn">
+            <i class="fa-solid fa-save"></i>
+            Save Appearance
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Placeholder for future settings -->
+    <div class="settings-card">
+      <div class="settings-card-header">
+        <h2 class="settings-card-title">Effects</h2>
+        <p class="settings-card-description">Configure visual effects and animations</p>
+      </div>
+      <div class="settings-card-body">
+        <div class="settings-row">
+          <div class="settings-label">
+            <span class="settings-label-text">Glow Effects</span>
+            <span class="settings-label-description">Enable glow effects on buttons and interactive elements</span>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="glowToggle">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Display Settings -->
     <div class="settings-card">
       <div class="settings-card-header">
         <h2 class="settings-card-title">Display</h2>
@@ -53,20 +124,252 @@
 
 <script type="module">
   import { showToast } from '/js/ui/toast.js';
-  
-  // Initialize page
+  import { get, put } from '/js/services/api/http.js';
+
+  const DEFAULTS = {
+    dark_mode: false,
+    accent_enabled: false,
+    accent_color: '#8bc34a',
+    accent_dark: '#7ab82d',
+    accent_light: '#a5d461',
+    glow_enabled: false
+  };
+
+  // Elements will be queried in init() when DOM is ready
+  let els = {};
+
+  function queryElements() {
+    els = {
+      darkModeToggle: document.getElementById('darkModeToggle'),
+      accentToggle: document.getElementById('accentToggle'),
+      accentLightPicker: document.getElementById('accentLightPicker'),
+      accentLightChip: document.getElementById('accentLightChip'),
+      accentChip: document.getElementById('accentChip'),
+      accentDarkChip: document.getElementById('accentDarkChip'),
+      glowToggle: document.getElementById('glowToggle'),
+      saveBtn: document.getElementById('saveAppearanceBtn')
+    };
+    console.log('[Appearance] Elements queried:', {
+      darkModeToggle: !!els.darkModeToggle,
+      accentToggle: !!els.accentToggle,
+      accentLightPicker: !!els.accentLightPicker,
+      glowToggle: !!els.glowToggle,
+      saveBtn: !!els.saveBtn
+    });
+  }
+
+  function clamp(value, min, max) {
+    return Math.min(Math.max(value, min), max);
+  }
+
+  function hexToRgb(hex) {
+    const cleaned = hex.replace('#', '');
+    const bigint = parseInt(cleaned, 16);
+    return {
+      r: (bigint >> 16) & 255,
+      g: (bigint >> 8) & 255,
+      b: bigint & 255
+    };
+  }
+
+  function rgbToHex({ r, g, b }) {
+    return `#${[r, g, b].map(x => x.toString(16).padStart(2, '0')).join('')}`;
+  }
+
+  function rgbToHsl({ r, g, b }) {
+    r /= 255; g /= 255; b /= 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h = 0, s = 0, l = (max + min) / 2;
+    if (max !== min) {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      switch (max) {
+        case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+        case g: h = (b - r) / d + 2; break;
+        case b: h = (r - g) / d + 4; break;
+      }
+      h /= 6;
+    }
+    return { h, s, l };
+  }
+
+  function hslToRgb({ h, s, l }) {
+    let r, g, b;
+    if (s === 0) {
+      r = g = b = l;
+    } else {
+      const hue2rgb = (p, q, t) => {
+        if (t < 0) t += 1;
+        if (t > 1) t -= 1;
+        if (t < 1 / 6) return p + (q - p) * 6 * t;
+        if (t < 1 / 2) return q;
+        if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+        return p;
+      };
+      const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+      const p = 2 * l - q;
+      r = hue2rgb(p, q, h + 1 / 3);
+      g = hue2rgb(p, q, h);
+      b = hue2rgb(p, q, h - 1 / 3);
+    }
+    return { r: Math.round(r * 255), g: Math.round(g * 255), b: Math.round(b * 255) };
+  }
+
+  function deriveAccentColors(lightHex) {
+    const hsl = rgbToHsl(hexToRgb(lightHex));
+    const accent = rgbToHex(hslToRgb({ ...hsl, l: clamp(hsl.l - 0.12, 0.1, 0.9) }));
+    const accentDark = rgbToHex(hslToRgb({ ...hsl, l: clamp(hsl.l - 0.24, 0.08, 0.8) }));
+    return { accent_light: lightHex, accent_color: accent, accent_dark: accentDark };
+  }
+
+  function applyAccentVars({ accent_color, accent_dark, accent_light }) {
+    document.documentElement.style.setProperty('--accent', accent_color);
+    document.documentElement.style.setProperty('--accent-dark', accent_dark);
+    document.documentElement.style.setProperty('--accent-light', accent_light);
+  }
+
+  function updatePreview({ accent_color, accent_dark, accent_light }) {
+    if (els.accentLightChip) els.accentLightChip.style.background = accent_light;
+    if (els.accentChip) els.accentChip.style.background = accent_color;
+    if (els.accentDarkChip) els.accentDarkChip.style.background = accent_dark;
+  }
+
+  function setDarkMode(isDark) {
+    document.documentElement.classList.toggle('dark-mode', isDark);
+    localStorage.setItem('darkMode', String(isDark));
+  }
+
+  async function loadPreferences() {
+    try {
+      const prefs = await get('/v1/users/preferences');
+      const safe = { ...DEFAULTS, ...(prefs || {}) };
+      console.log('[Appearance] Loaded preferences:', safe);
+
+      if (els.darkModeToggle) els.darkModeToggle.checked = !!safe.dark_mode;
+      setDarkMode(!!safe.dark_mode);
+
+      if (els.accentToggle) els.accentToggle.checked = !!safe.accent_enabled;
+      if (els.accentLightPicker) {
+        els.accentLightPicker.value = safe.accent_light || DEFAULTS.accent_light;
+        // Use removeAttribute for enabled, setAttribute for disabled
+        if (safe.accent_enabled) {
+          els.accentLightPicker.removeAttribute('disabled');
+          console.log('[Appearance] Color picker enabled on load');
+        } else {
+          els.accentLightPicker.setAttribute('disabled', 'true');
+          console.log('[Appearance] Color picker disabled on load');
+        }
+      }
+
+      // Load glow preference
+      if (els.glowToggle) els.glowToggle.checked = !!safe.glow_enabled;
+      setGlowEnabled(!!safe.glow_enabled);
+
+      const colors = safe.accent_enabled
+        ? { accent_color: safe.accent_color, accent_dark: safe.accent_dark, accent_light: safe.accent_light }
+        : { accent_color: DEFAULTS.accent_color, accent_dark: DEFAULTS.accent_dark, accent_light: DEFAULTS.accent_light };
+
+      applyAccentVars(colors);
+      updatePreview(colors);
+    } catch (e) {
+      console.warn('[Appearance] Failed to load preferences:', e);
+    }
+  }
+
+  function setGlowEnabled(enabled) {
+    document.documentElement.classList.toggle('glow-enabled', enabled);
+  }
+
+  function applyLiveAccent() {
+    if (!els.accentLightPicker) return;
+    const light = els.accentLightPicker.value;
+    const derived = deriveAccentColors(light);
+    applyAccentVars(derived);
+    updatePreview(derived);
+  }
+
+  async function savePreferences() {
+    console.log('[Appearance] Saving preferences...');
+    const isDark = els.darkModeToggle ? !!els.darkModeToggle.checked : false;
+    const accentEnabled = els.accentToggle ? !!els.accentToggle.checked : false;
+    const glowEnabled = els.glowToggle ? !!els.glowToggle.checked : false;
+
+    let colors = { ...DEFAULTS };
+    if (accentEnabled && els.accentLightPicker) {
+      colors = deriveAccentColors(els.accentLightPicker.value);
+    }
+
+    const payload = {
+      dark_mode: isDark,
+      accent_enabled: accentEnabled,
+      accent_color: colors.accent_color,
+      accent_dark: colors.accent_dark,
+      accent_light: colors.accent_light,
+      glow_enabled: glowEnabled
+    };
+
+    console.log('[Appearance] Payload:', payload);
+
+    try {
+      await put('/v1/users/preferences', payload);
+      showToast('Appearance settings saved', 'success');
+    } catch (e) {
+      console.error('[Appearance] Save failed:', e);
+      showToast('Failed to save appearance settings', 'error');
+    }
+  }
+
   (async function init() {
-    // Set dark mode toggle to match current state
-    const darkModeToggle = document.getElementById('darkModeToggle');
-    if (darkModeToggle) {
-      darkModeToggle.checked = document.documentElement.classList.contains('dark-mode');
-      
-      darkModeToggle.addEventListener('change', (e) => {
+    // Query elements after DOM is ready
+    queryElements();
+    
+    await loadPreferences();
+
+    if (els.darkModeToggle) {
+      els.darkModeToggle.addEventListener('change', (e) => {
         const isDark = e.target.checked;
-        document.documentElement.classList.toggle('dark-mode', isDark);
-        localStorage.setItem('darkMode', isDark);
-        showToast(`Theme changed to ${isDark ? 'Dark' : 'Light'} Mode`, 'success');
+        setDarkMode(isDark);
       });
+    }
+
+    if (els.accentToggle) {
+      els.accentToggle.addEventListener('change', (e) => {
+        const enabled = e.target.checked;
+        console.log('[Appearance] Accent toggle changed:', enabled);
+        if (els.accentLightPicker) {
+          if (enabled) {
+            els.accentLightPicker.removeAttribute('disabled');
+            console.log('[Appearance] Color picker ENABLED');
+          } else {
+            els.accentLightPicker.setAttribute('disabled', 'true');
+            console.log('[Appearance] Color picker DISABLED');
+          }
+        }
+        if (enabled) {
+          applyLiveAccent();
+        } else {
+          applyAccentVars(DEFAULTS);
+          updatePreview(DEFAULTS);
+        }
+      });
+    }
+
+    if (els.accentLightPicker) {
+      els.accentLightPicker.addEventListener('input', () => {
+        if (els.accentToggle && els.accentToggle.checked) {
+          applyLiveAccent();
+        }
+      });
+    }
+
+    if (els.glowToggle) {
+      els.glowToggle.addEventListener('change', (e) => {
+        setGlowEnabled(e.target.checked);
+      });
+    }
+
+    if (els.saveBtn) {
+      els.saveBtn.addEventListener('click', savePreferences);
     }
   })();
 </script>

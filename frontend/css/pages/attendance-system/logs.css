@@ -298,15 +298,27 @@
   border: 2px solid var(--bg);
   border-radius: 12px;
   cursor: pointer;
-  transition: all var(--transition);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: var(--shadow-m);
   text-align: left;
 }
 
 .attendance-logs .export-btn:not(:disabled):hover {
   transform: translateY(-2px);
-  border-color: var(--accent);
-  box-shadow: var(--shadow-l);
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  box-shadow: 
+    0 0 12px color-mix(in srgb, var(--accent) 25%, transparent),
+    0 0 24px color-mix(in srgb, var(--accent) 12%, transparent),
+    0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.attendance-logs .export-btn:focus-visible {
+  outline: none;
+  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+  box-shadow: 
+    0 0 12px color-mix(in srgb, var(--accent) 30%, transparent),
+    0 0 24px color-mix(in srgb, var(--accent) 18%, transparent),
+    0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .attendance-logs .export-btn:disabled {
@@ -330,9 +342,25 @@
   color: var(--success);
 }
 
+.attendance-logs .export-btn.csv-btn:not(:disabled):hover {
+  border-color: color-mix(in srgb, var(--success) 50%, transparent);
+  box-shadow: 
+    0 0 12px color-mix(in srgb, var(--success) 25%, transparent),
+    0 0 24px color-mix(in srgb, var(--success) 12%, transparent),
+    0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
 .attendance-logs .export-btn.pdf-btn .export-icon {
   background: color-mix(in srgb, var(--error) 15%, transparent);
   color: var(--error);
+}
+
+.attendance-logs .export-btn.pdf-btn:not(:disabled):hover {
+  border-color: color-mix(in srgb, var(--error) 50%, transparent);
+  box-shadow: 
+    0 0 12px color-mix(in srgb, var(--error) 25%, transparent),
+    0 0 24px color-mix(in srgb, var(--error) 12%, transparent),
+    0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .attendance-logs .export-btn.print-btn .export-icon {
@@ -340,9 +368,25 @@
   color: var(--info);
 }
 
+.attendance-logs .export-btn.print-btn:not(:disabled):hover {
+  border-color: color-mix(in srgb, var(--info) 50%, transparent);
+  box-shadow: 
+    0 0 12px color-mix(in srgb, var(--info) 25%, transparent),
+    0 0 24px color-mix(in srgb, var(--info) 12%, transparent),
+    0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
 .attendance-logs .export-btn.excel-btn .export-icon {
   background: color-mix(in srgb, var(--accent) 15%, transparent);
   color: var(--accent);
+}
+
+.attendance-logs .export-btn.excel-btn:not(:disabled):hover {
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  box-shadow: 
+    0 0 12px color-mix(in srgb, var(--accent) 25%, transparent),
+    0 0 24px color-mix(in srgb, var(--accent) 12%, transparent),
+    0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .attendance-logs .export-info {
@@ -500,4 +544,19 @@
     padding: 0.625rem 0.875rem;
     font-size: 0.85rem;
   }
+}
+
+/* ===== Glow Effects Toggle ===== */
+/* Glows are disabled by default. Enable with html.glow-enabled class */
+
+html:not(.glow-enabled) .attendance-logs .export-btn:not(:disabled):hover,
+html:not(.glow-enabled) .attendance-logs .export-btn:focus-visible {
+  box-shadow: var(--shadow-l);
+}
+
+html:not(.glow-enabled) .attendance-logs .export-btn.csv-btn:not(:disabled):hover,
+html:not(.glow-enabled) .attendance-logs .export-btn.pdf-btn:not(:disabled):hover,
+html:not(.glow-enabled) .attendance-logs .export-btn.print-btn:not(:disabled):hover,
+html:not(.glow-enabled) .attendance-logs .export-btn.excel-btn:not(:disabled):hover {
+  box-shadow: var(--shadow-l);
 }

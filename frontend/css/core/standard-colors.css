@@ -22,6 +22,7 @@
   /* Background Colors - Light Mode (darkest to lightest) */
   --bg-dark: #e4e4e4;     /* Outer layer / page background */
   --bg: #f2f2f2;          /* Middle layer / main containers */
+  --bg-card: #fafafa;     /* Card backgrounds / slightly elevated */
   --bg-light: #ffffff;    /* Inner layer / elevated elements */
   
   /* Text Colors - Light Mode */
@@ -69,6 +70,7 @@ html.dark-mode {
   /* Background Colors - Dark Mode (darkest to lightest) */
   --bg-dark: #030303;     /* Outer layer / page background */
   --bg: #161616;          /* Middle layer / main containers */
+  --bg-card: #1e1e1e;     /* Card backgrounds / slightly elevated */
   --bg-light: #2e2e2e;    /* Inner layer / elevated elements */
   
   /* Text Colors - Dark Mode */

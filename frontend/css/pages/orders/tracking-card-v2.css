@@ -46,8 +46,8 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
   cursor: pointer;
   transition: all 0.2s ease;
-  border-left: 4px solid var(--card-accent, #8bc34a);
-  --card-accent: var(--accent, #8bc34a);
+  border-left: 4px solid var(--card-accent, var(--accent));
+  --card-accent: var(--accent);
 }
 
 .order-tracking .order-card-v2:hover {

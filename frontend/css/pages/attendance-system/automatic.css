@@ -141,46 +141,7 @@
   margin-top: 1rem;
 }
 
-.attendance-automatic .control-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.625rem 1.25rem;
-  border: none;
-  border-radius: 10px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all var(--transition);
-  box-shadow: var(--shadow-m);
-}
-
-.attendance-automatic .control-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.attendance-automatic .control-btn.start-btn {
-  background: linear-gradient(135deg, var(--success), #27ae60);
-  color: white;
-}
-
-.attendance-automatic .control-btn.start-btn:not(:disabled):hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-l);
-}
-
-.attendance-automatic .control-btn.stop-btn {
-  background: linear-gradient(135deg, var(--error), #c0392b);
-  color: white;
-}
-
-.attendance-automatic .control-btn.stop-btn:not(:disabled):hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-l);
-}
-
-/* ===== Scan Result Alert ===== */
+/* ===== Scan Result Alert ===== */ */
 .attendance-automatic .scan-result-alert {
   position: fixed;
   top: 80px;
@@ -234,16 +195,28 @@
 
 .attendance-automatic .alert-close {
   background: none;
-  border: none;
+  border: 2px solid transparent;
+  border-radius: 6px;
   color: var(--text-muted);
   cursor: pointer;
   padding: 0.5rem;
   font-size: 1rem;
-  transition: color var(--transition);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .attendance-automatic .alert-close:hover {
-  color: var(--text);
+  color: var(--error);
+  border-color: color-mix(in srgb, var(--error) 30%, transparent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--error) 20%, transparent);
+}
+
+.attendance-automatic .alert-close:focus-visible {
+  outline: none;
+  color: var(--error);
+  border-color: color-mix(in srgb, var(--error) 40%, transparent);
+  box-shadow: 
+    0 0 12px color-mix(in srgb, var(--error) 25%, transparent),
+    0 0 24px color-mix(in srgb, var(--error) 15%, transparent);
 }
 
 /* ===== Stats Grid ===== */
@@ -488,14 +461,7 @@
     flex-wrap: wrap;
     gap: 0.5rem;
   }
-  
-  .attendance-automatic .control-btn {
-    flex: 1 1 auto;
-    min-width: 120px;
-    justify-content: center;
-    padding: 0.875rem 1rem;
-  }
-  
+
   .attendance-automatic .history-grid {
     grid-template-columns: 1fr;
     gap: 0.75rem;
@@ -554,9 +520,12 @@
   .attendance-automatic .scanner-title {
     font-size: 1.125rem;
   }
-  
-  .attendance-automatic .control-btn {
-    padding: 0.75rem 0.875rem;
-    font-size: 0.9rem;
-  }
+}
+
+/* ===== Glow Effects Toggle ===== */
+/* Glows are disabled by default. Enable with html.glow-enabled class */
+
+html:not(.glow-enabled) .attendance-automatic .alert-close:hover,
+html:not(.glow-enabled) .attendance-automatic .alert-close:focus-visible {
+  box-shadow: none;
 }

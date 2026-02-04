@@ -26,7 +26,7 @@
     left: -10%;
     width: 50vw;
     height: 50vw;
-    background: linear-gradient(135deg, #8bc34a, #aed581);
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
     animation-duration: 25s;
 }
 
@@ -35,7 +35,7 @@
     right: -10%;
     width: 60vw;
     height: 60vw;
-    background: linear-gradient(135deg, #9ccc65, #7ab82d);
+    background: linear-gradient(135deg, var(--accent-light), var(--accent-dark));
     animation-duration: 30s;
     animation-delay: -5s;
 }
@@ -45,7 +45,7 @@
     left: 40%;
     width: 40vw;
     height: 40vw;
-    background: linear-gradient(135deg, #7ab82d, #558b2f);
+    background: linear-gradient(135deg, var(--accent-dark), var(--accent-dark));
     animation-duration: 22s;
     animation-delay: -10s;
 }
@@ -64,7 +64,7 @@ html.dark-mode .blob-1 {
 }
 
 html.dark-mode .blob-2 {
-    background: linear-gradient(135deg, #33691e, #558b2f);
+    background: linear-gradient(135deg, #33691e, var(--accent-dark));
 }
 
 html.dark-mode .blob-3 {
@@ -166,8 +166,8 @@ body.liquid-glass-mode .control-select:focus,
 body.liquid-glass-mode .employee-dropdown:focus,
 body.liquid-glass-mode .form-select:focus {
     background-color: rgba(255, 255, 255, 0.8) !important;
-    border-color: #8bc34a !important;
-    box-shadow: 0 0 0 4px rgba(139, 195, 74, 0.1) !important;
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 10%, transparent) !important;
     outline: none;
 }
 
@@ -178,8 +178,8 @@ body.liquid-glass-mode .form-input:focus,
 body.liquid-glass-mode .search-input:focus,
 body.liquid-glass-mode .form-textarea:focus {
     background: rgba(255, 255, 255, 0.8) !important;
-    border-color: #8bc34a !important;
-    box-shadow: 0 0 0 4px rgba(139, 195, 74, 0.1) !important;
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 10%, transparent) !important;
     outline: none;
 }
 
@@ -202,13 +202,13 @@ body.liquid-glass-mode .action-btn {
 }
 
 body.liquid-glass-mode .primary-btn {
-    background: rgba(139, 195, 74, 0.8);
+    background: color-mix(in srgb, var(--accent) 80%, transparent);
     border: 1px solid rgba(255, 255, 255, 0.3);
-    box-shadow: 0 4px 12px rgba(139, 195, 74, 0.2);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 body.liquid-glass-mode .primary-btn:hover {
-    background: rgba(139, 195, 74, 0.95);
+    background: color-mix(in srgb, var(--accent) 95%, transparent);
 }
 
 /* Dark Mode Form Elements */
@@ -250,7 +250,7 @@ html.dark-mode body.liquid-glass-mode .control-select:focus,
 html.dark-mode body.liquid-glass-mode .employee-dropdown:focus,
 html.dark-mode body.liquid-glass-mode .form-select:focus {
     background-color: rgba(0, 0, 0, 0.4) !important;
-    border-color: #8bc34a !important;
+    border-color: var(--accent) !important;
 }
 
 /* Focus State - Inputs */
@@ -260,7 +260,7 @@ html.dark-mode body.liquid-glass-mode .form-input:focus,
 html.dark-mode body.liquid-glass-mode .search-input:focus,
 html.dark-mode body.liquid-glass-mode .form-textarea:focus {
     background: rgba(0, 0, 0, 0.4) !important;
-    border-color: #8bc34a !important;
+    border-color: var(--accent) !important;
 }
 
 /* Ensure options are readable in Dark Mode */
@@ -348,9 +348,9 @@ body.liquid-glass-mode .inner-tabs .tab-button:hover {
 
 body.liquid-glass-mode .inner-tabs .tab-button.active {
     background: rgba(255, 255, 255, 0.8);
-    border-color: #8bc34a;
-    color: #558b2f;
-    box-shadow: 0 4px 12px rgba(139, 195, 74, 0.15);
+    border-color: var(--accent);
+    color: var(--accent-dark);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
 /* Content Container Overrides */
@@ -389,8 +389,8 @@ html.dark-mode body.liquid-glass-mode .inner-tabs .tab-button:hover {
 }
 
 html.dark-mode body.liquid-glass-mode .inner-tabs .tab-button.active {
-    background: rgba(139, 195, 74, 0.2) !important;
-    border-color: rgba(139, 195, 74, 0.5) !important;
+    background: color-mix(in srgb, var(--accent) 20%, transparent) !important;
+    border-color: color-mix(in srgb, var(--accent) 50%, transparent) !important;
     color: #fff !important;
 }
 
@@ -493,7 +493,7 @@ body.liquid-glass-mode .c-select__list {
 }
 
 body.liquid-glass-mode .c-select__option:hover {
-    background: rgba(139, 195, 74, 0.2) !important;
+    background: color-mix(in srgb, var(--accent) 20%, transparent) !important;
 }
 
 /* Dark Mode C-Select */

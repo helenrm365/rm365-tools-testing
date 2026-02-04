@@ -406,14 +406,14 @@ html.dark-mode .focused-controls-bar.data-controls-bar {
 
 .focused-controls-bar .zoom-indicator {
   padding: 0.5rem 1rem;
-  background: linear-gradient(135deg, var(--accent), #7ab82d);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   color: white;
   border-radius: 8px;
   font-weight: 700;
   font-size: 0.95rem;
   min-width: 70px;
   text-align: center;
-  box-shadow: 0 2px 8px rgba(139, 195, 74, 0.3);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 /* Re-apply selection-bar styles (normally scoped to .labels-generator) */

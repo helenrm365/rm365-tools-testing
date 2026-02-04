@@ -60,31 +60,47 @@
 
 .attendance-dashboard .preset-btn {
   padding: 0.5rem 1rem;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  border: 2px solid color-mix(in srgb, var(--accent) 15%, transparent);
   border-radius: 8px;
-  background: var(--bg-light);
+  background: linear-gradient(135deg, var(--bg-light), color-mix(in srgb, var(--accent) 3%, var(--bg-light)));
   color: var(--text-muted);
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all var(--transition);
-  box-shadow: var(--shadow-s);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 8%, transparent);
 }
 
 html.dark-mode .attendance-dashboard .preset-btn {
-  border-color: rgba(255, 255, 255, 0.1);
+  background: linear-gradient(135deg, var(--bg-card), color-mix(in srgb, var(--accent) 8%, var(--bg-card)));
+  border-color: color-mix(in srgb, var(--accent) 25%, transparent);
 }
 
 .attendance-dashboard .preset-btn:hover {
-  background: var(--bg);
+  background: linear-gradient(135deg, var(--bg), color-mix(in srgb, var(--accent) 10%, var(--bg)));
   color: var(--text);
   border-color: var(--accent);
+  box-shadow: 
+    0 0 12px color-mix(in srgb, var(--accent) 20%, transparent),
+    0 4px 12px color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+.attendance-dashboard .preset-btn:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 
+    0 0 12px color-mix(in srgb, var(--accent) 25%, transparent),
+    0 0 24px color-mix(in srgb, var(--accent) 15%, transparent),
+    0 4px 12px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 .attendance-dashboard .preset-btn.active {
-  background: var(--accent);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   color: white;
   border-color: var(--accent);
+  box-shadow: 
+    0 0 16px color-mix(in srgb, var(--accent) 30%, transparent),
+    0 4px 12px color-mix(in srgb, var(--accent) 25%, transparent);
 }
 
 .attendance-dashboard .custom-date-range {
@@ -150,24 +166,36 @@ html.dark-mode .attendance-dashboard .preset-btn {
   align-items: center;
   gap: 0.35rem;
   padding: 0.35rem 0.75rem;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  border: 2px solid color-mix(in srgb, var(--error) 15%, transparent);
   border-radius: 6px;
   background: transparent;
   color: var(--text-muted);
   font-size: 0.75rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all var(--transition);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 html.dark-mode .attendance-dashboard .btn-clear-filters {
-  border-color: rgba(255, 255, 255, 0.1);
+  border-color: color-mix(in srgb, var(--error) 25%, transparent);
 }
 
 .attendance-dashboard .btn-clear-filters:hover {
   background: color-mix(in srgb, var(--error) 15%, transparent);
   color: var(--error);
   border-color: var(--error);
+  box-shadow: 
+    0 0 12px color-mix(in srgb, var(--error) 20%, transparent),
+    0 4px 12px color-mix(in srgb, var(--error) 15%, transparent);
+}
+
+.attendance-dashboard .btn-clear-filters:focus-visible {
+  outline: none;
+  border-color: var(--error);
+  box-shadow: 
+    0 0 12px color-mix(in srgb, var(--error) 25%, transparent),
+    0 0 24px color-mix(in srgb, var(--error) 15%, transparent),
+    0 4px 12px color-mix(in srgb, var(--error) 20%, transparent);
 }
 
 /* ===== Block Header with Toggle Button ===== */
@@ -179,26 +207,39 @@ html.dark-mode .attendance-dashboard .btn-clear-filters {
 }
 
 .attendance-dashboard .toggle-view-btn {
-  background: var(--bg);
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: linear-gradient(135deg, var(--bg), color-mix(in srgb, var(--accent) 3%, var(--bg)));
+  border: 2px solid color-mix(in srgb, var(--accent) 15%, transparent);
   border-radius: 8px;
   padding: 0.5rem 0.75rem;
   cursor: pointer;
   color: var(--text-muted);
   font-size: 0.875rem;
-  transition: all var(--transition);
-  box-shadow: var(--shadow-s);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 8%, transparent);
   flex-shrink: 0;
 }
 
 html.dark-mode .attendance-dashboard .toggle-view-btn {
-  border-color: rgba(255, 255, 255, 0.1);
+  background: linear-gradient(135deg, var(--bg-card), color-mix(in srgb, var(--accent) 8%, var(--bg-card)));
+  border-color: color-mix(in srgb, var(--accent) 25%, transparent);
 }
 
 .attendance-dashboard .toggle-view-btn:hover {
-  background: var(--accent);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   color: white;
   border-color: var(--accent);
+  box-shadow: 
+    0 0 16px color-mix(in srgb, var(--accent) 30%, transparent),
+    0 4px 12px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+.attendance-dashboard .toggle-view-btn:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 
+    0 0 12px color-mix(in srgb, var(--accent) 25%, transparent),
+    0 0 24px color-mix(in srgb, var(--accent) 15%, transparent),
+    0 4px 12px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 /* ===== Stats Grid ===== */
@@ -217,18 +258,21 @@ html.dark-mode .attendance-dashboard .toggle-view-btn {
   align-items: center;
   gap: 1rem;
   box-shadow: var(--shadow-l);
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  transition: transform var(--transition), box-shadow var(--transition), outline var(--transition);
+  border: 2px solid color-mix(in srgb, var(--accent) 10%, transparent);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 html.dark-mode .attendance-dashboard .stat-card {
-  border-color: rgba(255, 255, 255, 0.08);
+  border-color: color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
 .attendance-dashboard .stat-card:hover {
-  transform: translateY(-2px);
-  outline: 1px solid #8bc34a;
-  outline-offset: 1px;
+  transform: translateY(-3px);
+  border-color: var(--accent);
+  box-shadow: 
+    var(--shadow-l),
+    0 0 16px color-mix(in srgb, var(--accent) 20%, transparent),
+    0 8px 24px color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
 .attendance-dashboard .stat-card.clickable {
@@ -336,35 +380,50 @@ html.dark-mode .attendance-dashboard .stat-card {
 
 .attendance-dashboard .list-tab {
   padding: 0.625rem 1rem;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  border: 2px solid color-mix(in srgb, var(--accent) 15%, transparent);
   border-radius: 8px;
-  background: var(--bg-light);
+  background: linear-gradient(135deg, var(--bg-light), color-mix(in srgb, var(--accent) 3%, var(--bg-light)));
   color: var(--text-muted);
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all var(--transition);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  box-shadow: var(--shadow-s);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 8%, transparent);
 }
 
 html.dark-mode .attendance-dashboard .list-tab {
-  border-color: rgba(255, 255, 255, 0.1);
+  background: linear-gradient(135deg, var(--bg-card), color-mix(in srgb, var(--accent) 8%, var(--bg-card)));
+  border-color: color-mix(in srgb, var(--accent) 25%, transparent);
 }
 
 .attendance-dashboard .list-tab:hover {
-  background: var(--bg);
+  background: linear-gradient(135deg, var(--bg), color-mix(in srgb, var(--accent) 10%, var(--bg)));
   color: var(--text);
   border-color: var(--accent);
+  box-shadow: 
+    0 0 12px color-mix(in srgb, var(--accent) 20%, transparent),
+    0 4px 12px color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+.attendance-dashboard .list-tab:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 
+    0 0 12px color-mix(in srgb, var(--accent) 25%, transparent),
+    0 0 24px color-mix(in srgb, var(--accent) 15%, transparent),
+    0 4px 12px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 .attendance-dashboard .list-tab.active {
-  background: var(--accent);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   color: white;
   border-color: var(--accent);
-  box-shadow: var(--shadow-m);
+  box-shadow: 
+    0 0 16px color-mix(in srgb, var(--accent) 30%, transparent),
+    0 4px 12px color-mix(in srgb, var(--accent) 25%, transparent);
 }
 
 .attendance-dashboard .list-tab i {
@@ -638,7 +697,7 @@ html.dark-mode .attendance-dashboard .list-tab {
 .attendance-dashboard .lunchtime-employee-card .employee-info h4 {
   margin-bottom: 0.75rem;
   font-size: 1.1rem;
-  border-bottom: 1px solid rgba(139, 195, 74, 0.2);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
   padding-bottom: 0.5rem;
 }
 
@@ -658,7 +717,7 @@ html.dark-mode .attendance-dashboard .list-tab {
 }
 
 .attendance-dashboard .lunchtime-detail-item i {
-  color: #8bc34a;
+  color: var(--accent);
   font-size: 0.875rem;
   margin-bottom: 0.25rem;
 }
@@ -710,25 +769,38 @@ html.dark-mode .attendance-dashboard .list-tab {
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
-  background: var(--bg-light);
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: linear-gradient(135deg, var(--bg-light), color-mix(in srgb, var(--accent) 3%, var(--bg-light)));
+  border: 2px solid color-mix(in srgb, var(--accent) 15%, transparent);
   border-radius: 8px;
   color: var(--text);
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all var(--transition);
-  box-shadow: var(--shadow-s);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 8%, transparent);
 }
 
 html.dark-mode .attendance-dashboard .export-dropdown-btn {
-  border-color: rgba(255, 255, 255, 0.1);
+  background: linear-gradient(135deg, var(--bg-card), color-mix(in srgb, var(--accent) 8%, var(--bg-card)));
+  border-color: color-mix(in srgb, var(--accent) 25%, transparent);
 }
 
 .attendance-dashboard .export-dropdown-btn:hover {
-  background: var(--bg);
+  background: linear-gradient(135deg, var(--bg), color-mix(in srgb, var(--accent) 10%, var(--bg)));
   border-color: var(--accent);
   color: var(--accent);
+  box-shadow: 
+    0 0 12px color-mix(in srgb, var(--accent) 20%, transparent),
+    0 4px 12px color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+.attendance-dashboard .export-dropdown-btn:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 
+    0 0 12px color-mix(in srgb, var(--accent) 25%, transparent),
+    0 0 24px color-mix(in srgb, var(--accent) 15%, transparent),
+    0 4px 12px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 .attendance-dashboard .export-dropdown-btn i:first-child {
@@ -738,7 +810,7 @@ html.dark-mode .attendance-dashboard .export-dropdown-btn {
 .attendance-dashboard .export-dropdown-btn .dropdown-arrow {
   font-size: 0.625rem;
   margin-left: 0.25rem;
-  transition: transform var(--transition);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .attendance-dashboard .export-dropdown.open .dropdown-arrow {
@@ -750,20 +822,22 @@ html.dark-mode .attendance-dashboard .export-dropdown-btn {
   top: calc(100% + 4px);
   right: 0;
   min-width: 180px;
-  background: var(--bg-light);
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  border-radius: 10px;
-  box-shadow: var(--shadow-l);
+  background: var(--bg);
+  border: 2px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 20%, transparent);
   opacity: 0;
   visibility: hidden;
   transform: translateY(-8px);
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 100;
   overflow: hidden;
 }
 
 html.dark-mode .attendance-dashboard .export-dropdown-menu {
-  border-color: rgba(255, 255, 255, 0.1);
+  background: var(--bg-card);
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
 }
 
 .attendance-dashboard .export-dropdown.open .export-dropdown-menu {
@@ -783,12 +857,12 @@ html.dark-mode .attendance-dashboard .export-dropdown-menu {
   color: var(--text);
   font-size: 0.875rem;
   cursor: pointer;
-  transition: all var(--transition);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   text-align: left;
 }
 
 .attendance-dashboard .export-option:hover {
-  background: rgba(139, 195, 74, 0.1);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
   color: var(--accent);
 }
 
@@ -861,13 +935,13 @@ html.dark-mode .attendance-dashboard .export-option:first-child {
   padding: 0.375rem 0.5rem;
   font-size: 0.75rem;
   gap: 0.25rem;
-  background: rgba(139, 195, 74, 0.1);
-  border-color: rgba(139, 195, 74, 0.3);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
   min-width: auto;
 }
 
 .attendance-dashboard .employee-card-export .export-dropdown-btn:hover {
-  background: rgba(139, 195, 74, 0.2);
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
   border-color: var(--accent);
 }
 
@@ -902,4 +976,32 @@ html.dark-mode .attendance-dashboard .export-option:first-child {
 .attendance-dashboard .lunchtime-employee-card:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-m);
+}
+
+/* ===== Glow Effects Toggle ===== */
+/* Glows are disabled by default. Enable with html.glow-enabled class */
+/* NOTE: preset-btn, toggle-view-btn, and list-tab now use standard .btn classes */
+/* and get glow toggle handling from buttons.css automatically */
+
+html:not(.glow-enabled) .attendance-dashboard .btn-clear-filters:hover,
+html:not(.glow-enabled) .attendance-dashboard .btn-clear-filters:focus-visible {
+  box-shadow: var(--shadow-m);
+}
+
+html:not(.glow-enabled) .attendance-dashboard .export-dropdown-btn:hover,
+html:not(.glow-enabled) .attendance-dashboard .export-dropdown-btn:focus-visible {
+  box-shadow: var(--shadow-m);
+}
+
+html:not(.glow-enabled) .attendance-dashboard .export-dropdown-menu {
+  box-shadow: var(--shadow-l);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+html:not(.glow-enabled).dark-mode .attendance-dashboard .export-dropdown-menu {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+html:not(.glow-enabled) .attendance-dashboard .stat-card:hover {
+  box-shadow: var(--shadow-l);
 }

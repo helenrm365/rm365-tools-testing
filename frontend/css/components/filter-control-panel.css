@@ -15,7 +15,7 @@
 
 /* ===== Filter Panel Header ===== */
 .filter-panel-header {
-  background: linear-gradient(135deg, var(--accent), var(--accent-dark, #7ab82d));
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   padding: 1rem 1.25rem;
   display: flex;
   justify-content: space-between;
@@ -61,39 +61,61 @@
 .btn-white {
   background: white;
   color: var(--accent);
-  border: none;
+  border: 2px solid rgba(255, 255, 255, 0.3);
   padding: 0.5rem 1rem;
   border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   align-items: center;
   gap: 0.5rem;
   font-size: 0.875rem;
+  box-shadow: 0 2px 8px rgba(255, 255, 255, 0.15);
 }
 
 .btn-white:hover {
-  background: rgba(255, 255, 255, 0.9);
-  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.95);
+  transform: translateY(-2px);
+  box-shadow: 
+    0 0 16px rgba(255, 255, 255, 0.4),
+    0 4px 12px rgba(255, 255, 255, 0.2);
+}
+
+.btn-white:focus-visible {
+  outline: none;
+  box-shadow: 
+    0 0 16px rgba(255, 255, 255, 0.5),
+    0 0 32px rgba(255, 255, 255, 0.25),
+    0 4px 12px rgba(255, 255, 255, 0.3);
 }
 
 .btn-ghost {
   background: rgba(255, 255, 255, 0.2);
   color: white;
-  border: none;
+  border: 2px solid rgba(255, 255, 255, 0.15);
   width: 36px;
   height: 36px;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .btn-ghost:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.35);
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.2);
+}
+
+.btn-ghost:focus-visible {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.5);
+  box-shadow: 
+    0 0 12px rgba(255, 255, 255, 0.3),
+    0 0 24px rgba(255, 255, 255, 0.15);
 }
 
 .filter-panel-collapse i {
@@ -300,3 +322,5 @@ html.dark-mode .filter-control-group {
     font-size: 0.75rem;
   }
 }
+
+

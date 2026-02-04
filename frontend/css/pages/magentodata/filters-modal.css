@@ -134,7 +134,7 @@
 }
 
 .input-with-prefix:focus-within {
-  outline: 1px solid #8bc34a;
+  outline: 1px solid var(--accent);
   outline-offset: 1px;
 }
 

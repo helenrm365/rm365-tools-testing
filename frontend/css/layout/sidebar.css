@@ -25,8 +25,8 @@
   --sidebar-bg: var(--bg);
   --sidebar-border: rgba(128, 128, 128, 0.12);
   --sidebar-item-hover: rgba(128, 128, 128, 0.08);
-  --sidebar-item-active-bg: rgba(139, 195, 74, 0.12);
-  --sidebar-glow: rgba(139, 195, 74, 0.15);
+  --sidebar-item-active-bg: color-mix(in srgb, var(--accent) 12%, transparent);
+  --sidebar-glow: color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
 /* ===== Sidebar Container ===== */
@@ -192,7 +192,7 @@
   color: var(--accent);
   background: var(--sidebar-item-active-bg);
   box-shadow: 
-    0 0 0 1px rgba(139, 195, 74, 0.2) inset,
+    0 0 0 1px color-mix(in srgb, var(--accent) 20%, transparent) inset,
     0 2px 8px var(--sidebar-glow);
 }
 
@@ -472,7 +472,7 @@
   background: var(--sidebar-item-active-bg);
   font-weight: 600;
   box-shadow: 
-    0 0 0 1px rgba(139, 195, 74, 0.15) inset,
+    0 0 0 1px color-mix(in srgb, var(--accent) 15%, transparent) inset,
     0 2px 6px var(--sidebar-glow);
 }
 
@@ -634,8 +634,8 @@ html.dark-mode {
   --sidebar-bg: var(--bg);
   --sidebar-border: rgba(255, 255, 255, 0.06);
   --sidebar-item-hover: rgba(255, 255, 255, 0.06);
-  --sidebar-item-active-bg: rgba(139, 195, 74, 0.12);
-  --sidebar-glow: rgba(139, 195, 74, 0.1);
+  --sidebar-item-active-bg: color-mix(in srgb, var(--accent) 12%, transparent);
+  --sidebar-glow: color-mix(in srgb, var(--accent) 10%, transparent);
 }
 
 html.dark-mode .sidebar-primary {
@@ -664,17 +664,17 @@ html.dark-mode .sidebar-container.subpanel-open .sidebar-subpanel {
 
 html.dark-mode .sidebar-item.active {
   box-shadow: 
-    0 0 0 1px rgba(139, 195, 74, 0.15) inset,
+    0 0 0 1px color-mix(in srgb, var(--accent) 15%, transparent) inset,
     0 2px 8px var(--sidebar-glow);
 }
 
 html.dark-mode .sidebar-item.active::before {
-  background: linear-gradient(180deg, var(--accent), rgba(139, 195, 74, 0.7));
+  background: linear-gradient(180deg, var(--accent), color-mix(in srgb, var(--accent) 70%, transparent));
 }
 
 html.dark-mode .subpanel-link.active {
   box-shadow: 
-    0 0 0 1px rgba(139, 195, 74, 0.1) inset,
+    0 0 0 1px color-mix(in srgb, var(--accent) 10%, transparent) inset,
     0 2px 6px var(--sidebar-glow);
 }
 
@@ -730,15 +730,15 @@ html.dark-mode .sidebar-overlay.subpanel-open {
     left: 8px;
     width: 44px;
     height: 44px;
-    background: linear-gradient(135deg, var(--accent), rgba(139, 195, 74, 0.9));
+    background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 90%, transparent));
     color: white;
     border: none;
     border-radius: var(--radius-md);
     align-items: center;
     justify-content: center;
     box-shadow: 
-      0 4px 16px rgba(139, 195, 74, 0.4),
-      0 0 0 3px rgba(139, 195, 74, 0.15);
+      0 4px 16px color-mix(in srgb, var(--accent) 40%, transparent),
+      0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent);
     z-index: calc(var(--z-sidebar) + 10);
     cursor: pointer;
     transition: 
@@ -760,8 +760,8 @@ html.dark-mode .sidebar-overlay.subpanel-open {
   .sidebar-mobile-toggle:hover {
     transform: scale(1.05);
     box-shadow: 
-      0 6px 20px rgba(139, 195, 74, 0.5),
-      0 0 0 4px rgba(139, 195, 74, 0.2);
+      0 6px 20px color-mix(in srgb, var(--accent) 50%, transparent),
+      0 0 0 4px color-mix(in srgb, var(--accent) 20%, transparent);
   }
   
   .sidebar-mobile-toggle:active {

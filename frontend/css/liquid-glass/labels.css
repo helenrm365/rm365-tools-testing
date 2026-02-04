@@ -65,8 +65,8 @@ body.liquid-glass-mode .filter-toggle-btn:hover {
 /* Active States */
 body.liquid-glass-mode .status-filter.checked,
 body.liquid-glass-mode .region-option:has(input:checked) {
-    background: rgba(139, 195, 74, 0.2) !important;
-    border-color: rgba(139, 195, 74, 0.5) !important;
+    background: color-mix(in srgb, var(--accent) 20%, transparent) !important;
+    border-color: color-mix(in srgb, var(--accent) 50%, transparent) !important;
 }
 
 /* Dark Mode Adjustments */
@@ -100,8 +100,8 @@ html.dark-mode body.liquid-glass-mode .filter-toggle-btn:hover {
 
 html.dark-mode body.liquid-glass-mode .status-filter.checked,
 html.dark-mode body.liquid-glass-mode .region-option:has(input:checked) {
-    background: rgba(139, 195, 74, 0.2) !important;
-    border-color: rgba(139, 195, 74, 0.5) !important;
+    background: color-mix(in srgb, var(--accent) 20%, transparent) !important;
+    border-color: color-mix(in srgb, var(--accent) 50%, transparent) !important;
 }
 
 html.dark-mode body.liquid-glass-mode .module-feature-card:hover,

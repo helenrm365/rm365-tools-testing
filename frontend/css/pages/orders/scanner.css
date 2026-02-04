@@ -137,27 +137,20 @@
   align-items: flex-end;
 }
 
-/* Sticky search container - uses position fixed for reliable stickiness */
+/* Search container - normal flow on desktop, fixed on mobile */
 .inventory-scanner .scanner-unified > .block-content {
-  position: fixed;
-  top: 48px; /* Below header */
-  left: var(--sidebar-width-collapsed, 64px);
-  right: 0;
-  z-index: 50;
+  position: static;
   background: var(--bg, #ffffff);
   padding: 1rem 1.5rem;
-  border-bottom: 1px solid var(--border-color, #e5e7eb);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 html.dark-mode .inventory-scanner .scanner-unified > .block-content {
   background: var(--bg-card, #1e1e1e);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
-/* Add padding to scanner-unified to account for fixed header */
+/* Scanner unified block - normal layout on desktop */
 .inventory-scanner .scanner-unified {
-  padding-top: 80px; /* Space for fixed search bar */
+  padding-top: 0;
 }
 
 .inventory-scanner .scanner-form .form-group {
@@ -393,9 +386,10 @@ html.dark-mode .inventory-scanner .scanner-unified > .block-content {
 .inventory-scanner .pending-items-list {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 1rem;
   max-height: 400px;
   overflow-y: auto;
+  padding: 0.25rem;
 }
 
 /* Empty State */
@@ -404,259 +398,449 @@ html.dark-mode .inventory-scanner .scanner-unified > .block-content {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 3rem 2rem;
+  padding: 4rem 2rem;
   color: var(--text-muted, #9ca3af);
   text-align: center;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.02), rgba(139, 92, 246, 0.02));
+  border-radius: 20px;
+  border: 2px dashed rgba(156, 163, 175, 0.2);
 }
 
 .inventory-scanner .empty-state i {
-  font-size: 3rem;
-  margin-bottom: 1rem;
-  opacity: 0.5;
+  font-size: 3.5rem;
+  margin-bottom: 1.25rem;
+  opacity: 0.4;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .inventory-scanner .empty-state p {
-  font-size: 1rem;
-  font-weight: 500;
+  font-size: 1.125rem;
+  font-weight: 600;
   margin: 0;
-  color: var(--text, #6b7280);
+  color: var(--text, #4b5563);
 }
 
 .inventory-scanner .empty-state .empty-hint {
-  font-size: 0.875rem;
-  margin-top: 0.5rem;
+  font-size: 0.9375rem;
+  margin-top: 0.75rem;
   color: var(--text-muted, #9ca3af);
+  max-width: 400px;
 }
 
-/* ===== Pending Item Card ===== */
+/* ===== Pending Item Card - Complete Redesign ===== */
 .inventory-scanner .pending-item {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: start;
-  gap: 1rem;
-  padding: 1rem;
-  background: var(--bg, #ffffff);
-  border-radius: 12px;
-  border: 1px solid var(--border-color, #e5e7eb);
-  transition: border-color 0.2s, box-shadow 0.2s;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(249, 250, 251, 0.95));
+  border-radius: 20px;
+  border: none;
+  overflow: hidden;
+  box-shadow: 
+    0 4px 20px rgba(0, 0, 0, 0.06),
+    0 1px 3px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateY(0);
 }
 
 .inventory-scanner .pending-item:hover {
-  border-color: var(--primary, #6366f1);
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.1);
+  transform: translateY(-4px);
+  box-shadow: 
+    0 12px 40px rgba(0, 0, 0, 0.12),
+    0 4px 12px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+/* Status ribbon at the top */
+.inventory-scanner .pending-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, transparent, currentColor, transparent);
+  opacity: 0.6;
+  z-index: 1;
 }
 
 .inventory-scanner .pending-item.add {
-  border-left: 4px solid var(--success, #10b981);
+  color: #10b981;
+}
+
+.inventory-scanner .pending-item.add::before {
+  background: linear-gradient(90deg, #6ee7b7, #10b981, #059669, #10b981, #6ee7b7);
+  box-shadow: 0 2px 12px rgba(16, 185, 129, 0.3);
 }
 
 .inventory-scanner .pending-item.remove {
-  border-left: 4px solid var(--danger, #ef4444);
+  color: #ef4444;
 }
 
+.inventory-scanner .pending-item.remove::before {
+  background: linear-gradient(90deg, #fca5a5, #ef4444, #dc2626, #ef4444, #fca5a5);
+  box-shadow: 0 2px 12px rgba(239, 68, 68, 0.3);
+}
+
+/* Main content area */
 .inventory-scanner .pending-item-main {
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.25rem;
+  padding-bottom: 0.75rem;
   min-width: 0;
 }
 
+/* Product icon with modern design */
 .inventory-scanner .pending-item-icon {
-  width: 40px;
-  height: 40px;
+  width: 56px;
+  height: 56px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 10px;
-  font-size: 1.25rem;
+  border-radius: 16px;
+  font-size: 1.5rem;
   flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.inventory-scanner .pending-item-icon::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    45deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+  transform: rotate(45deg);
+  animation: shimmer 3s infinite;
+}
+
+@keyframes shimmer {
+  0%, 100% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+  50% { transform: translateX(100%) translateY(100%) rotate(45deg); }
 }
 
 .inventory-scanner .pending-item-icon.add {
-  background: rgba(16, 185, 129, 0.1);
-  color: var(--success, #10b981);
+  background: linear-gradient(135deg, #34d399, #10b981);
+  color: #ffffff;
 }
 
 .inventory-scanner .pending-item-icon.remove {
-  background: rgba(239, 68, 68, 0.1);
-  color: var(--danger, #ef4444);
+  background: linear-gradient(135deg, #f87171, #ef4444);
+  color: #ffffff;
 }
 
+/* Product information */
 .inventory-scanner .pending-item-info {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .inventory-scanner .pending-item-name {
-  font-weight: 600;
-  color: var(--text, #1f2937);
-  font-size: 0.9375rem;
-  white-space: nowrap;
+  font-weight: 700;
+  color: #111827;
+  font-size: 1.0625rem;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .inventory-scanner .pending-item-sku {
-  font-family: 'Roboto Mono', monospace;
+  font-family: 'SF Mono', 'Roboto Mono', 'Courier New', monospace;
   font-size: 0.8125rem;
-  color: var(--text-muted, #6b7280);
-  margin-top: 0.125rem;
+  font-weight: 600;
+  color: #6b7280;
+  background: rgba(107, 114, 128, 0.08);
+  padding: 0.25rem 0.625rem;
+  border-radius: 6px;
+  display: inline-block;
+  width: fit-content;
+  letter-spacing: 0.5px;
 }
 
 .inventory-scanner .pending-item-meta {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  margin-top: 0.5rem;
+  margin-top: 0.25rem;
 }
 
 .inventory-scanner .meta-tag {
   display: inline-flex;
   align-items: center;
-  padding: 0.125rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.6875rem;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.25px;
-  background: var(--bg-light, #f3f4f6);
-  color: var(--text-muted, #6b7280);
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  letter-spacing: 0.02em;
+  backdrop-filter: blur(8px);
+  border: 1px solid transparent;
 }
 
 .inventory-scanner .meta-tag.add {
-  background: rgba(16, 185, 129, 0.1);
-  color: var(--success, #10b981);
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+  border-color: rgba(16, 185, 129, 0.2);
 }
 
 .inventory-scanner .meta-tag.remove {
-  background: rgba(239, 68, 68, 0.1);
-  color: var(--danger, #ef4444);
+  background: rgba(239, 68, 68, 0.12);
+  color: #b91c1c;
+  border-color: rgba(239, 68, 68, 0.2);
 }
 
 .inventory-scanner .meta-tag.shelf {
-  background: rgba(59, 130, 246, 0.1);
-  color: var(--info, #3b82f6);
+  background: rgba(59, 130, 246, 0.12);
+  color: #1e40af;
+  border-color: rgba(59, 130, 246, 0.2);
 }
 
 .inventory-scanner .meta-tag.stock {
-  background: rgba(156, 163, 175, 0.15);
-  color: var(--text-muted, #6b7280);
+  background: rgba(156, 163, 175, 0.12);
+  color: #4b5563;
+  border-color: rgba(156, 163, 175, 0.2);
 }
 
 /* ===== Pending Item Quantity Controls ===== */
 .inventory-scanner .pending-item-qty {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
   flex-shrink: 0;
+  padding: 0.875rem 1.25rem;
+  background: linear-gradient(135deg, rgba(249, 250, 251, 0.8), rgba(243, 244, 246, 0.8));
+  backdrop-filter: blur(10px);
+  border-radius: 0 0 16px 16px;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .inventory-scanner .qty-adjust-btn {
-  width: 28px;
-  height: 28px;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-light, #f3f4f6);
-  border: 1px solid var(--border-color, #e5e7eb);
-  border-radius: 6px;
-  color: var(--text-muted, #6b7280);
+  background: #ffffff;
+  border: 2px solid rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+  color: #6b7280;
   cursor: pointer;
-  transition: all 0.2s;
-  font-size: 0.75rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 1.125rem;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  position: relative;
+  overflow: hidden;
+}
+
+.inventory-scanner .qty-adjust-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.15;
+  transform: translate(-50%, -50%);
+  transition: width 0.4s, height 0.4s;
+}
+
+.inventory-scanner .qty-adjust-btn:active::before {
+  width: 100px;
+  height: 100px;
 }
 
 .inventory-scanner .qty-adjust-btn:hover {
-  background: var(--bg-dark, #e5e7eb);
-  color: var(--text, #1f2937);
+  transform: scale(1.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.inventory-scanner .qty-adjust-btn.plus {
+  background: linear-gradient(135deg, #ffffff, #f0fdf4);
+  border-color: rgba(16, 185, 129, 0.2);
+  color: #10b981;
 }
 
 .inventory-scanner .qty-adjust-btn.plus:hover {
-  background: rgba(16, 185, 129, 0.1);
-  color: var(--success, #10b981);
-  border-color: var(--success, #10b981);
+  background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+  border-color: #10b981;
+  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.25);
+}
+
+.inventory-scanner .qty-adjust-btn.minus {
+  background: linear-gradient(135deg, #ffffff, #fef2f2);
+  border-color: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
 }
 
 .inventory-scanner .qty-adjust-btn.minus:hover {
-  background: rgba(239, 68, 68, 0.1);
-  color: var(--danger, #ef4444);
-  border-color: var(--danger, #ef4444);
+  background: linear-gradient(135deg, #fef2f2, #fee2e2);
+  border-color: #ef4444;
+  box-shadow: 0 4px 20px rgba(239, 68, 68, 0.25);
 }
 
 .inventory-scanner .qty-value {
-  min-width: 2rem;
+  min-width: 3.5rem;
   text-align: center;
-  font-weight: 700;
-  font-size: 1rem;
-  color: var(--text, #1f2937);
+  font-weight: 800;
+  font-size: 1.5rem;
+  color: #111827;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 10px;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.06);
+  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+  letter-spacing: -0.02em;
 }
 
 /* Quantity input in pending items */
 .inventory-scanner .qty-value-input {
-  width: 60px;
+  width: 80px;
   text-align: center;
-  padding: 0.25rem 0.5rem;
-  font-weight: 700;
-  font-size: 0.9375rem;
-  border: 1px solid var(--border-color, #e5e7eb);
-  border-radius: 6px;
-  background: var(--bg, #ffffff);
-  color: var(--text, #1f2937);
-  transition: all 0.2s;
+  padding: 0.625rem 0.875rem;
+  font-weight: 800;
+  font-size: 1.375rem;
+  border: 2px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  background: #ffffff;
+  color: #111827;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.04);
+  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+  letter-spacing: -0.02em;
 }
 
 .inventory-scanner .qty-value-input:focus {
   outline: none;
-  border-color: var(--primary, #6366f1);
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+  border-color: #6366f1;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15), inset 0 2px 6px rgba(0, 0, 0, 0.04);
+  transform: scale(1.05);
 }
 
 /* Negative quantity styling */
-.inventory-scanner .pending-item.remove .qty-value-input {
-  color: var(--danger, #ef4444);
+.inventory-scanner .pending-item.remove .qty-value-input,
+.inventory-scanner .pending-item.remove .qty-value {
+  color: #ef4444;
+  text-shadow: 0 1px 2px rgba(239, 68, 68, 0.1);
 }
 
 /* Positive quantity styling */
-.inventory-scanner .pending-item.add .qty-value-input {
-  color: var(--success, #10b981);
+.inventory-scanner .pending-item.add .qty-value-input,
+.inventory-scanner .pending-item.add .qty-value {
+  color: #10b981;
+  text-shadow: 0 1px 2px rgba(16, 185, 129, 0.1);
 }
 
 /* ===== Pending Item Controls Container ===== */
 .inventory-scanner .pending-item-controls {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 0.5rem;
+  justify-content: space-between;
+  gap: 1rem;
   flex-shrink: 0;
-  align-self: start;
-  justify-self: end;
+  padding: 0.875rem 1.25rem;
+  background: linear-gradient(135deg, rgba(243, 244, 246, 0.6), rgba(249, 250, 251, 0.6));
+  backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(0, 0, 0, 0.04);
+  margin-top: 0.75rem;
 }
 
 /* ===== Shelf Select in Pending Items ===== */
+/* Scanner uses c-select with custom styling */
 .inventory-scanner .pending-item-shelf {
-  flex-shrink: 0;
+  flex: 1;
+  max-width: 200px;
 }
 
-.inventory-scanner .shelf-select {
-  padding: 0.375rem 0.75rem;
-  font-size: 0.8125rem;
-  border: 1px solid var(--border-color, #e5e7eb);
-  border-radius: 6px;
-  background: var(--bg, #ffffff);
-  color: var(--text, #1f2937);
+/* Style the c-select button */
+.inventory-scanner .pending-item-shelf .c-select__button {
+  width: 100%;
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: 2px solid rgba(99, 102, 241, 0.2);
+  border-radius: 12px;
+  background: linear-gradient(135deg, #ffffff, #f8f9ff);
+  color: #4338ca;
   cursor: pointer;
-  transition: all 0.2s;
-  min-width: 100px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.08);
+  min-height: auto;
 }
 
-.inventory-scanner .shelf-select:focus {
+.inventory-scanner .pending-item-shelf .c-select__button:hover {
+  border-color: #6366f1;
+  background: linear-gradient(135deg, #ffffff, #eef2ff);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+}
+
+.inventory-scanner .pending-item-shelf .c-select__button:focus-visible,
+.inventory-scanner .pending-item-shelf .c-select[aria-expanded='true'] .c-select__button {
   outline: none;
-  border-color: var(--primary, #6366f1);
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+  border-color: #6366f1;
+  box-shadow: 
+    0 0 12px rgba(99, 102, 241, 0.2),
+    0 0 24px rgba(99, 102, 241, 0.1),
+    0 4px 12px rgba(99, 102, 241, 0.15);
 }
 
-.inventory-scanner .shelf-select:hover {
-  border-color: var(--primary, #6366f1);
+/* Style the c-select caret */
+.inventory-scanner .pending-item-shelf .c-select__caret {
+  color: #4338ca;
+  opacity: 1;
+}
+
+/* Style the c-select dropdown */
+.inventory-scanner .pending-item-shelf .c-select__list {
+  border: 2px solid rgba(99, 102, 241, 0.2);
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.2);
+  max-height: 220px;
+}
+
+/* Style the c-select items */
+.inventory-scanner .pending-item-shelf .c-select__item {
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  color: #4338ca;
+  transition: all 0.2s;
+}
+
+.inventory-scanner .pending-item-shelf .c-select__item:hover {
+  background: rgba(99, 102, 241, 0.1);
+}
+
+.inventory-scanner .pending-item-shelf .c-select__item[aria-selected='true'] {
+  background: rgba(99, 102, 241, 0.15);
+  color: #4338ca;
+  font-weight: 700;
 }
 
 /* ===== Simplified Scanner Form ===== */
@@ -667,23 +851,48 @@ html.dark-mode .inventory-scanner .scanner-unified > .block-content {
 
 /* ===== Pending Item Remove Button (left side, next to icon) ===== */
 .inventory-scanner .pending-item-remove {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: transparent;
-  border: none;
-  border-radius: 8px;
-  color: var(--text-muted, #9ca3af);
+  background: rgba(239, 68, 68, 0.08);
+  border: 2px solid rgba(239, 68, 68, 0.15);
+  border-radius: 10px;
+  color: #dc2626;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+  font-size: 0.9375rem;
+}
+
+.inventory-scanner .pending-item-remove::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: #ef4444;
+  opacity: 0.2;
+  transform: translate(-50%, -50%);
+  transition: width 0.4s, height 0.4s;
+}
+
+.inventory-scanner .pending-item-remove:active::before {
+  width: 80px;
+  height: 80px;
 }
 
 .inventory-scanner .pending-item-remove:hover {
-  background: rgba(239, 68, 68, 0.1);
-  color: var(--danger, #ef4444);
+  background: linear-gradient(135deg, #fee2e2, #fecaca);
+  border-color: #ef4444;
+  color: #b91c1c;
+  transform: scale(1.1) rotate(90deg);
+  box-shadow: 0 4px 16px rgba(239, 68, 68, 0.25);
 }
 
 /* ===== Submit Section ===== */
@@ -868,6 +1077,177 @@ html.dark-mode .inventory-scanner .scanner-unified > .block-content {
   border-top: 1px solid var(--border-color, #e5e7eb);
 }
 
+/* ===== Dark Mode Support ===== */
+html.dark-mode .inventory-scanner .pending-item {
+  background: linear-gradient(135deg, rgba(30, 30, 30, 0.98), rgba(38, 38, 38, 0.98));
+  box-shadow: 
+    0 4px 20px rgba(0, 0, 0, 0.4),
+    0 1px 3px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+html.dark-mode .inventory-scanner .pending-item:hover {
+  box-shadow: 
+    0 12px 40px rgba(0, 0, 0, 0.5),
+    0 4px 12px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+html.dark-mode .inventory-scanner .empty-state {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.05), rgba(139, 92, 246, 0.05));
+  border-color: rgba(156, 163, 175, 0.15);
+}
+
+html.dark-mode .inventory-scanner .empty-state p {
+  color: #d1d5db;
+}
+
+html.dark-mode .inventory-scanner .pending-item-name {
+  color: #f9fafb;
+}
+
+html.dark-mode .inventory-scanner .pending-item-sku {
+  color: #9ca3af;
+  background: rgba(156, 163, 175, 0.12);
+}
+
+html.dark-mode .inventory-scanner .meta-tag.add {
+  background: rgba(16, 185, 129, 0.15);
+  color: #6ee7b7;
+  border-color: rgba(16, 185, 129, 0.25);
+}
+
+html.dark-mode .inventory-scanner .meta-tag.remove {
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+html.dark-mode .inventory-scanner .meta-tag.shelf {
+  background: rgba(59, 130, 246, 0.15);
+  color: #93c5fd;
+  border-color: rgba(59, 130, 246, 0.25);
+}
+
+html.dark-mode .inventory-scanner .meta-tag.stock {
+  background: rgba(156, 163, 175, 0.15);
+  color: #d1d5db;
+  border-color: rgba(156, 163, 175, 0.25);
+}
+
+html.dark-mode .inventory-scanner .pending-item-qty {
+  background: linear-gradient(135deg, rgba(26, 26, 26, 0.9), rgba(30, 30, 30, 0.9));
+  border-top-color: rgba(255, 255, 255, 0.05);
+}
+
+html.dark-mode .inventory-scanner .qty-adjust-btn {
+  background: #262626;
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #9ca3af;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+html.dark-mode .inventory-scanner .qty-adjust-btn.plus {
+  background: linear-gradient(135deg, #1a1a1a, #064e3b);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #6ee7b7;
+}
+
+html.dark-mode .inventory-scanner .qty-adjust-btn.plus:hover {
+  background: linear-gradient(135deg, #064e3b, #065f46);
+  border-color: #10b981;
+  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.3);
+}
+
+html.dark-mode .inventory-scanner .qty-adjust-btn.minus {
+  background: linear-gradient(135deg, #1a1a1a, #7f1d1d);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+}
+
+html.dark-mode .inventory-scanner .qty-adjust-btn.minus:hover {
+  background: linear-gradient(135deg, #7f1d1d, #991b1b);
+  border-color: #ef4444;
+  box-shadow: 0 4px 20px rgba(239, 68, 68, 0.3);
+}
+
+html.dark-mode .inventory-scanner .qty-value,
+html.dark-mode .inventory-scanner .qty-value-input {
+  background: rgba(0, 0, 0, 0.3);
+  color: #f9fafb;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+html.dark-mode .inventory-scanner .qty-value-input:focus {
+  border-color: #818cf8;
+  box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.2), inset 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+html.dark-mode .inventory-scanner .pending-item-controls {
+  background: linear-gradient(135deg, rgba(20, 20, 20, 0.8), rgba(26, 26, 26, 0.8));
+  border-top-color: rgba(255, 255, 255, 0.03);
+}
+
+html.dark-mode .inventory-scanner .pending-item-shelf .c-select__button {
+  background: linear-gradient(135deg, #1a1a1a, #1e1b4b);
+  border-color: rgba(99, 102, 241, 0.3);
+  color: #a5b4fc;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+html.dark-mode .inventory-scanner .pending-item-shelf .c-select__button:hover {
+  background: linear-gradient(135deg, #1e1b4b, #312e81);
+  border-color: #818cf8;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+}
+
+html.dark-mode .inventory-scanner .pending-item-shelf .c-select__button:focus-visible,
+html.dark-mode .inventory-scanner .pending-item-shelf .c-select[aria-expanded='true'] .c-select__button {
+  outline: none;
+  border-color: #818cf8;
+  box-shadow: 
+    0 0 16px rgba(129, 140, 248, 0.25),
+    0 0 32px rgba(129, 140, 248, 0.15),
+    0 4px 12px rgba(99, 102, 241, 0.2);
+}
+
+html.dark-mode .inventory-scanner .pending-item-shelf .c-select__caret {
+  color: #a5b4fc;
+}
+
+html.dark-mode .inventory-scanner .pending-item-shelf .c-select__list {
+  background: #1a1a1a;
+  border-color: rgba(99, 102, 241, 0.3);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+html.dark-mode .inventory-scanner .pending-item-shelf .c-select__item {
+  color: #a5b4fc;
+}
+
+html.dark-mode .inventory-scanner .pending-item-shelf .c-select__item:hover {
+  background: rgba(99, 102, 241, 0.15);
+}
+
+html.dark-mode .inventory-scanner .pending-item-shelf .c-select__item[aria-selected='true'] {
+  background: rgba(99, 102, 241, 0.2);
+  color: #c7d2fe;
+}
+
+html.dark-mode .inventory-scanner .pending-item-remove {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.25);
+  color: #f87171;
+}
+
+html.dark-mode .inventory-scanner .pending-item-remove:hover {
+  background: linear-gradient(135deg, #7f1d1d, #991b1b);
+  border-color: #ef4444;
+  color: #fca5a5;
+  box-shadow: 0 4px 16px rgba(239, 68, 68, 0.3);
+}
+
 /* ===== Responsive ===== */
 
 /* Tablet: 768px - 1024px */
@@ -1041,39 +1421,73 @@ html.dark-mode .inventory-scanner .scanner-unified > .block-content {
   
   /* Pending items - mobile layout */
   .inventory-scanner .pending-item {
-    gap: 0.5rem;
-    padding: 0.875rem;
+    gap: 0;
+    padding: 0;
     overflow: visible;
+    border-radius: 16px;
+  }
+  
+  .inventory-scanner .pending-item-main {
+    padding: 1rem;
+    padding-bottom: 0.625rem;
   }
   
   /* Controls stacked, aligned top-right within grid */
   .inventory-scanner .pending-item-controls {
+    flex-direction: row;
     align-items: center;
-    gap: 0.25rem;
-    justify-self: end;
-    align-self: start;
+    gap: 0.75rem;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
     margin-top: 0;
   }
   
   /* Compact dropdown for mobile */
-  .inventory-scanner .pending-item-shelf .shelf-select {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.7rem;
-    min-width: 70px;
-    max-width: 90px;
-    height: 28px;
+  .inventory-scanner .pending-item-shelf {
+    flex: 1;
+    max-width: 140px;
+  }
+  
+  .inventory-scanner .pending-item-shelf .c-select__button {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8125rem;
+    min-width: auto;
+    width: 100%;
+  }
+  
+  .inventory-scanner .pending-item-shelf .c-select__list {
+    max-height: 180px;
+  }
+  
+  .inventory-scanner .pending-item-shelf .c-select__item {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8125rem;
   }
   
   /* Compact qty controls for mobile */
   .inventory-scanner .pending-item-qty {
-    transform: scale(0.9);
-    transform-origin: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+  }
+  
+  .inventory-scanner .qty-adjust-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 1rem;
+  }
+  
+  .inventory-scanner .qty-value,
+  .inventory-scanner .qty-value-input {
+    min-width: 3rem;
+    font-size: 1.25rem;
+    padding: 0.375rem;
   }
   
   /* Delete button styling for mobile - stays on left with icon */
   .inventory-scanner .pending-item-remove {
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
+    font-size: 0.875rem;
   }
   
   /* Main section takes remaining space */
@@ -1082,7 +1496,7 @@ html.dark-mode .inventory-scanner .scanner-unified > .block-content {
     min-width: 0;
     display: flex;
     align-items: flex-start;
-    gap: 0.5rem;
+    gap: 0.75rem;
   }
   
   .inventory-scanner .pending-item-info {
@@ -1090,26 +1504,34 @@ html.dark-mode .inventory-scanner .scanner-unified > .block-content {
     flex: 1;
   }
   
+  .inventory-scanner .pending-item-icon {
+    width: 48px;
+    height: 48px;
+    font-size: 1.25rem;
+  }
+  
   /* Allow product name to wrap */
   .inventory-scanner .pending-item-name {
-    font-size: 0.875rem;
+    font-size: 0.9375rem;
     white-space: normal;
     word-wrap: break-word;
     overflow-wrap: break-word;
-    line-height: 1.3;
+    line-height: 1.35;
   }
   
   .inventory-scanner .pending-item-sku {
     font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
   }
   
   /* Shelf dropdown styling */
   .inventory-scanner .pending-item-shelf {
     position: relative;
     overflow: visible;
+    max-width: 120px;
   }
   
-  .inventory-scanner .shelf-select {
+  .inventory-scanner .pending-item-shelf .c-select__button {
     min-width: 80px;
     max-width: 100px;
     font-size: 0.75rem;
@@ -1117,9 +1539,13 @@ html.dark-mode .inventory-scanner .scanner-unified > .block-content {
     position: relative;
   }
   
-  /* When dropdown menu is open, it should appear above sticky sections */
-  .inventory-scanner .shelf-select:focus {
-    z-index: 300;
+  .inventory-scanner .pending-item-shelf .c-select__list {
+    max-height: 150px;
+  }
+  
+  .inventory-scanner .pending-item-shelf .c-select__item {
+    padding: 0.5rem;
+    font-size: 0.75rem;
   }
 
   /* Elevate parents when dropdown is focused so the menu renders above sticky footer/nav */
@@ -1300,27 +1726,54 @@ html.dark-mode .inventory-scanner .scanner-unified > .block-content {
     width: 32px;
     height: 32px;
     font-size: 1rem;
+    border-radius: 10px;
   }
   
   .inventory-scanner .pending-item-controls {
-    padding-left: 2.75rem;
+    padding: 0.625rem 0.875rem;
+    gap: 0.625rem;
+  }
+  
+  .inventory-scanner .pending-item-shelf {
+    max-width: 120px;
+  }
+  
+  .inventory-scanner .pending-item-qty {
+    padding: 0.625rem 0.875rem;
+    gap: 0.5rem;
   }
   
   .inventory-scanner .qty-adjust-btn {
-    width: 24px;
-    height: 24px;
+    width: 32px;
+    height: 32px;
+    font-size: 0.9375rem;
+  }
+  
+  .inventory-scanner .qty-value,
+  .inventory-scanner .qty-value-input {
+    min-width: 2.5rem;
+    font-size: 1.125rem;
+  }
+  
+  .inventory-scanner .pending-item-remove {
+    width: 28px;
+    height: 28px;
   }
   
   .inventory-scanner .empty-state {
-    padding: 2rem 1rem;
+    padding: 2.5rem 1rem;
   }
   
   .inventory-scanner .empty-state i {
-    font-size: 2.5rem;
+    font-size: 2.75rem;
   }
   
   .inventory-scanner .empty-state p {
-    font-size: 0.875rem;
+    font-size: 0.9375rem;
+  }
+  
+  .inventory-scanner .empty-state .empty-hint {
+    font-size: 0.8125rem;
   }
   
   .inventory-scanner .summary-section {
@@ -1328,3 +1781,5 @@ html.dark-mode .inventory-scanner .scanner-unified > .block-content {
     padding: 0.625rem;
   }
 }
+
+

@@ -11,9 +11,9 @@
    - components/filter-control-panel.css: .unified-filter-panel, .filter-panel-header, .filter-panel-body
    
    Color System:
-   - Use --accent for green theme (#8bc34a) - NOT --primary which is blue
-   - Use --accent-dark for darker green (#7ab82d)
-   - Use --accent-light for lighter green (#a5d461)
+   - Use --accent for green theme (var(--accent)) - NOT --primary which is blue
+   - Use --accent-dark for darker green (var(--accent-dark))
+   - Use --accent-light for lighter green (var(--accent-light))
    
    Note: Uses FilterControlPanel component for collapsible filter panel.
    Customizes grid to 2 equal columns and adds full-width preset card below.
@@ -1211,7 +1211,7 @@
   border-radius: 16px;
   font-size: 0.85rem;
   font-weight: 500;
-  box-shadow: 0 2px 4px rgba(139, 195, 74, 0.2);
+  box-shadow: 0 2px 4px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 /* Products list in view modal */

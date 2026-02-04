@@ -82,12 +82,12 @@ html.dark-mode .modal-content {
   align-items: center;
   gap: 1rem;
   padding: 1.5rem 2rem;
-  background: linear-gradient(135deg, rgba(139, 195, 74, 0.1), rgba(94, 129, 34, 0.05));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 10%, transparent), rgba(94, 129, 34, 0.05));
   border-bottom: 2px solid var(--bg-light);
 }
 
 html.dark-mode .modal-header {
-  background: linear-gradient(135deg, rgba(139, 195, 74, 0.15), rgba(139, 195, 74, 0.08));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 15%, transparent), color-mix(in srgb, var(--accent) 8%, transparent));
   border-bottom-color: rgba(255, 255, 255, 0.1);
 }
 
@@ -160,11 +160,11 @@ html.dark-mode .modal-header {
   height: 48px;
   min-width: 48px;
   flex-shrink: 0;
-  background: linear-gradient(135deg, #8bc34a, #7ab82d);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   border-radius: 12px;
   color: white;
   font-size: 1.25rem;
-  box-shadow: 0 4px 12px rgba(139, 195, 74, 0.3);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 .modal-header-icon i {
@@ -181,7 +181,7 @@ html.dark-mode .modal-header {
 
 /* Gradient text effect when icon is present */
 .modal-header-icon + .modal-title {
-  background: linear-gradient(135deg, #8bc34a, #7ab82d);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -189,7 +189,7 @@ html.dark-mode .modal-header {
 
 .modal-close {
   background: rgba(0, 0, 0, 0.05);
-  border: none;
+  border: 2px solid transparent;
   font-size: 1.25rem;
   cursor: pointer;
   color: var(--text-muted);
@@ -207,7 +207,17 @@ html.dark-mode .modal-header {
 .modal-close:hover {
   background: rgba(231, 76, 60, 0.1);
   color: #e74c3c;
+  border-color: rgba(231, 76, 60, 0.3);
   transform: rotate(90deg);
+  box-shadow: 0 0 12px rgba(231, 76, 60, 0.2);
+}
+
+.modal-close:focus-visible {
+  outline: none;
+  border-color: rgba(231, 76, 60, 0.5);
+  box-shadow: 
+    0 0 12px rgba(231, 76, 60, 0.25),
+    0 0 24px rgba(231, 76, 60, 0.15);
 }
 
 html.dark-mode .modal-close {
@@ -218,6 +228,8 @@ html.dark-mode .modal-close {
 html.dark-mode .modal-close:hover {
   background: rgba(231, 76, 60, 0.2);
   color: #ff6b6b;
+  border-color: rgba(255, 107, 107, 0.3);
+  box-shadow: 0 0 16px rgba(255, 107, 107, 0.25);
 }
 
 /* Contrast Close Button (for colored headers) */
@@ -406,7 +418,7 @@ html.dark-mode .instructions-header {
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  background: linear-gradient(135deg, rgba(139, 195, 74, 0.2), rgba(139, 195, 74, 0.1));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 20%, transparent), color-mix(in srgb, var(--accent) 10%, transparent));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -415,7 +427,7 @@ html.dark-mode .instructions-header {
 
 .instructions-icon i {
   font-size: 1.25rem;
-  color: #8bc34a;
+  color: var(--accent);
 }
 
 .instructions-title {
@@ -477,7 +489,7 @@ html.dark-mode .step-item {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #8bc34a, #7ab82d);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   color: white;
   font-weight: 700;
   font-size: 0.9rem;
@@ -555,7 +567,7 @@ html.dark-mode .step-item {
 .employee-modal-avatar {
   width: 52px;
   height: 52px;
-  background: linear-gradient(135deg, #8bc34a, #7ab82d);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   border-radius: 50%;
 }
 
@@ -584,7 +596,7 @@ html.dark-mode .step-item {
   margin: 0 0 1rem;
   font-size: 0.875rem;
   font-weight: 600;
-  color: #8bc34a;
+  color: var(--accent);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -652,4 +664,12 @@ html.dark-mode .modal-actions {
     align-items: flex-start;
     gap: 0.5rem;
   }
+}
+
+/* ===== Glow Effects Toggle ===== */
+/* Glows are disabled by default. Enable with html.glow-enabled class */
+
+html:not(.glow-enabled) .modal-close:hover,
+html:not(.glow-enabled) .modal-close:focus-visible {
+  box-shadow: none;
 }

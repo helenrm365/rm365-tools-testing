@@ -74,25 +74,7 @@
   animation: pulse 2s infinite;
 }
 
-.order-fulfillment .ot-refresh-btn {
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--bg-light, #f3f4f6);
-  border: none;
-  border-radius: 8px;
-  color: var(--text-muted, #6b7280);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.order-fulfillment .ot-refresh-btn:hover {
-  background: var(--bg-dark, #e5e7eb);
-  color: var(--text, #1f2937);
-}
-
+/* Spinning animation for refresh button */
 .order-fulfillment .ot-refresh-btn.spinning i {
   animation: spin 0.5s linear;
 }
@@ -215,7 +197,7 @@
 
 .order-fulfillment .ot-group-header i {
   font-size: 0.65rem;
-  color: var(--accent, #8bc34a);
+  color: var(--accent);
 }
 
 .order-fulfillment .ot-group-header span:first-of-type {
@@ -1394,7 +1376,7 @@ body:has(.order-fulfillment.mobile-mode-active) #universalFooter {
 }
 
 #orderPreviewModal .preview-section h3 i {
-  color: var(--accent, #8bc34a);
+  color: var(--accent);
 }
 
 #orderPreviewModal .preview-section h4 {
@@ -1443,7 +1425,7 @@ body:has(.order-fulfillment.mobile-mode-active) #universalFooter {
 #orderPreviewModal .preview-item .status-badge {
   display: inline-block;
   padding: 0.25rem 0.6rem;
-  background: linear-gradient(135deg, var(--accent, #8bc34a), #7cb342);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   color: white;
   border-radius: 4px;
   font-size: 0.75rem;
@@ -1556,7 +1538,7 @@ body:has(.order-fulfillment.mobile-mode-active) #universalFooter {
 #orderPreviewModal .preview-total-row.grand-total span {
   font-size: 1.1rem;
   font-weight: 700;
-  color: var(--accent, #8bc34a);
+  color: var(--accent);
 }
 
 /* Responsive modal */

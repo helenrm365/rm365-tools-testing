@@ -197,6 +197,16 @@ def initialize_database():
             print("✅ Magento data tables initialized")
         except Exception as e:
             print(f"⚠️  Could not initialize magento data tables: {e}")
+
+        try:
+            conn = get_psycopg_connection()
+            with conn.cursor() as cur:
+                cur.execute("ALTER TABLE login_users ADD COLUMN IF NOT EXISTS preferences JSONB")
+            conn.commit()
+            return_attendance_connection(conn)
+            print("✅ User preferences column initialized")
+        except Exception as e:
+            print(f"⚠️  Could not initialize user preferences column: {e}")
         
         try:
             from modules.orders.order_fulfillment.db_repo import init_order_fulfillment_tables

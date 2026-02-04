@@ -65,10 +65,10 @@
             <div class="date-range-controls">
               <!-- Date Presets -->
               <div class="date-preset-buttons">
-                <button class="preset-btn active" data-preset="today">Today</button>
-                <button class="preset-btn" data-preset="week">This Week</button>
-                <button class="preset-btn" data-preset="month">This Month</button>
-                <button class="preset-btn" data-preset="year">This Year</button>
+                <button class="btn btn-toggle-pill preset-btn active" data-preset="today">Today</button>
+                <button class="btn btn-toggle-pill preset-btn" data-preset="week">This Week</button>
+                <button class="btn btn-toggle-pill preset-btn" data-preset="month">This Month</button>
+                <button class="btn btn-toggle-pill preset-btn" data-preset="year">This Year</button>
               </div>
               <!-- Custom Date Range -->
               <div class="custom-date-range">
@@ -151,7 +151,7 @@
               </button>
             </div>
           </div>
-          <button class="toggle-view-btn" id="toggleRealtimeView" title="Toggle list view">
+          <button class="btn btn-icon btn-sm btn-scale toggle-view-btn" id="toggleRealtimeView" title="Toggle list view">
             <i class="fas fa-list"></i>
           </button>
         </div>
@@ -191,15 +191,15 @@
         <!-- List View (hidden by default) -->
         <div class="list-view" id="realtimeListView" style="display: none;">
           <div class="list-tabs">
-            <button class="list-tab active" data-tab="attendance">
+            <button class="btn btn-toggle-pill list-tab active" data-tab="attendance">
               <i class="fas fa-user-check"></i>
               <span>Attendance</span>
             </button>
-            <button class="list-tab" data-tab="absences">
+            <button class="btn btn-toggle-pill list-tab" data-tab="absences">
               <i class="fas fa-user-times"></i>
               <span>Absences</span>
             </button>
-            <button class="list-tab" data-tab="breaks">
+            <button class="btn btn-toggle-pill list-tab" data-tab="breaks">
               <i class="fas fa-coffee"></i>
               <span>Breaks</span>
             </button>
@@ -239,7 +239,7 @@
               </button>
             </div>
           </div>
-          <button class="toggle-view-btn" id="togglePunctualityView" title="Toggle list view">
+          <button class="btn btn-icon btn-sm btn-scale toggle-view-btn" id="togglePunctualityView" title="Toggle list view">
             <i class="fas fa-list"></i>
           </button>
         </div>
@@ -288,15 +288,15 @@
         <!-- List View (hidden by default) -->
         <div class="list-view" id="punctualityListView" style="display: none;">
           <div class="list-tabs">
-            <button class="list-tab active" data-tab="late">
+            <button class="btn btn-toggle-pill list-tab active" data-tab="late">
               <i class="fas fa-clock"></i>
               <span>Late Arrivals</span>
             </button>
-            <button class="list-tab" data-tab="early">
+            <button class="btn btn-toggle-pill list-tab" data-tab="early">
               <i class="fas fa-sign-out-alt"></i>
               <span>Early Departures</span>
             </button>
-            <button class="list-tab" data-tab="missing">
+            <button class="btn btn-toggle-pill list-tab" data-tab="missing">
               <i class="fas fa-exclamation-triangle"></i>
               <span>Missing Punches</span>
             </button>
@@ -318,7 +318,7 @@
           <h3 class="block-title">Employee Attendance Analysis</h3>
           <p class="block-subtitle">Today's summary cards or detailed list view by date range</p>
         </div>
-        <button class="toggle-view-btn" id="toggleLunchtimeView" title="Toggle list view">
+        <button class="btn btn-icon btn-sm btn-scale toggle-view-btn" id="toggleLunchtimeView" title="Toggle list view">
           <i class="fas fa-list"></i>
         </button>
       </div>

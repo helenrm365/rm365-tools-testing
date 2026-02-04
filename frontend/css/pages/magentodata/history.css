@@ -53,30 +53,6 @@
   gap: 0.5rem;
 }
 
-.magentodata-page .action-cell .icon-btn {
-  width: 32px;
-  height: 32px;
-  border: none;
-  border-radius: 8px;
-  background: var(--bg);
-  color: var(--text-muted);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-}
-
-.magentodata-page .action-cell .icon-btn:hover {
-  background: var(--bg-light);
-  color: var(--accent);
-}
-
-.magentodata-page .action-cell .icon-btn.delete-btn:hover {
-  background: color-mix(in srgb, var(--error) 15%, transparent);
-  color: var(--error);
-}
-
 /* ===== Responsive: Tablet (1024px) ===== */
 @media (max-width: 1024px) {
   .magentodata-page .history-stats-grid {
@@ -94,12 +70,6 @@
   .magentodata-page .action-cell {
     gap: 0.375rem;
   }
-  
-  .magentodata-page .action-cell .icon-btn {
-    width: 28px;
-    height: 28px;
-    border-radius: 6px;
-  }
 }
 
 /* ===== Responsive: Small Mobile (480px) ===== */
@@ -107,11 +77,5 @@
   .magentodata-page .history-stats-grid {
     grid-template-columns: 1fr;
     gap: 0.5rem;
-  }
-  
-  .magentodata-page .action-cell .icon-btn {
-    width: 26px;
-    height: 26px;
-    font-size: 0.75rem;
   }
 }

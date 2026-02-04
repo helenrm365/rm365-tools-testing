@@ -43,11 +43,11 @@
   min-width: 120px;
   
   /* Appearance */
-  background: var(--bg-light);
+  background: linear-gradient(135deg, var(--bg-light), color-mix(in srgb, var(--accent) 3%, var(--bg-light)));
   color: var(--text-muted);
-  border: none;
+  border: 2px solid color-mix(in srgb, var(--accent) 15%, transparent);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-s);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 8%, transparent);
   
   /* Typography */
   font-family: var(--ff);
@@ -57,19 +57,34 @@
   
   /* Behavior */
   cursor: pointer;
-  transition: all var(--transition);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .tab-button:hover {
   color: var(--text);
   transform: translateY(-2px);
-  box-shadow: var(--shadow-m);
+  border-color: var(--accent);
+  box-shadow: 
+    0 0 12px color-mix(in srgb, var(--accent) 20%, transparent),
+    0 4px 12px color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+.tab-button:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 
+    0 0 12px color-mix(in srgb, var(--accent) 25%, transparent),
+    0 0 24px color-mix(in srgb, var(--accent) 15%, transparent),
+    0 4px 12px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 .tab-button.active {
-  background: linear-gradient(135deg, #8bc34a, #7ab82d);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   color: white;
-  box-shadow: var(--shadow-m);
+  border-color: var(--accent);
+  box-shadow: 
+    0 0 16px color-mix(in srgb, var(--accent) 30%, transparent),
+    0 4px 12px color-mix(in srgb, var(--accent) 25%, transparent);
 }
 
 .tab-button i,
@@ -85,7 +100,7 @@
 }
 
 .top-nav button.active {
-  background: linear-gradient(135deg, #8bc34a, #7ab82d);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   color: white;
 }
 
@@ -95,7 +110,7 @@
   left: 0;
   width: calc(100% - 28px);
   height: 66px;
-  background-color: rgba(139, 195, 74, 0.15);
+  background-color: color-mix(in srgb, var(--accent) 15%, transparent);
   border-radius: 12px;
   transition: top 0.5s cubic-bezier(0.3, 1.5, 0.5, 1), opacity 0.4s ease;
   z-index: 0;
@@ -125,8 +140,8 @@
 
 .tabs-underline .tab-button.active {
   background: transparent;
-  color: #8bc34a;
-  border-bottom-color: #8bc34a;
+  color: var(--accent);
+  border-bottom-color: var(--accent);
 }
 
 /* ===== Responsive - Desktop, Tablet, Mobile ===== */
@@ -277,4 +292,16 @@
   body.minimal-mode [class*="order-"] {
     padding-bottom: 0 !important;
   }
+}
+
+/* ===== Glow Effects Toggle ===== */
+/* Glows are disabled by default. Enable with html.glow-enabled class */
+
+html:not(.glow-enabled) .tab-button:hover,
+html:not(.glow-enabled) .tab-button:focus-visible {
+  box-shadow: var(--shadow-m);
+}
+
+html:not(.glow-enabled) .tab-button.active {
+  box-shadow: var(--shadow-m);
 }

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import List
 from common.deps import get_current_user
-from .schemas import UserCreate, UserUpdate, UserOut
+from .schemas import UserCreate, UserUpdate, UserOut, UserPreferences
 from .service import UsersService
 
 router = APIRouter()
@@ -48,3 +48,22 @@ def delete_user(username: str = Query(...), user=Depends(get_current_user)):
         return {"detail": "deleted"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to delete user: {str(e)}")
+
+# ===== User Preferences Endpoints =====
+@router.get("/preferences")
+def get_preferences(user=Depends(get_current_user)):
+    """Get current user's appearance preferences"""
+    try:
+        prefs = svc.get_preferences(user["username"])
+        return prefs
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch preferences: {str(e)}")
+
+@router.put("/preferences")
+def save_preferences(body: UserPreferences, user=Depends(get_current_user)):
+    """Save current user's appearance preferences"""
+    try:
+        prefs = svc.save_preferences(user["username"], body.dict())
+        return {"detail": "saved", "preferences": prefs}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save preferences: {str(e)}")

@@ -1753,7 +1753,7 @@ class MagentoPickPackManager {
                 <span class="required-value">${requiredQty}</span>
               </div>
               <div class="counter-controls">
-                <button class="counter-btn minus-btn" data-sku="${this.escapeHtml(item.sku)}" data-action="minus">
+                <button class="btn btn-qty btn-qty-lg btn-qty-minus counter-btn minus-btn" data-sku="${this.escapeHtml(item.sku)}" data-action="minus">
                   <i class="fas fa-minus"></i>
                 </button>
                 <input type="number" 
@@ -1762,7 +1762,7 @@ class MagentoPickPackManager {
                        value="${checkedQty}" 
                        min="0"
                        inputmode="numeric">
-                <button class="counter-btn plus-btn" data-sku="${this.escapeHtml(item.sku)}" data-action="plus">
+                <button class="btn btn-qty btn-qty-lg btn-qty-plus counter-btn plus-btn" data-sku="${this.escapeHtml(item.sku)}" data-action="plus">
                   <i class="fas fa-plus"></i>
                 </button>
               </div>

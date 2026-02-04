@@ -620,11 +620,11 @@ class InventoryScannerManager {
               </select>
             </div>
             <div class="pending-item-qty">
-              <button class="qty-adjust-btn minus" data-index="${index}" data-action="decrease" title="Decrease (more negative)">
+              <button class="btn btn-qty btn-qty-minus qty-adjust-btn minus" data-index="${index}" data-action="decrease" title="Decrease (more negative)">
                 <i class="fas fa-minus"></i>
               </button>
               <input type="number" class="qty-value-input" data-index="${index}" value="${item.quantity}">
-              <button class="qty-adjust-btn plus" data-index="${index}" data-action="increase" title="Increase (less negative / more positive)">
+              <button class="btn btn-qty btn-qty-plus qty-adjust-btn plus" data-index="${index}" data-action="increase" title="Increase (less negative / more positive)">
                 <i class="fas fa-plus"></i>
               </button>
             </div>

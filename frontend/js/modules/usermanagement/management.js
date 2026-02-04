@@ -76,11 +76,11 @@ function renderTable() {
           </p>
         </div>
         <div class="user-actions">
-          <button class="user-action-btn edit edit-user-btn" title="Edit User">
+          <button class="btn btn-sm edit-user-btn" title="Edit User">
             <i class="fas fa-edit"></i>
             <span>Edit</span>
           </button>
-          <button class="user-action-btn history history-user-btn" title="View Login History">
+          <button class="btn btn-sm info-btn history-user-btn" title="View Login History">
             <i class="fas fa-history"></i>
             <span>History</span>
           </button>

@@ -23,8 +23,8 @@
 .badge-success,
 .status-badge.active,
 .status-badge.success {
-  background: rgba(139, 195, 74, 0.15);
-  color: #8bc34a;
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  color: var(--accent);
 }
 
 /* Inactive / Danger */
@@ -88,7 +88,7 @@
   align-items: center;
   font-size: 0.75rem;
   padding: 0.25rem 0.625rem;
-  background: rgba(139, 195, 74, 0.15);
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
   color: var(--accent-dark);
   border-radius: 20px;
   font-weight: 600;
@@ -96,7 +96,7 @@
 
 html.dark-mode .location-badge,
 html.dark-mode .badge-location {
-  background: rgba(139, 195, 74, 0.2);
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
   color: var(--accent-light);
 }
 

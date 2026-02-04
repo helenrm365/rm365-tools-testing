@@ -269,7 +269,7 @@ function renderTable() {
           <span class="status-badge status-${statusClass}">${statusLabel}</span>
         </div>
       </div>
-      <button class="clock-toggle-btn ${clockBtnClass}" 
+      <button class="btn btn-sm clock-toggle-btn ${clockBtnClass}" 
               data-id="${e.id}" 
               data-name="${e.name || 'Employee'}"
               data-clock-status="${clockStatus}"

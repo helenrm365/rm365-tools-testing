@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Dict
 from core.security import hash_password
 from .repo import UsersRepo
 
@@ -40,3 +40,25 @@ class UsersService:
                 "allowed_tabs": allowed_tabs
             })
         return users
+
+    # ===== User Preferences =====
+    def get_preferences(self, username: str) -> Dict:
+        """Get user appearance preferences with defaults"""
+        prefs = self.repo.get_preferences(username)
+        # Return defaults if no preferences saved
+        return prefs or {
+            "dark_mode": False,
+            "accent_enabled": False,
+            "accent_color": "#8bc34a",
+            "accent_dark": "#7ab82d",
+            "accent_light": "#a5d461"
+        }
+
+    def save_preferences(self, username: str, preferences: Dict) -> Dict:
+        """Save user appearance preferences. Returns the saved preferences."""
+        success = self.repo.save_preferences(username, preferences)
+        if not success:
+            # User doesn't exist in database (e.g., superadmin)
+            # Log this but still return success - frontend will use localStorage
+            print(f"⚠️  Could not save preferences for user '{username}' - user may not exist in database")
+        return preferences

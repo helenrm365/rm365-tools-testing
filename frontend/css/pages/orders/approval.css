@@ -428,44 +428,6 @@
   flex-shrink: 0;
 }
 
-.order-approval .view-details-btn,
-.order-approval .approve-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  border-radius: var(--radius-md);
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border: none;
-  min-width: 120px;
-}
-
-.order-approval .view-details-btn {
-  background: var(--bg);
-  color: var(--text);
-  border: 1px solid color-mix(in srgb, var(--text) 20%, transparent);
-}
-
-.order-approval .view-details-btn:hover {
-  background: var(--bg-light);
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.order-approval .approve-btn {
-  background: var(--success);
-  color: white;
-}
-
-.order-approval .approve-btn:hover {
-  background: color-mix(in srgb, var(--success) 85%, black);
-  transform: translateY(-1px);
-}
-
 .order-approval .order-card-footer {
   display: flex;
   justify-content: space-between;
@@ -713,12 +675,6 @@
     flex-direction: row;
     width: 100%;
   }
-
-  .order-approval .view-details-btn,
-  .order-approval .approve-btn {
-    flex: 1;
-    min-width: 0;
-  }
 }
 
 /* ===== Order Details Modal Overrides ===== */
@@ -851,7 +807,7 @@
 
 .order-approval .mobile-tab-button[data-column="all-orders"].active {
   background: color-mix(in srgb, var(--accent) 15%, var(--bg-light));
-  box-shadow: var(--shadow-m), inset 0 1px 3px rgba(139, 195, 74, 0.15);
+  box-shadow: var(--shadow-m), inset 0 1px 3px color-mix(in srgb, var(--accent) 15%, transparent);
   outline: 1px solid var(--accent);
   outline-offset: 1px;
   border-color: var(--accent);
@@ -972,8 +928,8 @@
 }
 
 .order-approval .ot-column-all .ot-column-icon {
-  background: rgba(139, 195, 74, 0.12);
-  color: var(--accent, #8bc34a);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
 }
 
 .order-approval .ot-column-pending .ot-column-icon {
@@ -1003,8 +959,8 @@
 }
 
 .order-approval .ot-column-all .ot-column-count {
-  background: rgba(139, 195, 74, 0.12);
-  color: var(--accent, #8bc34a);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
 }
 
 .order-approval .ot-column-pending .ot-column-count {
@@ -1046,7 +1002,7 @@
 
 .order-approval .ot-group-header i {
   font-size: 0.65rem;
-  color: var(--accent, #8bc34a);
+  color: var(--accent);
 }
 
 .order-approval .ot-group-header span:first-of-type {

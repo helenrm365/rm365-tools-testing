@@ -339,7 +339,7 @@ class OrderApprovalManager {
         </div>
       </div>
       ${!isApproved ? `
-        <button class="ot-card-approve-btn" title="Approve Order">
+        <button class="btn btn-icon btn-sm btn-scale success-btn ot-card-approve-btn" title="Approve Order">
           <i class="fas fa-check"></i>
         </button>
       ` : ''}

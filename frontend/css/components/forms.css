@@ -26,14 +26,13 @@ label,
 }
 
 .form-label i {
-  color: #8bc34a;
+  color: var(--accent);
   font-size: 1rem;
 }
 
 /* ===== Base Input Styles ===== */
 .input,
 .form-input,
-.form-select,
 .form-textarea,
 input[type="text"],
 input[type="email"],
@@ -51,18 +50,18 @@ textarea {
   padding: var(--input-padding-y) var(--input-padding-x);
   
   /* Appearance */
-  background: var(--bg-light);
+  background: linear-gradient(135deg, var(--bg), color-mix(in srgb, var(--accent) 3%, var(--bg)));
   color: var(--text);
-  border: 2px solid var(--bg);
+  border: 2px solid color-mix(in srgb, var(--accent) 20%, transparent);
   border-radius: 12px;
-  box-shadow: var(--shadow-m);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 8%, transparent);
   
   /* Typography */
   font-family: var(--ff);
   font-size: 0.95rem;
   
   /* Behavior */
-  transition: all var(--transition);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-sizing: border-box;
 }
 
@@ -73,14 +72,87 @@ textarea,
   resize: vertical;
 }
 
+.input:hover,
+.form-input:hover,
+.form-textarea:hover,
+input[type="text"]:hover,
+input[type="email"]:hover,
+input[type="password"]:hover,
+input[type="number"]:hover,
+input[type="search"]:hover,
+input[type="tel"]:hover,
+input[type="url"]:hover,
+input[type="date"]:hover,
+input[type="time"]:hover,
+input[type="datetime-local"]:hover,
+textarea:hover {
+  border-color: var(--accent);
+  background: linear-gradient(135deg, var(--bg), color-mix(in srgb, var(--accent) 8%, var(--bg)));
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
 .input:focus,
 .form-input:focus,
-.form-select:focus,
 .form-textarea:focus,
 input:focus,
 textarea:focus {
-  outline: 1px solid #8bc34a;
-  outline-offset: 1px;
+  outline: none;
+  border-color: var(--accent);
+  background: linear-gradient(135deg, var(--bg), color-mix(in srgb, var(--accent) 8%, var(--bg)));
+  box-shadow: 
+    0 0 12px color-mix(in srgb, var(--accent) 20%, transparent),
+    0 0 24px color-mix(in srgb, var(--accent) 10%, transparent),
+    0 4px 12px color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+/* Dark mode inputs */
+html.dark-mode .input,
+html.dark-mode .form-input,
+html.dark-mode .form-textarea,
+html.dark-mode input[type="text"],
+html.dark-mode input[type="email"],
+html.dark-mode input[type="password"],
+html.dark-mode input[type="number"],
+html.dark-mode input[type="search"],
+html.dark-mode input[type="tel"],
+html.dark-mode input[type="url"],
+html.dark-mode input[type="date"],
+html.dark-mode input[type="time"],
+html.dark-mode input[type="datetime-local"],
+html.dark-mode textarea {
+  background: linear-gradient(135deg, var(--bg-card), color-mix(in srgb, var(--accent) 8%, var(--bg-card)));
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+html.dark-mode .input:hover,
+html.dark-mode .form-input:hover,
+html.dark-mode .form-textarea:hover,
+html.dark-mode input[type="text"]:hover,
+html.dark-mode input[type="email"]:hover,
+html.dark-mode input[type="password"]:hover,
+html.dark-mode input[type="number"]:hover,
+html.dark-mode input[type="search"]:hover,
+html.dark-mode input[type="tel"]:hover,
+html.dark-mode input[type="url"]:hover,
+html.dark-mode input[type="date"]:hover,
+html.dark-mode input[type="time"]:hover,
+html.dark-mode input[type="datetime-local"]:hover,
+html.dark-mode textarea:hover {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 10%, var(--bg-card)), color-mix(in srgb, var(--accent) 15%, var(--bg-card)));
+  border-color: var(--accent);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+html.dark-mode .input:focus,
+html.dark-mode .form-input:focus,
+html.dark-mode .form-textarea:focus,
+html.dark-mode input:focus,
+html.dark-mode textarea:focus {
+  box-shadow: 
+    0 0 16px color-mix(in srgb, var(--accent) 25%, transparent),
+    0 0 32px color-mix(in srgb, var(--accent) 15%, transparent),
+    0 4px 12px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 .input::placeholder,
@@ -112,11 +184,11 @@ select,
   padding-right: 2.5rem;
   
   /* Appearance */
-  background: var(--bg-light);
+  background: linear-gradient(135deg, var(--bg), color-mix(in srgb, var(--accent) 3%, var(--bg)));
   color: var(--text);
-  border: 2px solid var(--bg);
+  border: 2px solid color-mix(in srgb, var(--accent) 20%, transparent);
   border-radius: 12px;
-  box-shadow: var(--shadow-m);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 8%, transparent);
   
   /* Custom arrow */
   appearance: none;
@@ -130,20 +202,60 @@ select,
   
   /* Behavior */
   cursor: pointer;
-  transition: all var(--transition);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+select:hover,
+.select:hover,
+.form-select:hover {
+  border-color: var(--accent);
+  background: linear-gradient(135deg, var(--bg), color-mix(in srgb, var(--accent) 8%, var(--bg)));
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%2394a3b8' d='M1.41 0L6 4.58L10.59 0L12 1.41l-6 6l-6-6z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
 html.dark-mode select,
 html.dark-mode .select,
 html.dark-mode .form-select {
+  background: linear-gradient(135deg, var(--bg-card), color-mix(in srgb, var(--accent) 8%, var(--bg-card)));
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23b0b0b0' d='M1.41 0L6 4.58L10.59 0L12 1.41l-6 6l-6-6z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+html.dark-mode select:hover,
+html.dark-mode .select:hover,
+html.dark-mode .form-select:hover {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 10%, var(--bg-card)), color-mix(in srgb, var(--accent) 15%, var(--bg-card)));
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23b0b0b0' d='M1.41 0L6 4.58L10.59 0L12 1.41l-6 6l-6-6z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  border-color: var(--accent);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 select:focus,
 .select:focus,
 .form-select:focus {
-  outline: 1px solid #8bc34a;
-  outline-offset: 1px;
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 
+    0 0 12px color-mix(in srgb, var(--accent) 20%, transparent),
+    0 0 24px color-mix(in srgb, var(--accent) 10%, transparent),
+    0 4px 12px color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+html.dark-mode select:focus,
+html.dark-mode .select:focus,
+html.dark-mode .form-select:focus {
+  box-shadow: 
+    0 0 16px color-mix(in srgb, var(--accent) 25%, transparent),
+    0 0 32px color-mix(in srgb, var(--accent) 15%, transparent),
+    0 4px 12px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 /* ===== C-Select (Custom Select Dropdown) ===== */
@@ -179,13 +291,13 @@ select:focus,
   gap: 8px;
   padding: var(--input-padding-y) var(--input-padding-x);
   font-size: 0.95rem;
-  border: 2px solid var(--bg);
+  border: 2px solid color-mix(in srgb, var(--accent) 20%, transparent);
   border-radius: 12px;
-  background: var(--bg-light);
+  background: linear-gradient(135deg, var(--bg), color-mix(in srgb, var(--accent) 3%, var(--bg)));
   color: var(--text);
-  box-shadow: var(--shadow-m);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 8%, transparent);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   user-select: none;
   font-weight: 500;
   min-height: var(--input-height);
@@ -194,19 +306,28 @@ select:focus,
 }
 
 .c-select__button:hover {
-  background: var(--bg);
-  border-color: rgba(139, 195, 74, 0.3);
+  border-color: var(--accent);
+  background: linear-gradient(135deg, var(--bg), color-mix(in srgb, var(--accent) 8%, var(--bg)));
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
 .c-select__button:focus-visible { 
-  outline: 2px solid #8bc34a;
-  outline-offset: 1px;
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 
+    0 0 12px color-mix(in srgb, var(--accent) 20%, transparent),
+    0 0 24px color-mix(in srgb, var(--accent) 10%, transparent),
+    0 4px 12px color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
 .c-select[aria-expanded='true'] .c-select__button {
-  outline: 2px solid #8bc34a;
-  outline-offset: 1px;
-  background: var(--bg);
+  outline: none;
+  border-color: var(--accent);
+  background: linear-gradient(135deg, var(--bg), color-mix(in srgb, var(--accent) 8%, var(--bg)));
+  box-shadow: 
+    0 0 12px color-mix(in srgb, var(--accent) 20%, transparent),
+    0 0 24px color-mix(in srgb, var(--accent) 10%, transparent),
+    0 4px 12px color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
 .c-select__label {
@@ -221,7 +342,7 @@ select:focus,
   opacity: 0.7; 
   transition: transform 0.2s ease;
   font-size: 0.8rem;
-  color: #8bc34a;
+  color: var(--accent);
   font-weight: bold;
   flex-shrink: 0;
 }
@@ -236,11 +357,11 @@ select:focus,
   left: 0;
   right: 0;
   top: calc(100% + 0.5rem);
-  background-color: var(--bg-light);
+  background-color: var(--bg);
   color: var(--text);
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  border: 2px solid color-mix(in srgb, var(--accent) 20%, transparent);
   border-radius: 12px;
-  box-shadow: var(--shadow-l);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 20%, transparent);
   max-height: 250px;
   overflow-y: auto;
   overflow-x: hidden;
@@ -249,9 +370,9 @@ select:focus,
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  transition: all var(--transition);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   scrollbar-width: thin;
-  scrollbar-color: rgba(139, 195, 74, 0.4) transparent;
+  scrollbar-color: color-mix(in srgb, var(--accent) 40%, transparent) transparent;
   width: 100%;
   box-sizing: border-box;
 }
@@ -265,17 +386,40 @@ select:focus,
 }
 
 .c-select__list::-webkit-scrollbar-thumb {
-  background-color: rgba(139, 195, 74, 0.4);
+  background-color: color-mix(in srgb, var(--accent) 40%, transparent);
   border-radius: 4px;
 }
 
 .c-select__list::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(139, 195, 74, 0.6);
+  background-color: color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+html.dark-mode .c-select__button {
+  background: linear-gradient(135deg, var(--bg-card), color-mix(in srgb, var(--accent) 8%, var(--bg-card)));
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+html.dark-mode .c-select__button:hover {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 10%, var(--bg-card)), color-mix(in srgb, var(--accent) 15%, var(--bg-card)));
+  border-color: var(--accent);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+html.dark-mode .c-select__button:focus-visible,
+html.dark-mode .c-select[aria-expanded='true'] .c-select__button {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 
+    0 0 16px color-mix(in srgb, var(--accent) 25%, transparent),
+    0 0 32px color-mix(in srgb, var(--accent) 15%, transparent),
+    0 4px 12px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 html.dark-mode .c-select__list {
-  border-color: rgba(255, 255, 255, 0.08);
-  box-shadow: var(--shadow-l), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  background: var(--bg-card);
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
 }
 
 .c-select[aria-expanded='true'] .c-select__list {
@@ -311,14 +455,14 @@ html.dark-mode .c-select__item {
 
 .c-select__option:hover,
 .c-select__item:hover {
-  background: rgba(139, 195, 74, 0.1);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
 }
 
 /* Single select: highlight selected option */
 .c-select:not(.c-select--multiple) .c-select__option[aria-selected='true'],
 .c-select:not(.c-select--multiple) .c-select__item[aria-selected='true'] {
-  background: rgba(139, 195, 74, 0.15);
-  color: #8bc34a;
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  color: var(--accent);
   font-weight: 600;
 }
 
@@ -330,7 +474,7 @@ html.dark-mode .c-select__item {
 }
 
 .c-select--multiple .c-select__item[aria-selected='true']:hover {
-  background: rgba(139, 195, 74, 0.1);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
 }
 
 /* ===== Multi-Select Mode ===== */
@@ -356,7 +500,7 @@ html.dark-mode .c-select__item {
   width: 18px;
   height: 18px;
   min-width: 18px;
-  accent-color: #8bc34a;
+  accent-color: var(--accent);
   cursor: pointer;
   margin: 0;
 }
@@ -383,7 +527,7 @@ html.dark-mode .c-select__item {
   min-width: 20px;
   height: 20px;
   padding: 0 6px;
-  background: #8bc34a;
+  background: var(--accent);
   color: white;
   border-radius: 10px;
   font-size: 0.75rem;
@@ -410,7 +554,7 @@ html.dark-mode .c-select__item {
 }
 
 .c-select__header:hover {
-  background: rgba(139, 195, 74, 0.08);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
 }
 
 html.dark-mode .c-select__header {
@@ -450,12 +594,12 @@ html.dark-mode .c-select__footer {
 }
 
 .c-select__footer-btn--done {
-  background: #8bc34a;
+  background: var(--accent);
   color: white;
 }
 
 .c-select__footer-btn--done:hover {
-  background: #7cb342;
+  background: var(--accent-dark);
 }
 
 /* Full width done button when no clear button */
@@ -489,7 +633,7 @@ html.dark-mode .c-select__footer {
 }
 
 .file-input:hover {
-  border-color: #8bc34a;
+  border-color: var(--accent);
   background: var(--bg);
 }
 
@@ -498,7 +642,7 @@ input[type="checkbox"],
 input[type="radio"] {
   width: 18px;
   height: 18px;
-  accent-color: #8bc34a;
+  accent-color: var(--accent);
   cursor: pointer;
 }
 
@@ -581,29 +725,67 @@ input[type="radio"] {
 .search-icon {
   position: absolute;
   left: 1.125rem;
-  color: var(--text-muted);
+  color: var(--accent);
   font-size: 1rem;
   pointer-events: none;
+  opacity: 0.7;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.search-box:focus-within .search-icon {
+  opacity: 1;
+  color: var(--accent);
 }
 
 .search-input {
   width: 100%;
   height: var(--input-height);
   padding: 0 1.125rem 0 3rem;
-  background: var(--bg-light);
-  border: 2px solid var(--bg);
+  background: linear-gradient(135deg, var(--bg), color-mix(in srgb, var(--accent) 3%, var(--bg)));
+  border: 2px solid color-mix(in srgb, var(--accent) 20%, transparent);
   border-radius: 12px;
   font-size: 1rem;
   font-family: var(--ff);
   color: var(--text);
-  transition: all var(--transition);
-  box-shadow: var(--shadow-m);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 8%, transparent);
   box-sizing: border-box;
 }
 
+.search-input:hover {
+  border-color: var(--accent);
+  background: linear-gradient(135deg, var(--bg), color-mix(in srgb, var(--accent) 8%, var(--bg)));
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
 .search-input:focus {
-  outline: 1px solid #8bc34a;
-  outline-offset: 1px;
+  outline: none;
+  border-color: var(--accent);
+  background: linear-gradient(135deg, var(--bg), color-mix(in srgb, var(--accent) 8%, var(--bg)));
+  box-shadow: 
+    0 0 12px color-mix(in srgb, var(--accent) 20%, transparent),
+    0 0 24px color-mix(in srgb, var(--accent) 10%, transparent),
+    0 4px 12px color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+/* Dark mode search input */
+html.dark-mode .search-input {
+  background: linear-gradient(135deg, var(--bg-card), color-mix(in srgb, var(--accent) 8%, var(--bg-card)));
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+html.dark-mode .search-input:hover {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 10%, var(--bg-card)), color-mix(in srgb, var(--accent) 15%, var(--bg-card)));
+  border-color: var(--accent);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+html.dark-mode .search-input:focus {
+  box-shadow: 
+    0 0 16px color-mix(in srgb, var(--accent) 25%, transparent),
+    0 0 32px color-mix(in srgb, var(--accent) 15%, transparent),
+    0 4px 12px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 .search-input::placeholder {
@@ -652,8 +834,8 @@ input[type="radio"] {
 }
 
 .card-checkbox input[type="checkbox"]:checked + .checkbox-custom {
-  background: #8bc34a;
-  border-color: #8bc34a;
+  background: var(--accent);
+  border-color: var(--accent);
 }
 
 .card-checkbox input[type="checkbox"]:checked + .checkbox-custom::after {
@@ -665,7 +847,7 @@ input[type="radio"] {
 }
 
 .card-checkbox input[type="checkbox"]:focus + .checkbox-custom {
-  border-color: #8bc34a;
+  border-color: var(--accent);
 }
 
 /* Compact variant - checkbox only, no label */
@@ -777,4 +959,37 @@ input[type="radio"] {
     padding: 0.5rem 0.625rem;
     font-size: 0.8125rem;
   }
+}
+
+/* ===== Glow Effects Toggle ===== */
+/* Glows are disabled by default. Enable with html.glow-enabled class */
+
+html:not(.glow-enabled) .form-input:focus,
+html:not(.glow-enabled) .form-select:focus,
+html:not(.glow-enabled) select:focus,
+html:not(.glow-enabled) .select:focus {
+  box-shadow: var(--shadow-m);
+}
+
+html:not(.glow-enabled) .search-input:focus {
+  box-shadow: var(--shadow-m);
+}
+
+html:not(.glow-enabled) .c-select__button:focus,
+html:not(.glow-enabled) .c-select__button:focus-visible,
+html:not(.glow-enabled) .c-select[aria-expanded="true"] .c-select__button {
+  box-shadow: var(--shadow-m);
+}
+
+html:not(.glow-enabled) .c-select__list {
+  box-shadow: var(--shadow-l);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+html:not(.glow-enabled).dark-mode .c-select__list {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+html:not(.glow-enabled).dark-mode .search-input:focus {
+  box-shadow: var(--shadow-m);
 }

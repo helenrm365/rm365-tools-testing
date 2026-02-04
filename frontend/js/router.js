@@ -402,6 +402,23 @@ export async function navigate(path, replace = false) {
       }
       // Apply inner-tab permission filtering for the newly inserted content
       try { applyInnerTabPermissions(view); } catch {}
+
+      // Execute any scripts inside the loaded view (required for inline page modules)
+      const scripts = Array.from(view.querySelectorAll('script'));
+      scripts.forEach((script) => {
+        const newScript = document.createElement('script');
+        if (script.type) newScript.type = script.type;
+        if (script.src) {
+          newScript.src = script.src;
+        } else {
+          newScript.textContent = script.textContent;
+        }
+        if (script.noModule) newScript.noModule = true;
+        if (script.defer) newScript.defer = true;
+        if (script.async) newScript.async = true;
+        document.body.appendChild(newScript);
+        script.remove();
+      });
     }
 
     // Scroll to top when navigating to a new page

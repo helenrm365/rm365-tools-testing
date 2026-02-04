@@ -258,7 +258,7 @@
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: linear-gradient(135deg, rgba(139, 195, 74, 0.2), rgba(139, 195, 74, 0.1));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 20%, transparent), color-mix(in srgb, var(--accent) 10%, transparent));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -299,8 +299,8 @@ html.dark-mode #editEmployeeCode {
   font-weight: 600;
   font-family: var(--ff);
   cursor: pointer;
-  transition: all var(--transition);
-  box-shadow: var(--shadow-m);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   z-index: 10;
 }
 
@@ -317,22 +317,44 @@ html.dark-mode #editEmployeeCode {
 .enrollment-management .clock-toggle-btn.clock-in-btn {
   background: linear-gradient(135deg, var(--success), #27ae60);
   color: white;
+  box-shadow: 0 2px 8px rgba(39, 174, 96, 0.25);
 }
 
 .enrollment-management .clock-toggle-btn.clock-in-btn:not(:disabled):hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(39, 174, 96, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 
+    0 0 16px rgba(39, 174, 96, 0.35),
+    0 8px 24px rgba(39, 174, 96, 0.25);
+}
+
+.enrollment-management .clock-toggle-btn.clock-in-btn:focus-visible {
+  outline: none;
+  box-shadow: 
+    0 0 16px rgba(39, 174, 96, 0.4),
+    0 0 32px rgba(39, 174, 96, 0.2),
+    0 4px 16px rgba(39, 174, 96, 0.3);
 }
 
 /* Clock Out Button (orange/warning) */
 .enrollment-management .clock-toggle-btn.clock-out-btn {
   background: linear-gradient(135deg, var(--warning), #e67e22);
   color: white;
+  box-shadow: 0 2px 8px rgba(230, 126, 34, 0.25);
 }
 
 .enrollment-management .clock-toggle-btn.clock-out-btn:not(:disabled):hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(230, 126, 34, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 
+    0 0 16px rgba(230, 126, 34, 0.35),
+    0 8px 24px rgba(230, 126, 34, 0.25);
+}
+
+.enrollment-management .clock-toggle-btn.clock-out-btn:focus-visible {
+  outline: none;
+  box-shadow: 
+    0 0 16px rgba(230, 126, 34, 0.4),
+    0 0 32px rgba(230, 126, 34, 0.2),
+    0 4px 16px rgba(230, 126, 34, 0.3);
 }
 
 /* Ensure employee card has relative positioning for the button */
@@ -504,4 +526,17 @@ html.dark-mode #editEmployeeCode {
   color: var(--text-muted);
   margin-top: 0.25rem;
   opacity: 0.7;
+}
+
+/* ===== Glow Effects Toggle ===== */
+/* Glows are disabled by default. Enable with html.glow-enabled class */
+
+html:not(.glow-enabled) .enrollment-management .clock-toggle-btn.clock-in-btn:not(:disabled):hover,
+html:not(.glow-enabled) .enrollment-management .clock-toggle-btn.clock-in-btn:focus-visible {
+  box-shadow: var(--shadow-l);
+}
+
+html:not(.glow-enabled) .enrollment-management .clock-toggle-btn.clock-out-btn:not(:disabled):hover,
+html:not(.glow-enabled) .enrollment-management .clock-toggle-btn.clock-out-btn:focus-visible {
+  box-shadow: var(--shadow-l);
 }

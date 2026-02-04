@@ -84,7 +84,7 @@
 }
 
 .magentodata-page .toggle-btn.active {
-  background: linear-gradient(135deg, #8bc34a, #7ab82d);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   color: white;
   box-shadow: var(--shadow-s);
 }
@@ -180,7 +180,7 @@ html.dark-mode .magentodata-page .stat-card {
 
 .magentodata-page .stat-card:hover {
   transform: translateY(-2px);
-  outline: 1px solid #8bc34a;
+  outline: 1px solid var(--accent);
   outline-offset: 1px;
 }
 

@@ -136,14 +136,14 @@ html.dark-mode .login-prompt-card {
   font-weight: 600;
   cursor: pointer;
   transition: all var(--transition);
-  box-shadow: var(--shadow-m), 0 4px 12px rgba(139, 195, 74, 0.3);
+  box-shadow: var(--shadow-m), 0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent);
   text-shadow: var(--text-shadow-m);
 }
 
 .login-prompt-card .primary-button:hover {
-  background: linear-gradient(135deg, #a5d461, var(--accent));
+  background: linear-gradient(135deg, var(--accent-light), var(--accent));
   transform: translateY(-2px);
-  box-shadow: var(--shadow-m), 0 4px 12px rgba(139, 195, 74, 0.4);
+  box-shadow: var(--shadow-m), 0 4px 12px color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
 .login-prompt-card .button-arrow {
@@ -296,37 +296,6 @@ html.dark-mode .panel-header {
   font: var(--h3);
   color: var(--text);
   margin: 0;
-}
-
-.panel-action-btn {
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  background: var(--bg-light);
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  border-radius: var(--radius-sm);
-  color: var(--text-muted);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all var(--transition);
-  box-shadow: var(--shadow-s);
-}
-
-html.dark-mode .panel-action-btn {
-  border-color: rgba(255, 255, 255, 0.08);
-}
-
-.panel-action-btn:hover {
-  background: var(--bg);
-  color: var(--text);
-  transform: translateY(-1px);
-}
-
-.panel-action-btn svg {
-  width: 16px;
-  height: 16px;
 }
 
 .panel-content {

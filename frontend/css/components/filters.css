@@ -47,7 +47,7 @@
 }
 
 .filter-label i {
-  color: #8bc34a;
+  color: var(--accent);
   font-size: 0.875rem;
 }
 
@@ -71,7 +71,7 @@ html.dark-mode .filter-select {
 
 .filter-select:focus {
   outline: none;
-  border-color: #8bc34a;
+  border-color: var(--accent);
   box-shadow: var(--shadow-m);
 }
 
@@ -92,13 +92,13 @@ html.dark-mode .filter-select {
 
 .filter-category:hover {
   background: var(--bg-light);
-  border-color: rgba(139, 195, 74, 0.3);
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 .filter-category.active {
-  background: rgba(139, 195, 74, 0.15);
-  border-color: #8bc34a;
-  color: #8bc34a;
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .filter-category .count {
@@ -110,7 +110,7 @@ html.dark-mode .filter-select {
 }
 
 .filter-category.active .count {
-  background: #8bc34a;
+  background: var(--accent);
   color: white;
 }
 
@@ -134,11 +134,11 @@ html.dark-mode .filter-select {
   align-items: center;
   gap: var(--space-xs);
   padding: var(--space-xs) var(--space-sm);
-  background: rgba(139, 195, 74, 0.1);
-  border: 1px solid rgba(139, 195, 74, 0.3);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
   border-radius: var(--radius-full);
   font-size: 0.8125rem;
-  color: #8bc34a;
+  color: var(--accent);
 }
 
 .active-filter-tag .remove {
