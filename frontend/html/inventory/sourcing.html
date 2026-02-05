@@ -60,7 +60,7 @@
             <p class="block-subtitle">Margin analysis and pricing insights</p>
           </div>
           <div class="block-header-actions">
-            <button class="btn secondary-btn" id="btn-refresh-analysis">
+            <button class="action-btn primary-btn neutral-btn" id="btn-refresh-analysis">
               <i class="fas fa-sync-alt"></i> Refresh
             </button>
           </div>
@@ -169,7 +169,7 @@
           </div>
           <div class="gsheet-link-display" id="gsheet-link-display">
             <span class="gsheet-id-text" id="gsheet-id-text">No sheet linked</span>
-            <button class="btn btn-sm" id="btn-edit-gsheet-link" title="Edit Sheet Link">
+            <button class="btn btn-sm secondary-btn neutral-btn" id="btn-edit-gsheet-link" title="Edit Sheet Link">
               <i class="fas fa-edit"></i>
             </button>
           </div>
@@ -183,7 +183,7 @@
                 <strong><i class="fas fa-upload"></i> Auto-Export</strong>
                 <span class="sync-description">App → Sheet (5s delay)</span>
               </div>
-              <button class="btn" id="btn-auto-export">
+              <button class="btn secondary-btn neutral-btn" id="btn-auto-export">
                 <i class="fas fa-upload"></i> Enable
               </button>
             </div>
@@ -193,18 +193,18 @@
                 <strong><i class="fas fa-download"></i> Auto-Import</strong>
                 <span class="sync-description">Sheet → App (every 30s)</span>
               </div>
-              <button class="btn" id="btn-auto-import">
+              <button class="btn secondary-btn neutral-btn" id="btn-auto-import">
                 <i class="fas fa-download"></i> Enable
               </button>
             </div>
           </div>
           
-          <!-- Manual Sync Buttons -->
-          <div class="gsheet-manual-actions">
-            <button class="btn action-btn" id="btn-gsheet-export">
+          <!-- Manual Sync Buttons (below auto boxes) -->
+          <div class="gsheet-manual-row">
+            <button class="action-btn primary-btn info-btn gsheet-manual-btn" id="btn-gsheet-export">
               <i class="fas fa-upload"></i> Export to Sheet
             </button>
-            <button class="btn action-btn" id="btn-gsheet-import">
+            <button class="action-btn primary-btn success-btn gsheet-manual-btn" id="btn-gsheet-import">
               <i class="fas fa-download"></i> Import from Sheet
             </button>
           </div>
@@ -231,10 +231,10 @@
           </div>
           
           <!-- CSV Actions -->
-          <button class="btn info-btn" id="btn-export-matrix">
+          <button class="action-btn primary-btn info-btn" id="btn-export-matrix">
             <i class="fas fa-upload"></i> Export CSV
           </button>
-          <button class="btn success-btn" id="btn-import-matrix">
+          <button class="action-btn primary-btn success-btn" id="btn-import-matrix">
             <i class="fas fa-download"></i> Import CSV
           </button>
           <input type="file" id="import-file-input" accept=".csv" style="display: none;">
@@ -276,7 +276,7 @@
             <p class="block-subtitle">Manage supplier details and currencies</p>
           </div>
           <div class="block-header-actions">
-            <button class="btn primary-btn" id="btn-add-supplier">
+            <button class="action-btn primary-btn accent-btn" id="btn-add-supplier">
               <i class="fas fa-plus"></i> Add Supplier
             </button>
           </div>
@@ -305,7 +305,7 @@
             <p class="block-subtitle">Live exchange rates and conversions</p>
           </div>
           <div class="block-header-actions">
-            <button class="btn secondary-btn" id="btn-refresh-rates">
+            <button class="action-btn primary-btn neutral-btn" id="btn-refresh-rates">
               <i class="fas fa-sync-alt"></i> Refresh Rates
             </button>
           </div>
@@ -351,8 +351,8 @@
           <div class="override-form">
             <div class="form-group">
               <label for="override-currency">Currency</label>
-              <select id="override-currency">
-                <option value="">Select currency...</option>
+              <select id="override-currency" data-enhance="c-select">
+                <option value="" selected disabled>Select currency...</option>
                 <option value="USD">USD - US Dollar</option>
                 <option value="EUR">EUR - Euro</option>
                 <option value="CNY">CNY - Chinese Yuan</option>
@@ -369,7 +369,7 @@
               <label for="override-notes">Notes</label>
               <input type="text" id="override-notes" placeholder="Reason for override...">
             </div>
-            <button class="btn primary-btn" id="btn-set-override">
+            <button class="action-btn primary-btn accent-btn" id="btn-set-override">
               <i class="fas fa-lock"></i> Set Override
             </button>
           </div>
@@ -408,7 +408,7 @@
         <div class="form-row">
           <div class="form-group">
             <label for="supplier-currency">Default Currency</label>
-            <select id="supplier-currency">
+            <select id="supplier-currency" data-enhance="c-select">
               <option value="GBP">GBP - British Pound</option>
               <option value="USD">USD - US Dollar</option>
               <option value="EUR">EUR - Euro</option>
@@ -462,9 +462,9 @@
       </form>
     </div>
     <div class="modal-footer">
-      <button class="btn secondary-btn" id="btn-cancel-supplier">Cancel</button>
-      <button class="btn danger-btn" id="btn-delete-supplier" style="display: none;">Delete</button>
-      <button class="btn primary-btn" id="btn-save-supplier">Save Supplier</button>
+      <button class="action-btn primary-btn neutral-btn" id="btn-cancel-supplier">Cancel</button>
+      <button class="action-btn primary-btn danger-btn" id="btn-delete-supplier" style="display: none;">Delete</button>
+      <button class="action-btn primary-btn accent-btn" id="btn-save-supplier">Save Supplier</button>
     </div>
   </div>
 </div>
@@ -486,8 +486,8 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn secondary-btn" id="btn-close-pricing">Close</button>
-      <button class="btn primary-btn" id="btn-save-pricing">Save All</button>
+      <button class="action-btn primary-btn neutral-btn" id="btn-close-pricing">Close</button>
+      <button class="action-btn primary-btn accent-btn" id="btn-save-pricing">Save All</button>
     </div>
   </div>
 </div>
@@ -507,8 +507,8 @@
       </div>
     </div>
     <div class="modal-footer" style="display: flex; gap: 10px; justify-content: flex-end;">
-      <button class="btn secondary-btn" id="btn-gsheet-link-cancel">Cancel</button>
-      <button class="btn primary-btn" id="btn-gsheet-link-save">
+      <button class="action-btn primary-btn neutral-btn" id="btn-gsheet-link-cancel">Cancel</button>
+      <button class="action-btn primary-btn accent-btn" id="btn-gsheet-link-save">
         <i class="fas fa-save"></i> Save Link
       </button>
     </div>
@@ -526,8 +526,8 @@
       <p class="help-text" id="confirm-gsheet-id" style="word-break: break-all; margin-top: 10px;"></p>
     </div>
     <div class="modal-footer" style="display: flex; gap: 10px; justify-content: center;">
-      <button class="btn secondary-btn" id="btn-confirm-gsheet-cancel">Cancel</button>
-      <button class="btn success-btn" id="btn-confirm-gsheet-yes">
+      <button class="action-btn primary-btn neutral-btn" id="btn-confirm-gsheet-cancel">Cancel</button>
+      <button class="action-btn primary-btn success-btn" id="btn-confirm-gsheet-yes">
         <i class="fas fa-check"></i> Yes, Save
       </button>
     </div>
@@ -550,8 +550,8 @@
       <p class="help-text" style="margin-top: 1rem;"><strong>File:</strong> <span id="csv-import-filename">—</span></p>
     </div>
     <div class="modal-footer" style="display: flex; gap: 10px; justify-content: center;">
-      <button class="btn secondary-btn" id="btn-csv-import-cancel">Cancel</button>
-      <button class="btn primary-btn" id="btn-csv-import-confirm">
+      <button class="action-btn primary-btn neutral-btn" id="btn-csv-import-cancel">Cancel</button>
+      <button class="action-btn primary-btn accent-btn" id="btn-csv-import-confirm">
         <i class="fas fa-upload"></i> Import
       </button>
     </div>
@@ -571,7 +571,7 @@
       </div>
     </div>
     <div class="modal-footer" style="display: flex; gap: 10px; justify-content: center;">
-      <button class="btn primary-btn" id="btn-csv-results-ok">
+      <button class="action-btn primary-btn accent-btn" id="btn-csv-results-ok">
         <i class="fas fa-check"></i> OK
       </button>
     </div>

@@ -41,7 +41,7 @@
           <h2>Filter Control Panel</h2>
         </div>
         <div class="filter-panel-header-actions">
-          <button id="applyGlobalFiltersBtn" class="btn btn-sm btn-white panel-header-btn" title="Apply Filters">
+          <button id="applyGlobalFiltersBtn" class="action-btn primary-btn accent-btn panel-header-btn" title="Apply Filters">
             <i class="fas fa-check"></i>
             <span>Apply</span>
           </button>
@@ -91,7 +91,7 @@
                 <i class="fas fa-filter"></i>
                 <span class="control-title">Additional Filters</span>
               </div>
-              <button id="clearGlobalFiltersBtn" class="btn-clear-filters" title="Clear All Filters">
+              <button id="clearGlobalFiltersBtn" class="action-btn primary-btn neutral-btn" title="Clear All Filters">
                 <i class="fas fa-times"></i>
                 <span>Clear</span>
               </button>
@@ -134,23 +134,11 @@
           <p class="block-subtitle">Live attendance status for today</p>
         </div>
         <div class="block-header-actions">
-          <div class="export-dropdown" id="realtimeExportDropdown">
-            <button class="export-dropdown-btn" id="realtimeExportBtn" title="Export data">
-              <i class="fas fa-download"></i>
-              <span>Export</span>
-              <i class="fas fa-chevron-down dropdown-arrow"></i>
-            </button>
-            <div class="export-dropdown-menu">
-              <button class="export-option" data-format="pdf" data-section="realtime">
-                <i class="fas fa-file-pdf"></i>
-                <span>Export as PDF</span>
-              </button>
-              <button class="export-option" data-format="csv" data-section="realtime">
-                <i class="fas fa-file-csv"></i>
-                <span>Export as CSV</span>
-              </button>
-            </div>
-          </div>
+          <select id="realtimeExportSelect" data-enhance="c-select" data-section="realtime" class="export-select" title="Export data">
+            <option value="" disabled selected>Export</option>
+            <option value="pdf">Export as PDF</option>
+            <option value="csv">Export as CSV</option>
+          </select>
           <button class="btn btn-icon btn-sm btn-scale toggle-view-btn" id="toggleRealtimeView" title="Toggle list view">
             <i class="fas fa-list"></i>
           </button>
@@ -222,23 +210,11 @@
           <p class="block-subtitle">Track late arrivals, early departures, and missing punches</p>
         </div>
         <div class="block-header-actions">
-          <div class="export-dropdown" id="punctualityExportDropdown">
-            <button class="export-dropdown-btn" id="punctualityExportBtn" title="Export data">
-              <i class="fas fa-download"></i>
-              <span>Export</span>
-              <i class="fas fa-chevron-down dropdown-arrow"></i>
-            </button>
-            <div class="export-dropdown-menu">
-              <button class="export-option" data-format="pdf" data-section="punctuality">
-                <i class="fas fa-file-pdf"></i>
-                <span>Export as PDF</span>
-              </button>
-              <button class="export-option" data-format="csv" data-section="punctuality">
-                <i class="fas fa-file-csv"></i>
-                <span>Export as CSV</span>
-              </button>
-            </div>
-          </div>
+          <select id="punctualityExportSelect" data-enhance="c-select" data-section="punctuality" class="export-select" title="Export data">
+            <option value="" disabled selected>Export</option>
+            <option value="pdf">Export as PDF</option>
+            <option value="csv">Export as CSV</option>
+          </select>
           <button class="btn btn-icon btn-sm btn-scale toggle-view-btn" id="togglePunctualityView" title="Toggle list view">
             <i class="fas fa-list"></i>
           </button>

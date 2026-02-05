@@ -140,10 +140,10 @@
                 <input type="text" id="presetSearchInput" class="preset-search-input" placeholder="Search presets...">
                 <i class="fas fa-search preset-search-icon"></i>
               </div>
-              <button id="savePresetBtn" class="action-btn btn-sm primary-btn" title="Save Preset">
+              <button id="savePresetBtn" class="action-btn btn-sm secondary-btn accent-btn" title="Save Preset">
                 <i class="fas fa-save"></i>
               </button>
-              <button id="managePresetsBtn" class="action-btn btn-sm secondary-btn" title="Manage Presets">
+              <button id="managePresetsBtn" class="action-btn btn-sm secondary-btn neutral-btn" title="Manage Presets">
                 <i class="fas fa-cog"></i>
               </button>
             </div>
@@ -174,7 +174,7 @@
           <div class="selection-info">
             <span class="selection-count" id="selectedProducts">0</span> of <span id="totalProducts">0</span> products selected
           </div>
-          <button id="generatePdfBtn" class="action-btn primary-btn" disabled>
+          <button id="generatePdfBtn" class="action-btn primary-btn accent-btn" disabled>
             <i class="fas fa-file-pdf"></i>
             Generate PDF Labels
           </button>
@@ -325,11 +325,11 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="action-btn secondary-btn" onclick="document.getElementById('savePresetModal').classList.remove('active')">
+      <button class="action-btn primary-btn neutral-btn" onclick="document.getElementById('savePresetModal').classList.remove('active')">
         <i class="fas fa-times"></i>
         Cancel
       </button>
-      <button id="confirmSavePresetBtn" class="action-btn primary-btn">
+      <button id="confirmSavePresetBtn" class="action-btn primary-btn accent-btn">
         <i class="fas fa-save"></i>
         Save Preset
       </button>
@@ -358,7 +358,7 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="action-btn secondary-btn" onclick="document.getElementById('managePresetsModal').classList.remove('active')">
+      <button class="action-btn primary-btn neutral-btn" onclick="document.getElementById('managePresetsModal').classList.remove('active')">
         <i class="fas fa-times"></i>
         Close
       </button>
@@ -429,7 +429,7 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="action-btn secondary-btn" onclick="document.getElementById('viewPresetModal').classList.remove('active')">
+      <button class="action-btn primary-btn neutral-btn" onclick="document.getElementById('viewPresetModal').classList.remove('active')">
         <i class="fas fa-times"></i>
         Close
       </button>
@@ -510,11 +510,11 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="action-btn secondary-btn" onclick="document.getElementById('editPresetModal').classList.remove('active')">
+      <button class="action-btn primary-btn neutral-btn" onclick="document.getElementById('editPresetModal').classList.remove('active')">
         <i class="fas fa-times"></i>
         Cancel
       </button>
-      <button id="confirmEditPresetBtn" class="action-btn primary-btn">
+      <button id="confirmEditPresetBtn" class="action-btn primary-btn accent-btn">
         <i class="fas fa-save"></i>
         Save Changes
       </button>

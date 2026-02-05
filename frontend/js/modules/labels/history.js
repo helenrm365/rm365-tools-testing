@@ -152,7 +152,7 @@ async function loadHistory() {
         <div class="error-state-icon">⚠️</div>
         <h3>Failed to Load History</h3>
         <p>There was an error loading the label history. Please try again.</p>
-        <button class="action-btn primary-btn" onclick="location.reload()">
+        <button class="action-btn primary-btn accent-btn" onclick="location.reload()">
           <i class="fas fa-redo"></i>
           <span>Retry</span>
         </button>
@@ -265,19 +265,19 @@ function renderJobsTable() {
             <td class="col-fr">${job.total_fr_6m || 0}</td>
             <td class="col-actions">
               <div class="action-buttons">
-                <button class="action-btn primary-btn btn-sm" data-action="view" data-job-id="${job.id}" title="View Details">
+                <button class="action-btn secondary-btn info-btn btn-sm" data-action="view" data-job-id="${job.id}" title="View Details">
                   <i class="fas fa-eye"></i>
                   <span>View</span>
                 </button>
-                <button class="action-btn secondary-btn btn-sm" data-action="pdf" data-job-id="${job.id}" title="Download PDF">
+                <button class="action-btn secondary-btn neutral-btn btn-sm" data-action="pdf" data-job-id="${job.id}" title="Download PDF">
                   <i class="fas fa-file-pdf"></i>
                   <span>PDF</span>
                 </button>
-                <button class="action-btn secondary-btn btn-sm" data-action="csv" data-job-id="${job.id}" title="Download CSV">
+                <button class="action-btn secondary-btn neutral-btn btn-sm" data-action="csv" data-job-id="${job.id}" title="Download CSV">
                   <i class="fas fa-file-csv"></i>
                   <span>CSV</span>
                 </button>
-                <button class="action-btn danger-btn btn-sm btn-icon-only" data-action="delete" data-job-id="${job.id}" title="Delete Job">
+                <button class="action-btn secondary-btn danger-btn btn-sm btn-icon-only" data-action="delete" data-job-id="${job.id}" title="Delete Job">
                   <i class="fas fa-trash-alt"></i>
                 </button>
               </div>

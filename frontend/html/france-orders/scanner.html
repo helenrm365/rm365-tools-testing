@@ -11,22 +11,6 @@
 
   <!-- Navigation Tabs -->
   <nav class="inner-tabs">
-    <button class="tab-button" onclick="location.href='/france-orders/order-fulfillment'">
-      <i class="fas fa-shopping-cart"></i>
-      <span>Order Fulfillment</span>
-    </button>
-    <button class="tab-button" onclick="location.href='/france-orders/order-progress'">
-      <i class="fas fa-chart-line"></i>
-      <span>Order Progress</span>
-    </button>
-    <button class="tab-button" onclick="location.href='/france-orders/order-tracking'">
-      <i class="fas fa-tasks"></i>
-      <span>Order Tracking</span>
-    </button>
-    <button class="tab-button" onclick="location.href='/france-orders/order-approval'">
-      <i class="fas fa-check-circle"></i>
-      <span>Order Approval</span>
-    </button>
     <button class="tab-button active" onclick="location.href='/france-orders/scanner'">
       <i class="fas fa-barcode"></i>
       <span>Scanner</span>
@@ -68,14 +52,6 @@
 
       <!-- Pending Adjustments Subsection -->
       <div class="block-subsection pending-subsection">
-        <!-- Clear All Button -->
-        <div class="pending-actions" style="display: none;" id="pendingActionsWrapper">
-          <button id="clearAllBtn" class="action-btn secondary-btn">
-            <i class="fas fa-trash"></i>
-            Clear All
-          </button>
-        </div>
-
         <!-- Items List -->
         <div class="pending-items-list" id="pendingItemsList">
           <div class="empty-state">
@@ -109,16 +85,24 @@
             <i class="fas fa-comment"></i>
             Reason for Adjustment
           </label>
-          <input type="text" id="reasonInput" class="form-input" placeholder="e.g., Stock count correction, Received shipment, Damaged goods..." disabled>
+          <button type="button" id="reasonSelectBtn" class="form-input reason-select-btn" disabled>
+            <span id="reasonDisplay">Order</span>
+            <i class="fas fa-chevron-right"></i>
+          </button>
+          <input type="hidden" id="reasonInput" value="Order">
         </div>
 
         <!-- Action Buttons -->
         <div class="submit-actions">
-          <button id="cancelBtn" class="action-btn secondary-btn" disabled>
+          <button id="clearAllBtn" class="action-btn primary-btn danger-btn" disabled>
+            <i class="fas fa-trash"></i>
+            Clear All
+          </button>
+          <button id="cancelBtn" class="action-btn primary-btn neutral-btn" disabled>
             <i class="fas fa-times"></i>
             Cancel
           </button>
-          <button id="submitBtn" class="action-btn success-btn" disabled>
+          <button id="submitBtn" class="action-btn primary-btn success-btn" disabled>
             <i class="fas fa-check"></i>
             Submit All Adjustments
           </button>
@@ -126,6 +110,57 @@
       </div>
     </div>
 
+  </div>
+
+  <!-- Reason Selection Modal -->
+  <div class="modal-backdrop" id="reasonModal">
+    <div class="modal modal-sm">
+      <div class="modal-header modal-header-accent">
+        <div class="modal-header-icon">
+          <i class="fas fa-list"></i>
+        </div>
+        <h2 class="modal-title">Select Reason</h2>
+        <button class="modal-close modal-close-contrast" id="closeReasonModalBtn">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="reason-options">
+          <button type="button" class="reason-option selected" data-reason="Order">
+            <i class="fas fa-shopping-cart"></i>
+            <span>Order</span>
+          </button>
+          <button type="button" class="reason-option" data-reason="Return">
+            <i class="fas fa-undo"></i>
+            <span>Return</span>
+          </button>
+          <button type="button" class="reason-option" data-reason="Stock Re-evaluation">
+            <i class="fas fa-clipboard-check"></i>
+            <span>Stock Re-evaluation</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Shelf Selection Modal -->
+  <div class="modal-backdrop" id="shelfModal">
+    <div class="modal modal-sm">
+      <div class="modal-header modal-header-accent">
+        <div class="modal-header-icon">
+          <i class="fas fa-warehouse"></i>
+        </div>
+        <h2 class="modal-title">Select Area</h2>
+        <button class="modal-close modal-close-contrast" id="closeShelfModalBtn">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="shelf-options" id="shelfOptions">
+          <!-- Options will be populated dynamically -->
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Confirmation Modal -->
@@ -145,8 +180,8 @@
         <div class="confirm-summary" id="confirmSummary"></div>
       </div>
       <div class="modal-footer">
-        <button class="action-btn secondary-btn" id="confirmCancelBtn">Cancel</button>
-        <button class="action-btn success-btn" id="confirmSubmitBtn">
+        <button class="action-btn primary-btn neutral-btn" id="confirmCancelBtn">Cancel</button>
+        <button class="action-btn primary-btn success-btn" id="confirmSubmitBtn">
           <i class="fas fa-check"></i>
           Confirm
         </button>

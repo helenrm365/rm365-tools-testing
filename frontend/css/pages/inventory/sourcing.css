@@ -1424,6 +1424,7 @@ html.dark-mode .product-sourcing .fx-rate-card {
   background: var(--bg-light);
   border-radius: 12px;
   border: 1px solid var(--border-color, rgba(0, 0, 0, 0.06));
+  gap: 0.75rem;
 }
 
 .gsheet-sync-option:first-child {
@@ -1474,51 +1475,23 @@ html.dark-mode .gsheet-sync-option:last-child {
   color: var(--text-muted);
 }
 
-/* Manual action buttons */
-.gsheet-manual-actions {
-  display: flex;
+/* Manual sync buttons row - below auto boxes */
+.gsheet-manual-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 1rem;
+  margin-top: 1rem;
 }
 
-.gsheet-manual-actions .btn {
-  flex: 1;
-}
-
-.gsheet-manual-actions .action-btn {
-  color: #fff;
-  border: none;
-  font-weight: 500;
-  transition: background-color 0.2s, transform 0.1s;
-}
-
-.gsheet-manual-actions .action-btn:hover {
-  transform: translateY(-1px);
-}
-
-.gsheet-manual-actions .action-btn:active {
-  transform: translateY(0);
-}
-
-#btn-gsheet-export.action-btn {
-  background: #4285F4;
-}
-
-#btn-gsheet-export.action-btn:hover {
-  background: #3367d6;
-}
-
-#btn-gsheet-import.action-btn {
-  background: #0F9D58;
-}
-
-#btn-gsheet-import.action-btn:hover {
-  background: #0b8043;
+.gsheet-manual-btn {
+  justify-content: center;
 }
 
 .gsheet-status {
   font-size: 0.875rem;
   color: var(--text-muted);
   text-align: center;
+  margin-top: 0.75rem;
 }
 
 .gsheet-status:empty {
@@ -1604,17 +1577,6 @@ html.dark-mode .gsheet-sync-option:last-child {
   .gsheet-id-text {
     max-width: 180px;
   }
-  
-  .gsheet-manual-actions {
-    display: flex;
-    flex-direction: row;
-    gap: 0.5rem;
-  }
-  
-  .gsheet-manual-actions .btn {
-    flex: 1 1 0;
-    min-width: 0;
-  }
 }
 
 /* Responsive for GSheet card: Small Mobile (480px) */
@@ -1627,17 +1589,6 @@ html.dark-mode .gsheet-sync-option:last-child {
   .gsheet-id-text {
     max-width: 120px;
     font-size: 0.7rem;
-  }
-  
-  .gsheet-manual-actions {
-    display: flex;
-    flex-direction: row;
-    gap: 0.375rem;
-  }
-  
-  .gsheet-manual-actions .btn {
-    flex: 1 1 0;
-    min-width: 0;
   }
   
   .gsheet-sync-option {

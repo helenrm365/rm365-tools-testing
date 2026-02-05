@@ -152,6 +152,46 @@ html.dark-mode .modal-header {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
+.modal-header-success {
+  background: linear-gradient(135deg, #10b981, #059669);
+  border-bottom: none;
+}
+
+.modal-header-success .modal-title,
+.modal-header-success .modal-header-icon + .modal-title {
+  color: white;
+  background: none;
+  -webkit-background-clip: unset;
+  -webkit-text-fill-color: white;
+  background-clip: unset;
+}
+
+.modal-header-success .modal-header-icon {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header-accent {
+  background: linear-gradient(135deg, #5e8122, #4a6b1a);
+  border-bottom: none;
+}
+
+.modal-header-accent .modal-title,
+.modal-header-accent .modal-header-icon + .modal-title {
+  color: white;
+  background: none;
+  -webkit-background-clip: unset;
+  -webkit-text-fill-color: white;
+  background-clip: unset;
+}
+
+.modal-header-accent .modal-header-icon {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
 .modal-header-icon {
   display: flex;
   align-items: center;

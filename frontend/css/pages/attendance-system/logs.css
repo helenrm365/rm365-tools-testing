@@ -230,7 +230,7 @@
   letter-spacing: 0.05em;
   color: var(--text-muted);
   background: var(--bg);
-  border-bottom: 1px solid var(--bg);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
   cursor: pointer;
   user-select: none;
   transition: background var(--transition);
@@ -250,7 +250,7 @@
   padding: 0.875rem 1rem;
   font-size: 0.9rem;
   color: var(--text);
-  border-bottom: 1px solid var(--bg);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .attendance-logs .logs-table tbody tr:hover {
@@ -259,6 +259,14 @@
 
 .attendance-logs .logs-table tbody tr:last-child td {
   border-bottom: none;
+}
+
+html.dark-mode .attendance-logs .logs-table th {
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+html.dark-mode .attendance-logs .logs-table td {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
 }
 
 /* ===== Status Badges ===== */
@@ -295,12 +303,17 @@
   gap: 1rem;
   padding: 1rem;
   background: var(--bg-light);
-  border: 2px solid var(--bg);
+  border: 2px solid color-mix(in srgb, var(--accent) 15%, transparent);
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: var(--shadow-m);
   text-align: left;
+}
+
+html.dark-mode .attendance-logs .export-btn {
+  background: var(--bg-card);
+  border-color: color-mix(in srgb, var(--accent) 25%, transparent);
 }
 
 .attendance-logs .export-btn:not(:disabled):hover {

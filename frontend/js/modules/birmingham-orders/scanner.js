@@ -28,15 +28,15 @@ const BRANCH_CONFIG = {
 // Shelf field options
 const SHELF_OPTIONS = {
   withAuto: [
-    { value: 'auto', label: 'Auto' },
-    { value: 'shelf_lt1_qty', label: '<1 Year' },
-    { value: 'shelf_gt1_qty', label: '>1 Year' },
-    { value: 'top_floor_total', label: 'Top Floor' }
+    { value: 'auto', label: 'Auto', icon: 'fa-magic' },
+    { value: 'shelf_lt1_qty', label: '<1 Year', icon: 'fa-clock' },
+    { value: 'shelf_gt1_qty', label: '>1 Year', icon: 'fa-history' },
+    { value: 'top_floor_total', label: 'Top Floor', icon: 'fa-building' }
   ],
   withoutAuto: [
-    { value: 'top_floor_total', label: 'Top Floor' },
-    { value: 'shelf_lt1_qty', label: '<1 Year' },
-    { value: 'shelf_gt1_qty', label: '>1 Year' }
+    { value: 'top_floor_total', label: 'Top Floor', icon: 'fa-building' },
+    { value: 'shelf_lt1_qty', label: '<1 Year', icon: 'fa-clock' },
+    { value: 'shelf_gt1_qty', label: '>1 Year', icon: 'fa-history' }
   ]
 };
 
@@ -72,17 +72,22 @@ class InventoryScannerManager {
     this.pendingItemsList = document.getElementById('pendingItemsList');
     this.pendingSubtitle = document.getElementById('pendingSubtitle');
     this.clearAllBtn = document.getElementById('clearAllBtn');
-    this.pendingActionsWrapper = document.getElementById('pendingActionsWrapper');
     
     // Submit section
     this.submitSection = document.getElementById('submitSection');
     this.reasonInput = document.getElementById('reasonInput');
+    this.reasonSelectBtn = document.getElementById('reasonSelectBtn');
+    this.reasonDisplay = document.getElementById('reasonDisplay');
     this.cancelBtn = document.getElementById('cancelBtn');
     this.submitBtn = document.getElementById('submitBtn');
     
     // Modals
     this.confirmModal = document.getElementById('confirmModal');
     this.successModal = document.getElementById('successModal');
+    this.reasonModal = document.getElementById('reasonModal');
+    this.shelfModal = document.getElementById('shelfModal');
+    this.shelfOptions = document.getElementById('shelfOptions');
+    this.activeShelfItemIndex = null; // Track which item's shelf is being edited
   }
 
   attachEventListeners() {
@@ -117,8 +122,15 @@ class InventoryScannerManager {
       }
     });
 
-    // Close dropdown on scroll/touch (mobile) to prevent it staying open after navigating
-    const closeDropdown = () => this.hideSearchDropdown();
+    // Close dropdown on scroll/touch (mobile) OUTSIDE dropdown to prevent it staying open after navigating
+    const isInsideSearchDropdown = (target) => {
+      if (!target || !(target instanceof Element)) return false;
+      return target.closest('.search-dropdown, .search-dropdown-content');
+    };
+    const closeDropdown = (e) => {
+      if (isInsideSearchDropdown(e?.target)) return;
+      this.hideSearchDropdown();
+    };
     window.addEventListener('scroll', closeDropdown, { passive: true, capture: true });
     document.addEventListener('scroll', closeDropdown, { passive: true, capture: true });
     document.addEventListener('touchmove', closeDropdown, { passive: true });
@@ -140,6 +152,22 @@ class InventoryScannerManager {
     // Success modal buttons
     document.getElementById('closeSuccessModalBtn')?.addEventListener('click', () => this.hideSuccessModal());
     document.getElementById('successOkBtn')?.addEventListener('click', () => this.hideSuccessModal());
+    
+    // Reason modal
+    this.reasonSelectBtn?.addEventListener('click', () => this.showReasonModal());
+    document.getElementById('closeReasonModalBtn')?.addEventListener('click', () => this.hideReasonModal());
+    this.reasonModal?.addEventListener('click', (e) => {
+      if (e.target === this.reasonModal) this.hideReasonModal();
+    });
+    document.querySelectorAll('.reason-option').forEach(btn => {
+      btn.addEventListener('click', () => this.selectReason(btn.dataset.reason));
+    });
+    
+    // Shelf modal
+    document.getElementById('closeShelfModalBtn')?.addEventListener('click', () => this.hideShelfModal());
+    this.shelfModal?.addEventListener('click', (e) => {
+      if (e.target === this.shelfModal) this.hideShelfModal();
+    });
   }
 
   // ===== Search Dropdown Methods =====
@@ -285,6 +313,7 @@ class InventoryScannerManager {
     
     this.playBeep();
     this.updatePendingList();
+    this.scrollToLatestItem();
   }
 
   /**
@@ -358,6 +387,20 @@ class InventoryScannerManager {
   hideSearchDropdown() {
     this.searchDropdown?.classList.remove('active');
     this.searchResults = [];
+  }
+
+  scrollToLatestItem() {
+    // Scroll the pending items list to show the latest (last) added item
+    // Use 'center' to ensure item is visible above sticky submit section
+    if (this.pendingItemsList) {
+      const lastItem = this.pendingItemsList.querySelector('.pending-item:last-child');
+      if (lastItem) {
+        // Use setTimeout to allow DOM to update first
+        setTimeout(() => {
+          lastItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 50);
+      }
+    }
   }
 
   showMessage(message, type = 'info') {
@@ -435,6 +478,7 @@ class InventoryScannerManager {
       
       this.playBeep();
       this.updatePendingList();
+      this.scrollToLatestItem();
       
       // Clear and refocus
       this.skuInput.value = '';
@@ -503,17 +547,17 @@ class InventoryScannerManager {
       }
     }
     
-    // Show/hide clear all button
-    if (this.pendingActionsWrapper) {
-      this.pendingActionsWrapper.style.display = totalItems > 0 ? 'flex' : 'none';
+    // Enable/disable clear all button
+    if (this.clearAllBtn) {
+      this.clearAllBtn.disabled = totalItems === 0;
     }
     
     // Enable/disable submit section based on valid items (quantity !== 0)
     const hasValidItems = this.pendingItems.some(item => item.quantity !== 0);
     if (this.submitSection) {
       // Toggle disabled state on inputs and buttons
-      if (this.reasonInput) {
-        this.reasonInput.disabled = !hasValidItems;
+      if (this.reasonSelectBtn) {
+        this.reasonSelectBtn.disabled = !hasValidItems;
       }
       if (this.cancelBtn) {
         this.cancelBtn.disabled = !hasValidItems;
@@ -547,39 +591,46 @@ class InventoryScannerManager {
       const isPositive = item.quantity > 0;
       const typeClass = isPositive ? 'add' : 'remove';
       const typeIcon = isPositive ? 'fa-plus-circle' : 'fa-minus-circle';
-      const shelfOptions = this.getShelfOptionsHtml(item.shelfField, isPositive);
+      const shelfLabel = this.getShelfLabel(item.shelfField, isPositive);
       
       return `
         <div class="pending-item ${typeClass}" data-index="${index}">
-          <div class="pending-item-main">
-            <button class="pending-item-remove" data-index="${index}" title="Remove item">
-              <i class="fas fa-trash"></i>
-            </button>
-            <div class="pending-item-icon ${typeClass}">
-              <i class="fas ${typeIcon}"></i>
-            </div>
-            <div class="pending-item-info">
-              <div class="pending-item-name">${item.name}</div>
-              <div class="pending-item-sku">${item.sku}</div>
-              <div class="pending-item-meta">
-                <span class="meta-tag stock">Current: ${item.currentStock}</span>
+          <div class="swipe-delete-action">
+            <i class="fas fa-trash"></i>
+            <span>Delete</span>
+          </div>
+          <div class="swipe-content">
+            <div class="pending-item-main">
+              <button class="pending-item-remove" data-index="${index}" title="Remove item">
+                <i class="fas fa-trash"></i>
+              </button>
+              <div class="pending-item-icon ${typeClass}">
+                <i class="fas ${typeIcon}"></i>
+              </div>
+              <div class="pending-item-info">
+                <div class="pending-item-name">${item.name}</div>
+                <div class="pending-item-sku">${item.sku}</div>
+                <div class="pending-item-meta">
+                  <span class="meta-tag stock">Current: ${item.currentStock}</span>
+                </div>
               </div>
             </div>
-          </div>
-          <div class="pending-item-controls">
-            <div class="pending-item-shelf">
-              <select class="shelf-select" data-index="${index}">
-                ${shelfOptions}
-              </select>
-            </div>
-            <div class="pending-item-qty">
-              <button class="btn btn-qty btn-qty-minus qty-adjust-btn minus" data-index="${index}" data-action="decrease" title="Decrease (more negative)">
-                <i class="fas fa-minus"></i>
-              </button>
-              <input type="number" class="qty-value-input" data-index="${index}" value="${item.quantity}">
-              <button class="btn btn-qty btn-qty-plus qty-adjust-btn plus" data-index="${index}" data-action="increase" title="Increase (less negative / more positive)">
-                <i class="fas fa-plus"></i>
-              </button>
+            <div class="pending-item-controls">
+              <div class="pending-item-shelf">
+                <button type="button" class="shelf-select-btn" data-index="${index}" data-value="${item.shelfField}">
+                  <span class="shelf-label">${shelfLabel}</span>
+                  <i class="fas fa-chevron-right"></i>
+                </button>
+              </div>
+              <div class="pending-item-qty">
+                <button class="btn btn-qty btn-qty-minus qty-adjust-btn minus" data-index="${index}" data-action="decrease" title="Decrease (more negative)">
+                  <i class="fas fa-minus"></i>
+                </button>
+                <input type="number" class="qty-value-input" data-index="${index}" value="${item.quantity}">
+                <button class="btn btn-qty btn-qty-plus qty-adjust-btn plus" data-index="${index}" data-action="increase" title="Increase (less negative / more positive)">
+                  <i class="fas fa-plus"></i>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -590,18 +641,17 @@ class InventoryScannerManager {
     this.attachPendingItemListeners();
   }
 
-  getShelfOptionsHtml(currentValue, isPositive) {
+  getShelfLabel(value, isPositive) {
     const options = isPositive ? SHELF_OPTIONS.withoutAuto : SHELF_OPTIONS.withAuto;
     
     // If positive and current value is 'auto', force to 'top_floor_total'
-    let selectedValue = currentValue;
-    if (isPositive && currentValue === 'auto') {
+    let selectedValue = value;
+    if (isPositive && value === 'auto') {
       selectedValue = 'top_floor_total';
     }
     
-    return options.map(opt => 
-      `<option value="${opt.value}" ${opt.value === selectedValue ? 'selected' : ''}>${opt.label}</option>`
-    ).join('');
+    const option = options.find(opt => opt.value === selectedValue);
+    return option ? option.label : value;
   }
 
   attachPendingItemListeners() {
@@ -632,20 +682,137 @@ class InventoryScannerManager {
       });
     });
     
-    // Shelf select
-    this.pendingItemsList.querySelectorAll('.shelf-select').forEach(select => {
-      select.addEventListener('change', (e) => {
-        const index = parseInt(select.dataset.index);
-        this.setItemShelf(index, select.value);
+    // Shelf select button
+    this.pendingItemsList.querySelectorAll('.shelf-select-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const index = parseInt(btn.dataset.index);
+        this.showShelfModal(index);
       });
     });
     
-    // Remove buttons
+    // Remove buttons (desktop)
     this.pendingItemsList.querySelectorAll('.pending-item-remove').forEach(btn => {
       btn.addEventListener('click', () => {
         const index = parseInt(btn.dataset.index);
         this.removeItem(index);
       });
+    });
+    
+    // Swipe-to-delete (mobile)
+    this.attachSwipeListeners();
+  }
+  
+  attachSwipeListeners() {
+    const isMobile = window.matchMedia('(max-width: 768px)').matches;
+    if (!isMobile) return;
+    
+    this.pendingItemsList.querySelectorAll('.pending-item').forEach(item => {
+      const swipeContent = item.querySelector('.swipe-content');
+      const deleteAction = item.querySelector('.swipe-delete-action');
+      if (!swipeContent || !deleteAction) return;
+      
+      let startX = 0;
+      let startY = 0;
+      let currentX = 0;
+      let isDragging = false;
+      let startTime = 0;
+      const deleteThreshold = -80; // Reveal delete button
+      const quickDeleteThreshold = -150; // Quick swipe to delete
+      const quickSwipeVelocity = 0.5; // pixels per ms
+      
+      const handleTouchStart = (e) => {
+        // Don't interfere with buttons
+        if (e.target.closest('button, input')) return;
+        
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        currentX = 0;
+        startTime = Date.now();
+        isDragging = false;
+        swipeContent.style.transition = 'none';
+      };
+      
+      const handleTouchMove = (e) => {
+        if (startX === 0) return;
+        
+        const deltaX = e.touches[0].clientX - startX;
+        const deltaY = e.touches[0].clientY - startY;
+        
+        // If vertical scroll is greater, don't swipe
+        if (!isDragging && Math.abs(deltaY) > Math.abs(deltaX)) {
+          startX = 0;
+          return;
+        }
+        
+        isDragging = true;
+        
+        // Only allow left swipe
+        if (deltaX > 0) {
+          currentX = 0;
+        } else {
+          currentX = Math.max(deltaX, -200);
+        }
+        
+        swipeContent.style.transform = `translateX(${currentX}px)`;
+        
+        // Scale delete action based on swipe
+        const progress = Math.min(Math.abs(currentX) / 80, 1);
+        deleteAction.style.opacity = progress;
+      };
+      
+      const handleTouchEnd = () => {
+        if (startX === 0) return;
+        
+        const duration = Date.now() - startTime;
+        const velocity = Math.abs(currentX) / duration;
+        const index = parseInt(item.dataset.index);
+        
+        swipeContent.style.transition = 'transform 0.3s ease';
+        
+        // Quick swipe = instant delete
+        if (currentX <= quickDeleteThreshold || (velocity > quickSwipeVelocity && currentX < deleteThreshold)) {
+          swipeContent.style.transform = `translateX(-100%)`;
+          deleteAction.style.opacity = 1;
+          setTimeout(() => {
+            this.removeItem(index);
+          }, 200);
+        }
+        // Partial swipe = show delete button
+        else if (currentX <= deleteThreshold) {
+          swipeContent.style.transform = `translateX(${deleteThreshold}px)`;
+          item.classList.add('swipe-open');
+          
+          // Click on delete action
+          const handleDeleteClick = () => {
+            this.removeItem(index);
+            deleteAction.removeEventListener('click', handleDeleteClick);
+          };
+          deleteAction.addEventListener('click', handleDeleteClick);
+        }
+        // Reset
+        else {
+          swipeContent.style.transform = 'translateX(0)';
+          deleteAction.style.opacity = 0;
+          item.classList.remove('swipe-open');
+        }
+        
+        startX = 0;
+        isDragging = false;
+      };
+      
+      swipeContent.addEventListener('touchstart', handleTouchStart, { passive: true });
+      swipeContent.addEventListener('touchmove', handleTouchMove, { passive: true });
+      swipeContent.addEventListener('touchend', handleTouchEnd);
+      
+      // Reset on tap elsewhere
+      document.addEventListener('touchstart', (e) => {
+        if (!e.target.closest('.pending-item') && item.classList.contains('swipe-open')) {
+          swipeContent.style.transition = 'transform 0.3s ease';
+          swipeContent.style.transform = 'translateX(0)';
+          deleteAction.style.opacity = 0;
+          item.classList.remove('swipe-open');
+        }
+      }, { passive: true });
     });
   }
 
@@ -676,9 +843,6 @@ class InventoryScannerManager {
     
     item.quantity = newQuantity;
     
-    // Handle flip logic
-    this.handleQuantityFlip(item, oldQuantity);
-    
     this.updatePendingList();
   }
 
@@ -704,27 +868,7 @@ class InventoryScannerManager {
     
     item.quantity = newValue;
     
-    // Handle flip logic
-    this.handleQuantityFlip(item, oldQuantity);
-    
     this.updatePendingList();
-  }
-
-  handleQuantityFlip(item, oldQuantity) {
-    const wasNegative = oldQuantity < 0;
-    const isNegative = item.quantity < 0;
-    
-    if (wasNegative && !isNegative) {
-      // Flipped from negative to positive
-      // Remove "Auto" option and force to "Top Floor"
-      if (item.shelfField === 'auto') {
-        item.shelfField = 'top_floor_total';
-      }
-    } else if (!wasNegative && isNegative) {
-      // Flipped from positive to negative
-      // "Auto" option should reappear and become default
-      item.shelfField = 'auto';
-    }
   }
 
   setItemShelf(index, shelfValue) {
@@ -770,9 +914,9 @@ class InventoryScannerManager {
       return;
     }
     
-    const reason = this.reasonInput?.value.trim();
+    const reason = this.reasonInput?.value;
     if (!reason) {
-      this.showMessage('Please enter a reason for the adjustment', 'error');
+      this.showMessage('Please select a reason for the adjustment', 'error');
       this.reasonInput?.focus();
       return;
     }
@@ -817,12 +961,77 @@ class InventoryScannerManager {
     }
   }
 
+  showReasonModal() {
+    if (this.reasonModal) {
+      this.reasonModal.classList.add('active');
+    }
+  }
+
+  hideReasonModal() {
+    if (this.reasonModal) {
+      this.reasonModal.classList.remove('active');
+    }
+  }
+
+  selectReason(reason) {
+    if (this.reasonInput) {
+      this.reasonInput.value = reason;
+    }
+    if (this.reasonDisplay) {
+      this.reasonDisplay.textContent = reason;
+    }
+    // Update visual selection state
+    document.querySelectorAll('.reason-option').forEach(btn => {
+      btn.classList.toggle('selected', btn.dataset.reason === reason);
+    });
+    this.hideReasonModal();
+  }
+
+  showShelfModal(index) {
+    this.activeShelfItemIndex = index;
+    const item = this.pendingItems[index];
+    if (!item || !this.shelfModal || !this.shelfOptions) return;
+    
+    // Use withoutAuto for positive quantities (adding - must specify where to put), withAuto for negative (removing - auto can determine source)
+    const options = item.quantity > 0 ? SHELF_OPTIONS.withoutAuto : SHELF_OPTIONS.withAuto;
+    
+    this.shelfOptions.innerHTML = options.map(opt => `
+      <button type="button" class="shelf-option${item.shelfField === opt.value ? ' selected' : ''}" data-shelf="${opt.value}">
+        <i class="fas ${opt.icon}"></i>
+        <span>${opt.label}</span>
+      </button>
+    `).join('');
+    
+    // Add click listeners to shelf options
+    this.shelfOptions.querySelectorAll('.shelf-option').forEach(btn => {
+      btn.addEventListener('click', () => {
+        this.selectShelf(btn.dataset.shelf);
+      });
+    });
+    
+    this.shelfModal.classList.add('active');
+  }
+
+  hideShelfModal() {
+    if (this.shelfModal) {
+      this.shelfModal.classList.remove('active');
+    }
+    this.activeShelfItemIndex = null;
+  }
+
+  selectShelf(value) {
+    if (this.activeShelfItemIndex !== null) {
+      this.setItemShelf(this.activeShelfItemIndex, value);
+    }
+    this.hideShelfModal();
+  }
+
   async submitAdjustments(autoTrigger = false) {
     if (!autoTrigger) {
       this.hideConfirmModal();
     }
     
-    const reason = this.reasonInput?.value.trim() || 'Scanner adjustment';
+    const reason = this.reasonInput?.value || 'Scanner adjustment';
     
     try {
       if (!autoTrigger) {
@@ -886,7 +1095,17 @@ class InventoryScannerManager {
       if (results.failed.length === 0) {
         this.pendingItems = [];
         this.updatePendingList();
-        if (this.reasonInput) this.reasonInput.value = '';
+        // Reset reason to default "Order"
+        if (this.reasonInput) {
+          this.reasonInput.value = 'Order';
+        }
+        if (this.reasonDisplay) {
+          this.reasonDisplay.textContent = 'Order';
+        }
+        // Reset selected state to Order option
+        document.querySelectorAll('.reason-option').forEach(btn => {
+          btn.classList.toggle('selected', btn.dataset.reason === 'Order');
+        });
       }
       
     } catch (error) {

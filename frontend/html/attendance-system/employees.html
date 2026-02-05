@@ -5,7 +5,7 @@
   <header class="page-header">
     <div class="header-content">
       <h1 class="page-title">Employee Management</h1>
-      <button id="openGuideBtn" class="action-btn primary-btn help-button" aria-label="Open Management Guide">
+      <button id="openGuideBtn" class="action-btn primary-btn info-btn help-button" aria-label="Open Management Guide">
         <i class="fas fa-question-circle"></i>
         <span>Help</span>
       </button>
@@ -50,11 +50,11 @@
 
         <div class="block-content">
           <div class="action-buttons-grid">
-            <button class="action-btn primary-btn" id="enrCreateBtn">
+            <button class="action-btn primary-btn accent-btn" id="enrCreateBtn">
               <i class="fas fa-user-plus"></i>
               <span>New Employee</span>
             </button>
-            <button class="action-btn danger-btn" id="enrBulkDeleteBtn">
+            <button class="action-btn primary-btn danger-btn" id="enrBulkDeleteBtn">
               <i class="fas fa-trash-alt"></i>
               <span>Delete Selected</span>
             </button>
@@ -224,7 +224,7 @@
           <option value="" selected disabled>Select Location</option>
           <!-- Locations will be populated dynamically -->
         </select>
-        <button type="button" class="action-btn secondary-btn create-location-btn" onclick="window.openCreateLocationModal('create')">
+        <button type="button" class="action-btn secondary-btn neutral-btn create-location-btn" onclick="window.openCreateLocationModal('create')">
           <i class="fas fa-plus-circle"></i>
           <span>Create New Location</span>
         </button>
@@ -241,11 +241,11 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="action-btn secondary-btn" id="cancelCreate">
+      <button class="action-btn primary-btn neutral-btn" id="cancelCreate">
         <i class="fas fa-times"></i>
         <span>Cancel</span>
       </button>
-      <button class="action-btn primary-btn" id="confirmCreate">
+      <button class="action-btn primary-btn accent-btn" id="confirmCreate">
         <i class="fas fa-check"></i>
         <span>Create Employee</span>
       </button>
@@ -296,7 +296,7 @@
           <option value="" selected disabled>Select Location</option>
           <!-- Locations will be populated dynamically -->
         </select>
-        <button type="button" class="action-btn secondary-btn create-location-btn" onclick="window.openCreateLocationModal('edit')">
+        <button type="button" class="action-btn secondary-btn neutral-btn create-location-btn" onclick="window.openCreateLocationModal('edit')">
           <i class="fas fa-plus-circle"></i>
           <span>Create New Location</span>
         </button>
@@ -324,11 +324,11 @@
             <input type="hidden" id="editEmployeeNfc" value="">
           </div>
           <div class="nfc-action-buttons">
-            <button type="button" class="action-btn primary-btn nfc-scan-btn" id="startNfcScanBtn">
+            <button type="button" class="action-btn secondary-btn info-btn nfc-scan-btn" id="startNfcScanBtn">
               <i class="fas fa-wifi" id="nfcScanIcon"></i>
               <span id="nfcScanBtnText">Scan Card</span>
             </button>
-            <button type="button" class="action-btn danger-btn nfc-delete-btn" id="deleteNfcBtn">
+            <button type="button" class="action-btn secondary-btn danger-btn nfc-delete-btn" id="deleteNfcBtn">
               <i class="fas fa-trash-alt"></i>
               <span>Remove</span>
             </button>
@@ -340,16 +340,16 @@
       </div>
     </div>
     <div class="modal-footer modal-footer-split">
-      <button class="action-btn danger-btn" id="deleteFromEdit">
+      <button class="action-btn primary-btn danger-btn" id="deleteFromEdit">
         <i class="fas fa-trash-alt"></i>
         <span>Delete</span>
       </button>
       <div class="modal-footer-right">
-        <button class="action-btn secondary-btn" id="cancelEdit">
+        <button class="action-btn primary-btn neutral-btn" id="cancelEdit">
           <i class="fas fa-times"></i>
           <span>Cancel</span>
         </button>
-        <button class="action-btn primary-btn" id="confirmEdit">
+        <button class="action-btn primary-btn accent-btn" id="confirmEdit">
           <i class="fas fa-save"></i>
           <span>Save Changes</span>
         </button>
@@ -399,11 +399,11 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="action-btn secondary-btn" id="cancelLocationModal">
+      <button class="action-btn primary-btn neutral-btn" id="cancelLocationModal">
         <i class="fas fa-times"></i>
         <span>Cancel</span>
       </button>
-      <button class="action-btn primary-btn" id="confirmLocationCreate">
+      <button class="action-btn primary-btn accent-btn" id="confirmLocationCreate">
         <i class="fas fa-plus"></i>
         <span>Create Location</span>
       </button>

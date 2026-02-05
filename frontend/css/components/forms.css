@@ -50,7 +50,7 @@ textarea {
   padding: var(--input-padding-y) var(--input-padding-x);
   
   /* Appearance */
-  background: linear-gradient(135deg, var(--bg), color-mix(in srgb, var(--accent) 3%, var(--bg)));
+  background: linear-gradient(135deg, var(--bg-light), color-mix(in srgb, var(--accent) 3%, var(--bg-light)));
   color: var(--text);
   border: 2px solid color-mix(in srgb, var(--accent) 20%, transparent);
   border-radius: 12px;
@@ -87,7 +87,7 @@ input[type="time"]:hover,
 input[type="datetime-local"]:hover,
 textarea:hover {
   border-color: var(--accent);
-  background: linear-gradient(135deg, var(--bg), color-mix(in srgb, var(--accent) 8%, var(--bg)));
+  background: linear-gradient(135deg, var(--bg-light), color-mix(in srgb, var(--accent) 8%, var(--bg-light)));
   box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
@@ -98,7 +98,7 @@ input:focus,
 textarea:focus {
   outline: none;
   border-color: var(--accent);
-  background: linear-gradient(135deg, var(--bg), color-mix(in srgb, var(--accent) 8%, var(--bg)));
+  background: linear-gradient(135deg, var(--bg-light), color-mix(in srgb, var(--accent) 8%, var(--bg-light)));
   box-shadow: 
     0 0 12px color-mix(in srgb, var(--accent) 20%, transparent),
     0 0 24px color-mix(in srgb, var(--accent) 10%, transparent),
@@ -171,7 +171,7 @@ input:disabled,
 textarea:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-  background: var(--bg);
+  background: var(--bg-light);
 }
 
 /* ===== Select ===== */
@@ -184,7 +184,7 @@ select,
   padding-right: 2.5rem;
   
   /* Appearance */
-  background: linear-gradient(135deg, var(--bg), color-mix(in srgb, var(--accent) 3%, var(--bg)));
+  background: linear-gradient(135deg, var(--bg-light), color-mix(in srgb, var(--accent) 3%, var(--bg-light)));
   color: var(--text);
   border: 2px solid color-mix(in srgb, var(--accent) 20%, transparent);
   border-radius: 12px;
@@ -209,7 +209,7 @@ select:hover,
 .select:hover,
 .form-select:hover {
   border-color: var(--accent);
-  background: linear-gradient(135deg, var(--bg), color-mix(in srgb, var(--accent) 8%, var(--bg)));
+  background: linear-gradient(135deg, var(--bg-light), color-mix(in srgb, var(--accent) 8%, var(--bg-light)));
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%2394a3b8' d='M1.41 0L6 4.58L10.59 0L12 1.41l-6 6l-6-6z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 1rem center;
@@ -293,7 +293,7 @@ html.dark-mode .form-select:focus {
   font-size: 0.95rem;
   border: 2px solid color-mix(in srgb, var(--accent) 20%, transparent);
   border-radius: 12px;
-  background: linear-gradient(135deg, var(--bg), color-mix(in srgb, var(--accent) 3%, var(--bg)));
+  background: linear-gradient(135deg, var(--bg-light), color-mix(in srgb, var(--accent) 3%, var(--bg-light)));
   color: var(--text);
   box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 8%, transparent);
   cursor: pointer;
@@ -307,7 +307,7 @@ html.dark-mode .form-select:focus {
 
 .c-select__button:hover {
   border-color: var(--accent);
-  background: linear-gradient(135deg, var(--bg), color-mix(in srgb, var(--accent) 8%, var(--bg)));
+  background: linear-gradient(135deg, var(--bg-light), color-mix(in srgb, var(--accent) 8%, var(--bg-light)));
   box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
@@ -323,7 +323,7 @@ html.dark-mode .form-select:focus {
 .c-select[aria-expanded='true'] .c-select__button {
   outline: none;
   border-color: var(--accent);
-  background: linear-gradient(135deg, var(--bg), color-mix(in srgb, var(--accent) 8%, var(--bg)));
+  background: linear-gradient(135deg, var(--bg-light), color-mix(in srgb, var(--accent) 8%, var(--bg-light)));
   box-shadow: 
     0 0 12px color-mix(in srgb, var(--accent) 20%, transparent),
     0 0 24px color-mix(in srgb, var(--accent) 10%, transparent),
@@ -357,7 +357,7 @@ html.dark-mode .form-select:focus {
   left: 0;
   right: 0;
   top: calc(100% + 0.5rem);
-  background-color: var(--bg);
+  background-color: var(--bg-light);
   color: var(--text);
   border: 2px solid color-mix(in srgb, var(--accent) 20%, transparent);
   border-radius: 12px;
@@ -612,20 +612,20 @@ html.dark-mode .c-select__footer {
 .c-select.disabled .c-select__button {
   opacity: 0.6;
   cursor: not-allowed;
-  background: var(--bg);
+  background: var(--bg-light);
   pointer-events: none;
 }
 
 .c-select:has(select:disabled) .c-select__button:hover,
 .c-select.disabled .c-select__button:hover {
-  border-color: var(--bg);
-  background: var(--bg);
+  border-color: color-mix(in srgb, var(--accent) 20%, transparent);
+  background: var(--bg-light);
 }
 
 /* ===== File Input ===== */
 .file-input {
   padding: 1rem;
-  border: 2px dashed var(--bg);
+  border: 2px dashed color-mix(in srgb, var(--accent) 30%, transparent);
   border-radius: 8px;
   background: var(--bg-light);
   transition: all 0.2s ease;
@@ -634,7 +634,7 @@ html.dark-mode .c-select__footer {
 
 .file-input:hover {
   border-color: var(--accent);
-  background: var(--bg);
+  background: color-mix(in srgb, var(--accent) 5%, var(--bg-light));
 }
 
 /* ===== Checkbox & Radio ===== */
@@ -741,7 +741,7 @@ input[type="radio"] {
   width: 100%;
   height: var(--input-height);
   padding: 0 1.125rem 0 3rem;
-  background: linear-gradient(135deg, var(--bg), color-mix(in srgb, var(--accent) 3%, var(--bg)));
+  background: linear-gradient(135deg, var(--bg-light), color-mix(in srgb, var(--accent) 3%, var(--bg-light)));
   border: 2px solid color-mix(in srgb, var(--accent) 20%, transparent);
   border-radius: 12px;
   font-size: 1rem;
@@ -754,14 +754,14 @@ input[type="radio"] {
 
 .search-input:hover {
   border-color: var(--accent);
-  background: linear-gradient(135deg, var(--bg), color-mix(in srgb, var(--accent) 8%, var(--bg)));
+  background: linear-gradient(135deg, var(--bg-light), color-mix(in srgb, var(--accent) 8%, var(--bg-light)));
   box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
 .search-input:focus {
   outline: none;
   border-color: var(--accent);
-  background: linear-gradient(135deg, var(--bg), color-mix(in srgb, var(--accent) 8%, var(--bg)));
+  background: linear-gradient(135deg, var(--bg-light), color-mix(in srgb, var(--accent) 8%, var(--bg-light)));
   box-shadow: 
     0 0 12px color-mix(in srgb, var(--accent) 20%, transparent),
     0 0 24px color-mix(in srgb, var(--accent) 10%, transparent),

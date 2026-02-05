@@ -41,6 +41,8 @@
   margin-top: 1.5rem;
   padding-top: 0;
   border-top: none;
+  position: relative;
+  z-index: 100;
 }
 
 .inventory-scanner .pending-actions {
@@ -74,9 +76,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 10%, transparent), color-mix(in srgb, var(--accent) 15%, transparent));
   border-radius: 10px;
-  color: var(--primary, #6366f1);
+  color: var(--accent);
   font-size: 1.125rem;
   flex-shrink: 0;
 }
@@ -105,9 +107,15 @@
   margin-left: auto;
 }
 
+/* Submit subsection stays below pending subsection for dropdown overlay */
+.inventory-scanner .submit-subsection {
+  position: relative;
+  z-index: 1;
+}
+
 /* Disabled state for submit subsection */
 .inventory-scanner .submit-subsection.disabled {
-  pointer-events: none;
+  /* Individual buttons handle their own disabled state - no pointer-events:none here */
 }
 
 .inventory-scanner .submit-subsection.disabled .subsection-icon {
@@ -139,7 +147,8 @@
 
 /* Search container - normal flow on desktop, fixed on mobile */
 .inventory-scanner .scanner-unified > .block-content {
-  position: static;
+  position: relative;
+  z-index: 600;
   background: var(--bg, #ffffff);
   padding: 1rem 1.5rem;
 }
@@ -232,7 +241,7 @@ html.dark-mode .inventory-scanner .scanner-unified > .block-content {
   right: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: var(--primary, #6366f1);
+  color: var(--accent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -244,7 +253,7 @@ html.dark-mode .inventory-scanner .scanner-unified > .block-content {
   top: 100%;
   left: 0;
   right: 0;
-  z-index: 200;
+  z-index: 9999;
   background: var(--bg, #ffffff);
   border: 1px solid var(--border-color, #e5e7eb);
   border-radius: 12px;
@@ -286,7 +295,7 @@ html.dark-mode .inventory-scanner .scanner-unified > .block-content {
 
 .inventory-scanner .search-result-item:hover,
 .inventory-scanner .search-result-item.active {
-  background: rgba(99, 102, 241, 0.08);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
 }
 
 .inventory-scanner .search-result-info {
@@ -388,8 +397,10 @@ html.dark-mode .inventory-scanner .scanner-unified > .block-content {
   flex-direction: column;
   gap: 1rem;
   max-height: 400px;
-  overflow-y: auto;
-  padding: 0.25rem;
+  overflow: visible;
+  padding: 1rem;
+  margin: -1rem;
+  margin-bottom: 0;
 }
 
 /* Empty State */
@@ -401,7 +412,7 @@ html.dark-mode .inventory-scanner .scanner-unified > .block-content {
   padding: 4rem 2rem;
   color: var(--text-muted, #9ca3af);
   text-align: center;
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.02), rgba(139, 92, 246, 0.02));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 2%, transparent), color-mix(in srgb, var(--accent) 4%, transparent));
   border-radius: 20px;
   border: 2px dashed rgba(156, 163, 175, 0.2);
 }
@@ -410,10 +421,7 @@ html.dark-mode .inventory-scanner .scanner-unified > .block-content {
   font-size: 3.5rem;
   margin-bottom: 1.25rem;
   opacity: 0.4;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--accent);
 }
 
 .inventory-scanner .empty-state p {
@@ -439,13 +447,18 @@ html.dark-mode .inventory-scanner .scanner-unified > .block-content {
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(249, 250, 251, 0.95));
   border-radius: 20px;
   border: none;
-  overflow: hidden;
   box-shadow: 
     0 4px 20px rgba(0, 0, 0, 0.06),
     0 1px 3px rgba(0, 0, 0, 0.08),
     inset 0 1px 0 rgba(255, 255, 255, 0.8);
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   transform: translateY(0);
+  overflow: hidden;
+}
+
+/* When dropdown is open, disable overflow clipping so dropdown can escape */
+.inventory-scanner .pending-item:has(.c-select[aria-expanded="true"]) {
+  overflow: visible;
 }
 
 .inventory-scanner .pending-item:hover {
@@ -456,14 +469,14 @@ html.dark-mode .inventory-scanner .scanner-unified > .block-content {
     inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
-/* Status ribbon at the top */
+/* Status ribbon at the top - clipped by parent's overflow:hidden */
 .inventory-scanner .pending-item::before {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: 4px;
+  height: 6px;
   background: linear-gradient(90deg, transparent, currentColor, transparent);
   opacity: 0.6;
   z-index: 1;
@@ -475,7 +488,6 @@ html.dark-mode .inventory-scanner .scanner-unified > .block-content {
 
 .inventory-scanner .pending-item.add::before {
   background: linear-gradient(90deg, #6ee7b7, #10b981, #059669, #10b981, #6ee7b7);
-  box-shadow: 0 2px 12px rgba(16, 185, 129, 0.3);
 }
 
 .inventory-scanner .pending-item.remove {
@@ -484,7 +496,6 @@ html.dark-mode .inventory-scanner .scanner-unified > .block-content {
 
 .inventory-scanner .pending-item.remove::before {
   background: linear-gradient(90deg, #fca5a5, #ef4444, #dc2626, #ef4444, #fca5a5);
-  box-shadow: 0 2px 12px rgba(239, 68, 68, 0.3);
 }
 
 /* Main content area */
@@ -737,9 +748,9 @@ html.dark-mode .inventory-scanner .scanner-unified > .block-content {
 
 .inventory-scanner .qty-value-input:focus {
   outline: none;
-  border-color: #6366f1;
-  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15), inset 0 2px 6px rgba(0, 0, 0, 0.04);
-  transform: scale(1.05);
+  border-color: rgba(0, 0, 0, 0.15);
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.06), inset 0 2px 6px rgba(0, 0, 0, 0.04);
+  transform: scale(1.02);
 }
 
 /* Negative quantity styling */
@@ -769,78 +780,34 @@ html.dark-mode .inventory-scanner .scanner-unified > .block-content {
   backdrop-filter: blur(10px);
   border-top: 1px solid rgba(0, 0, 0, 0.04);
   margin-top: 0.75rem;
+  overflow: visible;
+  position: relative;
+  border-radius: 0 0 20px 20px;
 }
 
 /* ===== Shelf Select in Pending Items ===== */
-/* Scanner uses c-select with custom styling */
+/* Uses standard c-select component styling */
 .inventory-scanner .pending-item-shelf {
   flex: 1;
   max-width: 200px;
+  position: relative;
 }
 
-/* Style the c-select button */
-.inventory-scanner .pending-item-shelf .c-select__button {
-  width: 100%;
-  padding: 0.625rem 1rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  border: 2px solid rgba(99, 102, 241, 0.2);
-  border-radius: 12px;
-  background: linear-gradient(135deg, #ffffff, #f8f9ff);
-  color: #4338ca;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.08);
-  min-height: auto;
+/* Hide native select until c-select enhances it to prevent flash */
+.inventory-scanner .pending-item-shelf select.shelf-select[data-enhance="c-select"]:not([data-enhanced]) {
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
 }
 
-.inventory-scanner .pending-item-shelf .c-select__button:hover {
-  border-color: #6366f1;
-  background: linear-gradient(135deg, #ffffff, #eef2ff);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+/* Ensure c-select dropdown appears above everything including tab bar */
+.inventory-scanner .pending-item-shelf .c-select {
+  position: relative;
 }
 
-.inventory-scanner .pending-item-shelf .c-select__button:focus-visible,
-.inventory-scanner .pending-item-shelf .c-select[aria-expanded='true'] .c-select__button {
-  outline: none;
-  border-color: #6366f1;
-  box-shadow: 
-    0 0 12px rgba(99, 102, 241, 0.2),
-    0 0 24px rgba(99, 102, 241, 0.1),
-    0 4px 12px rgba(99, 102, 241, 0.15);
-}
-
-/* Style the c-select caret */
-.inventory-scanner .pending-item-shelf .c-select__caret {
-  color: #4338ca;
-  opacity: 1;
-}
-
-/* Style the c-select dropdown */
 .inventory-scanner .pending-item-shelf .c-select__list {
-  border: 2px solid rgba(99, 102, 241, 0.2);
-  border-radius: 12px;
-  background: #ffffff;
-  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.2);
-  max-height: 220px;
-}
-
-/* Style the c-select items */
-.inventory-scanner .pending-item-shelf .c-select__item {
-  padding: 0.625rem 1rem;
-  font-size: 0.875rem;
-  color: #4338ca;
-  transition: all 0.2s;
-}
-
-.inventory-scanner .pending-item-shelf .c-select__item:hover {
-  background: rgba(99, 102, 241, 0.1);
-}
-
-.inventory-scanner .pending-item-shelf .c-select__item[aria-selected='true'] {
-  background: rgba(99, 102, 241, 0.15);
-  color: #4338ca;
-  font-weight: 700;
+  z-index: 99999;
+  position: absolute;
 }
 
 /* ===== Simplified Scanner Form ===== */
@@ -891,8 +858,66 @@ html.dark-mode .inventory-scanner .scanner-unified > .block-content {
   background: linear-gradient(135deg, #fee2e2, #fecaca);
   border-color: #ef4444;
   color: #b91c1c;
-  transform: scale(1.1) rotate(90deg);
+  transform: scale(1.1);
   box-shadow: 0 4px 16px rgba(239, 68, 68, 0.25);
+}
+
+/* Trash can open animation on hover */
+.inventory-scanner .pending-item-remove i.fa-trash {
+  transition: transform 0.2s ease;
+}
+
+.inventory-scanner .pending-item-remove:hover i.fa-trash {
+  transform: translateY(-2px);
+}
+
+.inventory-scanner .pending-item-remove:hover i.fa-trash::before {
+  content: "\f2ed"; /* fa-trash-alt (open trash) */
+}
+
+/* ===== Swipe to Delete (Mobile) ===== */
+.inventory-scanner .pending-item {
+  position: relative;
+  overflow: hidden;
+}
+
+.inventory-scanner .swipe-content {
+  position: relative;
+  z-index: 1;
+  background: inherit;
+  display: contents;
+}
+
+.inventory-scanner .swipe-delete-action {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 80px;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  color: white;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.inventory-scanner .swipe-delete-action i {
+  font-size: 1.25rem;
+}
+
+.inventory-scanner .swipe-delete-action span {
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.inventory-scanner .pending-item.swipe-open .swipe-delete-action {
+  pointer-events: auto;
+  cursor: pointer;
 }
 
 /* ===== Submit Section ===== */
@@ -907,10 +932,216 @@ html.dark-mode .inventory-scanner .scanner-unified > .block-content {
   margin-bottom: 1.5rem;
 }
 
+/* Reason Select Button */
+.inventory-scanner .reason-select-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  background: var(--bg-light, #f3f4f6);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  color: var(--text-muted, #6b7280);
+  transition: all 0.2s ease;
+}
+
+.inventory-scanner .reason-select-btn:not(:disabled):hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+}
+
+.inventory-scanner .reason-select-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.inventory-scanner .reason-select-btn i {
+  font-size: 0.875rem;
+  color: var(--text-muted, #6b7280);
+}
+
+/* Reason Modal Options */
+.reason-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.reason-option {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: color-mix(in srgb, var(--accent) 5%, var(--bg, #ffffff));
+  border: 2px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 1rem;
+  color: var(--text-primary, #1f2937);
+  text-align: left;
+  width: 100%;
+}
+
+.reason-option:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg, #ffffff));
+  transform: translateX(4px);
+}
+
+.reason-option.selected {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  font-weight: 600;
+}
+
+.reason-option i {
+  font-size: 1.25rem;
+  width: 2rem;
+  text-align: center;
+  color: var(--accent);
+}
+
+.reason-option.selected i {
+  color: var(--accent);
+}
+
+/* Dark mode */
+html.dark-mode .inventory-scanner .reason-select-btn {
+  background: var(--bg-card, #1f2937);
+  border-color: var(--border-color, #374151);
+  color: var(--text-muted, #9ca3af);
+}
+
+html.dark-mode .inventory-scanner .reason-select-btn:not(:disabled):hover {
+  background: var(--bg-light, #374151);
+  border-color: var(--accent);
+}
+
+html.dark-mode .reason-option {
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg-card, #1f2937));
+  border-color: color-mix(in srgb, var(--accent) 25%, transparent);
+  color: var(--text-primary, #f9fafb);
+}
+
+html.dark-mode .reason-option:hover {
+  background: color-mix(in srgb, var(--accent) 15%, var(--bg-card, #1f2937));
+  border-color: var(--accent);
+}
+
+html.dark-mode .reason-option.selected {
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  border-color: var(--accent);
+}
+
+/* Shelf Modal Options */
+.shelf-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.shelf-option {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: color-mix(in srgb, var(--accent) 5%, var(--bg, #ffffff));
+  border: 2px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 1rem;
+  color: var(--text-primary, #1f2937);
+  text-align: left;
+  width: 100%;
+}
+
+.shelf-option:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg, #ffffff));
+  transform: translateX(4px);
+}
+
+.shelf-option.selected {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  font-weight: 600;
+}
+
+.shelf-option i {
+  font-size: 1.25rem;
+  width: 2rem;
+  text-align: center;
+  color: var(--accent);
+}
+
+.shelf-option.selected i {
+  color: var(--accent);
+}
+
+.shelf-select-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg, #ffffff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: var(--text-primary, #1f2937);
+  transition: all 0.2s ease;
+  min-width: 120px;
+  justify-content: center;
+}
+
+.shelf-select-btn:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+}
+
+/* Dark mode */
+html.dark-mode .shelf-option {
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg-card, #1f2937));
+  border-color: color-mix(in srgb, var(--accent) 25%, transparent);
+  color: var(--text-primary, #f9fafb);
+}
+
+html.dark-mode .shelf-option:hover {
+  background: color-mix(in srgb, var(--accent) 15%, var(--bg-card, #1f2937));
+  border-color: var(--accent);
+}
+
+html.dark-mode .shelf-option.selected {
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  border-color: var(--accent);
+}
+
+html.dark-mode .shelf-select-btn {
+  background: var(--bg-card, #1f2937);
+  border-color: var(--border-color, #374151);
+  color: var(--text-primary, #f9fafb);
+}
+
+html.dark-mode .shelf-select-btn:hover {
+  background: var(--bg-light, #374151);
+  border-color: var(--accent);
+}
+
 .inventory-scanner .submit-actions {
   display: flex;
   gap: 1rem;
-  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+/* Push Cancel and Submit to the right, Clear All stays left */
+.inventory-scanner .submit-actions #cancelBtn {
+  margin-left: auto;
 }
 
 /* ===== Block Actions ===== */
@@ -1014,7 +1245,7 @@ html.dark-mode .inventory-scanner .scanner-unified > .block-content {
 }
 
 .inventory-scanner .modal-header-primary {
-  background: linear-gradient(135deg, var(--primary, #6366f1), var(--primary-dark, #4f46e5));
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 80%, #000));
   color: #ffffff;
   border-bottom: none;
 }
@@ -1094,7 +1325,7 @@ html.dark-mode .inventory-scanner .pending-item:hover {
 }
 
 html.dark-mode .inventory-scanner .empty-state {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.05), rgba(139, 92, 246, 0.05));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 5%, transparent), color-mix(in srgb, var(--accent) 8%, transparent));
   border-color: rgba(156, 163, 175, 0.15);
 }
 
@@ -1190,49 +1421,49 @@ html.dark-mode .inventory-scanner .pending-item-controls {
 }
 
 html.dark-mode .inventory-scanner .pending-item-shelf .c-select__button {
-  background: linear-gradient(135deg, #1a1a1a, #1e1b4b);
-  border-color: rgba(99, 102, 241, 0.3);
-  color: #a5b4fc;
+  background: linear-gradient(135deg, #1a1a1a, color-mix(in srgb, var(--accent) 15%, #1a1a1a));
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+  color: color-mix(in srgb, var(--accent) 70%, #fff);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 html.dark-mode .inventory-scanner .pending-item-shelf .c-select__button:hover {
-  background: linear-gradient(135deg, #1e1b4b, #312e81);
-  border-color: #818cf8;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 15%, #1a1a1a), color-mix(in srgb, var(--accent) 25%, #1a1a1a));
+  border-color: var(--accent);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 html.dark-mode .inventory-scanner .pending-item-shelf .c-select__button:focus-visible,
 html.dark-mode .inventory-scanner .pending-item-shelf .c-select[aria-expanded='true'] .c-select__button {
   outline: none;
-  border-color: #818cf8;
+  border-color: var(--accent);
   box-shadow: 
-    0 0 16px rgba(129, 140, 248, 0.25),
-    0 0 32px rgba(129, 140, 248, 0.15),
-    0 4px 12px rgba(99, 102, 241, 0.2);
+    0 0 16px color-mix(in srgb, var(--accent) 25%, transparent),
+    0 0 32px color-mix(in srgb, var(--accent) 15%, transparent),
+    0 4px 12px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 html.dark-mode .inventory-scanner .pending-item-shelf .c-select__caret {
-  color: #a5b4fc;
+  color: color-mix(in srgb, var(--accent) 70%, #fff);
 }
 
 html.dark-mode .inventory-scanner .pending-item-shelf .c-select__list {
   background: #1a1a1a;
-  border-color: rgba(99, 102, 241, 0.3);
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
 }
 
 html.dark-mode .inventory-scanner .pending-item-shelf .c-select__item {
-  color: #a5b4fc;
+  color: color-mix(in srgb, var(--accent) 70%, #fff);
 }
 
 html.dark-mode .inventory-scanner .pending-item-shelf .c-select__item:hover {
-  background: rgba(99, 102, 241, 0.15);
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
 html.dark-mode .inventory-scanner .pending-item-shelf .c-select__item[aria-selected='true'] {
-  background: rgba(99, 102, 241, 0.2);
-  color: #c7d2fe;
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  color: color-mix(in srgb, var(--accent) 80%, #fff);
 }
 
 html.dark-mode .inventory-scanner .pending-item-remove {
@@ -1289,17 +1520,19 @@ html.dark-mode .inventory-scanner .pending-item-remove:hover {
     border-radius: 0;
   }
   
-  /* Fixed search bar on mobile - account for header/burger menu */
+  /* Fixed search bar on mobile - extends from top to create solid background blocker */
   .inventory-scanner .scanner-unified > .block-content {
     position: fixed;
-    top: 48px; /* Below header/burger menu */
+    top: 0; /* Start from very top */
     left: 0;
     right: 0;
     padding: 0.75rem 0.5rem;
+    padding-top: calc(48px + 0.75rem); /* Space for hamburger menu + normal padding */
     background: var(--bg-dark, #f3f4f6);
     border-bottom: 1px solid var(--border-color, #e5e7eb);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     border-radius: 0;
+    z-index: 400; /* Below hamburger (510) but above pending items */
   }
   
   html.dark-mode .inventory-scanner .scanner-unified > .block-content {
@@ -1321,7 +1554,7 @@ html.dark-mode .inventory-scanner .pending-item-remove:hover {
   
   /* Search dropdown must be above sticky form */
   .inventory-scanner .search-dropdown {
-    z-index: 250;
+    z-index: 9999;
   }
   
   /* Message area - proper spacing on mobile */
@@ -1336,6 +1569,8 @@ html.dark-mode .inventory-scanner .pending-item-remove:hover {
     border: none;
     background: transparent;
     overflow: visible;
+    position: relative;
+    z-index: 50; /* Above submit section for dropdowns, below search bar */
   }
   
   /* Pending items list - scrollable area */
@@ -1345,13 +1580,17 @@ html.dark-mode .inventory-scanner .pending-item-remove:hover {
     overflow: visible;
     -webkit-overflow-scrolling: touch;
     padding-bottom: 220px; /* Extra padding to allow scrolling past sticky footer/nav */
+    position: relative;
+    z-index: 1;
   }
   
-  /* Pending actions button */
+  /* Pending actions button - stays below search bar */
   .inventory-scanner .pending-actions {
     justify-content: center;
     margin-bottom: 0.75rem;
     padding: 0 0.5rem;
+    position: relative;
+    z-index: 1;
   }
   
   .inventory-scanner .pending-actions .action-btn {
@@ -1483,11 +1722,27 @@ html.dark-mode .inventory-scanner .pending-item-remove:hover {
     padding: 0.375rem;
   }
   
-  /* Delete button styling for mobile - stays on left with icon */
+  /* Hide delete button on mobile - use swipe instead */
   .inventory-scanner .pending-item-remove {
-    width: 32px;
-    height: 32px;
-    font-size: 0.875rem;
+    display: none;
+  }
+  
+  /* Swipe to delete mobile styles */
+  .inventory-scanner .swipe-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    background: inherit;
+    border-radius: inherit;
+    width: 100%;
+  }
+  
+  .inventory-scanner .pending-item {
+    overflow: hidden;
+  }
+  
+  .inventory-scanner .swipe-delete-action {
+    border-radius: 0 16px 16px 0;
   }
   
   /* Main section takes remaining space */
@@ -1552,6 +1807,20 @@ html.dark-mode .inventory-scanner .pending-item-remove:hover {
   .inventory-scanner .pending-item-shelf:focus-within,
   .inventory-scanner .pending-item-controls:focus-within,
   .inventory-scanner .pending-item:focus-within {
+    z-index: 300;
+    position: relative;
+  }
+
+  /* Elevate pending-subsection above submit-subsection when dropdown is active */
+  .inventory-scanner .pending-subsection:focus-within,
+  .inventory-scanner .pending-subsection:has(.c-select.open) {
+    z-index: 200; /* Above submit-subsection (z-index: 100) */
+  }
+
+  /* Also elevate individual item when c-select is open */
+  .inventory-scanner .pending-item:has(.c-select.open),
+  .inventory-scanner .pending-item-controls:has(.c-select.open),
+  .inventory-scanner .pending-item-shelf:has(.c-select.open) {
     z-index: 300;
     position: relative;
   }
@@ -1640,11 +1909,13 @@ html.dark-mode .inventory-scanner .pending-item-remove:hover {
   
   .inventory-scanner .modal-footer {
     padding: 0.875rem 1.25rem;
-    flex-direction: column;
+    flex-direction: row;
+    flex-wrap: nowrap;
   }
   
   .inventory-scanner .modal-footer .action-btn {
-    width: 100%;
+    flex: 1;
+    min-width: 0;
     justify-content: center;
   }
 }

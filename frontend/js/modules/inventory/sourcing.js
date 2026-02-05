@@ -1881,7 +1881,7 @@ function renderSupplierGrid() {
         <i class="fas fa-users-slash"></i>
         <h3>No Suppliers Yet</h3>
         <p>Add your first supplier to start tracking pricing.</p>
-        <button class="btn btn-primary" onclick="window.sourcingModule.openAddSupplierModal()">
+        <button class="action-btn primary-btn accent-btn" onclick="window.sourcingModule.openAddSupplierModal()">
           <i class="fas fa-plus"></i> Add Supplier
         </button>
       </div>
@@ -1920,7 +1920,7 @@ function renderSupplierGrid() {
         ` : ''}
       </div>
       <div class="supplier-card-footer">
-        <button class="btn btn-secondary btn-sm" onclick="window.sourcingModule.openEditSupplierModal(${s.id})">
+        <button class="action-btn secondary-btn neutral-btn btn-sm" onclick="window.sourcingModule.openEditSupplierModal(${s.id})">
           <i class="fas fa-edit"></i> Edit
         </button>
       </div>

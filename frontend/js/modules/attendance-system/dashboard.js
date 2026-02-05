@@ -641,22 +641,11 @@ function displayLunchtimeCards(data) {
         <div class="employee-avatar">
           <i class="fas fa-user"></i>
         </div>
-        <div class="export-dropdown employee-card-export" data-employee="${emp.name}">
-          <button class="export-dropdown-btn btn-sm" title="Export employee data" onclick="event.stopPropagation();">
-            <i class="fas fa-download"></i>
-            <i class="fas fa-chevron-down dropdown-arrow"></i>
-          </button>
-          <div class="export-dropdown-menu">
-            <button class="export-option" data-format="pdf" data-employee="${emp.name}" onclick="event.stopPropagation();">
-              <i class="fas fa-file-pdf"></i>
-              <span>Export as PDF</span>
-            </button>
-            <button class="export-option" data-format="csv" data-employee="${emp.name}" onclick="event.stopPropagation();">
-              <i class="fas fa-file-csv"></i>
-              <span>Export as CSV</span>
-            </button>
-          </div>
-        </div>
+        <select class="employee-card-export-select" data-enhance="c-select" data-employee="${emp.name}" title="Export employee data" onclick="event.stopPropagation();">
+          <option value="" disabled selected>Export</option>
+          <option value="pdf">PDF</option>
+          <option value="csv">CSV</option>
+        </select>
       </div>
       <div class="employee-info">
         <h4>${emp.name}</h4>
@@ -691,8 +680,8 @@ function displayLunchtimeCards(data) {
   // Add click handlers for employee cards (clicking on card area opens logs modal)
   cardsEl.querySelectorAll('.lunchtime-employee-card[data-employee]').forEach(card => {
     card.addEventListener('click', (e) => {
-      // Don't open modal if clicking on export dropdown
-      if (e.target.closest('.employee-card-export')) return;
+      // Don't open modal if clicking on export c-select
+      if (e.target.closest('.c-select') || e.target.closest('.employee-card-export-select')) return;
       
       const employeeName = card.dataset.employee;
       if (employeeName) {
@@ -701,51 +690,78 @@ function displayLunchtimeCards(data) {
     });
   });
   
-  // Setup export dropdowns for employee cards
-  setupEmployeeCardExportDropdowns(cardsEl);
+  // Enhance employee card export selects with c-select and setup handlers
+  setupEmployeeCardExportSelects(cardsEl);
 }
 
 /**
- * Setup export dropdown handlers for employee cards
+ * Setup export select handlers for employee cards (using c-select)
  */
-function setupEmployeeCardExportDropdowns(container) {
-  const exportDropdowns = container.querySelectorAll('.employee-card-export');
+function setupEmployeeCardExportSelects(container) {
+  // First, enhance the selects with c-select component
+  // Use the global initCSelects function exposed by components.js
+  if (typeof window.initCSelects === 'function') {
+    window.initCSelects(container);
+  }
   
-  exportDropdowns.forEach(dropdown => {
-    const btn = dropdown.querySelector('.export-dropdown-btn');
-    const menu = dropdown.querySelector('.export-dropdown-menu');
-    
-    if (!btn || !menu) return;
-    
-    // Toggle dropdown on button click
-    btn.addEventListener('click', (e) => {
+  // Setup change handlers on the native select elements
+  const selectEls = container.querySelectorAll('.employee-card-export-select');
+  selectEls.forEach(select => {
+    select.addEventListener('change', async (e) => {
       e.stopPropagation();
       
-      // Close other dropdowns
-      document.querySelectorAll('.employee-card-export.open').forEach(d => {
-        if (d !== dropdown) d.classList.remove('open');
-      });
+      const format = e.target.value;
+      const employeeName = e.target.dataset.employee;
       
-      dropdown.classList.toggle('open');
-    });
-    
-    // Handle export option clicks
-    menu.querySelectorAll('.export-option').forEach(option => {
-      option.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        
-        const format = option.dataset.format;
-        const employeeName = option.dataset.employee;
-        
-        dropdown.classList.remove('open');
+      if (format && employeeName) {
         await handleEmployeeCardExport(employeeName, format);
-      });
+        // Reset to placeholder after action
+        e.target.selectedIndex = 0;
+      }
     });
   });
   
-  // Close dropdowns when clicking outside
-  document.addEventListener('click', () => {
-    exportDropdowns.forEach(d => d.classList.remove('open'));
+  // Add icons to employee card export c-selects after a short delay
+  setTimeout(() => addEmployeeCardExportIcons(container), 50);
+}
+
+/**
+ * Add icons to employee card export c-select dropdown items
+ */
+function addEmployeeCardExportIcons(container) {
+  const exportWrappers = container.querySelectorAll('.employee-card-header .c-select');
+  
+  exportWrappers.forEach(wrapper => {
+    // Add download icon to the button label
+    const label = wrapper.querySelector('.c-select__label');
+    if (label && !label.querySelector('i')) {
+      const icon = document.createElement('i');
+      icon.className = 'fas fa-download';
+      icon.style.marginRight = '0.25rem';
+      icon.style.fontSize = '0.7rem';
+      label.prepend(icon);
+    }
+    
+    // Add icons to PDF and CSV options
+    const items = wrapper.querySelectorAll('.c-select__item');
+    items.forEach(item => {
+      if (item.querySelector('i')) return;
+      
+      const value = item.dataset.value;
+      if (value === 'pdf') {
+        const icon = document.createElement('i');
+        icon.className = 'fas fa-file-pdf';
+        icon.style.color = '#f44336';
+        icon.style.marginRight = '0.375rem';
+        item.prepend(icon);
+      } else if (value === 'csv') {
+        const icon = document.createElement('i');
+        icon.className = 'fas fa-file-csv';
+        icon.style.color = '#4caf50';
+        icon.style.marginRight = '0.375rem';
+        item.prepend(icon);
+      }
+    });
   });
 }
 
@@ -1019,11 +1035,11 @@ function renderEmployeeLogsTable() {
   // Render pagination
   if (paginationEl && totalPages > 1) {
     paginationEl.innerHTML = `
-      <button class="action-btn action-btn-sm" ${currentPage <= 1 ? 'disabled' : ''} id="employeeLogsPrev">
+      <button class="action-btn action-btn-sm neutral-btn" ${currentPage <= 1 ? 'disabled' : ''} id="employeeLogsPrev">
         <i class="fas fa-chevron-left"></i>
       </button>
       <span style="color: var(--text); font-size: 0.875rem;">Page ${currentPage} of ${totalPages}</span>
-      <button class="action-btn action-btn-sm" ${currentPage >= totalPages ? 'disabled' : ''} id="employeeLogsNext">
+      <button class="action-btn action-btn-sm neutral-btn" ${currentPage >= totalPages ? 'disabled' : ''} id="employeeLogsNext">
         <i class="fas fa-chevron-right"></i>
       </button>
     `;
@@ -1208,58 +1224,82 @@ function clearGlobalFilters() {
   showToast('Filters cleared', 'info');
 }
 
-// ====== Export Dropdown Functions ======
-function setupExportDropdowns() {
-  const exportDropdowns = document.querySelectorAll('.export-dropdown');
+// ====== Export Select Functions ======
+function setupExportSelects() {
+  // Setup change handlers for c-select export dropdowns
+  const exportSelects = document.querySelectorAll('.export-select');
   
-  exportDropdowns.forEach(dropdown => {
-    const btn = dropdown.querySelector('.export-dropdown-btn');
-    const menu = dropdown.querySelector('.export-dropdown-menu');
-    
-    if (!btn || !menu) return;
-    
-    // Toggle dropdown on button click
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
+  exportSelects.forEach(select => {
+    select.addEventListener('change', async (e) => {
+      const format = e.target.value;
+      const section = e.target.dataset.section;
       
-      // Close other dropdowns
-      exportDropdowns.forEach(d => {
-        if (d !== dropdown) d.classList.remove('open');
-      });
-      
-      dropdown.classList.toggle('open');
-    });
-    
-    // Handle export option clicks
-    menu.querySelectorAll('.export-option').forEach(option => {
-      option.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        
-        const format = option.dataset.format;
-        const section = option.dataset.section;
-        
-        dropdown.classList.remove('open');
+      if (format && section) {
         await handleExport(section, format);
-      });
+        // Reset to placeholder after action
+        e.target.selectedIndex = 0;
+        // Trigger c-select to update its display
+        e.target.dispatchEvent(new Event('change', { bubbles: true }));
+      }
     });
   });
   
-  // Close dropdowns when clicking outside
-  document.addEventListener('click', () => {
-    exportDropdowns.forEach(d => d.classList.remove('open'));
+  // Add icons to export c-select items after a short delay for c-select to initialize
+  setTimeout(() => addExportSelectIcons(), 100);
+}
+
+/**
+ * Add icons to export c-select dropdown items
+ */
+function addExportSelectIcons() {
+  // Find all export c-select wrappers in block headers
+  const exportWrappers = document.querySelectorAll('.block-header-actions .c-select');
+  
+  exportWrappers.forEach(wrapper => {
+    // Add download icon to the button label
+    const label = wrapper.querySelector('.c-select__label');
+    if (label && !label.querySelector('i')) {
+      const icon = document.createElement('i');
+      icon.className = 'fas fa-download';
+      icon.style.marginRight = '0.375rem';
+      label.prepend(icon);
+    }
+    
+    // Add icons to PDF and CSV options
+    const items = wrapper.querySelectorAll('.c-select__item');
+    items.forEach(item => {
+      if (item.querySelector('i')) return; // Already has icon
+      
+      const value = item.dataset.value;
+      if (value === 'pdf') {
+        const icon = document.createElement('i');
+        icon.className = 'fas fa-file-pdf';
+        icon.style.color = '#f44336';
+        icon.style.marginRight = '0.5rem';
+        item.prepend(icon);
+      } else if (value === 'csv') {
+        const icon = document.createElement('i');
+        icon.className = 'fas fa-file-csv';
+        icon.style.color = '#4caf50';
+        icon.style.marginRight = '0.5rem';
+        item.prepend(icon);
+      }
+    });
   });
 }
 
 async function handleExport(section, format) {
-  const btn = document.querySelector(`#${section}ExportBtn`);
+  const selectEl = document.querySelector(`#${section}ExportSelect`);
+  const wrapper = selectEl?.closest('.c-select');
   
   try {
-    // Show loading state
-    if (btn) {
-      btn.classList.add('loading');
-      const icon = btn.querySelector('i:first-child');
-      if (icon) icon.className = 'fas fa-spinner';
+    // Show loading state on the c-select wrapper
+    if (wrapper) {
+      wrapper.classList.add('loading');
     }
+    
+    // Show loading toast
+    showToast(`Generating ${format.toUpperCase()} export...`, 'info');
     
     // Get current date range for the report
     const { fromDate, toDate } = getDateRangeForPreset(state.globalFilters.preset);
@@ -1377,11 +1417,9 @@ async function handleExport(section, format) {
     console.error('Export error:', error);
     showToast(`Failed to export ${format.toUpperCase()}: ${error.message}`, 'error');
   } finally {
-    // Reset button state
-    if (btn) {
-      btn.classList.remove('loading');
-      const icon = btn.querySelector('i:first-child');
-      if (icon) icon.className = 'fas fa-download';
+    // Reset loading state
+    if (wrapper) {
+      wrapper.classList.remove('loading');
     }
   }
 }
@@ -1401,8 +1439,8 @@ function setupEventHandlers() {
     });
   }
   
-  // Setup export dropdown handlers
-  setupExportDropdowns();
+  // Setup export select handlers (c-select based)
+  setupExportSelects();
   
   // Toggle view buttons
   const toggleRealtimeBtn = $("#toggleRealtimeView");

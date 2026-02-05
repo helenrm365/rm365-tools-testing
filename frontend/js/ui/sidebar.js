@@ -81,10 +81,6 @@ const navigationConfig = {
     label: 'Birmingham Orders',
     icon: 'fa-solid fa-cart-shopping',
     children: [
-      { id: 'order-fulfillment', label: 'Order Fulfillment', icon: 'fa-solid fa-box', path: '/birmingham-orders/order-fulfillment' },
-      { id: 'order-progress', label: 'Order Progress', icon: 'fa-solid fa-tasks', path: '/birmingham-orders/order-progress' },
-      { id: 'order-tracking', label: 'Order Tracking', icon: 'fa-solid fa-location-dot', path: '/birmingham-orders/order-tracking' },
-      { id: 'order-approval', label: 'Order Approval', icon: 'fa-solid fa-check-circle', path: '/birmingham-orders/order-approval' },
       { id: 'scanner', label: 'Scanner', icon: 'fa-solid fa-barcode', path: '/birmingham-orders/scanner' },
       { id: 'scanning-logs', label: 'Scanning Logs', icon: 'fa-solid fa-history', path: '/birmingham-orders/scanning-logs' }
     ]
@@ -93,10 +89,6 @@ const navigationConfig = {
     label: 'France Orders',
     icon: 'fa-solid fa-cart-shopping',
     children: [
-      { id: 'order-fulfillment', label: 'Order Fulfillment', icon: 'fa-solid fa-box', path: '/france-orders/order-fulfillment' },
-      { id: 'order-progress', label: 'Order Progress', icon: 'fa-solid fa-tasks', path: '/france-orders/order-progress' },
-      { id: 'order-tracking', label: 'Order Tracking', icon: 'fa-solid fa-location-dot', path: '/france-orders/order-tracking' },
-      { id: 'order-approval', label: 'Order Approval', icon: 'fa-solid fa-check-circle', path: '/france-orders/order-approval' },
       { id: 'scanner', label: 'Scanner', icon: 'fa-solid fa-barcode', path: '/france-orders/scanner' },
       { id: 'scanning-logs', label: 'Scanning Logs', icon: 'fa-solid fa-history', path: '/france-orders/scanning-logs' }
     ]
@@ -105,10 +97,6 @@ const navigationConfig = {
     label: 'London Orders',
     icon: 'fa-solid fa-cart-shopping',
     children: [
-      { id: 'order-fulfillment', label: 'Order Fulfillment', icon: 'fa-solid fa-box', path: '/london-orders/order-fulfillment' },
-      { id: 'order-progress', label: 'Order Progress', icon: 'fa-solid fa-tasks', path: '/london-orders/order-progress' },
-      { id: 'order-tracking', label: 'Order Tracking', icon: 'fa-solid fa-location-dot', path: '/london-orders/order-tracking' },
-      { id: 'order-approval', label: 'Order Approval', icon: 'fa-solid fa-check-circle', path: '/london-orders/order-approval' },
       { id: 'scanner', label: 'Scanner', icon: 'fa-solid fa-barcode', path: '/london-orders/scanner' },
       { id: 'scanning-logs', label: 'Scanning Logs', icon: 'fa-solid fa-history', path: '/london-orders/scanning-logs' }
     ]

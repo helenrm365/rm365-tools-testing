@@ -340,7 +340,13 @@ window.initModernUI = initModernBoxes;
       const items = list.querySelectorAll('.c-select__item');
       items.forEach(item => item.remove());
       
-      const opts = Array.from(native.options).map((opt, idx) => {
+      const opts = Array.from(native.options)
+        .filter((opt, idx) => {
+          // Skip placeholder options (disabled with empty value or first disabled option)
+          if (opt.disabled && (opt.value === '' || idx === 0)) return false;
+          return true;
+        })
+        .map((opt, idx) => {
         const item = document.createElement('div');
         item.className = 'c-select__item';
         item.setAttribute('role', 'option');
@@ -753,6 +759,52 @@ window.initModernUI = initModernBoxes;
     // ensure backdrop exists and is wired
     getDropdownBackdrop();
     window.__dropdownDocListenersBound = true;
+  }
+
+  // Universal scroll close - close ALL dropdowns (c-select & dropdown-container) on scroll OUTSIDE dropdowns
+  if (!window.__dropdownScrollListenersBound) {
+    // Check if scroll/touch event originated from inside a dropdown
+    const isInsideDropdown = (target) => {
+      if (!target || !(target instanceof Element)) return false;
+      return target.closest('.c-select__list, .search-dropdown, .search-dropdown-content, .dropdown-content');
+    };
+
+    const closeAllUniversal = (e) => {
+      // Don't close if scrolling inside a dropdown
+      if (isInsideDropdown(e?.target)) return;
+
+      // Close c-select dropdowns
+      document.querySelectorAll('.c-select[aria-expanded="true"]').forEach(w => {
+        w.setAttribute('aria-expanded', 'false');
+        w.classList.remove('open');
+        const listEl = w.querySelector('.c-select__list');
+        if (listEl) {
+          listEl.setAttribute('aria-hidden', 'true');
+          listEl.setAttribute('inert', '');
+        }
+        // Reset any forced overflow styles
+        const modernBox = w.closest('.modern-box');
+        if (modernBox && modernBox.style.overflow) {
+          modernBox.style.overflow = '';
+          modernBox.style.zIndex = '';
+        }
+      });
+      // Close dropdown-container dropdowns
+      closeAllDropdowns();
+      // Close search dropdowns
+      document.querySelectorAll('.search-dropdown.active').forEach(d => {
+        d.classList.remove('active');
+      });
+    };
+
+    // Window scroll (page-level scrolling)
+    window.addEventListener('scroll', closeAllUniversal, { passive: true });
+    // Document scroll in capture phase (for scrollable containers)
+    document.addEventListener('scroll', closeAllUniversal, { passive: true, capture: true });
+    // Touchmove for mobile scrolling outside dropdowns
+    document.addEventListener('touchmove', closeAllUniversal, { passive: true });
+    
+    window.__dropdownScrollListenersBound = true;
   }
 
 })();

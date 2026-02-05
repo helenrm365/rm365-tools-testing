@@ -457,15 +457,15 @@ function showMagentoDataInitError() {
       <div class="error-body">
         <p>The label generator requires magento data tables to be set up first. This provides pricing information and sales history for your products.</p>
         <div class="error-actions">
-          <button class="action-btn primary-btn" onclick="window.location.href='/magentodata'">
+          <button class="action-btn primary-btn accent-btn" onclick="window.location.href='/magentodata'">
             <i class="fas fa-database"></i>
             Go to Magento Data Module
           </button>
-          <button class="action-btn secondary-btn" onclick="initMagentoDataFromLabels()">
+          <button class="action-btn secondary-btn info-btn" onclick="initMagentoDataFromLabels()">
             <i class="fas fa-magic"></i>
             Initialize Here
           </button>
-          <button class="action-btn secondary-btn" onclick="retryLoadProducts()">
+          <button class="action-btn secondary-btn neutral-btn" onclick="retryLoadProducts()">
             <i class="fas fa-redo"></i>
             Retry
           </button>
@@ -1436,11 +1436,11 @@ function renderPresetList() {
         <span><i class="fas fa-globe"></i> ${preset.region ? preset.region.toUpperCase() : 'UK'}</span>
       </div>
       <div class="preset-actions">
-        <button class="action-btn btn-sm primary-btn" onclick="window.labelGenerator.loadPreset(${preset.id})" title="${isActive ? 'Reload this preset' : 'Load this preset'}">
+        <button class="action-btn btn-sm secondary-btn accent-btn" onclick="window.labelGenerator.loadPreset(${preset.id})" title="${isActive ? 'Reload this preset' : 'Load this preset'}">
           <i class="fas fa-${isActive ? 'sync-alt' : 'check-circle'}"></i>
           ${isActive ? 'Reload' : 'Load'}
         </button>
-        <button class="action-btn btn-sm secondary-btn" onclick="window.labelGenerator.viewPresetDetails(${preset.id})" title="View preset details">
+        <button class="action-btn btn-sm secondary-btn neutral-btn" onclick="window.labelGenerator.viewPresetDetails(${preset.id})" title="View preset details">
           <i class="fas fa-eye"></i>
           View
         </button>
@@ -1488,15 +1488,15 @@ function renderManagePresetsList() {
         </div>
       </div>
       <div class="manage-preset-actions">
-        <button class="action-btn btn-sm primary-btn" onclick="window.labelGenerator.loadPreset(${preset.id}); document.getElementById('managePresetsModal').classList.remove('active');">
+        <button class="action-btn btn-sm secondary-btn accent-btn" onclick="window.labelGenerator.loadPreset(${preset.id}); document.getElementById('managePresetsModal').classList.remove('active');">
           <i class="fas fa-check"></i>
           Load
         </button>
-        <button class="action-btn btn-sm secondary-btn" onclick="window.labelGenerator.showEditPresetModal(${preset.id})">
+        <button class="action-btn btn-sm secondary-btn neutral-btn" onclick="window.labelGenerator.showEditPresetModal(${preset.id})">
           <i class="fas fa-edit"></i>
           Edit
         </button>
-        <button class="action-btn btn-sm danger-btn" onclick="window.labelGenerator.deletePresetConfirm(${preset.id})">
+        <button class="action-btn btn-sm secondary-btn danger-btn" onclick="window.labelGenerator.deletePresetConfirm(${preset.id})">
           <i class="fas fa-trash"></i>
           Delete
         </button>

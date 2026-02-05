@@ -31,7 +31,14 @@ let nfcState = {
   scannedUid: null,
   originalUid: null,  // Original UID when modal opened
   currentEmployeeId: null,
+  websocket: null,  // WebSocket connection for NFC scanning
+  isProcessingCard: false,  // Prevent duplicate processing
 };
+
+// WebSocket configuration for NFC hardware bridge (same as automatic.js)
+const IS_HTTPS = window.location.protocol === 'https:';
+const WS_PROTOCOL = IS_HTTPS ? 'wss:' : 'ws:';
+const WS_URL = `${WS_PROTOCOL}//127.0.0.1:8080/ws/nfc`;
 
 function $(sel) { return document.querySelector(sel); }
 function $all(sel) { return Array.from(document.querySelectorAll(sel)); }
@@ -233,7 +240,8 @@ function renderTable() {
     const statusLabel = (e.status || 'active').charAt(0).toUpperCase() + (e.status || 'active').slice(1);
     const clockStatus = state.clockStatus[e.id] || 'unknown';
     const isClockedIn = clockStatus === 'in';
-    const clockBtnClass = isClockedIn ? 'clock-out-btn' : 'clock-in-btn';
+    // Use standard color classes: success-btn for clock in, warning-btn for clock out (orange)
+    const clockBtnClass = isClockedIn ? 'warning-btn' : 'success-btn';
     const clockBtnIcon = isClockedIn ? 'fa-sign-out-alt' : 'fa-sign-in-alt';
     const clockBtnText = isClockedIn ? 'Clock Out' : 'Clock In';
     const clockBtnTitle = isClockedIn ? 'Clock out this employee' : 'Clock in this employee';
@@ -269,7 +277,7 @@ function renderTable() {
           <span class="status-badge status-${statusClass}">${statusLabel}</span>
         </div>
       </div>
-      <button class="btn btn-sm clock-toggle-btn ${clockBtnClass}" 
+      <button class="btn btn-sm secondary-btn clock-toggle-btn ${clockBtnClass}" 
               data-id="${e.id}" 
               data-name="${e.name || 'Employee'}"
               data-clock-status="${clockStatus}"
@@ -338,9 +346,9 @@ window.openEmployeeEditModal = function(cardEl) {
   const modal = $('#editEmployeeModal');
   if (!modal) return;
   
-  // Reset NFC state
+  // Reset NFC state and disconnect any existing websocket
   const nfcUid = cardEl.dataset.nfc || '';
-  nfcState.scanning = false;
+  stopNfcScanning();  // Ensure clean state - stops scanning and disconnects websocket
   nfcState.scannedUid = null;
   nfcState.originalUid = nfcUid;
   nfcState.currentEmployeeId = Number(cardEl.dataset.id);
@@ -629,47 +637,145 @@ async function toggleNfcScanning() {
   }
 }
 
-async function startNfcScanning() {
-  if (nfcState.scanning) return;
-  
-  nfcState.scanning = true;
-  setNfcScanningUI(true);
-  showNfcStatus('Place NFC card on reader...', 'info');
-  
-  while (nfcState.scanning) {
-    try {
-      const result = await tryNfcScan(1);
-      
-      if (!nfcState.scanning) break;
-      
-      if (result && result.status === 'success' && result.uid) {
-        playScanSound();
-        nfcState.scannedUid = result.uid;
-        
-        // Update the display with scanned UID
-        updateNfcDisplay(result.uid);
-        updateNfcDeleteButton(result.uid);
-        
-        showNfcStatus(`Card detected: ${result.uid}`, 'success');
-        
-        // Brief pause after successful scan
-        await new Promise(r => setTimeout(r, 1000));
-        showNfcStatus('Tap another card or click Save', 'info');
-      } else {
-        // No card detected, continue polling
-        await new Promise(r => setTimeout(r, 300));
-      }
-    } catch (err) {
-      console.error('NFC scan error:', err);
-      showNfcStatus('Scanner not connected', 'error');
-      await new Promise(r => setTimeout(r, 2000));
+/**
+ * Disconnect WebSocket cleanly, checking readyState to avoid errors
+ */
+function disconnectNfcWebSocket() {
+  if (nfcState.websocket) {
+    // Only close if open or connecting (not already closing/closed)
+    if (nfcState.websocket.readyState === WebSocket.OPEN || 
+        nfcState.websocket.readyState === WebSocket.CONNECTING) {
+      nfcState.websocket.close(1000, 'Scan completed');
     }
+    nfcState.websocket = null;
   }
 }
 
+/**
+ * Start NFC scanning using WebSocket (same approach as automatic.js)
+ * This provides instant card detection instead of HTTP polling
+ */
+async function startNfcScanning() {
+  // Don't restart if already scanning
+  if (nfcState.scanning) return;
+  
+  // Don't connect if already connected or connecting
+  if (nfcState.websocket && 
+      (nfcState.websocket.readyState === WebSocket.OPEN || 
+       nfcState.websocket.readyState === WebSocket.CONNECTING)) {
+    console.log('WebSocket already connected or connecting');
+    return;
+  }
+  
+  nfcState.scanning = true;
+  nfcState.isProcessingCard = false;
+  setNfcScanningUI(true);
+  showNfcStatus('Connecting to card reader...', 'info');
+  
+  try {
+    // Clean up any existing websocket first
+    disconnectNfcWebSocket();
+    
+    // Connect via WebSocket for instant card detection
+    console.log('🔌 Connecting to NFC WebSocket (employees modal)...');
+    nfcState.websocket = new WebSocket(WS_URL);
+    
+    nfcState.websocket.onopen = () => {
+      console.log('✅ NFC WebSocket connected (employees modal)');
+      if (nfcState.scanning) {
+        showNfcStatus('Place NFC card on reader...', 'info');
+      }
+    };
+    
+    nfcState.websocket.onmessage = async (event) => {
+      // Ignore messages if not scanning or already processing
+      if (!nfcState.scanning || nfcState.isProcessingCard) return;
+      
+      try {
+        const data = JSON.parse(event.data);
+        
+        if (data.type === 'card_scanned' && data.uid) {
+          // Set processing flag to prevent duplicate handling
+          nfcState.isProcessingCard = true;
+          
+          const uid = String(data.uid).toUpperCase();
+          console.log('📇 Card scanned in employees modal:', uid);
+          
+          playScanSound();
+          nfcState.scannedUid = uid;
+          
+          // Update the display with scanned UID
+          updateNfcDisplay(uid);
+          updateNfcDeleteButton(uid);
+          
+          showNfcStatus(`Card detected: ${uid}`, 'success');
+          
+          // Stop scanning and disconnect WebSocket after successful scan
+          stopNfcScanning();
+          
+          // Show hint after a brief pause
+          setTimeout(() => {
+            if (!nfcState.scanning) {
+              showNfcStatus('Click Save to assign this card', 'info');
+            }
+          }, 1500);
+          
+        } else if (data.type === 'connected') {
+          console.log('📡 NFC Scanner ready:', data.message);
+          if (data.nfc_available) {
+            showNfcStatus('Place NFC card on reader...', 'info');
+          } else {
+            showNfcStatus('Card reader not available', 'warning');
+            stopNfcScanning();
+          }
+        } else if (data.type === 'error') {
+          console.error('NFC Error:', data.error);
+          showNfcStatus('Scanner error: ' + data.error, 'error');
+        }
+      } catch (e) {
+        console.error('Failed to parse NFC WebSocket message:', e);
+      }
+    };
+    
+    nfcState.websocket.onclose = (event) => {
+      console.log('🔌 NFC WebSocket disconnected:', event.code, event.reason);
+      // Only show warning if we were expecting to be scanning
+      if (nfcState.scanning && !nfcState.isProcessingCard) {
+        showNfcStatus('Connection lost. Click Scan to retry.', 'warning');
+        nfcState.scanning = false;
+        setNfcScanningUI(false);
+      }
+      nfcState.websocket = null;
+    };
+    
+    nfcState.websocket.onerror = (error) => {
+      console.error('NFC WebSocket error:', error);
+      if (nfcState.scanning) {
+        showNfcStatus('Cannot connect to card reader', 'error');
+        nfcState.scanning = false;
+        setNfcScanningUI(false);
+      }
+    };
+    
+  } catch (err) {
+    console.error('NFC WebSocket connection error:', err);
+    showNfcStatus('Scanner not connected', 'error');
+    nfcState.scanning = false;
+    nfcState.isProcessingCard = false;
+    setNfcScanningUI(false);
+  }
+}
+
+/**
+ * Stop NFC scanning and disconnect WebSocket
+ */
 function stopNfcScanning() {
   nfcState.scanning = false;
+  nfcState.isProcessingCard = false;
   setNfcScanningUI(false);
+  
+  // Disconnect WebSocket cleanly
+  disconnectNfcWebSocket();
 }
 
 async function handleDeleteNfc() {
