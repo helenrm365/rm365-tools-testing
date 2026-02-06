@@ -1564,8 +1564,8 @@ html.dark-mode .inventory-scanner .pending-item-remove:hover {
   /* Scanner unified block - remove box styling on mobile */
   .inventory-scanner .scanner-unified {
     padding: 0;
-    /* Account for fixed search bar: safe-area + hamburger (48px) + search bar (~80px) */
-    padding-top: calc(env(safe-area-inset-top, 0px) + 140px);
+    /* Account for fixed search bar: safe-area + hamburger (48px) + search bar (~80px) + breathing room */
+    padding-top: calc(env(safe-area-inset-top, 0px) + 170px);
     background: transparent;
     box-shadow: none;
     border: none;
