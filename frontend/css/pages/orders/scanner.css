@@ -1543,8 +1543,10 @@ html.dark-mode .inventory-scanner .pending-item-remove:hover {
 
 /* Mobile: max-width 768px */
 @media (max-width: 768px) {
-  /* Override sidebar's #content padding-top - scanner handles its own spacing */
-  body.has-sidebar #content:has(.inventory-scanner) {
+  /* Override sidebar's #content padding-top - scanner handles its own spacing.
+     Uses both :has() and JS-set class for broad browser support. */
+  body.has-sidebar #content:has(.inventory-scanner),
+  body.has-sidebar #content.scanner-active {
     padding-top: 0;
   }
   
@@ -1564,8 +1566,8 @@ html.dark-mode .inventory-scanner .pending-item-remove:hover {
   /* Scanner unified block - remove box styling on mobile */
   .inventory-scanner .scanner-unified {
     padding: 0;
-    /* Account for fixed search bar: safe-area + hamburger (48px) + search bar (~80px) + breathing room */
-    padding-top: calc(env(safe-area-inset-top, 0px) + 170px);
+    /* No top padding here - pending-subsection uses margin for scrollable headroom */
+    padding-top: 0;
     background: transparent;
     box-shadow: none;
     border: none;
@@ -1617,8 +1619,9 @@ html.dark-mode .inventory-scanner .pending-item-remove:hover {
   
   /* Pending subsection - scrollable, no box */
   .inventory-scanner .pending-subsection {
-    /* No extra margin needed - parent handles spacing */
-    margin-top: 0;
+    /* Push below fixed search bar — margin creates scrollable headroom so user can scroll up */
+    /* Uses CSS var set by JS for exact measurement, with generous fallback */
+    margin-top: var(--scanner-bar-height, calc(env(safe-area-inset-top, 0px) + 180px));
     padding-top: 0.5rem;
     border: none;
     background: transparent;

@@ -71,6 +71,29 @@ class InventoryScannerManager {
     
     this.initializeElements();
     this.attachEventListeners();
+    this.setupMobileLayout();
+  }
+
+  /** Measure fixed search bar height and set CSS var for pending-subsection spacing */
+  setupMobileLayout() {
+    // Add class for CSS fallback (in case :has() isn't supported)
+    const content = document.getElementById('content');
+    if (content) content.classList.add('scanner-active');
+
+    const bar = document.querySelector('.scanner-unified > .block-content');
+    if (!bar) return;
+    const update = () => {
+      const h = bar.getBoundingClientRect().height;
+      if (h > 0) {
+        document.documentElement.style.setProperty('--scanner-bar-height', (h + 12) + 'px');
+      }
+    };
+    // Use ResizeObserver for dynamic updates (font size changes, orientation)
+    if (typeof ResizeObserver !== 'undefined') {
+      new ResizeObserver(update).observe(bar);
+    }
+    // Initial measurement after layout settles
+    requestAnimationFrame(update);
   }
 
   initializeElements() {
