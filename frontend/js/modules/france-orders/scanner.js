@@ -40,6 +40,14 @@ const SHELF_OPTIONS = {
   ]
 };
 
+// Shelf order for sorting: Auto → <1 Year → >1 Year → Top Floor
+const SHELF_SORT_ORDER = {
+  'auto': 0,
+  'shelf_lt1_qty': 1,
+  'shelf_gt1_qty': 2,
+  'top_floor_total': 3
+};
+
 // Helper to get auth headers
 function getAuthHeaders() {
   const token = getToken();
@@ -53,6 +61,8 @@ class InventoryScannerManager {
     this.searchResults = [];
     this.searchDebounceTimer = null;
     this.isSearching = false;
+    this.userChangedReason = false; // Track if user manually changed the reason
+    this.userChangedShelf = false; // Track if user manually changed the shelf/location
     this.initializeElements();
     this.attachEventListeners();
   }
@@ -86,8 +96,10 @@ class InventoryScannerManager {
     this.successModal = document.getElementById('successModal');
     this.reasonModal = document.getElementById('reasonModal');
     this.shelfModal = document.getElementById('shelfModal');
+    this.duplicateModal = document.getElementById('duplicateModal');
     this.shelfOptions = document.getElementById('shelfOptions');
     this.activeShelfItemIndex = null; // Track which item's shelf is being edited
+    this.pendingDuplicateItem = null; // Track item waiting for duplicate confirmation
   }
 
   attachEventListeners() {
@@ -167,6 +179,14 @@ class InventoryScannerManager {
     document.getElementById('closeShelfModalBtn')?.addEventListener('click', () => this.hideShelfModal());
     this.shelfModal?.addEventListener('click', (e) => {
       if (e.target === this.shelfModal) this.hideShelfModal();
+    });
+    
+    // Duplicate modal
+    document.getElementById('closeDuplicateModalBtn')?.addEventListener('click', () => this.hideDuplicateModal());
+    document.getElementById('duplicateCancelBtn')?.addEventListener('click', () => this.hideDuplicateModal());
+    document.getElementById('duplicateAddBtn')?.addEventListener('click', () => this.confirmAddDuplicate());
+    this.duplicateModal?.addEventListener('click', (e) => {
+      if (e.target === this.duplicateModal) this.hideDuplicateModal();
     });
   }
 
@@ -289,9 +309,20 @@ class InventoryScannerManager {
     const existingIndex = this.pendingItems.findIndex(item => item.sku === itemInfo.sku);
     
     if (existingIndex >= 0) {
-      // Item already exists - just show a message, don't modify quantity
-      this.showMessage(`${itemInfo.name || itemInfo.sku} is already in the list`, 'info');
+      // Item exists - show duplicate modal to let user add with different shelf
       this.playBeep();
+      this.showDuplicateModal({
+        sku: itemInfo.sku,
+        itemId: itemInfo.item_id,
+        name: itemInfo.name || itemInfo.product_name || itemInfo.sku,
+        quantity: 0,
+        currentStock: itemInfo.total_qty || 0,
+        shelfStock: {
+          shelf_lt1_qty: itemInfo.shelf_lt1_qty || 0,
+          shelf_gt1_qty: itemInfo.shelf_gt1_qty || 0,
+          top_floor_total: itemInfo.top_floor_total || 0
+        }
+      });
       return;
     } else {
       // First add: Add new item with quantity 0, shelfField = 'auto'
@@ -475,12 +506,14 @@ class InventoryScannerManager {
         return;
       }
       
-      // Check if item already exists in pending list (by SKU only)
-      const existingIndex = this.pendingItems.findIndex(item => item.sku === itemInfo.sku);
+      // For scanning, always use 'auto' shelf - find existing auto entry for this SKU
+      const existingAutoIndex = this.pendingItems.findIndex(
+        item => item.sku === itemInfo.sku && item.shelfField === 'auto'
+      );
       
-      if (existingIndex >= 0) {
-        // Subsequent scan: Add another -1 to the current total
-        const item = this.pendingItems[existingIndex];
+      if (existingAutoIndex >= 0) {
+        // Subsequent scan: Add another -1 to the auto entry
+        const item = this.pendingItems[existingAutoIndex];
         const newQuantity = item.quantity - 1;
         
         // Validate stock availability
@@ -576,6 +609,18 @@ class InventoryScannerManager {
   }
 
   updatePendingList() {
+    // Sort pending items: group by SKU, then order by shelf
+    this.pendingItems.sort((a, b) => {
+      // First sort by SKU (alphabetically to group same products together)
+      if (a.sku !== b.sku) {
+        return a.sku.localeCompare(b.sku);
+      }
+      // Then sort by shelf order: Auto → <1 Year → >1 Year → Top Floor
+      const orderA = SHELF_SORT_ORDER[a.shelfField] ?? 99;
+      const orderB = SHELF_SORT_ORDER[b.shelfField] ?? 99;
+      return orderA - orderB;
+    });
+    
     const totalItems = this.pendingItems.length;
     const addItems = this.pendingItems.filter(i => i.quantity > 0);
     const removeItems = this.pendingItems.filter(i => i.quantity < 0);
@@ -888,6 +933,31 @@ class InventoryScannerManager {
       }
     }
     
+    // Check for quantity flip and update shelf/reason automatically
+    const wasNegative = oldQuantity < 0;
+    const wasPositive = oldQuantity > 0;
+    const isNowNegative = newQuantity < 0;
+    const isNowPositive = newQuantity > 0;
+    
+    // Flip from negative (or zero) to positive: switch to Top Floor and Re-evaluation
+    if (!wasPositive && isNowPositive) {
+      if (!this.userChangedShelf) {
+        item.shelfField = 'top_floor_total';
+      }
+      if (!this.userChangedReason) {
+        this.setReasonWithoutFlag('Stock Re-evaluation');
+      }
+    }
+    // Flip from positive (or zero) to negative: switch to Auto and Order
+    else if (!wasNegative && isNowNegative) {
+      if (!this.userChangedShelf) {
+        item.shelfField = 'auto';
+      }
+      if (!this.userChangedReason) {
+        this.setReasonWithoutFlag('Order');
+      }
+    }
+    
     item.quantity = newQuantity;
     
     this.updatePendingList();
@@ -913,9 +983,48 @@ class InventoryScannerManager {
       }
     }
     
+    // Check for quantity flip and update shelf/reason automatically
+    const wasNegative = oldQuantity < 0;
+    const wasPositive = oldQuantity > 0;
+    const isNowNegative = newValue < 0;
+    const isNowPositive = newValue > 0;
+    
+    // Flip from negative (or zero) to positive: switch to Top Floor and Re-evaluation
+    if (!wasPositive && isNowPositive) {
+      if (!this.userChangedShelf) {
+        item.shelfField = 'top_floor_total';
+      }
+      if (!this.userChangedReason) {
+        this.setReasonWithoutFlag('Stock Re-evaluation');
+      }
+    }
+    // Flip from positive (or zero) to negative: switch to Auto and Order
+    else if (!wasNegative && isNowNegative) {
+      if (!this.userChangedShelf) {
+        item.shelfField = 'auto';
+      }
+      if (!this.userChangedReason) {
+        this.setReasonWithoutFlag('Order');
+      }
+    }
+    
     item.quantity = newValue;
     
     this.updatePendingList();
+  }
+
+  // Helper to set reason without triggering the userChangedReason flag
+  setReasonWithoutFlag(reason) {
+    if (this.reasonInput) {
+      this.reasonInput.value = reason;
+    }
+    if (this.reasonDisplay) {
+      this.reasonDisplay.textContent = reason;
+    }
+    // Update visual selection state
+    document.querySelectorAll('.reason-option').forEach(btn => {
+      btn.classList.toggle('selected', btn.dataset.reason === reason);
+    });
   }
 
   setItemShelf(index, shelfValue) {
@@ -951,6 +1060,8 @@ class InventoryScannerManager {
 
   clearAllItems() {
     this.pendingItems = [];
+    this.userChangedReason = false; // Reset flag when clearing
+    this.userChangedShelf = false; // Reset flag when clearing
     this.updatePendingList();
     this.showMessage('All items cleared', 'info');
   }
@@ -1021,6 +1132,9 @@ class InventoryScannerManager {
   }
 
   selectReason(reason) {
+    // Mark that user explicitly changed the reason
+    this.userChangedReason = true;
+    
     if (this.reasonInput) {
       this.reasonInput.value = reason;
     }
@@ -1066,7 +1180,61 @@ class InventoryScannerManager {
     this.activeShelfItemIndex = null;
   }
 
+  showDuplicateModal(itemInfo) {
+    this.pendingDuplicateItem = itemInfo;
+    const messageEl = document.getElementById('duplicateModalMessage');
+    if (messageEl) {
+      messageEl.textContent = `"${itemInfo.name}" is already in the list. Add another shelf selection?`;
+    }
+    if (this.duplicateModal) {
+      this.duplicateModal.classList.add('active');
+    }
+  }
+
+  hideDuplicateModal() {
+    if (this.duplicateModal) {
+      this.duplicateModal.classList.remove('active');
+    }
+    this.pendingDuplicateItem = null;
+  }
+
+  confirmAddDuplicate() {
+    if (!this.pendingDuplicateItem) {
+      this.hideDuplicateModal();
+      return;
+    }
+    
+    // Store the item info before hiding modal
+    const itemInfo = this.pendingDuplicateItem;
+    this.hideDuplicateModal();
+    
+    // Show shelf selection modal for the new entry
+    // Find the existing item's index
+    const existingIndex = this.pendingItems.findIndex(item => item.sku === itemInfo.sku);
+    if (existingIndex !== -1) {
+      // Add a new entry for this product with default shelf
+      this.pendingItems.push({
+        sku: itemInfo.sku,
+        itemId: itemInfo.itemId,
+        name: itemInfo.name,
+        quantity: itemInfo.quantity,
+        shelfField: 'auto', // Default to auto
+        currentStock: itemInfo.currentStock,
+        shelfStock: itemInfo.shelfStock
+      });
+      
+      this.updatePendingList();
+      
+      // Show shelf modal for the new entry
+      const newIndex = this.pendingItems.length - 1;
+      this.showShelfModal(newIndex);
+    }
+  }
+
   selectShelf(value) {
+    // Mark that user explicitly changed the shelf
+    this.userChangedShelf = true;
+    
     if (this.activeShelfItemIndex !== null) {
       this.setItemShelf(this.activeShelfItemIndex, value);
     }

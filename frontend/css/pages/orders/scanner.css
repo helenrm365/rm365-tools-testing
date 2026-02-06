@@ -1662,7 +1662,6 @@ html.dark-mode .inventory-scanner .pending-item-remove:hover {
   .inventory-scanner .pending-item {
     gap: 0;
     padding: 0;
-    overflow: visible;
     border-radius: 16px;
   }
   

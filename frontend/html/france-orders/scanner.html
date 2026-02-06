@@ -189,6 +189,32 @@
     </div>
   </div>
 
+  <!-- Duplicate Product Modal -->
+  <div class="modal-backdrop" id="duplicateModal">
+    <div class="modal modal-sm">
+      <div class="modal-header modal-header-warning">
+        <div class="modal-header-icon">
+          <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <h2 class="modal-title">Product Already in List</h2>
+        <button class="modal-close modal-close-contrast" id="closeDuplicateModalBtn">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p id="duplicateMessage">This product is already in your pending list.</p>
+        <p class="modal-message">Would you like to add another shelf selection for this product?</p>
+      </div>
+      <div class="modal-footer">
+        <button class="action-btn primary-btn neutral-btn" id="duplicateCancelBtn">Cancel</button>
+        <button class="action-btn primary-btn success-btn" id="duplicateAddBtn">
+          <i class="fas fa-plus"></i>
+          Add Selection
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Success Modal -->
   <div class="modal-backdrop" id="successModal">
     <div class="modal modal-sm">
