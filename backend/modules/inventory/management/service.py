@@ -258,15 +258,31 @@ class InventoryManagementService:
             # Status filtering is already done at SQL level above
             filtered_products = all_products
             
+            # Load inventory_metadata early to support item_id search
+            metadata_records = self.repo.load_inventory_metadata()
+            metadata_by_sku = {m["sku"]: m for m in metadata_records}
+            
             # Apply search filter if provided
             if search and search.strip():
                 search_lower = search.strip().lower()
+                search_term = search.strip()
+                
+                # Check if search term looks like an item_id (numeric, 15+ digits, starts with 7)
+                is_item_id_search = (
+                    search_term.isdigit() and 
+                    len(search_term) >= 15 and 
+                    search_term.startswith('7')
+                )
+                
                 filtered_products = [
                     product for product in filtered_products
                     if (search_lower in (product.get("name") or "").lower() or
-                        search_lower in (product.get("sku") or "").lower())
+                        search_lower in (product.get("sku") or "").lower() or
+                        # Also search by item_id if it looks like an item_id scan
+                        (is_item_id_search and 
+                         metadata_by_sku.get(product.get("sku"), {}).get("item_id") == search_term))
                 ]
-                logger.info(f"Search '{search}' filtered to {len(filtered_products)} products")
+                logger.info(f"Search '{search}' filtered to {len(filtered_products)} products (item_id_search={is_item_id_search})")
             
             total_items = len(filtered_products)
             total_pages = (total_items + per_page - 1) // per_page if total_items > 0 else 1
@@ -279,10 +295,6 @@ class InventoryManagementService:
             
             # Get the page slice
             paginated_products = filtered_products[start_idx:end_idx]
-            
-            # Load inventory_metadata to get item_ids
-            metadata_records = self.repo.load_inventory_metadata()
-            metadata_by_sku = {m["sku"]: m for m in metadata_records}
             
             # Transform to match expected format (merge with metadata)
             items = []
