@@ -231,9 +231,52 @@ html.dark-mode .inventory-scanner .scanner-unified > .block-content {
 }
 
 /* ===== Search Input Wrapper ===== */
+.inventory-scanner .scanner-input-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: stretch;
+}
+
 .inventory-scanner .search-input-wrapper {
   position: relative;
   width: 100%;
+  flex: 1;
+}
+
+/* Multiplier Button */
+.inventory-scanner .multiplier-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 60px;
+  padding: 0 1rem;
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 80%, #000));
+  border: none;
+  border-radius: 12px;
+  color: white;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.inventory-scanner .multiplier-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.inventory-scanner .multiplier-btn:active {
+  transform: scale(0.98);
+}
+
+.inventory-scanner .multiplier-btn.mode-max {
+  background: linear-gradient(135deg, #dc2626, #991b1b);
+}
+
+.inventory-scanner .multiplier-btn .multiplier-value {
+  font-family: var(--ff, system-ui);
 }
 
 .inventory-scanner .search-spinner {

@@ -34,17 +34,22 @@
               <i class="fas fa-search"></i>
               Search Product
             </label>
-            <div class="search-input-wrapper">
-              <input type="text" id="skuInput" class="form-input barcode-input" placeholder="Search by SKU, barcode or product name..." autocomplete="off" autofocus>
-              <div class="search-spinner" id="searchSpinner" style="display: none;">
-                <i class="fas fa-spinner fa-spin"></i>
-              </div>
-              <!-- Search Results Dropdown -->
-              <div class="search-dropdown" id="searchDropdown">
-                <div class="search-dropdown-content" id="searchDropdownContent">
-                  <!-- Results populated by JS -->
+            <div class="scanner-input-row">
+              <div class="search-input-wrapper">
+                <input type="text" id="skuInput" class="form-input barcode-input" placeholder="Search by SKU, barcode or product name..." autocomplete="off" autofocus>
+                <div class="search-spinner" id="searchSpinner" style="display: none;">
+                  <i class="fas fa-spinner fa-spin"></i>
+                </div>
+                <!-- Search Results Dropdown -->
+                <div class="search-dropdown" id="searchDropdown">
+                  <div class="search-dropdown-content" id="searchDropdownContent">
+                    <!-- Results populated by JS -->
+                  </div>
                 </div>
               </div>
+              <button type="button" id="multiplierBtn" class="multiplier-btn" title="Click to cycle: 1x → 5x → 10x → 20x → 50x → Max">
+                <span class="multiplier-value">1x</span>
+              </button>
             </div>
           </div>
         </div>

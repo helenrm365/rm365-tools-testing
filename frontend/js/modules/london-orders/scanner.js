@@ -63,6 +63,11 @@ class InventoryScannerManager {
     this.isSearching = false;
     this.userChangedReason = false; // Track if user manually changed the reason
     this.userChangedShelf = false; // Track if user manually changed the shelf/location
+    
+    // Multiplier modes: 1, 5, 10, 20, 50, 'max'
+    this.multiplierModes = [1, 5, 10, 20, 50, 'max'];
+    this.currentMultiplierIndex = 0;
+    
     this.initializeElements();
     this.attachEventListeners();
   }
@@ -75,6 +80,9 @@ class InventoryScannerManager {
     this.searchDropdown = document.getElementById('searchDropdown');
     this.searchDropdownContent = document.getElementById('searchDropdownContent');
     this.searchSpinner = document.getElementById('searchSpinner');
+    
+    // Multiplier button
+    this.multiplierBtn = document.getElementById('multiplierBtn');
     
     // Messages and lists
     
@@ -148,6 +156,9 @@ class InventoryScannerManager {
     document.addEventListener('touchmove', closeDropdown, { passive: true });
     window.addEventListener('touchstart', closeDropdown, { passive: true });
     this.pendingItemsList?.addEventListener('scroll', closeDropdown, { passive: true });
+    
+    // Multiplier button - cycle through modes
+    this.multiplierBtn?.addEventListener('click', () => this.cycleMultiplier());
     
     // Clear all button
     this.clearAllBtn?.addEventListener('click', () => this.clearAllItems());
@@ -510,11 +521,35 @@ class InventoryScannerManager {
       const existingAutoIndex = this.pendingItems.findIndex(
         item => item.sku === itemInfo.sku && item.shelfField === 'auto'
       );
+      
+      // Determine scan amount based on multiplier
+      const multiplier = this.getCurrentMultiplier();
+      let scanAmount;
+      
+      if (multiplier === 'max') {
+        // For max mode, deduct all available stock
+        const totalStock = itemInfo.total_qty || 0;
+        if (existingAutoIndex >= 0) {
+          // Account for already deducted amount
+          const currentlyDeducted = Math.abs(Math.min(0, this.pendingItems[existingAutoIndex].quantity));
+          scanAmount = -(totalStock - currentlyDeducted);
+        } else {
+          scanAmount = -totalStock;
+        }
+        if (scanAmount === 0) {
+          this.showMessage('No stock available to deduct', 'info');
+          this.skuInput.value = '';
+          this.skuInput.focus();
+          return;
+        }
+      } else {
+        scanAmount = -multiplier;
+      }
 
       if (existingAutoIndex >= 0) {
-        // Subsequent scan: Add another -1 to the auto entry
+        // Subsequent scan: Add scan amount to the auto entry
         const item = this.pendingItems[existingAutoIndex];
-        const newQuantity = item.quantity - 1;
+        const newQuantity = item.quantity + scanAmount;
         
         // Validate stock availability
         const validation = this.validateStockAvailability(item.sku, newQuantity, item.shelfField);
@@ -529,9 +564,9 @@ class InventoryScannerManager {
         item.quantity = newQuantity;
         this.showMessage(`${itemInfo.name || itemInfo.sku} → Total: ${newQuantity}`, 'success');
       } else {
-        // First scan: Add new item with quantity -1, shelfField = 'auto'
+        // First scan: Add new item with scan amount, shelfField = 'auto'
         // Validate stock availability
-        const validation = this.validateStockAvailability(itemInfo.sku, -1, 'auto');
+        const validation = this.validateStockAvailability(itemInfo.sku, scanAmount, 'auto');
         if (!validation.valid) {
           this.showMessage(validation.message, 'error');
           this.playErrorBeep();
@@ -544,7 +579,7 @@ class InventoryScannerManager {
           sku: itemInfo.sku,
           itemId: itemInfo.item_id,
           name: itemInfo.name || itemInfo.product_name || sku,
-          quantity: -1,
+          quantity: scanAmount,
           shelfField: 'auto',
           currentStock: itemInfo.total_qty || 0,
           shelfStock: {
@@ -553,7 +588,7 @@ class InventoryScannerManager {
             top_floor_total: itemInfo.top_floor_total || 0
           }
         });
-        this.showMessage(`Added: ${itemInfo.name || sku} (Qty: -1)`, 'success');
+        this.showMessage(`Added: ${itemInfo.name || sku} (Qty: ${scanAmount})`, 'success');
       }
       
       this.playBeep();
@@ -913,23 +948,42 @@ class InventoryScannerManager {
     
     const item = this.pendingItems[index];
     const oldQuantity = item.quantity;
-    let newQuantity = oldQuantity;
+    const multiplier = this.getCurrentMultiplier();
+    let change;
     
-    if (action === 'increase') {
-      // Going towards positive
-      newQuantity++;
-    } else if (action === 'decrease') {
-      // Going towards negative
-      newQuantity--;
-      
-      // Validate stock availability for deductions (only when actually negative)
-      if (newQuantity < 0) {
-        const validation = this.validateStockAvailability(item.sku, newQuantity, item.shelfField);
-        if (!validation.valid) {
-          this.showMessage(validation.message, 'error');
-          this.playErrorBeep();
-          return;
-        }
+    if (multiplier === 'max') {
+      // For max mode, calculate the maximum change possible
+      if (action === 'increase') {
+        // Adding: for increase, there's no stock limit (adding to inventory)
+        // Use a reasonable large step or the available stock as guidance
+        const maxAvail = this.getMaxAvailable(item, item.shelfField);
+        change = Math.max(1, maxAvail || 1);
+      } else {
+        // Decreasing (more negative): deduct as much as available
+        const maxAvail = this.getMaxAvailable(item, item.shelfField);
+        const currentlyDeducted = Math.abs(Math.min(0, oldQuantity));
+        const canDeductMore = maxAvail - currentlyDeducted;
+        change = -Math.max(0, canDeductMore);
+      }
+    } else {
+      // Normal multiplier
+      change = action === 'increase' ? multiplier : -multiplier;
+    }
+    
+    if (change === 0) {
+      this.showMessage('No more stock available to deduct', 'info');
+      return;
+    }
+    
+    let newQuantity = oldQuantity + change;
+    
+    // Validate stock availability for deductions (only when negative)
+    if (newQuantity < 0) {
+      const validation = this.validateStockAvailability(item.sku, newQuantity, item.shelfField);
+      if (!validation.valid) {
+        this.showMessage(validation.message, 'error');
+        this.playErrorBeep();
+        return;
       }
     }
     
@@ -1310,6 +1364,11 @@ class InventoryScannerManager {
       if (results.failed.length === 0) {
         this.pendingItems = [];
         this.updatePendingList();
+        // Reset multiplier to 1x
+        this.resetMultiplier();
+        // Reset user change flags
+        this.userChangedReason = false;
+        this.userChangedShelf = false;
         // Reset reason to default "Order"
         if (this.reasonInput) {
           this.reasonInput.value = 'Order';
@@ -1427,6 +1486,83 @@ class InventoryScannerManager {
     if (this.successModal) {
       this.successModal.classList.remove('active');
     }
+  }
+
+  // ===== Multiplier Methods =====
+  
+  getCurrentMultiplier() {
+    return this.multiplierModes[this.currentMultiplierIndex];
+  }
+
+  cycleMultiplier() {
+    this.currentMultiplierIndex = (this.currentMultiplierIndex + 1) % this.multiplierModes.length;
+    this.updateMultiplierDisplay();
+  }
+
+  updateMultiplierDisplay() {
+    if (!this.multiplierBtn) return;
+    const value = this.getCurrentMultiplier();
+    const display = value === 'max' ? 'Max' : `${value}x`;
+    this.multiplierBtn.querySelector('.multiplier-value').textContent = display;
+    
+    // Change button style for max mode
+    if (value === 'max') {
+      this.multiplierBtn.classList.add('mode-max');
+    } else {
+      this.multiplierBtn.classList.remove('mode-max');
+    }
+  }
+
+  resetMultiplier() {
+    this.currentMultiplierIndex = 0;
+    this.updateMultiplierDisplay();
+  }
+
+  /**
+   * Calculate maximum available stock for deduction
+   * @param {object} item - Pending item with shelfStock and currentStock
+   * @param {string} shelfField - Target shelf or 'auto'
+   * @returns {number} Maximum units available to deduct
+   */
+  getMaxAvailable(item, shelfField) {
+    if (shelfField === 'auto') {
+      // For auto mode, use total stock
+      return item.currentStock || 0;
+    } else {
+      // For specific shelf, use that shelf's stock
+      return item.shelfStock?.[shelfField] || 0;
+    }
+  }
+
+  /**
+   * Get the effective quantity change based on multiplier
+   * @param {number} direction - 1 for increase (add), -1 for decrease (remove)
+   * @param {object} item - The item being modified (for max calculation)
+   * @returns {number} The quantity change (signed)
+   */
+  getMultipliedQuantity(direction, item = null) {
+    const multiplier = this.getCurrentMultiplier();
+    
+    if (multiplier === 'max') {
+      if (!item) return direction; // Fallback
+      
+      if (direction < 0) {
+        // Deducting (removing): max is the available stock
+        const maxAvail = this.getMaxAvailable(item, item.shelfField);
+        // Return the max we can deduct (considering current quantity)
+        // If current quantity is -5 and max avail is 10, we could go to -10
+        const currentlyDeducted = Math.abs(Math.min(0, item.quantity));
+        const canDeductMore = maxAvail - currentlyDeducted;
+        return -Math.max(0, canDeductMore);
+      } else {
+        // Adding: for max mode in positive direction, no real limit
+        // But we can cap it reasonably - just use a large step or same as max available
+        const maxAvail = this.getMaxAvailable(item, item.shelfField);
+        return Math.max(1, maxAvail || 1);
+      }
+    }
+    
+    return direction * multiplier;
   }
 
   playBeep() {
