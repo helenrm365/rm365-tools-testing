@@ -220,6 +220,21 @@ class InventoryScannerManager {
       return;
     }
     
+    // Detect item_id barcode scan (numeric, 15+ digits, starts with 7)
+    // Skip search dropdown and add item directly
+    const isItemIdScan = /^7\d{14,}$/.test(trimmedQuery);
+    if (isItemIdScan) {
+      this.hideSearchDropdown();
+      if (this.searchSpinner) {
+        this.searchSpinner.style.display = 'none';
+      }
+      // Trigger scan directly after a short delay to allow barcode scanner to finish
+      this.searchDebounceTimer = setTimeout(() => {
+        this.scanItem(false);
+      }, 100);
+      return;
+    }
+    
     // Debounce: wait 500ms after user stops typing
     this.searchDebounceTimer = setTimeout(() => {
       // Show spinner before search
