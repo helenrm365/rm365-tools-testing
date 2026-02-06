@@ -18,6 +18,7 @@
   transition: all var(--transition);
   padding: 0.5rem 1rem;
   min-height: calc(100vh - 40px);
+  min-height: calc(100dvh - 40px); /* Dynamic viewport height - accounts for mobile browser chrome */
   background: var(--bg-dark);
 }
 
@@ -1544,8 +1545,10 @@ html.dark-mode .inventory-scanner .pending-item-remove:hover {
 @media (max-width: 768px) {
   .inventory-scanner {
     padding: 0.5rem;
-    padding-bottom: 120px;
-    padding-top: 120px; /* Space for header (48px) + fixed search bar (~70px) */
+    /* Account for safe area + submit section + bottom nav */
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 180px);
+    /* Account for safe area + header + fixed search bar */
+    padding-top: calc(env(safe-area-inset-top, 0px) + 120px);
   }
   
   /* Hide page header on mobile */
@@ -1570,7 +1573,8 @@ html.dark-mode .inventory-scanner .pending-item-remove:hover {
     left: 0;
     right: 0;
     padding: 0.75rem 0.5rem;
-    padding-top: calc(48px + 0.75rem); /* Space for hamburger menu + normal padding */
+    /* Account for safe area (notch) + hamburger menu + normal padding */
+    padding-top: calc(env(safe-area-inset-top, 0px) + 48px + 0.75rem);
     background: var(--bg-dark, #f3f4f6);
     border-bottom: 1px solid var(--border-color, #e5e7eb);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
@@ -1622,7 +1626,8 @@ html.dark-mode .inventory-scanner .pending-item-remove:hover {
     max-height: none;
     overflow: visible;
     -webkit-overflow-scrolling: touch;
-    padding-bottom: 220px; /* Extra padding to allow scrolling past sticky footer/nav */
+    /* Extra padding to allow scrolling past sticky footer/nav + safe area */
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 220px);
     position: relative;
     z-index: 1;
   }
@@ -1885,7 +1890,8 @@ html.dark-mode .inventory-scanner .pending-item-remove:hover {
   /* Submit section - sticky at bottom on mobile */
   .inventory-scanner .submit-subsection {
     position: fixed;
-    bottom: 60px; /* Above bottom tab navbar (approx 52-60px height) */
+    /* Account for safe area (home indicator) + bottom tab navbar */
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 60px);
     left: 0;
     right: 0;
     z-index: 100;
@@ -1894,6 +1900,8 @@ html.dark-mode .inventory-scanner .pending-item-remove:hover {
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
     margin: 0;
     padding: 1rem;
+    padding-left: calc(env(safe-area-inset-left, 0px) + 1rem);
+    padding-right: calc(env(safe-area-inset-right, 0px) + 1rem);
     border-radius: 0;
   }
   

@@ -61,6 +61,7 @@ class InventoryScannerManager {
     this.searchResults = [];
     this.searchDebounceTimer = null;
     this.isSearching = false;
+    this.isItemIdScanPending = false; // Prevent double-scan from Enter key
     this.userChangedReason = false; // Track if user manually changed the reason
     this.userChangedShelf = false; // Track if user manually changed the shelf/location
     
@@ -120,6 +121,10 @@ class InventoryScannerManager {
     this.skuInput?.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
+        // Skip if item_id scan is already pending (prevents double-scan)
+        if (this.isItemIdScanPending) {
+          return;
+        }
         // If dropdown is open and has results, select first one
         if (this.searchDropdown?.classList.contains('active') && this.searchResults.length > 0) {
           this.selectSearchResult(this.searchResults[0]);
@@ -207,7 +212,10 @@ class InventoryScannerManager {
     // Clear previous timer
     if (this.searchDebounceTimer) {
       clearTimeout(this.searchDebounceTimer);
+      this.searchDebounceTimer = null;
     }
+    // Reset pending flag when timer is cleared (prevents stuck state)
+    this.isItemIdScanPending = false;
     
     const trimmedQuery = query.trim();
     
@@ -228,9 +236,12 @@ class InventoryScannerManager {
       if (this.searchSpinner) {
         this.searchSpinner.style.display = 'none';
       }
+      // Set flag to prevent Enter keydown from also triggering scan
+      this.isItemIdScanPending = true;
       // Trigger scan directly after a short delay to allow barcode scanner to finish
       this.searchDebounceTimer = setTimeout(() => {
         this.scanItem(false);
+        this.isItemIdScanPending = false;
       }, 100);
       return;
     }

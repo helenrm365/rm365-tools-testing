@@ -24,6 +24,7 @@
 /* Page wrapper */
 .page-wrapper {
   min-height: 100vh;
+  min-height: 100dvh; /* Dynamic viewport height - accounts for mobile browser chrome */
   padding: var(--space-lg);
 }
 

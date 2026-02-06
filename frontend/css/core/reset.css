@@ -20,11 +20,14 @@ html {
 
 body {
   min-height: 100vh;
+  min-height: 100dvh; /* Dynamic viewport height - accounts for mobile browser chrome */
   background-color: var(--bg-dark);
   color: var(--text-muted);
   line-height: 1.6;
   overflow-x: hidden;
   position: relative;
+  /* Note: safe-area-insets are handled by individual pages (e.g., scanner.css)
+     to avoid double-padding with fixed elements */
 }
 
 /* App Shell Layout */
