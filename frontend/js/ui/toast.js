@@ -1,4 +1,105 @@
 // Toast notification system - stacking toasts with newest at bottom
+
+/**
+ * Show a toast with an action button (e.g., "Retry Export")
+ * @param {string} message - Toast message
+ * @param {string} type - Toast type (error, warning, success, info)
+ * @param {string} actionLabel - Label for the action button
+ * @param {Function} actionCallback - Function to call when action button is clicked
+ * @param {number} [duration=10000] - How long to show the toast (ms)
+ */
+export function showToastWithAction(message, type, actionLabel, actionCallback, duration = 10000) {
+    // Create toast container if it doesn't exist
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        container.style.cssText = `
+            position: fixed !important;
+            bottom: 20px !important;
+            right: 20px !important;
+            z-index: 2147483647 !important;
+            display: flex !important;
+            flex-direction: column-reverse !important;
+            gap: 10px !important;
+            max-width: 400px !important;
+            pointer-events: none !important;
+            isolation: isolate !important;
+        `;
+        document.body.appendChild(container);
+    }
+
+    if (container.parentNode !== document.body || container !== document.body.lastElementChild) {
+        document.body.appendChild(container);
+    }
+
+    const toast = document.createElement('div');
+    toast.className = `stacking-toast stacking-toast-${type}`;
+
+    const colors = {
+        success: { bg: '#10b981', icon: '\u2713' },
+        error: { bg: '#ef4444', icon: '\u2715' },
+        warning: { bg: '#f59e0b', icon: '\u26A0' },
+        info: { bg: '#3b82f6', icon: '\u2139' }
+    };
+    const color = colors[type] || colors.info;
+
+    toast.style.cssText = `
+        position: relative;
+        background: ${color.bg};
+        color: white;
+        padding: 12px 16px;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        animation: slideInFromBottom 0.3s ease-out;
+        font-size: 14px;
+        line-height: 1.5;
+        pointer-events: auto;
+    `;
+
+    toast.innerHTML = `
+        <span style="font-size: 18px; font-weight: bold;">${color.icon}</span>
+        <span style="flex: 1;">${message}</span>
+        <button style="
+            background: rgba(255,255,255,0.25);
+            border: 1px solid rgba(255,255,255,0.5);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            white-space: nowrap;
+            transition: background 0.15s;
+        " onmouseover="this.style.background='rgba(255,255,255,0.4)'" onmouseout="this.style.background='rgba(255,255,255,0.25)'">${actionLabel}</button>
+    `;
+
+    const actionBtn = toast.querySelector('button');
+    actionBtn.addEventListener('click', () => {
+        actionCallback();
+        // Remove toast on click
+        toast.style.animation = 'fadeUpAndOut 0.4s ease-out forwards';
+        setTimeout(() => {
+            if (toast.parentNode) toast.parentNode.removeChild(toast);
+            if (container.children.length === 0 && container.parentNode) container.parentNode.removeChild(container);
+        }, 400);
+    });
+
+    container.insertBefore(toast, container.firstChild);
+
+    // Auto-remove after duration
+    setTimeout(() => {
+        toast.style.animation = 'fadeUpAndOut 0.4s ease-out forwards';
+        setTimeout(() => {
+            if (toast.parentNode) toast.parentNode.removeChild(toast);
+            if (container.children.length === 0 && container.parentNode) container.parentNode.removeChild(container);
+        }, 400);
+    }, duration);
+}
+
 export function showToast(message, type = 'info') {
     // Update loading screen message if it's visible
     const isLoading = updateLoadingMessage(message);

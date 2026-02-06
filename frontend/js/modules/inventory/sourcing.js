@@ -8,7 +8,7 @@
  * 4. Analysis_Dashboard - Best price & margin calculations
  */
 
-import { showToast } from '../../ui/toast.js';
+import { showToast, showToastWithAction } from '../../ui/toast.js';
 import { getToken } from '../../services/state/sessionStore.js';
 import { showLoading, hideLoading } from '../../router.js';
 import {
@@ -54,6 +54,9 @@ const SYMBOL_TO_CURRENCY = {
   'zł': 'PLN',
   'kr': 'SEK'
 };
+
+// Hardcoded Google Sheet ID — same for all users
+const DEFAULT_GSHEET_ID = '1zq_pWUTRp27Q0CE_5h0pt04XmouYKY04lgYYLLyLWQg';
 
 /**
  * Parse a price string that may contain a currency symbol.
@@ -380,11 +383,8 @@ function setupEventListeners() {
     if (e.target === e.currentTarget) closeConfirmGSheetModal();
   });
   
-  // Restore GSheet settings from local storage (but don't auto-enable)
-  const savedId = localStorage.getItem('rm365_gsheet_id');
-  if (savedId) {
-    state.gsheetId = savedId;
-  }
+  // Use hardcoded Google Sheet ID as default; localStorage can override if set
+  state.gsheetId = localStorage.getItem('rm365_gsheet_id') || DEFAULT_GSHEET_ID;
   updateGSheetCardDisplay();
   
   // Suppliers
@@ -1149,7 +1149,7 @@ function recalculateRowBestPrice(row) {
  * We wait 5 seconds after last change before syncing
  */
 function scheduleGSheetSync() {
-  if (!state.autoExportEnabled || !state.gsheetId) return;  // Auto-export not enabled
+  if (!state.gsheetId) return;  // No sheet linked
   
   // Clear any pending sync
   if (state.gsheetSyncTimeout) {
@@ -1181,7 +1181,12 @@ async function performGSheetExport() {
   } catch (error) {
     console.error('[Sourcing] GSheet auto-export failed:', error);
     state.gsheetSyncPending = false;
-    showToast('Failed to export to Google Sheet', 'error');
+    showToastWithAction(
+      'Failed to export to Google Sheet',
+      'error',
+      'Export to Sheet',
+      () => handleGSheetExport()
+    );
   }
 }
 
@@ -1666,6 +1671,22 @@ function confirmSaveGSheetLink() {
   updateGSheetCardDisplay();
   
   showToast('Google Sheet link saved!', 'success');
+  
+  // Immediately export to the new sheet
+  if (sheetId) {
+    showToast('Exporting to Google Sheet...', 'info');
+    performGSheetExport().then(() => {
+      showToast('Exported to Google Sheet', 'success');
+    }).catch(err => {
+      console.error('[Sourcing] Failed initial export to new sheet:', err);
+      showToastWithAction(
+        'Failed to export to Google Sheet',
+        'error',
+        'Export to Sheet',
+        () => handleGSheetExport()
+      );
+    });
+  }
 }
 
 /**
@@ -2005,7 +2026,12 @@ async function handleSaveSupplier() {
         showToast('Synced to Google Sheet', 'success');
       } catch (err) {
         console.error('[Sourcing] Failed to sync supplier change:', err);
-        // Don't show error toast - supplier was saved successfully
+        showToastWithAction(
+          'Supplier saved, but failed to export to Google Sheet',
+          'error',
+          'Export to Sheet',
+          () => handleGSheetExport()
+        );
       }
     }
     
@@ -2037,6 +2063,12 @@ async function handleDeleteSupplier() {
         showToast('Synced to Google Sheet', 'success');
       } catch (err) {
         console.error('[Sourcing] Failed to sync supplier deletion:', err);
+        showToastWithAction(
+          'Supplier deleted, but failed to export to Google Sheet',
+          'error',
+          'Export to Sheet',
+          () => handleGSheetExport()
+        );
       }
     }
     
@@ -2268,6 +2300,22 @@ async function handleSavePricing() {
       await loadAnalysisDashboard();
     } else if (state.activeTab === 'matrix') {
       await loadSupplierMatrix();
+    }
+    
+    // Sync pricing changes to Google Sheet if sheet is linked
+    if (state.gsheetId) {
+      try {
+        await performGSheetExport();
+        showToast('Synced to Google Sheet', 'success');
+      } catch (err) {
+        console.error('[Sourcing] Failed to sync pricing to GSheet:', err);
+        showToastWithAction(
+          'Pricing saved, but failed to export to Google Sheet',
+          'error',
+          'Export to Sheet',
+          () => handleGSheetExport()
+        );
+      }
     }
     
   } catch (error) {
