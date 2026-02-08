@@ -76,11 +76,11 @@ function renderTable() {
           </p>
         </div>
         <div class="user-actions">
-          <button class="btn btn-sm edit-user-btn" title="Edit User">
+          <button class="action-btn secondary-btn neutral-btn btn-sm edit-user-btn" title="Edit User">
             <i class="fas fa-edit"></i>
             <span>Edit</span>
           </button>
-          <button class="btn btn-sm info-btn history-user-btn" title="View Login History">
+          <button class="action-btn secondary-btn info-btn btn-sm history-user-btn" title="View Login History">
             <i class="fas fa-history"></i>
             <span>History</span>
           </button>
@@ -233,6 +233,11 @@ function openUserModal(user = null) {
     updateSelectAllState(tabsContainer, 'allowed_tab');
 
     modal.classList.add('active');
+    
+    // Re-initialize c-select dropdowns inside the modal
+    if (typeof window.initCSelects === 'function') {
+        window.initCSelects();
+    }
 }
 
 function wireUserModal() {
