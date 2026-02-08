@@ -102,6 +102,27 @@ class GSheetsService:
             except:
                 existing_data = []
             
+            # 3b. Ensure the sheet grid is large enough for our data
+            required_rows = len(new_rows)
+            required_cols = len(headers)
+            current_rows = worksheet.row_count
+            current_cols = worksheet.col_count
+            
+            needs_resize = False
+            resize_rows = current_rows
+            resize_cols = current_cols
+            
+            if required_rows > current_rows:
+                resize_rows = required_rows
+                needs_resize = True
+            if required_cols > current_cols:
+                resize_cols = required_cols
+                needs_resize = True
+            
+            if needs_resize:
+                worksheet.resize(rows=resize_rows, cols=resize_cols)
+                logger.info(f"[GSheet Export] Resized sheet from {current_rows}x{current_cols} to {resize_rows}x{resize_cols}")
+            
             # 4. Calculate what needs to be updated
             cells_to_update = []
             
