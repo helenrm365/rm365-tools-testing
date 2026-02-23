@@ -1,5 +1,5 @@
 // js/modules/attendance-system/logs.js - Integrated logs functionality with auto-load
-import { getAttendanceLogs, getLogs, exportLogs, checkAttendanceTablesStatus, initializeAttendanceTables } from '../../services/api/attendanceApi.js';
+import { getAttendanceLogs, getLogs, exportLogs, checkAttendanceTablesStatus, initializeAttendanceTables, getLocations } from '../../services/api/attendanceApi.js';
 import { exportAttendanceToPDF } from '../../utils/attendancePdfExport.js';
 import { showToast } from '../../ui/toast.js';
 
@@ -25,6 +25,25 @@ function setDateDefaults() {
   if (endEl) endEl.value = today.toISOString().slice(0, 10);
 }
 
+// ====== Load Locations ======
+async function loadLocations() {
+  try {
+    const locations = await getLocations();
+    const locationList = Array.isArray(locations) ? locations : (locations?.data || locations?.locations || []);
+    const locationSelect = $("#locationFilter");
+    if (!locationSelect || locationList.length === 0) return;
+
+    const currentValue = locationSelect.value;
+    locationSelect.innerHTML = `
+      <option value="">All Locations</option>
+      ${locationList.map(loc => `<option value="${loc}">${loc}</option>`).join('')}
+    `;
+    if (currentValue) locationSelect.value = currentValue;
+  } catch (error) {
+    console.error('Failed to load locations:', error);
+  }
+}
+
 // ====== Load and Display Logs ======
 async function loadLogs() {
   const startDate = $("#fromDate")?.value;
@@ -32,7 +51,7 @@ async function loadLogs() {
   const searchTerm = $("#nameFilter")?.value;
   const location = $("#locationFilter")?.value;
   const actionType = $("#actionFilter")?.value;
-  const sortBy = $("#sortFilter")?.value || 'date_desc';
+  const sortBy = $("#sortFilter")?.value || 'asc';
 
   if (!startDate || !endDate) {
     const message = "Please select both start and end dates";
@@ -84,26 +103,13 @@ async function loadLogs() {
 }
 
 function sortLogsByFilter(logs, sortBy) {
-  const sorted = [...logs];
-  
-  switch(sortBy) {
-    case 'date_asc':
-      sorted.sort((a, b) => new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`));
-      break;
-    case 'date_desc':
-      sorted.sort((a, b) => new Date(`${b.date}T${b.time}`) - new Date(`${a.date}T${a.time}`));
-      break;
-    case 'name_asc':
-      sorted.sort((a, b) => a.employee.localeCompare(b.employee));
-      break;
-    case 'name_desc':
-      sorted.sort((a, b) => b.employee.localeCompare(a.employee));
-      break;
-    default:
-      sorted.sort((a, b) => new Date(`${b.date}T${b.time}`) - new Date(`${a.date}T${a.time}`));
-  }
-  
-  return sorted;
+  const asc = sortBy !== 'desc';
+  const d   = asc ? 1 : -1;
+  return [...logs].sort((a, b) => {
+    const l = (a.location || '').localeCompare(b.location || ''); if (l) return l * d;
+    const n = (a.employee || '').localeCompare(b.employee || ''); if (n) return n * d;
+    return (new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`)) * d;
+  });
 }
 
 function updateQuickStats(logs, startDate, endDate) {
@@ -320,7 +326,7 @@ function clearFilters() {
   if (nameFilter) nameFilter.value = "";
   if (locationFilter) locationFilter.value = "";
   if (actionFilter) actionFilter.value = "";
-  if (sortFilter) sortFilter.value = "date_desc";
+  if (sortFilter) sortFilter.value = "asc";
   
   // Reset date defaults
   setDateDefaults();
@@ -506,6 +512,252 @@ async function handlePrint() {
   }
 }
 
+// ====== Excel Export ======
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = resolve;
+    s.onerror = () => reject(new Error(`Failed to load script: ${src}`));
+    document.head.appendChild(s);
+  });
+}
+
+async function handleExportExcel() {
+  if (!state.logs || state.logs.length === 0) {
+    alert("Please load logs first");
+    return;
+  }
+
+  const btn = $("#exportExcelBtn");
+  const titleEl = btn?.querySelector('.export-title');
+  const originalTitle = titleEl?.textContent;
+
+  try {
+    if (titleEl) titleEl.textContent = "Exporting...";
+    if (btn) btn.disabled = true;
+
+    // Load ExcelJS via CDN
+    await loadScript('https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js');
+    const ExcelJS = window.ExcelJS;
+    if (!ExcelJS) throw new Error('ExcelJS failed to load');
+
+    // Sort: location ASC > employee ASC > date ASC > time ASC
+    const sorted = [...state.logs].sort((a, b) => {
+      const locCmp = (a.location || '').localeCompare(b.location || '');
+      if (locCmp !== 0) return locCmp;
+      const nameCmp = (a.employee || '').localeCompare(b.employee || '');
+      if (nameCmp !== 0) return nameCmp;
+      const dateCmp = a.date.localeCompare(b.date);
+      if (dateCmp !== 0) return dateCmp;
+      return a.time.localeCompare(b.time);
+    });
+
+    // Thresholds (must match backend)
+    const LATE_TIME  = '08:30:00';
+    const EARLY_TIME = '17:30:00';
+
+    function argb(hex) { return 'FF' + hex.toUpperCase(); }
+
+    // ── Fills & fonts ────────────────────────────────────────────────────────
+    const FILLS = {
+      plain:      { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } },
+      lateIn:     { type: 'pattern', pattern: 'solid', fgColor: { argb: argb('FFCCCC') } }, // light red
+      earlyOut:   { type: 'pattern', pattern: 'solid', fgColor: { argb: argb('FFE0B2') } }, // light orange
+      clockIn:    { type: 'pattern', pattern: 'solid', fgColor: { argb: argb('C6EFCE') } }, // light green
+      clockOut:   { type: 'pattern', pattern: 'solid', fgColor: { argb: argb('F4CCCC') } }, // rose red
+      longLunch:  { type: 'pattern', pattern: 'solid', fgColor: { argb: argb('FFF59D') } }, // amber-yellow
+      missing:    { type: 'pattern', pattern: 'solid', fgColor: { argb: argb('FF4444') } }, // bright red
+    };
+    const FONTS = {
+      plain:      { color: { argb: 'FF000000' }, name: 'Calibri', size: 11 },
+      lateIn:     { color: { argb: argb('7B0000') }, name: 'Calibri', size: 11 },
+      earlyOut:   { color: { argb: argb('7B3F00') }, name: 'Calibri', size: 11 },
+      clockIn:    { color: { argb: argb('1A5C1A') }, name: 'Calibri', size: 11 },
+      clockOut:   { color: { argb: argb('6B0E1E') }, name: 'Calibri', size: 11 },
+      longLunch:  { color: { argb: argb('5C4400') }, name: 'Calibri', size: 11 }, // dark brown on yellow
+      missing:    { color: { argb: 'FFFFFFFF' }, bold: true, name: 'Calibri', size: 11 },
+    };
+
+    const thinBorder = {
+      top:    { style: 'thin', color: { argb: 'FFBFBFBF' } },
+      bottom: { style: 'thin', color: { argb: 'FFBFBFBF' } },
+      left:   { style: 'thin', color: { argb: 'FFBFBFBF' } },
+      right:  { style: 'thin', color: { argb: 'FFBFBFBF' } },
+    };
+
+    // ── Classify each punch by employee+date context ─────────────────────────
+    // Groups logs by employee+date, sorts each group by time, then classifies:
+    //   First IN             → late_in (if >= 08:30) or normal_in
+    //   Subsequent INs       → lunch_in (or long_lunch_in if break > 60 min)
+    //   All OUTs except last → lunch_out (or long_lunch_out if break > 60 min)
+    //   Last OUT             → early_out (if < 17:30) or normal_out
+    //   Unbalanced in/out    → missing (all punches that day)
+    function timeToMinutes(t) {
+      const [h, m] = t.split(':').map(Number);
+      return h * 60 + m;
+    }
+
+    function classifyLogs(logs) {
+      const groups = {};
+      logs.forEach(log => {
+        const key = `${log.employee}__${log.date}`;
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(log);
+      });
+
+      const classMap = new Map();
+      for (const entries of Object.values(groups)) {
+        const byTime = [...entries].sort((a, b) => a.time.localeCompare(b.time));
+        const ins    = byTime.filter(l => l.direction === 'in');
+        const outs   = byTime.filter(l => l.direction === 'out');
+
+        if (ins.length !== outs.length) {
+          byTime.forEach(l => classMap.set(l, 'missing'));
+          continue;
+        }
+
+        // First pass: base classifications
+        byTime.forEach(l => {
+          if (l.direction === 'in') {
+            const idx = ins.indexOf(l);
+            classMap.set(l, idx === 0
+              ? (l.time >= LATE_TIME ? 'late_in' : 'normal_in')
+              : 'lunch_in');
+          } else {
+            const idx = outs.indexOf(l);
+            classMap.set(l, idx === outs.length - 1
+              ? (l.time < EARLY_TIME ? 'early_out' : 'normal_out')
+              : 'lunch_out');
+          }
+        });
+
+        // Second pass: flag lunch breaks over 60 minutes
+        // Pair: outs[i] (lunch clock-out) → ins[i+1] (lunch clock-in back)
+        for (let i = 0; i < outs.length - 1; i++) {
+          const lunchOut = outs[i];
+          const lunchIn  = ins[i + 1];
+          const duration = timeToMinutes(lunchIn.time) - timeToMinutes(lunchOut.time);
+          if (duration > 60) {
+            classMap.set(lunchOut, 'long_lunch_out');
+            classMap.set(lunchIn,  'long_lunch_in');
+          }
+        }
+      }
+      return classMap;
+    }
+
+    // Returns [timeFill, timeFont, actionFill, actionFont]
+    function getCellStyles(classification) {
+      switch (classification) {
+        case 'late_in':
+          return [FILLS.lateIn,    FONTS.lateIn,    FILLS.clockIn,    FONTS.clockIn];
+        case 'normal_in':
+        case 'lunch_in':
+          return [FILLS.plain,     FONTS.plain,     FILLS.clockIn,    FONTS.clockIn];
+        case 'long_lunch_in':
+        case 'long_lunch_out':
+          return [FILLS.longLunch, FONTS.longLunch, FILLS.longLunch,  FONTS.longLunch];
+        case 'early_out':
+          return [FILLS.earlyOut,  FONTS.earlyOut,  FILLS.clockOut,   FONTS.clockOut];
+        case 'normal_out':
+        case 'lunch_out':
+          return [FILLS.plain,     FONTS.plain,     FILLS.clockOut,   FONTS.clockOut];
+        default:
+          return [FILLS.plain,     FONTS.plain,     FILLS.plain,      FONTS.plain];
+      }
+    }
+
+    const classMap = classifyLogs(state.logs);
+
+    const workbook  = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Attendance Logs');
+
+    worksheet.columns = [
+      { key: 'location', width: 16 },
+      { key: 'employee', width: 28 },
+      { key: 'date',     width: 14 },
+      { key: 'time',     width: 10 },
+      { key: 'action',   width: 14 },
+    ];
+
+    // Header row — direct cell addressing avoids row-level style bleed
+    const HEADERS = ['Location', 'Employee', 'Date', 'Time', 'Action'];
+    HEADERS.forEach((h, ci) => {
+      const cell     = worksheet.getCell(1, ci + 1);
+      cell.value     = h;
+      cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2F5496' } };
+      cell.font      = { color: { argb: 'FFFFFFFF' }, bold: true, name: 'Calibri', size: 11 };
+      cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      cell.border    = {
+        top:    { style: 'thin',   color: { argb: 'FF1F3864' } },
+        bottom: { style: 'medium', color: { argb: 'FF1F3864' } },
+        left:   { style: 'thin',   color: { argb: 'FF1F3864' } },
+        right:  { style: 'thin',   color: { argb: 'FF1F3864' } },
+      };
+    });
+    worksheet.getRow(1).height = 20;
+
+    // Data rows — each cell styled individually based on punch classification
+    sorted.forEach((log, rowIdx) => {
+      const rowNum         = rowIdx + 2;
+      const classification = classMap.get(log) || 'normal_in';
+      const isMissing      = classification === 'missing';
+      const [timeFill, timeFont, actionFill, actionFont] = getCellStyles(classification);
+
+      const values = [
+        log.location || '',
+        log.employee || '',
+        log.date     || '',
+        log.time     || '',
+        log.direction === 'in' ? 'Clock In' : 'Clock Out',
+      ];
+
+      values.forEach((val, ci) => {
+        const cell     = worksheet.getCell(rowNum, ci + 1);
+        cell.value     = val;
+        cell.alignment = { vertical: 'middle' };
+        cell.border    = thinBorder;
+
+        if (isMissing) {
+          // Entire row all-red for missing punch days
+          cell.fill = FILLS.missing;
+          cell.font = FONTS.missing;
+        } else if (ci === 3) { // Time column
+          cell.fill = timeFill;
+          cell.font = timeFont;
+        } else if (ci === 4) { // Action column
+          cell.fill = actionFill;
+          cell.font = actionFont;
+        } else {
+          cell.fill = FILLS.plain;
+          cell.font = FONTS.plain;
+        }
+      });
+    });
+
+    // Generate file and trigger download
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob   = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url    = URL.createObjectURL(blob);
+    const link   = document.createElement('a');
+    const startDate = $("#fromDate")?.value || '';
+    const endDate   = $("#toDate")?.value   || '';
+    link.href     = url;
+    link.download = `attendance-logs-${startDate}-to-${endDate}.xlsx`;
+    link.click();
+    URL.revokeObjectURL(url);
+
+  } catch (error) {
+    console.error("Failed to export Excel:", error);
+    alert("Failed to export Excel. Please try again.");
+  } finally {
+    if (titleEl && originalTitle) titleEl.textContent = originalTitle;
+    if (btn) btn.disabled = false;
+  }
+}
+
 // ====== Event Handlers Setup ======
 function setupEventHandlers() {
   // Load logs button (filter button)
@@ -535,6 +787,11 @@ function setupEventHandlers() {
   if (printBtn) {
     printBtn.addEventListener("click", handlePrint);
   }
+
+  const exportExcelBtn = $("#exportExcelBtn");
+  if (exportExcelBtn) {
+    exportExcelBtn.addEventListener("click", handleExportExcel);
+  }
 }
 
 // ====== Main Init Function ======
@@ -561,6 +818,7 @@ export async function init() {
   }
   
   setDateDefaults();
+  await loadLocations();
   
   setupSearch();
   setupEventHandlers();

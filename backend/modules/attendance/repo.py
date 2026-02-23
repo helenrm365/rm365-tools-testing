@@ -237,7 +237,7 @@ class AttendanceRepo:
                 where_clause = " AND ".join(where_conditions)
                 
                 query = f"""
-                    SELECT e.name, a.log_time::date AS day, TO_CHAR(a.log_time,'HH24:MI:SS') AS time, a.direction
+                    SELECT e.name, a.log_time::date AS day, TO_CHAR(a.log_time,'HH24:MI:SS') AS time, a.direction, e.location
                     FROM attendance_logs a
                     JOIN employees e ON a.employee_id = e.id
                     WHERE {where_clause}
@@ -247,7 +247,7 @@ class AttendanceRepo:
                 cur.execute(query, params)
                 rows = cur.fetchall()
                 return [
-                    {"employee": r[0], "date": r[1].isoformat(), "time": r[2], "direction": r[3]}
+                    {"employee": r[0], "date": r[1].isoformat(), "time": r[2], "direction": r[3], "location": r[4]}
                     for r in rows
                 ]
 
@@ -854,8 +854,8 @@ class AttendanceRepo:
                     employee_where += " AND LOWER(e.name) LIKE LOWER(%s)"
                     filter_params.append(f"%{name}%")
                 
-                # Standard work hours (9 AM to 5:30 PM) - can be made configurable later
-                late_time = "09:00:00"
+                # Standard work hours (8:30 AM to 5:30 PM) - can be made configurable later
+                late_time = "08:30:00"
                 early_time = "17:30:00"
                 
                 # Parameter order: from_date, to_date, [filter_params...], time
@@ -973,7 +973,7 @@ class AttendanceRepo:
                     params.append(f"%{name}%")
                 
                 if metric_type == 'late':
-                    late_time = "09:00:00"
+                    late_time = "08:30:00"
                     params.append(late_time)
                     query = f"""
                         SELECT 
