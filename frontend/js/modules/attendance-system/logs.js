@@ -81,7 +81,7 @@ async function loadLogs() {
     // Display results
     displayLogs(logs);
     updateStats(logs);
-    updateQuickStats(logs, startDate, endDate);
+    updateQuickStats(logs, startDate, endDate, location);
     showResults();
 
     // Enable export buttons
@@ -112,7 +112,7 @@ function sortLogsByFilter(logs, sortBy) {
   });
 }
 
-function updateQuickStats(logs, startDate, endDate) {
+function updateQuickStats(logs, startDate, endDate, locationFilter) {
   const totalLogsEl = $("#totalLogs");
   const dateRangeEl = $("#dateRange");
   const uniqueEmployeesEl = $("#uniqueEmployees");
@@ -132,8 +132,14 @@ function updateQuickStats(logs, startDate, endDate) {
   }
   
   if (uniqueLocationsEl) {
-    const locations = new Set(logs.map(log => log.location).filter(Boolean));
-    uniqueLocationsEl.textContent = locations.size > 0 ? Array.from(locations).join(', ') : 'All';
+    if (locationFilter) {
+      // A specific location is selected — always show it, regardless of what logs say
+      uniqueLocationsEl.textContent = locationFilter;
+    } else {
+      // All Locations selected — derive from the returned log data
+      const locations = new Set(logs.map(log => log.location).filter(Boolean));
+      uniqueLocationsEl.textContent = locations.size > 0 ? Array.from(locations).join(', ') : 'All';
+    }
   }
 }
 
