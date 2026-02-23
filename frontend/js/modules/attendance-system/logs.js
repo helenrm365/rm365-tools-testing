@@ -45,7 +45,7 @@ async function loadLocations() {
 }
 
 // ====== Load and Display Logs ======
-async function loadLogs() {
+async function loadLogs(scroll = true) {
   const startDate = $("#fromDate")?.value;
   const endDate = $("#toDate")?.value;
   const searchTerm = $("#nameFilter")?.value;
@@ -82,7 +82,7 @@ async function loadLogs() {
     displayLogs(logs);
     updateStats(logs);
     updateQuickStats(logs, startDate, endDate, location);
-    showResults();
+    showResults(scroll);
 
     // Enable export buttons
     ["#exportCsvBtn", "#exportPdfBtn", "#printBtn", "#exportExcelBtn"].forEach(sel => {
@@ -225,11 +225,11 @@ function updateStats(logs) {
   `;
 }
 
-function showResults() {
+function showResults(scroll = true) {
   const resultsEl = $("#logsResultsSection");
   if (resultsEl) {
     resultsEl.style.display = "block";
-    resultsEl.scrollIntoView({ behavior: "smooth" });
+    if (scroll) resultsEl.scrollIntoView({ behavior: "smooth" });
   }
 }
 
@@ -830,9 +830,9 @@ export async function init() {
   setupEventHandlers();
   
   showToast('Loading attendance logs...', 'info');
-  // Auto-load logs for the last week
+  // Auto-load logs for the last week (no scroll on page load)
   try {
-    await loadLogs();
+    await loadLogs(false);
   } catch (error) {
     console.warn("⚠️ Could not auto-load logs:", error);
   }
