@@ -357,7 +357,12 @@ window.openEmployeeEditModal = function(cardEl) {
   $('#editEmployeeId').value = cardEl.dataset.id;
   $('#editEmployeeName').value = cardEl.dataset.name;
   $('#editEmployeeCode').value = cardEl.dataset.code ? `#${cardEl.dataset.code}` : 'N/A';
-  $('#editEmployeeLocation').value = cardEl.dataset.location;
+  const editLocationSelect = $('#editEmployeeLocation');
+  if (editLocationSelect) {
+    editLocationSelect.value = cardEl.dataset.location || '';
+    // Ensure c-select wrapper updates its visible label
+    editLocationSelect.dispatchEvent(new Event('change', { bubbles: true }));
+  }
   $('#editEmployeeStatusSelect').value = cardEl.dataset.status;
   $('#editEmployeeNfc').value = nfcUid;
   
@@ -984,6 +989,8 @@ function showCreateEmployeeModal() {
   const defaultLocation = state.locations.length > 0 ? state.locations[0] : null;
   if (locationInput) {
     locationInput.value = defaultLocation?.name || '';
+    // Ensure c-select wrapper updates its visible label
+    locationInput.dispatchEvent(new Event('change', { bubbles: true }));
   }
   // Native selects handle display automatically - no need for separate dropdown update
   
