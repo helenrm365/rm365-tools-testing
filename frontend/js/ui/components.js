@@ -404,7 +404,7 @@ window.initModernUI = initModernBoxes;
               item.style.transform = '';
             }, 150);
             
-            native.selectedIndex = idx;
+            native.value = opt.value;
             native.dispatchEvent(new Event('change', { bubbles: true }));
             updateLabel();
             
