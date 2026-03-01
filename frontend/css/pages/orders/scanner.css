@@ -923,7 +923,7 @@ html.dark-mode .inventory-scanner .scanner-unified > .block-content {
 /* Desktop: no swipe behavior, just structural defaults */
 .inventory-scanner .pending-item {
   position: relative;
-  overflow: visible;
+  overflow: hidden;
 }
 
 .inventory-scanner .swipe-content {
@@ -1759,7 +1759,7 @@ html.dark-mode .inventory-scanner .pending-item-remove:hover {
   
   /* Swipe to delete mobile styles — iMessage-inspired */
   .inventory-scanner .pending-item {
-    overflow: visible;
+    overflow: hidden;
     /* Remove card styling from parent on mobile — swipe-content IS the visual card */
     background: transparent !important;
     box-shadow: none !important;
@@ -1799,12 +1799,12 @@ html.dark-mode .inventory-scanner .pending-item-remove:hover {
     display: flex;
     flex-direction: column;
     position: absolute;
-    top: 8px;
-    right: 0;
-    bottom: 8px;
-    width: 72px;
+    top: 6px;
+    right: 6px;
+    bottom: 6px;
+    width: 68px;
     background: #ef4444;
-    border-radius: 16px;
+    border-radius: 14px;
     align-items: center;
     justify-content: center;
     gap: 4px;
@@ -1812,17 +1812,20 @@ html.dark-mode .inventory-scanner .pending-item-remove:hover {
     z-index: 1;
     pointer-events: none;
     opacity: 0;
+    overflow: hidden;
     transition: opacity 0.2s ease;
   }
   
   .inventory-scanner .swipe-delete-action i {
     font-size: 1.25rem;
+    flex-shrink: 0;
   }
   
   .inventory-scanner .swipe-delete-action span {
     font-size: 0.7rem;
     font-weight: 600;
     letter-spacing: 0.02em;
+    flex-shrink: 0;
   }
   
   /* When swiped open, allow clicking */
