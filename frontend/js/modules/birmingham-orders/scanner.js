@@ -846,23 +846,16 @@ class InventoryScannerManager {
       let isDragging = false;
       let isOpen = false;
       let startTime = 0;
-      let inFullDelete = false;
       
-      const GAP = 8; // Gap between card and delete button
-      const BTN_WIDTH = 80; // Delete button width
-      const SNAP_POINT = -(BTN_WIDTH + GAP); // -88px: where button is fully revealed
-      const itemWidth = () => item.offsetWidth;
-      const FULL_DELETE_RATIO = 0.65; // 65% of width = full delete mode
+      const SNAP_POINT = -80; // Just enough to reveal the delete button
+      const QUICK_VELOCITY = 0.4; // px/ms — fast swipe triggers auto-delete
       
       const resetSwipe = () => {
         swipeContent.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
         swipeContent.style.transform = 'translateX(0)';
         deleteAction.style.opacity = '0';
-        deleteAction.style.width = BTN_WIDTH + 'px';
-        deleteAction.classList.remove('full-delete');
         item.classList.remove('swipe-open');
         isOpen = false;
-        inFullDelete = false;
         startX = 0;
         isDragging = false;
       };
@@ -875,9 +868,7 @@ class InventoryScannerManager {
         currentX = isOpen ? SNAP_POINT : 0;
         startTime = Date.now();
         isDragging = false;
-        inFullDelete = false;
         swipeContent.style.transition = 'none';
-        deleteAction.style.transition = 'none';
       };
       
       const handleTouchMove = (e) => {
@@ -898,74 +889,54 @@ class InventoryScannerManager {
         isDragging = true;
         
         const baseX = isOpen ? SNAP_POINT : 0;
-        const maxSwipe = -(itemWidth() - 20);
-        currentX = Math.max(Math.min(baseX + deltaX, 0), maxSwipe);
+        // Clamp: can't go right of 0, and add rubber-band resistance past SNAP_POINT
+        const raw = baseX + deltaX;
+        if (raw >= 0) {
+          currentX = 0;
+        } else if (raw < SNAP_POINT) {
+          // Rubber-band: diminishing returns past snap point
+          const over = SNAP_POINT - raw;
+          currentX = SNAP_POINT - (over * 0.25);
+        } else {
+          currentX = raw;
+        }
         
-        const absX = Math.abs(currentX);
-        const w = itemWidth();
-        const fullDeleteThreshold = w * FULL_DELETE_RATIO;
-        
-        // Move the content card
         swipeContent.style.transform = `translateX(${currentX}px)`;
         
-        // Phase 1: Revealing the button (0 to SNAP_POINT)
-        if (absX <= Math.abs(SNAP_POINT)) {
-          const progress = absX / Math.abs(SNAP_POINT);
-          deleteAction.style.opacity = String(Math.min(progress * 1.5, 1));
-          deleteAction.style.width = BTN_WIDTH + 'px';
-          deleteAction.classList.remove('full-delete');
-          inFullDelete = false;
-        }
-        // Phase 2: Button stretches (SNAP_POINT to fullDeleteThreshold)
-        else if (absX < fullDeleteThreshold) {
-          deleteAction.style.opacity = '1';
-          // Button grows to fill the revealed gap (minus the 8px gap)
-          deleteAction.style.width = (absX - GAP) + 'px';
-          deleteAction.classList.remove('full-delete');
-          inFullDelete = false;
-        }
-        // Phase 3: Full delete mode
-        else {
-          deleteAction.style.opacity = '1';
-          deleteAction.style.width = (absX - GAP) + 'px';
-          if (!inFullDelete) {
-            deleteAction.classList.add('full-delete');
-            inFullDelete = true;
-            // Haptic feedback if available
-            if (navigator.vibrate) navigator.vibrate(15);
-          }
-        }
+        // Fade in the delete button
+        const progress = Math.min(Math.abs(currentX) / Math.abs(SNAP_POINT), 1);
+        deleteAction.style.opacity = String(progress);
       };
       
       const handleTouchEnd = () => {
         if (startX === 0) return;
         
         const index = parseInt(item.dataset.index);
+        const duration = Date.now() - startTime;
+        const velocity = Math.abs(currentX - (isOpen ? SNAP_POINT : 0)) / Math.max(duration, 1);
         
         swipeContent.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
-        deleteAction.style.transition = 'opacity 0.2s ease, width 0.2s ease';
         
-        // Phase 3: Auto-delete
-        if (inFullDelete) {
-          swipeContent.style.transform = `translateX(-${itemWidth()}px)`;
-          deleteAction.style.width = (itemWidth() - GAP) + 'px';
+        // Fast swipe → auto-delete
+        if (velocity > QUICK_VELOCITY && currentX < -30) {
+          swipeContent.style.transform = `translateX(-${item.offsetWidth}px)`;
           deleteAction.style.opacity = '1';
+          if (navigator.vibrate) navigator.vibrate(15);
           setTimeout(() => {
             this.removeItem(index);
           }, 250);
         }
-        // Phase 1/2: Snap to show button
+        // Past halfway of snap point → snap open
         else if (Math.abs(currentX) >= Math.abs(SNAP_POINT) * 0.5) {
           swipeContent.style.transform = `translateX(${SNAP_POINT}px)`;
           deleteAction.style.opacity = '1';
-          deleteAction.style.width = BTN_WIDTH + 'px';
           item.classList.add('swipe-open');
           isOpen = true;
           
           const handleDeleteClick = () => {
             swipeContent.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
-            swipeContent.style.transform = `translateX(-${itemWidth()}px)`;
-            deleteAction.style.width = (itemWidth() - GAP) + 'px';
+            swipeContent.style.transform = `translateX(-${item.offsetWidth}px)`;
+            if (navigator.vibrate) navigator.vibrate(15);
             setTimeout(() => {
               this.removeItem(index);
             }, 250);
@@ -973,7 +944,7 @@ class InventoryScannerManager {
           };
           deleteAction.addEventListener('click', handleDeleteClick);
         }
-        // Not enough: reset
+        // Not enough → reset
         else {
           resetSwipe();
         }
