@@ -29,23 +29,23 @@
   <!-- Prevent double-tap zoom on mobile (comprehensive: CSS + JS + gesture events) -->
   <script>
     (function() {
-      // 1. Block rapid taps from triggering zoom — but NOT on buttons/inputs
-      //    (buttons have touch-action:none in CSS which handles zoom prevention)
+      // Block rapid taps from triggering zoom on ALL elements.
+      // When we block a tap on a button, manually fire its click so it still works.
       var lastTouchEnd = 0;
       document.addEventListener('touchend', function(e) {
         var now = Date.now();
         if (now - lastTouchEnd <= 500) {
-          // Don't block taps on interactive elements — they need rapid clicking
-          var tag = e.target.tagName;
-          var isInteractive = tag === 'BUTTON' || tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || tag === 'A' || tag === 'LABEL';
-          if (!isInteractive && !e.target.closest('button, a, input, select, textarea, label, .btn, .btn-qty')) {
-            e.preventDefault();
+          e.preventDefault();
+          // If this was a button tap, fire click manually since preventDefault blocks it
+          var btn = e.target.closest('button, a, .btn, .btn-qty, [role="button"]');
+          if (btn) {
+            btn.click();
           }
         }
         lastTouchEnd = now;
       }, { passive: false });
 
-      // 2. Prevent iOS Safari gesture-based zoom entirely
+      // Prevent iOS Safari gesture-based zoom entirely
       document.addEventListener('gesturestart', function(e) {
         e.preventDefault();
       }, { passive: false });
