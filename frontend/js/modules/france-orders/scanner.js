@@ -889,18 +889,28 @@ class InventoryScannerManager {
       let startY = 0;
       let currentX = 0;
       let isDragging = false;
+      let isOpen = false;
       let startTime = 0;
-      const deleteThreshold = -80; // Reveal delete button
-      const quickDeleteThreshold = -150; // Quick swipe to delete
-      const quickSwipeVelocity = 0.5; // pixels per ms
+      const deleteThreshold = -80;
+      const quickDeleteThreshold = -150;
+      const quickSwipeVelocity = 0.5;
+      
+      const resetSwipe = () => {
+        swipeContent.style.transition = 'transform 0.3s ease';
+        swipeContent.style.transform = 'translateX(0)';
+        deleteAction.style.opacity = '0';
+        item.classList.remove('swipe-open');
+        isOpen = false;
+        startX = 0;
+        isDragging = false;
+      };
       
       const handleTouchStart = (e) => {
-        // Don't interfere with buttons
         if (e.target.closest('button, input')) return;
         
         startX = e.touches[0].clientX;
         startY = e.touches[0].clientY;
-        currentX = 0;
+        currentX = isOpen ? deleteThreshold : 0;
         startTime = Date.now();
         isDragging = false;
         swipeContent.style.transition = 'none';
@@ -912,26 +922,27 @@ class InventoryScannerManager {
         const deltaX = e.touches[0].clientX - startX;
         const deltaY = e.touches[0].clientY - startY;
         
-        // If vertical scroll is greater, don't swipe
         if (!isDragging && Math.abs(deltaY) > Math.abs(deltaX)) {
           startX = 0;
+          if (isOpen) {
+            swipeContent.style.transition = 'transform 0.3s ease';
+            swipeContent.style.transform = `translateX(${deleteThreshold}px)`;
+          }
           return;
         }
         
         isDragging = true;
         
-        // Only allow left swipe
-        if (deltaX > 0) {
-          currentX = 0;
-        } else {
-          currentX = Math.max(deltaX, -200);
-        }
+        const baseX = isOpen ? deleteThreshold : 0;
+        const newX = baseX + deltaX;
+        
+        // Clamp between -200 and 0
+        currentX = Math.max(Math.min(newX, 0), -200);
         
         swipeContent.style.transform = `translateX(${currentX}px)`;
         
-        // Scale delete action based on swipe
         const progress = Math.min(Math.abs(currentX) / 80, 1);
-        deleteAction.style.opacity = progress;
+        deleteAction.style.opacity = String(progress);
       };
       
       const handleTouchEnd = () => {
@@ -943,31 +954,25 @@ class InventoryScannerManager {
         
         swipeContent.style.transition = 'transform 0.3s ease';
         
-        // Quick swipe = instant delete
         if (currentX <= quickDeleteThreshold || (velocity > quickSwipeVelocity && currentX < deleteThreshold)) {
-          swipeContent.style.transform = `translateX(-100%)`;
-          deleteAction.style.opacity = 1;
+          swipeContent.style.transform = 'translateX(-100%)';
+          deleteAction.style.opacity = '1';
           setTimeout(() => {
             this.removeItem(index);
           }, 200);
-        }
-        // Partial swipe = show delete button
-        else if (currentX <= deleteThreshold) {
+        } else if (currentX <= deleteThreshold) {
           swipeContent.style.transform = `translateX(${deleteThreshold}px)`;
+          deleteAction.style.opacity = '1';
           item.classList.add('swipe-open');
+          isOpen = true;
           
-          // Click on delete action
           const handleDeleteClick = () => {
             this.removeItem(index);
             deleteAction.removeEventListener('click', handleDeleteClick);
           };
           deleteAction.addEventListener('click', handleDeleteClick);
-        }
-        // Reset
-        else {
-          swipeContent.style.transform = 'translateX(0)';
-          deleteAction.style.opacity = 0;
-          item.classList.remove('swipe-open');
+        } else {
+          resetSwipe();
         }
         
         startX = 0;
@@ -977,14 +982,11 @@ class InventoryScannerManager {
       swipeContent.addEventListener('touchstart', handleTouchStart, { passive: true });
       swipeContent.addEventListener('touchmove', handleTouchMove, { passive: true });
       swipeContent.addEventListener('touchend', handleTouchEnd);
+      swipeContent.addEventListener('touchcancel', resetSwipe);
       
-      // Reset on tap elsewhere
       document.addEventListener('touchstart', (e) => {
-        if (!e.target.closest('.pending-item') && item.classList.contains('swipe-open')) {
-          swipeContent.style.transition = 'transform 0.3s ease';
-          swipeContent.style.transform = 'translateX(0)';
-          deleteAction.style.opacity = 0;
-          item.classList.remove('swipe-open');
+        if (!e.target.closest('.pending-item') && isOpen) {
+          resetSwipe();
         }
       }, { passive: true });
     });
