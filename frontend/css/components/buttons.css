@@ -691,6 +691,9 @@ html.dark-mode .btn-toggle-pill:hover:not(:disabled) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  touch-action: none; /* Prevent any browser touch gestures on +/- buttons */
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .btn-qty:hover:not(:disabled) {
