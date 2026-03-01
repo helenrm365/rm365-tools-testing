@@ -847,8 +847,8 @@ class InventoryScannerManager {
       let isOpen = false;
       let startTime = 0;
       
-      const BTN_BASE = 68; // Base delete button width (matches CSS)
-      const SNAP_POINT = -80; // Reveal distance
+      const BTN_BASE = 72; // Base delete button width (matches CSS)
+      const SNAP_POINT = -88; // Reveal distance (button + gap)
       const FULL_DELETE_DISTANCE = 0.55; // 55% of item width = auto-delete by distance
       const QUICK_VELOCITY = 0.5; // px/ms — fast swipe also triggers auto-delete
       
@@ -906,9 +906,9 @@ class InventoryScannerManager {
         const progress = Math.min(absX / Math.abs(SNAP_POINT), 1);
         deleteAction.style.opacity = String(progress);
         
-        // Stretch button to fill revealed space (with 6px margin on each side)
+        // Stretch button to fill revealed space (with 4px margin on each side)
         if (absX > Math.abs(SNAP_POINT)) {
-          deleteAction.style.width = Math.max(BTN_BASE, absX - 12) + 'px';
+          deleteAction.style.width = Math.max(BTN_BASE, absX - 8) + 'px';
         } else {
           deleteAction.style.width = BTN_BASE + 'px';
         }
@@ -929,7 +929,7 @@ class InventoryScannerManager {
         // Auto-delete: fast swipe OR dragged past distance threshold
         if ((velocity > QUICK_VELOCITY && currentX < -30) || absX >= w * FULL_DELETE_DISTANCE) {
           swipeContent.style.transform = `translateX(-${w}px)`;
-          deleteAction.style.width = (w - 12) + 'px';
+          deleteAction.style.width = (w - 8) + 'px';
           deleteAction.style.opacity = '1';
           if (navigator.vibrate) navigator.vibrate(15);
           setTimeout(() => {
@@ -947,7 +947,7 @@ class InventoryScannerManager {
           const handleDeleteClick = () => {
             swipeContent.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
             swipeContent.style.transform = `translateX(-${w}px)`;
-            deleteAction.style.width = (w - 12) + 'px';
+            deleteAction.style.width = (w - 8) + 'px';
             if (navigator.vibrate) navigator.vibrate(15);
             setTimeout(() => {
               this.removeItem(index);

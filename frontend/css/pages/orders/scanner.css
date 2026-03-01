@@ -1599,6 +1599,7 @@ html.dark-mode .inventory-scanner .pending-item-remove:hover {
     border: none;
     background: transparent;
     overflow: visible;
+    overflow-x: hidden;
     position: relative;
     z-index: 50; /* Above submit section for dropdowns, below search bar */
   }
@@ -1608,11 +1609,13 @@ html.dark-mode .inventory-scanner .pending-item-remove:hover {
     min-height: 0;
     max-height: none;
     overflow: visible;
+    overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
     /* Extra padding to allow scrolling past sticky footer/nav + safe area */
     padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 220px);
     position: relative;
     z-index: 1;
+    touch-action: pan-y; /* Prevent horizontal page movement */
   }
   
   /* Pending actions button - stays below search bar */
@@ -1763,8 +1766,11 @@ html.dark-mode .inventory-scanner .pending-item-remove:hover {
     /* Remove card styling from parent on mobile — swipe-content IS the visual card */
     background: transparent !important;
     box-shadow: none !important;
-    border-radius: 20px;
+    border: none !important;
+    /* No border-radius on parent — each child (card + button) has its own rounding */
+    border-radius: 0 !important;
     position: relative;
+    touch-action: pan-y; /* Prevent horizontal browser gestures */
   }
   
   .inventory-scanner .pending-item::before {
@@ -1799,12 +1805,12 @@ html.dark-mode .inventory-scanner .pending-item-remove:hover {
     display: flex;
     flex-direction: column;
     position: absolute;
-    top: 6px;
-    right: 6px;
-    bottom: 6px;
-    width: 68px;
+    top: 4px;
+    right: 4px;
+    bottom: 4px;
+    width: 72px;
     background: #ef4444;
-    border-radius: 14px;
+    border-radius: 16px;
     align-items: center;
     justify-content: center;
     gap: 4px;
