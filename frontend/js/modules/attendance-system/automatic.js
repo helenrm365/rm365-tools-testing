@@ -10,7 +10,7 @@ let state = {
   cardUidToEmployee: {},
   isScanning: false,
   websocket: null,
-  websocketReconnectTimer: null,
+  connectionCountdownInterval: null,
   isProcessingCard: false,
   lastScannedUid: null,
   lastScanTime: 0,
@@ -23,7 +23,7 @@ let state = {
 // ====== Constants ======
 const SCAN_COOLDOWN_MS = 1000;
 const MAX_RECENT_SCANS = 10;
-const WEBSOCKET_RECONNECT_DELAY = 3000;
+const DISCONNECT_COUNTDOWN_SECS = 10;
 
 // Hardware bridge always runs on localhost (client machine)
 // We detect if the current page is HTTPS or HTTP to decide between wss:// and ws://
@@ -41,22 +41,18 @@ function updateStatus(message, type = 'info') {
   const statusEl = $('#scannerStatus');
   if (!statusEl) return;
 
-  let icon = '🟢';
-  let color = '#28a745';
+  statusEl.textContent = message;
+  statusEl.className = 'scanner-status-line';
   
   if (type === 'error') {
-    icon = '🔴';
-    color = '#dc3545';
+    statusEl.classList.add('status-error');
   } else if (type === 'warning') {
-    icon = '🟡';
-    color = '#ffc107';
+    statusEl.classList.add('status-warning');
   } else if (type === 'scanning') {
-    icon = '🔄';
-    color = '#007bff';
+    statusEl.classList.add('status-scanning');
+  } else {
+    statusEl.classList.add('status-ready');
   }
-
-  statusEl.innerHTML = `${icon} ${message}`;
-  statusEl.style.color = color;
 }
 
 function updateLastScanTime() {
@@ -141,7 +137,6 @@ function updateRecentScansTable() {
 }
 
 function updateHardwareStatus() {
-  // Update card status
   const cardStatusEl = $('#cardStatus');
   if (cardStatusEl) {
     const iconEl = cardStatusEl.querySelector('i');
@@ -150,12 +145,38 @@ function updateHardwareStatus() {
     if (state.cardServiceAvailable) {
       if (iconEl) iconEl.className = 'fas fa-check-circle';
       if (textEl) textEl.textContent = 'Ready';
-      cardStatusEl.style.color = '#28a745';
+      cardStatusEl.classList.remove('status-error', 'status-connecting', 'status-available');
+      cardStatusEl.classList.add('status-ready');
     } else {
       if (iconEl) iconEl.className = 'fas fa-exclamation-triangle';
-      if (textEl) textEl.textContent = 'Service Unavailable';
-      cardStatusEl.style.color = '#dc3545';
+      if (textEl) textEl.textContent = 'Unavailable';
+      cardStatusEl.classList.remove('status-ready', 'status-connecting', 'status-available');
+      cardStatusEl.classList.add('status-error');
     }
+  }
+}
+
+function setHardwareConnecting() {
+  const cardStatusEl = $('#cardStatus');
+  if (cardStatusEl) {
+    const iconEl = cardStatusEl.querySelector('i');
+    const textEl = cardStatusEl.querySelector('span');
+    if (iconEl) iconEl.className = 'fas fa-spinner fa-spin';
+    if (textEl) textEl.textContent = 'Connecting';
+    cardStatusEl.classList.remove('status-ready', 'status-error', 'status-available');
+    cardStatusEl.classList.add('status-connecting');
+  }
+}
+
+function setHardwareAvailable() {
+  const cardStatusEl = $('#cardStatus');
+  if (cardStatusEl) {
+    const iconEl = cardStatusEl.querySelector('i');
+    const textEl = cardStatusEl.querySelector('span');
+    if (iconEl) iconEl.className = 'fas fa-plug';
+    if (textEl) textEl.textContent = 'Available';
+    cardStatusEl.classList.remove('status-ready', 'status-error', 'status-connecting');
+    cardStatusEl.classList.add('status-available');
   }
 }
 
@@ -203,15 +224,9 @@ function hideSoundPrompt() {
   }
 }
 
-function setScannerDisplayState(title, message, isActive) {
-  const titleEl = document.querySelector('.scanner-title');
-  const messageEl = document.querySelector('.scanner-message');
+function setScannerActive(isActive) {
   const animationEl = $('#scannerAnimation');
-
-  if (titleEl && title) titleEl.textContent = title;
-  if (messageEl && message) messageEl.textContent = message;
   if (animationEl) {
-    animationEl.style.opacity = isActive ? '1' : '0.35';
     animationEl.classList.toggle('scanner-active', Boolean(isActive));
   }
 }
@@ -263,16 +278,17 @@ async function evaluateHardwareStatus({ showSpinner = false } = {}) {
   if (!cardReady) {
     setStartButtonState({ disabled: true, label: 'Connect reader to start' });
     setStopButtonState({ disabled: true });
-    setScannerDisplayState('Hardware Required', 'Connect card reader to begin scanning.', false);
-    updateStatus('No card reader detected. Please connect card reader.', 'warning');
+    setScannerActive(false);
+    updateStatus('No card reader detected, please connect card reader and try again.', 'error');
     return false;
   }
 
   setStartButtonState({ disabled: false, label: 'Start Scanning' });
   setStopButtonState({ disabled: true });
 
-  setScannerDisplayState('Awaiting Start', 'Press Start Scanning to begin.', false);
-  updateStatus('Card reader detected. Press Start Scanning to begin.', 'info');
+  setScannerActive(false);
+  setHardwareAvailable();
+  updateStatus('Card reader detected. Press Start Scanning to begin.', 'warning');
   return true;
 }
 
@@ -295,6 +311,9 @@ async function loadEmployees() {
     });
   } catch (error) {
     console.error('Failed to load employees:', error);
+    state.cardServiceAvailable = false;
+    updateHardwareStatus();
+    stopScanning();
     updateStatus('Failed to load employees', 'error');
   }
 }
@@ -306,18 +325,22 @@ function connectWebSocket() {
     return;
   }
   
+  // Start connection timeout countdown
+  startConnectionCountdown();
+  
   try {
     console.log('🔌 Connecting to NFC WebSocket...');
     state.websocket = new WebSocket(WS_URL);
     
     state.websocket.onopen = () => {
       console.log('✅ WebSocket connected to hardware bridge');
+      clearConnectionCountdown();
       state.cardServiceAvailable = true;
       state.cardScanErrorCount = 0;
       updateHardwareStatus();
       
       if (state.isScanning) {
-        updateStatus('Scanning via card reader (WebSocket)', 'scanning');
+        updateStatus('Scanner is ready', 'info');
       }
     };
     
@@ -342,49 +365,76 @@ function connectWebSocket() {
     state.websocket.onclose = (event) => {
       console.log('🔌 WebSocket disconnected:', event.code, event.reason);
       state.cardServiceAvailable = false;
-      updateHardwareStatus();
       
-      // Auto-reconnect if we're supposed to be scanning
+      // If connection countdown is running, let it handle the timeout — don't override badge
+      if (state.connectionCountdownInterval) return;
+      
+      // Connection dropped unexpectedly while scanning — try to reconnect
       if (state.isScanning) {
-        scheduleReconnect();
+        state.websocket = null;
+        connectWebSocket();
+      } else {
+        updateHardwareStatus();
       }
     };
     
     state.websocket.onerror = (error) => {
       console.error('WebSocket error:', error);
       state.cardScanErrorCount++;
-      
-      // Will trigger onclose which handles reconnection
+      // Will trigger onclose
     };
     
   } catch (error) {
     console.error('Failed to create WebSocket:', error);
-    state.cardServiceAvailable = false;
-    updateHardwareStatus();
-    scheduleReconnect();
+    // Countdown is already running, it will handle the timeout
   }
 }
 
-function scheduleReconnect() {
-  if (state.websocketReconnectTimer) {
-    clearTimeout(state.websocketReconnectTimer);
-  }
+function startConnectionCountdown() {
+  clearConnectionCountdown();
   
-  if (state.isScanning) {
-    state.websocketReconnectTimer = setTimeout(() => {
-      console.log('🔄 Attempting WebSocket reconnection...');
-      connectWebSocket();
-    }, WEBSOCKET_RECONNECT_DELAY);
+  let remaining = DISCONNECT_COUNTDOWN_SECS;
+  setHardwareConnecting();
+  updateStatus(`Please wait patiently while the system attempts to connect... (${remaining}s)`, 'scanning');
+  
+  state.connectionCountdownInterval = setInterval(() => {
+    remaining--;
+    if (remaining > 0) {
+      updateStatus(`Please wait patiently while the system attempts to connect... (${remaining}s)`, 'scanning');
+    } else {
+      // Timed out — give up
+      clearConnectionCountdown();
+      
+      // Close the stale socket attempt
+      if (state.websocket) {
+        state.websocket.onclose = null; // prevent onclose from firing stopScanning again
+        state.websocket.close();
+        state.websocket = null;
+      }
+      
+      state.cardServiceAvailable = false;
+      updateHardwareStatus();
+      
+      if (state.isScanning) {
+        stopScanning();
+      }
+      updateStatus('No card reader detected, please connect card reader and try again.', 'error');
+    }
+  }, 1000);
+}
+
+function clearConnectionCountdown() {
+  if (state.connectionCountdownInterval) {
+    clearInterval(state.connectionCountdownInterval);
+    state.connectionCountdownInterval = null;
   }
 }
 
 function disconnectWebSocket() {
-  if (state.websocketReconnectTimer) {
-    clearTimeout(state.websocketReconnectTimer);
-    state.websocketReconnectTimer = null;
-  }
+  clearConnectionCountdown();
   
   if (state.websocket) {
+    state.websocket.onclose = null; // prevent onclose side effects
     state.websocket.close(1000, 'User stopped scanning');
     state.websocket = null;
   }
@@ -414,7 +464,7 @@ async function handleCardScan(uid) {
     
     if (!employee) {
       playErrorSound();
-      updateStatus('⚠️ Card not registered to any employee', 'warning');
+      updateStatus('Card not registered to any employee', 'warning');
       return;
     }
     
@@ -424,7 +474,7 @@ async function handleCardScan(uid) {
       
       if (clockResult) {
         playSuccessSound();
-        updateStatus(`✅ ${employee.name} clocked ${clockResult.direction || 'in'}`, 'info');
+        updateStatus(`${employee.name} clocked ${clockResult.direction || 'in'}`, 'info');
         
         state.scanCount++;
         updateScanCount();
@@ -434,12 +484,12 @@ async function handleCardScan(uid) {
         state.cardScanErrorCount = 0;
       } else {
         playErrorSound();
-        updateStatus('❌ Clocking failed', 'error');
+        updateStatus('Clocking failed', 'error');
       }
     } catch (clockError) {
       console.error('Clock error:', clockError);
       playErrorSound();
-      updateStatus('❌ Clocking failed', 'error');
+      updateStatus('Clocking failed', 'error');
     }
     
   } finally {
@@ -459,10 +509,9 @@ async function startScanning(options = {}) {
   }
 
   state.isScanning = true;
-  updateStatus('Connecting to card reader...', 'scanning');
-  setScannerDisplayState('Scanning Active', 'Card reader will clock employees instantly.', true);
+  setScannerActive(true);
 
-  // Connect to WebSocket for instant card scan notifications
+  // Connect to WebSocket — starts connection countdown automatically
   connectWebSocket();
 
   setStartButtonState({ disabled: true, label: 'Scanning...' });
@@ -479,7 +528,7 @@ function stopScanning() {
   disconnectWebSocket();
 
   updateHardwareStatus();
-  setScannerDisplayState('Scanning Paused', 'Press Start Scanning when you are ready.', false);
+  setScannerActive(false);
   setStartButtonState({ disabled: false, label: 'Start Scanning' });
   setStopButtonState({ disabled: true });
   evaluateHardwareStatus({ showSpinner: false });
@@ -512,7 +561,7 @@ function cleanup() {
     cardUidToEmployee: {},
     isScanning: false,
     websocket: null,
-    websocketReconnectTimer: null,
+    connectionCountdownInterval: null,
     isProcessingCard: false,
     lastScannedUid: null,
     lastScanTime: 0,

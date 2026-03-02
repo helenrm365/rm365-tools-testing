@@ -6,7 +6,7 @@
     <div class="header-content">
       <h1 class="page-title">Automatic Clocking</h1>
     </div>
-    <p class="page-subtitle">Seamless NFC-based attendance tracking</p>
+    <p class="page-subtitle">NFC-based attendance tracking</p>
   </header>
 
   <!-- Navigation Tabs -->
@@ -45,105 +45,46 @@
 
   <!-- Main Content -->
   <div class="automatic-wrapper">
-    <!-- Scanner Control Section -->
-    <div class="action-block">
-      <div class="block-header">
-        <div class="block-icon scanner-icon-block">
-          <i class="fas fa-id-card"></i>
+
+    <!-- Compact Scanner Control Bar -->
+    <div class="scanner-control-bar">
+      <div class="scanner-control-left">
+        <div class="scanner-pulse" id="scannerAnimation">
+          <div class="pulse-ring"></div>
+          <i class="fas fa-wifi"></i>
         </div>
-        <div class="block-title-group">
-          <h3 class="block-title">NFC Scanner</h3>
-          <p class="block-subtitle">Tap NFC card or key fob on the reader</p>
-        </div>
-        <div id="cardStatus" class="hardware-status status-ready">
-          <i class="fas fa-check-circle"></i>
-          <span>Ready</span>
+        <div class="scanner-control-info">
+          <div class="scanner-control-status">
+            <div id="cardStatus" class="hw-badge status-ready">
+              <i class="fas fa-check-circle"></i>
+              <span>Ready</span>
+            </div>
+            <span class="scan-stat">Last: <strong id="lastScanTime">—</strong></span>
+            <span class="scan-stat">Scans: <strong id="totalScansToday">0</strong></span>
+          </div>
+          <div id="scannerStatus" class="scanner-status-line status-ready">Card reader detected</div>
         </div>
       </div>
-
-      <div class="block-content">
-        <div class="scanner-display">
-          <div class="scanner-animation" id="scannerAnimation">
-            <div class="pulse-ring"></div>
-            <div class="scanner-icon">
-              <i class="fas fa-wifi"></i>
-            </div>
-          </div>
-          <h3 class="scanner-title">Ready to Scan</h3>
-          <p class="scanner-message">Automatic clocking is active for NFC</p>
-          
-          <!-- Status message area for JS to update -->
-          <div id="scannerStatus" class="scanner-status-message">🟢 Card reader detected</div>
-        </div>
-
-        <div class="control-buttons">
-          <button id="startScanBtn" class="btn primary-btn success-btn">
-            <i class="fas fa-play-circle"></i>
-            <span>Start Scanning</span>
-          </button>
-          <button id="stopScanBtn" class="btn primary-btn danger-btn" disabled>
-            <i class="fas fa-stop-circle"></i>
-            <span>Stop Scanning</span>
-          </button>
-        </div>
+      <div class="scanner-control-actions">
+        <button id="startScanBtn" class="btn primary-btn success-btn">
+          <i class="fas fa-play-circle"></i>
+          <span>Start Scanning</span>
+        </button>
+        <button id="stopScanBtn" class="btn primary-btn danger-btn" disabled>
+          <i class="fas fa-stop-circle"></i>
+          <span>Stop Scanning</span>
+        </button>
       </div>
     </div>
 
-    <!-- Statistics Section -->
-    <div class="action-block">
-      <div class="block-header">
-        <div class="block-icon stats-icon">
-          <i class="fas fa-chart-bar"></i>
-        </div>
-        <div class="block-title-group">
-          <h3 class="block-title">Scanner Statistics</h3>
-          <p class="block-subtitle">Real-time scanning metrics</p>
-        </div>
-      </div>
-
-      <div class="block-content">
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-icon time-icon">
-              <i class="fas fa-clock"></i>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value" id="lastScanTime">—</div>
-              <div class="stat-label">Last Scan</div>
-            </div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-icon count-icon">
-              <i class="fas fa-calculator"></i>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value" id="totalScansToday">0</div>
-              <div class="stat-label">Scans Today</div>
-            </div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-icon success-icon">
-              <i class="fas fa-check-double"></i>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value" id="successRate">100%</div>
-              <div class="stat-label">Success Rate</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Recent Scans Section -->
+    <!-- Recent Scans -->
     <div class="action-block">
       <div class="block-header">
         <div class="block-icon history-icon">
           <i class="fas fa-history"></i>
         </div>
         <div class="block-title-group">
-          <h3 class="block-title">Recent Automatic Scans</h3>
+          <h3 class="block-title">Recent Scans</h3>
           <p class="block-subtitle">Latest NFC clocking records</p>
         </div>
       </div>
@@ -152,7 +93,7 @@
         <div id="recentScansTable">
           <div class="empty-state">
             <i class="fas fa-inbox"></i>
-            <p>No recent scans available</p>
+            <p>No scans yet — start scanning to see activity here</p>
           </div>
         </div>
       </div>

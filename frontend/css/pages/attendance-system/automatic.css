@@ -6,10 +6,6 @@
    - components/buttons.css: .action-btn, .success-btn, .danger-btn
    - components/cards.css: .action-block, .block-header, .block-icon, .block-title-group, .block-title, .block-subtitle, .block-content
    - components/tabs.css: .inner-tabs, .tab-button
-   
-   Shadow System (from SHADOW_SYSTEM.md):
-   - .action-block uses shadow-l (main container)
-   - buttons use shadow-m
 */
 
 /* ===== Page Scope ===== */
@@ -27,61 +23,66 @@
 .attendance-automatic .automatic-wrapper {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1rem;
   margin-bottom: 3rem;
 }
 
-/* ===== Block Icon Color Variants ===== */
-.attendance-automatic .scanner-icon-block {
-  background: color-mix(in srgb, var(--accent) 15%, transparent);
-  color: var(--accent);
-}
-
-.attendance-automatic .stats-icon {
-  background: color-mix(in srgb, var(--info) 15%, transparent);
-  color: var(--info);
-}
-
-.attendance-automatic .history-icon {
-  background: color-mix(in srgb, var(--warning) 15%, transparent);
-  color: var(--warning);
-}
-
-/* ===== Scanner Display ===== */
-.attendance-automatic .scanner-display {
+/* ===== Compact Scanner Control Bar ===== */
+.attendance-automatic .scanner-control-bar {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  text-align: center;
-  padding: 1rem;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: var(--bg);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-l);
+  border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
-.attendance-automatic .scanner-animation {
+html.dark-mode .attendance-automatic .scanner-control-bar {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.attendance-automatic .scanner-control-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Small animated pulse indicator */
+.attendance-automatic .scanner-pulse {
   position: relative;
-  width: 80px;
-  height: 80px;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 1rem;
-  opacity: 0.35;
-  transition: opacity var(--transition);
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  color: white;
+  font-size: 0.9rem;
+  opacity: 0.4;
+  transition: opacity 0.3s ease;
 }
 
-.attendance-automatic .scanner-animation.scanner-active {
+.attendance-automatic .scanner-pulse.scanner-active {
   opacity: 1;
 }
 
-.attendance-automatic .pulse-ring {
+.attendance-automatic .scanner-pulse .pulse-ring {
   position: absolute;
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  border: 3px solid var(--accent);
+  border: 2px solid var(--accent);
   opacity: 0;
 }
 
-.attendance-automatic .scanner-animation.scanner-active .pulse-ring {
+.attendance-automatic .scanner-pulse.scanner-active .pulse-ring {
   animation: pulse-ring 2s ease-out infinite;
 }
 
@@ -91,57 +92,112 @@
     opacity: 0.8;
   }
   100% {
-    transform: scale(1.5);
+    transform: scale(1.8);
     opacity: 0;
   }
 }
 
-.attendance-automatic .scanner-icon {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+.attendance-automatic .scanner-control-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.attendance-automatic .scanner-control-status {
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 1.5rem;
-  color: white;
-  box-shadow: var(--shadow-m);
-}
-
-.attendance-automatic .scanner-title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--text);
-  margin: 0 0 0.25rem;
-}
-
-.attendance-automatic .scanner-message {
-  font-size: 0.85rem;
-  color: var(--text-muted);
-  margin: 0;
-}
-
-/* Scanner status message - for JS to update with detailed messages */
-.attendance-automatic .scanner-status-message {
-  margin-top: 0.75rem;
-  padding: 0.5rem 1rem;
-  background: var(--bg-light);
-  border-radius: 8px;
-  font-size: 0.85rem;
-  color: var(--text-muted);
-}
-
-/* ===== Control Buttons ===== */
-.attendance-automatic .control-buttons {
-  display: flex;
   gap: 0.75rem;
-  justify-content: center;
   flex-wrap: wrap;
-  margin-top: 1rem;
 }
 
-/* ===== Scan Result Alert ===== */ */
+/* Hardware badge (compact) */
+.attendance-automatic .hw-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.6rem;
+  background: color-mix(in srgb, var(--success) 12%, transparent);
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--success);
+}
+
+.attendance-automatic .hw-badge.status-error {
+  background: color-mix(in srgb, var(--error) 12%, transparent);
+  color: var(--error);
+}
+
+.attendance-automatic .hw-badge.status-available {
+  background: color-mix(in srgb, var(--warning) 12%, transparent);
+  color: var(--warning);
+}
+
+.attendance-automatic .hw-badge.status-connecting {
+  background: color-mix(in srgb, var(--info) 12%, transparent);
+  color: var(--info);
+}
+
+.attendance-automatic .hw-badge i {
+  font-size: 0.7rem;
+}
+
+/* Inline scan stats */
+.attendance-automatic .scan-stat {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.attendance-automatic .scan-stat strong {
+  color: var(--text);
+}
+
+/* Status line (matches badge color) */
+.attendance-automatic .scanner-status-line {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  /* Reset any global .status-* overrides */
+  display: block;
+  padding: 0;
+  background: none;
+  border-radius: 0;
+  gap: 0;
+}
+
+.attendance-automatic .scanner-status-line.status-ready {
+  color: var(--success);
+}
+
+.attendance-automatic .scanner-status-line.status-error {
+  color: var(--error);
+}
+
+.attendance-automatic .scanner-status-line.status-warning {
+  color: var(--warning);
+}
+
+.attendance-automatic .scanner-status-line.status-scanning {
+  color: var(--info);
+}
+
+/* Control buttons */
+.attendance-automatic .scanner-control-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+/* ===== Block Icon Color Variants ===== */
+.attendance-automatic .history-icon {
+  background: color-mix(in srgb, var(--warning) 15%, transparent);
+  color: var(--warning);
+}
+
+/* ===== Scan Result Alert ===== */
 .attendance-automatic .scan-result-alert {
   position: fixed;
   top: 80px;
@@ -207,102 +263,12 @@
 .attendance-automatic .alert-close:hover {
   color: var(--error);
   border-color: color-mix(in srgb, var(--error) 30%, transparent);
-  box-shadow: 0 0 12px color-mix(in srgb, var(--error) 20%, transparent);
 }
 
 .attendance-automatic .alert-close:focus-visible {
   outline: none;
   color: var(--error);
   border-color: color-mix(in srgb, var(--error) 40%, transparent);
-  box-shadow: 
-    0 0 12px color-mix(in srgb, var(--error) 25%, transparent),
-    0 0 24px color-mix(in srgb, var(--error) 15%, transparent);
-}
-
-/* ===== Stats Grid ===== */
-.attendance-automatic .stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 1rem;
-}
-
-.attendance-automatic .stat-card {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1.25rem;
-  background: var(--bg-light);
-  border-radius: 12px;
-  box-shadow: var(--shadow-m);
-}
-
-.attendance-automatic .stat-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.25rem;
-  flex-shrink: 0;
-}
-
-.attendance-automatic .stat-icon.scanner-status-icon {
-  background: color-mix(in srgb, var(--success) 15%, transparent);
-  color: var(--success);
-}
-
-.attendance-automatic .stat-icon.time-icon {
-  background: color-mix(in srgb, var(--info) 15%, transparent);
-  color: var(--info);
-}
-
-.attendance-automatic .stat-icon.count-icon {
-  background: color-mix(in srgb, var(--warning) 15%, transparent);
-  color: var(--warning);
-}
-
-.attendance-automatic .stat-icon.success-icon {
-  background: color-mix(in srgb, var(--accent) 15%, transparent);
-  color: var(--accent);
-}
-
-.attendance-automatic .stat-info {
-  flex: 1;
-}
-
-.attendance-automatic .stat-value {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--text);
-}
-
-.attendance-automatic .stat-label {
-  font-size: 0.85rem;
-  color: var(--text-muted);
-}
-
-/* ===== Hardware Status ===== */
-.attendance-automatic .hardware-status {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  background: var(--bg-light);
-  border-radius: 10px;
-  font-size: 0.9rem;
-}
-
-.attendance-automatic .hardware-status i {
-  font-size: 1rem;
-}
-
-.attendance-automatic .hardware-status.status-ready {
-  color: var(--success);
-}
-
-.attendance-automatic .hardware-status.status-error {
-  color: var(--error);
 }
 
 /* ===== Scans Table ===== */
@@ -319,7 +285,7 @@
 }
 
 .attendance-automatic .scans-table th {
-  padding: 0.875rem 1rem;
+  padding: 0.75rem 1rem;
   text-align: left;
   font-size: 0.75rem;
   font-weight: 600;
@@ -331,7 +297,7 @@
 }
 
 .attendance-automatic .scans-table td {
-  padding: 0.875rem 1rem;
+  padding: 0.75rem 1rem;
   font-size: 0.9rem;
   color: var(--text);
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
@@ -358,7 +324,7 @@ html.dark-mode .attendance-automatic .scans-table td {
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
-  padding: 0.25rem 0.625rem;
+  padding: 0.2rem 0.5rem;
   background: color-mix(in srgb, var(--info) 15%, transparent);
   color: var(--info);
   border-radius: 6px;
@@ -370,7 +336,7 @@ html.dark-mode .attendance-automatic .scans-table td {
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
-  padding: 0.25rem 0.625rem;
+  padding: 0.2rem 0.5rem;
   border-radius: 6px;
   font-size: 0.8rem;
   font-weight: 500;
@@ -389,150 +355,72 @@ html.dark-mode .attendance-automatic .scans-table td {
 /* ===== Empty State ===== */
 .attendance-automatic .empty-state {
   text-align: center;
-  padding: 3rem 2rem;
+  padding: 2rem 1.5rem;
   color: var(--text-muted);
 }
 
 .attendance-automatic .empty-state i {
-  font-size: 2.5rem;
-  margin-bottom: 1rem;
+  font-size: 2rem;
+  margin-bottom: 0.75rem;
   opacity: 0.5;
 }
 
 .attendance-automatic .empty-state p {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
 }
 
 /* ===== Responsive ===== */
 
-/* Tablet: 769px - 1024px */
-@media (max-width: 1024px) {
-  .attendance-automatic .stats-grid {
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  }
-  
-  .attendance-automatic .scanner-display {
-    padding: 1.5rem;
-  }
-  
-  .attendance-automatic .history-grid {
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  }
-}
-
 /* Mobile: <= 768px */
 @media (max-width: 768px) {
-  .attendance-automatic .stats-grid {
-    grid-template-columns: 1fr 1fr;
+  .attendance-automatic .scanner-control-bar {
+    flex-direction: column;
+    align-items: stretch;
     gap: 0.75rem;
   }
-  
-  .attendance-automatic .stat-card {
-    padding: 0.875rem;
+
+  .attendance-automatic .scanner-control-left {
+    gap: 0.75rem;
   }
-  
-  .attendance-automatic .stat-icon {
-    width: 40px;
-    height: 40px;
-    font-size: 1rem;
-  }
-  
-  .attendance-automatic .stat-value {
-    font-size: 1.25rem;
-  }
-  
-  .attendance-automatic .scanner-display {
-    padding: 1rem;
-  }
-  
-  .attendance-automatic .scanner-animation {
-    width: 64px;
-    height: 64px;
-  }
-  
-  .attendance-automatic .scanner-icon {
-    width: 44px;
-    height: 44px;
-  }
-  
-  .attendance-automatic .scanner-title {
-    font-size: 1.25rem;
-  }
-  
-  .attendance-automatic .scanner-message {
-    font-size: 0.875rem;
-  }
-  
-  .attendance-automatic .control-buttons {
-    flex-direction: row;
-    flex-wrap: wrap;
+
+  .attendance-automatic .scanner-control-status {
     gap: 0.5rem;
   }
 
-  .attendance-automatic .history-grid {
-    grid-template-columns: 1fr;
-    gap: 0.75rem;
+  .attendance-automatic .scanner-control-actions {
+    justify-content: stretch;
   }
-  
-  .attendance-automatic .history-card {
-    padding: 0.875rem;
+
+  .attendance-automatic .scanner-control-actions .btn {
+    flex: 1;
   }
-  
+
   .attendance-automatic .empty-state {
-    padding: 2rem 1rem;
+    padding: 1.5rem 1rem;
   }
-  
+
   .attendance-automatic .empty-state i {
-    font-size: 2rem;
+    font-size: 1.75rem;
   }
 }
 
 /* Small Mobile: <= 480px */
 @media (max-width: 480px) {
-  .attendance-automatic .stats-grid {
-    grid-template-columns: 1fr;
-    gap: 0.5rem;
+  .attendance-automatic .scanner-pulse {
+    width: 34px;
+    height: 34px;
+    font-size: 0.8rem;
   }
-  
-  .attendance-automatic .stat-card {
-    padding: 0.75rem;
-    flex-direction: row;
-    gap: 0.75rem;
-  }
-  
-  .attendance-automatic .stat-icon {
-    width: 36px;
-    height: 36px;
-    font-size: 0.9rem;
-  }
-  
-  .attendance-automatic .stat-value {
-    font-size: 1.125rem;
-  }
-  
-  .attendance-automatic .stat-label {
-    font-size: 0.7rem;
-  }
-  
-  .attendance-automatic .scanner-animation {
-    width: 56px;
-    height: 56px;
-  }
-  
-  .attendance-automatic .scanner-icon {
-    width: 38px;
-    height: 38px;
-  }
-  
-  .attendance-automatic .scanner-title {
-    font-size: 1.125rem;
+
+  .attendance-automatic .scanner-control-status {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
   }
 }
 
 /* ===== Glow Effects Toggle ===== */
-/* Glows are disabled by default. Enable with html.glow-enabled class */
-
 html:not(.glow-enabled) .attendance-automatic .alert-close:hover,
 html:not(.glow-enabled) .attendance-automatic .alert-close:focus-visible {
   box-shadow: none;
