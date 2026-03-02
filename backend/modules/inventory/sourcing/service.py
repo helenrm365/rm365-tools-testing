@@ -232,6 +232,7 @@ class SourcingService:
             all_skus.append(sku)
             sku_data[sku] = {
                 'sku': sku,
+                'item_id': product.get('item_id'),
                 'product_name': product['product_name'],
                 'category': product['category'],
                 'brand': product['brand'],
@@ -285,15 +286,8 @@ class SourcingService:
                 'last_verified': row['last_verified'].isoformat() if row['last_verified'] else None
             }
         
-        # Convert to list and apply search filter
+        # Convert to list (search is now done client-side)
         rows = list(sku_data.values())
-        
-        if search:
-            search_lower = search.lower()
-            rows = [r for r in rows if 
-                    search_lower in r['sku'].lower() or 
-                    (r['product_name'] and search_lower in r['product_name'].lower()) or
-                    (r['brand'] and search_lower in r['brand'].lower())]
         
         # Sort by specified column (default: SKU)
         rows = self._sort_rows(rows, sort_by or 'sku', sort_order or 'asc', suppliers)
@@ -351,6 +345,7 @@ class SourcingService:
             all_skus.append(sku)
             sku_analysis[sku] = {
                 'sku': sku,
+                'item_id': product.get('item_id'),
                 'product_name': product['product_name'],
                 'category': product['category'],
                 'brand': product['brand'],
@@ -483,15 +478,8 @@ class SourcingService:
         if margin_count > 0:
             summary['average_margin'] = round(margin_sum / margin_count, 1)
         
-        # Filter results
+        # Filter results (search is now done client-side)
         rows = list(sku_analysis.values())
-        
-        if search:
-            search_lower = search.lower()
-            rows = [r for r in rows if 
-                    search_lower in r['sku'].lower() or 
-                    (r['product_name'] and search_lower in r['product_name'].lower()) or
-                    (r['brand'] and search_lower in r['brand'].lower())]
         
         if category:
             rows = [r for r in rows if r['category'] == category]

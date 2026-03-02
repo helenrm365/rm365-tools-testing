@@ -134,22 +134,16 @@ function tokenize(str) {
 }
 
 function buildTokens(row) {
-  const sku = row.dataset.sku || '';
-  const brand = (sku.match(/^[A-Za-z]+/) || [''])[0];
-  const preferred = [
+  // Only index SKU, product name, and item ID for search
+  const searchFields = [
     row.dataset.product,
     row.dataset.sku,
-    row.dataset.location,
-    row.dataset.status,
-    brand
+    row.dataset.itemId
   ].filter(Boolean).join(' ');
-
-  const fullText = (row.textContent || '').trim();
-  const blended = preferred + ' ' + fullText;
 
   const seen = new Set();
   const out = [];
-  for (const t of tokenize(blended)) {
+  for (const t of tokenize(searchFields)) {
     if (!seen.has(t)) {
       seen.add(t);
       out.push(t);
@@ -561,14 +555,11 @@ function matchesStockStatus(metadata, stockStatusFilter) {
 }
 
 function matchesSearch(item, metadata, searchQuery) {
-  // Build searchable text from item and metadata
+  // Build searchable text from item fields only (SKU, product name, item ID)
   const searchableText = [
     item.product_name,
     item.sku,
-    metadata.location,
-    metadata.status,
-    metadata.shelf_lt1,
-    metadata.shelf_gt1
+    item.item_id
   ].filter(Boolean).join(' ').toLowerCase();
   
   // Split search query into tokens and check if all are present

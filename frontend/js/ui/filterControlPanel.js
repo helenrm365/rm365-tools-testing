@@ -42,35 +42,46 @@ const FilterControlPanel = {
     };
 
     const getContentHeight = () => {
-      // Get computed styles for padding
-      const computedStyle = window.getComputedStyle(filterPanelBody);
-      const paddingTop = parseFloat(computedStyle.paddingTop) || 0;
-      const paddingBottom = parseFloat(computedStyle.paddingBottom) || 0;
-      const gap = parseFloat(computedStyle.gap) || 0;
-      
-      // Use getBoundingClientRect for precise measurement of the entire body content
-      // This works for any content structure inside filter-panel-body
-      const children = Array.from(filterPanelBody.children);
-      if (children.length === 0) return paddingTop + paddingBottom;
-      
-      // Calculate total height by measuring each child and their margins
-      let totalHeight = 0;
-      children.forEach((child, index) => {
-        const rect = child.getBoundingClientRect();
-        const childStyle = window.getComputedStyle(child);
-        const marginTop = parseFloat(childStyle.marginTop) || 0;
-        const marginBottom = parseFloat(childStyle.marginBottom) || 0;
-        
-        totalHeight += rect.height + marginTop + marginBottom;
-        
-        // Add gap between children (not after last child)
-        if (index < children.length - 1 && gap > 0) {
-          totalHeight += gap;
+      // If collapsed, we need to temporarily uncollapse to measure
+      const wasCollapsed = filterPanelBody.classList.contains('collapsed');
+      if (wasCollapsed) {
+        // Remove collapsed to allow children to render at natural size
+        // Use visibility:hidden to prevent flash
+        filterPanelBody.style.visibility = 'hidden';
+        filterPanelBody.classList.remove('collapsed');
+        filterPanelBody.style.maxHeight = 'none';
+      }
+
+      // Batch-read all child rects (single reflow)
+      const children = filterPanelBody.children;
+      if (children.length === 0) {
+        if (wasCollapsed) {
+          filterPanelBody.classList.add('collapsed');
+          filterPanelBody.style.maxHeight = '0';
+          filterPanelBody.style.visibility = '';
         }
-      });
-      
-      // Add container padding and a small buffer for safety
-      return totalHeight + paddingTop + paddingBottom + 16;
+        return 0;
+      }
+
+      const rects = [];
+      for (let i = 0; i < children.length; i++) {
+        rects.push(children[i].getBoundingClientRect());
+      }
+      const top = rects[0].top;
+      const bottom = rects[rects.length - 1].bottom;
+      // Account for margins not captured by getBoundingClientRect
+      const lastMargin = parseFloat(getComputedStyle(children[children.length - 1]).marginBottom) || 0;
+      const firstMargin = parseFloat(getComputedStyle(children[0]).marginTop) || 0;
+      const height = Math.ceil(bottom - top + firstMargin + lastMargin);
+
+      // Restore collapsed state immediately (before paint)
+      if (wasCollapsed) {
+        filterPanelBody.classList.add('collapsed');
+        filterPanelBody.style.maxHeight = '0';
+        filterPanelBody.style.visibility = '';
+      }
+
+      return height;
     };
     
     // Set initial height when expanded (with slight delay for DOM)
@@ -93,16 +104,18 @@ const FilterControlPanel = {
         requestAnimationFrame(() => {
           filterPanelBody.style.maxHeight = height + 'px';
         });
-        // Add expanded class after transition completes to enable overflow: visible
+        // After transition: enable overflow for dropdowns, keep pixel height
         setTimeout(() => {
           filterPanelBody.classList.add('expanded');
         }, config.animationDuration);
       } else {
-        // Collapsing: remove expanded class immediately
+        // Collapsing: add collapsed class immediately (for header margin, gap, opacity)
+        // then animate max-height to 0 (inline style overrides the CSS max-height: 0)
         filterPanelBody.classList.remove('expanded');
-        filterPanelBody.style.maxHeight = '0';
         filterPanelBody.classList.add('collapsed');
         filterPanelCollapseBtn.classList.add('collapsed');
+        // Inline style drives the transition since it overrides the class value
+        filterPanelBody.style.maxHeight = '0';
       }
     });
     

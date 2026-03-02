@@ -285,7 +285,7 @@ def bulk_update_pricing(
 @router.get("/matrix")
 def get_supplier_matrix(
     page: int = Query(1, ge=1),
-    per_page: int = Query(100, ge=1, le=500),
+    per_page: int = Query(100, ge=1, le=100000),
     search: Optional[str] = Query(None, description="Search by SKU, product name, or brand"),
     status: Optional[str] = Query(None, description="Filter by status: Available, Unavailable, or comma-separated"),
     sort_by: Optional[str] = Query(None, description="Column to sort by: sku, product_name, magento_price, status"),
@@ -324,7 +324,7 @@ def get_supplier_matrix(
 @router.get("/analysis")
 def get_analysis_dashboard(
     page: int = Query(1, ge=1),
-    per_page: int = Query(100, ge=1, le=500),
+    per_page: int = Query(100, ge=1, le=100000),
     search: Optional[str] = Query(None, description="Search by SKU, product name, or brand"),
     category: Optional[str] = Query(None, description="Filter by category"),
     status: Optional[str] = Query(None, description="Filter by status: Available, Unavailable, or comma-separated"),

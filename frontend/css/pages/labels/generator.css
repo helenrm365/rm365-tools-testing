@@ -55,7 +55,7 @@
 }
 
 .labels-generator .filter-panel-grid-top {
-  margin-bottom: 1rem;
+  /* gap between sections is handled by the parent flex gap */
 }
 
 /* Tablet: 769px - 1024px */
@@ -68,8 +68,7 @@
 /* ===== Full Width Presets Section ===== */
 .labels-generator .presets-control-full {
   width: 100%;
-  margin-top: 1rem;
-  margin-bottom: 0;
+  margin-bottom: 1rem;
 }
 
 /* ===== Filter Control Group Overrides ===== */

@@ -586,6 +586,7 @@ class SourcingRepository:
                 cursor.execute("""
                     SELECT 
                         sku,
+                        item_id,
                         product_name,
                         uk_6m_data,
                         fr_6m_data,
@@ -603,6 +604,7 @@ class SourcingRepository:
                 cursor.execute("""
                     SELECT 
                         sku,
+                        item_id,
                         product_name,
                         uk_6m_data,
                         fr_6m_data,

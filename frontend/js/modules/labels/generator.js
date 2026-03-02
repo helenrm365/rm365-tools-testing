@@ -328,14 +328,10 @@ async function loadProducts(isBackground = false) {
       const query = searchInput.value.toLowerCase().trim();
       
       state.displayedProducts = state.filteredProducts.filter(p => {
-        const priceText = formatPrice(p.price).toLowerCase();
         return (
           (p.sku || '').toLowerCase().includes(query) ||
           (p.product_name || '').toLowerCase().includes(query) ||
-          (p.item_id || '').toLowerCase().includes(query) ||
-          priceText.includes(query) ||
-          (p.uk_6m_data ?? '').toString().toLowerCase().includes(query) ||
-          (p.fr_6m_data ?? '').toString().toLowerCase().includes(query)
+          (p.item_id || '').toLowerCase().includes(query)
         );
       });
     } else {
@@ -664,45 +660,11 @@ function handleSearch(e) {
     state.displayedProducts = [...state.filteredProducts];
     console.log(`[Labels Search] No query - showing all ${state.displayedProducts.length} products`);
   } else {
-    // Log first few products to debug
-    if (state.filteredProducts.length > 0) {
-      const sample = state.filteredProducts[0];
-      console.log('[Labels Search] Sample product fields:', {
-        sku: sample.sku,
-        product_name: sample.product_name,
-        item_id: sample.item_id,
-        price: sample.price,
-        uk_6m_data: sample.uk_6m_data,
-        fr_6m_data: sample.fr_6m_data
-      });
-    }
-    
     state.displayedProducts = state.filteredProducts.filter(p => {
-      const priceText = formatPrice(p.price).toLowerCase();
       const skuMatch = (p.sku || '').toLowerCase().includes(query);
       const nameMatch = (p.product_name || '').toLowerCase().includes(query);
       const itemIdMatch = (p.item_id || '').toLowerCase().includes(query);
-      const priceMatch = priceText.includes(query);
-      const uk6mMatch = (p.uk_6m_data ?? '').toString().toLowerCase().includes(query);
-      const fr6mMatch = (p.fr_6m_data ?? '').toString().toLowerCase().includes(query);
-      
-      const matches = skuMatch || nameMatch || itemIdMatch || priceMatch || uk6mMatch || fr6mMatch;
-      
-      // Log first match for debugging
-      if (matches && state.displayedProducts.length === 0) {
-        console.log(`[Labels Search] First match found:`, {
-          sku: p.sku,
-          name: p.product_name,
-          skuMatch,
-          nameMatch,
-          itemIdMatch,
-          priceMatch,
-          uk6mMatch,
-          fr6mMatch
-        });
-      }
-      
-      return matches;
+      return skuMatch || nameMatch || itemIdMatch;
     });
     
     console.log(`[Labels Search] Found ${state.displayedProducts.length} matching products`);

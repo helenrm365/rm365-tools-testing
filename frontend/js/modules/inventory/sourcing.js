@@ -131,6 +131,7 @@ let state = {
   
   // Matrix
   matrixData: [],
+  allMatrixData: [],  // Full cached dataset for client-side search
   matrixSuppliers: [],
   matrixPage: 1,
   matrixPerPage: 100,
@@ -149,6 +150,7 @@ let state = {
   
   // Analysis
   analysisData: [],
+  allAnalysisData: [],  // Full cached dataset for client-side search
   analysisSummary: {},
   analysisPage: 1,
   analysisPerPage: 100,
@@ -498,22 +500,24 @@ async function loadAnalysisDashboard(options = {}) {
   try {
     console.log('[loadAnalysisDashboard] Calling API with state:', {
       sortBy: state.analysisSortBy,
-      sortOrder: state.analysisSortOrder,
-      page: state.analysisPage
+      sortOrder: state.analysisSortOrder
     });
+    // Fetch ALL data from server (no search param - search is client-side)
     const data = await getAnalysisDashboard({
-      page: state.analysisPage,
-      perPage: state.analysisPerPage,
-      search: state.analysisSearch,
+      page: 1,
+      perPage: 100000,
       marginStatus: state.analysisMarginFilter,
       sortBy: state.analysisSortBy,
       sortOrder: state.analysisSortOrder
     });
     
-    state.analysisData = data.products || [];
+    // Cache full dataset for client-side search
+    state.allAnalysisData = data.products || [];
     state.analysisSummary = data.summary || {};
-    state.analysisTotal = data.total || 0;
     state.matrixSuppliers = data.suppliers || [];
+    
+    // Apply client-side search and pagination
+    applyAnalysisClientFilters();
     
     renderAnalysisSummary();
     renderAnalysisTable();
@@ -647,7 +651,34 @@ function renderAnalysisPagination() {
 function handleAnalysisSearch(e) {
   state.analysisSearch = e.target.value.trim();
   state.analysisPage = 1;
-  loadAnalysisDashboard();
+  // Client-side filter from cached data — no API call needed
+  applyAnalysisClientFilters();
+  renderAnalysisTable();
+  renderAnalysisPagination();
+}
+
+/**
+ * Apply client-side search filter and pagination to cached analysis data.
+ * Searches against SKU, product name, and item ID only.
+ */
+function applyAnalysisClientFilters() {
+  let filtered = state.allAnalysisData;
+  
+  if (state.analysisSearch) {
+    const query = state.analysisSearch.toLowerCase();
+    filtered = filtered.filter(p => 
+      (p.sku || '').toLowerCase().includes(query) ||
+      (p.product_name || '').toLowerCase().includes(query) ||
+      (p.item_id || '').toLowerCase().includes(query)
+    );
+  }
+  
+  state.analysisTotal = filtered.length;
+  
+  // Paginate from filtered data
+  const start = (state.analysisPage - 1) * state.analysisPerPage;
+  const end = start + state.analysisPerPage;
+  state.analysisData = filtered.slice(start, end);
 }
 
 function handleMarginFilterChange(e) {
@@ -815,17 +846,20 @@ async function loadSupplierMatrix(options = {}) {
   }
   
   try {
+    // Fetch ALL data from server (no search param - search is client-side)
     const data = await getSupplierMatrix({
-      page: state.matrixPage,
-      perPage: state.matrixPerPage,
-      search: state.matrixSearch,
+      page: 1,
+      perPage: 100000,
       sortBy: state.matrixSortBy,
       sortOrder: state.matrixSortOrder
     });
     
-    state.matrixData = data.matrix || [];
+    // Cache full dataset for client-side search
+    state.allMatrixData = data.matrix || [];
     state.matrixSuppliers = data.suppliers || [];
-    state.matrixTotal = data.total || 0;
+    
+    // Apply client-side search and pagination
+    applyMatrixClientFilters();
     
     renderMatrixTable();
     renderMatrixPagination();
@@ -1863,7 +1897,34 @@ async function handleGSheetImport() {
 function handleMatrixSearch(e) {
   state.matrixSearch = e.target.value.trim();
   state.matrixPage = 1;  // Reset to first page on search
-  loadSupplierMatrix();
+  // Client-side filter from cached data — no API call needed
+  applyMatrixClientFilters();
+  renderMatrixTable();
+  renderMatrixPagination();
+}
+
+/**
+ * Apply client-side search filter and pagination to cached matrix data.
+ * Searches against SKU, product name, and item ID only.
+ */
+function applyMatrixClientFilters() {
+  let filtered = state.allMatrixData;
+  
+  if (state.matrixSearch) {
+    const query = state.matrixSearch.toLowerCase();
+    filtered = filtered.filter(p => 
+      (p.sku || '').toLowerCase().includes(query) ||
+      (p.product_name || '').toLowerCase().includes(query) ||
+      (p.item_id || '').toLowerCase().includes(query)
+    );
+  }
+  
+  state.matrixTotal = filtered.length;
+  
+  // Paginate from filtered data
+  const start = (state.matrixPage - 1) * state.matrixPerPage;
+  const end = start + state.matrixPerPage;
+  state.matrixData = filtered.slice(start, end);
 }
 
 // ============================================================================
@@ -2378,16 +2439,17 @@ window.sourcingModule = {
   openGSheetLinkModal,
   goToAnalysisPage: async (page) => {
     state.analysisPage = page;
-    // Show table loading state during pagination
-    showTableLoading('analysis-table-body', 9, 'Loading');
-    await loadAnalysisDashboard({ skipLoadingOverlay: true });
+    // Client-side pagination from cached data — no API call needed
+    applyAnalysisClientFilters();
+    renderAnalysisTable();
+    renderAnalysisPagination();
   },
   goToMatrixPage: async (page) => {
     state.matrixPage = page;
-    // Show table loading state during pagination (estimate columns: 4 base + suppliers)
-    const colCount = 4 + (state.matrixSuppliers?.length || 5);
-    showTableLoading('matrix-table-body', colCount, 'Loading');
-    await loadSupplierMatrix({ skipLoadingOverlay: true });
+    // Client-side pagination from cached data — no API call needed
+    applyMatrixClientFilters();
+    renderMatrixTable();
+    renderMatrixPagination();
   }
 };
 
