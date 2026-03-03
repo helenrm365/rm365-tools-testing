@@ -1,7 +1,7 @@
 // js/modules/usermanagement/management.js
 import { getUsers, createUser, updateUser, deleteUser } from '../../services/api/usersApi.js';
 import { getRoles, createRole, updateRole, deleteRole } from '../../services/api/rolesApi.js';
-import { getLocationObjects } from '../../services/api/attendanceApi.js';
+import { getLocations as getLocationObjects } from '../../services/api/locationsApi.js';
 import { generateTabStructure } from '../../router.js';
 import { showToast } from '../../ui/toast.js';
 
