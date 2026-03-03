@@ -76,25 +76,7 @@ export function enforceRoutePermission(pathname) {
   if (section === 'home') return { allowed: true, redirect: null };
 
   const key = sub ? `${section}.${sub}` : section;
-  if (isAllowed(key)) {
-    // Section-root paths (no sub) map to a default sub-page (e.g. /attendance-system → dashboard).
-    // If the user only has specific child permissions (not the full parent), redirect to their
-    // first allowed sub-page so they don't land on a default page they can't access.
-    if (!sub) {
-      const allowedTabs = getAllowedTabs();
-      if (allowedTabs && allowedTabs.length > 0 && !allowedTabs.includes('*') && !allowedTabs.includes(section)) {
-        const sectionChildren = allowedTabs.filter(t => t.startsWith(section + '.'));
-        if (sectionChildren.length > 0) {
-          const firstChildSub = sectionChildren[0].substring(section.length + 1);
-          const redirect = `/${section}/${firstChildSub}`;
-          if (redirect !== pathname) {
-            return { allowed: false, redirect };
-          }
-        }
-      }
-    }
-    return { allowed: true, redirect: null };
-  }
+  if (isAllowed(key)) return { allowed: true, redirect: null };
 
   const fallback = getDefaultAllowedPath();
   return { allowed: false, redirect: fallback };
