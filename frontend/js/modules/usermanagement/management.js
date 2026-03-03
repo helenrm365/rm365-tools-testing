@@ -514,9 +514,9 @@ async function loadRoles() {
     } catch (e) {
         console.warn('Failed to load roles, falling back to defaults', e);
         state.roles = [
-            {role_name:'user', allowed_tabs:['enrollment', 'attendance-system']}, 
+            {role_name:'user', allowed_tabs:['enrollment', 'attendance']}, 
             {role_name:'admin', allowed_tabs:[...Object.keys(TAB_STRUCTURE)]},
-            {role_name:'manager', allowed_tabs:['enrollment', 'attendance-system', 'inventory']}
+            {role_name:'manager', allowed_tabs:['enrollment', 'attendance', 'inventory']}
         ];
     }
 }
