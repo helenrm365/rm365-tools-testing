@@ -34,15 +34,16 @@ class AttendanceService:
         return self.repo.get_locations()
 
     # ---- Clocking ----
-    def toggle_clock(self, employee_id: int, location_id: int = None) -> str:
+    def toggle_clock(self, employee_id: int, location_id: int = None) -> Dict[str, Any]:
         """
         Toggle IN/OUT for the given employee, based on today's latest direction.
-        Uses lowercase 'in'/'out' just like your original data.
+        Uses the scanner's location timezone to determine 'today'.
+        Returns direction plus local time/timezone info.
         """
-        last = self.repo.latest_direction_today(employee_id)
+        last = self.repo.latest_direction_today(employee_id, location_id)
         direction = "in" if last != "in" else "out"
-        self.repo.insert_log(employee_id, direction, location_id)
-        return direction
+        log_info = self.repo.insert_log(employee_id, direction, location_id)
+        return {"direction": direction, **log_info}
 
     # ---- Logs & summary ----
     def get_logs(self, from_date: date, to_date: date, search: Optional[str] = None, location: Optional[str] = None, name_search: Optional[str] = None) -> List[Dict[str, Any]]:

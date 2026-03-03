@@ -325,8 +325,9 @@ window.handleClockToggle = async function(btnEl) {
     // Update local state
     state.clockStatus[employeeId] = result.direction;
     
-    // Show success toast
-    showToast(`✅ ${employeeName} has been ${result.direction === 'in' ? 'clocked in' : 'clocked out'}`, 'success');
+    // Show success toast with local time
+    const timeStr = result.local_time ? ` at ${result.local_time}` : '';
+    showToast(`✅ ${employeeName} has been ${result.direction === 'in' ? 'clocked in' : 'clocked out'}${timeStr}`, 'success');
     
     // Re-render to update button state
     renderTable();

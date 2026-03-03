@@ -1,8 +1,9 @@
 // js/modules/attendance-system/automatic.js - Automatic clocking with NFC card support
 // Now uses WebSockets for instant card scan notifications (no polling!)
-import { getEmployees, clockEmployee, checkAttendanceTablesStatus, initializeAttendanceTables } from '../../services/api/attendanceApi.js';
+import { getEmployees, clockEmployee, checkAttendanceTablesStatus, initializeAttendanceTables, getLocationObjects } from '../../services/api/attendanceApi.js';
 import { playSuccessSound, playErrorSound, playScanSound, unlockAudio, isAudioUnlocked, onAudioUnlock } from '../../utils/sound.js';
 import { showToast } from '../../ui/toast.js';
+import { getUserData } from '../../services/state/userStore.js';
 
 // ====== State Management ======
 let state = {
@@ -17,7 +18,8 @@ let state = {
   cardScanErrorCount: 0,
   scanCount: 0,
   recentScans: [],
-  cardServiceAvailable: false
+  cardServiceAvailable: false,
+  scannerTimezone: null // IANA timezone string for the scanner's location
 };
 
 // ====== Constants ======
@@ -55,10 +57,17 @@ function updateStatus(message, type = 'info') {
   }
 }
 
-function updateLastScanTime() {
+function updateLastScanTime(localTime) {
   const lastScanEl = $('#lastScanTime');
   if (lastScanEl) {
-    lastScanEl.textContent = new Date().toLocaleTimeString();
+    // Use the API-provided local time if available, otherwise format in scanner timezone
+    if (localTime) {
+      lastScanEl.textContent = localTime;
+    } else if (state.scannerTimezone) {
+      lastScanEl.textContent = new Date().toLocaleTimeString('en-GB', { timeZone: state.scannerTimezone });
+    } else {
+      lastScanEl.textContent = new Date().toLocaleTimeString('en-GB');
+    }
   }
 }
 
@@ -69,12 +78,22 @@ function updateScanCount() {
   }
 }
 
-function addRecentScan(employee, method, direction) {
+function addRecentScan(employee, method, direction, localTime) {
+  // Use API-provided local time, or format in scanner timezone, or fall back to browser time
+  let displayTime;
+  if (localTime) {
+    displayTime = localTime;
+  } else if (state.scannerTimezone) {
+    displayTime = new Date().toLocaleTimeString('en-GB', { timeZone: state.scannerTimezone });
+  } else {
+    displayTime = new Date().toLocaleTimeString('en-GB');
+  }
+
   const scan = {
     employee: employee.name,
     method,
     direction,
-    time: new Date().toLocaleTimeString(),
+    time: displayTime,
     timestamp: new Date()
   };
 
@@ -478,8 +497,8 @@ async function handleCardScan(uid) {
         
         state.scanCount++;
         updateScanCount();
-        updateLastScanTime();
-        addRecentScan(employee, 'card', clockResult.direction || 'in');
+        updateLastScanTime(clockResult.local_time || null);
+        addRecentScan(employee, 'card', clockResult.direction || 'in', clockResult.local_time || null);
         
         state.cardScanErrorCount = 0;
       } else {
@@ -568,7 +587,8 @@ function cleanup() {
     cardScanErrorCount: 0,
     scanCount: 0,
     recentScans: [],
-    cardServiceAvailable: false
+    cardServiceAvailable: false,
+    scannerTimezone: null
   };
 }
 
@@ -601,6 +621,22 @@ export async function init() {
   showToast('Loading employee data...', 'info');
   // Load employee data
   await loadEmployees();
+  
+  // Load scanner's location timezone from the current user's location_id
+  try {
+    const locations = await getLocationObjects();
+    const userData = getUserData();
+    const locationId = userData?.location_id;
+    if (locationId && Array.isArray(locations)) {
+      const loc = locations.find(l => l.id === locationId);
+      if (loc && loc.timezone) {
+        state.scannerTimezone = loc.timezone;
+        console.log(`🌍 Scanner timezone: ${state.scannerTimezone}`);
+      }
+    }
+  } catch (tzErr) {
+    console.warn('Could not load scanner timezone:', tzErr);
+  }
   
   setupEventHandlers();
   

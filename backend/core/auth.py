@@ -52,4 +52,9 @@ def login(body: LoginIn):
 
 @router.get("/me")
 def me(user=Depends(get_current_user)):
-    return {"username": user["username"], "role": user.get("role", "user"), "allowed_tabs": user["allowed_tabs"]}
+    return {
+        "username": user["username"],
+        "role": user.get("role", "user"),
+        "allowed_tabs": user["allowed_tabs"],
+        "location_id": user.get("location_id"),
+    }

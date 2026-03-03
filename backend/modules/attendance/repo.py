@@ -139,7 +139,8 @@ class AttendanceRepo:
                 return [{"id": r[0], "name": r[1], "nfc_uid": r[2]} for r in rows]
 
     def list_employees_with_status(self, location: Optional[str] = None, name_search: Optional[str] = None) -> List[Dict[str, Any]]:
-        """Get employees with their current attendance status for overview display"""
+        """Get employees with their current attendance status for overview display.
+        Uses each employee's location timezone to determine 'today' and format times."""
         with pg_conn() as conn:
             with conn.cursor() as cur:
                 # Build WHERE clause for filters
@@ -165,18 +166,21 @@ class AttendanceRepo:
                         COALESCE(e.nfc_uid, NULL) AS nfc_uid,
                         COALESCE(e.location, NULL) AS location,
                         latest_log.direction AS status,
-                        latest_log.log_time,
+                        latest_log.local_time,
                         CASE 
                             WHEN latest_log.direction = 'in' THEN 
                                 EXTRACT(EPOCH FROM (NOW() - latest_log.log_time))/3600
                             ELSE NULL 
                         END AS hours_worked_today
                     FROM employees e
+                    LEFT JOIN locations emp_loc ON LOWER(emp_loc.name) = LOWER(e.location)
                     LEFT JOIN LATERAL (
-                        SELECT direction, log_time
+                        SELECT al.direction, al.log_time,
+                               TO_CHAR(al.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'), 'HH24:MI') AS local_time
                         FROM attendance_logs al
                         WHERE al.employee_id = e.id 
-                          AND al.log_time::date = CURRENT_DATE
+                          AND (al.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date
+                              = (NOW() AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date
                         ORDER BY al.log_time DESC
                         LIMIT 1
                     ) latest_log ON true
@@ -195,7 +199,7 @@ class AttendanceRepo:
                         "nfc_uid": r[2],
                         "location": r[3],
                         "status": r[4] or "unknown",
-                        "last_activity": r[5].strftime("%H:%M") if r[5] else None,
+                        "last_activity": r[5] if r[5] else None,
                         "duration": f"{r[6]:.1f}h" if r[6] is not None else None
                     }
                     result.append(employee)
@@ -210,37 +214,69 @@ class AttendanceRepo:
                 rows = cur.fetchall()
                 return [row[0] for row in rows]
 
+    # ---- Timezone Helper ----
+    def _get_location_timezone(self, location_id: Optional[int] = None) -> str:
+        """Look up IANA timezone string for a location_id. Returns 'UTC' as fallback."""
+        if not location_id:
+            return 'UTC'
+        try:
+            with pg_conn() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT timezone FROM locations WHERE id = %s", (location_id,))
+                    row = cur.fetchone()
+                    return row[0] if row else 'UTC'
+        except Exception:
+            return 'UTC'
+
     # ---- Logs ----
-    def latest_direction_today(self, employee_id: int) -> Optional[str]:
+    def latest_direction_today(self, employee_id: int, location_id: Optional[int] = None) -> Optional[str]:
+        """Get the latest clock direction for the employee 'today' in the scanner's timezone."""
+        location_tz = self._get_location_timezone(location_id)
         with pg_conn() as conn:
             with conn.cursor() as cur:
                 cur.execute(
                     """
                     SELECT direction
                     FROM attendance_logs
-                    WHERE employee_id = %s AND log_time::date = %s
+                    WHERE employee_id = %s
+                      AND (log_time AT TIME ZONE %s)::date = (NOW() AT TIME ZONE %s)::date
                     ORDER BY log_time DESC
                     LIMIT 1
                     """,
-                    (employee_id, date.today()),
+                    (employee_id, location_tz, location_tz),
                 )
                 row = cur.fetchone()
                 return row[0] if row else None
 
-    def insert_log(self, employee_id: int, direction: str, location_id: Optional[int] = None) -> None:
+    def insert_log(self, employee_id: int, direction: str, location_id: Optional[int] = None) -> Dict[str, Any]:
+        """Insert a clock log and return local time info for the scanner's timezone."""
+        location_tz = self._get_location_timezone(location_id)
         with pg_conn() as conn:
             with conn.cursor() as cur:
                 cur.execute(
-                    "INSERT INTO attendance_logs (employee_id, log_time, direction, location_id) VALUES (%s, %s, %s, %s)",
-                    (employee_id, datetime.now(tz.utc), direction, location_id),
+                    """
+                    INSERT INTO attendance_logs (employee_id, log_time, direction, location_id)
+                    VALUES (%s, %s, %s, %s)
+                    RETURNING
+                        TO_CHAR(log_time AT TIME ZONE %s, 'HH24:MI:SS') AS local_time,
+                        TO_CHAR(log_time AT TIME ZONE %s, 'YYYY-MM-DD') AS local_date
+                    """,
+                    (employee_id, datetime.now(tz.utc), direction, location_id, location_tz, location_tz),
                 )
+                row = cur.fetchone()
             conn.commit()
+            return {
+                "local_time": row[0] if row else None,
+                "local_date": row[1] if row else None,
+                "timezone": location_tz,
+            }
 
     def list_logs(self, from_date: date, to_date: date, search: Optional[str] = None, location: Optional[str] = None, name_search: Optional[str] = None) -> List[Dict[str, Any]]:
         with pg_conn() as conn:
             with conn.cursor() as cur:
                 # Build WHERE clause for filters
-                where_conditions = ["a.log_time::date BETWEEN %s AND %s"]
+                # Use location timezone for date range (via COALESCE with log's location or employee location)
+                where_conditions = ["(a.log_time AT TIME ZONE COALESCE(l.timezone, emp_loc.timezone, 'UTC'))::date BETWEEN %s AND %s"]
                 params = [from_date, to_date]
                 
                 # Legacy search parameter (if provided, use it for name search)
@@ -261,12 +297,13 @@ class AttendanceRepo:
                 
                 query = f"""
                     SELECT e.name,
-                        (a.log_time AT TIME ZONE COALESCE(l.timezone, 'UTC'))::date AS day,
-                        TO_CHAR(a.log_time AT TIME ZONE COALESCE(l.timezone, 'UTC'), 'HH24:MI:SS') AS time,
-                        a.direction, e.location, COALESCE(l.timezone, 'UTC') as timezone
+                        (a.log_time AT TIME ZONE COALESCE(l.timezone, emp_loc.timezone, 'UTC'))::date AS day,
+                        TO_CHAR(a.log_time AT TIME ZONE COALESCE(l.timezone, emp_loc.timezone, 'UTC'), 'HH24:MI:SS') AS time,
+                        a.direction, e.location, COALESCE(l.timezone, emp_loc.timezone, 'UTC') as timezone
                     FROM attendance_logs a
                     JOIN employees e ON a.employee_id = e.id
                     LEFT JOIN locations l ON a.location_id = l.id
+                    LEFT JOIN locations emp_loc ON LOWER(emp_loc.name) = LOWER(e.location)
                     WHERE {where_clause}
                     ORDER BY a.log_time DESC
                 """
@@ -279,11 +316,11 @@ class AttendanceRepo:
                 ]
 
     def summary_counts(self, from_date: date, to_date: date, location: Optional[str] = None, name_search: Optional[str] = None) -> List[Dict[str, Any]]:
-        """Simple per-employee count within date range."""
+        """Simple per-employee count within date range.  Uses employee timezone for date boundaries."""
         with pg_conn() as conn:
             with conn.cursor() as cur:
                 # Build WHERE clause for filters
-                where_conditions = ["a.log_time::date BETWEEN %s AND %s"]
+                where_conditions = ["(a.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date BETWEEN %s AND %s"]
                 params = [from_date, to_date]
                 
                 if location:
@@ -300,6 +337,7 @@ class AttendanceRepo:
                     SELECT e.name, COUNT(*) AS count
                     FROM attendance_logs a
                     JOIN employees e ON a.employee_id = e.id
+                    LEFT JOIN locations emp_loc ON LOWER(emp_loc.name) = LOWER(e.location)
                     WHERE {where_clause}
                     GROUP BY e.name
                     ORDER BY e.name
@@ -309,7 +347,7 @@ class AttendanceRepo:
                 return cursor_to_dicts(cur)
 
     def get_daily_stats(self, location: Optional[str] = None, name_search: Optional[str] = None) -> Dict[str, Any]:
-        """Get today's attendance statistics."""
+        """Get today's attendance statistics.  Uses each employee's location timezone to define 'today'."""
         with pg_conn() as conn:
             with conn.cursor() as cur:
                 # Build WHERE clause for employee filtering
@@ -317,11 +355,11 @@ class AttendanceRepo:
                 employee_params = []
                 
                 if location:
-                    employee_where_conditions.append("location = %s")
+                    employee_where_conditions.append("e.location = %s")
                     employee_params.append(location)
                 
                 if name_search:
-                    employee_where_conditions.append("LOWER(name) LIKE %s")
+                    employee_where_conditions.append("LOWER(e.name) LIKE %s")
                     employee_params.append(f"%{name_search.lower()}%")
                 
                 employee_where_clause = ""
@@ -329,22 +367,25 @@ class AttendanceRepo:
                     employee_where_clause = "WHERE " + " AND ".join(employee_where_conditions)
                 
                 # Total employees (filtered)
-                total_query = f"SELECT COUNT(*) FROM employees {employee_where_clause}"
+                total_query = f"SELECT COUNT(*) FROM employees e {employee_where_clause}"
                 cur.execute(total_query, employee_params)
                 total_employees = cur.fetchone()[0]
                 
                 # Today's attendance status (filtered)
+                # Uses employee's location timezone to determine "today"
                 attendance_query = f"""
                     SELECT 
                         COUNT(DISTINCT CASE WHEN latest_log.direction = 'in' THEN e.id END) as checked_in,
                         COUNT(DISTINCT CASE WHEN latest_log.direction = 'out' THEN e.id END) as checked_out,
                         COUNT(DISTINCT CASE WHEN latest_log.direction IS NULL THEN e.id END) as absent
                     FROM employees e
+                    LEFT JOIN locations emp_loc ON LOWER(emp_loc.name) = LOWER(e.location)
                     LEFT JOIN LATERAL (
-                        SELECT direction
+                        SELECT al.direction
                         FROM attendance_logs al
                         WHERE al.employee_id = e.id 
-                          AND al.log_time::date = CURRENT_DATE
+                          AND (al.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date
+                              = (NOW() AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date
                         ORDER BY al.log_time DESC
                         LIMIT 1
                     ) latest_log ON true
@@ -396,22 +437,24 @@ class AttendanceRepo:
                 query = f"""
                     SELECT 
                         e.name,
-                        DATE(a.log_time) as log_date,
+                        (a.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date as log_date,
                         COUNT(*) as daily_logs,
                         SUM(CASE WHEN a.direction = 'in' THEN 1 ELSE 0 END) as clock_ins,
                         SUM(CASE WHEN a.direction = 'out' THEN 1 ELSE 0 END) as clock_outs
                     FROM employees e
+                    LEFT JOIN locations emp_loc ON LOWER(emp_loc.name) = LOWER(e.location)
                     LEFT JOIN attendance_logs a ON e.id = a.employee_id
-                        AND a.log_time::date BETWEEN %s AND %s
+                        AND (a.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date BETWEEN %s AND %s
                     WHERE e.id IN (
-                        SELECT DISTINCT employee_id 
+                        SELECT DISTINCT al2.employee_id 
                         FROM attendance_logs al2
                         JOIN employees e2 ON al2.employee_id = e2.id
-                        WHERE al2.log_time::date BETWEEN %s AND %s
+                        LEFT JOIN locations el2 ON LOWER(el2.name) = LOWER(e2.location)
+                        WHERE (al2.log_time AT TIME ZONE COALESCE(el2.timezone, 'UTC'))::date BETWEEN %s AND %s
                         {subquery_where_clause}
                     )
                     {employee_where_clause}
-                    GROUP BY e.name, DATE(a.log_time)
+                    GROUP BY e.name, (a.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date
                     ORDER BY e.name, log_date
                 """
                 
@@ -433,6 +476,7 @@ class AttendanceRepo:
         """Calculate work hours and lunch time for each employee in the date range.
         
         Always returns all employees, with null values for those without attendance data.
+        Uses employee location timezone for date grouping and time display.
         """
         with pg_conn() as conn:
             with conn.cursor() as cur:
@@ -457,43 +501,47 @@ class AttendanceRepo:
                 
                 query = f"""
                     WITH all_employees AS (
-                        SELECT id, name
+                        SELECT e.id, e.name, COALESCE(emp_loc.timezone, 'UTC') AS emp_tz
                         FROM employees e
+                        LEFT JOIN locations emp_loc ON LOWER(emp_loc.name) = LOWER(e.location)
                         {employee_where_clause}
                     ),
                     daily_times AS (
                         SELECT 
                             e.name,
-                            a.log_time::date as work_date,
+                            e.emp_tz,
+                            (a.log_time AT TIME ZONE e.emp_tz)::date as work_date,
                             a.log_time,
                             a.direction,
                             ROW_NUMBER() OVER (
-                                PARTITION BY e.name, a.log_time::date, a.direction 
+                                PARTITION BY e.name, (a.log_time AT TIME ZONE e.emp_tz)::date, a.direction 
                                 ORDER BY a.log_time
                             ) as rn
                         FROM all_employees e
                         JOIN attendance_logs a ON e.id = a.employee_id
-                        WHERE a.log_time::date BETWEEN %s AND %s
+                        WHERE (a.log_time AT TIME ZONE e.emp_tz)::date BETWEEN %s AND %s
                     ),
                     daily_pairs AS (
                         SELECT 
                             name,
+                            emp_tz,
                             work_date,
                             MIN(CASE WHEN direction = 'in' AND rn = 1 THEN log_time END) as first_in,
                             MIN(CASE WHEN direction = 'out' AND rn = 1 THEN log_time END) as first_out,
                             MIN(CASE WHEN direction = 'in' AND rn = 2 THEN log_time END) as second_in,
                             MAX(CASE WHEN direction = 'out' THEN log_time END) as last_out
                         FROM daily_times
-                        GROUP BY name, work_date
+                        GROUP BY name, emp_tz, work_date
                     ),
                     employee_data AS (
                         SELECT 
                             ae.name,
+                            ae.emp_tz,
                             dp.work_date,
-                            dp.first_in,
-                            dp.first_out,
-                            dp.second_in,
-                            dp.last_out,
+                            TO_CHAR(dp.first_in AT TIME ZONE ae.emp_tz, 'HH24:MI:SS') as first_in,
+                            TO_CHAR(dp.first_out AT TIME ZONE ae.emp_tz, 'HH24:MI:SS') as first_out,
+                            TO_CHAR(dp.second_in AT TIME ZONE ae.emp_tz, 'HH24:MI:SS') as second_in,
+                            TO_CHAR(dp.last_out AT TIME ZONE ae.emp_tz, 'HH24:MI:SS') as last_out,
                             CASE 
                                 WHEN dp.first_in IS NOT NULL AND dp.last_out IS NOT NULL 
                                 THEN EXTRACT(EPOCH FROM (dp.last_out - dp.first_in))/3600
@@ -507,7 +555,8 @@ class AttendanceRepo:
                         FROM all_employees ae
                         LEFT JOIN daily_pairs dp ON ae.name = dp.name
                     )
-                    SELECT * FROM employee_data
+                    SELECT name, work_date, first_in, first_out, second_in, last_out, hours_worked, lunch_hours
+                    FROM employee_data
                     ORDER BY name, work_date NULLS LAST
                 """
                 
@@ -516,10 +565,10 @@ class AttendanceRepo:
                 return [{
                     "employee": r[0],
                     "date": r[1].isoformat() if r[1] else None,
-                    "first_in": r[2].strftime("%H:%M:%S") if r[2] else None,
-                    "first_out": r[3].strftime("%H:%M:%S") if r[3] else None,
-                    "second_in": r[4].strftime("%H:%M:%S") if r[4] else None,
-                    "last_out": r[5].strftime("%H:%M:%S") if r[5] else None,
+                    "first_in": r[2],
+                    "first_out": r[3],
+                    "second_in": r[4],
+                    "last_out": r[5],
                     "hours_worked": round(r[6], 2) if r[6] else 0,
                     "lunch_hours": round(r[7], 2) if r[7] else None
                 } for r in rows]
@@ -532,6 +581,7 @@ class AttendanceRepo:
         - today_attendance: employees who have clocked in at least once today
         - today_absences: employees who haven't clocked in today
         - active_breaks: employees currently on break (first out, not clocked back in)
+        Uses employee location timezone to determine "today".
         """
         with pg_conn() as conn:
             with conn.cursor() as cur:
@@ -542,46 +592,52 @@ class AttendanceRepo:
                     employee_where = "WHERE e.location = %s"
                     params.append(location)
                 
-                # Query for real-time status
+                # Query for real-time status using location timezone
                 query = f"""
                     WITH employee_today_status AS (
                         SELECT 
                             e.id,
                             e.name,
                             e.location,
-                            -- Has any clock-in today?
+                            COALESCE(emp_loc.timezone, 'UTC') AS emp_tz,
+                            -- Has any clock-in today (in employee's timezone)?
                             EXISTS (
                                 SELECT 1 FROM attendance_logs al 
                                 WHERE al.employee_id = e.id 
-                                AND al.log_time::date = CURRENT_DATE 
+                                AND (al.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date
+                                    = (NOW() AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date
                                 AND al.direction = 'in'
                             ) as has_clocked_in,
-                            -- Get latest log for today
+                            -- Get latest log for today (in employee's timezone)
                             (
                                 SELECT al.direction 
                                 FROM attendance_logs al 
                                 WHERE al.employee_id = e.id 
-                                AND al.log_time::date = CURRENT_DATE 
+                                AND (al.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date
+                                    = (NOW() AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date
                                 ORDER BY al.log_time DESC 
                                 LIMIT 1
                             ) as latest_direction,
-                            -- Count of clock-ins today
+                            -- Count of clock-ins today (in employee's timezone)
                             (
                                 SELECT COUNT(*) 
                                 FROM attendance_logs al 
                                 WHERE al.employee_id = e.id 
-                                AND al.log_time::date = CURRENT_DATE 
+                                AND (al.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date
+                                    = (NOW() AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date
                                 AND al.direction = 'in'
                             ) as clock_in_count,
-                            -- Count of clock-outs today
+                            -- Count of clock-outs today (in employee's timezone)
                             (
                                 SELECT COUNT(*) 
                                 FROM attendance_logs al 
                                 WHERE al.employee_id = e.id 
-                                AND al.log_time::date = CURRENT_DATE 
+                                AND (al.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date
+                                    = (NOW() AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date
                                 AND al.direction = 'out'
                             ) as clock_out_count
                         FROM employees e
+                        LEFT JOIN locations emp_loc ON LOWER(emp_loc.name) = LOWER(e.location)
                         {employee_where}
                     )
                     SELECT 
@@ -616,6 +672,7 @@ class AttendanceRepo:
         Get detailed list of employees for a specific real-time status type.
         status_type: 'attendance' | 'absences' | 'breaks'
         If from_date/to_date provided, returns one row per employee per day in range.
+        Uses employee location timezone to determine 'today' and format times.
         """
         with pg_conn() as conn:
             with conn.cursor() as cur:
@@ -629,26 +686,36 @@ class AttendanceRepo:
                 if status_type == 'attendance':
                     if from_date and to_date:
                         # For date range: one row per employee per day they clocked in
+                        # Convert times to employee's location timezone
                         query = f"""
                             WITH daily_attendance AS (
                                 SELECT 
                                     e.id, e.name, e.location,
-                                    al.log_time::date as work_date,
-                                    MIN(CASE WHEN al.direction = 'in' THEN al.log_time::time END) as first_in,
-                                    MAX(CASE WHEN al.direction = 'out' THEN al.log_time::time END) as last_out
+                                    (al.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date as work_date,
+                                    MIN(CASE WHEN al.direction = 'in' THEN
+                                        TO_CHAR(al.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'), 'HH24:MI')
+                                    END) as first_in,
+                                    MAX(CASE WHEN al.direction = 'out' THEN
+                                        TO_CHAR(al.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'), 'HH24:MI')
+                                    END) as last_out
                                 FROM employees e
+                                LEFT JOIN locations emp_loc ON LOWER(emp_loc.name) = LOWER(e.location)
                                 JOIN attendance_logs al ON e.id = al.employee_id
-                                WHERE al.log_time::date BETWEEN %s AND %s
+                                WHERE (al.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date BETWEEN %s AND %s
                                 {employee_where}
-                                GROUP BY e.id, e.name, e.location, al.log_time::date
+                                GROUP BY e.id, e.name, e.location, (al.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date
                                 HAVING COUNT(CASE WHEN al.direction = 'in' THEN 1 END) > 0
                             ),
                             final_status AS (
-                                SELECT DISTINCT ON (employee_id, log_time::date)
-                                    employee_id, log_time::date as work_date, direction
-                                FROM attendance_logs
-                                WHERE log_time::date BETWEEN %s AND %s
-                                ORDER BY employee_id, log_time::date, log_time DESC
+                                SELECT DISTINCT ON (al.employee_id, (al.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date)
+                                    al.employee_id,
+                                    (al.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date as work_date,
+                                    al.direction
+                                FROM attendance_logs al
+                                JOIN employees e ON e.id = al.employee_id
+                                LEFT JOIN locations emp_loc ON LOWER(emp_loc.name) = LOWER(e.location)
+                                WHERE (al.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date BETWEEN %s AND %s
+                                ORDER BY al.employee_id, (al.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date, al.log_time DESC
                             )
                             SELECT da.id, da.name, da.location, da.work_date, da.first_in, da.last_out,
                                    COALESCE(fs.direction, 'in') as final_status
@@ -664,25 +731,33 @@ class AttendanceRepo:
                             "name": r[1],
                             "location": r[2],
                             "date": r[3].isoformat() if r[3] else None,
-                            "first_in": r[4].strftime("%H:%M") if r[4] else None,
-                            "last_out": r[5].strftime("%H:%M") if r[5] else None,
+                            "first_in": r[4],
+                            "last_out": r[5],
                             "status": r[6] or 'in'
                         } for r in rows]
                     else:
-                        # Today only: same as before
+                        # Today only — timezone-aware
                         query = f"""
                             SELECT DISTINCT 
                                 e.id, e.name, e.location,
-                                (SELECT MIN(al.log_time) FROM attendance_logs al 
-                                 WHERE al.employee_id = e.id AND al.log_time::date = CURRENT_DATE AND al.direction = 'in') as first_in,
+                                (SELECT TO_CHAR(MIN(al.log_time) AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'), 'HH24:MI')
+                                 FROM attendance_logs al 
+                                 WHERE al.employee_id = e.id
+                                 AND (al.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date
+                                     = (NOW() AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date
+                                 AND al.direction = 'in') as first_in,
                                 (SELECT al.direction FROM attendance_logs al 
-                                 WHERE al.employee_id = e.id AND al.log_time::date = CURRENT_DATE 
+                                 WHERE al.employee_id = e.id
+                                 AND (al.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date
+                                     = (NOW() AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date
                                  ORDER BY al.log_time DESC LIMIT 1) as current_status
                             FROM employees e
+                            LEFT JOIN locations emp_loc ON LOWER(emp_loc.name) = LOWER(e.location)
                             WHERE EXISTS (
                                 SELECT 1 FROM attendance_logs al 
                                 WHERE al.employee_id = e.id 
-                                AND al.log_time::date = CURRENT_DATE 
+                                AND (al.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date
+                                    = (NOW() AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date
                                 AND al.direction = 'in'
                             )
                             {employee_where}
@@ -695,20 +770,23 @@ class AttendanceRepo:
                             "id": r[0],
                             "name": r[1],
                             "location": r[2],
-                            "time": r[3].strftime("%H:%M") if r[3] else None,
+                            "time": r[3],
                             "status": r[4]
                         } for r in rows]
                         
                 elif status_type == 'absences':
                     if from_date and to_date:
                         # For date range: generate all dates and find employees absent on each day
+                        # Uses employee timezone for checking which logs belong to which day
                         query = f"""
                             WITH date_series AS (
                                 SELECT generate_series(%s::date, %s::date, '1 day'::interval)::date as work_date
                             ),
                             employee_dates AS (
-                                SELECT e.id, e.name, e.location, ds.work_date
+                                SELECT e.id, e.name, e.location, ds.work_date,
+                                       COALESCE(emp_loc.timezone, 'UTC') as emp_tz
                                 FROM employees e
+                                LEFT JOIN locations emp_loc ON LOWER(emp_loc.name) = LOWER(e.location)
                                 CROSS JOIN date_series ds
                                 WHERE 1=1 {employee_where}
                             )
@@ -719,7 +797,7 @@ class AttendanceRepo:
                             WHERE NOT EXISTS (
                                 SELECT 1 FROM attendance_logs al 
                                 WHERE al.employee_id = ed.id 
-                                AND al.log_time::date = ed.work_date
+                                AND (al.log_time AT TIME ZONE ed.emp_tz)::date = ed.work_date
                                 AND al.direction = 'in'
                             )
                             ORDER BY ed.work_date DESC, ed.name
@@ -735,14 +813,16 @@ class AttendanceRepo:
                             "status": r[4]
                         } for r in rows]
                     else:
-                        # Today only
+                        # Today only — timezone-aware
                         query = f"""
                             SELECT e.id, e.name, e.location, NULL as first_in, 'absent' as current_status
                             FROM employees e
+                            LEFT JOIN locations emp_loc ON LOWER(emp_loc.name) = LOWER(e.location)
                             WHERE NOT EXISTS (
                                 SELECT 1 FROM attendance_logs al 
                                 WHERE al.employee_id = e.id 
-                                AND al.log_time::date = CURRENT_DATE 
+                                AND (al.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date
+                                    = (NOW() AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date
                                 AND al.direction = 'in'
                             )
                             {employee_where}
@@ -763,44 +843,49 @@ class AttendanceRepo:
                     if from_date and to_date:
                         # For date range: show break periods per employee per day
                         # A break is when someone clocks out and then clocks back in on the same day
+                        # Uses employee location timezone for time display
                         query = f"""
                             WITH daily_breaks AS (
                                 SELECT 
                                     e.id, e.name, e.location,
-                                    al.log_time::date as work_date,
-                                    MIN(CASE WHEN al.direction = 'out' THEN al.log_time::time END) as first_out
+                                    COALESCE(emp_loc.timezone, 'UTC') AS emp_tz,
+                                    (al.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date as work_date,
+                                    MIN(CASE WHEN al.direction = 'out' THEN
+                                        TO_CHAR(al.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'), 'HH24:MI')
+                                    END) as first_out
                                 FROM employees e
+                                LEFT JOIN locations emp_loc ON LOWER(emp_loc.name) = LOWER(e.location)
                                 JOIN attendance_logs al ON e.id = al.employee_id
-                                WHERE al.log_time::date BETWEEN %s AND %s
+                                WHERE (al.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date BETWEEN %s AND %s
                                 {employee_where}
-                                GROUP BY e.id, e.name, e.location, al.log_time::date
+                                GROUP BY e.id, e.name, e.location, emp_loc.timezone,
+                                         (al.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date
                                 HAVING COUNT(CASE WHEN al.direction = 'out' THEN 1 END) > 0
                             ),
                             break_ends AS (
-                                SELECT DISTINCT ON (al.employee_id, al.log_time::date)
+                                SELECT DISTINCT ON (al.employee_id, (al.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date)
                                     al.employee_id, 
-                                    al.log_time::date as work_date,
-                                    al.log_time::time as break_end
+                                    (al.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date as work_date,
+                                    TO_CHAR(al.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'), 'HH24:MI') as break_end
                                 FROM attendance_logs al
-                                WHERE al.log_time::date BETWEEN %s AND %s
+                                JOIN employees e ON e.id = al.employee_id
+                                LEFT JOIN locations emp_loc ON LOWER(emp_loc.name) = LOWER(e.location)
+                                WHERE (al.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date BETWEEN %s AND %s
                                 AND al.direction = 'in'
                                 AND EXISTS (
                                     SELECT 1 FROM attendance_logs al2 
                                     WHERE al2.employee_id = al.employee_id 
-                                    AND al2.log_time::date = al.log_time::date
+                                    AND (al2.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date
+                                        = (al.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date
                                     AND al2.direction = 'out'
                                     AND al2.log_time < al.log_time
                                 )
-                                ORDER BY al.employee_id, al.log_time::date, al.log_time
+                                ORDER BY al.employee_id, (al.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date, al.log_time
                             )
                             SELECT db.id, db.name, db.location, db.work_date, 
                                    db.first_out as break_start,
                                    be.break_end,
-                                   CASE 
-                                       WHEN db.first_out IS NOT NULL AND be.break_end IS NOT NULL 
-                                       THEN EXTRACT(EPOCH FROM (be.break_end - db.first_out)) / 60
-                                       ELSE NULL 
-                                   END as duration_minutes
+                                   NULL as duration_minutes
                             FROM daily_breaks db
                             LEFT JOIN break_ends be ON db.id = be.employee_id AND db.work_date = be.work_date
                             WHERE db.first_out IS NOT NULL
@@ -814,30 +899,42 @@ class AttendanceRepo:
                             "name": r[1],
                             "location": r[2],
                             "date": r[3].isoformat() if r[3] else None,
-                            "break_start": r[4].strftime("%H:%M") if r[4] else None,
-                            "break_end": r[5].strftime("%H:%M") if r[5] else None,
-                            "duration": f"{int(r[6])}m" if r[6] else None,
+                            "break_start": r[4],
+                            "break_end": r[5],
+                            "duration": None,
                             "status": 'break_taken'
                         } for r in rows]
                     else:
-                        # Today only: employees currently on break
+                        # Today only: employees currently on break — timezone-aware
                         query = f"""
                             WITH employee_status AS (
                                 SELECT 
                                     e.id, e.name, e.location,
-                                    (SELECT al.log_time FROM attendance_logs al 
-                                     WHERE al.employee_id = e.id AND al.log_time::date = CURRENT_DATE AND al.direction = 'out'
+                                    COALESCE(emp_loc.timezone, 'UTC') AS emp_tz,
+                                    (SELECT TO_CHAR(al.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'), 'HH24:MI')
+                                     FROM attendance_logs al 
+                                     WHERE al.employee_id = e.id
+                                     AND (al.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date
+                                         = (NOW() AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date
+                                     AND al.direction = 'out'
                                      ORDER BY al.log_time ASC LIMIT 1) as break_start,
                                     (SELECT COUNT(*) FROM attendance_logs al 
-                                     WHERE al.employee_id = e.id AND al.log_time::date = CURRENT_DATE AND al.direction = 'out') as out_count,
+                                     WHERE al.employee_id = e.id
+                                     AND (al.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date
+                                         = (NOW() AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date
+                                     AND al.direction = 'out') as out_count,
                                     (SELECT al.direction FROM attendance_logs al 
-                                     WHERE al.employee_id = e.id AND al.log_time::date = CURRENT_DATE 
+                                     WHERE al.employee_id = e.id
+                                     AND (al.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date
+                                         = (NOW() AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date
                                      ORDER BY al.log_time DESC LIMIT 1) as latest_direction
                                 FROM employees e
+                                LEFT JOIN locations emp_loc ON LOWER(emp_loc.name) = LOWER(e.location)
                                 WHERE EXISTS (
                                     SELECT 1 FROM attendance_logs al 
                                     WHERE al.employee_id = e.id 
-                                    AND al.log_time::date = CURRENT_DATE 
+                                    AND (al.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date
+                                        = (NOW() AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date
                                     AND al.direction = 'in'
                                 )
                                 {employee_where}
@@ -854,7 +951,7 @@ class AttendanceRepo:
                             "id": r[0],
                             "name": r[1],
                             "location": r[2],
-                            "time": r[3].strftime("%H:%M") if r[3] else None,
+                            "time": r[3],
                             "status": r[4]
                         } for r in rows]
                 else:
@@ -864,10 +961,8 @@ class AttendanceRepo:
                                 name: Optional[str] = None, late_threshold_minutes: int = 0, 
                                 early_departure_minutes: int = 0) -> Dict[str, Any]:
         """
-        Get punctuality and compliance metrics for a date range:
-        - late_arrivals: employees who arrived after 9:00 AM (or late_threshold_minutes after)
-        - early_departures: employees who left before 5:00 PM (or early_departure_minutes before)
-        - missing_punches: days with incomplete clock in/out pairs
+        Get punctuality and compliance metrics for a date range.
+        Uses employee location timezone for time comparisons.
         """
         with pg_conn() as conn:
             with conn.cursor() as cur:
@@ -881,27 +976,28 @@ class AttendanceRepo:
                     employee_where += " AND LOWER(e.name) LIKE LOWER(%s)"
                     filter_params.append(f"%{name}%")
                 
-                # Standard work hours (8:30 AM to 5:30 PM) - can be made configurable later
+                # Standard work hours (8:30 AM to 5:30 PM)
                 late_time = "08:30:00"
                 early_time = "17:30:00"
                 
-                # Parameter order: from_date, to_date, [filter_params...], time
                 params_late = [from_date, to_date] + filter_params + [late_time]
                 params_early = [from_date, to_date] + filter_params + [early_time]
                 params_missing = [from_date, to_date] + filter_params
                 
-                # Count late arrivals
+                # Count late arrivals — use local time in employee's timezone
                 late_query = f"""
                     WITH first_clock_ins AS (
                         SELECT 
-                            e.id, e.name, a.log_time::date as work_date,
-                            MIN(a.log_time::time) as first_in_time
+                            e.id, e.name,
+                            (a.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date as work_date,
+                            MIN((a.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::time) as first_in_time
                         FROM employees e
+                        LEFT JOIN locations emp_loc ON LOWER(emp_loc.name) = LOWER(e.location)
                         JOIN attendance_logs a ON e.id = a.employee_id
-                        WHERE a.log_time::date BETWEEN %s AND %s
+                        WHERE (a.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date BETWEEN %s AND %s
                         AND a.direction = 'in'
                         {employee_where}
-                        GROUP BY e.id, e.name, a.log_time::date
+                        GROUP BY e.id, e.name, (a.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date
                     )
                     SELECT 
                         COUNT(*) as late_count,
@@ -912,18 +1008,20 @@ class AttendanceRepo:
                 cur.execute(late_query, params_late)
                 late_row = cur.fetchone()
                 
-                # Count early departures
+                # Count early departures — use local time in employee's timezone
                 early_query = f"""
                     WITH last_clock_outs AS (
                         SELECT 
-                            e.id, e.name, a.log_time::date as work_date,
-                            MAX(a.log_time::time) as last_out_time
+                            e.id, e.name,
+                            (a.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date as work_date,
+                            MAX((a.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::time) as last_out_time
                         FROM employees e
+                        LEFT JOIN locations emp_loc ON LOWER(emp_loc.name) = LOWER(e.location)
                         JOIN attendance_logs a ON e.id = a.employee_id
-                        WHERE a.log_time::date BETWEEN %s AND %s
+                        WHERE (a.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date BETWEEN %s AND %s
                         AND a.direction = 'out'
                         {employee_where}
-                        GROUP BY e.id, e.name, a.log_time::date
+                        GROUP BY e.id, e.name, (a.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date
                     )
                     SELECT 
                         COUNT(*) as early_count,
@@ -934,18 +1032,20 @@ class AttendanceRepo:
                 cur.execute(early_query, params_early)
                 early_row = cur.fetchone()
                 
-                # Count missing punches (days with odd number of logs - incomplete pairs)
+                # Count missing punches — timezone-aware
                 missing_query = f"""
                     WITH daily_logs AS (
                         SELECT 
-                            e.id, e.name, a.log_time::date as work_date,
+                            e.id, e.name,
+                            (a.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date as work_date,
                             SUM(CASE WHEN a.direction = 'in' THEN 1 ELSE 0 END) as in_count,
                             SUM(CASE WHEN a.direction = 'out' THEN 1 ELSE 0 END) as out_count
                         FROM employees e
+                        LEFT JOIN locations emp_loc ON LOWER(emp_loc.name) = LOWER(e.location)
                         JOIN attendance_logs a ON e.id = a.employee_id
-                        WHERE a.log_time::date BETWEEN %s AND %s
+                        WHERE (a.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date BETWEEN %s AND %s
                         {employee_where}
-                        GROUP BY e.id, e.name, a.log_time::date
+                        GROUP BY e.id, e.name, (a.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date
                     )
                     SELECT 
                         COUNT(*) as missing_punch_days,
@@ -956,12 +1056,13 @@ class AttendanceRepo:
                 cur.execute(missing_query, params_missing)
                 missing_row = cur.fetchone()
                 
-                # Calculate total work days for rate calculation
+                # total work days — timezone-aware
                 total_query = f"""
-                    SELECT COUNT(DISTINCT (e.id, a.log_time::date))
+                    SELECT COUNT(DISTINCT (e.id, (a.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date))
                     FROM employees e
+                    LEFT JOIN locations emp_loc ON LOWER(emp_loc.name) = LOWER(e.location)
                     JOIN attendance_logs a ON e.id = a.employee_id
-                    WHERE a.log_time::date BETWEEN %s AND %s
+                    WHERE (a.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date BETWEEN %s AND %s
                     {employee_where}
                 """
                 cur.execute(total_query, params_missing)
@@ -986,6 +1087,7 @@ class AttendanceRepo:
         """
         Get detailed list of employees for a specific punctuality metric.
         metric_type: 'late' | 'early' | 'missing'
+        Uses employee location timezone for time display and comparisons.
         """
         with pg_conn() as conn:
             with conn.cursor() as cur:
@@ -1004,45 +1106,51 @@ class AttendanceRepo:
                     params.append(late_time)
                     query = f"""
                         SELECT 
-                            e.id, e.name, e.location, a.log_time::date as work_date,
-                            MIN(a.log_time::time) as first_in_time
+                            e.id, e.name, e.location,
+                            (a.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date as work_date,
+                            MIN(TO_CHAR(a.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'), 'HH24:MI:SS')) as first_in_time
                         FROM employees e
+                        LEFT JOIN locations emp_loc ON LOWER(emp_loc.name) = LOWER(e.location)
                         JOIN attendance_logs a ON e.id = a.employee_id
-                        WHERE a.log_time::date BETWEEN %s AND %s
+                        WHERE (a.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date BETWEEN %s AND %s
                         AND a.direction = 'in'
                         {employee_where}
-                        GROUP BY e.id, e.name, e.location, a.log_time::date
-                        HAVING MIN(a.log_time::time) > %s::time
-                        ORDER BY a.log_time::date DESC, e.name
+                        GROUP BY e.id, e.name, e.location, (a.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date
+                        HAVING MIN((a.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::time) > %s::time
+                        ORDER BY (a.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date DESC, e.name
                     """
                 elif metric_type == 'early':
                     early_time = "17:30:00"
                     params.append(early_time)
                     query = f"""
                         SELECT 
-                            e.id, e.name, e.location, a.log_time::date as work_date,
-                            MAX(a.log_time::time) as last_out_time
+                            e.id, e.name, e.location,
+                            (a.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date as work_date,
+                            MAX(TO_CHAR(a.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'), 'HH24:MI:SS')) as last_out_time
                         FROM employees e
+                        LEFT JOIN locations emp_loc ON LOWER(emp_loc.name) = LOWER(e.location)
                         JOIN attendance_logs a ON e.id = a.employee_id
-                        WHERE a.log_time::date BETWEEN %s AND %s
+                        WHERE (a.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date BETWEEN %s AND %s
                         AND a.direction = 'out'
                         {employee_where}
-                        GROUP BY e.id, e.name, e.location, a.log_time::date
-                        HAVING MAX(a.log_time::time) < %s::time
-                        ORDER BY a.log_time::date DESC, e.name
+                        GROUP BY e.id, e.name, e.location, (a.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date
+                        HAVING MAX((a.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::time) < %s::time
+                        ORDER BY (a.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date DESC, e.name
                     """
                 elif metric_type == 'missing':
                     query = f"""
                         WITH daily_logs AS (
                             SELECT 
-                                e.id, e.name, e.location, a.log_time::date as work_date,
+                                e.id, e.name, e.location,
+                                (a.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date as work_date,
                                 SUM(CASE WHEN a.direction = 'in' THEN 1 ELSE 0 END) as in_count,
                                 SUM(CASE WHEN a.direction = 'out' THEN 1 ELSE 0 END) as out_count
                             FROM employees e
+                            LEFT JOIN locations emp_loc ON LOWER(emp_loc.name) = LOWER(e.location)
                             JOIN attendance_logs a ON e.id = a.employee_id
-                            WHERE a.log_time::date BETWEEN %s AND %s
+                            WHERE (a.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date BETWEEN %s AND %s
                             {employee_where}
-                            GROUP BY e.id, e.name, e.location, a.log_time::date
+                            GROUP BY e.id, e.name, e.location, (a.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date
                         )
                         SELECT id, name, location, work_date,
                             CASE 
@@ -1073,6 +1181,6 @@ class AttendanceRepo:
                         "name": r[1],
                         "location": r[2],
                         "date": r[3].isoformat(),
-                        "time": r[4].strftime("%H:%M:%S") if r[4] else None
+                        "time": r[4]
                     } for r in rows]
 
