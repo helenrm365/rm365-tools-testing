@@ -1,6 +1,7 @@
 // js/modules/attendance-system/automatic.js - Automatic clocking with NFC card support
 // Now uses WebSockets for instant card scan notifications (no polling!)
-import { getEmployees, clockEmployee, checkAttendanceTablesStatus, initializeAttendanceTables, getLocationObjects } from '../../services/api/attendanceApi.js';
+import { getEmployees, clockEmployee, checkAttendanceTablesStatus, initializeAttendanceTables } from '../../services/api/attendanceApi.js';
+import { getLocations as getLocationObjects } from '../../services/api/locationsApi.js';
 import { playSuccessSound, playErrorSound, playScanSound, unlockAudio, isAudioUnlocked, onAudioUnlock } from '../../utils/sound.js';
 import { showToast } from '../../ui/toast.js';
 import { getUserData } from '../../services/state/userStore.js';
