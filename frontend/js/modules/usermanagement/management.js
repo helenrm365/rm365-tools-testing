@@ -220,18 +220,23 @@ function openUserModal(user = null) {
         allTabBoxes.forEach(cb => {
             if (user.allowed_tabs.includes(cb.value)) {
                 cb.checked = true;
-                
-                // If it's a parent checkbox, expand its subtabs
-                if (cb.classList.contains('parent-checkbox')) {
-                    const parentKey = cb.dataset.parent;
-                    const subtabsContainer = tabsContainer.querySelector(`.subtabs-container[data-parent="${parentKey}"]`);
-                    if (subtabsContainer) {
-                        subtabsContainer.style.display = 'block';
-                        subtabsContainer.classList.add('expanded');
-                    }
-                }
             }
         });
+        
+        // For each section, if any child is checked, ensure parent is checked and subtabs are expanded
+        for (const [key] of Object.entries(TAB_STRUCTURE)) {
+            const childCbs = form.querySelectorAll(`input[name="allowed_tab"].child-checkbox[data-parent="${key}"]`);
+            const anyChildChecked = Array.from(childCbs).some(cb => cb.checked);
+            if (anyChildChecked) {
+                const parentCb = form.querySelector(`input[name="allowed_tab"].parent-checkbox[data-parent="${key}"]`);
+                if (parentCb) parentCb.checked = true;
+                const subtabsContainer = tabsContainer.querySelector(`.subtabs-container[data-parent="${key}"]`);
+                if (subtabsContainer) {
+                    subtabsContainer.style.display = 'block';
+                    subtabsContainer.classList.add('expanded');
+                }
+            }
+        }
     } else {
         // Create Mode
         state.editingUser = null;
@@ -366,7 +371,7 @@ function wireUserModal() {
         const password = formData.get('password');
         const confirmPassword = formData.get('confirmPassword');
         
-        const allowedTabs = Array.from(document.querySelectorAll('input[name="allowed_tab"]:checked')).map(cb => cb.value);
+        const allowedTabs = collectAllowedTabs('allowed_tab');
         const locationIdRaw = formData.get('location_id');
         const location_id = locationIdRaw ? parseInt(locationIdRaw, 10) : null;
         
@@ -492,18 +497,23 @@ function autoSelectTabsForRole(roleName) {
         boxes.forEach(b => {
             if (role.allowed_tabs.includes(b.value)) {
                 b.checked = true;
-                
-                // If it's a parent checkbox, expand its subtabs
-                if (b.classList.contains('parent-checkbox')) {
-                    const parentKey = b.dataset.parent;
-                    const subtabsContainer = tabsContainer.querySelector(`.subtabs-container[data-parent="${parentKey}"]`);
-                    if (subtabsContainer) {
-                        subtabsContainer.style.display = 'block';
-                        subtabsContainer.classList.add('expanded');
-                    }
-                }
             }
         });
+        
+        // For each section, if any child is checked, ensure parent is checked and subtabs expanded
+        for (const [key] of Object.entries(TAB_STRUCTURE)) {
+            const childCbs = tabsContainer.querySelectorAll(`input[name="allowed_tab"].child-checkbox[data-parent="${key}"]`);
+            const anyChildChecked = Array.from(childCbs).some(cb => cb.checked);
+            if (anyChildChecked) {
+                const parentCb = tabsContainer.querySelector(`input[name="allowed_tab"].parent-checkbox[data-parent="${key}"]`);
+                if (parentCb) parentCb.checked = true;
+                const subtabsContainer = tabsContainer.querySelector(`.subtabs-container[data-parent="${key}"]`);
+                if (subtabsContainer) {
+                    subtabsContainer.style.display = 'block';
+                    subtabsContainer.classList.add('expanded');
+                }
+            }
+        }
     }
     updateSelectAllState(tabsContainer, 'allowed_tab');
 }
@@ -514,9 +524,9 @@ async function loadRoles() {
     } catch (e) {
         console.warn('Failed to load roles, falling back to defaults', e);
         state.roles = [
-            {role_name:'user', allowed_tabs:['enrollment', 'attendance']}, 
+            {role_name:'user', allowed_tabs:['enrollment', 'attendance-system']}, 
             {role_name:'admin', allowed_tabs:[...Object.keys(TAB_STRUCTURE)]},
-            {role_name:'manager', allowed_tabs:['enrollment', 'attendance', 'inventory']}
+            {role_name:'manager', allowed_tabs:['enrollment', 'attendance-system', 'inventory']}
         ];
     }
 }
@@ -587,18 +597,23 @@ function openEditRoleModal(roleName) {
     boxes.forEach(cb => {
         if (role.allowed_tabs.includes(cb.value)) {
             cb.checked = true;
-            
-            // If it's a parent checkbox, expand its subtabs
-            if (cb.classList.contains('parent-checkbox')) {
-                const parentKey = cb.dataset.parent;
-                const subtabsContainer = container.querySelector(`.subtabs-container[data-parent="${parentKey}"]`);
-                if (subtabsContainer) {
-                    subtabsContainer.style.display = 'block';
-                    subtabsContainer.classList.add('expanded');
-                }
-            }
         }
     });
+    
+    // For each section, if any child is checked, ensure parent is checked and subtabs expanded
+    for (const [key] of Object.entries(TAB_STRUCTURE)) {
+        const childCbs = container.querySelectorAll(`input[name="edit_role_allowed_tab"].child-checkbox[data-parent="${key}"]`);
+        const anyChildChecked = Array.from(childCbs).some(cb => cb.checked);
+        if (anyChildChecked) {
+            const parentCb = container.querySelector(`input[name="edit_role_allowed_tab"].parent-checkbox[data-parent="${key}"]`);
+            if (parentCb) parentCb.checked = true;
+            const subtabsContainer = container.querySelector(`.subtabs-container[data-parent="${key}"]`);
+            if (subtabsContainer) {
+                subtabsContainer.style.display = 'block';
+                subtabsContainer.classList.add('expanded');
+            }
+        }
+    }
     
     // Update Select All based on parent checkboxes
     updateSelectAllState(container, 'edit_role_allowed_tab');
@@ -647,8 +662,7 @@ function wireEditRoleModal() {
         if (!originalName || !newName) return;
         
         const container = $('#editRoleTabsContainer');
-        const allowedTabs = Array.from(container.querySelectorAll('input[name="edit_role_allowed_tab"]:checked'))
-                            .map(cb => cb.value);
+        const allowedTabs = collectAllowedTabs('edit_role_allowed_tab');
         
         try {
             await updateRole({
@@ -796,10 +810,26 @@ function wireTabCheckboxBehavior(container, inputName) {
         }
     });
     
-    // Wire child checkbox changes to update select all
+    // Wire child checkbox changes to update parent state and select all
     const childCheckboxes = container.querySelectorAll('.child-checkbox');
     childCheckboxes.forEach(child => {
         child.addEventListener('change', () => {
+            // Sync parent checkbox: check it if any child is checked, uncheck if none are
+            const parentKey = child.dataset.parent;
+            const parentCb = container.querySelector(`.parent-checkbox[data-parent="${parentKey}"]`);
+            const siblings = container.querySelectorAll(`.child-checkbox[data-parent="${parentKey}"]`);
+            const anyChecked = Array.from(siblings).some(cb => cb.checked);
+            if (parentCb) {
+                parentCb.checked = anyChecked;
+                // Keep subtabs expanded if any child is still checked
+                const subtabsCont = container.querySelector(`.subtabs-container[data-parent="${parentKey}"]`);
+                if (!anyChecked && subtabsCont) {
+                    subtabsCont.classList.remove('expanded');
+                    setTimeout(() => {
+                        if (!parentCb.checked) subtabsCont.style.display = 'none';
+                    }, 300);
+                }
+            }
             updateSelectAllState(container, inputName);
         });
     });
@@ -831,6 +861,37 @@ function updateSelectAllState(container, inputName) {
         selectAllCheckbox.checked = false;
         selectAllCheckbox.indeterminate = true;
     }
+}
+
+// Collect allowed tabs from checkboxes for saving.
+// Only includes the parent key if ALL children are checked (= full section access).
+// Otherwise only the checked children are included.
+function collectAllowedTabs(inputName) {
+    const tabs = [];
+    for (const [key, info] of Object.entries(TAB_STRUCTURE)) {
+        const hasSubtabs = info.subtabs && info.subtabs.length > 0;
+        const parentCb = document.querySelector(`input[name="${inputName}"].parent-checkbox[data-parent="${key}"]`);
+        if (!parentCb || !parentCb.checked) continue;
+
+        if (!hasSubtabs) {
+            // No subtabs — the parent key is the only permission needed
+            tabs.push(key);
+            continue;
+        }
+
+        const childCbs = document.querySelectorAll(`input[name="${inputName}"].child-checkbox[data-parent="${key}"]`);
+        const checkedChildren = Array.from(childCbs).filter(cb => cb.checked);
+
+        if (checkedChildren.length === childCbs.length) {
+            // All children checked — include parent key to signify full access
+            tabs.push(key);
+            checkedChildren.forEach(cb => tabs.push(cb.value));
+        } else {
+            // Only specific children — do NOT include parent key
+            checkedChildren.forEach(cb => tabs.push(cb.value));
+        }
+    }
+    return tabs;
 }
 
 // Refactor existing renderTabCheckboxes to use internal

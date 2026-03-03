@@ -13,16 +13,17 @@ export function isAllowed(key, allowed = null) {
   // If '*' is present, allow all
   if (allowedTabs.includes('*')) return true;
 
-  // Exact match or any child permission implies parent allowed
+  // Exact match
   if (allowedTabs.includes(key)) return true;
 
   const [section] = key.split('.');
   // If asked for a section (no dot), allow if any child exists
+  // This controls sidebar/nav visibility — user can see the section if they have any child permission
   if (!key.includes('.')) {
     return allowedTabs.some(t => t === section || t.startsWith(section + '.'));
   }
-  // If asked for a sub-route (has dot), also check if parent section is allowed
-  if (allowedTabs.includes(section)) return true;
+  // If asked for a specific sub-route (has dot), require exact match only.
+  // The bare parent key no longer grants blanket access to all children.
   return false;
 }
 
@@ -76,7 +77,25 @@ export function enforceRoutePermission(pathname) {
   if (section === 'home') return { allowed: true, redirect: null };
 
   const key = sub ? `${section}.${sub}` : section;
-  if (isAllowed(key)) return { allowed: true, redirect: null };
+  if (isAllowed(key)) {
+    // Section-root paths (no sub) map to a default sub-page (e.g. /attendance-system → dashboard).
+    // If the user only has specific child permissions, redirect to their first allowed sub-page
+    // so they don't land on a default page they can't access.
+    if (!sub) {
+      const allowedTabs = getAllowedTabs();
+      if (allowedTabs && allowedTabs.length > 0 && !allowedTabs.includes('*')) {
+        const sectionChildren = allowedTabs.filter(t => t.startsWith(section + '.'));
+        if (sectionChildren.length > 0) {
+          const firstChildSub = sectionChildren[0].substring(section.length + 1);
+          const redirect = `/${section}/${firstChildSub}`;
+          if (redirect !== pathname) {
+            return { allowed: false, redirect };
+          }
+        }
+      }
+    }
+    return { allowed: true, redirect: null };
+  }
 
   const fallback = getDefaultAllowedPath();
   return { allowed: false, redirect: fallback };
