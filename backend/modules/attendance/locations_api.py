@@ -84,7 +84,7 @@ def create_location(body: LocationCreateIn, user=Depends(get_current_user)):
     if existing:
         raise HTTPException(status_code=400, detail=f"Location with city code '{body.city_code}' already exists")
     
-    return _repo().create(name=body.name, city_code=body.city_code, country_code=body.country_code)
+    return _repo().create(name=body.name, city_code=body.city_code, country_code=body.country_code, timezone=body.timezone)
 
 
 @router.patch("/{location_id}", response_model=LocationOut)
@@ -101,7 +101,7 @@ def update_location(location_id: int, body: LocationUpdateIn, user=Depends(get_c
         if conflict:
             raise HTTPException(status_code=400, detail=f"Location with city code '{body.city_code}' already exists")
     
-    updated = _repo().update(location_id, name=body.name, city_code=body.city_code, country_code=body.country_code)
+    updated = _repo().update(location_id, name=body.name, city_code=body.city_code, country_code=body.country_code, timezone=body.timezone)
     if not updated:
         raise HTTPException(status_code=404, detail="Location not found")
     return updated

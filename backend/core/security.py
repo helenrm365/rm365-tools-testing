@@ -100,8 +100,15 @@ async def get_current_user(authorization: str = Header(None)):
         conn = get_psycopg_connection()
         try:
             cur = conn.cursor()
-            cur.execute("SELECT COALESCE(NULLIF(role, ''), 'user') as role, allowed_tabs FROM login_users WHERE username = %s", (username,))
-            row = cur.fetchone()
+            try:
+                cur.execute("SELECT COALESCE(NULLIF(role, ''), 'user') as role, allowed_tabs, location_id FROM login_users WHERE username = %s", (username,))
+                row = cur.fetchone()
+            except Exception:
+                # Fallback if location_id column doesn't exist yet (pre-migration)
+                conn.rollback()
+                cur.execute("SELECT COALESCE(NULLIF(role, ''), 'user') as role, allowed_tabs FROM login_users WHERE username = %s", (username,))
+                raw = cur.fetchone()
+                row = (raw[0], raw[1], None) if raw else None
         finally:
             return_attendance_connection(conn)
 
@@ -110,7 +117,8 @@ async def get_current_user(authorization: str = Header(None)):
 
         role = row[0] if row[0] else 'user'
         allowed_tabs = parse_allowed_tabs(row[1])
-        return {"username": username, "role": role, "allowed_tabs": allowed_tabs}
+        location_id = row[2] if len(row) > 2 and row[2] else None
+        return {"username": username, "role": role, "allowed_tabs": allowed_tabs, "location_id": location_id}
     except HTTPException:
         # Re-raise HTTP exceptions
         raise

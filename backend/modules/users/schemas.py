@@ -5,12 +5,14 @@ class UserOut(BaseModel):
     username: str
     role: Optional[str] = None
     allowed_tabs: List[str] = Field(default_factory=list)
+    location_id: Optional[int] = None
 
 class UserCreate(BaseModel):
     username: str
     password: str
     role: str = 'user'
     allowed_tabs: List[str] = Field(default_factory=list)
+    location_id: Optional[int] = None
 
 class UserUpdate(BaseModel):
     username: str                    # key
@@ -18,6 +20,7 @@ class UserUpdate(BaseModel):
     new_password: Optional[str] = None
     role: Optional[str] = None
     allowed_tabs: Optional[List[str]] = None
+    location_id: Optional[int] = None
 
 class UserPreferences(BaseModel):
     dark_mode: bool = False

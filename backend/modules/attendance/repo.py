@@ -1,5 +1,5 @@
 from __future__ import annotations
-from datetime import date, datetime
+from datetime import date, datetime, timezone as tz
 from typing import Any, Dict, List, Optional
 import logging
 
@@ -88,14 +88,37 @@ class AttendanceRepo:
                         CREATE TABLE attendance_logs (
                             id SERIAL PRIMARY KEY,
                             employee_id INTEGER NOT NULL REFERENCES employees(id),
-                            log_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                            direction VARCHAR(10) NOT NULL
+                            log_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                            direction VARCHAR(10) NOT NULL,
+                            location_id INTEGER REFERENCES locations(id)
                         )
                     """)
                     tables_created.append('attendance_logs')
                     logger.info("✅ Created table: attendance_logs")
                 else:
                     logger.info("ℹ️  Table already exists: attendance_logs")
+                
+                # Migrations for existing attendance_logs table
+                cur.execute("""
+                    ALTER TABLE attendance_logs
+                    ADD COLUMN IF NOT EXISTS location_id INTEGER REFERENCES locations(id)
+                """)
+                # Upgrade log_time to timezone-aware if it isn't already
+                cur.execute("""
+                    DO $$
+                    BEGIN
+                        IF EXISTS (
+                            SELECT 1 FROM information_schema.columns
+                            WHERE table_name = 'attendance_logs'
+                              AND column_name = 'log_time'
+                              AND data_type = 'timestamp without time zone'
+                        ) THEN
+                            ALTER TABLE attendance_logs
+                            ALTER COLUMN log_time TYPE TIMESTAMPTZ
+                            USING log_time AT TIME ZONE 'UTC';
+                        END IF;
+                    END $$;
+                """)
                 
                 conn.commit()
                 
@@ -204,12 +227,12 @@ class AttendanceRepo:
                 row = cur.fetchone()
                 return row[0] if row else None
 
-    def insert_log(self, employee_id: int, direction: str) -> None:
+    def insert_log(self, employee_id: int, direction: str, location_id: Optional[int] = None) -> None:
         with pg_conn() as conn:
             with conn.cursor() as cur:
                 cur.execute(
-                    "INSERT INTO attendance_logs (employee_id, log_time, direction) VALUES (%s, %s, %s)",
-                    (employee_id, datetime.now(), direction),
+                    "INSERT INTO attendance_logs (employee_id, log_time, direction, location_id) VALUES (%s, %s, %s, %s)",
+                    (employee_id, datetime.now(tz.utc), direction, location_id),
                 )
             conn.commit()
 
@@ -237,9 +260,13 @@ class AttendanceRepo:
                 where_clause = " AND ".join(where_conditions)
                 
                 query = f"""
-                    SELECT e.name, a.log_time::date AS day, TO_CHAR(a.log_time,'HH24:MI:SS') AS time, a.direction, e.location
+                    SELECT e.name,
+                        (a.log_time AT TIME ZONE COALESCE(l.timezone, 'UTC'))::date AS day,
+                        TO_CHAR(a.log_time AT TIME ZONE COALESCE(l.timezone, 'UTC'), 'HH24:MI:SS') AS time,
+                        a.direction, e.location, COALESCE(l.timezone, 'UTC') as timezone
                     FROM attendance_logs a
                     JOIN employees e ON a.employee_id = e.id
+                    LEFT JOIN locations l ON a.location_id = l.id
                     WHERE {where_clause}
                     ORDER BY a.log_time DESC
                 """
@@ -247,7 +274,7 @@ class AttendanceRepo:
                 cur.execute(query, params)
                 rows = cur.fetchall()
                 return [
-                    {"employee": r[0], "date": r[1].isoformat(), "time": r[2], "direction": r[3], "location": r[4]}
+                    {"employee": r[0], "date": r[1].isoformat(), "time": r[2], "direction": r[3], "location": r[4], "timezone": r[5]}
                     for r in rows
                 ]
 

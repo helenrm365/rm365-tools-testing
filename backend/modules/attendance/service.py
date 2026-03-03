@@ -34,14 +34,14 @@ class AttendanceService:
         return self.repo.get_locations()
 
     # ---- Clocking ----
-    def toggle_clock(self, employee_id: int) -> str:
+    def toggle_clock(self, employee_id: int, location_id: int = None) -> str:
         """
         Toggle IN/OUT for the given employee, based on today's latest direction.
         Uses lowercase 'in'/'out' just like your original data.
         """
         last = self.repo.latest_direction_today(employee_id)
         direction = "in" if last != "in" else "out"
-        self.repo.insert_log(employee_id, direction)
+        self.repo.insert_log(employee_id, direction, location_id)
         return direction
 
     # ---- Logs & summary ----

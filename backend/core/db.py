@@ -198,15 +198,32 @@ def initialize_database():
         except Exception as e:
             print(f"⚠️  Could not initialize magento data tables: {e}")
 
+        # Locations must be initialized before login_users FK migration
+        try:
+            from modules.attendance.locations_repo import LocationsRepo
+            LocationsRepo().init_table()
+            print("✅ Locations table initialized")
+        except Exception as e:
+            print(f"⚠️  Could not initialize locations table: {e}")
+
+        # Attendance tables (adds location_id column migration to attendance_logs)
+        try:
+            from modules.attendance.repo import AttendanceRepo
+            AttendanceRepo().init_tables()
+            print("✅ Attendance tables initialized")
+        except Exception as e:
+            print(f"⚠️  Could not initialize attendance tables: {e}")
+
         try:
             conn = get_psycopg_connection()
             with conn.cursor() as cur:
                 cur.execute("ALTER TABLE login_users ADD COLUMN IF NOT EXISTS preferences JSONB")
+                cur.execute("ALTER TABLE login_users ADD COLUMN IF NOT EXISTS location_id INTEGER REFERENCES locations(id)")
             conn.commit()
             return_attendance_connection(conn)
-            print("✅ User preferences column initialized")
+            print("✅ User preferences & location columns initialized")
         except Exception as e:
-            print(f"⚠️  Could not initialize user preferences column: {e}")
+            print(f"⚠️  Could not initialize user preferences/location columns: {e}")
         
         try:
             from modules.orders.order_fulfillment.db_repo import init_order_fulfillment_tables

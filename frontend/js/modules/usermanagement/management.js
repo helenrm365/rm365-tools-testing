@@ -1,6 +1,7 @@
 // js/modules/usermanagement/management.js
 import { getUsers, createUser, updateUser, deleteUser } from '../../services/api/usersApi.js';
 import { getRoles, createRole, updateRole, deleteRole } from '../../services/api/rolesApi.js';
+import { getLocationObjects } from '../../services/api/attendanceApi.js';
 import { generateTabStructure } from '../../router.js';
 import { showToast } from '../../ui/toast.js';
 
@@ -9,6 +10,7 @@ const TAB_STRUCTURE = generateTabStructure();
 let state = {
   users: [],
   roles: [],
+  locations: [],
   query: '',
   selectedForDelete: new Set(),
   editingUser: null,
@@ -171,6 +173,19 @@ function wireToolbar() {
 }
 
 // User Modal (Create/Edit)
+function populateLocationDropdown(selectedLocationId = null) {
+    const select = $('#formLocation');
+    if (!select) return;
+    select.innerHTML = '<option value="">None (no timezone conversion)</option>';
+    state.locations.forEach(loc => {
+        const opt = document.createElement('option');
+        opt.value = loc.id;
+        opt.textContent = `${loc.name} (${loc.timezone})`;
+        if (selectedLocationId && loc.id === selectedLocationId) opt.selected = true;
+        select.appendChild(opt);
+    });
+}
+
 function openUserModal(user = null) {
     const modal = $('#userModal');
     const form = $('#userForm');
@@ -190,6 +205,9 @@ function openUserModal(user = null) {
         
         // Populate Roles dropdown with current role selected
         populateRolesDropdown(user.role || 'user');
+        
+        // Populate Location dropdown
+        populateLocationDropdown(user.location_id || null);
         
         $('#formPassword').value = ''; // Don't show password
         $('#formConfirmPassword').value = '';
@@ -227,6 +245,9 @@ function openUserModal(user = null) {
         // Populate Roles dropdown with default role
         populateRolesDropdown('user');
         autoSelectTabsForRole('user');
+        
+        // Populate Location dropdown (no initial selection)
+        populateLocationDropdown(null);
     }
     
     // Update Select All Checkbox logic initially
@@ -346,6 +367,8 @@ function wireUserModal() {
         const confirmPassword = formData.get('confirmPassword');
         
         const allowedTabs = Array.from(document.querySelectorAll('input[name="allowed_tab"]:checked')).map(cb => cb.value);
+        const locationIdRaw = formData.get('location_id');
+        const location_id = locationIdRaw ? parseInt(locationIdRaw, 10) : null;
         
         const originalUsername = $('#editOriginalUsername').value;
         const isEdit = !!state.editingUser;
@@ -377,11 +400,12 @@ function wireUserModal() {
                     new_username: username !== originalUsername ? username : undefined,
                     new_password: password || undefined,
                     role,
-                    allowed_tabs: allowedTabs
+                    allowed_tabs: allowedTabs,
+                    location_id
                 });
                 notify('✅ User updated');
             } else {
-                await createUser({ username, password, role, allowed_tabs: allowedTabs });
+                await createUser({ username, password, role, allowed_tabs: allowedTabs, location_id });
                 notify('✅ User created');
             }
             modal.classList.remove('active');
@@ -914,6 +938,15 @@ function confirmAction(title, msg) {
 // --- Init ---
 export async function refresh() {
     await loadRoles();
+    
+    // Load locations for the user modal dropdown
+    try {
+        const locs = await getLocationObjects();
+        state.locations = Array.isArray(locs) ? locs : [];
+    } catch(e) {
+        console.warn('Failed to load locations:', e);
+        state.locations = [];
+    }
     
     try {
         const users = await getUsers();

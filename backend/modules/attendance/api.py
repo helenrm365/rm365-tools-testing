@@ -45,7 +45,8 @@ def get_locations(user=Depends(get_current_user)):
 # ---- Clocking ----
 @router.post("/clock")
 def clock(body: ClockRequest, user=Depends(get_current_user)):
-    direction = _svc().toggle_clock(body.employee_id)
+    location_id = user.get('location_id')
+    direction = _svc().toggle_clock(body.employee_id, location_id)
     return {"status": "success", "direction": direction}
 
 # ---- Logs & summary ----

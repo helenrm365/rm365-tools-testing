@@ -42,6 +42,13 @@ export function getLocations() {
   }, LOCATIONS_CACHE_TTL);
 }
 
+// Returns full location objects {id, name, city_code, country_code, timezone} from the locations table
+export function getLocationObjects() {
+  return apiCache.getOrFetch('locations-table', async () => {
+    return get('/v1/locations');
+  }, LOCATIONS_CACHE_TTL);
+}
+
 // Clock in/out for an employee
 export function clockEmployee(employeeId) {
   return post(`${API}/clock`, { employee_id: employeeId });

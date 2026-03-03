@@ -130,6 +130,18 @@
               </select>
             </div>
           </div>
+
+          <div class="form-group">
+            <label class="form-label" for="formLocation">
+              <i class="fas fa-map-marker-alt"></i>
+              <span>Scanner Location</span>
+              <span class="form-hint">(For attendance clock-in/out timezone)</span>
+            </label>
+            <select id="formLocation" name="location_id" data-enhance="c-select">
+              <option value="">None (no timezone conversion)</option>
+              <!-- Populated by JS -->
+            </select>
+          </div>
           
           <div class="form-group">
             <label for="formPassword" class="form-label">

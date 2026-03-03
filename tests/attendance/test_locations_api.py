@@ -98,8 +98,9 @@ def run_tests():
     print("\n5. Create New Location")
     new_location_data = {
         "name": "London",
-        "city_code": "LHR",
-        "country_code": "UK"
+        "city_code": "LON",
+        "country_code": "UK",
+        "timezone": "Europe/London"
     }
     response = requests.post(f"{BASE_URL}/v1/locations", headers=headers, json=new_location_data)
     if response.status_code in [200, 201]:
@@ -109,7 +110,7 @@ def run_tests():
         
         # Test get by name
         print("\n6. Get Location by Name")
-        response = requests.get(f"{BASE_URL}/v1/locations/by-name/London", headers=headers)
+        response = requests.get(f"{BASE_URL}/v1/locations/by-name/London%20Heathrow", headers=headers)
         if response.status_code == 200:
             loc = response.json()
             if loc and loc['name'] == 'London':
@@ -121,10 +122,10 @@ def run_tests():
         
         # Test get by city code
         print("\n7. Get Location by City Code")
-        response = requests.get(f"{BASE_URL}/v1/locations/by-city-code/LHR", headers=headers)
+        response = requests.get(f"{BASE_URL}/v1/locations/by-city-code/LON", headers=headers)
         if response.status_code == 200:
             loc = response.json()
-            if loc and loc['city_code'] == 'LHR':
+            if loc and loc['city_code'] == 'LON':
                 test_pass(f"Found by city code: {loc}")
             else:
                 test_fail("Location data mismatch")
@@ -144,7 +145,7 @@ def run_tests():
         
         # Test update location
         print("\n9. Update Location")
-        update_data = {"city_code": "LCY"}  # Change from LHR to LCY
+        update_data = {"city_code": "LCY"}  # Change from LON to LCY
         response = requests.patch(f"{BASE_URL}/v1/locations/{new_id}", headers=headers, json=update_data)
         if response.status_code == 200:
             updated = response.json()
