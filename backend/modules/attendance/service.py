@@ -37,12 +37,16 @@ class AttendanceService:
     def toggle_clock(self, employee_id: int, location_id: int = None) -> Dict[str, Any]:
         """
         Toggle IN/OUT for the given employee, based on today's latest direction.
-        Uses the scanner's location timezone to determine 'today'.
+        Resolves the effective location_id by priority:
+          1) The employee's first clock-in location of the day
+          2) The employee's assigned branch location
+          3) The admin user's location (passed as location_id)
         Returns direction plus local time/timezone info.
         """
-        last = self.repo.latest_direction_today(employee_id, location_id)
+        resolved_location_id = self.repo.resolve_clock_location(employee_id, fallback_location_id=location_id)
+        last = self.repo.latest_direction_today(employee_id, resolved_location_id)
         direction = "in" if last != "in" else "out"
-        log_info = self.repo.insert_log(employee_id, direction, location_id)
+        log_info = self.repo.insert_log(employee_id, direction, resolved_location_id)
         return {"direction": direction, **log_info}
 
     # ---- Logs & summary ----

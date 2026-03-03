@@ -229,6 +229,46 @@ class AttendanceRepo:
         except Exception:
             return 'UTC'
 
+    def resolve_clock_location(self, employee_id: int, fallback_location_id: Optional[int] = None) -> Optional[int]:
+        """Resolve the location_id for a manual clock operation.
+        Priority:
+          1) The employee's first clock-in location_id of the day
+          2) The employee's assigned branch location (employees.location -> locations)
+          3) The provided fallback (e.g. the admin user's location from JWT)
+        """
+        with pg_conn() as conn:
+            with conn.cursor() as cur:
+                # Step 1: Get the employee's assigned branch location as fallback
+                cur.execute("""
+                    SELECT l.id, l.timezone
+                    FROM employees e
+                    JOIN locations l ON LOWER(l.name) = LOWER(e.location)
+                    WHERE e.id = %s
+                    LIMIT 1
+                """, (employee_id,))
+                branch_row = cur.fetchone()
+                branch_location_id = branch_row[0] if branch_row else None
+                branch_tz = branch_row[1] if branch_row else 'UTC'
+
+                # Step 2: Check for the employee's first clock-in today
+                # Use the branch timezone (or UTC) to determine what "today" is
+                cur.execute("""
+                    SELECT location_id
+                    FROM attendance_logs
+                    WHERE employee_id = %s
+                      AND direction = 'in'
+                      AND (log_time AT TIME ZONE %s)::date = (NOW() AT TIME ZONE %s)::date
+                    ORDER BY log_time ASC
+                    LIMIT 1
+                """, (employee_id, branch_tz, branch_tz))
+                first_clockin = cur.fetchone()
+
+                if first_clockin and first_clockin[0] is not None:
+                    return first_clockin[0]
+
+                # Step 3: Fall back to branch location, then to provided fallback
+                return branch_location_id if branch_location_id is not None else fallback_location_id
+
     # ---- Logs ----
     def latest_direction_today(self, employee_id: int, location_id: Optional[int] = None) -> Optional[str]:
         """Get the latest clock direction for the employee 'today' in the scanner's timezone."""
