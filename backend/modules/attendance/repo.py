@@ -275,8 +275,8 @@ class AttendanceRepo:
         with pg_conn() as conn:
             with conn.cursor() as cur:
                 # Build WHERE clause for filters
-                # Use location timezone for date range (via COALESCE with log's location or employee location)
-                where_conditions = ["(a.log_time AT TIME ZONE COALESCE(l.timezone, emp_loc.timezone, 'UTC'))::date BETWEEN %s AND %s"]
+                # Use employee's location timezone for consistent display with dashboard
+                where_conditions = ["(a.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date BETWEEN %s AND %s"]
                 params = [from_date, to_date]
                 
                 # Legacy search parameter (if provided, use it for name search)
@@ -297,9 +297,9 @@ class AttendanceRepo:
                 
                 query = f"""
                     SELECT e.name,
-                        (a.log_time AT TIME ZONE COALESCE(l.timezone, emp_loc.timezone, 'UTC'))::date AS day,
-                        TO_CHAR(a.log_time AT TIME ZONE COALESCE(l.timezone, emp_loc.timezone, 'UTC'), 'HH24:MI:SS') AS time,
-                        a.direction, e.location, COALESCE(l.timezone, emp_loc.timezone, 'UTC') as timezone,
+                        (a.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'))::date AS day,
+                        TO_CHAR(a.log_time AT TIME ZONE COALESCE(emp_loc.timezone, 'UTC'), 'HH24:MI:SS') AS time,
+                        a.direction, e.location, COALESCE(emp_loc.timezone, 'UTC') as timezone,
                         COALESCE(l.country_code, emp_loc.country_code, 'UK') as clock_country
                     FROM attendance_logs a
                     JOIN employees e ON a.employee_id = e.id
