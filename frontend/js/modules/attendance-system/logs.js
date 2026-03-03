@@ -560,9 +560,13 @@ async function handleExportExcel() {
       return a.time.localeCompare(b.time);
     });
 
-    // Thresholds (must match backend)
-    const LATE_TIME  = '08:30:00';
-    const EARLY_TIME = '17:30:00';
+    // Thresholds by country (must match backend)
+    // UK (default): 08:30 - 17:30
+    // FR (France):  10:00 - 18:30
+    const LATE_TIME_UK  = '08:30:00';
+    const EARLY_TIME_UK = '17:30:00';
+    const LATE_TIME_FR  = '10:00:00';
+    const EARLY_TIME_FR = '18:30:00';
 
     function argb(hex) { return 'FF' + hex.toUpperCase(); }
 
@@ -594,11 +598,14 @@ async function handleExportExcel() {
     };
 
     // ── Classify each punch by employee+date context ─────────────────────────
-    // Groups logs by employee+date, sorts each group by time, then classifies:
-    //   First IN             → late_in (if >= 08:30) or normal_in
+    // Groups logs by employee+date, sorts each group by time, then classifies
+    // using work hour thresholds based on first clock-in location:
+    //   FR (France): late >= 10:00, early < 18:30
+    //   UK (default): late >= 08:30, early < 17:30
+    //   First IN             → late_in (if >= threshold) or normal_in
     //   Subsequent INs       → lunch_in (or long_lunch_in if break > 60 min)
     //   All OUTs except last → lunch_out (or long_lunch_out if break > 60 min)
-    //   Last OUT             → early_out (if < 17:30) or normal_out
+    //   Last OUT             → early_out (if < threshold) or normal_out
     //   Unbalanced in/out    → missing (all punches that day)
     function timeToMinutes(t) {
       const [h, m] = t.split(':').map(Number);
@@ -624,17 +631,23 @@ async function handleExportExcel() {
           continue;
         }
 
+        // Determine work hours based on first clock-in's location country
+        const firstIn = ins[0];
+        const isFrance = firstIn && firstIn.clock_country === 'FR';
+        const lateTime  = isFrance ? LATE_TIME_FR  : LATE_TIME_UK;
+        const earlyTime = isFrance ? EARLY_TIME_FR : EARLY_TIME_UK;
+
         // First pass: base classifications
         byTime.forEach(l => {
           if (l.direction === 'in') {
             const idx = ins.indexOf(l);
             classMap.set(l, idx === 0
-              ? (l.time >= LATE_TIME ? 'late_in' : 'normal_in')
+              ? (l.time >= lateTime ? 'late_in' : 'normal_in')
               : 'lunch_in');
           } else {
             const idx = outs.indexOf(l);
             classMap.set(l, idx === outs.length - 1
-              ? (l.time < EARLY_TIME ? 'early_out' : 'normal_out')
+              ? (l.time < earlyTime ? 'early_out' : 'normal_out')
               : 'lunch_out');
           }
         });
