@@ -272,6 +272,10 @@
 .sidebar-container.expanded .sidebar-item:nth-child(7) .sidebar-item-label { transition-delay: 0.14s; }
 .sidebar-container:hover .sidebar-item:nth-child(8) .sidebar-item-label,
 .sidebar-container.expanded .sidebar-item:nth-child(8) .sidebar-item-label { transition-delay: 0.16s; }
+.sidebar-container:hover .sidebar-item:nth-child(9) .sidebar-item-label,
+.sidebar-container.expanded .sidebar-item:nth-child(9) .sidebar-item-label { transition-delay: 0.18s; }
+.sidebar-container:hover .sidebar-item:nth-child(10) .sidebar-item-label,
+.sidebar-container.expanded .sidebar-item:nth-child(10) .sidebar-item-label { transition-delay: 0.20s; }
 
 .sidebar-container:hover .sidebar-item-label,
 .sidebar-container.expanded .sidebar-item-label,
