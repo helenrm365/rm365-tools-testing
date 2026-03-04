@@ -4,6 +4,7 @@ import { setToken, clearToken, isAuthed } from '../../services/state/sessionStor
 import { setAllowedTabs, clearUser, setUserData } from '../../services/state/userStore.js';
 import { navigate } from '../../router.js';
 import { setupTabsForUser, getDefaultAllowedPath } from '../../utils/tabs.js';
+import { refreshSidebar } from '../../ui/sidebar.js';
 
 function $(sel) { return document.querySelector(sel); }
 
@@ -38,6 +39,14 @@ async function doLogin() {
       setupTabsForUser(); 
     } catch (e) {
       console.warn('[LOGIN] Tab setup failed:', e);
+    }
+    
+    // Build sidebar immediately after auth state changes
+    // This ensures sidebar shows without waiting for navigate() to trigger it
+    try {
+      refreshSidebar();
+    } catch (e) {
+      console.warn('[LOGIN] Sidebar rebuild failed:', e);
     }
     
     // Add a small delay to ensure state is properly set

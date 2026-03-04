@@ -119,9 +119,8 @@ export function updateSidebarState(path) {
     document.body.classList.add('login-page');
   } else {
     document.body.classList.remove('login-page');
-    // Rebuild sidebar if it hasn't been built yet (e.g. after fresh login)
-    const navContainer = document.querySelector('.sidebar-nav-primary');
-    if (!navContainer || navContainer.children.length === 0) {
+    // If no sidebar exists yet (e.g. after fresh login), build it
+    if (!document.querySelector('.sidebar-container')) {
       refreshSidebar();
     }
     showSidebar();
