@@ -38,17 +38,6 @@ def _normalize_origin(origin: str) -> Optional[str]:
 
 BOOT_T0 = time.time()
 
-# --- App version (git commit hash at boot) ----------------------------------------
-import subprocess as _sp
-try:
-    APP_VERSION = _sp.check_output(
-        ['git', 'rev-parse', '--short', 'HEAD'],
-        cwd=str(Path(__file__).resolve().parent.parent),
-        stderr=_sp.DEVNULL
-    ).decode().strip()
-except Exception:
-    APP_VERSION = str(int(BOOT_T0))
-
 # --- Lifespan handler (replaces deprecated on_event) -------------------------
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -262,10 +251,6 @@ install_handlers(app)     # AppError → JSON
 @app.get('/api/health')
 def health():
     return {'status': 'ok', 'uptime': round(time.time() - BOOT_T0, 2)}
-
-@app.get('/api/version')
-def version():
-    return {'version': APP_VERSION}
 
 @app.get('/robots.txt', include_in_schema=False)
 async def serve_robots():
