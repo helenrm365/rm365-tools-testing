@@ -65,19 +65,21 @@ def decode_token(token: str) -> Dict[str, Any]:
 def parse_allowed_tabs(value) -> list[str]:
     """
     Accepts either a CSV string ("a,b,c") or a Postgres text[] (list/tuple)
-    and returns a clean list[str].
+    and returns a clean list[str].  Empty / NULL ➜ ['*'] (full access).
     """
     if value is None:
-        return []
+        return ['*']
     # If it's already a list/tuple (e.g., psycopg returns text[] as list)
     if isinstance(value, (list, tuple)):
-        return [str(v).strip() for v in value if str(v).strip()]
+        result = [str(v).strip() for v in value if str(v).strip()]
+        return result if result else ['*']
     # Otherwise coerce to string and split by comma
     try:
         s = str(value)
     except Exception:
-        return []
-    return [t.strip() for t in s.split(',') if t and t.strip()]
+        return ['*']
+    result = [t.strip() for t in s.split(',') if t and t.strip()]
+    return result if result else ['*']
 
 async def get_current_user(authorization: str = Header(None)):
     if not authorization:

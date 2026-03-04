@@ -58,7 +58,10 @@ function renderTable() {
   const usersHTML = filtered.map(user => {
     // Visualize allowed tabs
     const tabCount = user.allowed_tabs ? user.allowed_tabs.length : 0;
-    const tabSummary = tabCount > 0 
+    const hasWildcard = user.allowed_tabs && user.allowed_tabs.includes('*');
+    const tabSummary = hasWildcard
+        ? '<span style="color: var(--accent); font-weight: 500;">Full Access</span>'
+        : tabCount > 0 
         ? (tabCount > 3 ? `${user.allowed_tabs.slice(0, 3).join(', ')}... (+${tabCount - 3})` : user.allowed_tabs.join(', '))
         : '<span style="color: var(--text-muted); font-style: italic;">No Access</span>';
 
