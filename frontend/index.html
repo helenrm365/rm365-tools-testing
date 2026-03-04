@@ -279,6 +279,31 @@
   <!-- Debug utilities for development -->
   <script type="module" src="/js/debug.js"></script>
 
+  <!-- Cache-bust: force reload when server version changes -->
+  <script>
+    (function() {
+      // Skip if we've already reloaded for this page load
+      if (sessionStorage.getItem('version_reload')) {
+        sessionStorage.removeItem('version_reload');
+        return;
+      }
+      fetch('/api/version', { cache: 'no-store' })
+        .then(function(r) { return r.ok ? r.json() : null; })
+        .then(function(d) {
+          if (!d || !d.version) return;
+          var prev = localStorage.getItem('app_version');
+          if (prev !== d.version) {
+            localStorage.setItem('app_version', d.version);
+            // Mark that we're reloading to prevent infinite loop
+            sessionStorage.setItem('version_reload', '1');
+            console.log('[App] Version change (' + (prev || 'none') + ' → ' + d.version + '), reloading…');
+            location.reload();
+          }
+        })
+        .catch(function() {});
+    })();
+  </script>
+
   <!-- App router + entrypoint -->
   <script type="module" src="/js/index.js"></script>
   
