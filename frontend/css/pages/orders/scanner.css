@@ -149,13 +149,11 @@
 /* Search container - normal flow on desktop, fixed on mobile */
 .inventory-scanner .scanner-unified > .block-content {
   position: relative;
-  z-index: 600;
-  background: var(--bg, #ffffff);
-  padding: 1rem 1.5rem;
+  padding: 0;
 }
 
 html.dark-mode .inventory-scanner .scanner-unified > .block-content {
-  background: var(--bg-card, #1e1e1e);
+  background: transparent;
 }
 
 /* Scanner unified block - normal layout on desktop */
