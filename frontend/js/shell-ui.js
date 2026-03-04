@@ -4,7 +4,7 @@ import { clearUser } from './services/state/userStore.js';
 import { get } from './services/api/http.js';
 import { navigate } from './router.js';
 import { setupTabsForUser } from './utils/tabs.js';
-import { initSidebar, showSidebar, hideSidebar, highlightCurrentRoute } from './ui/sidebar.js';
+import { initSidebar, showSidebar, hideSidebar, highlightCurrentRoute, refreshSidebar } from './ui/sidebar.js';
 
 export function setupShellUI() {
   // Add loaded class to body to show main content
@@ -119,6 +119,11 @@ export function updateSidebarState(path) {
     document.body.classList.add('login-page');
   } else {
     document.body.classList.remove('login-page');
+    // Rebuild sidebar if it hasn't been built yet (e.g. after fresh login)
+    const navContainer = document.querySelector('.sidebar-nav-primary');
+    if (!navContainer || navContainer.children.length === 0) {
+      refreshSidebar();
+    }
     showSidebar();
     highlightCurrentRoute();
   }

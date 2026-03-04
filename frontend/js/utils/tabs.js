@@ -7,8 +7,8 @@ import { isAuthed } from '../services/state/sessionStore.js';
 export function isAllowed(key, allowed = null) {
   const allowedTabs = Array.isArray(allowed) ? allowed : getAllowedTabs();
 
-  // Fail-closed: if no tabs configured, deny access (forces login/refresh)
-  if (!allowedTabs || allowedTabs.length === 0) return false;
+  // No restrictions configured: allow everything (full access)
+  if (!allowedTabs || allowedTabs.length === 0) return true;
 
   // If '*' is present, allow all (superadmin / full-access roles)
   if (allowedTabs.includes('*')) return true;
@@ -29,8 +29,8 @@ export function isAllowed(key, allowed = null) {
 export function getDefaultAllowedPath(allowed = null) {
   const allowedTabs = Array.isArray(allowed) ? allowed : getAllowedTabs();
   if (!allowedTabs || allowedTabs.length === 0) {
-    // No permissions loaded: go to home (safe landing page)
-    return '/home';
+    // No restrictions: full access, default to attendance-system
+    return '/attendance-system';
   }
 
   // Prefer attendance-system if present
