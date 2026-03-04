@@ -7,31 +7,30 @@ import { isAuthed } from '../services/state/sessionStore.js';
 export function isAllowed(key, allowed = null) {
   const allowedTabs = Array.isArray(allowed) ? allowed : getAllowedTabs();
 
-  // If allowedTabs is empty or falsy, allow all (no restrictions)
-  if (!allowedTabs || allowedTabs.length === 0) return true;
+  // Fail-closed: if no tabs configured, deny access (forces login/refresh)
+  if (!allowedTabs || allowedTabs.length === 0) return false;
 
-  // If '*' is present, allow all
+  // If '*' is present, allow all (superadmin / full-access roles)
   if (allowedTabs.includes('*')) return true;
 
   // Exact match
   if (allowedTabs.includes(key)) return true;
 
   const [section] = key.split('.');
-  // If asked for a section (no dot), allow if any child exists
-  // This controls sidebar/nav visibility — user can see the section if they have any child permission
+  // If asked for a section (no dot), allow if any child permission exists
   if (!key.includes('.')) {
     return allowedTabs.some(t => t === section || t.startsWith(section + '.'));
   }
-  // If asked for a specific sub-route (has dot), require exact match only.
-  // The bare parent key no longer grants blanket access to all children.
+  // Sub-route (has dot): only exact match counts (already checked above).
+  // Parent key does NOT grant blanket access to all children.
   return false;
 }
 
 export function getDefaultAllowedPath(allowed = null) {
   const allowedTabs = Array.isArray(allowed) ? allowed : getAllowedTabs();
   if (!allowedTabs || allowedTabs.length === 0) {
-    // No restrictions: allow all, default to attendance-system
-    return '/attendance-system';
+    // No permissions loaded: go to home (safe landing page)
+    return '/home';
   }
 
   // Prefer attendance-system if present
@@ -76,6 +75,19 @@ export function enforceRoutePermission(pathname) {
   // Always allow home - accessible to everyone
   if (section === 'home') return { allowed: true, redirect: null };
 
+  // If visiting a section root (no sub-page), redirect to the first allowed child
+  if (!sub && isAllowed(section)) {
+    const allowedTabs = getAllowedTabs();
+    // Find the first allowed child for this section
+    const firstChild = allowedTabs.find(t => t.startsWith(section + '.'));
+    if (firstChild) {
+      const childSub = firstChild.split('.')[1];
+      return { allowed: false, redirect: `/${section}/${childSub}` };
+    }
+    // Section itself is allowed with no children (e.g., labels, inventory)
+    return { allowed: true, redirect: null };
+  }
+
   const key = sub ? `${section}.${sub}` : section;
   if (isAllowed(key)) {
     // Section-root paths (no sub) map to a default sub-page (e.g. /attendance-system → dashboard).
@@ -108,7 +120,7 @@ export function applyInnerTabPermissions(root = document) {
   // We look for data-nav OR just buttons/links inside .inner-tabs OR module feature cards
   const candidates = root.querySelectorAll('.inner-tabs a, .inner-tabs button, .module-feature-card');
   candidates.forEach(el => {
-    const href = el.getAttribute('href') || el.getAttribute('onclick') || '';
+    const href = el.getAttribute('href') || el.getAttribute('data-href') || el.getAttribute('onclick') || '';
     // If it's a button with inline location.href, try to parse
     let path = '';
     if (href.startsWith('/')) {

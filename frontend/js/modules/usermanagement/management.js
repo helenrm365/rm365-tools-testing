@@ -810,24 +810,28 @@ function wireTabCheckboxBehavior(container, inputName) {
         }
     });
     
-    // Wire child checkbox changes to update parent state and select all
+    // Wire child checkbox changes to update parent and select all
     const childCheckboxes = container.querySelectorAll('.child-checkbox');
     childCheckboxes.forEach(child => {
         child.addEventListener('change', () => {
-            // Sync parent checkbox: check it if any child is checked, uncheck if none are
+            // Sync parent checkbox state based on children
             const parentKey = child.dataset.parent;
             const parentCb = container.querySelector(`.parent-checkbox[data-parent="${parentKey}"]`);
             const siblings = container.querySelectorAll(`.child-checkbox[data-parent="${parentKey}"]`);
-            const anyChecked = Array.from(siblings).some(cb => cb.checked);
-            if (parentCb) {
-                parentCb.checked = anyChecked;
-                // Keep subtabs expanded if any child is still checked
-                const subtabsCont = container.querySelector(`.subtabs-container[data-parent="${parentKey}"]`);
-                if (!anyChecked && subtabsCont) {
-                    subtabsCont.classList.remove('expanded');
-                    setTimeout(() => {
-                        if (!parentCb.checked) subtabsCont.style.display = 'none';
-                    }, 300);
+            if (parentCb && siblings.length > 0) {
+                const checkedCount = Array.from(siblings).filter(s => s.checked).length;
+                parentCb.checked = checkedCount > 0;
+                parentCb.indeterminate = checkedCount > 0 && checkedCount < siblings.length;
+                // Show/hide subtabs container based on parent state
+                const subtabsContainer = container.querySelector(`.subtabs-container[data-parent="${parentKey}"]`);
+                if (subtabsContainer) {
+                    if (checkedCount > 0) {
+                        subtabsContainer.style.display = 'block';
+                        subtabsContainer.classList.add('expanded');
+                    } else {
+                        subtabsContainer.classList.remove('expanded');
+                        setTimeout(() => { subtabsContainer.style.display = 'none'; }, 300);
+                    }
                 }
             }
             updateSelectAllState(container, inputName);
@@ -864,8 +868,8 @@ function updateSelectAllState(container, inputName) {
 }
 
 // Collect allowed tabs from checkboxes for saving.
-// Only includes the parent key if ALL children are checked (= full section access).
-// Otherwise only the checked children are included.
+// Only includes checked child keys. Parent key is never saved when children exist,
+// because isAllowed() uses exact child matches only.
 function collectAllowedTabs(inputName) {
     const tabs = [];
     for (const [key, info] of Object.entries(TAB_STRUCTURE)) {
@@ -882,14 +886,8 @@ function collectAllowedTabs(inputName) {
         const childCbs = document.querySelectorAll(`input[name="${inputName}"].child-checkbox[data-parent="${key}"]`);
         const checkedChildren = Array.from(childCbs).filter(cb => cb.checked);
 
-        if (checkedChildren.length === childCbs.length) {
-            // All children checked — include parent key to signify full access
-            tabs.push(key);
-            checkedChildren.forEach(cb => tabs.push(cb.value));
-        } else {
-            // Only specific children — do NOT include parent key
-            checkedChildren.forEach(cb => tabs.push(cb.value));
-        }
+        // Only include checked child keys — never include parent key when children exist
+        checkedChildren.forEach(cb => tabs.push(cb.value));
     }
     return tabs;
 }
@@ -1030,7 +1028,7 @@ export async function refresh() {
             {
                 username: 'sample_user',
                 role: 'user',
-                allowed_tabs: ['enrollment', 'attendance']
+                allowed_tabs: ['enrollment', 'attendance-system']
             }
         ];
     }

@@ -1,6 +1,7 @@
 // frontend/js/router.js
 import { getApiUrl } from './config.js';
 import { getToken, isAuthed } from './services/state/sessionStore.js';
+import { setAllowedTabs } from './services/state/userStore.js';
 import { wsService } from './services/websocket.js';
 import { enforceRoutePermission, applyInnerTabPermissions, getDefaultAllowedPath } from './utils/tabs.js';
 
@@ -401,7 +402,7 @@ export async function navigate(path, replace = false) {
         window.initModernUI(view);
       }
       // Apply inner-tab permission filtering for the newly inserted content
-      try { applyInnerTabPermissions(view); } catch {}
+      try { applyInnerTabPermissions(view); } catch (e) { console.error('[Router] applyInnerTabPermissions failed:', e); }
 
       // Execute any scripts inside the loaded view (required for inline page modules)
       const scripts = Array.from(view.querySelectorAll('script'));
@@ -572,7 +573,7 @@ export async function navigate(path, replace = false) {
   }
 }
 
-export function setupRouter() {
+export async function setupRouter() {
   // Expose navigate globally for navigation components
   window.navigate = navigate;
   
@@ -596,6 +597,20 @@ export function setupRouter() {
   window.addEventListener('popstate', (e) => {
     navigate(e.state?.path || location.pathname, true);
   });
+
+  // Refresh allowed_tabs from server on every page load to prevent stale localStorage
+  if (isAuthed()) {
+    try {
+      const { me } = await import('./services/api/authApi.js');
+      const userData = await me();
+      if (userData && Array.isArray(userData.allowed_tabs)) {
+        setAllowedTabs(userData.allowed_tabs);
+        console.log('[Router] Refreshed allowed_tabs from server:', userData.allowed_tabs);
+      }
+    } catch (e) {
+      console.warn('[Router] Failed to refresh permissions from server:', e);
+    }
+  }
 
   // Determine initial route - use current path or home
   const currentPath = (location.pathname && location.pathname !== '/')
