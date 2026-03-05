@@ -3,7 +3,7 @@
 /* 
    Global Components Used (from css/):
    - layout/header.css: .page-header, .page-title, .page-subtitle, .header-content
-   - components/buttons.css: .action-btn, .primary-btn, .secondary-btn, .danger-btn, .btn-sm
+   - components/buttons-nextui.css: .btn, .btn-solid, .btn-flat, .btn-danger, .btn-default, .btn-sm
    - components/cards.css: .action-block, .block-header, .block-icon, .block-title-group, .block-title, .block-subtitle, .block-content
    - components/forms.css: .c-select, .filter-label, .card-checkbox, .checkbox-custom
    - components/tabs.css: .inner-tabs, .tab-button
@@ -345,7 +345,7 @@
     min-width: 100px;
   }
   
-  .labels-history .header-actions .action-btn span {
+  .labels-history .header-actions .btn span {
     display: none;
   }
 
@@ -368,7 +368,7 @@
     gap: var(--space-sm);
   }
   
-  .labels-history .bulk-right .action-btn {
+  .labels-history .bulk-right .btn {
     flex: 1 1 auto;
     min-width: 120px;
     justify-content: center;

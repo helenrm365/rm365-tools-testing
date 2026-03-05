@@ -51,24 +51,18 @@
                 <span class="control-title">Region Preference</span>
               </div>
             </div>
-            <div class="region-toggle-compact">
-              <label class="region-option-compact selection-pill">
+            <div class="btn-group">
+              <label class="btn btn-faded btn-success btn-sm btn-checkable">
                 <input type="radio" name="region" value="uk" class="region-radio" checked>
-                <span class="region-label-compact selection-pill-label">
-                  <i class="fas fa-flag"></i> UK (GBP)
-                </span>
+                <i class="fas fa-flag"></i> UK (GBP)
               </label>
-              <label class="region-option-compact selection-pill">
+              <label class="btn btn-faded btn-success btn-sm btn-checkable">
                 <input type="radio" name="region" value="fr" class="region-radio">
-                <span class="region-label-compact selection-pill-label">
-                  <i class="fas fa-flag"></i> FR (EUR)
-                </span>
+                <i class="fas fa-flag"></i> FR (EUR)
               </label>
-              <label class="region-option-compact selection-pill">
+              <label class="btn btn-faded btn-success btn-sm btn-checkable">
                 <input type="radio" name="region" value="nl" class="region-radio">
-                <span class="region-label-compact selection-pill-label">
-                  <i class="fas fa-flag"></i> NL (EUR)
-                </span>
+                <i class="fas fa-flag"></i> NL (EUR)
               </label>
             </div>
             <p class="control-hint">
@@ -87,42 +81,42 @@
               </div>
             </div>
             <div class="status-filters-grid">
-              <label class="status-filter-compact selection-box-compact">
+              <label class="btn btn-flat btn-success btn-sm btn-checkable">
                 <input type="checkbox" id="filter_Active" class="status-checkbox status-filter-checkbox" value="Active" checked>
-                <span class="status-label selection-box-label">Active</span>
+                Active
               </label>
-              <label class="status-filter-compact selection-box-compact">
+              <label class="btn btn-flat btn-success btn-sm btn-checkable">
                 <input type="checkbox" id="filter_TemporarilyOOS" class="status-checkbox status-filter-checkbox" value="Temporarily OOS" checked>
-                <span class="status-label selection-box-label">Temp. OOS</span>
+                Temp. OOS
               </label>
-              <label class="status-filter-compact selection-box-compact">
+              <label class="btn btn-flat btn-success btn-sm btn-checkable">
                 <input type="checkbox" id="filter_PreOrder" class="status-checkbox status-filter-checkbox" value="Pre Order" checked>
-                <span class="status-label selection-box-label">Pre Order</span>
+                Pre Order
               </label>
-              <label class="status-filter-compact selection-box-compact">
+              <label class="btn btn-flat btn-success btn-sm btn-checkable">
                 <input type="checkbox" id="filter_Samples" class="status-checkbox status-filter-checkbox" value="Samples" checked>
-                <span class="status-label selection-box-label">Samples</span>
+                Samples
               </label>
-              <label class="status-filter-compact selection-box-compact">
+              <label class="btn btn-flat btn-success btn-sm btn-checkable">
                 <input type="checkbox" id="filter_DiscontinuedSupplier" class="status-checkbox status-filter-checkbox" value="Discontinued (Supplier)" checked>
-                <span class="status-label selection-box-label">Disc. (Supp)</span>
+                Disc. (Supp)
               </label>
-              <label class="status-filter-compact selection-box-compact">
+              <label class="btn btn-flat btn-success btn-sm btn-checkable">
                 <input type="checkbox" id="filter_DiscontinuedRM" class="status-checkbox status-filter-checkbox" value="Discontinued (RM)" checked>
-                <span class="status-label selection-box-label">Disc. (RM)</span>
+                Disc. (RM)
               </label>
-              <label class="status-filter-compact selection-box-compact">
+              <label class="btn btn-flat btn-success btn-sm btn-checkable">
                 <input type="checkbox" id="filter_SpecialOffer" class="status-checkbox status-filter-checkbox" value="Special Offer" checked>
-                <span class="status-label selection-box-label">Special Offer</span>
+                Special Offer
               </label>
-              <label class="status-filter-compact selection-box-compact">
+              <label class="btn btn-flat btn-success btn-sm btn-checkable">
                 <input type="checkbox" id="filter_SpecialItem" class="status-checkbox status-filter-checkbox" value="Special Item" checked>
-                <span class="status-label selection-box-label">Special Item</span>
+                Special Item
               </label>
             </div>
-            <label class="status-filter-compact selection-box-compact orphaned-option">
+            <label class="btn btn-flat btn-warning btn-sm btn-checkable orphaned-option">
               <input type="checkbox" id="showOrphanedCheckbox" class="status-checkbox">
-              <span class="status-label selection-box-label" title="Show products that exist in warehouse but not in Magento catalog">Show Orphaned Products</span>
+              Show Orphaned Products
             </label>
           </div>
         </div>
@@ -140,10 +134,10 @@
                 <input type="text" id="presetSearchInput" class="preset-search-input" placeholder="Search presets...">
                 <i class="fas fa-search preset-search-icon"></i>
               </div>
-              <button id="savePresetBtn" class="action-btn btn-sm secondary-btn accent-btn" title="Save Preset">
+              <button id="savePresetBtn" class="btn btn-solid btn-success btn-sm" title="Save Preset">
                 <i class="fas fa-save"></i>
               </button>
-              <button id="managePresetsBtn" class="action-btn btn-sm secondary-btn neutral-btn" title="Manage Presets">
+              <button id="managePresetsBtn" class="btn btn-flat btn-default btn-sm" title="Manage Presets">
                 <i class="fas fa-cog"></i>
               </button>
             </div>
@@ -174,7 +168,7 @@
           <div class="selection-info">
             <span class="selection-count" id="selectedProducts">0</span> of <span id="totalProducts">0</span> products selected
           </div>
-          <button id="generatePdfBtn" class="action-btn primary-btn accent-btn" disabled>
+          <button id="generatePdfBtn" class="btn btn-solid btn-success" disabled>
             <i class="fas fa-file-pdf"></i>
             Generate PDF Labels
           </button>
@@ -325,11 +319,11 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="action-btn primary-btn neutral-btn" onclick="document.getElementById('savePresetModal').classList.remove('active')">
+      <button class="btn btn-flat btn-default" onclick="document.getElementById('savePresetModal').classList.remove('active')">
         <i class="fas fa-times"></i>
         Cancel
       </button>
-      <button id="confirmSavePresetBtn" class="action-btn primary-btn accent-btn">
+      <button id="confirmSavePresetBtn" class="btn btn-solid btn-success">
         <i class="fas fa-save"></i>
         Save Preset
       </button>
@@ -358,7 +352,7 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="action-btn primary-btn neutral-btn" onclick="document.getElementById('managePresetsModal').classList.remove('active')">
+      <button class="btn btn-flat btn-default" onclick="document.getElementById('managePresetsModal').classList.remove('active')">
         <i class="fas fa-times"></i>
         Close
       </button>
@@ -429,7 +423,7 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="action-btn primary-btn neutral-btn" onclick="document.getElementById('viewPresetModal').classList.remove('active')">
+      <button class="btn btn-flat btn-default" onclick="document.getElementById('viewPresetModal').classList.remove('active')">
         <i class="fas fa-times"></i>
         Close
       </button>
@@ -510,11 +504,11 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="action-btn primary-btn neutral-btn" onclick="document.getElementById('editPresetModal').classList.remove('active')">
+      <button class="btn btn-flat btn-default" onclick="document.getElementById('editPresetModal').classList.remove('active')">
         <i class="fas fa-times"></i>
         Cancel
       </button>
-      <button id="confirmEditPresetBtn" class="action-btn primary-btn accent-btn">
+      <button id="confirmEditPresetBtn" class="btn btn-solid btn-success">
         <i class="fas fa-save"></i>
         Save Changes
       </button>

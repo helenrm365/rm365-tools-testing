@@ -606,7 +606,7 @@ function renderAnalysisTable() {
         <td class="col-margin ${marginClass}">${marginDisplay}</td>
         <td class="col-suppliers">${supplierChips || '—'}</td>
         <td class="col-actions">
-          <button class="btn-icon" title="Edit Pricing" onclick="window.sourcingModule.openPricingModal('${escapeHtml(row.sku)}')">
+          <button class="btn btn-ghost btn-default btn-icon-only btn-sm" title="Edit Pricing" onclick="window.sourcingModule.openPricingModal('${escapeHtml(row.sku)}')">
             <i class="fas fa-edit"></i>
           </button>
         </td>
@@ -634,12 +634,12 @@ function renderAnalysisPagination() {
         Showing <strong>${startItem}-${endItem}</strong> of <strong>${state.analysisTotal}</strong> items
       </div>
       <div class="pagination-controls">
-        <button class="pagination-btn" ${state.analysisPage <= 1 ? 'disabled' : ''} onclick="window.sourcingModule.goToAnalysisPage(${state.analysisPage - 1})">
+        <button class="btn btn-ghost btn-success" ${state.analysisPage <= 1 ? 'disabled' : ''} onclick="window.sourcingModule.goToAnalysisPage(${state.analysisPage - 1})">
           <i class="fas fa-chevron-left"></i>
           <span>Previous</span>
         </button>
         <span class="page-indicator">Page ${state.analysisPage} of ${totalPages}</span>
-        <button class="pagination-btn" ${state.analysisPage >= totalPages ? 'disabled' : ''} onclick="window.sourcingModule.goToAnalysisPage(${state.analysisPage + 1})">
+        <button class="btn btn-ghost btn-success" ${state.analysisPage >= totalPages ? 'disabled' : ''} onclick="window.sourcingModule.goToAnalysisPage(${state.analysisPage + 1})">
           <span>Next</span>
           <i class="fas fa-chevron-right"></i>
         </button>
@@ -997,12 +997,12 @@ function renderMatrixPagination() {
         Showing <strong>${startItem}-${endItem}</strong> of <strong>${state.matrixTotal}</strong> items
       </div>
       <div class="pagination-controls">
-        <button class="pagination-btn" ${state.matrixPage <= 1 ? 'disabled' : ''} onclick="window.sourcingModule.goToMatrixPage(${state.matrixPage - 1})">
+        <button class="btn btn-ghost btn-success" ${state.matrixPage <= 1 ? 'disabled' : ''} onclick="window.sourcingModule.goToMatrixPage(${state.matrixPage - 1})">
           <i class="fas fa-chevron-left"></i>
           <span>Previous</span>
         </button>
         <span class="page-indicator">Page ${state.matrixPage} of ${totalPages}</span>
-        <button class="pagination-btn" ${state.matrixPage >= totalPages ? 'disabled' : ''} onclick="window.sourcingModule.goToMatrixPage(${state.matrixPage + 1})">
+        <button class="btn btn-ghost btn-success" ${state.matrixPage >= totalPages ? 'disabled' : ''} onclick="window.sourcingModule.goToMatrixPage(${state.matrixPage + 1})">
           <span>Next</span>
           <i class="fas fa-chevron-right"></i>
         </button>
@@ -1963,7 +1963,7 @@ function renderSupplierGrid() {
         <i class="fas fa-users-slash"></i>
         <h3>No Suppliers Yet</h3>
         <p>Add your first supplier to start tracking pricing.</p>
-        <button class="action-btn primary-btn accent-btn" onclick="window.sourcingModule.openAddSupplierModal()">
+        <button class="btn btn-solid btn-success" onclick="window.sourcingModule.openAddSupplierModal()">
           <i class="fas fa-plus"></i> Add Supplier
         </button>
       </div>
@@ -2002,7 +2002,7 @@ function renderSupplierGrid() {
         ` : ''}
       </div>
       <div class="supplier-card-footer">
-        <button class="action-btn secondary-btn neutral-btn btn-sm" onclick="window.sourcingModule.openEditSupplierModal(${s.id})">
+        <button class="btn btn-flat btn-default btn-sm" onclick="window.sourcingModule.openEditSupplierModal(${s.id})">
           <i class="fas fa-edit"></i> Edit
         </button>
       </div>
@@ -2198,7 +2198,7 @@ function renderFXRatesGrid() {
         <div class="rate-name">${currencyNames[code] || code}</div>
         <div class="rate-value">${rate ? rate.toFixed(4) : '—'}</div>
         ${isOverride ? `
-          <button class="btn-icon btn-remove-override" title="Remove Override" 
+          <button class="btn btn-ghost btn-danger btn-icon-only btn-sm btn-remove-override" title="Remove Override" 
                   onclick="window.sourcingModule.handleRemoveFXOverride('${code}')">
             <i class="fas fa-times"></i>
           </button>

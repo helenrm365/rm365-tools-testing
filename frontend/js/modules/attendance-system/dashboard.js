@@ -485,44 +485,56 @@ function displayLunchtimeTable(data) {
 }
 
 // ====== View Toggle Functions ======
-function toggleRealtimeView() {
-  state.views.realtime = state.views.realtime === 'stats' ? 'list' : 'stats';
-  
+function setRealtimeView(view) {
+  state.views.realtime = view;
   const statsView = $("#realtimeStatsView");
   const listView = $("#realtimeListView");
-  const toggleBtn = $("#toggleRealtimeView i");
-  
-  if (state.views.realtime === 'list') {
+  const group = $("#realtimeViewToggle");
+
+  if (group) {
+    group.querySelectorAll('.toggle-view-btn').forEach(b => b.classList.remove('active'));
+    const activeBtn = group.querySelector(`.toggle-view-btn[data-view="${view}"]`);
+    if (activeBtn) activeBtn.classList.add('active');
+  }
+
+  if (view === 'list') {
     statsView.style.display = 'none';
     listView.style.display = 'block';
-    toggleBtn.className = 'fas fa-th-large';
-    // Load details for active tab
     loadRealtimeDetails(state.activeListTabs.realtime);
   } else {
     statsView.style.display = 'grid';
     listView.style.display = 'none';
-    toggleBtn.className = 'fas fa-list';
   }
 }
 
-function togglePunctualityView() {
-  state.views.punctuality = state.views.punctuality === 'stats' ? 'list' : 'stats';
-  
+function toggleRealtimeView() {
+  setRealtimeView(state.views.realtime === 'stats' ? 'list' : 'stats');
+}
+
+function setPunctualityView(view) {
+  state.views.punctuality = view;
   const statsView = $("#punctualityStatsView");
   const listView = $("#punctualityListView");
-  const toggleBtn = $("#togglePunctualityView i");
-  
-  if (state.views.punctuality === 'list') {
+  const group = $("#punctualityViewToggle");
+
+  if (group) {
+    group.querySelectorAll('.toggle-view-btn').forEach(b => b.classList.remove('active'));
+    const activeBtn = group.querySelector(`.toggle-view-btn[data-view="${view}"]`);
+    if (activeBtn) activeBtn.classList.add('active');
+  }
+
+  if (view === 'list') {
     statsView.style.display = 'none';
     listView.style.display = 'block';
-    toggleBtn.className = 'fas fa-th-large';
-    // Load details for active tab
     loadPunctualityDetails(state.activeListTabs.punctuality);
   } else {
     statsView.style.display = 'grid';
     listView.style.display = 'none';
-    toggleBtn.className = 'fas fa-list';
   }
+}
+
+function togglePunctualityView() {
+  setPunctualityView(state.views.punctuality === 'stats' ? 'list' : 'stats');
 }
 
 function toggleLunchtimeView() {
@@ -883,9 +895,6 @@ async function showEmployeeLogsModal(employeeName) {
         </div>
         <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
           <div id="employeeLogsPagination" class="pagination-controls" style="display: flex; align-items: center; gap: 0.5rem;"></div>
-          <button class="action-btn action-btn-secondary" id="confirmEmployeeLogsModal">
-            Close
-          </button>
         </div>
       </div>
     </div>
@@ -903,7 +912,6 @@ async function showEmployeeLogsModal(employeeName) {
   // Setup close handlers
   const modal = document.getElementById('employeeLogsModal');
   const closeBtn = document.getElementById('closeEmployeeLogsModal');
-  const confirmBtn = document.getElementById('confirmEmployeeLogsModal');
   
   const closeModal = () => {
     modal.classList.remove('active');
@@ -911,7 +919,6 @@ async function showEmployeeLogsModal(employeeName) {
   };
   
   closeBtn?.addEventListener('click', closeModal);
-  confirmBtn?.addEventListener('click', closeModal);
   modal?.addEventListener('click', (e) => {
     if (e.target === modal) closeModal();
   });
@@ -1035,11 +1042,11 @@ function renderEmployeeLogsTable() {
   // Render pagination
   if (paginationEl && totalPages > 1) {
     paginationEl.innerHTML = `
-      <button class="action-btn action-btn-sm neutral-btn" ${currentPage <= 1 ? 'disabled' : ''} id="employeeLogsPrev">
+      <button class="btn btn-solid btn-default btn-sm rounded-lg" ${currentPage <= 1 ? 'disabled' : ''} id="employeeLogsPrev">
         <i class="fas fa-chevron-left"></i>
       </button>
       <span style="color: var(--text); font-size: 0.875rem;">Page ${currentPage} of ${totalPages}</span>
-      <button class="action-btn action-btn-sm neutral-btn" ${currentPage >= totalPages ? 'disabled' : ''} id="employeeLogsNext">
+      <button class="btn btn-solid btn-default btn-sm rounded-lg" ${currentPage >= totalPages ? 'disabled' : ''} id="employeeLogsNext">
         <i class="fas fa-chevron-right"></i>
       </button>
     `;
@@ -1442,17 +1449,21 @@ function setupEventHandlers() {
   // Setup export select handlers (c-select based)
   setupExportSelects();
   
-  // Toggle view buttons
-  const toggleRealtimeBtn = $("#toggleRealtimeView");
-  const togglePunctualityBtn = $("#togglePunctualityView");
+  // Toggle view button groups
+  const realtimeViewGroup = $("#realtimeViewToggle");
+  const punctualityViewGroup = $("#punctualityViewToggle");
   const toggleLunchtimeBtn = $("#toggleLunchtimeView");
   
-  if (toggleRealtimeBtn) {
-    toggleRealtimeBtn.addEventListener("click", toggleRealtimeView);
+  if (realtimeViewGroup) {
+    realtimeViewGroup.querySelectorAll('.toggle-view-btn').forEach(btn => {
+      btn.addEventListener("click", () => setRealtimeView(btn.dataset.view));
+    });
   }
   
-  if (togglePunctualityBtn) {
-    togglePunctualityBtn.addEventListener("click", togglePunctualityView);
+  if (punctualityViewGroup) {
+    punctualityViewGroup.querySelectorAll('.toggle-view-btn').forEach(btn => {
+      btn.addEventListener("click", () => setPunctualityView(btn.dataset.view));
+    });
   }
   
   if (toggleLunchtimeBtn) {
@@ -1552,7 +1563,7 @@ function setupEventHandlers() {
       if (targetTab) targetTab.classList.add('active');
       
       if (state.views.realtime !== 'list') {
-        toggleRealtimeView();
+        setRealtimeView('list');
       } else {
         loadRealtimeDetails(statusType);
       }
@@ -1572,7 +1583,7 @@ function setupEventHandlers() {
       if (targetTab) targetTab.classList.add('active');
       
       if (state.views.punctuality !== 'list') {
-        togglePunctualityView();
+        setPunctualityView('list');
       } else {
         loadPunctualityDetails(metricType);
       }

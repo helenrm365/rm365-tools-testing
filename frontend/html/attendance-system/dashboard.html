@@ -41,7 +41,7 @@
           <h2>Filter Control Panel</h2>
         </div>
         <div class="filter-panel-header-actions">
-          <button id="applyGlobalFiltersBtn" class="action-btn primary-btn accent-btn panel-header-btn" title="Apply Filters">
+          <button id="applyGlobalFiltersBtn" class="btn btn-solid btn-primary btn-sm rounded-full panel-header-btn" title="Apply Filters">
             <i class="fas fa-check"></i>
             <span>Apply</span>
           </button>
@@ -64,11 +64,11 @@
             </div>
             <div class="date-range-controls">
               <!-- Date Presets -->
-              <div class="date-preset-buttons">
-                <button class="btn btn-toggle-pill preset-btn active" data-preset="today">Today</button>
-                <button class="btn btn-toggle-pill preset-btn" data-preset="week">This Week</button>
-                <button class="btn btn-toggle-pill preset-btn" data-preset="month">This Month</button>
-                <button class="btn btn-toggle-pill preset-btn" data-preset="year">This Year</button>
+              <div class="date-preset-buttons btn-group">
+                <button class="btn btn-faded btn-success preset-btn active" data-preset="today">Today</button>
+                <button class="btn btn-faded btn-success preset-btn" data-preset="week">This Week</button>
+                <button class="btn btn-faded btn-success preset-btn" data-preset="month">This Month</button>
+                <button class="btn btn-faded btn-success preset-btn" data-preset="year">This Year</button>
               </div>
               <!-- Custom Date Range -->
               <div class="custom-date-range">
@@ -91,7 +91,7 @@
                 <i class="fas fa-filter"></i>
                 <span class="control-title">Additional Filters</span>
               </div>
-              <button id="clearGlobalFiltersBtn" class="action-btn primary-btn neutral-btn" title="Clear All Filters">
+              <button id="clearGlobalFiltersBtn" class="btn btn-flat btn-default rounded-full" title="Clear All Filters">
                 <i class="fas fa-times"></i>
                 <span>Clear</span>
               </button>
@@ -139,9 +139,14 @@
             <option value="pdf">Export as PDF</option>
             <option value="csv">Export as CSV</option>
           </select>
-          <button class="btn btn-icon btn-sm btn-scale toggle-view-btn" id="toggleRealtimeView" title="Toggle list view">
-            <i class="fas fa-list"></i>
-          </button>
+          <div class="btn-group" id="realtimeViewToggle">
+            <button class="btn btn-ghost btn-success btn-sm toggle-view-btn active" data-view="stats" title="Cards view">
+              <i class="fas fa-th-large"></i>
+            </button>
+            <button class="btn btn-ghost btn-success btn-sm toggle-view-btn" data-view="list" title="List view">
+              <i class="fas fa-list"></i>
+            </button>
+          </div>
         </div>
       </div>
       <div class="block-content">
@@ -178,16 +183,16 @@
         
         <!-- List View (hidden by default) -->
         <div class="list-view" id="realtimeListView" style="display: none;">
-          <div class="list-tabs">
-            <button class="btn btn-toggle-pill list-tab active" data-tab="attendance">
+          <div class="list-tabs btn-group">
+            <button class="btn btn-faded btn-success list-tab active" data-tab="attendance">
               <i class="fas fa-user-check"></i>
               <span>Attendance</span>
             </button>
-            <button class="btn btn-toggle-pill list-tab" data-tab="absences">
+            <button class="btn btn-faded btn-success list-tab" data-tab="absences">
               <i class="fas fa-user-times"></i>
               <span>Absences</span>
             </button>
-            <button class="btn btn-toggle-pill list-tab" data-tab="breaks">
+            <button class="btn btn-faded btn-success list-tab" data-tab="breaks">
               <i class="fas fa-coffee"></i>
               <span>Breaks</span>
             </button>
@@ -215,9 +220,14 @@
             <option value="pdf">Export as PDF</option>
             <option value="csv">Export as CSV</option>
           </select>
-          <button class="btn btn-icon btn-sm btn-scale toggle-view-btn" id="togglePunctualityView" title="Toggle list view">
-            <i class="fas fa-list"></i>
-          </button>
+          <div class="btn-group" id="punctualityViewToggle">
+            <button class="btn btn-ghost btn-success btn-sm toggle-view-btn active" data-view="stats" title="Cards view">
+              <i class="fas fa-th-large"></i>
+            </button>
+            <button class="btn btn-ghost btn-success btn-sm toggle-view-btn" data-view="list" title="List view">
+              <i class="fas fa-list"></i>
+            </button>
+          </div>
         </div>
       </div>
       <div class="block-content">
@@ -263,16 +273,16 @@
         
         <!-- List View (hidden by default) -->
         <div class="list-view" id="punctualityListView" style="display: none;">
-          <div class="list-tabs">
-            <button class="btn btn-toggle-pill list-tab active" data-tab="late">
+          <div class="list-tabs btn-group">
+            <button class="btn btn-faded btn-success list-tab active" data-tab="late">
               <i class="fas fa-clock"></i>
               <span>Late Arrivals</span>
             </button>
-            <button class="btn btn-toggle-pill list-tab" data-tab="early">
+            <button class="btn btn-faded btn-success list-tab" data-tab="early">
               <i class="fas fa-sign-out-alt"></i>
               <span>Early Departures</span>
             </button>
-            <button class="btn btn-toggle-pill list-tab" data-tab="missing">
+            <button class="btn btn-faded btn-success list-tab" data-tab="missing">
               <i class="fas fa-exclamation-triangle"></i>
               <span>Missing Punches</span>
             </button>

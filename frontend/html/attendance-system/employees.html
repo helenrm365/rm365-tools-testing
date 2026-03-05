@@ -5,7 +5,7 @@
   <header class="page-header">
     <div class="header-content">
       <h1 class="page-title">Employee Management</h1>
-      <button id="openGuideBtn" class="action-btn primary-btn info-btn help-button" aria-label="Open Management Guide">
+      <button id="openGuideBtn" class="btn btn-flat btn-primary rounded-full help-button" aria-label="Open Management Guide">
         <i class="fas fa-question-circle"></i>
         <span>Help</span>
       </button>
@@ -36,32 +36,6 @@
   <!-- Main Content -->
   <div class="management-wrapper">
     <div class="management-card">
-      <!-- Employee Actions Block -->
-      <div class="action-block">
-        <div class="block-header">
-          <div class="block-icon">
-            <i class="fas fa-users-cog"></i>
-          </div>
-          <div class="block-title-group">
-            <h3 class="block-title">Employee Actions</h3>
-            <p class="block-subtitle">Create or manage team members</p>
-          </div>
-        </div>
-
-        <div class="block-content">
-          <div class="action-buttons-grid">
-            <button class="action-btn primary-btn accent-btn" id="enrCreateBtn">
-              <i class="fas fa-user-plus"></i>
-              <span>New Employee</span>
-            </button>
-            <button class="action-btn primary-btn danger-btn" id="enrBulkDeleteBtn">
-              <i class="fas fa-trash-alt"></i>
-              <span>Delete Selected</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
       <!-- Search & Filter Block -->
       <div class="action-block">
         <div class="block-header">
@@ -138,6 +112,16 @@
           <div class="block-title-group">
             <h3 class="block-title">Team Members</h3>
             <p class="block-subtitle" id="employeeCount">Loading...</p>
+          </div>
+          <div class="block-header-actions">
+            <button class="btn btn-solid btn-success rounded-lg" id="enrCreateBtn">
+              <i class="fas fa-user-plus"></i>
+              <span>New Employee</span>
+            </button>
+            <button class="btn btn-flat btn-danger rounded-lg" id="enrBulkDeleteBtn">
+              <i class="fas fa-trash-alt"></i>
+              <span>Delete Selected</span>
+            </button>
           </div>
         </div>
 
@@ -224,7 +208,7 @@
           <option value="" selected disabled>Select Location</option>
           <!-- Locations will be populated dynamically -->
         </select>
-        <button type="button" class="action-btn secondary-btn neutral-btn create-location-btn" onclick="window.openCreateLocationModal('create')">
+        <button type="button" class="btn btn-ghost btn-primary rounded-lg create-location-btn" onclick="window.openCreateLocationModal('create')">
           <i class="fas fa-plus-circle"></i>
           <span>Create New Location</span>
         </button>
@@ -241,11 +225,7 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="action-btn primary-btn neutral-btn" id="cancelCreate">
-        <i class="fas fa-times"></i>
-        <span>Cancel</span>
-      </button>
-      <button class="action-btn primary-btn accent-btn" id="confirmCreate">
+      <button class="btn btn-solid btn-success rounded-lg" id="confirmCreate">
         <i class="fas fa-check"></i>
         <span>Create Employee</span>
       </button>
@@ -296,7 +276,7 @@
           <option value="" selected disabled>Select Location</option>
           <!-- Locations will be populated dynamically -->
         </select>
-        <button type="button" class="action-btn secondary-btn neutral-btn create-location-btn" onclick="window.openCreateLocationModal('edit')">
+        <button type="button" class="btn btn-ghost btn-primary rounded-lg create-location-btn" onclick="window.openCreateLocationModal('edit')">
           <i class="fas fa-plus-circle"></i>
           <span>Create New Location</span>
         </button>
@@ -324,11 +304,11 @@
             <input type="hidden" id="editEmployeeNfc" value="">
           </div>
           <div class="nfc-action-buttons">
-            <button type="button" class="action-btn secondary-btn info-btn nfc-scan-btn" id="startNfcScanBtn">
+            <button type="button" class="btn btn-solid btn-primary rounded-lg nfc-scan-btn" id="startNfcScanBtn">
               <i class="fas fa-wifi" id="nfcScanIcon"></i>
               <span id="nfcScanBtnText">Scan Card</span>
             </button>
-            <button type="button" class="action-btn secondary-btn danger-btn nfc-delete-btn" id="deleteNfcBtn">
+            <button type="button" class="btn btn-flat btn-danger rounded-lg nfc-delete-btn" id="deleteNfcBtn">
               <i class="fas fa-trash-alt"></i>
               <span>Remove</span>
             </button>
@@ -340,16 +320,12 @@
       </div>
     </div>
     <div class="modal-footer modal-footer-split">
-      <button class="action-btn primary-btn danger-btn" id="deleteFromEdit">
+      <button class="btn btn-flat btn-danger rounded-lg" id="deleteFromEdit">
         <i class="fas fa-trash-alt"></i>
         <span>Delete</span>
       </button>
       <div class="modal-footer-right">
-        <button class="action-btn primary-btn neutral-btn" id="cancelEdit">
-          <i class="fas fa-times"></i>
-          <span>Cancel</span>
-        </button>
-        <button class="action-btn primary-btn accent-btn" id="confirmEdit">
+        <button class="btn btn-solid btn-success rounded-lg" id="confirmEdit">
           <i class="fas fa-save"></i>
           <span>Save Changes</span>
         </button>
@@ -399,11 +375,7 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="action-btn primary-btn neutral-btn" id="cancelLocationModal">
-        <i class="fas fa-times"></i>
-        <span>Cancel</span>
-      </button>
-      <button class="action-btn primary-btn accent-btn" id="confirmLocationCreate">
+      <button class="btn btn-solid btn-success rounded-lg" id="confirmLocationCreate">
         <i class="fas fa-plus"></i>
         <span>Create Location</span>
       </button>

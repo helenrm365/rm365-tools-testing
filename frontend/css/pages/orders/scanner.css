@@ -3,7 +3,7 @@
 /* 
    Global Components Used (from css/):
    - layout/header.css: .page-header, .page-title, .page-subtitle, .header-content
-   - components/buttons.css: .action-btn, .primary-btn, .secondary-btn, .success-btn, .warning-btn
+   - components/buttons-nextui.css: .btn, .btn-solid, .btn-flat, .btn-ghost, .btn-light, .btn-faded
    - components/cards.css: .action-block, .block-header, .block-icon, .block-title-group, .block-title, .block-subtitle, .block-content
    - components/forms.css: .form-group, .form-label, .form-input
    - components/tabs.css: .inner-tabs, .tab-button
@@ -133,7 +133,7 @@
   cursor: not-allowed;
 }
 
-.inventory-scanner .submit-subsection.disabled .action-btn:disabled {
+.inventory-scanner .submit-subsection.disabled .btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
@@ -1625,7 +1625,7 @@ html.dark-mode .inventory-scanner .pending-item-remove:hover {
     z-index: 1;
   }
   
-  .inventory-scanner .pending-actions .action-btn {
+  .inventory-scanner .pending-actions .btn {
     font-size: 0.875rem;
     padding: 0.5rem 1rem;
   }
@@ -1979,7 +1979,7 @@ html.dark-mode .inventory-scanner .pending-item-remove:hover {
     gap: 0.5rem;
   }
   
-  .inventory-scanner .submit-actions .action-btn {
+  .inventory-scanner .submit-actions .btn {
     flex: 1;
     justify-content: center;
     font-size: 0.875rem;
@@ -2010,7 +2010,7 @@ html.dark-mode .inventory-scanner .pending-item-remove:hover {
     flex-wrap: nowrap;
   }
   
-  .inventory-scanner .modal-footer .action-btn {
+  .inventory-scanner .modal-footer .btn {
     flex: 1;
     min-width: 0;
     justify-content: center;

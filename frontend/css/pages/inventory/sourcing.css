@@ -1,6 +1,6 @@
 /* ===== Product Sourcing Command Center ===== */
 /* Page-specific styles only - uses core components from css/components/ */
-/* Components used: badges.css, buttons.css, cards.css, forms.css, modals.css, tables.css, tabs.css */
+/* Components used: badges.css, buttons-nextui.css, cards.css, forms.css, modals.css, tables.css, tabs.css */
 
 /* ===== Page Scope ===== */
 .product-sourcing {
@@ -1061,29 +1061,6 @@ html.dark-mode .product-sourcing .fx-rate-card {
   text-align: center;
   padding: var(--space-xl);
   color: var(--text-muted);
-}
-
-/* ===== Button Icon (for table actions) ===== */
-.product-sourcing .btn-icon {
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--bg-light);
-  color: var(--text-muted);
-  border: none;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: all var(--transition);
-  box-shadow: var(--shadow-s);
-}
-
-.product-sourcing .btn-icon:hover {
-  background: var(--accent);
-  color: white;
-  transform: translateY(-2px);
 }
 
 /* ===== Responsive: Tablet (1024px) ===== */

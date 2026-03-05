@@ -31,67 +31,17 @@
 
   <!-- Main Content -->
   <div class="magento-content">
-    <!-- Controls Section -->
+    <!-- Data Table Section -->
     <div class="action-block">
       <div class="block-header">
         <div class="block-icon">
-          <i class="fas fa-sliders-h"></i>
+          <i class="fas fa-table"></i>
         </div>
         <div class="block-title-group">
-          <h3 class="block-title">Data Controls</h3>
-          <p class="block-subtitle">View mode, sync, and filters</p>
+          <h3 class="block-title" id="orderDataTitle">Order Data</h3>
+          <p class="block-subtitle">NL Magento orders and products</p>
         </div>
-      </div>
-      <div class="block-content">
-        <div class="controls-grid">
-          <!-- View Toggle -->
-          <div class="btn-segment-group view-toggle">
-            <button class="btn btn-segment toggle-btn active" id="viewFullBtn">
-              <i class="fas fa-list"></i>
-              <span>Full Data</span>
-            </button>
-            <button class="btn btn-segment toggle-btn" id="viewAggregatedBtn">
-              <i class="fas fa-calendar-alt"></i>
-              <span>6-Month</span>
-            </button>
-            <button class="btn btn-segment toggle-btn" id="customRangeBtn">
-              <i class="fas fa-calendar-day"></i>
-              <span>Custom Range</span>
-            </button>
-          </div>
-          
-          <!-- Action Buttons -->
-          <div class="action-buttons-row">
-            <button class="action-btn primary-btn success-btn" id="syncNowBtn" title="Sync latest orders from Magento">
-              <i class="fas fa-sync"></i>
-              <span>Sync Now</span>
-            </button>
-            <button class="action-btn primary-btn neutral-btn" id="filtersBtn" title="Configure 6M filters">
-              <i class="fas fa-filter"></i>
-              <span>Filters</span>
-            </button>
-            <button class="action-btn primary-btn neutral-btn" id="exportPdfBtn" title="Export to PDF" style="display: none;">
-              <i class="fas fa-file-pdf"></i>
-              <span>Export PDF</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Search Section -->
-    <div class="action-block">
-      <div class="block-header">
-        <div class="block-icon">
-          <i class="fas fa-search"></i>
-        </div>
-        <div class="block-title-group">
-          <h3 class="block-title">Search</h3>
-          <p class="block-subtitle">Find orders by number or SKU</p>
-        </div>
-      </div>
-      <div class="block-content">
-        <div class="search-controls">
+        <div class="block-header-actions">
           <div class="search-wrapper">
             <i class="fas fa-search search-icon"></i>
             <input type="text" id="magentoSearchInput" class="search-input" 
@@ -100,30 +50,46 @@
                    data-form-type="other"
                    data-lpignore="true">
           </div>
-          <button class="action-btn primary-btn accent-btn" id="searchBtn">
-            <i class="fas fa-search"></i>
-            <span>Search</span>
-          </button>
-          <button class="action-btn primary-btn neutral-btn" id="clearSearchBtn">
+          <button class="btn btn-flat btn-default" id="clearSearchBtn">
             <i class="fas fa-times"></i>
             <span>Clear</span>
           </button>
         </div>
       </div>
-    </div>
-
-    <!-- Data Table Section -->
-    <div class="action-block">
-      <div class="block-header">
-        <div class="block-icon">
-          <i class="fas fa-table"></i>
-        </div>
-        <div class="block-title-group">
-          <h3 class="block-title">Order Data</h3>
-          <p class="block-subtitle">NL Magento orders and products</p>
-        </div>
-      </div>
       <div class="block-content">
+        <div class="controls-grid">
+          <!-- View Toggle -->
+          <div class="btn-group view-toggle">
+            <button class="btn btn-faded btn-success active" id="viewFullBtn">
+              <i class="fas fa-list"></i>
+              <span>Full Data</span>
+            </button>
+            <button class="btn btn-faded btn-success" id="viewAggregatedBtn">
+              <i class="fas fa-calendar-alt"></i>
+              <span>6-Month</span>
+            </button>
+            <button class="btn btn-faded btn-success" id="customRangeBtn">
+              <i class="fas fa-calendar-day"></i>
+              <span>Custom Range</span>
+            </button>
+          </div>
+          
+          <!-- Action Buttons -->
+          <div class="action-buttons-row">
+            <button class="btn btn-solid btn-success" id="syncNowBtn" title="Sync latest orders from Magento">
+              <i class="fas fa-sync"></i>
+              <span>Sync Now</span>
+            </button>
+            <button class="btn btn-flat btn-default" id="filtersBtn" title="Configure 6M filters">
+              <i class="fas fa-filter"></i>
+              <span>Filters</span>
+            </button>
+            <button class="btn btn-flat btn-default" id="exportPdfBtn" title="Export to PDF" style="display: none;">
+              <i class="fas fa-file-pdf"></i>
+              <span>Export PDF</span>
+            </button>
+          </div>
+        </div>
         <div class="table-container">
           <table class="products-table" id="magentoTable" data-auto-sort="true">
             <thead class="table-header">
@@ -208,12 +174,12 @@
           Showing <strong>0</strong> of <strong>0</strong> items
         </div>
         <div class="pagination-controls">
-          <button id="prevPageBtn" class="pagination-btn" disabled>
+          <button id="prevPageBtn" class="btn btn-ghost btn-success" disabled>
             <i class="fas fa-chevron-left"></i>
             <span>Previous</span>
           </button>
           <span id="pageInfo" class="page-indicator">Page 1 of 1</span>
-          <button id="nextPageBtn" class="pagination-btn" disabled>
+          <button id="nextPageBtn" class="btn btn-ghost btn-success" disabled>
             <span>Next</span>
             <i class="fas fa-chevron-right"></i>
           </button>

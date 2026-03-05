@@ -3,7 +3,7 @@
 /* 
    Global Components Used (from css/):
    - layout/header.css: .page-header, .page-title, .page-subtitle, .header-content
-   - components/buttons.css: .action-btn, .primary-btn, .secondary-btn
+   - components/buttons-nextui.css: .btn, .btn-solid, .btn-flat, .btn-ghost
    - components/cards.css: .action-block, .block-header, .block-icon, .block-title-group, .block-title, .block-subtitle, .block-content
    - components/forms.css: .form-group, .form-label, .form-input
    - components/tabs.css: .inner-tabs, .tab-button
@@ -250,28 +250,8 @@
   margin-top: 1rem;
 }
 
-.scanning-logs .pagination-btn {
-  display: inline-flex;
-  align-items: center;
+.scanning-logs .pagination .btn {
   gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  background: var(--bg, #ffffff);
-  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.1));
-  border-radius: 12px;
-  color: var(--text-muted, #484848);
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: all var(--transition, 0.2s ease-in-out);
-}
-
-.scanning-logs .pagination-btn:hover:not(:disabled) {
-  border-color: var(--primary, #5f8bea);
-  color: var(--primary, #5f8bea);
-}
-
-.scanning-logs .pagination-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 .scanning-logs .pagination-info {
@@ -485,7 +465,7 @@
     justify-content: stretch;
   }
 
-  .scanning-logs .filter-actions .action-btn {
+  .scanning-logs .filter-actions .btn {
     flex: 1;
   }
 
@@ -508,7 +488,7 @@
     gap: 0.5rem;
   }
 
-  .scanning-logs .pagination-btn span {
+  .scanning-logs .pagination .btn span {
     display: none;
   }
 

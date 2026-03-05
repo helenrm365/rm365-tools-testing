@@ -52,55 +52,9 @@
   gap: 1rem;
 }
 
+/* Date presets now use .btn-group .btn-faded (buttons-nextui.css) */
 .attendance-dashboard .date-preset-buttons {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.attendance-dashboard .preset-btn {
-  padding: 0.5rem 1rem;
-  border: 2px solid color-mix(in srgb, var(--accent) 15%, transparent);
-  border-radius: 8px;
-  background: linear-gradient(135deg, var(--bg-light), color-mix(in srgb, var(--accent) 3%, var(--bg-light)));
-  color: var(--text-muted);
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 8%, transparent);
-}
-
-html.dark-mode .attendance-dashboard .preset-btn {
-  background: linear-gradient(135deg, var(--bg-card), color-mix(in srgb, var(--accent) 8%, var(--bg-card)));
-  border-color: color-mix(in srgb, var(--accent) 25%, transparent);
-}
-
-.attendance-dashboard .preset-btn:hover {
-  background: linear-gradient(135deg, var(--bg), color-mix(in srgb, var(--accent) 10%, var(--bg)));
-  color: var(--text);
-  border-color: var(--accent);
-  box-shadow: 
-    0 0 12px color-mix(in srgb, var(--accent) 20%, transparent),
-    0 4px 12px color-mix(in srgb, var(--accent) 15%, transparent);
-}
-
-.attendance-dashboard .preset-btn:focus-visible {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 
-    0 0 12px color-mix(in srgb, var(--accent) 25%, transparent),
-    0 0 24px color-mix(in srgb, var(--accent) 15%, transparent),
-    0 4px 12px color-mix(in srgb, var(--accent) 20%, transparent);
-}
-
-.attendance-dashboard .preset-btn.active {
-  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
-  color: white;
-  border-color: var(--accent);
-  box-shadow: 
-    0 0 16px color-mix(in srgb, var(--accent) 30%, transparent),
-    0 4px 12px color-mix(in srgb, var(--accent) 25%, transparent);
+  /* layout handled by .btn-group; keep for mobile scroll override */
 }
 
 .attendance-dashboard .custom-date-range {
@@ -206,41 +160,7 @@ html.dark-mode .attendance-dashboard .btn-clear-filters {
   gap: 1rem;
 }
 
-.attendance-dashboard .toggle-view-btn {
-  background: linear-gradient(135deg, var(--bg-light), color-mix(in srgb, var(--accent) 3%, var(--bg-light)));
-  border: 2px solid color-mix(in srgb, var(--accent) 15%, transparent);
-  border-radius: 8px;
-  padding: 0.5rem 0.75rem;
-  cursor: pointer;
-  color: var(--text-muted);
-  font-size: 0.875rem;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 8%, transparent);
-  flex-shrink: 0;
-}
-
-html.dark-mode .attendance-dashboard .toggle-view-btn {
-  background: linear-gradient(135deg, var(--bg-card), color-mix(in srgb, var(--accent) 8%, var(--bg-card)));
-  border-color: color-mix(in srgb, var(--accent) 25%, transparent);
-}
-
-.attendance-dashboard .toggle-view-btn:hover {
-  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
-  color: white;
-  border-color: var(--accent);
-  box-shadow: 
-    0 0 16px color-mix(in srgb, var(--accent) 30%, transparent),
-    0 4px 12px color-mix(in srgb, var(--accent) 25%, transparent);
-}
-
-.attendance-dashboard .toggle-view-btn:focus-visible {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 
-    0 0 12px color-mix(in srgb, var(--accent) 25%, transparent),
-    0 0 24px color-mix(in srgb, var(--accent) 15%, transparent),
-    0 4px 12px color-mix(in srgb, var(--accent) 20%, transparent);
-}
+/* Toggle view now uses .btn-group .btn-ghost (buttons-nextui.css) */
 
 /* ===== Stats Grid ===== */
 .attendance-dashboard .stats-grid {
@@ -370,60 +290,9 @@ html.dark-mode .attendance-dashboard .stat-card {
   margin-top: 1rem;
 }
 
+/* List tabs now use .btn-group .btn-faded (buttons-nextui.css) */
 .attendance-dashboard .list-tabs {
-  display: flex;
-  gap: 0.5rem;
   margin-bottom: 1rem;
-  padding-bottom: 0;
-  border-bottom: none;
-}
-
-.attendance-dashboard .list-tab {
-  padding: 0.625rem 1rem;
-  border: 2px solid color-mix(in srgb, var(--accent) 15%, transparent);
-  border-radius: 8px;
-  background: linear-gradient(135deg, var(--bg-light), color-mix(in srgb, var(--accent) 3%, var(--bg-light)));
-  color: var(--text-muted);
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 8%, transparent);
-}
-
-html.dark-mode .attendance-dashboard .list-tab {
-  background: linear-gradient(135deg, var(--bg-card), color-mix(in srgb, var(--accent) 8%, var(--bg-card)));
-  border-color: color-mix(in srgb, var(--accent) 25%, transparent);
-}
-
-.attendance-dashboard .list-tab:hover {
-  background: linear-gradient(135deg, var(--bg), color-mix(in srgb, var(--accent) 10%, var(--bg)));
-  color: var(--text);
-  border-color: var(--accent);
-  box-shadow: 
-    0 0 12px color-mix(in srgb, var(--accent) 20%, transparent),
-    0 4px 12px color-mix(in srgb, var(--accent) 15%, transparent);
-}
-
-.attendance-dashboard .list-tab:focus-visible {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 
-    0 0 12px color-mix(in srgb, var(--accent) 25%, transparent),
-    0 0 24px color-mix(in srgb, var(--accent) 15%, transparent),
-    0 4px 12px color-mix(in srgb, var(--accent) 20%, transparent);
-}
-
-.attendance-dashboard .list-tab.active {
-  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
-  color: white;
-  border-color: var(--accent);
-  box-shadow: 
-    0 0 16px color-mix(in srgb, var(--accent) 30%, transparent),
-    0 4px 12px color-mix(in srgb, var(--accent) 25%, transparent);
 }
 
 .attendance-dashboard .list-tab i {
@@ -540,7 +409,6 @@ html.dark-mode .attendance-dashboard .list-tab {
   }
   
   .attendance-dashboard .date-preset-buttons {
-    justify-content: flex-start;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
@@ -549,10 +417,6 @@ html.dark-mode .attendance-dashboard .list-tab {
   
   .attendance-dashboard .date-preset-buttons::-webkit-scrollbar {
     display: none;
-  }
-  
-  .attendance-dashboard .preset-btn {
-    flex-shrink: 0;
   }
   
   .attendance-dashboard .custom-date-range {
@@ -566,20 +430,14 @@ html.dark-mode .attendance-dashboard .list-tab {
   }
   
   .attendance-dashboard .list-tabs {
-    flex-wrap: nowrap;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
-    gap: 0.5rem;
     padding-bottom: 0.25rem;
   }
   
   .attendance-dashboard .list-tabs::-webkit-scrollbar {
     display: none;
-  }
-  
-  .attendance-dashboard .list-tab {
-    flex-shrink: 0;
   }
 
   .attendance-dashboard .block-header-actions {

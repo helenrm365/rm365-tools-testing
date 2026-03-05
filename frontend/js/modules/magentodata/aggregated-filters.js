@@ -133,7 +133,7 @@ function createFiltersModal(region) {
                         <select id="customer-group-select-${region}" data-enhance="c-select">
                             <option value="">Select a customer group to exclude...</option>
                         </select>
-                        <button class="action-btn action-btn-primary action-btn-sm" id="add-group-btn-${region}">
+                        <button class="btn btn-solid btn-success btn-sm" id="add-group-btn-${region}">
                             <i class="fas fa-plus"></i> Add
                         </button>
                     </div>
@@ -164,7 +164,7 @@ function createFiltersModal(region) {
                         <select id="status-select-${region}" data-enhance="c-select">
                             <option value="">Select a status to exclude...</option>
                         </select>
-                        <button class="action-btn action-btn-primary action-btn-sm" id="add-status-btn-${region}">
+                        <button class="btn btn-solid btn-success btn-sm" id="add-status-btn-${region}">
                             <i class="fas fa-plus"></i> Add
                         </button>
                     </div>
@@ -294,10 +294,10 @@ function createFiltersModal(region) {
                         </div>
                         
                         <div class="rule-actions">
-                            <button class="action-btn action-btn-primary action-btn-sm" id="smart-filter-add-${region}">
+                            <button class="btn btn-solid btn-success btn-sm" id="smart-filter-add-${region}">
                                 <i class="fas fa-plus"></i> Add Rule
                             </button>
-                            <button class="action-btn action-btn-danger action-btn-sm" id="smart-filter-clear-all-${region}">
+                            <button class="btn btn-solid btn-danger btn-sm" id="smart-filter-clear-all-${region}">
                                 <i class="fas fa-trash"></i> Clear All
                             </button>
                         </div>
@@ -350,7 +350,7 @@ function createFiltersModal(region) {
                         </div>
                         
                         <div class="rule-actions">
-                            <button class="action-btn action-btn-primary action-btn-sm" id="smart-date-add-${region}">
+                            <button class="btn btn-solid btn-success btn-sm" id="smart-date-add-${region}">
                                 <i class="fas fa-plus"></i> Add Rule
                             </button>
                         </div>
@@ -370,10 +370,10 @@ function createFiltersModal(region) {
             </div>
             
             <div class="modal-footer">
-                <button class="action-btn action-btn-secondary" onclick="this.closest('.modal-overlay').remove()">
+                <button class="btn btn-flat btn-default" onclick="this.closest('.modal-overlay').remove()">
                     Cancel
                 </button>
-                <button class="action-btn action-btn-primary" id="filters-apply-${region}">
+                <button class="btn btn-solid btn-success" id="filters-apply-${region}">
                     <i class="fas fa-check"></i> Apply & Refresh 6M Data
                 </button>
             </div>
@@ -627,8 +627,8 @@ function showConfirmDialog(message) {
                 </p>
             </div>
             <div class="modal-footer" style="display: flex; gap: 12px; justify-content: flex-end;">
-                <button id="confirm-cancel" class="btn btn-secondary">Cancel</button>
-                <button id="confirm-ok" class="btn btn-primary">Apply & Refresh</button>
+                <button id="confirm-cancel" class="btn btn-flat btn-default">Cancel</button>
+                <button id="confirm-ok" class="btn btn-solid btn-success">Apply & Refresh</button>
             </div>
         `;
         
@@ -1510,8 +1510,8 @@ function showRuleEditModal(customerId, email) {
             </div>
             
             <div class="modal-footer">
-                <button class="action-btn action-btn-secondary rule-edit-cancel">Cancel</button>
-                <button class="action-btn action-btn-primary rule-edit-save">
+                <button class="btn btn-flat btn-default rule-edit-cancel">Cancel</button>
+                <button class="btn btn-solid btn-success rule-edit-save">
                     <i class="fas fa-check"></i> Save Rule
                 </button>
             </div>
@@ -1797,8 +1797,8 @@ function showAddRuleModal(email, fullName, hasBaseRule) {
             </div>
             
             <div class="modal-footer">
-                <button class="action-btn action-btn-secondary rule-edit-cancel">Cancel</button>
-                <button class="action-btn action-btn-primary rule-add-save">
+                <button class="btn btn-flat btn-default rule-edit-cancel">Cancel</button>
+                <button class="btn btn-solid btn-success rule-add-save">
                     <i class="fas fa-plus"></i> Add Rule
                 </button>
             </div>
@@ -1999,8 +1999,8 @@ function showAddProductRuleModal(email, fullName) {
             </div>
             
             <div class="modal-footer">
-                <button class="action-btn action-btn-secondary rule-edit-cancel">Cancel</button>
-                <button class="action-btn action-btn-primary rule-add-save">
+                <button class="btn btn-flat btn-default rule-edit-cancel">Cancel</button>
+                <button class="btn btn-solid btn-success rule-add-save">
                     <i class="fas fa-plus"></i> Add Rule
                 </button>
             </div>
@@ -3193,8 +3193,8 @@ function createCustomRangeModal(region) {
             </div>
             
             <div class="modal-footer">
-                <button class="action-btn action-btn-secondary" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
-                <button class="action-btn action-btn-primary" onclick="runCustomAnalysis('${region}')">
+                <button class="btn btn-flat btn-default" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
+                <button class="btn btn-solid btn-success" onclick="runCustomAnalysis('${region}')">
                     <i class="fas fa-play"></i> Run Analysis
                 </button>
             </div>
@@ -3297,7 +3297,7 @@ function showCustomRangeResults(results) {
             </div>
             
             <div class="modal-footer">
-                <button class="action-btn action-btn-secondary" onclick="this.closest('.modal-overlay').remove()">Close</button>
+                <button class="btn btn-flat btn-default" onclick="this.closest('.modal-overlay').remove()">Close</button>
             </div>
         </div>
     `;

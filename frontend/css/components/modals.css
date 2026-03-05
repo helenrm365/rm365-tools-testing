@@ -310,7 +310,8 @@ html.dark-mode .modal-footer {
   border-top-color: rgba(255, 255, 255, 0.1);
 }
 
-.modal-footer .action-btn {
+.modal-footer .action-btn,
+.modal-footer .btn {
   flex: 1 1 auto;
   min-width: 120px;
   justify-content: center;
@@ -325,7 +326,8 @@ html.dark-mode .modal-footer {
   flex-wrap: nowrap;
 }
 
-.modal-footer-split .action-btn {
+.modal-footer-split .action-btn,
+.modal-footer-split .btn {
   flex: 0 0 auto;
   min-width: auto;
 }
@@ -337,7 +339,8 @@ html.dark-mode .modal-footer {
   flex-wrap: nowrap;
 }
 
-.modal-footer-right .action-btn {
+.modal-footer-right .action-btn,
+.modal-footer-right .btn {
   flex: 0 0 auto;
   min-width: auto;
 }
@@ -685,7 +688,8 @@ html.dark-mode .modal-actions {
   border-top-color: rgba(255, 255, 255, 0.1);
 }
 
-.modal-actions .action-btn {
+.modal-actions .action-btn,
+.modal-actions .btn {
   flex: 1;
   justify-content: center;
 }

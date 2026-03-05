@@ -1,7 +1,7 @@
 // frontend/js/ui/confirmationModal.js
 /**
  * Modern confirmation modal component
- * Uses css/components/modals.css and buttons.css
+ * Uses css/components/modals.css and buttons-nextui.css
  */
 
 let modalContainer = null;
@@ -33,13 +33,13 @@ function getHeaderClass(variant) {
 function getConfirmButtonClass(variant) {
   switch (variant) {
     case 'danger':
-      return 'danger-btn';
+      return 'btn-danger';
     case 'warning':
-      return 'warning-btn';
+      return 'btn-warning';
     case 'primary':
-      return 'primary-btn';
+      return 'btn-primary';
     default:
-      return 'danger-btn';
+      return 'btn-danger';
   }
 }
 
@@ -79,18 +79,12 @@ function createConfirmationModal(options) {
             <i class="fas ${iconClass}"></i>
           </div>
           <h3 class="modal-title">${title}</h3>
-          <button class="modal-close modal-close-contrast" id="confirmModalClose">
-            <i class="fas fa-times"></i>
-          </button>
         </div>
         <div class="modal-body">
           <p class="modal-message">${message}</p>
         </div>
         <div class="modal-footer">
-          <button class="action-btn secondary-btn" id="confirmModalCancel">
-            ${cancelText}
-          </button>
-          <button class="action-btn ${confirmBtnClass}" id="confirmModalConfirm">
+          <button class="btn btn-solid ${confirmBtnClass} rounded-lg" id="confirmModalConfirm">
             ${confirmText}
           </button>
         </div>
@@ -123,8 +117,6 @@ export function confirmModal(options = {}) {
     
     const modal = container.querySelector('#confirmationModal');
     const confirmBtn = container.querySelector('#confirmModalConfirm');
-    const cancelBtn = container.querySelector('#confirmModalCancel');
-    const closeBtn = container.querySelector('#confirmModalClose');
     
     // Trigger animation by adding active class after a frame
     requestAnimationFrame(() => {
@@ -166,8 +158,6 @@ export function confirmModal(options = {}) {
     
     // Bind events
     confirmBtn.addEventListener('click', handleConfirm);
-    cancelBtn.addEventListener('click', handleCancel);
-    closeBtn.addEventListener('click', handleCancel);
     document.addEventListener('keydown', handleEscape);
     
     // Close on overlay click

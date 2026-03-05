@@ -770,7 +770,7 @@
     gap: 0.5rem;
   }
   
-  .select-with-button .action-btn {
+  .select-with-button .btn {
     flex: 1 1 auto;
     min-width: 80px;
   }
@@ -790,7 +790,7 @@
     gap: 0.375rem;
   }
   
-  .rule-actions .action-btn {
+  .rule-actions .btn {
     flex: 1 1 auto;
     min-width: 80px;
   }
@@ -814,7 +814,7 @@
     align-items: stretch;
   }
   
-  .select-with-button .action-btn {
+  .select-with-button .btn {
     min-width: 100%;
   }
   
@@ -822,7 +822,7 @@
     flex-direction: column;
   }
   
-  .rule-actions .action-btn {
+  .rule-actions .btn {
     min-width: 100%;
   }
   

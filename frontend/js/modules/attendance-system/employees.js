@@ -240,8 +240,8 @@ function renderTable() {
     const statusLabel = (e.status || 'active').charAt(0).toUpperCase() + (e.status || 'active').slice(1);
     const clockStatus = state.clockStatus[e.id] || 'unknown';
     const isClockedIn = clockStatus === 'in';
-    // Use standard color classes: success-btn for clock in, warning-btn for clock out (orange)
-    const clockBtnClass = isClockedIn ? 'warning-btn' : 'success-btn';
+    // NextUI color classes: btn-success for clock in, btn-warning for clock out
+    const clockBtnClass = isClockedIn ? 'btn-warning' : 'btn-success';
     const clockBtnIcon = isClockedIn ? 'fa-sign-out-alt' : 'fa-sign-in-alt';
     const clockBtnText = isClockedIn ? 'Clock Out' : 'Clock In';
     const clockBtnTitle = isClockedIn ? 'Clock out this employee' : 'Clock in this employee';
@@ -277,7 +277,7 @@ function renderTable() {
           <span class="status-badge status-${statusClass}">${statusLabel}</span>
         </div>
       </div>
-      <button class="btn btn-sm secondary-btn clock-toggle-btn ${clockBtnClass}" 
+      <button class="btn btn-ghost btn-sm rounded-lg clock-toggle-btn ${clockBtnClass}" 
               data-id="${e.id}" 
               data-name="${e.name || 'Employee'}"
               data-clock-status="${clockStatus}"
@@ -415,7 +415,6 @@ function hideEditEmployeeModal() {
 function wireEditModalEvents() {
   // Close buttons
   $('#closeEditModal')?.addEventListener('click', hideEditEmployeeModal);
-  $('#cancelEdit')?.addEventListener('click', hideEditEmployeeModal);
   
   // Click overlay to close
   $('#editEmployeeModal')?.addEventListener('click', (e) => {
@@ -1039,18 +1038,16 @@ function confirmDelete(itemName, itemType = 'item') {
 function wireCreateEmployeeModal() {
   const modal = $('#createEmployeeModal');
   const closeBtn = $('#closeModal');
-  const cancelBtn = $('#cancelCreate');
   const confirmBtn = $('#confirmCreate');
   const nameInput = $('#employeeName');
   
   // Silently return if modal elements aren't ready yet
-  if (!modal || !closeBtn || !cancelBtn || !confirmBtn || !nameInput) {
+  if (!modal || !closeBtn || !confirmBtn || !nameInput) {
     return;
   }
   
   // Close modal events
   closeBtn.addEventListener('click', hideCreateEmployeeModal);
-  cancelBtn.addEventListener('click', hideCreateEmployeeModal);
   
   // Close on overlay click
   modal.addEventListener('click', (e) => {
@@ -1442,7 +1439,6 @@ function closeLocationModal(newLocationName = null) {
 function wireCreateLocationModal() {
   const modal = $('#createLocationModal');
   const closeBtn = $('#closeLocationModal');
-  const cancelBtn = $('#cancelLocationModal');
   const confirmBtn = $('#confirmLocationCreate');
   const nameInput = $('#newLocationName');
   const cityCodeInput = $('#newLocationCityCode');
@@ -1452,7 +1448,6 @@ function wireCreateLocationModal() {
   
   // Close modal events
   closeBtn?.addEventListener('click', () => closeLocationModal());
-  cancelBtn?.addEventListener('click', () => closeLocationModal());
   
   // Close on overlay click
   modal.addEventListener('click', (e) => {

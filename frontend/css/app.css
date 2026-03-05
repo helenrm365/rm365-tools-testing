@@ -16,6 +16,7 @@
 
 /* 3. Components - Reusable UI elements */
 @import 'components/buttons.css';     /* All button variants */
+@import 'components/buttons-nextui.css'; /* NextUI-inspired composable buttons */
 @import 'components/badges.css';      /* Status badges & pills */
 @import 'components/cards.css';       /* All card variants */
 @import 'components/forms.css';       /* Form elements (inputs, selects, etc.) */

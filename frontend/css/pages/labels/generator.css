@@ -3,7 +3,7 @@
 /* 
    Global Components Used (from css/):
    - layout/header.css: .page-header, .page-title, .page-subtitle, .header-content
-   - components/buttons.css: .action-btn, .primary-btn, .secondary-btn
+   - components/buttons-nextui.css: .btn, .btn-solid, .btn-flat, .btn-faded, .btn-checkable, .btn-group
    - components/forms.css: .form-input, .search-box, .search-input, .search-icon
    - components/tabs.css: .inner-tabs, .tab-button
    - components/tables.css: table styles
@@ -112,29 +112,9 @@
   gap: 0.5rem;
 }
 
-/* Status filters use .selection-box-compact from components/selection-boxes.css */
-/* Only page-specific overrides here */
-.labels-generator .status-checkbox {
-  width: 16px;
-  height: 16px;
-  accent-color: var(--accent);
-  cursor: pointer;
-}
-
-.labels-generator .status-label {
-  font-size: 0.8rem;
-  color: var(--text);
-  flex: 1;
-}
-
-/* Orphaned option - full width at bottom, subtle styling */
+/* Orphaned option - full width at bottom */
 .labels-generator .orphaned-option {
   margin-top: 0.5rem;
-}
-
-.labels-generator .orphaned-option .status-label {
-  color: var(--text-muted);
-  font-style: italic;
 }
 
 /* ===== Preset Header Actions ===== */
@@ -167,12 +147,7 @@
   pointer-events: none;
 }
 
-/* Preset header action buttons - uses .action-btn .btn-sm from buttons.css */
-/* Only page-specific size overrides here */
-.labels-generator .preset-header-actions .action-btn {
-  padding: 0.375rem 0.5rem;
-  min-height: 28px;
-}
+/* Preset header action buttons — now uses NextUI .btn classes */
 
 /* ===== Presets Horizontal Scroll Container ===== */
 .labels-generator .presets-horizontal-scroll {
@@ -321,9 +296,8 @@
   margin-top: auto;
 }
 
-/* Preset card buttons - uses .action-btn .btn-sm from buttons.css */
-/* Only layout-specific overrides here */
-.labels-generator .preset-card-horizontal .preset-actions .action-btn {
+/* Preset card buttons — now uses NextUI .btn classes */
+.labels-generator .preset-card-horizontal .preset-actions .btn {
   flex: 1;
   padding: 0.5rem 0.75rem;
   font-size: 0.8rem;
@@ -504,40 +478,6 @@
   color: white;
 }
 
-/* ===== Region Toggle ===== */
-.labels-generator .region-toggle-compact {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-/* Region options use .selection-pill from components/selection-boxes.css */
-/* Only page-specific overrides here */
-.labels-generator .region-radio {
-  display: none;
-}
-
-.labels-generator .region-label-compact {
-  font-size: 0.8rem;
-  font-weight: 500;
-  color: var(--text);
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-}
-
-.labels-generator .region-label-compact i {
-  color: var(--text-muted);
-}
-
-.labels-generator .region-option-compact:has(input:checked) .region-label-compact {
-  color: var(--accent);
-}
-
-.labels-generator .region-option-compact:has(input:checked) .region-label-compact i {
-  color: var(--accent);
-}
-
 /* ===== Selection Bar ===== */
 /* Uses .card from cards.css for base styling */
 /* Override to use --bg instead of --bg-light for proper hierarchy */
@@ -618,8 +558,7 @@
   color: var(--accent);
 }
 
-/* Generate PDF button uses .action-btn .primary-btn from buttons.css */
-/* No page-specific overrides needed */
+/* Generate PDF button — now uses NextUI .btn .btn-solid .btn-success */
 
 /* ===== Products Table ===== */
 /* Uses shared .table-container and table styles from tables.css */
@@ -841,7 +780,7 @@
     flex: 0 0 auto;
   }
   
-  .labels-generator .selection-bar .action-btn {
+  .labels-generator .selection-bar .btn {
     flex: 1 1 auto;
     min-width: 100px;
     justify-content: center;
@@ -885,15 +824,6 @@
     grid-template-columns: repeat(2, 1fr);
   }
   
-  .labels-generator .region-toggle-compact {
-    width: 100%;
-  }
-  
-  .labels-generator .region-option-compact {
-    flex: 1;
-    justify-content: center;
-  }
-  
   /* Preset cards in horizontal scroll */
   .labels-generator .preset-card-compact {
     min-width: 180px;
@@ -932,35 +862,15 @@
     gap: 0.375rem;
   }
   
-  .labels-generator .selection-bar .action-btn {
+  .labels-generator .selection-bar .btn {
     min-width: 80px;
     padding: 0.5rem 0.625rem;
     font-size: 0.8rem;
   }
   
-  .labels-generator .selection-bar .action-btn span {
-    display: none;
-  }
-  
   .labels-generator .status-filters-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 0.25rem;
-  }
-  
-  .labels-generator .status-filter-compact {
-    padding: 0.375rem 0.5rem;
-  }
-  
-  .labels-generator .status-label {
-    font-size: 0.7rem;
-  }
-  
-  .labels-generator .region-toggle-compact {
-    gap: 0.25rem;
-  }
-  
-  .labels-generator .region-label-compact {
-    font-size: 0.7rem;
   }
   
   .labels-generator .preset-card-compact {

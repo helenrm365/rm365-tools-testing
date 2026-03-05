@@ -261,19 +261,23 @@ function updateViewButtons() {
   const viewFullBtn = document.getElementById('viewFullBtn');
   const viewAggregatedBtn = document.getElementById('viewAggregatedBtn');
   const customRangeBtn = document.getElementById('customRangeBtn');
+  const orderDataTitle = document.getElementById('orderDataTitle');
   
   // Remove active class from all
   viewFullBtn?.classList.remove('active');
   viewAggregatedBtn?.classList.remove('active');
   customRangeBtn?.classList.remove('active');
   
-  // Add active class to current view
+  // Add active class to current view and update title
   if (viewMode === 'full') {
     viewFullBtn?.classList.add('active');
+    if (orderDataTitle) orderDataTitle.textContent = 'Full Data';
   } else if (viewMode === 'aggregated') {
     viewAggregatedBtn?.classList.add('active');
+    if (orderDataTitle) orderDataTitle.textContent = '6-Month Data';
   } else if (viewMode === 'custom') {
     customRangeBtn?.classList.add('active');
+    if (orderDataTitle) orderDataTitle.textContent = 'Custom Range Data';
   }
 }
 
@@ -307,7 +311,6 @@ function setupEventListeners() {
   }
   
   // Search functionality - server-side query with fuzzy matching
-  const searchBtn = document.getElementById('searchBtn');
   const clearSearchBtn = document.getElementById('clearSearchBtn');
   const searchInput = document.getElementById('magentoSearchInput');
   
@@ -391,16 +394,6 @@ function setupEventListeners() {
     });
   } else {
     console.error('[UK Magento] Search input element not found! Cannot attach event listeners.');
-  }
-  
-  if (searchBtn) {
-    searchBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      if (searchTimeout) clearTimeout(searchTimeout);
-      performSearch();
-    });
-  } else {
-    console.error('[UK Magento] Search button not found!');
   }
   
   if (clearSearchBtn) {

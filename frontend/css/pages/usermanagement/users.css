@@ -3,7 +3,7 @@
 /* 
    Global Components Used (from css/):
    - layout/header.css: .page-header, .page-title, .page-subtitle, .header-content
-   - components/buttons.css: .action-btn, .primary-btn, .secondary-btn, .danger-btn, .action-buttons-grid, .action-btn-icon
+   - components/buttons-nextui.css: .btn, .btn-solid, .btn-flat, .btn-success, .btn-danger, .btn-primary, .btn-default, .btn-sm
    - components/cards.css: .action-block, .block-header, .block-icon, .block-title-group, .block-title, .block-subtitle, .block-content
    - components/badges.css: .status-badge
    - components/forms.css: .search-box, .search-input, .form-group, .form-label, .form-input, .form-row, .form-hint, .form-message, .form-helper-text, .form-label-row, .checkbox-toggle, .checkbox-group
@@ -329,7 +329,7 @@ html.dark-mode .user-management .role-list-item:hover {
     gap: 0.5rem;
   }
 
-  .user-management .user-actions .action-btn {
+  .user-management .user-actions .btn {
     flex: 1;
     min-width: 0;
   }
@@ -400,7 +400,7 @@ html.dark-mode .user-management .role-list-item:hover {
     gap: 0.375rem;
   }
   
-  .user-management .user-actions .action-btn {
+  .user-management .user-actions .btn {
     padding: 0.625rem 0.75rem;
     font-size: 0.8125rem;
   }
@@ -418,7 +418,7 @@ html.dark-mode .user-management .role-list-item:hover {
     align-items: stretch;
   }
   
-  .user-management .modal-footer.modal-footer-split .action-btn {
+  .user-management .modal-footer.modal-footer-split .btn {
     width: 100%;
     justify-content: center;
   }
@@ -428,7 +428,7 @@ html.dark-mode .user-management .role-list-item:hover {
     gap: 0.5rem;
   }
   
-  .user-management .modal-footer-right .action-btn {
+  .user-management .modal-footer-right .btn {
     flex: 1;
   }
 }

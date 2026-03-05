@@ -34,63 +34,7 @@
 */
 
 /* ===== Base Button ===== */
-.btn {
-  /* Base styles */
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-sm);
-  
-  /* Sizing */
-  padding: var(--space-sm) var(--space-md);
-  min-height: var(--input-height);
-  
-  /* Typography */
-  font-family: var(--ff);
-  font-size: 1rem;
-  font-weight: 600;
-  line-height: 1;
-  
-  /* Appearance */
-  background: linear-gradient(135deg, var(--bg-light), color-mix(in srgb, var(--accent) 5%, var(--bg-light)));
-  color: var(--text);
-  border: 2px solid color-mix(in srgb, var(--accent) 15%, transparent);
-  border-radius: var(--radius-md);
-  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 8%, transparent);
-  
-  /* Behavior */
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  text-decoration: none;
-  white-space: nowrap;
-  box-sizing: border-box;
-}
-
-.btn:hover {
-  transform: translateY(-2px);
-  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
-  box-shadow: 0 4px 16px color-mix(in srgb, var(--accent) 15%, transparent);
-}
-
-.btn:active {
-  transform: translateY(0);
-}
-
-.btn:focus-visible {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 
-    0 0 12px color-mix(in srgb, var(--accent) 25%, transparent),
-    0 0 24px color-mix(in srgb, var(--accent) 15%, transparent),
-    0 4px 12px color-mix(in srgb, var(--accent) 20%, transparent);
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none !important;
-  box-shadow: none !important;
-}
+/* Moved to buttons-nextui.css */
 
 /* ===== Action Button Base ===== */
 .action-btn {
@@ -318,41 +262,7 @@
 }
 
 /* ===== Flat Button Variants ===== */
-
-.btn-primary {
-  background: var(--primary);
-  color: white;
-}
-
-.btn-secondary {
-  background: var(--bg);
-  color: var(--text-muted);
-}
-
-.btn-ghost {
-  background: transparent;
-  box-shadow: none;
-}
-
-.btn-ghost:hover {
-  background: var(--bg);
-}
-
-/* ===== Button Sizes ===== */
-
-.btn-sm,
-.action-btn.btn-sm {
-  padding: var(--space-xs) var(--space-sm);
-  min-height: 32px;
-  font-size: 0.875rem;
-}
-
-.btn-lg,
-.action-btn.btn-lg {
-  padding: var(--space-md) var(--space-xl);
-  min-height: 52px;
-  font-size: 1.125rem;
-}
+/* .btn-primary, .btn-secondary, .btn-ghost, .btn-sm, .btn-lg moved to buttons-nextui.css */
 
 /* ===== Icon Button ===== */
 
@@ -830,11 +740,6 @@ html.dark-mode .btn-tile {
 
 /* ===== Glow Effects Toggle ===== */
 /* Glows are disabled by default. Enable with html.glow-enabled class */
-
-html:not(.glow-enabled) .btn:hover,
-html:not(.glow-enabled) .btn:focus-visible {
-  box-shadow: var(--shadow-m);
-}
 
 html:not(.glow-enabled) .action-btn:hover,
 html:not(.glow-enabled) .action-btn:focus-visible {
