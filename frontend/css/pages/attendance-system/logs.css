@@ -139,46 +139,7 @@
   min-width: 140px;
 }
 
-/* ===== Form Inputs ===== */
-.attendance-logs .form-input,
-.attendance-logs .form-select {
-  width: 100%;
-  height: var(--input-height);
-  padding: 0 1rem;
-  background: var(--bg-light);
-  border: 2px solid var(--bg);
-  border-radius: 12px;
-  font-size: 0.95rem;
-  font-family: var(--ff);
-  color: var(--text);
-  transition: all var(--transition);
-  box-shadow: var(--shadow-m);
-}
-
-.attendance-logs .form-input:focus,
-.attendance-logs .form-select:focus {
-  outline: none;
-  border-color: var(--accent);
-}
-
-/* ===== Search Box ===== */
-.attendance-logs .search-box {
-  position: relative;
-}
-
-.attendance-logs .search-box .search-icon {
-  position: absolute;
-  left: 1rem;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--text-muted);
-  font-size: 0.9rem;
-  pointer-events: none;
-}
-
-.attendance-logs .search-box .form-input {
-  padding-left: 2.5rem;
-}
+/* Form inputs now use nui-field/nui-input from inputs-nextui.css */
 
 /* ===== Results Section ===== */
 .attendance-logs .results-header {

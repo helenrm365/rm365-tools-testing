@@ -11,9 +11,15 @@ import {
   getLogs
 } from '../../services/api/attendanceApi.js';
 import { showToast } from '../../ui/toast.js';
+import { initDatePicker } from '../../ui/datePicker.js';
+import { initDropdown } from '../../ui/dropdown.js';
 import { exportDashboardToPDF, exportDashboardToCSV, exportCombinedPDF, exportCombinedCSV, exportEmployeeCardToPDF, exportEmployeeCardToCSV } from '../../utils/dashboardExport.js';
 
 // FilterControlPanel is loaded globally via script tag in index.html
+
+// ====== Date Pickers ======
+let fromPicker = null;
+let toPicker = null;
 
 // ====== State Management ======
 let state = {
@@ -537,24 +543,26 @@ function togglePunctualityView() {
   setPunctualityView(state.views.punctuality === 'stats' ? 'list' : 'stats');
 }
 
-function toggleLunchtimeView() {
-  state.views.lunchtime = state.views.lunchtime === 'cards' ? 'list' : 'cards';
-  
+function setLunchtimeView(view) {
+  state.views.lunchtime = view;
+
+  const group = $("#lunchtimeViewToggle");
+  if (group) {
+    group.querySelectorAll('.toggle-view-btn').forEach(b => b.classList.remove('active'));
+    const activeBtn = group.querySelector(`.toggle-view-btn[data-view="${view}"]`);
+    if (activeBtn) activeBtn.classList.add('active');
+  }
+
   const cardsView = $("#lunchtimeCardsView");
   const listView = $("#lunchtimeListView");
-  const toggleBtn = $("#toggleLunchtimeView i");
-  
-  if (state.views.lunchtime === 'list') {
+
+  if (view === 'list') {
     cardsView.style.display = 'none';
     listView.style.display = 'block';
-    toggleBtn.className = 'fas fa-th-large';
-    // Load date-filtered list data
     loadLunchtimeData();
   } else {
     cardsView.style.display = 'grid';
     listView.style.display = 'none';
-    toggleBtn.className = 'fas fa-list';
-    // Load today's card data
     loadLunchtimeTodayCards();
   }
 }
@@ -653,7 +661,7 @@ function displayLunchtimeCards(data) {
         <div class="employee-avatar">
           <i class="fas fa-user"></i>
         </div>
-        <select class="employee-card-export-select" data-enhance="c-select" data-employee="${emp.name}" title="Export employee data" onclick="event.stopPropagation();">
+        <select class="employee-card-export-select" data-employee="${emp.name}" title="Export employee data" onclick="event.stopPropagation();">
           <option value="" disabled selected>Export</option>
           <option value="pdf">PDF</option>
           <option value="csv">CSV</option>
@@ -693,7 +701,7 @@ function displayLunchtimeCards(data) {
   cardsEl.querySelectorAll('.lunchtime-employee-card[data-employee]').forEach(card => {
     card.addEventListener('click', (e) => {
       // Don't open modal if clicking on export c-select
-      if (e.target.closest('.c-select') || e.target.closest('.employee-card-export-select')) return;
+      if (e.target.closest('.nui-dropdown') || e.target.closest('.employee-card-export-select')) return;
       
       const employeeName = card.dataset.employee;
       if (employeeName) {
@@ -710,31 +718,25 @@ function displayLunchtimeCards(data) {
  * Setup export select handlers for employee cards (using c-select)
  */
 function setupEmployeeCardExportSelects(container) {
-  // First, enhance the selects with c-select component
-  // Use the global initCSelects function exposed by components.js
-  if (typeof window.initCSelects === 'function') {
-    window.initCSelects(container);
-  }
-  
-  // Setup change handlers on the native select elements
+  // Enhance selects with nui-dropdown (small size for cards)
   const selectEls = container.querySelectorAll('.employee-card-export-select');
   selectEls.forEach(select => {
+    initDropdown(select, { size: 'sm' });
+
     select.addEventListener('change', async (e) => {
       e.stopPropagation();
-      
+
       const format = e.target.value;
       const employeeName = e.target.dataset.employee;
-      
+
       if (format && employeeName) {
         await handleEmployeeCardExport(employeeName, format);
         // Reset to placeholder after action
         e.target.selectedIndex = 0;
+        e.target.dispatchEvent(new Event('change', { bubbles: true }));
       }
     });
   });
-  
-  // Add icons to employee card export c-selects after a short delay
-  setTimeout(() => addEmployeeCardExportIcons(container), 50);
 }
 
 /**
@@ -1210,6 +1212,9 @@ function clearGlobalFilters() {
   state.globalFilters.location = '';
   state.globalFilters.nameSearch = '';
   state.globalFilters.preset = 'today';
+  setDefaultDates();
+  if (fromPicker) fromPicker.refresh();
+  if (toPicker) toPicker.refresh();
   
   // Reload all sections
   loadRealtimeStatus();
@@ -1452,7 +1457,6 @@ function setupEventHandlers() {
   // Toggle view button groups
   const realtimeViewGroup = $("#realtimeViewToggle");
   const punctualityViewGroup = $("#punctualityViewToggle");
-  const toggleLunchtimeBtn = $("#toggleLunchtimeView");
   
   if (realtimeViewGroup) {
     realtimeViewGroup.querySelectorAll('.toggle-view-btn').forEach(btn => {
@@ -1466,8 +1470,11 @@ function setupEventHandlers() {
     });
   }
   
-  if (toggleLunchtimeBtn) {
-    toggleLunchtimeBtn.addEventListener("click", toggleLunchtimeView);
+  const lunchtimeViewGroup = $("#lunchtimeViewToggle");
+  if (lunchtimeViewGroup) {
+    lunchtimeViewGroup.querySelectorAll('.toggle-view-btn').forEach(btn => {
+      btn.addEventListener("click", () => setLunchtimeView(btn.dataset.view));
+    });
   }
   
   // Realtime list tabs
@@ -1511,6 +1518,8 @@ function setupEventHandlers() {
       const { fromDate, toDate } = getDateRangeForPreset(btn.dataset.preset);
       if (globalFromDate) globalFromDate.value = fromDate;
       if (globalToDate) globalToDate.value = toDate;
+      if (fromPicker) fromPicker.refresh();
+      if (toPicker) toPicker.refresh();
       
       // Also store in state for consistency
       state.globalFilters.fromDate = fromDate;
@@ -1664,6 +1673,11 @@ export async function init() {
   }
   
   setDefaultDates();
+  fromPicker = initDatePicker('#globalFromDate');
+  toPicker = initDatePicker('#globalToDate');
+  initDropdown('#globalLocationFilter');
+  initDropdown('#realtimeExportSelect', { size: 'md' });
+  initDropdown('#punctualityExportSelect', { size: 'md' });
   setupEventHandlers();
   
   showToast('Loading work locations...', 'info');

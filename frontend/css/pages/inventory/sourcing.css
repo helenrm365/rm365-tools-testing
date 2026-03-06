@@ -1,6 +1,6 @@
 /* ===== Product Sourcing Command Center ===== */
 /* Page-specific styles only - uses core components from css/components/ */
-/* Components used: badges.css, buttons-nextui.css, cards.css, forms.css, modals.css, tables.css, tabs.css */
+/* Components used: badges.css, buttons-nextui.css, cards.css, inputs-nextui.css, modals.css, tables.css, tabs.css */
 
 /* ===== Page Scope ===== */
 .product-sourcing {
@@ -137,15 +137,15 @@ html.dark-mode .product-sourcing .data-controls-bar {
   flex-wrap: wrap;
 }
 
-/* Search box uses forms.css .search-box styling */
+/* Search box uses inputs-nextui.css .nui-input styling */
 .product-sourcing .data-controls-bar .search-box {
   flex: 1;
   min-width: 200px;
   max-width: 400px;
 }
 
-/* c-select uses forms.css styling */
-.product-sourcing .data-controls-bar .c-select {
+/* nui-dropdown sizing in controls bar */
+.product-sourcing .data-controls-bar .nui-dropdown {
   min-width: 180px;
   max-width: 220px;
 }
@@ -272,36 +272,11 @@ html.dark-mode .product-sourcing .summary-card {
   margin-top: var(--space-xs);
 }
 
-/* ===== Search Box (uses forms.css base styles) ===== */
+/* ===== Search Box (uses inputs-nextui.css base styles) ===== */
 .product-sourcing .search-box {
   position: relative;
   flex: 1;
   max-width: 400px;
-}
-
-.product-sourcing .search-box i {
-  position: absolute;
-  left: var(--space-md);
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--text-muted);
-}
-
-.product-sourcing .search-box input {
-  width: 100%;
-  padding: var(--space-sm) var(--space-md) var(--space-sm) 2.5rem;
-  border: 2px solid var(--bg-dark);
-  border-radius: var(--radius-md);
-  background: var(--bg-light);
-  color: var(--text);
-  font-size: 0.9rem;
-  box-shadow: var(--shadow-s);
-  transition: all var(--transition);
-}
-
-.product-sourcing .search-box input:focus {
-  outline: 1px solid var(--accent);
-  outline-offset: 1px;
 }
 
 .product-sourcing .filter-group select {
@@ -929,37 +904,13 @@ html.dark-mode .product-sourcing .fx-rate-card {
   align-items: flex-end;
 }
 
-.product-sourcing .override-form .form-group {
+.product-sourcing .override-form .nui-field {
   flex: 1;
   min-width: 150px;
   margin-bottom: 0;
 }
 
-.product-sourcing .override-form label {
-  display: block;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--text);
-  margin-bottom: var(--space-xs);
-}
-
-.product-sourcing .override-form input,
-.product-sourcing .override-form select {
-  width: 100%;
-  padding: var(--space-sm) var(--space-md);
-  border: 2px solid var(--bg-dark);
-  border-radius: var(--radius-md);
-  background: var(--bg);
-  color: var(--text);
-  font-size: 0.9rem;
-  box-shadow: var(--shadow-s);
-}
-
-.product-sourcing .override-form input:focus,
-.product-sourcing .override-form select:focus {
-  outline: 1px solid var(--accent);
-  outline-offset: 1px;
-}
+/* Label & input styling handled by inputs-nextui.css (.nui-label, .nui-input) */
 
 /* ===== Form Row for Modal Forms ===== */
 .product-sourcing .form-row {
@@ -1174,7 +1125,7 @@ html.dark-mode .product-sourcing .fx-rate-card {
     gap: 0.75rem;
   }
   
-  .product-sourcing .data-controls-bar .c-select {
+  .product-sourcing .data-controls-bar .nui-dropdown {
     flex: 0 1 auto;
     min-width: 140px;
     max-width: 200px;

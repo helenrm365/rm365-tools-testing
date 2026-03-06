@@ -1,0 +1,99 @@
+/* ===== NextUI Calendar ===== */
+
+.nui-calendar {
+  display: grid;
+  width: 256px;
+  border-radius: var(--radius-lg, 14px);
+  overflow: hidden;
+  background: var(--bg-card, #18181b);
+  border: 0.5px solid var(--border, #3f3f46);
+}
+
+.nui-calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+}
+
+.nui-calendar-header button {
+  all: unset;
+  cursor: pointer;
+  color: var(--text-muted, #a1a1aa);
+  display: grid;
+  place-items: center;
+  padding: 4px;
+}
+.nui-calendar-header button:hover {
+  opacity: 0.7;
+}
+
+.nui-calendar-header svg {
+  width: 20px;
+  height: 20px;
+}
+
+.nui-calendar-title {
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--text-muted, #a1a1aa);
+}
+
+.nui-calendar-weekdays,
+.nui-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 32px);
+  justify-content: center;
+  padding: 4px 16px;
+}
+
+.nui-calendar-weekdays span {
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted, #a1a1aa);
+}
+
+.nui-calendar-day {
+  all: unset;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  font-size: 16px;
+  border-radius: 50%;
+  cursor: pointer;
+  color: var(--text, #fafafa);
+}
+.nui-calendar-day:hover:not([disabled]):not(.is-selected) {
+  background: var(--bg-hover, #27272a);
+}
+
+.nui-calendar-day[disabled] {
+  color: var(--text-disabled, #3f3f46);
+  cursor: default;
+}
+
+.nui-calendar-day.is-selected {
+  background: var(--text, #fafafa);
+  color: var(--bg, #09090b);
+  font-weight: 500;
+}
+
+/* Popup behaviour */
+.nui-calendar-field {
+  position: relative;
+}
+
+.nui-calendar-popup {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 50;
+  margin-top: 4px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+.nui-calendar-popup.is-open {
+  display: grid;
+}
+

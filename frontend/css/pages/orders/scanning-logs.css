@@ -5,7 +5,7 @@
    - layout/header.css: .page-header, .page-title, .page-subtitle, .header-content
    - components/buttons-nextui.css: .btn, .btn-solid, .btn-flat, .btn-ghost
    - components/cards.css: .action-block, .block-header, .block-icon, .block-title-group, .block-title, .block-subtitle, .block-content
-   - components/forms.css: .form-group, .form-label, .form-input
+   - components/forms.css: .nui-field, .nui-label, .nui-input
    - components/tabs.css: .inner-tabs, .tab-button
    - components/modals.css: .modal-backdrop, .modal, .modal-header, .modal-body, .modal-footer
 
@@ -39,7 +39,7 @@
   align-items: flex-end;
 }
 
-.scanning-logs .filters-form .form-group {
+.scanning-logs .filters-form .nui-field {
   flex: 1;
   min-width: 200px;
 }
@@ -51,7 +51,7 @@
   min-width: 300px;
 }
 
-.scanning-logs .filters-form .form-row .form-group {
+.scanning-logs .filters-form .form-row .nui-field {
   flex: 1;
   min-width: 140px;
 }
@@ -428,7 +428,7 @@
     padding-bottom: 100px;
   }
   
-  .scanning-logs .filters-form .form-group {
+  .scanning-logs .filters-form .nui-field {
     min-width: 180px;
   }
   
@@ -450,7 +450,7 @@
     flex-direction: column;
   }
 
-  .scanning-logs .filters-form .form-group,
+  .scanning-logs .filters-form .nui-field,
   .scanning-logs .filters-form .form-row {
     min-width: 100%;
     width: 100%;

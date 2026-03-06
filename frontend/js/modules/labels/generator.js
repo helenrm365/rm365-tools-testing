@@ -7,6 +7,7 @@ import { syncUKMagentoData, syncFRMagentoData, syncNLMagentoData } from '../../s
 import { post } from '../../services/api/http.js';
 import { confirmModal } from '../../ui/confirmationModal.js';
 import { getApiUrl } from '../../config.js';
+import { initDropdown } from '../../ui/dropdown.js';
 
 // Default status filters (ALL statuses checked by default)
 const DEFAULT_STATUS_FILTERS = [
@@ -94,6 +95,7 @@ export async function initLabelGenerator() {
   showToast('Setting up filters & controls...', 'info');
   // Setup status filter checkboxes (all checked by default)
   setupStatusFilterCheckboxes();
+  initDropdown('#overwritePresetSelect');
   
   // Setup region selection
   setupRegionSelection();

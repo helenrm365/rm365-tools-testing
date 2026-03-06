@@ -5,7 +5,7 @@
    - layout/header.css: .page-header, .page-title, .page-subtitle, .header-content
    - components/buttons-nextui.css: .btn, .btn-solid, .btn-flat, .btn-ghost, .btn-icon-only
    - components/cards.css: .action-block, .block-header, .block-icon, .block-title-group
-   - components/forms.css: .form-group, .form-label, input, .search-input, .c-select
+   - components/inputs-nextui.css: .nui-field, .nui-label, .nui-input
    - components/tabs.css: .inner-tabs, .tab-button
    - components/tables.css: .table-container, table, thead, tbody, th, td
    - components/loaders.css: .loading-spinner, .loading-state
@@ -117,18 +117,6 @@ html.dark-mode .inventory-management .data-controls-bar {
   min-width: 250px;
 }
 
-.inventory-management .data-controls-search .search-icon {
-  position: absolute;
-  left: 0.875rem;
-  color: var(--text-muted);
-  pointer-events: none;
-}
-
-.inventory-management .data-controls-search .search-input {
-  width: 100%;
-  padding-left: 2.5rem;
-}
-
 /* Responsive adjustments */
 @media (max-width: 1200px) {
   .inventory-management .data-controls-bar-content {
@@ -199,24 +187,7 @@ html.dark-mode .inventory-management .data-controls-bar {
   align-items: center;
 }
 
-.inventory-management .data-controls-row .search-wrapper {
-  flex: 1;
-  position: relative;
-}
-
-.inventory-management .data-controls-row .search-wrapper .search-icon {
-  position: absolute;
-  left: 1rem;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--text-muted);
-  pointer-events: none;
-}
-
-.inventory-management .data-controls-row .search-wrapper .search-input {
-  width: 100%;
-  padding-left: 2.75rem;
-}
+/* Search input uses .nui-input from inputs-nextui.css */
 
 /* ===== Standalone Table (outside any card) ===== */
 .inventory-management .standalone-table {

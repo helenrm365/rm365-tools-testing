@@ -4,17 +4,18 @@
    Global Components Used (from css/):
    - layout/header.css: .page-header, .page-title, .page-subtitle, .help-button, .header-content
    - components/buttons-nextui.css: .btn, .btn-solid, .btn-flat, .btn-ghost, .btn-sm, .btn-lg, .rounded-lg, .rounded-full
-   - components/cards.css: .action-block, .block-header, .block-icon, .block-title-group, .block-title, .block-subtitle, .block-content, .employee-card, .employee-grid, .employee-avatar, .employee-info
+   - components/tables.css: .table-container, .modern-table, thead, tbody, th, td
+   - components/cards.css: .action-block, .block-header, .block-icon, .block-title-group, .block-title, .block-subtitle, .block-content
    - components/badges.css: .status-badge, .location-badge
    - components/filters.css: .filter-controls, .filter-item, .filter-label
-   - components/forms.css: .search-box, .search-input, .c-select, .form-group, .form-label, .form-input
+   - components/inputs-nextui.css: .nui-field, .nui-label, .nui-input, .nui-input-faded, .nui-input-bordered, .nui-input-default, .nui-input-primary
    - components/modals.css: .modal-overlay, .modal-content, .modal-header, .modal-header-icon, .modal-title, .modal-close, .modal-body, .modal-footer, .modal-footer-split, .modal-footer-right
    - components/tabs.css: .inner-tabs, .tab-button
    - components/loaders.css: .loading-spinner, .loading-state
    
    Shadow System (from SHADOW_SYSTEM.md):
    - .action-block uses shadow-l (main container)
-   - .employee-card uses shadow-m (nested card)
+   - .table-container uses shadow-m (data table)
    - buttons use shadow-l
    - inputs use shadow-l
    - modals use shadow-l
@@ -62,10 +63,6 @@
 
 /* Tablet: 769px - 1024px */
 @media (max-width: 1024px) {
-  .enrollment-management .employee-grid {
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  }
-  
   .enrollment-management .action-buttons-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 0.75rem;
@@ -88,16 +85,6 @@
     gap: 0.5rem;
   }
   
-  .enrollment-management .employee-grid {
-    grid-template-columns: 1fr;
-    gap: 0.75rem;
-  }
-  
-  .enrollment-management .employee-card {
-    padding: 0.875rem;
-    padding-left: 2.5rem;
-  }
-  
   /* Keep filter controls in grid layout, not stacked */
   .enrollment-management .filter-controls {
     display: grid;
@@ -107,10 +94,6 @@
   
   .enrollment-management .filter-item {
     min-width: unset;
-  }
-  
-  .enrollment-management .search-box {
-    width: 100%;
   }
   
   /* Modal adjustments */
@@ -137,29 +120,15 @@
 
 /* Small Mobile: <= 480px */
 @media (max-width: 480px) {
-  .enrollment-management .employee-card {
-    padding: 0.75rem;
-    padding-left: 2.25rem;
-    padding-right: 0.75rem;
+  .enrollment-management .col-location,
+  .enrollment-management .col-code {
+    display: none;
   }
-  
-  .enrollment-management .card-checkbox {
-    left: 0.5rem;
+
+  .enrollment-management .row-actions {
+    flex-direction: column;
   }
-  
-  .enrollment-management .employee-name {
-    font-size: 0.9rem;
-  }
-  
-  .enrollment-management .employee-code {
-    font-size: 0.8rem;
-  }
-  
-  .enrollment-management .employee-badges {
-    flex-wrap: wrap;
-    gap: 0.25rem;
-  }
-  
+
   .enrollment-management .status-badge,
   .enrollment-management .location-badge {
     padding: 0.2rem 0.5rem;
@@ -178,64 +147,47 @@
   }
   
   /* Form groups in modals */
-  .enrollment-management .form-group {
+  /* Form fields in modals */
+  .enrollment-management .nui-field {
     margin-bottom: 0.75rem;
   }
   
-  .enrollment-management .form-label {
+  .enrollment-management .nui-label {
     font-size: 0.8rem;
   }
   
-  .enrollment-management .form-input {
+  .enrollment-management .nui-input {
     font-size: 0.9rem;
     padding: 0.625rem 0.75rem;
   }
 }
 
-/* ===== Employee Card Enhancements ===== */
-.enrollment-management .employee-card {
-  position: relative;
-  padding-left: 2.75rem;
+/* ===== Employee Table Enhancements ===== */
+.enrollment-management .table-container {
+  max-height: none;
 }
 
-.enrollment-management .card-checkbox {
-  position: absolute;
-  left: 1rem;
-  top: 50%;
-  transform: translateY(-50%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
+.enrollment-management .col-checkbox {
+  width: 40px;
+  text-align: center;
 }
 
-.enrollment-management .card-checkbox input[type="checkbox"] {
+.enrollment-management .col-checkbox input[type="checkbox"] {
   width: 18px;
   height: 18px;
   accent-color: var(--accent);
   cursor: pointer;
 }
 
-.enrollment-management .employee-name {
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--text);
+.enrollment-management .col-actions {
+  width: 1%;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-.enrollment-management .employee-code {
-  margin: 0.25rem 0 0.5rem;
-  font-size: 0.875rem;
-  color: var(--text-muted);
-}
-
-.enrollment-management .employee-badges {
+.enrollment-management .row-actions {
   display: flex;
+  align-items: center;
   gap: 0.5rem;
-  flex-wrap: wrap;
 }
 
 /* Note: .location-badge is now in badges.css */
@@ -277,47 +229,19 @@
 /* Note: .modal-footer-split and .modal-footer-right are now in modals.css */
 
 /* Readonly/Disabled Input Styling */
-#editEmployeeCode {
-  background: var(--bg-dark);
+#editEmployeeCode.nui-input {
   color: var(--text-muted);
   cursor: not-allowed;
-  border-color: transparent;
+  border-color: color-mix(in srgb, #3F3F46 20%, transparent);
 }
 
-html.dark-mode #editEmployeeCode {
-  background: rgba(0, 0, 0, 0.2);
+html.dark-mode #editEmployeeCode.nui-input {
+  border-color: color-mix(in srgb, #3F3F46 20%, transparent);
 }
 
 /* ===== Clock Toggle Button ===== */
-.enrollment-management .clock-toggle-btn {
-  position: absolute;
-  top: 0.75rem;
-  right: 0.75rem;
-  z-index: 10;
-}
-
 .enrollment-management .clock-toggle-btn i {
   font-size: 0.85rem;
-}
-
-/* Ensure employee card has relative positioning for the button */
-.enrollment-management .employee-card {
-  position: relative;
-  padding-right: 7rem; /* Make room for the clock button */
-}
-
-/* Responsive adjustments */
-@media (max-width: 480px) {
-  .enrollment-management .clock-toggle-btn {
-    position: static;
-    margin-top: 0.75rem;
-    width: 100%;
-    justify-content: center;
-  }
-  
-  .enrollment-management .employee-card {
-    padding-right: 2.75rem;
-  }
 }
 
 /* ===== NFC Card Enrollment Section in Edit Modal ===== */

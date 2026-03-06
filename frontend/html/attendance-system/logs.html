@@ -102,61 +102,52 @@
 
       <div class="block-content">
         <div class="filter-grid">
-          <div class="form-group">
-            <label class="form-label" for="fromDate">
-              <i class="fas fa-calendar-day"></i>
+          <div class="nui-field">
+            <label class="nui-label" for="fromDate">
               <span>From Date</span>
             </label>
-            <input type="date" id="fromDate" class="form-input" required>
+            <input type="text" id="fromDate" class="nui-input nui-input-default">
           </div>
 
-          <div class="form-group">
-            <label class="form-label" for="toDate">
-              <i class="fas fa-calendar-day"></i>
+          <div class="nui-field">
+            <label class="nui-label" for="toDate">
               <span>To Date</span>
             </label>
-            <input type="date" id="toDate" class="form-input" required>
+            <input type="text" id="toDate" class="nui-input nui-input-default">
           </div>
 
-          <div class="form-group">
-            <label class="form-label" for="locationFilter">
-              <i class="fas fa-map-marker-alt"></i>
+          <div class="nui-field">
+            <label class="nui-label" for="locationFilter">
               <span>Location</span>
             </label>
-            <select id="locationFilter" data-enhance="c-select">
+            <select id="locationFilter">
               <option value="" selected>All Locations</option>
             </select>
           </div>
 
-          <div class="form-group">
-            <label class="form-label" for="nameFilter">
-              <i class="fas fa-search"></i>
+          <div class="nui-field">
+            <label class="nui-label" for="nameFilter">
               <span>Employee Name</span>
             </label>
-            <div class="search-box">
-              <i class="fas fa-search search-icon"></i>
-              <input type="text" id="nameFilter" class="form-input" placeholder="Search by name...">
-            </div>
+            <input type="text" id="nameFilter" class="nui-input nui-input-default" placeholder="Search by name...">
           </div>
 
-          <div class="form-group">
-            <label class="form-label" for="actionFilter">
-              <i class="fas fa-toggle-on"></i>
+          <div class="nui-field">
+            <label class="nui-label" for="actionFilter">
               <span>Action Type</span>
             </label>
-            <select id="actionFilter" data-enhance="c-select">
+            <select id="actionFilter">
               <option value="" selected>All Actions</option>
               <option value="in">Clock In</option>
               <option value="out">Clock Out</option>
             </select>
           </div>
 
-          <div class="form-group">
-            <label class="form-label" for="sortFilter">
-              <i class="fas fa-sort-amount-down"></i>
+          <div class="nui-field">
+            <label class="nui-label" for="sortFilter">
               <span>Sort By</span>
             </label>
-            <select id="sortFilter" data-enhance="c-select">
+            <select id="sortFilter">
               <option value="asc" selected>Ascending</option>
               <option value="desc">Descending</option>
             </select>
@@ -173,6 +164,8 @@
             <span>Clear Filters</span>
           </button>
         </div>
+
+
       </div>
     </div>
 

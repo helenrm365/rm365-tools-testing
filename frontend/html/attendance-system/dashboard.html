@@ -72,13 +72,13 @@
               </div>
               <!-- Custom Date Range -->
               <div class="custom-date-range">
-                <div class="date-input-group">
-                  <label class="form-label-sm" for="globalFromDate">From</label>
-                  <input type="date" id="globalFromDate" class="form-input">
+                <div class="nui-field">
+                  <label class="nui-label" for="globalFromDate">From</label>
+                  <input type="text" id="globalFromDate" class="nui-input nui-input-default">
                 </div>
-                <div class="date-input-group">
-                  <label class="form-label-sm" for="globalToDate">To</label>
-                  <input type="date" id="globalToDate" class="form-input">
+                <div class="nui-field">
+                  <label class="nui-label" for="globalToDate">To</label>
+                  <input type="text" id="globalToDate" class="nui-input nui-input-default">
                 </div>
               </div>
             </div>
@@ -97,25 +97,20 @@
               </button>
             </div>
             <div class="additional-filters-grid">
-              <div class="form-group-compact">
-                <label class="form-label-sm" for="globalLocationFilter">
-                  <i class="fas fa-map-marker-alt"></i>
+              <div class="nui-field">
+                <label class="nui-label" for="globalLocationFilter">
                   <span>Location</span>
                 </label>
-                <select id="globalLocationFilter" data-enhance="c-select">
+                <select id="globalLocationFilter">
                   <option value="" selected>All Locations</option>
                   <!-- More options populated by JavaScript -->
                 </select>
               </div>
-              <div class="form-group-compact">
-                <label class="form-label-sm" for="globalNameFilter">
-                  <i class="fas fa-search"></i>
+              <div class="nui-field">
+                <label class="nui-label" for="globalNameFilter">
                   <span>Employee</span>
                 </label>
-                <div class="search-wrapper-compact">
-                  <i class="fas fa-search search-icon"></i>
-                  <input type="text" id="globalNameFilter" class="search-input" placeholder="Search by name...">
-                </div>
+                <input type="text" id="globalNameFilter" class="nui-input nui-input-default" placeholder="Search by name...">
               </div>
             </div>
           </div>
@@ -134,7 +129,7 @@
           <p class="block-subtitle">Live attendance status for today</p>
         </div>
         <div class="block-header-actions">
-          <select id="realtimeExportSelect" data-enhance="c-select" data-section="realtime" class="export-select" title="Export data">
+          <select id="realtimeExportSelect" data-section="realtime" class="export-select" title="Export data">
             <option value="" disabled selected>Export</option>
             <option value="pdf">Export as PDF</option>
             <option value="csv">Export as CSV</option>
@@ -215,7 +210,7 @@
           <p class="block-subtitle">Track late arrivals, early departures, and missing punches</p>
         </div>
         <div class="block-header-actions">
-          <select id="punctualityExportSelect" data-enhance="c-select" data-section="punctuality" class="export-select" title="Export data">
+          <select id="punctualityExportSelect" data-section="punctuality" class="export-select" title="Export data">
             <option value="" disabled selected>Export</option>
             <option value="pdf">Export as PDF</option>
             <option value="csv">Export as CSV</option>
@@ -304,9 +299,16 @@
           <h3 class="block-title">Employee Attendance Analysis</h3>
           <p class="block-subtitle">Today's summary cards or detailed list view by date range</p>
         </div>
-        <button class="btn btn-icon btn-sm btn-scale toggle-view-btn" id="toggleLunchtimeView" title="Toggle list view">
-          <i class="fas fa-list"></i>
-        </button>
+        <div class="block-header-actions">
+          <div class="btn-group" id="lunchtimeViewToggle">
+            <button class="btn btn-ghost btn-success btn-sm toggle-view-btn active" data-view="cards" title="Cards view">
+              <i class="fas fa-th-large"></i>
+            </button>
+            <button class="btn btn-ghost btn-success btn-sm toggle-view-btn" data-view="list" id="toggleLunchtimeView" title="List view">
+              <i class="fas fa-list"></i>
+            </button>
+          </div>
+        </div>
       </div>
       <div class="block-content">
         <!-- Cards View (Today's data - default) -->

@@ -7,6 +7,7 @@ import { checkAttendanceTablesStatus, initializeAttendanceTables, clockEmployee,
 import { getLocations, createLocation, initLocations, getCountryCodes, getLocationsByCountry, getLocationByName, getLocationByCityCode } from '../../services/api/locationsApi.js';
 import { confirmModal } from '../../ui/confirmationModal.js';
 import { showToast } from '../../ui/toast.js';
+import { initDropdown } from '../../ui/dropdown.js';
 import { playSuccessSound, playErrorSound, playScanSound } from '../../utils/sound.js';
 
 
@@ -181,8 +182,9 @@ function filterEmployees() {
 window.filterEmployees = filterEmployees;
 
 function renderTable() {
-  const grid = $('#enrEmployeeGrid');
-  if (!grid) return;
+  const tbody = $('#enrEmployeeBody');
+  const loadingState = $('#employeeLoadingState');
+  if (!tbody) return;
 
   const rows = state.employees
     .filter(e => !state.status || (e.status || 'active').toLowerCase() === state.status)
@@ -224,23 +226,29 @@ function renderTable() {
     }
   }
 
+  // Hide loading state
+  if (loadingState) loadingState.style.display = 'none';
+
   if (!rows.length) {
-    grid.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-icon">📭</div>
-        <h3>No employees found</h3>
-        <p>Try adjusting your filters or create a new employee</p>
-      </div>`;
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6">
+          <div class="empty-state">
+            <div class="empty-icon">📭</div>
+            <h3>No employees found</h3>
+            <p>Try adjusting your filters or create a new employee</p>
+          </div>
+        </td>
+      </tr>`;
     return;
   }
 
-  // Render simplified clickable cards with clock button
-  grid.innerHTML = rows.map(e => {
+  // Render table rows with actions column
+  tbody.innerHTML = rows.map(e => {
     const statusClass = (e.status || 'active').toLowerCase();
     const statusLabel = (e.status || 'active').charAt(0).toUpperCase() + (e.status || 'active').slice(1);
     const clockStatus = state.clockStatus[e.id] || 'unknown';
     const isClockedIn = clockStatus === 'in';
-    // NextUI color classes: btn-success for clock in, btn-warning for clock out
     const clockBtnClass = isClockedIn ? 'btn-warning' : 'btn-success';
     const clockBtnIcon = isClockedIn ? 'fa-sign-out-alt' : 'fa-sign-in-alt';
     const clockBtnText = isClockedIn ? 'Clock Out' : 'Clock In';
@@ -253,40 +261,39 @@ function renderTable() {
       : (e.location || 'N/A');
     
     return `
-    <div class="employee-card clickable" 
-         data-id="${e.id}"
-         data-name="${e.name || ''}"
-         data-code="${e.employee_code || ''}"
-         data-location="${e.location || ''}"
-         data-status="${e.status || 'active'}"
-         data-nfc="${e.nfc_uid || ''}"
-         data-clock-status="${clockStatus}"
-         onclick="window.openEmployeeEditModal(this)">
-      <label class="card-checkbox" onclick="event.stopPropagation()">
+    <tr data-id="${e.id}"
+        data-name="${e.name || ''}"
+        data-code="${e.employee_code || ''}"
+        data-location="${e.location || ''}"
+        data-status="${e.status || 'active'}"
+        data-nfc="${e.nfc_uid || ''}"
+        data-clock-status="${clockStatus}">
+      <td class="col-checkbox">
         <input type="checkbox" class="employee-checkbox" data-id="${e.id}" ${state.selectedIds.has(e.id) ? 'checked' : ''}>
-        <span class="checkbox-custom"></span>
-      </label>
-      <div class="employee-avatar">
-        <i class="fas fa-user"></i>
-      </div>
-      <div class="employee-info">
-        <h4 class="employee-name">${e.name || 'Unnamed'}</h4>
-        <p class="employee-code">#${e.employee_code || 'N/A'}</p>
-        <div class="employee-badges">
-          <span class="location-badge">${locationDisplay}</span>
-          <span class="status-badge status-${statusClass}">${statusLabel}</span>
+      </td>
+      <td class="col-name">${e.name || 'Unnamed'}</td>
+      <td class="col-code">#${e.employee_code || 'N/A'}</td>
+      <td class="col-location"><span class="location-badge">${locationDisplay}</span></td>
+      <td class="col-status"><span class="status-badge status-${statusClass}">${statusLabel}</span></td>
+      <td class="col-actions">
+        <div class="row-actions">
+          <button class="btn btn-ghost btn-sm rounded-lg btn-primary edit-row-btn"
+                  title="Edit employee"
+                  data-id="${e.id}">
+            <i class="fas fa-pen"></i>
+            <span>Edit</span>
+          </button>
+          <button class="btn btn-ghost btn-sm rounded-lg clock-toggle-btn ${clockBtnClass}" 
+                  data-id="${e.id}" 
+                  data-name="${e.name || 'Employee'}"
+                  data-clock-status="${clockStatus}"
+                  title="${clockBtnTitle}">
+            <i class="fas ${clockBtnIcon}"></i>
+            <span>${clockBtnText}</span>
+          </button>
         </div>
-      </div>
-      <button class="btn btn-ghost btn-sm rounded-lg clock-toggle-btn ${clockBtnClass}" 
-              data-id="${e.id}" 
-              data-name="${e.name || 'Employee'}"
-              data-clock-status="${clockStatus}"
-              title="${clockBtnTitle}"
-              onclick="event.stopPropagation(); window.handleClockToggle(this);">
-        <i class="fas ${clockBtnIcon}"></i>
-        <span>${clockBtnText}</span>
-      </button>
-    </div>
+      </td>
+    </tr>
   `}).join('');
 
   // Wire up event listeners
@@ -884,7 +891,41 @@ function wireCardEvents() {
       } else {
         state.selectedIds.delete(id);
       }
+      updateSelectAllCheckbox();
       updateBulkDeleteButton();
+    });
+  });
+
+  // Select all checkbox
+  const selectAll = $('#selectAllCheckbox');
+  if (selectAll) {
+    selectAll.addEventListener('change', () => {
+      const checkboxes = $all('.employee-checkbox');
+      checkboxes.forEach(cb => {
+        cb.checked = selectAll.checked;
+        const id = Number(cb.dataset.id);
+        if (selectAll.checked) {
+          state.selectedIds.add(id);
+        } else {
+          state.selectedIds.delete(id);
+        }
+      });
+      updateBulkDeleteButton();
+    });
+  }
+
+  // Edit buttons — open the edit modal using the row's data attributes
+  $all('.edit-row-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const row = btn.closest('tr');
+      if (row) window.openEmployeeEditModal(row);
+    });
+  });
+
+  // Clock toggle buttons
+  $all('.clock-toggle-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      window.handleClockToggle(btn);
     });
   });
 }
@@ -901,6 +942,14 @@ function updateBulkDeleteButton() {
     bulkBtn.innerHTML = '<i class="fas fa-trash-alt"></i><span>Delete Selected</span>';
     bulkBtn.disabled = true;
   }
+}
+
+function updateSelectAllCheckbox() {
+  const selectAll = $('#selectAllCheckbox');
+  if (!selectAll) return;
+  const checkboxes = $all('.employee-checkbox');
+  const allChecked = checkboxes.length > 0 && checkboxes.every(cb => cb.checked);
+  selectAll.checked = allChecked;
 }
 
 function wireToolbar() {
@@ -1239,6 +1288,16 @@ export async function init() {
   wireCreateLocationModal();
   wireGuideModal();
   initFilterSelects();
+
+  // Init nui-dropdown styling on all selects
+  initDropdown('#statusFilter');
+  initDropdown('#countryFilter');
+  initDropdown('#locationFilter');
+  initDropdown('#citycodeFilter');
+  initDropdown('#employeeLocation');
+  initDropdown('#employeeStatus');
+  initDropdown('#editEmployeeLocation');
+  initDropdown('#editEmployeeStatusSelect');
   
   showToast('Loading employee records...', 'info');
   await refresh();

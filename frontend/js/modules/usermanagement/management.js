@@ -4,6 +4,7 @@ import { getRoles, createRole, updateRole, deleteRole } from '../../services/api
 import { getLocations as getLocationObjects } from '../../services/api/locationsApi.js';
 import { generateTabStructure } from '../../router.js';
 import { showToast } from '../../ui/toast.js';
+import { initDropdown } from '../../ui/dropdown.js';
 
 // Get the tab structure dynamically from the router
 const TAB_STRUCTURE = generateTabStructure();
@@ -262,11 +263,6 @@ function openUserModal(user = null) {
     updateSelectAllState(tabsContainer, 'allowed_tab');
 
     modal.classList.add('active');
-    
-    // Re-initialize c-select dropdowns inside the modal
-    if (typeof window.initCSelects === 'function') {
-        window.initCSelects();
-    }
 }
 
 function wireUserModal() {
@@ -1045,6 +1041,8 @@ export async function init() {
     wireToolbar();
     wireUserModal();
     wireAddRoleModal();
+    initDropdown('#formRole');
+    initDropdown('#formLocation');
     
     showToast('Loading users & roles...', 'info');
     await refresh();

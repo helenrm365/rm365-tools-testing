@@ -5,7 +5,7 @@
    - layout/header.css: .page-header, .page-title, .page-subtitle, .header-content
    - components/buttons-nextui.css: .btn, .btn-solid, .btn-flat, .btn-ghost, .btn-light, .btn-faded
    - components/cards.css: .action-block, .block-header, .block-icon, .block-title-group, .block-title, .block-subtitle, .block-content
-   - components/forms.css: .form-group, .form-label, .form-input
+   - components/forms.css: .nui-field, .nui-label, .nui-input
    - components/tabs.css: .inner-tabs, .tab-button
    - components/modals.css: .modal-overlay, .modal-content, .modal-header, .modal-title, .modal-close, .modal-body, .modal-footer
 */
@@ -128,7 +128,7 @@
   color: var(--text-muted, #9ca3af);
 }
 
-.inventory-scanner .submit-subsection.disabled .form-input:disabled {
+.inventory-scanner .submit-subsection.disabled .nui-input:disabled {
   background: var(--bg-light, #f3f4f6);
   cursor: not-allowed;
 }
@@ -161,12 +161,12 @@ html.dark-mode .inventory-scanner .scanner-unified > .block-content {
   padding-top: 0;
 }
 
-.inventory-scanner .scanner-form .form-group {
+.inventory-scanner .scanner-form .nui-field {
   flex: 1;
   min-width: 150px;
 }
 
-.inventory-scanner .scanner-form .form-group:first-child {
+.inventory-scanner .scanner-form .nui-field:first-child {
   flex: 2;
   min-width: 200px;
 }
@@ -498,11 +498,6 @@ html.dark-mode .inventory-scanner .scanner-unified > .block-content {
   overflow: hidden;
 }
 
-/* When dropdown is open, disable overflow clipping so dropdown can escape */
-.inventory-scanner .pending-item:has(.c-select[aria-expanded="true"]) {
-  overflow: visible;
-}
-
 .inventory-scanner .pending-item:hover {
   transform: translateY(-4px);
   box-shadow: 
@@ -828,28 +823,10 @@ html.dark-mode .inventory-scanner .scanner-unified > .block-content {
 }
 
 /* ===== Shelf Select in Pending Items ===== */
-/* Uses standard c-select component styling */
 .inventory-scanner .pending-item-shelf {
   flex: 1;
   max-width: 200px;
   position: relative;
-}
-
-/* Hide native select until c-select enhances it to prevent flash */
-.inventory-scanner .pending-item-shelf select.shelf-select[data-enhance="c-select"]:not([data-enhanced]) {
-  opacity: 0;
-  pointer-events: none;
-  position: absolute;
-}
-
-/* Ensure c-select dropdown appears above everything including tab bar */
-.inventory-scanner .pending-item-shelf .c-select {
-  position: relative;
-}
-
-.inventory-scanner .pending-item-shelf .c-select__list {
-  z-index: 99999;
-  position: absolute;
 }
 
 /* ===== Simplified Scanner Form ===== */
@@ -1435,52 +1412,6 @@ html.dark-mode .inventory-scanner .pending-item-controls {
   border-top-color: rgba(255, 255, 255, 0.03);
 }
 
-html.dark-mode .inventory-scanner .pending-item-shelf .c-select__button {
-  background: linear-gradient(135deg, #1a1a1a, color-mix(in srgb, var(--accent) 15%, #1a1a1a));
-  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
-  color: color-mix(in srgb, var(--accent) 70%, #fff);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}
-
-html.dark-mode .inventory-scanner .pending-item-shelf .c-select__button:hover {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 15%, #1a1a1a), color-mix(in srgb, var(--accent) 25%, #1a1a1a));
-  border-color: var(--accent);
-  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 20%, transparent);
-}
-
-html.dark-mode .inventory-scanner .pending-item-shelf .c-select__button:focus-visible,
-html.dark-mode .inventory-scanner .pending-item-shelf .c-select[aria-expanded='true'] .c-select__button {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 
-    0 0 16px color-mix(in srgb, var(--accent) 25%, transparent),
-    0 0 32px color-mix(in srgb, var(--accent) 15%, transparent),
-    0 4px 12px color-mix(in srgb, var(--accent) 20%, transparent);
-}
-
-html.dark-mode .inventory-scanner .pending-item-shelf .c-select__caret {
-  color: color-mix(in srgb, var(--accent) 70%, #fff);
-}
-
-html.dark-mode .inventory-scanner .pending-item-shelf .c-select__list {
-  background: #1a1a1a;
-  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-}
-
-html.dark-mode .inventory-scanner .pending-item-shelf .c-select__item {
-  color: color-mix(in srgb, var(--accent) 70%, #fff);
-}
-
-html.dark-mode .inventory-scanner .pending-item-shelf .c-select__item:hover {
-  background: color-mix(in srgb, var(--accent) 15%, transparent);
-}
-
-html.dark-mode .inventory-scanner .pending-item-shelf .c-select__item[aria-selected='true'] {
-  background: color-mix(in srgb, var(--accent) 20%, transparent);
-  color: color-mix(in srgb, var(--accent) 80%, #fff);
-}
-
 html.dark-mode .inventory-scanner .pending-item-remove {
   background: rgba(239, 68, 68, 0.12);
   border-color: rgba(239, 68, 68, 0.25);
@@ -1646,7 +1577,7 @@ html.dark-mode .inventory-scanner .pending-item-remove:hover {
     flex-direction: column;
   }
   
-  .inventory-scanner .scanner-form .form-group,
+  .inventory-scanner .scanner-form .nui-field,
   .inventory-scanner .scanner-form .sku-input-group {
     min-width: 100% !important;
     flex: none !important;
@@ -1716,22 +1647,6 @@ html.dark-mode .inventory-scanner .pending-item-remove:hover {
   .inventory-scanner .pending-item-shelf {
     flex: 1;
     max-width: 140px;
-  }
-  
-  .inventory-scanner .pending-item-shelf .c-select__button {
-    padding: 0.5rem 0.75rem;
-    font-size: 0.8125rem;
-    min-width: auto;
-    width: 100%;
-  }
-  
-  .inventory-scanner .pending-item-shelf .c-select__list {
-    max-height: 180px;
-  }
-  
-  .inventory-scanner .pending-item-shelf .c-select__item {
-    padding: 0.5rem 0.75rem;
-    font-size: 0.8125rem;
   }
   
   /* Compact qty controls for mobile */
@@ -1879,23 +1794,6 @@ html.dark-mode .inventory-scanner .pending-item-remove:hover {
     overflow: visible;
     max-width: 120px;
   }
-  
-  .inventory-scanner .pending-item-shelf .c-select__button {
-    min-width: 80px;
-    max-width: 100px;
-    font-size: 0.75rem;
-    padding: 0.375rem 0.5rem;
-    position: relative;
-  }
-  
-  .inventory-scanner .pending-item-shelf .c-select__list {
-    max-height: 150px;
-  }
-  
-  .inventory-scanner .pending-item-shelf .c-select__item {
-    padding: 0.5rem;
-    font-size: 0.75rem;
-  }
 
   /* Elevate parents when dropdown is focused so the menu renders above sticky footer/nav */
   .inventory-scanner .pending-item-shelf:focus-within,
@@ -1906,29 +1804,10 @@ html.dark-mode .inventory-scanner .pending-item-remove:hover {
   }
 
   /* Elevate pending-subsection above submit-subsection when dropdown is active */
-  .inventory-scanner .pending-subsection:focus-within,
-  .inventory-scanner .pending-subsection:has(.c-select.open) {
+  .inventory-scanner .pending-subsection:focus-within {
     z-index: 200; /* Above submit-subsection (z-index: 100) */
   }
 
-  /* Also elevate individual item when c-select is open */
-  .inventory-scanner .pending-item:has(.c-select.open),
-  .inventory-scanner .pending-item-controls:has(.c-select.open),
-  .inventory-scanner .pending-item-shelf:has(.c-select.open) {
-    z-index: 300;
-    position: relative;
-  }
-
-  /* Custom select (c-select) dropdown menu: force high z-index on mobile */
-  .inventory-scanner .c-select {
-    overflow: visible;
-    position: relative;
-  }
-
-  .inventory-scanner .c-select__list {
-    z-index: 400;
-  }
-  
   /* Quantity counter below */
   .inventory-scanner .pending-item-qty {
     flex: 0 0 auto;
@@ -2034,7 +1913,7 @@ html.dark-mode .inventory-scanner .pending-item-remove:hover {
     max-height: none;
   }
   
-  .inventory-scanner .form-input {
+  .inventory-scanner .nui-input {
     font-size: 1rem; /* Prevent zoom on iOS */
     padding: 0.75rem;
   }

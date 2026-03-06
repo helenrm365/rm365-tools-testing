@@ -29,14 +29,13 @@
       <div class="block-content">
         <div class="scanner-form">
           <!-- SKU Input with Search Dropdown -->
-          <div class="form-group sku-input-group">
-            <label class="form-label">
-              <i class="fas fa-search"></i>
+          <div class="nui-field sku-input-group">
+            <label class="nui-label">
               Search Product
             </label>
             <div class="scanner-input-row">
               <div class="search-input-wrapper">
-                <input type="text" id="skuInput" class="form-input barcode-input" placeholder="Search by SKU, barcode or product name..." autocomplete="off" autofocus>
+                <input type="text" id="skuInput" class="nui-input nui-input-default barcode-input" placeholder="Search by SKU, barcode or product name..." autocomplete="off" autofocus>
                 <div class="search-spinner" id="searchSpinner" style="display: none;">
                   <i class="fas fa-spinner fa-spin"></i>
                 </div>
@@ -85,12 +84,11 @@
         </div>
 
         <!-- Reason Input -->
-        <div class="form-group reason-group">
-          <label class="form-label">
-            <i class="fas fa-comment"></i>
+        <div class="nui-field reason-group">
+          <label class="nui-label">
             Reason for Adjustment
           </label>
-          <button type="button" id="reasonSelectBtn" class="form-input reason-select-btn" disabled>
+          <button type="button" id="reasonSelectBtn" class="nui-input nui-input-default reason-select-btn" disabled>
             <span id="reasonDisplay">Order</span>
             <i class="fas fa-chevron-right"></i>
           </button>

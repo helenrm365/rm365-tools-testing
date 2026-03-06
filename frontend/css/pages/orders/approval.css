@@ -165,18 +165,18 @@
   z-index: 1;
 }
 
-.order-approval .search-input {
+.order-approval .nui-input {
   width: 100%;
   padding-left: 2.75rem;
 }
 
-.order-approval .form-group {
+.order-approval .nui-field {
   position: relative;
   min-width: 200px;
   margin-bottom: 0;
 }
 
-.order-approval .form-label {
+.order-approval .nui-label {
   position: absolute;
   top: -1.25rem;
   left: 0;

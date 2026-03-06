@@ -2,6 +2,7 @@
 import { listPrintJobs, getPrintJob, deletePrintJob, deletePrintJobs, downloadPDF, downloadCSV, purgeOldJobs } from '../../services/api/labelsApi.js';
 import { showToast } from '../../ui/toast.js';
 import { confirmModal } from '../../ui/confirmationModal.js';
+import { initDropdown } from '../../ui/dropdown.js';
 
 let currentLimit = 10;
 let allJobs = [];
@@ -634,6 +635,7 @@ export async function init() {
   wireControls();
   setupActionHandlers();
   setupLimitFilter();
+  initDropdown('#limitSelect');
   
   showToast('Loading print job history...', 'info');
   await loadHistory();

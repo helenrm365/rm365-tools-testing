@@ -49,52 +49,52 @@
         </div>
 
         <div class="block-content">
-          <div class="search-box">
-            <i class="fas fa-search search-icon"></i>
-            <input type="text" id="employeeSearch" class="search-input" placeholder="Search by name or code...">
+          <div class="nui-field">
+            <label class="nui-label" for="employeeSearch">Search</label>
+            <input type="text" id="employeeSearch" class="nui-input nui-input-primary" placeholder="Search by name or code...">
           </div>
 
           <div class="filter-controls">
-            <div class="filter-item">
-              <label class="filter-label" for="statusFilter">
+            <div class="nui-field filter-item">
+              <label class="nui-label" for="statusFilter">
                 <i class="fas fa-toggle-on"></i>
                 <span>Status</span>
               </label>
-              <select id="statusFilter" data-enhance="c-select">
+              <select id="statusFilter">
                 <option value="" selected>All Status</option>
                 <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
               </select>
             </div>
 
-            <div class="filter-item">
-              <label class="filter-label" for="countryFilter">
+            <div class="nui-field filter-item">
+              <label class="nui-label" for="countryFilter">
                 <i class="fas fa-globe"></i>
                 <span>Country</span>
               </label>
-              <select id="countryFilter" data-enhance="c-select">
+              <select id="countryFilter">
                 <option value="" selected>All Countries</option>
                 <!-- Countries will be populated dynamically -->
               </select>
             </div>
 
-            <div class="filter-item">
-              <label class="filter-label" for="locationFilter">
+            <div class="nui-field filter-item">
+              <label class="nui-label" for="locationFilter">
                 <i class="fas fa-map-marker-alt"></i>
                 <span>Location</span>
               </label>
-              <select id="locationFilter" data-enhance="c-select">
+              <select id="locationFilter">
                 <option value="" selected>All Locations</option>
                 <!-- Locations will be populated dynamically -->
               </select>
             </div>
 
-            <div class="filter-item">
-              <label class="filter-label" for="citycodeFilter">
+            <div class="nui-field filter-item">
+              <label class="nui-label" for="citycodeFilter">
                 <i class="fas fa-city"></i>
                 <span>City Code</span>
               </label>
-              <select id="citycodeFilter" data-enhance="c-select">
+              <select id="citycodeFilter">
                 <option value="" selected>All City Codes</option>
                 <!-- City codes will be populated dynamically -->
               </select>
@@ -126,9 +126,23 @@
         </div>
 
         <div class="block-content">
-          <div id="enrEmployeeGrid" class="employee-grid">
-            <!-- Employee cards rendered by JS -->
-            <div class="loading-state">
+          <div class="table-container" id="enrEmployeeTableContainer">
+            <table class="modern-table" id="enrEmployeeTable">
+              <thead>
+                <tr>
+                  <th class="col-checkbox"><input type="checkbox" id="selectAllCheckbox" title="Select all"></th>
+                  <th><i class="fas fa-user"></i> Name</th>
+                  <th><i class="fas fa-id-badge"></i> Code</th>
+                  <th><i class="fas fa-map-marker-alt"></i> Location</th>
+                  <th><i class="fas fa-toggle-on"></i> Status</th>
+                  <th><i class="fas fa-cog"></i> Actions</th>
+                </tr>
+              </thead>
+              <tbody id="enrEmployeeBody">
+                <!-- Employee rows rendered by JS -->
+              </tbody>
+            </table>
+            <div class="loading-state" id="employeeLoadingState">
               <div class="loading-spinner"></div>
               <p>Loading employees...</p>
             </div>
@@ -192,19 +206,19 @@
       </button>
     </div>
     <div class="modal-body">
-      <div class="form-group">
-        <label class="form-label" for="employeeName">
+      <div class="nui-field">
+        <label class="nui-label" for="employeeName">
           <i class="fas fa-user"></i>
           <span>Employee Name *</span>
         </label>
-        <input type="text" id="employeeName" class="form-input" placeholder="Enter full name" required>
+        <input type="text" id="employeeName" class="nui-input nui-input-default" placeholder="Enter full name" required>
       </div>
-      <div class="form-group">
-        <label class="form-label" for="employeeLocation">
+      <div class="nui-field">
+        <label class="nui-label" for="employeeLocation">
           <i class="fas fa-map-marker-alt"></i>
           <span>Location *</span>
         </label>
-        <select id="employeeLocation" data-enhance="c-select" required>
+        <select id="employeeLocation" required>
           <option value="" selected disabled>Select Location</option>
           <!-- Locations will be populated dynamically -->
         </select>
@@ -213,12 +227,12 @@
           <span>Create New Location</span>
         </button>
       </div>
-      <div class="form-group">
-        <label class="form-label" for="employeeStatus">
+      <div class="nui-field">
+        <label class="nui-label" for="employeeStatus">
           <i class="fas fa-toggle-on"></i>
           <span>Status</span>
         </label>
-        <select id="employeeStatus" data-enhance="c-select">
+        <select id="employeeStatus">
           <option value="active" selected>Active</option>
           <option value="inactive">Inactive</option>
         </select>
@@ -251,28 +265,28 @@
     <div class="modal-body">
       <input type="hidden" id="editEmployeeId">
       
-      <div class="form-group">
-        <label class="form-label" for="editEmployeeName">
+      <div class="nui-field">
+        <label class="nui-label" for="editEmployeeName">
           <i class="fas fa-user"></i>
           <span>Employee Name *</span>
         </label>
-        <input type="text" id="editEmployeeName" class="form-input" placeholder="Enter full name" required>
+        <input type="text" id="editEmployeeName" class="nui-input nui-input-default" placeholder="Enter full name" required>
       </div>
       
-      <div class="form-group">
-        <label class="form-label" for="editEmployeeCode">
+      <div class="nui-field">
+        <label class="nui-label" for="editEmployeeCode">
           <i class="fas fa-id-badge"></i>
           <span>Employee Code</span>
         </label>
-        <input type="text" id="editEmployeeCode" class="form-input" readonly disabled>
+        <input type="text" id="editEmployeeCode" class="nui-input nui-input-default" readonly disabled>
       </div>
       
-      <div class="form-group">
-        <label class="form-label" for="editEmployeeLocation">
+      <div class="nui-field">
+        <label class="nui-label" for="editEmployeeLocation">
           <i class="fas fa-map-marker-alt"></i>
           <span>Location *</span>
         </label>
-        <select id="editEmployeeLocation" data-enhance="c-select" required>
+        <select id="editEmployeeLocation" required>
           <option value="" selected disabled>Select Location</option>
           <!-- Locations will be populated dynamically -->
         </select>
@@ -282,19 +296,19 @@
         </button>
       </div>
       
-      <div class="form-group">
-        <label class="form-label" for="editEmployeeStatusSelect">
+      <div class="nui-field">
+        <label class="nui-label" for="editEmployeeStatusSelect">
           <i class="fas fa-toggle-on"></i>
           <span>Status</span>
         </label>
-        <select id="editEmployeeStatusSelect" data-enhance="c-select">
+        <select id="editEmployeeStatusSelect">
           <option value="active" selected>Active</option>
           <option value="inactive">Inactive</option>
         </select>
       </div>
       
-      <div class="form-group nfc-enrollment-group">
-        <label class="form-label">
+      <div class="nui-field nfc-enrollment-group">
+        <label class="nui-label">
           <i class="fas fa-credit-card"></i>
           <span>NFC Card UID</span>
         </label>
@@ -349,28 +363,28 @@
       </button>
     </div>
     <div class="modal-body">
-      <div class="form-group">
-        <label class="form-label" for="newLocationName">
+      <div class="nui-field">
+        <label class="nui-label" for="newLocationName">
           <i class="fas fa-building"></i>
           <span>Location Name *</span>
         </label>
-        <input type="text" id="newLocationName" class="form-input" placeholder="e.g., Birmingham">
+        <input type="text" id="newLocationName" class="nui-input nui-input-default" placeholder="e.g., Birmingham">
         <small class="form-hint">Display name for the location</small>
       </div>
-      <div class="form-group">
-        <label class="form-label" for="newLocationCityCode">
+      <div class="nui-field">
+        <label class="nui-label" for="newLocationCityCode">
           <i class="fas fa-city"></i>
           <span>City Code *</span>
         </label>
-        <input type="text" id="newLocationCityCode" class="form-input" placeholder="e.g., BHX" maxlength="10">
+        <input type="text" id="newLocationCityCode" class="nui-input nui-input-default" placeholder="e.g., BHX" maxlength="10">
         <small class="form-hint">Short code for the city (2-10 characters)</small>
       </div>
-      <div class="form-group">
-        <label class="form-label" for="newLocationCountryCode">
+      <div class="nui-field">
+        <label class="nui-label" for="newLocationCountryCode">
           <i class="fas fa-globe"></i>
           <span>Country Code *</span>
         </label>
-        <input type="text" id="newLocationCountryCode" class="form-input" placeholder="e.g., UK" maxlength="5">
+        <input type="text" id="newLocationCountryCode" class="nui-input nui-input-default" placeholder="e.g., UK" maxlength="5">
         <small class="form-hint">Short code for the country (2-5 characters)</small>
       </div>
     </div>

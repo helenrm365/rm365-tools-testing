@@ -62,56 +62,12 @@
   gap: 1rem;
 }
 
-.attendance-dashboard .date-input-group {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.attendance-dashboard .form-label-sm {
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--text-muted);
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-.attendance-dashboard .form-label-sm i {
-  font-size: 0.7rem;
-}
+/* Date inputs now use nui-field from inputs-nextui.css */
 
 /* Additional Filters */
 .attendance-dashboard .additional-filters-grid {
   display: flex;
   gap: 1rem;
-}
-
-.attendance-dashboard .form-group-compact {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-/* c-select in compact filter area - uses forms.css base styling */
-
-.attendance-dashboard .search-wrapper-compact {
-  position: relative;
-}
-
-.attendance-dashboard .search-wrapper-compact .search-icon {
-  position: absolute;
-  left: 0.75rem;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--text-muted);
-  font-size: 0.875rem;
-}
-
-.attendance-dashboard .search-wrapper-compact .search-input {
-  padding-left: 2.25rem;
 }
 
 /* Clear Button */
@@ -618,55 +574,27 @@ html.dark-mode .attendance-dashboard .stat-card {
   margin-left: auto;
 }
 
-/* ===== Export Selects (using c-select component) ===== */
-/* Compact export selects in block headers - override default 100% width */
-.attendance-dashboard .block-header-actions .c-select {
+/* Compact nui-dropdown in block headers — override default 100% width */
+.attendance-dashboard .block-header-actions .nui-dropdown {
   width: auto;
   min-width: auto;
   flex-shrink: 0;
 }
 
-/* Main export selects (in block headers) */
-.attendance-dashboard .block-header-actions .c-select .c-select__button {
-  padding: 0.5rem 0.875rem;
-  font-size: 0.875rem;
-  min-height: auto;
-  gap: 0.5rem;
-}
-
-.attendance-dashboard .block-header-actions .c-select .c-select__list {
+/* Dropdown menu in header actions — align right */
+.attendance-dashboard .block-header-actions .nui-dropdown-menu {
   min-width: 160px;
-  width: auto;
   right: 0;
   left: auto;
 }
 
-/* Loading state for c-select export dropdowns */
-.attendance-dashboard .c-select.loading {
+/* Loading state for export dropdowns */
+.attendance-dashboard .nui-dropdown.loading {
   pointer-events: none;
   opacity: 0.7;
 }
 
-.attendance-dashboard .c-select.loading .c-select__button::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 14px;
-  height: 14px;
-  margin: -7px 0 0 -7px;
-  border: 2px solid var(--accent);
-  border-top-color: transparent;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-/* ===== Employee Card Export Select (compact c-select) ===== */
+/* ===== Employee Card Export Select ===== */
 .attendance-dashboard .employee-card-header {
   display: flex;
   justify-content: space-between;
@@ -679,50 +607,16 @@ html.dark-mode .attendance-dashboard .stat-card {
   margin-bottom: 0;
 }
 
-/* Compact c-select for employee cards - target c-select within card header */
-.attendance-dashboard .employee-card-header .c-select {
+.attendance-dashboard .employee-card-header .nui-dropdown {
   width: auto;
   min-width: auto;
   flex-shrink: 0;
 }
 
-.attendance-dashboard .employee-card-header .c-select .c-select__button {
-  padding: 0.25rem 0.5rem;
-  font-size: 0.7rem;
-  min-height: auto;
-  gap: 0.25rem;
-}
-
-.attendance-dashboard .employee-card-header .c-select .c-select__list {
+.attendance-dashboard .employee-card-header .nui-dropdown-menu {
   min-width: 110px;
-  width: auto;
   right: 0;
   left: auto;
-}
-
-.attendance-dashboard .employee-card-header .c-select .c-select__item {
-  padding: 0.5rem 0.75rem;
-  font-size: 0.8125rem;
-}
-
-/* Responsive: On mobile, show only icon for main export selects */
-@media (max-width: 640px) {
-  /* Hide the text but keep the icon */
-  .attendance-dashboard .block-header-actions .c-select .c-select__label {
-    font-size: 0;
-  }
-  
-  .attendance-dashboard .block-header-actions .c-select .c-select__label i {
-    font-size: 0.875rem;
-  }
-  
-  .attendance-dashboard .block-header-actions .c-select .c-select__button {
-    padding: 0.5rem;
-  }
-  
-  .attendance-dashboard .block-header-actions .c-select .c-select__caret {
-    display: none;
-  }
 }
 
 /* Ensure cursor pointer for clickable card areas */

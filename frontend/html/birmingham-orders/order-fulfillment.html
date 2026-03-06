@@ -118,29 +118,27 @@
       <div class="block-content">
         <div class="lookup-form">
           <!-- Order Number Input -->
-          <div class="form-group">
-            <label class="form-label">
-              <i class="fas fa-hashtag"></i>
+          <div class="nui-field">
+            <label class="nui-label">
               Order Number
             </label>
-            <input type="text" id="orderNumberInput" class="form-input" placeholder="Enter order number..." autocomplete="off">
+            <input type="text" id="orderNumberInput" class="nui-input nui-input-default" placeholder="Enter order number..." autocomplete="off">
           </div>
 
           <!-- Session Type -->
-          <div class="form-group">
-            <label class="form-label" for="sessionTypeSelect">
-              <i class="fas fa-tasks"></i>
+          <div class="nui-field">
+            <label class="nui-label" for="sessionTypeSelect">
               Session Type
             </label>
-            <select id="sessionTypeSelect" data-enhance="c-select">
+            <select id="sessionTypeSelect">
               <option value="pick" selected>Fulfillment</option>
               <option value="return">Returns</option>
             </select>
           </div>
 
           <!-- Lookup Button -->
-          <div class="form-group">
-            <label class="form-label">&nbsp;</label>
+          <div class="nui-field">
+            <label class="nui-label">&nbsp;</label>
             <button id="startSessionBtn" class="action-btn primary-btn">
               <i class="fas fa-play"></i>
               Start Session
@@ -279,21 +277,21 @@
       <!-- Scanner Section -->
       <div class="bottom-panel-section scanner-panel" id="scannerSection">
         <div class="scanner-form">
-          <div class="form-group">
-            <input type="text" id="skuInput" class="form-input barcode-input" placeholder="Scan or type SKU..." autocomplete="off" disabled>
+          <div class="nui-field">
+            <input type="text" id="skuInput" class="nui-input nui-input-default barcode-input" placeholder="Scan or type SKU..." autocomplete="off" disabled>
           </div>
-          <div class="form-group qty-group">
-            <input type="number" id="scanQuantityInput" class="form-input qty-input" value="1" min="1" disabled>
+          <div class="nui-field qty-group">
+            <input type="number" id="scanQuantityInput" class="nui-input nui-input-default qty-input" value="1" min="1" disabled>
           </div>
-          <div class="form-group shelf-group">
-            <select id="shelfFieldSelect" data-enhance="c-select" disabled>
+          <div class="nui-field shelf-group">
+            <select id="shelfFieldSelect" disabled>
               <option value="auto">Auto</option>
               <option value="shelf_lt1_qty">&lt;1 Year</option>
               <option value="shelf_gt1_qty">&gt;1 Year</option>
               <option value="top_floor_total">Top Floor</option>
             </select>
           </div>
-          <div class="form-group scan-btn-group">
+          <div class="nui-field scan-btn-group">
             <button id="scanBtn" class="action-btn primary-btn" disabled>
               <i class="fas fa-check"></i>
             </button>

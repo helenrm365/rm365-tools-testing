@@ -5,7 +5,7 @@
    - layout/header.css: .page-header, .page-title, .page-subtitle, .header-content
    - components/buttons-nextui.css: .btn, .btn-solid, .btn-flat, .btn-ghost, .btn-faded, .btn-group
    - components/cards.css: .action-block, .block-header, .block-icon, .block-title-group
-   - components/forms.css: .form-group, .form-label, input, .search-input, .c-select
+   - components/inputs-nextui.css: .nui-field, .nui-label, .nui-input
    - components/tabs.css: .inner-tabs, .tab-button
    - components/tables.css: .table-container, table, th, td
    - components/loaders.css: .loading-spinner, .loading-state
@@ -54,6 +54,7 @@
 /* ===== View Toggle (handled by btn-group + btn-faded from buttons-nextui.css) ===== */
 
 /* ===== Header Search (top-right of Order Data) ===== */
+/* Search input uses .nui-input from inputs-nextui.css */
 .magentodata-page .block-header-actions {
   display: flex;
   align-items: center;
@@ -61,25 +62,9 @@
   margin-left: auto;
 }
 
-.magentodata-page .block-header-actions .search-wrapper {
+.magentodata-page .block-header-actions .nui-input {
   min-width: 200px;
   max-width: 300px;
-  position: relative;
-}
-
-.magentodata-page .block-header-actions .search-wrapper .search-icon {
-  position: absolute;
-  left: 0.75rem;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--text-muted);
-  pointer-events: none;
-  font-size: 0.85rem;
-}
-
-.magentodata-page .block-header-actions .search-wrapper .search-input {
-  width: 100%;
-  padding-left: 2.25rem;
   font-size: 0.85rem;
 }
 
@@ -316,7 +301,7 @@ html.dark-mode .magentodata-page .stat-card {
     order: 3;
   }
   
-  .magentodata-page .block-header-actions .search-wrapper {
+  .magentodata-page .block-header-actions .nui-input {
     flex: 1;
     min-width: 0;
     max-width: none;

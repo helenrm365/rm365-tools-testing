@@ -20,20 +20,20 @@
   <!-- Main Content -->
   <div class="management-wrapper">
     <div class="management-card">
-      <!-- User Actions Block -->
+      <!-- Users List Block -->
       <div class="action-block">
         <div class="block-header">
           <div class="block-icon">
-            <i class="fas fa-users-cog"></i>
+            <i class="fas fa-list"></i>
           </div>
           <div class="block-title-group">
-            <h3 class="block-title">User Actions</h3>
-            <p class="block-subtitle">Create and manage system users</p>
+            <h3 class="block-title">System Users</h3>
+            <p class="block-subtitle">All registered users and their roles</p>
           </div>
-        </div>
-
-        <div class="block-content">
-          <div class="action-buttons-grid">
+          <div class="block-header-search">
+            <input type="text" id="userSearch" class="nui-input nui-input-default" placeholder="Search users...">
+          </div>
+          <div class="block-header-actions">
             <button class="btn btn-solid btn-success" id="userCreateBtn">
               <i class="fas fa-user-plus"></i>
               <span>New User</span>
@@ -46,39 +46,6 @@
               <i class="fas fa-trash-alt"></i>
               <span>Delete Selected</span>
             </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Search Block -->
-      <div class="action-block">
-        <div class="block-header">
-          <div class="block-icon">
-            <i class="fas fa-search"></i>
-          </div>
-          <div class="block-title-group">
-            <h3 class="block-title">Search Users</h3>
-            <p class="block-subtitle">Find users by username or role</p>
-          </div>
-        </div>
-
-        <div class="block-content">
-          <div class="search-box">
-            <i class="fas fa-search search-icon"></i>
-            <input type="text" id="userSearch" class="search-input" placeholder="Search users...">
-          </div>
-        </div>
-      </div>
-
-      <!-- Users List Block -->
-      <div class="action-block">
-        <div class="block-header">
-          <div class="block-icon">
-            <i class="fas fa-list"></i>
-          </div>
-          <div class="block-title-group">
-            <h3 class="block-title">System Users</h3>
-            <p class="block-subtitle">All registered users and their roles</p>
           </div>
         </div>
 
@@ -113,58 +80,52 @@
           <input type="hidden" id="editOriginalUsername" name="originalUsername">
           
           <div class="form-row">
-            <div class="form-group">
-              <label for="formUsername" class="form-label">
-                <i class="fas fa-user"></i>
+            <div class="nui-field">
+              <label for="formUsername" class="nui-label">
                 <span>Username</span>
               </label>
-              <input type="text" id="formUsername" name="username" class="form-input" placeholder="Enter username" required>
+              <input type="text" id="formUsername" name="username" class="nui-input nui-input-default" placeholder="Enter username" required>
             </div>
-            <div class="form-group">
-              <label class="form-label" for="formRole">
-                <i class="fas fa-user-tag"></i>
+            <div class="nui-field">
+              <label class="nui-label" for="formRole">
                 <span>Role</span>
               </label>
-              <select id="formRole" name="role" data-enhance="c-select">
+              <select id="formRole" name="role">
                 <!-- Populated by JS -->
               </select>
             </div>
           </div>
 
-          <div class="form-group">
-            <label class="form-label" for="formLocation">
-              <i class="fas fa-map-marker-alt"></i>
+          <div class="nui-field">
+            <label class="nui-label" for="formLocation">
               <span>Scanner Location</span>
               <span class="form-hint">(For attendance clock-in/out timezone)</span>
             </label>
-            <select id="formLocation" name="location_id" data-enhance="c-select">
+            <select id="formLocation" name="location_id">
               <option value="">None (no timezone conversion)</option>
               <!-- Populated by JS -->
             </select>
           </div>
           
-          <div class="form-group">
-            <label for="formPassword" class="form-label">
-              <i class="fas fa-lock"></i>
+          <div class="nui-field">
+            <label for="formPassword" class="nui-label">
               <span>Password</span>
               <span class="form-hint" id="passwordHint">(Leave blank to keep unchanged)</span>
             </label>
-            <input type="password" id="formPassword" name="password" class="form-input" placeholder="Enter password">
+            <input type="password" id="formPassword" name="password" class="nui-input nui-input-default" placeholder="Enter password">
           </div>
           
-          <div class="form-group">
-            <label for="formConfirmPassword" class="form-label">
-              <i class="fas fa-lock"></i>
+          <div class="nui-field">
+            <label for="formConfirmPassword" class="nui-label">
               <span>Confirm Password</span>
             </label>
-            <input type="password" id="formConfirmPassword" name="confirmPassword" class="form-input" placeholder="Confirm password">
+            <input type="password" id="formConfirmPassword" name="confirmPassword" class="nui-input nui-input-default" placeholder="Confirm password">
             <small id="passwordMatchMsg" class="form-message" style="display: none;"></small>
           </div>
 
-          <div class="form-group">
+          <div class="nui-field">
             <div class="form-label-row">
-              <label class="form-label">
-                <i class="fas fa-th-large"></i>
+              <label class="nui-label">
                 <span>Allowed Tabs & Permissions</span>
               </label>
               <label class="checkbox-toggle">
@@ -206,12 +167,11 @@
         </button>
       </div>
       <div class="modal-body">
-        <div class="form-group">
-          <label for="newRoleName" class="form-label">
-            <i class="fas fa-user-tag"></i>
+        <div class="nui-field">
+          <label for="newRoleName" class="nui-label">
             <span>Role Name</span>
           </label>
-          <input type="text" id="newRoleName" class="form-input" placeholder="Enter role name">
+          <input type="text" id="newRoleName" class="nui-input nui-input-default" placeholder="Enter role name">
         </div>
       </div>
       <div class="modal-footer">
@@ -268,18 +228,16 @@
         </button>
       </div>
       <div class="modal-body">
-        <div class="form-group">
-          <label for="editRoleName" class="form-label">
-            <i class="fas fa-user-tag"></i>
+        <div class="nui-field">
+          <label for="editRoleName" class="nui-label">
             <span>Role Name</span>
           </label>
-          <input type="text" id="editRoleName" class="form-input">
+          <input type="text" id="editRoleName" class="nui-input nui-input-default">
         </div>
         
-        <div class="form-group">
+        <div class="nui-field">
           <div class="form-label-row">
-            <label class="form-label">
-              <i class="fas fa-th-large"></i>
+            <label class="nui-label">
               <span>Allowed Access Tabs</span>
             </label>
             <label class="checkbox-toggle">

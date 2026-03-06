@@ -5,7 +5,7 @@
    - layout/header.css: .page-header, .page-title, .page-subtitle, .header-content
    - components/buttons.css: .action-btn, .primary-btn, .secondary-btn, .success-btn, .warning-btn
    - components/cards.css: .action-block, .block-header, .block-icon, .block-title-group, .block-title, .block-subtitle, .block-content
-   - components/forms.css: .form-group, .form-label, .form-input
+   - components/forms.css: .nui-field, .nui-label, .nui-input
    - components/tabs.css: .inner-tabs, .tab-button
    - components/modals.css: .modal-overlay, .modal-content, .modal-header, .modal-title, .modal-close, .modal-body, .modal-footer
    
@@ -593,12 +593,12 @@
   align-items: stretch;
 }
 
-.order-fulfillment .scanner-panel .form-group {
+.order-fulfillment .scanner-panel .nui-field {
   flex: 1;
   margin: 0;
 }
 
-.order-fulfillment .scanner-panel .form-group:first-child {
+.order-fulfillment .scanner-panel .nui-field:first-child {
   flex: 3;
 }
 
@@ -614,7 +614,7 @@
   flex: 0 0 auto;
 }
 
-.order-fulfillment .scanner-panel .form-input {
+.order-fulfillment .scanner-panel .nui-input {
   padding: 0.5rem;
   font-size: 0.85rem;
   height: 40px;
@@ -967,7 +967,7 @@
   margin-bottom: 0.375rem;
 }
 
-.order-fulfillment.mobile-mode-active .scanner-panel .form-input {
+.order-fulfillment.mobile-mode-active .scanner-panel .nui-input {
   padding: 0.375rem;
   font-size: 0.8rem;
   height: 36px;
@@ -1849,34 +1849,34 @@ body:has(.order-fulfillment.mobile-mode-active) #universalFooter {
   align-items: stretch;
 }
 
-.order-fulfillment.mobile-mode-active .scanner-form .form-group {
+.order-fulfillment.mobile-mode-active .scanner-form .nui-field {
   flex: 1 1 auto;
   min-width: 0;
 }
 
-.order-fulfillment.mobile-mode-active .scanner-form .form-group:first-child {
+.order-fulfillment.mobile-mode-active .scanner-form .nui-field:first-child {
   flex: 2 1 150px;
 }
 
-.order-fulfillment.mobile-mode-active .scanner-form .form-group:nth-child(2) {
+.order-fulfillment.mobile-mode-active .scanner-form .nui-field:nth-child(2) {
   flex: 0 0 60px;
   max-width: 60px;
 }
 
-.order-fulfillment.mobile-mode-active .scanner-form .form-group:nth-child(3) {
+.order-fulfillment.mobile-mode-active .scanner-form .nui-field:nth-child(3) {
   flex: 1 1 100px;
 }
 
-.order-fulfillment.mobile-mode-active .scanner-form .form-group:last-child {
+.order-fulfillment.mobile-mode-active .scanner-form .nui-field:last-child {
   flex: 0 0 auto;
 }
 
-.order-fulfillment.mobile-mode-active .scanner-form .form-label {
+.order-fulfillment.mobile-mode-active .scanner-form .nui-label {
   font-size: 0.65rem;
   margin-bottom: 0.15rem;
 }
 
-.order-fulfillment.mobile-mode-active .scanner-form .form-input {
+.order-fulfillment.mobile-mode-active .scanner-form .nui-input {
   padding: 0.375rem 0.5rem;
   font-size: 0.8rem;
   min-height: 32px;
@@ -2112,8 +2112,8 @@ body:has(.order-fulfillment.mobile-mode-active) #universalFooter {
     grid-template-columns: 1fr 1fr;
   }
 
-  .order-fulfillment .scanner-form .form-group:nth-child(3),
-  .order-fulfillment .scanner-form .form-group:nth-child(4) {
+  .order-fulfillment .scanner-form .nui-field:nth-child(3),
+  .order-fulfillment .scanner-form .nui-field:nth-child(4) {
     grid-column: span 1;
   }
 }

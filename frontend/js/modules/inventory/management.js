@@ -1,6 +1,7 @@
 import { get, post, patch, http } from '../../services/api/http.js';
 import { showToast } from '../../ui/toast.js';
 import { collaborationManager } from './collaboration.js';
+import { initDropdown } from '../../ui/dropdown.js';
 import { syncUKMagentoData, syncFRMagentoData, syncNLMagentoData } from '../../services/api/magentoDataApi.js';
 import { checkTablesStatus, initializeTables, getCurrentBranch, getBranchConfig } from '../../services/api/inventoryApi.js';
 
@@ -351,10 +352,11 @@ async function loadInventoryData() {
 }
 
 function setupDropdowns() {
-  // Column visibility dropdown using native multi-select
+  // Column visibility dropdown using native multi-select (kept as c-select)
   setupColumnDropdown();
 
-  // Stock status dropdown - native select
+  // Stock status dropdown
+  initDropdown('#stockStatusFilter');
   setupStockStatusFilter();
 }
 
@@ -1249,13 +1251,17 @@ function getBackdrop() {
 }
 
 function closeAllDropdowns() {
-  // Close c-select dropdowns (enhanced native selects don't need closing)
+  // Close c-select dropdowns (multi-select column picker)
   document.querySelectorAll('.c-select[aria-expanded="true"]').forEach(el => {
     el.setAttribute('aria-expanded', 'false');
     el.classList.remove('open');
   });
   document.querySelectorAll('.c-select__list[aria-hidden="false"]').forEach(el => {
     el.setAttribute('aria-hidden', 'true');
+  });
+  // Close nui-dropdown menus
+  document.querySelectorAll('.nui-dropdown.is-open').forEach(el => {
+    el.classList.remove('is-open');
   });
 }
 

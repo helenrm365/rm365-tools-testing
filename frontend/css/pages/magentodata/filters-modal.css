@@ -84,17 +84,17 @@
   align-items: center;
 }
 
-.select-with-button .form-select,
-.select-with-button .c-select {
+.select-with-button .nui-input,
+.select-with-button .nui-dropdown {
   flex: 1;
 }
 
-/* ===== c-select in Modal ===== */
-.modal .c-select {
+/* ===== nui-dropdown in Modal ===== */
+.modal .nui-dropdown {
   min-width: 0;
 }
 
-.rule-config-row .c-select {
+.rule-config-row .nui-dropdown {
   min-width: 120px;
 }
 
@@ -122,14 +122,14 @@
   justify-content: center;
 }
 
-.input-with-prefix .form-input {
+.input-with-prefix .nui-input {
   border: none;
   border-radius: 0;
   box-shadow: none;
   flex: 1;
 }
 
-.input-with-prefix .form-input:focus {
+.input-with-prefix .nui-input:focus {
   outline: none;
 }
 
@@ -334,8 +334,8 @@
   font-size: 0.875rem;
 }
 
-.rule-config-row .form-input,
-.rule-config-row .form-select {
+.rule-config-row .nui-input,
+.rule-config-row .nui-dropdown {
   flex: 1;
   min-width: 0;
 }
@@ -495,7 +495,7 @@
   z-index: 1100;
 }
 
-/* Ensure modal body doesn't clip c-select dropdown */
+/* Ensure modal body doesn't clip nui-dropdown menu */
 .rule-edit-modal-overlay .modal {
   overflow: visible;
 }

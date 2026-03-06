@@ -5,6 +5,7 @@
 import { getApiUrl } from '../../config.js';
 import { getToken } from '../../services/state/sessionStore.js';
 import { showToast } from '../../ui/toast.js';
+import { initDatePicker } from '../../ui/datePicker.js';
 
 // Branch configuration
 const BRANCH_CONFIG = {
@@ -38,6 +39,8 @@ class ScanningLogsManager {
     this.userFilter = document.getElementById('userFilter');
     this.dateFrom = document.getElementById('dateFrom');
     this.dateTo = document.getElementById('dateTo');
+    this.fromPicker = initDatePicker('#dateFrom');
+    this.toPicker = initDatePicker('#dateTo');
     this.searchBtn = document.getElementById('searchBtn');
     this.clearFiltersBtn = document.getElementById('clearFiltersBtn');
 
@@ -411,6 +414,8 @@ class ScanningLogsManager {
     if (this.userFilter) this.userFilter.value = '';
     if (this.dateFrom) this.dateFrom.value = '';
     if (this.dateTo) this.dateTo.value = '';
+    if (this.fromPicker) this.fromPicker.refresh();
+    if (this.toPicker) this.toPicker.refresh();
     this.currentPage = 1;
     this.loadSubmissions();
   }

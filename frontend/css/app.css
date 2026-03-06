@@ -20,6 +20,9 @@
 @import 'components/badges.css';      /* Status badges & pills */
 @import 'components/cards.css';       /* All card variants */
 @import 'components/forms.css';       /* Form elements (inputs, selects, etc.) */
+@import 'components/inputs-nextui.css';  /* NextUI-inspired composable inputs — AFTER forms.css to override */
+@import 'components/calendar-nextui.css'; /* NextUI-inspired calendar component */
+@import 'components/dropdown-nextui.css'; /* NextUI-inspired underlined dropdown */
 @import 'components/selection-boxes.css'; /* Checkbox/radio pill selectors */
 @import 'components/modals.css';      /* Modal dialogs */
 @import 'components/tables.css';      /* Table styles */

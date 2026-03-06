@@ -1,0 +1,246 @@
+/* =============================================
+   NextUI-Inspired Underlined Input System
+   =============================================
+   
+   ARCHITECTURE: Compose classes in HTML for themed inputs.
+   Shares the same color palette as buttons-nextui.css.
+
+   .nui-input                              → Base (underline, layout, transition, disabled)
+   .nui-input-default / primary / …        → Color   (6)
+   .nui-input-sm / lg                      → Size    (3: sm, default md, lg)
+
+   1 × 6 × 3 = 18 unique combinations
+
+   LABEL:
+   .nui-label   → Outside label above the input (small, medium-weight, 4px gap)
+
+   WRAPPER:
+   .nui-field   → Convenience wrapper  (stacks label + input with 4px gap)
+
+   USAGE:
+     <div class="nui-field">
+       <label class="nui-label">Email</label>
+       <input class="nui-input nui-input-primary"
+              type="email" placeholder="you@example.com">
+     </div>
+
+   STATES:
+     Default   → bottom border 2px, color at 40% opacity (#3F3F46 at 40%)
+     Hover     → bottom border brightens to #D4D4D8
+     Focus     → bottom border 3px solid --_ic (brand color), label tints
+     Invalid   → bottom border forced to Danger color
+   ============================================= */
+
+
+/* =========================================================
+   1. BASE  —  .nui-input
+   Underlined: no bg, no top/left/right border, only bottom.
+   ========================================================= */
+.nui-input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+
+  /* Default sizing = MD */
+  height: 40px;
+  padding: 0.5rem 0;      /* no horizontal padding — text aligns with underline */
+  font-size: 0.875rem;    /* 14px */
+  font-weight: 400;
+  font-family: inherit;
+  line-height: 1.5;
+
+  /* Underline only */
+  border-style: none none solid none;
+  border-width: 2px;
+  border-color: color-mix(in srgb, #3F3F46 40%, transparent);
+  border-radius: 0;
+  background: transparent;
+  color: var(--text, #e4e4e7);
+  outline: none;
+  cursor: text;
+  transition: border-color 0.2s ease,
+              border-width 0.1s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Textarea overrides */
+textarea.nui-input {
+  height: auto;
+  min-height: 80px;
+  resize: vertical;
+}
+
+/* Placeholder */
+.nui-input::placeholder {
+  color: var(--text-muted, #71717a);
+  opacity: 0.6;
+}
+
+/* Disabled */
+.nui-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+
+/* =========================================================
+   1b. SPECIFICITY RESET — Override forms.css generic selectors
+   forms.css targets input[type="text"] (0-1-1) and
+   html.dark-mode input[type="text"] (0-2-1) with gradient bg,
+   box-shadow, border-radius 12px, etc.
+   ========================================================= */
+input.nui-input,
+textarea.nui-input {
+  height: 40px;
+  padding: 0.5rem 0;
+  font-size: 0.875rem;
+  border-style: none none solid none;
+  border-width: 2px;
+  border-color: color-mix(in srgb, #3F3F46 40%, transparent);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+input.nui-input:hover,
+textarea.nui-input:hover {
+  background: transparent;
+  border-style: none none solid none;
+  border-color: color-mix(in srgb, #3F3F46 40%, transparent);
+  box-shadow: none;
+}
+
+input.nui-input:focus,
+textarea.nui-input:focus {
+  background: transparent;
+  border-style: none none solid none;
+  border-width: 2px;
+  border-color: #000;
+  box-shadow: none;
+}
+
+html.dark-mode input.nui-input,
+html.dark-mode textarea.nui-input {
+  background: transparent;
+  border-style: none none solid none;
+  border-width: 2px;
+  border-color: color-mix(in srgb, #3F3F46 40%, transparent);
+  box-shadow: none;
+}
+
+html.dark-mode input.nui-input:hover,
+html.dark-mode textarea.nui-input:hover {
+  background: transparent;
+  border-style: none none solid none;
+  border-color: color-mix(in srgb, #3F3F46 40%, transparent);
+  box-shadow: none;
+}
+
+html.dark-mode input.nui-input:focus,
+html.dark-mode textarea.nui-input:focus {
+  background: transparent;
+  border-style: none none solid none;
+  border-width: 2px;
+  border-color: #fff;
+  box-shadow: none;
+}
+
+
+/* =========================================================
+   2. COLORS  —  .nui-input-{color}
+   Each sets a local --_ic variable consumed by focus state.
+   Reuses the same vars from buttons-nextui.css.
+   ========================================================= */
+.nui-input-default   { --_ic: var(--btn-color-default,   #d4d4d8); }
+.nui-input-primary   { --_ic: var(--btn-color-primary,   #006FEE); }
+.nui-input-secondary { --_ic: var(--btn-color-secondary, #7828c8); }
+.nui-input-success   { --_ic: var(--btn-color-success,   #17c964); }
+.nui-input-warning   { --_ic: var(--btn-color-warning,   #f5a524); }
+.nui-input-danger    { --_ic: var(--btn-color-danger,    #f31260); }
+
+
+/* =========================================================
+   3. SIZES  —  .nui-input-sm / (default md) / .nui-input-lg
+   ========================================================= */
+input.nui-input.nui-input-sm,
+textarea.nui-input.nui-input-sm {
+  height: 32px;
+  padding: 0.25rem 0;
+  font-size: 0.8125rem;   /* 13px */
+}
+
+/* MD is the base — no extra class needed */
+
+input.nui-input.nui-input-lg,
+textarea.nui-input.nui-input-lg {
+  height: 48px;
+  padding: 0.75rem 0;
+  font-size: 1rem;         /* 16px */
+}
+
+
+/* =========================================================
+   4. INVALID STATE  —  .is-invalid
+   Forces bottom border to Danger color.
+   ========================================================= */
+input.nui-input.is-invalid,
+textarea.nui-input.is-invalid {
+  --_ic: var(--btn-color-danger, #f31260);
+  border-color: var(--_ic);
+}
+
+input.nui-input.is-invalid:focus,
+textarea.nui-input.is-invalid:focus {
+  border-color: var(--_ic);
+}
+
+html.dark-mode input.nui-input.is-invalid,
+html.dark-mode textarea.nui-input.is-invalid {
+  border-color: var(--_ic);
+}
+
+
+/* =========================================================
+   5. LABEL  —  .nui-label
+   Outside label sitting above the input with a 4px gap.
+   ========================================================= */
+.nui-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-muted, #a1a1aa);
+  line-height: 1.25;
+  margin-bottom: 0;   /* reset forms.css generic `label` margin */
+  transition: color 0.2s ease;
+}
+
+.nui-label i {
+  font-size: 0.875rem;
+  color: var(--_ic, var(--text-muted, #71717a));
+  transition: color 0.2s ease;
+}
+
+/* When parent is focused, tint label + icon to brand color */
+.nui-field:focus-within > .nui-label {
+  color: var(--_ic, var(--text, #e4e4e7));
+}
+
+.nui-field:focus-within > .nui-label i {
+  color: var(--_ic, var(--text, #e4e4e7));
+}
+
+
+/* =========================================================
+   6. FIELD WRAPPER  —  .nui-field
+   Stacks label + input with consistent spacing.
+   Also forwards the --_ic color to the label on focus.
+   ========================================================= */
+.nui-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 1rem;
+}

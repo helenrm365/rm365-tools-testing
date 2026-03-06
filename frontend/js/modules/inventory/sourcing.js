@@ -11,6 +11,7 @@
 import { showToast, showToastWithAction } from '../../ui/toast.js';
 import { getToken } from '../../services/state/sessionStore.js';
 import { showLoading, hideLoading } from '../../router.js';
+import { initDropdown } from '../../ui/dropdown.js';
 import {
   checkSourcingTablesStatus,
   initializeSourcingTables,
@@ -336,9 +337,14 @@ function setupEventListeners() {
   });
   
   // Analysis Dashboard
+  initDropdown('#analysis-margin-filter');
   document.getElementById('btn-refresh-analysis')?.addEventListener('click', loadAnalysisDashboard);
   document.getElementById('analysis-search')?.addEventListener('input', debounce(handleAnalysisSearch, 500));
   document.getElementById('analysis-margin-filter')?.addEventListener('change', handleMarginFilterChange);
+  
+  // FX Rates & Supplier dropdowns
+  initDropdown('#override-currency');
+  initDropdown('#supplier-currency');
   
   // Matrix (auto-save on blur - no save button needed)
   document.getElementById('btn-export-matrix')?.addEventListener('click', exportMatrix);

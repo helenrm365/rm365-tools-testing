@@ -6,7 +6,8 @@
    - components/buttons-nextui.css: .btn, .btn-solid, .btn-flat, .btn-success, .btn-danger, .btn-primary, .btn-default, .btn-sm
    - components/cards.css: .action-block, .block-header, .block-icon, .block-title-group, .block-title, .block-subtitle, .block-content
    - components/badges.css: .status-badge
-   - components/forms.css: .search-box, .search-input, .form-group, .form-label, .form-input, .form-row, .form-hint, .form-message, .form-helper-text, .form-label-row, .checkbox-toggle, .checkbox-group
+   - components/forms.css: .form-row, .form-hint, .form-message, .form-helper-text, .form-label-row, .checkbox-toggle, .checkbox-group
+   - components/inputs-nextui.css: .nui-field, .nui-label, .nui-input, .nui-input-default
    - components/modals.css: .modal-overlay, .modal-content, .modal-header, .modal-header-icon, .modal-title-group, .modal-title, .modal-subtitle, .modal-close, .modal-body, .modal-footer, .modal-sm, .modal-lg, .modal-tall, .modal-split-layout, .modal-sidebar, .modal-sidebar-header, .modal-sidebar-list, .modal-main-content, .empty-state, .modal-info-text, .modal-confirm-text
    - components/tables.css: .data-table, .table-container
    - components/tabs.css: .inner-tabs, .tab-button
@@ -63,6 +64,21 @@ html.dark-mode .user-management .page-title {
   gap: 1.5rem;
   box-shadow: none;
   border: none;
+}
+
+/* ===== Block Header Layout ===== */
+.user-management .block-header-search {
+  flex: 1;
+  max-width: 400px;
+  margin: 0 1rem;
+}
+
+.user-management .block-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
 /* ===== User Table Styles ===== */
@@ -154,7 +170,7 @@ html.dark-mode .user-management .page-title {
   margin-bottom: 1rem;
 }
 
-.user-management .role-editor-header .form-group {
+.user-management .role-editor-header .nui-field {
   flex: 1;
   margin: 0;
 }
@@ -267,8 +283,8 @@ html.dark-mode .user-management .role-list-item:hover {
     gap: 1.5rem;
   }
   
-  .user-management .action-buttons-grid {
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  .user-management .block-header-search {
+    max-width: 300px;
   }
 
   .user-management .user-row {
@@ -307,8 +323,18 @@ html.dark-mode .user-management .role-list-item:hover {
     gap: 1rem;
   }
 
-  .user-management .action-buttons-grid {
-    grid-template-columns: 1fr 1fr;
+  .user-management .block-header {
+    flex-wrap: wrap;
+  }
+
+  .user-management .block-header-search {
+    order: 10;
+    flex-basis: 100%;
+    max-width: none;
+    margin: 0.75rem 0 0;
+  }
+
+  .user-management .block-header-actions {
     gap: 0.5rem;
   }
 
@@ -373,9 +399,8 @@ html.dark-mode .user-management .role-list-item:hover {
     font-size: 0.8125rem;
   }
 
-  .user-management .action-buttons-grid {
-    grid-template-columns: 1fr;
-    gap: 0.375rem;
+  .user-management .block-header-actions .btn span {
+    display: none;
   }
 
   .user-management .user-row {

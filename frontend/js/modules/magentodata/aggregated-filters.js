@@ -1,6 +1,8 @@
 // frontend/js/modules/magentodata/aggregated-filters.js
 import { get, post, del, put } from '../../services/api/http.js';
 import { showToast } from '../../ui/toast.js';
+import { initDatePicker } from '../../ui/datePicker.js';
+import { initDropdown } from '../../ui/dropdown.js';
 import { refreshAggregatedDataForRegion, getCustomRangeAggregatedData } from '../../services/api/magentoDataApi.js';
 
 const API = '/v1/magentodata';
@@ -88,9 +90,8 @@ function createFiltersModal(region) {
             
             <div class="modal-body">
                 <!-- Customer Exclusions -->
-                <div class="form-group">
-                    <div class="form-label">
-                        <i class="fas fa-users"></i>
+                <div class="nui-field">
+                    <div class="nui-label">
                         <span>Excluded Customers</span>
                     </div>
                     <p class="filter-description">
@@ -100,7 +101,7 @@ function createFiltersModal(region) {
                     <div class="search-container">
                         <input 
                             type="text" 
-                            class="form-input" 
+                            class="nui-input nui-input-default" 
                             placeholder="Search by email or name..."
                             id="customer-search-${region}"
                         />
@@ -120,9 +121,8 @@ function createFiltersModal(region) {
                 </div>
                 
                 <!-- Customer Group Exclusions -->
-                <div class="form-group">
-                    <div class="form-label">
-                        <i class="fas fa-user-friends"></i>
+                <div class="nui-field">
+                    <div class="nui-label">
                         <span>Excluded Customer Groups</span>
                     </div>
                     <p class="filter-description">
@@ -130,7 +130,7 @@ function createFiltersModal(region) {
                     </p>
                     
                     <div class="select-with-button">
-                        <select id="customer-group-select-${region}" data-enhance="c-select">
+                        <select id="customer-group-select-${region}">
                             <option value="">Select a customer group to exclude...</option>
                         </select>
                         <button class="btn btn-solid btn-success btn-sm" id="add-group-btn-${region}">
@@ -151,9 +151,8 @@ function createFiltersModal(region) {
                 </div>
                 
                 <!-- Order Status Exclusions -->
-                <div class="form-group">
-                    <div class="form-label">
-                        <i class="fas fa-traffic-light"></i>
+                <div class="nui-field">
+                    <div class="nui-label">
                         <span>Excluded Order Statuses</span>
                     </div>
                     <p class="filter-description">
@@ -161,7 +160,7 @@ function createFiltersModal(region) {
                     </p>
                     
                     <div class="select-with-button">
-                        <select id="status-select-${region}" data-enhance="c-select">
+                        <select id="status-select-${region}">
                             <option value="">Select a status to exclude...</option>
                         </select>
                         <button class="btn btn-solid btn-success btn-sm" id="add-status-btn-${region}">
@@ -182,9 +181,8 @@ function createFiltersModal(region) {
                 </div>
                 
                 <!-- Grand Total Threshold -->
-                <div class="form-group">
-                    <div class="form-label">
-                        <i class="fas fa-coins"></i>
+                <div class="nui-field">
+                    <div class="nui-label">
                         <span>Grand Total Threshold</span>
                     </div>
                     <p class="filter-description">
@@ -199,7 +197,7 @@ function createFiltersModal(region) {
                         <span class="input-prefix">${region === 'uk' ? '£' : '€'}</span>
                         <input 
                             type="number" 
-                            class="form-input" 
+                            class="nui-input nui-input-default" 
                             placeholder="Leave empty for no threshold"
                             step="0.01"
                             min="0"
@@ -213,9 +211,8 @@ function createFiltersModal(region) {
                 </div>
                 
                 <!-- Quantity Threshold -->
-                <div class="form-group">
-                    <div class="form-label">
-                        <i class="fas fa-box"></i>
+                <div class="nui-field">
+                    <div class="nui-label">
                         <span>Quantity Threshold</span>
                     </div>
                     <p class="filter-description">
@@ -226,7 +223,7 @@ function createFiltersModal(region) {
                         <span class="input-prefix">Qty</span>
                         <input 
                             type="number" 
-                            class="form-input" 
+                            class="nui-input nui-input-default" 
                             placeholder="Leave empty for no threshold"
                             step="1"
                             min="0"
@@ -240,9 +237,8 @@ function createFiltersModal(region) {
                 </div>
 
                 <!-- Smart Quantity Filter -->
-                <div class="form-group">
-                    <div class="form-label">
-                        <i class="fas fa-magic"></i>
+                <div class="nui-field">
+                    <div class="nui-label">
                         <span>Smart Quantity Filter</span>
                     </div>
                     <p class="filter-description">
@@ -262,7 +258,7 @@ function createFiltersModal(region) {
                             <label class="rule-label">If quantity ≥</label>
                             <input 
                                 type="number" 
-                                class="form-input" 
+                                class="nui-input nui-input-default" 
                                 placeholder="100"
                                 step="1"
                                 min="1"
@@ -272,7 +268,7 @@ function createFiltersModal(region) {
                         
                         <div class="rule-config-row">
                             <label class="rule-label">Then</label>
-                            <select id="smart-qty-action-select-${region}" data-enhance="c-select">
+                            <select id="smart-qty-action-select-${region}">
                                 <option value="divide" selected>Divide by</option>
                                 <option value="multiply">Multiply by</option>
                                 <option value="subtract">Subtract</option>
@@ -280,7 +276,7 @@ function createFiltersModal(region) {
                             </select>
                             <input 
                                 type="number" 
-                                class="form-input" 
+                                class="nui-input nui-input-default" 
                                 placeholder="2"
                                 step="0.1"
                                 min="0.1"
@@ -305,9 +301,8 @@ function createFiltersModal(region) {
                 </div>
 
                 <!-- Smart Date Filter -->
-                <div class="form-group">
-                    <div class="form-label">
-                        <i class="fas fa-calendar-alt"></i>
+                <div class="nui-field">
+                    <div class="nui-label">
                         <span>Smart Date Rules</span>
                     </div>
                     <p class="filter-description">
@@ -325,14 +320,14 @@ function createFiltersModal(region) {
                         
                         <div class="rule-config-row">
                             <label class="rule-label">Range</label>
-                            <input type="date" class="form-input" id="smart-date-start-${region}">
+                            <input type="text" class="nui-input nui-input-default" id="smart-date-start-${region}">
                             <span class="rule-separator">to</span>
-                            <input type="date" class="form-input" id="smart-date-end-${region}">
+                            <input type="text" class="nui-input nui-input-default" id="smart-date-end-${region}">
                         </div>
                         
                         <div class="rule-config-row">
                             <label class="rule-label">Action</label>
-                            <select id="smart-date-action-select-${region}" data-enhance="c-select">
+                            <select id="smart-date-action-select-${region}">
                                 <option value="exclude" selected>Exclude Entirely</option>
                                 <option value="divide">Divide Qty by</option>
                                 <option value="multiply">Multiply Qty by</option>
@@ -340,7 +335,7 @@ function createFiltersModal(region) {
                             </select>
                             <input 
                                 type="number" 
-                                class="form-input" 
+                                class="nui-input nui-input-default" 
                                 placeholder="Value"
                                 step="0.1"
                                 min="0.1"
@@ -358,7 +353,7 @@ function createFiltersModal(region) {
                 </div>
 
                 <!-- Apply Options -->
-                <div class="form-group apply-options">
+                <div class="nui-field apply-options">
                     <label class="checkbox-label">
                         <input type="checkbox" class="form-checkbox" id="apply-to-custom-range-${region}">
                         <span>Also apply to Custom Range view</span>
@@ -388,7 +383,11 @@ function createFiltersModal(region) {
     });
     
     // Setup event listeners
-    setTimeout(() => setupEventListeners(region), 0);
+    setTimeout(() => {
+        setupEventListeners(region);
+        initDatePicker(`#smart-date-start-${region}`);
+        initDatePicker(`#smart-date-end-${region}`);
+    }, 0);
     
     return overlay;
 }
@@ -566,13 +565,11 @@ function setupSelectHandlers(region) {
         });
     }
     
-    // Initialize c-select enhancement for dynamically added selects
-    if (window.initCSelects) {
-        const modal = document.getElementById('filters-modal-overlay');
-        if (modal) {
-            window.initCSelects(modal);
-        }
-    }
+    // Initialize nui-dropdown for dynamically added selects
+    initDropdown(`#customer-group-select-${region}`);
+    initDropdown(`#status-select-${region}`);
+    initDropdown(`#smart-qty-action-select-${region}`);
+    initDropdown(`#smart-date-action-select-${region}`);
 }
 
 /**
@@ -1470,9 +1467,9 @@ function showRuleEditModal(customerId, email) {
                     ${customer.full_name ? `<br><span class="text-muted">${escapeHtml(customer.full_name)}</span>` : ''}
                 </div>
                 
-                <div class="form-group">
-                    <label class="form-label">Rule Type</label>
-                    <select id="rule-type-select" data-enhance="c-select">
+                <div class="nui-field">
+                    <label class="nui-label">Rule Type</label>
+                    <select id="rule-type-select">
                         <option value="exclude_all" ${customer.rule_type === 'exclude_all' || !customer.rule_type ? 'selected' : ''} ${hasOtherBaseRule && customer.rule_type !== 'exclude_all' ? 'disabled' : ''}>
                             Exclude All Orders
                         </option>
@@ -1485,18 +1482,18 @@ function showRuleEditModal(customerId, email) {
                     </select>
                 </div>
                 
-                <div class="form-group divisor-group" id="divisor-group" style="display: ${customer.rule_type === 'exclude_all' ? 'none' : 'block'};">
-                    <label class="form-label">Divide By</label>
-                    <input type="number" class="form-input" id="rule-divisor" value="${customer.divisor || 2}" min="1" step="0.5">
+                <div class="nui-field divisor-group" id="divisor-group" style="display: ${customer.rule_type === 'exclude_all' ? 'none' : 'block'};">
+                    <label class="nui-label">Divide By</label>
+                    <input type="number" class="nui-input nui-input-default" id="rule-divisor" value="${customer.divisor || 2}" min="1" step="0.5">
                     <p class="filter-description">The quantity will be divided by this number.</p>
                 </div>
                 
-                <div class="form-group product-search-group" id="product-search-group" style="display: ${customer.rule_type === 'divide_product' ? 'block' : 'none'};">
-                    <label class="form-label">Product</label>
+                <div class="nui-field product-search-group" id="product-search-group" style="display: ${customer.rule_type === 'divide_product' ? 'block' : 'none'};">
+                    <label class="nui-label">Product</label>
                     <div class="search-container">
                         <input 
                             type="text" 
-                            class="form-input" 
+                            class="nui-input nui-input-default" 
                             placeholder="Search for a product..."
                             id="product-search-input"
                             value="${customer.product_name || customer.product_sku || ''}"
@@ -1520,10 +1517,8 @@ function showRuleEditModal(customerId, email) {
     
     document.body.appendChild(modalOverlay);
     
-    // Initialize c-select enhancement for the rule type select
-    if (window.initCSelects) {
-        window.initCSelects(modalOverlay);
-    }
+    // Initialize nui-dropdown for the rule type select
+    initDropdown('#rule-type-select');
     
     // Rule type select change handler
     const ruleTypeSelect = modalOverlay.querySelector('#rule-type-select');
@@ -1758,9 +1753,9 @@ function showAddRuleModal(email, fullName, hasBaseRule) {
                     ${fullName ? `<br><span class="text-muted">${escapeHtml(fullName)}</span>` : ''}
                 </div>
                 
-                <div class="form-group">
-                    <label class="form-label">Rule Type</label>
-                    <select id="add-rule-type-select" data-enhance="c-select">
+                <div class="nui-field">
+                    <label class="nui-label">Rule Type</label>
+                    <select id="add-rule-type-select">
                         <option value="exclude_all" ${hasBaseRule ? 'disabled' : ''} ${!hasBaseRule ? 'selected' : ''}>
                             Exclude All Orders
                         </option>
@@ -1773,18 +1768,18 @@ function showAddRuleModal(email, fullName, hasBaseRule) {
                     </select>
                 </div>
                 
-                <div class="form-group divisor-group" id="add-divisor-group" style="display: ${hasBaseRule ? 'block' : 'none'};">
-                    <label class="form-label">Divide By</label>
-                    <input type="number" class="form-input" id="add-rule-divisor" value="2" min="1" step="0.5">
+                <div class="nui-field divisor-group" id="add-divisor-group" style="display: ${hasBaseRule ? 'block' : 'none'};">
+                    <label class="nui-label">Divide By</label>
+                    <input type="number" class="nui-input nui-input-default" id="add-rule-divisor" value="2" min="1" step="0.5">
                     <p class="filter-description">The quantity will be divided by this number.</p>
                 </div>
                 
-                <div class="form-group product-search-group" id="add-product-search-group" style="display: ${hasBaseRule ? 'block' : 'none'};">
-                    <label class="form-label">Product</label>
+                <div class="nui-field product-search-group" id="add-product-search-group" style="display: ${hasBaseRule ? 'block' : 'none'};">
+                    <label class="nui-label">Product</label>
                     <div class="search-container">
                         <input 
                             type="text" 
-                            class="form-input" 
+                            class="nui-input nui-input-default" 
                             placeholder="Search for a product..."
                             id="add-product-search-input"
                         />
@@ -1807,10 +1802,8 @@ function showAddRuleModal(email, fullName, hasBaseRule) {
     
     document.body.appendChild(modalOverlay);
     
-    // Initialize c-select enhancement for the rule type select
-    if (window.initCSelects) {
-        window.initCSelects(modalOverlay);
-    }
+    // Initialize nui-dropdown for the rule type select
+    initDropdown('#add-rule-type-select');
     
     const ruleTypeSelect = modalOverlay.querySelector('#add-rule-type-select');
     
@@ -1975,18 +1968,18 @@ function showAddProductRuleModal(email, fullName) {
                     ${fullName ? `<br><span class="text-muted">${escapeHtml(fullName)}</span>` : ''}
                 </div>
                 
-                <div class="form-group">
-                    <label class="form-label">Divide By</label>
-                    <input type="number" class="form-input" id="new-rule-divisor" value="2" min="1" step="0.5">
+                <div class="nui-field">
+                    <label class="nui-label">Divide By</label>
+                    <input type="number" class="nui-input nui-input-default" id="new-rule-divisor" value="2" min="1" step="0.5">
                     <p class="filter-description">The quantity for the selected product will be divided by this number.</p>
                 </div>
                 
-                <div class="form-group">
-                    <label class="form-label">Product</label>
+                <div class="nui-field">
+                    <label class="nui-label">Product</label>
                     <div class="search-container">
                         <input 
                             type="text" 
-                            class="form-input" 
+                            class="nui-input nui-input-default" 
                             placeholder="Search for a product..."
                             id="new-product-search-input"
                         />
@@ -3144,9 +3137,8 @@ function createCustomRangeModal(region) {
             </div>
             
             <div class="modal-body">
-                <div class="form-group">
-                    <div class="form-label">
-                        <i class="fas fa-calendar"></i>
+                <div class="nui-field">
+                    <div class="nui-label">
                         <span>Select Time Range</span>
                     </div>
                     
@@ -3155,7 +3147,7 @@ function createCustomRangeModal(region) {
                         <label class="radio-option">
                             <input type="radio" name="rangeType" value="days" checked>
                             <span>Last</span>
-                            <input type="number" id="rangeDays" class="form-input" value="30" min="1" style="width: 80px; margin: 0 8px;">
+                            <input type="number" id="rangeDays" class="nui-input nui-input-default" value="30" min="1" style="width: 80px; margin: 0 8px;">
                             <span>Days</span>
                         </label>
                         
@@ -3163,7 +3155,7 @@ function createCustomRangeModal(region) {
                         <label class="radio-option">
                             <input type="radio" name="rangeType" value="months">
                             <span>Last</span>
-                            <input type="number" id="rangeMonths" class="form-input" value="6" min="1" disabled style="width: 80px; margin: 0 8px; opacity: 0.5;">
+                            <input type="number" id="rangeMonths" class="nui-input nui-input-default" value="6" min="1" disabled style="width: 80px; margin: 0 8px; opacity: 0.5;">
                             <span>Months</span>
                         </label>
                         
@@ -3171,14 +3163,13 @@ function createCustomRangeModal(region) {
                         <label class="radio-option">
                             <input type="radio" name="rangeType" value="since">
                             <span>Since</span>
-                            <input type="date" id="rangeSince" class="form-input" disabled style="margin-left: 8px; opacity: 0.5;">
+                            <input type="text" id="rangeSince" class="nui-input nui-input-default" disabled style="margin-left: 8px; opacity: 0.5;">
                         </label>
                     </div>
                 </div>
                 
-                <div class="form-group" style="margin-top: 24px; border-top: 1px solid var(--bg-light); padding-top: 24px;">
-                    <div class="form-label">
-                        <i class="fas fa-shield-alt"></i>
+                <div class="nui-field" style="margin-top: 24px; border-top: 1px solid var(--bg-light); padding-top: 24px;">
+                    <div class="nui-label">
                         <span>Exclusions</span>
                     </div>
                     
@@ -3227,6 +3218,7 @@ function createCustomRangeModal(region) {
                 sinceInput.style.opacity = radio.value === 'since' ? '1' : '0.5';
             });
         });
+        initDatePicker('#rangeSince');
     }, 0);
     
     return overlay;

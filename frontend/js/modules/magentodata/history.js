@@ -2,6 +2,8 @@
 
 import { getImportHistory } from '../../services/api/magentoDataApi.js?v=5';
 import { showToast } from '../../ui/toast.js';
+import { initDatePicker } from '../../ui/datePicker.js';
+import { initDropdown } from '../../ui/dropdown.js';
 
 // State
 let currentPage = 1;
@@ -15,6 +17,14 @@ let filterStatus = null;
  */
 export async function initMagentoDataHistory() {
   showToast('Setting up history interface...', 'info');
+  
+  // Set up date pickers
+  initDatePicker('#fromDate');
+  initDatePicker('#toDate');
+  
+  // Set up dropdowns
+  initDropdown('#regionFilter');
+  initDropdown('#statusFilter');
   
   // Set up filters
   setupFilters();

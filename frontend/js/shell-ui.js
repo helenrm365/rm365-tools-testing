@@ -16,7 +16,7 @@ export function setupShellUI() {
   // Convert select elements to c-select system (exclude modals to prevent duplicates)
   setTimeout(() => {
     // Add modern-select class to select elements NOT inside modals
-    document.querySelectorAll('select:not(.select-hidden):not([data-enhanced]):not(.modal-overlay select):not(.modal-content select):not(.form-select)').forEach(select => {
+    document.querySelectorAll('select:not(.select-hidden):not([data-enhanced]):not([data-nui-enhanced]):not(.modal-overlay select):not(.modal-content select):not(.form-select)').forEach(select => {
       select.classList.add('modern-select');
       select.setAttribute('data-enhance', 'c-select');
     });
@@ -42,7 +42,7 @@ export function setupShellUI() {
     if (hasNewContent) {
       setTimeout(() => {
         // Add classes to new select elements (exclude modals)
-        document.querySelectorAll('select:not(.select-hidden):not([data-enhanced]):not(.modal-overlay select):not(.modal-content select):not(.form-select)').forEach(select => {
+        document.querySelectorAll('select:not(.select-hidden):not([data-enhanced]):not([data-nui-enhanced]):not(.modal-overlay select):not(.modal-content select):not(.form-select)').forEach(select => {
           select.classList.add('modern-select');
           select.setAttribute('data-enhance', 'c-select');
         });

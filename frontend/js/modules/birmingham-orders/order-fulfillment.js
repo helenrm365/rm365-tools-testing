@@ -11,6 +11,7 @@ import { showNotification } from '../../ui/modal.js';
 import * as orderModals from '../../ui/orderFulfillmentModals.js';
 import { updateRoute, showLoading, hideLoading } from '../../router.js';
 import { showToast } from '../../ui/toast.js';
+import { initDropdown } from '../../ui/dropdown.js';
 
 // Currency symbol mapping
 function getCurrencySymbol(currencyCode) {
@@ -377,7 +378,6 @@ class MagentoPickPackManager {
     this.scannerStatus = document.getElementById('scannerStatus');
     this.skuInput = document.getElementById('skuInput');
     this.scanQuantityInput = document.getElementById('scanQuantityInput');
-    this.shelfFieldSelectWrapper = null; // Will be set after c-select enhancement
     this.shelfFieldSelect = document.getElementById('shelfFieldSelect');
     this.scanBtn = document.getElementById('scanBtn');
     this.scanMessage = document.getElementById('scanMessage');
@@ -393,46 +393,19 @@ class MagentoPickPackManager {
 
 
   initializeDropdowns() {
-    // Session Type Dropdown - now using native c-select enhancement
     this.selectedSessionType = 'pick';
-    
-    // Wait for c-select enhancement to complete, then attach listener
-    setTimeout(() => {
-      // The select might be enhanced (wrapped in c-select), so we need to find the actual select element
-      let sessionTypeSelect = document.getElementById('sessionTypeSelect');
-      
-      // If c-select already enhanced it, the ID is on the wrapper, so find the native select inside
-      if (sessionTypeSelect && sessionTypeSelect.classList.contains('c-select')) {
-        sessionTypeSelect = sessionTypeSelect.querySelector('select');
-      }
-      
-      // Fallback to direct query if not enhanced yet
-      if (!sessionTypeSelect || sessionTypeSelect.tagName !== 'SELECT') {
-        sessionTypeSelect = document.querySelector('select[id="sessionTypeSelect"]');
-      }
-      
-      if (sessionTypeSelect) {
-        // Set initial value
-        this.selectedSessionType = sessionTypeSelect.value;
-        
-        // Listen to native change event
-        sessionTypeSelect.addEventListener('change', (e) => {
-          this.selectedSessionType = e.target.value;
-          console.log('Session type changed to:', this.selectedSessionType);
-        });
-      } else {
-        console.warn('Session type select not found');
-      }
-      
-      // Handle shelf field select wrapper for enable/disable
-      let shelfFieldSelect = document.getElementById('shelfFieldSelect');
-      if (shelfFieldSelect && shelfFieldSelect.classList.contains('c-select')) {
-        this.shelfFieldSelectWrapper = shelfFieldSelect;
-        this.shelfFieldSelect = shelfFieldSelect.querySelector('select');
-      } else {
-        this.shelfFieldSelect = shelfFieldSelect;
-      }
-    }, 300); // Wait for c-select enhancement
+
+    const sessionTypeSelect = document.getElementById('sessionTypeSelect');
+    if (sessionTypeSelect) {
+      initDropdown(sessionTypeSelect);
+      this.selectedSessionType = sessionTypeSelect.value;
+      sessionTypeSelect.addEventListener('change', (e) => {
+        this.selectedSessionType = e.target.value;
+        console.log('Session type changed to:', this.selectedSessionType);
+      });
+    }
+
+    initDropdown(this.shelfFieldSelect);
   }
 
   attachEventListeners() {
@@ -850,12 +823,6 @@ class MagentoPickPackManager {
     this.scanQuantityInput.disabled = false;
     if (this.shelfFieldSelect) {
       this.shelfFieldSelect.disabled = false;
-      // Also update the c-select wrapper appearance if it exists
-      if (this.shelfFieldSelectWrapper) {
-        this.shelfFieldSelectWrapper.classList.remove('disabled');
-        const button = this.shelfFieldSelectWrapper.querySelector('.c-select__button');
-        if (button) button.disabled = false;
-      }
     }
     this.scanBtn.disabled = false;
     

@@ -4,7 +4,7 @@
    Global Components Used (from css/):
    - layout/header.css: .page-header, .page-title, .page-subtitle, .header-content
    - components/buttons-nextui.css: .btn, .btn-solid, .btn-flat, .btn-faded, .btn-checkable, .btn-group
-   - components/forms.css: .form-input, .search-box, .search-input, .search-icon
+   - components/inputs-nextui.css: .nui-field, .nui-label, .nui-input
    - components/tabs.css: .inner-tabs, .tab-button
    - components/tables.css: table styles
    - components/modals.css: modal styles
@@ -130,21 +130,12 @@
   align-items: center;
 }
 
-/* Preset search - uses forms.css base styling */
+/* Preset search - uses inputs-nextui.css base styling */
 /* Only size overrides here */
 .labels-generator .preset-search-input {
   width: 140px;
   height: auto;
-  padding: 0.4rem 0.6rem 0.4rem 1.75rem;
   font-size: 0.75rem;
-}
-
-.labels-generator .preset-search-icon {
-  position: absolute;
-  left: 0.5rem;
-  color: var(--text-muted);
-  font-size: 0.7rem;
-  pointer-events: none;
 }
 
 /* Preset header action buttons — now uses NextUI .btn classes */
@@ -435,30 +426,11 @@
   margin-top: 0.25rem !important;
 }
 
-/* ===== Search Input - Use standard component structure ===== */
+/* ===== Search Input - Uses inputs-nextui.css base styling ===== */
 .labels-generator .search-input-wrapper {
   position: relative;
   display: flex;
   align-items: center;
-}
-
-/* Uses forms.css base styling - only add positioning adjustments */
-.labels-generator .search-input-compact {
-  padding-left: 2.5rem;
-  padding-right: 2.5rem;
-}
-
-.labels-generator .product-search-icon {
-  position: absolute;
-  left: 0.875rem;
-  color: var(--text-muted);
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: color var(--transition);
-}
-
-.labels-generator .product-search-icon:hover {
-  color: var(--accent);
 }
 
 /* Search clear button - uses .btn .btn-icon .btn-sm .btn-ghost from buttons.css */
@@ -501,19 +473,6 @@
   min-width: 200px;
 }
 
-.labels-generator .selection-bar-search .search-input-compact {
-  width: 100%;
-  padding-right: 2.5rem;
-}
-
-.labels-generator .selection-bar-search .product-search-icon {
-  position: absolute;
-  right: 0.75rem;
-  color: var(--text-muted);
-  pointer-events: none;
-}
-
-/* Search clear in selection bar - uses .btn .btn-icon .btn-sm .btn-ghost from buttons.css */
 .labels-generator .selection-bar-search .search-clear-btn {
   position: absolute;
   right: 2rem;
@@ -908,19 +867,20 @@
   padding: 1.25rem 1.5rem;
 }
 
-.preset-modal .form-group {
+/* Preset modal — uses nui-field/nui-label/nui-input from inputs-nextui.css */
+.preset-modal .nui-field {
   margin-bottom: 0.875rem;
 }
 
-.preset-modal .form-group:last-child {
+.preset-modal .nui-field:last-child {
   margin-bottom: 0;
 }
 
-.preset-modal .form-label {
+.preset-modal .nui-label {
   margin-bottom: 0.25rem;
 }
 
-.preset-modal .form-textarea {
+.preset-modal .nui-input[rows] {
   min-height: 60px;
   resize: none;
 }

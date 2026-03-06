@@ -2,6 +2,8 @@
 import { getAttendanceLogs, getLogs, exportLogs, checkAttendanceTablesStatus, initializeAttendanceTables, getLocations } from '../../services/api/attendanceApi.js';
 import { exportAttendanceToPDF } from '../../utils/attendancePdfExport.js';
 import { showToast } from '../../ui/toast.js';
+import { initDatePicker } from '../../ui/datePicker.js';
+import { initDropdown } from '../../ui/dropdown.js';
 
 // ====== State Management ======
 let state = {
@@ -336,6 +338,8 @@ function clearFilters() {
   
   // Reset date defaults
   setDateDefaults();
+  if (fromPicker) fromPicker.refresh();
+  if (toPicker) toPicker.refresh();
   
   // Clear results
   const resultsEl = $("#logsResultsSection");
@@ -351,6 +355,15 @@ function clearFilters() {
       btn.style.opacity = "0.6";
     }
   });
+}
+
+// ====== Calendar Pickers ======
+let fromPicker = null;
+let toPicker = null;
+
+function setupCalendars() {
+  fromPicker = initDatePicker('#fromDate');
+  toPicker = initDatePicker('#toDate');
 }
 
 // ====== Export Functions ======
@@ -839,6 +852,10 @@ export async function init() {
   setDateDefaults();
   await loadLocations();
   
+  setupCalendars();
+  initDropdown('#locationFilter');
+  initDropdown('#actionFilter');
+  initDropdown('#sortFilter');
   setupSearch();
   setupEventHandlers();
   
