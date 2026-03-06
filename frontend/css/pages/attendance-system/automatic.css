@@ -5,7 +5,7 @@
    - layout/header.css: .page-header, .page-title, .page-subtitle, .header-content
    - components/buttons.css: .action-btn, .success-btn, .danger-btn
    - components/cards.css: .action-block, .block-header, .block-icon, .block-title-group, .block-title, .block-subtitle, .block-content
-   - components/tabs.css: .inner-tabs, .tab-button
+   - components/tabs.css: .nui-tabs, .nui-tab
 */
 
 /* ===== Page Scope ===== */

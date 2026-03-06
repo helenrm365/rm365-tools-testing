@@ -8,6 +8,11 @@ const CHEVRON_SVG = '<svg class="nui-dropdown-chevron" viewBox="0 0 24 24" fill=
 const activeDropdowns = new Set();
 let globalListenerAttached = false;
 
+/** Detect mobile / coarse-pointer (touch) devices */
+function isMobile() {
+  return window.matchMedia('(pointer: coarse)').matches;
+}
+
 function attachGlobalListener() {
   if (globalListenerAttached) return;
   globalListenerAttached = true;
@@ -79,11 +84,22 @@ export function initDropdown(selectorOrEl, opts = {}) {
   // Insert into DOM
   const parent = native.parentNode;
   parent.insertBefore(wrap, native);
-  native.classList.add('select-hidden');
-  native.style.display = 'none';
   wrap.appendChild(native);
   wrap.appendChild(trigger);
   wrap.appendChild(menu);
+
+  // On mobile: keep native <select> visible but transparent, overlaying the trigger
+  // so the OS-native picker fires on tap. On desktop: hide it.
+  function applyMobileNativeOverlay() {
+    if (isMobile()) {
+      native.classList.remove('select-hidden');
+      native.classList.add('nui-native-overlay');
+    } else {
+      native.classList.add('select-hidden');
+      native.classList.remove('nui-native-overlay');
+    }
+  }
+  applyMobileNativeOverlay();
 
   // ---- Sync helpers ----
 
@@ -188,7 +204,7 @@ export function initDropdown(selectorOrEl, opts = {}) {
 
   // ---- Events ----
 
-  trigger.addEventListener('click', (e) => { e.stopPropagation(); toggle(); });
+  trigger.addEventListener('click', (e) => { e.stopPropagation(); if (!isMobile()) toggle(); });
   menu.addEventListener('click', (e) => e.stopPropagation());
 
   function onNativeChange() {

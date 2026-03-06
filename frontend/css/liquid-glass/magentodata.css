@@ -14,7 +14,7 @@ body.liquid-glass-mode .stats-card,
 body.liquid-glass-mode .filter-card,
 body.liquid-glass-mode .results-card,
 body.liquid-glass-mode .card-animated,
-body.liquid-glass-mode .inner-tabs {
+body.liquid-glass-mode .nui-tabs {
     background: rgba(255, 255, 255, 0.45) !important;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
@@ -85,12 +85,12 @@ body.liquid-glass-mode .toggle-btn.active {
 }
 
 /* Tab Buttons */
-body.liquid-glass-mode .tab-button {
+body.liquid-glass-mode .nui-tab {
     background: rgba(255, 255, 255, 0.3) !important;
     border: 1px solid rgba(255, 255, 255, 0.4) !important;
 }
 
-body.liquid-glass-mode .tab-button.active {
+body.liquid-glass-mode .nui-tab.is-active {
     background: color-mix(in srgb, var(--accent) 20%, transparent) !important;
     border-color: color-mix(in srgb, var(--accent) 50%, transparent) !important;
     color: #2c3e50 !important;
@@ -103,7 +103,7 @@ html.dark-mode body.liquid-glass-mode .stats-card,
 html.dark-mode body.liquid-glass-mode .filter-card,
 html.dark-mode body.liquid-glass-mode .results-card,
 html.dark-mode body.liquid-glass-mode .card-animated,
-html.dark-mode body.liquid-glass-mode .inner-tabs {
+html.dark-mode body.liquid-glass-mode .nui-tabs {
     background: rgba(30, 30, 30, 0.45) !important;
     border: 1px solid rgba(255, 255, 255, 0.1) !important;
     box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2) !important;
@@ -131,13 +131,13 @@ html.dark-mode body.liquid-glass-mode .toggle-btn.active {
     color: #fff !important;
 }
 
-html.dark-mode body.liquid-glass-mode .tab-button {
+html.dark-mode body.liquid-glass-mode .nui-tab {
     background: rgba(0, 0, 0, 0.2) !important;
     border-color: rgba(255, 255, 255, 0.1) !important;
     color: #e0e0e0 !important;
 }
 
-html.dark-mode body.liquid-glass-mode .tab-button.active {
+html.dark-mode body.liquid-glass-mode .nui-tab.is-active {
     background: color-mix(in srgb, var(--accent) 20%, transparent) !important;
     border-color: color-mix(in srgb, var(--accent) 50%, transparent) !important;
     color: #fff !important;

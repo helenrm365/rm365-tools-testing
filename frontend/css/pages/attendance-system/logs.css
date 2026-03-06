@@ -6,7 +6,7 @@
    - components/buttons.css: .action-btn, .primary-btn, .secondary-btn
    - components/cards.css: .action-block, .block-header, .block-icon, .block-title-group, .block-title, .block-subtitle, .block-content
    - components/forms.css: .form-group, .form-label, input, .c-select, .search-box
-   - components/tabs.css: .inner-tabs, .tab-button
+   - components/tabs.css: .nui-tabs, .nui-tab
    - components/tables.css: table styles
    
    Shadow System (from SHADOW_SYSTEM.md):

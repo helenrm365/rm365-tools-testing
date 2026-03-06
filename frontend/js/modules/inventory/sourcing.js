@@ -12,6 +12,7 @@ import { showToast, showToastWithAction } from '../../ui/toast.js';
 import { getToken } from '../../services/state/sessionStore.js';
 import { showLoading, hideLoading } from '../../router.js';
 import { initDropdown } from '../../ui/dropdown.js';
+import { initNumberInput } from '../../ui/number-input.js';
 import {
   checkSourcingTablesStatus,
   initializeSourcingTables,
@@ -2286,22 +2287,30 @@ function renderPricingEntries(pricing) {
   // Get all suppliers
   const supplierList = state.suppliers.length > 0 ? state.suppliers : state.matrixSuppliers;
   
+  if (supplierList.length === 0) {
+    container.innerHTML = '<div class="empty-state"><i class="fas fa-info-circle"></i><p>No suppliers found. Add suppliers first.</p></div>';
+    return;
+  }
+
   // Create entries for all suppliers
   container.innerHTML = supplierList.map(supplier => {
     const existing = pricing.find(p => p.supplier_id === supplier.id);
+    const hasPrice = existing?.unit_price != null && existing.unit_price !== '';
     
     return `
-      <div class="pricing-entry" data-supplier-id="${supplier.id}">
+      <div class="pricing-entry ${hasPrice ? 'has-data' : ''}" data-supplier-id="${supplier.id}">
         <div class="pricing-supplier">
           <span class="supplier-code">${escapeHtml(supplier.code)}</span>
           <span class="supplier-name">${escapeHtml(supplier.name)}</span>
+          ${hasPrice ? '<span class="pricing-badge">Priced</span>' : '<span class="pricing-badge empty">No price</span>'}
         </div>
         <div class="pricing-fields">
           <div class="field-group">
             <label>Price</label>
-            <input type="number" class="price-input" step="0.01" 
+            <input type="number" class="nui-input nui-input-default price-input" step="0.01" 
                    value="${existing?.unit_price || ''}" 
-                   data-original="${existing?.unit_price || ''}">
+                   data-original="${existing?.unit_price || ''}"
+                   placeholder="0.00">
           </div>
           <div class="field-group">
             <label>Currency</label>
@@ -2314,16 +2323,26 @@ function renderPricingEntries(pricing) {
           </div>
           <div class="field-group">
             <label>MOQ</label>
-            <input type="number" class="moq-input" min="1" value="${existing?.moq || ''}">
+            <input type="number" class="nui-input nui-input-default moq-input" min="1" value="${existing?.moq || ''}" placeholder="1">
           </div>
           <div class="field-group notes-field">
             <label>Notes</label>
-            <input type="text" class="notes-input" value="${escapeHtml(existing?.notes || '')}">
+            <input type="text" class="nui-input nui-input-default notes-input" value="${escapeHtml(existing?.notes || '')}" placeholder="Optional notes…">
           </div>
         </div>
       </div>
     `;
   }).join('');
+
+  // Enhance currency selects with NextUI dropdown
+  container.querySelectorAll('.currency-select').forEach(sel => {
+    initDropdown(sel);
+  });
+
+  // Enhance number inputs with clickable chevrons
+  container.querySelectorAll('input[type="number"].nui-input').forEach(el => {
+    initNumberInput(el);
+  });
 }
 
 function closePricingModal() {

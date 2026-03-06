@@ -1,0 +1,158 @@
+/* =============================================
+   NextUI-Inspired Bordered Tab System
+   =============================================
+
+   Based on NextUI variant-bordered tabs.
+   Uses the same color palette as buttons-nextui.css.
+
+   .nui-tabs                          → Bordered container (pill row)
+   .nui-tab                           → Individual tab button (inactive)
+   .nui-tab.is-active                 → Currently selected tab (filled)
+   .nui-tabs-{color}                  → Color variant for active tab
+
+   COLOR VARIANTS:
+   .nui-tabs-default   → dark/light fill (default if no color class)
+   .nui-tabs-primary   → #006FEE
+   .nui-tabs-secondary → #7828c8
+   .nui-tabs-success   → #17c964
+   .nui-tabs-warning   → #f5a524
+   .nui-tabs-danger    → #f31260
+
+   USAGE:
+     <nav class="nui-tabs">
+       <button class="nui-tab is-active">Tab One</button>
+       <button class="nui-tab">Tab Two</button>
+       <button class="nui-tab">Tab Three</button>
+     </nav>
+
+     <!-- With color: -->
+     <nav class="nui-tabs nui-tabs-primary">
+       <button class="nui-tab is-active">Active</button>
+       <button class="nui-tab">Other</button>
+     </nav>
+   ============================================= */
+
+
+/* =========================================================
+   1. CONTAINER  —  .nui-tabs
+   ========================================================= */
+.nui-tabs {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px;
+  position: relative;
+  border-radius: 16px;
+  background: var(--bg);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  margin-bottom: 1.5rem;
+}
+
+
+/* =========================================================
+   2. TAB BUTTON  —  .nui-tab  (inactive)
+   ========================================================= */
+.nui-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 8px 16px;
+  position: relative;
+  flex: 0 0 auto;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+
+  /* Typography */
+  font-family: inherit;
+  font-weight: 500;
+  font-size: var(--btn-fs-md, 0.875rem);
+  line-height: 1.5;
+  text-align: center;
+  white-space: nowrap;
+  color: color-mix(in srgb, var(--text, #000) 50%, transparent);
+}
+
+.nui-tab i {
+  font-size: 0.8125rem;
+}
+
+.nui-tab:hover {
+  background: color-mix(in srgb, var(--text, #000) 6%, transparent);
+}
+
+.nui-tab:focus-visible {
+  outline: 2px solid var(--btn-color-primary, #006FEE);
+  outline-offset: 2px;
+}
+
+.nui-tab:active {
+  transform: scale(0.98);
+}
+
+
+/* =========================================================
+   3. ACTIVE STATE  —  .nui-tab.is-active
+   Default: dark bg / light text (no color class needed).
+   ========================================================= */
+.nui-tab.is-active {
+  background: var(--_tab-active-bg, #3F3F46);
+  color: var(--_tab-active-fg, #fff);
+  border-radius: 12px;
+}
+
+.nui-tab.is-active:hover {
+  background: var(--_tab-active-bg, #3F3F46);
+}
+
+
+/* =========================================================
+   4. COLOR VARIANTS  —  .nui-tabs-{color}
+   Sets the active-tab bg color via --_tab-active-bg.
+   ========================================================= */
+
+/* Default: #3F3F46 fill — already the base, no override needed */
+.nui-tabs-default { --_tab-active-bg: #3F3F46; --_tab-active-fg: #fff; }
+
+/* Brand colors — white text on colored bg */
+.nui-tabs-primary   { --_tab-active-bg: var(--btn-color-primary,   #006FEE); --_tab-active-fg: #fff; }
+.nui-tabs-secondary { --_tab-active-bg: var(--btn-color-secondary, #7828c8); --_tab-active-fg: #fff; }
+.nui-tabs-success   { --_tab-active-bg: var(--btn-color-success,   #17c964); --_tab-active-fg: #fff; }
+.nui-tabs-warning   { --_tab-active-bg: var(--btn-color-warning,   #f5a524); --_tab-active-fg: #000; }
+.nui-tabs-danger    { --_tab-active-bg: var(--btn-color-danger,    #f31260); --_tab-active-fg: #fff; }
+
+
+/* =========================================================
+   5. DARK MODE
+   ========================================================= */
+html.dark-mode .nui-tabs {
+  background: var(--bg);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+html.dark-mode .nui-tab {
+  color: color-mix(in srgb, var(--text, #fff) 50%, transparent);
+}
+
+html.dark-mode .nui-tab:hover {
+  background: color-mix(in srgb, #fff 8%, transparent);
+}
+
+/* Default active in dark mode */
+html.dark-mode .nui-tab.is-active {
+  background: var(--_tab-active-bg, #3F3F46);
+  color: var(--_tab-active-fg, #fff);
+}
+
+html.dark-mode .nui-tab.is-active:hover {
+  background: var(--_tab-active-bg, #3F3F46);
+}
+
+/* Dark-mode default variant */
+html.dark-mode .nui-tabs-default {
+  --_tab-active-bg: #3F3F46;
+  --_tab-active-fg: #fff;
+}

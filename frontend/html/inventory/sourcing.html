@@ -10,12 +10,12 @@
   </header>
 
   <!-- Navigation Tabs -->
-  <nav class="inner-tabs">
-    <button class="tab-button" onclick="location.href='/inventory/management/uk-birmingham'">
+  <nav class="nui-tabs">
+    <button class="nui-tab" onclick="location.href='/inventory/management/uk-birmingham'">
       <i class="fas fa-boxes"></i>
       <span>Management</span>
     </button>
-    <button class="tab-button active" onclick="location.href='/inventory/sourcing'">
+    <button class="nui-tab is-active" onclick="location.href='/inventory/sourcing'">
       <i class="fas fa-truck-loading"></i>
       <span>Product Sourcing</span>
     </button>
@@ -392,70 +392,94 @@
       <form id="supplier-form">
         <input type="hidden" id="supplier-id">
         
-        <div class="form-row">
-          <div class="nui-field">
-            <label class="nui-label" for="supplier-name">Supplier Name *</label>
-            <input type="text" id="supplier-name" class="nui-input nui-input-default" required>
+        <!-- Section 1: Identity -->
+        <div class="modal-section">
+          <div class="modal-section-header">
+            <i class="fas fa-id-card"></i>
+            <h4>Identity</h4>
+          </div>
+          <div class="form-row">
+            <div class="nui-field">
+              <label class="nui-label" for="supplier-name">Supplier Name *</label>
+              <input type="text" id="supplier-name" class="nui-input nui-input-default" required>
+            </div>
+            <div class="nui-field">
+              <label class="nui-label" for="supplier-code">Code * <small>(Short identifier)</small></label>
+              <input type="text" id="supplier-code" class="nui-input nui-input-default" maxlength="20" required style="text-transform: uppercase;">
+            </div>
+          </div>
+          <div class="nui-field checkbox-group">
+            <label>
+              <input type="checkbox" id="supplier-active" checked>
+              Active Supplier
+            </label>
+          </div>
+        </div>
+
+        <!-- Section 2: Pricing & Logistics -->
+        <div class="modal-section">
+          <div class="modal-section-header">
+            <i class="fas fa-shipping-fast"></i>
+            <h4>Pricing & Logistics</h4>
+          </div>
+          <div class="form-row">
+            <div class="nui-field">
+              <label class="nui-label" for="supplier-currency">Default Currency</label>
+              <select id="supplier-currency">
+                <option value="GBP">GBP - British Pound</option>
+                <option value="USD">USD - US Dollar</option>
+                <option value="EUR">EUR - Euro</option>
+                <option value="CNY">CNY - Chinese Yuan</option>
+              </select>
+            </div>
+            <div class="nui-field">
+              <label class="nui-label" for="supplier-lead-time">Lead Time (days)</label>
+              <input type="number" id="supplier-lead-time" class="nui-input nui-input-default" min="0">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="nui-field">
+              <label class="nui-label" for="supplier-min-order">Min Order Value</label>
+              <input type="number" id="supplier-min-order" class="nui-input nui-input-default" min="0" step="0.01">
+            </div>
+            <div class="nui-field">
+              <label class="nui-label" for="supplier-payment-terms">Payment Terms</label>
+              <input type="text" id="supplier-payment-terms" class="nui-input nui-input-default" placeholder="e.g., Net 30">
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 3: Contact -->
+        <div class="modal-section">
+          <div class="modal-section-header">
+            <i class="fas fa-address-book"></i>
+            <h4>Contact</h4>
+          </div>
+          <div class="form-row">
+            <div class="nui-field">
+              <label class="nui-label" for="supplier-email">Contact Email</label>
+              <input type="email" id="supplier-email" class="nui-input nui-input-default">
+            </div>
+            <div class="nui-field">
+              <label class="nui-label" for="supplier-phone">Contact Phone</label>
+              <input type="tel" id="supplier-phone" class="nui-input nui-input-default">
+            </div>
           </div>
           <div class="nui-field">
-            <label class="nui-label" for="supplier-code">Code * <small>(Short identifier)</small></label>
-            <input type="text" id="supplier-code" class="nui-input nui-input-default" maxlength="20" required style="text-transform: uppercase;">
+            <label class="nui-label" for="supplier-website">Website</label>
+            <input type="url" id="supplier-website" class="nui-input nui-input-default" placeholder="https://...">
           </div>
         </div>
         
-        <div class="form-row">
-          <div class="nui-field">
-            <label class="nui-label" for="supplier-currency">Default Currency</label>
-            <select id="supplier-currency">
-              <option value="GBP">GBP - British Pound</option>
-              <option value="USD">USD - US Dollar</option>
-              <option value="EUR">EUR - Euro</option>
-              <option value="CNY">CNY - Chinese Yuan</option>
-            </select>
+        <!-- Section 4: Notes -->
+        <div class="modal-section">
+          <div class="modal-section-header">
+            <i class="fas fa-sticky-note"></i>
+            <h4>Notes</h4>
           </div>
           <div class="nui-field">
-            <label class="nui-label" for="supplier-lead-time">Lead Time (days)</label>
-            <input type="number" id="supplier-lead-time" class="nui-input nui-input-default" min="0">
+            <textarea id="supplier-notes" class="nui-input nui-input-default" rows="3"></textarea>
           </div>
-        </div>
-        
-        <div class="form-row">
-          <div class="nui-field">
-            <label class="nui-label" for="supplier-email">Contact Email</label>
-            <input type="email" id="supplier-email" class="nui-input nui-input-default">
-          </div>
-          <div class="nui-field">
-            <label class="nui-label" for="supplier-phone">Contact Phone</label>
-            <input type="tel" id="supplier-phone" class="nui-input nui-input-default">
-          </div>
-        </div>
-        
-        <div class="nui-field">
-          <label class="nui-label" for="supplier-website">Website</label>
-          <input type="url" id="supplier-website" class="nui-input nui-input-default" placeholder="https://...">
-        </div>
-        
-        <div class="form-row">
-          <div class="nui-field">
-            <label class="nui-label" for="supplier-min-order">Min Order Value</label>
-            <input type="number" id="supplier-min-order" class="nui-input nui-input-default" min="0" step="0.01">
-          </div>
-          <div class="nui-field">
-            <label class="nui-label" for="supplier-payment-terms">Payment Terms</label>
-            <input type="text" id="supplier-payment-terms" class="nui-input nui-input-default" placeholder="e.g., Net 30">
-          </div>
-        </div>
-        
-        <div class="nui-field">
-          <label class="nui-label" for="supplier-notes">Notes</label>
-          <textarea id="supplier-notes" class="nui-input nui-input-default" rows="3"></textarea>
-        </div>
-        
-        <div class="nui-field checkbox-group">
-          <label>
-            <input type="checkbox" id="supplier-active" checked>
-            Active Supplier
-          </label>
         </div>
       </form>
     </div>

@@ -7,7 +7,7 @@
   border-radius: 16px;
   padding: 1.75rem;
   transition: all var(--transition);
-  box-shadow: var(--shadow-l);
+  box-shadow: none;
   border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
@@ -32,7 +32,7 @@ html.dark-mode .action-block {
   justify-content: center;
   color: var(--accent);
   flex-shrink: 0;
-  box-shadow: var(--shadow-s);
+  box-shadow: none;
 }
 
 .block-icon i {
@@ -72,13 +72,12 @@ html.dark-mode .action-block {
   background: var(--bg-light);
   border-radius: 12px;
   border: 2px solid var(--bg);
-  box-shadow: var(--shadow-m);
-  transition: transform var(--transition), box-shadow var(--transition), outline var(--transition);
+  box-shadow: none;
+  transition: outline var(--transition);
 }
 
 .entity-card:hover,
 .employee-card:hover {
-  transform: translateY(-2px);
   outline: 1px solid var(--accent);
   outline-offset: 1px;
 }
@@ -91,16 +90,12 @@ html.dark-mode .action-block {
 
 .entity-card.clickable:hover,
 .employee-card.clickable:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-l);
   outline: 1px solid var(--accent);
   outline-offset: 1px;
 }
 
 .entity-card.clickable:active,
 .employee-card.clickable:active {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-m);
 }
 
 /* Entity Avatar */
@@ -160,7 +155,7 @@ html.dark-mode .action-block {
   background: var(--bg-light);
   border-radius: var(--radius-lg);
   padding: var(--space-lg);
-  box-shadow: var(--shadow-m);
+  box-shadow: none;
   transition: all var(--transition);
   overflow: hidden;
   border: 1px solid rgba(0, 0, 0, 0.05);
@@ -172,7 +167,7 @@ html.dark-mode .card {
 
 .card-elevated {
   background: var(--bg-light);
-  box-shadow: var(--shadow-l);
+  box-shadow: none;
 }
 
 .card-interactive {
@@ -180,8 +175,6 @@ html.dark-mode .card {
 }
 
 .card-interactive:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-l);
 }
 
 /* ===== Card Sections ===== */
@@ -223,7 +216,7 @@ html.dark-mode .card {
 .card-animated {
   background: var(--bg-light);
   border-radius: 16px;
-  box-shadow: var(--shadow-m);
+  box-shadow: none;
   border: 2px solid transparent;
   overflow: hidden;
   transition: all 0.3s ease;
@@ -232,8 +225,6 @@ html.dark-mode .card {
 
 .card-animated:hover {
   border-color: color-mix(in srgb, var(--accent) 10%, transparent);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-l);
 }
 
 .card-animated .card-header {
@@ -272,14 +263,12 @@ html.dark-mode .card {
   display: flex;
   align-items: center;
   gap: 1.25rem;
-  box-shadow: var(--shadow-s);
+  box-shadow: none;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border: 2px solid transparent;
 }
 
 .stat-card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-m);
   border-color: color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
@@ -322,7 +311,7 @@ html.dark-mode .card {
   background: var(--bg-light);
   border-radius: 16px;
   padding: 2rem;
-  box-shadow: var(--shadow-s);
+  box-shadow: none;
   border: 2px solid color-mix(in srgb, var(--accent) 10%, transparent);
 }
 
@@ -368,14 +357,11 @@ html.dark-mode .card {
 
 .feature-card:hover,
 .module-feature-card:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 20px 40px color-mix(in srgb, var(--accent) 15%, transparent);
   border-color: color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 html.dark-mode .feature-card:hover,
 html.dark-mode .module-feature-card:hover {
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
   border-color: color-mix(in srgb, var(--accent) 45%, transparent);
 }
 

@@ -804,7 +804,7 @@ class MagentoPickPackManager {
     }
     
     // Hide navigation tabs during active session
-    const innerTabs = document.querySelector('.inner-tabs');
+    const innerTabs = document.querySelector('.nui-tabs');
     if (innerTabs) {
       innerTabs.style.display = 'none';
     }
@@ -871,7 +871,7 @@ class MagentoPickPackManager {
     }
     
     // Show navigation tabs when returning to order lookup
-    const innerTabs = document.querySelector('.inner-tabs');
+    const innerTabs = document.querySelector('.nui-tabs');
     if (innerTabs) {
       innerTabs.style.display = 'flex';
     }
@@ -2420,8 +2420,8 @@ export async function init(path) {
 
 // Helper function to ensure tab highlighting
 function ensureTabHighlighted() {
-  // Find all tab buttons in the inner-tabs
-  const tabButtons = document.querySelectorAll('.inner-tabs .tab-button');
+  // Find all tab buttons in the nui-tabs
+  const tabButtons = document.querySelectorAll('.nui-tabs .nui-tab');
   tabButtons.forEach(btn => {
     // Remove active class from all tabs
     btn.classList.remove('active');

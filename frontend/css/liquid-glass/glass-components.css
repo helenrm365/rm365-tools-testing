@@ -332,7 +332,7 @@ body.liquid-glass-mode .card-header {
 }
 
 /* Global Tab Styles */
-body.liquid-glass-mode .inner-tabs .tab-button {
+body.liquid-glass-mode .nui-tabs .nui-tab {
     background: rgba(255, 255, 255, 0.3);
     border: 1px solid rgba(255, 255, 255, 0.4);
     backdrop-filter: blur(4px);
@@ -341,12 +341,12 @@ body.liquid-glass-mode .inner-tabs .tab-button {
     transition: all 0.2s ease;
 }
 
-body.liquid-glass-mode .inner-tabs .tab-button:hover {
+body.liquid-glass-mode .nui-tabs .nui-tab:hover {
     background: rgba(255, 255, 255, 0.5);
     transform: translateY(-1px);
 }
 
-body.liquid-glass-mode .inner-tabs .tab-button.active {
+body.liquid-glass-mode .nui-tabs .nui-tab.is-active {
     background: rgba(255, 255, 255, 0.8);
     border-color: var(--accent);
     color: var(--accent-dark);
@@ -378,17 +378,17 @@ html.dark-mode body.liquid-glass-mode .card-header {
     border-bottom-color: rgba(255, 255, 255, 0.1) !important;
 }
 
-html.dark-mode body.liquid-glass-mode .inner-tabs .tab-button {
+html.dark-mode body.liquid-glass-mode .nui-tabs .nui-tab {
     background: rgba(0, 0, 0, 0.2) !important;
     border-color: rgba(255, 255, 255, 0.1) !important;
     color: #e0e0e0 !important;
 }
 
-html.dark-mode body.liquid-glass-mode .inner-tabs .tab-button:hover {
+html.dark-mode body.liquid-glass-mode .nui-tabs .nui-tab:hover {
     background: rgba(0, 0, 0, 0.3) !important;
 }
 
-html.dark-mode body.liquid-glass-mode .inner-tabs .tab-button.active {
+html.dark-mode body.liquid-glass-mode .nui-tabs .nui-tab.is-active {
     background: color-mix(in srgb, var(--accent) 20%, transparent) !important;
     border-color: color-mix(in srgb, var(--accent) 50%, transparent) !important;
     color: #fff !important;

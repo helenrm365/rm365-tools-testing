@@ -6,7 +6,7 @@
    - components/buttons-nextui.css: .btn, .btn-solid, .btn-flat, .btn-ghost, .btn-faded, .btn-group
    - components/cards.css: .action-block, .block-header, .block-icon, .block-title-group
    - components/inputs-nextui.css: .nui-field, .nui-label, .nui-input
-   - components/tabs.css: .inner-tabs, .tab-button
+   - components/tabs.css: .nui-tabs, .nui-tab
    - components/tables.css: .table-container, table, th, td
    - components/loaders.css: .loading-spinner, .loading-state
    

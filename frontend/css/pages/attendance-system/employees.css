@@ -10,7 +10,7 @@
    - components/filters.css: .filter-controls, .filter-item, .filter-label
    - components/inputs-nextui.css: .nui-field, .nui-label, .nui-input, .nui-input-faded, .nui-input-bordered, .nui-input-default, .nui-input-primary
    - components/modals.css: .modal-overlay, .modal-content, .modal-header, .modal-header-icon, .modal-title, .modal-close, .modal-body, .modal-footer, .modal-footer-split, .modal-footer-right
-   - components/tabs.css: .inner-tabs, .tab-button
+   - components/tabs.css: .nui-tabs, .nui-tab
    - components/loaders.css: .loading-spinner, .loading-state
    
    Shadow System (from SHADOW_SYSTEM.md):

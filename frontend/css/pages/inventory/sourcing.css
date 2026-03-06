@@ -912,19 +912,56 @@ html.dark-mode .product-sourcing .fx-rate-card {
 
 /* Label & input styling handled by inputs-nextui.css (.nui-label, .nui-input) */
 
+/* ===== Modal Sections — divider-separated groups ===== */
+/* Scoped to modal-backdrop (modals sit outside .product-sourcing in DOM) */
+.modal-section {
+  padding: 0 0 var(--space-md) 0;
+  margin-bottom: var(--space-md);
+  border-bottom: 1px solid color-mix(in srgb, var(--text-muted) 18%, transparent);
+}
+
+.modal-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.modal-section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: var(--space-md);
+}
+
+.modal-section-header i {
+  font-size: 0.875rem;
+  color: var(--accent);
+  opacity: 0.8;
+}
+
+.modal-section-header h4 {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
 /* ===== Form Row for Modal Forms ===== */
-.product-sourcing .form-row {
+#supplier-modal .form-row,
+#pricing-modal .form-row {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: var(--space-md);
 }
 
-.product-sourcing .checkbox-group {
+#supplier-modal .checkbox-group {
   display: flex;
   align-items: center;
 }
 
-.product-sourcing .checkbox-group label {
+#supplier-modal .checkbox-group label {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
@@ -932,14 +969,14 @@ html.dark-mode .product-sourcing .fx-rate-card {
   font-weight: 500;
 }
 
-.product-sourcing .checkbox-group input[type="checkbox"] {
+#supplier-modal .checkbox-group input[type="checkbox"] {
   width: 18px;
   height: 18px;
   accent-color: var(--accent);
 }
 
 /* ===== Pricing Entries in Modal ===== */
-.product-sourcing .pricing-sku-info {
+#pricing-modal .pricing-sku-info {
   padding: var(--space-md);
   background: var(--bg-light);
   border-radius: var(--radius-md);
@@ -947,39 +984,91 @@ html.dark-mode .product-sourcing .fx-rate-card {
   font-size: 0.9rem;
 }
 
-.product-sourcing .pricing-entries {
+#pricing-modal .pricing-entries {
   display: flex;
   flex-direction: column;
-  gap: var(--space-md);
+  gap: var(--space-sm);
 }
 
-.product-sourcing .pricing-entry {
+#pricing-modal .pricing-entry {
   padding: var(--space-md);
   background: var(--bg-light);
   border-radius: var(--radius-md);
-  border: 1px solid var(--bg-dark);
+  border: 1px solid color-mix(in srgb, var(--text-muted) 15%, transparent);
+  transition: border-color 0.2s ease;
 }
 
-.product-sourcing .pricing-entry-header {
+#pricing-modal .pricing-entry.has-data {
+  border-left: 3px solid var(--btn-color-success, #17c964);
+}
+
+#pricing-modal .pricing-supplier {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: var(--space-sm);
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid color-mix(in srgb, var(--text-muted) 10%, transparent);
+}
+
+#pricing-modal .pricing-supplier .supplier-code {
+  font-weight: 700;
+  font-size: 0.8125rem;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  padding: 0.125rem 0.5rem;
+  border-radius: 4px;
+}
+
+#pricing-modal .pricing-supplier .supplier-name {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text);
+  flex: 1;
+}
+
+#pricing-modal .pricing-badge {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--btn-color-success, #17c964) 15%, transparent);
+  color: var(--btn-color-success, #17c964);
+}
+
+#pricing-modal .pricing-badge.empty {
+  background: color-mix(in srgb, var(--text-muted) 10%, transparent);
+  color: var(--text-muted);
+}
+
+#pricing-modal .pricing-entry-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: var(--space-sm);
 }
 
-.product-sourcing .pricing-entry-header h4 {
+#pricing-modal .pricing-entry-header h4 {
   margin: 0;
   color: var(--accent);
   font-size: 0.9rem;
 }
 
-.product-sourcing .pricing-fields {
+#pricing-modal .pricing-fields {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: var(--space-sm);
 }
 
-.product-sourcing .pricing-fields .notes-field {
+#pricing-modal .pricing-fields .field-group label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-bottom: 0.25rem;
+}
+
+#pricing-modal .pricing-fields .notes-field {
   grid-column: span 3;
 }
 
@@ -1057,20 +1146,21 @@ html.dark-mode .product-sourcing .fx-rate-card {
     padding: 0.5rem;
   }
   
-  .product-sourcing .form-row {
+#supplier-modal .form-row,
+  #pricing-modal .form-row {
     grid-template-columns: 1fr;
   }
-  
+
   .product-sourcing .summary-cards-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 0.5rem;
   }
-  
-  .product-sourcing .pricing-fields {
+
+  #pricing-modal .pricing-fields {
     grid-template-columns: 1fr 1fr;
   }
-  
-  .product-sourcing .pricing-fields .notes-field {
+
+  #pricing-modal .pricing-fields .notes-field {
     grid-column: span 2;
   }
   
@@ -1220,12 +1310,11 @@ html.dark-mode .product-sourcing .fx-rate-card {
   }
   
   /* Pricing fields single column */
-  .product-sourcing .pricing-fields {
+  #pricing-modal .pricing-fields {
     grid-template-columns: 1fr;
   }
-  
-  .product-sourcing .pricing-fields .notes-field {
-    grid-column: span 1;
+
+  #pricing-modal .pricing-fields .notes-field {
   }
   
   /* Sub-tabs even more compact */

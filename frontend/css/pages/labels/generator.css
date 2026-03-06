@@ -5,7 +5,7 @@
    - layout/header.css: .page-header, .page-title, .page-subtitle, .header-content
    - components/buttons-nextui.css: .btn, .btn-solid, .btn-flat, .btn-faded, .btn-checkable, .btn-group
    - components/inputs-nextui.css: .nui-field, .nui-label, .nui-input
-   - components/tabs.css: .inner-tabs, .tab-button
+   - components/tabs.css: .nui-tabs, .nui-tab
    - components/tables.css: table styles
    - components/modals.css: modal styles
    - components/filter-control-panel.css: .unified-filter-panel, .filter-panel-header, .filter-panel-body
@@ -1364,7 +1364,7 @@ html.dark-mode .products-list-view::-webkit-scrollbar-track {
 @media print {
   .labels-generator .unified-filter-panel,
   .labels-generator .selection-bar,
-  .labels-generator .inner-tabs {
+  .labels-generator .nui-tabs {
     display: none !important;
   }
   

@@ -1164,7 +1164,7 @@
 }
 
 /* ===== Mobile Exclusive Mode (matching fulfillment) ===== */
-/* Hide page header, description in mobile mode - keep inner-tabs at bottom */
+/* Hide page header, description in mobile mode - keep nui-tabs at bottom */
 .order-approval.mobile-mode-active .page-header,
 .order-approval.mobile-mode-active .page-title,
 .order-approval.mobile-mode-active .page-subtitle {
@@ -1172,7 +1172,7 @@
 }
 
 /* Inner tabs - fixed at very bottom as page navigation */
-.order-approval.mobile-mode-active .inner-tabs {
+.order-approval.mobile-mode-active .nui-tabs {
   position: fixed;
   bottom: 0;
   left: 0;
@@ -1188,7 +1188,7 @@
   gap: 0.25rem;
 }
 
-.order-approval.mobile-mode-active .inner-tabs .tab-button {
+.order-approval.mobile-mode-active .nui-tabs .nui-tab {
   flex: 1;
   min-width: 0;
   padding: 0.5rem 0.25rem;
@@ -1197,7 +1197,7 @@
   gap: 0.25rem;
 }
 
-.order-approval.mobile-mode-active .inner-tabs .tab-button span {
+.order-approval.mobile-mode-active .nui-tabs .nui-tab span {
   font-size: 0.65rem;
   white-space: nowrap;
   overflow: hidden;
@@ -1231,12 +1231,12 @@
   width: auto;
 }
 
-/* Mobile column tabs styling when in mobile mode - positioned above inner-tabs */
+/* Mobile column tabs styling when in mobile mode - positioned above nui-tabs */
 .order-approval.mobile-mode-active .mobile-column-tabs {
   display: grid !important;
   grid-template-columns: repeat(3, 1fr);
   position: fixed;
-  bottom: 70px; /* Above the inner-tabs */
+  bottom: 70px; /* Above the nui-tabs */
   left: 0;
   right: 0;
   background: var(--bg);

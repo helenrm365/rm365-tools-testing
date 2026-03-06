@@ -27,6 +27,7 @@
 @import 'components/modals.css';      /* Modal dialogs */
 @import 'components/tables.css';      /* Table styles */
 @import 'components/tabs.css';        /* Tab navigation */
+@import 'components/tabs-nextui.css';  /* NextUI-inspired bordered tabs */
 @import 'components/loaders.css';     /* Loading spinners & skeletons */
 @import 'components/charts.css';      /* Chart.js & chart styling */
 @import 'components/collapsible.css'; /* Expandable sections */

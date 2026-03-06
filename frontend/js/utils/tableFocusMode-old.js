@@ -37,7 +37,7 @@ class TableFocusMode {
       '.page-subtitle',
       '.header-content',
       '.nav-tabs',
-      '.inner-tabs',
+      '.nui-tabs',
       '.stats-grid',
       '.action-block:not(:has(.table-container)):not(:has(table))',
       '.block-header:not(:has(.table-container)):not(:has(table))',

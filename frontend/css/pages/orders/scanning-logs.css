@@ -6,7 +6,7 @@
    - components/buttons-nextui.css: .btn, .btn-solid, .btn-flat, .btn-ghost
    - components/cards.css: .action-block, .block-header, .block-icon, .block-title-group, .block-title, .block-subtitle, .block-content
    - components/forms.css: .nui-field, .nui-label, .nui-input
-   - components/tabs.css: .inner-tabs, .tab-button
+   - components/tabs.css: .nui-tabs, .nui-tab
    - components/modals.css: .modal-backdrop, .modal, .modal-header, .modal-body, .modal-footer
 
    NOTE: All CSS variables use fallback values for consistency with other page styles.

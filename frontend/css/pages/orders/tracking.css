@@ -615,7 +615,7 @@
 
 /* ===== Minimal Mode ===== */
 body.minimal-mode .page-header,
-body.minimal-mode .inner-tabs,
+body.minimal-mode .nui-tabs,
 body.minimal-mode .shell-breadcrumb,
 body.minimal-mode .breadcrumb {
   display: none !important;

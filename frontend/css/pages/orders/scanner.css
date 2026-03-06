@@ -6,7 +6,7 @@
    - components/buttons-nextui.css: .btn, .btn-solid, .btn-flat, .btn-ghost, .btn-light, .btn-faded
    - components/cards.css: .action-block, .block-header, .block-icon, .block-title-group, .block-title, .block-subtitle, .block-content
    - components/forms.css: .nui-field, .nui-label, .nui-input
-   - components/tabs.css: .inner-tabs, .tab-button
+   - components/tabs.css: .nui-tabs, .nui-tab
    - components/modals.css: .modal-overlay, .modal-content, .modal-header, .modal-title, .modal-close, .modal-body, .modal-footer
 */
 

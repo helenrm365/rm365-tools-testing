@@ -6,7 +6,7 @@
    - components/buttons.css: .action-btn, .primary-btn, .secondary-btn, .success-btn, .warning-btn
    - components/cards.css: .action-block, .block-header, .block-icon, .block-title-group, .block-title, .block-subtitle, .block-content
    - components/forms.css: .nui-field, .nui-label, .nui-input
-   - components/tabs.css: .inner-tabs, .tab-button
+   - components/tabs.css: .nui-tabs, .nui-tab
    - components/modals.css: .modal-overlay, .modal-content, .modal-header, .modal-title, .modal-close, .modal-body, .modal-footer
    
    Shadow System (from SHADOW_SYSTEM.md):
@@ -1560,7 +1560,7 @@ body:has(.order-fulfillment.mobile-mode-active) #universalFooter {
 /* ===== Mobile Mode Active Session Styles ===== */
 /* When mobile mode is enabled, active session should be compact and fit on screen */
 
-/* Hide page header, description in mobile mode - keep inner-tabs at bottom */
+/* Hide page header, description in mobile mode - keep nui-tabs at bottom */
 .order-fulfillment.mobile-mode-active .page-header,
 .order-fulfillment.mobile-mode-active .page-title,
 .order-fulfillment.mobile-mode-active .page-subtitle {
@@ -1568,7 +1568,7 @@ body:has(.order-fulfillment.mobile-mode-active) #universalFooter {
 }
 
 /* Inner tabs - fixed at very bottom as page navigation */
-.order-fulfillment.mobile-mode-active .inner-tabs {
+.order-fulfillment.mobile-mode-active .nui-tabs {
   position: fixed;
   bottom: 0;
   left: 0;
@@ -1584,7 +1584,7 @@ body:has(.order-fulfillment.mobile-mode-active) #universalFooter {
   gap: 0.25rem;
 }
 
-.order-fulfillment.mobile-mode-active .inner-tabs .tab-button {
+.order-fulfillment.mobile-mode-active .nui-tabs .nui-tab {
   flex: 1;
   min-width: 0;
   padding: 0.5rem 0.25rem;
@@ -1593,7 +1593,7 @@ body:has(.order-fulfillment.mobile-mode-active) #universalFooter {
   gap: 0.25rem;
 }
 
-.order-fulfillment.mobile-mode-active .inner-tabs .tab-button span {
+.order-fulfillment.mobile-mode-active .nui-tabs .nui-tab span {
   font-size: 0.65rem;
   white-space: nowrap;
   overflow: hidden;
@@ -1601,9 +1601,9 @@ body:has(.order-fulfillment.mobile-mode-active) #universalFooter {
 }
 
 /* ===== Hide bottom bars during active session ===== */
-/* When session is active, hide inner-tabs (bottom navigation) and mobile-column-tabs */
-.order-fulfillment.session-active .inner-tabs,
-.order-fulfillment.session-active.mobile-mode-active .inner-tabs {
+/* When session is active, hide nui-tabs (bottom navigation) and mobile-column-tabs */
+.order-fulfillment.session-active .nui-tabs,
+.order-fulfillment.session-active.mobile-mode-active .nui-tabs {
   display: none !important;
 }
 
@@ -1959,12 +1959,12 @@ body:has(.order-fulfillment.mobile-mode-active) #universalFooter {
   margin-bottom: 0.5rem;
 }
 
-/* Mobile column tabs - fixed above inner-tabs in mobile mode */
+/* Mobile column tabs - fixed above nui-tabs in mobile mode */
 .order-fulfillment.mobile-mode-active .mobile-column-tabs {
   display: grid !important;
   grid-template-columns: repeat(3, 1fr);
   position: fixed;
-  bottom: 70px; /* Above the inner-tabs */
+  bottom: 70px; /* Above the nui-tabs */
   left: 0;
   right: 0;
   background: var(--bg);

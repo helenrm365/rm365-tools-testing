@@ -16,7 +16,7 @@ body.liquid-glass-mode .filter-card,
 body.liquid-glass-mode .results-card,
 body.liquid-glass-mode .lookup-card,
 body.liquid-glass-mode .tracking-column,
-body.liquid-glass-mode .inner-tabs,
+body.liquid-glass-mode .nui-tabs,
 body.liquid-glass-mode .stat-card,
 body.liquid-glass-mode .session-card,
 body.liquid-glass-mode .tracking-actions,
@@ -79,12 +79,12 @@ body.liquid-glass-mode .approval-actions {
 }
 
 /* Tab Buttons */
-body.liquid-glass-mode .tab-button {
+body.liquid-glass-mode .nui-tab {
     background: rgba(255, 255, 255, 0.3) !important;
     border: 1px solid rgba(255, 255, 255, 0.4) !important;
 }
 
-body.liquid-glass-mode .tab-button.active {
+body.liquid-glass-mode .nui-tab.active {
     background: color-mix(in srgb, var(--accent) 20%, transparent) !important;
     border-color: color-mix(in srgb, var(--accent) 50%, transparent) !important;
     color: #2c3e50 !important;
@@ -98,7 +98,7 @@ html.dark-mode body.liquid-glass-mode .filter-card,
 html.dark-mode body.liquid-glass-mode .results-card,
 html.dark-mode body.liquid-glass-mode .lookup-card,
 html.dark-mode body.liquid-glass-mode .tracking-column,
-html.dark-mode body.liquid-glass-mode .inner-tabs,
+html.dark-mode body.liquid-glass-mode .nui-tabs,
 html.dark-mode body.liquid-glass-mode .stat-card,
 html.dark-mode body.liquid-glass-mode .session-card,
 html.dark-mode body.liquid-glass-mode .tracking-actions,
@@ -117,13 +117,13 @@ html.dark-mode body.liquid-glass-mode .approval-actions {
     border-color: rgba(255, 255, 255, 0.1) !important;
 }
 
-html.dark-mode body.liquid-glass-mode .tab-button {
+html.dark-mode body.liquid-glass-mode .nui-tab {
     background: rgba(0, 0, 0, 0.2) !important;
     border-color: rgba(255, 255, 255, 0.1) !important;
     color: #e0e0e0 !important;
 }
 
-html.dark-mode body.liquid-glass-mode .tab-button.active {
+html.dark-mode body.liquid-glass-mode .nui-tab.active {
     background: color-mix(in srgb, var(--accent) 20%, transparent) !important;
     border-color: color-mix(in srgb, var(--accent) 50%, transparent) !important;
     color: #fff !important;

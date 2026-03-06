@@ -1,11 +1,12 @@
 /* =============================================
-   NextUI-Inspired Underlined Input System
+   NextUI-Inspired Bordered Input System
    =============================================
    
    ARCHITECTURE: Compose classes in HTML for themed inputs.
    Shares the same color palette as buttons-nextui.css.
+   Styled to match dropdown-nextui.css ghost/bordered style.
 
-   .nui-input                              → Base (underline, layout, transition, disabled)
+   .nui-input                              → Base (bordered, layout, transition, disabled)
    .nui-input-default / primary / …        → Color   (6)
    .nui-input-sm / lg                      → Size    (3: sm, default md, lg)
 
@@ -25,41 +26,40 @@
      </div>
 
    STATES:
-     Default   → bottom border 2px, color at 40% opacity (#3F3F46 at 40%)
-     Hover     → bottom border brightens to #D4D4D8
-     Focus     → bottom border 3px solid --_ic (brand color), label tints
-     Invalid   → bottom border forced to Danger color
+     Default   → 2px border, color at 40% opacity (#3F3F46 at 40%)
+     Hover     → transparent bg (unchanged)
+     Focus     → border-color #000 (light) / #fff (dark), label tints
+     Invalid   → border forced to Danger color
    ============================================= */
 
 
 /* =========================================================
    1. BASE  —  .nui-input
-   Underlined: no bg, no top/left/right border, only bottom.
+   Ghost button style: transparent bg, 2px border, 12px radius.
+   Matches .nui-dropdown-trigger exactly.
    ========================================================= */
 .nui-input {
+  --_idle: color-mix(in srgb, #3F3F46 40%, transparent);
   display: block;
   width: 100%;
   box-sizing: border-box;
 
-  /* Default sizing = MD */
-  height: 40px;
-  padding: 0.5rem 0;      /* no horizontal padding — text aligns with underline */
-  font-size: 0.875rem;    /* 14px */
-  font-weight: 400;
+  /* Default sizing = MD (matches dropdown-trigger md) */
+  height: calc(2 * var(--btn-py-md, 0.5rem) + 1.25 * var(--btn-fs-md, 0.875rem) + 4px);
+  padding: var(--btn-py-md, 0.5rem) var(--btn-px-md, 1rem);
+  font-size: var(--btn-fs-md, 0.875rem);
+  font-weight: 500;
   font-family: inherit;
-  line-height: 1.5;
+  line-height: 1.25;
 
-  /* Underline only */
-  border-style: none none solid none;
-  border-width: 2px;
-  border-color: color-mix(in srgb, #3F3F46 40%, transparent);
-  border-radius: 0;
+  /* Ghost style: transparent bg, 2px border — dimmed by default */
+  border: 2px solid var(--_idle);
+  border-radius: 12px;
   background: transparent;
-  color: var(--text, #e4e4e7);
+  color: #000;
   outline: none;
   cursor: text;
-  transition: border-color 0.2s ease,
-              border-width 0.1s ease;
+  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -73,7 +73,7 @@ textarea.nui-input {
 /* Placeholder */
 .nui-input::placeholder {
   color: var(--text-muted, #71717a);
-  opacity: 0.6;
+  opacity: 0.5;
 }
 
 /* Disabled */
@@ -86,64 +86,70 @@ textarea.nui-input {
 
 /* =========================================================
    1b. SPECIFICITY RESET — Override forms.css generic selectors
-   forms.css targets input[type="text"] (0-1-1) and
-   html.dark-mode input[type="text"] (0-2-1) with gradient bg,
-   box-shadow, border-radius 12px, etc.
+   forms.css targets input[type="text"]:hover (0-1-1) and
+   html.dark-mode input[type="text"]:hover (0-2-1) with
+   green accent borders, gradient bg, box-shadow.
+   We use input[type].nui-input (0-2-0) to beat all of those.
    ========================================================= */
+
+/* --- Base --- */
+input[type].nui-input,
 input.nui-input,
 textarea.nui-input {
-  height: 40px;
-  padding: 0.5rem 0;
-  font-size: 0.875rem;
-  border-style: none none solid none;
-  border-width: 2px;
-  border-color: color-mix(in srgb, #3F3F46 40%, transparent);
-  border-radius: 0;
+  height: calc(2 * var(--btn-py-md, 0.5rem) + 1.25 * var(--btn-fs-md, 0.875rem) + 4px);
+  padding: var(--btn-py-md, 0.5rem) var(--btn-px-md, 1rem);
+  font-size: var(--btn-fs-md, 0.875rem);
+  border: 2px solid var(--_idle);
+  border-radius: 12px;
   background: transparent;
   box-shadow: none;
 }
 
+/* --- Hover: no change — matches dropdown-trigger:hover exactly --- */
+input[type].nui-input:hover,
 input.nui-input:hover,
 textarea.nui-input:hover {
+  border-color: var(--_idle);
   background: transparent;
-  border-style: none none solid none;
-  border-color: color-mix(in srgb, #3F3F46 40%, transparent);
   box-shadow: none;
 }
 
+/* --- Focus: border goes black (light mode) --- */
+input[type].nui-input:focus,
 input.nui-input:focus,
 textarea.nui-input:focus {
+  border: 2px solid #000;
   background: transparent;
-  border-style: none none solid none;
-  border-width: 2px;
-  border-color: #000;
   box-shadow: none;
+  outline: none;
 }
 
+/* --- Dark base --- */
+html.dark-mode input[type].nui-input,
 html.dark-mode input.nui-input,
 html.dark-mode textarea.nui-input {
+  border: 2px solid var(--_idle);
   background: transparent;
-  border-style: none none solid none;
-  border-width: 2px;
-  border-color: color-mix(in srgb, #3F3F46 40%, transparent);
   box-shadow: none;
 }
 
+/* --- Dark hover: no change --- */
+html.dark-mode input[type].nui-input:hover,
 html.dark-mode input.nui-input:hover,
 html.dark-mode textarea.nui-input:hover {
+  border-color: var(--_idle);
   background: transparent;
-  border-style: none none solid none;
-  border-color: color-mix(in srgb, #3F3F46 40%, transparent);
   box-shadow: none;
 }
 
+/* --- Dark focus: border goes white --- */
+html.dark-mode input[type].nui-input:focus,
 html.dark-mode input.nui-input:focus,
 html.dark-mode textarea.nui-input:focus {
+  border: 2px solid #fff;
   background: transparent;
-  border-style: none none solid none;
-  border-width: 2px;
-  border-color: #fff;
   box-shadow: none;
+  outline: none;
 }
 
 
@@ -162,27 +168,28 @@ html.dark-mode textarea.nui-input:focus {
 
 /* =========================================================
    3. SIZES  —  .nui-input-sm / (default md) / .nui-input-lg
+   Matches .nui-dropdown-sm / md / lg spacing & font exactly.
    ========================================================= */
 input.nui-input.nui-input-sm,
 textarea.nui-input.nui-input-sm {
-  height: 32px;
-  padding: 0.25rem 0;
-  font-size: 0.8125rem;   /* 13px */
+  height: calc(2 * var(--btn-py-sm, 0.375rem) + 1.25 * var(--btn-fs-sm, 0.8125rem) + 4px);
+  padding: var(--btn-py-sm, 0.375rem) var(--btn-px-sm, 0.75rem);
+  font-size: var(--btn-fs-sm, 0.8125rem);
 }
 
 /* MD is the base — no extra class needed */
 
 input.nui-input.nui-input-lg,
 textarea.nui-input.nui-input-lg {
-  height: 48px;
-  padding: 0.75rem 0;
-  font-size: 1rem;         /* 16px */
+  height: calc(2 * var(--btn-py-lg, 0.75rem) + 1.25 * var(--btn-fs-lg, 1rem) + 4px);
+  padding: var(--btn-py-lg, 0.75rem) var(--btn-px-lg, 1.5rem);
+  font-size: var(--btn-fs-lg, 1rem);
 }
 
 
 /* =========================================================
    4. INVALID STATE  —  .is-invalid
-   Forces bottom border to Danger color.
+   Forces border to Danger color.
    ========================================================= */
 input.nui-input.is-invalid,
 textarea.nui-input.is-invalid {
@@ -243,4 +250,168 @@ html.dark-mode textarea.nui-input.is-invalid {
   flex-direction: column;
   gap: 4px;
   margin-bottom: 1rem;
+}
+
+
+/* =========================================================
+   7. DARK-MODE OVERRIDES
+   Matches dropdown-nextui.css dark-mode section.
+   ========================================================= */
+html.dark-mode .nui-input {
+  color: #fff;
+}
+
+html.dark-mode .nui-input:focus {
+  border-color: #fff;
+  color: #fff;
+}
+
+
+/* =========================================================
+   8. NUMBER INPUT SPINNERS  —  .nui-number-wrap
+   JS wrapper (number-input.js) adds clickable up/down buttons.
+   Hides native spinners; chevron SVGs live in the buttons.
+   ========================================================= */
+
+/* Hide native spinners */
+input[type="number"].nui-input::-webkit-outer-spin-button,
+input[type="number"].nui-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"].nui-input {
+  -moz-appearance: textfield;
+  /* Extra right padding so text doesn't overlap the spinner column */
+  padding-right: 2rem;
+}
+
+/* Wrapper: positions the spinner column over the input's right edge */
+.nui-number-wrap {
+  position: relative;
+  display: inline-flex;
+  width: 100%;
+}
+
+.nui-number-wrap > input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Spinner column: stacked up/down buttons on the right */
+.nui-number-spinner {
+  position: absolute;
+  right: 2px;
+  top: 2px;
+  bottom: 2px;
+  width: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--_idle, color-mix(in srgb, #3F3F46 40%, transparent));
+  border-radius: 0 10px 10px 0;
+  overflow: hidden;
+}
+
+.nui-number-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #000;
+  transition: background 0.15s ease;
+}
+
+.nui-number-btn:hover {
+  background: color-mix(in srgb, #3F3F46 10%, transparent);
+}
+
+.nui-number-btn:active {
+  background: color-mix(in srgb, #3F3F46 20%, transparent);
+}
+
+/* Divider between the two buttons */
+.nui-number-btn + .nui-number-btn {
+  border-top: 1px solid var(--_idle, color-mix(in srgb, #3F3F46 40%, transparent));
+}
+
+.nui-number-btn svg {
+  width: 10px;
+  height: 6px;
+  pointer-events: none;
+}
+
+/* Dark mode */
+html.dark-mode .nui-number-btn {
+  color: #fff;
+}
+
+html.dark-mode .nui-number-btn:hover {
+  background: color-mix(in srgb, #fff 10%, transparent);
+}
+
+html.dark-mode .nui-number-btn:active {
+  background: color-mix(in srgb, #fff 20%, transparent);
+}
+
+/* ---- Mobile stepper: [ − ]  value  [ + ] ---- */
+.nui-number-mobile {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.nui-number-mobile > input {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  border-radius: 0;
+  border-left: none;
+  border-right: none;
+  padding-right: var(--btn-px-md, 1rem);
+}
+
+.nui-number-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  flex-shrink: 0;
+  border: 2px solid var(--_idle, color-mix(in srgb, #3F3F46 40%, transparent));
+  background: transparent;
+  color: #000;
+  font-size: 1.125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  padding: 0;
+  /* Match input height */
+  height: calc(2 * var(--btn-py-md, 0.5rem) + 1.25 * var(--btn-fs-md, 0.875rem) + 4px);
+}
+
+.nui-number-minus {
+  border-radius: 12px 0 0 12px;
+  border-right: none;
+}
+
+.nui-number-plus {
+  border-radius: 0 12px 12px 0;
+  border-left: none;
+}
+
+.nui-number-stepper:active {
+  background: color-mix(in srgb, #3F3F46 15%, transparent);
+}
+
+/* Dark mode steppers */
+html.dark-mode .nui-number-stepper {
+  color: #fff;
+}
+
+html.dark-mode .nui-number-stepper:active {
+  background: color-mix(in srgb, #fff 15%, transparent);
 }

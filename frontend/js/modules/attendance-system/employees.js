@@ -1289,7 +1289,7 @@ export async function init() {
   wireGuideModal();
   initFilterSelects();
 
-  // Init nui-dropdown styling on all selects
+  // Init nui-dropdown styling on all selects (all MD default)
   initDropdown('#statusFilter');
   initDropdown('#countryFilter');
   initDropdown('#locationFilter');

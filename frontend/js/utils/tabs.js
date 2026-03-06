@@ -117,8 +117,8 @@ export function enforceRoutePermission(pathname) {
 export function applyInnerTabPermissions(root = document) {
   const allowedTabs = getAllowedTabs();
   // Buttons or links that route to /section/sub
-  // We look for data-nav OR just buttons/links inside .inner-tabs OR module feature cards
-  const candidates = root.querySelectorAll('.inner-tabs a, .inner-tabs button, .module-feature-card');
+  // We look for data-nav OR just buttons/links inside .nui-tabs OR module feature cards
+  const candidates = root.querySelectorAll('.nui-tabs a, .nui-tabs button, .module-feature-card');
   candidates.forEach(el => {
     const href = el.getAttribute('href') || el.getAttribute('data-href') || el.getAttribute('onclick') || '';
     // If it's a button with inline location.href, try to parse

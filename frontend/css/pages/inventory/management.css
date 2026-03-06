@@ -6,7 +6,7 @@
    - components/buttons-nextui.css: .btn, .btn-solid, .btn-flat, .btn-ghost, .btn-icon-only
    - components/cards.css: .action-block, .block-header, .block-icon, .block-title-group
    - components/inputs-nextui.css: .nui-field, .nui-label, .nui-input
-   - components/tabs.css: .inner-tabs, .tab-button
+   - components/tabs.css: .nui-tabs, .nui-tab
    - components/tables.css: .table-container, table, thead, tbody, th, td
    - components/loaders.css: .loading-spinner, .loading-state
    - components/filter-control-panel.css: .unified-filter-panel, .filter-panel-header, .filter-panel-body
@@ -964,7 +964,7 @@ html.dark-mode #inventoryManagementTable td.status-lowstock {
 
 /* ===== Branch Tabs (Sub-navigation for different warehouse locations) ===== */
 /* Segmented pill-group pattern — visually connected, secondary to main tabs */
-.inventory-management .branch-tabs {
+.inventory-management .nui-tabs {
   display: inline-flex;
   align-items: stretch;
   padding: 4px;
@@ -977,7 +977,7 @@ html.dark-mode #inventoryManagementTable td.status-lowstock {
   position: relative;
 }
 
-.inventory-management .branch-tab-button {
+.inventory-management .nui-tab {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1000,13 +1000,13 @@ html.dark-mode #inventoryManagementTable td.status-lowstock {
   z-index: 1;
 }
 
-.inventory-management .branch-tab-button:hover {
+.inventory-management .nui-tab:hover {
   color: var(--text);
   background: color-mix(in srgb, var(--accent) 6%, transparent);
   border-color: color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
-.inventory-management .branch-tab-button.active {
+.inventory-management .nui-tab.is-active {
   background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   color: white;
   border-color: transparent;
@@ -1015,17 +1015,17 @@ html.dark-mode #inventoryManagementTable td.status-lowstock {
     0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-.inventory-management .branch-tab-button.active:hover {
+.inventory-management .nui-tab.is-active:hover {
   box-shadow:
     0 4px 14px color-mix(in srgb, var(--accent) 40%, transparent),
     0 2px 4px rgba(0, 0, 0, 0.12);
 }
 
-.inventory-management .branch-tab-button i {
+.inventory-management .nui-tab i {
   font-size: 0.8rem;
   opacity: 0.8;
 }
 
-.inventory-management .branch-tab-button.active i {
+.inventory-management .nui-tab.is-active i {
   opacity: 1;
 }
