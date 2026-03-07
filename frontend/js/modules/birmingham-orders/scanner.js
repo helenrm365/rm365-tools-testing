@@ -120,7 +120,6 @@ class InventoryScannerManager {
     this.reasonInput = document.getElementById('reasonInput');
     this.reasonSelectBtn = document.getElementById('reasonSelectBtn');
     this.reasonDisplay = document.getElementById('reasonDisplay');
-    this.cancelBtn = document.getElementById('cancelBtn');
     this.submitBtn = document.getElementById('submitBtn');
     
     // Modals
@@ -192,8 +191,7 @@ class InventoryScannerManager {
     // Clear all button
     this.clearAllBtn?.addEventListener('click', () => this.clearAllItems());
     
-    // Submit section buttons
-    this.cancelBtn?.addEventListener('click', () => this.clearAllItems());
+    // Submit button
     this.submitBtn?.addEventListener('click', () => this.showConfirmModal());
     
     // Confirm modal buttons
@@ -705,9 +703,6 @@ class InventoryScannerManager {
       // Toggle disabled state on inputs and buttons
       if (this.reasonSelectBtn) {
         this.reasonSelectBtn.disabled = !hasValidItems;
-      }
-      if (this.cancelBtn) {
-        this.cancelBtn.disabled = !hasValidItems;
       }
       if (this.submitBtn) {
         this.submitBtn.disabled = !hasValidItems;
