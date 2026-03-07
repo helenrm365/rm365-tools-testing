@@ -535,63 +535,6 @@ html.dark-mode .inventory-scanner .scanner-unified > .block-content {
   background: linear-gradient(90deg, #fca5a5, #ef4444, #dc2626, #ef4444, #fca5a5);
 }
 
-/* Main content area */
-.inventory-scanner .pending-item-main {
-  display: flex;
-  align-items: flex-start;
-  gap: 1rem;
-  padding: 1.25rem;
-  padding-bottom: 0.75rem;
-  min-width: 0;
-}
-
-/* Product icon with modern design */
-.inventory-scanner .pending-item-icon {
-  width: 56px;
-  height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 16px;
-  font-size: 1.5rem;
-  flex-shrink: 0;
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.inventory-scanner .pending-item-icon::before {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: linear-gradient(
-    45deg,
-    transparent,
-    rgba(255, 255, 255, 0.3),
-    transparent
-  );
-  transform: rotate(45deg);
-  animation: shimmer 3s infinite;
-}
-
-@keyframes shimmer {
-  0%, 100% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
-  50% { transform: translateX(100%) translateY(100%) rotate(45deg); }
-}
-
-.inventory-scanner .pending-item-icon.add {
-  background: linear-gradient(135deg, #34d399, #10b981);
-  color: #ffffff;
-}
-
-.inventory-scanner .pending-item-icon.remove {
-  background: linear-gradient(135deg, #f87171, #ef4444);
-  color: #ffffff;
-}
-
 /* Product information */
 .inventory-scanner .pending-item-info {
   flex: 1;
@@ -625,51 +568,6 @@ html.dark-mode .inventory-scanner .scanner-unified > .block-content {
   display: inline-block;
   width: fit-content;
   letter-spacing: 0.5px;
-}
-
-.inventory-scanner .pending-item-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 0.25rem;
-}
-
-.inventory-scanner .meta-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.375rem 0.75rem;
-  border-radius: 8px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: capitalize;
-  letter-spacing: 0.02em;
-  backdrop-filter: blur(8px);
-  border: 1px solid transparent;
-}
-
-.inventory-scanner .meta-tag.add {
-  background: rgba(16, 185, 129, 0.12);
-  color: #047857;
-  border-color: rgba(16, 185, 129, 0.2);
-}
-
-.inventory-scanner .meta-tag.remove {
-  background: rgba(239, 68, 68, 0.12);
-  color: #b91c1c;
-  border-color: rgba(239, 68, 68, 0.2);
-}
-
-.inventory-scanner .meta-tag.shelf {
-  background: rgba(59, 130, 246, 0.12);
-  color: #1e40af;
-  border-color: rgba(59, 130, 246, 0.2);
-}
-
-.inventory-scanner .meta-tag.stock {
-  background: rgba(156, 163, 175, 0.12);
-  color: #4b5563;
-  border-color: rgba(156, 163, 175, 0.2);
 }
 
 /* ===== Pending Item Quantity Controls ===== */
@@ -804,22 +702,155 @@ html.dark-mode .inventory-scanner .scanner-unified > .block-content {
   text-shadow: 0 1px 2px rgba(16, 185, 129, 0.1);
 }
 
-/* ===== Pending Item Controls Container ===== */
-.inventory-scanner .pending-item-controls {
+/* ===== Compact Card Layout ===== */
+.inventory-scanner .pending-item.compact-card {
+  flex-direction: row;
+  overflow: hidden;
+}
+
+.inventory-scanner .pending-item.compact-card .swipe-content {
+  display: flex !important;
+  flex-direction: row;
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+}
+
+.inventory-scanner .pending-item.compact-card .pending-item-body {
   display: flex;
   flex-direction: row;
+  align-items: stretch;
+  flex: 1;
+  min-width: 0;
+}
+
+.inventory-scanner .pending-item.compact-card .pending-item-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1.25rem;
+}
+
+.inventory-scanner .pending-item.compact-card .pending-item-actions {
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
+  justify-content: center;
+  gap: 0.625rem;
   flex-shrink: 0;
   padding: 0.875rem 1.25rem;
-  background: linear-gradient(135deg, rgba(243, 244, 246, 0.6), rgba(249, 250, 251, 0.6));
-  backdrop-filter: blur(10px);
-  border-top: 1px solid rgba(0, 0, 0, 0.04);
-  margin-top: 0.75rem;
-  overflow: visible;
-  position: relative;
-  border-radius: 0 0 20px 20px;
+  border-left: 1px solid rgba(0, 0, 0, 0.06);
+  background: linear-gradient(135deg, rgba(243, 244, 246, 0.4), rgba(249, 250, 251, 0.4));
+}
+
+html.dark-mode .inventory-scanner .pending-item.compact-card .pending-item-actions {
+  border-left-color: rgba(255, 255, 255, 0.06);
+  background: linear-gradient(135deg, rgba(20, 20, 20, 0.6), rgba(26, 26, 26, 0.6));
+}
+
+/* Remove button: absolute overlay on hover (desktop) */
+.inventory-scanner .pending-item.compact-card > .swipe-content > .pending-item-remove {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 3;
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  transform: scale(0.85);
+}
+
+.inventory-scanner .pending-item.compact-card:hover > .swipe-content > .pending-item-remove {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Shelf & Qty inside compact-card don't need the bottom-bar styling */
+.inventory-scanner .pending-item.compact-card .pending-item-shelf {
+  max-width: none;
+}
+
+.inventory-scanner .pending-item.compact-card .pending-item-qty {
+  padding: 0;
+  background: none;
+  border-top: none;
+  border-radius: 0;
+}
+
+/* Hide number input spinners/chevrons inside compact cards */
+.inventory-scanner .pending-item.compact-card .qty-value-input::-webkit-inner-spin-button,
+.inventory-scanner .pending-item.compact-card .qty-value-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.inventory-scanner .pending-item.compact-card .qty-value-input {
+  -moz-appearance: textfield;
+  /* Reset scanner custom styles — use nui-input base instead */
+  width: 70px;
+  background: transparent;
+  box-shadow: none;
+  border-radius: 12px;
+  text-align: center;
+  font-weight: 800;
+  font-size: 1.375rem;
+  letter-spacing: -0.02em;
+  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+  padding: 0.375rem 0.5rem;
+}
+
+.inventory-scanner .pending-item.compact-card .qty-value-input:focus {
+  transform: none;
+}
+
+/* Keep large colored numbers */
+.inventory-scanner .pending-item.compact-card.remove .qty-value-input {
+  color: #ef4444;
+}
+
+.inventory-scanner .pending-item.compact-card.add .qty-value-input {
+  color: #10b981;
+}
+
+/* Reset custom qty-adjust-btn styles inside compact cards — let NextUI btn classes handle it */
+.inventory-scanner .pending-item.compact-card .qty-adjust-btn {
+  width: auto;
+  height: auto;
+  font-size: inherit;
+  box-shadow: none;
+  border-radius: var(--btn-radius-lg);
+  padding: 0.375rem 0.625rem;
+}
+
+.inventory-scanner .pending-item.compact-card .qty-adjust-btn::before {
+  display: none;
+}
+
+.inventory-scanner .pending-item.compact-card .qty-adjust-btn.minus {
+  background: color-mix(in srgb, var(--btn-color-danger) 15%, transparent);
+  border-color: transparent;
+  color: var(--btn-color-danger);
+}
+
+.inventory-scanner .pending-item.compact-card .qty-adjust-btn.minus:hover {
+  background: color-mix(in srgb, var(--btn-color-danger) 25%, transparent);
+  transform: none;
+  box-shadow: none;
+}
+
+.inventory-scanner .pending-item.compact-card .qty-adjust-btn.plus {
+  background: color-mix(in srgb, var(--btn-color-success) 15%, transparent);
+  border-color: transparent;
+  color: var(--btn-color-success);
+}
+
+.inventory-scanner .pending-item.compact-card .qty-adjust-btn.plus:hover {
+  background: color-mix(in srgb, var(--btn-color-success) 25%, transparent);
+  transform: none;
+  box-shadow: none;
 }
 
 /* ===== Shelf Select in Pending Items ===== */
@@ -1334,30 +1365,6 @@ html.dark-mode .inventory-scanner .pending-item-sku {
   background: rgba(156, 163, 175, 0.12);
 }
 
-html.dark-mode .inventory-scanner .meta-tag.add {
-  background: rgba(16, 185, 129, 0.15);
-  color: #6ee7b7;
-  border-color: rgba(16, 185, 129, 0.25);
-}
-
-html.dark-mode .inventory-scanner .meta-tag.remove {
-  background: rgba(239, 68, 68, 0.15);
-  color: #fca5a5;
-  border-color: rgba(239, 68, 68, 0.25);
-}
-
-html.dark-mode .inventory-scanner .meta-tag.shelf {
-  background: rgba(59, 130, 246, 0.15);
-  color: #93c5fd;
-  border-color: rgba(59, 130, 246, 0.25);
-}
-
-html.dark-mode .inventory-scanner .meta-tag.stock {
-  background: rgba(156, 163, 175, 0.15);
-  color: #d1d5db;
-  border-color: rgba(156, 163, 175, 0.25);
-}
-
 html.dark-mode .inventory-scanner .pending-item-qty {
   background: linear-gradient(135deg, rgba(26, 26, 26, 0.9), rgba(30, 30, 30, 0.9));
   border-top-color: rgba(255, 255, 255, 0.05);
@@ -1405,11 +1412,6 @@ html.dark-mode .inventory-scanner .qty-value-input {
 html.dark-mode .inventory-scanner .qty-value-input:focus {
   border-color: #818cf8;
   box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.2), inset 0 2px 6px rgba(0, 0, 0, 0.4);
-}
-
-html.dark-mode .inventory-scanner .pending-item-controls {
-  background: linear-gradient(135deg, rgba(20, 20, 20, 0.8), rgba(26, 26, 26, 0.8));
-  border-top-color: rgba(255, 255, 255, 0.03);
 }
 
 html.dark-mode .inventory-scanner .pending-item-remove {
@@ -1628,20 +1630,7 @@ html.dark-mode .inventory-scanner .pending-item-remove:hover {
     border-radius: 20px;
   }
   
-  .inventory-scanner .pending-item-main {
-    padding: 1rem;
-    padding-bottom: 0.625rem;
-  }
-  
   /* Controls stacked, aligned top-right within grid */
-  .inventory-scanner .pending-item-controls {
-    flex-direction: row;
-    align-items: center;
-    gap: 0.75rem;
-    justify-content: space-between;
-    padding: 0.75rem 1rem;
-    margin-top: 0;
-  }
   
   /* Compact dropdown for mobile */
   .inventory-scanner .pending-item-shelf {
@@ -1671,6 +1660,85 @@ html.dark-mode .inventory-scanner .pending-item-remove:hover {
   /* Hide delete button on mobile - use swipe instead */
   .inventory-scanner .pending-item-remove {
     display: none;
+  }
+
+  /* ===== Compact Card Mobile Overrides ===== */
+  /* Keep the same horizontal two-column layout as desktop */
+  .inventory-scanner .pending-item.compact-card .swipe-content {
+    flex-direction: row !important;
+    border-radius: 20px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(249, 250, 251, 0.95));
+    box-shadow:
+      0 4px 20px rgba(0, 0, 0, 0.06),
+      0 1px 3px rgba(0, 0, 0, 0.08);
+  }
+
+  html.dark-mode .inventory-scanner .pending-item.compact-card .swipe-content {
+    background: linear-gradient(135deg, rgba(30, 30, 30, 0.98), rgba(38, 38, 38, 0.98));
+    box-shadow:
+      0 4px 20px rgba(0, 0, 0, 0.4),
+      0 1px 3px rgba(0, 0, 0, 0.5);
+  }
+
+  .inventory-scanner .pending-item.compact-card .pending-item-body {
+    flex-direction: row;
+  }
+
+  .inventory-scanner .pending-item.compact-card .pending-item-info {
+    padding: 0.875rem;
+    gap: 0.375rem;
+  }
+
+  .inventory-scanner .pending-item.compact-card .pending-item-name {
+    font-size: 0.875rem;
+  }
+
+  .inventory-scanner .pending-item.compact-card .pending-item-sku {
+    font-size: 0.6875rem;
+  }
+
+  .inventory-scanner .pending-item.compact-card .pending-item-actions {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-left: 1px solid rgba(0, 0, 0, 0.04);
+    border-top: none;
+    padding: 0.625rem 0.75rem;
+    background: transparent;
+    gap: 0.5rem;
+  }
+
+  html.dark-mode .inventory-scanner .pending-item.compact-card .pending-item-actions {
+    border-left-color: rgba(255, 255, 255, 0.06);
+    border-top: none;
+  }
+
+  .inventory-scanner .pending-item.compact-card .pending-item-shelf {
+    max-width: none;
+  }
+
+  .inventory-scanner .pending-item.compact-card .shelf-select-btn {
+    min-width: 90px;
+    font-size: 0.8125rem;
+    padding: 0.375rem 0.5rem;
+  }
+
+  .inventory-scanner .pending-item.compact-card .qty-adjust-btn {
+    width: 34px;
+    height: 34px;
+  }
+
+  .inventory-scanner .pending-item.compact-card .qty-value-input {
+    width: 60px;
+    font-size: 1.125rem;
+    padding: 0.375rem 0.5rem;
+  }
+
+  /* Elevate compact card when dropdown is focused */
+  .inventory-scanner .pending-item.compact-card .pending-item-actions:focus-within,
+  .inventory-scanner .pending-item.compact-card:focus-within {
+    z-index: 300;
+    position: relative;
   }
   
   /* Swipe to delete mobile styles — iMessage-inspired */
@@ -1755,23 +1823,9 @@ html.dark-mode .inventory-scanner .pending-item-remove:hover {
   }
   
   /* Main section takes remaining space */
-  .inventory-scanner .pending-item-main {
-    flex: 1 1 auto;
-    min-width: 0;
-    display: flex;
-    align-items: flex-start;
-    gap: 0.75rem;
-  }
-  
   .inventory-scanner .pending-item-info {
     min-width: 0;
     flex: 1;
-  }
-  
-  .inventory-scanner .pending-item-icon {
-    width: 48px;
-    height: 48px;
-    font-size: 1.25rem;
   }
   
   /* Allow product name to wrap */
@@ -1797,7 +1851,6 @@ html.dark-mode .inventory-scanner .pending-item-remove:hover {
 
   /* Elevate parents when dropdown is focused so the menu renders above sticky footer/nav */
   .inventory-scanner .pending-item-shelf:focus-within,
-  .inventory-scanner .pending-item-controls:focus-within,
   .inventory-scanner .pending-item:focus-within {
     z-index: 300;
     position: relative;
@@ -1969,18 +2022,6 @@ html.dark-mode .inventory-scanner .pending-item-remove:hover {
     font-size: 0.8125rem;
   }
   
-  .inventory-scanner .pending-item-icon {
-    width: 32px;
-    height: 32px;
-    font-size: 1rem;
-    border-radius: 10px;
-  }
-  
-  .inventory-scanner .pending-item-controls {
-    padding: 0.625rem 0.875rem;
-    gap: 0.625rem;
-  }
-  
   .inventory-scanner .pending-item-shelf {
     max-width: 120px;
   }
@@ -2005,6 +2046,38 @@ html.dark-mode .inventory-scanner .pending-item-remove:hover {
   .inventory-scanner .pending-item-remove {
     width: 28px;
     height: 28px;
+  }
+
+  /* Compact card small mobile tweaks */
+  .inventory-scanner .pending-item.compact-card .pending-item-info {
+    padding: 0.625rem 0.75rem;
+    gap: 0.25rem;
+  }
+
+  .inventory-scanner .pending-item.compact-card .pending-item-name {
+    font-size: 0.8125rem;
+  }
+
+  .inventory-scanner .pending-item.compact-card .pending-item-actions {
+    padding: 0.5rem 0.625rem;
+    gap: 0.375rem;
+  }
+
+  .inventory-scanner .pending-item.compact-card .shelf-select-btn {
+    min-width: 80px;
+    font-size: 0.75rem;
+    padding: 0.3rem 0.4rem;
+  }
+
+  .inventory-scanner .pending-item.compact-card .qty-adjust-btn {
+    width: 30px;
+    height: 30px;
+  }
+
+  .inventory-scanner .pending-item.compact-card .qty-value-input {
+    width: 52px;
+    font-size: 1rem;
+    padding: 0.25rem 0.375rem;
   }
   
   .inventory-scanner .empty-state {

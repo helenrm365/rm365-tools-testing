@@ -130,6 +130,7 @@ class InventoryScannerManager {
     this.shelfOptions = document.getElementById('shelfOptions');
     this.activeShelfItemIndex = null; // Track which item's shelf is being edited
     this.pendingDuplicateItem = null; // Track item waiting for duplicate confirmation
+    this.zeroStockModal = document.getElementById('zeroStockModal');
   }
 
   attachEventListeners() {
@@ -224,6 +225,13 @@ class InventoryScannerManager {
     document.getElementById('duplicateAddBtn')?.addEventListener('click', () => this.confirmAddDuplicate());
     this.duplicateModal?.addEventListener('click', (e) => {
       if (e.target === this.duplicateModal) this.hideDuplicateModal();
+    });
+
+    // Zero stock warning modal
+    document.getElementById('closeZeroStockModalBtn')?.addEventListener('click', () => this.hideZeroStockModal());
+    document.getElementById('zeroStockOkBtn')?.addEventListener('click', () => this.hideZeroStockModal());
+    this.zeroStockModal?.addEventListener('click', (e) => {
+      if (e.target === this.zeroStockModal) this.hideZeroStockModal();
     });
   }
 
@@ -563,6 +571,16 @@ class InventoryScannerManager {
         this.skuInput.focus();
         return;
       }
+
+      // Check if product has zero stock — warn user before allowing deduction
+      const totalStock = itemInfo.total_qty || 0;
+      if (totalStock === 0) {
+        this.showZeroStockModal(itemInfo.name || itemInfo.product_name || sku);
+        this.playErrorBeep();
+        this.skuInput.value = '';
+        this.skuInput.focus();
+        return;
+      }
       
       // For scanning, always use 'auto' shelf - find existing auto entry for this SKU
       const existingAutoIndex = this.pendingItems.findIndex(
@@ -764,46 +782,39 @@ class InventoryScannerManager {
     this.pendingItemsList.innerHTML = this.pendingItems.map((item, index) => {
       const isPositive = item.quantity > 0;
       const typeClass = isPositive ? 'add' : 'remove';
-      const typeIcon = isPositive ? 'fa-plus-circle' : 'fa-minus-circle';
       const shelfLabel = this.getShelfLabel(item.shelfField, isPositive);
       
       return `
-        <div class="pending-item ${typeClass}" data-index="${index}">
+        <div class="pending-item compact-card ${typeClass}" data-index="${index}">
           <div class="swipe-delete-action">
             <i class="fas fa-trash"></i>
             <span>Delete</span>
           </div>
           <div class="swipe-content">
-            <div class="pending-item-main">
-              <button class="pending-item-remove" data-index="${index}" title="Remove item">
-                <i class="fas fa-trash"></i>
-              </button>
-              <div class="pending-item-icon ${typeClass}">
-                <i class="fas ${typeIcon}"></i>
-              </div>
+            <button class="pending-item-remove" data-index="${index}" title="Remove item">
+              <i class="fas fa-trash"></i>
+            </button>
+            <div class="pending-item-body">
               <div class="pending-item-info">
                 <div class="pending-item-name">${item.name}</div>
                 <div class="pending-item-sku">${item.sku}</div>
-                <div class="pending-item-meta">
-                  <span class="meta-tag stock">Current: ${item.currentStock}</span>
+              </div>
+              <div class="pending-item-actions">
+                <div class="pending-item-shelf">
+                  <button type="button" class="shelf-select-btn" data-index="${index}" data-value="${item.shelfField}">
+                    <span class="shelf-label">${shelfLabel}</span>
+                    <i class="fas fa-chevron-right"></i>
+                  </button>
                 </div>
-              </div>
-            </div>
-            <div class="pending-item-controls">
-              <div class="pending-item-shelf">
-                <button type="button" class="shelf-select-btn" data-index="${index}" data-value="${item.shelfField}">
-                  <span class="shelf-label">${shelfLabel}</span>
-                  <i class="fas fa-chevron-right"></i>
-                </button>
-              </div>
-              <div class="pending-item-qty">
-                <button class="btn btn-qty btn-qty-minus qty-adjust-btn minus" data-index="${index}" data-action="decrease" title="Decrease (more negative)">
-                  <i class="fas fa-minus"></i>
-                </button>
-                <input type="number" class="qty-value-input" data-index="${index}" value="${item.quantity}">
-                <button class="btn btn-qty btn-qty-plus qty-adjust-btn plus" data-index="${index}" data-action="increase" title="Increase (less negative / more positive)">
-                  <i class="fas fa-plus"></i>
-                </button>
+                <div class="pending-item-qty">
+                  <button class="btn btn-flat btn-danger btn-sm rounded-lg qty-adjust-btn minus" data-index="${index}" data-action="decrease" title="Decrease">
+                    <i class="fas fa-minus"></i>
+                  </button>
+                  <input type="number" class="nui-input nui-input-default qty-value-input" data-index="${index}" value="${item.quantity}">
+                  <button class="btn btn-flat btn-success btn-sm rounded-lg qty-adjust-btn plus" data-index="${index}" data-action="increase" title="Increase">
+                    <i class="fas fa-plus"></i>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -1330,6 +1341,23 @@ class InventoryScannerManager {
       this.duplicateModal.classList.remove('active');
     }
     this.pendingDuplicateItem = null;
+  }
+
+  showZeroStockModal(productName) {
+    const messageEl = document.getElementById('zeroStockModalMessage');
+    if (messageEl) {
+      messageEl.textContent = `"${productName}" has 0 left in quantity. Please verify inventory before proceeding with this product.`;
+    }
+    if (this.zeroStockModal) {
+      this.zeroStockModal.classList.add('active');
+    }
+  }
+
+  hideZeroStockModal() {
+    if (this.zeroStockModal) {
+      this.zeroStockModal.classList.remove('active');
+    }
+    this.skuInput?.focus();
   }
 
   confirmAddDuplicate() {

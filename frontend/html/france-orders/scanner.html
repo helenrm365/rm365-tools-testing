@@ -243,4 +243,28 @@
     </div>
   </div>
 
+  <!-- Zero Stock Warning Modal -->
+  <div class="modal-backdrop" id="zeroStockModal">
+    <div class="modal modal-sm">
+      <div class="modal-header modal-header-warning">
+        <div class="modal-header-icon">
+          <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <h2 class="modal-title">Zero Quantity</h2>
+        <button class="modal-close modal-close-contrast" id="closeZeroStockModalBtn">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p id="zeroStockModalMessage">This product has 0 left in quantity. Please verify inventory before proceeding with this product.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-solid btn-primary" id="zeroStockOkBtn">
+          <i class="fas fa-check"></i>
+          OK
+        </button>
+      </div>
+    </div>
+  </div>
+
 </div>
