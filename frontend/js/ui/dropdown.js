@@ -2,6 +2,7 @@
 // Usage: import { initDropdown } from '../../ui/dropdown.js';
 //        initDropdown('#mySelect');
 //   or:  initDropdown('#mySelect', { color: 'primary' });
+//  Multi-select is auto-detected from the native <select multiple>.
 
 const CHEVRON_SVG = '<svg class="nui-dropdown-chevron" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
@@ -25,6 +26,7 @@ function attachGlobalListener() {
  * Wrap a native <select> with nui-dropdown styling.
  * Keeps the native select hidden but synced — all existing .value / .innerHTML
  * JS code continues to work. A MutationObserver re-syncs when options change.
+ * Automatically supports multi-select when the native <select> has `multiple`.
  *
  * @param {string} selector - CSS selector for the <select> element
  * @param {object} [opts]
@@ -58,13 +60,15 @@ export function initDropdown(selectorOrEl, opts = {}) {
   native.classList.remove('modern-select');
   native.dataset.enhanced = 'nui';
 
-  const color = opts.color || 'default';
-  const size = opts.size || '';
+  const color   = opts.color || 'default';
+  const size     = opts.size  || '';
+  const isMultiple = native.hasAttribute('multiple');
 
   // Build wrapper
   const wrap = document.createElement('div');
   let cls = `nui-dropdown nui-dropdown-${color}`;
   if (size) cls += ` nui-dropdown-${size}`;
+  if (isMultiple) cls += ' nui-dropdown-multiple';
   wrap.className = cls;
 
   // Trigger button
@@ -91,7 +95,7 @@ export function initDropdown(selectorOrEl, opts = {}) {
   // On mobile: keep native <select> visible but transparent, overlaying the trigger
   // so the OS-native picker fires on tap. On desktop: hide it.
   function applyMobileNativeOverlay() {
-    if (isMobile()) {
+    if (isMobile() && !isMultiple) {
       native.classList.remove('select-hidden');
       native.classList.add('nui-native-overlay');
     } else {
@@ -103,49 +107,78 @@ export function initDropdown(selectorOrEl, opts = {}) {
 
   // ---- Sync helpers ----
 
+  // Escape HTML for safe innerHTML insertion
+  function esc(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+
   function buildItems() {
     menu.innerHTML = '';
-    Array.from(native.options).forEach((opt) => {
-      // Skip placeholder options (disabled with empty value)
-      if (opt.disabled && opt.value === '') return;
 
-      const item = document.createElement('button');
-      item.type = 'button';
-      item.className = 'nui-dropdown-item';
-      item.dataset.value = opt.value;
-      item.textContent = opt.textContent;
+    if (isMultiple) {
+      const opts = Array.from(native.options);
+      const checked = opts.filter(o => o.selected).length;
+      menu.innerHTML =
+        `<div class="nui-dropdown-header"><input type="checkbox" class="nui-dropdown-checkbox"${checked === opts.length ? ' checked' : ''}><span>Select All</span></div>` +
+        opts.map((o, i) =>
+          `<div class="nui-dropdown-item nui-dropdown-item-multi" data-i="${i}"><input type="checkbox" class="nui-dropdown-checkbox"${o.selected ? ' checked' : ''} style="pointer-events:none"><span>${esc(o.textContent)}</span></div>`
+        ).join('') +
+        `<div class="nui-dropdown-footer"><button type="button" class="nui-dropdown-done">Done</button></div>`;
+      const hcb = menu.querySelector('.nui-dropdown-header .nui-dropdown-checkbox');
+      if (checked > 0 && checked < opts.length) hcb.indeterminate = true;
+    } else {
+      // Single-select items (unchanged)
+      Array.from(native.options).forEach((opt) => {
+        if (opt.disabled && opt.value === '') return;
 
-      if (opt.value === native.value) {
-        item.classList.add('is-selected');
-      }
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.className = 'nui-dropdown-item';
+        item.dataset.value = opt.value;
+        item.textContent = opt.textContent;
 
-      item.addEventListener('click', (e) => {
-        e.stopPropagation();
-        native.value = opt.value;
-        native.dispatchEvent(new Event('change', { bubbles: true }));
-        updateLabel();
-        highlightSelected();
-        dropdown.close();
+        if (opt.value === native.value) {
+          item.classList.add('is-selected');
+        }
+
+        item.addEventListener('click', (e) => {
+          e.stopPropagation();
+          native.value = opt.value;
+          native.dispatchEvent(new Event('change', { bubbles: true }));
+          updateLabel();
+          highlightSelected();
+          dropdown.close();
+        });
+
+        menu.appendChild(item);
       });
-
-      menu.appendChild(item);
-    });
+    }
   }
 
   function updateLabel() {
-    const sel = native.selectedOptions?.[0] || native.options?.[native.selectedIndex];
-    if (sel && sel.value !== '' && !sel.disabled) {
-      valueSpan.textContent = sel.textContent;
-      trigger.classList.add('has-value');
+    if (isMultiple) {
+      const selected = Array.from(native.selectedOptions);
+      const hasVal = selected.length > 0;
+      trigger.classList.toggle('has-value', hasVal);
+      wrap.classList.toggle('has-value', hasVal);
+      if (!hasVal) { valueSpan.textContent = 'Select…'; return; }
+      if (selected.length === 1) { valueSpan.textContent = selected[0].textContent; return; }
+      valueSpan.innerHTML = `${esc(selected[0].textContent)} <span class="nui-dropdown-count">+${selected.length - 1}</span>`;
     } else {
-      // Show placeholder
-      const placeholder = native.querySelector('option[disabled]') || native.options[0];
-      valueSpan.textContent = placeholder ? placeholder.textContent : 'Select…';
-      trigger.classList.remove('has-value');
+      const sel = native.selectedOptions?.[0] || native.options?.[native.selectedIndex];
+      if (sel && sel.value !== '' && !sel.disabled) {
+        valueSpan.textContent = sel.textContent;
+        trigger.classList.add('has-value');
+        wrap.classList.add('has-value');
+      } else {
+        const placeholder = native.querySelector('option[disabled]') || native.options[0];
+        valueSpan.textContent = placeholder ? placeholder.textContent : 'Select…';
+        trigger.classList.remove('has-value');
+        wrap.classList.remove('has-value');
+      }
     }
   }
 
   function highlightSelected() {
+    if (isMultiple) return;
     menu.querySelectorAll('.nui-dropdown-item').forEach(item => {
       item.classList.toggle('is-selected', item.dataset.value === native.value);
     });
@@ -204,8 +237,33 @@ export function initDropdown(selectorOrEl, opts = {}) {
 
   // ---- Events ----
 
-  trigger.addEventListener('click', (e) => { e.stopPropagation(); if (!isMobile()) toggle(); });
-  menu.addEventListener('click', (e) => e.stopPropagation());
+  trigger.addEventListener('click', (e) => { e.stopPropagation(); if (!isMobile() || isMultiple) toggle(); });
+
+  // Delegated click handler for menu (multi-select uses delegation, single-select has per-item listeners)
+  menu.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (!isMultiple) return;
+    const opts = Array.from(native.options);
+    const hcb = menu.querySelector('.nui-dropdown-header .nui-dropdown-checkbox');
+    if (e.target.closest('.nui-dropdown-done')) { dropdown.close(); return; }
+    if (e.target.closest('.nui-dropdown-header')) {
+      const selectAll = !hcb.checked;
+      opts.forEach(o => { o.selected = selectAll; });
+      menu.querySelectorAll('.nui-dropdown-item-multi .nui-dropdown-checkbox').forEach(cb => { cb.checked = selectAll; });
+      hcb.checked = selectAll; hcb.indeterminate = false;
+    } else {
+      const item = e.target.closest('.nui-dropdown-item-multi');
+      if (!item) return;
+      const opt = opts[+item.dataset.i];
+      opt.selected = !opt.selected;
+      item.querySelector('.nui-dropdown-checkbox').checked = opt.selected;
+      const c = opts.filter(o => o.selected).length;
+      hcb.checked = c === opts.length;
+      hcb.indeterminate = c > 0 && c < opts.length;
+    }
+    native.dispatchEvent(new Event('change', { bubbles: true }));
+    updateLabel();
+  });
 
   function onNativeChange() {
     updateLabel();
@@ -213,17 +271,19 @@ export function initDropdown(selectorOrEl, opts = {}) {
   }
   native.addEventListener('change', onNativeChange);
 
-  // Intercept programmatic .value = ... changes on the native select
-  const valueDesc = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value');
-  Object.defineProperty(native, 'value', {
-    get() { return valueDesc.get.call(this); },
-    set(v) {
-      valueDesc.set.call(this, v);
-      updateLabel();
-      highlightSelected();
-    },
-    configurable: true
-  });
+  if (!isMultiple) {
+    // Intercept programmatic .value = ... changes on the native select
+    const valueDesc = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value');
+    Object.defineProperty(native, 'value', {
+      get() { return valueDesc.get.call(this); },
+      set(v) {
+        valueDesc.set.call(this, v);
+        updateLabel();
+        highlightSelected();
+      },
+      configurable: true
+    });
+  }
 
   // Intercept programmatic .disabled = ... changes on the native select
   const disabledDesc = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'disabled');

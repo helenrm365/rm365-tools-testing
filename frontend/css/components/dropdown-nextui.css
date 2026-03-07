@@ -267,7 +267,48 @@
 
 
 /* =========================================================
-   9. DISABLED
+   9. MULTI-SELECT — .nui-dropdown-multiple
+   ========================================================= */
+.nui-dropdown-multiple .nui-dropdown-menu { max-height: 300px; padding: 0; }
+
+.nui-dropdown-item-multi { display: flex; align-items: center; gap: 0.625rem; user-select: none; margin: 0 4px; }
+
+.nui-dropdown-checkbox { width: 16px; height: 16px; min-width: 16px; accent-color: var(--_dc); margin: 0; }
+
+.nui-dropdown-header {
+  display: flex; align-items: center; gap: 0.625rem;
+  padding: 0.5rem 0.75rem; font-weight: 600; font-size: 0.875rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  position: sticky; top: 0; z-index: 1;
+  background: var(--bg-card, #fafafa); cursor: pointer; user-select: none;
+  border-radius: 8px 8px 0 0;
+}
+.nui-dropdown-header:hover { background: color-mix(in srgb, var(--bg-card, #fafafa) 92%, #3F3F46); }
+
+.nui-dropdown-footer {
+  padding: 4px; border-top: 1px solid rgba(0, 0, 0, 0.08);
+  position: sticky; bottom: 0; background: var(--bg-card, #fafafa);
+  border-radius: 0 0 8px 8px;
+}
+.nui-dropdown-done {
+  display: block; width: 100%; padding: 0.4rem 0.75rem;
+  border: none; border-radius: 6px; font: 600 0.875rem inherit;
+  cursor: pointer; background: var(--_dc); color: #fff;
+  transition: background 0.15s ease;
+}
+.nui-dropdown-done:hover { background: color-mix(in srgb, var(--_dc) 85%, #000); }
+
+.nui-dropdown-count {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 20px; height: 20px; padding: 0 6px;
+  background: var(--_dc); color: #fff;
+  border-radius: 6px; font-size: 0.7rem; font-weight: 600;
+  margin-left: 0.25rem; vertical-align: middle;
+}
+
+
+/* =========================================================
+   10. DISABLED
    ========================================================= */
 .nui-dropdown.is-disabled {
   opacity: 0.5;
@@ -276,7 +317,7 @@
 
 
 /* =========================================================
-   10. DARK-MODE OVERRIDES
+   11. DARK-MODE OVERRIDES
    ========================================================= */
 html.dark-mode .nui-dropdown-trigger {
   color: #fff;
@@ -293,4 +334,18 @@ html.dark-mode .nui-dropdown-item {
 
 html.dark-mode .nui-dropdown-menu {
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+
+/* Dark-mode multi-select */
+html.dark-mode .nui-dropdown-header {
+  background: var(--bg-card);
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+html.dark-mode .nui-dropdown-header:hover {
+  background: color-mix(in srgb, var(--bg-card) 92%, #fff);
+}
+
+html.dark-mode .nui-dropdown-footer {
+  background: var(--bg-card);
+  border-top-color: rgba(255, 255, 255, 0.08);
 }

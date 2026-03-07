@@ -18,8 +18,7 @@
 }
 
 /* ===== Modern Tabs Container ===== */
-.tabs,
-.nui-tabs {
+.tabs {
   display: flex;
   gap: var(--space-sm);
   padding: var(--space-md);
@@ -30,67 +29,8 @@
 }
 
 /* ===== Tab Button ===== */
-.nui-tab {
-  flex: 1 1 auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-sm);
-  
-  /* Sizing */
-  padding: var(--space-sm) var(--space-lg);
-  min-height: 44px;
-  min-width: 120px;
-  
-  /* Appearance */
-  background: linear-gradient(135deg, var(--bg-light), color-mix(in srgb, var(--accent) 3%, var(--bg-light)));
-  color: var(--text-muted);
-  border: 2px solid color-mix(in srgb, var(--accent) 15%, transparent);
-  border-radius: var(--radius-md);
-  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 8%, transparent);
-  
-  /* Typography */
-  font-family: var(--ff);
-  font-size: 1rem;
-  font-weight: 600;
-  white-space: nowrap;
-  
-  /* Behavior */
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.nui-tab:hover {
-  color: var(--text);
-  transform: translateY(-2px);
-  border-color: var(--accent);
-  box-shadow: 
-    0 0 12px color-mix(in srgb, var(--accent) 20%, transparent),
-    0 4px 12px color-mix(in srgb, var(--accent) 15%, transparent);
-}
-
-.nui-tab:focus-visible {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 
-    0 0 12px color-mix(in srgb, var(--accent) 25%, transparent),
-    0 0 24px color-mix(in srgb, var(--accent) 15%, transparent),
-    0 4px 12px color-mix(in srgb, var(--accent) 20%, transparent);
-}
-
-.nui-tab.is-active {
-  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
-  color: white;
-  border-color: var(--accent);
-  box-shadow: 
-    0 0 16px color-mix(in srgb, var(--accent) 30%, transparent),
-    0 4px 12px color-mix(in srgb, var(--accent) 25%, transparent);
-}
-
-.nui-tab i,
-.nui-tab svg {
-  font-size: 1.125rem;
-}
+/* Desktop appearance handled by tabs-nextui.css.
+   Only layout properties needed here for responsive rules below. */
 
 /* ===== Top Navigation (Legacy) ===== */
 .top-nav {
@@ -295,13 +235,4 @@
 }
 
 /* ===== Glow Effects Toggle ===== */
-/* Glows are disabled by default. Enable with html.glow-enabled class */
-
-html:not(.glow-enabled) .nui-tab:hover,
-html:not(.glow-enabled) .nui-tab:focus-visible {
-  box-shadow: var(--shadow-m);
-}
-
-html:not(.glow-enabled) .nui-tab.is-active {
-  box-shadow: var(--shadow-m);
-}
+/* Glows are now solely managed by tabs-nextui.css */

@@ -352,7 +352,7 @@ async function loadInventoryData() {
 }
 
 function setupDropdowns() {
-  // Column visibility dropdown using native multi-select (kept as c-select)
+  // Column visibility multi-select dropdown (nui-dropdown)
   setupColumnDropdown();
 
   // Stock status dropdown
@@ -360,7 +360,7 @@ function setupDropdowns() {
   setupStockStatusFilter();
 }
 
-// Setup column dropdown with checkboxes using native multi-select
+// Setup column dropdown with checkboxes using nui-dropdown multi-select
 function setupColumnDropdown() {
   const columnSelect = document.getElementById('columnSelect');
   if (!columnSelect) return;
@@ -390,6 +390,9 @@ function setupColumnDropdown() {
   columnSelect.innerHTML = columns.map(col => 
     `<option value="${col.value}" ${col.checked ? 'selected' : ''}>${col.text}</option>`
   ).join('');
+  
+  // Enhance with nui-dropdown (auto-detects multiple)
+  initDropdown(columnSelect);
   
   // Handle column visibility changes
   columnSelect.addEventListener('change', () => {
