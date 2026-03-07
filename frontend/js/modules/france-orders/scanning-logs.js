@@ -68,6 +68,7 @@ class ScanningLogsManager {
     this.detailRemoved = document.getElementById('detailRemoved');
     this.detailTotal = document.getElementById('detailTotal');
     this.detailItemsBody = document.getElementById('detailItemsBody');
+    this.detailItemCards = document.getElementById('detailItemCards');
   }
 
   attachEventListeners() {
@@ -261,10 +262,10 @@ class ScanningLogsManager {
           </div>
         </div>
         <div class="submission-footer">
-          <span class="view-details">
+          <button class="btn btn-flat btn-primary btn-sm">
             <i class="fas fa-eye"></i>
             View Details
-          </span>
+          </button>
         </div>
       </div>
     `;
@@ -382,6 +383,51 @@ class ScanningLogsManager {
       }
 
       this.detailItemsBody.innerHTML = html;
+    }
+
+    // Build mobile item cards
+    if (this.detailItemCards) {
+      let cardsHtml = '';
+      const items = submission.items || [];
+
+      for (const item of items) {
+        const quantityClass = item.quantity > 0 ? 'positive' : 'negative';
+        const quantityPrefix = item.quantity > 0 ? '+' : '';
+
+        let allocationText = '';
+        if (item.allocation_details) {
+          const details = item.allocation_details;
+          if (Array.isArray(details)) {
+            allocationText = details.map(d =>
+              `${this.getShelfLabel(d.shelf)}: ${d.quantity > 0 ? '+' : ''}${d.quantity}`
+            ).join(', ');
+          } else if (typeof details === 'object') {
+            allocationText = Object.entries(details)
+              .map(([shelf, qty]) => `${this.getShelfLabel(shelf)}: ${qty > 0 ? '+' : ''}${qty}`)
+              .join(', ');
+          }
+        }
+
+        cardsHtml += `
+          <div class="detail-item-card">
+            <div class="item-card-header">
+              <span class="item-card-sku">${this.escapeHtml(item.sku)}</span>
+              <span class="item-card-qty ${quantityClass}">${quantityPrefix}${item.quantity}</span>
+            </div>
+            <div class="item-card-name">${this.escapeHtml(item.product_name || '-')}</div>
+            <div class="item-card-meta">
+              <span><i class="fas fa-warehouse"></i> ${this.getShelfLabel(item.shelf_field)}</span>
+              ${allocationText ? `<span><i class="fas fa-sitemap"></i> ${allocationText}</span>` : ''}
+            </div>
+          </div>
+        `;
+      }
+
+      if (items.length === 0) {
+        cardsHtml = '<p style="text-align:center;color:var(--text-muted,#9ca3af);padding:1rem;">No items in this submission</p>';
+      }
+
+      this.detailItemCards.innerHTML = cardsHtml;
     }
   }
 
