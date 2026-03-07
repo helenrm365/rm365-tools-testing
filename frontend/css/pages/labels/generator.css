@@ -433,22 +433,7 @@
   align-items: center;
 }
 
-/* Search clear button - uses .btn .btn-icon .btn-sm .btn-ghost from buttons.css */
-/* Only page-specific overrides here */
-.labels-generator .search-clear-btn {
-  position: absolute;
-  right: 0.75rem;
-  background: var(--bg-dark);
-  border-radius: 50%;
-  min-width: 24px;
-  min-height: 24px;
-  padding: 0;
-}
 
-.labels-generator .search-clear-btn:hover {
-  background: var(--danger);
-  color: white;
-}
 
 /* ===== Selection Bar ===== */
 /* Uses .card from cards.css for base styling */
@@ -473,19 +458,7 @@
   min-width: 200px;
 }
 
-.labels-generator .selection-bar-search .search-clear-btn {
-  position: absolute;
-  right: 2rem;
-  background: none;
-  min-width: auto;
-  min-height: auto;
-  padding: 0.25rem;
-}
 
-.labels-generator .selection-bar-search .search-clear-btn:hover {
-  background: none;
-  color: var(--text);
-}
 
 .labels-generator .select-all-group {
   display: flex;

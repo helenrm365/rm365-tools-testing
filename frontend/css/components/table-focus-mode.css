@@ -455,14 +455,7 @@ html.dark-mode .focused-controls-bar.selection-bar {
   pointer-events: none;
 }
 
-.focused-controls-bar .selection-bar-search .search-clear-btn {
-  position: absolute;
-  right: 2rem;
-  background: none;
-  min-width: auto;
-  min-height: auto;
-  padding: 0.25rem;
-}
+
 
 .focused-controls-bar .select-all-group {
   display: flex;

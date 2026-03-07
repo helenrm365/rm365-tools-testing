@@ -206,38 +206,19 @@ function setupUnifiedFilterPanel() {
   // Initialize FilterControlPanel component
   window.labelsFilterPanel = FilterControlPanel.init('filterPanelCollapseBtn', 'filterPanelBody');
   
-  // Search clear button
+  // Search input — Enter key handler
   const searchInput = document.getElementById('productSearchInput');
-  const searchClearBtn = document.getElementById('searchClearBtn');
-  const productSearchIcon = document.getElementById('productSearchIcon');
-  
-  if (searchInput && searchClearBtn) {
-    searchInput.addEventListener('input', (e) => {
-      if (e.target.value.trim()) {
-        searchClearBtn.style.display = 'flex';
-      } else {
-        searchClearBtn.style.display = 'none';
-      }
-    });
-    
-    // Add Enter key handler for product search
+  if (searchInput) {
     searchInput.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
         handleSearch({ target: searchInput });
       }
     });
-    
-    searchClearBtn.addEventListener('click', () => {
-      searchInput.value = '';
-      searchInput.dispatchEvent(new Event('input'));
-      searchClearBtn.style.display = 'none';
-      // Trigger search to reset displayed products
-      handleSearch({ target: searchInput });
-    });
   }
   
   // Make product search icon clickable
+  const productSearchIcon = document.getElementById('productSearchIcon');
   if (productSearchIcon && searchInput) {
     productSearchIcon.addEventListener('click', () => {
       handleSearch({ target: searchInput });
