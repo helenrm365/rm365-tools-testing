@@ -274,6 +274,7 @@ html.dark-mode .attendance-automatic .scanner-control-bar {
 /* ===== Scans Table ===== */
 .attendance-automatic .scans-table-wrapper {
   overflow-x: auto;
+  overscroll-behavior-x: contain;
   border-radius: 10px;
   background: var(--bg-light);
 }

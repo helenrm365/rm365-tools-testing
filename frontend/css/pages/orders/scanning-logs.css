@@ -331,6 +331,7 @@
 
 .scanning-logs .items-table-wrapper {
   overflow-x: auto;
+  overscroll-behavior-x: contain;
   border: 1px solid var(--border-color, rgba(0, 0, 0, 0.1));
   border-radius: 12px;
 }

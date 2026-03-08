@@ -1458,6 +1458,7 @@ body:has(.order-fulfillment.mobile-mode-active) #universalFooter {
 /* Items Table */
 #orderPreviewModal .preview-items-table {
   overflow-x: auto;
+  overscroll-behavior-x: contain;
   margin: 0 -0.5rem;
 }
 

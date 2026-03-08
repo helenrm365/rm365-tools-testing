@@ -366,7 +366,7 @@ html.dark-mode .attendance-dashboard .stat-card {
   
   .attendance-dashboard .date-preset-buttons {
     overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
     scrollbar-width: none;
     padding-bottom: 0.25rem;
   }
@@ -387,7 +387,7 @@ html.dark-mode .attendance-dashboard .stat-card {
   
   .attendance-dashboard .list-tabs {
     overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
     scrollbar-width: none;
     padding-bottom: 0.25rem;
   }
@@ -412,7 +412,7 @@ html.dark-mode .attendance-dashboard .stat-card {
   /* Tables become scrollable */
   .attendance-dashboard .block-content:has(table) {
     overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
   }
   
   .attendance-dashboard table {
