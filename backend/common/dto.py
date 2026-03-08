@@ -88,6 +88,8 @@ class InventoryItemOut(BaseModel):
     uk_fr_preorder: Optional[str] = None
     # Computed total quantity from branch shelves
     total_qty: Optional[int] = None
+    # Product image URL from Magento catalog
+    image_url: Optional[str] = None
 
 
 class InventoryMetadataRecord(BaseModel):

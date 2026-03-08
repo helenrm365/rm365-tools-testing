@@ -343,6 +343,13 @@ class InventoryManagementService:
             # 6M data now comes from inventory_metadata (synced overnight), no need for runtime query
             # items = self._populate_magento_data_for_items(items)  # REMOVED - was slow, queried aggregated_orders
             
+            # Fetch product image URLs for the paginated items
+            paginated_skus = [item["sku"] for item in items if item.get("sku")]
+            if paginated_skus:
+                image_urls = self.repo.get_product_image_urls(paginated_skus)
+                for item in items:
+                    item["image_url"] = image_urls.get(item["sku"])
+            
             logger.info(f"Returning page {page}/{total_pages}: items {start_idx+1}-{end_idx} of {total_items} (search: '{search or 'none'}', show_orphaned={show_orphaned})")
             
             return {

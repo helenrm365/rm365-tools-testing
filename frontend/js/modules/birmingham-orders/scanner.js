@@ -383,6 +383,7 @@ class InventoryScannerManager {
         name: itemInfo.name || itemInfo.product_name || itemInfo.sku,
         quantity: 0,
         currentStock: itemInfo.total_qty || 0,
+        imageUrl: itemInfo.image_url || '',
         shelfStock: {
           shelf_lt1_qty: itemInfo.shelf_lt1_qty || 0,
           shelf_gt1_qty: itemInfo.shelf_gt1_qty || 0,
@@ -399,6 +400,7 @@ class InventoryScannerManager {
         quantity: 0,
         shelfField: 'auto',
         currentStock: itemInfo.total_qty || 0,
+        imageUrl: itemInfo.image_url || '',
         shelfStock: {
           shelf_lt1_qty: itemInfo.shelf_lt1_qty || 0,
           shelf_gt1_qty: itemInfo.shelf_gt1_qty || 0,
@@ -600,6 +602,7 @@ class InventoryScannerManager {
           quantity: scanAmount,
           shelfField: 'auto',
           currentStock: itemInfo.total_qty || 0,
+          imageUrl: itemInfo.image_url || '',
           shelfStock: {
             shelf_lt1_qty: itemInfo.shelf_lt1_qty || 0,
             shelf_gt1_qty: itemInfo.shelf_gt1_qty || 0,
@@ -745,6 +748,7 @@ class InventoryScannerManager {
               <i class="fas fa-trash"></i>
             </button>
             <div class="pending-item-body">
+              ${item.imageUrl ? `<div class="pending-item-image"><img src="${item.imageUrl}" alt="" loading="lazy" onerror="this.parentElement.style.display='none'"></div>` : ''}
               <div class="pending-item-info">
                 <div class="pending-item-name">${item.name}</div>
                 <div class="pending-item-sku">${item.sku}</div>
@@ -835,8 +839,26 @@ class InventoryScannerManager {
     
     // Swipe-to-delete (mobile)
     this.attachSwipeListeners();
+
+    // Auto-fit long product names
+    this.autoFitProductNames();
   }
-  
+
+  autoFitProductNames() {
+    this.pendingItemsList.querySelectorAll('.pending-item-name').forEach(el => {
+      // Reset to default size from CSS
+      el.style.fontSize = '';
+      const maxHeight = el.parentElement.clientHeight;
+      const minFontSize = 10; // px floor
+      let currentSize = parseFloat(getComputedStyle(el).fontSize);
+      // Shrink until text no longer overflows its container
+      while (el.scrollHeight > el.offsetHeight && currentSize > minFontSize) {
+        currentSize -= 0.5;
+        el.style.fontSize = currentSize + 'px';
+      }
+    });
+  }
+
   attachSwipeListeners() {
     const isMobile = window.matchMedia('(max-width: 768px)').matches;
     if (!isMobile) return;
@@ -1332,6 +1354,7 @@ class InventoryScannerManager {
         quantity: itemInfo.quantity,
         shelfField: 'auto', // Default to auto
         currentStock: itemInfo.currentStock,
+        imageUrl: itemInfo.imageUrl || '',
         shelfStock: itemInfo.shelfStock
       });
       

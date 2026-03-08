@@ -997,3 +997,62 @@ class InventoryManagementRepo:
                 conn.close()
         
         return names
+
+    def get_product_image_urls(self, skus: List[str]) -> Dict[str, str]:
+        """
+        Fetch product thumbnail image URLs from UK Magento catalog for a batch of SKUs.
+        Returns a dict of {sku: full_image_url}.
+        """
+        if not skus:
+            return {}
+
+        try:
+            conn = get_magento_connection("uk")
+            try:
+                with conn.cursor() as cursor:
+                    # Get the store's secure base URL
+                    cursor.execute(
+                        "SELECT value FROM core_config_data WHERE path = 'web/secure/base_url' AND scope_id = 0 LIMIT 1"
+                    )
+                    row = cursor.fetchone()
+                    base_url = (row.get('value') or '').rstrip('/') if row else ''
+                    if not base_url:
+                        logger.warning("Could not determine Magento base URL for images")
+                        return {}
+
+                    # Query thumbnail (small_image) paths for the given SKUs
+                    placeholders = ','.join(['%s'] * len(skus))
+                    cursor.execute(f"""
+                        SELECT cpe.sku, cpev.value AS image_path
+                        FROM catalog_product_entity cpe
+                        JOIN catalog_product_entity_varchar cpev
+                            ON cpe.entity_id = cpev.entity_id
+                            AND cpev.attribute_id = (
+                                SELECT attribute_id FROM eav_attribute
+                                WHERE attribute_code = 'thumbnail'
+                                AND entity_type_id = (
+                                    SELECT entity_type_id FROM eav_entity_type
+                                    WHERE entity_type_code = 'catalog_product'
+                                )
+                            )
+                            AND cpev.store_id = 0
+                        WHERE cpe.sku IN ({placeholders})
+                            AND cpev.value IS NOT NULL
+                            AND cpev.value != ''
+                            AND cpev.value != 'no_selection'
+                    """, tuple(skus))
+
+                    results = {}
+                    for r in cursor.fetchall():
+                        sku = r.get('sku')
+                        path = r.get('image_path', '')
+                        if sku and path:
+                            results[sku] = f"{base_url}/media/catalog/product{path}"
+
+                    return results
+            finally:
+                if conn.open:
+                    conn.close()
+        except Exception as e:
+            logger.error(f"Failed to fetch product image URLs: {e}", exc_info=True)
+            return {}
