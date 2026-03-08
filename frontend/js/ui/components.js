@@ -172,6 +172,11 @@ window.initModernUI = initModernBoxes;
 (function () {
   const SEL = '[data-enhance="c-select"], .modern-select';
 
+  /** Detect mobile / coarse-pointer (touch) devices */
+  function isMobile() {
+    return window.matchMedia('(pointer: coarse)').matches;
+  }
+
   function getBackdrop() {
     return (
       document.getElementById('globalDropdownBackdrop') ||
@@ -253,11 +258,18 @@ window.initModernUI = initModernBoxes;
 
     btn.append(labelSpan, caret);
 
+    // Detect mobile + single-select → use native overlay for iOS/Android picker
+    const useMobileNative = isMobile() && !isMultiple;
+
     // Insert wrapper in DOM where the native select lives,
     // then move the native select *into* the wrapper.
     const next = native.nextSibling;
     parent.insertBefore(wrap, next);
-    native.classList.add('select-hidden');
+    if (useMobileNative) {
+      native.classList.add('c-select__native-overlay');
+    } else {
+      native.classList.add('select-hidden');
+    }
     wrap.append(native, btn, list);
     
     // Add header with "Select All" checkbox for multi-select
@@ -519,6 +531,8 @@ window.initModernUI = initModernBoxes;
     // Events
     btn.addEventListener('click', e => {
       e.stopPropagation();
+      // On mobile single-select the native overlay handles the tap → skip custom dropdown
+      if (useMobileNative) return;
       wrap.getAttribute('aria-expanded') === 'true' ? closeAll() : open();
     });
     wrap.addEventListener('keydown', e => {
