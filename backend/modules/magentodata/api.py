@@ -93,7 +93,82 @@ def sync_test_magento_data(
     return MagentoSyncResponse(**result)
 
 
+# ===== ALL REGIONS (combined) ENDPOINTS =====
 
+@router.get("/all")
+def get_all_regions_data(
+    limit: int = Query(100, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+    search: str = Query(""),
+    sort_by: str = Query(None, description="Column to sort by"),
+    sort_order: str = Query("desc", description="Sort order: 'asc' or 'desc'"),
+    user=Depends(get_current_user)
+):
+    """Get combined magento data from all regions (UK, FR, NL) with a region column"""
+    result = svc.get_all_regions_data(limit, offset, search, sort_by, sort_order)
+    return result
+
+
+@router.get("/all/aggregated")
+def get_all_regions_aggregated_data(
+    limit: int = Query(100, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+    search: str = Query(""),
+    sort_by: str = Query("", description="Column to sort by"),
+    sort_order: str = Query("desc", description="Sort order: asc or desc"),
+    user=Depends(get_current_user)
+):
+    """Get aggregated 6-month data for all regions: UK 6M, FR 6M (FR+NL), and Total 6M"""
+    result = svc.get_all_regions_aggregated_data(limit, offset, search, sort_by, sort_order)
+    return result
+
+
+@router.get("/all/aggregated/custom-range")
+def get_all_regions_custom_range_data(
+    range_type: str = Query(..., description="Type of range: 'days', 'months', or 'since'"),
+    range_value: str = Query(..., description="Value for the range"),
+    use_exclusions: bool = Query(True, description="Apply customer and group exclusions"),
+    limit: int = Query(100, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+    search: str = Query(""),
+    user=Depends(get_current_user)
+):
+    """Get custom range aggregated data for all regions: UK, FR (FR+NL), and Total"""
+    result = svc.get_all_regions_custom_range_data(
+        range_type, range_value, use_exclusions, limit, offset, search
+    )
+    return result
+
+
+@router.get("/all/aggregated/merged")
+def get_all_regions_aggregated_merged(
+    limit: int = Query(100, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+    search: str = Query(""),
+    sort_by: str = Query("", description="Column to sort by"),
+    sort_order: str = Query("desc", description="Sort order: asc or desc"),
+    user=Depends(get_current_user)
+):
+    """Get 6-month aggregated data as single merged table: SKU, Name, UK Qty, FR Qty, Total Qty"""
+    return svc.get_all_regions_aggregated_merged(limit, offset, search, sort_by, sort_order)
+
+
+@router.get("/all/aggregated/custom-range/merged")
+def get_all_regions_custom_range_merged(
+    range_type: str = Query(..., description="Type of range: 'days', 'months', or 'since'"),
+    range_value: str = Query(..., description="Value for the range"),
+    use_exclusions: bool = Query(True, description="Apply customer and group exclusions"),
+    limit: int = Query(100, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+    search: str = Query(""),
+    sort_by: str = Query("", description="Column to sort by"),
+    sort_order: str = Query("desc", description="Sort order: asc or desc"),
+    user=Depends(get_current_user)
+):
+    """Get custom range aggregated data as single merged table"""
+    return svc.get_all_regions_custom_range_merged(
+        range_type, range_value, use_exclusions, limit, offset, search, sort_by, sort_order
+    )
 
 
 # UK Magento endpoints

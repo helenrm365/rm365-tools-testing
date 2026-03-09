@@ -1,8 +1,9 @@
 // frontend/js/modules/magentodata/uk-magento.js
-import { getUKMagentoData, getUKAggregatedData, refreshAggregatedDataForRegion, checkTablesStatus, initializeTables, syncUKMagentoData } from '../../services/api/magentoDataApi.js?v=5';
+import { getUKMagentoData, getUKAggregatedData, getCustomRangeAggregatedData, refreshAggregatedDataForRegion, checkTablesStatus, initializeTables, syncUKMagentoData } from '../../services/api/magentoDataApi.js?v=5';
 import { showToast } from '../../ui/toast.js';
 import { showFiltersModal, showCustomRangeModal } from './aggregated-filters.js';
 import { exportToPDF } from '../../utils/pdfExport.js';
+import { exportToCSV } from '../../utils/csvExport.js';
 
 let currentPage = 0;
 const pageSize = 100; // Display 100 records per page
@@ -490,6 +491,14 @@ function setupEventListeners() {
       await handleExportPDF();
     });
   }
+
+  // Export CSV button
+  const exportCsvBtn = document.getElementById('exportCsvBtn');
+  if (exportCsvBtn) {
+    exportCsvBtn.addEventListener('click', async () => {
+      await handleExportCSV();
+    });
+  }
   
   // Set up table header sorting
   setupTableSorting();
@@ -792,13 +801,21 @@ function displayCurrentPage() {
     displayMagentoData(pageData);
   }
   
-  // Show/hide export PDF button based on view mode
+  // Show/hide export buttons based on view mode
   const exportPdfBtn = document.getElementById('exportPdfBtn');
+  const exportCsvBtn = document.getElementById('exportCsvBtn');
   if (exportPdfBtn) {
     if (viewMode === 'aggregated' || viewMode === 'custom') {
       exportPdfBtn.style.display = '';
     } else {
       exportPdfBtn.style.display = 'none';
+    }
+  }
+  if (exportCsvBtn) {
+    if (viewMode === 'aggregated' || viewMode === 'custom') {
+      exportCsvBtn.style.display = '';
+    } else {
+      exportCsvBtn.style.display = 'none';
     }
   }
   
@@ -947,6 +964,38 @@ function escapeHtml(text) {
 }
 
 /**
+ * Fetch all data for export (loops through pages in batches of 1000)
+ */
+async function fetchAllDataForExport() {
+  const batchSize = 1000;
+  let allExportData = [];
+  let offset = 0;
+  let hasMore = true;
+
+  while (hasMore) {
+    let result;
+    if (viewMode === 'aggregated') {
+      result = await getUKAggregatedData(batchSize, offset, currentSearch, currentSortColumn || '', currentSortDirection);
+    } else if (viewMode === 'custom' && window.customRangeActive) {
+      const { rangeType, rangeValue, useExclusions } = window.customRangeActive;
+      result = await getCustomRangeAggregatedData('uk', rangeType, rangeValue, useExclusions !== false, batchSize, offset, currentSearch);
+    } else {
+      break;
+    }
+
+    if (result.status === 'success' && result.data && result.data.length > 0) {
+      allExportData = allExportData.concat(result.data);
+      offset += batchSize;
+      if (result.data.length < batchSize) hasMore = false;
+    } else {
+      hasMore = false;
+    }
+  }
+
+  return allExportData;
+}
+
+/**
  * Handle PDF export
  */
 async function handleExportPDF() {
@@ -961,15 +1010,49 @@ async function handleExportPDF() {
   }
   
   try {
-    showToast('Generating PDF...', 'info');
+    showToast('Fetching all data for export...', 'info');
+    const exportData = await fetchAllDataForExport();
+    if (!exportData || exportData.length === 0) {
+      showToast('No data to export', 'warning');
+      return;
+    }
     
+    showToast(`Generating PDF with ${exportData.length} items...`, 'info');
     const viewLabel = viewMode === 'custom' ? customRangeLabel : '6-Month';
-    await exportToPDF(allData, 'uk', viewLabel, currentSearch);
+    await exportToPDF(exportData, 'uk', viewLabel, currentSearch);
     
     showToast('PDF exported successfully!', 'success');
   } catch (error) {
     console.error('Error exporting PDF:', error);
     showToast(`Failed to export PDF: ${error.message}`, 'error');
+  }
+}
+
+async function handleExportCSV() {
+  if (viewMode !== 'aggregated' && viewMode !== 'custom') {
+    showToast('CSV export is only available for aggregated and custom range views', 'warning');
+    return;
+  }
+  
+  if (!allData || allData.length === 0) {
+    showToast('No data to export', 'warning');
+    return;
+  }
+  
+  try {
+    showToast('Fetching all data for export...', 'info');
+    const exportData = await fetchAllDataForExport();
+    if (!exportData || exportData.length === 0) {
+      showToast('No data to export', 'warning');
+      return;
+    }
+    
+    const viewLabel = viewMode === 'custom' ? customRangeLabel : '6-Month';
+    exportToCSV(exportData, 'uk', viewLabel, currentSearch);
+    showToast(`CSV exported successfully (${exportData.length} items)!`, 'success');
+  } catch (error) {
+    console.error('Error exporting CSV:', error);
+    showToast(`Failed to export CSV: ${error.message}`, 'error');
   }
 }
 

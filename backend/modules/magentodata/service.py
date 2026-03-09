@@ -620,6 +620,90 @@ class MagentoDataService:
                 "total_count": 0
             }
     
+    # ===== ALL REGIONS (combined) METHODS =====
+
+    def get_all_regions_data(self, limit: int = 100, offset: int = 0, search: str = "",
+                             sort_by: str = None, sort_order: str = "desc") -> Dict[str, Any]:
+        """Get combined full data from all regions with a region column."""
+        try:
+            result = self.repo.get_all_regions_data(limit, offset, search, sort_by, sort_order)
+            return {
+                "status": "success",
+                **result
+            }
+        except Exception as e:
+            logger.error(f"Error getting all-regions data: {e}")
+            return {
+                "status": "error",
+                "message": f"Failed to get combined data: {str(e)}",
+                "data": [],
+                "total_count": 0
+            }
+
+    def get_all_regions_aggregated_data(self, limit: int = 100, offset: int = 0, search: str = "",
+                                         sort_by: str = "", sort_order: str = "desc") -> Dict[str, Any]:
+        """Get 6-month aggregated data broken down: UK 6M, FR 6M (FR+NL combined), Total 6M."""
+        try:
+            result = self.repo.get_all_regions_aggregated_data(limit, offset, search, sort_by, sort_order)
+            return {
+                "status": "success",
+                **result
+            }
+        except Exception as e:
+            logger.error(f"Error getting all-regions aggregated data: {e}")
+            return {
+                "status": "error",
+                "message": f"Failed to get combined aggregated data: {str(e)}",
+                "uk_data": [], "fr_data": [], "total_data": [],
+                "uk_total_count": 0, "fr_total_count": 0, "total_total_count": 0
+            }
+
+    def get_all_regions_custom_range_data(self, range_type: str, range_value: str,
+                                           use_exclusions: bool, limit: int = 100, offset: int = 0,
+                                           search: str = "") -> Dict[str, Any]:
+        """Get custom range aggregated data broken down: UK, FR (FR+NL), Total."""
+        try:
+            result = self.repo.get_all_regions_custom_range_data(
+                range_type, range_value, use_exclusions, limit, offset, search
+            )
+            return {
+                "status": "success",
+                "range_type": range_type,
+                "range_value": range_value,
+                **result
+            }
+        except Exception as e:
+            logger.error(f"Error getting all-regions custom range data: {e}")
+            return {
+                "status": "error",
+                "message": f"Failed to get combined custom range data: {str(e)}",
+                "uk_data": [], "fr_data": [], "total_data": [],
+                "uk_total_count": 0, "fr_total_count": 0, "total_total_count": 0
+            }
+
+    def get_all_regions_aggregated_merged(self, limit: int = 100, offset: int = 0, search: str = "",
+                                           sort_by: str = "", sort_order: str = "desc") -> Dict[str, Any]:
+        """Get 6-month aggregated data as a single merged table with UK qty, FR qty, Total qty columns."""
+        try:
+            result = self.repo.get_all_regions_aggregated_merged(limit, offset, search, sort_by, sort_order)
+            return {"status": "success", **result}
+        except Exception as e:
+            logger.error(f"Error getting all-regions aggregated merged data: {e}")
+            return {"status": "error", "message": str(e), "data": [], "total_count": 0}
+
+    def get_all_regions_custom_range_merged(self, range_type: str, range_value: str,
+                                             use_exclusions: bool, limit: int = 100, offset: int = 0,
+                                             search: str = "", sort_by: str = "", sort_order: str = "desc") -> Dict[str, Any]:
+        """Get custom range aggregated data as a single merged table."""
+        try:
+            result = self.repo.get_all_regions_custom_range_merged(
+                range_type, range_value, use_exclusions, limit, offset, search, sort_by, sort_order
+            )
+            return {"status": "success", "range_type": range_type, "range_value": range_value, **result}
+        except Exception as e:
+            logger.error(f"Error getting all-regions custom range merged data: {e}")
+            return {"status": "error", "message": str(e), "data": [], "total_count": 0}
+
     def create_md_variant_aliases(self) -> Dict[str, Any]:
         """Manually trigger MD variant alias creation"""
         try:

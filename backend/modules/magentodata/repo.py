@@ -3407,3 +3407,376 @@ class MagentoDataRepo:
             if conn:
                 cursor.close()
                 return_products_connection(conn)
+
+    # ===== ALL REGIONS (combined) METHODS =====
+
+    def get_all_regions_data(self, limit: int = 100, offset: int = 0, search: str = "",
+                             sort_by: str = None, sort_order: str = "desc") -> Dict[str, Any]:
+        """Get combined full data from all regions with a region column."""
+        all_columns = ['id', 'order_number', 'created_at', 'sku', 'name', 'qty',
+                       'original_price', 'special_price', 'status', 'currency',
+                       'grand_total', 'customer_email', 'customer_full_name',
+                       'billing_address', 'shipping_address', 'customer_group_code',
+                       'imported_at', 'updated_at']
+
+        select_cols = ', '.join(all_columns)
+
+        # Validate sort column
+        allowed_sort = set(all_columns) | {'region'}
+        order_column = 'imported_at'
+        if sort_by and sort_by in allowed_sort:
+            order_column = sort_by
+        order_direction = 'DESC' if (sort_order or 'desc').upper() == 'DESC' else 'ASC'
+
+        union_query = " UNION ALL ".join(
+            f"SELECT {select_cols}, '{r.upper()}' AS region FROM {t}"
+            for r, t in [('uk', 'uk_orders_cache'), ('fr', 'fr_orders_cache'), ('nl', 'nl_orders_cache')]
+        )
+
+        conn = None
+        try:
+            conn = get_products_connection()
+            cursor = conn.cursor()
+
+            if search:
+                search_pattern = f"%{search}%"
+                where = ("WHERE order_number ILIKE %s OR sku ILIKE %s OR name ILIKE %s "
+                         "OR status ILIKE %s OR customer_email ILIKE %s OR customer_full_name ILIKE %s")
+                params_search = (search_pattern,) * 6
+
+                count_sql = f"SELECT COUNT(*) FROM ({union_query}) sub {where}"
+                cursor.execute(count_sql, params_search)
+                total_count = cursor.fetchone()[0]
+
+                data_sql = (f"SELECT * FROM ({union_query}) sub {where} "
+                            f"ORDER BY {order_column} {order_direction} LIMIT %s OFFSET %s")
+                cursor.execute(data_sql, params_search + (limit, offset))
+            else:
+                count_sql = f"SELECT COUNT(*) FROM ({union_query}) sub"
+                cursor.execute(count_sql)
+                total_count = cursor.fetchone()[0]
+
+                data_sql = (f"SELECT * FROM ({union_query}) sub "
+                            f"ORDER BY {order_column} {order_direction} LIMIT %s OFFSET %s")
+                cursor.execute(data_sql, (limit, offset))
+
+            rows = cursor.fetchall()
+            result_columns = all_columns + ['region']
+            data = []
+            for row in rows:
+                row_dict = {}
+                for i, col in enumerate(result_columns):
+                    value = row[i]
+                    if col in ('imported_at', 'updated_at') and value:
+                        row_dict[col] = value.isoformat() if hasattr(value, 'isoformat') else str(value)
+                    else:
+                        row_dict[col] = value
+                data.append(row_dict)
+
+            return {"data": data, "total_count": total_count, "limit": limit, "offset": offset}
+        except Exception as e:
+            logger.error(f"Error fetching all-regions data: {e}")
+            raise
+        finally:
+            if conn:
+                cursor.close()
+                return_products_connection(conn)
+
+    def get_all_regions_aggregated_data(self, limit: int = 100, offset: int = 0, search: str = "",
+                                         sort_by: str = "", sort_order: str = "desc") -> Dict[str, Any]:
+        """
+        Get 6-month aggregated data: UK 6M, FR 6M (FR+NL combined), and Total 6M.
+        Returns three separate datasets.
+        """
+        allowed_columns = ['sku', 'name', 'total_qty', 'last_updated']
+        order_column = sort_by if sort_by in allowed_columns else 'total_qty'
+        order_direction = sort_order.upper() if sort_order and sort_order.upper() in ('ASC', 'DESC') else 'DESC'
+
+        conn = None
+        try:
+            conn = get_products_connection()
+            cursor = conn.cursor()
+
+            def fetch_aggregated(query_from, params_extra=()):
+                if search:
+                    sp = f"%{search}%"
+                    where = "WHERE sku ILIKE %s OR name ILIKE %s"
+                    count_q = f"SELECT COUNT(*) FROM ({query_from}) agg {where}"
+                    cursor.execute(count_q, params_extra + (sp, sp))
+                    total = cursor.fetchone()[0]
+                    data_q = (f"SELECT sku, name, total_qty, last_updated FROM ({query_from}) agg "
+                              f"{where} ORDER BY {order_column} {order_direction} LIMIT %s OFFSET %s")
+                    cursor.execute(data_q, params_extra + (sp, sp, limit, offset))
+                else:
+                    count_q = f"SELECT COUNT(*) FROM ({query_from}) agg"
+                    cursor.execute(count_q, params_extra)
+                    total = cursor.fetchone()[0]
+                    data_q = (f"SELECT sku, name, total_qty, last_updated FROM ({query_from}) agg "
+                              f"ORDER BY {order_column} {order_direction} LIMIT %s OFFSET %s")
+                    cursor.execute(data_q, params_extra + (limit, offset))
+                rows = cursor.fetchall()
+                data = []
+                for row in rows:
+                    data.append({
+                        'sku': row[0],
+                        'name': row[1],
+                        'total_qty': row[2],
+                        'last_updated': row[3].isoformat() if hasattr(row[3], 'isoformat') else str(row[3]) if row[3] else None
+                    })
+                return data, total
+
+            # UK 6M - straight from uk_aggregated_orders
+            uk_from = "SELECT sku, name, total_qty, last_updated FROM uk_aggregated_orders"
+            uk_data, uk_total = fetch_aggregated(uk_from)
+
+            # FR 6M - FR + NL combined: sum total_qty, pick latest last_updated, coalesce names
+            fr_from = """
+                SELECT sku,
+                       COALESCE(MAX(name), '') AS name,
+                       SUM(total_qty) AS total_qty,
+                       MAX(last_updated) AS last_updated
+                FROM (
+                    SELECT sku, name, total_qty, last_updated FROM fr_aggregated_orders
+                    UNION ALL
+                    SELECT sku, name, total_qty, last_updated FROM nl_aggregated_orders
+                ) combined
+                GROUP BY sku
+            """
+            fr_data, fr_total = fetch_aggregated(fr_from)
+
+            # Total 6M - all three combined
+            total_from = """
+                SELECT sku,
+                       COALESCE(MAX(name), '') AS name,
+                       SUM(total_qty) AS total_qty,
+                       MAX(last_updated) AS last_updated
+                FROM (
+                    SELECT sku, name, total_qty, last_updated FROM uk_aggregated_orders
+                    UNION ALL
+                    SELECT sku, name, total_qty, last_updated FROM fr_aggregated_orders
+                    UNION ALL
+                    SELECT sku, name, total_qty, last_updated FROM nl_aggregated_orders
+                ) combined
+                GROUP BY sku
+            """
+            total_data, total_total = fetch_aggregated(total_from)
+
+            return {
+                "uk_data": uk_data, "uk_total_count": uk_total,
+                "fr_data": fr_data, "fr_total_count": fr_total,
+                "total_data": total_data, "total_total_count": total_total,
+                "limit": limit, "offset": offset
+            }
+        except Exception as e:
+            logger.error(f"Error fetching all-regions aggregated data: {e}")
+            raise
+        finally:
+            if conn:
+                cursor.close()
+                return_products_connection(conn)
+
+    def get_all_regions_custom_range_data(self, range_type: str, range_value: str,
+                                           use_exclusions: bool, limit: int = 100, offset: int = 0,
+                                           search: str = "") -> Dict[str, Any]:
+        """
+        Get custom range aggregated data for all regions.
+        Returns UK, FR (FR+NL combined), and Total datasets.
+        """
+        # Fetch each region's custom range data (these return dicts with 'data' and 'total_count')
+        uk_result = self.get_aggregated_data_custom_range('uk', range_type, range_value, use_exclusions, 10000, 0, search)
+        fr_result = self.get_aggregated_data_custom_range('fr', range_type, range_value, use_exclusions, 10000, 0, search)
+        nl_result = self.get_aggregated_data_custom_range('nl', range_type, range_value, use_exclusions, 10000, 0, search)
+
+        uk_all = uk_result.get('data', [])
+        fr_all = fr_result.get('data', [])
+        nl_all = nl_result.get('data', [])
+
+        def combine_datasets(*datasets):
+            """Combine multiple aggregated datasets by SKU, summing total_qty."""
+            combined = {}
+            for ds in datasets:
+                for item in ds:
+                    sku = item.get('sku', '')
+                    if sku in combined:
+                        combined[sku]['total_qty'] = (combined[sku].get('total_qty') or 0) + (item.get('total_qty') or 0)
+                        if item.get('last_updated') and (not combined[sku].get('last_updated') or item['last_updated'] > combined[sku]['last_updated']):
+                            combined[sku]['last_updated'] = item['last_updated']
+                        if not combined[sku].get('name') and item.get('name'):
+                            combined[sku]['name'] = item['name']
+                    else:
+                        combined[sku] = {
+                            'sku': sku,
+                            'name': item.get('name', ''),
+                            'total_qty': item.get('total_qty') or 0,
+                            'last_updated': item.get('last_updated')
+                        }
+            return sorted(combined.values(), key=lambda x: x.get('total_qty') or 0, reverse=True)
+
+        # FR combined = FR + NL
+        fr_combined = combine_datasets(fr_all, nl_all)
+        # Total = UK + FR + NL
+        total_combined = combine_datasets(uk_all, fr_all, nl_all)
+
+        # Apply pagination
+        def paginate(data):
+            total = len(data)
+            page = data[offset:offset + limit]
+            return page, total
+
+        uk_page, uk_total = paginate(uk_all)
+        fr_page, fr_total = paginate(fr_combined)
+        total_page, total_total = paginate(total_combined)
+
+        return {
+            "uk_data": uk_page, "uk_total_count": uk_total,
+            "fr_data": fr_page, "fr_total_count": fr_total,
+            "total_data": total_page, "total_total_count": total_total,
+            "limit": limit, "offset": offset
+        }
+
+    def get_all_regions_aggregated_merged(self, limit: int = 100, offset: int = 0, search: str = "",
+                                           sort_by: str = "", sort_order: str = "desc") -> Dict[str, Any]:
+        """
+        Get 6-month aggregated data as a single merged table.
+        Each row: sku, name, uk_qty, fr_qty, total_qty, last_updated.
+        FR qty = FR + NL combined.
+        """
+        allowed_columns = ['sku', 'name', 'uk_qty', 'fr_qty', 'total_qty', 'last_updated']
+        order_column = sort_by if sort_by in allowed_columns else 'total_qty'
+        order_direction = sort_order.upper() if sort_order and sort_order.upper() in ('ASC', 'DESC') else 'DESC'
+
+        conn = None
+        try:
+            conn = get_products_connection()
+            cursor = conn.cursor()
+
+            base_query = """
+                SELECT
+                    COALESCE(t.sku, f.sku, u.sku) AS sku,
+                    COALESCE(t.name, f.name, u.name) AS name,
+                    COALESCE(u.total_qty, 0) AS uk_qty,
+                    COALESCE(f.total_qty, 0) AS fr_qty,
+                    COALESCE(u.total_qty, 0) + COALESCE(f.total_qty, 0) AS total_qty,
+                    GREATEST(u.last_updated, f.last_updated) AS last_updated
+                FROM (
+                    SELECT sku, COALESCE(MAX(name), '') AS name,
+                           SUM(total_qty) AS total_qty, MAX(last_updated) AS last_updated
+                    FROM (
+                        SELECT sku, name, total_qty, last_updated FROM uk_aggregated_orders
+                        UNION ALL
+                        SELECT sku, name, total_qty, last_updated FROM fr_aggregated_orders
+                        UNION ALL
+                        SELECT sku, name, total_qty, last_updated FROM nl_aggregated_orders
+                    ) all_regions GROUP BY sku
+                ) t
+                LEFT JOIN (
+                    SELECT sku, name, total_qty, last_updated FROM uk_aggregated_orders
+                ) u ON u.sku = t.sku
+                LEFT JOIN (
+                    SELECT sku, COALESCE(MAX(name), '') AS name,
+                           SUM(total_qty) AS total_qty, MAX(last_updated) AS last_updated
+                    FROM (
+                        SELECT sku, name, total_qty, last_updated FROM fr_aggregated_orders
+                        UNION ALL
+                        SELECT sku, name, total_qty, last_updated FROM nl_aggregated_orders
+                    ) fr_nl GROUP BY sku
+                ) f ON f.sku = t.sku
+            """
+
+            if search:
+                sp = f"%{search}%"
+                count_q = f"SELECT COUNT(*) FROM ({base_query}) merged WHERE sku ILIKE %s OR name ILIKE %s"
+                cursor.execute(count_q, (sp, sp))
+                total = cursor.fetchone()[0]
+                data_q = (f"SELECT sku, name, uk_qty, fr_qty, total_qty, last_updated "
+                          f"FROM ({base_query}) merged WHERE sku ILIKE %s OR name ILIKE %s "
+                          f"ORDER BY {order_column} {order_direction} LIMIT %s OFFSET %s")
+                cursor.execute(data_q, (sp, sp, limit, offset))
+            else:
+                count_q = f"SELECT COUNT(*) FROM ({base_query}) merged"
+                cursor.execute(count_q)
+                total = cursor.fetchone()[0]
+                data_q = (f"SELECT sku, name, uk_qty, fr_qty, total_qty, last_updated "
+                          f"FROM ({base_query}) merged "
+                          f"ORDER BY {order_column} {order_direction} LIMIT %s OFFSET %s")
+                cursor.execute(data_q, (limit, offset))
+
+            rows = cursor.fetchall()
+            data = []
+            for row in rows:
+                data.append({
+                    'sku': row[0],
+                    'name': row[1],
+                    'uk_qty': row[2] or 0,
+                    'fr_qty': row[3] or 0,
+                    'total_qty': row[4] or 0,
+                    'last_updated': row[5].isoformat() if hasattr(row[5], 'isoformat') else str(row[5]) if row[5] else None
+                })
+
+            return {"data": data, "total_count": total, "limit": limit, "offset": offset}
+        except Exception as e:
+            logger.error(f"Error fetching all-regions aggregated merged data: {e}")
+            raise
+        finally:
+            if conn:
+                cursor.close()
+                return_products_connection(conn)
+
+    def get_all_regions_custom_range_merged(self, range_type: str, range_value: str,
+                                             use_exclusions: bool, limit: int = 100, offset: int = 0,
+                                             search: str = "", sort_by: str = "", sort_order: str = "desc") -> Dict[str, Any]:
+        """
+        Get custom range aggregated data as a single merged table.
+        Each row: sku, name, uk_qty, fr_qty, total_qty, last_updated.
+        """
+        uk_result = self.get_aggregated_data_custom_range('uk', range_type, range_value, use_exclusions, 10000, 0, '')
+        fr_result = self.get_aggregated_data_custom_range('fr', range_type, range_value, use_exclusions, 10000, 0, '')
+        nl_result = self.get_aggregated_data_custom_range('nl', range_type, range_value, use_exclusions, 10000, 0, '')
+
+        uk_map = {item['sku']: item for item in uk_result.get('data', [])}
+        fr_map = {}
+        for item in fr_result.get('data', []) + nl_result.get('data', []):
+            sku = item.get('sku', '')
+            if sku in fr_map:
+                fr_map[sku]['total_qty'] = (fr_map[sku].get('total_qty') or 0) + (item.get('total_qty') or 0)
+                if item.get('last_updated') and (not fr_map[sku].get('last_updated') or item['last_updated'] > fr_map[sku]['last_updated']):
+                    fr_map[sku]['last_updated'] = item['last_updated']
+                if not fr_map[sku].get('name') and item.get('name'):
+                    fr_map[sku]['name'] = item['name']
+            else:
+                fr_map[sku] = {**item}
+
+        # Build merged list from all unique SKUs
+        all_skus = set(list(uk_map.keys()) + list(fr_map.keys()))
+        merged = []
+        for sku in all_skus:
+            uk_item = uk_map.get(sku, {})
+            fr_item = fr_map.get(sku, {})
+            uk_qty = uk_item.get('total_qty') or 0
+            fr_qty = fr_item.get('total_qty') or 0
+            name = uk_item.get('name') or fr_item.get('name') or ''
+            lu_uk = uk_item.get('last_updated')
+            lu_fr = fr_item.get('last_updated')
+            last_updated = max(filter(None, [lu_uk, lu_fr]), default=None)
+            merged.append({
+                'sku': sku, 'name': name,
+                'uk_qty': uk_qty, 'fr_qty': fr_qty,
+                'total_qty': uk_qty + fr_qty,
+                'last_updated': last_updated
+            })
+
+        # Filter by search
+        if search:
+            sl = search.lower()
+            merged = [r for r in merged if sl in (r['sku'] or '').lower() or sl in (r['name'] or '').lower()]
+
+        # Sort
+        allowed_columns = ['sku', 'name', 'uk_qty', 'fr_qty', 'total_qty', 'last_updated']
+        sort_key = sort_by if sort_by in allowed_columns else 'total_qty'
+        reverse = sort_order.upper() != 'ASC'
+        merged.sort(key=lambda x: x.get(sort_key) or 0 if sort_key in ('uk_qty', 'fr_qty', 'total_qty') else (x.get(sort_key) or ''), reverse=reverse)
+
+        total_count = len(merged)
+        page = merged[offset:offset + limit]
+
+        return {"data": page, "total_count": total_count, "limit": limit, "offset": offset}

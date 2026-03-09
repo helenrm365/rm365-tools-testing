@@ -347,3 +347,65 @@ export async function refreshAllAggregatedData() {
 export async function refreshAggregatedDataForRegion(region) {
   return await post(`${API}/refresh-aggregated/${region}`, {});
 }
+
+// All Regions (combined) operations
+export async function getAllRegionsData(limit = 100, offset = 0, search = '', sortBy = '', sortOrder = 'desc') {
+  const params = new URLSearchParams({
+    limit: limit.toString(),
+    offset: offset.toString(),
+    search: search
+  });
+  if (sortBy) {
+    params.append('sort_by', sortBy);
+    params.append('sort_order', sortOrder);
+  }
+  return await get(`${API}/all?${params.toString()}`);
+}
+
+export async function getAllRegionsAggregatedData(limit = 100, offset = 0, search = '', sortBy = '', sortOrder = 'desc') {
+  const params = new URLSearchParams({
+    limit: limit.toString(),
+    offset: offset.toString(),
+    search: search,
+    sort_by: sortBy,
+    sort_order: sortOrder
+  });
+  return await get(`${API}/all/aggregated?${params.toString()}`);
+}
+
+export async function getAllRegionsCustomRangeData(rangeType, rangeValue, useExclusions, limit = 100, offset = 0, search = '') {
+  const params = new URLSearchParams({
+    range_type: rangeType,
+    range_value: rangeValue,
+    use_exclusions: useExclusions.toString(),
+    limit: limit.toString(),
+    offset: offset.toString(),
+    search: search
+  });
+  return await get(`${API}/all/aggregated/custom-range?${params.toString()}`);
+}
+
+export async function getAllRegionsAggregatedMerged(limit = 100, offset = 0, search = '', sortBy = '', sortOrder = 'desc') {
+  const params = new URLSearchParams({
+    limit: limit.toString(),
+    offset: offset.toString(),
+    search: search,
+    sort_by: sortBy,
+    sort_order: sortOrder
+  });
+  return await get(`${API}/all/aggregated/merged?${params.toString()}`);
+}
+
+export async function getAllRegionsCustomRangeMerged(rangeType, rangeValue, useExclusions, limit = 100, offset = 0, search = '', sortBy = '', sortOrder = 'desc') {
+  const params = new URLSearchParams({
+    range_type: rangeType,
+    range_value: rangeValue,
+    use_exclusions: useExclusions.toString(),
+    limit: limit.toString(),
+    offset: offset.toString(),
+    search: search,
+    sort_by: sortBy,
+    sort_order: sortOrder
+  });
+  return await get(`${API}/all/aggregated/custom-range/merged?${params.toString()}`);
+}

@@ -162,19 +162,48 @@ export async function exportToPDF(data, region, viewType, searchTerm = '') {
             doc.text(`"${searchTerm}"`, 42, metaY + 2);
         }
         
-        // Table headers
-        const headers = [['#', 'SKU', 'Product Name', 'Total Qty']];
+        // Table headers and data depend on region
+        const isAllRegion = region === 'all';
+        const headers = isAllRegion
+            ? [['#', 'SKU', 'Product Name', 'UK Qty', 'FR Qty', 'Total Qty']]
+            : [['#', 'SKU', 'Product Name', 'Total Qty']];
         
         // Table data - prepare rows
-        const rows = data.map((item, index) => [
-            (index + 1).toString(),
-            item.sku || 'N/A',
-            truncateText(item.name || 'N/A', 50),
-            (item.total_qty || 0).toLocaleString()
-        ]);
+        const rows = isAllRegion
+            ? data.map((item, index) => [
+                (index + 1).toString(),
+                item.sku || 'N/A',
+                truncateText(item.name || 'N/A', 45),
+                (item.uk_qty || 0).toLocaleString(),
+                (item.fr_qty || 0).toLocaleString(),
+                (item.total_qty || 0).toLocaleString()
+            ])
+            : data.map((item, index) => [
+                (index + 1).toString(),
+                item.sku || 'N/A',
+                truncateText(item.name || 'N/A', 50),
+                (item.total_qty || 0).toLocaleString()
+            ]);
         
         // Calculate total quantity
         const totalQty = data.reduce((sum, item) => sum + (item.total_qty || 0), 0);
+        
+        // Column styles depend on region
+        const columnStyles = isAllRegion
+            ? {
+                0: { cellWidth: 12, halign: 'center', textColor: mediumGray, fontStyle: 'normal' },
+                1: { cellWidth: 38, fontStyle: 'bold', textColor: headerText },
+                2: { cellWidth: 'auto' },
+                3: { cellWidth: 22, halign: 'right', fontStyle: 'bold' },
+                4: { cellWidth: 22, halign: 'right', fontStyle: 'bold' },
+                5: { cellWidth: 25, halign: 'right', fontStyle: 'bold' }
+            }
+            : {
+                0: { cellWidth: 15, halign: 'center', textColor: mediumGray, fontStyle: 'normal' },
+                1: { cellWidth: 45, fontStyle: 'bold', textColor: headerText },
+                2: { cellWidth: 'auto' },
+                3: { cellWidth: 30, halign: 'right', fontStyle: 'bold' }
+            };
         
         // Add table with enhanced styling
         doc.autoTable({
@@ -199,12 +228,7 @@ export async function exportToPDF(data, region, viewType, searchTerm = '') {
                 minCellHeight: 12,
                 halign: 'left'
             },
-            columnStyles: {
-                0: { cellWidth: 15, halign: 'center', textColor: mediumGray, fontStyle: 'normal' },
-                1: { cellWidth: 45, fontStyle: 'bold', textColor: headerText },
-                2: { cellWidth: 'auto' },
-                3: { cellWidth: 30, halign: 'right', fontStyle: 'bold' }
-            },
+            columnStyles,
             alternateRowStyles: {
                 fillColor: lightGray
             },

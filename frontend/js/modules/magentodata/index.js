@@ -13,7 +13,11 @@ export async function init(path) {
   const cacheBust = `?t=${Date.now()}`;
   
   // Route to the appropriate sub-module based on path
-  if (path.includes('/fr-magento')) {
+  if (path.includes('/all-magento')) {
+    const mod = await import(`./all-magento.js${cacheBust}`);
+    await mod.initAllMagentoData(path);
+    currentSubModule = mod;
+  } else if (path.includes('/fr-magento')) {
     const mod = await import(`./fr-magento.js${cacheBust}`);
     await mod.initFRMagentoData(path);
     currentSubModule = mod;
@@ -25,10 +29,14 @@ export async function init(path) {
     const mod = await import(`./history.js${cacheBust}`);
     await mod.initMagentoDataHistory();
     currentSubModule = mod;
-  } else {
-    // Default to UK Magento (first sub-page)
+  } else if (path.includes('/uk-magento')) {
     const mod = await import(`./uk-magento.js${cacheBust}`);
     await mod.initUKMagentoData(path);
+    currentSubModule = mod;
+  } else {
+    // Default to All Magento (first sub-page)
+    const mod = await import(`./all-magento.js${cacheBust}`);
+    await mod.initAllMagentoData(path);
     currentSubModule = mod;
   }
 }

@@ -67,12 +67,13 @@ const routes = {
   '/labels/generator':      '/html/labels/generator.html',
   '/labels/history':        '/html/labels/history.html',
 
-  // Magento Data - redirect root to first sub-page
-  '/magentodata':         '/html/magentodata/uk-magento.html',
-  '/magentodata/uk-magento':'/html/magentodata/uk-magento.html',
-  '/magentodata/fr-magento':'/html/magentodata/fr-magento.html',
-  '/magentodata/nl-magento':'/html/magentodata/nl-magento.html',
-  '/magentodata/history': '/html/magentodata/history.html',
+  // Magento Data - redirect root to first sub-page (All)
+  '/magentodata':             '/html/magentodata/all-magento.html',
+  '/magentodata/all-magento': '/html/magentodata/all-magento.html',
+  '/magentodata/uk-magento':  '/html/magentodata/uk-magento.html',
+  '/magentodata/fr-magento':  '/html/magentodata/fr-magento.html',
+  '/magentodata/nl-magento':  '/html/magentodata/nl-magento.html',
+  '/magentodata/history':     '/html/magentodata/history.html',
 
   // Inventory - redirect root to first sub-page (management redirects to uk-birmingham)
   '/inventory':                                '/html/inventory/management/uk-birmingham.html',
@@ -354,7 +355,10 @@ export async function navigate(path, replace = false) {
     // Check if this is a magento data view-specific URL (full-data, 6-month, custom-range)
     // Use simple prefix matching instead of complex regex
     if (!url) {
-      if (path.startsWith('/magentodata/uk-magento/')) {
+      if (path.startsWith('/magentodata/all-magento/')) {
+        url = routes['/magentodata/all-magento'];
+        console.log(`[Router] Mapping ${path} to ${url} (region: all)`);
+      } else if (path.startsWith('/magentodata/uk-magento/')) {
         url = routes['/magentodata/uk-magento'];
         console.log(`[Router] Mapping ${path} to ${url} (region: uk)`);
       } else if (path.startsWith('/magentodata/fr-magento/')) {

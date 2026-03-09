@@ -61,6 +61,7 @@ const navigationConfig = {
     label: 'Magento Data',
     icon: 'fa-solid fa-chart-line',
     children: [
+      { id: 'all-magento', label: 'All', icon: 'fa-solid fa-globe-americas', path: '/magentodata/all-magento' },
       { id: 'uk-magento', label: 'UK Magento', icon: 'fa-solid fa-globe', path: '/magentodata/uk-magento' },
       { id: 'fr-magento', label: 'FR Magento', icon: 'fa-solid fa-globe', path: '/magentodata/fr-magento' },
       { id: 'nl-magento', label: 'NL Magento', icon: 'fa-solid fa-globe', path: '/magentodata/nl-magento' },
