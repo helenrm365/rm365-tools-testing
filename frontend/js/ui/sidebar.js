@@ -18,8 +18,6 @@ import { isAllowed } from '../utils/tabs.js';
 // State
 let sidebarState = 'idle';
 let activeGroupId = null; // Currently expanded dropdown group
-let currentRouteSection = null; // Section derived from current URL
-let currentRouteSubSection = null; // Subsection derived from current URL
 let mouseInSidebar = false;
 let collapseTimeout = null;
 
@@ -30,101 +28,60 @@ let overlay = null;
 // Navigation structure definition
 // Maps group IDs to their child tabs
 const navigationConfig = {
-  'home': {
-    label: 'Dashboard',
-    icon: 'fa-solid fa-gauge-high',
-    directLink: true,
-    path: '/home'
+  'general': {
+    label: 'General',
+    icon: 'fa-solid fa-house',
+    children: [
+      { id: 'dashboard', label: 'Dashboard', icon: 'fa-solid fa-gauge-high', path: '/home' }
+    ]
   },
   'attendance-system': {
-    label: 'Attendance',
+    label: 'Attendance (HR)',
     icon: 'fa-solid fa-clock',
     children: [
-      { id: 'dashboard', label: 'Dashboard', icon: 'fa-solid fa-chart-pie', path: '/attendance-system/dashboard' },
-      { id: 'employees', label: 'Employees', icon: 'fa-solid fa-users', path: '/attendance-system/employees' },
-      { id: 'automatic', label: 'Automatic', icon: 'fa-solid fa-fingerprint', path: '/attendance-system/automatic' },
-      { id: 'logs', label: 'Logs', icon: 'fa-solid fa-list', path: '/attendance-system/logs' }
-    ]
-  },
-  'labels': {
-    label: 'Labels',
-    icon: 'fa-solid fa-tags',
-    children: [
-      { id: 'generator', label: 'Generator', icon: 'fa-solid fa-print', path: '/labels/generator' },
-      { id: 'history', label: 'History', icon: 'fa-solid fa-history', path: '/labels/history' }
-    ]
-  },
-  'magentodata': {
-    label: 'Magento Data',
-    icon: 'fa-solid fa-chart-line',
-    children: [
-      { id: 'all-magento', label: 'All', icon: 'fa-solid fa-globe-americas', path: '/magentodata/all-magento' },
-      { id: 'uk-magento', label: 'UK Magento', icon: 'fa-solid fa-globe', path: '/magentodata/uk-magento' },
-      { id: 'fr-magento', label: 'FR Magento', icon: 'fa-solid fa-globe', path: '/magentodata/fr-magento' },
-      { id: 'nl-magento', label: 'NL Magento', icon: 'fa-solid fa-globe', path: '/magentodata/nl-magento' },
-      { id: 'history', label: 'History', icon: 'fa-solid fa-history', path: '/magentodata/history' }
+      { id: 'dashboard', label: 'Analytics', icon: 'fa-solid fa-chart-pie', path: '/attendance-system/dashboard' },
+      { id: 'employees', label: 'Staff Directory', icon: 'fa-solid fa-users', path: '/attendance-system/employees' },
+      { id: 'automatic', label: 'NFC Clocking Terminal', icon: 'fa-solid fa-fingerprint', path: '/attendance-system/automatic' },
+      { id: 'logs', label: 'Timesheets & Logs', icon: 'fa-solid fa-list', path: '/attendance-system/logs' }
     ]
   },
   'inventory': {
-    label: 'Inventory',
+    label: 'Inventory & Sourcing',
     icon: 'fa-solid fa-boxes-stacked',
     children: [
-      { id: 'dashboard', label: 'Dashboard', icon: 'fa-solid fa-gauge-high', path: '/inventory/management/dashboard' },
-      { id: 'uk-birmingham', label: 'UK Birmingham', icon: 'fa-solid fa-warehouse', path: '/inventory/management/uk-birmingham' },
-      { id: 'uk-london', label: 'UK London', icon: 'fa-solid fa-warehouse', path: '/inventory/management/uk-london' },
-      { id: 'fr-paris', label: 'FR Paris', icon: 'fa-solid fa-warehouse', path: '/inventory/management/fr-paris' },
-      { id: 'sourcing', label: 'Product Sourcing', icon: 'fa-solid fa-truck', path: '/inventory/sourcing' }
+      { id: 'dashboard', label: 'Inventory', icon: 'fa-solid fa-warehouse', path: '/inventory/management/dashboard' },
+      { id: 'sourcing', label: 'Sourcing & Suppliers', icon: 'fa-solid fa-truck', path: '/inventory/sourcing/analysis-dashboard' },
+      { id: 'labels', label: 'Label Printing', icon: 'fa-solid fa-print', path: '/labels/generator' }
     ]
   },
-  'birmingham-orders': {
-    label: 'Birmingham Orders',
+  'warehouse': {
+    label: 'Warehouse Operations',
     icon: 'fa-solid fa-cart-shopping',
     children: [
-      { id: 'scanner', label: 'Scanner', icon: 'fa-solid fa-barcode', path: '/birmingham-orders/scanner' },
-      { id: 'scanning-logs', label: 'Scanning Logs', icon: 'fa-solid fa-history', path: '/birmingham-orders/scanning-logs' }
+      { id: 'birmingham-scanner', label: 'Birmingham Scanner', icon: 'fa-solid fa-barcode', path: '/birmingham-orders/scanner' },
+      { id: 'france-scanner', label: 'France Scanner', icon: 'fa-solid fa-barcode', path: '/france-orders/scanner' },
+      { id: 'london-scanner', label: 'London Scanner', icon: 'fa-solid fa-barcode', path: '/london-orders/scanner' },
+      { id: 'scanning-logs', label: 'Scanning Logs', icon: 'fa-solid fa-history', path: '/orders/scanning-logs-hub' }
     ]
   },
-  'france-orders': {
-    label: 'France Orders',
-    icon: 'fa-solid fa-cart-shopping',
+  'sales': {
+    label: 'Sales Data',
+    icon: 'fa-solid fa-chart-line',
     children: [
-      { id: 'scanner', label: 'Scanner', icon: 'fa-solid fa-barcode', path: '/france-orders/scanner' },
-      { id: 'scanning-logs', label: 'Scanning Logs', icon: 'fa-solid fa-history', path: '/france-orders/scanning-logs' }
+      { id: 'reports', label: 'Sales Reports', icon: 'fa-solid fa-globe-americas', path: '/magentodata/all-magento' },
+      { id: 'history', label: 'Import History', icon: 'fa-solid fa-history', path: '/magentodata/history' }
     ]
   },
-  'london-orders': {
-    label: 'London Orders',
-    icon: 'fa-solid fa-cart-shopping',
+  'system': {
+    label: 'System',
+    icon: 'fa-solid fa-gear',
     children: [
-      { id: 'scanner', label: 'Scanner', icon: 'fa-solid fa-barcode', path: '/london-orders/scanner' },
-      { id: 'scanning-logs', label: 'Scanning Logs', icon: 'fa-solid fa-history', path: '/london-orders/scanning-logs' }
-    ]
-  },
-  'orders': {
-    label: 'Orders Hub',
-    icon: 'fa-solid fa-clipboard-list',
-    children: [
-      { id: 'scanning-logs-hub', label: 'Scanning Logs Hub', icon: 'fa-solid fa-history', path: '/orders/scanning-logs-hub' }
-    ]
-  },
-  'usermanagement': {
-    label: 'User Management',
-    icon: 'fa-solid fa-user-gear',
-    children: [
-      { id: 'management', label: 'User Management', icon: 'fa-solid fa-users-cog', path: '/usermanagement/management' }
+      { id: 'access-control', label: 'Access Control', icon: 'fa-solid fa-users-cog', path: '/usermanagement/management' },
+      { id: 'appearance', label: 'Appearance', icon: 'fa-solid fa-palette', path: '/settings/appearance' },
+      { id: 'tasks', label: 'Task Automation', icon: 'fa-solid fa-clock-rotate-left', path: '/settings/tasks' },
+      { id: 'health', label: 'System Health', icon: 'fa-solid fa-server', path: '/settings/system' }
     ]
   }
-};
-
-// Settings configuration (separate from main nav - shown in footer)
-const settingsConfig = {
-  label: 'Settings',
-  icon: 'fa-solid fa-gear',
-  children: [
-    { id: 'appearance', label: 'Appearance', icon: 'fa-solid fa-palette', path: '/settings/appearance' },
-    { id: 'tasks', label: 'Scheduler Tasks', icon: 'fa-solid fa-clock-rotate-left', path: '/settings/tasks' },
-    { id: 'system', label: 'System', icon: 'fa-solid fa-server', path: '/settings/system' }
-  ]
 };
 
 /**
@@ -183,18 +140,6 @@ function buildSidebarHTML() {
         
         <!-- Footer -->
         <div class="sidebar-footer">
-          <div class="sidebar-group" data-group-id="settings">
-            <button class="sidebar-footer-item" id="sidebarSettings" data-tooltip="Settings">
-              <span class="sidebar-item-icon"><i class="fa-solid fa-gear"></i></span>
-              <span class="sidebar-footer-label">Settings</span>
-              <i class="sidebar-item-chevron fa-solid fa-chevron-down"></i>
-            </button>
-            <div class="sidebar-dropdown">
-              <div class="sidebar-dropdown-inner">
-                ${buildSettingsDropdownItems()}
-              </div>
-            </div>
-          </div>
           <button class="sidebar-footer-item" id="sidebarThemeToggle" data-tooltip="Toggle Theme">
             <span class="sidebar-item-icon"><i class="fa-solid fa-moon"></i></span>
             <span class="sidebar-footer-label">Dark Mode</span>
@@ -230,62 +175,35 @@ function buildNavigationItems() {
     // Check permissions
     if (!isAllowed(groupId)) continue;
 
-    const isDirectLink = config.directLink === true;
-
-    if (isDirectLink) {
-      html += `
-        <button class="sidebar-item direct-link" data-path="${config.path}" data-tooltip="${config.label}">
-          <span class="sidebar-item-icon"><i class="${config.icon}"></i></span>
-          <span class="sidebar-item-label">${config.label}</span>
+    // Build dropdown children
+    let childHtml = '';
+    for (const child of config.children) {
+      const permKey = `${groupId}.${child.id}`;
+      if (!isAllowed(permKey)) continue;
+      childHtml += `
+        <button class="sidebar-dropdown-link" data-path="${child.path}">
+          <span class="sidebar-dropdown-link-icon"><i class="${child.icon}"></i></span>
+          <span>${child.label}</span>
         </button>
       `;
-    } else {
-      // Build dropdown children
-      let childHtml = '';
-      for (const child of config.children) {
-        const permKey = `${groupId}.${child.id}`;
-        if (!isAllowed(permKey)) continue;
-        childHtml += `
-          <button class="sidebar-dropdown-link" data-path="${child.path}">
-            <span class="sidebar-dropdown-link-icon"><i class="${child.icon}"></i></span>
-            <span>${child.label}</span>
-          </button>
-        `;
-      }
+    }
 
-      html += `
-        <div class="sidebar-group" data-group-id="${groupId}">
-          <button class="sidebar-item" data-group="${groupId}" data-tooltip="${config.label}">
-            <span class="sidebar-item-icon"><i class="${config.icon}"></i></span>
-            <span class="sidebar-item-label">${config.label}</span>
-            <i class="sidebar-item-chevron fa-solid fa-chevron-down"></i>
-          </button>
-          <div class="sidebar-dropdown">
-            <div class="sidebar-dropdown-inner">
-              ${childHtml}
-            </div>
+    html += `
+      <div class="sidebar-group" data-group-id="${groupId}">
+        <button class="sidebar-item" data-group="${groupId}" data-tooltip="${config.label}">
+          <span class="sidebar-item-icon"><i class="${config.icon}"></i></span>
+          <span class="sidebar-item-label">${config.label}</span>
+          <i class="sidebar-item-chevron fa-solid fa-chevron-down"></i>
+        </button>
+        <div class="sidebar-dropdown">
+          <div class="sidebar-dropdown-inner">
+            ${childHtml}
           </div>
         </div>
-      `;
-    }
-  }
-
-  return html;
-}
-
-/**
- * Build settings dropdown items HTML
- */
-function buildSettingsDropdownItems() {
-  let html = '';
-  for (const child of settingsConfig.children) {
-    html += `
-      <button class="sidebar-dropdown-link" data-path="${child.path}">
-        <span class="sidebar-dropdown-link-icon"><i class="${child.icon}"></i></span>
-        <span>${child.label}</span>
-      </button>
+      </div>
     `;
   }
+
   return html;
 }
 
@@ -304,11 +222,6 @@ function setupEventListeners() {
     item.addEventListener('click', handleGroupClick);
   });
 
-  // Direct link clicks
-  container.querySelectorAll('.sidebar-item[data-path]').forEach(item => {
-    item.addEventListener('click', handleDirectLinkClick);
-  });
-
   // Dropdown link clicks
   container.querySelectorAll('.sidebar-dropdown-link').forEach(link => {
     link.addEventListener('click', handleDropdownLinkClick);
@@ -325,12 +238,6 @@ function setupEventListeners() {
   const logoutBtn = document.getElementById('sidebarLogout');
   if (logoutBtn) {
     logoutBtn.addEventListener('click', handleLogout);
-  }
-
-  // Settings button - toggles settings dropdown
-  const settingsBtn = document.getElementById('sidebarSettings');
-  if (settingsBtn) {
-    settingsBtn.addEventListener('click', handleSettingsClick);
   }
 
   // Overlay click
@@ -383,17 +290,6 @@ function handleGroupClick(e) {
 }
 
 /**
- * Handle click on a direct link (no children)
- */
-function handleDirectLinkClick(e) {
-  const path = e.currentTarget.dataset.path;
-  if (path) {
-    collapseSidebar();
-    navigate(path);
-  }
-}
-
-/**
  * Toggle dropdown for a navigation group
  */
 function toggleDropdown(groupId) {
@@ -431,12 +327,6 @@ function closeAllDropdowns() {
   container.querySelectorAll('.sidebar-item.subpanel-active').forEach(item => {
     item.classList.remove('subpanel-active');
   });
-
-  // Remove active from settings button
-  const settingsBtn = document.getElementById('sidebarSettings');
-  if (settingsBtn) {
-    settingsBtn.classList.remove('active', 'subpanel-active');
-  }
 
   activeGroupId = null;
 }
@@ -494,33 +384,26 @@ function setState(newState) {
 
 /**
  * Highlight navigation based on current route
- * - 'active' class: Shows which section/item corresponds to current URL
+ * - 'active' class on sidebar-item: Shows which group contains the current page
+ * - 'active' class on dropdown-link: Shows the exact current page
  */
 export function highlightCurrentRoute() {
   const currentPath = window.location.pathname;
   
   if (!container) return;
 
-  // Get the section from path (e.g., /attendance-system/logs -> attendance-system)
-  const parts = currentPath.split('/').filter(p => p);
-  currentRouteSection = parts[0] || 'home';
-  currentRouteSubSection = parts[1] || '';
-
-  // Highlight primary nav item based on current route
-  container.querySelectorAll('.sidebar-item').forEach(item => {
+  // Highlight primary nav groups by checking if any child path matches
+  container.querySelectorAll('.sidebar-item[data-group]').forEach(item => {
     const groupId = item.dataset.group;
-    const path = item.dataset.path;
-    
+    const config = navigationConfig[groupId];
     let isActive = false;
-    if (path) {
-      // Direct link - exact match or home match
-      isActive = currentPath === path || (path === '/home' && currentPath === '/');
-    } else if (groupId) {
-      // Group - check if current section matches
-      isActive = currentRouteSection === groupId;
+
+    if (config?.children) {
+      isActive = config.children.some(child =>
+        currentPath === child.path || currentPath.startsWith(child.path + '/')
+      );
     }
-    
-    // Set active class (route-based)
+
     item.classList.toggle('active', isActive);
   });
 
@@ -564,32 +447,6 @@ function updateThemeIcon() {
   const settingsToggle = document.getElementById('settingsThemeToggle');
   if (settingsToggle) {
     settingsToggle.checked = isDark;
-  }
-}
-
-// ===== SETTINGS FUNCTIONS =====
-
-/**
- * Handle settings button click - toggles settings dropdown
- */
-function handleSettingsClick() {
-  const settingsGroup = container?.querySelector('.sidebar-group[data-group-id="settings"]');
-  if (!settingsGroup) return;
-
-  const isOpen = settingsGroup.classList.contains('dropdown-open');
-
-  // Close all dropdowns first
-  closeAllDropdowns();
-
-  if (!isOpen) {
-    // Open settings dropdown
-    settingsGroup.classList.add('dropdown-open');
-    activeGroupId = 'settings';
-
-    const settingsBtn = document.getElementById('sidebarSettings');
-    if (settingsBtn) {
-      settingsBtn.classList.add('active', 'subpanel-active');
-    }
   }
 }
 
