@@ -76,8 +76,9 @@ const routes = {
   '/magentodata/history':     '/html/magentodata/history.html',
 
   // Inventory - redirect root to first sub-page (management redirects to uk-birmingham)
-  '/inventory':                                '/html/inventory/management/uk-birmingham.html',
-  '/inventory/management':                     '/html/inventory/management/uk-birmingham.html',
+  '/inventory':                                '/html/inventory/management/dashboard.html',
+  '/inventory/management':                     '/html/inventory/management/dashboard.html',
+  '/inventory/management/dashboard':           '/html/inventory/management/dashboard.html',
   '/inventory/management/uk-birmingham':       '/html/inventory/management/uk-birmingham.html',
   '/inventory/management/uk-london':           '/html/inventory/management/uk-london.html',
   '/inventory/management/fr-paris':            '/html/inventory/management/fr-paris.html',
@@ -113,6 +114,9 @@ const routes = {
   '/london-orders/order-approval':     '/html/london-orders/order-approval.html',
   '/london-orders/scanner':            '/html/london-orders/scanner.html',
   '/london-orders/scanning-logs':      '/html/london-orders/scanning-logs.html',
+  
+  // Orders Hub - shared cross-branch pages
+  '/orders/scanning-logs-hub':         '/html/orders/scanning-logs-hub.html',
   
   // User Management - redirect root to first sub-page
   '/usermanagement':            '/html/usermanagement/management.html',
@@ -529,6 +533,11 @@ export async function navigate(path, replace = false) {
       await mod.init(path);
       currentModule = mod;
       currentModulePath = 'london-orders';
+    } else if (path.startsWith('/orders')) {
+      const mod = await import(`./modules/orders/index.js${cacheBust}`);
+      await mod.init(path);
+      currentModule = mod;
+      currentModulePath = 'orders';
     } else if (path.startsWith('/usermanagement')) {
       const mod = await import(`./modules/usermanagement/index.js${cacheBust}`);
       await mod.init(path);

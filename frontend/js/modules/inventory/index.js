@@ -29,8 +29,13 @@ export async function init(path) {
     const mod = await import(`./sourcing.js${cacheBust}`);
     await mod.init(path);
     currentSubModule = mod;
+  } else if (path === '/inventory/management/dashboard' || path === '/inventory/management' || path === '/inventory') {
+    // Dashboard overview page
+    const mod = await import(`./management-dashboard.js${cacheBust}`);
+    await mod.init();
+    currentSubModule = mod;
   } else {
-    // Default to management (first sub-page)
+    // Branch-specific management page
     const mod = await import(`./management.js${cacheBust}`);
     await mod.init();
     currentSubModule = mod;

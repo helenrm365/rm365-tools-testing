@@ -963,3 +963,87 @@ html.dark-mode #inventoryManagementTable td.status-lowstock {
 }
 
 /* ===== Branch Tabs — uses tabs-nextui.css, no page-level overrides ===== */
+
+/* ===== Inventory Management Dashboard ===== */
+.inventory-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.inventory-stat-card {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1.5rem;
+  border-radius: var(--radius-lg, 12px);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.inventory-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-l, 0 4px 14px rgba(0,0,0,0.08));
+}
+
+.inventory-stat-card .stat-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-md, 10px);
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.inventory-stat-card.stat-low .stat-icon {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+.inventory-stat-card.stat-over .stat-icon {
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+}
+.inventory-stat-card.stat-stable .stat-icon {
+  background: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+}
+
+html.dark-mode .inventory-stat-card.stat-low .stat-icon {
+  background: rgba(239, 68, 68, 0.15);
+}
+html.dark-mode .inventory-stat-card.stat-over .stat-icon {
+  background: rgba(245, 158, 11, 0.15);
+}
+html.dark-mode .inventory-stat-card.stat-stable .stat-icon {
+  background: rgba(34, 197, 94, 0.15);
+}
+
+.inventory-stat-card .stat-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.inventory-stat-card .stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text);
+}
+
+.inventory-stat-card .stat-label {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+@media (max-width: 640px) {
+  .inventory-dashboard-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}

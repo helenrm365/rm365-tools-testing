@@ -72,6 +72,7 @@ const navigationConfig = {
     label: 'Inventory',
     icon: 'fa-solid fa-boxes-stacked',
     children: [
+      { id: 'dashboard', label: 'Dashboard', icon: 'fa-solid fa-gauge-high', path: '/inventory/management/dashboard' },
       { id: 'uk-birmingham', label: 'UK Birmingham', icon: 'fa-solid fa-warehouse', path: '/inventory/management/uk-birmingham' },
       { id: 'uk-london', label: 'UK London', icon: 'fa-solid fa-warehouse', path: '/inventory/management/uk-london' },
       { id: 'fr-paris', label: 'FR Paris', icon: 'fa-solid fa-warehouse', path: '/inventory/management/fr-paris' },
@@ -100,6 +101,13 @@ const navigationConfig = {
     children: [
       { id: 'scanner', label: 'Scanner', icon: 'fa-solid fa-barcode', path: '/london-orders/scanner' },
       { id: 'scanning-logs', label: 'Scanning Logs', icon: 'fa-solid fa-history', path: '/london-orders/scanning-logs' }
+    ]
+  },
+  'orders': {
+    label: 'Orders Hub',
+    icon: 'fa-solid fa-clipboard-list',
+    children: [
+      { id: 'scanning-logs-hub', label: 'Scanning Logs Hub', icon: 'fa-solid fa-history', path: '/orders/scanning-logs-hub' }
     ]
   },
   'usermanagement': {
