@@ -55,12 +55,12 @@ const routes = {
   '/home':                  '/html/home.html',
   '/login':                 '/html/login.html',
   
-  // Attendance System - redirect root to first sub-page (dashboard)
-  '/attendance-system':           '/html/attendance-system/dashboard.html',
-  '/attendance-system/dashboard': '/html/attendance-system/dashboard.html',
-  '/attendance-system/employees': '/html/attendance-system/employees.html',
-  '/attendance-system/automatic': '/html/attendance-system/automatic.html',
-  '/attendance-system/logs':      '/html/attendance-system/logs.html',
+  // Attendance - redirect root to first sub-page (analytics)
+  '/attendance':           '/html/attendance-system/dashboard.html',
+  '/attendance/analytics': '/html/attendance-system/dashboard.html',
+  '/attendance/staff':     '/html/attendance-system/employees.html',
+  '/attendance/clocking':  '/html/attendance-system/automatic.html',
+  '/attendance/timesheets':'/html/attendance-system/logs.html',
 
   // Labels - redirect root to first sub-page
   '/labels':                '/html/labels/generator.html',
@@ -168,7 +168,6 @@ export function generateTabStructure() {
   
   // Map of section keys to their display labels
   const sectionLabels = {
-    'attendance-system': 'Attendance System',
     'attendance': 'Attendance',
     'enrollment': 'Enrollment',
     'labels': 'Labels',
@@ -183,13 +182,11 @@ export function generateTabStructure() {
   
   // Map of subtab keys to their display labels
   const subtabLabels = {
-    // Attendance System
-    'employees': 'Employees',
     // Attendance
-    'automatic': 'Automatic',
-    'manual': 'Manual',
-    'logs': 'Logs',
-    'overview': 'Overview',
+    'analytics': 'Analytics',
+    'staff': 'Staff',
+    'clocking': 'Clocking',
+    'timesheets': 'Timesheets',
     // Enrollment
     'management': 'Management',
     'management-depth-test': 'Management Depth Test',
@@ -498,11 +495,11 @@ export async function navigate(path, replace = false) {
       await mod.init();
       currentModule = mod;
       currentModulePath = 'home';
-    } else if (path.startsWith('/attendance-system')) {
+    } else if (path.startsWith('/attendance')) {
       const mod = await import(`./modules/attendance-system/index.js${cacheBust}`);
       await mod.init(path);
       currentModule = mod;
-      currentModulePath = 'attendance-system';
+      currentModulePath = 'attendance';
     } else if (path.startsWith('/labels')) {
       const mod = await import(`./modules/labels/index.js${cacheBust}`);
       await mod.init(path);

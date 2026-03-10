@@ -29,17 +29,17 @@ export function isAllowed(key, allowed = null) {
 export function getDefaultAllowedPath(allowed = null) {
   const allowedTabs = Array.isArray(allowed) ? allowed : getAllowedTabs();
   if (!allowedTabs || allowedTabs.length === 0) {
-    // No restrictions: full access, default to attendance-system
-    return '/attendance-system';
+    // No restrictions: full access, default to attendance
+    return '/attendance';
   }
 
-  // Prefer attendance-system if present
-  if (isAllowed('attendance-system', allowedTabs)) {
-    if (allowedTabs.includes('attendance-system.dashboard')) return '/attendance-system/dashboard';
-    if (allowedTabs.includes('attendance-system.employees')) return '/attendance-system/employees';
-    if (allowedTabs.includes('attendance-system.automatic')) return '/attendance-system/automatic';
-    if (allowedTabs.includes('attendance-system.logs')) return '/attendance-system/logs';
-    return '/attendance-system';
+  // Prefer attendance if present
+  if (isAllowed('attendance', allowedTabs)) {
+    if (allowedTabs.includes('attendance.analytics')) return '/attendance/analytics';
+    if (allowedTabs.includes('attendance.staff')) return '/attendance/staff';
+    if (allowedTabs.includes('attendance.clocking')) return '/attendance/clocking';
+    if (allowedTabs.includes('attendance.timesheets')) return '/attendance/timesheets';
+    return '/attendance';
   }
   // Then labels
   if (isAllowed('labels', allowedTabs)) return '/labels';
@@ -90,7 +90,7 @@ export function enforceRoutePermission(pathname) {
 
   const key = sub ? `${section}.${sub}` : section;
   if (isAllowed(key)) {
-    // Section-root paths (no sub) map to a default sub-page (e.g. /attendance-system → dashboard).
+    // Section-root paths (no sub) map to a default sub-page (e.g. /attendance → analytics).
     // If the user only has specific child permissions, redirect to their first allowed sub-page
     // so they don't land on a default page they can't access.
     if (!sub) {

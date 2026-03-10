@@ -35,14 +35,14 @@ const navigationConfig = {
       { id: 'dashboard', label: 'Dashboard', icon: 'fa-solid fa-gauge-high', path: '/home' }
     ]
   },
-  'attendance-system': {
+  'attendance': {
     label: 'Attendance (HR)',
     icon: 'fa-solid fa-clock',
     children: [
-      { id: 'dashboard', label: 'Analytics', icon: 'fa-solid fa-chart-pie', path: '/attendance-system/dashboard' },
-      { id: 'employees', label: 'Staff Directory', icon: 'fa-solid fa-users', path: '/attendance-system/employees' },
-      { id: 'automatic', label: 'NFC Clocking Terminal', icon: 'fa-solid fa-fingerprint', path: '/attendance-system/automatic' },
-      { id: 'logs', label: 'Timesheets & Logs', icon: 'fa-solid fa-list', path: '/attendance-system/logs' }
+      { id: 'analytics', label: 'Analytics', icon: 'fa-solid fa-chart-pie', path: '/attendance/analytics' },
+      { id: 'staff', label: 'Staff Directory', icon: 'fa-solid fa-users', path: '/attendance/staff' },
+      { id: 'clocking', label: 'NFC Clocking Terminal', icon: 'fa-solid fa-fingerprint', path: '/attendance/clocking' },
+      { id: 'timesheets', label: 'Timesheets & Logs', icon: 'fa-solid fa-list', path: '/attendance/timesheets' }
     ]
   },
   'inventory': {

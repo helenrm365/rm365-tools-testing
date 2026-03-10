@@ -13,19 +13,19 @@ export async function init(path) {
   const cacheBust = `?t=${Date.now()}`;
   
   // Route to the appropriate sub-module based on path
-  if (path.includes('/dashboard')) {
+  if (path.includes('/analytics') || path.includes('/dashboard')) {
     const mod = await import(`./dashboard.js${cacheBust}`);
     await mod.init();
     currentSubModule = mod;
-  } else if (path.includes('/automatic')) {
+  } else if (path.includes('/clocking') || path.includes('/automatic')) {
     const mod = await import(`./automatic.js${cacheBust}`);
     await mod.init();
     currentSubModule = mod;
-  } else if (path.includes('/logs')) {
+  } else if (path.includes('/timesheets') || path.includes('/logs')) {
     const mod = await import(`./logs.js${cacheBust}`);
     await mod.init();
     currentSubModule = mod;
-  } else if (path.includes('/employees')) {
+  } else if (path.includes('/staff') || path.includes('/employees')) {
     const mod = await import(`./employees.js${cacheBust}`);
     await mod.init();
     currentSubModule = mod;

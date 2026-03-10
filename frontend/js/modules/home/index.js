@@ -123,7 +123,7 @@ function filterModulesByPermissions() {
   // Filter quick action buttons
   document.querySelectorAll('.quick-action-btn[data-path]').forEach(btn => {
     const path = btn.dataset.path;
-    const module = path.split('/')[1]; // Get module from path like /attendance-system/automatic
+    const module = path.split('/')[1]; // Get module from path like /attendance/clocking
     if (!isAllowed(module)) {
       btn.style.display = 'none';
     }
@@ -190,8 +190,8 @@ async function loadAttendanceStats() {
     console.warn('[Dashboard] statAttendance element not found');
     return;
   }
-  if (!isAllowed('attendance-system')) {
-    console.log('[Dashboard] attendance-system not allowed, skipping');
+  if (!isAllowed('attendance')) {
+    console.log('[Dashboard] attendance not allowed, skipping');
     return;
   }
 
