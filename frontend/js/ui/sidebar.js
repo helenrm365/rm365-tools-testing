@@ -6,18 +6,18 @@ import { isAllowed } from '../utils/tabs.js';
 
 /**
  * Sidebar State Machine
- * States: 'idle' | 'expanded' | 'subpanel-open'
+ * States: 'idle' | 'expanded'
  * 
  * Transitions:
  * - idle -> expanded (on hover)
- * - expanded -> subpanel-open (on tab group click)
- * - subpanel-open -> idle (on sub-tab click or mouse leave)
- * - expanded -> idle (on mouse leave without subpanel)
+ * - expanded -> idle (on mouse leave)
+ * 
+ * Dropdown state is tracked per-group via CSS class 'dropdown-open' on .sidebar-group
  */
 
 // State
 let sidebarState = 'idle';
-let activeGroupId = null; // Currently expanded subpanel group
+let activeGroupId = null; // Currently expanded dropdown group
 let currentRouteSection = null; // Section derived from current URL
 let currentRouteSubSection = null; // Subsection derived from current URL
 let mouseInSidebar = false;
@@ -25,9 +25,6 @@ let collapseTimeout = null;
 
 // DOM Elements (cached)
 let container = null;
-let subpanel = null;
-let subpanelNav = null;
-let subpanelTitle = null;
 let overlay = null;
 
 // Navigation structure definition
@@ -147,9 +144,6 @@ export function initSidebar() {
 
   // Cache DOM elements
   container = document.querySelector('.sidebar-container');
-  subpanel = document.querySelector('.sidebar-subpanel');
-  subpanelNav = document.querySelector('.subpanel-nav');
-  subpanelTitle = document.querySelector('.subpanel-title');
   overlay = document.querySelector('.sidebar-overlay');
 
   if (!container) return;
@@ -189,10 +183,18 @@ function buildSidebarHTML() {
         
         <!-- Footer -->
         <div class="sidebar-footer">
-          <button class="sidebar-footer-item" id="sidebarSettings" data-tooltip="Settings">
-            <span class="sidebar-item-icon"><i class="fa-solid fa-gear"></i></span>
-            <span class="sidebar-footer-label">Settings</span>
-          </button>
+          <div class="sidebar-group" data-group-id="settings">
+            <button class="sidebar-footer-item" id="sidebarSettings" data-tooltip="Settings">
+              <span class="sidebar-item-icon"><i class="fa-solid fa-gear"></i></span>
+              <span class="sidebar-footer-label">Settings</span>
+              <i class="sidebar-item-chevron fa-solid fa-chevron-down"></i>
+            </button>
+            <div class="sidebar-dropdown">
+              <div class="sidebar-dropdown-inner">
+                ${buildSettingsDropdownItems()}
+              </div>
+            </div>
+          </div>
           <button class="sidebar-footer-item" id="sidebarThemeToggle" data-tooltip="Toggle Theme">
             <span class="sidebar-item-icon"><i class="fa-solid fa-moon"></i></span>
             <span class="sidebar-footer-label">Dark Mode</span>
@@ -203,19 +205,6 @@ function buildSidebarHTML() {
           </button>
         </div>
       </nav>
-      
-      <!-- Secondary Subpanel -->
-      <div class="sidebar-subpanel">
-        <div class="subpanel-header">
-          <span class="subpanel-title">Menu</span>
-          <button class="subpanel-close" aria-label="Close submenu">
-            <i class="fa-solid fa-xmark"></i>
-          </button>
-        </div>
-        <div class="subpanel-nav" id="subpanelNav">
-          <!-- Dynamically populated -->
-        </div>
-      </div>
     </div>
     
     <!-- Overlay for mobile and click-away -->
@@ -242,20 +231,61 @@ function buildNavigationItems() {
     if (!isAllowed(groupId)) continue;
 
     const isDirectLink = config.directLink === true;
-    const directClass = isDirectLink ? 'direct-link' : '';
-    const dataAttrs = isDirectLink 
-      ? `data-path="${config.path}"` 
-      : `data-group="${groupId}"`;
 
+    if (isDirectLink) {
+      html += `
+        <button class="sidebar-item direct-link" data-path="${config.path}" data-tooltip="${config.label}">
+          <span class="sidebar-item-icon"><i class="${config.icon}"></i></span>
+          <span class="sidebar-item-label">${config.label}</span>
+        </button>
+      `;
+    } else {
+      // Build dropdown children
+      let childHtml = '';
+      for (const child of config.children) {
+        const permKey = `${groupId}.${child.id}`;
+        if (!isAllowed(permKey)) continue;
+        childHtml += `
+          <button class="sidebar-dropdown-link" data-path="${child.path}">
+            <span class="sidebar-dropdown-link-icon"><i class="${child.icon}"></i></span>
+            <span>${child.label}</span>
+          </button>
+        `;
+      }
+
+      html += `
+        <div class="sidebar-group" data-group-id="${groupId}">
+          <button class="sidebar-item" data-group="${groupId}" data-tooltip="${config.label}">
+            <span class="sidebar-item-icon"><i class="${config.icon}"></i></span>
+            <span class="sidebar-item-label">${config.label}</span>
+            <i class="sidebar-item-chevron fa-solid fa-chevron-down"></i>
+          </button>
+          <div class="sidebar-dropdown">
+            <div class="sidebar-dropdown-inner">
+              ${childHtml}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  return html;
+}
+
+/**
+ * Build settings dropdown items HTML
+ */
+function buildSettingsDropdownItems() {
+  let html = '';
+  for (const child of settingsConfig.children) {
     html += `
-      <button class="sidebar-item ${directClass}" ${dataAttrs} data-tooltip="${config.label}">
-        <span class="sidebar-item-icon"><i class="${config.icon}"></i></span>
-        <span class="sidebar-item-label">${config.label}</span>
-        ${!isDirectLink ? '<i class="sidebar-item-chevron fa-solid fa-chevron-right"></i>' : ''}
+      <button class="sidebar-dropdown-link" data-path="${child.path}">
+        <span class="sidebar-dropdown-link-icon"><i class="${child.icon}"></i></span>
+        <span>${child.label}</span>
       </button>
     `;
   }
-
   return html;
 }
 
@@ -279,11 +309,10 @@ function setupEventListeners() {
     item.addEventListener('click', handleDirectLinkClick);
   });
 
-  // Subpanel close button
-  const closeBtn = container.querySelector('.subpanel-close');
-  if (closeBtn) {
-    closeBtn.addEventListener('click', closeSubpanel);
-  }
+  // Dropdown link clicks
+  container.querySelectorAll('.sidebar-dropdown-link').forEach(link => {
+    link.addEventListener('click', handleDropdownLinkClick);
+  });
 
   // Theme toggle
   const themeToggle = document.getElementById('sidebarThemeToggle');
@@ -298,7 +327,7 @@ function setupEventListeners() {
     logoutBtn.addEventListener('click', handleLogout);
   }
 
-  // Settings button - opens subpanel with settings links
+  // Settings button - toggles settings dropdown
   const settingsBtn = document.getElementById('sidebarSettings');
   if (settingsBtn) {
     settingsBtn.addEventListener('click', handleSettingsClick);
@@ -346,18 +375,11 @@ function handleMouseLeave() {
 }
 
 /**
- * Handle click on a tab group (has children)
+ * Handle click on a tab group (has children) - toggles inline dropdown
  */
 function handleGroupClick(e) {
   const groupId = e.currentTarget.dataset.group;
-  
-  if (activeGroupId === groupId && sidebarState === 'subpanel-open') {
-    // Clicking same group - close subpanel
-    closeSubpanel();
-  } else {
-    // Open subpanel with this group's children
-    openSubpanel(groupId);
-  }
+  toggleDropdown(groupId);
 }
 
 /**
@@ -372,83 +394,59 @@ function handleDirectLinkClick(e) {
 }
 
 /**
- * Open the subpanel with children of given group
+ * Toggle dropdown for a navigation group
  */
-function openSubpanel(groupId) {
-  const config = navigationConfig[groupId];
-  if (!config || !config.children) return;
+function toggleDropdown(groupId) {
+  const groupEl = container?.querySelector(`.sidebar-group[data-group-id="${groupId}"]`);
+  if (!groupEl) return;
 
-  activeGroupId = groupId;
+  const isOpen = groupEl.classList.contains('dropdown-open');
 
-  // Update subpanel title
-  if (subpanelTitle) {
-    subpanelTitle.textContent = config.label;
+  // Close all other dropdowns (including settings)
+  closeAllDropdowns();
+
+  if (!isOpen) {
+    // Open this dropdown
+    groupEl.classList.add('dropdown-open');
+    activeGroupId = groupId;
+
+    // Add subpanel-active class to the sidebar-item for chevron styling
+    const itemEl = groupEl.querySelector('.sidebar-item');
+    if (itemEl) itemEl.classList.add('subpanel-active');
+  } else {
+    activeGroupId = null;
   }
-
-  // Build subpanel links
-  if (subpanelNav) {
-    const currentPath = window.location.pathname;
-    let html = '';
-    for (const child of config.children) {
-      // Check permissions for child
-      const permKey = `${groupId}.${child.id}`;
-      if (!isAllowed(permKey)) continue;
-      
-      // Check if this link is active
-      const isActive = currentPath === child.path || currentPath.startsWith(child.path + '/');
-      const activeClass = isActive ? 'active' : '';
-
-      html += `
-        <button class="subpanel-link ${activeClass}" data-path="${child.path}">
-          <span class="subpanel-link-icon"><i class="${child.icon}"></i></span>
-          <span>${child.label}</span>
-        </button>
-      `;
-    }
-    subpanelNav.innerHTML = html;
-
-    // Attach click handlers
-    subpanelNav.querySelectorAll('.subpanel-link').forEach(link => {
-      link.addEventListener('click', handleSubpanelLinkClick);
-    });
-  }
-
-  // Update subpanel-active class on primary nav items
-  updateSubpanelActiveState(groupId);
-
-  // Set state
-  setState('subpanel-open');
 }
 
 /**
- * Close the subpanel
+ * Close all open dropdowns
  */
-function closeSubpanel() {
-  activeGroupId = null;
-  setState('expanded');
-  
-  // Remove subpanel-active class from all items
-  container?.querySelectorAll('.sidebar-item').forEach(item => {
+function closeAllDropdowns() {
+  if (!container) return;
+
+  container.querySelectorAll('.sidebar-group.dropdown-open').forEach(group => {
+    group.classList.remove('dropdown-open');
+  });
+
+  container.querySelectorAll('.sidebar-item.subpanel-active').forEach(item => {
     item.classList.remove('subpanel-active');
   });
-  
+
   // Remove active from settings button
   const settingsBtn = document.getElementById('sidebarSettings');
   if (settingsBtn) {
-    settingsBtn.classList.remove('active');
+    settingsBtn.classList.remove('active', 'subpanel-active');
   }
-  
-  // Re-highlight based on current route (restores 'active' class)
-  highlightCurrentRoute();
+
+  activeGroupId = null;
 }
 
 /**
- * Handle click on a subpanel link
+ * Handle click on a dropdown link
  */
-function handleSubpanelLinkClick(e) {
+function handleDropdownLinkClick(e) {
   const path = e.currentTarget.dataset.path;
   if (path) {
-    // Collapse everything and navigate
     collapseSidebar();
     navigate(path);
   }
@@ -458,7 +456,9 @@ function handleSubpanelLinkClick(e) {
  * Fully collapse sidebar to icon rail
  */
 function collapseSidebar() {
-  activeGroupId = null;
+  // Close all dropdowns
+  closeAllDropdowns();
+  
   setState('idle');
   
   // Close mobile sidebar
@@ -469,17 +469,6 @@ function collapseSidebar() {
   if (mobileToggle) {
     mobileToggle.classList.remove('fa-xmark');
     mobileToggle.classList.add('fa-bars');
-  }
-  
-  // Remove subpanel-active from all items
-  container?.querySelectorAll('.sidebar-item').forEach(item => {
-    item.classList.remove('subpanel-active');
-  });
-  
-  // Remove active from settings button
-  const settingsBtn = document.getElementById('sidebarSettings');
-  if (settingsBtn) {
-    settingsBtn.classList.remove('active');
   }
   
   // Re-highlight based on current route
@@ -495,33 +484,17 @@ function setState(newState) {
   if (!container) return;
 
   // Remove all state classes
-  container.classList.remove('expanded', 'subpanel-open');
+  container.classList.remove('expanded');
 
   // Add appropriate class
   if (newState === 'expanded') {
     container.classList.add('expanded');
-  } else if (newState === 'subpanel-open') {
-    container.classList.add('expanded', 'subpanel-open');
   }
-}
-
-/**
- * Update which group has its subpanel open (adds subpanel-active class)
- * This is separate from the route-based 'active' class
- */
-function updateSubpanelActiveState(groupId) {
-  if (!container) return;
-
-  container.querySelectorAll('.sidebar-item[data-group]').forEach(item => {
-    const isSubpanelActive = item.dataset.group === groupId;
-    item.classList.toggle('subpanel-active', isSubpanelActive);
-  });
 }
 
 /**
  * Highlight navigation based on current route
  * - 'active' class: Shows which section/item corresponds to current URL
- * - 'subpanel-active' class: Shows which group's subpanel is currently open
  */
 export function highlightCurrentRoute() {
   const currentPath = window.location.pathname;
@@ -551,14 +524,12 @@ export function highlightCurrentRoute() {
     item.classList.toggle('active', isActive);
   });
 
-  // Highlight subpanel links if subpanel is open
-  if (subpanelNav && sidebarState === 'subpanel-open') {
-    subpanelNav.querySelectorAll('.subpanel-link').forEach(link => {
-      const linkPath = link.dataset.path;
-      const isActive = currentPath === linkPath || currentPath.startsWith(linkPath + '/');
-      link.classList.toggle('active', isActive);
-    });
-  }
+  // Highlight dropdown links
+  container.querySelectorAll('.sidebar-dropdown-link').forEach(link => {
+    const linkPath = link.dataset.path;
+    const isActive = currentPath === linkPath || currentPath.startsWith(linkPath + '/');
+    link.classList.toggle('active', isActive);
+  });
 }
 
 /**
@@ -599,61 +570,27 @@ function updateThemeIcon() {
 // ===== SETTINGS FUNCTIONS =====
 
 /**
- * Handle settings button click - opens subpanel with settings links
+ * Handle settings button click - toggles settings dropdown
  */
 function handleSettingsClick() {
-  if (activeGroupId === 'settings' && sidebarState === 'subpanel-open') {
-    // Clicking settings again - close subpanel
-    closeSubpanel();
-  } else {
-    // Open subpanel with settings links
-    openSettingsSubpanel();
-  }
-}
+  const settingsGroup = container?.querySelector('.sidebar-group[data-group-id="settings"]');
+  if (!settingsGroup) return;
 
-/**
- * Open the settings subpanel (uses same subpanel as navigation)
- */
-function openSettingsSubpanel() {
-  activeGroupId = 'settings';
+  const isOpen = settingsGroup.classList.contains('dropdown-open');
 
-  // Update subpanel title
-  if (subpanelTitle) {
-    subpanelTitle.textContent = settingsConfig.label;
-  }
+  // Close all dropdowns first
+  closeAllDropdowns();
 
-  // Build subpanel links
-  if (subpanelNav) {
-    const currentPath = window.location.pathname;
-    let html = '';
-    for (const child of settingsConfig.children) {
-      // Check if this link is active
-      const isActive = currentPath === child.path || currentPath.startsWith(child.path + '/');
-      const activeClass = isActive ? 'active' : '';
+  if (!isOpen) {
+    // Open settings dropdown
+    settingsGroup.classList.add('dropdown-open');
+    activeGroupId = 'settings';
 
-      html += `
-        <button class="subpanel-link ${activeClass}" data-path="${child.path}">
-          <span class="subpanel-link-icon"><i class="${child.icon}"></i></span>
-          <span>${child.label}</span>
-        </button>
-      `;
+    const settingsBtn = document.getElementById('sidebarSettings');
+    if (settingsBtn) {
+      settingsBtn.classList.add('active', 'subpanel-active');
     }
-    subpanelNav.innerHTML = html;
-
-    // Attach click handlers
-    subpanelNav.querySelectorAll('.subpanel-link').forEach(link => {
-      link.addEventListener('click', handleSubpanelLinkClick);
-    });
   }
-
-  // Highlight settings button
-  const settingsBtn = document.getElementById('sidebarSettings');
-  if (settingsBtn) {
-    settingsBtn.classList.add('active');
-  }
-
-  // Set state
-  setState('subpanel-open');
 }
 
 /**

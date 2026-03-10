@@ -256,26 +256,26 @@
 }
 
 /* Staggered fade-in for each nav item label */
-.sidebar-container:hover .sidebar-item:nth-child(1) .sidebar-item-label,
-.sidebar-container.expanded .sidebar-item:nth-child(1) .sidebar-item-label { transition-delay: 0.02s; }
-.sidebar-container:hover .sidebar-item:nth-child(2) .sidebar-item-label,
-.sidebar-container.expanded .sidebar-item:nth-child(2) .sidebar-item-label { transition-delay: 0.04s; }
-.sidebar-container:hover .sidebar-item:nth-child(3) .sidebar-item-label,
-.sidebar-container.expanded .sidebar-item:nth-child(3) .sidebar-item-label { transition-delay: 0.06s; }
-.sidebar-container:hover .sidebar-item:nth-child(4) .sidebar-item-label,
-.sidebar-container.expanded .sidebar-item:nth-child(4) .sidebar-item-label { transition-delay: 0.08s; }
-.sidebar-container:hover .sidebar-item:nth-child(5) .sidebar-item-label,
-.sidebar-container.expanded .sidebar-item:nth-child(5) .sidebar-item-label { transition-delay: 0.10s; }
-.sidebar-container:hover .sidebar-item:nth-child(6) .sidebar-item-label,
-.sidebar-container.expanded .sidebar-item:nth-child(6) .sidebar-item-label { transition-delay: 0.12s; }
-.sidebar-container:hover .sidebar-item:nth-child(7) .sidebar-item-label,
-.sidebar-container.expanded .sidebar-item:nth-child(7) .sidebar-item-label { transition-delay: 0.14s; }
-.sidebar-container:hover .sidebar-item:nth-child(8) .sidebar-item-label,
-.sidebar-container.expanded .sidebar-item:nth-child(8) .sidebar-item-label { transition-delay: 0.16s; }
-.sidebar-container:hover .sidebar-item:nth-child(9) .sidebar-item-label,
-.sidebar-container.expanded .sidebar-item:nth-child(9) .sidebar-item-label { transition-delay: 0.18s; }
-.sidebar-container:hover .sidebar-item:nth-child(10) .sidebar-item-label,
-.sidebar-container.expanded .sidebar-item:nth-child(10) .sidebar-item-label { transition-delay: 0.20s; }
+.sidebar-container:hover .sidebar-nav > :nth-child(1) .sidebar-item-label,
+.sidebar-container.expanded .sidebar-nav > :nth-child(1) .sidebar-item-label { transition-delay: 0.02s; }
+.sidebar-container:hover .sidebar-nav > :nth-child(2) .sidebar-item-label,
+.sidebar-container.expanded .sidebar-nav > :nth-child(2) .sidebar-item-label { transition-delay: 0.04s; }
+.sidebar-container:hover .sidebar-nav > :nth-child(3) .sidebar-item-label,
+.sidebar-container.expanded .sidebar-nav > :nth-child(3) .sidebar-item-label { transition-delay: 0.06s; }
+.sidebar-container:hover .sidebar-nav > :nth-child(4) .sidebar-item-label,
+.sidebar-container.expanded .sidebar-nav > :nth-child(4) .sidebar-item-label { transition-delay: 0.08s; }
+.sidebar-container:hover .sidebar-nav > :nth-child(5) .sidebar-item-label,
+.sidebar-container.expanded .sidebar-nav > :nth-child(5) .sidebar-item-label { transition-delay: 0.10s; }
+.sidebar-container:hover .sidebar-nav > :nth-child(6) .sidebar-item-label,
+.sidebar-container.expanded .sidebar-nav > :nth-child(6) .sidebar-item-label { transition-delay: 0.12s; }
+.sidebar-container:hover .sidebar-nav > :nth-child(7) .sidebar-item-label,
+.sidebar-container.expanded .sidebar-nav > :nth-child(7) .sidebar-item-label { transition-delay: 0.14s; }
+.sidebar-container:hover .sidebar-nav > :nth-child(8) .sidebar-item-label,
+.sidebar-container.expanded .sidebar-nav > :nth-child(8) .sidebar-item-label { transition-delay: 0.16s; }
+.sidebar-container:hover .sidebar-nav > :nth-child(9) .sidebar-item-label,
+.sidebar-container.expanded .sidebar-nav > :nth-child(9) .sidebar-item-label { transition-delay: 0.18s; }
+.sidebar-container:hover .sidebar-nav > :nth-child(10) .sidebar-item-label,
+.sidebar-container.expanded .sidebar-nav > :nth-child(10) .sidebar-item-label { transition-delay: 0.20s; }
 
 .sidebar-container:hover .sidebar-item-label,
 .sidebar-container.expanded .sidebar-item-label,
@@ -284,10 +284,10 @@
   transform: translateX(0);
 }
 
-/* ===== Chevron Arrow - Points LEFT by default, RIGHT when expanded ===== */
+/* ===== Chevron Arrow - Points DOWN by default (closed), rotates to indicate open ===== */
 .sidebar-item-chevron {
   opacity: 0;
-  transform: translateX(-8px) rotate(180deg); /* Points LEFT by default */
+  transform: translateX(-8px) rotate(0deg); /* Points DOWN (fa-chevron-down) */
   transition: 
     opacity var(--sidebar-transition-duration) var(--sidebar-transition-easing),
     transform var(--sidebar-transition-duration) var(--sidebar-spring-easing);
@@ -298,17 +298,16 @@
   text-align: center;
 }
 
-/* When sidebar expands - arrows become visible, still pointing left */
+/* When sidebar expands - arrows become visible, pointing RIGHT (collapsed state) */
 .sidebar-container:hover .sidebar-item-chevron,
-.sidebar-container.expanded .sidebar-item-chevron,
-.sidebar-container.subpanel-open .sidebar-item-chevron {
+.sidebar-container.expanded .sidebar-item-chevron {
   opacity: 0.5;
-  transform: translateX(0) rotate(180deg); /* Points LEFT */
+  transform: translateX(0) rotate(-90deg); /* Rotated to point RIGHT */
 }
 
-/* When this group's subpanel is open - arrow points RIGHT */
+/* When this group's dropdown is open - arrow points DOWN */
 .sidebar-item.subpanel-active .sidebar-item-chevron {
-  transform: translateX(0) rotate(0deg); /* Points RIGHT */
+  transform: translateX(0) rotate(0deg); /* Points DOWN */
   opacity: 1;
   color: var(--accent);
 }
@@ -316,6 +315,121 @@
 /* Active item also shows right-pointing arrow */
 .sidebar-item.active:not(.subpanel-active) .sidebar-item-chevron {
   opacity: 0.7;
+}
+
+/* ===== Inline Dropdown (Replaces Subpanel Tray) ===== */
+.sidebar-group {
+  /* Container for sidebar-item + dropdown */
+}
+
+.sidebar-dropdown {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--sidebar-transition-duration) var(--sidebar-transition-easing);
+}
+
+.sidebar-group.dropdown-open .sidebar-dropdown {
+  grid-template-rows: 1fr;
+}
+
+.sidebar-dropdown-inner {
+  overflow: hidden;
+}
+
+/* Only show dropdown content when sidebar is expanded */
+.sidebar-container:not(:hover):not(.expanded):not(.mobile-open) .sidebar-dropdown {
+  grid-template-rows: 0fr !important;
+}
+
+/* Dropdown link items */
+.sidebar-dropdown-link {
+  display: flex;
+  align-items: center;
+  padding: var(--space-xs) var(--space-sm);
+  padding-left: 52px; /* Indent to align under category label text */
+  margin: 1px var(--space-xs);
+  min-height: 36px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: 
+    background-color var(--sidebar-fast-transition) ease,
+    color var(--sidebar-fast-transition) ease,
+    transform var(--sidebar-fast-transition) ease,
+    box-shadow var(--sidebar-fast-transition) ease,
+    opacity var(--sidebar-transition-duration) ease;
+  font-size: 0.8125rem;
+  gap: var(--space-sm);
+  border: none;
+  background: transparent;
+  width: calc(100% - var(--space-sm));
+  text-align: left;
+  font-family: var(--ff);
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  position: relative;
+  white-space: nowrap;
+  opacity: 0;
+}
+
+/* Show dropdown links only when sidebar is expanded */
+.sidebar-container:hover .sidebar-dropdown-link,
+.sidebar-container.expanded .sidebar-dropdown-link,
+.sidebar-container.mobile-open .sidebar-dropdown-link {
+  opacity: 1;
+}
+
+.sidebar-dropdown-link:hover {
+  background: var(--sidebar-item-hover);
+  color: var(--text);
+  transform: translateX(4px);
+}
+
+.sidebar-dropdown-link.active {
+  color: var(--accent);
+  background: var(--sidebar-item-active-bg);
+  font-weight: 600;
+  box-shadow: 
+    0 0 0 1px color-mix(in srgb, var(--accent) 15%, transparent) inset,
+    0 2px 6px var(--sidebar-glow);
+}
+
+/* Active indicator for dropdown links */
+.sidebar-dropdown-link.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 50%;
+  background: var(--accent);
+  border-radius: 0 2px 2px 0;
+}
+
+.sidebar-dropdown-link-icon {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.8;
+  flex-shrink: 0;
+  transition: 
+    opacity var(--sidebar-fast-transition) ease,
+    transform var(--sidebar-fast-transition) ease;
+}
+
+.sidebar-dropdown-link:hover .sidebar-dropdown-link-icon {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.sidebar-dropdown-link.active .sidebar-dropdown-link-icon {
+  opacity: 1;
+}
+
+.sidebar-dropdown-link-icon i {
+  font-size: 0.8125rem;
 }
 
 /* ===== Secondary Subpanel ===== */
@@ -559,10 +673,52 @@
   color: var(--danger);
 }
 
-/* Settings button active state when subpanel is open */
+/* Settings button active state when dropdown is open */
 #sidebarSettings.active {
   background: var(--accent);
   color: white;
+}
+
+/* Settings footer item chevron */
+.sidebar-footer .sidebar-item-chevron {
+  opacity: 0;
+  transform: translateX(-8px) rotate(0deg);
+  transition: 
+    opacity var(--sidebar-transition-duration) var(--sidebar-transition-easing),
+    transform var(--sidebar-transition-duration) var(--sidebar-spring-easing);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  width: 16px;
+  text-align: center;
+}
+
+.sidebar-container:hover .sidebar-footer .sidebar-item-chevron,
+.sidebar-container.expanded .sidebar-footer .sidebar-item-chevron {
+  opacity: 0.5;
+  transform: translateX(0) rotate(-90deg);
+}
+
+#sidebarSettings.subpanel-active .sidebar-item-chevron {
+  transform: translateX(0) rotate(0deg);
+  opacity: 1;
+  color: white;
+}
+
+/* Footer dropdown */
+.sidebar-footer .sidebar-dropdown {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--sidebar-transition-duration) var(--sidebar-transition-easing);
+}
+
+.sidebar-footer .sidebar-group.dropdown-open .sidebar-dropdown {
+  grid-template-rows: 1fr;
+}
+
+.sidebar-footer .sidebar-dropdown-inner {
+  overflow: hidden;
+  min-height: 0;
 }
 
 .sidebar-footer-label {
@@ -682,6 +838,12 @@ html.dark-mode .subpanel-link.active {
     0 2px 6px var(--sidebar-glow);
 }
 
+html.dark-mode .sidebar-dropdown-link.active {
+  box-shadow: 
+    0 0 0 1px color-mix(in srgb, var(--accent) 10%, transparent) inset,
+    0 2px 6px var(--sidebar-glow);
+}
+
 html.dark-mode .sidebar-overlay.subpanel-open {
   background: rgba(0, 0, 0, 0.4);
 }
@@ -706,18 +868,20 @@ html.dark-mode .sidebar-overlay.subpanel-open {
   
   .sidebar-item-label,
   .sidebar-brand,
-  .sidebar-footer-label,
-  .sidebar-item-chevron {
+  .sidebar-footer-label {
     opacity: 1;
     transform: translateX(0);
   }
   
   .sidebar-item-chevron {
-    transform: rotate(180deg);
+    opacity: 0.5;
+    transform: rotate(-90deg); /* Points RIGHT when closed */
   }
   
   .sidebar-item.subpanel-active .sidebar-item-chevron {
-    transform: rotate(0deg);
+    transform: rotate(0deg); /* Points DOWN when open */
+    opacity: 1;
+    color: var(--accent);
   }
   
   /* Content area - add space at top for hamburger */
@@ -835,7 +999,9 @@ body.login-page #content {
   .sidebar-item-chevron,
   .subpanel-link,
   .sidebar-brand,
-  .sidebar-footer-label {
+  .sidebar-footer-label,
+  .sidebar-dropdown,
+  .sidebar-dropdown-link {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
   }
