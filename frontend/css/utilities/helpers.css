@@ -60,9 +60,6 @@
 
 /* Shadow utilities */
 .shadow-none { box-shadow: none; }
-.shadow-sm { box-shadow: var(--shadow-s); }
-.shadow-md { box-shadow: var(--shadow-m); }
-.shadow-lg { box-shadow: var(--shadow-l); }
 
 /* Cursor */
 .cursor-pointer { cursor: pointer; }

@@ -31,7 +31,6 @@
   padding: 2rem;
   border-radius: 12px;
   font-family: var(--ff);
-  box-shadow: var(--shadow-l);
   animation: popupSlideIn 0.3s ease;
 }
 
@@ -111,7 +110,6 @@
   padding: 1rem 1.5rem;
   background: var(--bg);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-l);
   z-index: 2000;
   animation: toastSlideIn 0.3s ease;
 }

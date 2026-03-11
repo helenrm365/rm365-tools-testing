@@ -133,7 +133,6 @@ html.dark-mode .attendance-dashboard .btn-clear-filters {
   display: flex;
   align-items: center;
   gap: 1rem;
-  box-shadow: var(--shadow-l);
   border: 2px solid color-mix(in srgb, var(--accent) 10%, transparent);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -146,7 +145,6 @@ html.dark-mode .attendance-dashboard .stat-card {
   transform: translateY(-3px);
   border-color: var(--accent);
   box-shadow: 
-    var(--shadow-l),
     0 0 16px color-mix(in srgb, var(--accent) 20%, transparent),
     0 8px 24px color-mix(in srgb, var(--accent) 15%, transparent);
 }
@@ -626,7 +624,6 @@ html.dark-mode .attendance-dashboard .stat-card {
 
 .attendance-dashboard .lunchtime-employee-card:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-m);
 }
 
 /* ===== Glow Effects Toggle ===== */
@@ -636,9 +633,7 @@ html.dark-mode .attendance-dashboard .stat-card {
 
 html:not(.glow-enabled) .attendance-dashboard .btn-clear-filters:hover,
 html:not(.glow-enabled) .attendance-dashboard .btn-clear-filters:focus-visible {
-  box-shadow: var(--shadow-m);
 }
 
 html:not(.glow-enabled) .attendance-dashboard .stat-card:hover {
-  box-shadow: var(--shadow-l);
 }

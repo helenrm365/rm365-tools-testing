@@ -67,13 +67,11 @@
   padding: 1.25rem;
   background: var(--bg-light);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-s);
   border-left: 4px solid var(--accent);
   transition: all 0.2s ease;
 }
 
 .order-progress .stat-card:hover {
-  box-shadow: var(--shadow-m);
   transform: translateY(-2px);
 }
 
@@ -148,13 +146,11 @@
   background: var(--bg-light);
   border-radius: var(--radius-md);
   padding: 1.5rem;
-  box-shadow: var(--shadow-s);
   transition: all 0.2s ease;
   border-left: 4px solid var(--accent);
 }
 
 .order-progress .session-card:hover {
-  box-shadow: var(--shadow-m);
   transform: translateY(-2px);
 }
 

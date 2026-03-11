@@ -62,7 +62,6 @@
   color: var(--text);
   cursor: pointer;
   transition: all var(--transition);
-  box-shadow: var(--shadow-s);
 }
 
 html.dark-mode .filter-select {
@@ -72,7 +71,6 @@ html.dark-mode .filter-select {
 .filter-select:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: var(--shadow-m);
 }
 
 /* Filter category chips */

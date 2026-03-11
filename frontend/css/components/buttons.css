@@ -52,7 +52,6 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
   box-sizing: border-box;
-  box-shadow: var(--shadow-m);
   text-shadow: var(--text-shadow-m);
 }
 
@@ -743,37 +742,30 @@ html.dark-mode .btn-tile {
 
 html:not(.glow-enabled) .action-btn:hover,
 html:not(.glow-enabled) .action-btn:focus-visible {
-  box-shadow: var(--shadow-l);
 }
 
 html:not(.glow-enabled) .accent-btn:hover:not(:disabled),
 html:not(.glow-enabled) .accent-btn:focus-visible {
-  box-shadow: var(--shadow-l);
 }
 
 html:not(.glow-enabled) .neutral-btn:hover:not(:disabled),
 html:not(.glow-enabled) .neutral-btn:focus-visible {
-  box-shadow: var(--shadow-l);
 }
 
 html:not(.glow-enabled) .danger-btn:hover:not(:disabled),
 html:not(.glow-enabled) .danger-btn:focus-visible {
-  box-shadow: var(--shadow-l);
 }
 
 html:not(.glow-enabled) .info-btn:hover:not(:disabled),
 html:not(.glow-enabled) .info-btn:focus-visible {
-  box-shadow: var(--shadow-l);
 }
 
 html:not(.glow-enabled) .success-btn:hover:not(:disabled),
 html:not(.glow-enabled) .success-btn:focus-visible {
-  box-shadow: var(--shadow-l);
 }
 
 html:not(.glow-enabled) .warning-btn:hover:not(:disabled),
 html:not(.glow-enabled) .warning-btn:focus-visible {
-  box-shadow: var(--shadow-l);
 }
 
 html:not(.glow-enabled) .action-btn-primary:hover:not(:disabled),
@@ -788,26 +780,21 @@ html:not(.glow-enabled) .action-btn-success:hover:not(:disabled),
 html:not(.glow-enabled) .action-btn-success:focus-visible,
 html:not(.glow-enabled) .action-btn-warning:hover:not(:disabled),
 html:not(.glow-enabled) .action-btn-warning:focus-visible {
-  box-shadow: var(--shadow-l);
 }
 
 html:not(.glow-enabled) .btn-toggle-pill:hover:not(:disabled),
 html:not(.glow-enabled) .btn-toggle-pill:focus-visible,
 html:not(.glow-enabled) .btn-toggle-pill.active {
-  box-shadow: var(--shadow-m);
 }
 
 html:not(.glow-enabled) .btn-qty:hover:not(:disabled),
 html:not(.glow-enabled) .btn-qty:focus-visible {
-  box-shadow: var(--shadow-m);
 }
 
 html:not(.glow-enabled) .btn-segment.active {
-  box-shadow: var(--shadow-m);
 }
 
 html:not(.glow-enabled) .btn-tile:hover:not(:disabled),
 html:not(.glow-enabled) .btn-tile:focus-visible {
-  box-shadow: var(--shadow-m);
   outline: none;
 }

@@ -9,7 +9,6 @@
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius-m);
-  box-shadow: var(--shadow-s);
   font-size: 0.875rem;
   transition: all 0.2s ease;
 }
@@ -19,7 +18,6 @@ html.dark-mode .connection-status-widget {
 }
 
 .connection-status-widget:hover {
-  box-shadow: var(--shadow-m);
   transform: translateY(-1px);
 }
 

@@ -90,11 +90,9 @@ html.dark-mode .product-sourcing .sourcing-sub-tabs {
 .product-sourcing .sub-tab-button.active {
   background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   color: white;
-  box-shadow: var(--shadow-s);
 }
 
 .product-sourcing .sub-tab-button.active:hover {
-  box-shadow: var(--shadow-m);
 }
 
 .product-sourcing .sub-tab-button.active i {
@@ -120,7 +118,6 @@ html.dark-mode .product-sourcing .sourcing-sub-tabs {
   gap: 1rem;
   background: var(--bg);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-l);
   border: 1px solid rgba(0, 0, 0, 0.06);
   overflow: visible; /* Allow dropdowns to overflow */
 }
@@ -154,7 +151,6 @@ html.dark-mode .product-sourcing .data-controls-bar {
 .product-sourcing .standalone-table {
   background: var(--bg);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-l);
   border: 1px solid rgba(0, 0, 0, 0.06);
   overflow: auto; /* Changed from hidden to allow scrolling */
   overscroll-behavior: contain;
@@ -220,7 +216,6 @@ html.dark-mode .product-sourcing .standalone-table {
 
 .product-sourcing .summary-card:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-m);
 }
 
 html.dark-mode .product-sourcing .summary-card {
@@ -237,7 +232,6 @@ html.dark-mode .product-sourcing .summary-card {
   border-radius: var(--radius-md);
   color: var(--accent);
   font-size: 1.25rem;
-  box-shadow: var(--shadow-s);
 }
 
 .product-sourcing .summary-card.healthy .card-icon {
@@ -288,7 +282,6 @@ html.dark-mode .product-sourcing .summary-card {
   color: var(--text);
   font-size: 0.9rem;
   min-width: 180px;
-  box-shadow: var(--shadow-s);
   cursor: pointer;
 }
 
@@ -670,7 +663,6 @@ html.dark-mode .product-sourcing .status-badge.status-unknown {
   border-radius: var(--radius-lg);
   overflow: hidden;
   transition: all var(--transition);
-  box-shadow: var(--shadow-m);
 }
 
 html.dark-mode .product-sourcing .supplier-card {
@@ -678,7 +670,6 @@ html.dark-mode .product-sourcing .supplier-card {
 }
 
 .product-sourcing .supplier-card:hover {
-  box-shadow: var(--shadow-l);
   transform: translateY(-3px);
 }
 
@@ -710,7 +701,6 @@ html.dark-mode .product-sourcing .supplier-card-header {
   font-weight: 700;
   font-size: 1.1rem;
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-m);
 }
 
 .product-sourcing .supplier-info h4 {
@@ -814,7 +804,6 @@ html.dark-mode .product-sourcing .supplier-card-header {
   padding: var(--space-md);
   background: var(--bg-light);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-m);
   border: 1px solid rgba(0, 0, 0, 0.05);
   text-align: center;
   transition: all var(--transition);
@@ -826,7 +815,6 @@ html.dark-mode .product-sourcing .fx-rate-card {
 
 .product-sourcing .fx-rate-card:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-l);
 }
 
 .product-sourcing .fx-rate-card.has-override {
@@ -876,7 +864,6 @@ html.dark-mode .product-sourcing .fx-rate-card {
   padding: var(--space-lg);
   background: var(--bg-light);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-s);
 }
 
 .product-sourcing .fx-override-section h3 {

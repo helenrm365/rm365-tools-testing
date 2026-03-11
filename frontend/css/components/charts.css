@@ -23,7 +23,6 @@
   background: var(--bg);
   border: 1px solid var(--bg-light);
   border-radius: 16px;
-  box-shadow: var(--shadow-m);
   padding: var(--space-lg);
 }
 

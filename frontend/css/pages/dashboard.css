@@ -85,7 +85,6 @@
   padding: var(--space-2xl);
   text-align: center;
   max-width: 400px;
-  box-shadow: var(--shadow-l);
   animation: fadeInUp 0.6s ease-out;
 }
 
@@ -102,7 +101,6 @@ html.dark-mode .login-prompt-card {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: var(--shadow-s);
 }
 
 .login-prompt-card .prompt-icon {
@@ -136,14 +134,14 @@ html.dark-mode .login-prompt-card {
   font-weight: 600;
   cursor: pointer;
   transition: all var(--transition);
-  box-shadow: var(--shadow-m), 0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent);
   text-shadow: var(--text-shadow-m);
 }
 
 .login-prompt-card .primary-button:hover {
   background: linear-gradient(135deg, var(--accent-light), var(--accent));
   transform: translateY(-2px);
-  box-shadow: var(--shadow-m), 0 4px 12px color-mix(in srgb, var(--accent) 40%, transparent);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
 .login-prompt-card .button-arrow {
@@ -176,7 +174,6 @@ html.dark-mode .login-prompt-card {
   gap: var(--space-md);
   transition: all var(--transition);
   cursor: pointer;
-  box-shadow: var(--shadow-m);
 }
 
 html.dark-mode .stat-card {
@@ -185,7 +182,6 @@ html.dark-mode .stat-card {
 
 .stat-card:hover {
   transform: translateY(-3px);
-  box-shadow: var(--shadow-l);
   outline: 1px solid var(--accent);
   outline-offset: 1px;
 }
@@ -198,7 +194,6 @@ html.dark-mode .stat-card {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: var(--shadow-s);
 }
 
 .stat-icon svg {
@@ -272,7 +267,6 @@ html.dark-mode .stat-card {
   border: 1px solid rgba(0, 0, 0, 0.06);
   border-radius: var(--radius-lg);
   overflow: hidden;
-  box-shadow: var(--shadow-m);
 }
 
 html.dark-mode .dashboard-panel {
@@ -327,7 +321,6 @@ html.dark-mode .panel-header {
   color: var(--text);
   cursor: pointer;
   transition: all var(--transition);
-  box-shadow: var(--shadow-s);
 }
 
 html.dark-mode .quick-action-btn {
@@ -337,7 +330,6 @@ html.dark-mode .quick-action-btn {
 .quick-action-btn:hover {
   background: var(--bg-light);
   transform: translateY(-2px);
-  box-shadow: var(--shadow-m);
   outline: 1px solid var(--accent);
   outline-offset: 1px;
 }
@@ -515,7 +507,6 @@ html.dark-mode .status-item {
   text-decoration: none;
   color: var(--text);
   transition: all var(--transition);
-  box-shadow: var(--shadow-s);
 }
 
 html.dark-mode .module-nav-card {
@@ -525,7 +516,6 @@ html.dark-mode .module-nav-card {
 .module-nav-card:hover {
   background: var(--bg-light);
   transform: translateY(-3px);
-  box-shadow: var(--shadow-m);
   outline: 1px solid var(--accent);
   outline-offset: 1px;
 }

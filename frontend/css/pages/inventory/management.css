@@ -55,7 +55,6 @@
   margin-bottom: 0.5rem;
   background: var(--bg);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-l);
   border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
@@ -192,7 +191,6 @@ html.dark-mode .inventory-management .data-controls-bar {
 /* ===== Standalone Table (outside any card) ===== */
 .inventory-management .standalone-table {
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-l);
   border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
@@ -985,7 +983,6 @@ html.dark-mode #inventoryManagementTable td.status-lowstock {
 
 .inventory-stat-card:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-l, 0 4px 14px rgba(0,0,0,0.08));
 }
 
 .inventory-stat-card .stat-icon {

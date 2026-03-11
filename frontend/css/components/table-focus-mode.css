@@ -17,7 +17,6 @@
   gap: var(--space-sm);
   font-size: 0.8rem;
   color: var(--text-muted);
-  box-shadow: var(--shadow-l);
   z-index: 100;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -101,7 +100,6 @@
   color: var(--text);
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: var(--shadow-m);
 }
 
 .table-focus-exit:hover {
@@ -109,7 +107,6 @@
   color: white;
   border-color: var(--danger);
   transform: translateY(-2px);
-  box-shadow: var(--shadow-l);
 }
 
 .table-focus-exit i {
@@ -173,7 +170,6 @@
   overflow: auto;
   background: var(--bg);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-m);
   border: 1px solid var(--bg-light);
 }
 
@@ -196,7 +192,6 @@
 }
 
 html.dark-mode .table-focus-wrapper {
-  box-shadow: var(--shadow-m);
 }
 
 /* ===== Body Class When Focus Mode Active ===== */
@@ -295,7 +290,6 @@ html.table-focus-mode body {
   background: var(--bg);
   border-radius: 16px;
   padding: 1.75rem;
-  box-shadow: var(--shadow-l);
   border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
@@ -338,7 +332,6 @@ html.dark-mode .focused-controls-bar.action-block {
   gap: 1rem;
   background: var(--bg);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-l);
   border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
@@ -394,14 +387,12 @@ html.dark-mode .focused-controls-bar.data-controls-bar {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: var(--shadow-s);
 }
 
 .focused-controls-bar .zoom-btn:hover {
   background: var(--bg);
   color: var(--text);
   transform: translateY(-1px);
-  box-shadow: var(--shadow-m);
 }
 
 .focused-controls-bar .zoom-indicator {
@@ -426,7 +417,6 @@ html.dark-mode .focused-controls-bar.data-controls-bar {
   gap: 1rem;
   flex-wrap: wrap;
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-l);
   border: 1px solid rgba(0, 0, 0, 0.06);
 }
 

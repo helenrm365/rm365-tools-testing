@@ -21,14 +21,12 @@ html:not(.glow-enabled) .has-glow:hover,
 html:not(.glow-enabled) .has-glow:focus-visible,
 html:not(.glow-enabled) .has-glow.active,
 html:not(.glow-enabled) .has-glow[aria-expanded="true"] {
-  box-shadow: var(--shadow-m) !important;
 }
 
 /* Larger shadow variant for cards and larger elements */
 html:not(.glow-enabled) .has-glow-lg:hover,
 html:not(.glow-enabled) .has-glow-lg:focus-visible,
 html:not(.glow-enabled) .has-glow-lg.active {
-  box-shadow: var(--shadow-l) !important;
 }
 
 /* No shadow variant for elements that should have no shadow when glow is off */

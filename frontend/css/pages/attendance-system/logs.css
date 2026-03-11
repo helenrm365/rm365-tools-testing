@@ -69,7 +69,6 @@
   padding: 1rem;
   background: var(--bg-light);
   border-radius: 12px;
-  box-shadow: var(--shadow-m);
 }
 
 .attendance-logs .stat-icon {
@@ -269,7 +268,6 @@ html.dark-mode .attendance-logs .logs-table td {
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: var(--shadow-m);
   text-align: left;
 }
 
@@ -526,12 +524,10 @@ html.dark-mode .attendance-logs .export-btn {
 
 html:not(.glow-enabled) .attendance-logs .export-btn:not(:disabled):hover,
 html:not(.glow-enabled) .attendance-logs .export-btn:focus-visible {
-  box-shadow: var(--shadow-l);
 }
 
 html:not(.glow-enabled) .attendance-logs .export-btn.csv-btn:not(:disabled):hover,
 html:not(.glow-enabled) .attendance-logs .export-btn.pdf-btn:not(:disabled):hover,
 html:not(.glow-enabled) .attendance-logs .export-btn.print-btn:not(:disabled):hover,
 html:not(.glow-enabled) .attendance-logs .export-btn.excel-btn:not(:disabled):hover {
-  box-shadow: var(--shadow-l);
 }

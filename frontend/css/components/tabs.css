@@ -25,7 +25,6 @@
   margin: 2rem 0;
   background: var(--bg);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-m);
 }
 
 /* ===== Tab Button ===== */

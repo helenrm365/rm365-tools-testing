@@ -239,7 +239,6 @@
   background: var(--bg-light);
   border-radius: 12px;
   border: 2px solid var(--bg);
-  box-shadow: var(--shadow-m);
   cursor: pointer;
   transition: all var(--transition);
   flex-shrink: 0;
@@ -247,7 +246,6 @@
 
 .labels-generator .preset-card-horizontal:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-l);
   outline: 1px solid var(--accent);
   outline-offset: 1px;
 }
@@ -628,7 +626,6 @@
   border: 1px solid var(--warning);
   border-radius: 16px;
   padding: 1.5rem;
-  box-shadow: var(--shadow-m);
 }
 
 .labels-generator .error-header {

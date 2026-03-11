@@ -13,7 +13,6 @@
   cursor: pointer;
   transition: all var(--transition);
   border: 2px solid var(--bg);
-  box-shadow: var(--shadow-m);
 }
 
 .selection-box:hover {
@@ -65,7 +64,6 @@
   cursor: pointer;
   transition: all var(--transition);
   border: 2px solid var(--bg);
-  box-shadow: var(--shadow-m);
 }
 
 .selection-box-compact:hover {
@@ -108,7 +106,6 @@
   cursor: pointer;
   transition: all var(--transition);
   border: 2px solid var(--bg);
-  box-shadow: var(--shadow-m);
   flex: 1;
 }
 
@@ -123,7 +120,7 @@
 
 .selection-pill:has(input:checked) {
   background: color-mix(in srgb, var(--accent) 15%, var(--bg-light));
-  box-shadow: var(--shadow-m), inset 0 1px 3px color-mix(in srgb, var(--accent) 15%, transparent);
+  box-shadow: inset 0 1px 3px color-mix(in srgb, var(--accent) 15%, transparent);
   outline: 1px solid var(--accent);
   outline-offset: 1px;
 }

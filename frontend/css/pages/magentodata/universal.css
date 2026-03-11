@@ -89,7 +89,6 @@
   padding: 1rem;
   background: var(--bg);
   border-radius: 12px;
-  box-shadow: var(--shadow-m);
 }
 
 .magentodata-page .page-info {
@@ -116,7 +115,6 @@
   display: flex;
   align-items: center;
   gap: 1rem;
-  box-shadow: var(--shadow-l);
   border: 1px solid rgba(0, 0, 0, 0.06);
   transition: transform var(--transition), box-shadow var(--transition), outline var(--transition);
 }

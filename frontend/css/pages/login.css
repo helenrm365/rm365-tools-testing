@@ -30,7 +30,6 @@
   padding: var(--space-2xl);
   width: 100%;
   max-width: 480px;
-  box-shadow: var(--shadow-l);
 }
 
 /* ===== Logo Section ===== */

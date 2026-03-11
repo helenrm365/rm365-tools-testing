@@ -91,11 +91,9 @@ html.dark-mode .user-management .page-title {
   border-radius: var(--radius-lg);
   transition: all 0.3s ease;
   margin-bottom: 0.75rem;
-  box-shadow: var(--shadow-m);
 }
 
 .user-management .user-row:hover {
-  box-shadow: var(--shadow-l);
   transform: translateY(-2px);
 }
 
@@ -204,7 +202,6 @@ html.dark-mode .user-management .page-title {
   cursor: pointer;
   transition: all 0.2s ease;
   user-select: none;
-  box-shadow: var(--shadow-s);
 }
 
 .user-management .role-list-item * {
@@ -213,7 +210,6 @@ html.dark-mode .user-management .page-title {
 
 .user-management .role-list-item:hover {
   border-color: color-mix(in srgb, var(--accent) 50%, transparent);
-  box-shadow: var(--shadow-m);
   transform: translateY(-2px);
 }
 

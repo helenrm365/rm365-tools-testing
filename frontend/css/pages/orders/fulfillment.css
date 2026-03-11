@@ -400,14 +400,12 @@
   width: 100%;
   cursor: pointer;
   transition: all var(--transition);
-  box-shadow: var(--shadow-m);
   color: var(--text);
 }
 
 .order-fulfillment .mobile-tab-button:hover {
   background: var(--bg);
   transform: translateY(-1px);
-  box-shadow: var(--shadow-l);
 }
 
 /* Ready to Pick - Warning Color */
@@ -421,7 +419,7 @@
 
 .order-fulfillment .mobile-tab-button[data-column="ready-to-pick"].active {
   background: color-mix(in srgb, var(--warning) 15%, var(--bg-light));
-  box-shadow: var(--shadow-m), inset 0 1px 3px rgba(245, 158, 11, 0.15);
+  box-shadow: inset 0 1px 3px rgba(245, 158, 11, 0.15);
   outline: 1px solid var(--warning);
   outline-offset: 1px;
   border-color: var(--warning);
@@ -443,7 +441,7 @@
 
 .order-fulfillment .mobile-tab-button[data-column="ready-to-check"].active {
   background: color-mix(in srgb, var(--info) 15%, var(--bg-light));
-  box-shadow: var(--shadow-m), inset 0 1px 3px rgba(59, 130, 246, 0.15);
+  box-shadow: inset 0 1px 3px rgba(59, 130, 246, 0.15);
   outline: 1px solid var(--info);
   outline-offset: 1px;
   border-color: var(--info);
@@ -465,7 +463,7 @@
 
 .order-fulfillment .mobile-tab-button[data-column="completed"].active {
   background: color-mix(in srgb, var(--success) 15%, var(--bg-light));
-  box-shadow: var(--shadow-m), inset 0 1px 3px rgba(16, 185, 129, 0.15);
+  box-shadow: inset 0 1px 3px rgba(16, 185, 129, 0.15);
   outline: 1px solid var(--success);
   outline-offset: 1px;
   border-color: var(--success);
@@ -513,7 +511,6 @@
   font-weight: 600;
   font-size: 0.9rem;
   margin-bottom: 1rem;
-  box-shadow: var(--shadow-m);
 }
 
 .order-fulfillment .session-info-grid {
@@ -527,7 +524,6 @@
   padding: 1rem;
   background: var(--bg-light);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-s);
 }
 
 .order-fulfillment .info-card.header-card {
@@ -652,7 +648,6 @@
   border-radius: var(--radius-md);
   overflow: visible;
   background: var(--bg);
-  box-shadow: var(--shadow-s);
   min-height: 52px;
 }
 
@@ -1122,7 +1117,6 @@ body:has(.order-fulfillment.mobile-mode-active) #universalFooter {
   font-weight: 600;
   color: var(--text);
   margin-bottom: 1rem;
-  box-shadow: var(--shadow-s);
 }
 
 .order-fulfillment .scanner-status-badge i {
@@ -1196,13 +1190,11 @@ body:has(.order-fulfillment.mobile-mode-active) #universalFooter {
   padding: 1rem 1.25rem;
   background: var(--bg);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-s);
   border-left: 4px solid var(--border);
   transition: all 0.2s ease;
 }
 
 .order-fulfillment .item-card:hover {
-  box-shadow: var(--shadow-m);
 }
 
 .order-fulfillment .item-card.complete {
@@ -1362,7 +1354,6 @@ body:has(.order-fulfillment.mobile-mode-active) #universalFooter {
   padding: 1.5rem;
   background: var(--bg-light, #f9fafb);
   border-radius: var(--radius-md, 12px);
-  box-shadow: var(--shadow-s, 0 1px 2px rgba(0,0,0,0.05));
 }
 
 #orderPreviewModal .preview-section h3 {
@@ -1645,7 +1636,6 @@ body:has(.order-fulfillment.mobile-mode-active) #universalFooter {
   margin: 0;
   background: var(--bg);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-m);
   padding: 0.25rem 0.5rem;
   width: auto;
 }
@@ -1659,7 +1649,6 @@ body:has(.order-fulfillment.mobile-mode-active) #universalFooter {
   margin: 0;
   background: var(--bg);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-m);
   padding: 0.25rem;
   display: flex;
   gap: 0.25rem;

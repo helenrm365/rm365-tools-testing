@@ -993,21 +993,17 @@ html:not(.glow-enabled) .form-input:focus,
 html:not(.glow-enabled) .form-select:focus,
 html:not(.glow-enabled) select:focus,
 html:not(.glow-enabled) .select:focus {
-  box-shadow: var(--shadow-m);
 }
 
 html:not(.glow-enabled) .search-input:focus {
-  box-shadow: var(--shadow-m);
 }
 
 html:not(.glow-enabled) .c-select__button:focus,
 html:not(.glow-enabled) .c-select__button:focus-visible,
 html:not(.glow-enabled) .c-select[aria-expanded="true"] .c-select__button {
-  box-shadow: var(--shadow-m);
 }
 
 html:not(.glow-enabled) .c-select__list {
-  box-shadow: var(--shadow-l);
   border-color: rgba(0, 0, 0, 0.1);
 }
 
@@ -1016,5 +1012,4 @@ html:not(.glow-enabled).dark-mode .c-select__list {
 }
 
 html:not(.glow-enabled).dark-mode .search-input:focus {
-  box-shadow: var(--shadow-m);
 }

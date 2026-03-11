@@ -333,7 +333,6 @@
   padding: 1.5rem;
   background: var(--bg-light, #f9fafb);
   border-radius: var(--radius-md, 12px);
-  box-shadow: var(--shadow-s, 0 1px 2px rgba(0,0,0,0.05));
 }
 
 #orderDetailsModal .preview-section h3,

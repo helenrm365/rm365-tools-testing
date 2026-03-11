@@ -33,7 +33,6 @@
   padding: 1.25rem;
   background: var(--bg-light);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-s);
   border-left: 4px solid var(--accent);
   transition: all 0.2s ease;
   cursor: pointer;
@@ -41,7 +40,6 @@
 }
 
 .order-approval .stat-card:hover {
-  box-shadow: var(--shadow-m);
   transform: translateY(-2px);
 }
 
@@ -53,7 +51,7 @@
 /* Active stat card state */
 .order-approval .stat-card.active {
   background: color-mix(in srgb, var(--accent) 10%, var(--bg-light));
-  box-shadow: var(--shadow-m), 0 0 0 2px var(--accent);
+  box-shadow: 0 0 0 2px var(--accent);
 }
 
 .order-approval .stat-card.all {
@@ -75,7 +73,7 @@
 
 .order-approval .stat-card.pending.active {
   background: color-mix(in srgb, var(--warning) 10%, var(--bg-light));
-  box-shadow: var(--shadow-m), 0 0 0 2px var(--warning);
+  box-shadow: 0 0 0 2px var(--warning);
 }
 
 .order-approval .stat-card.approved {
@@ -88,7 +86,7 @@
 
 .order-approval .stat-card.approved.active {
   background: color-mix(in srgb, var(--success) 10%, var(--bg-light));
-  box-shadow: var(--shadow-m), 0 0 0 2px var(--success);
+  box-shadow: 0 0 0 2px var(--success);
 }
 
 .order-approval .stat-icon {
@@ -101,7 +99,6 @@
   justify-content: center;
   font-size: 1.5rem;
   flex-shrink: 0;
-  box-shadow: var(--shadow-s);
 }
 
 .order-approval .stat-content {
@@ -203,7 +200,6 @@
   background: var(--bg-light);
   border-radius: var(--radius-md);
   padding: 1.25rem;
-  box-shadow: var(--shadow-s);
   border-left: 4px solid var(--warning);
   transition: all 0.2s ease;
   cursor: pointer;
@@ -211,7 +207,6 @@
 
 .order-approval .order-card:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-m);
   outline: 1px solid var(--warning);
   outline-offset: 1px;
 }
@@ -320,7 +315,6 @@
   background: var(--bg-light);
   border-radius: var(--radius-md);
   padding: 1.25rem;
-  box-shadow: var(--shadow-s);
   border-left: 4px solid var(--warning);
   transition: all 0.2s ease;
   cursor: pointer;
@@ -333,7 +327,6 @@
 
 .order-approval .pending-order-card:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-m);
   border-left-color: var(--accent);
 }
 
@@ -786,14 +779,12 @@
   width: 100%;
   cursor: pointer;
   transition: all var(--transition);
-  box-shadow: var(--shadow-m);
   color: var(--text);
 }
 
 .order-approval .mobile-tab-button:hover {
   background: var(--bg);
   transform: translateY(-1px);
-  box-shadow: var(--shadow-l);
 }
 
 /* All Orders - Accent Color */
@@ -807,7 +798,7 @@
 
 .order-approval .mobile-tab-button[data-column="all-orders"].active {
   background: color-mix(in srgb, var(--accent) 15%, var(--bg-light));
-  box-shadow: var(--shadow-m), inset 0 1px 3px color-mix(in srgb, var(--accent) 15%, transparent);
+  box-shadow: inset 0 1px 3px color-mix(in srgb, var(--accent) 15%, transparent);
   outline: 1px solid var(--accent);
   outline-offset: 1px;
   border-color: var(--accent);
@@ -829,7 +820,7 @@
 
 .order-approval .mobile-tab-button[data-column="pending"].active {
   background: color-mix(in srgb, var(--warning) 15%, var(--bg-light));
-  box-shadow: var(--shadow-m), inset 0 1px 3px rgba(245, 158, 11, 0.15);
+  box-shadow: inset 0 1px 3px rgba(245, 158, 11, 0.15);
   outline: 1px solid var(--warning);
   outline-offset: 1px;
   border-color: var(--warning);
@@ -851,7 +842,7 @@
 
 .order-approval .mobile-tab-button[data-column="approved-today"].active {
   background: color-mix(in srgb, var(--success) 15%, var(--bg-light));
-  box-shadow: var(--shadow-m), inset 0 1px 3px rgba(16, 185, 129, 0.15);
+  box-shadow: inset 0 1px 3px rgba(16, 185, 129, 0.15);
   outline: 1px solid var(--success);
   outline-offset: 1px;
   border-color: var(--success);
@@ -1226,7 +1217,6 @@
   margin: 0;
   background: var(--bg);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-m);
   padding: 0.25rem 0.5rem;
   width: auto;
 }
