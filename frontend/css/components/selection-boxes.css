@@ -12,7 +12,7 @@
   border-radius: 10px;
   cursor: pointer;
   transition: all var(--transition);
-  border: 2px solid var(--bg);
+  border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .selection-box:hover {
@@ -63,7 +63,7 @@
   border-radius: 8px;
   cursor: pointer;
   transition: all var(--transition);
-  border: 2px solid var(--bg);
+  border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .selection-box-compact:hover {
@@ -105,7 +105,7 @@
   border-radius: 10px;
   cursor: pointer;
   transition: all var(--transition);
-  border: 2px solid var(--bg);
+  border: 1px solid rgba(0, 0, 0, 0.06);
   flex: 1;
 }
 

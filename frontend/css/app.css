@@ -42,7 +42,6 @@
 @import 'utilities/animations.css';   /* Keyframes & animation classes */
 @import 'utilities/helpers.css';      /* Utility classes (.hidden, .mt-2, etc.) */
 @import 'utilities/scrollbar.css';    /* Custom scrollbar styles */
-@import 'utilities/glow.css';         /* Glow effects toggle utility */
 
 /* 
  * Page-specific styles are NOT imported here.

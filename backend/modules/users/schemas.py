@@ -28,4 +28,4 @@ class UserPreferences(BaseModel):
     accent_color: str = "#8bc34a"
     accent_dark: str = "#7ab82d"
     accent_light: str = "#a5d461"
-    glow_enabled: bool = False
+

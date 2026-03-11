@@ -27,10 +27,6 @@
   - Less visual weight to avoid competing with primary actions
   - Classes: .btn, .btn-ghost, toggle buttons
   
-  GLOW TOGGLE:
-  - All button classes here have built-in glow toggle support
-  - When html.glow-enabled is NOT set, glows are replaced with standard shadows
-  - For custom buttons, add class="has-glow" (see utilities/glow.css)
 */
 
 /* ===== Base Button ===== */
@@ -716,9 +712,6 @@ html.dark-mode .btn-segment-group {
 
 .btn-tile:hover:not(:disabled) {
   transform: translateY(-2px);
-  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
-  outline: 1px solid var(--accent);
-  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
 .btn-tile:focus-visible {
@@ -735,66 +728,4 @@ html.dark-mode .btn-segment-group {
 html.dark-mode .btn-tile {
   background: var(--bg-card);
   border-color: color-mix(in srgb, var(--text) 15%, transparent);
-}
-
-/* ===== Glow Effects Toggle ===== */
-/* Glows are disabled by default. Enable with html.glow-enabled class */
-
-html:not(.glow-enabled) .action-btn:hover,
-html:not(.glow-enabled) .action-btn:focus-visible {
-}
-
-html:not(.glow-enabled) .accent-btn:hover:not(:disabled),
-html:not(.glow-enabled) .accent-btn:focus-visible {
-}
-
-html:not(.glow-enabled) .neutral-btn:hover:not(:disabled),
-html:not(.glow-enabled) .neutral-btn:focus-visible {
-}
-
-html:not(.glow-enabled) .danger-btn:hover:not(:disabled),
-html:not(.glow-enabled) .danger-btn:focus-visible {
-}
-
-html:not(.glow-enabled) .info-btn:hover:not(:disabled),
-html:not(.glow-enabled) .info-btn:focus-visible {
-}
-
-html:not(.glow-enabled) .success-btn:hover:not(:disabled),
-html:not(.glow-enabled) .success-btn:focus-visible {
-}
-
-html:not(.glow-enabled) .warning-btn:hover:not(:disabled),
-html:not(.glow-enabled) .warning-btn:focus-visible {
-}
-
-html:not(.glow-enabled) .action-btn-primary:hover:not(:disabled),
-html:not(.glow-enabled) .action-btn-primary:focus-visible,
-html:not(.glow-enabled) .action-btn-secondary:hover:not(:disabled),
-html:not(.glow-enabled) .action-btn-secondary:focus-visible,
-html:not(.glow-enabled) .action-btn-danger:hover:not(:disabled),
-html:not(.glow-enabled) .action-btn-danger:focus-visible,
-html:not(.glow-enabled) .action-btn-info:hover:not(:disabled),
-html:not(.glow-enabled) .action-btn-info:focus-visible,
-html:not(.glow-enabled) .action-btn-success:hover:not(:disabled),
-html:not(.glow-enabled) .action-btn-success:focus-visible,
-html:not(.glow-enabled) .action-btn-warning:hover:not(:disabled),
-html:not(.glow-enabled) .action-btn-warning:focus-visible {
-}
-
-html:not(.glow-enabled) .btn-toggle-pill:hover:not(:disabled),
-html:not(.glow-enabled) .btn-toggle-pill:focus-visible,
-html:not(.glow-enabled) .btn-toggle-pill.active {
-}
-
-html:not(.glow-enabled) .btn-qty:hover:not(:disabled),
-html:not(.glow-enabled) .btn-qty:focus-visible {
-}
-
-html:not(.glow-enabled) .btn-segment.active {
-}
-
-html:not(.glow-enabled) .btn-tile:hover:not(:disabled),
-html:not(.glow-enabled) .btn-tile:focus-visible {
-  outline: none;
 }

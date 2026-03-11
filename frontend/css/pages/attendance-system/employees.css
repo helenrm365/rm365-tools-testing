@@ -261,7 +261,7 @@ html.dark-mode #editEmployeeCode.nui-input {
   min-height: 48px;
   padding: 0.75rem 1rem;
   background: var(--bg-light);
-  border: 2px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  border: 1px solid rgba(0, 0, 0, 0.06);
   border-radius: 8px;
   font-family: 'SF Mono', 'Fira Code', monospace;
   font-size: 1rem;
@@ -271,7 +271,7 @@ html.dark-mode #editEmployeeCode.nui-input {
 
 html.dark-mode .nfc-uid-display {
   background: var(--bg-card);
-  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .nfc-uid-display.scanning {

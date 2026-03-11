@@ -71,27 +71,19 @@ html.dark-mode .action-block {
   padding: 1rem 1.25rem;
   background: var(--bg-light);
   border-radius: 12px;
-  border: 2px solid var(--bg);
+  border: 1px solid rgba(0, 0, 0, 0.06);
   box-shadow: none;
-  transition: outline var(--transition);
 }
 
-.entity-card:hover,
-.employee-card:hover {
-  outline: 1px solid var(--accent);
-  outline-offset: 1px;
+html.dark-mode .entity-card,
+html.dark-mode .employee-card {
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 /* Clickable Cards */
 .entity-card.clickable,
 .employee-card.clickable {
   cursor: pointer;
-}
-
-.entity-card.clickable:hover,
-.employee-card.clickable:hover {
-  outline: 1px solid var(--accent);
-  outline-offset: 1px;
 }
 
 .entity-card.clickable:active,
@@ -158,11 +150,11 @@ html.dark-mode .action-block {
   box-shadow: none;
   transition: all var(--transition);
   overflow: hidden;
-  border: 1px solid rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 html.dark-mode .card {
-  border-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .card-elevated {
@@ -181,7 +173,7 @@ html.dark-mode .card {
 .card-header {
   padding: var(--space-lg);
   background: var(--bg);
-  border-bottom: 2px solid var(--bg);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
   margin: calc(-1 * var(--space-lg));
   margin-bottom: var(--space-lg);
 }
@@ -217,20 +209,20 @@ html.dark-mode .card {
   background: var(--bg-light);
   border-radius: 16px;
   box-shadow: none;
-  border: 2px solid transparent;
+  border: 1px solid rgba(0, 0, 0, 0.06);
   overflow: hidden;
   transition: all 0.3s ease;
   margin-bottom: 2rem;
 }
 
 .card-animated:hover {
-  border-color: color-mix(in srgb, var(--accent) 10%, transparent);
+  border-color: rgba(0, 0, 0, 0.12);
 }
 
 .card-animated .card-header {
   padding: 1.5rem;
   background: var(--bg);
-  border-bottom: 2px solid var(--bg);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
   margin: 0;
 }
 
@@ -265,11 +257,11 @@ html.dark-mode .card {
   gap: 1.25rem;
   box-shadow: none;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 2px solid transparent;
+  border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .stat-card:hover {
-  border-color: color-mix(in srgb, var(--accent) 20%, transparent);
+  border-color: rgba(0, 0, 0, 0.12);
 }
 
 .stat-icon {
@@ -312,7 +304,7 @@ html.dark-mode .card {
   border-radius: 16px;
   padding: 2rem;
   box-shadow: none;
-  border: 2px solid color-mix(in srgb, var(--accent) 10%, transparent);
+  border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 /* ===== Feature Card (Module Home Pages) ===== */
@@ -324,7 +316,7 @@ html.dark-mode .card {
   padding: clamp(1.25rem, 2.5vw, 2.75rem);
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 2px solid color-mix(in srgb, var(--accent) 10%, transparent);
+  border: 1px solid rgba(0, 0, 0, 0.06);
   overflow: hidden;
   aspect-ratio: 1 / 1;
   display: flex;

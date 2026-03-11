@@ -76,7 +76,7 @@
   align-items: center;
   gap: 0.35rem;
   padding: 0.35rem 0.75rem;
-  border: 2px solid color-mix(in srgb, var(--error) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--error) 15%, transparent);
   border-radius: 6px;
   background: transparent;
   color: var(--text-muted);
@@ -133,20 +133,16 @@ html.dark-mode .attendance-dashboard .btn-clear-filters {
   display: flex;
   align-items: center;
   gap: 1rem;
-  border: 2px solid color-mix(in srgb, var(--accent) 10%, transparent);
+  border: 1px solid rgba(0, 0, 0, 0.06);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 html.dark-mode .attendance-dashboard .stat-card {
-  border-color: color-mix(in srgb, var(--accent) 15%, transparent);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .attendance-dashboard .stat-card:hover {
   transform: translateY(-3px);
-  border-color: var(--accent);
-  box-shadow: 
-    0 0 16px color-mix(in srgb, var(--accent) 20%, transparent),
-    0 8px 24px color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
 .attendance-dashboard .stat-card.clickable {
@@ -626,14 +622,4 @@ html.dark-mode .attendance-dashboard .stat-card {
   transform: translateY(-2px);
 }
 
-/* ===== Glow Effects Toggle ===== */
-/* Glows are disabled by default. Enable with html.glow-enabled class */
-/* NOTE: preset-btn, toggle-view-btn, and list-tab now use standard .btn classes */
-/* and get glow toggle handling from buttons.css automatically */
 
-html:not(.glow-enabled) .attendance-dashboard .btn-clear-filters:hover,
-html:not(.glow-enabled) .attendance-dashboard .btn-clear-filters:focus-visible {
-}
-
-html:not(.glow-enabled) .attendance-dashboard .stat-card:hover {
-}

@@ -100,8 +100,6 @@ async function applyUserPreferences() {
     root.classList.toggle('dark-mode', !!prefs.dark_mode);
     localStorage.setItem('darkMode', String(!!prefs.dark_mode));
 
-    // Apply glow preference (disabled by default)
-    root.classList.toggle('glow-enabled', !!prefs.glow_enabled);
   } catch (e) {
     console.warn('[ShellUI] Failed to apply preferences:', e);
   }

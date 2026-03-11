@@ -125,8 +125,6 @@ html.dark-mode .magentodata-page .stat-card {
 
 .magentodata-page .stat-card:hover {
   transform: translateY(-2px);
-  outline: 1px solid var(--accent);
-  outline-offset: 1px;
 }
 
 /* Stat Icon */

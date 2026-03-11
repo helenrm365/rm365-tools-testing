@@ -588,7 +588,7 @@ html.dark-mode .inventory-scanner .scanner-unified > .block-content {
   align-items: center;
   justify-content: center;
   background: #ffffff;
-  border: 2px solid rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.06);
   border-radius: 12px;
   color: #6b7280;
   cursor: pointer;
@@ -669,7 +669,7 @@ html.dark-mode .inventory-scanner .scanner-unified > .block-content {
   padding: 0.625rem 0.875rem;
   font-weight: 800;
   font-size: 1.375rem;
-  border: 2px solid rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 12px;
   background: #ffffff;
   color: #111827;
@@ -897,7 +897,7 @@ html.dark-mode .inventory-scanner .pending-item.compact-card .pending-item-actio
   align-items: center;
   justify-content: center;
   background: rgba(239, 68, 68, 0.08);
-  border: 2px solid rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.15);
   border-radius: 10px;
   color: #dc2626;
   cursor: pointer;
@@ -1023,7 +1023,7 @@ html.dark-mode .inventory-scanner .pending-item.compact-card .pending-item-actio
   gap: 1rem;
   padding: 1rem 1.25rem;
   background: color-mix(in srgb, var(--accent) 5%, var(--bg, #ffffff));
-  border: 2px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  border: 1px solid rgba(0, 0, 0, 0.06);
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -1097,7 +1097,7 @@ html.dark-mode .reason-option.selected {
   gap: 1rem;
   padding: 1rem 1.25rem;
   background: color-mix(in srgb, var(--accent) 5%, var(--bg, #ffffff));
-  border: 2px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  border: 1px solid rgba(0, 0, 0, 0.06);
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s ease;

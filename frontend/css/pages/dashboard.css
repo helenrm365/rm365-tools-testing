@@ -182,8 +182,6 @@ html.dark-mode .stat-card {
 
 .stat-card:hover {
   transform: translateY(-3px);
-  outline: 1px solid var(--accent);
-  outline-offset: 1px;
 }
 
 .stat-icon {
@@ -330,8 +328,6 @@ html.dark-mode .quick-action-btn {
 .quick-action-btn:hover {
   background: var(--bg-light);
   transform: translateY(-2px);
-  outline: 1px solid var(--accent);
-  outline-offset: 1px;
 }
 
 .quick-action-btn:hover svg {
@@ -516,8 +512,6 @@ html.dark-mode .module-nav-card {
 .module-nav-card:hover {
   background: var(--bg-light);
   transform: translateY(-3px);
-  outline: 1px solid var(--accent);
-  outline-offset: 1px;
 }
 
 .module-nav-icon {

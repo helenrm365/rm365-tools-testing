@@ -154,7 +154,7 @@
 
 /* ===== Details Panel ===== */ */
 .labels-history .details-panel {
-  border: 2px solid var(--accent);
+  border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .labels-history .details-panel .block-header {

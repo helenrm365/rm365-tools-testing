@@ -977,8 +977,12 @@ html.dark-mode #inventoryManagementTable td.status-lowstock {
   padding: 1.5rem;
   border-radius: var(--radius-lg, 12px);
   background: var(--bg);
-  border: 1px solid var(--border);
+  border: 1px solid rgba(0, 0, 0, 0.06);
   transition: box-shadow 0.2s, transform 0.2s;
+}
+
+html.dark-mode .inventory-stat-card {
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .inventory-stat-card:hover {

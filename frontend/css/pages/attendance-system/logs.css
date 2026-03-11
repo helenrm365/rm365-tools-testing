@@ -264,7 +264,7 @@ html.dark-mode .attendance-logs .logs-table td {
   gap: 1rem;
   padding: 1rem;
   background: var(--bg-light);
-  border: 2px solid color-mix(in srgb, var(--accent) 15%, transparent);
+  border: 1px solid rgba(0, 0, 0, 0.06);
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -273,7 +273,7 @@ html.dark-mode .attendance-logs .logs-table td {
 
 html.dark-mode .attendance-logs .export-btn {
   background: var(--bg-card);
-  border-color: color-mix(in srgb, var(--accent) 25%, transparent);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .attendance-logs .export-btn:not(:disabled):hover {
@@ -519,15 +519,4 @@ html.dark-mode .attendance-logs .export-btn {
   }
 }
 
-/* ===== Glow Effects Toggle ===== */
-/* Glows are disabled by default. Enable with html.glow-enabled class */
 
-html:not(.glow-enabled) .attendance-logs .export-btn:not(:disabled):hover,
-html:not(.glow-enabled) .attendance-logs .export-btn:focus-visible {
-}
-
-html:not(.glow-enabled) .attendance-logs .export-btn.csv-btn:not(:disabled):hover,
-html:not(.glow-enabled) .attendance-logs .export-btn.pdf-btn:not(:disabled):hover,
-html:not(.glow-enabled) .attendance-logs .export-btn.print-btn:not(:disabled):hover,
-html:not(.glow-enabled) .attendance-logs .export-btn.excel-btn:not(:disabled):hover {
-}

@@ -29,7 +29,7 @@
   left: 0;
   right: 0;
   background: var(--bg);
-  border: 2px solid var(--bg-light);
+  border: 1px solid rgba(0, 0, 0, 0.06);
   border-radius: 12px;
   margin-top: 4px;
   max-height: 200px;
@@ -103,7 +103,7 @@
   align-items: center;
   background: var(--bg-light);
   border-radius: 12px;
-  border: 2px solid var(--bg);
+  border: 1px solid rgba(0, 0, 0, 0.06);
   overflow: hidden;
 }
 

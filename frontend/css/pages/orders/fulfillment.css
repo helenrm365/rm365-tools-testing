@@ -394,15 +394,8 @@
   gap: 0.5rem;
   padding: 0.75rem;
   background: var(--bg-light);
-  border: 2px solid var(--bg);
+  border: 1px solid rgba(0, 0, 0, 0.06);
   border-radius: var(--radius-md);
-  min-width: 0;
-  width: 100%;
-  cursor: pointer;
-  transition: all var(--transition);
-  color: var(--text);
-}
-
 .order-fulfillment .mobile-tab-button:hover {
   background: var(--bg);
   transform: translateY(-1px);
@@ -893,7 +886,7 @@
 .order-fulfillment .items-panel .item-card.checking-mode .counter-input {
   width: 60px;
   height: 48px;
-  border: 2px solid var(--border);
+  border: 1px solid var(--border);
   border-radius: var(--radius-md);
   text-align: center;
   font-size: 1.25rem;

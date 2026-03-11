@@ -9,7 +9,7 @@
   -webkit-overflow-scrolling: auto;
   border-radius: var(--radius-md);
   background: var(--bg);
-  border: 2px solid var(--bg-light);
+  border: 1px solid rgba(0, 0, 0, 0.06);
   padding: 0;
   max-height: 500px;
 }
