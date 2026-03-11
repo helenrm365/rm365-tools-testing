@@ -84,6 +84,9 @@ function createConfirmationModal(options) {
           <p class="modal-message">${message}</p>
         </div>
         <div class="modal-footer">
+          <button class="btn btn-solid btn-default rounded-lg" id="confirmModalCancel">
+            ${cancelText}
+          </button>
           <button class="btn btn-solid ${confirmBtnClass} rounded-lg" id="confirmModalConfirm">
             ${confirmText}
           </button>
@@ -117,6 +120,7 @@ export function confirmModal(options = {}) {
     
     const modal = container.querySelector('#confirmationModal');
     const confirmBtn = container.querySelector('#confirmModalConfirm');
+    const cancelBtn = container.querySelector('#confirmModalCancel');
     
     // Trigger animation by adding active class after a frame
     requestAnimationFrame(() => {
@@ -158,6 +162,7 @@ export function confirmModal(options = {}) {
     
     // Bind events
     confirmBtn.addEventListener('click', handleConfirm);
+    if (cancelBtn) cancelBtn.addEventListener('click', handleCancel);
     document.addEventListener('keydown', handleEscape);
     
     // Close on overlay click

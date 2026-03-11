@@ -35,15 +35,15 @@ function getHeaderClass(variant) {
 function getConfirmButtonClass(variant) {
   switch (variant) {
     case 'danger':
-      return 'danger-btn';
+      return 'btn-danger';
     case 'warning':
-      return 'warning-btn';
+      return 'btn-warning';
     case 'primary':
-      return 'primary-btn';
+      return 'btn-primary';
     case 'success':
-      return 'success-btn';
+      return 'btn-success';
     default:
-      return 'primary-btn';
+      return 'btn-primary';
   }
 }
 
@@ -118,8 +118,8 @@ function createModal(options) {
           <p class="modal-message">${message.replace(/\n/g, '<br>')}</p>
         </div>
         <div class="modal-footer">
-          ${cancelText ? `<button class="action-btn secondary-btn" id="orderFulfillmentModalCancel">${cancelText}</button>` : ''}
-          <button class="action-btn ${confirmBtnClass}" id="orderFulfillmentModalConfirm">
+          ${cancelText ? `<button class="btn btn-solid btn-default rounded-lg" id="orderFulfillmentModalCancel">${cancelText}</button>` : ''}
+          <button class="btn btn-solid ${confirmBtnClass} rounded-lg" id="orderFulfillmentModalConfirm">
             ${confirmText}
           </button>
         </div>
@@ -312,10 +312,10 @@ export function confirmDraftFromOtherUser(orderNumber, userName) {
           </div>
           <div class="modal-footer" style="flex-direction: column; gap: 8px;">
             <div style="display: flex; gap: 8px; width: 100%;">
-              <button class="action-btn secondary-btn" id="orderFulfillmentModalCancel" style="flex: 1;">Go Back</button>
-              <button class="action-btn primary-btn" id="orderFulfillmentModalContinue" style="flex: 1;">Continue Draft</button>
+              <button class="btn btn-solid btn-default rounded-lg" id="orderFulfillmentModalCancel" style="flex: 1;">Go Back</button>
+              <button class="btn btn-solid btn-primary rounded-lg" id="orderFulfillmentModalContinue" style="flex: 1;">Continue Draft</button>
             </div>
-            <button class="action-btn danger-btn" id="orderFulfillmentModalCancelOrder" style="width: 100%;">
+            <button class="btn btn-solid btn-danger rounded-lg" id="orderFulfillmentModalCancelOrder" style="width: 100%;">
               <i class="fas fa-times-circle"></i> Cancel Order
             </button>
           </div>

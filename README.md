@@ -1086,7 +1086,7 @@ Shows:
 
 | 🎯 Metric | ⏱️ Before | ⚡ After | 📈 Improvement |
 |-----------|-----------|---------|----------------|
-| Attendance overview | `2400ms` | `800ms` | **3x faster** ⚡ |
+| Attendance dashboard | `2400ms` | `800ms` | **3x faster** ⚡ |
 | Cached API calls | `300ms` | `10-50ms` | **6-30x faster** 🚀 |
 | Sales queries (indexed) | `500ms` | `50-100ms` | **5-10x faster** 📊 |
 | API response size | `500KB` | `100KB` | **80% smaller** 📦 |

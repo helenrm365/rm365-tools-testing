@@ -360,7 +360,7 @@ window.showImportErrors = function(recordId) {
         </div>
       </div>
       <div class="modal-footer" style="margin-top: 1.5rem; text-align: right;">
-        <button class="modern-button btn-close-modal">Close</button>
+        <button class="btn btn-solid btn-default rounded-lg btn-close-modal">Cancel</button>
       </div>
     </div>
   `;

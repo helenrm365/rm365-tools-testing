@@ -133,6 +133,11 @@ html.dark-mode {
   border-color: color-mix(in srgb, var(--_c) 85%, #000);
 }
 
+/* Default-solid needs dark text — light-gray bg + white text is unreadable */
+.btn-solid.btn-default {
+  color: #000;
+}
+
 /* --- Flat ---
    bg = color @ 15% · text = color · hover → 25% */
 .btn-flat {

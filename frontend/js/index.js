@@ -11,12 +11,6 @@ if (config.DEBUG) {
   }).catch(err => {
     console.warn('Debug utilities not available:', err);
   });
-  
-  import('./debug/attendanceTest.js').then(module => {
-    console.log('🧪 Attendance test utilities loaded. Use runAttendanceTests() to test.');
-  }).catch(err => {
-    console.warn('Attendance test utilities not available:', err);
-  });
 }
 
 setupShellUI();

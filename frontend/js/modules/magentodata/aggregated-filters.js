@@ -3289,7 +3289,7 @@ function showCustomRangeResults(results) {
             </div>
             
             <div class="modal-footer">
-                <button class="btn btn-flat btn-default" onclick="this.closest('.modal-overlay').remove()">Close</button>
+                <button class="btn btn-solid btn-default rounded-lg" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
             </div>
         </div>
     `;

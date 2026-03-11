@@ -132,7 +132,7 @@ export function applyInnerTabPermissions(root = document) {
     
     // Also check data-nav if present (overrides href/onclick parsing)
     if (el.hasAttribute('data-nav')) {
-       // data-nav might be "attendance.overview" or "/attendance/overview"
+       // data-nav might be "attendance.analytics" or "/attendance/analytics"
        // If it's a path, use it. If it's a key, we need to handle that.
        // But usually data-nav is used for routing.
        // Let's assume the existing logic relied on href/onclick mostly or data-nav was a path.

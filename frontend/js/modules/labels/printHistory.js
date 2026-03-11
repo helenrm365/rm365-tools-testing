@@ -404,8 +404,8 @@ window.viewRecordDetails = function(recordId) {
           </div>
         </div>
         <div class="modal-footer">
-          <button class="modern-button" id="confirmRecordDetailsModal" style="background: #3498db;">
-            Close
+          <button class="btn btn-solid btn-default rounded-lg" id="confirmRecordDetailsModal">
+            Cancel
           </button>
         </div>
       </div>

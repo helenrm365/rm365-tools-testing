@@ -8,10 +8,10 @@
  * <link rel="stylesheet" href="/css/pages/login.css">
  * 
  * HTML should use existing component classes:
- * - .form-group (from forms.css)
- * - .form-label (from forms.css)
- * - .form-input (from forms.css)
- * - .primary-btn (from buttons.css) for the Sign In button
+ * - .nui-field (from inputs-nextui.css)
+ * - .nui-label (from inputs-nextui.css)
+ * - .nui-input .nui-input-default (from inputs-nextui.css)
+ * - .btn .btn-solid .btn-primary (from buttons-nextui.css) for the Sign In button
  */
 
 /* ===== Login Container ===== */
@@ -78,7 +78,7 @@
   gap: var(--space-lg);
 }
 
-.login-form .form-group {
+.login-form .nui-field {
   text-align: left;
   margin-bottom: 0; /* Override default margin since we use gap */
 }
@@ -91,7 +91,7 @@
 }
 
 /* ===== Login Button ===== */
-/* Uses .action-btn.primary-btn from buttons.css with page-specific width */
+/* Uses .btn.btn-solid.btn-primary from buttons-nextui.css with page-specific width */
 
 .login-button {
   width: 100%;

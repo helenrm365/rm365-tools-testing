@@ -422,6 +422,7 @@ function hideEditEmployeeModal() {
 function wireEditModalEvents() {
   // Close buttons
   $('#closeEditModal')?.addEventListener('click', hideEditEmployeeModal);
+  $('#cancelEdit')?.addEventListener('click', hideEditEmployeeModal);
   
   // Click overlay to close
   $('#editEmployeeModal')?.addEventListener('click', (e) => {
@@ -1097,6 +1098,7 @@ function wireCreateEmployeeModal() {
   
   // Close modal events
   closeBtn.addEventListener('click', hideCreateEmployeeModal);
+  $('#cancelCreate')?.addEventListener('click', hideCreateEmployeeModal);
   
   // Close on overlay click
   modal.addEventListener('click', (e) => {
@@ -1507,6 +1509,7 @@ function wireCreateLocationModal() {
   
   // Close modal events
   closeBtn?.addEventListener('click', () => closeLocationModal());
+  $('#cancelLocationCreate')?.addEventListener('click', () => closeLocationModal());
   
   // Close on overlay click
   modal.addEventListener('click', (e) => {

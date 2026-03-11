@@ -311,7 +311,7 @@ html.dark-mode .accent-chip {
 }
 
 /* ===== Task Button State ===== */
-/* Base styling from .btn .secondary-btn .accent-btn in buttons.css */
+/* Base styling from .btn .btn-solid .btn-success in buttons-nextui.css */
 /* Only need to define the executing state override */
 .task-btn.executing {
   background: var(--bg-light) !important;

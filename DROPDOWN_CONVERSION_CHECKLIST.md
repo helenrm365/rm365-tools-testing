@@ -20,9 +20,6 @@
 - [ ] **attendance-system/dashboard.html** + **dashboard.js**
   - `globalLocationDropdown`
 
-- [ ] **attendance-system/overview.html** + **overview.js** (if exists)
-  - `location-dropdown`
-
 - [ ] **attendance-system/employees.html** + **employees.js**
   - `status-dropdown` (filter)
   - `country-dropdown` (filter)

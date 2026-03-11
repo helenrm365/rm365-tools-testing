@@ -554,7 +554,7 @@ Shows:
 
 ```javascript
 // Test functions directly
-window.navigate('/attendance/overview');
+window.navigate('/attendance/analytics');
 
 // Check authentication state
 console.log(localStorage.getItem('authToken'));

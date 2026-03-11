@@ -1,7 +1,7 @@
 // frontend/js/ui/orderProgressModals.js
 /**
  * Specialized modals for Order Progress Dashboard
- * Uses css/components/modals.css and buttons.css
+ * Uses css/components/modals.css and buttons-nextui.css
  */
 
 let modalContainer = null;
@@ -35,15 +35,15 @@ function getHeaderClass(variant) {
 function getConfirmButtonClass(variant) {
   switch (variant) {
     case 'danger':
-      return 'danger-btn';
+      return 'btn-danger';
     case 'warning':
-      return 'warning-btn';
+      return 'btn-warning';
     case 'primary':
-      return 'primary-btn';
+      return 'btn-primary';
     case 'success':
-      return 'success-btn';
+      return 'btn-success';
     default:
-      return 'primary-btn';
+      return 'btn-primary';
   }
 }
 
@@ -142,8 +142,8 @@ function createModal(options) {
           ${userInputHtml}
         </div>
         <div class="modal-footer">
-          ${cancelText ? `<button class="action-btn secondary-btn" id="orderProgressModalCancel">${cancelText}</button>` : ''}
-          <button class="action-btn ${confirmBtnClass}" id="orderProgressModalConfirm">
+          ${cancelText ? `<button class="btn btn-solid btn-default rounded-lg" id="orderProgressModalCancel">${cancelText}</button>` : ''}
+          <button class="btn btn-solid ${confirmBtnClass} rounded-lg" id="orderProgressModalConfirm">
             ${confirmText}
           </button>
         </div>

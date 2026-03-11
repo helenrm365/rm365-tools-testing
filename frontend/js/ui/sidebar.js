@@ -478,8 +478,8 @@ function showLogoutConfirmModal() {
           <p>Are you sure you want to log out? You will need to sign in again to access the dashboard.</p>
         </div>
         <div class="modal-footer">
-          <button type="button" class="action-btn secondary-btn" id="logoutCancelBtn">Cancel</button>
-          <button type="button" class="action-btn danger-btn" id="logoutConfirmBtn">
+          <button type="button" class="btn btn-solid btn-default rounded-lg" id="logoutCancelBtn">Cancel</button>
+          <button type="button" class="btn btn-solid btn-danger rounded-lg" id="logoutConfirmBtn">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
               <polyline points="16 17 21 12 16 7"></polyline>
