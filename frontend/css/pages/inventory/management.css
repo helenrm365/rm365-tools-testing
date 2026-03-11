@@ -1047,3 +1047,58 @@ html.dark-mode .inventory-stat-card.stat-stable .stat-icon {
     gap: 1rem;
   }
 }
+
+/* ===== Dashboard Chart Section ===== */
+.dashboard-chart-section {
+  margin-top: 1.5rem;
+}
+
+.dashboard-chart-section .chart-container {
+  width: 100%;
+}
+
+.dashboard-chart-section .chart-wrapper {
+  position: relative;
+  height: 360px;
+}
+
+.dashboard-chart-section .chart-wrapper canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Controls row */
+.chart-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+
+/* Chart toggle groups use buttons-nextui.css (.btn-group .btn-faded .btn-success) */
+
+/* Date pickers — uses nui-field / nui-input from inputs-nextui.css + calendar-nextui.css */
+.chart-date-range {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+  margin-left: auto;
+}
+
+.chart-date-range .nui-field {
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .chart-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .chart-date-range {
+    margin-left: 0;
+  }
+  .dashboard-chart-section .chart-wrapper {
+    height: 260px;
+  }
+}

@@ -1,29 +1,26 @@
-// js/modules/inventory/management-dashboard.js
-// Inventory Management Dashboard - overview of stock levels across all branches
+// js/modules/orders/scanning-logs-dashboard.js
+// Scanning Logs Hub — line chart of log counts per branch over time
 
 import { get } from '../../services/api/http.js';
 import { initDatePicker } from '../../ui/datePicker.js';
 
-// ── Chart state ──────────────────────────────────────────────
+// ── State ────────────────────────────────────────────────────
 let chartInstance = null;
 let fromPicker = null;
 let toPicker   = null;
 
-// Active filters (all on by default)
-const activeReasons = new Set(['Order', 'Return', 'Stock Re-evaluation']);
 const activeBranches = new Set(['uk-birmingham', 'uk-london', 'fr-paris']);
 
-// Colour palette per reason
-const REASON_COLORS = {
-  'Order':                { border: '#3b82f6', bg: 'rgba(59,130,246,0.12)' },
-  'Return':               { border: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
-  'Stock Re-evaluation':  { border: '#22c55e', bg: 'rgba(34,197,94,0.12)' },
+const BRANCH_COLORS = {
+  'uk-birmingham': { border: '#3b82f6', bg: 'rgba(59,130,246,0.12)' },
+  'uk-london':     { border: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
+  'fr-paris':      { border: '#22c55e', bg: 'rgba(34,197,94,0.12)' },
 };
 
-const REASON_LABELS = {
-  'Order': 'Products Out',
-  'Return': 'Returns',
-  'Stock Re-evaluation': 'Re-evaluated',
+const BRANCH_LABELS = {
+  'uk-birmingham': 'Birmingham',
+  'uk-london':     'London',
+  'fr-paris':      'Paris',
 };
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -37,7 +34,6 @@ function toISODate(d) {
   return d.toISOString().slice(0, 10);
 }
 
-/** Build array of date strings between from and to (inclusive) */
 function dateRange(from, to) {
   const dates = [];
   const cur = new Date(from + 'T00:00:00');
@@ -56,7 +52,8 @@ async function fetchChartData() {
   if (!dateFrom || !dateTo) return null;
 
   const branches = [...activeBranches].join(',');
-  const reasons  = [...activeReasons].join(',');
+  // Include all reasons so we count every log
+  const reasons = 'Order,Return,Stock Re-evaluation';
 
   const params = new URLSearchParams({
     date_from: `${dateFrom}T00:00:00`,
@@ -68,59 +65,53 @@ async function fetchChartData() {
   try {
     return await get(`/v1/inventory/scanning-logs/chart/daily-counts?${params}`);
   } catch (e) {
-    console.error('[Dashboard] Chart data fetch failed:', e);
+    console.error('[ScanningLogsHub] Chart data fetch failed:', e);
     return null;
   }
 }
 
 // ── Chart rendering ──────────────────────────────────────────
 function renderChart(apiResponse) {
-  const canvas = document.getElementById('scannerActivityChart');
+  const canvas = document.getElementById('logsActivityChart');
   if (!canvas) return;
 
   const Chart = window.Chart;
-  if (!Chart) {
-    console.warn('[Dashboard] Chart.js not loaded');
-    return;
-  }
+  if (!Chart) { console.warn('[ScanningLogsHub] Chart.js not loaded'); return; }
 
-  // Destroy previous instance
-  if (chartInstance) {
-    chartInstance.destroy();
-    chartInstance = null;
-  }
+  if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+
+  const dateFrom = document.getElementById('chartDateFrom')?.value;
+  const dateTo   = document.getElementById('chartDateTo')?.value;
 
   if (!apiResponse || !apiResponse.data) {
-    // No data — show empty chart with date labels
-    const dateFrom = document.getElementById('chartDateFrom')?.value;
-    const dateTo   = document.getElementById('chartDateTo')?.value;
     const labels = dateFrom && dateTo ? dateRange(dateFrom, dateTo) : [];
-    chartInstance = new Chart(canvas, {
-      type: 'line',
-      data: { labels, datasets: [] },
-      options: chartOptions(labels),
-    });
+    chartInstance = new Chart(canvas, { type: 'line', data: { labels, datasets: [] }, options: chartOptions(labels) });
+    updateStatCards({});
     return;
   }
 
-  const dateFrom = apiResponse.date_from?.slice(0, 10);
-  const dateTo   = apiResponse.date_to?.slice(0, 10);
-  const labels   = dateRange(dateFrom, dateTo);
+  const from = apiResponse.date_from?.slice(0, 10);
+  const to   = apiResponse.date_to?.slice(0, 10);
+  const labels = dateRange(from, to);
 
-  // Aggregate: sum product quantities across active branches per reason per day
-  const aggMap = {};
+  // Aggregate log count per branch per day (sum across all reasons)
+  const branchDayMap = {};  // 'branch|date' → count
+  const reasonTotals = {}; // 'reason' → total count
   for (const row of apiResponse.data) {
-    const key = `${row.reason}|${row.date}`;
-    aggMap[key] = (aggMap[key] || 0) + (row.total_qty || 0);
+    const key = `${row.branch}|${row.date}`;
+    branchDayMap[key] = (branchDayMap[key] || 0) + (row.count || 0);
+    reasonTotals[row.reason] = (reasonTotals[row.reason] || 0) + (row.count || 0);
   }
 
-  // Build one dataset per active reason
+  updateStatCards(reasonTotals);
+
+  // One dataset per active branch
   const datasets = [];
-  for (const reason of activeReasons) {
-    const colors = REASON_COLORS[reason] || { border: '#888', bg: 'rgba(136,136,136,0.12)' };
+  for (const branch of activeBranches) {
+    const colors = BRANCH_COLORS[branch] || { border: '#888', bg: 'rgba(136,136,136,0.12)' };
     datasets.push({
-      label: REASON_LABELS[reason] || reason,
-      data: labels.map(date => aggMap[`${reason}|${date}`] || 0),
+      label: BRANCH_LABELS[branch] || branch,
+      data: labels.map(date => branchDayMap[`${branch}|${date}`] || 0),
       borderColor: colors.border,
       backgroundColor: colors.bg,
       fill: true,
@@ -136,6 +127,15 @@ function renderChart(apiResponse) {
     data: { labels, datasets },
     options: chartOptions(labels),
   });
+}
+
+function updateStatCards(reasonTotals) {
+  const orderEl  = document.getElementById('orderLogCount');
+  const returnEl = document.getElementById('returnLogCount');
+  const reevalEl = document.getElementById('reevalLogCount');
+  if (orderEl)  orderEl.textContent  = reasonTotals['Order']                ?? 0;
+  if (returnEl) returnEl.textContent = reasonTotals['Return']               ?? 0;
+  if (reevalEl) reevalEl.textContent = reasonTotals['Stock Re-evaluation']  ?? 0;
 }
 
 function chartOptions(labels) {
@@ -172,48 +172,20 @@ function chartOptions(labels) {
         beginAtZero: true,
         grid: { color: gridColor },
         ticks: { color: textColor, precision: 0 },
-        title: { display: true, text: 'Qty', color: textColor },
+        title: { display: true, text: 'Logs', color: textColor },
       },
     },
   };
 }
 
-// ── Refresh helpers ──────────────────────────────────────────
+// ── Refresh ──────────────────────────────────────────────────
 async function refreshChart() {
   const res = await fetchChartData();
   renderChart(res);
 }
 
-async function refreshStats() {
-  const branches = [...activeBranches].join(',');
-  try {
-    const data = await get(`/v1/inventory/stock-level-counts?branches=${encodeURIComponent(branches)}`);
-    const lowEl    = document.getElementById('lowStockCount');
-    const overEl   = document.getElementById('overStockCount');
-    const stableEl = document.getElementById('stableStockCount');
-    if (lowEl)    lowEl.textContent    = data.low_stock  ?? 0;
-    if (overEl)   overEl.textContent   = data.over_stock ?? 0;
-    if (stableEl) stableEl.textContent = data.stable     ?? 0;
-  } catch (e) {
-    console.error('[Dashboard] Stock stats fetch failed:', e);
-  }
-}
-
 // ── Event wiring ─────────────────────────────────────────────
 function wireControls() {
-  // Reason toggles
-  document.querySelectorAll('#reasonToggles .btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const reason = btn.dataset.reason;
-      if (activeReasons.has(reason)) {
-        if (activeReasons.size > 1) { activeReasons.delete(reason); btn.classList.remove('active'); }
-      } else {
-        activeReasons.add(reason); btn.classList.add('active');
-      }
-      refreshChart();
-    });
-  });
-
   // Branch toggles
   document.querySelectorAll('#branchToggles .btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -224,7 +196,6 @@ function wireControls() {
         activeBranches.add(branch); btn.classList.add('active');
       }
       refreshChart();
-      refreshStats();
     });
   });
 
@@ -232,7 +203,6 @@ function wireControls() {
   const fromEl = document.getElementById('chartDateFrom');
   const toEl   = document.getElementById('chartDateTo');
 
-  // Default to current week (Mon – Sun)
   const mon = mondayOfWeek();
   const sun = new Date(mon);
   sun.setDate(sun.getDate() + 6);
@@ -243,23 +213,18 @@ function wireControls() {
   fromPicker = initDatePicker('#chartDateFrom', { onSelect: () => refreshChart() });
   toPicker   = initDatePicker('#chartDateTo',   { onSelect: () => refreshChart() });
 
-  // Also listen for manual change events (e.g. mobile native picker)
   if (fromEl) fromEl.addEventListener('change', refreshChart);
   if (toEl)   toEl.addEventListener('change', refreshChart);
 }
 
 // ── Module lifecycle ─────────────────────────────────────────
 export async function init() {
-  // Wire up chart controls & load data
   wireControls();
-  await Promise.all([refreshChart(), refreshStats()]);
+  await refreshChart();
 }
 
 export function cleanup() {
-  if (chartInstance) {
-    chartInstance.destroy();
-    chartInstance = null;
-  }
+  if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
   if (fromPicker) { fromPicker.destroy(); fromPicker = null; }
   if (toPicker)   { toPicker.destroy();   toPicker   = null; }
 }

@@ -14,7 +14,15 @@ function cleanupSubModule() {
 
 export async function init(path) {
   cleanupSubModule();
-  // Currently only the scanning-logs-hub exists — no sub-module logic needed yet
+
+  const cacheBust = `?t=${Date.now()}`;
+
+  if (path === '/orders/scanning-logs-hub') {
+    const mod = await import(`./scanning-logs-dashboard.js${cacheBust}`);
+    await mod.init();
+    currentSubModule = mod;
+  }
+  // Other orders hub pages can be added here
 }
 
 export function cleanup() {

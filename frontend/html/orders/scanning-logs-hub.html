@@ -11,6 +11,10 @@
 
   <!-- Branch Tabs -->
   <nav class="nui-tabs">
+    <a href="/orders/scanning-logs-hub" class="nui-tab is-active" data-nav>
+      <i class="fas fa-chart-line"></i>
+      <span>Overview</span>
+    </a>
     <a href="/birmingham-orders/scanning-logs" class="nui-tab" data-nav>
       <i class="fas fa-warehouse"></i>
       <span>Birmingham</span>
@@ -24,4 +28,80 @@
       <span>France</span>
     </a>
   </nav>
+
+  <!-- Dashboard Content -->
+  <div class="scanning-logs-hub-content">
+    <!-- Stat Cards -->
+    <div class="scanning-logs-stats-grid">
+      <div class="card scanning-logs-stat-card stat-orders">
+        <div class="stat-icon">
+          <i class="fas fa-box-open"></i>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value" id="orderLogCount">--</span>
+          <span class="stat-label">Orders</span>
+        </div>
+      </div>
+
+      <div class="card scanning-logs-stat-card stat-returns">
+        <div class="stat-icon">
+          <i class="fas fa-rotate-left"></i>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value" id="returnLogCount">--</span>
+          <span class="stat-label">Returns</span>
+        </div>
+      </div>
+
+      <div class="card scanning-logs-stat-card stat-reeval">
+        <div class="stat-icon">
+          <i class="fas fa-clipboard-check"></i>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value" id="reevalLogCount">--</span>
+          <span class="stat-label">Re-evaluations</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Line Chart Section -->
+    <div class="scanning-logs-chart-section">
+      <div class="chart-container">
+        <h4>Logs Per Branch</h4>
+
+        <!-- Controls Row -->
+        <div class="chart-controls">
+          <!-- Branch Toggle Buttons -->
+          <div class="btn-group" id="branchToggles">
+            <button class="btn btn-faded btn-success active" data-branch="uk-birmingham">
+              <i class="fas fa-warehouse"></i> Birmingham
+            </button>
+            <button class="btn btn-faded btn-success active" data-branch="uk-london">
+              <i class="fas fa-warehouse"></i> London
+            </button>
+            <button class="btn btn-faded btn-success active" data-branch="fr-paris">
+              <i class="fas fa-warehouse"></i> Paris
+            </button>
+          </div>
+
+          <!-- Date Range Pickers -->
+          <div class="chart-date-range">
+            <div class="nui-field">
+              <label class="nui-label" for="chartDateFrom">From</label>
+              <input type="text" id="chartDateFrom" class="nui-input nui-input-default" placeholder="YYYY-MM-DD">
+            </div>
+            <div class="nui-field">
+              <label class="nui-label" for="chartDateTo">To</label>
+              <input type="text" id="chartDateTo" class="nui-input nui-input-default" placeholder="YYYY-MM-DD">
+            </div>
+          </div>
+        </div>
+
+        <!-- Chart Canvas -->
+        <div class="chart-wrapper">
+          <canvas id="logsActivityChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>

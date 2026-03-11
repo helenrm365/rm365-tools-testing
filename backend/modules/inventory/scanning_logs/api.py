@@ -2,8 +2,8 @@
 API endpoints for scanning logs
 """
 from fastapi import APIRouter, Depends, Query, HTTPException
-from typing import Optional
-from datetime import datetime
+from typing import Optional, List
+from datetime import datetime, timedelta
 import logging
 
 from core.auth import get_current_user
@@ -30,6 +30,137 @@ async def init_tables():
     except Exception as e:
         logger.error(f"Failed to initialize scanning logs tables: {e}")
 
+
+# ── Static-path routes (must come before /{branch} catch-all) ────────────────
+
+@router.get("/chart/daily-counts")
+async def get_daily_counts(
+    date_from: Optional[datetime] = Query(None, description="Start date (defaults to Monday of current week)"),
+    date_to: Optional[datetime] = Query(None, description="End date (defaults to Sunday of current week)"),
+    branches: Optional[str] = Query(None, description="Comma-separated branch IDs to include"),
+    reasons: Optional[str] = Query(None, description="Comma-separated reasons to include"),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Get daily submission counts for the line chart on the dashboard.
+
+    Returns counts grouped by date, branch and reason.
+    Defaults to the current week (Mon-Sun) and all branches/reasons.
+    """
+    try:
+        all_branches = ["uk-birmingham", "uk-london", "fr-paris"]
+        all_reasons = ["Order", "Return", "Stock Re-evaluation"]
+
+        # Parse branch filter
+        branch_list = all_branches
+        if branches:
+            branch_list = [b.strip() for b in branches.split(",") if b.strip() in all_branches]
+            if not branch_list:
+                branch_list = all_branches
+
+        # Parse reason filter
+        reason_list = all_reasons
+        if reasons:
+            reason_list = [r.strip() for r in reasons.split(",") if r.strip() in all_reasons]
+            if not reason_list:
+                reason_list = all_reasons
+
+        # Default date range: current week (Monday to Sunday end-of-day)
+        if not date_from:
+            today = datetime.utcnow().date()
+            monday = today - timedelta(days=today.weekday())
+            date_from = datetime.combine(monday, datetime.min.time())
+        if not date_to:
+            date_to_date = date_from.date() + timedelta(days=6) if hasattr(date_from, 'date') else date_from + timedelta(days=6)
+            if hasattr(date_to_date, 'date'):
+                date_to_date = date_to_date
+            date_to = datetime.combine(date_to_date, datetime.max.time())
+        else:
+            # Extend date_to to end of day
+            if hasattr(date_to, 'date'):
+                date_to = datetime.combine(date_to.date(), datetime.max.time())
+
+        data = repo.get_daily_counts(
+            branches=branch_list,
+            reasons=reason_list,
+            date_from=date_from,
+            date_to=date_to
+        )
+
+        return {
+            "data": data,
+            "date_from": date_from.isoformat(),
+            "date_to": date_to.isoformat(),
+            "branches": branch_list,
+            "reasons": reason_list
+        }
+
+    except Exception as e:
+        logger.error(f"Error getting daily counts for chart: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/all/logs", response_model=SubmissionListResponse)
+async def get_all_submissions(
+    search: Optional[str] = Query(None, description="Search by SKU, item ID, or product name"),
+    user: Optional[str] = Query(None, description="Filter by username"),
+    date_from: Optional[datetime] = Query(None, description="Filter from date"),
+    date_to: Optional[datetime] = Query(None, description="Filter to date"),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Get scanning log submissions across all branches
+    
+    Similar to branch-specific endpoint but returns logs from all branches.
+    """
+    try:
+        branches = ["uk-birmingham", "uk-london", "fr-paris"]
+        combined = []
+
+        for branch in branches:
+            branch_result = repo.get_submissions(
+                branch=branch,
+                search=search,
+                user=user,
+                date_from=date_from,
+                date_to=date_to,
+                page=1,
+                per_page=1000
+            )
+            combined.extend(branch_result.get("submissions", []))
+
+        # Sort by submitted_at desc
+        def parse_ts(ts):
+            try:
+                return datetime.fromisoformat(ts) if ts else datetime.min
+            except Exception:
+                return datetime.min
+
+        combined.sort(key=lambda item: parse_ts(item.get("submitted_at")), reverse=True)
+
+        total = len(combined)
+        start = (page - 1) * per_page
+        end = start + per_page
+        paged = combined[start:end]
+
+        total_pages = (total + per_page - 1) // per_page if per_page > 0 else 1
+
+        return {
+            "submissions": paged,
+            "total": total,
+            "page": page,
+            "per_page": per_page,
+            "total_pages": total_pages
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting all submissions: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ── Branch-parameterized routes ──────────────────────────────────────────────
 
 @router.post("/{branch}/log", response_model=SubmissionOut)
 async def create_submission(
@@ -159,64 +290,4 @@ async def search_by_product(
         
     except Exception as e:
         logger.error(f"Error searching by product in {branch}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.get("/all/logs", response_model=SubmissionListResponse)
-async def get_all_submissions(
-    search: Optional[str] = Query(None, description="Search by SKU, item ID, or product name"),
-    user: Optional[str] = Query(None, description="Filter by username"),
-    date_from: Optional[datetime] = Query(None, description="Filter from date"),
-    date_to: Optional[datetime] = Query(None, description="Filter to date"),
-    page: int = Query(1, ge=1),
-    per_page: int = Query(20, ge=1, le=100),
-    current_user: dict = Depends(get_current_user)
-):
-    """
-    Get scanning log submissions across all branches
-    
-    Similar to branch-specific endpoint but returns logs from all branches.
-    """
-    try:
-        branches = ["uk-birmingham", "uk-london", "fr-paris"]
-        combined = []
-
-        for branch in branches:
-            branch_result = repo.get_submissions(
-                branch=branch,
-                search=search,
-                user=user,
-                date_from=date_from,
-                date_to=date_to,
-                page=1,
-                per_page=1000
-            )
-            combined.extend(branch_result.get("submissions", []))
-
-        # Sort by submitted_at desc
-        def parse_ts(ts):
-            try:
-                return datetime.fromisoformat(ts) if ts else datetime.min
-            except Exception:
-                return datetime.min
-
-        combined.sort(key=lambda item: parse_ts(item.get("submitted_at")), reverse=True)
-
-        total = len(combined)
-        start = (page - 1) * per_page
-        end = start + per_page
-        paged = combined[start:end]
-
-        total_pages = (total + per_page - 1) // per_page if per_page > 0 else 1
-
-        return {
-            "submissions": paged,
-            "total": total,
-            "page": page,
-            "per_page": per_page,
-            "total_pages": total_pages
-        }
-        
-    except Exception as e:
-        logger.error(f"Error getting all submissions: {e}")
         raise HTTPException(status_code=500, detail=str(e))

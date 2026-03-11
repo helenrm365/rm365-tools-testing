@@ -516,3 +516,66 @@ class ScanningLogsRepo:
             return []
         finally:
             self.return_connection(conn)
+
+    def get_daily_counts(
+        self,
+        branches: List[str],
+        reasons: List[str],
+        date_from: datetime,
+        date_to: datetime
+    ) -> List[Dict[str, Any]]:
+        """Get daily submission counts grouped by date, branch, and reason.
+
+        Args:
+            branches: List of branch identifiers to include
+            reasons: List of reason strings to include (e.g. 'Order', 'Return', 'Stock Re-evaluation')
+            date_from: Start date (inclusive)
+            date_to: End date (inclusive, up to end of day)
+
+        Returns:
+            List of dicts: [{date, branch, reason, count, total_items, total_qty}]
+        """
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            results = []
+
+            for branch in branches:
+                table_prefix = self._get_table_prefix(branch)
+                submissions_table = f"{table_prefix}_scanner_submissions"
+
+                # Build reason filter
+                reason_placeholders = ', '.join(['%s'] * len(reasons))
+                params = list(reasons) + [date_from, date_to]
+
+                cursor.execute(f"""
+                    SELECT DATE(submitted_at) AS day,
+                           reason,
+                           COUNT(*) AS count,
+                           COALESCE(SUM(total_items), 0) AS total_items,
+                           COALESCE(SUM(total_added), 0) + COALESCE(SUM(total_removed), 0) AS total_qty
+                    FROM {submissions_table}
+                    WHERE reason IN ({reason_placeholders})
+                      AND submitted_at >= %s
+                      AND submitted_at < %s
+                    GROUP BY DATE(submitted_at), reason
+                    ORDER BY day
+                """, params)
+
+                for row in cursor.fetchall():
+                    results.append({
+                        'date': row[0].isoformat() if row[0] else None,
+                        'branch': branch,
+                        'reason': row[1],
+                        'count': row[2],
+                        'total_items': row[3],
+                        'total_qty': row[4]
+                    })
+
+            return results
+
+        except Exception as e:
+            logger.error(f"Error getting daily counts: {e}")
+            return []
+        finally:
+            self.return_connection(conn)

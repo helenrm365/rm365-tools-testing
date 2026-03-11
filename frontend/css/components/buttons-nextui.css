@@ -307,6 +307,12 @@ html.dark-mode {
   color: #fff;
 }
 
+/* Faded divider between adjacent active buttons */
+.btn-group > .btn.btn-faded.active + .btn.btn-faded.active,
+.btn-group > .btn.btn-faded:has(input:checked) + .btn.btn-faded:has(input:checked) {
+  box-shadow: inset 1px 0 0 0 rgba(255, 255, 255, 0.25);
+}
+
 /* --- 7e. Solid group --- */
 .btn-group > .btn-solid.active,
 .btn-group > .btn-solid:has(input:checked) {
