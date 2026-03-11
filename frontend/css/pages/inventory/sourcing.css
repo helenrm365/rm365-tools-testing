@@ -379,7 +379,6 @@ html.dark-mode .product-sourcing .summary-card {
   left: 120px; /* Must match col-sku width exactly */
   background: var(--bg);
   z-index: 5;
-  box-shadow: 3px 0 6px -2px rgba(0, 0, 0, 0.15); /* Visual separator */
   transition: background-color var(--transition);
 }
 
@@ -429,7 +428,6 @@ html.dark-mode .product-sourcing .data-table thead .sticky-col-2 {
   min-width: 200px;
   max-width: 250px;
   width: 200px;
-  box-shadow: 3px 0 6px -2px rgba(0, 0, 0, 0.15); /* Visual separator */
   transition: background-color var(--transition);
 }
 
