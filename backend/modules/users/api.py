@@ -22,10 +22,12 @@ def list_users_detailed(user=Depends(get_current_user)):
 @router.post("", status_code=201)
 def create_user(body: UserCreate, user=Depends(get_current_user)):
     try:
-        svc.create(body.username, body.password, body.role, body.allowed_tabs, body.location_id)
+        svc.create(body.username, body.password, body.role, body.allowed_tabs, body.location_id, body.group_id)
         return {"detail": "created"}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to create user: {str(e)}")
 
 @router.patch("")
 def update_user(body: UserUpdate, user=Depends(get_current_user)):
@@ -35,9 +37,12 @@ def update_user(body: UserUpdate, user=Depends(get_current_user)):
             new_username=body.new_username,
             new_password=body.new_password,
             role=body.role,
+            clear_role=(body.role is None and 'role' in body.model_fields_set),
             allowed_tabs=body.allowed_tabs,
             location_id=body.location_id,
             clear_location=(body.location_id is None and 'location_id' in body.model_fields_set),
+            group_id=body.group_id,
+            clear_group=(body.group_id is None and 'group_id' in body.model_fields_set),
         )
         return {"detail": "updated"}
     except Exception as e:

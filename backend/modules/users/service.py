@@ -13,15 +13,21 @@ class UsersService:
         if self.repo.get(username):
             raise ValueError("Username already exists")
 
-    def create(self, username: str, password: str, role: str, allowed_tabs: List[str], location_id: int = None):
+    def create(self, username: str, password: str, role: str, allowed_tabs: List[str], location_id: int = None, group_id: int = None):
         self.ensure_unique(username)
-        self.repo.create(username, hash_password(password), role, _csv(allowed_tabs), location_id)
+        self.repo.create(username, hash_password(password), role, _csv(allowed_tabs), location_id, group_id)
 
-    def update(self, username: str, *, new_username=None, new_password=None, role=None, allowed_tabs=None, location_id=None, clear_location=False):
+    def update(self, username: str, *, new_username=None, new_password=None, role=None, allowed_tabs=None, location_id=None, clear_location=False, clear_role=False, group_id=None, clear_group=False):
         new_hash = hash_password(new_password) if new_password else None
         self.repo.update(username, new_username=new_username, new_hash=new_hash, role=role,
+                         clear_role=clear_role,
                          allowed_tabs_csv=_csv(allowed_tabs) if allowed_tabs is not None else None,
-                         location_id=location_id, clear_location=clear_location)
+                         location_id=location_id, clear_location=clear_location,
+                         group_id=group_id, clear_group=clear_group)
+
+    def update_tabs_for_role(self, role_name: str, allowed_tabs: List[str]):
+        """Sync allowed_tabs for all users with a given role"""
+        self.repo.update_tabs_for_role(role_name, _csv(allowed_tabs))
 
     def delete(self, username: str):
         self.repo.delete(username)
@@ -36,12 +42,14 @@ class UsersService:
         for row in rows:
             username, role, allowed_tabs_csv = row[0], row[1], row[2]
             location_id = row[3] if len(row) > 3 else None
+            group_id = row[4] if len(row) > 4 else None
             allowed_tabs = [t.strip() for t in (allowed_tabs_csv or "").split(",") if t.strip()]
             users.append({
                 "username": username,
-                "role": role or "user",
+                "role": role or None,
                 "allowed_tabs": allowed_tabs,
-                "location_id": location_id
+                "location_id": location_id,
+                "group_id": group_id
             })
         return users
 

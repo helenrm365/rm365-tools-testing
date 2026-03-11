@@ -20,13 +20,6 @@ export const getRoles = async () => {
     }, ROLES_CACHE_TTL);
 };
 
-export const getRole = async (roleName) => {
-    const cacheKey = `role-${roleName}`;
-    return apiCache.getOrFetch(cacheKey, async () => {
-        return get(`${API}/${encodeURIComponent(roleName)}`);
-    }, ROLES_CACHE_TTL);
-};
-
 export const createRole = async ({ role_name, allowed_tabs = [] }) => {
     const result = await post(API, { role_name, allowed_tabs });
     // Invalidate cache after creating
@@ -38,10 +31,6 @@ export const updateRole = async ({ role_name, new_role_name, allowed_tabs }) => 
     const result = await patch(API, { role_name, new_role_name, allowed_tabs });
     // Invalidate cache after updating
     apiCache.clear('roles-list');
-    apiCache.clear(`role-${role_name}`);
-    if (new_role_name) {
-        apiCache.clear(`role-${new_role_name}`);
-    }
     return result;
 };
 
@@ -49,6 +38,5 @@ export const deleteRole = (roleName) => {
     const result = del(`${API}?role_name=${encodeURIComponent(roleName)}`);
     // Invalidate cache after deleting
     apiCache.clear('roles-list');
-    apiCache.clear(`role-${roleName}`);
     return result;
 };

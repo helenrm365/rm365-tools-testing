@@ -15,12 +15,11 @@ class RolesRepo:
                 )
             """)
             
-            # Insert default roles
+            # Insert system roles only (admin + custom are non-deletable)
             cur.execute("""
                 INSERT INTO roles (role_name, allowed_tabs) VALUES
                 ('admin', 'enrollment,inventory,attendance,labels,magentodata,usermanagement'),
-                ('manager', 'enrollment,inventory,attendance,labels,magentodata'),
-                ('user', 'enrollment,attendance')
+                ('custom', '')
                 ON CONFLICT (role_name) DO NOTHING
             """)
             
@@ -85,17 +84,4 @@ class RolesRepo:
         """Delete a role"""
         with pg_conn() as conn, conn.cursor() as cur:
             cur.execute("DELETE FROM roles WHERE role_name=%s", (role_name,))
-            conn.commit()
-
-    def upsert(self, role_name: str, allowed_tabs_csv: str):
-        """Insert or update a role (used when saving user with role)"""
-        with pg_conn() as conn, conn.cursor() as cur:
-            cur.execute("""
-                INSERT INTO roles (role_name, allowed_tabs)
-                VALUES (%s, %s)
-                ON CONFLICT (role_name) 
-                DO UPDATE SET 
-                    allowed_tabs = EXCLUDED.allowed_tabs,
-                    updated_at = CURRENT_TIMESTAMP
-            """, (role_name, allowed_tabs_csv))
             conn.commit()

@@ -191,6 +191,14 @@ def initialize_database():
             print(f"⚠️  Could not initialize roles table: {e}")
         
         try:
+            from modules.groups.service import GroupsService
+            groups_svc = GroupsService()
+            groups_svc.init_groups_table()
+            print("✅ Groups table initialized")
+        except Exception as e:
+            print(f"⚠️  Could not initialize groups table: {e}")
+        
+        try:
             from modules.magentodata.repo import MagentoDataRepo
             magento_repo = MagentoDataRepo()
             magento_repo.init_tables()

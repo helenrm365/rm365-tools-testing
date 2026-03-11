@@ -346,6 +346,7 @@ except Exception as e:
 working_modules = [
     ('modules.users.api', 'router', f'{API}/users', ['users']),
     ('modules.roles.api', 'router', f'{API}/roles', ['roles']),
+    ('modules.groups.api', 'router', f'{API}/groups', ['groups']),
     ('modules.attendance.api', 'router', f'{API}/attendance', ['attendance']),
     ('modules.attendance.locations_api', 'router', f'{API}/locations', ['locations']),
     ('modules.enrollment.api', 'router', f'{API}/enrollment', ['enrollment']),

@@ -97,7 +97,7 @@ def test_service_instantiation_speed():
 
 
 def test_page_routing():
-    """Verify that home page doesn't load management module."""
+    """Verify that index.js always loads management module directly."""
     print("\n" + "=" * 60)
     print("Testing Page Routing")
     print("=" * 60)
@@ -108,15 +108,15 @@ def test_page_routing():
     with open(frontend_path, 'r') as f:
         content = f.read()
     
-    # Check routing
-    home_loads_module = "case '/usermanagement':" in content and "break;" in content
-    management_loads_module = "case '/usermanagement/management':" in content and "management.js" in content
+    # Current routing: always loads management.js directly (no switch/case)
+    loads_management = "management.js" in content
+    no_switch = "switch" not in content and "case " not in content
     
-    print(f"\n1. Home page (/usermanagement) loads module: {not home_loads_module}")
-    print(f"2. Management page (/usermanagement/management) loads module: {management_loads_module}")
+    print(f"\n1. Loads management.js: {loads_management}")
+    print(f"2. No switch/case routing (direct load): {no_switch}")
     
-    if home_loads_module and management_loads_module:
-        print(f"\n   ✅ Routing is correct: home page = no module, management page = module")
+    if loads_management and no_switch:
+        print(f"\n   ✅ Routing is correct: always loads management.js directly")
 
 
 if __name__ == "__main__":
