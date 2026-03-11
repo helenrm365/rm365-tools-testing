@@ -5,7 +5,8 @@
 .table-container {
   width: 100%;
   overflow: auto;
-  overscroll-behavior: contain;
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: auto;
   border-radius: var(--radius-md);
   background: var(--bg);
   border: 2px solid var(--bg-light);
@@ -326,7 +327,7 @@ html.dark-mode .pagination-wrapper {
 .table-responsive {
   width: 100%;
   overflow-x: auto;
-  overscroll-behavior-x: contain;
+  overscroll-behavior-x: none;
 }
 
 /* Tablet: <= 1024px */

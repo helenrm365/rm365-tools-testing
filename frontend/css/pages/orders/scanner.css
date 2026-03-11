@@ -1564,7 +1564,7 @@ html.dark-mode .inventory-scanner .pending-item-remove:hover {
     max-height: none;
     overflow: visible;
     overflow-x: hidden;
-    overscroll-behavior: contain;
+    overscroll-behavior: none;
     /* Extra padding to allow scrolling past sticky footer/nav + safe area */
     padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 220px);
     position: relative;

@@ -153,7 +153,7 @@ html.dark-mode .product-sourcing .data-controls-bar {
   border-radius: var(--radius-lg);
   border: 1px solid rgba(0, 0, 0, 0.06);
   overflow: auto; /* Changed from hidden to allow scrolling */
-  overscroll-behavior: contain;
+  overscroll-behavior: none;
   max-height: 60vh;
 }
 

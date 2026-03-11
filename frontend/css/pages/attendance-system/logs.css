@@ -171,7 +171,7 @@
 /* ===== Logs Table ===== */
 .attendance-logs .logs-table-wrapper {
   overflow-x: auto;
-  overscroll-behavior-x: contain;
+  overscroll-behavior-x: none;
   border-radius: 10px;
   background: var(--bg-light);
 }
@@ -475,7 +475,7 @@ html.dark-mode .attendance-logs .export-btn {
   /* Tables become scrollable */
   .attendance-logs .block-content:has(table) {
     overflow-x: auto;
-    overscroll-behavior-x: contain;
+    overscroll-behavior-x: none;
   }
   
   .attendance-logs table {

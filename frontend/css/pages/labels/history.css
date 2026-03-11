@@ -383,7 +383,7 @@
   /* Table horizontal scroll */
   .labels-history .table-container {
     overflow-x: auto;
-    overscroll-behavior-x: contain;
+    overscroll-behavior-x: none;
   }
   
   .labels-history .table-container table {

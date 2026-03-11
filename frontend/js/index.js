@@ -2,6 +2,7 @@
 import { setupShellUI } from './shell-ui.js';
 import { setupRouter } from './router.js';
 import { config } from './config.js';
+import { initScrollClamp } from './utils/scrollClamp.js';
 
 // Import debug utilities in development
 if (config.DEBUG) {
@@ -20,3 +21,4 @@ if (config.DEBUG) {
 
 setupShellUI();
 setupRouter();
+initScrollClamp();

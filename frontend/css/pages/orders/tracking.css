@@ -495,7 +495,7 @@
 #orderPreviewModal .preview-items-table,
 #completedSessionModal .preview-items-table {
   overflow-x: auto;
-  overscroll-behavior-x: contain;
+  overscroll-behavior-x: none;
   margin: 0 -0.5rem;
 }
 
