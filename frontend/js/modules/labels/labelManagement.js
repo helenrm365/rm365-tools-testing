@@ -68,13 +68,13 @@ function renderLabelsTable() {
             </td>
             <td style="text-align: center;">
               <div class="btn-group">
-                <button class="btn-icon primary" onclick="editLabel(${label.id})" title="Edit label">
+                <button class="btn btn-light btn-primary btn-sm btn-icon-only" onclick="editLabel(${label.id})" title="Edit label">
                   ✏️
                 </button>
-                <button class="btn-icon info" onclick="duplicateLabel(${label.id})" title="Duplicate label">
+                <button class="btn btn-light btn-default btn-sm btn-icon-only" onclick="duplicateLabel(${label.id})" title="Duplicate label">
                   📄
                 </button>
-                <button class="btn-icon danger" onclick="deleteSelectedLabel(${label.id})" title="Delete label">
+                <button class="btn btn-light btn-danger btn-sm btn-icon-only" onclick="deleteSelectedLabel(${label.id})" title="Delete label">
                   <i class="fas fa-trash-alt"></i>
                 </button>
               </div>

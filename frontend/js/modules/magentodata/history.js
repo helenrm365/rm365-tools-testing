@@ -287,7 +287,7 @@ function renderHistoryTable(data) {
         <td>${record.rows_imported + record.rows_failed}</td>
         <td class="status-cell"><span class="status-badge ${statusClass}">${record.status}</span></td>
         <td class="action-cell">
-          ${hasErrors ? `<button class="btn btn-icon btn-sm" onclick="window.showImportErrors(${record.id})" title="View ${errorCount} errors"><i class="fas fa-exclamation-triangle"></i></button>` : '<span>-</span>'}
+          ${hasErrors ? `<button class="btn btn-ghost btn-warning btn-sm btn-icon-only" onclick="window.showImportErrors(${record.id})" title="View ${errorCount} errors"><i class="fas fa-exclamation-triangle"></i></button>` : '<span>-</span>'}
         </td>
       </tr>
     `;

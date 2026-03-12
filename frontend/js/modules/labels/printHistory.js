@@ -109,14 +109,14 @@ function renderHistoryTable() {
             <td style="text-align: center;">
               <div class="btn-group">
                 ${record.status === 'success' ? `
-                  <button class="btn-icon primary" onclick="reprintRecord(${record.id})" title="Reprint this label">
+                  <button class="btn btn-light btn-primary btn-sm btn-icon-only" onclick="reprintRecord(${record.id})" title="Reprint this label">
                     🖨️
                   </button>
                 ` : ''}
-                <button class="btn-icon info" onclick="viewRecordDetails(${record.id})" title="View details">
+                <button class="btn btn-light btn-default btn-sm btn-icon-only" onclick="viewRecordDetails(${record.id})" title="View details">
                   👁️
                 </button>
-                <button class="btn-icon danger" onclick="deleteRecord(${record.id})" title="Delete record">
+                <button class="btn btn-light btn-danger btn-sm btn-icon-only" onclick="deleteRecord(${record.id})" title="Delete record">
                   🗑️
                 </button>
               </div>

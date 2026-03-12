@@ -152,16 +152,6 @@
   position: relative;
 }
 
-.order-approval .search-icon {
-  position: absolute;
-  left: 1rem;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--text-muted);
-  pointer-events: none;
-  z-index: 1;
-}
-
 .order-approval .nui-input {
   width: 100%;
   padding-left: 2.75rem;
@@ -184,7 +174,7 @@
   letter-spacing: 0.5px;
 }
 
-.order-approval .c-select {
+.order-approval .nui-dropdown {
   width: 100%;
 }
 

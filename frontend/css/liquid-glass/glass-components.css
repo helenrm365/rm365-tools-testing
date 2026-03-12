@@ -129,10 +129,8 @@ html.dark-mode body.liquid-glass-mode .card-description {
 body.liquid-glass-mode select,
 body.liquid-glass-mode .sort-select,
 body.liquid-glass-mode .manual-employee-dropdown,
-body.liquid-glass-mode .filter-select,
 body.liquid-glass-mode .control-select,
-body.liquid-glass-mode .employee-dropdown,
-body.liquid-glass-mode .form-select {
+body.liquid-glass-mode .employee-dropdown {
     background-color: rgba(255, 255, 255, 0.4) !important;
     border: 1px solid rgba(255, 255, 255, 0.5) !important;
     backdrop-filter: blur(8px);
@@ -146,10 +144,7 @@ body.liquid-glass-mode input[type="text"],
 body.liquid-glass-mode input[type="search"],
 body.liquid-glass-mode input[type="email"],
 body.liquid-glass-mode input[type="password"],
-body.liquid-glass-mode input[type="number"],
-body.liquid-glass-mode .form-input,
-body.liquid-glass-mode .search-input,
-body.liquid-glass-mode .form-textarea {
+body.liquid-glass-mode input[type="number"] {
     background: rgba(255, 255, 255, 0.4) !important;
     border: 1px solid rgba(255, 255, 255, 0.5) !important;
     backdrop-filter: blur(8px);
@@ -161,10 +156,8 @@ body.liquid-glass-mode .form-textarea {
 body.liquid-glass-mode select:focus,
 body.liquid-glass-mode .sort-select:focus,
 body.liquid-glass-mode .manual-employee-dropdown:focus,
-body.liquid-glass-mode .filter-select:focus,
 body.liquid-glass-mode .control-select:focus,
-body.liquid-glass-mode .employee-dropdown:focus,
-body.liquid-glass-mode .form-select:focus {
+body.liquid-glass-mode .employee-dropdown:focus {
     background-color: rgba(255, 255, 255, 0.8) !important;
     border-color: var(--accent) !important;
     box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 10%, transparent) !important;
@@ -173,10 +166,7 @@ body.liquid-glass-mode .form-select:focus {
 
 /* Focus State - Inputs */
 body.liquid-glass-mode .modern-input:focus,
-body.liquid-glass-mode input:focus,
-body.liquid-glass-mode .form-input:focus,
-body.liquid-glass-mode .search-input:focus,
-body.liquid-glass-mode .form-textarea:focus {
+body.liquid-glass-mode input:focus {
     background: rgba(255, 255, 255, 0.8) !important;
     border-color: var(--accent) !important;
     box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 10%, transparent) !important;
@@ -197,17 +187,20 @@ body.liquid-glass-mode .search-box {
     backdrop-filter: none !important;
 }
 
-body.liquid-glass-mode .action-btn {
+body.liquid-glass-mode .action-btn,
+body.liquid-glass-mode .btn {
     backdrop-filter: blur(4px);
 }
 
-body.liquid-glass-mode .primary-btn {
+body.liquid-glass-mode .primary-btn,
+body.liquid-glass-mode .btn-solid.btn-primary {
     background: color-mix(in srgb, var(--accent) 80%, transparent);
     border: 1px solid rgba(255, 255, 255, 0.3);
     box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
-body.liquid-glass-mode .primary-btn:hover {
+body.liquid-glass-mode .primary-btn:hover,
+body.liquid-glass-mode .btn-solid.btn-primary:hover {
     background: color-mix(in srgb, var(--accent) 95%, transparent);
 }
 
@@ -217,10 +210,8 @@ body.liquid-glass-mode .primary-btn:hover {
 html.dark-mode body.liquid-glass-mode select,
 html.dark-mode body.liquid-glass-mode .sort-select,
 html.dark-mode body.liquid-glass-mode .manual-employee-dropdown,
-html.dark-mode body.liquid-glass-mode .filter-select,
 html.dark-mode body.liquid-glass-mode .control-select,
-html.dark-mode body.liquid-glass-mode .employee-dropdown,
-html.dark-mode body.liquid-glass-mode .form-select {
+html.dark-mode body.liquid-glass-mode .employee-dropdown {
     background-color: rgba(0, 0, 0, 0.2) !important;
     border-color: rgba(255, 255, 255, 0.1) !important;
     color: #fff !important;
@@ -232,10 +223,7 @@ html.dark-mode body.liquid-glass-mode input[type="text"],
 html.dark-mode body.liquid-glass-mode input[type="search"],
 html.dark-mode body.liquid-glass-mode input[type="email"],
 html.dark-mode body.liquid-glass-mode input[type="password"],
-html.dark-mode body.liquid-glass-mode input[type="number"],
-html.dark-mode body.liquid-glass-mode .form-input,
-html.dark-mode body.liquid-glass-mode .search-input,
-html.dark-mode body.liquid-glass-mode .form-textarea {
+html.dark-mode body.liquid-glass-mode input[type="number"] {
     background: rgba(0, 0, 0, 0.2) !important;
     border-color: rgba(255, 255, 255, 0.1) !important;
     color: #fff !important;
@@ -245,20 +233,15 @@ html.dark-mode body.liquid-glass-mode .form-textarea {
 html.dark-mode body.liquid-glass-mode select:focus,
 html.dark-mode body.liquid-glass-mode .sort-select:focus,
 html.dark-mode body.liquid-glass-mode .manual-employee-dropdown:focus,
-html.dark-mode body.liquid-glass-mode .filter-select:focus,
 html.dark-mode body.liquid-glass-mode .control-select:focus,
-html.dark-mode body.liquid-glass-mode .employee-dropdown:focus,
-html.dark-mode body.liquid-glass-mode .form-select:focus {
+html.dark-mode body.liquid-glass-mode .employee-dropdown:focus {
     background-color: rgba(0, 0, 0, 0.4) !important;
     border-color: var(--accent) !important;
 }
 
 /* Focus State - Inputs */
 html.dark-mode body.liquid-glass-mode .modern-input:focus,
-html.dark-mode body.liquid-glass-mode input:focus,
-html.dark-mode body.liquid-glass-mode .form-input:focus,
-html.dark-mode body.liquid-glass-mode .search-input:focus,
-html.dark-mode body.liquid-glass-mode .form-textarea:focus {
+html.dark-mode body.liquid-glass-mode input:focus {
     background: rgba(0, 0, 0, 0.4) !important;
     border-color: var(--accent) !important;
 }
@@ -471,8 +454,8 @@ html.dark-mode body.liquid-glass-mode .footer-divider {
     color: rgba(255, 255, 255, 0.2);
 }
 
-/* C-Select Liquid Glass Overrides */
-body.liquid-glass-mode .c-select__button {
+/* Nui-Dropdown Liquid Glass Overrides */
+body.liquid-glass-mode .nui-dropdown-trigger {
     background: rgba(255, 255, 255, 0.4) !important;
     border: 1px solid rgba(255, 255, 255, 0.5) !important;
     backdrop-filter: blur(8px);
@@ -480,41 +463,41 @@ body.liquid-glass-mode .c-select__button {
     box-shadow: none !important;
 }
 
-body.liquid-glass-mode .c-select__button:hover {
+body.liquid-glass-mode .nui-dropdown-trigger:hover {
     background: rgba(255, 255, 255, 0.6) !important;
     border-color: rgba(255, 255, 255, 0.8) !important;
 }
 
-body.liquid-glass-mode .c-select__list {
+body.liquid-glass-mode .nui-dropdown-menu {
     background: rgba(255, 255, 255, 0.85) !important;
     backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.6) !important;
     box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1) !important;
 }
 
-body.liquid-glass-mode .c-select__option:hover {
+body.liquid-glass-mode .nui-dropdown-item:hover {
     background: color-mix(in srgb, var(--accent) 20%, transparent) !important;
 }
 
-/* Dark Mode C-Select */
-html.dark-mode body.liquid-glass-mode .c-select__button {
+/* Dark Mode Nui-Dropdown */
+html.dark-mode body.liquid-glass-mode .nui-dropdown-trigger {
     background: rgba(0, 0, 0, 0.2) !important;
     border-color: rgba(255, 255, 255, 0.1) !important;
     color: #fff !important;
 }
 
-html.dark-mode body.liquid-glass-mode .c-select__button:hover {
+html.dark-mode body.liquid-glass-mode .nui-dropdown-trigger:hover {
     background: rgba(0, 0, 0, 0.3) !important;
     border-color: rgba(255, 255, 255, 0.2) !important;
 }
 
-html.dark-mode body.liquid-glass-mode .c-select__list {
+html.dark-mode body.liquid-glass-mode .nui-dropdown-menu {
     background: rgba(30, 30, 30, 0.9) !important;
     border-color: rgba(255, 255, 255, 0.1) !important;
     color: #e0e0e0 !important;
 }
 
-html.dark-mode body.liquid-glass-mode .c-select__option:hover {
+html.dark-mode body.liquid-glass-mode .nui-dropdown-item:hover {
     background: rgba(255, 255, 255, 0.1) !important;
 }
 

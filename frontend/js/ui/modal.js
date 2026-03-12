@@ -1,6 +1,6 @@
 /**
  * Modal utility for showing styled alerts and confirmations
- * Uses css/components/modals.css and buttons.css
+ * Uses css/components/modals.css and buttons-nextui.css
  */
 
 // Helper function to get header class based on type

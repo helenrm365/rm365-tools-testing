@@ -5,7 +5,7 @@
    - layout/header.css: .page-header, .page-title, .page-subtitle, .header-content
    - components/buttons-nextui.css: .btn, .btn-solid, .btn-flat, .btn-danger, .btn-default, .btn-sm
    - components/cards.css: .action-block, .block-header, .block-icon, .block-title-group, .block-title, .block-subtitle, .block-content
-   - components/forms.css: .c-select, .filter-label, .card-checkbox, .checkbox-custom
+   - components/forms.css: .filter-label, .card-checkbox, .checkbox-custom
    - components/tabs.css: .nui-tabs, .nui-tab
    - components/loaders.css: .loading-spinner, .loading-state
 */
@@ -38,7 +38,7 @@
 }
 
 /* Header dropdown - auto width */
-.labels-history .header-actions .c-select {
+.labels-history .header-actions .nui-dropdown {
   width: auto;
   min-width: 150px;
 }
@@ -341,7 +341,7 @@
     gap: 0.375rem;
   }
   
-  .labels-history .header-actions .c-select {
+  .labels-history .header-actions .nui-dropdown {
     min-width: 100px;
   }
   

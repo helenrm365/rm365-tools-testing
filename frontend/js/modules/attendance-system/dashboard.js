@@ -700,7 +700,7 @@ function displayLunchtimeCards(data) {
   // Add click handlers for employee cards (clicking on card area opens logs modal)
   cardsEl.querySelectorAll('.lunchtime-employee-card[data-employee]').forEach(card => {
     card.addEventListener('click', (e) => {
-      // Don't open modal if clicking on export c-select
+      // Don't open modal if clicking on export nui-dropdown
       if (e.target.closest('.nui-dropdown') || e.target.closest('.employee-card-export-select')) return;
       
       const employeeName = card.dataset.employee;
@@ -710,12 +710,12 @@ function displayLunchtimeCards(data) {
     });
   });
   
-  // Enhance employee card export selects with c-select and setup handlers
+  // Enhance employee card export selects with nui-dropdown and setup handlers
   setupEmployeeCardExportSelects(cardsEl);
 }
 
 /**
- * Setup export select handlers for employee cards (using c-select)
+ * Setup export select handlers for employee cards (using nui-dropdown)
  */
 function setupEmployeeCardExportSelects(container) {
   // Enhance selects with nui-dropdown (small size for cards)
@@ -740,14 +740,14 @@ function setupEmployeeCardExportSelects(container) {
 }
 
 /**
- * Add icons to employee card export c-select dropdown items
+ * Add icons to employee card export nui-dropdown items
  */
 function addEmployeeCardExportIcons(container) {
-  const exportWrappers = container.querySelectorAll('.employee-card-header .c-select');
+  const exportWrappers = container.querySelectorAll('.employee-card-header .nui-dropdown');
   
   exportWrappers.forEach(wrapper => {
-    // Add download icon to the button label
-    const label = wrapper.querySelector('.c-select__label');
+    // Add download icon to the trigger label
+    const label = wrapper.querySelector('.nui-dropdown-value');
     if (label && !label.querySelector('i')) {
       const icon = document.createElement('i');
       icon.className = 'fas fa-download';
@@ -757,7 +757,7 @@ function addEmployeeCardExportIcons(container) {
     }
     
     // Add icons to PDF and CSV options
-    const items = wrapper.querySelectorAll('.c-select__item');
+    const items = wrapper.querySelectorAll('.nui-dropdown-item');
     items.forEach(item => {
       if (item.querySelector('i')) return;
       
@@ -1238,7 +1238,7 @@ function clearGlobalFilters() {
 
 // ====== Export Select Functions ======
 function setupExportSelects() {
-  // Setup change handlers for c-select export dropdowns
+  // Setup change handlers for export dropdowns
   const exportSelects = document.querySelectorAll('.export-select');
   
   exportSelects.forEach(select => {
@@ -1250,26 +1250,26 @@ function setupExportSelects() {
         await handleExport(section, format);
         // Reset to placeholder after action
         e.target.selectedIndex = 0;
-        // Trigger c-select to update its display
+        // Trigger nui-dropdown to update its display
         e.target.dispatchEvent(new Event('change', { bubbles: true }));
       }
     });
   });
   
-  // Add icons to export c-select items after a short delay for c-select to initialize
+  // Add icons to export dropdown items after a short delay for nui-dropdown to initialize
   setTimeout(() => addExportSelectIcons(), 100);
 }
 
 /**
- * Add icons to export c-select dropdown items
+ * Add icons to export nui-dropdown items
  */
 function addExportSelectIcons() {
-  // Find all export c-select wrappers in block headers
-  const exportWrappers = document.querySelectorAll('.block-header-actions .c-select');
+  // Find all export nui-dropdown wrappers in block headers
+  const exportWrappers = document.querySelectorAll('.block-header-actions .nui-dropdown');
   
   exportWrappers.forEach(wrapper => {
-    // Add download icon to the button label
-    const label = wrapper.querySelector('.c-select__label');
+    // Add download icon to the trigger label
+    const label = wrapper.querySelector('.nui-dropdown-value');
     if (label && !label.querySelector('i')) {
       const icon = document.createElement('i');
       icon.className = 'fas fa-download';
@@ -1278,7 +1278,7 @@ function addExportSelectIcons() {
     }
     
     // Add icons to PDF and CSV options
-    const items = wrapper.querySelectorAll('.c-select__item');
+    const items = wrapper.querySelectorAll('.nui-dropdown-item');
     items.forEach(item => {
       if (item.querySelector('i')) return; // Already has icon
       
@@ -1302,10 +1302,10 @@ function addExportSelectIcons() {
 
 async function handleExport(section, format) {
   const selectEl = document.querySelector(`#${section}ExportSelect`);
-  const wrapper = selectEl?.closest('.c-select');
+  const wrapper = selectEl?.closest('.nui-dropdown');
   
   try {
-    // Show loading state on the c-select wrapper
+    // Show loading state on the nui-dropdown wrapper
     if (wrapper) {
       wrapper.classList.add('loading');
     }
@@ -1451,7 +1451,7 @@ function setupEventHandlers() {
     });
   }
   
-  // Setup export select handlers (c-select based)
+  // Setup export select handlers (nui-dropdown based)
   setupExportSelects();
   
   // Toggle view button groups

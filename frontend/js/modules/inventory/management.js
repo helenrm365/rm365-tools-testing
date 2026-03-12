@@ -1254,14 +1254,6 @@ function getBackdrop() {
 }
 
 function closeAllDropdowns() {
-  // Close c-select dropdowns (multi-select column picker)
-  document.querySelectorAll('.c-select[aria-expanded="true"]').forEach(el => {
-    el.setAttribute('aria-expanded', 'false');
-    el.classList.remove('open');
-  });
-  document.querySelectorAll('.c-select__list[aria-hidden="false"]').forEach(el => {
-    el.setAttribute('aria-hidden', 'true');
-  });
   // Close nui-dropdown menus
   document.querySelectorAll('.nui-dropdown.is-open').forEach(el => {
     el.classList.remove('is-open');

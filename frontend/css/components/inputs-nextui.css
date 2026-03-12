@@ -85,75 +85,6 @@ textarea.nui-input {
 
 
 /* =========================================================
-   1b. SPECIFICITY RESET — Override forms.css generic selectors
-   forms.css targets input[type="text"]:hover (0-1-1) and
-   html.dark-mode input[type="text"]:hover (0-2-1) with
-   green accent borders, gradient bg, box-shadow.
-   We use input[type].nui-input (0-2-0) to beat all of those.
-   ========================================================= */
-
-/* --- Base --- */
-input[type].nui-input,
-input.nui-input,
-textarea.nui-input {
-  height: calc(2 * var(--btn-py-md, 0.5rem) + 1.25 * var(--btn-fs-md, 0.875rem) + 4px);
-  padding: var(--btn-py-md, 0.5rem) var(--btn-px-md, 1rem);
-  font-size: var(--btn-fs-md, 0.875rem);
-  border: 2px solid var(--_idle);
-  border-radius: 12px;
-  background: transparent;
-  box-shadow: none;
-}
-
-/* --- Hover: no change — matches dropdown-trigger:hover exactly --- */
-input[type].nui-input:hover,
-input.nui-input:hover,
-textarea.nui-input:hover {
-  border-color: var(--_idle);
-  background: transparent;
-  box-shadow: none;
-}
-
-/* --- Focus: border goes black (light mode) --- */
-input[type].nui-input:focus,
-input.nui-input:focus,
-textarea.nui-input:focus {
-  border: 2px solid #000;
-  background: transparent;
-  box-shadow: none;
-  outline: none;
-}
-
-/* --- Dark base --- */
-html.dark-mode input[type].nui-input,
-html.dark-mode input.nui-input,
-html.dark-mode textarea.nui-input {
-  border: 2px solid var(--_idle);
-  background: transparent;
-  box-shadow: none;
-}
-
-/* --- Dark hover: no change --- */
-html.dark-mode input[type].nui-input:hover,
-html.dark-mode input.nui-input:hover,
-html.dark-mode textarea.nui-input:hover {
-  border-color: var(--_idle);
-  background: transparent;
-  box-shadow: none;
-}
-
-/* --- Dark focus: border goes white --- */
-html.dark-mode input[type].nui-input:focus,
-html.dark-mode input.nui-input:focus,
-html.dark-mode textarea.nui-input:focus {
-  border: 2px solid #fff;
-  background: transparent;
-  box-shadow: none;
-  outline: none;
-}
-
-
-/* =========================================================
    2. COLORS  —  .nui-input-{color}
    Each sets a local --_ic variable consumed by focus state.
    Reuses the same vars from buttons-nextui.css.
@@ -414,4 +345,15 @@ html.dark-mode .nui-number-stepper {
 
 html.dark-mode .nui-number-stepper:active {
   background: color-mix(in srgb, #fff 15%, transparent);
+}
+
+
+/* =========================================================
+   9. RESPONSIVE  —  iOS zoom prevention
+   On iOS, inputs < 16px trigger auto-zoom. Force 16px on mobile.
+   ========================================================= */
+@media (max-width: 768px) {
+  .nui-input {
+    font-size: 16px;
+  }
 }

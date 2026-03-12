@@ -368,7 +368,7 @@ window.openEmployeeEditModal = function(cardEl) {
   const editLocationSelect = $('#editEmployeeLocation');
   if (editLocationSelect) {
     editLocationSelect.value = cardEl.dataset.location || '';
-    // Ensure c-select wrapper updates its visible label
+    // Ensure nui-dropdown wrapper updates its visible label
     editLocationSelect.dispatchEvent(new Event('change', { bubbles: true }));
   }
   $('#editEmployeeStatusSelect').value = cardEl.dataset.status;
@@ -1039,7 +1039,7 @@ function showCreateEmployeeModal() {
   const defaultLocation = state.locations.length > 0 ? state.locations[0] : null;
   if (locationInput) {
     locationInput.value = defaultLocation?.name || '';
-    // Ensure c-select wrapper updates its visible label
+    // Ensure nui-dropdown wrapper updates its visible label
     locationInput.dispatchEvent(new Event('change', { bubbles: true }));
   }
   // Native selects handle display automatically - no need for separate dropdown update

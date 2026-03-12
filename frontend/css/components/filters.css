@@ -25,7 +25,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.625rem;
-  overflow: visible; /* Allow c-select options to extend beyond */
+  overflow: visible; /* Allow dropdown options to extend beyond */
 }
 
 /* Filter group */
@@ -51,27 +51,7 @@
   font-size: 0.875rem;
 }
 
-/* Filter select (native) */
-.filter-select {
-  padding: 0.875rem 1rem;
-  background: var(--bg-light);
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  border-radius: 10px;
-  font-size: 0.9375rem;
-  font-family: var(--ff);
-  color: var(--text);
-  cursor: pointer;
-  transition: all var(--transition);
-}
 
-html.dark-mode .filter-select {
-  border-color: rgba(255, 255, 255, 0.08);
-}
-
-.filter-select:focus {
-  outline: none;
-  border-color: var(--accent);
-}
 
 /* Filter category chips */
 .filter-category {

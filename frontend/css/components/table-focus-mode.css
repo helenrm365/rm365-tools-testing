@@ -310,20 +310,6 @@ html.dark-mode .focused-controls-bar.action-block {
   min-width: 250px;
 }
 
-.focused-controls-bar .search-wrapper .search-icon {
-  position: absolute;
-  left: 1rem;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--text-muted);
-  pointer-events: none;
-}
-
-.focused-controls-bar .search-wrapper .search-input {
-  width: 100%;
-  padding-left: 2.75rem;
-}
-
 /* Re-apply data controls bar styles (normally scoped to page classes) */
 .focused-controls-bar.data-controls-bar {
   display: flex;
@@ -353,18 +339,6 @@ html.dark-mode .focused-controls-bar.data-controls-bar {
   flex: 1;
   max-width: 450px;
   min-width: 250px;
-}
-
-.focused-controls-bar .data-controls-search .search-icon {
-  position: absolute;
-  left: 0.875rem;
-  color: var(--text-muted);
-  pointer-events: none;
-}
-
-.focused-controls-bar .data-controls-search .search-input {
-  width: 100%;
-  padding-left: 2.5rem;
 }
 
 .focused-controls-bar .table-zoom-controls {
@@ -431,18 +405,6 @@ html.dark-mode .focused-controls-bar.selection-bar {
   flex: 1;
   max-width: 400px;
   min-width: 200px;
-}
-
-.focused-controls-bar .selection-bar-search .search-input-compact {
-  width: 100%;
-  padding-right: 2.5rem;
-}
-
-.focused-controls-bar .selection-bar-search .product-search-icon {
-  position: absolute;
-  right: 0.75rem;
-  color: var(--text-muted);
-  pointer-events: none;
 }
 
 

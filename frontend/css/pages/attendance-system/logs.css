@@ -3,9 +3,9 @@
 /* 
    Global Components Used (from css/):
    - layout/header.css: .page-header, .page-title, .page-subtitle, .header-content
-   - components/buttons.css: .action-btn, .primary-btn, .secondary-btn
+   - components/buttons-nextui.css: .btn, .btn-solid, .btn-flat, .btn-primary, .btn-default
    - components/cards.css: .action-block, .block-header, .block-icon, .block-title-group, .block-title, .block-subtitle, .block-content
-   - components/forms.css: .form-group, .form-label, input, .c-select, .search-box
+   - components/forms.css: .form-group, .form-label, input
    - components/tabs.css: .nui-tabs, .nui-tab
    - components/tables.css: table styles
    
@@ -133,7 +133,7 @@
   flex-wrap: wrap;
 }
 
-.attendance-logs .filter-actions .action-btn {
+.attendance-logs .filter-actions .btn {
   flex: 1 1 auto;
   min-width: 140px;
 }
@@ -461,7 +461,7 @@ html.dark-mode .attendance-logs .export-btn {
     gap: 0.5rem;
   }
   
-  .attendance-logs .filter-actions .action-btn {
+  .attendance-logs .filter-actions .btn {
     flex: 1 1 auto;
     min-width: 100px;
     justify-content: center;
@@ -513,7 +513,7 @@ html.dark-mode .attendance-logs .export-btn {
     font-size: 0.7rem;
   }
   
-  .attendance-logs .action-btn {
+  .attendance-logs .btn {
     padding: 0.625rem 0.875rem;
     font-size: 0.85rem;
   }

@@ -3,7 +3,7 @@
 /* 
    Global Components Used (from css/):
    - layout/header.css: .page-header, .page-title, .page-subtitle, .header-content
-   - components/buttons.css: .action-btn, .success-btn, .danger-btn
+   - components/buttons-nextui.css: .btn, .btn-solid, .btn-flat, .btn-success, .btn-danger
    - components/cards.css: .action-block, .block-header, .block-icon, .block-title-group, .block-title, .block-subtitle, .block-content
    - components/tabs.css: .nui-tabs, .nui-tab
 */

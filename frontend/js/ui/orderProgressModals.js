@@ -100,11 +100,11 @@ function createModal(options) {
   const iconClass = getIconClass(confirmVariant, icon);
 
   const reasonInputHtml = showReasonInput ? `
-    <div class="form-group" style="margin-top: 1rem;">
-      <label class="form-label">Reason:</label>
+    <div class="nui-field" style="margin-top: 1rem;">
+      <label class="nui-label">Reason:</label>
       <textarea 
         id="orderProgressReasonInput" 
-        class="form-input" 
+        class="nui-input nui-input-default" 
         placeholder="${reasonPlaceholder}"
         style="min-height: 80px; resize: vertical;"
       ></textarea>
@@ -112,12 +112,12 @@ function createModal(options) {
   ` : '';
 
   const userInputHtml = showUserInput ? `
-    <div class="form-group" style="margin-top: 1rem;">
-      <label class="form-label">Target User:</label>
+    <div class="nui-field" style="margin-top: 1rem;">
+      <label class="nui-label">Target User:</label>
       <input 
         type="text" 
         id="orderProgressUserInput" 
-        class="form-input" 
+        class="nui-input nui-input-default" 
         placeholder="${userPlaceholder}"
       />
     </div>

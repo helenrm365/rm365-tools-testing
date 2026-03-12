@@ -171,21 +171,7 @@ html.dark-mode .user-management .block-filter-bar {
   white-space: nowrap;
 }
 
-.user-management .filter-select {
-  padding: 0.375rem 0.75rem;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border);
-  background: var(--bg-dark);
-  color: var(--text);
-  font-size: 0.8125rem;
-  min-width: 160px;
-  cursor: pointer;
-}
 
-html.dark-mode .user-management .filter-select {
-  background: var(--bg-dark);
-  border-color: rgba(255, 255, 255, 0.1);
-}
 
 /* ===== Role Tab Info Banners (User Modal) ===== */
 .user-management .role-tab-info,

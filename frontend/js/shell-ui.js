@@ -5,6 +5,15 @@ import { get } from './services/api/http.js';
 import { navigate } from './router.js';
 import { setupTabsForUser } from './utils/tabs.js';
 import { initSidebar, showSidebar, hideSidebar, highlightCurrentRoute, refreshSidebar } from './ui/sidebar.js';
+import { initDropdown } from './ui/dropdown.js';
+
+const NUI_SELECT_QUERY = 'select:not(.select-hidden):not([data-nui-enhanced]):not(.modal-overlay select):not(.modal-content select)';
+
+function enhanceSelects(root = document) {
+  root.querySelectorAll(NUI_SELECT_QUERY).forEach(select => {
+    initDropdown(select);
+  });
+}
 
 export function setupShellUI() {
   // Add loaded class to body to show main content
@@ -13,18 +22,8 @@ export function setupShellUI() {
   // Apply saved appearance preferences
   applyUserPreferences();
   
-  // Convert select elements to c-select system (exclude modals to prevent duplicates)
-  setTimeout(() => {
-    // Add modern-select class to select elements NOT inside modals
-    document.querySelectorAll('select:not(.select-hidden):not([data-enhanced]):not([data-nui-enhanced]):not(.modal-overlay select):not(.modal-content select):not(.form-select)').forEach(select => {
-      select.classList.add('modern-select');
-      select.setAttribute('data-enhance', 'c-select');
-    });
-    
-    if (window.initCSelects) {
-      window.initCSelects();
-    }
-  }, 200);
+  // Enhance all native <select> elements with nui-dropdown
+  setTimeout(() => enhanceSelects(), 200);
 
   // Watch for dynamically added select elements
   const observer = new MutationObserver((mutations) => {
@@ -40,17 +39,7 @@ export function setupShellUI() {
     });
     
     if (hasNewContent) {
-      setTimeout(() => {
-        // Add classes to new select elements (exclude modals)
-        document.querySelectorAll('select:not(.select-hidden):not([data-enhanced]):not([data-nui-enhanced]):not(.modal-overlay select):not(.modal-content select):not(.form-select)').forEach(select => {
-          select.classList.add('modern-select');
-          select.setAttribute('data-enhance', 'c-select');
-        });
-        
-        if (window.initCSelects) {
-          window.initCSelects();
-        }
-      }, 100);
+      setTimeout(() => enhanceSelects(), 100);
     }
   });
 

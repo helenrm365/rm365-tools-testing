@@ -11,13 +11,13 @@ body.liquid-glass-mode .login-card {
 }
 
 /* Form Inputs */
-body.liquid-glass-mode .form-input {
+body.liquid-glass-mode .login-card .nui-input {
     background: rgba(255, 255, 255, 0.5) !important;
     border: 1px solid rgba(255, 255, 255, 0.3) !important;
     backdrop-filter: blur(4px);
 }
 
-body.liquid-glass-mode .form-input:focus {
+body.liquid-glass-mode .login-card .nui-input:focus {
     background: rgba(255, 255, 255, 0.8) !important;
     box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.2) !important;
 }
@@ -29,12 +29,12 @@ html.dark-mode body.liquid-glass-mode .login-card {
     box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2) !important;
 }
 
-html.dark-mode body.liquid-glass-mode .form-input {
+html.dark-mode body.liquid-glass-mode .login-card .nui-input {
     background: rgba(0, 0, 0, 0.2) !important;
     border-color: rgba(255, 255, 255, 0.1) !important;
     color: white !important;
 }
 
-html.dark-mode body.liquid-glass-mode .form-input:focus {
+html.dark-mode body.liquid-glass-mode .login-card .nui-input:focus {
     background: rgba(0, 0, 0, 0.4) !important;
 }
