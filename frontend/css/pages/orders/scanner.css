@@ -1546,9 +1546,8 @@ html.dark-mode .inventory-scanner .pending-item-remove:hover {
   
   /* Pending subsection - scrollable, no box */
   .inventory-scanner .pending-subsection {
-    /* Push below fixed search bar — margin creates scrollable headroom so user can scroll up */
-    /* Uses CSS var set by JS for exact measurement, with generous fallback */
-    margin-top: var(--scanner-bar-height, calc(env(safe-area-inset-top, 0px) + 180px));
+    /* JS directly sets marginTop based on viewport measurement — no CSS var needed */
+    margin-top: 0;
     padding-top: 0.5rem;
     border: none;
     background: transparent;
@@ -1898,8 +1897,8 @@ html.dark-mode .inventory-scanner .pending-item-remove:hover {
   /* Submit section - sticky at bottom on mobile */
   .inventory-scanner .submit-subsection {
     position: fixed;
-    /* Account for safe area (home indicator) + bottom tab navbar */
-    bottom: calc(env(safe-area-inset-bottom, 0px) + 60px);
+    /* JS measures the actual tab bar height and sets --scanner-tab-bar-height */
+    bottom: var(--scanner-tab-bar-height, calc(env(safe-area-inset-bottom, 0px) + 60px));
     left: 0;
     right: 0;
     z-index: 100;

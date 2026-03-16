@@ -3,6 +3,7 @@
 import { navigate } from '../router.js';
 import { isAuthed } from '../services/state/sessionStore.js';
 import { isAllowed } from '../utils/tabs.js';
+import { toggleTheme, initTheme } from './theme.js';
 
 /**
  * Sidebar State Machine
@@ -169,6 +170,9 @@ export function initSidebar() {
   // Setup event listeners
   setupEventListeners();
 
+  // Initialize theme
+  initTheme();
+
   // Highlight current route
   highlightCurrentRoute();
 
@@ -332,7 +336,6 @@ function setupEventListeners() {
   const themeToggle = document.getElementById('sidebarThemeToggle');
   if (themeToggle) {
     themeToggle.addEventListener('click', toggleTheme);
-    updateThemeIcon();
   }
 
   // Logout
@@ -550,41 +553,6 @@ export function highlightCurrentRoute() {
     const hasActiveChild = subGroup.querySelector('.sidebar-dropdown-link.active') !== null;
     subGroup.classList.toggle('active', hasActiveChild);
   });
-}
-
-/**
- * Toggle dark/light theme
- */
-function toggleTheme() {
-  const html = document.documentElement;
-  const isDark = html.classList.toggle('dark-mode');
-  localStorage.setItem('darkMode', isDark);
-  updateThemeIcon();
-}
-
-/**
- * Update theme toggle icon
- */
-function updateThemeIcon() {
-  const themeToggle = document.getElementById('sidebarThemeToggle');
-  if (!themeToggle) return;
-
-  const isDark = document.documentElement.classList.contains('dark-mode');
-  const icon = themeToggle.querySelector('i');
-  const label = themeToggle.querySelector('.sidebar-footer-label');
-  
-  if (icon) {
-    icon.className = isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
-  }
-  if (label) {
-    label.textContent = isDark ? 'Light Mode' : 'Dark Mode';
-  }
-  
-  // Also update settings panel toggle if it exists
-  const settingsToggle = document.getElementById('settingsThemeToggle');
-  if (settingsToggle) {
-    settingsToggle.checked = isDark;
-  }
 }
 
 /**

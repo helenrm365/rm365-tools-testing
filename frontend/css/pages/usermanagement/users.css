@@ -71,14 +71,27 @@ html.dark-mode .user-management .page-title {
   flex: 1;
   max-width: 400px;
   margin: 0 1rem;
+  min-width: 0;
 }
 
 .user-management .block-header-actions {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 0.75rem;
   margin-left: auto;
   flex-shrink: 0;
+  min-width: 0;
+}
+
+.user-management .block-header-actions .btn {
+  min-width: 0;
+}
+
+.user-management #userTableWrap,
+.user-management #userTableWrap .table-container {
+  min-width: 0;
 }
 
 /* ===== Users Table ===== */
@@ -101,6 +114,12 @@ html.dark-mode .user-management .page-title {
   display: flex;
   align-items: center;
   gap: 0.625rem;
+  min-width: 0;
+}
+
+.user-management .user-cell span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .user-management .user-avatar-sm {
@@ -169,6 +188,164 @@ html.dark-mode .user-management .block-filter-bar {
   font-weight: 600;
   color: var(--text-muted);
   white-space: nowrap;
+}
+
+.user-management .block-filter-bar select {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ===== User Modal Form Layout ===== */
+.user-management .user-modal-dialog {
+  max-width: min(860px, calc(100vw - 2rem));
+  width: min(860px, calc(100vw - 2rem));
+}
+
+.user-management #userModal .modal-body {
+  padding: 1.5rem;
+}
+
+.user-management .user-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.user-management .user-form-section {
+  padding: 1.25rem;
+  border-radius: 20px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--bg-light) 92%, transparent), color-mix(in srgb, var(--bg) 96%, transparent));
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+html.dark-mode .user-management .user-form-section {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 92%, transparent), color-mix(in srgb, var(--bg) 98%, transparent));
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.user-management .user-form-section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.user-management .user-form-section-header > div {
+  min-width: 0;
+}
+
+.user-management .user-form-kicker {
+  margin: 0 0 0.375rem 0;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.user-management .user-form-section-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.user-management .user-form-section-copy {
+  margin: 0;
+  max-width: 24rem;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.user-management #userModal .form-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem 1.125rem;
+}
+
+.user-management #userModal .form-row-account-main {
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.9fr);
+}
+
+.user-management #userModal .form-row + .form-row {
+  margin-top: 0.875rem;
+}
+
+.user-management #userModal .nui-field {
+  min-width: 0;
+  margin-bottom: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+
+html.dark-mode .user-management #userModal .nui-field {
+  border: none;
+  background: transparent;
+}
+
+.user-management #userModal .nui-label {
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  color: var(--text);
+}
+
+.user-management #userModal .form-hint {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.user-management #userModal .nui-field > .nui-input,
+.user-management #userModal .nui-field > .nui-dropdown,
+.user-management #userModal .nui-field > select {
+  margin-top: 0.375rem;
+}
+
+.user-management #userModal .form-message {
+  display: block;
+  margin-top: 0.5rem;
+  min-height: 1rem;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.user-management #userModal .form-row-security {
+  align-items: start;
+}
+
+.user-management #userModal .form-row-security .nui-field {
+  display: grid;
+  align-content: start;
+}
+
+.user-management #userModal .form-row-security .nui-label {
+  min-height: 4.25rem;
+  align-content: start;
+}
+
+.user-management #userModal .role-tab-info,
+.user-management #userModal .admin-tab-info,
+.user-management #userModal .custom-tabs-section {
+  margin-top: 0;
+}
+
+.user-management #userModal .custom-tabs-section {
+  margin-bottom: 1rem;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+
+html.dark-mode .user-management #userModal .custom-tabs-section {
+  border: none;
+  background: transparent;
 }
 
 
@@ -461,6 +638,10 @@ html.dark-mode .user-management .custom-tabs-info {
     padding: 0.75rem;
     min-height: calc(100vh - 56px);
   }
+
+  .user-management .nui-tab span {
+    max-width: none;
+  }
   
   .user-management .management-wrapper {
     gap: 1rem;
@@ -473,17 +654,43 @@ html.dark-mode .user-management .custom-tabs-info {
 
   .user-management .block-header {
     flex-wrap: wrap;
+    align-items: stretch;
   }
 
   .user-management .block-header-search {
     order: 10;
     flex-basis: 100%;
     max-width: none;
+    min-width: 0;
     margin: 0.75rem 0 0;
   }
 
   .user-management .block-header-actions {
+    order: 11;
+    width: 100%;
+    margin-left: 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.5rem;
+  }
+
+  .user-management .block-header-actions .btn {
+    width: 100%;
+  }
+
+  .user-management .block-filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 0.875rem;
+  }
+
+  .user-management .block-filter-bar label {
+    white-space: normal;
+  }
+
+  .user-management #userTableWrap .table-container {
+    overflow: visible;
+    max-height: none;
   }
 
   .user-management .users-table thead {
@@ -498,7 +705,15 @@ html.dark-mode .user-management .custom-tabs-info {
     width: 100%;
   }
 
+  .user-management .users-table {
+    min-width: 0;
+  }
+
   .user-management .users-table tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+    gap: 0.875rem 1rem;
     padding: 0.875rem;
     margin-bottom: 0.75rem;
     background: var(--bg-light);
@@ -512,20 +727,54 @@ html.dark-mode .user-management .custom-tabs-info {
   }
 
   .user-management .users-table td {
-    padding: 0.25rem 0;
+    width: auto;
+    padding: 0.375rem 0;
+    min-width: 0;
+  }
+
+  .user-management .users-table td.col-username {
+    grid-column: 1;
+  }
+
+  .user-management .users-table td.col-role {
+    grid-column: 2;
+  }
+
+  .user-management .users-table td.col-tabs {
+    grid-column: 3;
+  }
+
+  .user-management .users-table td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    width: 100%;
+    margin-bottom: 0.375rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
   }
 
   .user-management .users-table td.col-actions {
+    grid-column: 1 / -1;
     text-align: left;
     margin-top: 0.5rem;
-    padding-top: 0.5rem;
+    padding-top: 0.875rem;
     border-top: 1px solid var(--border);
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.5rem;
+    align-self: end;
+  }
+
+  .user-management .users-table td.col-actions::before {
+    display: none;
   }
 
   .user-management .col-actions .btn {
-    flex: 1;
+    min-width: 0;
+    width: 100%;
   }
 
   .user-management .col-actions .btn span {
@@ -538,11 +787,52 @@ html.dark-mode .user-management .custom-tabs-info {
     font-size: 0.6875rem;
   }
 
+  .user-management .users-table .status-badge,
+  .user-management .users-table .view-tabs-btn,
+  .user-management .users-table .full-access-badge {
+    width: fit-content;
+    max-width: 100%;
+  }
+
   .user-management .roles-grid {
     grid-template-columns: 1fr 1fr;
     gap: 0.75rem;
   }
   
+  .user-management .user-modal-dialog {
+    width: min(100vw - 1rem, 860px);
+  }
+
+  .user-management #userModal .modal-body {
+    padding: 1rem;
+  }
+
+  .user-management .user-form-section {
+    padding: 1rem;
+    border-radius: 18px;
+  }
+
+  .user-management .user-form-section-header {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .user-management #userModal .form-row {
+    gap: 0.875rem 0.875rem;
+  }
+
+  .user-management #userModal .form-row-account-main {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  }
+
+  .user-management #userModal .form-row + .form-row {
+    margin-top: 0.875rem;
+  }
+
+  .user-management #userModal .nui-field {
+    padding: 0;
+  }
+
   .user-management .role-list-item {
     padding: 1rem 0.875rem;
   }
@@ -577,12 +867,37 @@ html.dark-mode .user-management .custom-tabs-info {
     font-size: 0.8125rem;
   }
 
+  .user-management #userModal .form-row,
+  .user-management #userModal .form-row-account-main {
+    grid-template-columns: 1fr;
+  }
+
+  .user-management .block-header-actions {
+    grid-template-columns: 1fr;
+  }
+
   .user-management .block-header-actions .btn span {
-    display: none;
+    display: inline;
   }
 
   .user-management .users-table tr {
     padding: 0.75rem;
+  }
+
+  .user-management .users-table tr {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.75rem;
+  }
+
+  .user-management .users-table td.col-username,
+  .user-management .users-table td.col-role,
+  .user-management .users-table td.col-tabs,
+  .user-management .users-table td.col-actions {
+    grid-column: 1;
+  }
+
+  .user-management .users-table td.col-actions .btn {
+    width: 100%;
   }
 
   .user-management .user-avatar-sm {

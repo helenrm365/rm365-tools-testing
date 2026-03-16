@@ -106,6 +106,7 @@
 <script type="module">
   import { showToast } from '/js/ui/toast.js';
   import { get, put } from '/js/services/api/http.js';
+  import { setTheme, initTheme } from '/js/ui/theme.js';
 
   const DEFAULTS = {
     dark_mode: false,
@@ -212,11 +213,6 @@
     if (els.accentDarkChip) els.accentDarkChip.style.background = accent_dark;
   }
 
-  function setDarkMode(isDark) {
-    document.documentElement.classList.toggle('dark-mode', isDark);
-    localStorage.setItem('darkMode', String(isDark));
-  }
-
   async function loadPreferences() {
     try {
       const prefs = await get('/v1/users/preferences');
@@ -224,7 +220,7 @@
       console.log('[Appearance] Loaded preferences:', safe);
 
       if (els.darkModeToggle) els.darkModeToggle.checked = !!safe.dark_mode;
-      setDarkMode(!!safe.dark_mode);
+      setTheme(!!safe.dark_mode);
 
       if (els.accentToggle) els.accentToggle.checked = !!safe.accent_enabled;
       if (els.accentLightPicker) {
@@ -295,7 +291,7 @@
     if (els.darkModeToggle) {
       els.darkModeToggle.addEventListener('change', (e) => {
         const isDark = e.target.checked;
-        setDarkMode(isDark);
+        setTheme(isDark);
       });
     }
 

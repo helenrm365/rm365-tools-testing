@@ -148,16 +148,16 @@ function renderTable() {
     
     return `
       <tr data-username="${user.username}">
-        <td class="col-group">${getGroupName(user.group_id)}</td>
-        <td class="col-username">
+        <td class="col-group" data-label="Group">${getGroupName(user.group_id)}</td>
+        <td class="col-username" data-label="Username">
           <div class="user-cell">
             <div class="user-avatar-sm">${user.username.substring(0, 2).toUpperCase()}</div>
             <span>${user.username}</span>
           </div>
         </td>
-        <td class="col-role">${roleDisplay}</td>
-        <td class="col-tabs">${tabAccessDisplay}</td>
-        <td class="col-actions">
+        <td class="col-role" data-label="Role">${roleDisplay}</td>
+        <td class="col-tabs" data-label="Tab Access">${tabAccessDisplay}</td>
+        <td class="col-actions" data-label="Actions">
           <button class="btn btn-flat btn-default btn-xs edit-user-btn" title="Edit User">
             <i class="fas fa-edit"></i>
             <span>Edit</span>

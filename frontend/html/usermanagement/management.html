@@ -72,7 +72,7 @@
 
   <!-- User Modal (Create/Edit) -->
   <div id="userModal" class="modal-overlay">
-    <div class="modal-content">
+    <div class="modal-content modal-lg user-modal-dialog">
       <div class="modal-header">
         <div class="modal-header-icon">
           <i class="fas fa-user-edit"></i>
@@ -85,64 +85,86 @@
         </button>
       </div>
       <div class="modal-body">
-        <form id="userForm">
+        <form id="userForm" class="user-modal-form">
           <input type="hidden" id="editOriginalUsername" name="originalUsername">
-          
-          <div class="form-row">
-            <div class="nui-field">
-              <label for="formUsername" class="nui-label">
-                <span>Username</span>
-              </label>
-              <input type="text" id="formUsername" name="username" class="nui-input nui-input-default" placeholder="Enter username" required>
-            </div>
-            <div class="nui-field">
-              <label class="nui-label" for="formRole">
-                <span>Role</span>
-              </label>
-              <select id="formRole" name="role">
-                <!-- Populated by JS -->
-              </select>
-            </div>
-          </div>
 
-          <div class="form-row">
-            <div class="nui-field">
-              <label class="nui-label" for="formGroup">
-                <span>Group</span>
-                <span class="form-hint">(Optional — for organization only)</span>
-              </label>
-              <select id="formGroup" name="group_id">
-                <option value="">No Group</option>
-                <!-- Populated by JS -->
-              </select>
+          <section class="user-form-section">
+            <div class="user-form-section-header">
+              <div>
+                <p class="user-form-kicker">Account</p>
+                <h4 class="user-form-section-title">Identity and assignment</h4>
+              </div>
+              <p class="user-form-section-copy">Core user details, role selection, and optional operational grouping.</p>
             </div>
-            <div class="nui-field">
-              <label class="nui-label" for="formLocation">
-                <span>Scanner Location</span>
-                <span class="form-hint">(For attendance timezone)</span>
-              </label>
-              <select id="formLocation" name="location_id">
-                <option value="">None (no timezone conversion)</option>
-                <!-- Populated by JS -->
-              </select>
+
+            <div class="form-row form-row-account-main">
+              <div class="nui-field">
+                <label for="formUsername" class="nui-label">
+                  <span>Username</span>
+                </label>
+                <input type="text" id="formUsername" name="username" class="nui-input nui-input-default" placeholder="Enter username" required>
+              </div>
+              <div class="nui-field">
+                <label class="nui-label" for="formRole">
+                  <span>Role</span>
+                </label>
+                <select id="formRole" name="role">
+                  <!-- Populated by JS -->
+                </select>
+              </div>
             </div>
-          </div>
-          
-          <div class="nui-field">
-            <label for="formPassword" class="nui-label">
-              <span>Password</span>
-              <span class="form-hint" id="passwordHint">(Leave blank to keep unchanged)</span>
-            </label>
-            <input type="password" id="formPassword" name="password" class="nui-input nui-input-default" placeholder="Enter password">
-          </div>
-          
-          <div class="nui-field">
-            <label for="formConfirmPassword" class="nui-label">
-              <span>Confirm Password</span>
-            </label>
-            <input type="password" id="formConfirmPassword" name="confirmPassword" class="nui-input nui-input-default" placeholder="Confirm password">
-            <small id="passwordMatchMsg" class="form-message" style="display: none;"></small>
-          </div>
+
+            <div class="form-row form-row-account-meta">
+              <div class="nui-field">
+                <label class="nui-label" for="formGroup">
+                  <span>Group</span>
+                  <span class="form-hint">(Optional — for organization only)</span>
+                </label>
+                <select id="formGroup" name="group_id">
+                  <option value="">No Group</option>
+                  <!-- Populated by JS -->
+                </select>
+              </div>
+              <div class="nui-field">
+                <label class="nui-label" for="formLocation">
+                  <span>Scanner Location</span>
+                  <span class="form-hint">(For attendance timezone)</span>
+                </label>
+                <select id="formLocation" name="location_id">
+                  <option value="">None (no timezone conversion)</option>
+                  <!-- Populated by JS -->
+                </select>
+              </div>
+            </div>
+          </section>
+
+          <section class="user-form-section">
+            <div class="user-form-section-header">
+              <div>
+                <p class="user-form-kicker">Security</p>
+                <h4 class="user-form-section-title">Credentials</h4>
+              </div>
+              <p class="user-form-section-copy">Update the password only when the user needs a credential change.</p>
+            </div>
+
+            <div class="form-row form-row-security">
+              <div class="nui-field">
+                <label for="formPassword" class="nui-label">
+                  <span>Password</span>
+                  <span class="form-hint" id="passwordHint">(Leave blank to keep unchanged)</span>
+                </label>
+                <input type="password" id="formPassword" name="password" class="nui-input nui-input-default" placeholder="Enter password">
+              </div>
+
+              <div class="nui-field">
+                <label for="formConfirmPassword" class="nui-label">
+                  <span>Confirm Password</span>
+                </label>
+                <input type="password" id="formConfirmPassword" name="confirmPassword" class="nui-input nui-input-default" placeholder="Confirm password">
+                <small id="passwordMatchMsg" class="form-message" style="display: none;"></small>
+              </div>
+            </div>
+          </section>
 
           <!-- Role-based tab info (shown for non-admin roles) -->
           <div id="roleTabInfo" class="role-tab-info" style="display: none;">

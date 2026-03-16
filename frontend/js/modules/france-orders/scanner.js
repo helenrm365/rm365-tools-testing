@@ -72,6 +72,9 @@ class InventoryScannerManager {
     this.initializeElements();
     this.attachEventListeners();
     this.setupMobileLayout();
+    
+    // Auto-focus the search input after layout settles (autofocus attr doesn't work in SPA navigation)
+    setTimeout(() => this.skuInput?.focus(), 300);
   }
 
   /** Measure fixed search bar height and set CSS var for pending-subsection spacing */
@@ -82,14 +85,30 @@ class InventoryScannerManager {
 
     const bar = document.querySelector('.scanner-unified > .block-content');
     if (!bar) return;
+    const pending = document.querySelector('.pending-subsection');
+    const tabBar = document.querySelector('.nui-tabs');
     const update = () => {
       const h = bar.getBoundingClientRect().height;
-      if (h > 0) {
-        document.documentElement.style.setProperty('--scanner-bar-height', (h + 12) + 'px');
+      if (h <= 0) return;
+      document.documentElement.style.setProperty('--scanner-bar-height', h + 'px');
+      // Directly set margin on mobile so content sits right below the fixed bar
+      if (pending && window.innerWidth <= 768) {
+        const scrollY = window.scrollY || 0;
+        const curMargin = parseFloat(getComputedStyle(pending).marginTop) || 0;
+        const naturalDocTop = pending.getBoundingClientRect().top + scrollY - curMargin;
+        pending.style.marginTop = Math.max(0, h + 8 - naturalDocTop) + 'px';
+      }
+      // Measure actual tab bar height so submit section sits right above it
+      if (tabBar && window.innerWidth <= 1024) {
+        const tabH = tabBar.getBoundingClientRect().height;
+        if (tabH > 0) {
+          document.documentElement.style.setProperty('--scanner-tab-bar-height', tabH + 'px');
+        }
       }
     };
     if (typeof ResizeObserver !== 'undefined') {
       new ResizeObserver(update).observe(bar);
+      if (tabBar) new ResizeObserver(update).observe(tabBar);
     }
     requestAnimationFrame(update);
   }
