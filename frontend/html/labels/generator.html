@@ -152,7 +152,7 @@
               <button id="savePresetBtn" class="btn btn-solid btn-success btn-sm" title="Save Preset">
                 <i class="fas fa-save"></i>
               </button>
-              <button id="managePresetsBtn" class="btn btn-flat btn-default btn-sm" title="Manage Presets">
+              <button id="managePresetsBtn" class="btn btn-solid btn-default rounded-lg btn-sm" title="Manage Presets">
                 <i class="fas fa-cog"></i>
               </button>
             </div>
@@ -237,10 +237,10 @@
 <div id="savePresetModal" class="modal-backdrop">
   <div class="modal-content preset-modal">
     <div class="modal-header">
-      <h2 class="modal-title">
+      <div class="modal-header-icon">
         <i class="fas fa-save"></i>
-        Save Label Preset
-      </h2>
+      </div>
+      <h3 class="modal-title">Save Label Preset</h3>
       <button class="modal-close" onclick="document.getElementById('savePresetModal').classList.remove('active')">
         <i class="fas fa-times"></i>
       </button>
@@ -325,7 +325,7 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-flat btn-default" onclick="document.getElementById('savePresetModal').classList.remove('active')">
+      <button class="btn btn-solid btn-default rounded-lg" onclick="document.getElementById('savePresetModal').classList.remove('active')">
         <i class="fas fa-times"></i>
         Cancel
       </button>
@@ -341,10 +341,10 @@
 <div id="managePresetsModal" class="modal-backdrop">
   <div class="modal-content preset-modal large">
     <div class="modal-header">
-      <h2 class="modal-title">
+      <div class="modal-header-icon">
         <i class="fas fa-cog"></i>
-        Manage Label Presets
-      </h2>
+      </div>
+      <h3 class="modal-title">Manage Label Presets</h3>
       <button class="modal-close" onclick="document.getElementById('managePresetsModal').classList.remove('active')">
         <i class="fas fa-times"></i>
       </button>
@@ -369,10 +369,10 @@
 <div id="viewPresetModal" class="modal-backdrop">
   <div class="modal-content preset-modal">
     <div class="modal-header">
-      <h2 class="modal-title">
+      <div class="modal-header-icon">
         <i class="fas fa-eye"></i>
-        Preset Details
-      </h2>
+      </div>
+      <h3 class="modal-title">Preset Details</h3>
       <button class="modal-close" onclick="document.getElementById('viewPresetModal').classList.remove('active')">
         <i class="fas fa-times"></i>
       </button>
@@ -439,10 +439,10 @@
 <div id="editPresetModal" class="modal-backdrop">
   <div class="modal-content preset-modal">
     <div class="modal-header">
-      <h2 class="modal-title">
+      <div class="modal-header-icon">
         <i class="fas fa-edit"></i>
-        Edit Preset
-      </h2>
+      </div>
+      <h3 class="modal-title">Edit Preset</h3>
       <button class="modal-close" onclick="document.getElementById('editPresetModal').classList.remove('active')">
         <i class="fas fa-times"></i>
       </button>
@@ -505,7 +505,7 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-flat btn-default" onclick="document.getElementById('editPresetModal').classList.remove('active')">
+      <button class="btn btn-solid btn-default rounded-lg" onclick="document.getElementById('editPresetModal').classList.remove('active')">
         <i class="fas fa-times"></i>
         Cancel
       </button>

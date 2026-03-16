@@ -65,6 +65,16 @@ html.dark-mode {
   --btn-color-secondary: #9353d3;
 }
 
+/* Dark mode: all solid default (grey) buttons use flat style */
+html.dark-mode .btn-solid.btn-default {
+  background: color-mix(in srgb, var(--_c) 15%, transparent);
+  color: var(--_c);
+  border-color: transparent;
+}
+html.dark-mode .btn-solid.btn-default:hover {
+  background: color-mix(in srgb, var(--_c) 25%, transparent);
+}
+
 
 /* =========================================================
    1. BASE  —  .btn

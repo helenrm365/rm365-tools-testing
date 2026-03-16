@@ -365,7 +365,7 @@ function createFiltersModal(region) {
             </div>
             
             <div class="modal-footer">
-                <button class="btn btn-flat btn-default" onclick="this.closest('.modal-overlay').remove()">
+                <button class="btn btn-solid btn-default rounded-lg" onclick="this.closest('.modal-overlay').remove()">
                     Cancel
                 </button>
                 <button class="btn btn-solid btn-success" id="filters-apply-${region}">
@@ -624,7 +624,7 @@ function showConfirmDialog(message) {
                 </p>
             </div>
             <div class="modal-footer" style="display: flex; gap: 12px; justify-content: flex-end;">
-                <button id="confirm-cancel" class="btn btn-flat btn-default">Cancel</button>
+                <button id="confirm-cancel" class="btn btn-solid btn-default rounded-lg">Cancel</button>
                 <button id="confirm-ok" class="btn btn-solid btn-success">Apply & Refresh</button>
             </div>
         `;
@@ -1507,7 +1507,7 @@ function showRuleEditModal(customerId, email) {
             </div>
             
             <div class="modal-footer">
-                <button class="btn btn-flat btn-default rule-edit-cancel">Cancel</button>
+                <button class="btn btn-solid btn-default rounded-lg rule-edit-cancel">Cancel</button>
                 <button class="btn btn-solid btn-success rule-edit-save">
                     <i class="fas fa-check"></i> Save Rule
                 </button>
@@ -1792,7 +1792,7 @@ function showAddRuleModal(email, fullName, hasBaseRule) {
             </div>
             
             <div class="modal-footer">
-                <button class="btn btn-flat btn-default rule-edit-cancel">Cancel</button>
+                <button class="btn btn-solid btn-default rounded-lg rule-edit-cancel">Cancel</button>
                 <button class="btn btn-solid btn-success rule-add-save">
                     <i class="fas fa-plus"></i> Add Rule
                 </button>
@@ -1992,7 +1992,7 @@ function showAddProductRuleModal(email, fullName) {
             </div>
             
             <div class="modal-footer">
-                <button class="btn btn-flat btn-default rule-edit-cancel">Cancel</button>
+                <button class="btn btn-solid btn-default rounded-lg rule-edit-cancel">Cancel</button>
                 <button class="btn btn-solid btn-success rule-add-save">
                     <i class="fas fa-plus"></i> Add Rule
                 </button>
@@ -3184,7 +3184,7 @@ function createCustomRangeModal(region) {
             </div>
             
             <div class="modal-footer">
-                <button class="btn btn-flat btn-default" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
+                <button class="btn btn-solid btn-default rounded-lg" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
                 <button class="btn btn-solid btn-success" onclick="runCustomAnalysis('${region}')">
                     <i class="fas fa-play"></i> Run Analysis
                 </button>

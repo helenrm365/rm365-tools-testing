@@ -347,12 +347,14 @@ window.viewRecordDetails = function(recordId) {
   const modalHtml = `
     <div class="modal-overlay active" id="recordDetailsModal">
       <div class="modal-content" style="max-width: 600px;">
-        <div class="modal-header" style="background: linear-gradient(to right, #3498db, #2980b9);">
-          <h3 class="modal-title" style="color: white;">
-            <span style="margin-right: 0.5rem;">📋</span>
-            Print Job Details
-          </h3>
-          <button class="modal-close modal-close-contrast" id="closeRecordDetailsModal">&times;</button>
+        <div class="modal-header">
+          <div class="modal-header-icon">
+            <i class="fas fa-clipboard-list"></i>
+          </div>
+          <h3 class="modal-title">Print Job Details</h3>
+          <button class="modal-close" id="closeRecordDetailsModal">
+            <i class="fas fa-times"></i>
+          </button>
         </div>
         <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
           <div style="display: grid; gap: 1rem;">

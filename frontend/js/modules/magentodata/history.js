@@ -322,24 +322,13 @@ window.showImportErrors = function(recordId) {
   `;
   
   modal.innerHTML = `
-    <div class="modal-content" style="
-      background: white;
-      border-radius: 12px;
-      padding: 2rem;
-      max-width: 800px;
-      max-height: 80vh;
-      overflow-y: auto;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-    ">
-      <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-        <h3 style="margin: 0;">Import Errors - ${record.filename}</h3>
-        <button class="modal-close" style="
-          background: none;
-          border: none;
-          font-size: 1.5rem;
-          cursor: pointer;
-          color: #666;
-        ">&times;</button>
+    <div class="modal-content" style="max-width: 800px;">
+      <div class="modal-header">
+        <div class="modal-header-icon">
+          <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <h3 class="modal-title">Import Errors - ${record.filename}</h3>
+        <button class="modal-close">&times;</button>
       </div>
       <div class="modal-body">
         <p><strong>Import ID:</strong> ${record.id}</p>

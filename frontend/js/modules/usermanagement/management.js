@@ -158,7 +158,7 @@ function renderTable() {
         <td class="col-role" data-label="Role">${roleDisplay}</td>
         <td class="col-tabs" data-label="Tab Access">${tabAccessDisplay}</td>
         <td class="col-actions" data-label="Actions">
-          <button class="btn btn-flat btn-default btn-xs edit-user-btn" title="Edit User">
+          <button class="btn btn-solid btn-default btn-xs rounded-lg edit-user-btn" title="Edit User">
             <i class="fas fa-edit"></i>
             <span>Edit</span>
           </button>

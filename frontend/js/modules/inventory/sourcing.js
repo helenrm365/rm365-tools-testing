@@ -2009,7 +2009,7 @@ function renderSupplierGrid() {
         ` : ''}
       </div>
       <div class="supplier-card-footer">
-        <button class="btn btn-flat btn-default btn-sm" onclick="window.sourcingModule.openEditSupplierModal(${s.id})">
+        <button class="btn btn-solid btn-default rounded-lg btn-sm" onclick="window.sourcingModule.openEditSupplierModal(${s.id})">
           <i class="fas fa-edit"></i> Edit
         </button>
       </div>

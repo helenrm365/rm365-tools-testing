@@ -270,11 +270,11 @@ function renderJobsTable() {
                   <i class="fas fa-eye"></i>
                   <span>View</span>
                 </button>
-                <button class="btn btn-flat btn-default btn-sm" data-action="pdf" data-job-id="${job.id}" title="Download PDF">
+                <button class="btn btn-solid btn-default rounded-lg btn-sm" data-action="pdf" data-job-id="${job.id}" title="Download PDF">
                   <i class="fas fa-file-pdf"></i>
                   <span>PDF</span>
                 </button>
-                <button class="btn btn-flat btn-default btn-sm" data-action="csv" data-job-id="${job.id}" title="Download CSV">
+                <button class="btn btn-solid btn-default rounded-lg btn-sm" data-action="csv" data-job-id="${job.id}" title="Download CSV">
                   <i class="fas fa-file-csv"></i>
                   <span>CSV</span>
                 </button>

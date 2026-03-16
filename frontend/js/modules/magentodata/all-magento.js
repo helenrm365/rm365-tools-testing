@@ -306,7 +306,7 @@ function showAllCustomRangeModal() {
         </div>
       </div>
       <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 8px; padding: 16px;">
-        <button class="btn btn-flat btn-default" id="cancelRangeBtn">Cancel</button>
+        <button class="btn btn-solid btn-default rounded-lg" id="cancelRangeBtn">Cancel</button>
         <button class="btn btn-solid btn-success" id="applyRangeBtn">
           <i class="fas fa-check"></i> Apply
         </button>

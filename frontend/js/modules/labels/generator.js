@@ -444,7 +444,7 @@ function showMagentoDataInitError() {
             <i class="fas fa-magic"></i>
             Initialize Here
           </button>
-          <button class="btn btn-flat btn-default" onclick="retryLoadProducts()">
+          <button class="btn btn-solid btn-default rounded-lg" onclick="retryLoadProducts()">
             <i class="fas fa-redo"></i>
             Retry
           </button>
@@ -926,8 +926,13 @@ function showPdfPreviewModal(jobId, itemCount) {
   modal.innerHTML = `
     <div class="modal-content" style="max-width: 500px;">
       <div class="modal-header">
-        <h3>✅ Label Job Created</h3>
-        <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">&times;</button>
+        <div class="modal-header-icon">
+          <i class="fas fa-check-circle"></i>
+        </div>
+        <h3 class="modal-title">Label Job Created</h3>
+        <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">
+          <i class="fas fa-times"></i>
+        </button>
       </div>
       <div class="modal-body">
         <p style="margin-bottom: 1.5rem;">
@@ -1385,7 +1390,7 @@ function renderPresetList() {
           <i class="fas fa-${isActive ? 'sync-alt' : 'check-circle'}"></i>
           ${isActive ? 'Reload' : 'Load'}
         </button>
-        <button class="btn btn-flat btn-default btn-sm" onclick="window.labelGenerator.viewPresetDetails(${preset.id})" title="View preset details">
+        <button class="btn btn-solid btn-default rounded-lg btn-sm" onclick="window.labelGenerator.viewPresetDetails(${preset.id})" title="View preset details">
           <i class="fas fa-eye"></i>
           View
         </button>
@@ -1437,7 +1442,7 @@ function renderManagePresetsList() {
           <i class="fas fa-check"></i>
           Load
         </button>
-        <button class="btn btn-flat btn-default btn-sm" onclick="window.labelGenerator.showEditPresetModal(${preset.id})">
+        <button class="btn btn-solid btn-default rounded-lg btn-sm" onclick="window.labelGenerator.showEditPresetModal(${preset.id})">
           <i class="fas fa-edit"></i>
           Edit
         </button>

@@ -874,18 +874,14 @@ async function showEmployeeLogsModal(employeeName) {
   const modalHtml = `
     <div class="modal-overlay active" id="employeeLogsModal">
       <div class="modal-content" style="max-width: 800px; width: 90%;">
-        <div class="modal-header" style="background: var(--bg-light); border-bottom: 1px solid var(--border);">
-          <div>
-            <h3 class="modal-title" style="color: var(--text); margin-bottom: 0.25rem;">
-              <i class="fas fa-clipboard-list" style="margin-right: 0.5rem; color: var(--accent);"></i>
-              Attendance Logs - ${employeeName}
-            </h3>
-            <p style="font-size: 0.875rem; color: var(--text-muted); margin: 0;">
-              <i class="fas fa-calendar-alt" style="margin-right: 0.25rem;"></i>
-              ${dateRangeText}
-            </p>
+        <div class="modal-header">
+          <div class="modal-header-icon">
+            <i class="fas fa-clipboard-list"></i>
           </div>
-          <button class="modal-close" id="closeEmployeeLogsModal" style="color: var(--text-muted);">&times;</button>
+          <h3 class="modal-title">Attendance Logs - ${employeeName}</h3>
+          <button class="modal-close" id="closeEmployeeLogsModal">
+            <i class="fas fa-times"></i>
+          </button>
         </div>
         <div class="modal-body" style="max-height: 60vh; overflow-y: auto; padding: 0;">
           <div id="employeeLogsContent" style="padding: 1rem;">
