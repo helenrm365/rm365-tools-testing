@@ -13,15 +13,15 @@ export async function init(path) {
   const cacheBust = `?t=${Date.now()}`;
   
   // Route to the appropriate sub-module based on path
-  if (path.includes('/all-magento')) {
+  if (path.includes('/sales/all') || path.includes('/all-magento')) {
     const mod = await import(`./all-magento.js${cacheBust}`);
     await mod.initAllMagentoData(path);
     currentSubModule = mod;
-  } else if (path.includes('/fr-magento')) {
+  } else if (path.includes('/sales/fr') || path.includes('/fr-magento')) {
     const mod = await import(`./fr-magento.js${cacheBust}`);
     await mod.initFRMagentoData(path);
     currentSubModule = mod;
-  } else if (path.includes('/nl-magento')) {
+  } else if (path.includes('/sales/nl') || path.includes('/nl-magento')) {
     const mod = await import(`./nl-magento.js${cacheBust}`);
     await mod.initNLMagentoData(path);
     currentSubModule = mod;
@@ -29,7 +29,7 @@ export async function init(path) {
     const mod = await import(`./history.js${cacheBust}`);
     await mod.initMagentoDataHistory();
     currentSubModule = mod;
-  } else if (path.includes('/uk-magento')) {
+  } else if (path.includes('/sales/uk') || path.includes('/uk-magento')) {
     const mod = await import(`./uk-magento.js${cacheBust}`);
     await mod.initUKMagentoData(path);
     currentSubModule = mod;

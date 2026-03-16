@@ -4,20 +4,24 @@
   <!-- Header -->
   <header class="page-header">
     <div class="header-content">
-      <h1 class="page-title">UK London Inventory Management</h1>
+      <h1 class="page-title">London Inventory</h1>
     </div>
-    <p class="page-subtitle">Monitor stock levels, manage product availability, and track inventory for UK London branch</p>
+    <p class="page-subtitle">Monitor stock levels, manage product availability, and track inventory for the London branch</p>
   </header>
 
   <!-- Navigation Tabs -->
   <nav class="nui-tabs">
-    <button class="nui-tab is-active" onclick="location.href='/inventory/management/uk-london'">
+    <button class="nui-tab is-active" onclick="location.href='/inventory/management/dashboard'">
       <i class="fas fa-boxes"></i>
       <span>Management</span>
     </button>
-    <button class="nui-tab" onclick="location.href='/inventory/sourcing'">
+    <button class="nui-tab" onclick="location.href='/inventory/sourcing/analysis-dashboard'">
       <i class="fas fa-truck-loading"></i>
       <span>Product Sourcing</span>
+    </button>
+    <button class="nui-tab" onclick="location.href='/inventory/labels/generator'">
+      <i class="fas fa-print"></i>
+      <span>Labels</span>
     </button>
   </nav>
 
@@ -176,9 +180,9 @@
         </div>
         
         <!-- Sync Button -->
-        <button id="syncSalesBtn" class="btn btn-solid btn-success" title="Sync magento data to inventory">
+        <button id="syncSalesBtn" class="btn btn-solid btn-success" title="Sync sales data to inventory">
           <i class="fas fa-sync-alt"></i>
-          <span>Sync Magento Data</span>
+          <span>Sync Sales Data</span>
         </button>
       </div>
     </div>

@@ -2,8 +2,14 @@
 import { getAllowedTabs } from '../services/state/userStore.js';
 import { isAuthed } from '../services/state/sessionStore.js';
 
-// Returns true if a top-level section (e.g. "enrollment") or specific inner tab
-// (e.g. "enrollment.management") is allowed by the user's permissions.
+// Returns true if a top-level section (e.g. "inventory"), a subtab
+// (e.g. "inventory.management"), or a specific sub-page
+// (e.g. "inventory.management.dashboard") is allowed by the user's permissions.
+//
+// Hierarchy:
+//   - Section key ("inventory") → true if any descendant exists in allowedTabs
+//   - 2-level key ("inventory.management") → true if exact match OR any 3-level child exists
+//   - 3-level key ("inventory.management.dashboard") → true if exact match OR 2-level parent exists
 export function isAllowed(key, allowed = null) {
   const allowedTabs = Array.isArray(allowed) ? allowed : getAllowedTabs();
 
@@ -16,13 +22,24 @@ export function isAllowed(key, allowed = null) {
   // Exact match
   if (allowedTabs.includes(key)) return true;
 
-  const [section] = key.split('.');
-  // If asked for a section (no dot), allow if any child permission exists
-  if (!key.includes('.')) {
-    return allowedTabs.some(t => t === section || t.startsWith(section + '.'));
+  const parts = key.split('.');
+
+  // Section-level key (no dot): allow if any descendant permission exists
+  if (parts.length === 1) {
+    return allowedTabs.some(t => t === key || t.startsWith(key + '.'));
   }
-  // Sub-route (has dot): only exact match counts (already checked above).
-  // Parent key does NOT grant blanket access to all children.
+
+  // 2-level key (section.subtab): allow if any 3-level child exists
+  if (parts.length === 2) {
+    return allowedTabs.some(t => t.startsWith(key + '.'));
+  }
+
+  // 3-level key (section.subtab.subpage): allow if 2-level parent grants all children
+  if (parts.length >= 3) {
+    const parent = parts.slice(0, 2).join('.');
+    return allowedTabs.includes(parent);
+  }
+
   return false;
 }
 
@@ -35,26 +52,26 @@ export function getDefaultAllowedPath(allowed = null) {
 
   // Prefer attendance if present
   if (isAllowed('attendance', allowedTabs)) {
-    if (allowedTabs.includes('attendance.analytics')) return '/attendance/analytics';
-    if (allowedTabs.includes('attendance.staff')) return '/attendance/staff';
-    if (allowedTabs.includes('attendance.clocking')) return '/attendance/clocking';
-    if (allowedTabs.includes('attendance.timesheets')) return '/attendance/timesheets';
+    if (isAllowed('attendance.analytics', allowedTabs)) return '/attendance/analytics';
+    if (isAllowed('attendance.staff', allowedTabs)) return '/attendance/staff';
+    if (isAllowed('attendance.clocking', allowedTabs)) return '/attendance/clocking';
+    if (isAllowed('attendance.timesheets', allowedTabs)) return '/attendance/timesheets';
     return '/attendance';
   }
-  // Then labels
-  if (isAllowed('labels', allowedTabs)) return '/labels';
-  // Then magentodata
-  if (isAllowed('magentodata', allowedTabs)) return '/magentodata';
   // Then inventory
-  if (isAllowed('inventory', allowedTabs)) return '/inventory';
-  // Then birmingham-orders (UK Birmingham branch orders)
+  if (isAllowed('inventory', allowedTabs)) return '/inventory/management/dashboard';
+  // Then sales data
+  if (isAllowed('sales', allowedTabs)) return '/sales/all';
+  // Then operations (warehouse)
+  if (isAllowed('operations', allowedTabs)) return '/operations/birmingham/scanner';
+  // Then birmingham-orders
   if (isAllowed('birmingham-orders', allowedTabs)) return '/birmingham-orders';
-  // Then france-orders (FR/NL region orders)
+  // Then france-orders
   if (isAllowed('france-orders', allowedTabs)) return '/france-orders';
-  // Then london-orders (UK London region orders)
+  // Then london-orders
   if (isAllowed('london-orders', allowedTabs)) return '/london-orders';
-  // Then user management
-  if (isAllowed('usermanagement', allowedTabs)) return '/usermanagement';
+  // Then system
+  if (isAllowed('system', allowedTabs)) return '/system/access-control';
   
   // Fallback to home (accessible to everyone when logged in)
   return '/home';
@@ -68,6 +85,7 @@ export function enforceRoutePermission(pathname) {
   const parts = pathname.replace(/^\/+/, '').split('/');
   const section = parts[0] || '';
   const sub = parts[1] || '';
+  const subpage = parts[2] || '';
 
   // Only enforce for known app sections
   if (!section) return { allowed: true, redirect: null };
@@ -75,31 +93,27 @@ export function enforceRoutePermission(pathname) {
   // Always allow home - accessible to everyone
   if (section === 'home') return { allowed: true, redirect: null };
 
-  // If visiting a section root (no sub-page), redirect to the first allowed child
-  if (!sub && isAllowed(section)) {
-    const allowedTabs = getAllowedTabs();
-    // Find the first allowed child for this section
-    const firstChild = allowedTabs.find(t => t.startsWith(section + '.'));
-    if (firstChild) {
-      const childSub = firstChild.split('.')[1];
-      return { allowed: false, redirect: `/${section}/${childSub}` };
-    }
-    // Section itself is allowed with no children (e.g., labels, inventory)
-    return { allowed: true, redirect: null };
+  // Build the most specific permission key from the path
+  let key;
+  if (subpage && sub) {
+    key = `${section}.${sub}.${subpage}`;
+  } else if (sub) {
+    key = `${section}.${sub}`;
+  } else {
+    key = section;
   }
 
-  const key = sub ? `${section}.${sub}` : section;
   if (isAllowed(key)) {
-    // Section-root paths (no sub) map to a default sub-page (e.g. /attendance → analytics).
-    // If the user only has specific child permissions, redirect to their first allowed sub-page
-    // so they don't land on a default page they can't access.
-    if (!sub) {
+    // Section-root paths (no sub) map to a default sub-page.
+    // If the user only has specific child permissions, redirect to their first allowed sub-page.
+    if (!sub && isAllowed(section)) {
       const allowedTabs = getAllowedTabs();
       if (allowedTabs && allowedTabs.length > 0 && !allowedTabs.includes('*')) {
         const sectionChildren = allowedTabs.filter(t => t.startsWith(section + '.'));
         if (sectionChildren.length > 0) {
-          const firstChildSub = sectionChildren[0].substring(section.length + 1);
-          const redirect = `/${section}/${firstChildSub}`;
+          // Build the deepest allowed path from the first matching permission
+          const childParts = sectionChildren[0].split('.');
+          const redirect = '/' + childParts.join('/');
           if (redirect !== pathname) {
             return { allowed: false, redirect };
           }
@@ -132,11 +146,6 @@ export function applyInnerTabPermissions(root = document) {
     
     // Also check data-nav if present (overrides href/onclick parsing)
     if (el.hasAttribute('data-nav')) {
-       // data-nav might be "attendance.analytics" or "/attendance/analytics"
-       // If it's a path, use it. If it's a key, we need to handle that.
-       // But usually data-nav is used for routing.
-       // Let's assume the existing logic relied on href/onclick mostly or data-nav was a path.
-       // If data-nav is present, let's try to use it as path if it starts with /
        const dn = el.getAttribute('data-nav');
        if (dn && dn.startsWith('/')) path = dn;
     }
@@ -144,10 +153,17 @@ export function applyInnerTabPermissions(root = document) {
     if (!path) return;
     const parts = path.replace(/^\/+/, '').split('/');
     if (parts.length < 2) return;
-    const key = `${parts[0]}.${parts[1]}`;
+
+    // Build permission key directly from path segments (up to 3 levels)
+    let key;
+    if (parts.length >= 3) {
+      key = `${parts[0]}.${parts[1]}.${parts[2]}`;
+    } else {
+      key = `${parts[0]}.${parts[1]}`;
+    }
+
     const ok = isAllowed(key, allowedTabs);
     if (!ok) {
-      // Prefer removing to avoid accidental navigation
       el.style.display = 'none';
     }
   });

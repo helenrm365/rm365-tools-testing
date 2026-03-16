@@ -21,7 +21,7 @@ let currentSortDirection = 'asc'; // 'asc' or 'desc'
 /**
  * Initialize UK magento page
  */
-export async function initUKMagentoData(path = '/magentodata/uk-magento') {
+export async function initUKMagentoData(path = '/sales/uk') {
   showToast('Initializing UK Magento...', 'info');
   console.log('[UK Magento] initUKMagentoData called with path:', path);
   
@@ -53,7 +53,7 @@ export async function initUKMagentoData(path = '/magentodata/uk-magento') {
     customRangeLabel = '';
     console.log('[UK Magento] Base URL - defaulting to full data view');
     // Silently update URL to include /full-data for clarity
-    history.replaceState({ path: '/magentodata/uk-magento/full-data' }, '', '/magentodata/uk-magento/full-data');
+    history.replaceState({ path: '/sales/uk/full-data' }, '', '/sales/uk/full-data');
   }
   
   // Wait for DOM to be ready before setting up event listeners
@@ -99,7 +99,7 @@ export async function initUKMagentoData(path = '/magentodata/uk-magento') {
       showToast('No custom range data available. Loading full data instead.', 'warning');
       viewMode = 'full';
       customRangeLabel = '';
-      history.replaceState({ path: '/magentodata/uk-magento/full-data' }, '', '/magentodata/uk-magento/full-data');
+      history.replaceState({ path: '/sales/uk/full-data' }, '', '/sales/uk/full-data');
       updateViewButtons();
       await loadMagentoData();
     }
@@ -292,13 +292,13 @@ function setupEventListeners() {
   
   if (viewFullBtn) {
     viewFullBtn.addEventListener('click', () => {
-      window.navigate('/magentodata/uk-magento/full-data');
+      window.navigate('/sales/uk/full-data');
     });
   }
   
   if (viewAggregatedBtn) {
     viewAggregatedBtn.addEventListener('click', () => {
-      window.navigate('/magentodata/uk-magento/6-month');
+      window.navigate('/sales/uk/6-month');
     });
   }
 
@@ -523,7 +523,7 @@ function setupEventListeners() {
   window.addEventListener('customRangeApplied', (e) => {
     if (e.detail.region === 'uk') {
       // Navigate to the custom range URL
-      window.navigate('/magentodata/uk-magento/custom-range');
+      window.navigate('/sales/uk/custom-range');
     }
   });
 }

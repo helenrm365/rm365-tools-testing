@@ -62,18 +62,18 @@ const routes = {
   '/attendance/clocking':  '/html/attendance-system/automatic.html',
   '/attendance/timesheets':'/html/attendance-system/logs.html',
 
-  // Labels - redirect root to first sub-page
-  '/labels':                '/html/labels/generator.html',
-  '/labels/generator':      '/html/labels/generator.html',
-  '/labels/history':        '/html/labels/history.html',
+  // Labels - now under inventory
+  '/inventory/labels':                '/html/labels/generator.html',
+  '/inventory/labels/generator':      '/html/labels/generator.html',
+  '/inventory/labels/history':        '/html/labels/history.html',
 
-  // Magento Data - redirect root to first sub-page (All)
-  '/magentodata':             '/html/magentodata/all-magento.html',
-  '/magentodata/all-magento': '/html/magentodata/all-magento.html',
-  '/magentodata/uk-magento':  '/html/magentodata/uk-magento.html',
-  '/magentodata/fr-magento':  '/html/magentodata/fr-magento.html',
-  '/magentodata/nl-magento':  '/html/magentodata/nl-magento.html',
-  '/magentodata/history':     '/html/magentodata/history.html',
+  // Sales Data - redirect root to first sub-page (All)
+  '/sales':          '/html/magentodata/all-magento.html',
+  '/sales/all':      '/html/magentodata/all-magento.html',
+  '/sales/uk':       '/html/magentodata/uk-magento.html',
+  '/sales/fr':       '/html/magentodata/fr-magento.html',
+  '/sales/nl':       '/html/magentodata/nl-magento.html',
+  '/sales/history':  '/html/magentodata/history.html',
 
   // Inventory - redirect root to first sub-page (management redirects to uk-birmingham)
   '/inventory':                                '/html/inventory/management/dashboard.html',
@@ -94,8 +94,6 @@ const routes = {
   '/birmingham-orders/order-progress':     '/html/birmingham-orders/order-progress.html',
   '/birmingham-orders/order-tracking':     '/html/birmingham-orders/order-tracking.html',
   '/birmingham-orders/order-approval':     '/html/birmingham-orders/order-approval.html',
-  '/birmingham-orders/scanner':            '/html/birmingham-orders/scanner.html',
-  '/birmingham-orders/scanning-logs':      '/html/birmingham-orders/scanning-logs.html',
   
   // France Orders - FR/NL region fulfillment (shipped from Paris)
   '/france-orders':                    '/html/france-orders/order-fulfillment.html',
@@ -103,8 +101,6 @@ const routes = {
   '/france-orders/order-progress':     '/html/france-orders/order-progress.html',
   '/france-orders/order-tracking':     '/html/france-orders/order-tracking.html',
   '/france-orders/order-approval':     '/html/france-orders/order-approval.html',
-  '/france-orders/scanner':            '/html/france-orders/scanner.html',
-  '/france-orders/scanning-logs':      '/html/france-orders/scanning-logs.html',
   
   // London Orders - UK London region fulfillment (London Office Collection)
   '/london-orders':                    '/html/london-orders/order-fulfillment.html',
@@ -112,21 +108,22 @@ const routes = {
   '/london-orders/order-progress':     '/html/london-orders/order-progress.html',
   '/london-orders/order-tracking':     '/html/london-orders/order-tracking.html',
   '/london-orders/order-approval':     '/html/london-orders/order-approval.html',
-  '/london-orders/scanner':            '/html/london-orders/scanner.html',
-  '/london-orders/scanning-logs':      '/html/london-orders/scanning-logs.html',
   
-  // Orders Hub - shared cross-branch pages
-  '/orders/scanning-logs-hub':         '/html/orders/scanning-logs-hub.html',
+  // Warehouse Operations - scanners and scanning logs
+  '/operations/birmingham/scanner':       '/html/birmingham-orders/scanner.html',
+  '/operations/birmingham/scanning-logs': '/html/birmingham-orders/scanning-logs.html',
+  '/operations/france/scanner':           '/html/france-orders/scanner.html',
+  '/operations/france/scanning-logs':     '/html/france-orders/scanning-logs.html',
+  '/operations/london/scanner':           '/html/london-orders/scanner.html',
+  '/operations/london/scanning-logs':     '/html/london-orders/scanning-logs.html',
+  '/operations/scanning-logs-hub':        '/html/orders/scanning-logs-hub.html',
   
-  // User Management - redirect root to first sub-page
-  '/usermanagement':            '/html/usermanagement/management.html',
-  '/usermanagement/management': '/html/usermanagement/management.html',
-  
-  // Settings - redirect root to first sub-page
-  '/settings':                  '/html/settings/appearance.html',
-  '/settings/appearance':       '/html/settings/appearance.html',
-  '/settings/tasks':            '/html/settings/tasks.html',
-  '/settings/system':           '/html/settings/system.html',
+  // System - access control, appearance, tasks, health
+  '/system':                    '/html/usermanagement/management.html',
+  '/system/access-control':     '/html/usermanagement/management.html',
+  '/system/appearance':         '/html/settings/appearance.html',
+  '/system/tasks':              '/html/settings/tasks.html',
+  '/system/health':             '/html/settings/system.html',
 };
 
 function shouldRedirectAfterAutoDraft(reason) {
@@ -170,14 +167,13 @@ export function generateTabStructure() {
   const sectionLabels = {
     'attendance': 'Attendance',
     'enrollment': 'Enrollment',
-    'labels': 'Labels',
-    'magentodata': 'Magento Data',
+    'sales': 'Sales Data',
     'inventory': 'Inventory',
-    'orders': 'Orders',
+    'operations': 'Warehouse Operations',
     'birmingham-orders': 'Birmingham Orders',
     'france-orders': 'France Orders',
     'london-orders': 'London Orders',
-    'usermanagement': 'User Management'
+    'system': 'System'
   };
   
   // Map of subtab keys to their display labels
@@ -195,12 +191,45 @@ export function generateTabStructure() {
     'generator': 'Generator',
     'history': 'History',
     // Inventory
-    'management': 'Management',
     'sourcing': 'Product Sourcing',
+    'labels': 'Labels',
     // Orders
     'order-fulfillment': 'Order Fulfillment',
     'order-progress': 'Order Progress',
-    'fulfillment-design': 'Fulfillment Design'
+    'order-tracking': 'Order Tracking',
+    'order-approval': 'Order Approval',
+    'fulfillment-design': 'Fulfillment Design',
+    // Operations
+    'birmingham': 'Birmingham',
+    'france': 'France',
+    'london': 'London',
+    'scanning-logs-hub': 'Scanning Logs Hub',
+    // Sales Data
+    'all': 'All Regions',
+    'uk': 'UK',
+    'fr': 'France',
+    'nl': 'Netherlands',
+    // System
+    'access-control': 'Access Control',
+    'appearance': 'Appearance',
+    'tasks': 'Task Automation',
+    'health': 'System Health'
+  };
+
+  // Map of sub-page keys to their display labels (3rd level)
+  const subpageLabels = {
+    'dashboard': 'Dashboard',
+    'uk-birmingham': 'Birmingham',
+    'uk-london': 'London',
+    'fr-paris': 'France',
+    'analysis-dashboard': 'Analysis Dashboard',
+    'supplier-matrix': 'Supplier Matrix',
+    'suppliers': 'Suppliers',
+    'fx-rates': 'FX Rates',
+    'generator': 'Generator',
+    'history': 'History',
+    'scanner': 'Scanner',
+    'scanning-logs': 'Scanning Logs'
   };
   
   // Parse routes to build structure
@@ -215,6 +244,7 @@ export function generateTabStructure() {
     
     const section = parts[0];
     const subtab = parts[1];
+    const subpage = parts[2];
     
     // Initialize section if not exists
     if (!structure[section]) {
@@ -226,12 +256,25 @@ export function generateTabStructure() {
     
     // Add subtab if it exists and isn't 'home' and hasn't been added yet
     if (subtab && subtab !== 'home') {
-      const subtabExists = structure[section].subtabs.some(st => st.key === subtab);
-      if (!subtabExists) {
-        structure[section].subtabs.push({
+      let subtabObj = structure[section].subtabs.find(st => st.key === subtab);
+      if (!subtabObj) {
+        subtabObj = {
           key: subtab,
-          label: subtabLabels[subtab] || subtab.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
-        });
+          label: subtabLabels[subtab] || subtab.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+          children: []
+        };
+        structure[section].subtabs.push(subtabObj);
+      }
+
+      // Add 3rd level sub-page if it exists
+      if (subpage && subpage !== 'home') {
+        const childExists = subtabObj.children.some(c => c.key === subpage);
+        if (!childExists) {
+          subtabObj.children.push({
+            key: subpage,
+            label: subpageLabels[subpage] || subpage.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+          });
+        }
       }
     }
   });
@@ -353,20 +396,20 @@ export async function navigate(path, replace = false) {
       url = routes['/london-orders/order-fulfillment'];
     }
     
-    // Check if this is a magento data view-specific URL (full-data, 6-month, custom-range)
+    // Check if this is a sales data view-specific URL (full-data, 6-month, custom-range)
     // Use simple prefix matching instead of complex regex
     if (!url) {
-      if (path.startsWith('/magentodata/all-magento/')) {
-        url = routes['/magentodata/all-magento'];
+      if (path.startsWith('/sales/all/')) {
+        url = routes['/sales/all'];
         console.log(`[Router] Mapping ${path} to ${url} (region: all)`);
-      } else if (path.startsWith('/magentodata/uk-magento/')) {
-        url = routes['/magentodata/uk-magento'];
+      } else if (path.startsWith('/sales/uk/')) {
+        url = routes['/sales/uk'];
         console.log(`[Router] Mapping ${path} to ${url} (region: uk)`);
-      } else if (path.startsWith('/magentodata/fr-magento/')) {
-        url = routes['/magentodata/fr-magento'];
+      } else if (path.startsWith('/sales/fr/')) {
+        url = routes['/sales/fr'];
         console.log(`[Router] Mapping ${path} to ${url} (region: fr)`);
-      } else if (path.startsWith('/magentodata/nl-magento/')) {
-        url = routes['/magentodata/nl-magento'];
+      } else if (path.startsWith('/sales/nl/')) {
+        url = routes['/sales/nl'];
         console.log(`[Router] Mapping ${path} to ${url} (region: nl)`);
       }
     }
@@ -453,8 +496,8 @@ export async function navigate(path, replace = false) {
       // Map for proper title casing
       const titleMap = {
         'home': 'Home',
-        'usermanagement': 'User Management',
-        'magentodata': 'Magento Data',
+        'system': 'System',
+        'sales': 'Sales Data',
         'attendance': 'Attendance',
         'enrollment': 'Enrollment',
         'labels': 'Labels',
@@ -500,21 +543,48 @@ export async function navigate(path, replace = false) {
       await mod.init(path);
       currentModule = mod;
       currentModulePath = 'attendance';
-    } else if (path.startsWith('/labels')) {
-      const mod = await import(`./modules/labels/index.js${cacheBust}`);
-      await mod.init(path);
-      currentModule = mod;
-      currentModulePath = 'labels';
-    } else if (path.startsWith('/magentodata')) {
+    } else if (path.startsWith('/sales')) {
       const mod = await import(`./modules/magentodata/index.js${cacheBust}`);
       await mod.init(path);
       currentModule = mod;
-      currentModulePath = 'magentodata';
+      currentModulePath = 'sales';
     } else if (path.startsWith('/inventory')) {
-      const mod = await import(`./modules/inventory/index.js${cacheBust}`);
-      await mod.init(path);
-      currentModule = mod;
-      currentModulePath = 'inventory';
+      // Labels sub-section under inventory
+      if (path.startsWith('/inventory/labels')) {
+        const mod = await import(`./modules/labels/index.js${cacheBust}`);
+        await mod.init(path);
+        currentModule = mod;
+        currentModulePath = 'inventory';
+      } else {
+        const mod = await import(`./modules/inventory/index.js${cacheBust}`);
+        await mod.init(path);
+        currentModule = mod;
+        currentModulePath = 'inventory';
+      }
+    } else if (path.startsWith('/operations')) {
+      // Warehouse operations - route to the correct branch module
+      if (path.startsWith('/operations/birmingham')) {
+        const mod = await import(`./modules/birmingham-orders/index.js${cacheBust}`);
+        await mod.init(path);
+        currentModule = mod;
+        currentModulePath = 'operations';
+      } else if (path.startsWith('/operations/france')) {
+        const mod = await import(`./modules/france-orders/index.js${cacheBust}`);
+        await mod.init(path);
+        currentModule = mod;
+        currentModulePath = 'operations';
+      } else if (path.startsWith('/operations/london')) {
+        const mod = await import(`./modules/london-orders/index.js${cacheBust}`);
+        await mod.init(path);
+        currentModule = mod;
+        currentModulePath = 'operations';
+      } else {
+        // Scanning logs hub and other shared operations pages
+        const mod = await import(`./modules/orders/index.js${cacheBust}`);
+        await mod.init(path);
+        currentModule = mod;
+        currentModulePath = 'operations';
+      }
     } else if (path.startsWith('/birmingham-orders')) {
       const mod = await import(`./modules/birmingham-orders/index.js${cacheBust}`);
       await mod.init(path);
@@ -530,16 +600,14 @@ export async function navigate(path, replace = false) {
       await mod.init(path);
       currentModule = mod;
       currentModulePath = 'london-orders';
-    } else if (path.startsWith('/orders')) {
-      const mod = await import(`./modules/orders/index.js${cacheBust}`);
-      await mod.init(path);
-      currentModule = mod;
-      currentModulePath = 'orders';
-    } else if (path.startsWith('/usermanagement')) {
-      const mod = await import(`./modules/usermanagement/index.js${cacheBust}`);
-      await mod.init(path);
-      currentModule = mod;
-      currentModulePath = 'usermanagement';
+    } else if (path.startsWith('/system')) {
+      if (path === '/system/access-control' || path === '/system') {
+        const mod = await import(`./modules/usermanagement/index.js${cacheBust}`);
+        await mod.init(path);
+        currentModule = mod;
+        currentModulePath = 'system';
+      }
+      // appearance, tasks, health use inline <script> in their HTML — no module to load
     }
 
     // Highlight active nav item

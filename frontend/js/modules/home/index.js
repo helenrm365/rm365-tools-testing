@@ -163,9 +163,11 @@ function setupStatCards() {
   document.querySelectorAll('.stat-card[data-module]').forEach(card => {
     card.style.cursor = 'pointer';
     card.addEventListener('click', () => {
-      const module = card.dataset.module;
+      const path = card.dataset.path || `/${card.dataset.module}`;
       if (window.navigate) {
-        window.navigate(`/${module}`);
+        window.navigate(path);
+      } else {
+        window.location.href = path;
       }
     });
   });

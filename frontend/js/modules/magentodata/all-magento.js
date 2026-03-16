@@ -21,7 +21,7 @@ let customRangeParams = null;
 /**
  * Initialize All Magento page
  */
-export async function initAllMagentoData(path = '/magentodata/all-magento') {
+export async function initAllMagentoData(path = '/sales/all') {
   showToast('Initializing All Magento...', 'info');
 
   // Reset state
@@ -42,7 +42,7 @@ export async function initAllMagentoData(path = '/magentodata/all-magento') {
   } else {
     viewMode = 'full';
     customRangeLabel = '';
-    history.replaceState({ path: '/magentodata/all-magento/full-data' }, '', '/magentodata/all-magento/full-data');
+    history.replaceState({ path: '/sales/all/full-data' }, '', '/sales/all/full-data');
   }
 
   await new Promise(resolve => setTimeout(resolve, 0));
@@ -78,7 +78,7 @@ export async function initAllMagentoData(path = '/magentodata/all-magento') {
       viewMode = 'full';
       customRangeLabel = '';
       customRangeParams = null;
-      history.replaceState({ path: '/magentodata/all-magento/full-data' }, '', '/magentodata/all-magento/full-data');
+      history.replaceState({ path: '/sales/all/full-data' }, '', '/sales/all/full-data');
       updateViewButtons();
       updateViewLayout();
       await loadMagentoData();
@@ -130,13 +130,13 @@ function setupEventListeners() {
 
   if (viewFullBtn) {
     viewFullBtn.addEventListener('click', () => {
-      window.navigate('/magentodata/all-magento/full-data');
+      window.navigate('/sales/all/full-data');
     });
   }
 
   if (viewAggregatedBtn) {
     viewAggregatedBtn.addEventListener('click', () => {
-      window.navigate('/magentodata/all-magento/6-month');
+      window.navigate('/sales/all/6-month');
     });
   }
 
@@ -254,7 +254,7 @@ function setupEventListeners() {
   // Listen for custom range applied
   window.addEventListener('customRangeApplied', (e) => {
     if (e.detail.region === 'all') {
-      window.navigate('/magentodata/all-magento/custom-range');
+      window.navigate('/sales/all/custom-range');
     }
   });
 

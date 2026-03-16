@@ -27,10 +27,13 @@ let overlay = null;
 
 // Navigation structure definition
 // Maps group IDs to their child tabs
+// Each child can optionally have sub-children for 3-level navigation.
+// `permissionKey` on each item maps to the TAB_STRUCTURE permission key.
 const navigationConfig = {
   'general': {
     label: 'General',
     icon: 'fa-solid fa-house',
+    alwaysShow: true,
     children: [
       { id: 'dashboard', label: 'Dashboard', icon: 'fa-solid fa-gauge-high', path: '/home' }
     ]
@@ -39,47 +42,102 @@ const navigationConfig = {
     label: 'Attendance (HR)',
     icon: 'fa-solid fa-clock',
     children: [
-      { id: 'analytics', label: 'Analytics', icon: 'fa-solid fa-chart-pie', path: '/attendance/analytics' },
-      { id: 'staff', label: 'Staff Directory', icon: 'fa-solid fa-users', path: '/attendance/staff' },
-      { id: 'clocking', label: 'NFC Clocking Terminal', icon: 'fa-solid fa-fingerprint', path: '/attendance/clocking' },
-      { id: 'timesheets', label: 'Timesheets & Logs', icon: 'fa-solid fa-list', path: '/attendance/timesheets' }
+      { id: 'analytics', label: 'Analytics', icon: 'fa-solid fa-chart-pie', path: '/attendance/analytics', permissionKey: 'attendance.analytics' },
+      { id: 'staff', label: 'Staff Directory', icon: 'fa-solid fa-users', path: '/attendance/staff', permissionKey: 'attendance.staff' },
+      { id: 'clocking', label: 'NFC Clocking Terminal', icon: 'fa-solid fa-fingerprint', path: '/attendance/clocking', permissionKey: 'attendance.clocking' },
+      { id: 'timesheets', label: 'Timesheets & Logs', icon: 'fa-solid fa-list', path: '/attendance/timesheets', permissionKey: 'attendance.timesheets' }
     ]
   },
   'inventory': {
     label: 'Inventory & Sourcing',
     icon: 'fa-solid fa-boxes-stacked',
     children: [
-      { id: 'dashboard', label: 'Inventory', icon: 'fa-solid fa-warehouse', path: '/inventory/management/dashboard' },
-      { id: 'sourcing', label: 'Sourcing & Suppliers', icon: 'fa-solid fa-truck', path: '/inventory/sourcing/analysis-dashboard' },
-      { id: 'labels', label: 'Label Printing', icon: 'fa-solid fa-print', path: '/labels/generator' }
+      {
+        id: 'management', label: 'Management', icon: 'fa-solid fa-warehouse',
+        permissionKey: 'inventory.management',
+        children: [
+          { id: 'dashboard', label: 'Dashboard', icon: 'fa-solid fa-gauge-high', path: '/inventory/management/dashboard', permissionKey: 'inventory.management.dashboard' },
+          { id: 'uk-birmingham', label: 'Birmingham', icon: 'fa-solid fa-city', path: '/inventory/management/uk-birmingham', permissionKey: 'inventory.management.uk-birmingham' },
+          { id: 'uk-london', label: 'London', icon: 'fa-solid fa-city', path: '/inventory/management/uk-london', permissionKey: 'inventory.management.uk-london' },
+          { id: 'fr-paris', label: 'France', icon: 'fa-solid fa-city', path: '/inventory/management/fr-paris', permissionKey: 'inventory.management.fr-paris' }
+        ]
+      },
+      {
+        id: 'sourcing', label: 'Product Sourcing', icon: 'fa-solid fa-truck',
+        permissionKey: 'inventory.sourcing',
+        children: [
+          { id: 'analysis-dashboard', label: 'Analysis Dashboard', icon: 'fa-solid fa-chart-bar', path: '/inventory/sourcing/analysis-dashboard', permissionKey: 'inventory.sourcing.analysis-dashboard' },
+          { id: 'supplier-matrix', label: 'Supplier Matrix', icon: 'fa-solid fa-th', path: '/inventory/sourcing/supplier-matrix', permissionKey: 'inventory.sourcing.supplier-matrix' },
+          { id: 'suppliers', label: 'Suppliers', icon: 'fa-solid fa-address-book', path: '/inventory/sourcing/suppliers', permissionKey: 'inventory.sourcing.suppliers' },
+          { id: 'fx-rates', label: 'FX Rates', icon: 'fa-solid fa-money-bill-wave', path: '/inventory/sourcing/fx-rates', permissionKey: 'inventory.sourcing.fx-rates' }
+        ]
+      },
+      {
+        id: 'labels', label: 'Labels', icon: 'fa-solid fa-print',
+        permissionKey: 'inventory.labels',
+        children: [
+          { id: 'generator', label: 'Generator', icon: 'fa-solid fa-print', path: '/inventory/labels/generator', permissionKey: 'inventory.labels.generator' },
+          { id: 'history', label: 'History', icon: 'fa-solid fa-history', path: '/inventory/labels/history', permissionKey: 'inventory.labels.history' }
+        ]
+      }
     ]
   },
   'warehouse': {
     label: 'Warehouse Operations',
     icon: 'fa-solid fa-cart-shopping',
     children: [
-      { id: 'birmingham-scanner', label: 'Birmingham Scanner', icon: 'fa-solid fa-barcode', path: '/birmingham-orders/scanner' },
-      { id: 'france-scanner', label: 'France Scanner', icon: 'fa-solid fa-barcode', path: '/france-orders/scanner' },
-      { id: 'london-scanner', label: 'London Scanner', icon: 'fa-solid fa-barcode', path: '/london-orders/scanner' },
-      { id: 'scanning-logs', label: 'Scanning Logs', icon: 'fa-solid fa-history', path: '/orders/scanning-logs-hub' }
+      {
+        id: 'birmingham', label: 'Birmingham', icon: 'fa-solid fa-city',
+        permissionKey: 'operations.birmingham',
+        children: [
+          { id: 'scanner', label: 'Scanner', icon: 'fa-solid fa-barcode', path: '/operations/birmingham/scanner', permissionKey: 'operations.birmingham.scanner' },
+          { id: 'scanning-logs', label: 'Scanning Logs', icon: 'fa-solid fa-history', path: '/operations/birmingham/scanning-logs', permissionKey: 'operations.birmingham.scanning-logs' }
+        ]
+      },
+      {
+        id: 'france', label: 'France', icon: 'fa-solid fa-city',
+        permissionKey: 'operations.france',
+        children: [
+          { id: 'scanner', label: 'Scanner', icon: 'fa-solid fa-barcode', path: '/operations/france/scanner', permissionKey: 'operations.france.scanner' },
+          { id: 'scanning-logs', label: 'Scanning Logs', icon: 'fa-solid fa-history', path: '/operations/france/scanning-logs', permissionKey: 'operations.france.scanning-logs' }
+        ]
+      },
+      {
+        id: 'london', label: 'London', icon: 'fa-solid fa-city',
+        permissionKey: 'operations.london',
+        children: [
+          { id: 'scanner', label: 'Scanner', icon: 'fa-solid fa-barcode', path: '/operations/london/scanner', permissionKey: 'operations.london.scanner' },
+          { id: 'scanning-logs', label: 'Scanning Logs', icon: 'fa-solid fa-history', path: '/operations/london/scanning-logs', permissionKey: 'operations.london.scanning-logs' }
+        ]
+      },
+      { id: 'scanning-logs-hub', label: 'All Scanning Logs', icon: 'fa-solid fa-list', path: '/operations/scanning-logs-hub', permissionKey: 'operations.scanning-logs-hub' }
     ]
   },
   'sales': {
     label: 'Sales Data',
     icon: 'fa-solid fa-chart-line',
     children: [
-      { id: 'reports', label: 'Sales Reports', icon: 'fa-solid fa-globe-americas', path: '/magentodata/all-magento' },
-      { id: 'history', label: 'Import History', icon: 'fa-solid fa-history', path: '/magentodata/history' }
+      {
+        id: 'regions', label: 'Regions', icon: 'fa-solid fa-globe-americas',
+        permissionKey: 'sales.all',
+        children: [
+          { id: 'all', label: 'All Regions', icon: 'fa-solid fa-globe-americas', path: '/sales/all', permissionKey: 'sales.all' },
+          { id: 'uk', label: 'UK', icon: 'fa-solid fa-flag', path: '/sales/uk', permissionKey: 'sales.uk' },
+          { id: 'fr', label: 'France', icon: 'fa-solid fa-flag', path: '/sales/fr', permissionKey: 'sales.fr' },
+          { id: 'nl', label: 'Netherlands', icon: 'fa-solid fa-flag', path: '/sales/nl', permissionKey: 'sales.nl' }
+        ]
+      },
+      { id: 'history', label: 'Import History', icon: 'fa-solid fa-history', path: '/sales/history', permissionKey: 'sales.history' }
     ]
   },
   'system': {
     label: 'System',
     icon: 'fa-solid fa-gear',
     children: [
-      { id: 'access-control', label: 'Access Control', icon: 'fa-solid fa-users-cog', path: '/usermanagement/management' },
-      { id: 'appearance', label: 'Appearance', icon: 'fa-solid fa-palette', path: '/settings/appearance' },
-      { id: 'tasks', label: 'Task Automation', icon: 'fa-solid fa-clock-rotate-left', path: '/settings/tasks' },
-      { id: 'health', label: 'System Health', icon: 'fa-solid fa-server', path: '/settings/system' }
+      { id: 'access-control', label: 'Access Control', icon: 'fa-solid fa-users-cog', path: '/system/access-control', permissionKey: 'system.access-control' },
+      { id: 'appearance', label: 'Appearance', icon: 'fa-solid fa-palette', path: '/system/appearance', permissionKey: 'system.appearance' },
+      { id: 'tasks', label: 'Task Automation', icon: 'fa-solid fa-clock-rotate-left', path: '/system/tasks', permissionKey: 'system.tasks' },
+      { id: 'health', label: 'System Health', icon: 'fa-solid fa-server', path: '/system/health', permissionKey: 'system.health' }
     ]
   }
 };
@@ -166,26 +224,69 @@ function buildSidebarHTML() {
 }
 
 /**
+ * Check if any child in the list has an allowed permission
+ */
+function hasAnyChildPermission(children) {
+  return children.some(child => {
+    if (!child.permissionKey) return true; // No permission needed (e.g., home)
+    if (isAllowed(child.permissionKey)) return true;
+    if (child.children) {
+      return child.children.some(sub => sub.permissionKey ? isAllowed(sub.permissionKey) : true);
+    }
+    return false;
+  });
+}
+
+/**
  * Build navigation items HTML based on permissions
  */
 function buildNavigationItems() {
   let html = '';
 
   for (const [groupId, config] of Object.entries(navigationConfig)) {
-    // Check permissions
-    if (!isAllowed(groupId)) continue;
+    // Check permissions at group level
+    if (!config.alwaysShow && !hasAnyChildPermission(config.children)) continue;
 
     // Build dropdown children
     let childHtml = '';
     for (const child of config.children) {
-      const permKey = `${groupId}.${child.id}`;
-      if (!isAllowed(permKey)) continue;
-      childHtml += `
-        <button class="sidebar-dropdown-link" data-path="${child.path}">
-          <span class="sidebar-dropdown-link-icon"><i class="${child.icon}"></i></span>
-          <span>${child.label}</span>
-        </button>
-      `;
+      // Permission check
+      if (!config.alwaysShow && child.permissionKey && !isAllowed(child.permissionKey)) continue;
+
+      if (child.children && child.children.length > 0) {
+        // This child has sub-children — render as a sub-group with header + sub-links
+        let subChildHtml = '';
+        for (const subChild of child.children) {
+          if (subChild.permissionKey && !isAllowed(subChild.permissionKey)) continue;
+          subChildHtml += `
+            <button class="sidebar-dropdown-link sidebar-subpage-link" data-path="${subChild.path}">
+              <span class="sidebar-dropdown-link-icon"><i class="${subChild.icon}"></i></span>
+              <span>${subChild.label}</span>
+            </button>
+          `;
+        }
+        if (subChildHtml) {
+          childHtml += `
+            <div class="sidebar-sub-group" data-sub-group="${child.id}">
+              <div class="sidebar-sub-group-header">
+                <span class="sidebar-sub-group-icon"><i class="${child.icon}"></i></span>
+                <span class="sidebar-sub-group-label">${child.label}</span>
+              </div>
+              <div class="sidebar-sub-group-children">
+                ${subChildHtml}
+              </div>
+            </div>
+          `;
+        }
+      } else {
+        // Simple child — no sub-children
+        childHtml += `
+          <button class="sidebar-dropdown-link" data-path="${child.path}">
+            <span class="sidebar-dropdown-link-icon"><i class="${child.icon}"></i></span>
+            <span>${child.label}</span>
+          </button>
+        `;
+      }
     }
 
     html += `
@@ -386,11 +487,26 @@ function setState(newState) {
  * Highlight navigation based on current route
  * - 'active' class on sidebar-item: Shows which group contains the current page
  * - 'active' class on dropdown-link: Shows the exact current page
+ * - 'active' class on sub-group: Shows which sub-group contains the current page
  */
 export function highlightCurrentRoute() {
   const currentPath = window.location.pathname;
   
   if (!container) return;
+
+  // Check if a child nav item matches the current path (recursive for sub-children)
+  function childMatchesPath(child) {
+    // For children with sub-children, check recursively
+    if (child.children && child.children.length > 0) {
+      return child.children.some(sub => childMatchesPath(sub));
+    }
+    if (currentPath === child.path || currentPath.startsWith(child.path + '/')) return true;
+    // Check additional alias paths (e.g. scanning-logs matching branch-specific routes)
+    if (child.alsoMatches) {
+      return child.alsoMatches.some(p => currentPath === p || currentPath.startsWith(p + '/'));
+    }
+    return false;
+  }
 
   // Highlight primary nav groups by checking if any child path matches
   container.querySelectorAll('.sidebar-item[data-group]').forEach(item => {
@@ -399,19 +515,40 @@ export function highlightCurrentRoute() {
     let isActive = false;
 
     if (config?.children) {
-      isActive = config.children.some(child =>
-        currentPath === child.path || currentPath.startsWith(child.path + '/')
-      );
+      isActive = config.children.some(childMatchesPath);
     }
 
     item.classList.toggle('active', isActive);
   });
 
-  // Highlight dropdown links
+  // Build a lookup from path -> child config for alsoMatches on dropdown links
+  const childByPath = {};
+  Object.values(navigationConfig).forEach(group => {
+    group.children?.forEach(child => {
+      if (child.path) {
+        childByPath[child.path] = child;
+      }
+      // Also index sub-children
+      if (child.children) {
+        child.children.forEach(sub => {
+          if (sub.path) childByPath[sub.path] = sub;
+        });
+      }
+    });
+  });
+
+  // Highlight dropdown links (including sub-page links)
   container.querySelectorAll('.sidebar-dropdown-link').forEach(link => {
     const linkPath = link.dataset.path;
-    const isActive = currentPath === linkPath || currentPath.startsWith(linkPath + '/');
+    const child = childByPath[linkPath];
+    const isActive = child ? childMatchesPath(child) : (currentPath === linkPath || currentPath.startsWith(linkPath + '/'));
     link.classList.toggle('active', isActive);
+  });
+
+  // Highlight sub-group headers when any of their children are active
+  container.querySelectorAll('.sidebar-sub-group').forEach(subGroup => {
+    const hasActiveChild = subGroup.querySelector('.sidebar-dropdown-link.active') !== null;
+    subGroup.classList.toggle('active', hasActiveChild);
   });
 }
 

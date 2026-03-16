@@ -1,33 +1,33 @@
-<!-- NL Magento Data Page -->
+<!-- NL Sales Data Page -->
 <!-- Uses css/app.css + css/pages/magentodata/universal.css + css/pages/magentodata/filters-modal.css -->
 <div class="magentodata-page">
   <!-- Header -->
   <header class="page-header">
     <div class="header-content">
-      <h1 class="page-title">NL Magento Data</h1>
+      <h1 class="page-title">Netherlands Sales Data</h1>
     </div>
-    <p class="page-subtitle">Manage Dutch magento data directly from Magento Database</p>
+    <p class="page-subtitle">Manage Dutch sales data</p>
   </header>
 
   <!-- Navigation Tabs -->
   <nav class="nui-tabs">
-    <button class="nui-tab" onclick="location.href='/magentodata/all-magento'">
+    <button class="nui-tab" onclick="location.href='/sales/all'">
       <i class="fas fa-globe"></i>
       <span>All</span>
     </button>
-    <button class="nui-tab" onclick="location.href='/magentodata/uk-magento'">
+    <button class="nui-tab" onclick="location.href='/sales/uk'">
       <i class="fas fa-flag"></i>
       <span>UK</span>
     </button>
-    <button class="nui-tab" onclick="location.href='/magentodata/fr-magento'">
+    <button class="nui-tab" onclick="location.href='/sales/fr'">
       <i class="fas fa-flag"></i>
       <span>FR</span>
     </button>
-    <button class="nui-tab is-active" onclick="location.href='/magentodata/nl-magento'">
+    <button class="nui-tab is-active" onclick="location.href='/sales/nl'">
       <i class="fas fa-flag"></i>
       <span>NL</span>
     </button>
-    <button class="nui-tab" onclick="location.href='/magentodata/history'">
+    <button class="nui-tab" onclick="location.href='/sales/history'">
       <i class="fas fa-history"></i>
       <span>History</span>
     </button>
@@ -43,7 +43,7 @@
         </div>
         <div class="block-title-group">
           <h3 class="block-title" id="orderDataTitle">Order Data</h3>
-          <p class="block-subtitle">NL Magento orders and products</p>
+          <p class="block-subtitle">NL sales orders and products</p>
         </div>
         <div class="block-header-actions">
           <input type="text" id="magentoSearchInput" class="nui-input nui-input-default" 
@@ -77,7 +77,7 @@
           
           <!-- Action Buttons -->
           <div class="action-buttons-row">
-            <button class="btn btn-solid btn-success" id="syncNowBtn" title="Sync latest orders from Magento">
+            <button class="btn btn-solid btn-success" id="syncNowBtn" title="Sync latest orders">
               <i class="fas fa-sync"></i>
               <span>Sync Now</span>
             </button>

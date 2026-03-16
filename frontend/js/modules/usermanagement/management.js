@@ -353,20 +353,7 @@ function updateRoleTabInfo(roleName, userTabs = null) {
       
       // Pre-check user's existing tabs when editing
       if (userTabs && userTabs.length > 0) {
-        const boxes = container.querySelectorAll('input[name="custom_user_allowed_tab"]');
-        boxes.forEach(cb => {
-          if (userTabs.includes(cb.value)) cb.checked = true;
-        });
-        // Auto-check parent when any child is checked
-        for (const [key] of Object.entries(TAB_STRUCTURE)) {
-          const childCbs = container.querySelectorAll(`input[name="custom_user_allowed_tab"].child-checkbox[data-parent="${key}"]`);
-          const anyChildChecked = Array.from(childCbs).some(cb => cb.checked);
-          if (anyChildChecked) {
-            const parentCb = container.querySelector(`input[name="custom_user_allowed_tab"].parent-checkbox[data-parent="${key}"]`);
-            if (parentCb) parentCb.checked = true;
-          }
-        }
-        updateSelectAllState(container, 'custom_user_allowed_tab');
+        preCheckTabs(container, 'custom_user_allowed_tab', userTabs);
       }
     }
   } else {
@@ -469,8 +456,9 @@ function wireUserModal() {
       const container = $('#customTabsContainer');
       if (!container) return;
       const isChecked = e.target.checked;
-      container.querySelectorAll('.parent-checkbox').forEach(p => p.checked = isChecked);
-      container.querySelectorAll('.child-checkbox').forEach(c => c.checked = isChecked);
+      container.querySelectorAll('.parent-checkbox').forEach(p => { p.checked = isChecked; p.indeterminate = false; });
+      container.querySelectorAll('.child-checkbox').forEach(c => { c.checked = isChecked; c.indeterminate = false; });
+      container.querySelectorAll('.grandchild-checkbox').forEach(gc => gc.checked = isChecked);
     });
     customSelectAll.dataset.listenerAttached = 'true';
   }
@@ -547,32 +535,50 @@ function openViewTabsModal(user) {
     if (tabs.length === 0) {
       list.innerHTML = '<p class="text-muted">No tabs assigned</p>';
     } else {
-      // Group tabs by parent
+      // Group tabs hierarchically
       const grouped = {};
       tabs.forEach(tab => {
         const parts = tab.split('.');
         const parent = parts[0];
-        if (!grouped[parent]) grouped[parent] = [];
-        if (parts.length > 1) {
-          grouped[parent].push(parts[1]);
+        if (!grouped[parent]) grouped[parent] = {};
+        if (parts.length === 1) return; // section-only key
+        const subtab = parts[1];
+        if (!grouped[parent][subtab]) grouped[parent][subtab] = [];
+        if (parts.length >= 3) {
+          grouped[parent][subtab].push(parts[2]);
         }
       });
 
       let html = '';
-      for (const [parent, children] of Object.entries(grouped)) {
+      for (const [parent, subtabs] of Object.entries(grouped)) {
         const tabInfo = TAB_STRUCTURE[parent];
         const label = tabInfo ? tabInfo.label : parent;
         html += `<div class="view-tab-group">`;
         html += `<div class="view-tab-parent"><i class="fas fa-folder"></i> ${label}</div>`;
-        if (children.length > 0) {
-          html += `<div class="view-tab-children">`;
-          children.forEach(child => {
-            const subtab = tabInfo?.subtabs?.find(s => s.key === child);
-            const childLabel = subtab ? subtab.label : child;
-            html += `<span class="view-tab-child"><i class="fas fa-check"></i> ${childLabel}</span>`;
-          });
-          html += `</div>`;
+        
+        for (const [subtabKey, subpages] of Object.entries(subtabs)) {
+          const subtabObj = tabInfo?.subtabs?.find(s => s.key === subtabKey);
+          const subtabLabel = subtabObj ? subtabObj.label : subtabKey;
+          
+          if (subpages.length > 0) {
+            // Has specific sub-pages
+            html += `<div class="view-tab-subtab"><i class="fas fa-folder-open"></i> ${subtabLabel}</div>`;
+            html += `<div class="view-tab-children view-tab-grandchildren">`;
+            subpages.forEach(sp => {
+              const spObj = subtabObj?.children?.find(c => c.key === sp);
+              const spLabel = spObj ? spObj.label : sp;
+              html += `<span class="view-tab-child"><i class="fas fa-check"></i> ${spLabel}</span>`;
+            });
+            html += `</div>`;
+          } else {
+            // Full subtab access (no specific sub-pages = all)
+            const hasChildren = subtabObj?.children?.length > 0;
+            html += `<div class="view-tab-children">`;
+            html += `<span class="view-tab-child"><i class="fas fa-check"></i> ${subtabLabel}${hasChildren ? ' (All)' : ''}</span>`;
+            html += `</div>`;
+          }
         }
+        
         html += `</div>`;
       }
       list.innerHTML = html;
@@ -679,21 +685,7 @@ function openEditRoleModal(roleName) {
     renderTabCheckboxesInternal(container, 'edit_role_allowed_tab');
     
     const boxes = container.querySelectorAll('input[name="edit_role_allowed_tab"]');
-    boxes.forEach(cb => {
-      if (role.allowed_tabs.includes(cb.value)) cb.checked = true;
-    });
-    
-    // Auto-check parent when any child is checked
-    for (const [key] of Object.entries(TAB_STRUCTURE)) {
-      const childCbs = container.querySelectorAll(`input[name="edit_role_allowed_tab"].child-checkbox[data-parent="${key}"]`);
-      const anyChildChecked = Array.from(childCbs).some(cb => cb.checked);
-      if (anyChildChecked) {
-        const parentCb = container.querySelector(`input[name="edit_role_allowed_tab"].parent-checkbox[data-parent="${key}"]`);
-        if (parentCb) parentCb.checked = true;
-      }
-    }
-    
-    updateSelectAllState(container, 'edit_role_allowed_tab');
+    preCheckTabs(container, 'edit_role_allowed_tab', role.allowed_tabs);
   }
   
   wireEditRoleModal();
@@ -773,8 +765,9 @@ function wireEditRoleModal() {
     const container = $('#editRoleTabsContainer');
     if (!container) return;
     const isChecked = e.target.checked;
-    container.querySelectorAll('.parent-checkbox').forEach(p => p.checked = isChecked);
-    container.querySelectorAll('.child-checkbox').forEach(c => c.checked = isChecked);
+    container.querySelectorAll('.parent-checkbox').forEach(p => { p.checked = isChecked; p.indeterminate = false; });
+    container.querySelectorAll('.child-checkbox').forEach(c => { c.checked = isChecked; c.indeterminate = false; });
+    container.querySelectorAll('.grandchild-checkbox').forEach(gc => gc.checked = isChecked);
   };
 }
 
@@ -1084,6 +1077,60 @@ function wireEditGroupModal() {
 // TAB CHECKBOX UTILITIES (used by Role Editor)
 // ===============================================================================
 
+/**
+ * Pre-check tab checkboxes based on a list of allowed tab keys.
+ * Handles 2-level keys (e.g. "inventory.management" grants all grandchildren)
+ * and 3-level keys (e.g. "inventory.management.dashboard" grants individual sub-page).
+ */
+function preCheckTabs(container, inputName, tabs) {
+  if (!tabs || tabs.length === 0) return;
+
+  const allCbs = container.querySelectorAll(`input[name="${inputName}"]`);
+  allCbs.forEach(cb => {
+    if (tabs.includes(cb.value)) {
+      cb.checked = true;
+    }
+  });
+
+  // For 2-level keys like "inventory.management", also check all grandchildren
+  tabs.forEach(tab => {
+    const parts = tab.split('.');
+    if (parts.length === 2) {
+      // This is a subtab-level key — check all grandchildren under it
+      container.querySelectorAll(`.grandchild-checkbox[data-parent="${parts[0]}"][data-child="${parts[1]}"]`)
+        .forEach(gc => gc.checked = true);
+    }
+  });
+
+  // Auto-check child (subtab) checkboxes when any grandchild is checked
+  container.querySelectorAll('.child-checkbox[data-child]').forEach(childCb => {
+    const parentKey = childCb.dataset.parent;
+    const childKey = childCb.dataset.child;
+    const gcCbs = container.querySelectorAll(`.grandchild-checkbox[data-parent="${parentKey}"][data-child="${childKey}"]`);
+    if (gcCbs.length > 0) {
+      const checkedCount = Array.from(gcCbs).filter(gc => gc.checked).length;
+      childCb.checked = checkedCount > 0;
+      childCb.indeterminate = checkedCount > 0 && checkedCount < gcCbs.length;
+    }
+  });
+
+  // Auto-check parent (section) checkboxes when any child is checked
+  for (const [key] of Object.entries(TAB_STRUCTURE)) {
+    const childCbs = container.querySelectorAll(`.child-checkbox[data-parent="${key}"]`);
+    const anyChildChecked = Array.from(childCbs).some(cb => cb.checked);
+    if (anyChildChecked) {
+      const parentCb = container.querySelector(`.parent-checkbox[data-parent="${key}"]`);
+      if (parentCb) {
+        parentCb.checked = true;
+        const allChecked = Array.from(childCbs).every(cb => cb.checked);
+        parentCb.indeterminate = !allChecked;
+      }
+    }
+  }
+
+  updateSelectAllState(container, inputName);
+}
+
 function renderTabCheckboxesInternal(container, inputName) {
   let html = '';
   for (const [key, info] of Object.entries(TAB_STRUCTURE)) {
@@ -1100,14 +1147,51 @@ function renderTabCheckboxesInternal(container, inputName) {
       </div>`;
     
     if (hasSubtabs) {
-      html += `<div class="tab-picker-children" data-parent="${key}">`;
+      let inlineGroup = null;
       info.subtabs.forEach(sub => {
-        html += `<label class="btn btn-flat btn-success btn-sm btn-checkable tab-picker-child-btn">
-          <input type="checkbox" name="${inputName}" value="${key}.${sub.key}" class="child-checkbox" data-parent="${key}">
-          ${sub.label}
-        </label>`;
+        const hasChildren = sub.children && sub.children.length > 0;
+        const subtabValue = `${key}.${sub.key}`;
+
+        if (hasChildren) {
+          // Flush any pending inline group before a sub-section
+          if (inlineGroup) {
+            inlineGroup += `</div>`;
+            html += inlineGroup;
+            inlineGroup = null;
+          }
+          // Subtab with 3rd-level children: render as a sub-section
+          html += `<div class="tab-picker-subtab-group" data-subtab-key="${subtabValue}">
+            <div class="tab-picker-subtab-header" data-parent="${key}">
+              <span class="tab-picker-subtab-label">${sub.label}</span>
+              <label class="btn btn-flat btn-success btn-sm btn-checkable tab-picker-subtab-btn">
+                <input type="checkbox" name="${inputName}" value="${subtabValue}" class="child-checkbox" data-parent="${key}" data-child="${sub.key}">
+                All
+              </label>
+            </div>
+            <div class="tab-picker-grandchildren" data-parent="${key}" data-child="${sub.key}">`;
+          sub.children.forEach(gc => {
+            html += `<label class="btn btn-flat btn-success btn-sm btn-checkable tab-picker-grandchild-btn">
+              <input type="checkbox" name="${inputName}" value="${subtabValue}.${gc.key}" class="grandchild-checkbox" data-parent="${key}" data-child="${sub.key}">
+              ${gc.label}
+            </label>`;
+          });
+          html += `</div></div>`;
+        } else {
+          // Subtab without children: collect into inline group
+          if (!inlineGroup) {
+            inlineGroup = `<div class="tab-picker-children-inline" data-parent="${key}">`;
+          }
+          inlineGroup += `<label class="btn btn-flat btn-success btn-sm btn-checkable tab-picker-child-btn">
+              <input type="checkbox" name="${inputName}" value="${subtabValue}" class="child-checkbox" data-parent="${key}">
+              ${sub.label}
+            </label>`;
+        }
       });
-      html += `</div>`;
+      // Close any open inline group
+      if (inlineGroup) {
+        inlineGroup += `</div>`;
+        html += inlineGroup;
+      }
     }
     html += `</div>`;
   }
@@ -1116,33 +1200,68 @@ function renderTabCheckboxesInternal(container, inputName) {
 }
 
 function wireTabCheckboxBehavior(container, inputName) {
-  const parentCheckboxes = container.querySelectorAll('.parent-checkbox');
-  
-  parentCheckboxes.forEach(parentCheckbox => {
-    const parentKey = parentCheckbox.dataset.parent;
-    const childCheckboxes = container.querySelectorAll(`.child-checkbox[data-parent="${parentKey}"]`);
-    
-    parentCheckbox.addEventListener('change', (e) => {
-      const isChecked = e.target.checked;
-      childCheckboxes.forEach(child => child.checked = isChecked);
+  // Parent (section) checkbox → toggles all child + grandchild checkboxes
+  container.querySelectorAll('.parent-checkbox').forEach(parentCb => {
+    const parentKey = parentCb.dataset.parent;
+    parentCb.addEventListener('change', () => {
+      const isChecked = parentCb.checked;
+      parentCb.indeterminate = false;
+      container.querySelectorAll(`.child-checkbox[data-parent="${parentKey}"]`).forEach(c => { c.checked = isChecked; c.indeterminate = false; });
+      container.querySelectorAll(`.grandchild-checkbox[data-parent="${parentKey}"]`).forEach(gc => gc.checked = isChecked);
       updateSelectAllState(container, inputName);
     });
   });
-  
-  const childCheckboxes = container.querySelectorAll('.child-checkbox');
-  childCheckboxes.forEach(child => {
-    child.addEventListener('change', () => {
-      const parentKey = child.dataset.parent;
-      const parentCb = container.querySelector(`.parent-checkbox[data-parent="${parentKey}"]`);
-      const siblings = container.querySelectorAll(`.child-checkbox[data-parent="${parentKey}"]`);
-      if (parentCb && siblings.length > 0) {
-        const checkedCount = Array.from(siblings).filter(s => s.checked).length;
-        parentCb.checked = checkedCount > 0;
-        parentCb.indeterminate = checkedCount > 0 && checkedCount < siblings.length;
+
+  // Child (subtab) checkbox → toggles grandchild checkboxes under it, updates parent
+  container.querySelectorAll('.child-checkbox').forEach(childCb => {
+    childCb.addEventListener('change', () => {
+      const parentKey = childCb.dataset.parent;
+      const childKey = childCb.dataset.child;
+      const isChecked = childCb.checked;
+      childCb.indeterminate = false;
+
+      // Toggle grandchildren if this subtab has them
+      if (childKey) {
+        container.querySelectorAll(`.grandchild-checkbox[data-parent="${parentKey}"][data-child="${childKey}"]`)
+          .forEach(gc => gc.checked = isChecked);
       }
+
+      // Update parent state
+      updateParentState(container, parentKey);
       updateSelectAllState(container, inputName);
     });
   });
+
+  // Grandchild (sub-page) checkbox → updates child + parent states
+  container.querySelectorAll('.grandchild-checkbox').forEach(gcCb => {
+    gcCb.addEventListener('change', () => {
+      const parentKey = gcCb.dataset.parent;
+      const childKey = gcCb.dataset.child;
+
+      // Update child (subtab) checkbox state
+      const childCb = container.querySelector(`.child-checkbox[data-parent="${parentKey}"][data-child="${childKey}"]`);
+      const siblings = container.querySelectorAll(`.grandchild-checkbox[data-parent="${parentKey}"][data-child="${childKey}"]`);
+      if (childCb && siblings.length > 0) {
+        const checkedCount = Array.from(siblings).filter(s => s.checked).length;
+        childCb.checked = checkedCount > 0;
+        childCb.indeterminate = checkedCount > 0 && checkedCount < siblings.length;
+      }
+
+      // Update parent state
+      updateParentState(container, parentKey);
+      updateSelectAllState(container, inputName);
+    });
+  });
+}
+
+function updateParentState(container, parentKey) {
+  const parentCb = container.querySelector(`.parent-checkbox[data-parent="${parentKey}"]`);
+  if (!parentCb) return;
+  const allChildren = container.querySelectorAll(`.child-checkbox[data-parent="${parentKey}"]`);
+  const checkedChildren = Array.from(allChildren).filter(c => c.checked);
+  const anyIndeterminate = Array.from(allChildren).some(c => c.indeterminate);
+  parentCb.checked = checkedChildren.length > 0;
+  parentCb.indeterminate = (checkedChildren.length > 0 && checkedChildren.length < allChildren.length) || anyIndeterminate;
 }
 
 function updateSelectAllState(container, inputName) {
@@ -1156,11 +1275,12 @@ function updateSelectAllState(container, inputName) {
   
   const allParentCheckboxes = container.querySelectorAll('.parent-checkbox');
   const checkedParents = Array.from(allParentCheckboxes).filter(cb => cb.checked);
+  const anyParentIndeterminate = Array.from(allParentCheckboxes).some(cb => cb.indeterminate);
   
   if (checkedParents.length === 0) {
     selectAllCheckbox.checked = false;
     selectAllCheckbox.indeterminate = false;
-  } else if (checkedParents.length === allParentCheckboxes.length) {
+  } else if (checkedParents.length === allParentCheckboxes.length && !anyParentIndeterminate) {
     selectAllCheckbox.checked = true;
     selectAllCheckbox.indeterminate = false;
   } else {
@@ -1181,9 +1301,38 @@ function collectAllowedTabs(inputName) {
       continue;
     }
 
-    const childCbs = document.querySelectorAll(`input[name="${inputName}"].child-checkbox[data-parent="${key}"]`);
-    const checkedChildren = Array.from(childCbs).filter(cb => cb.checked);
-    checkedChildren.forEach(cb => tabs.push(cb.value));
+    // Collect from subtabs
+    info.subtabs.forEach(sub => {
+      const subtabValue = `${key}.${sub.key}`;
+      const childCb = document.querySelector(`input[name="${inputName}"].child-checkbox[data-parent="${key}"][data-child="${sub.key}"]`);
+      
+      if (!childCb) {
+        // Simple child (no data-child attribute) — check by value
+        const simpleCb = document.querySelector(`input[name="${inputName}"].child-checkbox[value="${subtabValue}"]`);
+        if (simpleCb && simpleCb.checked) tabs.push(subtabValue);
+        return;
+      }
+
+      if (!childCb.checked) return;
+
+      const hasChildren = sub.children && sub.children.length > 0;
+      if (!hasChildren) {
+        tabs.push(subtabValue);
+        return;
+      }
+
+      // Check if ALL grandchildren are checked → push subtab key (grants all)
+      const gcCbs = document.querySelectorAll(`input[name="${inputName}"].grandchild-checkbox[data-parent="${key}"][data-child="${sub.key}"]`);
+      const checkedGc = Array.from(gcCbs).filter(gc => gc.checked);
+      
+      if (checkedGc.length === gcCbs.length) {
+        // All checked → store parent key to grant blanket access
+        tabs.push(subtabValue);
+      } else {
+        // Only some checked → store individual grandchild keys
+        checkedGc.forEach(gc => tabs.push(gc.value));
+      }
+    });
   }
   return tabs;
 }

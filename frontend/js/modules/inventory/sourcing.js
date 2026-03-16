@@ -221,8 +221,8 @@ function getTabFromPath(path) {
  * Update tab UI to reflect current state
  */
 function updateTabUI() {
-  document.querySelectorAll('.sub-tab-button').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.tab === state.activeTab);
+  document.querySelectorAll('.sourcing-sub-nav .nui-tab[data-tab]').forEach(btn => {
+    btn.classList.toggle('is-active', btn.dataset.tab === state.activeTab);
   });
   document.querySelectorAll('.sourcing-tab-panel').forEach(panel => {
     panel.classList.toggle('active', panel.id === `panel-${state.activeTab}`);
@@ -329,7 +329,7 @@ export function cleanup() {
 
 function setupEventListeners() {
   // Tab switching - now uses links with SPA navigation
-  document.querySelectorAll('.sub-tab-button').forEach(link => {
+  document.querySelectorAll('.sourcing-sub-nav .nui-tab[data-tab]').forEach(link => {
     link.addEventListener('click', (e) => {
       e.preventDefault();  // Prevent default navigation
       const tabId = link.dataset.tab;
@@ -447,8 +447,8 @@ async function switchTab(tabId) {
     window.history.pushState({}, '', newPath);
     
     // Update UI
-    document.querySelectorAll('.sub-tab-button').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.tab === tabId);
+    document.querySelectorAll('.sourcing-sub-nav .nui-tab[data-tab]').forEach(btn => {
+      btn.classList.toggle('is-active', btn.dataset.tab === tabId);
     });
     document.querySelectorAll('.sourcing-tab-panel').forEach(panel => {
       panel.classList.toggle('active', panel.id === `panel-${tabId}`);

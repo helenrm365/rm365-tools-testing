@@ -21,7 +21,7 @@ let currentSortDirection = 'asc'; // 'asc' or 'desc'
 /**
  * Initialize NL magento page
  */
-export async function initNLMagentoData(path = '/magentodata/nl-magento') {
+export async function initNLMagentoData(path = '/sales/nl') {
   showToast('Initializing Netherlands Magento...', 'info');
   
   // Reset state for new page load
@@ -50,7 +50,7 @@ export async function initNLMagentoData(path = '/magentodata/nl-magento') {
     customRangeLabel = '';
     console.log('[NL Magento] Base URL - defaulting to full data view');
     // Silently update URL to include /full-data for clarity
-    history.replaceState({ path: '/magentodata/nl-magento/full-data' }, '', '/magentodata/nl-magento/full-data');
+    history.replaceState({ path: '/sales/nl/full-data' }, '', '/sales/nl/full-data');
   }
   
   // Wait for DOM to be ready before setting up event listeners
@@ -96,7 +96,7 @@ export async function initNLMagentoData(path = '/magentodata/nl-magento') {
       showToast('No custom range data available. Loading full data instead.', 'warning');
       viewMode = 'full';
       customRangeLabel = '';
-      history.replaceState({ path: '/magentodata/nl-magento/full-data' }, '', '/magentodata/nl-magento/full-data');
+      history.replaceState({ path: '/sales/nl/full-data' }, '', '/sales/nl/full-data');
       updateViewButtons();
       await loadMagentoData();
     }
@@ -297,11 +297,11 @@ function setupEventListeners() {
 
   // View toggle buttons
   attachListener('viewFullBtn', () => {
-    window.navigate('/magentodata/nl-magento/full-data');
+    window.navigate('/sales/nl/full-data');
   });
   
   attachListener('viewAggregatedBtn', () => {
-    window.navigate('/magentodata/nl-magento/6-month');
+    window.navigate('/sales/nl/6-month');
   });
 
   // Sync Now button
@@ -502,7 +502,7 @@ function setupEventListeners() {
   window.addEventListener('customRangeApplied', (e) => {
     if (e.detail.region === 'nl') {
       // Navigate to the custom range URL
-      window.navigate('/magentodata/nl-magento/custom-range');
+      window.navigate('/sales/nl/custom-range');
     }
   });
 }

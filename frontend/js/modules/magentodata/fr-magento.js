@@ -25,7 +25,7 @@ let currentSortDirection = 'asc'; // 'asc' or 'desc'
 /**
  * Initialize FR magento page
  */
-export async function initFRMagentoData(path = '/magentodata/fr-magento') {
+export async function initFRMagentoData(path = '/sales/fr') {
   showToast('Initializing France Magento...', 'info');
   
   // Reset state for new page load
@@ -51,7 +51,7 @@ export async function initFRMagentoData(path = '/magentodata/fr-magento') {
     customRangeLabel = '';
     console.log('[FR Magento] Base URL - defaulting to full data view');
     // Silently update URL to include /full-data for clarity
-    history.replaceState({ path: '/magentodata/fr-magento/full-data' }, '', '/magentodata/fr-magento/full-data');
+    history.replaceState({ path: '/sales/fr/full-data' }, '', '/sales/fr/full-data');
   }
   
   // Wait for DOM to be ready before setting up event listeners
@@ -97,7 +97,7 @@ export async function initFRMagentoData(path = '/magentodata/fr-magento') {
       showToast('No custom range data available. Loading full data instead.', 'warning');
       viewMode = 'full';
       customRangeLabel = '';
-      history.replaceState({ path: '/magentodata/fr-magento/full-data' }, '', '/magentodata/fr-magento/full-data');
+      history.replaceState({ path: '/sales/fr/full-data' }, '', '/sales/fr/full-data');
       updateViewButtons();
       await loadMagentoData();
     }
@@ -318,9 +318,9 @@ function setupEventListeners() {
   attachListener('viewFullBtn', () => {
     console.log('🔥🔥🔥 [FR Magento] Full Data button CLICKED! 🔥🔥🔥');
     if (window.navigate) {
-      window.navigate('/magentodata/fr-magento/full-data');
+      window.navigate('/sales/fr/full-data');
     } else {
-      window.location.href = '/magentodata/fr-magento/full-data';
+      window.location.href = '/sales/fr/full-data';
     }
   });
   
@@ -328,9 +328,9 @@ function setupEventListeners() {
   attachListener('viewAggregatedBtn', () => {
     console.log('🔥🔥🔥 [FR Magento] Aggregated Data button CLICKED! 🔥🔥🔥');
     if (window.navigate) {
-      window.navigate('/magentodata/fr-magento/6-month');
+      window.navigate('/sales/fr/6-month');
     } else {
-      window.location.href = '/magentodata/fr-magento/6-month';
+      window.location.href = '/sales/fr/6-month';
     }
   });
   
@@ -534,7 +534,7 @@ function setupEventListeners() {
   window.addEventListener('customRangeApplied', (e) => {
     if (e.detail.region === 'fr') {
       // Navigate to the custom range URL
-      window.navigate('/magentodata/fr-magento/custom-range');
+      window.navigate('/sales/fr/custom-range');
     }
   });
 }

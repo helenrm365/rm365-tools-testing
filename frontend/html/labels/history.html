@@ -11,14 +11,30 @@
 
   <!-- Navigation Tabs -->
   <nav class="nui-tabs">
-    <button class="nui-tab" onclick="location.href='/labels/generator'">
+    <button class="nui-tab" onclick="location.href='/inventory/management/dashboard'">
+      <i class="fas fa-boxes"></i>
+      <span>Management</span>
+    </button>
+    <button class="nui-tab" onclick="location.href='/inventory/sourcing/analysis-dashboard'">
+      <i class="fas fa-truck-loading"></i>
+      <span>Product Sourcing</span>
+    </button>
+    <button class="nui-tab is-active" onclick="location.href='/inventory/labels/generator'">
+      <i class="fas fa-print"></i>
+      <span>Labels</span>
+    </button>
+  </nav>
+
+  <!-- Labels Sub-navigation -->
+  <nav class="nui-tabs">
+    <a href="/inventory/labels/generator" class="nui-tab" data-nav>
       <i class="fas fa-barcode"></i>
       <span>Generator</span>
-    </button>
-    <button class="nui-tab is-active" onclick="location.href='/labels/history'">
+    </a>
+    <a href="/inventory/labels/history" class="nui-tab is-active" data-nav>
       <i class="fas fa-history"></i>
       <span>History</span>
-    </button>
+    </a>
   </nav>
 
   <!-- Main Content -->

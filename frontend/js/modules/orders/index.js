@@ -17,7 +17,7 @@ export async function init(path) {
 
   const cacheBust = `?t=${Date.now()}`;
 
-  if (path === '/orders/scanning-logs-hub') {
+  if (path === '/operations/scanning-logs-hub') {
     const mod = await import(`./scanning-logs-dashboard.js${cacheBust}`);
     await mod.init();
     currentSubModule = mod;

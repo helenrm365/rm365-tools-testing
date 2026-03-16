@@ -436,7 +436,7 @@ function showMagentoDataInitError() {
       <div class="error-body">
         <p>The label generator requires magento data tables to be set up first. This provides pricing information and sales history for your products.</p>
         <div class="error-actions">
-          <button class="btn btn-solid btn-success" onclick="window.location.href='/magentodata'">
+          <button class="btn btn-solid btn-success" onclick="window.location.href='/sales/all'">
             <i class="fas fa-database"></i>
             Go to Magento Data Module
           </button>

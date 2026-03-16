@@ -88,7 +88,7 @@
         </div>
       </div>
 
-      <div class="stat-card" data-module="labels">
+      <div class="stat-card" data-module="inventory.labels" data-path="/inventory/labels/generator">
         <div class="stat-icon labels">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
@@ -126,7 +126,7 @@
               </svg>
               <span>Process Order</span>
             </button>
-            <button class="btn btn-tile quick-action-btn" data-action="print-label" data-path="/labels/generator">
+            <button class="btn btn-tile quick-action-btn" data-action="print-label" data-path="/inventory/labels/generator">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="6 9 6 2 18 2 18 9"></polyline>
                 <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
@@ -140,15 +140,15 @@
               </svg>
               <span>Inventory</span>
             </button>
-            <button class="btn btn-tile quick-action-btn" data-action="magento-data" data-path="/magentodata">
+            <button class="btn btn-tile quick-action-btn" data-action="sales-data" data-path="/sales/all">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="18" y1="20" x2="18" y2="10"></line>
                 <line x1="12" y1="20" x2="12" y2="4"></line>
                 <line x1="6" y1="20" x2="6" y2="14"></line>
               </svg>
-              <span>Magento Data</span>
+              <span>Sales Data</span>
             </button>
-            <button class="btn btn-tile quick-action-btn" data-action="user-management" data-path="/usermanagement">
+            <button class="btn btn-tile quick-action-btn" data-action="user-management" data-path="/system/access-control">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
                 <circle cx="9" cy="7" r="4"></circle>
@@ -206,7 +206,7 @@
             </div>
             <div class="status-item">
               <div class="status-indicator" id="statusMagento"></div>
-              <span class="status-name">Magento Sync</span>
+              <span class="status-name">Sales Data Sync</span>
               <span class="status-value" id="statusMagentoText">Checking...</span>
             </div>
           </div>
@@ -229,7 +229,7 @@
               </div>
               <span class="module-nav-label">Attendance</span>
             </a>
-            <a href="/labels" class="module-nav-card" data-nav data-module="labels">
+            <a href="/inventory/labels/generator" class="module-nav-card" data-nav data-module="inventory.labels">
               <div class="module-nav-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
@@ -238,7 +238,7 @@
               </div>
               <span class="module-nav-label">Labels</span>
             </a>
-            <a href="/magentodata" class="module-nav-card" data-nav data-module="magentodata">
+            <a href="/sales/all" class="module-nav-card" data-nav data-module="sales">
               <div class="module-nav-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <line x1="18" y1="20" x2="18" y2="10"></line>
@@ -246,7 +246,7 @@
                   <line x1="6" y1="20" x2="6" y2="14"></line>
                 </svg>
               </div>
-              <span class="module-nav-label">Magento Data</span>
+              <span class="module-nav-label">Sales Data</span>
             </a>
             <a href="/inventory" class="module-nav-card" data-nav data-module="inventory">
               <div class="module-nav-icon">
@@ -266,7 +266,7 @@
               </div>
               <span class="module-nav-label">Orders</span>
             </a>
-            <a href="/usermanagement" class="module-nav-card" data-nav data-module="usermanagement">
+            <a href="/system/access-control" class="module-nav-card" data-nav data-module="system">
               <div class="module-nav-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>

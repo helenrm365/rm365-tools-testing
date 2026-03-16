@@ -11,13 +11,17 @@
 
   <!-- Navigation Tabs -->
   <nav class="nui-tabs">
-    <button class="nui-tab" onclick="location.href='/inventory/management/uk-birmingham'">
+    <button class="nui-tab" onclick="location.href='/inventory/management/dashboard'">
       <i class="fas fa-boxes"></i>
       <span>Management</span>
     </button>
-    <button class="nui-tab is-active" onclick="location.href='/inventory/sourcing'">
+    <button class="nui-tab is-active" onclick="location.href='/inventory/sourcing/analysis-dashboard'">
       <i class="fas fa-truck-loading"></i>
       <span>Product Sourcing</span>
+    </button>
+    <button class="nui-tab" onclick="location.href='/inventory/labels/generator'">
+      <i class="fas fa-print"></i>
+      <span>Labels</span>
     </button>
   </nav>
 
@@ -25,24 +29,24 @@
   <div class="sourcing-content">
     
     <!-- ===== Sub-Navigation Tabs ===== -->
-    <div class="sourcing-sub-tabs">
-      <a href="/inventory/sourcing/analysis-dashboard" class="sub-tab-button" data-tab="dashboard">
+    <nav class="nui-tabs sourcing-sub-nav">
+      <a href="/inventory/sourcing/analysis-dashboard" class="nui-tab" data-tab="dashboard">
         <i class="fas fa-chart-pie"></i>
         <span>Analysis Dashboard</span>
       </a>
-      <a href="/inventory/sourcing/supplier-matrix" class="sub-tab-button" data-tab="matrix">
+      <a href="/inventory/sourcing/supplier-matrix" class="nui-tab" data-tab="matrix">
         <i class="fas fa-table"></i>
         <span>Supplier Matrix</span>
       </a>
-      <a href="/inventory/sourcing/suppliers" class="sub-tab-button" data-tab="suppliers">
+      <a href="/inventory/sourcing/suppliers" class="nui-tab" data-tab="suppliers">
         <i class="fas fa-users"></i>
         <span>Suppliers</span>
       </a>
-      <a href="/inventory/sourcing/fx-rates" class="sub-tab-button" data-tab="fx-rates">
+      <a href="/inventory/sourcing/fx-rates" class="nui-tab" data-tab="fx-rates">
         <i class="fas fa-exchange-alt"></i>
         <span>FX Rates</span>
       </a>
-    </div>
+    </nav>
 
     <!-- ===== Tab Content Panels ===== -->
     
@@ -118,7 +122,7 @@
               <option value="healthy">Healthy (≥20%)</option>
               <option value="warning">Warning (0-20%)</option>
               <option value="loss">Loss (&lt;0%)</option>
-              <option value="no_magento_price">No Magento Price</option>
+              <option value="no_magento_price">No Sales Price</option>
               <option value="no_data">No Supplier Data</option>
             </select>
           </div>
@@ -133,7 +137,7 @@
               <th class="col-sku sticky-col sortable">SKU</th>
               <th class="col-product sticky-col-2 sortable">Product</th>
               <th class="col-status sortable">Status</th>
-              <th class="col-magento sortable">Magento Price</th>
+              <th class="col-magento sortable">Sales Price</th>
               <th class="col-best-price sortable">Best Cost</th>
               <th class="col-winner sortable">Best Supplier</th>
               <th class="col-margin sortable">Margin %</th>

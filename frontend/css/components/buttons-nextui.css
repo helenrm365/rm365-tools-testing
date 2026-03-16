@@ -396,7 +396,7 @@ html.dark-mode {
 
 /* Animated checkmark via ::before */
 .btn-checkable::before {
-  content: '\2713';
+  content: '';
   font-weight: 700;
   font-size: 0.85em;
   display: inline-block;
@@ -409,9 +409,29 @@ html.dark-mode {
 
 .btn-checkable.active::before,
 .btn-checkable:has(input:checked)::before {
+  content: '\2713';
   max-width: 1em;
   opacity: 1;
   margin-right: 0;
+}
+
+/* Indeterminate state: show a dash instead of checkmark */
+.btn-checkable:has(input:indeterminate)::before {
+  content: '\2212';
+  max-width: 1em;
+  opacity: 1;
+  margin-right: 0;
+}
+
+.btn-checkable.btn-flat:has(input:indeterminate) {
+  background: color-mix(in srgb, var(--_c) 50%, transparent);
+  color: #fff;
+}
+
+.btn-checkable.btn-faded:has(input:indeterminate) {
+  background: color-mix(in srgb, var(--_c) 50%, transparent);
+  border-color: color-mix(in srgb, var(--_c) 50%, transparent);
+  color: #fff;
 }
 
 /* --- 8a. Standalone checked fills (mirrors .active behaviour) --- */

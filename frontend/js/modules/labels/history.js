@@ -132,7 +132,7 @@ async function loadHistory() {
         <div class="empty-state">
           <div class="empty-state-icon">📋</div>
           <h3>No Label Jobs Found</h3>
-          <p>Create your first label job in the <a href="/labels/generator">Generator</a>.</p>
+          <p>Create your first label job in the <a href="/inventory/labels/generator">Generator</a>.</p>
         </div>
       `;
       // Hide bulk actions when no jobs
@@ -578,7 +578,7 @@ async function handleDeleteAll() {
       <div class="empty-state">
         <div class="empty-state-icon">📋</div>
         <h3>No Label Jobs Found</h3>
-        <p>Create your first label job in the <a href="/labels/generator">Generator</a>.</p>
+        <p>Create your first label job in the <a href="/inventory/labels/generator">Generator</a>.</p>
       </div>
     `;
     return;
