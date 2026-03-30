@@ -682,11 +682,7 @@ class LabelsRepo:
         logger.info("Merging identifier products...")
         inv_repo.merge_identifier_products()
         
-        # 3. Ensure all products have item IDs (barcodes)
-        logger.info("Ensuring all products have item IDs...")
-        inv_repo.ensure_all_products_have_item_ids()
-        
-        # 4. Update variant statuses (same as inventory management)
+        # 3. Update variant statuses (same as inventory management)
         logger.info("Updating variant statuses...")
         inv_repo.update_variant_statuses()
         

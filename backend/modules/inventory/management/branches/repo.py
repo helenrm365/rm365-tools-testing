@@ -7,7 +7,6 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime
 import psycopg2
 import logging
-import hashlib
 import json
 
 from core.db import (
@@ -28,14 +27,6 @@ class BranchInventoryRepo:
         self.branch_id = branch_id
         self.table_name = table_name
         self._last_conn_type = None
-    
-    @staticmethod
-    def generate_item_id(sku: str) -> str:
-        """Generate a unique item ID in 18-digit format"""
-        hash_obj = hashlib.sha256(sku.encode())
-        hash_int = int(hash_obj.hexdigest(), 16)
-        item_id = str(700000000000000000 + (hash_int % 100000000000000000))
-        return item_id
     
     def get_metadata_connection(self):
         """Get connection for inventory metadata"""
@@ -170,7 +161,10 @@ class BranchInventoryRepo:
             self.return_connection(conn)
     
     def save_inventory_metadata(self, metadata: Dict[str, Any]) -> Dict[str, Any]:
-        """Save or update inventory metadata for the branch"""
+        """Save or update inventory metadata for the branch.
+        If item_id is provided, also updates the central inventory_metadata table
+        so the change is reflected across all branches.
+        """
         conn = self.get_metadata_connection()
         try:
             cursor = conn.cursor()
@@ -180,8 +174,15 @@ class BranchInventoryRepo:
                 raise ValueError("SKU is required")
             
             item_id = metadata.get('item_id')
-            if not item_id:
-                item_id = self.generate_item_id(sku)
+            
+            # If item_id is provided, also update the central inventory_metadata table
+            # so all branches see the same item_id for this SKU
+            if item_id:
+                cursor.execute("""
+                    UPDATE inventory_metadata
+                    SET item_id = %s, updated_at = CURRENT_TIMESTAMP
+                    WHERE sku = %s
+                """, (item_id, sku))
             
             cursor.execute(f"""
                 INSERT INTO {self.table_name} (
@@ -190,7 +191,7 @@ class BranchInventoryRepo:
                     status, uk_fr_preorder
                 ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (sku) DO UPDATE SET
-                    item_id = COALESCE({self.table_name}.item_id, EXCLUDED.item_id),
+                    item_id = COALESCE(EXCLUDED.item_id, {self.table_name}.item_id),
                     location = EXCLUDED.location,
                     date = EXCLUDED.date,
                     qty_ordered_jason = EXCLUDED.qty_ordered_jason,

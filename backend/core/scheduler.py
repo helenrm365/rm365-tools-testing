@@ -179,12 +179,7 @@ def sync_inventory_metadata_nightly():
             merge_result = repo.merge_identifier_products()
             logger.info(f"  ✅ Merged/deleted {merge_result.get('deleted', 0)} identifier products")
             
-            # Step 2c: Generate item IDs for products without them
-            logger.info("  🏷️ Generating item IDs for products without barcodes...")
-            item_id_result = repo.ensure_all_products_have_item_ids()
-            logger.info(f"  ✅ Generated {item_id_result.get('ids_generated', 0)} item IDs")
-            
-            # Step 2d: Update variant_statuses for all products
+            # Step 2c: Update variant_statuses for all products
             logger.info("  🔄 Updating variant_statuses for all products...")
             repo.update_variant_statuses()
             logger.info(f"  ✅ Updated variant statuses")

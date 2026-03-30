@@ -88,27 +88,7 @@ def test_individual_operations():
         print(f"   Error: {e}")
         print(f"   Time: {time.time() - start:.3f}s")
     
-    # Test merge_identifier_products
-    print("\n3. Testing merge_identifier_products()...")
-    start = time.time()
-    try:
-        repo.merge_identifier_products()
-        print(f"   Time: {time.time() - start:.3f}s")
-    except Exception as e:
-        print(f"   Error: {e}")
-        print(f"   Time: {time.time() - start:.3f}s")
-    
-    # Test ensure_all_products_have_item_ids
-    print("\n4. Testing ensure_all_products_have_item_ids()...")
-    start = time.time()
-    try:
-        repo.ensure_all_products_have_item_ids()
-        print(f"   Time: {time.time() - start:.3f}s")
-    except Exception as e:
-        print(f"   Error: {e}")
-        print(f"   Time: {time.time() - start:.3f}s")
-    
-    print("\n" + "=" * 60)
+    # Test merge_identifier_products\n    print(\"\\n3. Testing merge_identifier_products()...\")\n    start = time.time()\n    try:\n        repo.merge_identifier_products()\n        print(f\"   Time: {time.time() - start:.3f}s\")\n    except Exception as e:\n        print(f\"   Error: {e}\")\n        print(f\"   Time: {time.time() - start:.3f}s\")\n    \n    print(\"\\n\" + \"=\" * 60)
     print("Individual Operations Test Complete")
     print("=" * 60)
 

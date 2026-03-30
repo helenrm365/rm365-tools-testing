@@ -69,34 +69,6 @@ def test_sku_merging_logic():
     return True
 
 
-def test_item_id_generation():
-    """Test that item IDs are generated consistently."""
-    print("\n" + "=" * 60)
-    print("Testing Item ID Generation")
-    print("=" * 60)
-    
-    from modules.inventory.management.repo import InventoryManagementRepo
-    
-    # Test that same SKU always generates same item ID
-    test_skus = ["TEST-001", "PRODUCT-ABC", "SKU-WITH-DASHES-123"]
-    
-    for sku in test_skus:
-        id1 = InventoryManagementRepo.generate_item_id(sku)
-        id2 = InventoryManagementRepo.generate_item_id(sku)
-        
-        assert id1 == id2, f"Item ID not consistent for SKU {sku}"
-        assert len(id1) == 18, f"Item ID length should be 18, got {len(id1)}"
-        assert id1.startswith('7'), f"Item ID should start with 7, got {id1}"
-        print(f"   ✅ '{sku}' → {id1} (consistent, 18 digits, starts with 7)")
-    
-    # Test that different SKUs generate different IDs
-    ids = [InventoryManagementRepo.generate_item_id(sku) for sku in test_skus]
-    assert len(ids) == len(set(ids)), "Different SKUs should generate different IDs"
-    print(f"   ✅ All {len(test_skus)} SKUs generated unique IDs")
-    
-    return True
-
-
 def test_data_integrity_after_sync():
     """Test that data synced from Magento is correct."""
     print("\n" + "=" * 60)
@@ -229,14 +201,8 @@ def test_merge_then_ensure_ids_sequence():
     print(f"   Deleted (merged): {merge_stats.get('deleted', 0)}")
     print(f"   Renamed to base: {merge_stats.get('renamed', 0)}")
     
-    # Step 2: Ensure IDs
-    print("\n2. Running ensure_all_products_have_item_ids()...")
-    id_stats = repo.ensure_all_products_have_item_ids()
-    print(f"   Generated new IDs: {id_stats.get('generated', 0)}")
-    print(f"   Already had IDs: {id_stats.get('already_have_id', 0)}")
-    
-    # Step 3: Verify integrity
-    print("\n3. Verifying final data integrity...")
+    # Step 2: Verify integrity
+    print("\n2. Verifying final data integrity...")
     metadata = repo.load_inventory_metadata()
     
     import re
@@ -247,20 +213,18 @@ def test_merge_then_ensure_ids_sequence():
     assert len(remaining_suffixes) == 0, f"Found remaining suffixes: {remaining_suffixes[:5]}"
     print(f"   ✅ No identifier suffixes remaining")
     
-    # Check all have item IDs
-    missing_ids = [r['sku'] for r in metadata if not r.get('item_id')]
-    assert len(missing_ids) == 0, f"Found SKUs without item IDs: {missing_ids[:5]}"
-    print(f"   ✅ All {len(metadata)} products have item IDs")
+    # Check item IDs that exist are unique (item_id is now manually managed)
+    item_ids = [r['item_id'] for r in metadata if r.get('item_id')]
+    if item_ids:
+        assert len(item_ids) == len(set(item_ids)), "Duplicate item IDs found"
+        print(f"   ✅ All {len(item_ids)} assigned item IDs are unique")
+    else:
+        print(f"   ℹ️ No item IDs assigned yet (item_id is now manually managed)")
     
     # Check no duplicate SKUs
     skus = [r['sku'] for r in metadata]
     assert len(skus) == len(set(skus)), "Duplicate SKUs found"
     print(f"   ✅ All SKUs are unique")
-    
-    # Check no duplicate item IDs
-    item_ids = [r['item_id'] for r in metadata]
-    assert len(item_ids) == len(set(item_ids)), "Duplicate item IDs found"
-    print(f"   ✅ All item IDs are unique")
     
     print(f"\n   ✅ FINAL: {len(metadata)} products with correct data integrity")
     
@@ -274,7 +238,6 @@ if __name__ == "__main__":
     
     tests = [
         ("SKU Merging Logic", test_sku_merging_logic),
-        ("Item ID Generation", test_item_id_generation),
         ("Data Integrity After Sync", test_data_integrity_after_sync),
         ("Batch Sync Correctness", test_batch_sync_produces_correct_data),
         ("Full Merge → IDs Sequence", test_merge_then_ensure_ids_sequence),

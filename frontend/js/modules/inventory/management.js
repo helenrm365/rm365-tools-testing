@@ -82,14 +82,15 @@ const FIELD_CELL_MAP = {
   location: { index: 0, type: 'rich' },
   date: { index: 1, type: 'rich' },
   qty_ordered_jason: { index: 2, type: 'number' },
-  shelf_lt1: { index: 6, type: 'rich' },
-  shelf_lt1_qty: { index: 7, type: 'number' },
-  shelf_gt1: { index: 8, type: 'rich' },
-  shelf_gt1_qty: { index: 9, type: 'number' },
-  top_floor_expiry: { index: 11, type: 'rich' },
-  top_floor_total: { index: 12, type: 'number' },
-  status: { index: 14, type: 'rich' },
-  uk_fr_preorder: { index: 15, type: 'rich' },
+  item_id: { index: 4, type: 'rich' },
+  shelf_lt1: { index: 7, type: 'rich' },
+  shelf_lt1_qty: { index: 8, type: 'number' },
+  shelf_gt1: { index: 9, type: 'rich' },
+  shelf_gt1_qty: { index: 10, type: 'number' },
+  top_floor_expiry: { index: 12, type: 'rich' },
+  top_floor_total: { index: 13, type: 'number' },
+  status: { index: 15, type: 'rich' },
+  uk_fr_preorder: { index: 16, type: 'rich' },
 };
 
 const METADATA_FIELD_TYPES = Object.keys(FIELD_CELL_MAP).reduce((acc, field) => {
@@ -369,21 +370,22 @@ function setupColumnDropdown() {
     { value: 'col-1', text: 'Location', checked: true },
     { value: 'col-2', text: 'Date', checked: true },
     { value: 'col-3', text: 'Qty Ordered - Jason', checked: true },
-    { value: 'col-4', text: 'Product Name', checked: true },
-    { value: 'col-5', text: 'SKU', checked: true },
-    { value: 'col-6', text: 'UK 6M Data', checked: true },
-    { value: 'col-7', text: 'Shelf < 1', checked: true },
-    { value: 'col-8', text: 'Shelf < 1 Year Qty', checked: true },
-    { value: 'col-9', text: 'Shelf > 1', checked: true },
-    { value: 'col-10', text: 'Shelf > 1 Year Qty', checked: true },
-    { value: 'col-11', text: 'Shelf Total', checked: true },
-    { value: 'col-12', text: 'Top Floor Expiry Date', checked: true },
-    { value: 'col-13', text: 'Top Floor Total', checked: true },
-    { value: 'col-14', text: 'Total Stock', checked: true },
-    { value: 'col-15', text: 'Status', checked: true },
-    { value: 'col-16', text: 'UK + FR Pre Order', checked: true },
-    { value: 'col-17', text: 'FR 6M Data', checked: true },
-    { value: 'col-18', text: 'Variant Statuses', checked: true }
+    { value: 'col-4', text: 'SKU', checked: true },
+    { value: 'col-5', text: 'Item ID', checked: true },
+    { value: 'col-6', text: 'Product Name', checked: true },
+    { value: 'col-7', text: 'UK 6M Data', checked: true },
+    { value: 'col-8', text: 'Shelf < 1', checked: true },
+    { value: 'col-9', text: 'Shelf < 1 Year Qty', checked: true },
+    { value: 'col-10', text: 'Shelf > 1', checked: true },
+    { value: 'col-11', text: 'Shelf > 1 Year Qty', checked: true },
+    { value: 'col-12', text: 'Shelf Total', checked: true },
+    { value: 'col-13', text: 'Top Floor Expiry Date', checked: true },
+    { value: 'col-14', text: 'Top Floor Total', checked: true },
+    { value: 'col-15', text: 'Total Stock', checked: true },
+    { value: 'col-16', text: 'Status', checked: true },
+    { value: 'col-17', text: 'UK + FR Pre Order', checked: true },
+    { value: 'col-18', text: 'FR 6M Data', checked: true },
+    { value: 'col-19', text: 'Variant Statuses', checked: true }
   ];
   
   // Populate with options
@@ -503,7 +505,7 @@ function setupTable() {
   if (filteredItems.length === 0) {
     tableBody.innerHTML = `
       <tr>
-        <td colspan="16">
+        <td colspan="19">
           <div class="empty-state">
             <i class="fas fa-inbox"></i>
             <h3>No Products Found</h3>
@@ -641,6 +643,7 @@ function createTableRow(item, metadata) {
     <td contenteditable="true" data-field="date">${formatMultilineText(metadata.date)}</td>
     <td contenteditable="true" data-field="qty_ordered_jason">${metadata.qty_ordered_jason || 0}</td>
     <td class="wrap sku-cell"><strong>${item.sku || ''}</strong></td>
+    <td contenteditable="true" data-field="item_id">${item.item_id || ''}</td>
     <td class="wrap">${item.product_name || ''}</td>
     <td class="readonly-field" title="Populated from table">${metadata.uk_6m_data || ''}</td>
     <td contenteditable="true" data-field="shelf_lt1">${formatMultilineText(metadata.shelf_lt1)}</td>
@@ -656,6 +659,24 @@ function createTableRow(item, metadata) {
     <td class="readonly-field" title="Populated from table (FR + NL merged)">${metadata.fr_6m_data || ''}</td>
     <td class="readonly-field" title="Merged from all product variants">${discontinuedStatusDisplay}</td>
   `;
+
+  // Select all text on focus for item_id cell
+  const itemIdCell = row.querySelector('td[data-field="item_id"]');
+  if (itemIdCell) {
+    let selectOnMouseUp = false;
+    itemIdCell.addEventListener('focus', () => { selectOnMouseUp = true; });
+    itemIdCell.addEventListener('mouseup', (e) => {
+      if (selectOnMouseUp) {
+        e.preventDefault();
+        const range = document.createRange();
+        range.selectNodeContents(itemIdCell);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        selectOnMouseUp = false;
+      }
+    });
+  }
 
   // Add save functionality to editable cells
   const editableCells = row.querySelectorAll('td[contenteditable="true"]');
@@ -689,22 +710,22 @@ function createTableRow(item, metadata) {
 
 function updateRowCalculations(row) {
   const cells = row.children;
-  if (cells.length < 17) return;
+  if (cells.length < 18) return;
 
-  const shelf_lt1_qty = Number(cells[7].textContent.trim()) || 0;
-  const shelf_gt1_qty = Number(cells[9].textContent.trim()) || 0;
-  const top_floor_total = Number(cells[12].textContent.trim()) || 0;
+  const shelf_lt1_qty = Number(cells[8].textContent.trim()) || 0;
+  const shelf_gt1_qty = Number(cells[10].textContent.trim()) || 0;
+  const top_floor_total = Number(cells[13].textContent.trim()) || 0;
 
   // Calculate totals
   const shelfTotal = shelf_lt1_qty + shelf_gt1_qty;
   const totalStock = shelfTotal + top_floor_total;
 
-  cells[10].textContent = shelfTotal; // Shelf Total
-  cells[13].textContent = totalStock; // Total Stock
+  cells[11].textContent = shelfTotal; // Shelf Total
+  cells[14].textContent = totalStock; // Total Stock
   
   // Recalculate stock status
-  const uk_6m_data = Number(cells[5].textContent.trim()) || 0;
-  const fr_6m_data = Number(cells[16].textContent.trim()) || 0;
+  const uk_6m_data = Number(cells[6].textContent.trim()) || 0;
+  const fr_6m_data = Number(cells[17].textContent.trim()) || 0;
   const demand = uk_6m_data + fr_6m_data;
   
   let stockStatus = '';
@@ -723,14 +744,14 @@ function updateRowCalculations(row) {
     }
   }
   
-  // Update stock status cell (column 14)
-  cells[14].textContent = stockStatusDisplay;
-  cells[14].className = stockStatus ? `readonly-field stock-status-${stockStatus}` : 'readonly-field';
+  // Update stock status cell (column 15)
+  cells[15].textContent = stockStatusDisplay;
+  cells[15].className = stockStatus ? `readonly-field stock-status-${stockStatus}` : 'readonly-field';
 }
 
 async function saveRowData(row) {
   const cells = row.children;
-  if (cells.length < 17) return;
+  if (cells.length < 18) return;
 
   const sku = row.dataset.sku;
   if (!sku) {
@@ -755,16 +776,17 @@ async function saveRowData(row) {
     location: getTextWithLineBreaks(cells[0]),
     date: getTextWithLineBreaks(cells[1]) || null,
     qty_ordered_jason: Number(cells[2].textContent.trim()) || 0,
+    item_id: getTextWithLineBreaks(cells[4]) || null,
     // uk_6m_data: excluded - populated from table
-    shelf_lt1: getTextWithLineBreaks(cells[6]),
-    shelf_lt1_qty: Number(cells[7].textContent.trim()) || 0,
-    shelf_gt1: getTextWithLineBreaks(cells[8]),
-    shelf_gt1_qty: Number(cells[9].textContent.trim()) || 0,
-    top_floor_expiry: getTextWithLineBreaks(cells[11]) || null,
-    top_floor_total: Number(cells[12].textContent.trim()) || 0,
-    // status: cell[14] is CALCULATED stock status (not editable), don't save it
+    shelf_lt1: getTextWithLineBreaks(cells[7]),
+    shelf_lt1_qty: Number(cells[8].textContent.trim()) || 0,
+    shelf_gt1: getTextWithLineBreaks(cells[9]),
+    shelf_gt1_qty: Number(cells[10].textContent.trim()) || 0,
+    top_floor_expiry: getTextWithLineBreaks(cells[12]) || null,
+    top_floor_total: Number(cells[13].textContent.trim()) || 0,
+    // status: cell[15] is CALCULATED stock status (not editable), don't save it
     // The actual discontinued_status comes from live Magento database
-    uk_fr_preorder: getTextWithLineBreaks(cells[15]),
+    uk_fr_preorder: getTextWithLineBreaks(cells[16]),
     // fr_6m_data: excluded - populated from table
   };
 
@@ -1191,7 +1213,7 @@ function bindGlobalHandlers() {
 
 async function handleUpdate(row) {
   const cells = row.children;
-  if (cells.length < 16) return;
+  if (cells.length < 18) return;
 
   const sku = row.dataset.sku;
   if (!sku) {
@@ -1203,22 +1225,23 @@ async function handleUpdate(row) {
     sku: sku,
     location: cells[0].textContent.trim(),
     date: cells[1].textContent.trim() || null,
+    item_id: cells[4].textContent.trim() || null,
     // uk_6m_data: excluded - populated from table
-    shelf_lt1: cells[5].textContent.trim(),
-    shelf_lt1_qty: Number(cells[6].textContent.trim()) || 0,
-    shelf_gt1: cells[7].textContent.trim(),
-    shelf_gt1_qty: Number(cells[8].textContent.trim()) || 0,
-    top_floor_expiry: cells[10].textContent.trim() || null,
-    top_floor_total: Number(cells[11].textContent.trim()) || 0,
-    status: cells[13].textContent.trim(),
-    uk_fr_preorder: cells[14].textContent.trim(),
+    shelf_lt1: cells[7].textContent.trim(),
+    shelf_lt1_qty: Number(cells[8].textContent.trim()) || 0,
+    shelf_gt1: cells[9].textContent.trim(),
+    shelf_gt1_qty: Number(cells[10].textContent.trim()) || 0,
+    top_floor_expiry: cells[12].textContent.trim() || null,
+    top_floor_total: Number(cells[13].textContent.trim()) || 0,
+    status: cells[15].textContent.trim(),
+    uk_fr_preorder: cells[16].textContent.trim(),
     // fr_6m_data: excluded - populated from table
   };
 
   const newShelfTotal = updated.shelf_lt1_qty + updated.shelf_gt1_qty;
   const newTotalStock = newShelfTotal + updated.top_floor_total;
-  cells[9].textContent = newShelfTotal;
-  cells[12].textContent = newTotalStock;
+  cells[11].textContent = newShelfTotal;
+  cells[14].textContent = newTotalStock;
 
   try {
     // Use branch-specific API path

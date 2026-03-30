@@ -3,7 +3,6 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime
 import psycopg2
 import logging
-import hashlib
 import json
 
 from common.deps import pg_conn
@@ -22,22 +21,6 @@ logger = logging.getLogger(__name__)
 class InventoryManagementRepo:
     def __init__(self):
         self._last_conn_type = None  # Track which pool connection came from
-
-    @staticmethod
-    def generate_item_id(sku: str) -> str:
-        """
-        Generate a unique item ID in 18-digit format (e.g., 772578000000491823)
-        Uses hash of SKU to create a consistent ID.
-        Format mimics legacy system for compatibility.
-        """
-        # Create a hash of the SKU
-        hash_obj = hashlib.sha256(sku.encode())
-        hash_int = int(hash_obj.hexdigest(), 16)
-        
-        # Take first 18 digits and ensure it starts with 7 (for format consistency)
-        item_id = str(700000000000000000 + (hash_int % 100000000000000000))
-        
-        return item_id
 
     def get_metadata_connection(self):
         """Get connection for inventory metadata - try inventory DB first, fallback to main DB"""
@@ -116,14 +99,11 @@ class InventoryManagementRepo:
         try:
             cursor = conn.cursor()
             
-            # Generate item_id if not provided
             sku = metadata.get('sku')
             if not sku:
                 raise ValueError("SKU is required")
             
             item_id = metadata.get('item_id')
-            if not item_id:
-                item_id = self.generate_item_id(sku)
             
             # PostgreSQL upsert with ON CONFLICT - using SKU as primary key
             # Note: uk_6m_data and fr_6m_data are NOT included here - they're populated by sales_sync
@@ -134,7 +114,7 @@ class InventoryManagementRepo:
                     status, uk_fr_preorder
                 ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (sku) DO UPDATE SET
-                    item_id = COALESCE(inventory_metadata.item_id, EXCLUDED.item_id),
+                    item_id = COALESCE(EXCLUDED.item_id, inventory_metadata.item_id),
                     location = EXCLUDED.location,
                     date = EXCLUDED.date,
                     qty_ordered_jason = EXCLUDED.qty_ordered_jason,
@@ -558,11 +538,7 @@ class InventoryManagementRepo:
         - If base SKU doesn't exist: rename variant to base SKU
         - Result: ALL products use base SKU form, no suffixes remain
         
-        This operates on inventory_metadata table.
-        This should be called BEFORE ensure_all_products_have_item_ids() so that item IDs are generated
-        after merging is complete.
-        
-        Returns stats about the operation.
+        This operates on inventory_metadata table.\n        \n        Returns stats about the operation.
         """
         import re
         conn = self.get_metadata_connection()
@@ -643,64 +619,6 @@ class InventoryManagementRepo:
             if conn:
                 conn.rollback()
             logger.error(f"Database error in merge_identifier_products: {e}")
-            raise
-        finally:
-            self.return_connection(conn)
-
-    def ensure_all_products_have_item_ids(self) -> Dict[str, int]:
-        """
-        Ensure all products in inventory_metadata have generated item IDs.
-        Uses BATCH operations for performance.
-        This should be called when loading the inventory management page.
-        Returns stats about the operation.
-        """
-        from psycopg2.extras import execute_batch
-        
-        conn = self.get_metadata_connection()
-        try:
-            cursor = conn.cursor()
-            
-            # Find all products without item_ids
-            cursor.execute("""
-                SELECT sku FROM inventory_metadata
-                WHERE item_id IS NULL OR item_id = ''
-            """)
-            
-            skus_without_ids = [row[0] for row in cursor.fetchall()]
-            stats = {
-                "total_checked": 0,
-                "ids_generated": 0
-            }
-            
-            # Count total products
-            cursor.execute("SELECT COUNT(*) FROM inventory_metadata")
-            stats["total_checked"] = cursor.fetchone()[0]
-            
-            # Generate item IDs in batch
-            if skus_without_ids:
-                # Prepare batch updates: (item_id, sku) tuples
-                updates = [(self.generate_item_id(sku), sku) for sku in skus_without_ids]
-                
-                # Use execute_batch for better performance (much faster than individual updates)
-                execute_batch(cursor, """
-                    UPDATE inventory_metadata
-                    SET item_id = %s, updated_at = NOW()
-                    WHERE sku = %s
-                """, updates, page_size=500)
-                
-                stats["ids_generated"] = len(updates)
-            
-            conn.commit()
-            
-            if stats["ids_generated"] > 0:
-                logger.info(f"✅ Generated {stats['ids_generated']} item IDs for products (batch mode)")
-            
-            return stats
-            
-        except psycopg2.Error as e:
-            if conn:
-                conn.rollback()
-            logger.error(f"Database error in ensure_all_products_have_item_ids: {e}")
             raise
         finally:
             self.return_connection(conn)

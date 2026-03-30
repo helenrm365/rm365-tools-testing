@@ -22,6 +22,7 @@ class InventoryMetadataCreateIn(BaseModel):
 
 
 class InventoryMetadataUpdateIn(BaseModel):
+    item_id: Optional[str] = None
     location: Optional[str] = None
     date: Optional[str] = None
     uk_6m_data: Optional[str] = None

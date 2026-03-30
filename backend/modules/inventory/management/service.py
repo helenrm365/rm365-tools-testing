@@ -108,10 +108,7 @@ class InventoryManagementService:
             # This must happen BEFORE generating item IDs
             self.repo.merge_identifier_products()
             
-            # Step 3: Ensure all products have item IDs in inventory_metadata (after merging)
-            self.repo.ensure_all_products_have_item_ids()
-            
-            # Step 4: Update variant_statuses array for all products
+            # Step 3: Update variant_statuses array for all products
             # This aggregates discontinued_status values from all variants into the variant_statuses JSONB array
             self.repo.update_variant_statuses()
             
