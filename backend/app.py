@@ -423,6 +423,16 @@ if FRONTEND_DIR.is_dir():
             response.headers["Expires"] = "0"
             return FileResponse(file_path)
         raise HTTPException(status_code=404, detail="File not found")
+
+    @app.get("/serial-test.html", include_in_schema=False)
+    async def serve_serial_test(response: Response):
+        file_path = FRONTEND_DIR / "serial-test.html"
+        if file_path.is_file():
+            response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["Expires"] = "0"
+            return FileResponse(file_path)
+        raise HTTPException(status_code=404, detail="File not found")
     
     # Serve index.html at root
     @app.get("/", include_in_schema=False)

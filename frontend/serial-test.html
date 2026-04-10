@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Serial Scanner Test</title>
+  <style>
+    body { font-family: system-ui; max-width: 700px; margin: 40px auto; padding: 0 20px; background: #1a1a2e; color: #e0e0e0; }
+    h1 { color: #00d4ff; }
+    button { padding: 12px 24px; font-size: 16px; cursor: pointer; border: none; border-radius: 8px; margin: 5px; }
+    #connectBtn { background: #4CAF50; color: white; }
+    #connectBtn:hover { background: #45a049; }
+    #disconnectBtn { background: #f44336; color: white; }
+    #log { background: #0d1117; border: 1px solid #333; border-radius: 8px; padding: 16px; margin-top: 20px;
+           font-family: 'Menlo', 'Monaco', monospace; font-size: 13px; white-space: pre-wrap; max-height: 500px; overflow-y: auto; }
+    #barcode { font-size: 28px; color: #4CAF50; margin: 20px 0; min-height: 40px; padding: 10px; background: #0d1117; border-radius: 8px; text-align: center; }
+    .info { background: #1e3a5f; padding: 12px; border-radius: 8px; margin: 10px 0; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <h1>🔌 Web Serial Scanner Test</h1>
+  <p>Minimal test page — no framework, no dependencies. If this works, the scanner page will too.</p>
+
+  <div class="info">
+    <strong>Instructions:</strong><br>
+    1. Make sure PuTTY / screen / any other serial app is <strong>closed</strong> (serial ports are exclusive).<br>
+    2. Click "Connect" and select <code>cu.BarCodeScannerspp</code>.<br>
+    3. Scan a barcode and watch the log below.
+  </div>
+
+  <button id="connectBtn" onclick="connectSerial()">Connect to Scanner</button>
+  <button id="disconnectBtn" onclick="disconnectSerial()" style="display:none">Disconnect</button>
+
+  <div id="barcode">No scan yet</div>
+  <div id="log"></div>
+
+  <script>
+    let port = null;
+    let reader = null;
+    let reading = false;
+    let buffer = [];
+    let timeout = null;
+
+    const logEl = document.getElementById('log');
+    const barcodeEl = document.getElementById('barcode');
+
+    function log(msg) {
+      const ts = new Date().toLocaleTimeString('en-GB', { hour12: false, fractionalSecondDigits: 3 });
+      logEl.textContent += `[${ts}] ${msg}\n`;
+      logEl.scrollTop = logEl.scrollHeight;
+      console.log(msg);
+    }
+
+    async function connectSerial() {
+      if (!navigator.serial) {
+        log('❌ Web Serial API not available. Use Chrome or Edge.');
+        return;
+      }
+
+      try {
+        port = await navigator.serial.requestPort();
+        const info = port.getInfo();
+        log('Port selected: ' + JSON.stringify(info));
+
+        // Open with 9600 8N1 — the PuTTY/reference-library defaults
+        await port.open({
+          baudRate: 9600,
+          dataBits: 8,
+          stopBits: 1,
+          parity: 'none',
+          flowControl: 'none',
+          bufferSize: 255
+        });
+        log('✅ Port opened at 9600 baud (8N1)');
+        log('port.readable: ' + !!port.readable);
+        log('port.writable: ' + !!port.writable);
+
+        document.getElementById('connectBtn').style.display = 'none';
+        document.getElementById('disconnectBtn').style.display = '';
+
+        reading = true;
+
+        // Read loop — identical to Niels Leenheer's WebSerialBarcodeScanner
+        while (port.readable && reading) {
+          reader = port.readable.getReader();
+          log('Reader acquired — scan a barcode now!');
+
+          try {
+            while (reading) {
+              const { value, done } = await reader.read();
+
+              if (timeout) {
+                clearTimeout(timeout);
+                timeout = null;
+              }
+
+              if (done) {
+                log('Reader done.');
+                reader.releaseLock();
+                break;
+              }
+
+              if (value) {
+                buffer.push(...value);
+                const hex = Array.from(value).map(b => b.toString(16).padStart(2, '0')).join(' ');
+                const text = String.fromCharCode(...value);
+                log(`📦 DATA: bytes=${value.byteLength} | hex=[${hex}] | text="${text}"`);
+              }
+
+              timeout = setTimeout(() => {
+                timeout = null;
+                if (buffer.length === 0) return;
+                let barcode = String.fromCharCode.apply(null, buffer);
+                if (barcode.endsWith('\n')) barcode = barcode.slice(0, -1);
+                if (barcode.endsWith('\r')) barcode = barcode.slice(0, -1);
+                barcode = barcode.trim();
+                buffer = [];
+                if (barcode) {
+                  log('✅ BARCODE: ' + barcode);
+                  barcodeEl.textContent = barcode;
+                  barcodeEl.style.color = '#4CAF50';
+                }
+              }, 300);
+            }
+          } catch (err) {
+            log('Read error: ' + err.message);
+            buffer = [];
+          }
+        }
+
+        if (reading) {
+          log('⚠️ Port lost readable — disconnected');
+          reading = false;
+        }
+      } catch (err) {
+        if (err.name === 'NotFoundError') {
+          log('Cancelled — no port selected.');
+        } else {
+          log('❌ Error: ' + err.message);
+        }
+      }
+    }
+
+    async function disconnectSerial() {
+      reading = false;
+
+      // Correct order: cancel reader → releaseLock → close port
+      // Without cancel(), the pending read() keeps the stream locked
+      // and port.close() fails silently on macOS, leaving the RFCOMM channel stuck.
+      if (reader) {
+        try { await reader.cancel(); } catch (_) {}
+        try { reader.releaseLock(); } catch (_) {}
+        reader = null;
+      }
+      if (port) {
+        try { await port.close(); } catch (_) {}
+        port = null;
+      }
+      document.getElementById('connectBtn').style.display = '';
+      document.getElementById('disconnectBtn').style.display = 'none';
+      log('✅ Port closed gracefully.');
+    }
+  </script>
+</body>
+</html>

@@ -15,6 +15,8 @@ import { getToken } from '../../services/state/sessionStore.js';
 import { showNotification } from '../../ui/modal.js';
 import { showToast } from '../../ui/toast.js';
 import { checkTablesStatus, initializeTables } from '../../services/api/inventoryApi.js';
+import { BluetoothScannerService } from '../../services/bluetoothScanner.js';
+import { SerialScannerService } from '../../services/serialScanner.js';
 
 // Branch configuration
 const BRANCH_CONFIG = {
@@ -72,6 +74,8 @@ class InventoryScannerManager {
     this.initializeElements();
     this.attachEventListeners();
     this.setupMobileLayout();
+    this.initBluetoothScanner();
+    this.initSerialScanner();
     
     // Auto-focus the search input after layout settles (autofocus attr doesn't work in SPA navigation)
     setTimeout(() => this.skuInput?.focus(), 300);
@@ -126,6 +130,12 @@ class InventoryScannerManager {
     
     // Multiplier button
     this.multiplierBtn = document.getElementById('multiplierBtn');
+    
+    // Bluetooth connect button
+    this.bleConnectBtn = document.getElementById('bleConnectBtn');
+    
+    // Serial port connect button
+    this.serialConnectBtn = document.getElementById('serialConnectBtn');
     
     // Messages and lists
     
@@ -1708,6 +1718,120 @@ class InventoryScannerManager {
   destroy() {
     // Cleanup if needed
     this.pendingItems = [];
+    if (this.btScanner) {
+      this.btScanner.destroy();
+      this.btScanner = null;
+    }
+    if (this.serialScanner) {
+      this.serialScanner.destroy();
+      this.serialScanner = null;
+    }
+  }
+
+  // ===== Bluetooth Scanner =====
+
+  initBluetoothScanner() {
+    // If Web Bluetooth is not supported, show error on click instead of hiding
+    if (!navigator.bluetooth) {
+      this.bleConnectBtn?.addEventListener('click', () => {
+        showToast('Web Bluetooth is not supported in this browser. Use Chrome or Edge over HTTPS.', 'error');
+      });
+      return;
+    }
+
+    this.btScanner = new BluetoothScannerService(
+      this.skuInput,
+      (barcode) => {
+        // BLE scan received — trigger the same flow as a HID scan + Enter
+        this.scanItem(false);
+      }
+    );
+
+    this.btScanner.onStateChange((state) => this._updateBleButton(state));
+
+    this.bleConnectBtn?.addEventListener('click', async () => {
+      if (this.btScanner.state === 'connected') {
+        this.btScanner.disconnect();
+        return;
+      }
+      try {
+        await this.btScanner.connect();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+  }
+
+  _updateBleButton(state) {
+    if (!this.bleConnectBtn) return;
+    this.bleConnectBtn.classList.remove('ble-disconnected', 'ble-connecting', 'ble-connected');
+    switch (state) {
+      case 'connecting':
+        this.bleConnectBtn.classList.add('ble-connecting');
+        this.bleConnectBtn.title = 'Connecting...';
+        break;
+      case 'connected':
+        this.bleConnectBtn.classList.add('ble-connected');
+        this.bleConnectBtn.title = `Connected: ${this.btScanner.deviceName || 'BLE Scanner'} (click to disconnect)`;
+        showToast(`Bluetooth scanner connected: ${this.btScanner.deviceName || 'BLE Scanner'}`, 'success');
+        break;
+      default:
+        this.bleConnectBtn.classList.add('ble-disconnected');
+        this.bleConnectBtn.title = 'Connect Bluetooth scanner (BLE / SPP)';
+        break;
+    }
+  }
+
+  // ===== Serial Scanner (Classic SPP) =====
+
+  initSerialScanner() {
+    if (!navigator.serial) {
+      this.serialConnectBtn?.addEventListener('click', () => {
+        showToast('Web Serial is not supported in this browser. Use Chrome or Edge over HTTPS.', 'error');
+      });
+      return;
+    }
+
+    this.serialScanner = new SerialScannerService(
+      this.skuInput,
+      (barcode) => {
+        this.scanItem(false);
+      }
+    );
+
+    this.serialScanner.onStateChange((state) => this._updateSerialButton(state));
+
+    this.serialConnectBtn?.addEventListener('click', async () => {
+      if (this.serialScanner.state === 'connected') {
+        await this.serialScanner.disconnect();
+        return;
+      }
+      try {
+        await this.serialScanner.connect();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+  }
+
+  _updateSerialButton(state) {
+    if (!this.serialConnectBtn) return;
+    this.serialConnectBtn.classList.remove('serial-disconnected', 'serial-connecting', 'serial-connected');
+    switch (state) {
+      case 'connecting':
+        this.serialConnectBtn.classList.add('serial-connecting');
+        this.serialConnectBtn.title = 'Connecting to serial port...';
+        break;
+      case 'connected':
+        this.serialConnectBtn.classList.add('serial-connected');
+        this.serialConnectBtn.title = 'Serial port connected (click to disconnect)';
+        showToast('Serial scanner connected', 'success');
+        break;
+      default:
+        this.serialConnectBtn.classList.add('serial-disconnected');
+        this.serialConnectBtn.title = 'Connect serial/COM port scanner (Classic SPP)';
+        break;
+    }
   }
 }
 

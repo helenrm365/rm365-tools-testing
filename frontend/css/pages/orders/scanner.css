@@ -278,6 +278,119 @@ html.dark-mode .inventory-scanner .scanner-unified > .block-content {
   font-family: var(--ff, system-ui);
 }
 
+/* ===== Bluetooth Connect Button ===== */
+.inventory-scanner .ble-connect-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  width: 48px;
+  padding: 0;
+  background: var(--bg-2, #f3f4f6);
+  border: 2px solid var(--border-color, #d1d5db);
+  border-radius: 12px;
+  color: var(--text-muted, #6b7280);
+  font-size: 1.15rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.inventory-scanner .ble-connect-btn:hover {
+  border-color: #2563eb;
+  color: #2563eb;
+  background: rgba(37, 99, 235, 0.08);
+}
+
+.inventory-scanner .ble-connect-btn.ble-connecting {
+  border-color: #f59e0b;
+  color: #f59e0b;
+  animation: ble-pulse 1.2s ease-in-out infinite;
+}
+
+.inventory-scanner .ble-connect-btn.ble-connected {
+  border-color: #10b981;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.08);
+}
+
+html.dark-mode .inventory-scanner .ble-connect-btn {
+  background: var(--bg-2, #1f2937);
+  border-color: var(--border-color, #374151);
+  color: var(--text-muted, #9ca3af);
+}
+
+html.dark-mode .inventory-scanner .ble-connect-btn:hover {
+  border-color: #60a5fa;
+  color: #60a5fa;
+  background: rgba(96, 165, 250, 0.1);
+}
+
+html.dark-mode .inventory-scanner .ble-connect-btn.ble-connected {
+  border-color: #34d399;
+  color: #34d399;
+  background: rgba(52, 211, 153, 0.1);
+}
+
+@keyframes ble-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* ===== Serial Connect Button ===== */
+.inventory-scanner .serial-connect-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  width: 48px;
+  padding: 0;
+  background: var(--bg-2, #f3f4f6);
+  border: 2px solid var(--border-color, #d1d5db);
+  border-radius: 12px;
+  color: var(--text-muted, #6b7280);
+  font-size: 1.05rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.inventory-scanner .serial-connect-btn:hover {
+  border-color: #7c3aed;
+  color: #7c3aed;
+  background: rgba(124, 58, 237, 0.08);
+}
+
+.inventory-scanner .serial-connect-btn.serial-connecting {
+  border-color: #f59e0b;
+  color: #f59e0b;
+  animation: ble-pulse 1.2s ease-in-out infinite;
+}
+
+.inventory-scanner .serial-connect-btn.serial-connected {
+  border-color: #10b981;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.08);
+}
+
+html.dark-mode .inventory-scanner .serial-connect-btn {
+  background: var(--bg-2, #1f2937);
+  border-color: var(--border-color, #374151);
+  color: var(--text-muted, #9ca3af);
+}
+
+html.dark-mode .inventory-scanner .serial-connect-btn:hover {
+  border-color: #a78bfa;
+  color: #a78bfa;
+  background: rgba(167, 139, 250, 0.1);
+}
+
+html.dark-mode .inventory-scanner .serial-connect-btn.serial-connected {
+  border-color: #34d399;
+  color: #34d399;
+  background: rgba(52, 211, 153, 0.1);
+}
+
 .inventory-scanner .search-spinner {
   position: absolute;
   right: 12px;
