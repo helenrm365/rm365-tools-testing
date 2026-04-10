@@ -131,16 +131,17 @@ class LabelsRepo:
             
         return data_map
     
-    def _load_inventory_item_ids(self, inventory_conn) -> Dict[str, str]:
+    def _load_inventory_item_ids(self, inventory_conn) -> Dict[str, Optional[str]]:
         """
         Load item_id mapping from inventory_metadata: sku -> item_id
         Item IDs are used as barcodes on labels.
+        Products without item_ids are included with None value.
         
         Args:
             inventory_conn: Connection to inventory database
             
         Returns:
-            Dict mapping SKU to item_id
+            Dict mapping SKU to item_id (or None if no item_id assigned)
         """
         item_id_map = {}
         try:
@@ -148,16 +149,15 @@ class LabelsRepo:
                 cur.execute("""
                     SELECT sku, item_id
                     FROM inventory_metadata
-                    WHERE sku IS NOT NULL 
-                      AND item_id IS NOT NULL
+                    WHERE sku IS NOT NULL
                 """)
                 
                 for row in cur.fetchall():
                     sku = str(row[0]).strip()
-                    item_id = str(row[1]).strip()
+                    item_id = str(row[1]).strip() if row[1] else None
                     item_id_map[sku] = item_id
                     
-            logger.info(f"Loaded {len(item_id_map)} item IDs from inventory_metadata")
+            logger.info(f"Loaded {len(item_id_map)} SKUs from inventory_metadata ({sum(1 for v in item_id_map.values() if v)} with item IDs)")
         except Exception as e:
             logger.error(f"Failed to load item IDs from inventory_metadata: {e}")
             
@@ -533,10 +533,10 @@ class LabelsRepo:
         if not candidate_skus:
             return []
 
-        # Load item IDs from inventory_metadata
+        # Load item IDs from inventory_metadata (includes products with NULL item_ids)
         item_id_map = self._load_inventory_item_ids(inventory_conn)
         if not item_id_map:
-            logger.warning("No item IDs found in inventory_metadata. Ensure inventory sync has run.")
+            logger.warning("No products found in inventory_metadata. Ensure inventory sync has run.")
             return []
 
         # Load 6M data from aggregated tables (same as inventory management)
@@ -560,15 +560,14 @@ class LabelsRepo:
         if not chosen_by_base:
             return []
 
-        # Resolve to final SKUs with item IDs
-        resolved: Dict[str, Tuple[str, str]] = {}  # base -> (item_id, sku_used)
+        # Resolve to final SKUs (products without item_ids are still included)
+        resolved: Dict[str, Tuple[Optional[str], str]] = {}  # base -> (item_id, sku_used)
         for base, chosen in chosen_by_base.items():
-            # Try the chosen SKU directly
             if chosen in item_id_map:
-                item_id = item_id_map[chosen]
+                item_id = item_id_map[chosen]  # May be None if no item_id assigned
                 resolved[base] = (item_id, chosen)
             else:
-                log.warning("item_id missing for SKU=%s in inventory_metadata", chosen)
+                log.warning("SKU=%s not found in inventory_metadata", chosen)
         if not resolved:
             return []
 

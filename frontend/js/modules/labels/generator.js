@@ -294,12 +294,7 @@ async function loadProducts(isBackground = false) {
   
   try {
     // Save current selections by SKU (SKUs are consistent across regions)
-    const previouslySelectedSKUs = new Set(
-      Array.from(state.selectedProducts).map(itemId => {
-        const product = state.allProducts.find(p => p.item_id === itemId);
-        return product ? product.sku : null;
-      }).filter(sku => sku !== null)
-    );
+    const previouslySelectedSKUs = new Set(state.selectedProducts);
     
     // Fetch products with current status filters, region preference, and orphaned setting
     state.allProducts = await getProductsToPrint(state.statusFilters, state.region, state.showOrphaned);
@@ -326,7 +321,7 @@ async function loadProducts(isBackground = false) {
     if (previouslySelectedSKUs.size > 0) {
       state.allProducts.forEach(product => {
         if (previouslySelectedSKUs.has(product.sku)) {
-          state.selectedProducts.add(product.item_id);
+          state.selectedProducts.add(product.sku);
         }
       });
     }
@@ -335,7 +330,7 @@ async function loadProducts(isBackground = false) {
     const selectAllCheckbox = document.querySelector('#selectAllCheckbox');
     if (selectAllCheckbox) {
       const allSelected = state.displayedProducts.length > 0 && 
-        state.displayedProducts.every(p => state.selectedProducts.has(p.item_id));
+        state.displayedProducts.every(p => state.selectedProducts.has(p.sku));
       selectAllCheckbox.checked = allSelected;
     }
     
@@ -665,25 +660,25 @@ function handleSelectAll(e) {
   // If now unchecked → deselect all
   if (selectAllCheckbox.checked) {
     // Select all displayed products (filtered + searched)
-    state.displayedProducts.forEach(p => state.selectedProducts.add(p.item_id));
+    state.displayedProducts.forEach(p => state.selectedProducts.add(p.sku));
   } else {
     // Deselect all displayed products
-    state.displayedProducts.forEach(p => state.selectedProducts.delete(p.item_id));
+    state.displayedProducts.forEach(p => state.selectedProducts.delete(p.sku));
   }
   
   renderProductTable();
   updateStats();
 }
 
-function handleProductSelect(itemId, checked) {
+function handleProductSelect(sku, checked) {
   if (checked) {
-    state.selectedProducts.add(itemId);
+    state.selectedProducts.add(sku);
   } else {
-    state.selectedProducts.delete(itemId);
+    state.selectedProducts.delete(sku);
   }
   
   // Update the row's selected class
-  const checkbox = document.querySelector(`.product-checkbox[data-item-id="${itemId}"]`);
+  const checkbox = document.querySelector(`.product-checkbox[data-sku="${sku}"]`);
   if (checkbox) {
     const row = checkbox.closest('tr');
     if (row) {
@@ -713,7 +708,7 @@ function updateSelectAllCheckbox() {
   
   // Count how many displayed products are selected
   const selectedCount = state.displayedProducts.filter(p => 
-    state.selectedProducts.has(p.item_id)
+    state.selectedProducts.has(p.sku)
   ).length;
   
   const totalCount = state.displayedProducts.length;
@@ -751,14 +746,14 @@ function renderProductTable() {
   }
   
   tbody.innerHTML = state.displayedProducts.map(product => {
-    const isChecked = state.selectedProducts.has(product.item_id);
+    const isChecked = state.selectedProducts.has(product.sku);
     return `
       <tr class="${isChecked ? 'selected' : ''}">
         <td>
           <input 
             type="checkbox" 
             class="product-checkbox" 
-            data-item-id="${product.item_id}"
+            data-sku="${product.sku}"
             ${isChecked ? 'checked' : ''}
           >
         </td>
@@ -789,7 +784,7 @@ function setupProductTableDelegation() {
   // Use event delegation - single listener for all checkboxes
   tbody.addEventListener('change', (e) => {
     if (e.target.classList.contains('product-checkbox')) {
-      handleProductSelect(e.target.dataset.itemId, e.target.checked);
+      handleProductSelect(e.target.dataset.sku, e.target.checked);
     }
   });
 }
@@ -849,31 +844,30 @@ async function handleGeneratePdf() {
   }
   
   try {
-    // Determine which products to print:
-    // Get item IDs in the current visual/sorted order from the DOM
+    // Get SKUs in the current visual/sorted order from the DOM
     // This preserves whatever column sort the user applied
     const allRowsInOrder = Array.from(document.querySelectorAll('#productsTableBody tr .product-checkbox'))
-      .map(checkbox => checkbox.dataset.itemId)
+      .map(checkbox => checkbox.dataset.sku)
       .filter(id => id); // Filter out any undefined/null
     
-    let itemIdsToUse;
+    let skusToUse;
     if (state.selectedProducts.size > 0) {
       // User selected specific products - filter to selected ones but preserve DOM sort order
       const selectedSet = state.selectedProducts;
-      itemIdsToUse = allRowsInOrder.filter(id => selectedSet.has(id));
+      skusToUse = allRowsInOrder.filter(id => selectedSet.has(id));
     } else {
       // No selection - use all products in their current sorted order
-      itemIdsToUse = allRowsInOrder;
+      skusToUse = allRowsInOrder;
     }
     
     // Get current user email
     const userData = getUserData();
     const userEmail = userData?.email || userData?.username || 'unknown';
     
-    // Create print job with item IDs, status filters, and region
+    // Create print job with SKUs, status filters, and region
     const payload = {
       created_by: userEmail,
-      item_ids: itemIdsToUse,
+      item_ids: skusToUse,
       discontinued_statuses: state.statusFilters,
       region: state.region
     };
@@ -1490,7 +1484,7 @@ async function loadPreset(presetId) {
     const presetSkus = new Set(preset.product_skus || []);
     state.displayedProducts.forEach(product => {
       if (presetSkus.has(product.sku)) {
-        state.selectedProducts.add(product.item_id);
+        state.selectedProducts.add(product.sku);
       }
     });
     
@@ -1545,8 +1539,8 @@ function renderSavePresetProductList() {
   if (!listContainer) return;
   
   // Get selected products
-  const selectedProductsArray = Array.from(state.selectedProducts).map(itemId => {
-    return state.displayedProducts.find(p => p.item_id === itemId);
+  const selectedProductsArray = Array.from(state.selectedProducts).map(sku => {
+    return state.displayedProducts.find(p => p.sku === sku);
   }).filter(p => p);
   
   if (selectedProductsArray.length === 0) {
@@ -1566,8 +1560,8 @@ async function savePreset() {
   const saveOption = document.querySelector('input[name="saveOption"]:checked').value;
   
   // Get selected product SKUs
-  const selectedSkus = Array.from(state.selectedProducts).map(itemId => {
-    const product = state.displayedProducts.find(p => p.item_id === itemId);
+  const selectedSkus = Array.from(state.selectedProducts).map(sku => {
+    const product = state.displayedProducts.find(p => p.sku === sku);
     return product?.sku;
   }).filter(sku => sku);
   
@@ -1774,10 +1768,7 @@ async function editPreset() {
     
     // If user wants to update contents with current selection
     if (updateContents) {
-      const selectedSkus = Array.from(state.selectedProducts).map(itemId => {
-        const product = state.displayedProducts.find(p => p.item_id === itemId);
-        return product?.sku;
-      }).filter(sku => sku);
+      const selectedSkus = Array.from(state.selectedProducts);
       
       updates.status_filters = state.statusFilters;
       updates.region = state.region;

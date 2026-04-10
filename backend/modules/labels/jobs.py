@@ -39,7 +39,7 @@ def _ensure_label_print_schema(conn: PGConn) -> None:
                 CREATE TABLE IF NOT EXISTS label_print_items (
                     id SERIAL PRIMARY KEY,
                     job_id INTEGER NOT NULL REFERENCES label_print_jobs(id) ON DELETE CASCADE,
-                    item_id VARCHAR(255) NOT NULL,
+                    item_id VARCHAR(255),
                     sku VARCHAR(255),
                     product_name TEXT,
                     uk_6m_data INTEGER DEFAULT 0,
@@ -155,6 +155,18 @@ def _ensure_label_print_schema(conn: PGConn) -> None:
             "ALTER TABLE label_print_items ADD COLUMN IF NOT EXISTS sort_order INTEGER DEFAULT 0"
         )
 
+    # Drop NOT NULL constraint on item_id if it exists (products may not have item_ids yet)
+    with conn.cursor() as cur:
+        cur.execute("""
+            SELECT is_nullable FROM information_schema.columns
+            WHERE table_schema = 'public' AND table_name = 'label_print_items' AND column_name = 'item_id'
+        """)
+        row = cur.fetchone()
+        if row and row[0] == 'NO':
+            alter_statements.append(
+                "ALTER TABLE label_print_items ALTER COLUMN item_id DROP NOT NULL"
+            )
+
     if alter_statements:
         with conn.cursor() as cur:
             for stmt in alter_statements:
@@ -187,11 +199,12 @@ def _snapshot_rows(item_ids: List[str] = None, discontinued_statuses: List[str] 
             return_inventory_connection(inventory_conn)
     
     # Filter by selected item_ids if provided, preserving the order from item_ids
+    # item_ids from the frontend are actually SKUs (used as stable unique identifiers)
     if item_ids:
-        # Create a lookup dict for O(1) access
-        rows_by_id = {r.get("item_id"): r for r in all_rows}
+        # Create a lookup dict by SKU for O(1) access
+        rows_by_sku = {r.get("sku"): r for r in all_rows}
         # Return rows in the same order as item_ids (preserves frontend sort order)
-        filtered_rows = [rows_by_id[item_id] for item_id in item_ids if item_id in rows_by_id]
+        filtered_rows = [rows_by_sku[sku] for sku in item_ids if sku in rows_by_sku]
         return filtered_rows
     
     return all_rows

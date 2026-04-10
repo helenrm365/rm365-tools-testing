@@ -285,29 +285,29 @@ def stream_pdf_labels(conn: PGConn, job_id: int) -> StreamingResponse:
                 c.setFont(TEXT_FONT, fitted)
                 c.drawString(right_x + lw + 1, yy, value)
 
-            # --- barcode ---
-            try:
-                barcode_path = os.path.join(tmpdir, f"barcode_{label_no}")
-                barcode_value = str(barcode_val or sku or "NONE")
-                Code128(barcode_value, writer=ImageWriter()).save(barcode_path, BARCODE_OPTIONS)
-                img_path = barcode_path + ".png"
-                barcode_width = label_width - 10
-                barcode_height = 13 * mm
-                barcode_x = x + (label_width - barcode_width) / 2
-                c.drawImage(
-                    img_path,
-                    barcode_x,
-                    y + 1,
-                    width=barcode_width,
-                    height=barcode_height,
-                    preserveAspectRatio=True,
-                    anchor="sw",
-                    mask="auto",
-                )
-            except Exception as e:
-                # Log barcode generation errors but continue
-                print(f"Warning: Could not generate barcode for {barcode_val or sku}: {e}")
-                pass
+            # --- barcode (only if item_id/barcode value exists) ---
+            if barcode_val:
+                try:
+                    barcode_path = os.path.join(tmpdir, f"barcode_{label_no}")
+                    barcode_value = str(barcode_val)
+                    Code128(barcode_value, writer=ImageWriter()).save(barcode_path, BARCODE_OPTIONS)
+                    img_path = barcode_path + ".png"
+                    barcode_width = label_width - 10
+                    barcode_height = 13 * mm
+                    barcode_x = x + (label_width - barcode_width) / 2
+                    c.drawImage(
+                        img_path,
+                        barcode_x,
+                        y + 1,
+                        width=barcode_width,
+                        height=barcode_height,
+                        preserveAspectRatio=True,
+                        anchor="sw",
+                        mask="auto",
+                    )
+                except Exception as e:
+                    # Log barcode generation errors but continue
+                    print(f"Warning: Could not generate barcode for {barcode_val}: {e}")
 
             label_no += 1
             if label_no % (cols_per_page * rows_per_page) == 0:
