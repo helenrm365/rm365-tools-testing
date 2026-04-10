@@ -734,14 +734,17 @@
         bottom: 20px;
         right: 20px;
         width: 360px;
-        background: var(--bg-secondary, #1e1e2e);
-        border: 1px solid var(--border-color, #333);
+        background: var(--bg-card);
+        border: 1px solid var(--bg-light);
         border-radius: 12px;
         padding: 16px;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        box-shadow: 0 8px 32px rgba(0,0,0,0.12);
         z-index: 2147483647;
         font-family: inherit;
         animation: pnSlideIn 0.3s ease-out;
+      }
+      html.dark-mode #task-progress-notification {
+        box-shadow: 0 8px 32px rgba(0,0,0,0.5);
       }
       #task-progress-notification.completing {
         animation: pnFadeOut 0.5s ease-in forwards;
@@ -753,14 +756,14 @@
         align-items: center;
         gap: 8px;
         margin-bottom: 8px;
-        color: var(--text-primary, #e0e0e0);
+        color: var(--text);
         font-weight: 600;
         font-size: 14px;
       }
       .pn-title { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .pn-counter {
         font-size: 11px;
-        color: var(--text-secondary, #a0a0a0);
+        color: var(--text-muted);
         font-weight: 400;
         white-space: nowrap;
       }
@@ -768,9 +771,9 @@
       /* Arrow buttons */
       .pn-arrow {
         background: none;
-        border: 1px solid var(--border-color, #444);
+        border: 1px solid var(--bg-light);
         border-radius: 6px;
-        color: var(--text-primary, #e0e0e0);
+        color: var(--text);
         width: 26px;
         height: 26px;
         display: flex;
@@ -783,9 +786,9 @@
         padding: 0;
       }
       .pn-arrow:hover:not(.disabled) {
-        background: var(--bg-tertiary, #2a2a3a);
-        border-color: #3b82f6;
-        color: #3b82f6;
+        background: var(--bg-light);
+        border-color: var(--info);
+        color: var(--info);
       }
       .pn-arrow.disabled {
         opacity: 0.25;
@@ -795,7 +798,7 @@
       
       /* Message */
       .pn-message {
-        color: var(--text-secondary, #a0a0a0);
+        color: var(--text-muted);
         font-size: 12px;
         margin-bottom: 10px;
         min-height: 16px;
@@ -808,7 +811,7 @@
       .pn-bar-wrapper {
         width: 100%;
         height: 6px;
-        background: var(--bg-tertiary, #2a2a3a);
+        background: var(--bg-light);
         border-radius: 3px;
         overflow: hidden;
         margin-bottom: 8px;
@@ -829,7 +832,7 @@
         justify-content: space-between;
       }
       .pn-percent {
-        color: var(--text-secondary, #a0a0a0);
+        color: var(--text-muted);
         font-size: 11px;
       }
       
@@ -851,7 +854,7 @@
       .pn-dot.active {
         width: 9px;
         height: 9px;
-        box-shadow: 0 0 0 2px rgba(255,255,255,0.2);
+        box-shadow: 0 0 0 2px var(--bg-card);
       }
       
       @keyframes pnSlideIn {
