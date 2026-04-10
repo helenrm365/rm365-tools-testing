@@ -517,7 +517,8 @@ class MagentoDataClient:
                             MAX(sas.city) as shipping_city,
                             MAX(sas.region) as shipping_region,
                             MAX(sas.postcode) as shipping_postcode,
-                            MAX(sas.country_id) as shipping_country_id
+                            MAX(sas.country_id) as shipping_country_id,
+                            so.shipping_description
                         FROM sales_order_item soi
                         JOIN sales_order so ON soi.order_id = so.entity_id
                         LEFT JOIN sales_order_address sab ON so.billing_address_id = sab.entity_id
@@ -528,7 +529,8 @@ class MagentoDataClient:
                         AND so.entity_id IN ({placeholders})
                         GROUP BY so.increment_id, so.created_at, so.status, so.order_currency_code,
                                  so.grand_total, so.customer_email, so.customer_firstname,
-                                 so.customer_lastname, so.customer_group_id, soi.sku
+                                 so.customer_lastname, so.customer_group_id, soi.sku,
+                                 so.shipping_description
                     """
                     
                     cursor.execute(items_query, order_ids)

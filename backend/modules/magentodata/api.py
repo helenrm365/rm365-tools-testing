@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, UploadFile, File, Query
+from fastapi import APIRouter, Depends, UploadFile, File, Query, HTTPException
 from fastapi.responses import StreamingResponse
 from typing import Dict, Any, Optional, List
 import logging
@@ -425,6 +425,24 @@ def backfill_shipping_methods_stream(
 ):
     """Backfill shipping_method with SSE progress streaming.
     Use region='all' to backfill all regions at once."""
+    from core.scheduler_api import is_task_running, mark_task_started, mark_task_completed
+    
+    task_id = 'backfill-shipping-methods'
+    
+    if is_task_running(task_id):
+        from core.scheduler_api import get_running_task_info
+        running_info = get_running_task_info(task_id)
+        raise HTTPException(
+            status_code=409,
+            detail={
+                'error': 'task_already_running',
+                'message': 'Backfill shipping methods is already running',
+                'started_at': running_info.get('started_at'),
+                'started_by': running_info.get('started_by'),
+            }
+        )
+    
+    username = user.get('username', 'unknown')
     progress_queue = queue.Queue()
     result_holder = [None]
 
@@ -432,11 +450,14 @@ def backfill_shipping_methods_stream(
         progress_queue.put({"type": "progress", "percent": percent, "message": message})
 
     def run_backfill():
+        mark_task_started(task_id, started_by=username, trigger='manual')
         try:
             result = svc.backfill_shipping_methods(region, progress_callback=progress_callback)
             result_holder[0] = result
         except Exception as e:
             result_holder[0] = {"status": "error", "message": str(e), "rows_updated": 0}
+        finally:
+            mark_task_completed(task_id)
         progress_queue.put({"type": "done"})
 
     worker = threading.Thread(target=run_backfill, daemon=True)

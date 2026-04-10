@@ -25,7 +25,7 @@
       </div>
       <div class="settings-card-body">
         <div class="task-list">
-          <!-- Nightly Inventory Sync -->
+          <!-- Nightly Inventory Sync (full) -->
           <div class="task-item">
             <div class="task-info">
               <div class="task-icon">
@@ -33,7 +33,7 @@
               </div>
               <div class="task-details">
                 <span class="task-name">Nightly Inventory Sync</span>
-                <span class="task-description">Sync orders, catalog products, 6M sales data, and variant statuses to inventory_metadata</span>
+                <span class="task-description">Run all sync operations: orders, catalog, 6M data, and branch inventory</span>
                 <span class="task-schedule"><i class="fa-regular fa-clock"></i> Runs daily at 02:00</span>
               </div>
             </div>
@@ -43,40 +43,122 @@
             </button>
           </div>
 
-          <!-- Order Session Reset -->
-          <div class="task-item">
+          <!-- Section divider -->
+          <div class="task-section-divider">
+            <span>Individual Sync Tasks</span>
+          </div>
+
+          <!-- UK Order Sync -->
+          <div class="task-item task-item-sub">
             <div class="task-info">
               <div class="task-icon">
-                <i class="fa-solid fa-rotate"></i>
+                <i class="fa-solid fa-flag" style="color: #3b82f6;"></i>
               </div>
               <div class="task-details">
-                <span class="task-name">Order Session Reset</span>
-                <span class="task-description">Reset all order sessions so orders can be re-approved. Archives completed sessions to history.</span>
-                <span class="task-schedule"><i class="fa-regular fa-clock"></i> Runs daily at 00:00</span>
+                <span class="task-name">UK Order Sync</span>
+                <span class="task-description">Sync UK Magento orders (7-day lookback)</span>
+                <span class="task-schedule"><i class="fa-regular fa-hand-pointer"></i> Manual only</span>
               </div>
             </div>
-            <button class="btn btn-solid btn-success task-btn" data-task="order-session-reset">
+            <button class="btn btn-solid btn-success task-btn" data-task="sync-uk-orders">
               <i class="fa-solid fa-play"></i>
               <span>Run Now</span>
             </button>
           </div>
 
-          <!-- Price Activation -->
-          <div class="task-item">
+          <!-- FR Order Sync -->
+          <div class="task-item task-item-sub">
             <div class="task-info">
               <div class="task-icon">
-                <i class="fa-solid fa-tag"></i>
+                <i class="fa-solid fa-flag" style="color: #ef4444;"></i>
               </div>
               <div class="task-details">
-                <span class="task-name">Price Activation</span>
-                <span class="task-description">Activate prices that are scheduled to become effective today. Creates audit log entries.</span>
-                <span class="task-schedule"><i class="fa-regular fa-clock"></i> Runs daily at 00:01</span>
+                <span class="task-name">FR Order Sync</span>
+                <span class="task-description">Sync FR Magento orders (7-day lookback)</span>
+                <span class="task-schedule"><i class="fa-regular fa-hand-pointer"></i> Manual only</span>
               </div>
             </div>
-            <button class="btn btn-solid btn-success task-btn" data-task="price-activation">
+            <button class="btn btn-solid btn-success task-btn" data-task="sync-fr-orders">
               <i class="fa-solid fa-play"></i>
               <span>Run Now</span>
             </button>
+          </div>
+
+          <!-- NL Order Sync -->
+          <div class="task-item task-item-sub">
+            <div class="task-info">
+              <div class="task-icon">
+                <i class="fa-solid fa-flag" style="color: #f97316;"></i>
+              </div>
+              <div class="task-details">
+                <span class="task-name">NL Order Sync</span>
+                <span class="task-description">Sync NL Magento orders (7-day lookback)</span>
+                <span class="task-schedule"><i class="fa-regular fa-hand-pointer"></i> Manual only</span>
+              </div>
+            </div>
+            <button class="btn btn-solid btn-success task-btn" data-task="sync-nl-orders">
+              <i class="fa-solid fa-play"></i>
+              <span>Run Now</span>
+            </button>
+          </div>
+
+          <!-- Catalog Sync -->
+          <div class="task-item task-item-sub">
+            <div class="task-info">
+              <div class="task-icon">
+                <i class="fa-solid fa-box-open"></i>
+              </div>
+              <div class="task-details">
+                <span class="task-name">Catalog Sync</span>
+                <span class="task-description">Sync Magento catalog products, merge identifiers, update variant statuses</span>
+                <span class="task-schedule"><i class="fa-regular fa-hand-pointer"></i> Manual only</span>
+              </div>
+            </div>
+            <button class="btn btn-solid btn-success task-btn" data-task="sync-catalog">
+              <i class="fa-solid fa-play"></i>
+              <span>Run Now</span>
+            </button>
+          </div>
+
+          <!-- 6M Sales Data Sync -->
+          <div class="task-item task-item-sub">
+            <div class="task-info">
+              <div class="task-icon">
+                <i class="fa-solid fa-chart-line"></i>
+              </div>
+              <div class="task-details">
+                <span class="task-name">6M Sales Data Sync</span>
+                <span class="task-description">Update 6-month rolling sales data in inventory_metadata</span>
+                <span class="task-schedule"><i class="fa-regular fa-hand-pointer"></i> Manual only</span>
+              </div>
+            </div>
+            <button class="btn btn-solid btn-success task-btn" data-task="sync-6m-data">
+              <i class="fa-solid fa-play"></i>
+              <span>Run Now</span>
+            </button>
+          </div>
+
+          <!-- Branch Inventory Sync -->
+          <div class="task-item task-item-sub">
+            <div class="task-info">
+              <div class="task-icon">
+                <i class="fa-solid fa-building"></i>
+              </div>
+              <div class="task-details">
+                <span class="task-name">Branch Inventory Sync</span>
+                <span class="task-description">Sync new products from master catalog to branch warehouse inventories (Birmingham, London, Paris)</span>
+                <span class="task-schedule"><i class="fa-regular fa-hand-pointer"></i> Manual only</span>
+              </div>
+            </div>
+            <button class="btn btn-solid btn-success task-btn" data-task="sync-branch-inventory">
+              <i class="fa-solid fa-play"></i>
+              <span>Run Now</span>
+            </button>
+          </div>
+
+          <!-- Section divider -->
+          <div class="task-section-divider">
+            <span>Other Tasks</span>
           </div>
 
           <!-- Populate Shipping Methods -->
@@ -91,7 +173,7 @@
                 <span class="task-schedule"><i class="fa-regular fa-hand-pointer"></i> Manual only</span>
               </div>
             </div>
-            <button class="btn btn-solid btn-success task-btn" data-task="backfill-shipping-methods" id="backfillShippingBtn">
+            <button class="btn btn-solid btn-success task-btn" data-task="backfill-shipping-methods">
               <i class="fa-solid fa-play"></i>
               <span>Run Now</span>
             </button>
@@ -123,260 +205,463 @@
   import { getToken } from '/js/services/state/sessionStore.js';
   import { wsService } from '/js/services/websocket.js';
   
-  // Task name mapping
-  const taskNames = {
-    'nightly-inventory-sync': 'Nightly Inventory Sync',
-    'order-session-reset': 'Order Session Reset',
-    'price-activation': 'Price Activation',
-    'backfill-shipping-methods': 'Populate Shipping Methods'
+  // ── Task Configuration ──
+  const TASKS = {
+    'nightly-inventory-sync': {
+      name: 'Nightly Inventory Sync',
+      icon: 'fa-solid fa-database',
+      streamUrl: '/api/v1/scheduler/run/nightly-inventory-sync/stream'
+    },
+    'sync-uk-orders': {
+      name: 'UK Order Sync',
+      icon: 'fa-solid fa-flag',
+      streamUrl: '/api/v1/scheduler/run/sync-uk-orders/stream'
+    },
+    'sync-fr-orders': {
+      name: 'FR Order Sync',
+      icon: 'fa-solid fa-flag',
+      streamUrl: '/api/v1/scheduler/run/sync-fr-orders/stream'
+    },
+    'sync-nl-orders': {
+      name: 'NL Order Sync',
+      icon: 'fa-solid fa-flag',
+      streamUrl: '/api/v1/scheduler/run/sync-nl-orders/stream'
+    },
+    'sync-catalog': {
+      name: 'Catalog Sync',
+      icon: 'fa-solid fa-box-open',
+      streamUrl: '/api/v1/scheduler/run/sync-catalog/stream'
+    },
+    'sync-6m-data': {
+      name: '6M Sales Data Sync',
+      icon: 'fa-solid fa-chart-line',
+      streamUrl: '/api/v1/scheduler/run/sync-6m-data/stream'
+    },
+    'sync-branch-inventory': {
+      name: 'Branch Inventory Sync',
+      icon: 'fa-solid fa-building',
+      streamUrl: '/api/v1/scheduler/run/sync-branch-inventory/stream'
+    },
+    'backfill-shipping-methods': {
+      name: 'Populate Shipping Methods',
+      icon: 'fa-solid fa-truck-fast',
+      streamUrl: '/api/v1/magentodata/all/backfill-shipping-methods/stream'
+    }
   };
   
-  // Polling interval for running tasks (10 seconds - fallback when WebSocket is connected)
-  const POLL_INTERVAL = 10000;
-  let pollTimer = null;
   let currentRunningTasks = new Set();
-  
-  // Store handlers for cleanup
+  let currentRunningTaskInfo = {}; // { taskId: { started_by, trigger } }
+  let currentBlockedTasks = {}; // { taskId: { blocked_by, blocked_by_name } }
   let wsHandlers = {};
-  
-  // Initialize page
+  let pollTimer = null;
+  const POLL_INTERVAL = 10000;
+
+  // ── Multi-Task Notification State ──
+  // Each tracked task: { taskId, name, icon, percent, message, status ('running'|'success'|'error'), addedAt }
+  let trackedTasks = [];
+  let activeIndex = 0;
+  let notificationEl = null;
+  let autoDismissTimer = null;
+
+  // ── Initialization ──
   (async function init() {
-    // Load scheduler status (includes running tasks)
     await loadSchedulerStatus();
-    
-    // Attach task button handlers
     document.querySelectorAll('.task-btn').forEach(btn => {
       btn.addEventListener('click', handleTaskClick);
     });
-    
-    // Setup WebSocket listeners for real-time updates
     setupWebSocketListeners();
-    
-    // Start polling as fallback
     startPolling();
+    injectProgressStyles();
   })();
-  
-  // Setup WebSocket listeners for task status changes
+
+  // ── WebSocket Listeners ──
   function setupWebSocketListeners() {
-    // Handler for task started events
     wsHandlers.taskStarted = (data) => {
-      console.log('🔔 WebSocket: Task started', data);
       const taskId = data.task_id;
       if (!currentRunningTasks.has(taskId)) {
         currentRunningTasks.add(taskId);
+        currentRunningTaskInfo[taskId] = { started_by: data.started_by, trigger: data.trigger };
         const btn = document.querySelector(`.task-btn[data-task="${taskId}"]`);
-        if (btn) {
-          setButtonRunning(btn, taskId, data);
+        if (btn && !btn.classList.contains('executing')) {
+          setButtonRunning(btn, data);
         }
-        updateRunningTasksSectionFromEvent('add', data);
-        showToast(`⚙️ ${taskNames[taskId] || taskId} started by ${data.started_by}`, 'info');
+        showToast(`⚙️ ${TASKS[taskId]?.name || taskId} started by ${data.started_by}`, 'info');
+        refreshBlockedStates();
       }
     };
-    
-    // Handler for task completed events
     wsHandlers.taskCompleted = (data) => {
-      console.log('🔔 WebSocket: Task completed', data);
       const taskId = data.task_id;
       if (currentRunningTasks.has(taskId)) {
         currentRunningTasks.delete(taskId);
+        delete currentRunningTaskInfo[taskId];
         const btn = document.querySelector(`.task-btn[data-task="${taskId}"]`);
-        if (btn) {
-          resetButton(btn, taskId);
-        }
-        updateRunningTasksSectionFromEvent('remove', data);
-        showToast(`✅ ${taskNames[taskId] || taskId} completed`, 'success');
+        if (btn) resetButton(btn);
+        showToast(`✅ ${TASKS[taskId]?.name || taskId} completed`, 'success');
+        refreshBlockedStates();
       }
     };
-    
-    // Register handlers
     wsService.on('scheduler:task_started', wsHandlers.taskStarted);
     wsService.on('scheduler:task_completed', wsHandlers.taskCompleted);
   }
   
-  // Start polling for running tasks (fallback/sync)
+  // ── Polling ──
   function startPolling() {
-    // Poll immediately, then at intervals
     pollRunningTasks();
     pollTimer = setInterval(pollRunningTasks, POLL_INTERVAL);
   }
-  
-  // Stop polling when leaving page
-  window.addEventListener('beforeunload', () => {
-    if (pollTimer) clearInterval(pollTimer);
-    // Clean up WebSocket listeners
-    if (wsHandlers.taskStarted) wsService.off('scheduler:task_started', wsHandlers.taskStarted);
-    if (wsHandlers.taskCompleted) wsService.off('scheduler:task_completed', wsHandlers.taskCompleted);
-  });
-  
-  // Poll for running tasks (lightweight endpoint)
   async function pollRunningTasks() {
     try {
       const token = getToken();
       const response = await fetch('/api/v1/scheduler/running', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      
       if (response.ok) {
         const data = await response.json();
         updateRunningTasksUI(data.running_tasks || []);
+        updateBlockedTasksUI(data.blocked_tasks || {});
       }
-    } catch (error) {
-      // Silently fail polling - don't spam errors
-      console.warn('Failed to poll running tasks:', error);
-    }
+    } catch (error) {}
   }
-  
-  // Update UI based on running tasks
   function updateRunningTasksUI(runningTasks) {
     const runningIds = new Set(runningTasks.map(t => t.task_id));
-    
-    // Update each task button
+    // Update task info map from poll data
+    const newInfo = {};
+    runningTasks.forEach(t => { newInfo[t.task_id] = { started_by: t.started_by, trigger: t.trigger }; });
     document.querySelectorAll('.task-btn').forEach(btn => {
       const taskId = btn.dataset.task;
       if (!taskId) return;
-      
       const isRunning = runningIds.has(taskId);
       const wasRunning = currentRunningTasks.has(taskId);
-      
-      if (isRunning && !wasRunning) {
-        // Task just started running (elsewhere)
-        setButtonRunning(btn, taskId, runningTasks.find(t => t.task_id === taskId));
-      } else if (!isRunning && wasRunning) {
-        // Task just finished
-        resetButton(btn, taskId);
-        showToast(`✅ ${taskNames[taskId] || taskId} completed`, 'success');
+      if (isRunning && !wasRunning && !btn.classList.contains('executing')) {
+        setButtonRunning(btn, runningTasks.find(t => t.task_id === taskId));
+      } else if (!isRunning && wasRunning && !btn.classList.contains('executing')) {
+        resetButton(btn);
+        showToast(`✅ ${TASKS[taskId]?.name || taskId} completed`, 'success');
       }
     });
-    
     currentRunningTasks = runningIds;
-    
-    // Update running tasks section in status
-    updateRunningTasksSection(runningTasks);
+    currentRunningTaskInfo = newInfo;
+  }
+  function updateBlockedTasksUI(blockedTasks) {
+    currentBlockedTasks = blockedTasks;
+    document.querySelectorAll('.task-btn').forEach(btn => {
+      const taskId = btn.dataset.task;
+      if (!taskId) return;
+      // Skip buttons that are currently executing (those are handled by setButtonRunning)
+      if (btn.classList.contains('executing')) return;
+      const blocked = blockedTasks[taskId];
+      if (blocked) {
+        setButtonBlocked(btn, blocked.blocked_by_name);
+      } else if (btn.classList.contains('blocked')) {
+        resetButton(btn);
+      }
+    });
   }
   
-  // Set button to running state (disabled, showing who started it)
-  function setButtonRunning(btn, taskId, taskInfo) {
+  // ── Conflict Groups (mirrors backend CONFLICT_GROUPS) ──
+  const CONFLICT_GROUPS = {
+    // Nightly sync conflicts with all sub-tasks
+    'nightly-vs-uk':      ['nightly-inventory-sync', 'sync-uk-orders'],
+    'nightly-vs-fr':      ['nightly-inventory-sync', 'sync-fr-orders'],
+    'nightly-vs-nl':      ['nightly-inventory-sync', 'sync-nl-orders'],
+    'nightly-vs-catalog': ['nightly-inventory-sync', 'sync-catalog'],
+    'nightly-vs-6m':      ['nightly-inventory-sync', 'sync-6m-data'],
+    'nightly-vs-branch':  ['nightly-inventory-sync', 'sync-branch-inventory'],
+    // 6M reads from aggregated orders
+    'uk-orders-vs-6m':    ['sync-uk-orders', 'sync-6m-data'],
+    'fr-orders-vs-6m':    ['sync-fr-orders', 'sync-6m-data'],
+    'nl-orders-vs-6m':    ['sync-nl-orders', 'sync-6m-data'],
+    // 6M and catalog both write to inventory_metadata
+    '6m-vs-catalog':      ['sync-6m-data', 'sync-catalog'],
+    // 6M writes to inventory_metadata while branch reads from it
+    '6m-vs-branch':       ['sync-6m-data', 'sync-branch-inventory'],
+    // Branch reads inventory_metadata that catalog modifies
+    'catalog-vs-branch':  ['sync-catalog', 'sync-branch-inventory'],
+  };
+  function refreshBlockedStates() {
+    // Compute blocked tasks locally from currentRunningTasks + conflict groups
+    const blocked = {};
+    for (const [, groupTasks] of Object.entries(CONFLICT_GROUPS)) {
+      const runningInGroup = groupTasks.filter(id => currentRunningTasks.has(id));
+      if (runningInGroup.length > 0) {
+        for (const taskId of groupTasks) {
+          if (!currentRunningTasks.has(taskId)) {
+            blocked[taskId] = {
+              blocked_by: runningInGroup[0],
+              blocked_by_name: TASKS[runningInGroup[0]]?.name || runningInGroup[0],
+            };
+          }
+        }
+      }
+    }
+    updateBlockedTasksUI(blocked);
+  }
+  window.addEventListener('beforeunload', () => {
+    if (pollTimer) clearInterval(pollTimer);
+    if (wsHandlers.taskStarted) wsService.off('scheduler:task_started', wsHandlers.taskStarted);
+    if (wsHandlers.taskCompleted) wsService.off('scheduler:task_completed', wsHandlers.taskCompleted);
+  });
+
+  // ── Button State ──
+  function setButtonRunning(btn, taskInfo) {
     btn.classList.add('executing');
-    btn.disabled = true;
-    
+    btn.disabled = false; // Keep clickable so user sees who's running it
     const startedBy = taskInfo?.started_by || 'system';
     const trigger = taskInfo?.trigger || 'unknown';
     const triggerText = trigger === 'scheduled' ? 'Scheduled' : `by ${startedBy}`;
-    
-    btn.innerHTML = `
-      <i class="fa-solid fa-spinner fa-spin"></i>
-      <span>Running (${triggerText})</span>
-    `;
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i><span>Running (${triggerText})</span>`;
   }
-  
-  // Reset button to normal state
-  function resetButton(btn, taskId) {
-    btn.classList.remove('executing');
+  function resetButton(btn) {
+    btn.classList.remove('executing', 'blocked');
     btn.disabled = false;
-    btn.innerHTML = `
-      <i class="fa-solid fa-play"></i>
-      <span>Run Now</span>
-    `;
+    btn.innerHTML = '<i class="fa-solid fa-play"></i><span>Run Now</span>';
   }
-  
-  // Update running tasks section in status panel
-  function updateRunningTasksSection(runningTasks) {
-    let section = document.getElementById('runningTasksSection');
+  function setButtonBlocked(btn, blockedByName) {
+    btn.classList.add('blocked');
+    btn.disabled = false; // Keep clickable so user can see why it's blocked
+    btn.innerHTML = `<i class="fa-solid fa-lock"></i><span>Blocked</span>`;
+  }
+
+  // ── Task Click → SSE Stream ──
+  async function handleTaskClick(e) {
+    const btn = e.currentTarget;
+    const taskId = btn.dataset.task;
+    if (!taskId) return;
+    const taskConfig = TASKS[taskId];
+    if (!taskConfig) return;
     
-    if (runningTasks.length === 0) {
-      if (section) section.remove();
+    // Check blocked state (conflict)
+    if (btn.classList.contains('blocked')) {
+      const blocked = currentBlockedTasks[taskId];
+      const blockerName = blocked?.blocked_by_name || 'another task';
+      const blockerInfo = currentRunningTaskInfo[blocked?.blocked_by];
+      const byWho = blockerInfo ? ` (by ${blockerInfo.started_by})` : '';
+      showToast(`🔒 Cannot run — ${blockerName}${byWho} is currently active`, 'warning');
       return;
     }
     
-    const html = `
-      <div class="running-tasks-section" id="runningTasksSection">
-        <h4><i class="fa-solid fa-cogs fa-spin"></i> Currently Running</h4>
-        <div class="running-tasks-list">
-          ${runningTasks.map(task => `
-            <div class="running-task-item">
-              <span class="running-task-name">${task.name}</span>
-              <span class="running-task-info">
-                Started ${formatTimeAgo(task.started_at)} by ${task.started_by}
-                ${task.trigger === 'scheduled' ? '(Scheduled)' : '(Manual)'}
-              </span>
-            </div>
-          `).join('')}
-        </div>
+    if (btn.classList.contains('executing')) {
+      const info = currentRunningTaskInfo[taskId];
+      if (info) {
+        const byWho = info.trigger === 'scheduled' ? 'the scheduler' : info.started_by;
+        showToast(`🔒 ${taskConfig.name} is already being run by ${byWho}`, 'warning');
+      } else {
+        showToast(`🔒 ${taskConfig.name} is already running`, 'warning');
+      }
+      return;
+    }
+    
+    btn.classList.add('executing');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>Running...</span>';
+    currentRunningTasks.add(taskId);
+    refreshBlockedStates(); // Immediately block conflicting tasks
+    
+    // Register in multi-task notification
+    const task = addTrackedTask(taskId, taskConfig.name, taskConfig.icon);
+    
+    try {
+      const token = getToken();
+      const response = await fetch(taskConfig.streamUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.status === 409) {
+        let detail = '';
+        try { const body = await response.json(); detail = body.detail; } catch {}
+        if (detail?.error === 'conflicting_task_running') {
+          showToast(`🔒 Cannot run — ${detail.message}`, 'warning');
+        } else {
+          showToast(`⚠️ ${taskConfig.name} is already running`, 'warning');
+        }
+        removeTrackedTask(taskId);
+        return;
+      }
+      if (!response.ok) throw new Error(`Server error: ${response.status}`);
+      
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop();
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          try {
+            const event = JSON.parse(line.slice(6));
+            if (event.type === 'progress') {
+              updateTrackedTask(taskId, event.percent, event.message);
+            } else if (event.type === 'complete') {
+              completeTrackedTask(taskId, event.status, event.message);
+            }
+          } catch (parseErr) {}
+        }
+      }
+    } catch (error) {
+      completeTrackedTask(taskId, 'error', `Failed: ${error.message}`);
+      showToast(`❌ ${taskConfig.name} failed: ${error.message}`, 'error');
+    } finally {
+      currentRunningTasks.delete(taskId);
+      resetButton(btn);
+      refreshBlockedStates(); // Immediately unblock conflicting tasks
+    }
+  }
+
+  // ══════════════════════════════════════════════
+  // Multi-Task Notification Panel
+  // ══════════════════════════════════════════════
+  
+  function addTrackedTask(taskId, name, icon) {
+    // Cancel any pending auto-dismiss
+    if (autoDismissTimer) { clearTimeout(autoDismissTimer); autoDismissTimer = null; }
+    
+    // Remove any existing entry for this taskId (prevents duplicates on re-run)
+    const existingIdx = trackedTasks.findIndex(t => t.taskId === taskId);
+    if (existingIdx !== -1) {
+      trackedTasks.splice(existingIdx, 1);
+    }
+    
+    const task = { taskId, name, icon, percent: 0, message: 'Starting...', status: 'running', addedAt: Date.now() };
+    trackedTasks.push(task);
+    activeIndex = trackedTasks.length - 1; // auto-navigate to newest
+    ensureNotification();
+    renderNotification();
+    return task;
+  }
+  
+  function removeTrackedTask(taskId) {
+    const idx = trackedTasks.findIndex(t => t.taskId === taskId);
+    if (idx === -1) return;
+    trackedTasks.splice(idx, 1);
+    if (trackedTasks.length === 0) {
+      dismissNotification();
+    } else {
+      activeIndex = Math.min(activeIndex, trackedTasks.length - 1);
+      renderNotification();
+    }
+  }
+  
+  function updateTrackedTask(taskId, percent, message) {
+    const task = trackedTasks.findLast(t => t.taskId === taskId);
+    if (!task) return;
+    if (percent >= 0) task.percent = percent;
+    if (message) task.message = message;
+    // Only re-render if this task is currently visible
+    if (trackedTasks[activeIndex]?.taskId === taskId) renderNotification();
+  }
+  
+  function completeTrackedTask(taskId, status, message) {
+    const task = trackedTasks.findLast(t => t.taskId === taskId);
+    if (!task) return;
+    task.status = (status === 'success' || status === 'partial') ? 'success' : 'error';
+    task.percent = 100;
+    task.message = message || (task.status === 'success' ? 'Complete!' : 'Failed');
+    renderNotification();
+    scheduleAutoDismiss();
+  }
+  
+  function scheduleAutoDismiss() {
+    // Auto-dismiss when ALL tasks are finished (no running tasks left)
+    if (autoDismissTimer) clearTimeout(autoDismissTimer);
+    const anyRunning = trackedTasks.some(t => t.status === 'running');
+    if (!anyRunning && trackedTasks.length > 0) {
+      autoDismissTimer = setTimeout(() => {
+        trackedTasks = [];
+        activeIndex = 0;
+        dismissNotification();
+      }, 5000);
+    }
+  }
+
+  function ensureNotification() {
+    if (notificationEl && notificationEl.isConnected) return;
+    notificationEl = document.createElement('div');
+    notificationEl.id = 'task-progress-notification';
+    document.body.appendChild(notificationEl);
+  }
+  
+  function renderNotification() {
+    if (!notificationEl || !notificationEl.isConnected) return;
+    if (trackedTasks.length === 0) return;
+    
+    // Clamp index
+    activeIndex = Math.max(0, Math.min(activeIndex, trackedTasks.length - 1));
+    const task = trackedTasks[activeIndex];
+    const total = trackedTasks.length;
+    const showNav = total > 1;
+    
+    // Determine icon state
+    let iconClass = task.icon;
+    let iconColor = '#3b82f6';
+    if (task.status === 'success') { iconClass = 'fa-solid fa-circle-check'; iconColor = '#10b981'; }
+    else if (task.status === 'error') { iconClass = 'fa-solid fa-circle-xmark'; iconColor = '#ef4444'; }
+    
+    // Bar class
+    let barClass = '';
+    if (task.status === 'success') barClass = ' complete';
+    else if (task.status === 'error') barClass = ' error';
+    
+    // Navigation arrow states
+    const canPrev = activeIndex > 0;
+    const canNext = activeIndex < total - 1;
+    
+    // Build dot indicators
+    let dotsHtml = '';
+    if (showNav) {
+      dotsHtml = '<div class="pn-dots">';
+      for (let i = 0; i < total; i++) {
+        const t = trackedTasks[i];
+        let dotClass = 'pn-dot';
+        if (i === activeIndex) dotClass += ' active';
+        if (t.status === 'success') dotClass += ' success';
+        else if (t.status === 'error') dotClass += ' error';
+        else dotClass += ' running';
+        dotsHtml += `<span class="${dotClass}"></span>`;
+      }
+      dotsHtml += '</div>';
+    }
+    
+    notificationEl.innerHTML = `
+      <div class="pn-header">
+        ${showNav ? `<button class="pn-arrow pn-prev ${canPrev ? '' : 'disabled'}" ${canPrev ? '' : 'disabled'}><i class="fa-solid fa-chevron-left"></i></button>` : ''}
+        <i class="${iconClass}" style="color:${iconColor}"></i>
+        <span class="pn-title">${task.name}</span>
+        <span class="pn-counter">${showNav ? `${activeIndex + 1}/${total}` : ''}</span>
+        ${showNav ? `<button class="pn-arrow pn-next ${canNext ? '' : 'disabled'}" ${canNext ? '' : 'disabled'}><i class="fa-solid fa-chevron-right"></i></button>` : ''}
+      </div>
+      <div class="pn-message">${task.message}</div>
+      <div class="pn-bar-wrapper"><div class="pn-bar${barClass}" style="width:${task.percent}%"></div></div>
+      <div class="pn-footer">
+        <span class="pn-percent">${task.status === 'error' ? 'Error' : task.percent + '%'}</span>
+        ${dotsHtml}
       </div>
     `;
     
-    const schedulerStatus = document.getElementById('schedulerStatus');
-    if (section) {
-      section.outerHTML = html;
-    } else if (schedulerStatus) {
-      schedulerStatus.insertAdjacentHTML('afterbegin', html);
+    // Attach arrow listeners
+    if (showNav) {
+      const prevBtn = notificationEl.querySelector('.pn-prev');
+      const nextBtn = notificationEl.querySelector('.pn-next');
+      if (prevBtn && canPrev) prevBtn.addEventListener('click', () => { activeIndex--; renderNotification(); });
+      if (nextBtn && canNext) nextBtn.addEventListener('click', () => { activeIndex++; renderNotification(); });
     }
   }
   
-  // Update running tasks section from WebSocket event (add or remove single task)
-  function updateRunningTasksSectionFromEvent(action, taskData) {
-    let section = document.getElementById('runningTasksSection');
-    const schedulerStatus = document.getElementById('schedulerStatus');
-    
-    if (action === 'remove') {
-      // Remove task from section
-      if (section) {
-        const taskItem = section.querySelector(`[data-running-task="${taskData.task_id}"]`);
-        if (taskItem) taskItem.remove();
-        
-        // If no more running tasks, remove the section
-        const remaining = section.querySelectorAll('.running-task-item');
-        if (remaining.length === 0) {
-          section.remove();
-        }
-      }
-    } else if (action === 'add') {
-      // Add task to section
-      const taskName = taskNames[taskData.task_id] || taskData.task_id;
-      const taskHtml = `
-        <div class="running-task-item" data-running-task="${taskData.task_id}">
-          <span class="running-task-name">${taskName}</span>
-          <span class="running-task-info">
-            Started just now by ${taskData.started_by}
-            ${taskData.trigger === 'scheduled' ? '(Scheduled)' : '(Manual)'}
-          </span>
-        </div>
-      `;
-      
-      if (!section) {
-        // Create section if it doesn't exist
-        const sectionHtml = `
-          <div class="running-tasks-section" id="runningTasksSection">
-            <h4><i class="fa-solid fa-cogs fa-spin"></i> Currently Running</h4>
-            <div class="running-tasks-list">${taskHtml}</div>
-          </div>
-        `;
-        if (schedulerStatus) {
-          schedulerStatus.insertAdjacentHTML('afterbegin', sectionHtml);
-        }
-      } else {
-        // Add to existing list
-        const list = section.querySelector('.running-tasks-list');
-        if (list) {
-          list.insertAdjacentHTML('beforeend', taskHtml);
-        }
-      }
+  function dismissNotification() {
+    if (notificationEl && notificationEl.isConnected) {
+      notificationEl.classList.add('completing');
+      notificationEl.addEventListener('animationend', () => { notificationEl.remove(); notificationEl = null; });
     }
   }
-  
-  // Format time ago
-  function formatTimeAgo(isoString) {
-    const date = new Date(isoString);
-    const now = new Date();
-    const seconds = Math.floor((now - date) / 1000);
-    
-    if (seconds < 60) return 'just now';
-    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-    return date.toLocaleString();
-  }
-  
-  // Load scheduler status
+
+  // ── Scheduler Status ──
   async function loadSchedulerStatus() {
     const statusDiv = document.getElementById('schedulerStatus');
     try {
@@ -384,16 +669,15 @@
       const response = await fetch('/api/v1/scheduler/status', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      
       const data = await response.json();
-      
       if (response.ok) {
-        // Update running tasks tracking
         if (data.running_tasks) {
           currentRunningTasks = new Set(data.running_tasks.map(t => t.task_id));
-          updateRunningTasksUI(data.running_tasks);
+          data.running_tasks.forEach(task => {
+            const btn = document.querySelector(`.task-btn[data-task="${task.task_id}"]`);
+            if (btn) setButtonRunning(btn, task);
+          });
         }
-        
         let html = `
           <div class="status-grid">
             <div class="status-item">
@@ -412,7 +696,6 @@
             </div>
           </div>
         `;
-        
         if (data.jobs && data.jobs.length > 0) {
           html += `
             <div class="jobs-section">
@@ -431,7 +714,6 @@
             </div>
           `;
         }
-        
         statusDiv.innerHTML = html;
       } else {
         statusDiv.innerHTML = `<div class="status-error"><i class="fa-solid fa-exclamation-triangle"></i> Failed to load status</div>`;
@@ -440,276 +722,184 @@
       statusDiv.innerHTML = `<div class="status-error"><i class="fa-solid fa-exclamation-triangle"></i> ${error.message}</div>`;
     }
   }
-  
-  // Handle task button click
-  async function handleTaskClick(e) {
-    const btn = e.currentTarget;
-    const taskId = btn.dataset.task;
-    if (!taskId) return;
-    
-    // Route backfill-shipping-methods to its custom SSE handler
-    if (taskId === 'backfill-shipping-methods') {
-      return handleBackfillShippingMethods(btn);
-    }
-    
-    // Prevent if already running
-    if (btn.classList.contains('executing') || btn.disabled) {
-      showToast('This task is already running', 'warning');
-      return;
-    }
-    
-    const taskName = taskNames[taskId] || taskId;
-    
-    // Set executing state immediately
-    btn.classList.add('executing');
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>Starting...</span>';
-    
-    try {
-      const token = getToken();
-      const response = await fetch(`/api/v1/scheduler/run/${taskId}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      const result = await response.json();
-      
-      if (response.ok && result.success) {
-        // Task started in background
-        showToast(`🚀 ${taskName} started in background`, 'success');
-        currentRunningTasks.add(taskId);
-        setButtonRunning(btn, taskId, { started_by: 'you', trigger: 'manual' });
-        
-        // Poll immediately to get updated status
-        setTimeout(pollRunningTasks, 1000);
-        
-      } else if (response.status === 409) {
-        // Task already running
-        const detail = result.detail || {};
-        const startedBy = detail.started_by || 'someone';
-        showToast(`⚠️ ${taskName} is already running (started by ${startedBy})`, 'warning');
-        setButtonRunning(btn, taskId, detail);
-        
-      } else {
-        const errorMsg = result.detail?.message || result.detail || result.message || 'Unknown error';
-        showToast(`❌ Failed to start ${taskName}: ${errorMsg}`, 'error');
-        resetButton(btn, taskId);
+
+  // ── Inject Styles ──
+  function injectProgressStyles() {
+    if (document.getElementById('progress-notif-styles')) return;
+    const style = document.createElement('style');
+    style.id = 'progress-notif-styles';
+    style.textContent = `
+      #task-progress-notification {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 360px;
+        background: var(--bg-secondary, #1e1e2e);
+        border: 1px solid var(--border-color, #333);
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        z-index: 2147483647;
+        font-family: inherit;
+        animation: pnSlideIn 0.3s ease-out;
+      }
+      #task-progress-notification.completing {
+        animation: pnFadeOut 0.5s ease-in forwards;
       }
       
-    } catch (error) {
-      showToast(`❌ Failed to start ${taskName}: ${error.message}`, 'error');
-      resetButton(btn, taskId);
-    }
-  }
-
-  // ── Backfill Shipping Methods with SSE Progress ──
-
-  function createProgressNotification() {
-    // Remove existing if any
-    const existing = document.getElementById('backfill-progress-notification');
-    if (existing) existing.remove();
-
-    const notification = document.createElement('div');
-    notification.id = 'backfill-progress-notification';
-    notification.innerHTML = `
-      <div class="progress-notif-header">
-        <i class="fa-solid fa-truck-fast"></i>
-        <span class="progress-notif-title">Populating Shipping Methods</span>
-      </div>
-      <div class="progress-notif-message">Starting...</div>
-      <div class="progress-notif-bar-wrapper">
-        <div class="progress-notif-bar" style="width: 0%"></div>
-      </div>
-      <div class="progress-notif-percent">0%</div>
+      /* Header with arrows */
+      .pn-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+        color: var(--text-primary, #e0e0e0);
+        font-weight: 600;
+        font-size: 14px;
+      }
+      .pn-title { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .pn-counter {
+        font-size: 11px;
+        color: var(--text-secondary, #a0a0a0);
+        font-weight: 400;
+        white-space: nowrap;
+      }
+      
+      /* Arrow buttons */
+      .pn-arrow {
+        background: none;
+        border: 1px solid var(--border-color, #444);
+        border-radius: 6px;
+        color: var(--text-primary, #e0e0e0);
+        width: 26px;
+        height: 26px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 11px;
+        transition: all 0.15s ease;
+        flex-shrink: 0;
+        padding: 0;
+      }
+      .pn-arrow:hover:not(.disabled) {
+        background: var(--bg-tertiary, #2a2a3a);
+        border-color: #3b82f6;
+        color: #3b82f6;
+      }
+      .pn-arrow.disabled {
+        opacity: 0.25;
+        cursor: default;
+        pointer-events: none;
+      }
+      
+      /* Message */
+      .pn-message {
+        color: var(--text-secondary, #a0a0a0);
+        font-size: 12px;
+        margin-bottom: 10px;
+        min-height: 16px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      
+      /* Progress bar */
+      .pn-bar-wrapper {
+        width: 100%;
+        height: 6px;
+        background: var(--bg-tertiary, #2a2a3a);
+        border-radius: 3px;
+        overflow: hidden;
+        margin-bottom: 8px;
+      }
+      .pn-bar {
+        height: 100%;
+        background: linear-gradient(90deg, #3b82f6, #60a5fa);
+        border-radius: 3px;
+        transition: width 0.4s ease;
+      }
+      .pn-bar.complete { background: linear-gradient(90deg, #10b981, #34d399); }
+      .pn-bar.error { background: linear-gradient(90deg, #ef4444, #f87171); }
+      
+      /* Footer with percent + dots */
+      .pn-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .pn-percent {
+        color: var(--text-secondary, #a0a0a0);
+        font-size: 11px;
+      }
+      
+      /* Dot indicators */
+      .pn-dots {
+        display: flex;
+        gap: 5px;
+        align-items: center;
+      }
+      .pn-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        transition: all 0.2s ease;
+      }
+      .pn-dot.running { background: #3b82f6; }
+      .pn-dot.success { background: #10b981; }
+      .pn-dot.error { background: #ef4444; }
+      .pn-dot.active {
+        width: 9px;
+        height: 9px;
+        box-shadow: 0 0 0 2px rgba(255,255,255,0.2);
+      }
+      
+      @keyframes pnSlideIn {
+        from { transform: translateY(100%); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+      }
+      @keyframes pnFadeOut {
+        from { transform: translateY(0); opacity: 1; }
+        to { transform: translateY(-20px); opacity: 0; }
+      }
+      
+      /* Blocked button state */
+      .task-btn.blocked {
+        opacity: 0.45;
+        cursor: not-allowed;
+        filter: grayscale(0.5);
+      }
+      .task-btn.blocked:hover {
+        opacity: 0.55;
+      }
+      
+      /* Section divider between task groups */
+      .task-section-divider {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 8px 0;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-secondary, #888);
+      }
+      .task-section-divider::before,
+      .task-section-divider::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: var(--border-color, #333);
+      }
+      
+      /* Sub-task items indented */
+      .task-item-sub {
+        padding-left: 16px;
+        border-left: 2px solid var(--border-color, #333);
+        margin-left: 8px;
+      }
     `;
-
-    // Inject styles once
-    if (!document.getElementById('progress-notif-styles')) {
-      const style = document.createElement('style');
-      style.id = 'progress-notif-styles';
-      style.textContent = `
-        #backfill-progress-notification {
-          position: fixed;
-          bottom: 20px;
-          right: 20px;
-          width: 340px;
-          background: var(--bg-secondary, #1e1e2e);
-          border: 1px solid var(--border-color, #333);
-          border-radius: 12px;
-          padding: 16px;
-          box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-          z-index: 2147483647;
-          font-family: inherit;
-          animation: slideInFromBottom 0.3s ease-out;
-        }
-        #backfill-progress-notification.completing {
-          animation: fadeUpAndOut 0.5s ease-in forwards;
-          animation-delay: 3s;
-        }
-        .progress-notif-header {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          margin-bottom: 8px;
-          color: var(--text-primary, #e0e0e0);
-          font-weight: 600;
-          font-size: 14px;
-        }
-        .progress-notif-header i {
-          color: #3b82f6;
-        }
-        .progress-notif-message {
-          color: var(--text-secondary, #a0a0a0);
-          font-size: 12px;
-          margin-bottom: 10px;
-          min-height: 16px;
-        }
-        .progress-notif-bar-wrapper {
-          width: 100%;
-          height: 6px;
-          background: var(--bg-tertiary, #2a2a3a);
-          border-radius: 3px;
-          overflow: hidden;
-          margin-bottom: 6px;
-        }
-        .progress-notif-bar {
-          height: 100%;
-          background: linear-gradient(90deg, #3b82f6, #60a5fa);
-          border-radius: 3px;
-          transition: width 0.4s ease;
-        }
-        .progress-notif-bar.complete {
-          background: linear-gradient(90deg, #10b981, #34d399);
-        }
-        .progress-notif-bar.error {
-          background: linear-gradient(90deg, #ef4444, #f87171);
-        }
-        .progress-notif-percent {
-          color: var(--text-secondary, #a0a0a0);
-          font-size: 11px;
-          text-align: right;
-        }
-        @keyframes slideInFromBottom {
-          from { transform: translateY(100%); opacity: 0; }
-          to { transform: translateY(0); opacity: 1; }
-        }
-        @keyframes fadeUpAndOut {
-          from { transform: translateY(0); opacity: 1; }
-          to { transform: translateY(-20px); opacity: 0; }
-        }
-      `;
-      document.head.appendChild(style);
-    }
-
-    document.body.appendChild(notification);
-    return notification;
-  }
-
-  function updateProgressNotification(notification, percent, message) {
-    const bar = notification.querySelector('.progress-notif-bar');
-    const pctEl = notification.querySelector('.progress-notif-percent');
-    const msgEl = notification.querySelector('.progress-notif-message');
-
-    if (percent >= 0) {
-      bar.style.width = percent + '%';
-      pctEl.textContent = percent + '%';
-    }
-    if (message) {
-      msgEl.textContent = message;
-    }
-  }
-
-  function completeProgressNotification(notification, status, message) {
-    const bar = notification.querySelector('.progress-notif-bar');
-    const pctEl = notification.querySelector('.progress-notif-percent');
-    const msgEl = notification.querySelector('.progress-notif-message');
-    const icon = notification.querySelector('.progress-notif-header i');
-
-    bar.style.width = '100%';
-
-    if (status === 'success' || status === 'partial') {
-      bar.classList.add('complete');
-      icon.className = 'fa-solid fa-circle-check';
-      icon.style.color = '#10b981';
-      pctEl.textContent = '100%';
-      msgEl.textContent = message || 'Complete!';
-    } else {
-      bar.classList.add('error');
-      icon.className = 'fa-solid fa-circle-xmark';
-      icon.style.color = '#ef4444';
-      pctEl.textContent = 'Error';
-      msgEl.textContent = message || 'Failed';
-    }
-
-    // Auto-dismiss after 4 seconds
-    notification.classList.add('completing');
-    notification.addEventListener('animationend', () => {
-      notification.remove();
-    });
-  }
-
-  async function handleBackfillShippingMethods(btn) {
-    if (btn.disabled) {
-      showToast('This task is already running', 'warning');
-      return;
-    }
-
-    btn.classList.add('executing');
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>Running...</span>';
-
-    const notification = createProgressNotification();
-
-    try {
-      const token = getToken();
-      const response = await fetch('/api/v1/magentodata/all/backfill-shipping-methods/stream', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`Server error: ${response.status}`);
-      }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop(); // keep incomplete line in buffer
-
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue;
-          try {
-            const event = JSON.parse(line.slice(6));
-            if (event.type === 'progress') {
-              updateProgressNotification(notification, event.percent, event.message);
-            } else if (event.type === 'complete') {
-              completeProgressNotification(notification, event.status, event.message);
-            }
-          } catch (parseErr) {
-            // skip malformed events
-          }
-        }
-      }
-    } catch (error) {
-      completeProgressNotification(notification, 'error', `Failed: ${error.message}`);
-      showToast(`❌ Shipping methods backfill failed: ${error.message}`, 'error');
-    } finally {
-      btn.classList.remove('executing');
-      btn.disabled = false;
-      btn.innerHTML = '<i class="fa-solid fa-play"></i><span>Run Now</span>';
-    }
+    document.head.appendChild(style);
   }
 </script>
