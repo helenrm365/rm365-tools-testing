@@ -588,13 +588,130 @@ class MagentoDataService:
                 "message": f"Failed to refresh aggregated data: {str(e)}"
             }
     
+    def get_shipping_methods(self, region: str) -> Dict[str, Any]:
+        """Get distinct shipping methods for a region or all regions."""
+        try:
+            methods = self.repo.get_shipping_methods(region)
+            return {
+                "status": "success",
+                "region": region,
+                "shipping_methods": methods
+            }
+        except Exception as e:
+            logger.error(f"Error getting shipping methods for {region}: {e}")
+            return {
+                "status": "error",
+                "message": str(e),
+                "shipping_methods": []
+            }
+    
+    def backfill_shipping_methods(self, region: str, progress_callback=None) -> Dict[str, Any]:
+        """
+        Backfill shipping_method for all existing cached orders that have it missing.
+        
+        Pipeline architecture: fetches from Magento in 10k chunks and immediately
+        writes each chunk to the PG cache before fetching the next. This means:
+        - DB changes appear as it runs (not all at the end)
+        - Memory usage is O(chunk_size) not O(total_orders)
+        - Progress is smooth 0-100% with no artificial split
+        - One Magento connection per region (no reconnect overhead)
+        """
+        from .client import MagentoDataClient
+        
+        regions_to_process = ['uk', 'fr', 'nl'] if region == 'all' else [region]
+        total_updated = 0
+        errors = []
+        
+        # Count total missing orders across all regions
+        if progress_callback:
+            progress_callback(0, "Counting orders missing shipping data...")
+        
+        total_missing = 0
+        region_missing = {}
+        for r in regions_to_process:
+            try:
+                table_name = self._get_table_name(r)
+                missing = self.repo.get_orders_missing_shipping_method(table_name)
+                region_missing[r] = missing
+                total_missing += len(missing)
+            except Exception as e:
+                logger.error(f"Error counting missing orders for {r}: {e}")
+                errors.append(f"{r}: {str(e)}")
+        
+        if total_missing == 0 and not errors:
+            if progress_callback:
+                progress_callback(100, "All orders already have shipping methods")
+            return {
+                "status": "success",
+                "message": "All orders already have shipping methods",
+                "rows_updated": 0
+            }
+        
+        region_count = len([r for r in regions_to_process if region_missing.get(r)])
+        if progress_callback:
+            progress_callback(1, f"Found {total_missing:,} orders across {region_count} region(s)")
+        
+        # Track global progress across all regions
+        global_offset = 0
+        
+        for r in regions_to_process:
+            missing_orders = region_missing.get(r, [])
+            if not missing_orders:
+                continue
+            
+            try:
+                table_name = self._get_table_name(r)
+                region_label = r.upper()
+                # Capture loop vars for closure safety
+                _table = table_name
+                _label = region_label
+                _offset = global_offset
+                
+                def on_chunk(chunk_map, fetched_so_far, total_for_region,
+                             tbl=_table, lbl=_label, off=_offset):
+                    """Called after each 10k chunk is fetched from Magento.
+                    Immediately writes the chunk to PG cache."""
+                    nonlocal total_updated
+                    if chunk_map:
+                        updated = self.repo.backfill_shipping_methods(tbl, chunk_map)
+                        total_updated += updated
+                    processed_now = off + fetched_so_far
+                    pct = max(1, min(99, int((processed_now / total_missing) * 100)))
+                    if progress_callback:
+                        progress_callback(pct, f"{lbl}: {processed_now:,}/{total_missing:,} orders processed")
+                
+                client = MagentoDataClient(region=r)
+                client.fetch_shipping_methods_bulk(missing_orders, chunk_callback=on_chunk)
+                global_offset += len(missing_orders)
+                
+            except Exception as e:
+                logger.error(f"Error backfilling shipping methods for {r}: {e}")
+                errors.append(f"{r}: {str(e)}")
+                global_offset += len(missing_orders)
+        
+        if progress_callback:
+            progress_callback(100, f"Complete — updated {total_updated:,} rows")
+        
+        if errors:
+            return {
+                "status": "partial" if total_updated > 0 else "error",
+                "message": f"Updated {total_updated:,} rows. Errors: {'; '.join(errors)}",
+                "rows_updated": total_updated
+            }
+        
+        return {
+            "status": "success",
+            "message": f"Backfilled shipping_method for {total_updated:,} rows",
+            "rows_updated": total_updated
+        }
+    
     def get_aggregated_data_custom_range(self, region: str, range_type: str, range_value: str, 
                                        use_exclusions: bool, limit: int = 100, offset: int = 0, 
-                                       search: str = "") -> Dict[str, Any]:
+                                       search: str = "", shipping_method: str = "") -> Dict[str, Any]:
         """Get aggregated magento data with custom date range"""
         try:
             result = self.repo.get_aggregated_data_custom_range(
-                region, range_type, range_value, use_exclusions, limit, offset, search
+                region, range_type, range_value, use_exclusions, limit, offset, search, shipping_method
             )
             return {
                 "status": "success",
@@ -660,11 +777,11 @@ class MagentoDataService:
 
     def get_all_regions_custom_range_data(self, range_type: str, range_value: str,
                                            use_exclusions: bool, limit: int = 100, offset: int = 0,
-                                           search: str = "") -> Dict[str, Any]:
+                                           search: str = "", shipping_method: str = "") -> Dict[str, Any]:
         """Get custom range aggregated data broken down: UK, FR (FR+NL), Total."""
         try:
             result = self.repo.get_all_regions_custom_range_data(
-                range_type, range_value, use_exclusions, limit, offset, search
+                range_type, range_value, use_exclusions, limit, offset, search, shipping_method
             )
             return {
                 "status": "success",
@@ -693,11 +810,12 @@ class MagentoDataService:
 
     def get_all_regions_custom_range_merged(self, range_type: str, range_value: str,
                                              use_exclusions: bool, limit: int = 100, offset: int = 0,
-                                             search: str = "", sort_by: str = "", sort_order: str = "desc") -> Dict[str, Any]:
+                                             search: str = "", sort_by: str = "", sort_order: str = "desc",
+                                             shipping_method: str = "") -> Dict[str, Any]:
         """Get custom range aggregated data as a single merged table."""
         try:
             result = self.repo.get_all_regions_custom_range_merged(
-                range_type, range_value, use_exclusions, limit, offset, search, sort_by, sort_order
+                range_type, range_value, use_exclusions, limit, offset, search, sort_by, sort_order, shipping_method
             )
             return {"status": "success", "range_type": range_type, "range_value": range_value, **result}
         except Exception as e:

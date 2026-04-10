@@ -415,6 +415,7 @@ class MagentoDataRepo:
                             customer_full_name VARCHAR(255),
                             billing_address TEXT,
                             shipping_address TEXT,
+                            shipping_method VARCHAR(500),
                             customer_group_code VARCHAR(255),
                             imported_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -439,6 +440,18 @@ class MagentoDataRepo:
                     logger.info(f"✅ Created indexes for {table_name}")
                 else:
                     logger.info(f"ℹ️  Table already exists: {table_name}")
+                    
+                    # Add shipping_method column if it doesn't exist
+                    cursor.execute(f"""
+                        SELECT column_name FROM information_schema.columns
+                        WHERE table_name = %s AND column_name = 'shipping_method'
+                    """, (table_name,))
+                    if not cursor.fetchone():
+                        try:
+                            cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN shipping_method VARCHAR(500)")
+                            logger.info(f"✅ Added shipping_method column to {table_name}")
+                        except Exception as e:
+                            logger.warning(f"Could not add shipping_method column to {table_name}: {e}")
                     
                     # Add unique constraint if it doesn't exist
                     cursor.execute(f"""
@@ -546,6 +559,7 @@ class MagentoDataRepo:
                         customer_full_name VARCHAR(255),
                         billing_address TEXT,
                         shipping_address TEXT,
+                        shipping_method VARCHAR(500),
                         customer_group_code VARCHAR(255),
                         imported_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -570,6 +584,18 @@ class MagentoDataRepo:
                 logger.info(f"✅ Created indexes for test_magento_data")
             else:
                 logger.info(f"ℹ️  Table already exists: test_magento_data")
+                
+                # Add shipping_method column if it doesn't exist
+                cursor.execute("""
+                    SELECT column_name FROM information_schema.columns
+                    WHERE table_name = 'test_magento_data' AND column_name = 'shipping_method'
+                """)
+                if not cursor.fetchone():
+                    try:
+                        cursor.execute("ALTER TABLE test_magento_data ADD COLUMN shipping_method VARCHAR(500)")
+                        logger.info(f"✅ Added shipping_method column to test_magento_data")
+                    except Exception as e:
+                        logger.warning(f"Could not add shipping_method column to test_magento_data: {e}")
                 
                 # Add unique constraint if it doesn't exist
                 cursor.execute("""
@@ -971,7 +997,7 @@ class MagentoDataRepo:
         # Define all available columns
         all_columns = ['id', 'order_number', 'created_at', 'sku', 'name', 'qty', 'original_price', 'special_price', 'status', 
                       'currency', 'grand_total', 'customer_email', 'customer_full_name', 
-                      'billing_address', 'shipping_address', 'customer_group_code',
+                      'billing_address', 'shipping_address', 'shipping_method', 'customer_group_code',
                       'imported_at', 'updated_at']
         
         # Use specified fields or all columns
@@ -1124,6 +1150,7 @@ class MagentoDataRepo:
                     customer_full_name = row.get('customer_full_name')
                     billing_address = row.get('billing_address')
                     shipping_address = row.get('shipping_address')
+                    shipping_method = row.get('shipping_method')
                     customer_group_code = row.get('customer_group_code')
                     
                     # Validate required fields
@@ -1134,7 +1161,7 @@ class MagentoDataRepo:
                     valid_rows.append((
                         order_number, created_at, sku, name, qty, original_price, special_price, 
                         status, currency, grand_total, customer_email, customer_full_name, 
-                        billing_address, shipping_address, customer_group_code, now, now
+                        billing_address, shipping_address, shipping_method, customer_group_code, now, now
                     ))
                     
                 except Exception as e:
@@ -1150,14 +1177,16 @@ class MagentoDataRepo:
                     INSERT INTO {table_name} 
                     (order_number, created_at, sku, name, qty, original_price, special_price, status, currency, 
                      grand_total, customer_email, customer_full_name, billing_address, 
-                     shipping_address, customer_group_code, imported_at, updated_at)
+                     shipping_address, shipping_method, customer_group_code, imported_at, updated_at)
                     VALUES %s
                     ON CONFLICT (order_number, sku) DO UPDATE SET
                         qty = EXCLUDED.qty,
                         status = EXCLUDED.status,
+                        shipping_method = EXCLUDED.shipping_method,
                         updated_at = EXCLUDED.updated_at
                     WHERE {table_name}.qty IS DISTINCT FROM EXCLUDED.qty
                        OR {table_name}.status IS DISTINCT FROM EXCLUDED.status
+                       OR {table_name}.shipping_method IS DISTINCT FROM EXCLUDED.shipping_method
                     RETURNING 1
                 """
                 # Use execute_values with fetch=True to get RETURNING results
@@ -1278,6 +1307,7 @@ class MagentoDataRepo:
                     customer_full_name = row.get('customer_full_name')
                     billing_address = row.get('billing_address')
                     shipping_address = row.get('shipping_address')
+                    shipping_method = row.get('shipping_method')
                     customer_group_code = row.get('customer_group_code')
                     
                     if not order_number or not sku:
@@ -1287,7 +1317,7 @@ class MagentoDataRepo:
                     valid_rows.append((
                         order_number, created_at, sku, name, qty, original_price, special_price, 
                         status, currency, grand_total, customer_email, customer_full_name, 
-                        billing_address, shipping_address, customer_group_code, now, now
+                        billing_address, shipping_address, shipping_method, customer_group_code, now, now
                     ))
                     
                 except Exception as e:
@@ -1303,14 +1333,16 @@ class MagentoDataRepo:
                     INSERT INTO {table_name} 
                     (order_number, created_at, sku, name, qty, original_price, special_price, status, currency, 
                      grand_total, customer_email, customer_full_name, billing_address, 
-                     shipping_address, customer_group_code, imported_at, updated_at)
+                     shipping_address, shipping_method, customer_group_code, imported_at, updated_at)
                     VALUES %s
                     ON CONFLICT (order_number, sku) DO UPDATE SET
                         qty = EXCLUDED.qty,
                         status = EXCLUDED.status,
+                        shipping_method = EXCLUDED.shipping_method,
                         updated_at = EXCLUDED.updated_at
                     WHERE {table_name}.qty IS DISTINCT FROM EXCLUDED.qty
                        OR {table_name}.status IS DISTINCT FROM EXCLUDED.status
+                       OR {table_name}.shipping_method IS DISTINCT FROM EXCLUDED.shipping_method
                     RETURNING 1
                 """
                 # Use execute_values with fetch=True to get RETURNING results
@@ -1827,9 +1859,116 @@ class MagentoDataRepo:
                 cursor.close()
                 return_products_connection(conn)
     
+    def backfill_shipping_methods(self, table_name: str, shipping_map: Dict[str, str]) -> int:
+        """
+        Backfill shipping_method for existing orders using a mapping of order_number -> shipping_method.
+        Uses a single batch UPDATE via execute_values for maximum performance.
+        Expects ≤10k items per call (service handles chunking).
+        Returns the number of rows updated.
+        """
+        valid_tables = ['uk_orders_cache', 'fr_orders_cache', 'nl_orders_cache']
+        if table_name not in valid_tables:
+            raise ValueError(f"Invalid table name: {table_name}")
+        
+        if not shipping_map:
+            return 0
+        
+        conn = None
+        try:
+            conn = get_products_connection()
+            cursor = conn.cursor()
+            values = [(method, order_num) for order_num, method in shipping_map.items()]
+            execute_values(
+                cursor,
+                f"""UPDATE {table_name} AS t
+                    SET shipping_method = v.method
+                    FROM (VALUES %s) AS v(method, order_number)
+                    WHERE t.order_number = v.order_number
+                    AND (t.shipping_method IS NULL OR t.shipping_method = '')""",
+                values,
+                template="(%s, %s)"
+            )
+            updated = cursor.rowcount
+            conn.commit()
+            logger.info(f"Backfilled shipping_method for {updated} rows in {table_name}")
+            return updated
+        except Exception as e:
+            if conn:
+                conn.rollback()
+            logger.error(f"Error backfilling shipping methods in {table_name}: {e}")
+            raise
+        finally:
+            if conn:
+                cursor.close()
+                return_products_connection(conn)
+    
+    def get_orders_missing_shipping_method(self, table_name: str) -> List[str]:
+        """Get distinct order numbers that have NULL or empty shipping_method."""
+        valid_tables = ['uk_orders_cache', 'fr_orders_cache', 'nl_orders_cache']
+        if table_name not in valid_tables:
+            raise ValueError(f"Invalid table name: {table_name}")
+        
+        conn = None
+        try:
+            conn = get_products_connection()
+            cursor = conn.cursor()
+            cursor.execute(
+                f"SELECT DISTINCT order_number FROM {table_name} WHERE shipping_method IS NULL OR shipping_method = ''"
+            )
+            return [row[0] for row in cursor.fetchall()]
+        except Exception as e:
+            logger.error(f"Error getting orders missing shipping method from {table_name}: {e}")
+            return []
+        finally:
+            if conn:
+                cursor.close()
+                return_products_connection(conn)
+    
+    def get_shipping_methods(self, region: str) -> List[str]:
+        """
+        Get distinct shipping methods for a region (or all regions).
+        Returns a sorted list of non-empty shipping method strings.
+        """
+        region_mapping = {
+            'uk': ['uk_orders_cache'],
+            'fr': ['fr_orders_cache'],
+            'nl': ['nl_orders_cache'],
+            'all': ['uk_orders_cache', 'fr_orders_cache', 'nl_orders_cache']
+        }
+        
+        tables = region_mapping.get(region)
+        if not tables:
+            raise ValueError(f"Invalid region: {region}")
+        
+        conn = None
+        try:
+            conn = get_products_connection()
+            cursor = conn.cursor()
+            
+            methods = set()
+            for table in tables:
+                cursor.execute(f"""
+                    SELECT DISTINCT shipping_method 
+                    FROM {table} 
+                    WHERE shipping_method IS NOT NULL 
+                      AND shipping_method != ''
+                """)
+                for row in cursor.fetchall():
+                    methods.add(row[0])
+            
+            return sorted(methods)
+            
+        except Exception as e:
+            logger.error(f"Error fetching shipping methods for {region}: {e}")
+            return []
+        finally:
+            if conn:
+                cursor.close()
+                return_products_connection(conn)
+    
     def get_aggregated_data_custom_range(self, region: str, range_type: str, range_value: str, 
                                        use_exclusions: bool, limit: int = 100, offset: int = 0, 
-                                       search: str = "") -> Dict[str, Any]:
+                                       search: str = "", shipping_method: str = "") -> Dict[str, Any]:
         """
         Get aggregated magento data with custom date range.
         Aggregates data on-the-fly based on the specified date range.
@@ -1842,6 +1981,7 @@ class MagentoDataRepo:
             limit: Max results to return
             offset: Pagination offset
             search: Optional SKU/name search filter
+            shipping_method: Optional shipping method filter
         """
         from common.currency import convert_to_gbp, convert_to_eur
         from datetime import datetime, timedelta
@@ -1983,7 +2123,14 @@ class MagentoDataRepo:
                     )
             """
             
-            cursor.execute(fetch_query, (date_threshold, date_threshold, date_threshold, date_threshold))
+            query_params = [date_threshold, date_threshold, date_threshold, date_threshold]
+            
+            # Add shipping method filter if specified
+            if shipping_method:
+                fetch_query += " AND s.shipping_method = %s"
+                query_params.append(shipping_method)
+            
+            cursor.execute(fetch_query, query_params)
             all_rows = cursor.fetchall()
             
             # Filter and aggregate in Python with currency conversion
@@ -3416,7 +3563,7 @@ class MagentoDataRepo:
         all_columns = ['id', 'order_number', 'created_at', 'sku', 'name', 'qty',
                        'original_price', 'special_price', 'status', 'currency',
                        'grand_total', 'customer_email', 'customer_full_name',
-                       'billing_address', 'shipping_address', 'customer_group_code',
+                       'billing_address', 'shipping_address', 'shipping_method', 'customer_group_code',
                        'imported_at', 'updated_at']
 
         select_cols = ', '.join(all_columns)
@@ -3577,15 +3724,15 @@ class MagentoDataRepo:
 
     def get_all_regions_custom_range_data(self, range_type: str, range_value: str,
                                            use_exclusions: bool, limit: int = 100, offset: int = 0,
-                                           search: str = "") -> Dict[str, Any]:
+                                           search: str = "", shipping_method: str = "") -> Dict[str, Any]:
         """
         Get custom range aggregated data for all regions.
         Returns UK, FR (FR+NL combined), and Total datasets.
         """
         # Fetch each region's custom range data (these return dicts with 'data' and 'total_count')
-        uk_result = self.get_aggregated_data_custom_range('uk', range_type, range_value, use_exclusions, 10000, 0, search)
-        fr_result = self.get_aggregated_data_custom_range('fr', range_type, range_value, use_exclusions, 10000, 0, search)
-        nl_result = self.get_aggregated_data_custom_range('nl', range_type, range_value, use_exclusions, 10000, 0, search)
+        uk_result = self.get_aggregated_data_custom_range('uk', range_type, range_value, use_exclusions, 10000, 0, search, shipping_method)
+        fr_result = self.get_aggregated_data_custom_range('fr', range_type, range_value, use_exclusions, 10000, 0, search, shipping_method)
+        nl_result = self.get_aggregated_data_custom_range('nl', range_type, range_value, use_exclusions, 10000, 0, search, shipping_method)
 
         uk_all = uk_result.get('data', [])
         fr_all = fr_result.get('data', [])
@@ -3724,14 +3871,15 @@ class MagentoDataRepo:
 
     def get_all_regions_custom_range_merged(self, range_type: str, range_value: str,
                                              use_exclusions: bool, limit: int = 100, offset: int = 0,
-                                             search: str = "", sort_by: str = "", sort_order: str = "desc") -> Dict[str, Any]:
+                                             search: str = "", sort_by: str = "", sort_order: str = "desc",
+                                             shipping_method: str = "") -> Dict[str, Any]:
         """
         Get custom range aggregated data as a single merged table.
         Each row: sku, name, uk_qty, fr_qty, total_qty, last_updated.
         """
-        uk_result = self.get_aggregated_data_custom_range('uk', range_type, range_value, use_exclusions, 10000, 0, '')
-        fr_result = self.get_aggregated_data_custom_range('fr', range_type, range_value, use_exclusions, 10000, 0, '')
-        nl_result = self.get_aggregated_data_custom_range('nl', range_type, range_value, use_exclusions, 10000, 0, '')
+        uk_result = self.get_aggregated_data_custom_range('uk', range_type, range_value, use_exclusions, 10000, 0, '', shipping_method)
+        fr_result = self.get_aggregated_data_custom_range('fr', range_type, range_value, use_exclusions, 10000, 0, '', shipping_method)
+        nl_result = self.get_aggregated_data_custom_range('nl', range_type, range_value, use_exclusions, 10000, 0, '', shipping_method)
 
         uk_map = {item['sku']: item for item in uk_result.get('data', [])}
         fr_map = {}

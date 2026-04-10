@@ -1,6 +1,10 @@
 from fastapi import APIRouter, Depends, UploadFile, File, Query
+from fastapi.responses import StreamingResponse
 from typing import Dict, Any, Optional, List
 import logging
+import json
+import threading
+import queue
 from common.deps import get_current_user
 from .service import MagentoDataService
 from .schemas import InitTablesResponse, MagentoDataResponse, MagentoDataImportResponse, ImportHistoryResponse, MagentoSyncRequest, MagentoSyncResponse
@@ -131,11 +135,12 @@ def get_all_regions_custom_range_data(
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0),
     search: str = Query(""),
+    shipping_method: str = Query("", description="Filter by shipping method"),
     user=Depends(get_current_user)
 ):
     """Get custom range aggregated data for all regions: UK, FR (FR+NL), and Total"""
     result = svc.get_all_regions_custom_range_data(
-        range_type, range_value, use_exclusions, limit, offset, search
+        range_type, range_value, use_exclusions, limit, offset, search, shipping_method
     )
     return result
 
@@ -163,11 +168,12 @@ def get_all_regions_custom_range_merged(
     search: str = Query(""),
     sort_by: str = Query("", description="Column to sort by"),
     sort_order: str = Query("desc", description="Sort order: asc or desc"),
+    shipping_method: str = Query("", description="Filter by shipping method"),
     user=Depends(get_current_user)
 ):
     """Get custom range aggregated data as single merged table"""
     return svc.get_all_regions_custom_range_merged(
-        range_type, range_value, use_exclusions, limit, offset, search, sort_by, sort_order
+        range_type, range_value, use_exclusions, limit, offset, search, sort_by, sort_order, shipping_method
     )
 
 
@@ -393,6 +399,64 @@ def refresh_aggregated_data_for_region(
     return svc.refresh_aggregated_data_for_region(region)
 
 
+@router.get("/{region}/shipping-methods")
+def get_shipping_methods(
+    region: str,
+    user=Depends(get_current_user)
+):
+    """Get distinct shipping methods for a region (uk, fr, nl, or all)"""
+    return svc.get_shipping_methods(region)
+
+
+@router.post("/{region}/backfill-shipping-methods")
+def backfill_shipping_methods(
+    region: str,
+    user=Depends(get_current_user)
+):
+    """Backfill shipping_method for existing cached orders from Magento DB.
+    Use region='all' to backfill all regions at once."""
+    return svc.backfill_shipping_methods(region)
+
+
+@router.post("/{region}/backfill-shipping-methods/stream")
+def backfill_shipping_methods_stream(
+    region: str,
+    user=Depends(get_current_user)
+):
+    """Backfill shipping_method with SSE progress streaming.
+    Use region='all' to backfill all regions at once."""
+    progress_queue = queue.Queue()
+    result_holder = [None]
+
+    def progress_callback(percent, message):
+        progress_queue.put({"type": "progress", "percent": percent, "message": message})
+
+    def run_backfill():
+        try:
+            result = svc.backfill_shipping_methods(region, progress_callback=progress_callback)
+            result_holder[0] = result
+        except Exception as e:
+            result_holder[0] = {"status": "error", "message": str(e), "rows_updated": 0}
+        progress_queue.put({"type": "done"})
+
+    worker = threading.Thread(target=run_backfill, daemon=True)
+    worker.start()
+
+    def event_stream():
+        while True:
+            try:
+                event = progress_queue.get(timeout=120)
+                if event["type"] == "done":
+                    result = result_holder[0] or {"status": "error", "message": "No result"}
+                    yield f"data: {json.dumps({'type': 'complete', **result})}\n\n"
+                    break
+                yield f"data: {json.dumps(event)}\n\n"
+            except queue.Empty:
+                yield f"data: {json.dumps({'type': 'progress', 'percent': -1, 'message': 'Still processing...'})}\n\n"
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
+
+
 @router.get("/{region}/aggregated/custom-range")
 def get_custom_range_aggregated_data(
     region: str,
@@ -402,11 +466,12 @@ def get_custom_range_aggregated_data(
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0),
     search: str = Query(""),
+    shipping_method: str = Query("", description="Filter by shipping method"),
     user=Depends(get_current_user)
 ):
     """Get aggregated magento data with custom date range"""
     result = svc.get_aggregated_data_custom_range(
-        region, range_type, range_value, use_exclusions, limit, offset, search
+        region, range_type, range_value, use_exclusions, limit, offset, search, shipping_method
     )
     return MagentoDataResponse(**result)
 

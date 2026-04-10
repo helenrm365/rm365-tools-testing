@@ -3,7 +3,7 @@ import { get, post, del, put } from '../../services/api/http.js';
 import { showToast } from '../../ui/toast.js';
 import { initDatePicker } from '../../ui/datePicker.js';
 import { initDropdown } from '../../ui/dropdown.js';
-import { refreshAggregatedDataForRegion, getCustomRangeAggregatedData } from '../../services/api/magentoDataApi.js';
+import { refreshAggregatedDataForRegion, getCustomRangeAggregatedData, getShippingMethods } from '../../services/api/magentoDataApi.js?v=8';
 
 const API = '/v1/magentodata';
 
@@ -946,9 +946,9 @@ async function applyAllFilters(region) {
                     if (shouldApplyToCustomRange && window.customRangeActive && window.customRangeActive.region === region) {
                         showToast('🔄 Refreshing Custom Range data...', 'info');
                         try {
-                            const { rangeType, rangeValue } = window.customRangeActive;
+                            const { rangeType, rangeValue, shippingMethod: activeShippingMethod } = window.customRangeActive;
                             // Force useExclusions=true since we just applied filters
-                            const response = await getCustomRangeAggregatedData(region, rangeType, rangeValue, true, 1000, 0, '');
+                            const response = await getCustomRangeAggregatedData(region, rangeType, rangeValue, true, 1000, 0, '', activeShippingMethod || '');
                             
                             if (response.status === 'success' && response.data) {
                                 // Update global state
@@ -3046,6 +3046,8 @@ window.updateRangeInputs = function(radio) {
 window.runCustomAnalysis = async function(region) {
     const rangeType = document.querySelector('input[name="rangeType"]:checked').value;
     const useExclusions = document.getElementById('useExclusions').checked;
+    const shippingMethodSelect = document.getElementById('shippingMethodSelect');
+    const shippingMethod = shippingMethodSelect ? shippingMethodSelect.value : '';
     let rangeValue;
     
     if (rangeType === 'days') {
@@ -3064,13 +3066,18 @@ window.runCustomAnalysis = async function(region) {
     const overlay = document.querySelector('.filters-modal-overlay');
     if (overlay) overlay.remove();
     
+    // Also close the custom range modal overlay
+    const modalOverlay = document.querySelector('.modal-overlay');
+    if (modalOverlay) modalOverlay.remove();
+    
     // Show loading toast
     const { showToast } = await import('../../ui/toast.js');
-    showToast(`Loading custom range data...`, 'info');
+    const shippingLabel = shippingMethod ? ` (${shippingMethod})` : '';
+    showToast(`Loading custom range data${shippingLabel}...`, 'info');
     
     try {
         // Call the custom range API
-        const response = await getCustomRangeAggregatedData(region, rangeType, rangeValue, useExclusions, 1000, 0, '');
+        const response = await getCustomRangeAggregatedData(region, rangeType, rangeValue, useExclusions, 1000, 0, '', shippingMethod);
         
         if (response.status === 'success' && response.data) {
             // Store the custom range parameters and data globally
@@ -3083,6 +3090,7 @@ window.runCustomAnalysis = async function(region) {
                 rangeType,
                 rangeValue,
                 useExclusions,
+                shippingMethod,
                 rangeLabel,
                 data: response.data,
                 totalCount: response.total_count
@@ -3092,11 +3100,11 @@ window.runCustomAnalysis = async function(region) {
             window.dispatchEvent(new CustomEvent('customRangeApplied', {
                 detail: {
                     region,
-                    rangeLabel
+                    rangeLabel: rangeLabel + shippingLabel
                 }
             }));
             
-            showToast(`Custom range applied: ${rangeLabel}`, 'success');
+            showToast(`Custom range applied: ${rangeLabel}${shippingLabel}`, 'success');
         } else {
             showToast(`Error: ${response.message || 'Failed to load custom range data'}`, 'error');
         }
@@ -3170,6 +3178,21 @@ function createCustomRangeModal(region) {
                 
                 <div class="nui-field" style="margin-top: 24px; border-top: 1px solid var(--bg-light); padding-top: 24px;">
                     <div class="nui-label">
+                        <span>Shipping Method</span>
+                    </div>
+                    
+                    <div style="margin-top: 12px;">
+                        <select id="shippingMethodSelect" class="nui-input nui-input-default" style="width: 100%;">
+                            <option value="">All Shipping Methods</option>
+                        </select>
+                        <p class="filter-description" style="margin-top: 8px;">
+                            Filter results to only show products sold via a specific shipping method.
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="nui-field" style="margin-top: 24px; border-top: 1px solid var(--bg-light); padding-top: 24px;">
+                    <div class="nui-label">
                         <span>Exclusions</span>
                     </div>
                     
@@ -3199,6 +3222,12 @@ function createCustomRangeModal(region) {
         }
     });
     
+    // Init the shipping method dropdown immediately so it's styled from the start
+    const shippingSelect = overlay.querySelector('#shippingMethodSelect');
+    if (shippingSelect) {
+        initDropdown(shippingSelect, { color: 'default' });
+    }
+    
     // Setup radio button handlers to enable/disable inputs
     setTimeout(() => {
         const radios = overlay.querySelectorAll('input[name="rangeType"]');
@@ -3220,6 +3249,26 @@ function createCustomRangeModal(region) {
         });
         initDatePicker('#rangeSince');
     }, 0);
+    
+    // Load shipping methods async — MutationObserver on the dropdown will auto-sync
+    (async () => {
+        try {
+            const result = await getShippingMethods(region);
+            if (result.status === 'success' && result.shipping_methods) {
+                const select = overlay.querySelector('#shippingMethodSelect');
+                if (select) {
+                    result.shipping_methods.forEach(method => {
+                        const option = document.createElement('option');
+                        option.value = method;
+                        option.textContent = method;
+                        select.appendChild(option);
+                    });
+                }
+            }
+        } catch (e) {
+            console.warn('Could not load shipping methods:', e);
+        }
+    })();
     
     return overlay;
 }

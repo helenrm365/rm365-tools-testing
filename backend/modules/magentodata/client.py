@@ -107,11 +107,15 @@ class MagentoDataClient:
                         MAX(sas.city) as shipping_city,
                         MAX(sas.region) as shipping_region,
                         MAX(sas.postcode) as shipping_postcode,
-                        MAX(sas.country_id) as shipping_country_id
+                        MAX(sas.country_id) as shipping_country_id,
+                        
+                        -- Shipping Method
+                        so.shipping_description
                     {base_query}
                     GROUP BY so.increment_id, so.created_at, so.status, so.order_currency_code,
                              so.grand_total, so.customer_email, so.customer_firstname,
-                             so.customer_lastname, so.customer_group_id, soi.sku
+                             so.customer_lastname, so.customer_group_id, soi.sku,
+                             so.shipping_description
                     ORDER BY so.created_at DESC 
                     LIMIT %s OFFSET %s
                 """
@@ -213,7 +217,10 @@ class MagentoDataClient:
                         MAX(sas.city) as shipping_city,
                         MAX(sas.region) as shipping_region,
                         MAX(sas.postcode) as shipping_postcode,
-                        MAX(sas.country_id) as shipping_country_id
+                        MAX(sas.country_id) as shipping_country_id,
+                        
+                        -- Shipping Method
+                        so.shipping_description
                         
                     FROM sales_order_item soi
                     JOIN sales_order so ON soi.order_id = so.entity_id
@@ -237,7 +244,8 @@ class MagentoDataClient:
                 # GROUP BY to aggregate duplicate SKUs within the same order
                 query += """ GROUP BY so.increment_id, so.created_at, so.status, so.order_currency_code,
                              so.grand_total, so.customer_email, so.customer_firstname,
-                             so.customer_lastname, so.customer_group_id, soi.sku"""
+                             so.customer_lastname, so.customer_group_id, soi.sku,
+                             so.shipping_description"""
                 
                 # Sort order
                 sort_direction = 'DESC' if sort_desc else 'ASC'
@@ -305,6 +313,9 @@ class MagentoDataClient:
         if not shipping_address:
             shipping_address = billing_address
 
+        # Shipping Method
+        shipping_method = row.get('shipping_description') or ''
+
         # Price Logic
         original_price = float(row.get('original_price') or 0)
         price = float(row.get('price') or 0)
@@ -332,6 +343,7 @@ class MagentoDataClient:
             'customer_full_name': customer_full_name,
             'billing_address': billing_address,
             'shipping_address': shipping_address,
+            'shipping_method': shipping_method,
             'customer_group_code': customer_group_code
         }
 
@@ -350,6 +362,51 @@ class MagentoDataClient:
             parts.append(country_id)
             
         return ', '.join(parts) if parts else None
+
+    def fetch_shipping_methods_bulk(self, order_numbers: List[str], chunk_callback=None) -> Dict[str, str]:
+        """
+        Fetch shipping_description for a list of order numbers from Magento DB.
+        Uses one connection and processes in chunks of 10,000.
+        
+        If chunk_callback is provided, it is called after each chunk as:
+            chunk_callback(chunk_map, fetched_so_far, total)
+        This enables pipelining (caller can update PG immediately per chunk).
+        
+        Returns the full combined dict mapping order_number -> shipping_description.
+        """
+        if not order_numbers:
+            return {}
+        
+        conn = get_magento_connection(self.region)
+        try:
+            with conn.cursor() as cursor:
+                result = {}
+                total = len(order_numbers)
+                chunk_size = 10000
+                for i in range(0, total, chunk_size):
+                    chunk = order_numbers[i:i + chunk_size]
+                    placeholders = ', '.join(['%s'] * len(chunk))
+                    cursor.execute(
+                        f"SELECT increment_id, shipping_description FROM sales_order WHERE increment_id IN ({placeholders})",
+                        chunk
+                    )
+                    chunk_map = {}
+                    for row in cursor.fetchall():
+                        desc = row.get('shipping_description') or ''
+                        if desc:
+                            chunk_map[row['increment_id']] = desc
+                    result.update(chunk_map)
+                    if chunk_callback:
+                        chunk_callback(chunk_map, min(i + chunk_size, total), total)
+                return result
+        except Exception as e:
+            logger.error(f"Error fetching shipping methods in bulk: {e}")
+            raise
+        finally:
+            try:
+                conn.close()
+            except Exception:
+                pass
 
     def fetch_orders_product_breakdown_batched(
         self,

@@ -78,6 +78,24 @@
               <span>Run Now</span>
             </button>
           </div>
+
+          <!-- Populate Shipping Methods -->
+          <div class="task-item">
+            <div class="task-info">
+              <div class="task-icon">
+                <i class="fa-solid fa-truck-fast"></i>
+              </div>
+              <div class="task-details">
+                <span class="task-name">Populate Shipping Methods</span>
+                <span class="task-description">Backfill shipping method data for all existing cached orders from Magento. One-time task for orders missing this field.</span>
+                <span class="task-schedule"><i class="fa-regular fa-hand-pointer"></i> Manual only</span>
+              </div>
+            </div>
+            <button class="btn btn-solid btn-success task-btn" data-task="backfill-shipping-methods" id="backfillShippingBtn">
+              <i class="fa-solid fa-play"></i>
+              <span>Run Now</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -109,7 +127,8 @@
   const taskNames = {
     'nightly-inventory-sync': 'Nightly Inventory Sync',
     'order-session-reset': 'Order Session Reset',
-    'price-activation': 'Price Activation'
+    'price-activation': 'Price Activation',
+    'backfill-shipping-methods': 'Populate Shipping Methods'
   };
   
   // Polling interval for running tasks (10 seconds - fallback when WebSocket is connected)
@@ -428,6 +447,11 @@
     const taskId = btn.dataset.task;
     if (!taskId) return;
     
+    // Route backfill-shipping-methods to its custom SSE handler
+    if (taskId === 'backfill-shipping-methods') {
+      return handleBackfillShippingMethods(btn);
+    }
+    
     // Prevent if already running
     if (btn.classList.contains('executing') || btn.disabled) {
       showToast('This task is already running', 'warning');
@@ -478,6 +502,214 @@
     } catch (error) {
       showToast(`❌ Failed to start ${taskName}: ${error.message}`, 'error');
       resetButton(btn, taskId);
+    }
+  }
+
+  // ── Backfill Shipping Methods with SSE Progress ──
+
+  function createProgressNotification() {
+    // Remove existing if any
+    const existing = document.getElementById('backfill-progress-notification');
+    if (existing) existing.remove();
+
+    const notification = document.createElement('div');
+    notification.id = 'backfill-progress-notification';
+    notification.innerHTML = `
+      <div class="progress-notif-header">
+        <i class="fa-solid fa-truck-fast"></i>
+        <span class="progress-notif-title">Populating Shipping Methods</span>
+      </div>
+      <div class="progress-notif-message">Starting...</div>
+      <div class="progress-notif-bar-wrapper">
+        <div class="progress-notif-bar" style="width: 0%"></div>
+      </div>
+      <div class="progress-notif-percent">0%</div>
+    `;
+
+    // Inject styles once
+    if (!document.getElementById('progress-notif-styles')) {
+      const style = document.createElement('style');
+      style.id = 'progress-notif-styles';
+      style.textContent = `
+        #backfill-progress-notification {
+          position: fixed;
+          bottom: 20px;
+          right: 20px;
+          width: 340px;
+          background: var(--bg-secondary, #1e1e2e);
+          border: 1px solid var(--border-color, #333);
+          border-radius: 12px;
+          padding: 16px;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+          z-index: 2147483647;
+          font-family: inherit;
+          animation: slideInFromBottom 0.3s ease-out;
+        }
+        #backfill-progress-notification.completing {
+          animation: fadeUpAndOut 0.5s ease-in forwards;
+          animation-delay: 3s;
+        }
+        .progress-notif-header {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 8px;
+          color: var(--text-primary, #e0e0e0);
+          font-weight: 600;
+          font-size: 14px;
+        }
+        .progress-notif-header i {
+          color: #3b82f6;
+        }
+        .progress-notif-message {
+          color: var(--text-secondary, #a0a0a0);
+          font-size: 12px;
+          margin-bottom: 10px;
+          min-height: 16px;
+        }
+        .progress-notif-bar-wrapper {
+          width: 100%;
+          height: 6px;
+          background: var(--bg-tertiary, #2a2a3a);
+          border-radius: 3px;
+          overflow: hidden;
+          margin-bottom: 6px;
+        }
+        .progress-notif-bar {
+          height: 100%;
+          background: linear-gradient(90deg, #3b82f6, #60a5fa);
+          border-radius: 3px;
+          transition: width 0.4s ease;
+        }
+        .progress-notif-bar.complete {
+          background: linear-gradient(90deg, #10b981, #34d399);
+        }
+        .progress-notif-bar.error {
+          background: linear-gradient(90deg, #ef4444, #f87171);
+        }
+        .progress-notif-percent {
+          color: var(--text-secondary, #a0a0a0);
+          font-size: 11px;
+          text-align: right;
+        }
+        @keyframes slideInFromBottom {
+          from { transform: translateY(100%); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes fadeUpAndOut {
+          from { transform: translateY(0); opacity: 1; }
+          to { transform: translateY(-20px); opacity: 0; }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    document.body.appendChild(notification);
+    return notification;
+  }
+
+  function updateProgressNotification(notification, percent, message) {
+    const bar = notification.querySelector('.progress-notif-bar');
+    const pctEl = notification.querySelector('.progress-notif-percent');
+    const msgEl = notification.querySelector('.progress-notif-message');
+
+    if (percent >= 0) {
+      bar.style.width = percent + '%';
+      pctEl.textContent = percent + '%';
+    }
+    if (message) {
+      msgEl.textContent = message;
+    }
+  }
+
+  function completeProgressNotification(notification, status, message) {
+    const bar = notification.querySelector('.progress-notif-bar');
+    const pctEl = notification.querySelector('.progress-notif-percent');
+    const msgEl = notification.querySelector('.progress-notif-message');
+    const icon = notification.querySelector('.progress-notif-header i');
+
+    bar.style.width = '100%';
+
+    if (status === 'success' || status === 'partial') {
+      bar.classList.add('complete');
+      icon.className = 'fa-solid fa-circle-check';
+      icon.style.color = '#10b981';
+      pctEl.textContent = '100%';
+      msgEl.textContent = message || 'Complete!';
+    } else {
+      bar.classList.add('error');
+      icon.className = 'fa-solid fa-circle-xmark';
+      icon.style.color = '#ef4444';
+      pctEl.textContent = 'Error';
+      msgEl.textContent = message || 'Failed';
+    }
+
+    // Auto-dismiss after 4 seconds
+    notification.classList.add('completing');
+    notification.addEventListener('animationend', () => {
+      notification.remove();
+    });
+  }
+
+  async function handleBackfillShippingMethods(btn) {
+    if (btn.disabled) {
+      showToast('This task is already running', 'warning');
+      return;
+    }
+
+    btn.classList.add('executing');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>Running...</span>';
+
+    const notification = createProgressNotification();
+
+    try {
+      const token = getToken();
+      const response = await fetch('/api/v1/magentodata/all/backfill-shipping-methods/stream', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop(); // keep incomplete line in buffer
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          try {
+            const event = JSON.parse(line.slice(6));
+            if (event.type === 'progress') {
+              updateProgressNotification(notification, event.percent, event.message);
+            } else if (event.type === 'complete') {
+              completeProgressNotification(notification, event.status, event.message);
+            }
+          } catch (parseErr) {
+            // skip malformed events
+          }
+        }
+      }
+    } catch (error) {
+      completeProgressNotification(notification, 'error', `Failed: ${error.message}`);
+      showToast(`❌ Shipping methods backfill failed: ${error.message}`, 'error');
+    } finally {
+      btn.classList.remove('executing');
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-play"></i><span>Run Now</span>';
     }
   }
 </script>

@@ -1,7 +1,8 @@
 // frontend/js/modules/magentodata/all-magento.js
-import { getAllRegionsData, getAllRegionsAggregatedMerged, getAllRegionsCustomRangeMerged, checkTablesStatus, initializeTables } from '../../services/api/magentoDataApi.js?v=7';
+import { getAllRegionsData, getAllRegionsAggregatedMerged, getAllRegionsCustomRangeMerged, getShippingMethods, checkTablesStatus, initializeTables } from '../../services/api/magentoDataApi.js?v=8';
 import { showToast } from '../../ui/toast.js';
-import { showCustomRangeModal } from './aggregated-filters.js';
+import { showCustomRangeModal } from './aggregated-filters.js?v=2';
+import { initDropdown } from '../../ui/dropdown.js';
 import { exportToPDF } from '../../utils/pdfExport.js';
 import { exportToCSV } from '../../utils/csvExport.js';
 
@@ -70,7 +71,8 @@ export async function initAllMagentoData(path = '/sales/all') {
       customRangeParams = {
         rangeType: window.customRangeActive.rangeType,
         rangeValue: window.customRangeActive.rangeValue,
-        useExclusions: window.customRangeActive.useExclusions
+        useExclusions: window.customRangeActive.useExclusions,
+        shippingMethod: window.customRangeActive.shippingMethod || ''
       };
       await loadCustomRangeData();
     } else {
@@ -304,6 +306,18 @@ function showAllCustomRangeModal() {
             </label>
           </div>
         </div>
+        
+        <div class="nui-field" style="margin-top: 24px; border-top: 1px solid var(--bg-light); padding-top: 24px;">
+          <div class="nui-label"><span>Shipping Method</span></div>
+          <div style="margin-top: 12px;">
+            <select id="shippingMethodSelect" class="nui-input nui-input-default" style="width: 100%;">
+              <option value="">All Shipping Methods</option>
+            </select>
+            <p class="filter-description" style="margin-top: 8px;">
+              Filter results to only show products sold via a specific shipping method.
+            </p>
+          </div>
+        </div>
       </div>
       <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 8px; padding: 16px;">
         <button class="btn btn-solid btn-default rounded-lg" id="cancelRangeBtn">Cancel</button>
@@ -315,6 +329,32 @@ function showAllCustomRangeModal() {
   `;
 
   document.body.appendChild(overlay);
+
+  // Init the shipping method dropdown immediately so it's styled from the start
+  const shippingSelect = overlay.querySelector('#shippingMethodSelect');
+  if (shippingSelect) {
+    initDropdown(shippingSelect, { color: 'default' });
+  }
+
+  // Load shipping methods async — MutationObserver on the dropdown will auto-sync
+  (async () => {
+    try {
+      const result = await getShippingMethods('all');
+      if (result.status === 'success' && result.shipping_methods) {
+        const select = overlay.querySelector('#shippingMethodSelect');
+        if (select) {
+          result.shipping_methods.forEach(method => {
+            const option = document.createElement('option');
+            option.value = method;
+            option.textContent = method;
+            select.appendChild(option);
+          });
+        }
+      }
+    } catch (e) {
+      console.warn('Could not load shipping methods:', e);
+    }
+  })();
 
   // Close on overlay click
   overlay.addEventListener('click', (e) => {
@@ -344,6 +384,8 @@ function showAllCustomRangeModal() {
   overlay.querySelector('#applyRangeBtn').addEventListener('click', async () => {
     const selectedRadio = overlay.querySelector('input[name="rangeType"]:checked');
     const rangeType = selectedRadio.value;
+    const shippingMethodSelect = overlay.querySelector('#shippingMethodSelect');
+    const shippingMethod = shippingMethodSelect ? shippingMethodSelect.value : '';
     let rangeValue, rangeLabel;
 
     if (rangeType === 'days') {
@@ -358,30 +400,33 @@ function showAllCustomRangeModal() {
       rangeLabel = `Since ${rangeValue}`;
     }
 
+    const shippingLabel = shippingMethod ? ` (${shippingMethod})` : '';
+
     const applyBtn = overlay.querySelector('#applyRangeBtn');
     applyBtn.disabled = true;
     applyBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
 
     try {
-      const response = await getAllRegionsCustomRangeMerged(rangeType, rangeValue, true, 100, 0, '');
+      const response = await getAllRegionsCustomRangeMerged(rangeType, rangeValue, true, 100, 0, '', '', 'desc', shippingMethod);
 
       if (response.status === 'success') {
-        customRangeParams = { rangeType, rangeValue, useExclusions: true };
+        customRangeParams = { rangeType, rangeValue, useExclusions: true, shippingMethod };
         window.customRangeActive = {
           region: 'all',
           rangeType,
           rangeValue,
           useExclusions: true,
-          rangeLabel
+          shippingMethod,
+          rangeLabel: rangeLabel + shippingLabel
         };
 
         overlay.remove();
 
         window.dispatchEvent(new CustomEvent('customRangeApplied', {
-          detail: { region: 'all', rangeLabel }
+          detail: { region: 'all', rangeLabel: rangeLabel + shippingLabel }
         }));
 
-        showToast(`Custom range applied: ${rangeLabel}`, 'success');
+        showToast(`Custom range applied: ${rangeLabel}${shippingLabel}`, 'success');
       } else {
         showToast(`Error: ${response.message || 'Failed to load data'}`, 'error');
         applyBtn.disabled = false;
@@ -523,13 +568,14 @@ function displayFullData(data) {
       <th><i class="fas fa-user"></i> Customer Full Name</th>
       <th><i class="fas fa-map-marker-alt"></i> Billing Address</th>
       <th><i class="fas fa-shipping-fast"></i> Shipping Address</th>
+      <th><i class="fas fa-truck"></i> Shipping Method</th>
       <th><i class="fas fa-users"></i> Customer Group Code</th>
     `;
     updateSortIndicators();
   }
 
   if (!data || data.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="16" style="text-align: center; padding: 2rem;">No data found</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="17" style="text-align: center; padding: 2rem;">No data found</td></tr>';
     return;
   }
 
@@ -552,6 +598,7 @@ function displayFullData(data) {
       <td>${escapeHtml(row.customer_full_name || '')}</td>
       <td>${escapeHtml(row.billing_address || '')}</td>
       <td>${escapeHtml(row.shipping_address || '')}</td>
+      <td>${escapeHtml(row.shipping_method || '')}</td>
       <td>${escapeHtml(row.customer_group_code || '')}</td>
     </tr>
   `}).join('');
@@ -627,7 +674,8 @@ async function loadCustomRangeData() {
       customRangeParams.rangeValue,
       customRangeParams.useExclusions,
       pageSize, offset, currentSearch,
-      currentSortColumn || '', currentSortDirection
+      currentSortColumn || '', currentSortDirection,
+      customRangeParams.shippingMethod || ''
     );
 
     if (result.status === 'success' && result.data) {
@@ -652,7 +700,7 @@ async function loadCustomRangeData() {
 function showTableLoading() {
   const tbody = document.getElementById('magentoTableBody');
   if (!tbody) return;
-  const colSpan = viewMode === 'full' ? '16' : '6';
+  const colSpan = viewMode === 'full' ? '17' : '6';
   tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 2rem;">
     <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
       <div class="loader" style="margin: 0;">
@@ -769,7 +817,8 @@ async function fetchAllDataForExport() {
         customRangeParams.rangeValue,
         customRangeParams.useExclusions,
         batchSize, offset, currentSearch,
-        currentSortColumn || '', currentSortDirection
+        currentSortColumn || '', currentSortDirection,
+        customRangeParams.shippingMethod || ''
       );
     } else {
       break;
@@ -881,7 +930,7 @@ function getColumnKeys() {
   return [
     'region', 'order_number', 'created_at', 'sku', 'name', 'qty',
     'original_price', 'special_price', 'status', 'currency', 'grand_total',
-    'customer_email', 'customer_full_name', 'billing_address', 'shipping_address', 'customer_group_code'
+    'customer_email', 'customer_full_name', 'billing_address', 'shipping_address', 'shipping_method', 'customer_group_code'
   ];
 }
 

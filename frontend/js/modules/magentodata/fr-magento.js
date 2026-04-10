@@ -1,7 +1,7 @@
 // frontend/js/modules/magentodata/fr-magento.js
-import { getFRMagentoData, getFRAggregatedData, getCustomRangeAggregatedData, refreshAggregatedDataForRegion, checkTablesStatus, initializeTables, syncFRMagentoData } from '../../services/api/magentoDataApi.js?v=7';
+import { getFRMagentoData, getFRAggregatedData, getCustomRangeAggregatedData, refreshAggregatedDataForRegion, checkTablesStatus, initializeTables, syncFRMagentoData } from '../../services/api/magentoDataApi.js?v=8';
 import { showToast } from '../../ui/toast.js';
-import { showFiltersModal, showCustomRangeModal } from './aggregated-filters.js';
+import { showFiltersModal, showCustomRangeModal } from './aggregated-filters.js?v=2';
 import { exportToPDF } from '../../utils/pdfExport.js';
 import { exportToCSV } from '../../utils/csvExport.js';
 
@@ -956,12 +956,13 @@ function displayMagentoData(data) {
       <th><i class="fas fa-user"></i> Customer Full Name</th>
       <th><i class="fas fa-map-marker-alt"></i> Billing Address</th>
       <th><i class="fas fa-shipping-fast"></i> Shipping Address</th>
+      <th><i class="fas fa-truck"></i> Shipping Method</th>
       <th><i class="fas fa-users"></i> Customer Group Code</th>
     `;
   }
   
   if (!data || data.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="15" style="text-align: center; padding: 2rem;">No data found</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="16" style="text-align: center; padding: 2rem;">No data found</td></tr>';
     return;
   }
   
@@ -981,7 +982,8 @@ function displayMagentoData(data) {
       <td>${escapeHtml(row.customer_full_name || '')}</td>
       <td>${escapeHtml(row.billing_address || '')}</td>
       <td>${escapeHtml(row.shipping_address || '')}</td>
-      <td>${escapeHtml(row.customer_group_code || '')}</td></td>
+      <td>${escapeHtml(row.shipping_method || '')}</td>
+      <td>${escapeHtml(row.customer_group_code || '')}</td>
     </tr>
   `).join('');
 }
@@ -1153,8 +1155,8 @@ async function fetchAllDataForExport() {
     if (viewMode === 'aggregated') {
       result = await getFRAggregatedData(batchSize, offset, currentSearch, currentSortColumn || '', currentSortDirection);
     } else if (viewMode === 'custom' && window.customRangeActive) {
-      const { rangeType, rangeValue, useExclusions } = window.customRangeActive;
-      result = await getCustomRangeAggregatedData('fr', rangeType, rangeValue, useExclusions !== false, batchSize, offset, currentSearch);
+      const { rangeType, rangeValue, useExclusions, shippingMethod } = window.customRangeActive;
+      result = await getCustomRangeAggregatedData('fr', rangeType, rangeValue, useExclusions !== false, batchSize, offset, currentSearch, shippingMethod || '');
     } else {
       break;
     }
@@ -1384,7 +1386,7 @@ function setupTableSorting() {
       const fullColumns = [
         'order_number', 'created_at', 'sku', 'name', 'qty', 
         'original_price', 'special_price', 'status', 'currency', 'grand_total',
-        'customer_email', 'customer_full_name', 'billing_address', 'shipping_address', 'customer_group_code'
+        'customer_email', 'customer_full_name', 'billing_address', 'shipping_address', 'shipping_method', 'customer_group_code'
       ];
       columnKey = fullColumns[columnIndex];
     }
@@ -1509,7 +1511,7 @@ function updateSortIndicators() {
     const fullColumns = [
       'order_number', 'created_at', 'sku', 'name', 'qty', 
       'original_price', 'special_price', 'status', 'currency', 'grand_total',
-      'customer_email', 'customer_full_name', 'billing_address', 'shipping_address', 'customer_group_code'
+      'customer_email', 'customer_full_name', 'billing_address', 'shipping_address', 'shipping_method', 'customer_group_code'
     ];
     columnIndex = fullColumns.indexOf(currentSortColumn);
   }

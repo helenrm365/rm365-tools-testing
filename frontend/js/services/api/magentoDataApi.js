@@ -315,7 +315,7 @@ export async function getNLAggregatedData(limit = 100, offset = 0, search = '', 
   return await get(`${API}/nl/aggregated?${params.toString()}`);
 }
 
-export async function getCustomRangeAggregatedData(region, rangeType, rangeValue, useExclusions, limit = 100, offset = 0, search = '') {
+export async function getCustomRangeAggregatedData(region, rangeType, rangeValue, useExclusions, limit = 100, offset = 0, search = '', shippingMethod = '') {
   const params = new URLSearchParams({
     range_type: rangeType,
     range_value: rangeValue,
@@ -324,7 +324,14 @@ export async function getCustomRangeAggregatedData(region, rangeType, rangeValue
     offset: offset.toString(),
     search: search
   });
+  if (shippingMethod) {
+    params.append('shipping_method', shippingMethod);
+  }
   return await get(`${API}/${region}/aggregated/custom-range?${params.toString()}`);
+}
+
+export async function getShippingMethods(region) {
+  return await get(`${API}/${region}/shipping-methods`);
 }
 
 // Import History operations
@@ -373,7 +380,7 @@ export async function getAllRegionsAggregatedData(limit = 100, offset = 0, searc
   return await get(`${API}/all/aggregated?${params.toString()}`);
 }
 
-export async function getAllRegionsCustomRangeData(rangeType, rangeValue, useExclusions, limit = 100, offset = 0, search = '') {
+export async function getAllRegionsCustomRangeData(rangeType, rangeValue, useExclusions, limit = 100, offset = 0, search = '', shippingMethod = '') {
   const params = new URLSearchParams({
     range_type: rangeType,
     range_value: rangeValue,
@@ -382,6 +389,9 @@ export async function getAllRegionsCustomRangeData(rangeType, rangeValue, useExc
     offset: offset.toString(),
     search: search
   });
+  if (shippingMethod) {
+    params.append('shipping_method', shippingMethod);
+  }
   return await get(`${API}/all/aggregated/custom-range?${params.toString()}`);
 }
 
@@ -396,7 +406,7 @@ export async function getAllRegionsAggregatedMerged(limit = 100, offset = 0, sea
   return await get(`${API}/all/aggregated/merged?${params.toString()}`);
 }
 
-export async function getAllRegionsCustomRangeMerged(rangeType, rangeValue, useExclusions, limit = 100, offset = 0, search = '', sortBy = '', sortOrder = 'desc') {
+export async function getAllRegionsCustomRangeMerged(rangeType, rangeValue, useExclusions, limit = 100, offset = 0, search = '', sortBy = '', sortOrder = 'desc', shippingMethod = '') {
   const params = new URLSearchParams({
     range_type: rangeType,
     range_value: rangeValue,
@@ -407,5 +417,8 @@ export async function getAllRegionsCustomRangeMerged(rangeType, rangeValue, useE
     sort_by: sortBy,
     sort_order: sortOrder
   });
+  if (shippingMethod) {
+    params.append('shipping_method', shippingMethod);
+  }
   return await get(`${API}/all/aggregated/custom-range/merged?${params.toString()}`);
 }
