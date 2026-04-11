@@ -54,7 +54,7 @@ TASK_METADATA = {
     },
     'sync-6m-data': {
         'name': '6M Sales Data Sync',
-        'description': 'Update 6-month rolling sales data in inventory_metadata',
+        'description': 'Update 6-month sales data in inventory - Recommended to sync orders first',
     },
     'sync-branch-inventory': {
         'name': 'Branch Inventory Sync',
