@@ -36,7 +36,7 @@ export async function purgeOldJobs(months = 6) {
  * @param {string} region - Region preference: "uk", "fr", or "nl"
  * @param {boolean} showOrphaned - Whether to include orphaned SKUs (products without names)
  */
-export async function getProductsToPrint(discontinuedStatuses = null, region = "uk", showOrphaned = false) {
+export async function getProductsToPrint(discontinuedStatuses = null, region = "uk", showOrphaned = false, labelMode = "sales_data") {
   let url = `${API}/to-print`;
   
   const params = new URLSearchParams();
@@ -54,6 +54,9 @@ export async function getProductsToPrint(discontinuedStatuses = null, region = "
   if (showOrphaned) {
     params.append('show_orphaned', 'true');
   }
+  
+  // Add label_mode parameter
+  params.append('label_mode', labelMode);
   
   if (params.toString()) {
     url += `?${params.toString()}`;

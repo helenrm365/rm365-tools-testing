@@ -17,6 +17,8 @@ let syncAbortController = null; // AbortController for cancelling ongoing sync
 let isSyncing = false; // Track if sync is in progress
 let currentSortColumn = null; // Currently sorted column
 let currentSortDirection = 'asc'; // 'asc' or 'desc'
+let _onAggregatedRefreshed = null; // Stored handler ref to avoid listener duplication
+let _onCustomRangeApplied = null; // Stored handler ref to avoid listener duplication
 
 /**
  * Initialize NL magento page
@@ -483,7 +485,8 @@ function setupEventListeners() {
   setupTableSorting();
   
   // Listen for aggregated data refresh events from filter modal
-  document.addEventListener('aggregated-data-refreshed', (e) => {
+  if (_onAggregatedRefreshed) document.removeEventListener('aggregated-data-refreshed', _onAggregatedRefreshed);
+  _onAggregatedRefreshed = (e) => {
     if (e.detail.region === 'nl' && viewMode === 'aggregated') {
       // Reload the table data if currently viewing aggregated data
       const searchInput = document.getElementById('magentoSearchInput');
@@ -496,15 +499,18 @@ function setupEventListeners() {
         loadMagentoData();
       }
     }
-  });
+  };
+  document.addEventListener('aggregated-data-refreshed', _onAggregatedRefreshed);
   
   // Listen for custom range applied event
-  window.addEventListener('customRangeApplied', (e) => {
+  if (_onCustomRangeApplied) window.removeEventListener('customRangeApplied', _onCustomRangeApplied);
+  _onCustomRangeApplied = (e) => {
     if (e.detail.region === 'nl') {
       // Navigate to the custom range URL
       window.navigate('/sales/nl/custom-range');
     }
-  });
+  };
+  window.addEventListener('customRangeApplied', _onCustomRangeApplied);
 }
 
 /**
@@ -549,8 +555,12 @@ async function loadMagentoData() {
   </td></tr>`;
   
   try {
-    // Custom mode doesn't reload from server - data is already loaded
+    // Custom mode - restore original data from customRangeActive (may have been overwritten by search)
     if (viewMode === 'custom') {
+      if (window.customRangeActive && window.customRangeActive.data) {
+        allData = window.customRangeActive.data;
+        totalRecords = window.customRangeActive.totalCount || allData.length;
+      }
       displayCurrentPage();
       return;
     }
@@ -707,7 +717,10 @@ async function loadSearchResults(searchTerm) {
     const offset = currentPage * pageSize;
     
     let result;
-    if (viewMode === 'aggregated') {
+    if (viewMode === 'custom' && window.customRangeActive) {
+      const { rangeType, rangeValue, useExclusions, shippingMethod } = window.customRangeActive;
+      result = await getCustomRangeAggregatedData('nl', rangeType, rangeValue, useExclusions !== false, pageSize, offset, searchTerm, shippingMethod || '');
+    } else if (viewMode === 'aggregated') {
       result = await getNLAggregatedData(pageSize, offset, searchTerm, currentSortColumn || '', currentSortDirection);
     } else {
       result = await getNLMagentoData(pageSize, offset, searchTerm, currentSortColumn || '', currentSortDirection);

@@ -2008,7 +2008,8 @@ class MagentoDataRepo:
         elif range_type == 'months':
             try:
                 months = int(range_value)
-                date_threshold = datetime.now().date() - timedelta(days=months * 30)  # Approximate
+                from dateutil.relativedelta import relativedelta
+                date_threshold = datetime.now().date() - relativedelta(months=months)
             except ValueError:
                 raise ValueError(f"Invalid months value: {range_value}")
         elif range_type == 'since':
@@ -2078,6 +2079,18 @@ class MagentoDataRepo:
             qty_row = cursor.fetchone()
             qty_threshold = qty_row[0] if qty_row else None
             
+            # Get excluded order statuses
+            excluded_statuses = set()
+            if use_exclusions:
+                cursor.execute("""
+                    SELECT order_status FROM magento_region_filters
+                    WHERE region = %s AND filter_type = 'excluded_status'
+                """, (region,))
+                excluded_statuses = {row[0] for row in cursor.fetchall()}
+            
+            # Get smart date rules
+            date_rules = self.get_smart_date_rules(region) if use_exclusions else []
+            
             # Get smart qty rules (multiple rules possible)
             smart_rules = self.get_smart_qty_rules(region)
             # Sort by threshold descending (highest first) for cutoff behavior
@@ -2100,7 +2113,8 @@ class MagentoDataRepo:
                     s.currency,
                     s.customer_email,
                     s.customer_group_code,
-                    s.created_at
+                    s.created_at,
+                    s.status
                 FROM {magento_table} s
                 LEFT JOIN sku_aliases sa ON s.sku = sa.alias_sku
                 WHERE 
@@ -2120,6 +2134,9 @@ class MagentoDataRepo:
                         -- Try MM/DD/YYYY format (fallback for ambiguous dates)
                         (s.created_at ~ '^[0-9]{{2}}/[0-9]{{2}}/[0-9]{{4}}' AND 
                          TO_DATE(s.created_at, 'MM/DD/YYYY') >= %s)
+                        OR
+                        -- If can't parse, include it (better to include than exclude)
+                        NOT (s.created_at ~ '^[0-9]')
                     )
             """
             
@@ -2137,7 +2154,13 @@ class MagentoDataRepo:
             sku_aggregates = {}
             
             for row in all_rows:
-                sku, name, qty, grand_total, currency, customer_email, customer_group, created_at = row
+                sku, name, qty, grand_total, currency, customer_email, customer_group, created_at, status = row
+                
+                # Exclude FREE GIFT items from aggregated data (case-insensitive)
+                # UK: "FREE GIFT", FR: "Cadeaux gratuits"
+                name_lower = (name or '').lower()
+                if 'free gift' in name_lower or 'cadeaux gratuits' in name_lower:
+                    continue
                 
                 # Initialize qty_to_use for customer exclusion rule processing
                 qty_to_use = qty or 0
@@ -2176,6 +2199,10 @@ class MagentoDataRepo:
                 if use_exclusions and customer_group in excluded_groups:
                     continue
                 
+                # Skip excluded statuses
+                if use_exclusions and status in excluded_statuses:
+                    continue
+                
                 # Apply quantity threshold filter
                 if qty_threshold is not None and qty is not None and qty > qty_threshold:
                     continue
@@ -2186,28 +2213,89 @@ class MagentoDataRepo:
                     if converted_total > float(grand_total_threshold):
                         continue
                 
-                # Apply smart qty rules (only first matching rule - cutoff behavior)
-                # Check from highest threshold to lowest
-                # Don't reset qty_to_use if customer rule already modified it
+                # Parse created_at for date rules
+                order_date = None
+                if created_at:
+                    try:
+                        if '-' in created_at: # YYYY-MM-DD
+                            order_date = datetime.strptime(created_at.split(' ')[0], '%Y-%m-%d').date()
+                        elif '/' in created_at: # DD/MM/YYYY or MM/DD/YYYY
+                            parts = created_at.split(' ')[0].split('/')
+                            if len(parts) == 3:
+                                try:
+                                    order_date = datetime.strptime(created_at.split(' ')[0], '%d/%m/%Y').date()
+                                except ValueError:
+                                    try:
+                                        order_date = datetime.strptime(created_at.split(' ')[0], '%m/%d/%Y').date()
+                                    except ValueError:
+                                        pass
+                    except Exception:
+                        pass
+                
+                # Apply smart date rules
+                date_rule_applied = False
+                should_skip_row = False
                 if not customer_rule_applied:
                     qty_to_use = qty or 0
-                if smart_rules and qty is not None:
-                    for rule in smart_rules:
-                        if qty >= rule['threshold']:
-                            threshold = rule['threshold']
-                            action = rule['action']
-                            divisor = rule['divisor']
+                
+                if order_date and date_rules:
+                    for rule in date_rules:
+                        try:
+                            rule_start = datetime.strptime(rule['start_date'], '%Y-%m-%d').date() if rule['start_date'] else None
+                            rule_end = datetime.strptime(rule['end_date'], '%Y-%m-%d').date() if rule['end_date'] else None
                             
-                            if action == 'divide' and divisor:
-                                qty_to_use = (qty if not customer_rule_applied else qty_to_use) / divisor
-                            elif action == 'multiply' and divisor:
-                                qty_to_use = (qty if not customer_rule_applied else qty_to_use) * divisor
-                            elif action == 'subtract' and divisor:
-                                qty_to_use = max(0, (qty if not customer_rule_applied else qty_to_use) - divisor)
-                            elif action == 'set_to' and divisor:
-                                qty_to_use = divisor
-                            # Break after applying first matching rule (cutoff point)
-                            break
+                            in_range = True
+                            if rule_start and order_date < rule_start:
+                                in_range = False
+                            if rule_end and order_date > rule_end:
+                                in_range = False
+                            
+                            if in_range:
+                                action = rule['action']
+                                value = rule['value']
+                                
+                                if action == 'exclude':
+                                    qty_to_use = 0
+                                    should_skip_row = True
+                                    date_rule_applied = True
+                                    break
+                                elif action == 'divide' and value:
+                                    qty_to_use = qty_to_use / value
+                                elif action == 'multiply' and value:
+                                    qty_to_use = qty_to_use * value
+                                elif action == 'set_to' and value is not None:
+                                    qty_to_use = value
+                                
+                                date_rule_applied = True
+                                break
+                        except Exception as e:
+                            logger.error(f"Error checking date rule: {e}")
+                
+                if should_skip_row:
+                    continue
+                
+                # Apply smart qty rules (only first matching rule - cutoff behavior)
+                # Check from highest threshold to lowest
+                if not date_rule_applied:
+                    # Don't reset qty_to_use if customer rule already modified it
+                    if not customer_rule_applied:
+                        qty_to_use = qty or 0
+                    if smart_rules and qty is not None:
+                        for rule in smart_rules:
+                            if qty >= rule['threshold']:
+                                action = rule['action']
+                                divisor = rule['divisor']
+                                
+                                if action == 'divide' and divisor:
+                                    qty_to_use = (qty if not customer_rule_applied else qty_to_use) / divisor
+                                elif action == 'multiply' and divisor:
+                                    qty_to_use = (qty if not customer_rule_applied else qty_to_use) * divisor
+                                elif action == 'subtract' and divisor:
+                                    qty_to_use = max(0, (qty if not customer_rule_applied else qty_to_use) - divisor)
+                                elif action == 'set_to' and divisor:
+                                    qty_to_use = divisor
+                                # Break after applying first matching rule (cutoff point)
+                                break
                 
                 # Aggregate by SKU
                 if sku not in sku_aggregates:

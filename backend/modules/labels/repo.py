@@ -131,6 +131,257 @@ class LabelsRepo:
             
         return data_map
     
+    def _load_london_collections_6m_data(self, conn) -> Dict[str, int]:
+        """
+        Load 6M sales data for London Collections only.
+        Filters uk_orders_cache by shipping_method containing 'london office collection'.
+        Aggregates quantities by base SKU for the past 6 months.
+        Applies the same exclusions as the 6M aggregated data (customer rules, group/status
+        exclusions, thresholds, smart qty/date rules, FREE GIFT filtering).
+        
+        Args:
+            conn: Connection to products database (where uk_orders_cache lives)
+            
+        Returns:
+            Dict mapping base SKU to total quantity sold via London Collections
+        """
+        from common.currency import convert_to_gbp
+        from datetime import datetime
+        
+        data_map: Dict[str, int] = {}
+        try:
+            with conn.cursor() as cur:
+                # --- Load exclusion rules (same as refresh_aggregated_data for UK) ---
+                
+                # Customer exclusion rules
+                cur.execute("""
+                    SELECT customer_email, 
+                           COALESCE(exclusion_rule_type, 'exclude_all') as rule_type,
+                           COALESCE(exclusion_divisor, 2) as divisor,
+                           exclusion_product_sku
+                    FROM magento_region_filters
+                    WHERE region = 'uk' AND filter_type = 'excluded_customer'
+                """)
+                excluded_customer_rules = {}
+                for row in cur.fetchall():
+                    email, rule_type, divisor, product_sku = row
+                    divisor = float(divisor) if divisor else 2.0
+                    if email not in excluded_customer_rules:
+                        excluded_customer_rules[email] = {'base_rule': None, 'product_rules': {}}
+                    if rule_type in ('exclude_all', 'divide_all'):
+                        excluded_customer_rules[email]['base_rule'] = {'rule_type': rule_type, 'divisor': divisor}
+                    elif rule_type == 'divide_product' and product_sku:
+                        excluded_customer_rules[email]['product_rules'][product_sku] = {'divisor': divisor}
+                
+                # Excluded groups
+                cur.execute("""
+                    SELECT customer_group FROM magento_region_filters
+                    WHERE region = 'uk' AND filter_type = 'excluded_group'
+                """)
+                excluded_groups = {row[0] for row in cur.fetchall()}
+                
+                # Excluded statuses
+                cur.execute("""
+                    SELECT order_status FROM magento_region_filters
+                    WHERE region = 'uk' AND filter_type = 'excluded_status'
+                """)
+                excluded_statuses = {row[0] for row in cur.fetchall()}
+                
+                # Grand total threshold
+                cur.execute("""
+                    SELECT threshold_value FROM magento_region_filters 
+                    WHERE region = 'uk' AND filter_type = 'threshold'
+                """)
+                threshold_row = cur.fetchone()
+                grand_total_threshold = threshold_row[0] if threshold_row else None
+                
+                # Qty threshold
+                cur.execute("""
+                    SELECT qty_threshold_value FROM magento_region_filters 
+                    WHERE region = 'uk' AND filter_type = 'qty_threshold'
+                """)
+                qty_row = cur.fetchone()
+                qty_threshold = qty_row[0] if qty_row else None
+                
+                # Smart qty rules
+                from modules.magentodata.repo import MagentoDataRepo
+                magento_repo = MagentoDataRepo()
+                smart_rules = magento_repo.get_smart_qty_rules('uk')
+                if smart_rules:
+                    smart_rules = sorted(smart_rules, key=lambda r: r['threshold'], reverse=True)
+                
+                # Smart date rules
+                date_rules = magento_repo.get_smart_date_rules('uk')
+                
+                # --- Fetch raw rows ---
+                cur.execute("""
+                    SELECT 
+                        COALESCE(
+                            sa.unified_sku,
+                            CASE 
+                                WHEN s.sku ~* '-MD(-|$)' THEN REGEXP_REPLACE(s.sku, '-MD(-.*)?$', '', 'i')
+                                ELSE s.sku
+                            END
+                        ) as base_sku,
+                        s.name,
+                        s.qty,
+                        s.grand_total,
+                        s.currency,
+                        s.customer_email,
+                        s.customer_group_code,
+                        s.created_at,
+                        s.status
+                    FROM uk_orders_cache s
+                    LEFT JOIN sku_aliases sa ON s.sku = sa.alias_sku
+                    WHERE LOWER(s.shipping_method) LIKE %s
+                      AND s.sku IS NOT NULL
+                      AND (
+                          (s.created_at ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}' AND 
+                           TO_TIMESTAMP(s.created_at, 'YYYY-MM-DD HH24:MI:SS') >= CURRENT_DATE - INTERVAL '6 months')
+                          OR
+                          (s.created_at ~ '^[0-9]{2}/[0-9]{2}/[0-9]{4}' AND 
+                           TO_DATE(s.created_at, 'DD/MM/YYYY') >= CURRENT_DATE - INTERVAL '6 months')
+                          OR
+                          NOT (s.created_at ~ '^[0-9]')
+                      )
+                """, ('%london office collection%',))
+                
+                # --- Aggregate with exclusions ---
+                sku_aggregates: Dict[str, float] = {}
+                
+                for row in cur.fetchall():
+                    sku, name, qty, grand_total, currency, customer_email, customer_group, created_at, status = row
+                    
+                    # FREE GIFT filter
+                    name_lower = (name or '').lower()
+                    if 'free gift' in name_lower or 'cadeaux gratuits' in name_lower:
+                        continue
+                    
+                    qty_to_use = qty or 0
+                    customer_rule_applied = False
+                    
+                    # Customer exclusion rules
+                    if customer_email in excluded_customer_rules:
+                        rules = excluded_customer_rules[customer_email]
+                        base_rule = rules.get('base_rule')
+                        product_rules = rules.get('product_rules', {})
+                        
+                        if sku in product_rules:
+                            divisor = product_rules[sku]['divisor']
+                            if divisor and divisor > 0:
+                                qty_to_use = qty_to_use / divisor
+                            customer_rule_applied = True
+                        elif base_rule:
+                            if base_rule['rule_type'] == 'exclude_all':
+                                continue
+                            elif base_rule['rule_type'] == 'divide_all':
+                                divisor = base_rule['divisor']
+                                if divisor and divisor > 0:
+                                    qty_to_use = qty_to_use / divisor
+                                customer_rule_applied = True
+                    
+                    # Group exclusion
+                    if customer_group in excluded_groups:
+                        continue
+                    
+                    # Status exclusion
+                    if status in excluded_statuses:
+                        continue
+                    
+                    # Qty threshold
+                    if qty_threshold is not None and qty is not None and qty > qty_threshold:
+                        continue
+                    
+                    # Grand total threshold
+                    if grand_total_threshold is not None and grand_total is not None:
+                        converted = convert_to_gbp(float(grand_total), currency or 'GBP')
+                        if converted > float(grand_total_threshold):
+                            continue
+                    
+                    # Parse date for date rules
+                    order_date = None
+                    if created_at:
+                        try:
+                            if '-' in created_at:
+                                order_date = datetime.strptime(created_at.split(' ')[0], '%Y-%m-%d').date()
+                            elif '/' in created_at:
+                                parts = created_at.split(' ')[0].split('/')
+                                if len(parts) == 3:
+                                    try:
+                                        order_date = datetime.strptime(created_at.split(' ')[0], '%d/%m/%Y').date()
+                                    except ValueError:
+                                        try:
+                                            order_date = datetime.strptime(created_at.split(' ')[0], '%m/%d/%Y').date()
+                                        except ValueError:
+                                            pass
+                        except Exception:
+                            pass
+                    
+                    # Smart date rules
+                    date_rule_applied = False
+                    should_skip = False
+                    if not customer_rule_applied:
+                        qty_to_use = qty or 0
+                    
+                    if order_date and date_rules:
+                        for rule in date_rules:
+                            try:
+                                rule_start = datetime.strptime(rule['start_date'], '%Y-%m-%d').date() if rule['start_date'] else None
+                                rule_end = datetime.strptime(rule['end_date'], '%Y-%m-%d').date() if rule['end_date'] else None
+                                in_range = True
+                                if rule_start and order_date < rule_start:
+                                    in_range = False
+                                if rule_end and order_date > rule_end:
+                                    in_range = False
+                                if in_range:
+                                    action = rule['action']
+                                    value = rule['value']
+                                    if action == 'exclude':
+                                        should_skip = True
+                                        date_rule_applied = True
+                                        break
+                                    elif action == 'divide' and value:
+                                        qty_to_use = qty_to_use / value
+                                    elif action == 'multiply' and value:
+                                        qty_to_use = qty_to_use * value
+                                    elif action == 'set_to' and value is not None:
+                                        qty_to_use = value
+                                    date_rule_applied = True
+                                    break
+                            except Exception as e:
+                                logger.error(f"Error checking date rule in London data: {e}")
+                    
+                    if should_skip:
+                        continue
+                    
+                    # Smart qty rules
+                    if not date_rule_applied:
+                        if not customer_rule_applied:
+                            qty_to_use = qty or 0
+                        if smart_rules and qty is not None:
+                            for rule in smart_rules:
+                                if qty >= rule['threshold']:
+                                    action = rule['action']
+                                    divisor = rule['divisor']
+                                    if action == 'divide' and divisor:
+                                        qty_to_use = (qty if not customer_rule_applied else qty_to_use) / divisor
+                                    elif action == 'multiply' and divisor:
+                                        qty_to_use = (qty if not customer_rule_applied else qty_to_use) * divisor
+                                    elif action == 'subtract' and divisor:
+                                        qty_to_use = max(0, (qty if not customer_rule_applied else qty_to_use) - divisor)
+                                    elif action == 'set_to' and divisor:
+                                        qty_to_use = divisor
+                                    break
+                    
+                    sku_aggregates[sku] = sku_aggregates.get(sku, 0) + qty_to_use
+                
+                data_map = {sku: int(qty) for sku, qty in sku_aggregates.items() if qty > 0}
+                
+            logger.info(f"Loaded London Collections 6M data for {len(data_map)} SKUs (with exclusions)")
+        except Exception as e:
+            logger.error(f"Failed to load London Collections 6M data: {e}")
+        return data_map
+
     def _load_inventory_item_ids(self, inventory_conn) -> Dict[str, Optional[str]]:
         """
         Load item_id mapping from inventory_metadata: sku -> item_id
@@ -515,6 +766,7 @@ class LabelsRepo:
         candidate_skus: List[str],
         preferred_region: str = "uk",  # region preference for price/name selection
         show_orphaned: bool = False,  # whether to include orphaned SKUs
+        include_london_collections: bool = False,  # whether to load London Collections 6M data
     ) -> List[Dict[str, Any]]:
         """
         Process SKUs: normalize all variants to base SKU, fetch item IDs, 6M data, prices, and names.
@@ -529,6 +781,7 @@ class LabelsRepo:
             candidate_skus: List of base SKUs to process (already normalized)
             preferred_region: Region preference for pricing (uk/fr/nl)
             show_orphaned: If True, include SKUs without names (not in Magento)
+            include_london_collections: If True, load London Collections 6M data
         """
         if not candidate_skus:
             return []
@@ -542,6 +795,8 @@ class LabelsRepo:
         # Load 6M data from aggregated tables (same as inventory management)
         with products_conn() as prod_conn:
             sixm_data_map = self._load_6m_data_from_aggregated_tables(prod_conn)
+            # Load London Collections 6M data if requested
+            london_6m_map = self._load_london_collections_6m_data(prod_conn) if include_london_collections else {}
 
         # Group by base SKU (all variants will normalize)
         grouped: Dict[str, List[str]] = {}
@@ -631,14 +886,20 @@ class LabelsRepo:
             # Get 6M data from aggregated tables
             uk_6m, fr_6m = sixm_data_map.get(sku_used, ("0", "0"))
             
-            out.append({
+            row_data = {
                 "item_id": item_id,           # barcode from inventory_metadata
                 "sku": sku_used,              # base SKU (all variants normalized)
                 "product_name": product_name, # from inventory_metadata (synced from Magento catalog)
                 "uk_6m_data": uk_6m,          # from uk_aggregated_orders
                 "fr_6m_data": fr_6m,          # from fr_aggregated_orders + nl_aggregated_orders
                 "price": price,               # from Magento live catalog (special_price > price)
-            })
+            }
+            
+            # Add London Collections data if loaded
+            if include_london_collections:
+                row_data["london_6m_data"] = london_6m_map.get(sku_used, 0)
+            
+            out.append(row_data)
         
         if skipped_orphaned > 0:
             logger.info(f"Skipped {skipped_orphaned} orphaned SKUs (use show_orphaned=true to include)")
@@ -646,7 +907,7 @@ class LabelsRepo:
         return out
 
     # --- public (psycopg2) ---
-    def get_labels_to_print_psycopg(self, conn, product_statuses: Optional[List[str]] = None, preferred_region: str = "uk", show_orphaned: bool = False) -> List[Dict[str, Any]]:
+    def get_labels_to_print_psycopg(self, conn, product_statuses: Optional[List[str]] = None, preferred_region: str = "uk", show_orphaned: bool = False, include_london_collections: bool = False) -> List[Dict[str, Any]]:
         """
         Fetch products from inventory_metadata (synced from Magento) filtered by status.
         Uses EXACT SAME logic as inventory management:
@@ -660,6 +921,7 @@ class LabelsRepo:
                             If None, defaults to ['Active', 'Temporarily OOS', 'Pre Order', 'Samples']
             preferred_region: "uk" (default), "fr", or "nl" - determines price/name priority
             show_orphaned: if False (default), exclude SKUs with no product name (orphaned SKUs)
+            include_london_collections: if True, include London Collections 6M data for each SKU
         """
         import time
         start_time = time.time()
@@ -714,6 +976,7 @@ class LabelsRepo:
             allowed_skus,
             preferred_region=preferred_region,
             show_orphaned=show_orphaned,
+            include_london_collections=include_london_collections,
         )
 
     # CSV upload functionality removed - dead code that was never fully implemented

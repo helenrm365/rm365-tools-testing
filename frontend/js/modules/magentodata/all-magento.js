@@ -18,6 +18,7 @@ let currentSortColumn = null;
 let currentSortDirection = 'asc';
 // Custom range params stored for re-queries (search/sort/page)
 let customRangeParams = null;
+let _onCustomRangeApplied = null; // Stored handler ref to avoid listener duplication
 
 /**
  * Initialize All Magento page
@@ -254,11 +255,13 @@ function setupEventListeners() {
   }
 
   // Listen for custom range applied
-  window.addEventListener('customRangeApplied', (e) => {
+  if (_onCustomRangeApplied) window.removeEventListener('customRangeApplied', _onCustomRangeApplied);
+  _onCustomRangeApplied = (e) => {
     if (e.detail.region === 'all') {
       window.navigate('/sales/all/custom-range');
     }
-  });
+  };
+  window.addEventListener('customRangeApplied', _onCustomRangeApplied);
 
   // Set up table sorting for full data view
   setupTableSorting();

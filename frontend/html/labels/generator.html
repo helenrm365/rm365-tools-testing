@@ -5,8 +5,16 @@
   <header class="page-header">
     <div class="header-content">
       <h1 class="page-title">Label Generator</h1>
+      <div class="label-mode-toggle">
+        <span class="mode-label" id="modeLabelSalesData">Sales Data</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="labelModeToggle">
+          <span class="toggle-slider"></span>
+        </label>
+        <span class="mode-label" id="modeLabelBarcode">Barcode</span>
+      </div>
     </div>
-    <p class="page-subtitle">Generate professional barcode labels with comprehensive sales data insights</p>
+    <p class="page-subtitle" id="pageSubtitle">Generate labels with comprehensive sales data insights (no barcodes)</p>
   </header>
 
   <!-- Navigation Tabs -->
@@ -217,11 +225,15 @@
                   <i class="fas fa-chart-area"></i>
                   FR 6M
                 </th>
+                <th class="sortable sales-col london-col" style="display: none;">
+                  <i class="fas fa-city"></i>
+                  LON 6M
+                </th>
               </tr>
             </thead>
             <tbody id="productsTableBody" class="table-body">
               <tr>
-                <td colspan="7" class="empty-state">
+                <td colspan="8" class="empty-state">
                   <div class="empty-icon"><i class="fas fa-box-open"></i></div>
                   <div class="empty-message">Loading products...</div>
                   <div class="empty-submessage">Please wait while we fetch your product data</div>

@@ -30,7 +30,8 @@ let state = {
   region: "uk",          // Default region preference for prices/names
   currentPresetId: null, // Track currently loaded preset
   showOrphaned: false,   // Whether to show orphaned SKUs (products without names)
-  editingPresetSkus: []  // SKUs being edited in the edit preset modal
+  editingPresetSkus: [], // SKUs being edited in the edit preset modal
+  labelMode: "sales_data" // Label mode: 'sales_data' (default) or 'barcode'
 };
 
 // Utility functions
@@ -99,6 +100,9 @@ export async function initLabelGenerator() {
   
   // Setup region selection
   setupRegionSelection();
+  
+  // Setup label mode toggle
+  setupLabelModeToggle();
   
   // Setup unified filter panel
   setupUnifiedFilterPanel();
@@ -201,6 +205,44 @@ function setupRegionSelection() {
   });
 }
 
+function setupLabelModeToggle() {
+  const toggle = document.getElementById('labelModeToggle');
+  if (!toggle) return;
+  
+  // Default is sales_data (unchecked), barcode is checked
+  toggle.checked = false;
+  updateLabelModeUI();
+  
+  toggle.addEventListener('change', () => {
+    state.labelMode = toggle.checked ? 'barcode' : 'sales_data';
+    updateLabelModeUI();
+    // Reload products so backend includes/excludes London Collections data
+    loadProducts();
+  });
+}
+
+function updateLabelModeUI() {
+  const salesLabel = document.getElementById('modeLabelSalesData');
+  const barcodeLabel = document.getElementById('modeLabelBarcode');
+  const subtitle = document.getElementById('pageSubtitle');
+  const londonCols = document.querySelectorAll('.london-col');
+  
+  if (state.labelMode === 'sales_data') {
+    if (salesLabel) salesLabel.classList.add('active');
+    if (barcodeLabel) barcodeLabel.classList.remove('active');
+    if (subtitle) subtitle.textContent = 'Generate labels with comprehensive sales data insights (no barcodes)';
+    londonCols.forEach(col => col.style.display = '');
+  } else {
+    if (salesLabel) salesLabel.classList.remove('active');
+    if (barcodeLabel) barcodeLabel.classList.add('active');
+    if (subtitle) subtitle.textContent = 'Generate professional barcode labels with sales data insights';
+    londonCols.forEach(col => col.style.display = 'none');
+  }
+  
+  // Re-render table to show/hide London Collections column
+  renderProductTable();
+}
+
 // === Unified Filter Panel Setup ===
 function setupUnifiedFilterPanel() {
   // Initialize FilterControlPanel component
@@ -297,7 +339,7 @@ async function loadProducts(isBackground = false) {
     const previouslySelectedSKUs = new Set(state.selectedProducts);
     
     // Fetch products with current status filters, region preference, and orphaned setting
-    state.allProducts = await getProductsToPrint(state.statusFilters, state.region, state.showOrphaned);
+    state.allProducts = await getProductsToPrint(state.statusFilters, state.region, state.showOrphaned, state.labelMode);
     state.filteredProducts = [...state.allProducts];
     
     // Re-apply search filter if exists
@@ -735,7 +777,7 @@ function renderProductTable() {
   if (state.displayedProducts.length === 0) {
     tbody.innerHTML = `
       <tr>
-  <td colspan="7" class="empty-state">
+  <td colspan="8" class="empty-state">
           <div class="empty-icon">🔍</div>
           <div class="empty-message">No products found</div>
           <div class="empty-submessage">Try adjusting your filters or search criteria</div>
@@ -744,6 +786,8 @@ function renderProductTable() {
     `;
     return;
   }
+  
+  const showLondon = state.labelMode === 'sales_data';
   
   tbody.innerHTML = state.displayedProducts.map(product => {
     const isChecked = state.selectedProducts.has(product.sku);
@@ -763,6 +807,7 @@ function renderProductTable() {
         <td>${escapeHtml(product.item_id || '-')}</td>
   <td class="magento-data">${escapeHtml(String(product.uk_6m_data ?? '0'))}</td>
   <td class="magento-data">${escapeHtml(String(product.fr_6m_data ?? '0'))}</td>
+  <td class="magento-data london-col" ${showLondon ? '' : 'style="display: none;"'}>${escapeHtml(String(product.london_6m_data ?? '0'))}</td>
       </tr>
     `;
   }).join('');
@@ -864,12 +909,13 @@ async function handleGeneratePdf() {
     const userData = getUserData();
     const userEmail = userData?.email || userData?.username || 'unknown';
     
-    // Create print job with SKUs, status filters, and region
+    // Create print job with SKUs, status filters, region, and label mode
     const payload = {
       created_by: userEmail,
       item_ids: skusToUse,
       discontinued_statuses: state.statusFilters,
-      region: state.region
+      region: state.region,
+      label_mode: state.labelMode
     };
     const result = await createPrintJob(payload);
     const jobId = result.job_id;

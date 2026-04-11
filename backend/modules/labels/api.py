@@ -165,6 +165,7 @@ def labels_to_print(
     discontinued_statuses: Optional[str] = None,
     region: str = Query("uk", pattern="^(uk|fr|nl)$"),
     show_orphaned: bool = False,
+    label_mode: str = Query("sales_data", pattern="^(sales_data|barcode)$"),
     user=Depends(get_current_user)
 ):
     """
@@ -178,6 +179,7 @@ def labels_to_print(
                 SKUs always come from UK Magento, but prices/names can come from any region.
                 6M data: from inventory_metadata (UK separate, FR+NL combined).
         show_orphaned: If True, include orphaned SKUs (in inventory_metadata but not in Magento). Defaults to False.
+        label_mode: Label generation mode ("sales_data" or "barcode"). When "sales_data", includes London Collections 6M data.
     """
     try:
         # Parse discontinued_statuses if provided
@@ -190,7 +192,8 @@ def labels_to_print(
                 conn, 
                 status_list, 
                 preferred_region=region,
-                show_orphaned=show_orphaned
+                show_orphaned=show_orphaned,
+                include_london_collections=(label_mode == 'sales_data')
             )
     except Exception as e:
         raise HTTPException(
@@ -216,12 +219,13 @@ def list_print_jobs(
                         j.created_by,
                         j.line,
                         j.created_at,
+                        COALESCE(j.label_mode, 'sales_data') as label_mode,
                         COUNT(i.id) as item_count,
                         SUM(i.uk_6m_data) as total_uk_6m,
                         SUM(i.fr_6m_data) as total_fr_6m
                     FROM label_print_jobs j
                     LEFT JOIN label_print_items i ON j.id = i.job_id
-                    GROUP BY j.id, j.created_by, j.line, j.created_at
+                    GROUP BY j.id, j.created_by, j.line, j.created_at, j.label_mode
                     ORDER BY j.created_at DESC
                     LIMIT %s
                     """,

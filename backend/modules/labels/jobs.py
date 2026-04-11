@@ -23,6 +23,7 @@ def _ensure_label_print_schema(conn: PGConn) -> None:
                     created_by VARCHAR(255),
                     line VARCHAR(255),
                     region VARCHAR(10) DEFAULT 'uk',
+                    label_mode VARCHAR(20) DEFAULT 'sales_data',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
                 """
@@ -44,6 +45,7 @@ def _ensure_label_print_schema(conn: PGConn) -> None:
                     product_name TEXT,
                     uk_6m_data INTEGER DEFAULT 0,
                     fr_6m_data INTEGER DEFAULT 0,
+                    london_6m_data INTEGER DEFAULT 0,
                     price DECIMAL(10, 2) DEFAULT 0.00,
                     line VARCHAR(255),
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -118,6 +120,10 @@ def _ensure_label_print_schema(conn: PGConn) -> None:
         jobs_alter_statements.append(
             "ALTER TABLE label_print_jobs ADD COLUMN IF NOT EXISTS region VARCHAR(10) DEFAULT 'uk'"
         )
+    if 'label_mode' not in existing_jobs:
+        jobs_alter_statements.append(
+            "ALTER TABLE label_print_jobs ADD COLUMN IF NOT EXISTS label_mode VARCHAR(20) DEFAULT 'sales_data'"
+        )
 
     if jobs_alter_statements:
         with conn.cursor() as cur:
@@ -154,6 +160,10 @@ def _ensure_label_print_schema(conn: PGConn) -> None:
         alter_statements.append(
             "ALTER TABLE label_print_items ADD COLUMN IF NOT EXISTS sort_order INTEGER DEFAULT 0"
         )
+    if 'london_6m_data' not in existing:
+        alter_statements.append(
+            "ALTER TABLE label_print_items ADD COLUMN IF NOT EXISTS london_6m_data INTEGER DEFAULT 0"
+        )
 
     # Drop NOT NULL constraint on item_id if it exists (products may not have item_ids yet)
     with conn.cursor() as cur:
@@ -175,7 +185,7 @@ def _ensure_label_print_schema(conn: PGConn) -> None:
 
 # --- helpers ---------------------------------------------------------------
 
-def _snapshot_rows(item_ids: List[str] = None, discontinued_statuses: List[str] = None, region: str = "uk") -> List[Dict[str, Any]]:
+def _snapshot_rows(item_ids: List[str] = None, discontinued_statuses: List[str] = None, region: str = "uk", label_mode: str = "sales_data") -> List[Dict[str, Any]]:
     """
     Pull current /to-print rows from your repo, optionally filtered by item_ids.
     Expected keys used below: sku, item_id, product_name, uk_6m_data, fr_6m_data
@@ -185,12 +195,19 @@ def _snapshot_rows(item_ids: List[str] = None, discontinued_statuses: List[str] 
         item_ids: Optional list of item IDs to filter by
         discontinued_statuses: Optional list of statuses to filter by (e.g., ['Active', 'Discontinued (Supplier)'])
         region: Region for price/name preference (default 'uk')
+        label_mode: Label mode - 'barcode' or 'sales_data' (determines whether London Collections data is loaded)
     """
     inventory_conn = None
     try:
         # Use inventory_logs database connection (same as /to-print endpoint)
         inventory_conn = get_inventory_log_connection()
-        all_rows = LabelsRepo().get_labels_to_print_psycopg(inventory_conn, product_statuses=discontinued_statuses, preferred_region=region)
+        include_london = (label_mode == 'sales_data')
+        all_rows = LabelsRepo().get_labels_to_print_psycopg(
+            inventory_conn, 
+            product_statuses=discontinued_statuses, 
+            preferred_region=region,
+            include_london_collections=include_london
+        )
     except Exception as e:
         logger.error(f"Error fetching labels data: {e}")
         raise
@@ -227,6 +244,7 @@ def start_label_job(conn: PGConn, payload: Dict[str, Any]) -> int:
     item_ids = payload.get("item_ids")  # list of selected item IDs
     discontinued_statuses = payload.get("discontinued_statuses")  # status filters
     region = payload.get("region", "uk")  # region preference, default to UK
+    label_mode = payload.get("label_mode", "sales_data")  # label mode: 'barcode' or 'sales_data'
 
     try:
         _ensure_label_print_schema(conn)
@@ -237,7 +255,7 @@ def start_label_job(conn: PGConn, payload: Dict[str, Any]) -> int:
     # 2) snapshot current rows (filtered by item_ids if provided) - do this BEFORE starting transaction
     # This uses a SEPARATE connection to the inventory database
     try:
-        rows = _snapshot_rows(item_ids, discontinued_statuses, region)
+        rows = _snapshot_rows(item_ids, discontinued_statuses, region, label_mode)
         logger.info(f"Fetched {len(rows)} rows for new job")
     except Exception as e:
         logger.error(f"Failed to snapshot rows: {e}")
@@ -245,17 +263,17 @@ def start_label_job(conn: PGConn, payload: Dict[str, Any]) -> int:
 
     with conn.cursor() as cur:
         try:
-            # 1) insert job with region
+            # 1) insert job with region and label_mode
             cur.execute(
                 """
-                INSERT INTO label_print_jobs (created_by, line, region)
-                VALUES (%s, %s, %s)
+                INSERT INTO label_print_jobs (created_by, line, region, label_mode)
+                VALUES (%s, %s, %s, %s)
                 RETURNING id
                 """,
-                (created_by, line, region),
+                (created_by, line, region, label_mode),
             )
             job_id = cur.fetchone()[0]
-            logger.info(f"Created label job {job_id} for region {region}")
+            logger.info(f"Created label job {job_id} for region {region}, mode {label_mode}")
         except Exception as e:
             logger.error(f"Failed to create job record: {e}")
             raise
@@ -286,6 +304,12 @@ def start_label_job(conn: PGConn, payload: Dict[str, Any]) -> int:
                 logger.warning(f"Could not parse FR 6M data '{r.get('fr_6m_data')}' for SKU {r.get('sku')}, using 0")
                 fr_6m = 0
             
+            try:
+                london_6m = int(str(r.get("london_6m_data", 0)).replace(",", ""))
+            except (ValueError, AttributeError):
+                logger.warning(f"Could not parse London 6M data '{r.get('london_6m_data')}' for SKU {r.get('sku')}, using 0")
+                london_6m = 0
+            
             to_insert.append((
                 job_id,
                 r.get("item_id"),
@@ -293,6 +317,7 @@ def start_label_job(conn: PGConn, payload: Dict[str, Any]) -> int:
                 r.get("product_name", ""),
                 uk_6m,
                 fr_6m,
+                london_6m,
                 price_float,  # Use cleaned price
                 None,  # per-row line (override) — keep None now
                 idx,   # sort_order - preserves frontend table sort order
@@ -303,8 +328,8 @@ def start_label_job(conn: PGConn, payload: Dict[str, Any]) -> int:
                 cur.executemany(
                     """
                     INSERT INTO label_print_items
-                        (job_id, item_id, sku, product_name, uk_6m_data, fr_6m_data, price, line, sort_order)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        (job_id, item_id, sku, product_name, uk_6m_data, fr_6m_data, london_6m_data, price, line, sort_order)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """,
                     to_insert,
                 )
@@ -324,7 +349,7 @@ def get_label_job_rows(conn: PGConn, job_id: int) -> List[Dict[str, Any]]:
     with conn.cursor() as cur:
         cur.execute(
             """
-            SELECT id, job_id, item_id, sku, product_name, uk_6m_data, fr_6m_data, price, line, sort_order
+            SELECT id, job_id, item_id, sku, product_name, uk_6m_data, fr_6m_data, london_6m_data, price, line, sort_order
             FROM label_print_items
             WHERE job_id = %s
             ORDER BY sort_order, id

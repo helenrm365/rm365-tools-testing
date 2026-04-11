@@ -173,16 +173,21 @@ def stream_pdf_labels(conn: PGConn, job_id: int) -> StreamingResponse:
     """
     Generate printable labels for a print job — matches Ian's layout.
     One label per product row.
+    Supports two modes:
+    - 'barcode': Labels with barcodes (original)
+    - 'sales_data': Labels without barcodes, with expanded sales data across the bottom (default)
     """
     tmpdir = None
     try:
-        # 1. fetch data with region
+        # 1. fetch data with region and label_mode
         with conn.cursor() as cur:
             cur.execute(
                 """
                 SELECT r.sku, r.product_name, r.uk_6m_data, r.fr_6m_data,
                        COALESCE(r.line, j.line) AS line,
-                       r.item_id, r.price, COALESCE(j.region, 'uk') AS region
+                       r.item_id, r.price, COALESCE(j.region, 'uk') AS region,
+                       COALESCE(j.label_mode, 'sales_data') AS label_mode,
+                       COALESCE(r.london_6m_data, 0) AS london_6m_data
                 FROM label_print_items r
                 JOIN label_print_jobs j ON j.id = r.job_id
                 WHERE r.job_id = %s
@@ -198,6 +203,9 @@ def stream_pdf_labels(conn: PGConn, job_id: int) -> StreamingResponse:
         if not rows:
             raise ValueError(f"No label items found for job {job_id}")
 
+        # Get label mode from first row
+        label_mode = rows[0][8] if rows else 'sales_data'
+        
         # Get region-specific page configuration
         job_region = rows[0][7] if rows else 'uk'
         page_cfg = get_page_config(job_region)
@@ -221,7 +229,7 @@ def stream_pdf_labels(conn: PGConn, job_id: int) -> StreamingResponse:
         tmpdir = tempfile.mkdtemp()
 
         # 3. render labels
-        for sku, name, uk, fr, line, barcode_val, price, region in rows:
+        for sku, name, uk, fr, line, barcode_val, price, region, _mode, london_6m in rows:
             col = label_no % cols_per_page
             row_pos = (label_no // cols_per_page) % rows_per_page
             x = x0 + col * label_width
@@ -273,41 +281,67 @@ def stream_pdf_labels(conn: PGConn, job_id: int) -> StreamingResponse:
                     c.setFont(TEXT_FONT, fitted)
                     c.drawString(right_x + lw + 1, yy, value)
 
-            # --- FR/UK bottom block ---
-            uk_str = str(uk if uk is not None else "0")
-            fr_str = str(fr if fr is not None else "0")
-            for j, (label, value) in enumerate([("UK:", uk_str), ("FR:", fr_str)]):
-                yy = y + 4.5 + j * LINE_SPACING
-                fitted = fit_value_font(c, label, value, max_w)
-                c.setFont(TITLE_FONT, TITLE_SIZE)
-                c.drawString(right_x, yy, label)
-                lw = c.stringWidth(label, TITLE_FONT, TITLE_SIZE)
-                c.setFont(TEXT_FONT, fitted)
-                c.drawString(right_x + lw + 1, yy, value)
+            # --- Bottom section: depends on label_mode ---
+            if label_mode == 'barcode':
+                # BARCODE MODE: UK/FR data in bottom-right, barcode across bottom
+                uk_str = str(uk if uk is not None else "0")
+                fr_str = str(fr if fr is not None else "0")
+                for j, (label, value) in enumerate([("UK:", uk_str), ("FR:", fr_str)]):
+                    yy = y + 4.5 + j * LINE_SPACING
+                    fitted = fit_value_font(c, label, value, max_w)
+                    c.setFont(TITLE_FONT, TITLE_SIZE)
+                    c.drawString(right_x, yy, label)
+                    lw = c.stringWidth(label, TITLE_FONT, TITLE_SIZE)
+                    c.setFont(TEXT_FONT, fitted)
+                    c.drawString(right_x + lw + 1, yy, value)
 
-            # --- barcode (only if item_id/barcode value exists) ---
-            if barcode_val:
-                try:
-                    barcode_path = os.path.join(tmpdir, f"barcode_{label_no}")
-                    barcode_value = str(barcode_val)
-                    Code128(barcode_value, writer=ImageWriter()).save(barcode_path, BARCODE_OPTIONS)
-                    img_path = barcode_path + ".png"
-                    barcode_width = label_width - 10
-                    barcode_height = 13 * mm
-                    barcode_x = x + (label_width - barcode_width) / 2
-                    c.drawImage(
-                        img_path,
-                        barcode_x,
-                        y + 1,
-                        width=barcode_width,
-                        height=barcode_height,
-                        preserveAspectRatio=True,
-                        anchor="sw",
-                        mask="auto",
-                    )
-                except Exception as e:
-                    # Log barcode generation errors but continue
-                    print(f"Warning: Could not generate barcode for {barcode_val}: {e}")
+                # --- barcode (only if item_id/barcode value exists) ---
+                if barcode_val:
+                    try:
+                        barcode_path = os.path.join(tmpdir, f"barcode_{label_no}")
+                        barcode_value = str(barcode_val)
+                        Code128(barcode_value, writer=ImageWriter()).save(barcode_path, BARCODE_OPTIONS)
+                        img_path = barcode_path + ".png"
+                        barcode_width = label_width - 10
+                        barcode_height = 13 * mm
+                        barcode_x = x + (label_width - barcode_width) / 2
+                        c.drawImage(
+                            img_path,
+                            barcode_x,
+                            y + 1,
+                            width=barcode_width,
+                            height=barcode_height,
+                            preserveAspectRatio=True,
+                            anchor="sw",
+                            mask="auto",
+                        )
+                    except Exception as e:
+                        # Log barcode generation errors but continue
+                        print(f"Warning: Could not generate barcode for {barcode_val}: {e}")
+            else:
+                # SALES DATA MODE: All sales data across the bottom (no barcode)
+                uk_str = str(uk if uk is not None else "0")
+                fr_str = str(fr if fr is not None else "0")
+                london_str = str(london_6m if london_6m is not None else "0")
+                
+                # Use the full width of the label for sales data
+                sales_x = x + 4
+                sales_max_w = label_width - 8
+                
+                # Render 3 sales data items across the bottom
+                sales_items = [("UK:", uk_str), ("FR:", fr_str), ("LON:", london_str)]
+                # Calculate spacing to distribute items evenly across bottom
+                col_width = sales_max_w / len(sales_items)
+                
+                sales_y = y + 4
+                for j, (label, value) in enumerate(sales_items):
+                    col_x = sales_x + j * col_width
+                    fitted = fit_value_font(c, label, value, col_width - 4)
+                    c.setFont(TITLE_FONT, TITLE_SIZE)
+                    c.drawString(col_x, sales_y, label)
+                    lw = c.stringWidth(label, TITLE_FONT, TITLE_SIZE)
+                    c.setFont(TEXT_FONT, fitted)
+                    c.drawString(col_x + lw + 1, sales_y, value)
 
             label_no += 1
             if label_no % (cols_per_page * rows_per_page) == 0:
