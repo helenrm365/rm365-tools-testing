@@ -4,6 +4,7 @@
 /* ===== Table Container ===== */
 .table-container {
   width: 100%;
+  min-width: 0; /* Allow shrinking inside flex/grid parents so overflow:auto works in Chrome */
   overflow: auto;
   overscroll-behavior: none;
   -webkit-overflow-scrolling: auto;
@@ -48,7 +49,6 @@ table,
 .modern-table,
 .products-table {
   width: 100%;
-  min-width: max-content; /* Allow table to expand for horizontal scroll */
   border-collapse: separate;
   border-spacing: 0;
   font-size: 0.95rem;

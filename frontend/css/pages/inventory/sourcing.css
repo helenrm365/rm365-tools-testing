@@ -317,7 +317,6 @@ html.dark-mode .product-sourcing .summary-card {
 
 .product-sourcing .data-table {
   width: 100%;
-  min-width: max-content;
   border-collapse: separate;
   border-spacing: 0;
   font-size: 0.875rem;

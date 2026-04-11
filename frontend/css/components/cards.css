@@ -60,6 +60,7 @@ html.dark-mode .action-block {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+  min-width: 0; /* Prevent flex children from overflowing in Chrome */
 }
 
 /* ===== Entity Card (Employee, User, Item cards) ===== */
