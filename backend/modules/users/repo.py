@@ -13,29 +13,38 @@ class UsersRepo:
             cur.execute("SELECT username FROM login_users ORDER BY username")
             return [r[0] for r in cur.fetchall()]
 
-    def list_all(self) -> List[Tuple[str, str, str, int, int]]:
+    def list_all(self) -> List[Tuple[str, str, str, str, int, int]]:
         with pg_conn() as conn, conn.cursor() as cur:
             cur.execute("""
-                SELECT username, NULLIF(role, '') as role,
+                SELECT username,
+                       NULLIF(role, '') as role,
+                       NULLIF(tab_preset, '') as tab_preset,
                        allowed_tabs, location_id, group_id
                 FROM login_users ORDER BY username
             """)
             return cur.fetchall()
 
-    def create(self, username: str, password_hash: str, role: str, allowed_tabs_csv: str, location_id: int = None, group_id: int = None):
+    def create(self, username: str, password_hash: str, role: str, tab_preset: str, allowed_tabs_csv: str, location_id: int = None, group_id: int = None):
         with pg_conn() as conn, conn.cursor() as cur:
             cur.execute("""
-                INSERT INTO login_users (username, password_hash, role, allowed_tabs, location_id, group_id)
-                VALUES (%s, %s, %s, %s, %s, %s)
-            """, (username, password_hash, role, allowed_tabs_csv, location_id, group_id))
+                INSERT INTO login_users (username, password_hash, role, tab_preset, allowed_tabs, location_id, group_id)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """, (username, password_hash, role, tab_preset, allowed_tabs_csv, location_id, group_id))
             conn.commit()
 
-    def update(self, username: str, *, new_username=None, new_hash=None, role=None, clear_role=False, allowed_tabs_csv=None, location_id=None, clear_location=False, group_id=None, clear_group=False):
+    def update(self, username: str, *, new_username=None, new_hash=None,
+               role=None, clear_role=False,
+               tab_preset=None, clear_tab_preset=False,
+               allowed_tabs_csv=None,
+               location_id=None, clear_location=False,
+               group_id=None, clear_group=False):
         sets, vals = [], []
         if new_username is not None: sets += ["username=%s"];        vals += [new_username]
         if new_hash is not None:     sets += ["password_hash=%s"];   vals += [new_hash]
-        if role is not None:         sets += ["role=%s"];           vals += [role]
-        elif clear_role:             sets += ["role=%s"];           vals += [None]
+        if role is not None:         sets += ["role=%s"];            vals += [role]
+        elif clear_role:             sets += ["role=%s"];            vals += [None]
+        if tab_preset is not None:   sets += ["tab_preset=%s"];      vals += [tab_preset]
+        elif clear_tab_preset:       sets += ["tab_preset=%s"];      vals += [None]
         if allowed_tabs_csv is not None: sets += ["allowed_tabs=%s"]; vals += [allowed_tabs_csv]
         if location_id is not None:  sets += ["location_id=%s"];    vals += [location_id]
         elif clear_location:         sets += ["location_id=%s"];    vals += [None]
@@ -46,12 +55,12 @@ class UsersRepo:
             cur.execute(f"UPDATE login_users SET {', '.join(sets)} WHERE username=%s", (*vals, username))
             conn.commit()
 
-    def update_tabs_for_role(self, role_name: str, allowed_tabs_csv: str):
-        """Update allowed_tabs for all users with a given role"""
+    def update_tabs_for_preset(self, preset_name: str, allowed_tabs_csv: str):
+        """Update allowed_tabs for all users assigned to a given tab preset."""
         with pg_conn() as conn, conn.cursor() as cur:
             cur.execute(
-                "UPDATE login_users SET allowed_tabs = %s WHERE role = %s",
-                (allowed_tabs_csv, role_name)
+                "UPDATE login_users SET allowed_tabs = %s WHERE tab_preset = %s",
+                (allowed_tabs_csv, preset_name)
             )
             conn.commit()
 

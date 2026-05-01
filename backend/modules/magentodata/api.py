@@ -592,7 +592,7 @@ def set_grand_total_threshold(
     """Set the grand total threshold for a region (requires admin/manager). Pass None to clear."""
     # Check if user has permission (admin or manager)
     user_role = user.get("role", "").lower()
-    if user_role not in ["admin", "manager"]:
+    if user_role not in ["admin", "manager", "superadmin"]:
         return {
             "status": "error",
             "message": "Only admins and managers can set the grand total threshold"
@@ -619,7 +619,7 @@ def set_qty_threshold(
     """Set the quantity threshold for a region (requires admin/manager). Pass None to clear."""
     # Check if user has permission (admin or manager)
     user_role = user.get("role", "").lower()
-    if user_role not in ["admin", "manager"]:
+    if user_role not in ["admin", "manager", "superadmin"]:
         return {
             "status": "error",
             "message": "Only admins and managers can set the quantity threshold"
@@ -716,7 +716,7 @@ async def add_smart_qty_rule_endpoint(
     
     # Check if user has permission (admin or manager)
     user_role = user.get("role", "").lower()
-    if user_role not in ["admin", "manager"]:
+    if user_role not in ["admin", "manager", "superadmin"]:
         return {
             "status": "error",
             "message": "Only admins and managers can add smart quantity rules"
@@ -733,7 +733,7 @@ async def remove_smart_qty_rule_endpoint(
     """Remove a specific smart quantity rule"""
     # Check if user has permission (admin or manager)
     user_role = user.get("role", "").lower()
-    if user_role not in ["admin", "manager"]:
+    if user_role not in ["admin", "manager", "superadmin"]:
         return {
             "status": "error",
             "message": "Only admins and managers can remove smart quantity rules"
@@ -753,7 +753,7 @@ async def clear_all_smart_qty_rules_endpoint(
     
     # Check if user has permission (admin or manager)
     user_role = user.get("role", "").lower()
-    if user_role not in ["admin", "manager"]:
+    if user_role not in ["admin", "manager", "superadmin"]:
         return {
             "status": "error",
             "message": "Only admins and managers can clear smart quantity rules"

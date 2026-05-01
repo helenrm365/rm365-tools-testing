@@ -6,7 +6,7 @@
     <div class="header-content">
       <h1 class="page-title">Access Control</h1>
     </div>
-    <p class="page-subtitle">Manage system users, roles, and permissions</p>
+    <p class="page-subtitle">Manage system users, roles, tab presets, and permissions</p>
   </header>
 
   <!-- Navigation Tabs -->
@@ -28,7 +28,7 @@
           </div>
           <div class="block-title-group">
             <h3 class="block-title">System Users</h3>
-            <p class="block-subtitle">All registered users and their roles</p>
+            <p class="block-subtitle">All registered users with their roles and tab presets</p>
           </div>
           <div class="block-header-search">
             <input type="text" id="userSearch" class="nui-input nui-input-default" placeholder="Search users...">
@@ -38,9 +38,9 @@
               <i class="fas fa-user-plus"></i>
               <span>New User</span>
             </button>
-            <button class="btn btn-solid btn-default rounded-lg" id="manageRolesBtn">
+            <button class="btn btn-solid btn-default rounded-lg" id="manageTabPresetsBtn">
               <i class="fas fa-user-tag"></i>
-              <span>Manage Roles</span>
+              <span>Manage Tab Presets</span>
             </button>
             <button class="btn btn-solid btn-default rounded-lg" id="manageGroupsBtn">
               <i class="fas fa-layer-group"></i>
@@ -105,12 +105,26 @@
                 <input type="text" id="formUsername" name="username" class="nui-input nui-input-default" placeholder="Enter username" required>
               </div>
               <div class="nui-field">
-                <label class="nui-label" for="formRole">
+                <label class="nui-label" for="formRoleLabel">
                   <span>Role</span>
+                  <span class="form-hint">(e.g. Manager, Staff, Admin)</span>
                 </label>
-                <select id="formRole" name="role">
+                <input type="text" id="formRoleLabel" name="role" class="nui-input nui-input-default" placeholder="Enter role">
+              </div>
+            </div>
+
+            <div class="form-row form-row-account-main">
+              <div class="nui-field">
+                <label class="nui-label" for="formTabPreset">
+                  <span>Tab Preset</span>
+                  <span class="form-hint">(Controls tab access)</span>
+                </label>
+                <select id="formTabPreset" name="tab_preset">
                   <!-- Populated by JS -->
                 </select>
+              </div>
+              <div class="nui-field">
+                <!-- spacer -->
               </div>
             </div>
 
@@ -166,23 +180,23 @@
             </div>
           </section>
 
-          <!-- Role-based tab info (shown for non-admin roles) -->
-          <div id="roleTabInfo" class="role-tab-info" style="display: none;">
+          <!-- Preset-based tab info (shown for non-admin presets) -->
+          <div id="presetTabInfo" class="role-tab-info" style="display: none;">
             <i class="fas fa-info-circle"></i>
-            <span>Tab access is defined by the assigned role. Edit the role to change tab permissions.</span>
+            <span>Tab access is defined by the assigned tab preset. Edit the preset to change tab permissions.</span>
           </div>
 
-          <!-- Admin role info -->
+          <!-- Admin preset info -->
           <div id="adminTabInfo" class="admin-tab-info" style="display: none;">
             <i class="fas fa-shield-alt"></i>
-            <span>Admin role grants full access to all tabs.</span>
+            <span>Admin preset grants full access to all tabs.</span>
           </div>
 
-          <!-- Custom role: per-user tab selection -->
+          <!-- Custom preset: per-user tab selection -->
           <div id="customTabsSection" class="nui-field custom-tabs-section" style="display: none;">
             <div class="custom-tabs-info">
               <i class="fas fa-sliders-h"></i>
-              <span>Custom role — select which tabs this user can access.</span>
+              <span>Custom preset — select which tabs this user can access.</span>
             </div>
             <div class="form-label-row">
               <label class="nui-label">
@@ -209,119 +223,119 @@
     </div>
   </div>
   
-  <!-- Add Role Modal -->
-  <div id="addRoleModal" class="modal-overlay">
+  <!-- Add Tab Preset Modal -->
+  <div id="addTabPresetModal" class="modal-overlay">
     <div class="modal-content modal-sm">
       <div class="modal-header">
         <div class="modal-header-icon">
           <i class="fas fa-plus-circle"></i>
         </div>
         <div class="modal-title-group">
-          <h3 class="modal-title">Add New Role</h3>
+          <h3 class="modal-title">Add New Tab Preset</h3>
         </div>
-        <button class="modal-close" id="closeAddRoleModal">
+        <button class="modal-close" id="closeAddTabPresetModal">
           <i class="fas fa-times"></i>
         </button>
       </div>
       <div class="modal-body">
         <div class="nui-field">
-          <label for="newRoleName" class="nui-label">
-            <span>Role Name</span>
+          <label for="newTabPresetName" class="nui-label">
+            <span>Tab Preset Name</span>
           </label>
-          <input type="text" id="newRoleName" class="nui-input nui-input-default" placeholder="Enter role name">
+          <input type="text" id="newTabPresetName" class="nui-input nui-input-default" placeholder="Enter preset name">
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-solid btn-default rounded-lg" id="cancelAddRole">Cancel</button>
-        <button class="btn btn-solid btn-success" id="confirmAddRole">
+        <button class="btn btn-solid btn-default rounded-lg" id="cancelAddTabPreset">Cancel</button>
+        <button class="btn btn-solid btn-success" id="confirmAddTabPreset">
           <i class="fas fa-plus"></i>
-          <span>Add Role</span>
+          <span>Add Tab Preset</span>
         </button>
       </div>
     </div>
   </div>
 
-  <!-- Roles Manager Modal -->
-  <div id="rolesManagerModal" class="modal-overlay">
+  <!-- Tab Presets Manager Modal -->
+  <div id="tabPresetsManagerModal" class="modal-overlay">
     <div class="modal-content">
       <div class="modal-header">
         <div class="modal-header-icon">
           <i class="fas fa-user-cog"></i>
         </div>
         <div class="modal-title-group">
-          <h3 class="modal-title">Manage Roles</h3>
-          <p class="modal-subtitle">View and configure system roles</p>
+          <h3 class="modal-title">Manage Tab Presets</h3>
+          <p class="modal-subtitle">View and configure tab access bundles</p>
         </div>
-        <button class="modal-close" id="closeRolesManager">
+        <button class="modal-close" id="closeTabPresetsManager">
           <i class="fas fa-times"></i>
         </button>
       </div>
       <div class="modal-body">
         <div class="modal-actions" style="margin: 0 0 1.5rem 0; padding: 0; border: none;">
-          <button class="btn btn-solid btn-success" id="rolesManagerAddBtn">
+          <button class="btn btn-solid btn-success" id="tabPresetsManagerAddBtn">
             <i class="fas fa-plus"></i>
-            <span>Add New Role</span>
+            <span>Add New Tab Preset</span>
           </button>
         </div>
-        <div id="rolesList" class="roles-grid">
-          <!-- Roles List Items -->
+        <div id="tabPresetsList" class="roles-grid">
+          <!-- Tab Preset List Items -->
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Edit Role Modal -->
-  <div id="editRoleModal" class="modal-overlay">
+  <!-- Edit Tab Preset Modal -->
+  <div id="editTabPresetModal" class="modal-overlay">
     <div class="modal-content">
       <div class="modal-header">
         <div class="modal-header-icon">
           <i class="fas fa-user-tag"></i>
         </div>
         <div class="modal-title-group">
-          <h3 class="modal-title" id="editRoleTitle">Edit Role</h3>
+          <h3 class="modal-title" id="editTabPresetTitle">Edit Tab Preset</h3>
         </div>
-        <button class="modal-close" id="closeEditRole">
+        <button class="modal-close" id="closeEditTabPreset">
           <i class="fas fa-times"></i>
         </button>
       </div>
       <div class="modal-body">
         <div class="nui-field">
-          <label for="editRoleName" class="nui-label">
-            <span>Role Name</span>
+          <label for="editTabPresetName" class="nui-label">
+            <span>Tab Preset Name</span>
           </label>
-          <input type="text" id="editRoleName" class="nui-input nui-input-default">
-        </div>
-        
-        <!-- Admin role notice -->
-        <div id="editRoleAdminNotice" class="admin-tab-info" style="display: none;">
-          <i class="fas fa-shield-alt"></i>
-          <span>The admin role automatically grants access to all tabs. Tab selection is not needed.</span>
+          <input type="text" id="editTabPresetName" class="nui-input nui-input-default">
         </div>
 
-        <div id="editRoleTabsSection" class="nui-field">
+        <!-- Admin preset notice -->
+        <div id="editTabPresetAdminNotice" class="admin-tab-info" style="display: none;">
+          <i class="fas fa-shield-alt"></i>
+          <span>The admin preset automatically grants access to all tabs. Tab selection is not needed.</span>
+        </div>
+
+        <div id="editTabPresetTabsSection" class="nui-field">
           <div class="form-label-row">
             <label class="nui-label">
               <span>Allowed Access Tabs</span>
             </label>
             <label class="checkbox-toggle">
-              <input type="checkbox" id="editRoleSelectAllTabs">
+              <input type="checkbox" id="editTabPresetSelectAllTabs">
               <span>Select All</span>
             </label>
           </div>
-          <p class="form-helper-text">Define which tabs members of this role can access.</p>
-          <div class="checkbox-group" id="editRoleTabsContainer">
+          <p class="form-helper-text">Define which tabs users assigned to this preset can access.</p>
+          <div class="checkbox-group" id="editTabPresetTabsContainer">
             <!-- Tabs Checkboxes -->
           </div>
         </div>
       </div>
       <div class="modal-footer modal-footer-split">
-        <button class="btn btn-solid btn-danger" id="editRoleDeleteBtn">
+        <button class="btn btn-solid btn-danger" id="editTabPresetDeleteBtn">
           <i class="fas fa-trash"></i>
-          <span>Delete Role</span>
+          <span>Delete Preset</span>
         </button>
         <div class="modal-footer-right">
-          <button class="btn btn-solid btn-default rounded-lg" id="cancelEditRole">Cancel</button>
-          <button class="btn btn-solid btn-success" id="saveEditRole">
+          <button class="btn btn-solid btn-default rounded-lg" id="cancelEditTabPreset">Cancel</button>
+          <button class="btn btn-solid btn-success" id="saveEditTabPreset">
             <i class="fas fa-save"></i>
             <span>Save Changes</span>
           </button>

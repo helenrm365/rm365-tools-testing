@@ -19,7 +19,12 @@ def login(body: LoginIn):
             token = create_access_token(sub=body.username)
             # Grant full access to all tabs (dynamically retrieved)
             all_tabs = get_all_tabs()
-            return {"access_token": token, "role": "superadmin", "allowed_tabs": all_tabs}
+            return {
+                "access_token": token,
+                "role": "superadmin",
+                "tab_preset": "admin",
+                "allowed_tabs": all_tabs,
+            }
         else:
             raise HTTPException(status_code=401, detail="Invalid credentials")
     
@@ -28,7 +33,13 @@ def login(body: LoginIn):
         conn = get_psycopg_connection()
         try:
             cur = conn.cursor()
-            cur.execute("SELECT password_hash, COALESCE(NULLIF(role, ''), 'user') as role, allowed_tabs FROM login_users WHERE username=%s", (body.username,))
+            cur.execute("""
+                SELECT password_hash,
+                       COALESCE(NULLIF(role, ''), 'Staff') as role,
+                       NULLIF(tab_preset, '') as tab_preset,
+                       allowed_tabs
+                FROM login_users WHERE username=%s
+            """, (body.username,))
             row = cur.fetchone()
         finally:
             return_attendance_connection(conn)
@@ -37,9 +48,15 @@ def login(body: LoginIn):
             raise HTTPException(status_code=401, detail="Invalid credentials")
 
         token = create_access_token(sub=body.username)
-        role = row[1] if row[1] else 'user'
-        allowed_tabs = parse_allowed_tabs(row[2])
-        return {"access_token": token, "role": role, "allowed_tabs": allowed_tabs}
+        role = row[1] if row[1] else 'Staff'
+        tab_preset = row[2]
+        allowed_tabs = parse_allowed_tabs(row[3])
+        return {
+            "access_token": token,
+            "role": role,
+            "tab_preset": tab_preset,
+            "allowed_tabs": allowed_tabs,
+        }
     except HTTPException:
         # Re-raise HTTP exceptions (like 401 Invalid credentials)
         raise
@@ -54,7 +71,8 @@ def login(body: LoginIn):
 def me(user=Depends(get_current_user)):
     return {
         "username": user["username"],
-        "role": user.get("role", "user"),
+        "role": user.get("role", "Staff"),
+        "tab_preset": user.get("tab_preset"),
         "allowed_tabs": user["allowed_tabs"],
         "location_id": user.get("location_id"),
     }

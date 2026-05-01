@@ -173,7 +173,7 @@ def return_products_connection(conn):
 
 
 def initialize_database():
-    """Test database connection and initialize roles table"""
+    """Test database connection and initialize tab presets table"""
     print("🔧 Testing database connection...")
     
     try:
@@ -183,12 +183,12 @@ def initialize_database():
         print("✅ Database connection successful")
         
         try:
-            from modules.roles.service import RolesService
-            roles_svc = RolesService()
-            roles_svc.init_roles_table()
-            print("✅ Roles table initialized with default roles")
+            from modules.tab_presets.service import TabPresetsService
+            presets_svc = TabPresetsService()
+            presets_svc.init_tab_presets_table()
+            print("✅ Tab presets table initialized with system defaults")
         except Exception as e:
-            print(f"⚠️  Could not initialize roles table: {e}")
+            print(f"⚠️  Could not initialize tab presets table: {e}")
         
         try:
             from modules.groups.service import GroupsService

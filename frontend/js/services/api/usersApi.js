@@ -13,10 +13,10 @@ export const getUsers = async () => {
     }
 };
 
-export const createUser = ({ username, password, role = null, allowed_tabs = [], location_id = null, group_id = null }) =>
-    post(`${API}`, { username, password, role, allowed_tabs, location_id, group_id });
+export const createUser = ({ username, password, role = null, tab_preset = null, allowed_tabs = [], location_id = null, group_id = null }) =>
+    post(`${API}`, { username, password, role, tab_preset, allowed_tabs, location_id, group_id });
 
-export const updateUser = ({ username, new_username, new_password, role, allowed_tabs, location_id, group_id }) =>
-    patch(`${API}`, { username, new_username, new_password, role, allowed_tabs, location_id, group_id });
+export const updateUser = ({ username, new_username, new_password, role, tab_preset, allowed_tabs, location_id, group_id }) =>
+    patch(`${API}`, { username, new_username, new_password, role, tab_preset, allowed_tabs, location_id, group_id });
 
 export const deleteUser = (username) => del(`${API}?username=${encodeURIComponent(username)}`);

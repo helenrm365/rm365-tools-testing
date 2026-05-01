@@ -345,7 +345,7 @@ except Exception as e:
 # Only mount modules that are complete and working
 working_modules = [
     ('modules.users.api', 'router', f'{API}/users', ['users']),
-    ('modules.roles.api', 'router', f'{API}/roles', ['roles']),
+    ('modules.tab_presets.api', 'router', f'{API}/tab-presets', ['tab-presets']),
     ('modules.groups.api', 'router', f'{API}/groups', ['groups']),
     ('modules.attendance.api', 'router', f'{API}/attendance', ['attendance']),
     ('modules.attendance.locations_api', 'router', f'{API}/locations', ['locations']),

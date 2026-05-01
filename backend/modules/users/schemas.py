@@ -3,7 +3,8 @@ from typing import List, Optional
 
 class UserOut(BaseModel):
     username: str
-    role: Optional[str] = None
+    role: Optional[str] = None        # Identity label (free-text, e.g. 'Admin', 'manager', 'Staff')
+    tab_preset: Optional[str] = None  # Tab-bundle assignment (references tab_presets.preset_name)
     allowed_tabs: List[str] = Field(default_factory=list)
     location_id: Optional[int] = None
     group_id: Optional[int] = None
@@ -12,6 +13,7 @@ class UserCreate(BaseModel):
     username: str
     password: str
     role: Optional[str] = None
+    tab_preset: Optional[str] = None
     allowed_tabs: List[str] = Field(default_factory=list)
     location_id: Optional[int] = None
     group_id: Optional[int] = None
@@ -21,6 +23,7 @@ class UserUpdate(BaseModel):
     new_username: Optional[str] = None
     new_password: Optional[str] = None
     role: Optional[str] = None
+    tab_preset: Optional[str] = None
     allowed_tabs: Optional[List[str]] = None
     location_id: Optional[int] = None
     group_id: Optional[int] = None

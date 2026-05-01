@@ -95,7 +95,7 @@ async def get_current_user(authorization: str = Header(None)):
     # Check if this is the built-in superadmin (bypasses database)
     if username == settings.SUPERADMIN_USERNAME:
         all_tabs = get_all_tabs()
-        return {"username": username, "role": "superadmin", "allowed_tabs": all_tabs}
+        return {"username": username, "role": "superadmin", "tab_preset": "admin", "allowed_tabs": all_tabs}
 
     # Regular database authentication
     try:
@@ -103,24 +103,42 @@ async def get_current_user(authorization: str = Header(None)):
         try:
             cur = conn.cursor()
             try:
-                cur.execute("SELECT COALESCE(NULLIF(role, ''), 'user') as role, allowed_tabs, location_id FROM login_users WHERE username = %s", (username,))
+                cur.execute("""
+                    SELECT COALESCE(NULLIF(role, ''), 'Staff') as role,
+                           NULLIF(tab_preset, '') as tab_preset,
+                           allowed_tabs,
+                           location_id
+                    FROM login_users WHERE username = %s
+                """, (username,))
                 row = cur.fetchone()
             except Exception:
                 # Fallback if location_id column doesn't exist yet (pre-migration)
                 conn.rollback()
-                cur.execute("SELECT COALESCE(NULLIF(role, ''), 'user') as role, allowed_tabs FROM login_users WHERE username = %s", (username,))
+                cur.execute("""
+                    SELECT COALESCE(NULLIF(role, ''), 'Staff') as role,
+                           NULLIF(tab_preset, '') as tab_preset,
+                           allowed_tabs
+                    FROM login_users WHERE username = %s
+                """, (username,))
                 raw = cur.fetchone()
-                row = (raw[0], raw[1], None) if raw else None
+                row = (raw[0], raw[1], raw[2], None) if raw else None
         finally:
             return_attendance_connection(conn)
 
         if not row:
             raise HTTPException(status_code=404, detail="User not found")
 
-        role = row[0] if row[0] else 'user'
-        allowed_tabs = parse_allowed_tabs(row[1])
-        location_id = row[2] if len(row) > 2 and row[2] else None
-        return {"username": username, "role": role, "allowed_tabs": allowed_tabs, "location_id": location_id}
+        role = row[0] if row[0] else 'Staff'
+        tab_preset = row[1]
+        allowed_tabs = parse_allowed_tabs(row[2])
+        location_id = row[3] if len(row) > 3 and row[3] else None
+        return {
+            "username": username,
+            "role": role,
+            "tab_preset": tab_preset,
+            "allowed_tabs": allowed_tabs,
+            "location_id": location_id,
+        }
     except HTTPException:
         # Re-raise HTTP exceptions
         raise

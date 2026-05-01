@@ -1,6 +1,6 @@
 // js/modules/usermanagement/management.js
 import { getUsers, createUser, updateUser, deleteUser } from '../../services/api/usersApi.js';
-import { getRoles, createRole, updateRole, deleteRole } from '../../services/api/rolesApi.js';
+import { getTabPresets, createTabPreset, updateTabPreset, deleteTabPreset } from '../../services/api/tabPresetsApi.js';
 import { getGroups, createGroup, updateGroup, deleteGroup } from '../../services/api/groupsApi.js';
 import { getLocations as getLocationObjects } from '../../services/api/locationsApi.js';
 import { generateTabStructure } from '../../router.js';
@@ -11,17 +11,17 @@ import { initDropdown } from '../../ui/dropdown.js';
 const TAB_STRUCTURE = generateTabStructure();
 let state = {
   users: [],
-  roles: [],
+  tabPresets: [],   // Tab Presets (formerly "roles") — bundles of allowed_tabs
   groups: [],
   locations: [],
   query: '',
   groupFilter: '',
   editingUser: null,
-  
-  // Role Manager State
-  manageRoleSelected: null,
+
+  // Tab Preset Manager State
+  managePresetSelected: null,
   returnToUserModal: false,
-  returnToRolesManager: false,
+  returnToPresetsManager: false,
 
   // Group Manager State
   editingGroupId: null,
@@ -39,23 +39,23 @@ function getGroupName(groupId) {
   return group ? group.group_name : '<span class="text-muted">—</span>';
 }
 
-function isAdminRole(roleName) {
-  return roleName && roleName.toLowerCase() === 'admin';
+function isAdminPreset(presetName) {
+  return presetName && presetName.toLowerCase() === 'admin';
 }
 
-function isCustomRole(roleName) {
-  return roleName && roleName.toLowerCase() === 'custom';
+function isCustomPreset(presetName) {
+  return presetName && presetName.toLowerCase() === 'custom';
 }
 
-function isSystemRole(roleName) {
-  return isAdminRole(roleName) || isCustomRole(roleName);
+function isSystemPreset(presetName) {
+  return isAdminPreset(presetName) || isCustomPreset(presetName);
 }
 
-function getRoleTabsForUser(user) {
-  if (isAdminRole(user.role)) return null; // Full access
-  if (isCustomRole(user.role)) return user.allowed_tabs || []; // Per-user tabs
-  const role = state.roles.find(r => r.role_name === user.role);
-  return role ? role.allowed_tabs : user.allowed_tabs;
+function getPresetTabsForUser(user) {
+  if (isAdminPreset(user.tab_preset)) return null; // Full access
+  if (isCustomPreset(user.tab_preset)) return user.allowed_tabs || []; // Per-user tabs
+  const preset = state.tabPresets.find(p => p.preset_name === user.tab_preset);
+  return preset ? preset.allowed_tabs : user.allowed_tabs;
 }
 
 function notify(msg, isError = false) {
@@ -116,6 +116,7 @@ function renderTable() {
       const groupName = (state.groups.find(g => g.id === user.group_id) || {}).group_name || '';
       return user.username.toLowerCase().includes(q) || 
              (user.role || '').toLowerCase().includes(q) ||
+             (user.tab_preset || '').toLowerCase().includes(q) ||
              groupName.toLowerCase().includes(q);
     }
     return true;
@@ -132,20 +133,23 @@ function renderTable() {
   }
 
   const rows = filtered.map(user => {
-    const isAdmin = isAdminRole(user.role);
-    const hasRole = !!user.role;
+    const isAdmin = isAdminPreset(user.tab_preset);
+    const hasPreset = !!user.tab_preset;
     let tabAccessDisplay;
     if (isAdmin) {
       tabAccessDisplay = '<span class="full-access-badge">Full Access</span>';
-    } else if (hasRole) {
+    } else if (hasPreset) {
       tabAccessDisplay = `<button class="btn btn-flat btn-primary btn-xs view-tabs-btn" data-username="${user.username}"><i class="fas fa-eye"></i> View</button>`;
     } else {
       tabAccessDisplay = '<span class="text-muted">—</span>';
     }
-    const roleDisplay = hasRole
-      ? `<span class="status-badge status-${user.role}">${user.role}</span>`
+    const presetDisplay = hasPreset
+      ? `<span class="status-badge status-${user.tab_preset}">${user.tab_preset}</span>`
       : '<span class="text-muted">—</span>';
-    
+    const roleDisplay = user.role
+      ? `<span class="role-badge">${user.role}</span>`
+      : '<span class="text-muted">—</span>';
+
     return `
       <tr data-username="${user.username}">
         <td class="col-group" data-label="Group">${getGroupName(user.group_id)}</td>
@@ -156,6 +160,7 @@ function renderTable() {
           </div>
         </td>
         <td class="col-role" data-label="Role">${roleDisplay}</td>
+        <td class="col-preset" data-label="Tab Preset">${presetDisplay}</td>
         <td class="col-tabs" data-label="Tab Access">${tabAccessDisplay}</td>
         <td class="col-actions" data-label="Actions">
           <button class="btn btn-solid btn-default btn-xs rounded-lg edit-user-btn" title="Edit User">
@@ -179,6 +184,7 @@ function renderTable() {
             <th>Group</th>
             <th>Username</th>
             <th>Role</th>
+            <th>Tab Preset</th>
             <th>Tab Access</th>
             <th>Actions</th>
           </tr>
@@ -243,8 +249,8 @@ function wireToolbar() {
     openUserModal();
   });
   
-  $('#manageRolesBtn')?.addEventListener('click', () => {
-    openRolesManager();
+  $('#manageTabPresetsBtn')?.addEventListener('click', () => {
+    openTabPresetsManager();
   });
 
   $('#manageGroupsBtn')?.addEventListener('click', () => {
@@ -306,45 +312,45 @@ function populateGroupDropdown(selectedGroupId = null) {
   });
 }
 
-function populateRolesDropdown(currentRole = null) {
-  const selectEl = $('#formRole');
+function populateTabPresetsDropdown(currentPreset = null) {
+  const selectEl = $('#formTabPreset');
   if (!selectEl) return;
-  
-  selectEl.innerHTML = '<option value="">No Role</option>' + state.roles.map(r => {
-    const isSelected = currentRole === r.role_name;
-    return `<option value="${r.role_name}" ${isSelected ? 'selected' : ''}>${r.role_name}</option>`;
+
+  selectEl.innerHTML = '<option value="">No Preset</option>' + state.tabPresets.map(p => {
+    const isSelected = currentPreset === p.preset_name;
+    return `<option value="${p.preset_name}" ${isSelected ? 'selected' : ''}>${p.preset_name}</option>`;
   }).join('');
-  
-  if (currentRole) {
-    selectEl.value = currentRole;
+
+  if (currentPreset) {
+    selectEl.value = currentPreset;
   } else {
     selectEl.value = '';
   }
-  
-  // Attach change listener for role selection
+
+  // Attach change listener for preset selection
   if (!selectEl.dataset.listenerAttached) {
     selectEl.addEventListener('change', (e) => {
       // When switching to custom, pass the editing user's existing tabs if available
       const editingTabs = state.editingUser
         ? (state.users.find(u => u.username === state.editingUser)?.allowed_tabs || [])
         : [];
-      updateRoleTabInfo(e.target.value, isCustomRole(e.target.value) ? editingTabs : null);
+      updatePresetTabInfo(e.target.value, isCustomPreset(e.target.value) ? editingTabs : null);
     });
     selectEl.dataset.listenerAttached = 'true';
   }
 }
 
-function updateRoleTabInfo(roleName, userTabs = null) {
-  const roleInfo = $('#roleTabInfo');
+function updatePresetTabInfo(presetName, userTabs = null) {
+  const presetInfo = $('#presetTabInfo');
   const adminInfo = $('#adminTabInfo');
   const customSection = $('#customTabsSection');
-  
-  if (isAdminRole(roleName)) {
-    if (roleInfo) roleInfo.style.display = 'none';
+
+  if (isAdminPreset(presetName)) {
+    if (presetInfo) presetInfo.style.display = 'none';
     if (adminInfo) adminInfo.style.display = 'flex';
     if (customSection) customSection.style.display = 'none';
-  } else if (isCustomRole(roleName)) {
-    if (roleInfo) roleInfo.style.display = 'none';
+  } else if (isCustomPreset(presetName)) {
+    if (presetInfo) presetInfo.style.display = 'none';
     if (adminInfo) adminInfo.style.display = 'none';
     if (customSection) {
       customSection.style.display = 'block';
@@ -357,7 +363,7 @@ function updateRoleTabInfo(roleName, userTabs = null) {
       }
     }
   } else {
-    if (roleInfo) roleInfo.style.display = roleName ? 'flex' : 'none';
+    if (presetInfo) presetInfo.style.display = presetName ? 'flex' : 'none';
     if (adminInfo) adminInfo.style.display = 'none';
     if (customSection) customSection.style.display = 'none';
   }
@@ -375,18 +381,19 @@ function openUserModal(user = null) {
     title.textContent = 'Edit User: ' + user.username;
     $('#editOriginalUsername').value = user.username;
     $('#formUsername').value = user.username;
-    
-    populateRolesDropdown(user.role || null);
+    $('#formRoleLabel').value = user.role || '';
+
+    populateTabPresetsDropdown(user.tab_preset || null);
     populateGroupDropdown(user.group_id || null);
     populateLocationDropdown(user.location_id || null);
-    
+
     $('#formPassword').value = '';
     $('#formConfirmPassword').value = '';
     $('#passwordMatchMsg').style.display = 'none';
     $('#passwordHint').style.display = 'inline';
     btn.innerHTML = '<i class="fas fa-save"></i><span>Save Changes</span>';
-    
-    updateRoleTabInfo(user.role || '', user.allowed_tabs || []);
+
+    updatePresetTabInfo(user.tab_preset || '', user.allowed_tabs || []);
   } else {
     // Create Mode
     state.editingUser = null;
@@ -396,12 +403,13 @@ function openUserModal(user = null) {
     $('#passwordMatchMsg').style.display = 'none';
     $('#passwordHint').style.display = 'none';
     btn.innerHTML = '<i class="fas fa-plus"></i><span>Create User</span>';
-    
-    populateRolesDropdown(null);
+    $('#formRoleLabel').value = 'Staff';
+
+    populateTabPresetsDropdown(null);
     populateGroupDropdown(null);
     populateLocationDropdown(null);
-    
-    updateRoleTabInfo('');
+
+    updatePresetTabInfo('');
   }
 
   modal.classList.add('active');
@@ -468,7 +476,8 @@ function wireUserModal() {
     e.preventDefault();
     const formData = new FormData(form);
     const username = formData.get('username').trim();
-    const role = $('#formRole').value || null;
+    const tab_preset = $('#formTabPreset').value || null;
+    const role = ($('#formRoleLabel').value || '').trim() || null;
     const password = formData.get('password');
     const confirmPassword = formData.get('confirmPassword');
     const locationIdRaw = $('#formLocation').value;
@@ -478,15 +487,15 @@ function wireUserModal() {
     const originalUsername = $('#editOriginalUsername').value;
     const isEdit = !!state.editingUser;
 
-    // Get allowed_tabs based on role type
+    // Get allowed_tabs based on tab preset type
     let allowedTabs = [];
-    if (isAdminRole(role)) {
+    if (isAdminPreset(tab_preset)) {
       allowedTabs = []; // Admin = full access, stored as empty
-    } else if (isCustomRole(role)) {
+    } else if (isCustomPreset(tab_preset)) {
       allowedTabs = collectAllowedTabs('custom_user_allowed_tab'); // Per-user selection
-    } else if (role) {
-      const roleObj = state.roles.find(r => r.role_name === role);
-      allowedTabs = roleObj ? roleObj.allowed_tabs : [];
+    } else if (tab_preset) {
+      const presetObj = state.tabPresets.find(p => p.preset_name === tab_preset);
+      allowedTabs = presetObj ? presetObj.allowed_tabs : [];
     }
 
     // Validation
@@ -501,13 +510,14 @@ function wireUserModal() {
           new_username: username !== originalUsername ? username : undefined,
           new_password: password || undefined,
           role,
+          tab_preset,
           allowed_tabs: allowedTabs,
           location_id,
           group_id
         });
         notify('User updated');
       } else {
-        await createUser({ username, password, role, allowed_tabs: allowedTabs, location_id, group_id });
+        await createUser({ username, password, role, tab_preset, allowed_tabs: allowedTabs, location_id, group_id });
         notify('User created');
       }
       modal.classList.remove('active');
@@ -525,13 +535,13 @@ function wireUserModal() {
 function openViewTabsModal(user) {
   const modal = $('#viewTabsModal');
   $('#viewTabsTitle').textContent = `Tab Access: ${user.username}`;
-  
+
   const list = $('#viewTabsList');
-  
-  if (isAdminRole(user.role)) {
-    list.innerHTML = '<div class="full-access-notice"><i class="fas fa-shield-alt"></i> Full access to all tabs (Admin)</div>';
+
+  if (isAdminPreset(user.tab_preset)) {
+    list.innerHTML = '<div class="full-access-notice"><i class="fas fa-shield-alt"></i> Full access to all tabs (Admin preset)</div>';
   } else {
-    const tabs = getRoleTabsForUser(user) || [];
+    const tabs = getPresetTabsForUser(user) || [];
     if (tabs.length === 0) {
       list.innerHTML = '<p class="text-muted">No tabs assigned</p>';
     } else {
@@ -591,178 +601,175 @@ function openViewTabsModal(user) {
 }
 
 // ===============================================================================
-// ROLES MANAGER
+// TAB PRESETS MANAGER
 // ===============================================================================
 
-async function loadRoles() {
+async function loadTabPresets() {
   try {
-    state.roles = await getRoles() || [];
+    state.tabPresets = await getTabPresets() || [];
   } catch (e) {
-    console.warn('Failed to load roles, falling back to defaults', e);
-    state.roles = [
-      {role_name:'user', allowed_tabs:['enrollment', 'attendance']}, 
-      {role_name:'admin', allowed_tabs:[...Object.keys(TAB_STRUCTURE)]},
-      {role_name:'manager', allowed_tabs:['enrollment', 'attendance', 'inventory']}
+    console.warn('Failed to load tab presets, falling back to defaults', e);
+    state.tabPresets = [
+      {preset_name:'admin', allowed_tabs:[...Object.keys(TAB_STRUCTURE)]},
+      {preset_name:'custom', allowed_tabs:[]}
     ];
   }
 }
 
-function openRolesManager() {
-  const modal = $('#rolesManagerModal');
+function openTabPresetsManager() {
+  const modal = $('#tabPresetsManagerModal');
   if (!modal) return;
-  renderRolesList();
-  wireRolesManager();
+  renderTabPresetsList();
+  wireTabPresetsManager();
   modal.classList.add('active');
 }
 
-function wireRolesManager() {
-  $('#closeRolesManager').onclick = () => {
-    $('#rolesManagerModal').classList.remove('active');
+function wireTabPresetsManager() {
+  $('#closeTabPresetsManager').onclick = () => {
+    $('#tabPresetsManagerModal').classList.remove('active');
     refresh();
   };
-  
-  $('#rolesManagerAddBtn').onclick = () => {
-    $('#rolesManagerModal').classList.remove('active');
-    state.returnToRolesManager = true;
+
+  $('#tabPresetsManagerAddBtn').onclick = () => {
+    $('#tabPresetsManagerModal').classList.remove('active');
+    state.returnToPresetsManager = true;
     state.returnToUserModal = false;
-    $('#addRoleModal').classList.add('active');
-    $('#newRoleName').value = '';
-    $('#newRoleName').focus();
+    $('#addTabPresetModal').classList.add('active');
+    $('#newTabPresetName').value = '';
+    $('#newTabPresetName').focus();
   };
-  
-  $('#rolesList').onclick = (e) => {
+
+  $('#tabPresetsList').onclick = (e) => {
     const item = e.target.closest('.role-list-item');
     if (item && !item.classList.contains('is-locked')) {
-      openEditRoleModal(item.dataset.role);
+      openEditTabPresetModal(item.dataset.preset);
     }
   };
 }
 
-function renderRolesList() {
-  const list = $('#rolesList');
-  list.innerHTML = state.roles.map(r => {
-    const locked = isSystemRole(r.role_name);
-    const isAdmin = isAdminRole(r.role_name);
-    const isCustom = isCustomRole(r.role_name);
+function renderTabPresetsList() {
+  const list = $('#tabPresetsList');
+  list.innerHTML = state.tabPresets.map(p => {
+    const locked = isSystemPreset(p.preset_name);
+    const isAdmin = isAdminPreset(p.preset_name);
+    const isCustom = isCustomPreset(p.preset_name);
     let tabInfo;
     if (isAdmin) tabInfo = 'Full Access';
     else if (isCustom) tabInfo = 'Per-user tab selection';
-    else tabInfo = `${r.allowed_tabs ? r.allowed_tabs.length : 0} tabs allowed`;
+    else tabInfo = `${p.allowed_tabs ? p.allowed_tabs.length : 0} tabs allowed`;
     const lockIcon = locked ? '<i class="fas fa-lock role-lock-icon"></i>' : '';
     return `
-      <div class="role-list-item${locked ? ' is-locked' : ''}" data-role="${r.role_name}">
-        <div class="role-list-item-name">${lockIcon}${r.role_name}</div>
+      <div class="role-list-item${locked ? ' is-locked' : ''}" data-preset="${p.preset_name}">
+        <div class="role-list-item-name">${lockIcon}${p.preset_name}</div>
         <div class="role-list-item-tabs">${tabInfo}</div>
       </div>
     `;
   }).join('');
 }
 
-function openEditRoleModal(roleName) {
-  state.manageRoleSelected = roleName;
-  const role = state.roles.find(r => r.role_name === roleName);
-  if (!role) return;
-  
-  const modal = $('#editRoleModal');
-  const isAdmin = isAdminRole(roleName);
-  
-  $('#editRoleTitle').textContent = `Edit Role: ${roleName}`;
-  $('#editRoleName').value = role.role_name;
-  
+function openEditTabPresetModal(presetName) {
+  state.managePresetSelected = presetName;
+  const preset = state.tabPresets.find(p => p.preset_name === presetName);
+  if (!preset) return;
+
+  const modal = $('#editTabPresetModal');
+  const isAdmin = isAdminPreset(presetName);
+
+  $('#editTabPresetTitle').textContent = `Edit Tab Preset: ${presetName}`;
+  $('#editTabPresetName').value = preset.preset_name;
+
   // Show/hide admin notice and tabs section
-  const adminNotice = $('#editRoleAdminNotice');
-  const tabsSection = $('#editRoleTabsSection');
-  
+  const adminNotice = $('#editTabPresetAdminNotice');
+  const tabsSection = $('#editTabPresetTabsSection');
+
   if (isAdmin) {
     if (adminNotice) adminNotice.style.display = 'flex';
     if (tabsSection) tabsSection.style.display = 'none';
   } else {
     if (adminNotice) adminNotice.style.display = 'none';
     if (tabsSection) tabsSection.style.display = 'block';
-    
+
     // Render Tabs
-    const container = $('#editRoleTabsContainer');
-    renderTabCheckboxesInternal(container, 'edit_role_allowed_tab');
-    
-    const boxes = container.querySelectorAll('input[name="edit_role_allowed_tab"]');
-    preCheckTabs(container, 'edit_role_allowed_tab', role.allowed_tabs);
+    const container = $('#editTabPresetTabsContainer');
+    renderTabCheckboxesInternal(container, 'edit_preset_allowed_tab');
+    preCheckTabs(container, 'edit_preset_allowed_tab', preset.allowed_tabs);
   }
-  
-  wireEditRoleModal();
+
+  wireEditTabPresetModal();
   modal.classList.add('active');
 }
 
-function wireEditRoleModal() {
-  const modal = $('#editRoleModal');
-  
-  $('#closeEditRole').onclick = () => {
+function wireEditTabPresetModal() {
+  const modal = $('#editTabPresetModal');
+
+  $('#closeEditTabPreset').onclick = () => {
     modal.classList.remove('active');
-    $('#rolesManagerModal').classList.add('active');
+    $('#tabPresetsManagerModal').classList.add('active');
   };
-  $('#cancelEditRole').onclick = () => {
+  $('#cancelEditTabPreset').onclick = () => {
     modal.classList.remove('active');
-    $('#rolesManagerModal').classList.add('active');
+    $('#tabPresetsManagerModal').classList.add('active');
   };
-  
-  // Delete Role
-  $('#editRoleDeleteBtn').onclick = async () => {
-    const roleName = state.manageRoleSelected;
-    if (!roleName) return;
-    if (isSystemRole(roleName)) {
-      notify('Cannot delete system roles', true);
+
+  // Delete Preset
+  $('#editTabPresetDeleteBtn').onclick = async () => {
+    const presetName = state.managePresetSelected;
+    if (!presetName) return;
+    if (isSystemPreset(presetName)) {
+      notify('Cannot delete system presets', true);
       return;
     }
-    
-    if (await confirmAction('Delete Role?', `Are you sure you want to delete role "${roleName}"? Users with this role may lose permissions.`)) {
+
+    if (await confirmAction('Delete Tab Preset?', `Are you sure you want to delete tab preset "${presetName}"? Users assigned to it may lose permissions.`)) {
       try {
-        await deleteRole(roleName);
-        notify('Role deleted');
-        await loadRoles();
+        await deleteTabPreset(presetName);
+        notify('Tab preset deleted');
+        await loadTabPresets();
         modal.classList.remove('active');
-        $('#rolesManagerModal').classList.add('active');
-        renderRolesList();
-        state.manageRoleSelected = null;
+        $('#tabPresetsManagerModal').classList.add('active');
+        renderTabPresetsList();
+        state.managePresetSelected = null;
       } catch(e) {
-        notify('Failed to delete role: ' + e.message, true);
+        notify('Failed to delete tab preset: ' + e.message, true);
       }
     }
   };
-  
-  // Save Role
-  $('#saveEditRole').onclick = async () => {
-    const originalName = state.manageRoleSelected;
-    const newName = $('#editRoleName').value.trim();
+
+  // Save Preset
+  $('#saveEditTabPreset').onclick = async () => {
+    const originalName = state.managePresetSelected;
+    const newName = $('#editTabPresetName').value.trim();
     if (!originalName || !newName) return;
-    
+
     let allowedTabs;
-    if (isAdminRole(newName)) {
+    if (isAdminPreset(newName)) {
       // Admin gets all tabs
       allowedTabs = Object.keys(TAB_STRUCTURE);
     } else {
-      allowedTabs = collectAllowedTabs('edit_role_allowed_tab');
+      allowedTabs = collectAllowedTabs('edit_preset_allowed_tab');
     }
-    
+
     try {
-      await updateRole({
-        role_name: originalName,
-        new_role_name: newName !== originalName ? newName : undefined,
+      await updateTabPreset({
+        preset_name: originalName,
+        new_preset_name: newName !== originalName ? newName : undefined,
         allowed_tabs: allowedTabs
       });
-      notify('Role updated');
-      
-      if (newName !== originalName) state.manageRoleSelected = newName;
-      await loadRoles();
+      notify('Tab preset updated');
+
+      if (newName !== originalName) state.managePresetSelected = newName;
+      await loadTabPresets();
       modal.classList.remove('active');
-      $('#rolesManagerModal').classList.add('active');
-      renderRolesList();
+      $('#tabPresetsManagerModal').classList.add('active');
+      renderTabPresetsList();
     } catch(e) {
-      notify('Failed to save role: ' + e.message, true);
+      notify('Failed to save tab preset: ' + e.message, true);
     }
   };
-  
+
   // Select All
-  $('#editRoleSelectAllTabs').onchange = (e) => {
-    const container = $('#editRoleTabsContainer');
+  $('#editTabPresetSelectAllTabs').onchange = (e) => {
+    const container = $('#editTabPresetTabsContainer');
     if (!container) return;
     const isChecked = e.target.checked;
     container.querySelectorAll('.parent-checkbox').forEach(p => { p.checked = isChecked; p.indeterminate = false; });
@@ -771,48 +778,48 @@ function wireEditRoleModal() {
   };
 }
 
-function wireAddRoleModal() {
-  const modal = $('#addRoleModal');
-  
+function wireAddTabPresetModal() {
+  const modal = $('#addTabPresetModal');
+
   const closeAndReturn = () => {
     modal.classList.remove('active');
     if (state.returnToUserModal) {
       $('#userModal').classList.add('active');
       state.returnToUserModal = false;
-    } else if (state.returnToRolesManager) {
-      openRolesManager();
-      state.returnToRolesManager = false;
+    } else if (state.returnToPresetsManager) {
+      openTabPresetsManager();
+      state.returnToPresetsManager = false;
     }
   };
 
-  $('#closeAddRoleModal')?.addEventListener('click', closeAndReturn);
-  $('#cancelAddRole')?.addEventListener('click', closeAndReturn);
-  
-  $('#confirmAddRole').onclick = async () => {
-    const nameInput = $('#newRoleName');
+  $('#closeAddTabPresetModal')?.addEventListener('click', closeAndReturn);
+  $('#cancelAddTabPreset')?.addEventListener('click', closeAndReturn);
+
+  $('#confirmAddTabPreset').onclick = async () => {
+    const nameInput = $('#newTabPresetName');
     const name = nameInput.value.trim();
-    
-    if (!name) { notify('Role name is required', true); return; }
+
+    if (!name) { notify('Tab preset name is required', true); return; }
 
     try {
-      if (state.roles.find(r => r.role_name === name)) {
-        notify('Role already exists', true);
+      if (state.tabPresets.find(p => p.preset_name === name)) {
+        notify('Tab preset already exists', true);
         return;
       }
-      await createRole({ role_name: name, allowed_tabs: [] });
-      notify('Role created');
-      await loadRoles();
+      await createTabPreset({ preset_name: name, allowed_tabs: [] });
+      notify('Tab preset created');
+      await loadTabPresets();
 
-      if (state.returnToRolesManager) {
-        state.manageRoleSelected = name;
+      if (state.returnToPresetsManager) {
+        state.managePresetSelected = name;
       }
       if (state.returnToUserModal) {
-        populateRolesDropdown(name);
+        populateTabPresetsDropdown(name);
       }
       nameInput.value = '';
       closeAndReturn();
     } catch (e) {
-      notify('Failed to create role: ' + e.message, true);
+      notify('Failed to create tab preset: ' + e.message, true);
     }
   };
 }
@@ -1342,7 +1349,7 @@ function collectAllowedTabs(inputName) {
 // ===============================================================================
 
 export async function refresh() {
-  await Promise.all([loadRoles(), loadGroups()]);
+  await Promise.all([loadTabPresets(), loadGroups()]);
   
   // Load locations
   try {
@@ -1364,8 +1371,8 @@ export async function refresh() {
     console.warn('Failed to load users, using sample data:', e);
     notify('Connection failed: Using sample data', true);
     state.users = [
-      { username: 'sample_admin', role: 'admin', allowed_tabs: [...Object.keys(TAB_STRUCTURE)], group_id: null },
-      { username: 'sample_user', role: 'user', allowed_tabs: ['enrollment', 'attendance'], group_id: null }
+      { username: 'sample_admin', role: 'Admin', tab_preset: 'admin', allowed_tabs: [...Object.keys(TAB_STRUCTURE)], group_id: null },
+      { username: 'sample_user', role: 'Staff', tab_preset: 'custom', allowed_tabs: ['enrollment', 'attendance'], group_id: null }
     ];
   }
   
@@ -1377,13 +1384,13 @@ export async function init() {
   showToast('Setting up user management...', 'info');
   wireToolbar();
   wireUserModal();
-  wireAddRoleModal();
+  wireAddTabPresetModal();
   wireAddGroupModal();
-  initDropdown('#formRole');
+  initDropdown('#formTabPreset');
   initDropdown('#formLocation');
   initDropdown('#formGroup');
   initDropdown('#groupFilter');
-  
-  showToast('Loading users & roles...', 'info');
+
+  showToast('Loading users & tab presets...', 'info');
   await refresh();
 }
