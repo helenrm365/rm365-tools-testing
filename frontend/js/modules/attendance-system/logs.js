@@ -555,12 +555,20 @@ async function handleExportExcel() {
 
   try {
     if (titleEl) titleEl.textContent = "Exporting...";
-    if (btn) btn.disabled = true;
-
-    // Load ExcelJS via CDN
+    if (btn) btn    // Load ExcelJS via CDN
     await loadScript('https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js');
     const ExcelJS = window.ExcelJS;
     if (!ExcelJS) throw new Error('ExcelJS failed to load');
+
+    const timeSplit = $("#excelTimeSplit")?.value || "none";
+    const fileOutput = $("#excelFileOutput")?.value || "separate";
+    
+    let JSZip = null;
+    if (timeSplit !== "none" && fileOutput === "separate") {
+      await loadScript('https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js');
+      JSZip = window.JSZip;
+      if (!JSZip) throw new Error('JSZip failed to load');
+    }
 
     // Sort: location ASC > employee ASC > date ASC > time ASC
     const sorted = [...state.logs].sort((a, b) => {
@@ -610,16 +618,6 @@ async function handleExportExcel() {
       right:  { style: 'thin', color: { argb: 'FFBFBFBF' } },
     };
 
-    // ── Classify each punch by employee+date context ─────────────────────────
-    // Groups logs by employee+date, sorts each group by time, then classifies
-    // using work hour thresholds based on first clock-in location:
-    //   FR (France): late >= 10:00, early < 18:30
-    //   UK (default): late >= 08:30, early < 17:30
-    //   First IN             → late_in (if >= threshold) or normal_in
-    //   Subsequent INs       → lunch_in (or long_lunch_in if break > 60 min)
-    //   All OUTs except last → lunch_out (or long_lunch_out if break > 60 min)
-    //   Last OUT             → early_out (if < threshold) or normal_out
-    //   Unbalanced in/out    → missing (all punches that day)
     function timeToMinutes(t) {
       const [h, m] = t.split(':').map(Number);
       return h * 60 + m;
@@ -644,13 +642,11 @@ async function handleExportExcel() {
           continue;
         }
 
-        // Determine work hours based on first clock-in's location country
         const firstIn = ins[0];
         const isFrance = firstIn && firstIn.clock_country === 'FR';
         const lateTime  = isFrance ? LATE_TIME_FR  : LATE_TIME_UK;
         const earlyTime = isFrance ? EARLY_TIME_FR : EARLY_TIME_UK;
 
-        // First pass: base classifications
         byTime.forEach(l => {
           if (l.direction === 'in') {
             const idx = ins.indexOf(l);
@@ -665,8 +661,6 @@ async function handleExportExcel() {
           }
         });
 
-        // Second pass: flag lunch breaks over 60 minutes
-        // Pair: outs[i] (lunch clock-out) → ins[i+1] (lunch clock-in back)
         for (let i = 0; i < outs.length - 1; i++) {
           const lunchOut = outs[i];
           const lunchIn  = ins[i + 1];
@@ -680,7 +674,6 @@ async function handleExportExcel() {
       return classMap;
     }
 
-    // Returns [timeFill, timeFont, actionFill, actionFont]
     function getCellStyles(classification) {
       switch (classification) {
         case 'late_in':
@@ -726,9 +719,30 @@ async function handleExportExcel() {
       return finalName;
     }
 
-    const classMap = classifyLogs(state.logs);
-    const workbook  = new ExcelJS.Workbook();
+    function getMonthString(dateStr) {
+      if (!dateStr) return "Unknown Month";
+      return dateStr.substring(0, 7); // YYYY-MM
+    }
 
+    function getWeekString(dateStr) {
+      if (!dateStr) return "Unknown Week";
+      const d = new Date(dateStr);
+      if (isNaN(d)) return "Unknown Week";
+      const day = d.getDay() || 7;
+      if (day !== 1) {
+        d.setHours(-24 * (day - 1));
+      }
+      return `Week of ${d.toISOString().split('T')[0]}`;
+    }
+
+    function getTimeKey(log) {
+      if (timeSplit === "month") return getMonthString(log.date);
+      if (timeSplit === "week") return getWeekString(log.date);
+      return "All";
+    }
+
+    const classMap = classifyLogs(state.logs);
+    
     const singleSheetCheckbox = $("#excelSingleSheet");
     const isSingleSheet = singleSheetCheckbox ? singleSheetCheckbox.checked : false;
 
@@ -778,13 +792,12 @@ async function handleExportExcel() {
         cell.border    = thinBorder;
 
         if (isMissing) {
-          // Entire row all-red for missing punch days
           cell.fill = FILLS.missing;
           cell.font = FONTS.missing;
-        } else if (ci === 3) { // Time column
+        } else if (ci === 3) {
           cell.fill = timeFill;
           cell.font = timeFont;
-        } else if (ci === 4) { // Action column
+        } else if (ci === 4) {
           cell.fill = actionFill;
           cell.font = actionFont;
         } else {
@@ -794,49 +807,113 @@ async function handleExportExcel() {
       });
     }
 
-    if (isSingleSheet) {
-      const worksheet = workbook.addWorksheet('Attendance Logs');
-      setupWorksheet(worksheet);
-      sorted.forEach((log, rowIdx) => {
-        addLogRowToWorksheet(worksheet, log, rowIdx + 2);
-      });
-    } else {
-      // Group logs by employee
-      const employeeGroups = {};
-      sorted.forEach(log => {
-        const emp = log.employee || 'Unknown';
-        if (!employeeGroups[emp]) {
-          employeeGroups[emp] = [];
-        }
-        employeeGroups[emp].push(log);
-      });
+    function populateWorksheet(ws, logsData) {
+      setupWorksheet(ws);
+      let currentRowIdx = 2;
+      let lastTimeKey = null;
 
-      // Get sorted employees list to make sure sheets appear in alphabetical order
-      const employees = Object.keys(employeeGroups).sort((a, b) => a.localeCompare(b));
-
-      employees.forEach(emp => {
-        const sheetName = getUniqueSheetName(workbook, emp);
-        const worksheet = workbook.addWorksheet(sheetName);
-        setupWorksheet(worksheet);
-
-        const logs = employeeGroups[emp];
-        logs.forEach((log, idx) => {
-          addLogRowToWorksheet(worksheet, log, idx + 2);
+      // If we insert visual breakers, sort by the time key first to group chunks chronologically
+      if (timeSplit !== "none" && fileOutput === "same") {
+        logsData.sort((a, b) => {
+          const tCmp = getTimeKey(a).localeCompare(getTimeKey(b));
+          if (tCmp !== 0) return tCmp;
+          const locCmp = (a.location || '').localeCompare(b.location || '');
+          if (locCmp !== 0) return locCmp;
+          const nameCmp = (a.employee || '').localeCompare(b.employee || '');
+          if (nameCmp !== 0) return nameCmp;
+          const dateCmp = a.date.localeCompare(b.date);
+          if (dateCmp !== 0) return dateCmp;
+          return a.time.localeCompare(b.time);
         });
+      }
+
+      logsData.forEach(log => {
+        const timeKey = getTimeKey(log);
+        
+        if (timeSplit !== "none" && fileOutput === "same" && timeKey !== lastTimeKey) {
+          ws.mergeCells(`A${currentRowIdx}:E${currentRowIdx}`);
+          const cell = ws.getCell(`A${currentRowIdx}`);
+          const prefix = timeSplit === "month" ? "Month" : "Week";
+          cell.value = `--- ${prefix}: ${timeKey.replace('Week of ', '')} ---`;
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9E1F2' } };
+          cell.font = { bold: true, size: 12, color: { argb: 'FF1F3864' } };
+          cell.alignment = { horizontal: 'center', vertical: 'middle' };
+          cell.border = thinBorder;
+          
+          currentRowIdx++;
+          lastTimeKey = timeKey;
+        }
+        
+        addLogRowToWorksheet(ws, log, currentRowIdx);
+        currentRowIdx++;
       });
     }
 
-    // Generate file and trigger download
-    const buffer = await workbook.xlsx.writeBuffer();
-    const blob   = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    const url    = URL.createObjectURL(blob);
-    const link   = document.createElement('a');
+    function buildWorkbook(wbLogs) {
+      const workbook = new ExcelJS.Workbook();
+      if (isSingleSheet) {
+        const worksheet = workbook.addWorksheet('Attendance Logs');
+        populateWorksheet(worksheet, wbLogs);
+      } else {
+        const employeeGroups = {};
+        wbLogs.forEach(log => {
+          const emp = log.employee || 'Unknown';
+          if (!employeeGroups[emp]) {
+            employeeGroups[emp] = [];
+          }
+          employeeGroups[emp].push(log);
+        });
+
+        const employees = Object.keys(employeeGroups).sort((a, b) => a.localeCompare(b));
+        employees.forEach(emp => {
+          const sheetName = getUniqueSheetName(workbook, emp);
+          const worksheet = workbook.addWorksheet(sheetName);
+          populateWorksheet(worksheet, employeeGroups[emp]);
+        });
+      }
+      return workbook;
+    }
+
     const startDate = $("#fromDate")?.value || '';
     const endDate   = $("#toDate")?.value   || '';
-    link.href     = url;
-    link.download = `attendance-logs-${startDate}-to-${endDate}.xlsx`;
-    link.click();
-    URL.revokeObjectURL(url);
+
+    if (timeSplit !== "none" && fileOutput === "separate") {
+      const zip = new JSZip();
+      const timeGroups = {};
+      
+      sorted.forEach(log => {
+        const key = getTimeKey(log);
+        if (!timeGroups[key]) timeGroups[key] = [];
+        timeGroups[key].push(log);
+      });
+
+      for (const [key, tLogs] of Object.entries(timeGroups)) {
+        const wb = buildWorkbook(tLogs);
+        const buffer = await wb.xlsx.writeBuffer();
+        
+        // Clean key for filename
+        const safeKey = key.replace(/ /g, '_');
+        zip.file(`Attendance_Logs_${safeKey}.xlsx`, buffer);
+      }
+
+      const zipContent = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(zipContent);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `attendance-logs-${startDate}-to-${endDate}.zip`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } else {
+      const wb = buildWorkbook(sorted);
+      const buffer = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `attendance-logs-${startDate}-to-${endDate}.xlsx`;
+      link.click();
+      URL.revokeObjectURL(url);
+    }
 
   } catch (error) {
     console.error("Failed to export Excel:", error);
@@ -880,6 +957,19 @@ function setupEventHandlers() {
   const exportExcelBtn = $("#exportExcelBtn");
   if (exportExcelBtn) {
     exportExcelBtn.addEventListener("click", handleExportExcel);
+  }
+
+  // Export Excel Settings
+  const timeSplitEl = $("#excelTimeSplit");
+  const fileOutGroupEl = $("#excelFileOutputGroup");
+  if (timeSplitEl && fileOutGroupEl) {
+    timeSplitEl.addEventListener("change", () => {
+      if (timeSplitEl.value === "none") {
+        fileOutGroupEl.style.display = "none";
+      } else {
+        fileOutGroupEl.style.display = "block";
+      }
+    });
   }
 }
 

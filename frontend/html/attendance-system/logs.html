@@ -205,11 +205,34 @@
 
       <div class="block-content">
         <div class="export-settings-container">
-          <label class="card-checkbox">
-            <input type="checkbox" id="excelSingleSheet">
-            <span class="checkbox-custom"></span>
-            <span class="checkbox-label-text">Combine all employees on a single sheet</span>
-          </label>
+          <div class="nui-field">
+            <label class="nui-label" for="excelTimeSplit">
+              <span>Time Grouping (Excel)</span>
+            </label>
+            <select id="excelTimeSplit">
+              <option value="none" selected>None</option>
+              <option value="month">Split by Month</option>
+              <option value="week">Split by Week</option>
+            </select>
+          </div>
+          
+          <div class="nui-field" id="excelFileOutputGroup" style="display: none;">
+            <label class="nui-label" for="excelFileOutput">
+              <span>File Output</span>
+            </label>
+            <select id="excelFileOutput">
+              <option value="separate" selected>Separate Files (.zip)</option>
+              <option value="same">Same File (Breakers)</option>
+            </select>
+          </div>
+
+          <div class="nui-field checkbox-field">
+            <label class="card-checkbox">
+              <input type="checkbox" id="excelSingleSheet">
+              <span class="checkbox-custom"></span>
+              <span class="checkbox-label-text">Combine all employees on a single sheet</span>
+            </label>
+          </div>
         </div>
 
         <div class="export-grid">

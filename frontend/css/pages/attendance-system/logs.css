@@ -255,8 +255,19 @@ html.dark-mode .attendance-logs .logs-table td {
 .attendance-logs .export-settings-container {
   margin-bottom: 1.25rem;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  gap: 1.5rem;
   user-select: none;
+}
+
+.attendance-logs .export-settings-container .nui-field {
+  margin-bottom: 0;
+}
+
+.attendance-logs .export-settings-container .checkbox-field {
+  margin-top: auto;
+  padding-bottom: 0.5rem;
 }
 
 /* ===== Export Grid ===== */
