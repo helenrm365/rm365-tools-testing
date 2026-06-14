@@ -251,6 +251,14 @@ html.dark-mode .attendance-logs .logs-table td {
   color: var(--error);
 }
 
+/* ===== Export Settings ===== */
+.attendance-logs .export-settings-container {
+  margin-bottom: 1.25rem;
+  display: flex;
+  align-items: center;
+  user-select: none;
+}
+
 /* ===== Export Grid ===== */
 .attendance-logs .export-grid {
   display: grid;

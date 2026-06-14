@@ -701,39 +701,64 @@ async function handleExportExcel() {
       }
     }
 
+    function cleanSheetName(name) {
+      if (!name) return 'Employee';
+      let cleaned = name.replace(/[\\\/\?\*：\:\/\[\]]/g, '');
+      if (cleaned.length > 31) {
+        cleaned = cleaned.substring(0, 31);
+      }
+      if (!cleaned.trim()) {
+        cleaned = 'Employee';
+      }
+      return cleaned.trim();
+    }
+
+    function getUniqueSheetName(wb, originalName) {
+      let cleaned = cleanSheetName(originalName);
+      let finalName = cleaned;
+      let counter = 1;
+      while (wb.getWorksheet(finalName)) {
+        const suffix = ` (${counter})`;
+        const maxNameLength = 31 - suffix.length;
+        finalName = cleaned.substring(0, maxNameLength) + suffix;
+        counter++;
+      }
+      return finalName;
+    }
+
     const classMap = classifyLogs(state.logs);
-
     const workbook  = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Attendance Logs');
 
-    worksheet.columns = [
-      { key: 'location', width: 16 },
-      { key: 'employee', width: 28 },
-      { key: 'date',     width: 14 },
-      { key: 'time',     width: 10 },
-      { key: 'action',   width: 14 },
-    ];
+    const singleSheetCheckbox = $("#excelSingleSheet");
+    const isSingleSheet = singleSheetCheckbox ? singleSheetCheckbox.checked : false;
 
-    // Header row — direct cell addressing avoids row-level style bleed
-    const HEADERS = ['Location', 'Employee', 'Date', 'Time', 'Action'];
-    HEADERS.forEach((h, ci) => {
-      const cell     = worksheet.getCell(1, ci + 1);
-      cell.value     = h;
-      cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2F5496' } };
-      cell.font      = { color: { argb: 'FFFFFFFF' }, bold: true, name: 'Calibri', size: 11 };
-      cell.alignment = { horizontal: 'center', vertical: 'middle' };
-      cell.border    = {
-        top:    { style: 'thin',   color: { argb: 'FF1F3864' } },
-        bottom: { style: 'medium', color: { argb: 'FF1F3864' } },
-        left:   { style: 'thin',   color: { argb: 'FF1F3864' } },
-        right:  { style: 'thin',   color: { argb: 'FF1F3864' } },
-      };
-    });
-    worksheet.getRow(1).height = 20;
+    function setupWorksheet(ws) {
+      ws.columns = [
+        { key: 'location', width: 16 },
+        { key: 'employee', width: 28 },
+        { key: 'date',     width: 14 },
+        { key: 'time',     width: 10 },
+        { key: 'action',   width: 14 },
+      ];
 
-    // Data rows — each cell styled individually based on punch classification
-    sorted.forEach((log, rowIdx) => {
-      const rowNum         = rowIdx + 2;
+      const HEADERS = ['Location', 'Employee', 'Date', 'Time', 'Action'];
+      HEADERS.forEach((h, ci) => {
+        const cell     = ws.getCell(1, ci + 1);
+        cell.value     = h;
+        cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2F5496' } };
+        cell.font      = { color: { argb: 'FFFFFFFF' }, bold: true, name: 'Calibri', size: 11 };
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        cell.border    = {
+          top:    { style: 'thin',   color: { argb: 'FF1F3864' } },
+          bottom: { style: 'medium', color: { argb: 'FF1F3864' } },
+          left:   { style: 'thin',   color: { argb: 'FF1F3864' } },
+          right:  { style: 'thin',   color: { argb: 'FF1F3864' } },
+        };
+      });
+      ws.getRow(1).height = 20;
+    }
+
+    function addLogRowToWorksheet(ws, log, rowNum) {
       const classification = classMap.get(log) || 'normal_in';
       const isMissing      = classification === 'missing';
       const [timeFill, timeFont, actionFill, actionFont] = getCellStyles(classification);
@@ -747,7 +772,7 @@ async function handleExportExcel() {
       ];
 
       values.forEach((val, ci) => {
-        const cell     = worksheet.getCell(rowNum, ci + 1);
+        const cell     = ws.getCell(rowNum, ci + 1);
         cell.value     = val;
         cell.alignment = { vertical: 'middle' };
         cell.border    = thinBorder;
@@ -767,7 +792,39 @@ async function handleExportExcel() {
           cell.font = FONTS.plain;
         }
       });
-    });
+    }
+
+    if (isSingleSheet) {
+      const worksheet = workbook.addWorksheet('Attendance Logs');
+      setupWorksheet(worksheet);
+      sorted.forEach((log, rowIdx) => {
+        addLogRowToWorksheet(worksheet, log, rowIdx + 2);
+      });
+    } else {
+      // Group logs by employee
+      const employeeGroups = {};
+      sorted.forEach(log => {
+        const emp = log.employee || 'Unknown';
+        if (!employeeGroups[emp]) {
+          employeeGroups[emp] = [];
+        }
+        employeeGroups[emp].push(log);
+      });
+
+      // Get sorted employees list to make sure sheets appear in alphabetical order
+      const employees = Object.keys(employeeGroups).sort((a, b) => a.localeCompare(b));
+
+      employees.forEach(emp => {
+        const sheetName = getUniqueSheetName(workbook, emp);
+        const worksheet = workbook.addWorksheet(sheetName);
+        setupWorksheet(worksheet);
+
+        const logs = employeeGroups[emp];
+        logs.forEach((log, idx) => {
+          addLogRowToWorksheet(worksheet, log, idx + 2);
+        });
+      });
+    }
 
     // Generate file and trigger download
     const buffer = await workbook.xlsx.writeBuffer();
