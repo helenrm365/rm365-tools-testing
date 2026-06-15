@@ -91,6 +91,10 @@ def sync_magento_to_inventory_metadata(dry_run: bool = False) -> Dict[str, any]:
     try:
         cursor = conn.cursor()
 
+        # Read existing database entries to simulate matching
+        cursor.execute("SELECT sku FROM inventory_metadata")
+        existing_metadata_skus = {row[0] for row in cursor.fetchall()}
+
         for base_sku, qtys in bases.items():
             uk_qty = int(qtys.get("uk", 0))
             fr_qty = int(qtys.get("fr", 0))
@@ -103,29 +107,28 @@ def sync_magento_to_inventory_metadata(dry_run: bool = False) -> Dict[str, any]:
             # Use the SKU directly from aggregated tables (MD variants already merged there)
             sku_to_use = base_sku
             
-            if dry_run:
-                logger.info(f"[DRY RUN] Would update SKU {sku_to_use}: UK={uk_qty}, FR={fr_qty}")
-                stats["updated_records"] += 1
-                continue
-
-            # Now using SKU as primary key
-            # CHANGED: Use UPDATE instead of INSERT/UPSERT.
-            # We only want to update sales data for products that already exist in inventory_metadata.
-            # New products should only be added by the Catalog Sync process (which handles AW365 filtering).
-            cursor.execute(
-                """
-                UPDATE inventory_metadata 
-                SET uk_6m_data = %s,
-                    fr_6m_data = %s,
-                    updated_at = NOW()
-                WHERE sku = %s
-                """,
-                (str(uk_qty), str(fr_qty), sku_to_use),
-            )
-            
-            if cursor.rowcount > 0:
-                stats["updated_records"] += 1
-                stats["matched_skus"] += 1
+            if sku_to_use in existing_metadata_skus:
+                if dry_run:
+                    stats["updated_records"] += 1
+                    stats["matched_skus"] += 1
+                else:
+                    # Now using SKU as primary key
+                    # CHANGED: Use UPDATE instead of INSERT/UPSERT.
+                    # We only want to update sales data for products that already exist in inventory_metadata.
+                    # New products should only be added by the Catalog Sync process (which handles AW365 filtering).
+                    cursor.execute(
+                        """
+                        UPDATE inventory_metadata 
+                        SET uk_6m_data = %s,
+                            fr_6m_data = %s,
+                            updated_at = NOW()
+                        WHERE sku = %s
+                        """,
+                        (str(uk_qty), str(fr_qty), sku_to_use),
+                    )
+                    if cursor.rowcount > 0:
+                        stats["updated_records"] += 1
+                        stats["matched_skus"] += 1
             else:
                 # SKU exists in sales data but not in inventory_metadata
                 # This is expected for AW365 products or deleted products

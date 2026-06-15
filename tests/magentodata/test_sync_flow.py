@@ -705,3 +705,80 @@ class TestCompleteFlow:
         # Verify aggregation is correct
         sku_001_total = next(a for a in result['aggregated_data'] if a['sku'] == 'TEST-SKU-001')
         assert sku_001_total['total_qty'] == 15  # 5 + 10
+
+
+class TestTaskDryRunMode:
+    """Tests the Task Dry-Run Mode and simulation reporting"""
+
+    def test_simulate_batch_import_inserts_and_updates(self):
+        """
+        simulate_batch_import should correctly identify would-be insertions and updates
+        without executing database writes.
+        """
+        # Mock database connection and cursor behavior
+        from modules.magentodata.repo import MagentoDataRepo
+        repo = MagentoDataRepo()
+
+        # Input data
+        product_rows = [
+            {'order_number': 'UK200001', 'sku': 'SKU-NEW', 'qty': 2, 'status': 'processing', 'shipping_method': 'Standard'},
+            {'order_number': 'UK200002', 'sku': 'SKU-EXISTING-DIRTY', 'qty': 5, 'status': 'complete', 'shipping_method': 'Express'},
+            {'order_number': 'UK200003', 'sku': 'SKU-EXISTING-CLEAN', 'qty': 1, 'status': 'processing', 'shipping_method': 'Standard'},
+        ]
+
+        # Mock query return values for existing database rows
+        # We simulate that:
+        # UK200002 + SKU-EXISTING-DIRTY exists but has qty=3 (dirty, would update)
+        # UK200003 + SKU-EXISTING-CLEAN exists and has qty=1 (clean, would skip)
+        # UK200001 + SKU-NEW does not exist in query returns
+        
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+        
+        # Mock fetchall returns
+        mock_cursor.fetchall.return_value = [
+            ('UK200002', 'SKU-EXISTING-DIRTY', 3, 'complete', 'Express'), # different qty
+            ('UK200003', 'SKU-EXISTING-CLEAN', 1, 'processing', 'Standard'), # matching
+        ]
+
+        with patch('modules.magentodata.repo.get_products_connection', return_value=mock_conn):
+            result = repo.simulate_batch_import('uk_orders_cache', product_rows)
+            
+            assert result['inserted'] == 1  # UK200001 SKU-NEW
+            assert result['updated'] == 1   # UK200002 SKU-EXISTING-DIRTY
+            assert result['skipped'] == 1   # UK200003 SKU-EXISTING-CLEAN
+
+    def test_sync_magento_data_dry_run_reports_simulation(self):
+        """
+        In dry_run mode, sync_magento_data should skip actual write operations
+        and return simulation metrics.
+        """
+        from modules.magentodata.service import MagentoDataService
+        from modules.magentodata.repo import MagentoDataRepo
+        
+        mock_repo = MagicMock(spec=MagentoDataRepo)
+        mock_repo.get_sync_metadata.return_value = None
+        
+        service = MagentoDataService(repo=mock_repo)
+        
+        # Mock fetch_orders_product_breakdown_batched to return simulation values
+        mock_client = MagicMock()
+        mock_client.fetch_orders_product_breakdown_batched.return_value = {
+            'rows_imported': 0,
+            'orders_processed': 10,
+            'was_cancelled': False,
+            'error': None,
+            'dry_run': True,
+            'sim_inserted': 4,
+            'sim_updated': 2,
+            'sim_skipped': 4
+        }
+        
+        with patch('modules.magentodata.service.MagentoDataClient', return_value=mock_client):
+            result = service.sync_magento_data('uk', dry_run=True)
+            
+            assert result['status'] == 'success'
+            assert result['rows_synced'] == 0
+            assert result['orders_processed'] == 10
+            assert 'Would insert 4 new rows, update 2 dirty rows' in result['message']

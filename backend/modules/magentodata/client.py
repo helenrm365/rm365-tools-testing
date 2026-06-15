@@ -419,7 +419,8 @@ class MagentoDataClient:
         username: Optional[str] = None,
         repo = None,
         progress_callback: Optional[callable] = None,
-        cancelled: Optional[callable] = None
+        cancelled: Optional[callable] = None,
+        dry_run: bool = False
     ) -> Dict[str, Any]:
         """
         Fetch orders from Magento DB and process them in batches.
@@ -433,12 +434,17 @@ class MagentoDataClient:
         was_cancelled = False
         error_occurred = None
         
+        # Dry-run accumulator variables
+        total_sim_inserted = 0
+        total_sim_updated = 0
+        total_sim_skipped = 0
+        
         # Use keyset pagination instead of OFFSET for much better performance
         # Track the last created_at and entity_id to paginate efficiently
         last_created_at = start_date
         last_entity_id = 0
         
-        logger.info(f"[SYNC DEBUG] Starting batched fetch with start_date={start_date}, end_date={end_date}")
+        logger.info(f"[SYNC DEBUG] Starting batched fetch with start_date={start_date}, end_date={end_date} (dry_run: {dry_run})")
         
         while True:
             if cancelled and cancelled():
@@ -594,19 +600,32 @@ class MagentoDataClient:
                     # Import batch
                     if batch_product_rows:
                         try:
-                            import_result = repo.import_batch_with_metadata(
-                                table_name=table_name,
-                                product_rows=batch_product_rows,
-                                region=region,
-                                last_order_date=last_order_date,
-                                orders_count=len(orders_batch),
-                                username=username
-                            )
-                            total_rows_imported += import_result.get('rows_imported', 0)
-                            total_orders_processed += len(orders_batch)
-                            
-                            if progress_callback:
-                                progress_callback(f"Processed {total_orders_processed} orders, {total_rows_imported} new/updated rows")
+                            if dry_run:
+                                sim_result = repo.simulate_batch_import(
+                                    table_name=table_name,
+                                    product_rows=batch_product_rows
+                                )
+                                total_sim_inserted += sim_result.get('inserted', 0)
+                                total_sim_updated += sim_result.get('updated', 0)
+                                total_sim_skipped += sim_result.get('skipped', 0)
+                                total_orders_processed += len(orders_batch)
+                                
+                                if progress_callback:
+                                    progress_callback(f"[Dry Run] Checked {total_orders_processed} orders. Would insert {total_sim_inserted}, update {total_sim_updated}")
+                            else:
+                                import_result = repo.import_batch_with_metadata(
+                                    table_name=table_name,
+                                    product_rows=batch_product_rows,
+                                    region=region,
+                                    last_order_date=last_order_date,
+                                    orders_count=len(orders_batch),
+                                    username=username
+                                )
+                                total_rows_imported += import_result.get('rows_imported', 0)
+                                total_orders_processed += len(orders_batch)
+                                
+                                if progress_callback:
+                                    progress_callback(f"Processed {total_orders_processed} orders, {total_rows_imported} new/updated rows")
                                 
                         except Exception as e:
                             error_occurred = f"Database error during import: {str(e)}"
@@ -614,13 +633,14 @@ class MagentoDataClient:
                             break
                     else:
                         # No product rows (e.g. all configurable or cancelled with no invoice), but we advanced orders
-                        repo.update_sync_metadata(
-                            region=region,
-                            last_order_date=last_order_date,
-                            orders_count=len(orders_batch),
-                            rows_count=0,
-                            username=username
-                        )
+                        if not dry_run:
+                            repo.update_sync_metadata(
+                                region=region,
+                                last_order_date=last_order_date,
+                                orders_count=len(orders_batch),
+                                rows_count=0,
+                                username=username
+                            )
                         total_orders_processed += len(orders_batch)
                     
                     if max_orders and total_orders_processed >= max_orders:
@@ -638,7 +658,11 @@ class MagentoDataClient:
             'rows_imported': total_rows_imported,
             'orders_processed': total_orders_processed,
             'was_cancelled': was_cancelled,
-            'error': error_occurred
+            'error': error_occurred,
+            'dry_run': dry_run,
+            'sim_inserted': total_sim_inserted,
+            'sim_updated': total_sim_updated,
+            'sim_skipped': total_sim_skipped
         }
 
     def search_customers(self, search_term: str, limit: int = 20) -> List[Dict[str, Any]]:

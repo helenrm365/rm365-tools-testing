@@ -460,6 +460,29 @@ function disconnectWebSocket() {
   }
 }
 
+function playTerminalSound(soundName) {
+  // 1. Play browser sound
+  try {
+    if (soundName === 'scan') playScanSound();
+    else if (soundName === 'success') playSuccessSound();
+    else if (soundName === 'error') playErrorSound();
+  } catch (e) {
+    console.warn('Failed to play browser audio:', e);
+  }
+  
+  // 2. Send play_sound command to bridge for success/error only (bridge auto-plays scan sound on read)
+  if (soundName !== 'scan' && state.websocket && state.websocket.readyState === WebSocket.OPEN) {
+    try {
+      state.websocket.send(JSON.stringify({
+        type: 'play_sound',
+        sound: soundName
+      }));
+    } catch (e) {
+      console.warn('Failed to send play_sound command to bridge:', e);
+    }
+  }
+}
+
 async function handleCardScan(uid) {
   if (state.isProcessingCard || !state.isScanning) return;
   
@@ -476,14 +499,14 @@ async function handleCardScan(uid) {
   state.isProcessingCard = true;
   
   try {
-    playScanSound();
+    playTerminalSound('scan');
     updateStatus(`Card scanned: ${normalizedUid}`, 'scanning');
     
     // Find employee by card UID
     const employee = state.cardUidToEmployee[normalizedUid];
     
     if (!employee) {
-      playErrorSound();
+      playTerminalSound('error');
       updateStatus('Card not registered to any employee', 'warning');
       return;
     }
@@ -493,7 +516,7 @@ async function handleCardScan(uid) {
       const clockResult = await clockEmployee(employee.id);
       
       if (clockResult) {
-        playSuccessSound();
+        playTerminalSound('success');
         updateStatus(`${employee.name} clocked ${clockResult.direction || 'in'}`, 'info');
         
         state.scanCount++;
@@ -503,12 +526,12 @@ async function handleCardScan(uid) {
         
         state.cardScanErrorCount = 0;
       } else {
-        playErrorSound();
+        playTerminalSound('error');
         updateStatus('Clocking failed', 'error');
       }
     } catch (clockError) {
       console.error('Clock error:', clockError);
-      playErrorSound();
+      playTerminalSound('error');
       updateStatus('Clocking failed', 'error');
     }
     

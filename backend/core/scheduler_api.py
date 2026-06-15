@@ -113,15 +113,16 @@ def get_running_task_info(task_id: str) -> Optional[Dict[str, Any]]:
     return _running_tasks.get(task_id)
 
 
-def mark_task_started(task_id: str, started_by: str = 'system', trigger: str = 'scheduled'):
+def mark_task_started(task_id: str, started_by: str = 'system', trigger: str = 'scheduled', dry_run: bool = False):
     """Mark a task as started and broadcast via WebSocket."""
     task_info = {
         'started_at': datetime.now().isoformat(),
         'started_by': started_by,
         'trigger': trigger,
+        'dry_run': dry_run,
     }
     _running_tasks[task_id] = task_info
-    logger.info(f"📊 Task '{task_id}' marked as running (by {started_by}, trigger: {trigger})")
+    logger.info(f"📊 Task '{task_id}' marked as running (by {started_by}, trigger: {trigger}, dry_run: {dry_run})")
     
     # Broadcast to all connected clients
     emit_background('scheduler:task_started', {
@@ -152,15 +153,21 @@ def get_all_running_tasks() -> Dict[str, Dict[str, Any]]:
 # Background Task Execution
 # ============================================================
 
-def _execute_task_in_background(task_id: str, task_func, started_by: str):
+def _execute_task_in_background(task_id: str, task_func, started_by: str, dry_run: bool = False):
     """
     Execute a task function in a background thread.
     This allows the API to return immediately while the task runs.
     """
     def run_with_tracking():
         try:
-            logger.info(f"🚀 Background task '{task_id}' starting execution...")
-            task_func()
+            logger.info(f"🚀 Background task '{task_id}' starting execution (dry_run: {dry_run})...")
+            try:
+                task_func(progress_callback=None, dry_run=dry_run)
+            except TypeError:
+                try:
+                    task_func(dry_run=dry_run)
+                except TypeError:
+                    task_func()
             logger.info(f"✅ Background task '{task_id}' completed successfully")
         except Exception as e:
             logger.error(f"❌ Background task '{task_id}' failed: {e}", exc_info=True)
@@ -168,7 +175,7 @@ def _execute_task_in_background(task_id: str, task_func, started_by: str):
             mark_task_completed(task_id)
     
     # Mark as started before launching thread
-    mark_task_started(task_id, started_by=started_by, trigger='manual')
+    mark_task_started(task_id, started_by=started_by, trigger='manual', dry_run=dry_run)
     
     # Start background thread
     thread = Thread(target=run_with_tracking, daemon=True)
@@ -179,9 +186,16 @@ def _execute_task_in_background(task_id: str, task_func, started_by: str):
 # API Endpoints
 # ============================================================
 
+from pydantic import BaseModel
+
+class TaskRunRequest(BaseModel):
+    dry_run: Optional[bool] = False
+
+
 @router.post("/run/{task_id}")
 async def run_scheduler_task(
     task_id: str,
+    body: Optional[TaskRunRequest] = None,
     current_user: dict = Depends(get_current_user)
 ) -> Dict[str, Any]:
     """
@@ -238,9 +252,10 @@ async def run_scheduler_task(
         )
     
     username = current_user.get('username', 'unknown')
-    logger.info(f"🔧 Manual task execution requested: {task_id} by user {username}")
+    dry_run = body.dry_run if body else False
+    logger.info(f"🔧 Manual task execution requested: {task_id} by user {username} (dry_run: {dry_run})")
     
-    _execute_task_in_background(task_id, task_handlers[task_id], started_by=username)
+    _execute_task_in_background(task_id, task_handlers[task_id], started_by=username, dry_run=dry_run)
     
     task_meta = TASK_METADATA.get(task_id, {})
     
@@ -256,6 +271,7 @@ async def run_scheduler_task(
 @router.post("/run/{task_id}/stream")
 def run_scheduler_task_stream(
     task_id: str,
+    body: Optional[TaskRunRequest] = None,
     current_user: dict = Depends(get_current_user)
 ):
     """
@@ -312,7 +328,8 @@ def run_scheduler_task_stream(
         )
     
     username = current_user.get('username', 'unknown')
-    logger.info(f"🔧 Manual task execution (streamed) requested: {task_id} by user {username}")
+    dry_run = body.dry_run if body else False
+    logger.info(f"🔧 Manual task execution (streamed) requested: {task_id} by user {username} (dry_run: {dry_run})")
     
     progress_queue = queue.Queue()
     result_holder = [None]
@@ -321,9 +338,9 @@ def run_scheduler_task_stream(
         progress_queue.put({"type": "progress", "percent": percent, "message": message})
     
     def run_task():
-        mark_task_started(task_id, started_by=username, trigger='manual')
+        mark_task_started(task_id, started_by=username, trigger='manual', dry_run=dry_run)
         try:
-            task_handlers[task_id](progress_callback=progress_callback)
+            task_handlers[task_id](progress_callback=progress_callback, dry_run=dry_run)
             result_holder[0] = {"status": "success"}
         except Exception as e:
             logger.error(f"❌ Task '{task_id}' failed: {e}", exc_info=True)

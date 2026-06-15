@@ -421,11 +421,12 @@ def backfill_shipping_methods(
 @router.post("/{region}/backfill-shipping-methods/stream")
 def backfill_shipping_methods_stream(
     region: str,
+    body: Optional[TaskRunRequest] = None,
     user=Depends(get_current_user)
 ):
     """Backfill shipping_method with SSE progress streaming.
     Use region='all' to backfill all regions at once."""
-    from core.scheduler_api import is_task_running, mark_task_started, mark_task_completed
+    from core.scheduler_api import is_task_running, mark_task_started, mark_task_completed, TaskRunRequest
     
     task_id = 'backfill-shipping-methods'
     
@@ -443,6 +444,7 @@ def backfill_shipping_methods_stream(
         )
     
     username = user.get('username', 'unknown')
+    dry_run = body.dry_run if body else False
     progress_queue = queue.Queue()
     result_holder = [None]
 
@@ -450,9 +452,9 @@ def backfill_shipping_methods_stream(
         progress_queue.put({"type": "progress", "percent": percent, "message": message})
 
     def run_backfill():
-        mark_task_started(task_id, started_by=username, trigger='manual')
+        mark_task_started(task_id, started_by=username, trigger='manual', dry_run=dry_run)
         try:
-            result = svc.backfill_shipping_methods(region, progress_callback=progress_callback)
+            result = svc.backfill_shipping_methods(region, progress_callback=progress_callback, dry_run=dry_run)
             result_holder[0] = result
         except Exception as e:
             result_holder[0] = {"status": "error", "message": str(e), "rows_updated": 0}

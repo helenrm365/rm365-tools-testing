@@ -1421,6 +1421,98 @@ class MagentoDataRepo:
                     cursor.close()
                 return_products_connection(conn)
     
+    def simulate_batch_import(
+        self,
+        table_name: str,
+        product_rows: List[Dict[str, Any]]
+    ) -> Dict[str, int]:
+        """
+        Simulate batch import of product rows. Checks existing records in table_name
+        to determine how many rows would be inserted, updated, or skipped.
+        Does NOT write to the database.
+        """
+        # Validate table name
+        valid_tables = ['uk_orders_cache', 'fr_orders_cache', 'nl_orders_cache', 'test_magento_data']
+        if table_name not in valid_tables:
+            raise ValueError(f"Invalid table name: {table_name}")
+
+        inserted = 0
+        updated = 0
+        skipped = 0
+
+        if not product_rows:
+            return {"inserted": 0, "updated": 0, "skipped": 0}
+
+        conn = None
+        try:
+            conn = get_products_connection()
+            cursor = conn.cursor()
+
+            # Batch query existing records for (order_number, sku) combinations in chunks
+            chunk_size = 500
+            existing_map = {}
+            
+            pairs = []
+            for row in product_rows:
+                order_number = (row.get('order_number') or '').strip()
+                sku = (row.get('sku') or '').strip()
+                if order_number and sku:
+                    pairs.append((order_number, sku))
+            
+            unique_pairs = list(set(pairs))
+            
+            for i in range(0, len(unique_pairs), chunk_size):
+                chunk = unique_pairs[i:i+chunk_size]
+                placeholders = ", ".join(["(%s, %s)"] * len(chunk))
+                flat_params = []
+                for p in chunk:
+                    flat_params.extend([p[0], p[1]])
+                
+                query = f"""
+                    SELECT order_number, sku, qty, status, shipping_method
+                    FROM {table_name}
+                    WHERE (order_number, sku) IN ({placeholders})
+                """
+                cursor.execute(query, flat_params)
+                for r in cursor.fetchall():
+                    existing_map[(r[0], r[1])] = {
+                        'qty': r[2],
+                        'status': r[3],
+                        'shipping_method': r[4]
+                    }
+
+            for row in product_rows:
+                order_number = (row.get('order_number') or '').strip()
+                sku = (row.get('sku') or '').strip()
+                if not order_number or not sku:
+                    continue
+                
+                qty = int(row.get('qty', 0))
+                status = (row.get('status') or '').strip()
+                shipping_method = (row.get('shipping_method') or '').strip()
+                
+                key = (order_number, sku)
+                if key not in existing_map:
+                    inserted += 1
+                else:
+                    existing = existing_map[key]
+                    if (existing['qty'] != qty or 
+                        existing['status'] != status or 
+                        existing['shipping_method'] != shipping_method):
+                        updated += 1
+                    else:
+                        skipped += 1
+                        
+            return {"inserted": inserted, "updated": updated, "skipped": skipped}
+            
+        except Exception as e:
+            logger.error(f"Error in simulate_batch_import for {table_name}: {e}")
+            raise
+        finally:
+            if conn:
+                cursor.close()
+                return_products_connection(conn)
+
     def refresh_aggregated_data(self, region: str) -> Dict[str, Any]:
         """
         Refresh aggregated magento data for a region.

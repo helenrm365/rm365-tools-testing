@@ -197,8 +197,16 @@ class TestNFCBridgeCompatibility:
 class TestUIMapping:
     """Test the UID to employee mapping logic (simulating frontend behavior)"""
 
-    def test_uid_uppercase_matching(self):
+    @patch('modules.attendance.service.AttendanceService.list_employees_brief')
+    def test_uid_uppercase_matching(self, mock_list_employees):
         """Frontend converts UIDs to uppercase for matching"""
+        # Mock database result with mixed-case and uppercase nfc_uids
+        mock_list_employees.return_value = [
+            {'id': 1, 'name': 'John Doe', 'nfc_uid': 'a1b2c3d4'},
+            {'id': 2, 'name': 'Jane Smith', 'nfc_uid': 'E5F6G7H8'},
+            {'id': 3, 'name': 'Bob Johnson', 'nfc_uid': '9c0d1e2f'}
+        ]
+        
         from modules.attendance.service import AttendanceService
         
         svc = AttendanceService()

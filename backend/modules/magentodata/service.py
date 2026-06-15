@@ -323,7 +323,8 @@ class MagentoDataService:
         resync_days: int = 7,
         username: str = None,
         progress_callback: callable = None,
-        cancelled: callable = None
+        cancelled: callable = None,
+        dry_run: bool = False
     ) -> Dict[str, Any]:
         """
         Sync live Magento data for a specific region with resumable sync support.
@@ -341,6 +342,7 @@ class MagentoDataService:
             username: User performing the sync
             progress_callback: Optional callback for progress updates
             cancelled: Optional callable that returns True if sync should be cancelled
+            dry_run: Optional dry-run flag
         
         Returns:
             Dict with status, message, and sync statistics
@@ -392,7 +394,7 @@ class MagentoDataService:
             client = MagentoDataClient(region=region)
             
             # Fetch product-level rows from Magento with batch processing
-            logger.info(f"Fetching orders from Magento DB for region: {region}")
+            logger.info(f"Fetching orders from Magento DB for region: {region} (dry_run: {dry_run})")
             batch_result = client.fetch_orders_product_breakdown_batched(
                 table_name=table_name,
                 region=region,
@@ -402,7 +404,8 @@ class MagentoDataService:
                 username=username,
                 repo=self.repo,
                 progress_callback=progress_callback,
-                cancelled=cancelled
+                cancelled=cancelled,
+                dry_run=dry_run
             )
             
             if batch_result['was_cancelled']:
@@ -441,6 +444,20 @@ class MagentoDataService:
                     "orders_processed": 0
                 }
             
+            if dry_run:
+                sim_ins = batch_result.get('sim_inserted', 0)
+                sim_upd = batch_result.get('sim_updated', 0)
+                msg = f"[Dry Run] Sync simulation complete. Would insert {sim_ins} new rows, update {sim_upd} dirty rows (out of {batch_result['orders_processed']} orders checked)."
+                logger.info(msg)
+                return {
+                    "status": "success",
+                    "message": msg,
+                    "rows_synced": 0,
+                    "orders_processed": batch_result['orders_processed'],
+                    "sim_inserted": sim_ins,
+                    "sim_updated": sim_upd
+                }
+
             # All metadata is already saved incrementally during batch processing
             logger.info(f"Sync complete: {batch_result['rows_imported']} rows from {batch_result['orders_processed']} orders")
             
@@ -513,12 +530,41 @@ class MagentoDataService:
                 "total_count": 0
             }
     
-    def refresh_aggregated_data_for_region(self, region: str) -> Dict[str, Any]:
+    def refresh_aggregated_data_for_region(self, region: str, dry_run: bool = False) -> Dict[str, Any]:
         """Manually refresh aggregated data for a specific region. Triggers a quick sync first."""
         try:
             # Trigger a sync to ensure data is up-to-date
             # If we have never synced before, only fetch the last 6 months (plus buffer) to speed up the first load
             # If we have synced before, just fetch the last 7 days (incremental)
+            if dry_run:
+                try:
+                    metadata = self.repo.get_sync_metadata(region)
+                    if not metadata or not metadata.get('last_synced_order_date'):
+                        six_months_ago = datetime.now() - relativedelta(months=6)
+                        start_date = six_months_ago.strftime('%Y-%m-%d %H:%M:%S')
+                        sync_res = self.sync_magento_data(region, start_date=start_date, dry_run=True)
+                    else:
+                        sync_res = self.sync_magento_data(region, resync_days=7, dry_run=True)
+                    sim_ins = sync_res.get('sim_inserted', 0)
+                    sim_upd = sync_res.get('sim_updated', 0)
+                    return {
+                        "status": "success",
+                        "message": f"[Dry Run] {region.upper()} Order Sync simulation complete. Would insert {sim_ins} new rows, update {sim_upd} dirty rows (out of {sync_res.get('orders_processed', 0)} orders checked).",
+                        "region": region,
+                        "rows_synced": 0,
+                        "orders_processed": sync_res.get('orders_processed', 0),
+                        "sim_inserted": sim_ins,
+                        "sim_updated": sim_upd
+                    }
+                except Exception as e:
+                    logger.error(f"Error simulating order sync for {region}: {e}")
+                    return {
+                        "status": "error",
+                        "message": f"Simulation failed: {str(e)}",
+                        "rows_synced": 0,
+                        "orders_processed": 0
+                    }
+
             try:
                 metadata = self.repo.get_sync_metadata(region)
                 if not metadata or not metadata.get('last_synced_order_date'):
@@ -533,7 +579,7 @@ class MagentoDataService:
             except Exception as sync_error:
                 logger.warning(f"Auto-sync failed during refresh for {region}: {sync_error}")
                 # Continue with refresh even if sync fails
-
+ 
             result = self.repo.refresh_aggregated_data(region)
             return {
                 "status": "success",
@@ -605,7 +651,7 @@ class MagentoDataService:
                 "shipping_methods": []
             }
     
-    def backfill_shipping_methods(self, region: str, progress_callback=None) -> Dict[str, Any]:
+    def backfill_shipping_methods(self, region: str, progress_callback=None, dry_run: bool = False) -> Dict[str, Any]:
         """
         Backfill shipping_method for all existing cached orders that have it missing.
         
@@ -645,6 +691,15 @@ class MagentoDataService:
                 "status": "success",
                 "message": "All orders already have shipping methods",
                 "rows_updated": 0
+            }
+            
+        if dry_run:
+            if progress_callback:
+                progress_callback(100, f"[Dry Run] Backfill Shipping Methods simulation complete: would backfill shipping_method for {total_missing:,} orders.")
+            return {
+                "status": "success",
+                "message": f"[Dry Run] Backfill/Shipping Methods simulation complete: would backfill shipping_method for {total_missing:,} orders.",
+                "rows_updated": total_missing
             }
         
         region_count = len([r for r in regions_to_process if region_missing.get(r)])

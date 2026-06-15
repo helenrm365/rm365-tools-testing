@@ -294,7 +294,7 @@ class InventoryManagementRepo:
         finally:
             self.return_connection(conn)
 
-    def sync_magento_products_to_inventory_metadata(self) -> Dict[str, int]:
+    def sync_magento_products_to_inventory_metadata(self, dry_run: bool = False) -> Dict[str, int]:
         """
         Sync ALL products (regardless of enabled/disabled status) from UK Magento catalog to inventory_metadata.
         Uses BATCH operations for performance (similar to magento data module).
@@ -317,7 +317,9 @@ class InventoryManagementRepo:
             stats = {
                 "total_products": 0,
                 "synced_records": 0,
-                "filtered_aw365": 0
+                "filtered_aw365": 0,
+                "sim_inserted": 0,
+                "sim_updated": 0
             }
             
             # Get ALL products from UK Magento catalog (no status filtering)
@@ -428,24 +430,45 @@ class InventoryManagementRepo:
             # BATCH upsert using execute_values (much faster than individual inserts)
             # Only inserts/updates sku and product_name - status column is for stock calculations
             if valid_products:
-                # Use ON CONFLICT to upsert - only update product_name for existing records
-                # Status column is NOT touched - it's for stock level calculations (Low Stock/OK/Overstock)
-                upsert_query = """
-                    INSERT INTO inventory_metadata (sku, product_name, updated_at)
-                    VALUES %s
-                    ON CONFLICT (sku) DO UPDATE SET
-                        product_name = COALESCE(NULLIF(EXCLUDED.product_name, ''), inventory_metadata.product_name),
-                        updated_at = NOW()
-                """
-                
-                # Prepare data with current timestamp
-                from datetime import datetime
-                upsert_data = [(sku, name, datetime.now()) for sku, name in valid_products]
-                
-                execute_values(cursor, upsert_query, upsert_data, page_size=500)
-                stats["synced_records"] = len(valid_products)
+                if dry_run:
+                    # Read existing database entries to simulate
+                    cursor.execute("SELECT sku, product_name FROM inventory_metadata")
+                    existing = {row[0]: row[1] for row in cursor.fetchall()}
+                    
+                    inserted = 0
+                    updated = 0
+                    for sku, name in valid_products:
+                        if sku not in existing:
+                            inserted += 1
+                        else:
+                            existing_name = existing[sku]
+                            if name and name != existing_name:
+                                updated += 1
+                    
+                    stats["synced_records"] = 0
+                    stats["dry_run"] = True
+                    stats["sim_inserted"] = inserted
+                    stats["sim_updated"] = updated
+                else:
+                    # Use ON CONFLICT to upsert - only update product_name for existing records
+                    # Status column is NOT touched - it's for stock level calculations (Low Stock/OK/Overstock)
+                    upsert_query = """
+                        INSERT INTO inventory_metadata (sku, product_name, updated_at)
+                        VALUES %s
+                        ON CONFLICT (sku) DO UPDATE SET
+                            product_name = COALESCE(NULLIF(EXCLUDED.product_name, ''), inventory_metadata.product_name),
+                            updated_at = NOW()
+                    """
+                    
+                    # Prepare data with current timestamp
+                    from datetime import datetime
+                    upsert_data = [(sku, name, datetime.now()) for sku, name in valid_products]
+                    
+                    execute_values(cursor, upsert_query, upsert_data, page_size=500)
+                    stats["synced_records"] = len(valid_products)
             
-            conn.commit()
+            if not dry_run:
+                conn.commit()
             
             if stats["synced_records"] > 0:
                 logger.info(f"✅ Synced {stats['synced_records']} products to inventory_metadata from Magento catalog (batch mode)")
@@ -462,7 +485,7 @@ class InventoryManagementRepo:
         finally:
             self.return_connection(conn)
 
-    def update_variant_statuses(self) -> None:
+    def update_variant_statuses(self, dry_run: bool = False) -> Dict[str, int]:
         """
         Fetch all products from Magento, group by base SKU, and update variant_statuses in inventory_metadata.
         Uses batch operations for performance.
@@ -510,24 +533,49 @@ class InventoryManagementRepo:
                 statuses_list = sorted(list(data['statuses']))
                 updates.append((json.dumps(statuses_list), base_sku))
             
-            # Execute batch update using execute_batch (faster than executemany)
-            execute_batch(cursor, """
-                UPDATE inventory_metadata
-                SET variant_statuses = %s, updated_at = NOW()
-                WHERE sku = %s
-            """, updates, page_size=500)
-            
-            conn.commit()
-            logger.info(f"✅ Updated variant_statuses for {len(updates)} products in inventory_metadata")
+            if dry_run:
+                # Compare to count updates without writing
+                cursor.execute("SELECT sku, variant_statuses FROM inventory_metadata")
+                existing = {row[0]: row[1] for row in cursor.fetchall()}
+                
+                sim_updates = 0
+                for base_sku, data in base_sku_data.items():
+                    statuses_list = sorted(list(data['statuses']))
+                    if base_sku in existing:
+                        existing_statuses = existing[base_sku]
+                        if existing_statuses:
+                            if isinstance(existing_statuses, str):
+                                try:
+                                    existing_statuses = json.loads(existing_statuses)
+                                except Exception:
+                                    existing_statuses = []
+                        else:
+                            existing_statuses = []
+                        if sorted(existing_statuses) != statuses_list:
+                            sim_updates += 1
+                logger.info(f"✅ [Dry Run] Would update variant_statuses for {sim_updates} products in inventory_metadata")
+                return {"sim_updated": sim_updates}
+            else:
+                # Execute batch update using execute_batch (faster than executemany)
+                execute_batch(cursor, """
+                    UPDATE inventory_metadata
+                    SET variant_statuses = %s, updated_at = NOW()
+                    WHERE sku = %s
+                """, updates, page_size=500)
+                
+                conn.commit()
+                logger.info(f"✅ Updated variant_statuses for {len(updates)} products in inventory_metadata")
+                return {"updated": len(updates)}
             
         except Exception as e:
             logger.error(f"Error updating variant_statuses: {e}")
             if conn:
                 conn.rollback()
+            raise
         finally:
             self.return_connection(conn)
 
-    def merge_identifier_products(self) -> Dict[str, int]:
+    def merge_identifier_products(self, dry_run: bool = False) -> Dict[str, int]:
         """
         Normalize all products to use their base SKU - removes all identifier suffixes (-MD, -SD, -DP, -NP, -MV).
         Also handles extended variants like -MD-xxxx.
@@ -538,7 +586,9 @@ class InventoryManagementRepo:
         - If base SKU doesn't exist: rename variant to base SKU
         - Result: ALL products use base SKU form, no suffixes remain
         
-        This operates on inventory_metadata table.\n        \n        Returns stats about the operation.
+        This operates on inventory_metadata table.
+        
+        Returns stats about the operation.
         """
         import re
         conn = self.get_metadata_connection()
@@ -591,6 +641,13 @@ class InventoryManagementRepo:
                     skus_to_rename.append((base_sku, sku))
                     existing_skus.add(base_sku)  # Prevent duplicates in same batch
             
+            if dry_run:
+                stats["deleted"] = len(skus_to_delete)
+                stats["renamed"] = len(skus_to_rename)
+                stats["dry_run"] = True
+                logger.info(f"[Dry Run] Normalization simulation: Would merge {stats['deleted']} variants, rename {stats['renamed']} to base SKU")
+                return stats
+
             # Batch delete variants that have base SKUs
             if skus_to_delete:
                 cursor.execute("""
