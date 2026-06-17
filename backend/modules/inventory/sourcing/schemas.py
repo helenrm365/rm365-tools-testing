@@ -262,6 +262,21 @@ class PdfImportUnmatchedItem(BaseModel):
     reason: str
 
 
+class PdfImportConflictItem(BaseModel):
+    """
+    Both the reference code and the designation matched, but to different internal SKUs.
+    The user must choose which product to associate this price with.
+    """
+    ref: str
+    identifier: str
+    price: float
+    currency: str
+    sku_from_ref: str
+    product_name_from_ref: Optional[str] = None
+    sku_from_name: str
+    product_name_from_name: Optional[str] = None
+
+
 class PdfImportPreviewResponse(BaseModel):
     """Full preview returned after parsing a supplier PDF — no DB changes yet"""
     supplier_id: int
@@ -269,9 +284,11 @@ class PdfImportPreviewResponse(BaseModel):
     supplier_code: str
     supplier_default_currency: str
     preview: List[PdfImportPreviewItem]
+    conflicts: List[PdfImportConflictItem]
     unmatched: List[PdfImportUnmatchedItem]
     total_found: int
     total_matched: int
+    total_conflicts: int
     total_unmatched: int
 
 

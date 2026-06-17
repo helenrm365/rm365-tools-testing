@@ -728,10 +728,22 @@
         <!-- Summary row -->
         <div id="pdf-import-summary" style="display:flex; gap:1.5rem; margin-bottom:1.25rem; flex-wrap:wrap;"></div>
 
+        <!-- Conflicts — user must resolve before confirming -->
+        <div id="pdf-import-conflicts-section" style="display:none; margin-bottom:1.25rem;">
+          <h4 style="margin:0 0 0.5rem; font-size:0.95rem; font-weight:600; color:var(--color-warning,#d97706);">
+            <i class="fas fa-code-branch"></i>
+            Conflicts — resolve before confirming (<span id="pdf-import-conflicts-remaining">0</span> remaining)
+          </h4>
+          <p style="margin:0 0 0.75rem; font-size:0.82rem; color:var(--color-muted,#6b7280);">
+            Both the reference code and the product name matched different products. Select which one to update.
+          </p>
+          <div id="pdf-import-conflicts-body" style="display:flex; flex-direction:column; gap:0.75rem; max-height:260px; overflow-y:auto;"></div>
+        </div>
+
         <!-- Matched changes table -->
         <div id="pdf-import-changes-section">
           <h4 style="margin:0 0 0.75rem; font-size:0.95rem; font-weight:600;">Price Changes</h4>
-          <div style="max-height:340px; overflow-y:auto; border:1px solid var(--color-border,#e5e7eb); border-radius:6px;">
+          <div style="max-height:300px; overflow-y:auto; border:1px solid var(--color-border,#e5e7eb); border-radius:6px;">
             <table class="data-table" id="pdf-import-changes-table" style="width:100%; font-size:0.85rem;">
               <thead>
                 <tr>

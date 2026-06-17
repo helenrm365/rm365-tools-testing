@@ -1269,6 +1269,10 @@ class SourcingService:
                     if text:
                         extracted_items.extend(self._parse_pdf_text(text))
 
+        # Build a product name lookup for conflict display
+        all_products = self.repo.get_all_products_from_inventory_metadata()
+        sku_to_name: Dict = {p['sku']: p.get('product_name', '') for p in all_products}
+
         # Deduplicate by ref code first, then identifier (case-insensitive)
         seen: set = set()
         unique_items: list = []
@@ -1279,6 +1283,7 @@ class SourcingService:
                 unique_items.append(item)
 
         preview: list = []
+        conflicts: list = []
         unmatched: list = []
 
         for item in unique_items:
@@ -1290,23 +1295,12 @@ class SourcingService:
             if not (identifier or ref) or price is None:
                 continue
 
-            # Try resolving by supplier reference code first (more reliable), then by product name
-            internal_sku = None
-            match_method = None
-            display_name = identifier or ref
+            # Resolve BOTH columns independently
+            sku_from_ref  = self.repo.resolve_supplier_sku(supplier_id, ref)  if ref        else None
+            sku_from_name = self.repo.resolve_supplier_sku(supplier_id, identifier) if identifier else None
 
-            if ref:
-                internal_sku = self.repo.resolve_supplier_sku(supplier_id, ref)
-                if internal_sku:
-                    match_method = 'reference_code'
-                    display_name = f"{ref} — {identifier}" if identifier else ref
-
-            if not internal_sku and identifier:
-                internal_sku = self.repo.resolve_supplier_sku(supplier_id, identifier)
-                if internal_sku:
-                    match_method = 'product_name'
-
-            if not internal_sku:
+            # Case 1: neither matched
+            if not sku_from_ref and not sku_from_name:
                 unmatched.append({
                     'raw_text': ref or identifier,
                     'price': price,
@@ -1314,6 +1308,32 @@ class SourcingService:
                     'reason': 'No product mapping found',
                 })
                 continue
+
+            # Case 2: both matched to DIFFERENT products → user must choose
+            if sku_from_ref and sku_from_name and sku_from_ref != sku_from_name:
+                conflicts.append({
+                    'ref': ref,
+                    'identifier': identifier,
+                    'price': price,
+                    'currency': currency,
+                    'sku_from_ref': sku_from_ref,
+                    'product_name_from_ref': sku_to_name.get(sku_from_ref, ''),
+                    'sku_from_name': sku_from_name,
+                    'product_name_from_name': sku_to_name.get(sku_from_name, ''),
+                })
+                continue
+
+            # Case 3: one or both matched to the same SKU
+            internal_sku = sku_from_ref or sku_from_name
+            if sku_from_ref and sku_from_name:
+                match_method = 'both'
+                display_name = f"{ref} — {identifier}"
+            elif sku_from_ref:
+                match_method = 'reference_code'
+                display_name = f"{ref} — {identifier}" if identifier else ref
+            else:
+                match_method = 'product_name'
+                display_name = identifier
 
             current = existing_pricing.get(internal_sku, {})
             current_price = current.get('unit_price')
@@ -1336,9 +1356,11 @@ class SourcingService:
             'supplier_code': supplier['code'],
             'supplier_default_currency': default_currency,
             'preview': preview,
+            'conflicts': conflicts,
             'unmatched': unmatched,
             'total_found': len(unique_items),
             'total_matched': len(preview),
+            'total_conflicts': len(conflicts),
             'total_unmatched': len(unmatched),
         }
 

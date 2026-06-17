@@ -2850,6 +2850,8 @@ function closeMappingsImportResultModal() {
 
 let pendingPdfFile = null;
 let pendingPdfPreview = null;
+// Map of conflict key → chosen SKU (populated as user resolves each conflict)
+const conflictResolutions = new Map();
 
 async function openPdfImportModal() {
   pendingPdfFile = null;
@@ -2955,9 +2957,12 @@ async function processPdfImport() {
 }
 
 function renderPdfPreview(result) {
+  conflictResolutions.clear();
+
   // Summary stats
   const summaryEl = document.getElementById('pdf-import-summary');
   if (summaryEl) {
+    const conflictCount = result.total_conflicts || 0;
     summaryEl.innerHTML = `
       <div style="text-align:center; min-width:80px;">
         <div style="font-size:1.6rem; font-weight:700; color:var(--color-text,#111);">${result.total_found}</div>
@@ -2967,11 +2972,56 @@ function renderPdfPreview(result) {
         <div style="font-size:1.6rem; font-weight:700; color:var(--color-success,#16a34a);">${result.total_matched}</div>
         <div style="font-size:0.8rem; color:var(--color-muted,#6b7280);">Matched</div>
       </div>
+      ${conflictCount > 0 ? `
       <div style="text-align:center; min-width:80px;">
-        <div style="font-size:1.6rem; font-weight:700; color:var(--color-warning,#d97706);">${result.total_unmatched}</div>
+        <div style="font-size:1.6rem; font-weight:700; color:var(--color-warning,#d97706);">${conflictCount}</div>
+        <div style="font-size:0.8rem; color:var(--color-muted,#6b7280);">Conflicts</div>
+      </div>` : ''}
+      <div style="text-align:center; min-width:80px;">
+        <div style="font-size:1.6rem; font-weight:700; color:var(--color-danger,#dc2626);">${result.total_unmatched}</div>
         <div style="font-size:0.8rem; color:var(--color-muted,#6b7280);">Unmatched</div>
       </div>
     `;
+  }
+
+  // Conflicts section
+  const conflictsSection = document.getElementById('pdf-import-conflicts-section');
+  const conflictsBody = document.getElementById('pdf-import-conflicts-body');
+  if (conflictsSection && result.conflicts?.length > 0) {
+    conflictsSection.style.display = '';
+    _updateConflictsRemaining(result.conflicts.length);
+
+    conflictsBody.innerHTML = result.conflicts.map((c, idx) => {
+      const sym = c.currency ? (CURRENCY_SYMBOLS[c.currency] || c.currency) : '';
+      const priceDisplay = `${sym}${parseFloat(c.price).toFixed(2)}`;
+      const key = `conflict-${idx}`;
+      return `
+        <div id="conflict-card-${idx}" style="border:1px solid var(--color-warning,#d97706); border-radius:6px; padding:0.75rem; background:var(--color-warning-bg,#fffbeb);">
+          <div style="font-size:0.82rem; color:var(--color-muted,#6b7280); margin-bottom:0.4rem;">
+            <strong>Ref:</strong> ${escapeHtml(c.ref)} &nbsp;|&nbsp; <strong>Description:</strong> ${escapeHtml(c.identifier)} &nbsp;|&nbsp; <strong>Price:</strong> ${priceDisplay}
+          </div>
+          <div style="display:flex; flex-direction:column; gap:0.35rem;">
+            <label style="display:flex; align-items:flex-start; gap:0.5rem; cursor:pointer; font-size:0.875rem;">
+              <input type="radio" name="${key}" value="${escapeHtml(c.sku_from_ref)}" data-conflict="${idx}" style="margin-top:3px; flex-shrink:0;" onchange="window.sourcingModule.resolveConflict(${idx}, '${escapeHtml(c.sku_from_ref)}')">
+              <span>
+                <strong style="font-family:monospace;">${escapeHtml(c.sku_from_ref)}</strong>
+                <span style="color:var(--color-muted,#6b7280);"> — ${escapeHtml(c.product_name_from_ref || c.sku_from_ref)}</span>
+                <span style="font-size:0.78rem; color:var(--color-muted,#9ca3af); margin-left:0.25rem;">(matched via reference code)</span>
+              </span>
+            </label>
+            <label style="display:flex; align-items:flex-start; gap:0.5rem; cursor:pointer; font-size:0.875rem;">
+              <input type="radio" name="${key}" value="${escapeHtml(c.sku_from_name)}" data-conflict="${idx}" style="margin-top:3px; flex-shrink:0;" onchange="window.sourcingModule.resolveConflict(${idx}, '${escapeHtml(c.sku_from_name)}')">
+              <span>
+                <strong style="font-family:monospace;">${escapeHtml(c.sku_from_name)}</strong>
+                <span style="color:var(--color-muted,#6b7280);"> — ${escapeHtml(c.product_name_from_name || c.sku_from_name)}</span>
+                <span style="font-size:0.78rem; color:var(--color-muted,#9ca3af); margin-left:0.25rem;">(matched via product name)</span>
+              </span>
+            </label>
+          </div>
+        </div>`;
+    }).join('');
+  } else if (conflictsSection) {
+    conflictsSection.style.display = 'none';
   }
 
   // Changes table
@@ -3031,26 +3081,83 @@ function renderPdfPreview(result) {
     unmatchedSection.style.display = 'none';
   }
 
-  // Enable confirm only if there are matched items
+  _updateConfirmButton();
+}
+
+function _conflictKey(idx) {
+  return `c${idx}`;
+}
+
+function _updateConflictsRemaining(total) {
+  const remaining = total - conflictResolutions.size;
+  const el = document.getElementById('pdf-import-conflicts-remaining');
+  if (el) el.textContent = remaining;
+}
+
+function resolveConflict(idx, chosenSku) {
+  conflictResolutions.set(_conflictKey(idx), chosenSku);
+
+  // Visually mark the card as resolved
+  const card = document.getElementById(`conflict-card-${idx}`);
+  if (card) {
+    card.style.borderColor = 'var(--color-success,#16a34a)';
+    card.style.background = 'var(--color-success-bg,#f0fdf4)';
+  }
+
+  const total = pendingPdfPreview?.conflicts?.length || 0;
+  _updateConflictsRemaining(total);
+  _updateConfirmButton();
+}
+
+function _updateConfirmButton() {
   const confirmBtn = document.getElementById('btn-pdf-preview-confirm');
-  if (confirmBtn) {
-    confirmBtn.disabled = !result.preview || result.preview.length === 0;
+  if (!confirmBtn) return;
+
+  const hasMatches = pendingPdfPreview?.preview?.length > 0;
+  const totalConflicts = pendingPdfPreview?.conflicts?.length || 0;
+  const allResolved = conflictResolutions.size >= totalConflicts;
+  const hasAnything = hasMatches || (totalConflicts > 0 && allResolved);
+
+  confirmBtn.disabled = !hasAnything || !allResolved;
+
+  if (totalConflicts > 0 && !allResolved) {
+    confirmBtn.title = 'Resolve all conflicts above before confirming';
+  } else {
+    confirmBtn.title = '';
   }
 }
 
 async function confirmPdfImport() {
-  if (!pendingPdfPreview?.preview?.length) {
+  const hasMatches = pendingPdfPreview?.preview?.length > 0;
+  const hasConflicts = pendingPdfPreview?.conflicts?.length > 0;
+  if (!hasMatches && !hasConflicts) {
     closePdfImportModal();
     return;
   }
 
   const supplierId = pendingPdfPreview.supplier_id;
-  const updates = pendingPdfPreview.preview.map(item => ({
+  const defaultCurrency = pendingPdfPreview.supplier_default_currency;
+
+  // Base updates from auto-matched items
+  const updates = (pendingPdfPreview.preview || []).map(item => ({
     sku: item.sku,
     supplier_id: supplierId,
     unit_price: item.new_price,
-    currency: item.new_currency || pendingPdfPreview.supplier_default_currency,
+    currency: item.new_currency || defaultCurrency,
   }));
+
+  // Add user-resolved conflicts
+  (pendingPdfPreview.conflicts || []).forEach((c, idx) => {
+    const chosenSku = conflictResolutions.get(_conflictKey(idx));
+    if (chosenSku) {
+      updates.push({
+        sku: chosenSku,
+        supplier_id: supplierId,
+        unit_price: c.price,
+        currency: c.currency || defaultCurrency,
+      });
+    }
+  });
 
   setLoading(true);
   try {
@@ -3078,6 +3185,7 @@ window.sourcingModule = {
   handleRemoveFXOverride,
   openGSheetLinkModal,
   deleteMapping,
+  resolveConflict,
   goToAnalysisPage: async (page) => {
     state.analysisPage = page;
     // Client-side pagination from cached data — no API call needed
