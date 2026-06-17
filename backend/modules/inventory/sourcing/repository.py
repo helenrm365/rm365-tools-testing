@@ -92,6 +92,19 @@ class SourcingRepository:
                 )
             """)
 
+            # Supplier SKU mappings
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS sourcing_supplier_product_mappings (
+                    id SERIAL PRIMARY KEY,
+                    supplier_id INTEGER NOT NULL REFERENCES sourcing_suppliers(id) ON DELETE CASCADE,
+                    supplier_identifier VARCHAR(255) NOT NULL,
+                    internal_sku VARCHAR(100) NOT NULL,
+                    created_at TIMESTAMP DEFAULT NOW(),
+                    updated_at TIMESTAMP DEFAULT NOW(),
+                    UNIQUE(supplier_id, supplier_identifier)
+                )
+            """)
+
             # Create indexes
             cursor.execute("""
                 CREATE INDEX IF NOT EXISTS idx_sourcing_pricing_sku 
@@ -104,6 +117,14 @@ class SourcingRepository:
             cursor.execute("""
                 CREATE INDEX IF NOT EXISTS idx_sourcing_suppliers_active 
                 ON sourcing_suppliers(is_active)
+            """)
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_sourcing_mappings_supplier 
+                ON sourcing_supplier_product_mappings(supplier_id)
+            """)
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_sourcing_mappings_identifier 
+                ON sourcing_supplier_product_mappings(supplier_identifier)
             """)
 
             # Migration: Add missing columns to existing tables
@@ -149,7 +170,7 @@ class SourcingRepository:
         conn = self._get_conn()
         try:
             cursor = conn.cursor()
-            tables = ['sourcing_suppliers', 'sourcing_supplier_pricing', 'sourcing_fx_overrides']
+            tables = ['sourcing_suppliers', 'sourcing_supplier_pricing', 'sourcing_fx_overrides', 'sourcing_supplier_product_mappings']
             status = {}
             
             for table in tables:
@@ -759,4 +780,120 @@ class SourcingRepository:
                 conn.close()
         
         return prices
+
+    # ========================================================================
+    # PRODUCT MAPPINGS CRUD
+    # ========================================================================
+
+    def get_supplier_mappings(self, supplier_id: Optional[int] = None) -> List[Dict]:
+        """Get all supplier product mappings with supplier and internal names"""
+        conn = self._get_conn()
+        try:
+            cursor = conn.cursor()
+            query = """
+                SELECT 
+                    m.id,
+                    m.supplier_id,
+                    s.code as supplier_code,
+                    s.name as supplier_name,
+                    m.supplier_identifier,
+                    m.internal_sku,
+                    p.product_name as internal_product_name,
+                    m.created_at,
+                    m.updated_at
+                FROM sourcing_supplier_product_mappings m
+                JOIN sourcing_suppliers s ON m.supplier_id = s.id
+                LEFT JOIN inventory_metadata p ON m.internal_sku = p.sku
+            """
+            params = []
+            if supplier_id is not None:
+                query += " WHERE m.supplier_id = %s"
+                params.append(supplier_id)
+            query += " ORDER BY s.name, m.supplier_identifier"
+            
+            cursor.execute(query, params)
+            columns = [desc[0] for desc in cursor.description]
+            return [dict(zip(columns, row)) for row in cursor.fetchall()]
+        finally:
+            self._return_conn(conn)
+
+    def create_supplier_mapping(self, data: Dict) -> Dict:
+        """Create or update a supplier product mapping"""
+        conn = self._get_conn()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO sourcing_supplier_product_mappings 
+                (supplier_id, supplier_identifier, internal_sku, updated_at)
+                VALUES (%s, TRIM(%s), TRIM(%s), NOW())
+                ON CONFLICT (supplier_id, supplier_identifier) DO UPDATE SET
+                    internal_sku = EXCLUDED.internal_sku,
+                    updated_at = NOW()
+                RETURNING *
+            """, (
+                data['supplier_id'],
+                data['supplier_identifier'],
+                data['internal_sku']
+            ))
+            row = cursor.fetchone()
+            conn.commit()
+            
+            # Fetch full mapping info with joined names
+            cursor.execute("""
+                SELECT 
+                    m.id,
+                    m.supplier_id,
+                    s.code as supplier_code,
+                    s.name as supplier_name,
+                    m.supplier_identifier,
+                    m.internal_sku,
+                    p.product_name as internal_product_name,
+                    m.created_at,
+                    m.updated_at
+                FROM sourcing_supplier_product_mappings m
+                JOIN sourcing_suppliers s ON m.supplier_id = s.id
+                LEFT JOIN inventory_metadata p ON m.internal_sku = p.sku
+                WHERE m.id = %s
+            """, (row[0],))
+            columns = [desc[0] for desc in cursor.description]
+            return dict(zip(columns, cursor.fetchone()))
+        except Exception as e:
+            conn.rollback()
+            raise
+        finally:
+            self._return_conn(conn)
+
+    def delete_supplier_mapping(self, mapping_id: int) -> bool:
+        """Delete a specific supplier product mapping"""
+        conn = self._get_conn()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM sourcing_supplier_product_mappings WHERE id = %s", (mapping_id,))
+            deleted = cursor.rowcount > 0
+            conn.commit()
+            return deleted
+        except Exception as e:
+            conn.rollback()
+            raise
+        finally:
+            self._return_conn(conn)
+
+    def resolve_supplier_sku(self, supplier_id: int, identifier: str) -> Optional[str]:
+        """Resolve alternative supplier sku/name into internal canonical SKU"""
+        if not identifier:
+            return None
+        conn = self._get_conn()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT internal_sku 
+                FROM sourcing_supplier_product_mappings 
+                WHERE supplier_id = %s AND TRIM(LOWER(supplier_identifier)) = TRIM(LOWER(%s))
+                LIMIT 1
+            """, (supplier_id, identifier))
+            row = cursor.fetchone()
+            return row[0] if row else None
+        finally:
+            self._return_conn(conn)
+
 

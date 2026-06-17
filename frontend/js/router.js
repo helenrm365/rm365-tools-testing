@@ -87,6 +87,7 @@ const routes = {
   '/inventory/sourcing/supplier-matrix':    '/html/inventory/sourcing.html',
   '/inventory/sourcing/suppliers':          '/html/inventory/sourcing.html',
   '/inventory/sourcing/fx-rates':           '/html/inventory/sourcing.html',
+  '/inventory/sourcing/mappings':           '/html/inventory/sourcing.html',
   
   // Birmingham Orders - UK Birmingham branch fulfillment
   '/birmingham-orders':                    '/html/birmingham-orders/order-fulfillment.html',
@@ -226,6 +227,7 @@ export function generateTabStructure() {
     'supplier-matrix': 'Supplier Matrix',
     'suppliers': 'Suppliers',
     'fx-rates': 'FX Rates',
+    'mappings': 'Product Mappings',
     'generator': 'Generator',
     'history': 'History',
     'scanner': 'Scanner',

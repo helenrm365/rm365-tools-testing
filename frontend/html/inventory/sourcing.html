@@ -46,6 +46,10 @@
         <i class="fas fa-exchange-alt"></i>
         <span>FX Rates</span>
       </a>
+      <a href="/inventory/sourcing/mappings" class="nui-tab" data-tab="mappings">
+        <i class="fas fa-link"></i>
+        <span>Product Mappings</span>
+      </a>
     </nav>
 
     <!-- ===== Tab Content Panels ===== -->
@@ -379,6 +383,66 @@
       </div>
     </div>
 
+    <!-- ======================== PRODUCT MAPPINGS ======================== -->
+    <div class="sourcing-tab-panel" id="panel-mappings">
+      
+      <!-- Product Mappings Management Card -->
+      <div class="action-block">
+        <div class="block-header">
+          <div class="block-icon">
+            <i class="fas fa-link"></i>
+          </div>
+          <div class="block-title-group">
+            <h3 class="block-title">Product Mappings</h3>
+            <p class="block-subtitle">Map alternative supplier product names or SKUs to internal canonical SKUs</p>
+          </div>
+          <div class="block-header-actions">
+            <button class="btn btn-solid btn-success" id="btn-add-mapping">
+              <i class="fas fa-plus"></i> Add Mapping
+            </button>
+          </div>
+        </div>
+        
+        <div class="block-content">
+          <!-- Data Controls Bar inside panel -->
+          <div class="data-controls-bar" style="margin-top: 0; padding-left: 0; padding-right: 0;">
+            <div class="data-controls-bar-content">
+              <div class="search-box">
+                <input type="text" id="mappings-search" class="nui-input nui-input-default" placeholder="Search by SKU or supplier identifier...">
+              </div>
+              <div class="nui-field" style="margin: 0;">
+                <select id="mappings-supplier-filter">
+                  <option value="" selected>All Suppliers</option>
+                  <!-- Supplier options will be dynamically loaded -->
+                </select>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Mappings Table -->
+          <div class="table-container standalone-table" id="mappings-table-container">
+            <table class="data-table mappings-table" id="mappings-table" data-auto-sort="true">
+              <thead>
+                <tr>
+                  <th class="col-supplier sortable">Supplier</th>
+                  <th class="col-supplier-identifier sortable">Supplier SKU/Name</th>
+                  <th class="col-internal-sku sortable">Internal SKU</th>
+                  <th class="col-internal-name sortable">Internal Product Name</th>
+                  <th class="col-created sortable">Created</th>
+                  <th class="col-actions">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="mappings-table-body">
+                <tr class="loading-row">
+                  <td colspan="6"><i class="fas fa-spinner fa-spin"></i> Loading mappings...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -600,6 +664,51 @@
       <button class="btn btn-solid btn-success" id="btn-csv-results-ok">
         <i class="fas fa-check"></i> OK
       </button>
+    </div>
+  </div>
+</div>
+
+<!-- Product Mapping Modal -->
+<div class="modal-backdrop" id="mapping-modal-overlay">
+  <div class="modal modal-md" id="mapping-modal">
+    <div class="modal-header">
+      <div class="modal-header-icon"><i class="fas fa-link"></i></div>
+      <h3 class="modal-title" id="mapping-modal-title">Add Product Mapping</h3>
+      <button class="modal-close" id="mapping-modal-close"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <form id="mapping-form">
+        <div class="nui-field">
+          <label class="nui-label" for="mapping-supplier">Supplier *</label>
+          <select id="mapping-supplier" required>
+            <option value="" selected disabled>Select supplier...</option>
+            <!-- Dynamically populated -->
+          </select>
+        </div>
+        
+        <div class="nui-field">
+          <label class="nui-label" for="mapping-supplier-identifier">Supplier Product SKU or Name *</label>
+          <input type="text" id="mapping-supplier-identifier" class="nui-input nui-input-default" placeholder="e.g. Juvderm 3" required>
+          <p class="help-text">The product name or SKU exactly as it appears in the supplier's CSV/GSheet.</p>
+        </div>
+        
+        <div class="nui-field">
+          <label class="nui-label" for="mapping-internal-search">Search Internal Product *</label>
+          <input type="text" id="mapping-internal-search" class="nui-input nui-input-default" placeholder="Type to filter products...">
+        </div>
+        
+        <div class="nui-field">
+          <label class="nui-label" for="mapping-internal-sku">Internal SKU *</label>
+          <select id="mapping-internal-sku" required size="6" style="height: auto; min-height: 120px;">
+            <option value="" disabled selected>Search/select a product above...</option>
+            <!-- Dynamically populated and filtered -->
+          </select>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-solid btn-default rounded-lg" id="btn-cancel-mapping">Cancel</button>
+      <button class="btn btn-solid btn-success" id="btn-save-mapping">Save Mapping</button>
     </div>
   </div>
 </div>

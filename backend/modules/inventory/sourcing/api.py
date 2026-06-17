@@ -23,6 +23,8 @@ from .schemas import (
     SupplierMatrixBulkUpdateIn,
     AnalysisFilters,
     GoogleSheetSyncRequest,
+    SupplierProductMappingCreateIn,
+    SupplierProductMappingOut,
 )
 from .service import SourcingService
 
@@ -437,4 +439,56 @@ def sync_matrix_from_gsheet(
         return {"status": "success", **result}
     except Exception as e:
         logger.error(f"Error syncing from Google Sheet: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================================
+# PRODUCT MAPPINGS
+# ============================================================================
+
+@router.get("/mappings", response_model=List[SupplierProductMappingOut])
+def get_supplier_mappings(
+    supplier_id: Optional[int] = Query(None, description="Filter mappings by supplier ID"),
+    user=Depends(get_current_user)
+):
+    """Get all supplier product mappings"""
+    try:
+        mappings = _svc().get_supplier_mappings(supplier_id)
+        return [SupplierProductMappingOut(**m) for m in mappings]
+    except Exception as e:
+        logger.error(f"Error fetching mappings: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/mappings", response_model=SupplierProductMappingOut, status_code=201)
+def create_supplier_mapping(
+    body: SupplierProductMappingCreateIn,
+    user=Depends(get_current_user)
+):
+    """Create or update a supplier product mapping"""
+    try:
+        mapping = _svc().create_supplier_mapping(body.model_dump())
+        return SupplierProductMappingOut(**mapping)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error creating mapping: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/mappings/{mapping_id}")
+def delete_supplier_mapping(
+    mapping_id: int,
+    user=Depends(get_current_user)
+):
+    """Delete a supplier product mapping"""
+    try:
+        deleted = _svc().delete_supplier_mapping(mapping_id)
+        if not deleted:
+            raise HTTPException(status_code=404, detail="Mapping not found")
+        return {"status": "success", "message": "Mapping deleted"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting mapping: {e}")
         raise HTTPException(status_code=500, detail=str(e))

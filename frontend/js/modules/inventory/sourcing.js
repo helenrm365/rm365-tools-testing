@@ -32,8 +32,11 @@ import {
   formatCurrency,
   getMarginStatusClass,
   syncMatrixToGSheet,
-  syncMatrixFromGSheet
-} from '../../services/api/sourcingApi.js';
+  syncMatrixFromGSheet,
+  getSupplierMappings,
+  createSupplierMapping,
+  deleteSupplierMapping
+} from '../../services/api/sourcingApi.js?v=2';
 
 // ============================================================================
 // CURRENCY HELPERS
@@ -162,6 +165,12 @@ let state = {
   analysisSortBy: 'sku',
   analysisSortOrder: 'asc',
   
+  // Product Mappings
+  mappingsData: [],
+  allMappingsData: [],
+  mappingsSearch: '',
+  mappingsSupplierFilter: '',
+  
   // UI
   isLoading: false
 };
@@ -213,6 +222,7 @@ function getTabFromPath(path) {
   if (path.includes('/supplier-matrix')) return 'matrix';
   if (path.includes('/suppliers')) return 'suppliers';
   if (path.includes('/fx-rates')) return 'fx-rates';
+  if (path.includes('/mappings')) return 'mappings';
   // Default to dashboard (analysis-dashboard or just /sourcing)
   return 'dashboard';
 }
@@ -417,6 +427,18 @@ function setupEventListeners() {
   document.getElementById('pricing-modal-overlay')?.addEventListener('click', (e) => {
     if (e.target === e.currentTarget) closePricingModal();
   });
+
+  // Product Mappings Tab Events
+  document.getElementById('btn-add-mapping')?.addEventListener('click', openAddMappingModal);
+  document.getElementById('btn-save-mapping')?.addEventListener('click', handleSaveMapping);
+  document.getElementById('btn-cancel-mapping')?.addEventListener('click', closeMappingModal);
+  document.getElementById('mapping-modal-close')?.addEventListener('click', closeMappingModal);
+  document.getElementById('mapping-modal-overlay')?.addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeMappingModal();
+  });
+  document.getElementById('mappings-search')?.addEventListener('input', debounce(handleMappingsSearch, 500));
+  document.getElementById('mappings-supplier-filter')?.addEventListener('change', handleMappingsSupplierFilterChange);
+  document.getElementById('mapping-internal-search')?.addEventListener('input', handleMappingInternalSearchInput);
 }
 
 // ============================================================================
@@ -434,7 +456,8 @@ async function switchTab(tabId) {
     'dashboard': '/inventory/sourcing/analysis-dashboard',
     'matrix': '/inventory/sourcing/supplier-matrix',
     'suppliers': '/inventory/sourcing/suppliers',
-    'fx-rates': '/inventory/sourcing/fx-rates'
+    'fx-rates': '/inventory/sourcing/fx-rates',
+    'mappings': '/inventory/sourcing/mappings'
   };
   
   const newPath = tabPaths[tabId] || '/inventory/sourcing/analysis-dashboard';
@@ -465,7 +488,8 @@ async function loadActiveTabData() {
     'dashboard': 'Loading analysis dashboard...',
     'matrix': 'Loading supplier matrix...',
     'suppliers': 'Loading suppliers...',
-    'fx-rates': 'Loading exchange rates...'
+    'fx-rates': 'Loading exchange rates...',
+    'mappings': 'Loading product mappings...'
   };
   
   const message = loadingMessages[state.activeTab] || 'Loading...';
@@ -485,6 +509,9 @@ async function loadActiveTabData() {
         break;
       case 'fx-rates':
         await loadFXRates({ skipLoadingOverlay: true });
+        break;
+      case 'mappings':
+        await loadProductMappings({ skipLoadingOverlay: true });
         break;
     }
   } finally {
@@ -2449,6 +2476,261 @@ function escapeHtml(str) {
 }
 
 // ============================================================================
+// PRODUCT MAPPINGS (Product Mappings sub-tab)
+// ============================================================================
+
+// Cache of internal products for mapping SKU picker search
+let cachedInternalProducts = [];
+
+async function loadProductMappings(options = {}) {
+  const { skipLoadingOverlay = false } = options;
+  
+  if (!skipLoadingOverlay) {
+    setLoading(true);
+  }
+  
+  try {
+    // 1. Fetch suppliers to populate filters and modals
+    if (state.suppliers.length === 0) {
+      state.suppliers = await getSuppliers(true);
+    }
+    populateSupplierFilters();
+    
+    // 2. Fetch mappings
+    const mappings = await getSupplierMappings();
+    state.allMappingsData = mappings || [];
+    
+    // Apply client filter and search
+    applyMappingsClientFilters();
+    renderMappingsTable();
+    
+  } catch (error) {
+    console.error('[Sourcing] Error loading mappings:', error);
+    showToast('Failed to load product mappings', 'error');
+  } finally {
+    if (!skipLoadingOverlay) {
+      setLoading(false);
+    }
+  }
+}
+
+function populateSupplierFilters() {
+  // Populate the supplier filter on the page
+  const filterSelect = document.getElementById('mappings-supplier-filter');
+  if (filterSelect) {
+    // Keep first option (All Suppliers)
+    filterSelect.innerHTML = '<option value="" selected>All Suppliers</option>';
+    state.suppliers.forEach(s => {
+      const option = document.createElement('option');
+      option.value = s.id;
+      option.textContent = `${s.name} (${s.code})`;
+      filterSelect.appendChild(option);
+    });
+  }
+  
+  // Populate the supplier select inside the mapping modal
+  const modalSelect = document.getElementById('mapping-supplier');
+  if (modalSelect) {
+    modalSelect.innerHTML = '<option value="" selected disabled>Select supplier...</option>';
+    state.suppliers.forEach(s => {
+      const option = document.createElement('option');
+      option.value = s.id;
+      option.textContent = `${s.name} (${s.code})`;
+      modalSelect.appendChild(option);
+    });
+  }
+}
+
+function applyMappingsClientFilters() {
+  let filtered = state.allMappingsData;
+  
+  // Apply supplier filter
+  if (state.mappingsSupplierFilter) {
+    const supplierId = parseInt(state.mappingsSupplierFilter);
+    filtered = filtered.filter(m => m.supplier_id === supplierId);
+  }
+  
+  // Apply search query
+  if (state.mappingsSearch) {
+    const query = state.mappingsSearch.toLowerCase();
+    filtered = filtered.filter(m => 
+      (m.supplier_identifier || '').toLowerCase().includes(query) ||
+      (m.internal_sku || '').toLowerCase().includes(query) ||
+      (m.internal_product_name || '').toLowerCase().includes(query) ||
+      (m.supplier_name || '').toLowerCase().includes(query) ||
+      (m.supplier_code || '').toLowerCase().includes(query)
+    );
+  }
+  
+  state.mappingsData = filtered;
+}
+
+function renderMappingsTable() {
+  const tbody = document.getElementById('mappings-table-body');
+  if (!tbody) return;
+  
+  if (state.mappingsData.length === 0) {
+    tbody.innerHTML = `
+      <tr class="empty-row">
+        <td colspan="6">
+          <div class="empty-state">
+            <i class="fas fa-link"></i>
+            <p>No product mappings found.</p>
+          </div>
+        </td>
+      </tr>
+    `;
+    return;
+  }
+  
+  tbody.innerHTML = state.mappingsData.map(row => {
+    const createdDate = row.created_at ? new Date(row.created_at).toLocaleDateString() : '—';
+    return `
+      <tr data-mapping-id="${row.id}">
+        <td><strong>${escapeHtml(row.supplier_name || '')} (${escapeHtml(row.supplier_code || '')})</strong></td>
+        <td><code class="supplier-identifier-code">${escapeHtml(row.supplier_identifier)}</code></td>
+        <td><code class="internal-sku-code">${escapeHtml(row.internal_sku)}</code></td>
+        <td>${escapeHtml(row.internal_product_name || '—')}</td>
+        <td>${escapeHtml(createdDate)}</td>
+        <td class="col-actions">
+          <button class="btn btn-ghost btn-danger btn-icon-only btn-sm" title="Delete Mapping" onclick="window.sourcingModule.deleteMapping(${row.id})">
+            <i class="fas fa-trash-alt"></i>
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function handleMappingsSearch(e) {
+  state.mappingsSearch = e.target.value.trim();
+  applyMappingsClientFilters();
+  renderMappingsTable();
+}
+
+function handleMappingsSupplierFilterChange(e) {
+  state.mappingsSupplierFilter = e.target.value;
+  applyMappingsClientFilters();
+  renderMappingsTable();
+}
+
+// Modal handling
+async function openAddMappingModal() {
+  // Clear modal inputs
+  document.getElementById('mapping-form').reset();
+  
+  // Populate suppliers if needed
+  if (state.suppliers.length === 0) {
+    state.suppliers = await getSuppliers(true);
+  }
+  populateSupplierFilters();
+  
+  // Show overlay/modal
+  document.getElementById('mapping-modal-overlay').classList.add('active');
+  
+  // Load products list for SKU picker
+  await loadInternalProductsForSearch();
+}
+
+function closeMappingModal() {
+  document.getElementById('mapping-modal-overlay').classList.remove('active');
+}
+
+async function loadInternalProductsForSearch() {
+  const select = document.getElementById('mapping-internal-sku');
+  if (!select) return;
+  
+  select.innerHTML = '<option value="" disabled selected>Loading products...</option>';
+  
+  try {
+    if (cachedInternalProducts.length === 0) {
+      const data = await getAnalysisDashboard({ page: 1, perPage: 100000 });
+      cachedInternalProducts = (data.products || []).map(p => ({
+        sku: p.sku,
+        name: p.product_name || p.sku
+      }));
+    }
+    
+    // Render full list initially
+    filterInternalProductsSelect('');
+  } catch (error) {
+    console.error('[Sourcing] Error loading products for search:', error);
+    select.innerHTML = '<option value="" disabled selected>Error loading products</option>';
+  }
+}
+
+function filterInternalProductsSelect(query) {
+  const select = document.getElementById('mapping-internal-sku');
+  if (!select) return;
+  
+  const trimmedQuery = query.trim().toLowerCase();
+  const filtered = cachedInternalProducts.filter(p => 
+    p.sku.toLowerCase().includes(trimmedQuery) || 
+    p.name.toLowerCase().includes(trimmedQuery)
+  );
+  
+  if (filtered.length === 0) {
+    select.innerHTML = '<option value="" disabled selected>No products match your search</option>';
+    return;
+  }
+  
+  select.innerHTML = filtered.map(p => 
+    `<option value="${escapeHtml(p.sku)}">[${escapeHtml(p.sku)}] ${escapeHtml(p.name)}</option>`
+  ).join('');
+}
+
+function handleMappingInternalSearchInput(e) {
+  filterInternalProductsSelect(e.target.value);
+}
+
+async function handleSaveMapping() {
+  const supplierId = document.getElementById('mapping-supplier').value;
+  const supplierIdentifier = document.getElementById('mapping-supplier-identifier').value.trim();
+  const internalSku = document.getElementById('mapping-internal-sku').value;
+  
+  if (!supplierId || !supplierIdentifier || !internalSku) {
+    showToast('Please fill out all required fields', 'warning');
+    return;
+  }
+  
+  setLoading(true);
+  try {
+    await createSupplierMapping({
+      supplier_id: parseInt(supplierId),
+      supplier_identifier,
+      internal_sku: internalSku
+    });
+    
+    showToast('Product mapping saved successfully', 'success');
+    closeMappingModal();
+    await loadProductMappings();
+  } catch (error) {
+    console.error('[Sourcing] Error saving mapping:', error);
+    showToast(error.message || 'Failed to save mapping', 'error');
+  } finally {
+    setLoading(false);
+  }
+}
+
+async function deleteMapping(mappingId) {
+  if (!confirm('Are you sure you want to delete this product mapping?')) {
+    return;
+  }
+  
+  setLoading(true);
+  try {
+    await deleteSupplierMapping(mappingId);
+    showToast('Product mapping deleted successfully', 'success');
+    await loadProductMappings();
+  } catch (error) {
+    console.error('[Sourcing] Error deleting mapping:', error);
+    showToast('Failed to delete mapping', 'error');
+  } finally {
+    setLoading(false);
+  }
+}
+
+// ============================================================================
 // CUSTOM DROPDOWN FUNCTIONS
 // ============================================================================
 
@@ -2462,6 +2744,7 @@ window.sourcingModule = {
   handleMatrixCellEdit,
   handleRemoveFXOverride,
   openGSheetLinkModal,
+  deleteMapping,
   goToAnalysisPage: async (page) => {
     state.analysisPage = page;
     // Client-side pagination from cached data — no API call needed

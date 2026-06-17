@@ -662,11 +662,6 @@ class SourcingService:
             if not sku:
                 continue
             
-            # Validate SKU exists in inventory_metadata
-            if sku not in valid_skus:
-                skipped_skus.append(sku)
-                continue
-            
             # Process each supplier column
             for code, supplier in supplier_by_code.items():
                 price_col = f'{code}_price'
@@ -678,6 +673,26 @@ class SourcingService:
                 price_value = row.get(price_col, '').strip() if price_col in row else ''
                 
                 if price_value:
+                    # Resolve alternative supplier SKU/name if needed
+                    resolved_sku = sku
+                    if resolved_sku not in valid_skus:
+                        mapped_sku = self.repo.resolve_supplier_sku(supplier['id'], resolved_sku)
+                        if mapped_sku:
+                            resolved_sku = mapped_sku
+                        else:
+                            # Try to match by product_name
+                            product_name_val = row.get('product_name', '').strip()
+                            if product_name_val:
+                                mapped_sku = self.repo.resolve_supplier_sku(supplier['id'], product_name_val)
+                                if mapped_sku:
+                                    resolved_sku = mapped_sku
+                    
+                    # Validate resolved SKU exists in inventory_metadata
+                    if resolved_sku not in valid_skus:
+                        if sku not in skipped_skus:
+                            skipped_skus.append(sku)
+                        continue
+                        
                     try:
                         # Parse price with potential currency symbol
                         price, detected_currency = self._parse_price_with_currency(price_value)
@@ -698,7 +713,7 @@ class SourcingService:
                         notes = row.get(notes_col, '').strip()
                         
                         entries.append({
-                            'sku': sku,
+                            'sku': resolved_sku,
                             'supplier_id': supplier['id'],
                             'unit_price': price,
                             'currency': currency,  # Can be None
@@ -915,10 +930,6 @@ class SourcingService:
             sku = str(row.get('sku', '')).strip()
             if not sku:
                 continue
-                
-            if sku not in valid_skus:
-                skipped_skus.append(sku)
-                continue
             
             # For each supplier column
             for supplier_code, supplier in supplier_by_code.items():
@@ -943,15 +954,36 @@ class SourcingService:
                 # Handle gspread empty string vs None vs numbers
                 raw_price_str = str(raw_price).strip() if raw_price not in (None, '') else ''
 
+                # Resolve alternative supplier SKU/name if needed
+                resolved_sku = sku
+                if resolved_sku not in valid_skus:
+                    mapped_sku = self.repo.resolve_supplier_sku(supplier['id'], resolved_sku)
+                    if mapped_sku:
+                        resolved_sku = mapped_sku
+                    else:
+                        # Try matching by product_name
+                        product_name_key = header_map.get('product_name')
+                        product_name = str(row.get(product_name_key, '')).strip() if product_name_key else ''
+                        if product_name:
+                            mapped_sku = self.repo.resolve_supplier_sku(supplier['id'], product_name)
+                            if mapped_sku:
+                                resolved_sku = mapped_sku
+
+                if resolved_sku not in valid_skus:
+                    if raw_price_str:
+                        if sku not in skipped_skus:
+                            skipped_skus.append(sku)
+                    continue
+
                 # Check if this entry exists in database
-                key = (sku, supplier['id'])
+                key = (resolved_sku, supplier['id'])
                 existing = existing_map.get(key)
                 
                 # If price is empty in sheet but exists in DB, mark for deletion
                 if not raw_price_str:
                     if existing:
                         entries_to_delete.append({
-                            'sku': sku,
+                            'sku': resolved_sku,
                             'supplier_id': supplier['id']
                         })
                     continue
@@ -961,7 +993,7 @@ class SourcingService:
                     price, detected_currency = self._parse_price_with_currency(raw_price_str)
                     
                     if price is None:
-                        errors.append(f"Row {row_idx+2}: Invalid price '{raw_price}' for SKU {sku}")
+                        errors.append(f"Row {row_idx+2}: Invalid price '{raw_price}' for SKU {resolved_sku}")
                         continue
                     
                     # Get supplier's default currency
@@ -985,7 +1017,7 @@ class SourcingService:
                         notes = str(row.get(notes_key, '')).strip()
                     
                     # Check if this entry has actually changed
-                    key = (sku, supplier['id'])
+                    key = (resolved_sku, supplier['id'])
                     existing = existing_map.get(key)
                     
                     new_notes = notes if notes else None
@@ -1002,7 +1034,7 @@ class SourcingService:
                     
                     # Add to batch (new or changed)
                     entries_to_upsert.append({
-                        'sku': sku,
+                        'sku': resolved_sku,
                         'supplier_id': supplier['id'],
                         'unit_price': price,
                         'currency': currency,  # Can be None
@@ -1010,7 +1042,7 @@ class SourcingService:
                     })
 
                 except Exception as e:
-                    errors.append(f"Row {row_idx+2}: Error processing {sku}: {str(e)}")
+                    errors.append(f"Row {row_idx+2}: Error processing {resolved_sku}: {str(e)}")
 
         # Bulk upsert only changed entries
         updated_count = 0
@@ -1061,3 +1093,31 @@ class SourcingService:
             'error_details': errors[:10],
             'debug_info': debug_log
         }
+
+    # ========================================================================
+    # PRODUCT MAPPINGS
+    # ========================================================================
+
+    def get_supplier_mappings(self, supplier_id: Optional[int] = None) -> List[Dict]:
+        """Get all supplier product mappings"""
+        return self.repo.get_supplier_mappings(supplier_id)
+
+    def create_supplier_mapping(self, data: Dict) -> Dict:
+        """Create a new supplier product mapping"""
+        # Validate supplier exists
+        supplier = self.repo.get_supplier_by_id(data['supplier_id'])
+        if not supplier:
+            raise ValueError(f"Supplier with ID {data['supplier_id']} not found")
+        
+        # Check internal SKU exists in inventory_metadata
+        # We can fetch all products to verify valid SKU
+        all_products = self.repo.get_all_products_from_inventory_metadata()
+        valid_skus = {p['sku'] for p in all_products}
+        if data['internal_sku'] not in valid_skus:
+            raise ValueError(f"Internal SKU '{data['internal_sku']}' not found in catalog")
+            
+        return self.repo.create_supplier_mapping(data)
+
+    def delete_supplier_mapping(self, mapping_id: int) -> bool:
+        """Delete a supplier product mapping"""
+        return self.repo.delete_supplier_mapping(mapping_id)

@@ -236,3 +236,31 @@ class AnalysisDashboardResponse(BaseModel):
 
 class GoogleSheetSyncRequest(BaseModel):
     sheet_id: str
+
+
+# ============================================================================
+# SUPPLIER PRODUCT MAPPING SCHEMAS
+# ============================================================================
+
+class SupplierProductMappingCreateIn(BaseModel):
+    """Create a new supplier product mapping"""
+    supplier_id: int
+    supplier_identifier: str = Field(..., min_length=1, max_length=255, description="Supplier SKU or product name")
+    internal_sku: str = Field(..., min_length=1, max_length=100, description="Internal matching SKU")
+
+
+class SupplierProductMappingOut(BaseModel):
+    """Supplier product mapping output"""
+    id: int
+    supplier_id: int
+    supplier_code: Optional[str] = None
+    supplier_name: Optional[str] = None
+    supplier_identifier: str
+    internal_sku: str
+    internal_product_name: Optional[str] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+

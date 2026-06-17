@@ -409,3 +409,51 @@ export async function syncMatrixToGSheet(sheetId) {
 export async function syncMatrixFromGSheet(sheetId) {
     return await post(`${BASE_PATH}/sync/google-sheet/import`, { sheet_id: sheetId });
 }
+
+// ============================================================================
+// PRODUCT MAPPINGS API
+// ============================================================================
+
+/**
+ * Get all product mappings for a supplier or all suppliers
+ * @param {number|null} [supplierId=null]
+ * @returns {Promise<Array<Object>>}
+ */
+export async function getSupplierMappings(supplierId = null) {
+  try {
+    const url = supplierId ? `${BASE_PATH}/mappings?supplier_id=${supplierId}` : `${BASE_PATH}/mappings`;
+    return await get(url);
+  } catch (error) {
+    console.error('[SourcingApi] Error fetching mappings:', error);
+    throw error;
+  }
+}
+
+/**
+ * Create or update a product mapping
+ * @param {Object} mappingData - {supplier_id, supplier_identifier, internal_sku}
+ * @returns {Promise<Object>}
+ */
+export async function createSupplierMapping(mappingData) {
+  try {
+    return await post(`${BASE_PATH}/mappings`, mappingData);
+  } catch (error) {
+    console.error('[SourcingApi] Error creating mapping:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete a product mapping
+ * @param {number} mappingId
+ * @returns {Promise<{status: string, message: string}>}
+ */
+export async function deleteSupplierMapping(mappingId) {
+  try {
+    return await http(`${BASE_PATH}/mappings/${mappingId}`, { method: 'DELETE' });
+  } catch (error) {
+    console.error('[SourcingApi] Error deleting mapping:', error);
+    throw error;
+  }
+}
+
