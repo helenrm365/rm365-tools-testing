@@ -239,6 +239,43 @@ class GoogleSheetSyncRequest(BaseModel):
 
 
 # ============================================================================
+# PDF IMPORT SCHEMAS
+# ============================================================================
+
+class PdfImportPreviewItem(BaseModel):
+    """A single matched item from a PDF import preview"""
+    sku: str
+    supplier_product_name: str
+    current_price: Optional[float] = None
+    current_currency: str = "GBP"
+    new_price: float
+    new_currency: str = "GBP"
+    match_method: str = Field(..., description="'mapping', 'direct_sku', or 'product_name'")
+    has_change: bool
+
+
+class PdfImportUnmatchedItem(BaseModel):
+    """A line extracted from the PDF that could not be matched to any product"""
+    raw_text: str
+    price: float
+    currency: Optional[str] = None
+    reason: str
+
+
+class PdfImportPreviewResponse(BaseModel):
+    """Full preview returned after parsing a supplier PDF — no DB changes yet"""
+    supplier_id: int
+    supplier_name: str
+    supplier_code: str
+    supplier_default_currency: str
+    preview: List[PdfImportPreviewItem]
+    unmatched: List[PdfImportUnmatchedItem]
+    total_found: int
+    total_matched: int
+    total_unmatched: int
+
+
+# ============================================================================
 # SUPPLIER PRODUCT MAPPING SCHEMAS
 # ============================================================================
 

@@ -36,7 +36,8 @@ import {
   getSupplierMappings,
   createSupplierMapping,
   deleteSupplierMapping,
-  importMappingsFile
+  importMappingsFile,
+  importMatrixPDF
 } from '../../services/api/sourcingApi.js?v=3';
 
 // ============================================================================
@@ -371,6 +372,44 @@ function setupEventListeners() {
   });
   document.getElementById('import-file-input')?.addEventListener('change', handleImportFileSelect);
   document.getElementById('matrix-search')?.addEventListener('input', debounce(handleMatrixSearch, 500));
+
+  // PDF Import
+  document.getElementById('btn-import-pdf')?.addEventListener('click', openPdfImportModal);
+  document.getElementById('pdf-import-modal-close')?.addEventListener('click', closePdfImportModal);
+  document.getElementById('btn-pdf-import-cancel')?.addEventListener('click', closePdfImportModal);
+  document.getElementById('pdf-import-overlay')?.addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closePdfImportModal();
+  });
+  document.getElementById('pdf-import-drop-zone')?.addEventListener('click', () => {
+    document.getElementById('pdf-import-file-input')?.click();
+  });
+  document.getElementById('pdf-import-file-input')?.addEventListener('change', handlePdfFileSelect);
+  document.getElementById('btn-pdf-import-process')?.addEventListener('click', processPdfImport);
+  document.getElementById('btn-pdf-preview-back')?.addEventListener('click', showPdfImportStep1);
+  document.getElementById('btn-pdf-preview-cancel')?.addEventListener('click', closePdfImportModal);
+  document.getElementById('btn-pdf-preview-confirm')?.addEventListener('click', confirmPdfImport);
+
+  // Drag-and-drop for PDF drop zone
+  const dropZone = document.getElementById('pdf-import-drop-zone');
+  if (dropZone) {
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.style.borderColor = 'var(--color-primary, #2563eb)';
+    });
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.style.borderColor = 'var(--color-border, #d1d5db)';
+    });
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.style.borderColor = 'var(--color-border, #d1d5db)';
+      const file = e.dataTransfer.files?.[0];
+      if (file && file.type === 'application/pdf') {
+        setPdfFile(file);
+      } else if (file) {
+        showToast('Please drop a PDF file', 'warning');
+      }
+    });
+  }
   
   // CSV Import Confirmation Modal
   document.getElementById('btn-csv-import-close')?.addEventListener('click', closeCsvImportModal);
@@ -2804,6 +2843,220 @@ function closeMappingsImportResultModal() {
 // ============================================================================
 // CUSTOM DROPDOWN FUNCTIONS
 // ============================================================================
+
+// ============================================================================
+// PDF IMPORT
+// ============================================================================
+
+let pendingPdfFile = null;
+let pendingPdfPreview = null;
+
+function openPdfImportModal() {
+  // Populate supplier dropdown from cached state
+  const select = document.getElementById('pdf-import-supplier');
+  if (select) {
+    select.innerHTML = '<option value="">— Choose a supplier —</option>';
+    (state.suppliers || []).forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.id;
+      opt.textContent = `${s.name} (${s.code})`;
+      select.appendChild(opt);
+    });
+  }
+
+  pendingPdfFile = null;
+  pendingPdfPreview = null;
+
+  // Reset step 1 fields
+  const filenameEl = document.getElementById('pdf-import-filename');
+  if (filenameEl) filenameEl.textContent = '';
+  if (select) select.value = '';
+  const processBtn = document.getElementById('btn-pdf-import-process');
+  if (processBtn) processBtn.disabled = true;
+  const fileInput = document.getElementById('pdf-import-file-input');
+  if (fileInput) fileInput.value = '';
+
+  showPdfImportStep1();
+  document.getElementById('pdf-import-overlay')?.classList.add('active');
+}
+
+function closePdfImportModal() {
+  document.getElementById('pdf-import-overlay')?.classList.remove('active');
+  pendingPdfFile = null;
+  pendingPdfPreview = null;
+}
+
+function showPdfImportStep1() {
+  document.getElementById('pdf-import-step-1').style.display = '';
+  document.getElementById('pdf-import-step-2').style.display = 'none';
+  document.getElementById('pdf-import-modal-title').textContent = 'Import PDF Price List';
+}
+
+function showPdfImportStep2() {
+  document.getElementById('pdf-import-step-1').style.display = 'none';
+  document.getElementById('pdf-import-step-2').style.display = '';
+}
+
+function setPdfFile(file) {
+  pendingPdfFile = file;
+  const filenameEl = document.getElementById('pdf-import-filename');
+  if (filenameEl) filenameEl.textContent = file.name;
+  const processBtn = document.getElementById('btn-pdf-import-process');
+  if (processBtn) {
+    const supplierId = document.getElementById('pdf-import-supplier')?.value;
+    processBtn.disabled = !supplierId;
+  }
+}
+
+function handlePdfFileSelect(e) {
+  const file = e.target.files?.[0];
+  if (file) setPdfFile(file);
+}
+
+// Watch supplier selection to enable/disable process button
+document.addEventListener('change', (e) => {
+  if (e.target.id === 'pdf-import-supplier') {
+    const processBtn = document.getElementById('btn-pdf-import-process');
+    if (processBtn) processBtn.disabled = !e.target.value || !pendingPdfFile;
+  }
+});
+
+async function processPdfImport() {
+  const supplierId = document.getElementById('pdf-import-supplier')?.value;
+  if (!supplierId || !pendingPdfFile) {
+    showToast('Please select a supplier and a PDF file', 'warning');
+    return;
+  }
+
+  setLoading(true);
+  try {
+    showToast('Parsing PDF...', 'info');
+    const result = await importMatrixPDF(pendingPdfFile, parseInt(supplierId));
+    pendingPdfPreview = result;
+    renderPdfPreview(result);
+    document.getElementById('pdf-import-modal-title').textContent =
+      `PDF Preview — ${result.supplier_name}`;
+    showPdfImportStep2();
+  } catch (error) {
+    console.error('[Sourcing] Error processing PDF:', error);
+    showToast('Failed to parse PDF: ' + (error.message || 'Unknown error'), 'error');
+  } finally {
+    setLoading(false);
+  }
+}
+
+function renderPdfPreview(result) {
+  // Summary stats
+  const summaryEl = document.getElementById('pdf-import-summary');
+  if (summaryEl) {
+    summaryEl.innerHTML = `
+      <div style="text-align:center; min-width:80px;">
+        <div style="font-size:1.6rem; font-weight:700; color:var(--color-text,#111);">${result.total_found}</div>
+        <div style="font-size:0.8rem; color:var(--color-muted,#6b7280);">Found</div>
+      </div>
+      <div style="text-align:center; min-width:80px;">
+        <div style="font-size:1.6rem; font-weight:700; color:var(--color-success,#16a34a);">${result.total_matched}</div>
+        <div style="font-size:0.8rem; color:var(--color-muted,#6b7280);">Matched</div>
+      </div>
+      <div style="text-align:center; min-width:80px;">
+        <div style="font-size:1.6rem; font-weight:700; color:var(--color-warning,#d97706);">${result.total_unmatched}</div>
+        <div style="font-size:0.8rem; color:var(--color-muted,#6b7280);">Unmatched</div>
+      </div>
+    `;
+  }
+
+  // Changes table
+  const tbody = document.getElementById('pdf-import-changes-body');
+  if (tbody) {
+    if (!result.preview || result.preview.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--color-muted,#6b7280); padding:1rem;">No matched items found.</td></tr>';
+    } else {
+      tbody.innerHTML = result.preview.map(item => {
+        const currSym = item.current_currency ? (CURRENCY_SYMBOLS[item.current_currency] || item.current_currency) : '';
+        const newSym = item.new_currency ? (CURRENCY_SYMBOLS[item.new_currency] || item.new_currency) : '';
+        const currentDisplay = item.current_price != null
+          ? `${currSym}${parseFloat(item.current_price).toFixed(2)}`
+          : '<span style="color:var(--color-muted,#9ca3af);">—</span>';
+        const newDisplay = `${newSym}${parseFloat(item.new_price).toFixed(2)}`;
+
+        let changeDisplay = '';
+        if (item.current_price != null) {
+          const diff = parseFloat(item.new_price) - parseFloat(item.current_price);
+          const pct = (diff / parseFloat(item.current_price)) * 100;
+          const sign = diff >= 0 ? '+' : '';
+          const color = diff > 0 ? 'var(--color-danger,#dc2626)' : diff < 0 ? 'var(--color-success,#16a34a)' : 'var(--color-muted,#6b7280)';
+          changeDisplay = `<span style="color:${color}; font-weight:600;">${sign}${pct.toFixed(1)}%</span>`;
+        } else {
+          changeDisplay = '<span style="color:var(--color-muted,#9ca3af);">New</span>';
+        }
+
+        return `<tr>
+          <td style="max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtml(item.supplier_product_name)}">${escapeHtml(item.supplier_product_name)}</td>
+          <td style="font-family:monospace;">${escapeHtml(item.sku)}</td>
+          <td>${currentDisplay}</td>
+          <td style="font-weight:600;">${newDisplay}</td>
+          <td>${changeDisplay}</td>
+        </tr>`;
+      }).join('');
+    }
+  }
+
+  // Unmatched section
+  const unmatchedSection = document.getElementById('pdf-import-unmatched-section');
+  const unmatchedCount = document.getElementById('pdf-import-unmatched-count');
+  const unmatchedBody = document.getElementById('pdf-import-unmatched-body');
+  if (unmatchedSection && result.unmatched?.length > 0) {
+    unmatchedSection.style.display = '';
+    if (unmatchedCount) unmatchedCount.textContent = result.unmatched.length;
+    if (unmatchedBody) {
+      unmatchedBody.innerHTML = result.unmatched.map(u => {
+        const sym = u.currency ? (CURRENCY_SYMBOLS[u.currency] || u.currency) : '';
+        return `<tr>
+          <td style="max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtml(u.raw_text)}">${escapeHtml(u.raw_text)}</td>
+          <td>${sym}${parseFloat(u.price).toFixed(2)}</td>
+          <td style="color:var(--color-muted,#6b7280);">${escapeHtml(u.reason)}</td>
+        </tr>`;
+      }).join('');
+    }
+  } else if (unmatchedSection) {
+    unmatchedSection.style.display = 'none';
+  }
+
+  // Enable confirm only if there are matched items
+  const confirmBtn = document.getElementById('btn-pdf-preview-confirm');
+  if (confirmBtn) {
+    confirmBtn.disabled = !result.preview || result.preview.length === 0;
+  }
+}
+
+async function confirmPdfImport() {
+  if (!pendingPdfPreview?.preview?.length) {
+    closePdfImportModal();
+    return;
+  }
+
+  const supplierId = pendingPdfPreview.supplier_id;
+  const updates = pendingPdfPreview.preview.map(item => ({
+    sku: item.sku,
+    supplier_id: supplierId,
+    unit_price: item.new_price,
+    currency: item.new_currency || pendingPdfPreview.supplier_default_currency,
+  }));
+
+  setLoading(true);
+  try {
+    await bulkUpdatePricing(updates);
+    const count = updates.length;
+    showToast(`Updated ${count} price${count !== 1 ? 's' : ''} from PDF`, 'success');
+    closePdfImportModal();
+    await loadSupplierMatrix();
+  } catch (error) {
+    console.error('[Sourcing] Error confirming PDF import:', error);
+    showToast('Failed to apply price updates: ' + (error.message || 'Unknown error'), 'error');
+  } finally {
+    setLoading(false);
+  }
+}
 
 // EXPOSE TO WINDOW FOR ONCLICK HANDLERS
 // ============================================================================

@@ -243,6 +243,9 @@
           <button class="btn btn-solid btn-success" id="btn-import-matrix">
             <i class="fas fa-download"></i> Import CSV
           </button>
+          <button class="btn btn-solid btn-default rounded-lg" id="btn-import-pdf">
+            <i class="fas fa-file-pdf"></i> Import PDF
+          </button>
           <input type="file" id="import-file-input" accept=".csv" style="display: none;">
         </div>
       </div>
@@ -669,6 +672,112 @@
       <button class="btn btn-solid btn-success" id="btn-csv-results-ok">
         <i class="fas fa-check"></i> OK
       </button>
+    </div>
+  </div>
+</div>
+
+<!-- PDF Import Modal -->
+<div class="modal-backdrop" id="pdf-import-overlay">
+  <div class="modal modal-lg" id="pdf-import-modal">
+    <div class="modal-header">
+      <div class="modal-header-icon"><i class="fas fa-file-pdf"></i></div>
+      <h3 class="modal-title" id="pdf-import-modal-title">Import PDF Price List</h3>
+      <button class="modal-close" id="pdf-import-modal-close"><i class="fas fa-times"></i></button>
+    </div>
+
+    <!-- Step 1: Select supplier + file -->
+    <div id="pdf-import-step-1">
+      <div class="modal-body">
+        <div class="modal-section">
+          <div class="modal-section-header">
+            <i class="fas fa-users"></i> Select Supplier
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="pdf-import-supplier">Supplier</label>
+            <select class="form-control" id="pdf-import-supplier">
+              <option value="">— Choose a supplier —</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-section">
+          <div class="modal-section-header">
+            <i class="fas fa-file-pdf"></i> Select PDF File
+          </div>
+          <div class="form-group">
+            <label class="form-label">PDF Price List</label>
+            <div id="pdf-import-drop-zone" style="border:2px dashed var(--color-border,#d1d5db); border-radius:8px; padding:2rem; text-align:center; cursor:pointer; transition:border-color 0.2s;">
+              <i class="fas fa-cloud-upload-alt" style="font-size:2rem; color:var(--color-muted,#6b7280); margin-bottom:0.5rem; display:block;"></i>
+              <p style="margin:0; color:var(--color-muted,#6b7280);">Click to choose a PDF or drag &amp; drop here</p>
+              <p id="pdf-import-filename" style="margin:0.5rem 0 0; font-weight:600; color:var(--color-text,#111827);"></p>
+            </div>
+            <input type="file" id="pdf-import-file-input" accept=".pdf" style="display:none;">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-solid btn-default rounded-lg" id="btn-pdf-import-cancel">Cancel</button>
+        <button class="btn btn-solid btn-success" id="btn-pdf-import-process" disabled>
+          <i class="fas fa-cog"></i> Process PDF
+        </button>
+      </div>
+    </div>
+
+    <!-- Step 2: Preview changes -->
+    <div id="pdf-import-step-2" style="display:none;">
+      <div class="modal-body">
+        <!-- Summary row -->
+        <div id="pdf-import-summary" style="display:flex; gap:1.5rem; margin-bottom:1.25rem; flex-wrap:wrap;"></div>
+
+        <!-- Matched changes table -->
+        <div id="pdf-import-changes-section">
+          <h4 style="margin:0 0 0.75rem; font-size:0.95rem; font-weight:600;">Price Changes</h4>
+          <div style="max-height:340px; overflow-y:auto; border:1px solid var(--color-border,#e5e7eb); border-radius:6px;">
+            <table class="data-table" id="pdf-import-changes-table" style="width:100%; font-size:0.85rem;">
+              <thead>
+                <tr>
+                  <th>Supplier Description</th>
+                  <th>Internal SKU</th>
+                  <th>Current Price</th>
+                  <th>New Price</th>
+                  <th>Change</th>
+                </tr>
+              </thead>
+              <tbody id="pdf-import-changes-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Unmatched items (collapsible) -->
+        <div id="pdf-import-unmatched-section" style="margin-top:1rem; display:none;">
+          <details>
+            <summary style="cursor:pointer; font-weight:600; font-size:0.9rem; padding:0.5rem 0;">
+              <i class="fas fa-exclamation-triangle" style="color:var(--color-warning,#d97706);"></i>
+              Unmatched Items (<span id="pdf-import-unmatched-count">0</span>) — no product mapping found
+            </summary>
+            <div style="max-height:200px; overflow-y:auto; margin-top:0.5rem; border:1px solid var(--color-border,#e5e7eb); border-radius:6px;">
+              <table class="data-table" style="width:100%; font-size:0.82rem;">
+                <thead>
+                  <tr>
+                    <th>Text from PDF</th>
+                    <th>Price</th>
+                    <th>Reason</th>
+                  </tr>
+                </thead>
+                <tbody id="pdf-import-unmatched-body"></tbody>
+              </table>
+            </div>
+          </details>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-solid btn-default rounded-lg" id="btn-pdf-preview-back">
+          <i class="fas fa-arrow-left"></i> Back
+        </button>
+        <button class="btn btn-solid btn-default rounded-lg" id="btn-pdf-preview-cancel">Cancel</button>
+        <button class="btn btn-solid btn-success" id="btn-pdf-preview-confirm">
+          <i class="fas fa-check"></i> Confirm &amp; Update Prices
+        </button>
+      </div>
     </div>
   </div>
 </div>

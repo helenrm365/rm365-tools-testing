@@ -1214,3 +1214,201 @@ class SourcingService:
             'skipped': len(errors),
             'errors': errors,
         }
+
+    # ========================================================================
+    # PDF IMPORT
+    # ========================================================================
+
+    def import_matrix_pdf(self, pdf_bytes: bytes, supplier_id: int) -> Dict:
+        """
+        Parse a supplier PDF price list and return a preview of pricing changes.
+        Uses product mappings to match line items to internal SKUs.
+        Does NOT write to the database — caller must call bulk_upsert_pricing to apply.
+        """
+        import pdfplumber
+        import io
+
+        suppliers = self.repo.get_suppliers(active_only=False)
+        supplier = next((s for s in suppliers if s['id'] == supplier_id), None)
+        if not supplier:
+            raise ValueError(f"Supplier with ID {supplier_id} not found")
+
+        default_currency = supplier.get('default_currency', 'GBP')
+
+        # Build a dict of existing prices for this supplier: sku -> {unit_price, currency}
+        existing_pricing: Dict = {}
+        for row in self.repo.get_full_matrix():
+            if row.get('supplier_id') == supplier_id and row.get('unit_price') is not None:
+                existing_pricing[row['sku']] = {
+                    'unit_price': row['unit_price'],
+                    'currency': row.get('currency') or default_currency,
+                }
+
+        # Extract items from PDF
+        extracted_items: list = []
+        with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
+            for page in pdf.pages:
+                tables = page.extract_tables()
+                if tables:
+                    for table in tables:
+                        extracted_items.extend(self._parse_pdf_table(table))
+                else:
+                    text = page.extract_text() or ''
+                    if text:
+                        extracted_items.extend(self._parse_pdf_text(text))
+
+        # Deduplicate by identifier (case-insensitive)
+        seen: set = set()
+        unique_items: list = []
+        for item in extracted_items:
+            key = item.get('identifier', '').lower().strip()
+            if key and key not in seen:
+                seen.add(key)
+                unique_items.append(item)
+
+        preview: list = []
+        unmatched: list = []
+
+        for item in unique_items:
+            identifier = item.get('identifier', '').strip()
+            price = item.get('price')
+            currency = item.get('currency') or default_currency
+
+            if not identifier or price is None:
+                continue
+
+            internal_sku = self.repo.resolve_supplier_sku(supplier_id, identifier)
+            if not internal_sku:
+                unmatched.append({
+                    'raw_text': identifier,
+                    'price': price,
+                    'currency': currency,
+                    'reason': 'No product mapping found',
+                })
+                continue
+
+            current = existing_pricing.get(internal_sku, {})
+            current_price = current.get('unit_price')
+            current_currency = current.get('currency') or default_currency
+
+            preview.append({
+                'sku': internal_sku,
+                'supplier_product_name': identifier,
+                'current_price': current_price,
+                'current_currency': current_currency,
+                'new_price': price,
+                'new_currency': currency,
+                'match_method': 'mapping',
+                'has_change': current_price is None or abs(float(current_price) - float(price)) > 0.001,
+            })
+
+        return {
+            'supplier_id': supplier_id,
+            'supplier_name': supplier['name'],
+            'supplier_code': supplier['code'],
+            'supplier_default_currency': default_currency,
+            'preview': preview,
+            'unmatched': unmatched,
+            'total_found': len(unique_items),
+            'total_matched': len(preview),
+            'total_unmatched': len(unmatched),
+        }
+
+    def _parse_pdf_table(self, table: list) -> list:
+        """Extract {identifier, price, currency} items from a pdfplumber table."""
+        import re
+
+        if not table or len(table) < 2:
+            return []
+
+        header = [str(cell or '').lower().strip() for cell in table[0]]
+
+        name_col = None
+        price_col = None
+        name_kw = {'product', 'description', 'item', 'name', 'sku', 'code', 'ref', 'article'}
+        price_kw = {'price', 'cost', 'unit', 'net', 'each', 'rate', 'excl', 'ex vat'}
+
+        for i, h in enumerate(header):
+            if any(kw in h for kw in name_kw) and name_col is None:
+                name_col = i
+            if any(kw in h for kw in price_kw) and price_col is None:
+                price_col = i
+
+        # Auto-detect if headers didn't resolve
+        if name_col is None or price_col is None:
+            num_cols = max((len(row) for row in table[1:] if row), default=0)
+            price_scores = [0] * num_cols
+            text_scores = [0] * num_cols
+            for row in table[1:]:
+                for ci, cell in enumerate(row or []):
+                    val = str(cell or '').strip()
+                    if re.search(r'\d+\.\d+', val):
+                        price_scores[ci] += 1
+                    elif len(val) > 3:
+                        text_scores[ci] += 1
+            if price_col is None and price_scores:
+                price_col = price_scores.index(max(price_scores))
+            if name_col is None and text_scores:
+                # Pick text-heaviest column that isn't the price column
+                ranked = sorted(range(num_cols), key=lambda i: text_scores[i], reverse=True)
+                name_col = next((i for i in ranked if i != price_col), None)
+
+        if name_col is None or price_col is None:
+            return []
+
+        items = []
+        for row in table[1:]:
+            if not row or len(row) <= max(name_col, price_col):
+                continue
+            identifier = str(row[name_col] or '').strip()
+            price_text = str(row[price_col] or '').strip()
+            if not identifier or not price_text:
+                continue
+            price, currency = self._parse_price_with_currency(price_text)
+            if price is not None:
+                items.append({'identifier': identifier, 'price': price, 'currency': currency})
+        return items
+
+    def _parse_pdf_text(self, text: str) -> list:
+        """Extract {identifier, price, currency} items from plain PDF text."""
+        import re
+
+        # Matches: optional currency + integer/decimal, or integer/decimal + optional currency
+        price_re = re.compile(
+            r'(?P<pre>[£$€¥])?'
+            r'\s*(?P<num>\d{1,6}(?:,\d{3})*(?:\.\d{1,4})?)'
+            r'\s*(?P<post>[£$€¥])?'
+        )
+        currency_map = {'£': 'GBP', '$': 'USD', '€': 'EUR', '¥': 'JPY'}
+
+        items = []
+        for line in text.split('\n'):
+            line = line.strip()
+            if not line or len(line) < 5:
+                continue
+
+            matches = list(price_re.finditer(line))
+            if not matches:
+                continue
+
+            # Use the last numeric match as the price (usually unit price is rightmost)
+            m = matches[-1]
+            sym = m.group('pre') or m.group('post') or ''
+            currency = currency_map.get(sym)
+            try:
+                price = float(m.group('num').replace(',', ''))
+            except ValueError:
+                continue
+
+            if not (0.01 <= price <= 100000):
+                continue
+
+            identifier = line[:m.start()].strip()
+            # Collapse dot-leaders and excess whitespace
+            identifier = re.sub(r'[\s.]{3,}', ' ', identifier).strip()
+            identifier = re.sub(r'\s{2,}', ' ', identifier).strip()
+
+            if 3 <= len(identifier) <= 200:
+                items.append({'identifier': identifier, 'price': price, 'currency': currency})
+
+        return items

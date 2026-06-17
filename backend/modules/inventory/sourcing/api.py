@@ -7,7 +7,7 @@ from __future__ import annotations
 import logging
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
 
 from common.deps import get_current_user
@@ -25,6 +25,7 @@ from .schemas import (
     GoogleSheetSyncRequest,
     SupplierProductMappingCreateIn,
     SupplierProductMappingOut,
+    PdfImportPreviewResponse,
 )
 from .service import SourcingService
 
@@ -402,6 +403,28 @@ async def import_matrix_csv(
         return {"status": "success", **result}
     except Exception as e:
         logger.error(f"Error importing CSV: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/import/pdf", response_model=PdfImportPreviewResponse)
+async def import_matrix_pdf(
+    file: UploadFile = File(...),
+    supplier_id: int = Form(...),
+    user=Depends(get_current_user)
+):
+    """
+    Parse a supplier PDF price list and return a preview of pricing changes.
+    Uses product mappings to match PDF line items to internal SKUs.
+    Does NOT commit changes — send confirmed items to POST /pricing/bulk to apply.
+    """
+    try:
+        contents = await file.read()
+        result = _svc().import_matrix_pdf(contents, supplier_id)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error parsing PDF: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

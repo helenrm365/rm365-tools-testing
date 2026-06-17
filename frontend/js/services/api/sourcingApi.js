@@ -473,3 +473,22 @@ export async function importMappingsFile(file) {
   }
 }
 
+/**
+ * Parse a supplier PDF price list and return a preview of pricing changes.
+ * Does NOT commit changes — call bulkUpdatePricing with confirmed items to apply.
+ * @param {File} file - PDF file
+ * @param {number} supplierId - Supplier ID the PDF belongs to
+ * @returns {Promise<{supplier_id, supplier_name, preview: Array, unmatched: Array, total_found, total_matched, total_unmatched}>}
+ */
+export async function importMatrixPDF(file, supplierId) {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('supplier_id', supplierId);
+    return await http(`${BASE_PATH}/import/pdf`, { method: 'POST', body: formData });
+  } catch (error) {
+    console.error('[SourcingApi] Error importing PDF:', error);
+    throw error;
+  }
+}
+
