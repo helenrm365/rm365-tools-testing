@@ -37,7 +37,7 @@ import {
   createSupplierMapping,
   deleteSupplierMapping,
   importMappingsFile
-} from '../../services/api/sourcingApi.js?v=2';
+} from '../../services/api/sourcingApi.js?v=3';
 
 // ============================================================================
 // CURRENCY HELPERS
