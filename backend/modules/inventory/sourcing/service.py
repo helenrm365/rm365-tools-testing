@@ -1164,12 +1164,19 @@ class SourcingService:
         rows_to_insert = []
         errors = []
 
+        def _normalize_cell(value) -> str:
+            if value is None:
+                return ''
+            if pd.isna(value):
+                return ''
+            return str(value).strip()
+
         for i, row in df.iterrows():
             line = i + 2
-            code = str(row.get('supplier_code', '') or '').strip().upper()
-            internal_sku = str(row.get('internal_sku', '') or '').strip()
-            supplier_sku = str(row.get('supplier_sku', '') or '').strip() if has_sku_col else ''
-            supplier_product_name = str(row.get('supplier_product_name', '') or '').strip() if has_name_col else ''
+            code = _normalize_cell(row.get('supplier_code', '')).upper()
+            internal_sku = _normalize_cell(row.get('internal_sku', ''))
+            supplier_sku = _normalize_cell(row.get('supplier_sku', '')) if has_sku_col else ''
+            supplier_product_name = _normalize_cell(row.get('supplier_product_name', '')) if has_name_col else ''
 
             if not code and not internal_sku and not supplier_sku and not supplier_product_name:
                 continue  # blank row
