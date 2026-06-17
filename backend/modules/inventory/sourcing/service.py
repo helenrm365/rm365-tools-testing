@@ -1309,6 +1309,21 @@ class SourcingService:
         conflicts: list = []
         unmatched: list = []
 
+        import re as _re
+
+        def _is_plausible(ref: str, identifier: str) -> bool:
+            """Return False for clear non-product noise (addresses, headers, artifacts)."""
+            full = (ref + ' ' + identifier).strip()
+            if len(full) < 4:
+                return False
+            if not _re.search(r'[a-zA-ZÀ-ÿ]', full):
+                return False
+            if len(full) > 4:
+                pairs = [(full[i].lower(), full[i+1].lower()) for i in range(len(full) - 1)]
+                if pairs and sum(1 for a, b in pairs if a == b) / len(pairs) > 0.45:
+                    return False
+            return True
+
         for item in unique_items:
             identifier = item.get('identifier', '').strip()
             ref = item.get('ref', '').strip()
@@ -1316,6 +1331,9 @@ class SourcingService:
             currency = item.get('currency') or default_currency
 
             if not (identifier or ref) or price is None:
+                continue
+
+            if not _is_plausible(ref, identifier):
                 continue
 
             # Resolve BOTH columns independently
@@ -1551,7 +1569,24 @@ class SourcingService:
                 ref        = ''
                 identifier = prefix
 
-            if ref or (3 <= len(identifier) <= 200):
+            full_text = (ref + ' ' + identifier).strip()
+
+            # Must contain at least one letter — filters address fragments ("85-", "104")
+            if not re.search(r'[a-zA-ZÀ-ÿ]', full_text):
+                continue
+
+            # Minimum meaningful length
+            if len(full_text) < 4:
+                continue
+
+            # Detect doubled-character artifacts from PDF bold/shadow rendering
+            # e.g. "FFaaccttuurree" → ~54% of consecutive pairs are the same letter
+            if len(full_text) > 4:
+                pairs = [(full_text[i].lower(), full_text[i+1].lower()) for i in range(len(full_text) - 1)]
+                if pairs and sum(1 for a, b in pairs if a == b) / len(pairs) > 0.45:
+                    continue
+
+            if ref or (4 <= len(identifier) <= 200):
                 items.append({'ref': ref, 'identifier': identifier, 'price': price, 'currency': currency})
 
         return items
