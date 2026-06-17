@@ -1256,18 +1256,41 @@ class SourcingService:
                     'currency': row.get('currency') or default_currency,
                 }
 
-        # Extract items from PDF
+        # Extract items from PDF — always run BOTH table and text extraction per page,
+        # then merge keeping the version with the most information per product.
+        # pdfplumber sometimes splits wide tables (e.g. left text cols + right price cols),
+        # so table extraction alone can miss prices; text extraction is the reliable fallback.
+        def _item_score(item: dict) -> int:
+            """Higher = more complete: 2 if both ref and identifier, 1 if one, 0 if neither."""
+            return (1 if item.get('ref') else 0) + (1 if item.get('identifier') else 0)
+
         extracted_items: list = []
         with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
             for page in pdf.pages:
-                tables = page.extract_tables()
-                if tables:
-                    for table in tables:
-                        extracted_items.extend(self._parse_pdf_table(table))
-                else:
-                    text = page.extract_text() or ''
-                    if text:
-                        extracted_items.extend(self._parse_pdf_text(text))
+                page_items: dict = {}  # primary_key -> best item so far
+
+                def _merge(item: dict) -> None:
+                    ref_key = item.get('ref', '').lower().strip()
+                    id_key  = item.get('identifier', '').lower().strip()
+                    primary = ref_key or id_key
+                    if not primary or item.get('price') is None:
+                        return
+                    existing = page_items.get(primary)
+                    if existing is None or _item_score(item) > _item_score(existing):
+                        page_items[primary] = item
+
+                # 1. Table extraction (structured, best when table is not split)
+                for table in (page.extract_tables() or []):
+                    for item in self._parse_pdf_table(table):
+                        _merge(item)
+
+                # 2. Text extraction (always; catches what split tables miss)
+                text = page.extract_text() or ''
+                if text:
+                    for item in self._parse_pdf_text(text):
+                        _merge(item)
+
+                extracted_items.extend(page_items.values())
 
         # Build a product name lookup for conflict display
         all_products = self.repo.get_all_products_from_inventory_metadata()
@@ -1445,46 +1468,90 @@ class SourcingService:
         return items
 
     def _parse_pdf_text(self, text: str) -> list:
-        """Extract {identifier, price, currency} items from plain PDF text."""
+        """
+        Extract {ref, identifier, price, currency} items from plain PDF text.
+
+        Strategy for invoice-format lines (e.g. GHMC):
+          "U332 Stylage BI SOFT - Hydromax -1x1ml  120,00  43,00 €  5 160,00 €  0,00"
+          → First price with an explicit currency symbol = unit price (43,00 €)
+          → Everything before it, minus trailing bare numbers (qty) = raw product text
+          → If the raw text starts with a short alphanumeric token (≤8 chars), treat it
+            as a supplier reference code; the remainder is the product name.
+
+        Falls back to any numeric price (no symbol) when no currency-marked price exists.
+        """
         import re
 
-        # Matches currency symbol (before or after) + number in US or European format
-        price_re = re.compile(
-            r'(?P<pre>[£$€¥])?\s*'
-            r'(?P<num>\d{1,6}(?:[.,]\d{3})*(?:[.,]\d{1,4})?)'
-            r'\s*(?P<post>[£$€¥])?'
-        )
         currency_map = {'£': 'GBP', '$': 'USD', '€': 'EUR', '¥': 'JPY'}
+
+        # Matches a number immediately adjacent to a currency symbol (before or after)
+        currency_price_re = re.compile(
+            r'(?P<num1>[\d][\d\s]*(?:[.,]\d+)*)\s*(?P<sym1>[£$€¥])'   # "43,00 €"
+            r'|(?P<sym2>[£$€¥])\s*(?P<num2>[\d][\d\s]*(?:[.,]\d+)*)'  # "£43.00"
+        )
+
+        # Fallback: any decimal number
+        any_price_re = re.compile(
+            r'(?P<pre>[£$€¥])?\s*(?P<num>\d{1,6}(?:[.,]\d{3})*(?:[.,]\d{1,4})?)\s*(?P<post>[£$€¥])?'
+        )
+
+        # Short alphanumeric ref-code at the start of the text (e.g. "U332", "AMS-01")
+        ref_code_re = re.compile(r'^([A-Z0-9][A-Z0-9\-]{0,7})\s+', re.IGNORECASE)
 
         items = []
         for line in text.split('\n'):
             line = line.strip()
-            if not line or len(line) < 5:
+            if not line or len(line) < 4:
                 continue
 
-            matches = list(price_re.finditer(line))
-            if not matches:
+            price = None
+            currency = None
+            price_start = None
+
+            # Prefer first currency-symbol price (most reliable for invoices)
+            m = currency_price_re.search(line)
+            if m:
+                if m.group('num1'):
+                    raw_num, sym = m.group('num1'), m.group('sym1')
+                else:
+                    raw_num, sym = m.group('num2'), m.group('sym2')
+                currency = currency_map.get(sym)
+                price, _ = self._parse_price_with_currency(raw_num)
+                price_start = m.start()
+            else:
+                # Fallback: use last numeric match
+                fb = list(any_price_re.finditer(line))
+                if fb:
+                    fm = fb[-1]
+                    sym = fm.group('pre') or fm.group('post') or ''
+                    currency = currency_map.get(sym)
+                    price, _ = self._parse_price_with_currency(fm.group('num'))
+                    price_start = fm.start()
+
+            if price is None or not (0.01 <= price <= 100000):
                 continue
 
-            # Use the last numeric match as the price (usually unit price is rightmost)
-            m = matches[-1]
-            sym = m.group('pre') or m.group('post') or ''
-            currency = currency_map.get(sym)
-            # Parse via the shared helper to correctly handle both EU and US number formats
-            raw_num = (sym + m.group('num')) if sym else m.group('num')
-            price, _ = self._parse_price_with_currency(raw_num)
-            if price is None:
+            # Raw text before the price
+            prefix = line[:price_start].strip()
+            # Strip trailing bare numbers (e.g. quantity column "120,00")
+            prefix = re.sub(r'[\d][\d\s,\.]*$', '', prefix).strip()
+            # Collapse repeated spaces / dot-leaders
+            prefix = re.sub(r'[\s.]{3,}', ' ', prefix).strip()
+            prefix = re.sub(r'\s{2,}', ' ', prefix).strip()
+
+            if not prefix or len(prefix) < 2:
                 continue
 
-            if not (0.01 <= price <= 100000):
-                continue
+            # Split into ref + identifier
+            rm = ref_code_re.match(prefix)
+            if rm and len(rm.group(1)) <= 8:
+                ref        = rm.group(1)
+                identifier = prefix[rm.end():].strip()
+            else:
+                ref        = ''
+                identifier = prefix
 
-            identifier = line[:m.start()].strip()
-            # Collapse dot-leaders and excess whitespace
-            identifier = re.sub(r'[\s.]{3,}', ' ', identifier).strip()
-            identifier = re.sub(r'\s{2,}', ' ', identifier).strip()
-
-            if 3 <= len(identifier) <= 200:
-                items.append({'ref': '', 'identifier': identifier, 'price': price, 'currency': currency})
+            if ref or (3 <= len(identifier) <= 200):
+                items.append({'ref': ref, 'identifier': identifier, 'price': price, 'currency': currency})
 
         return items
