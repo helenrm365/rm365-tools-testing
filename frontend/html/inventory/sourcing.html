@@ -397,6 +397,10 @@
             <p class="block-subtitle">Map alternative supplier product names or SKUs to internal canonical SKUs</p>
           </div>
           <div class="block-header-actions">
+            <button class="btn btn-solid btn-default" id="btn-import-mappings">
+              <i class="fas fa-file-import"></i> Import CSV/Excel
+            </button>
+            <input type="file" id="mappings-import-file" accept=".csv,.xlsx,.xls" style="display:none;">
             <button class="btn btn-solid btn-success" id="btn-add-mapping">
               <i class="fas fa-plus"></i> Add Mapping
             </button>
@@ -425,7 +429,8 @@
               <thead>
                 <tr>
                   <th class="col-supplier sortable">Supplier</th>
-                  <th class="col-supplier-identifier sortable">Supplier SKU/Name</th>
+                  <th class="col-supplier-sku sortable">Supplier SKU</th>
+                  <th class="col-supplier-name sortable">Supplier Product Name</th>
                   <th class="col-internal-sku sortable">Internal SKU</th>
                   <th class="col-internal-name sortable">Internal Product Name</th>
                   <th class="col-created sortable">Created</th>
@@ -434,7 +439,7 @@
               </thead>
               <tbody id="mappings-table-body">
                 <tr class="loading-row">
-                  <td colspan="6"><i class="fas fa-spinner fa-spin"></i> Loading mappings...</td>
+                  <td colspan="7"><i class="fas fa-spinner fa-spin"></i> Loading mappings...</td>
                 </tr>
               </tbody>
             </table>
@@ -668,6 +673,23 @@
   </div>
 </div>
 
+<!-- Mappings Import Result Modal -->
+<div class="modal-backdrop" id="mappings-import-result-overlay">
+  <div class="modal modal-md" id="mappings-import-result-modal">
+    <div class="modal-header">
+      <div class="modal-header-icon"><i class="fas fa-file-import"></i></div>
+      <h3 class="modal-title">Import Results</h3>
+      <button class="modal-close" id="mappings-import-result-close"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <div id="mappings-import-result-body"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-solid btn-default rounded-lg" id="btn-close-mappings-import-result">Close</button>
+    </div>
+  </div>
+</div>
+
 <!-- Product Mapping Modal -->
 <div class="modal-backdrop" id="mapping-modal-overlay">
   <div class="modal modal-md" id="mapping-modal">
@@ -685,11 +707,17 @@
             <!-- Dynamically populated -->
           </select>
         </div>
-        
+
         <div class="nui-field">
-          <label class="nui-label" for="mapping-supplier-identifier">Supplier Product SKU or Name *</label>
-          <input type="text" id="mapping-supplier-identifier" class="nui-input nui-input-default" placeholder="e.g. Juvderm 3" required>
-          <p class="help-text">The product name or SKU exactly as it appears in the supplier's CSV/GSheet.</p>
+          <label class="nui-label" for="mapping-supplier-sku">Supplier SKU</label>
+          <input type="text" id="mapping-supplier-sku" class="nui-input nui-input-default" placeholder="e.g. ABC-123">
+          <p class="help-text">The SKU or code as it appears in the supplier's data. At least one of SKU or Name is required.</p>
+        </div>
+
+        <div class="nui-field">
+          <label class="nui-label" for="mapping-supplier-product-name">Supplier Product Name</label>
+          <input type="text" id="mapping-supplier-product-name" class="nui-input nui-input-default" placeholder="e.g. Juvderm 3">
+          <p class="help-text">The product name as it appears in the supplier's data.</p>
         </div>
         
         <div class="nui-field">

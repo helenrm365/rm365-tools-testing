@@ -457,3 +457,19 @@ export async function deleteSupplierMapping(mappingId) {
   }
 }
 
+/**
+ * Import product mappings from a CSV or Excel file
+ * @param {File} file - CSV or .xlsx file with columns: supplier_code, supplier_identifier, internal_sku
+ * @returns {Promise<{status: string, imported: number, skipped: number, errors: string[]}>}
+ */
+export async function importMappingsFile(file) {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    return await http(`${BASE_PATH}/mappings/import`, { method: 'POST', body: formData });
+  } catch (error) {
+    console.error('[SourcingApi] Error importing mappings:', error);
+    throw error;
+  }
+}
+

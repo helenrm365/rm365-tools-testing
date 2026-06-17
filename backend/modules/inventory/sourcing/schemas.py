@@ -4,7 +4,7 @@ Pydantic schemas for Product Sourcing module
 """
 from typing import Optional, List, Dict, Any
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 # ============================================================================
@@ -243,10 +243,19 @@ class GoogleSheetSyncRequest(BaseModel):
 # ============================================================================
 
 class SupplierProductMappingCreateIn(BaseModel):
-    """Create a new supplier product mapping"""
+    """Create a new supplier product mapping — at least one of supplier_sku or supplier_product_name required"""
     supplier_id: int
-    supplier_identifier: str = Field(..., min_length=1, max_length=255, description="Supplier SKU or product name")
+    supplier_sku: Optional[str] = Field(None, max_length=255, description="Supplier's product SKU/code")
+    supplier_product_name: Optional[str] = Field(None, max_length=255, description="Supplier's product name")
     internal_sku: str = Field(..., min_length=1, max_length=100, description="Internal matching SKU")
+
+    @model_validator(mode='after')
+    def at_least_one_identifier(self):
+        sku = (self.supplier_sku or '').strip()
+        name = (self.supplier_product_name or '').strip()
+        if not sku and not name:
+            raise ValueError("At least one of supplier_sku or supplier_product_name must be provided")
+        return self
 
 
 class SupplierProductMappingOut(BaseModel):
@@ -255,7 +264,8 @@ class SupplierProductMappingOut(BaseModel):
     supplier_id: int
     supplier_code: Optional[str] = None
     supplier_name: Optional[str] = None
-    supplier_identifier: str
+    supplier_sku: Optional[str] = None
+    supplier_product_name: Optional[str] = None
     internal_sku: str
     internal_product_name: Optional[str] = None
     created_at: datetime

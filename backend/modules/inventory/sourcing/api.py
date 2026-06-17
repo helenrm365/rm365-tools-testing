@@ -492,3 +492,23 @@ def delete_supplier_mapping(
     except Exception as e:
         logger.error(f"Error deleting mapping: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/mappings/import")
+async def import_supplier_mappings(
+    file: UploadFile = File(...),
+    user=Depends(get_current_user)
+):
+    """
+    Import product mappings from a CSV or Excel file.
+    Required columns: supplier_code, supplier_identifier, internal_sku
+    """
+    try:
+        contents = await file.read()
+        result = _svc().import_mappings_file(contents, file.filename or 'upload')
+        return {"status": "success", **result}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error importing mappings: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

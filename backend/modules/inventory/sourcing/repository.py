@@ -101,11 +101,17 @@ class SourcingRepository:
                 CREATE TABLE IF NOT EXISTS sourcing_supplier_product_mappings (
                     id SERIAL PRIMARY KEY,
                     supplier_id INTEGER NOT NULL REFERENCES sourcing_suppliers(id) ON DELETE CASCADE,
-                    supplier_identifier VARCHAR(255) NOT NULL,
+                    supplier_sku VARCHAR(255),
+                    supplier_product_name VARCHAR(255),
                     internal_sku VARCHAR(100) NOT NULL,
                     created_at TIMESTAMP DEFAULT NOW(),
                     updated_at TIMESTAMP DEFAULT NOW(),
-                    UNIQUE(supplier_id, supplier_identifier)
+                    CONSTRAINT chk_mapping_at_least_one CHECK (
+                        (supplier_sku IS NOT NULL AND TRIM(supplier_sku) != '') OR
+                        (supplier_product_name IS NOT NULL AND TRIM(supplier_product_name) != '')
+                    ),
+                    UNIQUE(supplier_id, supplier_sku),
+                    UNIQUE(supplier_id, supplier_product_name)
                 )
             """)
 
@@ -123,12 +129,16 @@ class SourcingRepository:
                 ON sourcing_suppliers(is_active)
             """)
             cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_sourcing_mappings_supplier 
+                CREATE INDEX IF NOT EXISTS idx_sourcing_mappings_supplier
                 ON sourcing_supplier_product_mappings(supplier_id)
             """)
             cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_sourcing_mappings_identifier 
-                ON sourcing_supplier_product_mappings(supplier_identifier)
+                CREATE INDEX IF NOT EXISTS idx_sourcing_mappings_sku
+                ON sourcing_supplier_product_mappings(supplier_sku)
+            """)
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_sourcing_mappings_name
+                ON sourcing_supplier_product_mappings(supplier_product_name)
             """)
 
             # Migration: Add missing columns to existing tables
@@ -143,19 +153,76 @@ class SourcingRepository:
                 ("sourcing_suppliers", "min_order_value", "DECIMAL(10,2)"),
                 ("sourcing_suppliers", "payment_terms", "VARCHAR(100)"),
             ]
-            
+
             for table, column, col_type in migration_columns:
                 cursor.execute(f"""
                     DO $$
                     BEGIN
                         IF NOT EXISTS (
-                            SELECT 1 FROM information_schema.columns 
+                            SELECT 1 FROM information_schema.columns
                             WHERE table_name = '{table}' AND column_name = '{column}'
                         ) THEN
                             ALTER TABLE {table} ADD COLUMN {column} {col_type};
                         END IF;
                     END $$;
                 """)
+
+            # Migration: rename supplier_identifier → supplier_product_name and add supplier_sku
+            cursor.execute("""
+                DO $$
+                BEGIN
+                    -- Rename old column if it exists and the new name doesn't
+                    IF EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_name = 'sourcing_supplier_product_mappings' AND column_name = 'supplier_identifier'
+                    ) AND NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_name = 'sourcing_supplier_product_mappings' AND column_name = 'supplier_product_name'
+                    ) THEN
+                        ALTER TABLE sourcing_supplier_product_mappings RENAME COLUMN supplier_identifier TO supplier_product_name;
+                    END IF;
+
+                    -- Allow supplier_product_name to be nullable now (it was NOT NULL before)
+                    IF EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_name = 'sourcing_supplier_product_mappings'
+                          AND column_name = 'supplier_product_name'
+                          AND is_nullable = 'NO'
+                    ) THEN
+                        ALTER TABLE sourcing_supplier_product_mappings ALTER COLUMN supplier_product_name DROP NOT NULL;
+                    END IF;
+
+                    -- Add supplier_sku column if missing
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_name = 'sourcing_supplier_product_mappings' AND column_name = 'supplier_sku'
+                    ) THEN
+                        ALTER TABLE sourcing_supplier_product_mappings ADD COLUMN supplier_sku VARCHAR(255);
+                    END IF;
+
+                    -- Add unique constraint on (supplier_id, supplier_sku) if missing
+                    IF NOT EXISTS (
+                        SELECT 1 FROM pg_constraint
+                        WHERE conname = 'sourcing_supplier_product_mappings_supplier_id_supplier_sku_key'
+                    ) THEN
+                        ALTER TABLE sourcing_supplier_product_mappings
+                            ADD CONSTRAINT sourcing_supplier_product_mappings_supplier_id_supplier_sku_key
+                            UNIQUE (supplier_id, supplier_sku);
+                    END IF;
+
+                    -- Add check constraint if missing
+                    IF NOT EXISTS (
+                        SELECT 1 FROM pg_constraint
+                        WHERE conname = 'chk_mapping_at_least_one'
+                    ) THEN
+                        ALTER TABLE sourcing_supplier_product_mappings
+                            ADD CONSTRAINT chk_mapping_at_least_one CHECK (
+                                (supplier_sku IS NOT NULL AND TRIM(supplier_sku) != '') OR
+                                (supplier_product_name IS NOT NULL AND TRIM(supplier_product_name) != '')
+                            );
+                    END IF;
+                END $$;
+            """)
 
             conn.commit()
             _tables_initialized = True
@@ -795,12 +862,13 @@ class SourcingRepository:
         try:
             cursor = conn.cursor()
             query = """
-                SELECT 
+                SELECT
                     m.id,
                     m.supplier_id,
                     s.code as supplier_code,
                     s.name as supplier_name,
-                    m.supplier_identifier,
+                    m.supplier_sku,
+                    m.supplier_product_name,
                     m.internal_sku,
                     p.product_name as internal_product_name,
                     m.created_at,
@@ -813,8 +881,8 @@ class SourcingRepository:
             if supplier_id is not None:
                 query += " WHERE m.supplier_id = %s"
                 params.append(supplier_id)
-            query += " ORDER BY s.name, m.supplier_identifier"
-            
+            query += " ORDER BY s.name, COALESCE(m.supplier_sku, m.supplier_product_name)"
+
             cursor.execute(query, params)
             columns = [desc[0] for desc in cursor.description]
             return [dict(zip(columns, row)) for row in cursor.fetchall()]
@@ -826,30 +894,44 @@ class SourcingRepository:
         conn = self._get_conn()
         try:
             cursor = conn.cursor()
-            cursor.execute("""
-                INSERT INTO sourcing_supplier_product_mappings 
-                (supplier_id, supplier_identifier, internal_sku, updated_at)
-                VALUES (%s, TRIM(%s), TRIM(%s), NOW())
-                ON CONFLICT (supplier_id, supplier_identifier) DO UPDATE SET
-                    internal_sku = EXCLUDED.internal_sku,
-                    updated_at = NOW()
-                RETURNING *
-            """, (
-                data['supplier_id'],
-                data['supplier_identifier'],
-                data['internal_sku']
-            ))
-            row = cursor.fetchone()
+            supplier_sku = (data.get('supplier_sku') or '').strip() or None
+            supplier_product_name = (data.get('supplier_product_name') or '').strip() or None
+
+            # Upsert: prefer matching on SKU if provided, otherwise on name
+            if supplier_sku:
+                cursor.execute("""
+                    INSERT INTO sourcing_supplier_product_mappings
+                    (supplier_id, supplier_sku, supplier_product_name, internal_sku, updated_at)
+                    VALUES (%s, %s, %s, TRIM(%s), NOW())
+                    ON CONFLICT (supplier_id, supplier_sku) DO UPDATE SET
+                        supplier_product_name = EXCLUDED.supplier_product_name,
+                        internal_sku = EXCLUDED.internal_sku,
+                        updated_at = NOW()
+                    RETURNING id
+                """, (data['supplier_id'], supplier_sku, supplier_product_name, data['internal_sku']))
+            else:
+                cursor.execute("""
+                    INSERT INTO sourcing_supplier_product_mappings
+                    (supplier_id, supplier_sku, supplier_product_name, internal_sku, updated_at)
+                    VALUES (%s, %s, %s, TRIM(%s), NOW())
+                    ON CONFLICT (supplier_id, supplier_product_name) DO UPDATE SET
+                        supplier_sku = EXCLUDED.supplier_sku,
+                        internal_sku = EXCLUDED.internal_sku,
+                        updated_at = NOW()
+                    RETURNING id
+                """, (data['supplier_id'], supplier_sku, supplier_product_name, data['internal_sku']))
+
+            mapping_id = cursor.fetchone()[0]
             conn.commit()
-            
-            # Fetch full mapping info with joined names
+
             cursor.execute("""
-                SELECT 
+                SELECT
                     m.id,
                     m.supplier_id,
                     s.code as supplier_code,
                     s.name as supplier_name,
-                    m.supplier_identifier,
+                    m.supplier_sku,
+                    m.supplier_product_name,
                     m.internal_sku,
                     p.product_name as internal_product_name,
                     m.created_at,
@@ -858,10 +940,10 @@ class SourcingRepository:
                 JOIN sourcing_suppliers s ON m.supplier_id = s.id
                 LEFT JOIN inventory_metadata p ON m.internal_sku = p.sku
                 WHERE m.id = %s
-            """, (row[0],))
+            """, (mapping_id,))
             columns = [desc[0] for desc in cursor.description]
             return dict(zip(columns, cursor.fetchone()))
-        except Exception as e:
+        except Exception:
             conn.rollback()
             raise
         finally:
@@ -882,6 +964,46 @@ class SourcingRepository:
         finally:
             self._return_conn(conn)
 
+    def bulk_create_supplier_mappings(self, rows: List[Dict]) -> int:
+        """Upsert multiple supplier product mappings, returns count inserted/updated"""
+        if not rows:
+            return 0
+        conn = self._get_conn()
+        try:
+            cursor = conn.cursor()
+            count = 0
+            for row in rows:
+                supplier_sku = (row.get('supplier_sku') or '').strip() or None
+                supplier_product_name = (row.get('supplier_product_name') or '').strip() or None
+                if supplier_sku:
+                    cursor.execute("""
+                        INSERT INTO sourcing_supplier_product_mappings
+                        (supplier_id, supplier_sku, supplier_product_name, internal_sku, updated_at)
+                        VALUES (%s, %s, %s, TRIM(%s), NOW())
+                        ON CONFLICT (supplier_id, supplier_sku) DO UPDATE SET
+                            supplier_product_name = EXCLUDED.supplier_product_name,
+                            internal_sku = EXCLUDED.internal_sku,
+                            updated_at = NOW()
+                    """, (row['supplier_id'], supplier_sku, supplier_product_name, row['internal_sku']))
+                else:
+                    cursor.execute("""
+                        INSERT INTO sourcing_supplier_product_mappings
+                        (supplier_id, supplier_sku, supplier_product_name, internal_sku, updated_at)
+                        VALUES (%s, %s, %s, TRIM(%s), NOW())
+                        ON CONFLICT (supplier_id, supplier_product_name) DO UPDATE SET
+                            supplier_sku = EXCLUDED.supplier_sku,
+                            internal_sku = EXCLUDED.internal_sku,
+                            updated_at = NOW()
+                    """, (row['supplier_id'], supplier_sku, supplier_product_name, row['internal_sku']))
+                count += cursor.rowcount
+            conn.commit()
+            return count
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            self._return_conn(conn)
+
     def resolve_supplier_sku(self, supplier_id: int, identifier: str) -> Optional[str]:
         """Resolve alternative supplier sku/name into internal canonical SKU"""
         if not identifier:
@@ -890,11 +1012,14 @@ class SourcingRepository:
         try:
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT internal_sku 
-                FROM sourcing_supplier_product_mappings 
-                WHERE supplier_id = %s AND TRIM(LOWER(supplier_identifier)) = TRIM(LOWER(%s))
+                SELECT internal_sku
+                FROM sourcing_supplier_product_mappings
+                WHERE supplier_id = %s AND (
+                    TRIM(LOWER(supplier_sku)) = TRIM(LOWER(%s)) OR
+                    TRIM(LOWER(supplier_product_name)) = TRIM(LOWER(%s))
+                )
                 LIMIT 1
-            """, (supplier_id, identifier))
+            """, (supplier_id, identifier, identifier))
             row = cursor.fetchone()
             return row[0] if row else None
         finally:

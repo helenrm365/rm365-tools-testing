@@ -1104,20 +1104,106 @@ class SourcingService:
 
     def create_supplier_mapping(self, data: Dict) -> Dict:
         """Create a new supplier product mapping"""
-        # Validate supplier exists
         supplier = self.repo.get_supplier_by_id(data['supplier_id'])
         if not supplier:
             raise ValueError(f"Supplier with ID {data['supplier_id']} not found")
-        
-        # Check internal SKU exists in inventory_metadata
-        # We can fetch all products to verify valid SKU
+
+        supplier_sku = (data.get('supplier_sku') or '').strip() or None
+        supplier_product_name = (data.get('supplier_product_name') or '').strip() or None
+        if not supplier_sku and not supplier_product_name:
+            raise ValueError("At least one of supplier_sku or supplier_product_name must be provided")
+
         all_products = self.repo.get_all_products_from_inventory_metadata()
         valid_skus = {p['sku'] for p in all_products}
         if data['internal_sku'] not in valid_skus:
             raise ValueError(f"Internal SKU '{data['internal_sku']}' not found in catalog")
-            
+
         return self.repo.create_supplier_mapping(data)
 
     def delete_supplier_mapping(self, mapping_id: int) -> bool:
         """Delete a supplier product mapping"""
         return self.repo.delete_supplier_mapping(mapping_id)
+
+    def import_mappings_file(self, file_bytes: bytes, filename: str) -> Dict:
+        """
+        Import product mappings from a CSV or Excel file.
+        Required columns: supplier_code, internal_sku
+        At least one of: supplier_sku, supplier_name (or supplier_product_name)
+        """
+        import io
+        import pandas as pd
+
+        ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
+        if ext in ('xlsx', 'xls'):
+            df = pd.read_excel(io.BytesIO(file_bytes), dtype=str)
+        else:
+            df = pd.read_csv(io.StringIO(file_bytes.decode('utf-8-sig')), dtype=str)
+
+        df.columns = [c.strip().lower().replace(' ', '_') for c in df.columns]
+
+        required = {'supplier_code', 'internal_sku'}
+        missing = required - set(df.columns)
+        if missing:
+            raise ValueError(f"Missing required columns: {', '.join(sorted(missing))}")
+
+        # Accept both 'supplier_name' and 'supplier_product_name' as the name column
+        if 'supplier_name' in df.columns and 'supplier_product_name' not in df.columns:
+            df = df.rename(columns={'supplier_name': 'supplier_product_name'})
+
+        has_sku_col = 'supplier_sku' in df.columns
+        has_name_col = 'supplier_product_name' in df.columns
+        if not has_sku_col and not has_name_col:
+            raise ValueError("File must contain at least one of: supplier_sku, supplier_name (or supplier_product_name)")
+
+        suppliers = self.repo.get_suppliers(active_only=False)
+        supplier_by_code = {s['code'].upper(): s for s in suppliers}
+
+        all_products = self.repo.get_all_products_from_inventory_metadata()
+        valid_skus = {p['sku'] for p in all_products}
+
+        rows_to_insert = []
+        errors = []
+
+        for i, row in df.iterrows():
+            line = i + 2
+            code = str(row.get('supplier_code', '') or '').strip().upper()
+            internal_sku = str(row.get('internal_sku', '') or '').strip()
+            supplier_sku = str(row.get('supplier_sku', '') or '').strip() if has_sku_col else ''
+            supplier_product_name = str(row.get('supplier_product_name', '') or '').strip() if has_name_col else ''
+
+            if not code and not internal_sku and not supplier_sku and not supplier_product_name:
+                continue  # blank row
+
+            if not code:
+                errors.append(f"Row {line}: missing supplier_code")
+                continue
+            if not internal_sku:
+                errors.append(f"Row {line}: missing internal_sku")
+                continue
+            if not supplier_sku and not supplier_product_name:
+                errors.append(f"Row {line}: at least one of supplier_sku or supplier_name must be provided")
+                continue
+
+            supplier = supplier_by_code.get(code)
+            if not supplier:
+                errors.append(f"Row {line}: supplier '{code}' not found")
+                continue
+
+            if internal_sku not in valid_skus:
+                errors.append(f"Row {line}: internal SKU '{internal_sku}' not in catalog")
+                continue
+
+            rows_to_insert.append({
+                'supplier_id': supplier['id'],
+                'supplier_sku': supplier_sku or None,
+                'supplier_product_name': supplier_product_name or None,
+                'internal_sku': internal_sku,
+            })
+
+        imported = self.repo.bulk_create_supplier_mappings(rows_to_insert) if rows_to_insert else 0
+
+        return {
+            'imported': imported,
+            'skipped': len(errors),
+            'errors': errors,
+        }

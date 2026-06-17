@@ -35,7 +35,8 @@ import {
   syncMatrixFromGSheet,
   getSupplierMappings,
   createSupplierMapping,
-  deleteSupplierMapping
+  deleteSupplierMapping,
+  importMappingsFile
 } from '../../services/api/sourcingApi.js?v=2';
 
 // ============================================================================
@@ -436,6 +437,12 @@ function setupEventListeners() {
 
   // Product Mappings Tab Events
   document.getElementById('btn-add-mapping')?.addEventListener('click', openAddMappingModal);
+  document.getElementById('btn-import-mappings')?.addEventListener('click', () => {
+    document.getElementById('mappings-import-file')?.click();
+  });
+  document.getElementById('mappings-import-file')?.addEventListener('change', handleMappingsImportFileChange);
+  document.getElementById('mappings-import-result-close')?.addEventListener('click', closeMappingsImportResultModal);
+  document.getElementById('btn-close-mappings-import-result')?.addEventListener('click', closeMappingsImportResultModal);
   document.getElementById('btn-save-mapping')?.addEventListener('click', handleSaveMapping);
   document.getElementById('btn-cancel-mapping')?.addEventListener('click', closeMappingModal);
   document.getElementById('mapping-modal-close')?.addEventListener('click', closeMappingModal);
@@ -2559,8 +2566,9 @@ function applyMappingsClientFilters() {
   // Apply search query
   if (state.mappingsSearch) {
     const query = state.mappingsSearch.toLowerCase();
-    filtered = filtered.filter(m => 
-      (m.supplier_identifier || '').toLowerCase().includes(query) ||
+    filtered = filtered.filter(m =>
+      (m.supplier_sku || '').toLowerCase().includes(query) ||
+      (m.supplier_product_name || '').toLowerCase().includes(query) ||
       (m.internal_sku || '').toLowerCase().includes(query) ||
       (m.internal_product_name || '').toLowerCase().includes(query) ||
       (m.supplier_name || '').toLowerCase().includes(query) ||
@@ -2578,7 +2586,7 @@ function renderMappingsTable() {
   if (state.mappingsData.length === 0) {
     tbody.innerHTML = `
       <tr class="empty-row">
-        <td colspan="6">
+        <td colspan="7">
           <div class="empty-state">
             <i class="fas fa-link"></i>
             <p>No product mappings found.</p>
@@ -2594,7 +2602,8 @@ function renderMappingsTable() {
     return `
       <tr data-mapping-id="${row.id}">
         <td><strong>${escapeHtml(row.supplier_name || '')} (${escapeHtml(row.supplier_code || '')})</strong></td>
-        <td><code class="supplier-identifier-code">${escapeHtml(row.supplier_identifier)}</code></td>
+        <td>${row.supplier_sku ? `<code class="supplier-identifier-code">${escapeHtml(row.supplier_sku)}</code>` : '—'}</td>
+        <td>${row.supplier_product_name ? `<code class="supplier-identifier-code">${escapeHtml(row.supplier_product_name)}</code>` : '—'}</td>
         <td><code class="internal-sku-code">${escapeHtml(row.internal_sku)}</code></td>
         <td>${escapeHtml(row.internal_product_name || '—')}</td>
         <td>${escapeHtml(createdDate)}</td>
@@ -2691,22 +2700,32 @@ function handleMappingInternalSearchInput(e) {
 
 async function handleSaveMapping() {
   const supplierId = document.getElementById('mapping-supplier').value;
-  const supplierIdentifier = document.getElementById('mapping-supplier-identifier').value.trim();
+  const supplierSku = (document.getElementById('mapping-supplier-sku')?.value || '').trim();
+  const supplierProductName = (document.getElementById('mapping-supplier-product-name')?.value || '').trim();
   const internalSku = document.getElementById('mapping-internal-sku').value;
-  
-  if (!supplierId || !supplierIdentifier || !internalSku) {
-    showToast('Please fill out all required fields', 'warning');
+
+  if (!supplierId) {
+    showToast('Please select a supplier', 'warning');
     return;
   }
-  
+  if (!supplierSku && !supplierProductName) {
+    showToast('Please provide at least one of Supplier SKU or Supplier Product Name', 'warning');
+    return;
+  }
+  if (!internalSku) {
+    showToast('Please select an internal SKU', 'warning');
+    return;
+  }
+
   setLoading(true);
   try {
     await createSupplierMapping({
       supplier_id: parseInt(supplierId),
-      supplier_identifier,
+      supplier_sku: supplierSku || null,
+      supplier_product_name: supplierProductName || null,
       internal_sku: internalSku
     });
-    
+
     showToast('Product mapping saved successfully', 'success');
     closeMappingModal();
     await loadProductMappings();
@@ -2722,7 +2741,7 @@ async function deleteMapping(mappingId) {
   if (!confirm('Are you sure you want to delete this product mapping?')) {
     return;
   }
-  
+
   setLoading(true);
   try {
     await deleteSupplierMapping(mappingId);
@@ -2734,6 +2753,52 @@ async function deleteMapping(mappingId) {
   } finally {
     setLoading(false);
   }
+}
+
+async function handleMappingsImportFileChange(e) {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  e.target.value = '';
+
+  setLoading(true);
+  try {
+    const result = await importMappingsFile(file);
+    showMappingsImportResult(result, file.name);
+    await loadProductMappings(true);
+  } catch (error) {
+    console.error('[Sourcing] Error importing mappings:', error);
+    showToast('Import failed: ' + (error.message || 'Unknown error'), 'error');
+  } finally {
+    setLoading(false);
+  }
+}
+
+function showMappingsImportResult(result, filename) {
+  const body = document.getElementById('mappings-import-result-body');
+  if (!body) return;
+
+  const errorList = (result.errors || []).map(e => `<li>${escapeHtml(e)}</li>`).join('');
+
+  body.innerHTML = `
+    <p><strong>File:</strong> ${escapeHtml(filename)}</p>
+    <div style="display:flex; gap:1.5rem; margin:1rem 0;">
+      <div style="text-align:center;">
+        <div style="font-size:1.8rem; font-weight:bold; color:var(--color-success, #16a34a);">${result.imported ?? 0}</div>
+        <div style="font-size:0.85rem; color:var(--color-muted, #6b7280);">Imported</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:1.8rem; font-weight:bold; color:var(--color-warning, #d97706);">${result.skipped ?? 0}</div>
+        <div style="font-size:0.85rem; color:var(--color-muted, #6b7280);">Skipped</div>
+      </div>
+    </div>
+    ${errorList ? `<details open><summary style="cursor:pointer; font-weight:600; margin-bottom:0.5rem;">Errors (${result.errors.length})</summary><ul style="margin:0; padding-left:1.25rem; font-size:0.85rem; max-height:200px; overflow-y:auto;">${errorList}</ul></details>` : ''}
+  `;
+
+  document.getElementById('mappings-import-result-overlay')?.classList.add('active');
+}
+
+function closeMappingsImportResultModal() {
+  document.getElementById('mappings-import-result-overlay')?.classList.remove('active');
 }
 
 // ============================================================================
