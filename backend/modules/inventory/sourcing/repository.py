@@ -14,12 +14,15 @@ logger = logging.getLogger(__name__)
 # Pattern to match identifier suffixes (MD, SD, DP, NP, MV)
 IDENTIFIER_PATTERN = re.compile(r'-(?:MD|SD|DP|NP|MV)(?:-.*)?$', re.IGNORECASE)
 
+# Module-level flag so all SourcingRepository instances (one per request) share it
+_tables_initialized = False
+
 
 class SourcingRepository:
     """Database repository for sourcing data"""
 
     def __init__(self):
-        self._tables_initialized = False
+        pass
 
     def _get_conn(self):
         return get_inventory_log_connection()
@@ -33,7 +36,8 @@ class SourcingRepository:
 
     def init_tables(self) -> bool:
         """Initialize all sourcing tables if they don't exist"""
-        if self._tables_initialized:
+        global _tables_initialized
+        if _tables_initialized:
             return True
 
         conn = self._get_conn()
@@ -154,7 +158,7 @@ class SourcingRepository:
                 """)
 
             conn.commit()
-            self._tables_initialized = True
+            _tables_initialized = True
             logger.info("✅ Sourcing tables initialized")
             return True
 

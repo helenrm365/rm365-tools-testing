@@ -319,6 +319,7 @@ export function cleanup() {
     autoExportEnabled: false,
     autoImportInterval: null,
     analysisData: [],
+    allAnalysisData: [],
     analysisSummary: {},
     analysisPage: 1,
     analysisPerPage: 100,
@@ -327,6 +328,11 @@ export function cleanup() {
     analysisMarginFilter: '',
     analysisSortBy: 'sku',
     analysisSortOrder: 'asc',
+    allMatrixData: [],
+    mappingsData: [],
+    allMappingsData: [],
+    mappingsSearch: '',
+    mappingsSupplierFilter: '',
     isLoading: false
   };
   
