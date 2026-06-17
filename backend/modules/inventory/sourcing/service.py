@@ -870,9 +870,21 @@ class SourcingService:
                 raw_value = raw_value.replace(symbol, '')
                 break
         
-        # Clean remaining characters
-        clean_price = raw_value.replace(',', '').strip()
-        
+        raw_value = raw_value.strip()
+
+        # Detect European vs US/UK number format based on which separator comes last.
+        # European: "1.234,56" or "43,00"  → comma is decimal, period is thousands
+        # US/UK:    "1,234.56" or "43.00"  → period is decimal, comma is thousands
+        last_dot   = raw_value.rfind('.')
+        last_comma = raw_value.rfind(',')
+
+        if last_comma > last_dot:
+            # European: remove spaces + periods (thousands), replace comma with period
+            clean_price = raw_value.replace(' ', '').replace('.', '').replace(',', '.')
+        else:
+            # US/UK: remove spaces + commas (thousands), keep period
+            clean_price = raw_value.replace(' ', '').replace(',', '')
+
         try:
             price = float(clean_price)
             return (price, detected_currency)
@@ -1257,11 +1269,11 @@ class SourcingService:
                     if text:
                         extracted_items.extend(self._parse_pdf_text(text))
 
-        # Deduplicate by identifier (case-insensitive)
+        # Deduplicate by ref code first, then identifier (case-insensitive)
         seen: set = set()
         unique_items: list = []
         for item in extracted_items:
-            key = item.get('identifier', '').lower().strip()
+            key = (item.get('ref', '').lower().strip() or item.get('identifier', '').lower().strip())
             if key and key not in seen:
                 seen.add(key)
                 unique_items.append(item)
@@ -1271,16 +1283,32 @@ class SourcingService:
 
         for item in unique_items:
             identifier = item.get('identifier', '').strip()
+            ref = item.get('ref', '').strip()
             price = item.get('price')
             currency = item.get('currency') or default_currency
 
-            if not identifier or price is None:
+            if not (identifier or ref) or price is None:
                 continue
 
-            internal_sku = self.repo.resolve_supplier_sku(supplier_id, identifier)
+            # Try resolving by supplier reference code first (more reliable), then by product name
+            internal_sku = None
+            match_method = None
+            display_name = identifier or ref
+
+            if ref:
+                internal_sku = self.repo.resolve_supplier_sku(supplier_id, ref)
+                if internal_sku:
+                    match_method = 'reference_code'
+                    display_name = f"{ref} — {identifier}" if identifier else ref
+
+            if not internal_sku and identifier:
+                internal_sku = self.repo.resolve_supplier_sku(supplier_id, identifier)
+                if internal_sku:
+                    match_method = 'product_name'
+
             if not internal_sku:
                 unmatched.append({
-                    'raw_text': identifier,
+                    'raw_text': ref or identifier,
                     'price': price,
                     'currency': currency,
                     'reason': 'No product mapping found',
@@ -1293,12 +1321,12 @@ class SourcingService:
 
             preview.append({
                 'sku': internal_sku,
-                'supplier_product_name': identifier,
+                'supplier_product_name': display_name,
                 'current_price': current_price,
                 'current_currency': current_currency,
                 'new_price': price,
                 'new_currency': currency,
-                'match_method': 'mapping',
+                'match_method': match_method,
                 'has_change': current_price is None or abs(float(current_price) - float(price)) > 0.001,
             })
 
@@ -1315,7 +1343,12 @@ class SourcingService:
         }
 
     def _parse_pdf_table(self, table: list) -> list:
-        """Extract {identifier, price, currency} items from a pdfplumber table."""
+        """
+        Extract {ref, identifier, price, currency} items from a pdfplumber table.
+        Supports English and French column headers.
+        ref       = supplier reference/SKU code (e.g. Référence column)
+        identifier = product description/name (e.g. Désignation column)
+        """
         import re
 
         if not table or len(table) < 2:
@@ -1323,60 +1356,80 @@ class SourcingService:
 
         header = [str(cell or '').lower().strip() for cell in table[0]]
 
-        name_col = None
-        price_col = None
-        name_kw = {'product', 'description', 'item', 'name', 'sku', 'code', 'ref', 'article'}
-        price_kw = {'price', 'cost', 'unit', 'net', 'each', 'rate', 'excl', 'ex vat'}
+        ref_col = None    # Short supplier code / SKU
+        name_col = None   # Product description / name
+        price_col = None  # Unit price (we want PU HT, not Total HT)
+
+        # Keywords that should NOT be used as price columns
+        skip_price_kw = {'total', 'tva', 'tax', 'montant', 'amount', 'subtotal', 'sous-total'}
+
+        # Ordered from most-specific to least so first match wins
+        ref_kw   = ['référence', 'reference', 'réf.', 'réf', 'ref.', 'ref', 'code article', 'code produit', 'sku', 'article no', 'art no', 'art.']
+        name_kw  = ['désignation', 'designation', 'libellé', 'libelle', 'description', 'produit', 'product', 'item', 'name']
+        price_kw = ['pu ht', 'p.u. ht', 'prix unit', 'prix ht', 'prix unitaire', 'unit price', 'unit cost', 'net price', 'price', 'pu', 'prix', 'tarif ht', 'tarif', 'rate', 'cost', 'each', 'net', 'excl']
 
         for i, h in enumerate(header):
-            if any(kw in h for kw in name_kw) and name_col is None:
+            if ref_col is None and any(kw in h for kw in ref_kw):
+                ref_col = i
+            elif name_col is None and any(kw in h for kw in name_kw):
                 name_col = i
-            if any(kw in h for kw in price_kw) and price_col is None:
-                price_col = i
+            elif price_col is None and any(kw in h for kw in price_kw):
+                # Skip columns that are clearly totals/tax
+                if not any(sk in h for sk in skip_price_kw):
+                    price_col = i
 
-        # Auto-detect if headers didn't resolve
-        if name_col is None or price_col is None:
+        # Auto-detect if headers couldn't be resolved (handles unlabelled or foreign tables)
+        if price_col is None or (name_col is None and ref_col is None):
             num_cols = max((len(row) for row in table[1:] if row), default=0)
             price_scores = [0] * num_cols
-            text_scores = [0] * num_cols
+            text_scores  = [0] * num_cols
             for row in table[1:]:
                 for ci, cell in enumerate(row or []):
                     val = str(cell or '').strip()
-                    if re.search(r'\d+\.\d+', val):
+                    # Match both decimal formats: 43.00 and 43,00
+                    if re.search(r'\d+[.,]\d{2}\b', val):
                         price_scores[ci] += 1
-                    elif len(val) > 3:
+                    elif len(val) > 3 and not val.replace(',', '').replace('.', '').isdigit():
                         text_scores[ci] += 1
-            if price_col is None and price_scores:
-                price_col = price_scores.index(max(price_scores))
-            if name_col is None and text_scores:
-                # Pick text-heaviest column that isn't the price column
+            if price_col is None and any(s > 0 for s in price_scores):
+                # Prefer the FIRST high-scoring price column (unit price before total)
+                threshold = max(price_scores) * 0.5
+                price_col = next((i for i, s in enumerate(price_scores) if s >= threshold), None)
+            if name_col is None and ref_col is None and any(s > 0 for s in text_scores):
                 ranked = sorted(range(num_cols), key=lambda i: text_scores[i], reverse=True)
                 name_col = next((i for i in ranked if i != price_col), None)
 
-        if name_col is None or price_col is None:
+        if price_col is None or (name_col is None and ref_col is None):
             return []
 
         items = []
         for row in table[1:]:
-            if not row or len(row) <= max(name_col, price_col):
+            if not row:
                 continue
-            identifier = str(row[name_col] or '').strip()
+            max_needed = max(filter(lambda x: x is not None, [ref_col, name_col, price_col]))
+            if len(row) <= max_needed:
+                continue
+
+            ref        = str(row[ref_col]  or '').strip() if ref_col  is not None else ''
+            identifier = str(row[name_col] or '').strip() if name_col is not None else ''
             price_text = str(row[price_col] or '').strip()
-            if not identifier or not price_text:
+
+            if not (ref or identifier) or not price_text:
                 continue
+
             price, currency = self._parse_price_with_currency(price_text)
-            if price is not None:
-                items.append({'identifier': identifier, 'price': price, 'currency': currency})
+            if price is not None and price > 0:
+                items.append({'ref': ref, 'identifier': identifier, 'price': price, 'currency': currency})
         return items
 
     def _parse_pdf_text(self, text: str) -> list:
         """Extract {identifier, price, currency} items from plain PDF text."""
         import re
 
-        # Matches: optional currency + integer/decimal, or integer/decimal + optional currency
+        # Matches currency symbol (before or after) + number in US or European format
         price_re = re.compile(
-            r'(?P<pre>[£$€¥])?'
-            r'\s*(?P<num>\d{1,6}(?:,\d{3})*(?:\.\d{1,4})?)'
+            r'(?P<pre>[£$€¥])?\s*'
+            r'(?P<num>\d{1,6}(?:[.,]\d{3})*(?:[.,]\d{1,4})?)'
             r'\s*(?P<post>[£$€¥])?'
         )
         currency_map = {'£': 'GBP', '$': 'USD', '€': 'EUR', '¥': 'JPY'}
@@ -1395,9 +1448,10 @@ class SourcingService:
             m = matches[-1]
             sym = m.group('pre') or m.group('post') or ''
             currency = currency_map.get(sym)
-            try:
-                price = float(m.group('num').replace(',', ''))
-            except ValueError:
+            # Parse via the shared helper to correctly handle both EU and US number formats
+            raw_num = (sym + m.group('num')) if sym else m.group('num')
+            price, _ = self._parse_price_with_currency(raw_num)
+            if price is None:
                 continue
 
             if not (0.01 <= price <= 100000):
@@ -1409,6 +1463,6 @@ class SourcingService:
             identifier = re.sub(r'\s{2,}', ' ', identifier).strip()
 
             if 3 <= len(identifier) <= 200:
-                items.append({'identifier': identifier, 'price': price, 'currency': currency})
+                items.append({'ref': '', 'identifier': identifier, 'price': price, 'currency': currency})
 
         return items
