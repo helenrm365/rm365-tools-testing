@@ -2851,8 +2851,31 @@ function closeMappingsImportResultModal() {
 let pendingPdfFile = null;
 let pendingPdfPreview = null;
 
-function openPdfImportModal() {
-  // Populate supplier dropdown from cached state
+async function openPdfImportModal() {
+  pendingPdfFile = null;
+  pendingPdfPreview = null;
+
+  // Reset step 1 fields before showing
+  const filenameEl = document.getElementById('pdf-import-filename');
+  if (filenameEl) filenameEl.textContent = '';
+  const processBtn = document.getElementById('btn-pdf-import-process');
+  if (processBtn) processBtn.disabled = true;
+  const fileInput = document.getElementById('pdf-import-file-input');
+  if (fileInput) fileInput.value = '';
+
+  showPdfImportStep1();
+  document.getElementById('pdf-import-overlay')?.classList.add('active');
+
+  // Fetch suppliers if not already cached (user may not have visited the Suppliers tab)
+  if (!state.suppliers || state.suppliers.length === 0) {
+    try {
+      state.suppliers = await getSuppliers(true);
+    } catch (e) {
+      console.error('[Sourcing] Could not load suppliers for PDF modal:', e);
+    }
+  }
+
+  // Populate supplier dropdown
   const select = document.getElementById('pdf-import-supplier');
   if (select) {
     select.innerHTML = '<option value="">— Choose a supplier —</option>';
@@ -2862,22 +2885,8 @@ function openPdfImportModal() {
       opt.textContent = `${s.name} (${s.code})`;
       select.appendChild(opt);
     });
+    select.value = '';
   }
-
-  pendingPdfFile = null;
-  pendingPdfPreview = null;
-
-  // Reset step 1 fields
-  const filenameEl = document.getElementById('pdf-import-filename');
-  if (filenameEl) filenameEl.textContent = '';
-  if (select) select.value = '';
-  const processBtn = document.getElementById('btn-pdf-import-process');
-  if (processBtn) processBtn.disabled = true;
-  const fileInput = document.getElementById('pdf-import-file-input');
-  if (fileInput) fileInput.value = '';
-
-  showPdfImportStep1();
-  document.getElementById('pdf-import-overlay')?.classList.add('active');
 }
 
 function closePdfImportModal() {
