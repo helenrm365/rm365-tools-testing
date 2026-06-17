@@ -38,7 +38,7 @@ import {
   deleteSupplierMapping,
   importMappingsFile,
   importMatrixPDF
-} from '../../services/api/sourcingApi.js?v=3';
+} from '../../services/api/sourcingApi.js?v=4';
 
 // ============================================================================
 // CURRENCY HELPERS
