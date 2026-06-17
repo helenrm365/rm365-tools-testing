@@ -1318,10 +1318,14 @@ class SourcingService:
                 return False
             if not _re.search(r'[a-zA-ZÀ-ÿ]', full):
                 return False
-            if len(full) > 4:
-                pairs = [(full[i].lower(), full[i+1].lower()) for i in range(len(full) - 1)]
-                if pairs and sum(1 for a, b in pairs if a == b) / len(pairs) > 0.45:
-                    return False
+            # Count adjacent LETTER pairs that are identical — doubled-char PDF artifact.
+            # Using raw count (not ratio) avoids dilution by spaces/punctuation.
+            letter_doublings = sum(
+                1 for i in range(len(full) - 1)
+                if full[i].isalpha() and full[i].lower() == full[i + 1].lower()
+            )
+            if letter_doublings >= 3:
+                return False
             return True
 
         for item in unique_items:
@@ -1491,30 +1495,27 @@ class SourcingService:
 
         Strategy for invoice-format lines (e.g. GHMC):
           "U332 Stylage BI SOFT - Hydromax -1x1ml  120,00  43,00 €  5 160,00 €  0,00"
-          → First price with an explicit currency symbol = unit price (43,00 €)
-          → Everything before it, minus trailing bare numbers (qty) = raw product text
-          → If the raw text starts with a short alphanumeric token (≤8 chars), treat it
-            as a supplier reference code; the remainder is the product name.
-
-        Falls back to any numeric price (no symbol) when no currency-marked price exists.
+          → Must have an explicit currency symbol (£/€/$) — no bare-number fallback.
+          → Must start with a ref code that contains at least one digit (e.g. "U332").
+            This distinguishes product rows from headers/footers/legal text which never
+            start with a alphanumeric code containing a digit.
+          → Everything before the first currency price, minus trailing bare numbers = name.
         """
         import re
 
         currency_map = {'£': 'GBP', '$': 'USD', '€': 'EUR', '¥': 'JPY'}
 
-        # Matches a number immediately adjacent to a currency symbol (before or after)
+        # Only extract lines that have an explicit currency symbol — no bare-number fallback.
+        # This eliminates legal text like "article 289 A du CGI" where 289 has no symbol.
         currency_price_re = re.compile(
             r'(?P<num1>[\d][\d\s]*(?:[.,]\d+)*)\s*(?P<sym1>[£$€¥])'   # "43,00 €"
             r'|(?P<sym2>[£$€¥])\s*(?P<num2>[\d][\d\s]*(?:[.,]\d+)*)'  # "£43.00"
         )
 
-        # Fallback: any decimal number
-        any_price_re = re.compile(
-            r'(?P<pre>[£$€¥])?\s*(?P<num>\d{1,6}(?:[.,]\d{3})*(?:[.,]\d{1,4})?)\s*(?P<post>[£$€¥])?'
-        )
-
-        # Short alphanumeric ref-code at the start of the text (e.g. "U332", "AMS-01")
-        ref_code_re = re.compile(r'^([A-Z0-9][A-Z0-9\-]{0,7})\s+', re.IGNORECASE)
+        # Ref code: short alphanumeric token at the start (e.g. "U332", "AMS-01").
+        # After matching, we additionally require at least one digit — this separates
+        # product references from ordinary words like "Frais", "fois", "Adresse".
+        ref_code_re = re.compile(r'^([A-Z0-9][A-Z0-9\-]{1,7})\s+', re.IGNORECASE)
 
         items = []
         for line in text.split('\n'):
@@ -1522,31 +1523,20 @@ class SourcingService:
             if not line or len(line) < 4:
                 continue
 
-            price = None
-            currency = None
-            price_start = None
-
-            # Prefer first currency-symbol price (most reliable for invoices)
+            # Only process lines that contain an explicit currency symbol
             m = currency_price_re.search(line)
-            if m:
-                if m.group('num1'):
-                    raw_num, sym = m.group('num1'), m.group('sym1')
-                else:
-                    raw_num, sym = m.group('num2'), m.group('sym2')
-                currency = currency_map.get(sym)
-                price, _ = self._parse_price_with_currency(raw_num)
-                price_start = m.start()
-            else:
-                # Fallback: use last numeric match
-                fb = list(any_price_re.finditer(line))
-                if fb:
-                    fm = fb[-1]
-                    sym = fm.group('pre') or fm.group('post') or ''
-                    currency = currency_map.get(sym)
-                    price, _ = self._parse_price_with_currency(fm.group('num'))
-                    price_start = fm.start()
+            if not m:
+                continue
 
-            if price is None or not (0.01 <= price <= 100000):
+            if m.group('num1'):
+                raw_num, sym = m.group('num1'), m.group('sym1')
+            else:
+                raw_num, sym = m.group('num2'), m.group('sym2')
+            currency = currency_map.get(sym)
+            price, _ = self._parse_price_with_currency(raw_num)
+            price_start = m.start()
+
+            if price is None or not (0.01 <= price <= 50000):
                 continue
 
             # Raw text before the price
@@ -1560,33 +1550,28 @@ class SourcingService:
             if not prefix or len(prefix) < 2:
                 continue
 
-            # Split into ref + identifier
+            # Require a ref code with at least one digit at the start of the line.
+            # Product rows in invoices always start with a supplier reference (U332, ST024).
+            # Footer text, addresses, legal lines, and headers never do.
             rm = ref_code_re.match(prefix)
-            if rm and len(rm.group(1)) <= 8:
-                ref        = rm.group(1)
-                identifier = prefix[rm.end():].strip()
-            else:
-                ref        = ''
-                identifier = prefix
-
-            full_text = (ref + ' ' + identifier).strip()
-
-            # Must contain at least one letter — filters address fragments ("85-", "104")
-            if not re.search(r'[a-zA-ZÀ-ÿ]', full_text):
+            if not (rm and re.search(r'\d', rm.group(1))):
                 continue
 
-            # Minimum meaningful length
-            if len(full_text) < 4:
+            ref        = rm.group(1)
+            identifier = prefix[rm.end():].strip()
+            full_text  = (ref + ' ' + identifier).strip()
+
+            # Detect doubled-character artifacts from PDF bold/shadow rendering.
+            # Count only adjacent LETTER pairs that are identical (spaces/punctuation
+            # dilute the ratio so we count raw letter doublings instead).
+            # e.g. "DDaattee" → 4 letter doublings → skip
+            letter_doublings = sum(
+                1 for i in range(len(full_text) - 1)
+                if full_text[i].isalpha() and full_text[i].lower() == full_text[i + 1].lower()
+            )
+            if letter_doublings >= 3:
                 continue
 
-            # Detect doubled-character artifacts from PDF bold/shadow rendering
-            # e.g. "FFaaccttuurree" → ~54% of consecutive pairs are the same letter
-            if len(full_text) > 4:
-                pairs = [(full_text[i].lower(), full_text[i+1].lower()) for i in range(len(full_text) - 1)]
-                if pairs and sum(1 for a, b in pairs if a == b) / len(pairs) > 0.45:
-                    continue
-
-            if ref or (4 <= len(identifier) <= 200):
-                items.append({'ref': ref, 'identifier': identifier, 'price': price, 'currency': currency})
+            items.append({'ref': ref, 'identifier': identifier, 'price': price, 'currency': currency})
 
         return items
