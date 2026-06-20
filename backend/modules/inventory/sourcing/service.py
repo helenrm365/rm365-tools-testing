@@ -1256,15 +1256,20 @@ class SourcingService:
                     'currency': row.get('currency') or default_currency,
                 }
 
-        # Extract items from PDF — always run BOTH table and text extraction per page,
-        # then merge keeping the version with the most information per product.
-        # pdfplumber sometimes splits wide tables (e.g. left text cols + right price cols),
-        # so table extraction alone can miss prices; text extraction is the reliable fallback.
+        # Extract items from PDF using a layered strategy:
+        #   1. Layout-aware extraction (PRIMARY) — reconstructs columns from word
+        #      x/y positions, so it reads the *unit price* column specifically
+        #      (not quantity/total) and works without explicit currency symbols.
+        #      This is what makes the importer "universal" across invoice layouts.
+        #   2. Table + text extraction (FALLBACK) — only used on pages where the
+        #      layout pass found nothing (no detectable header). Preserves the
+        #      original behaviour for any format that already worked.
         def _item_score(item: dict) -> int:
             """Higher = more complete: 2 if both ref and identifier, 1 if one, 0 if neither."""
             return (1 if item.get('ref') else 0) + (1 if item.get('identifier') else 0)
 
         extracted_items: list = []
+        layout_anchors = None  # carried across continuation pages of multi-page invoices
         with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
             for page in pdf.pages:
                 page_items: dict = {}  # primary_key -> best item so far
@@ -1279,16 +1284,20 @@ class SourcingService:
                     if existing is None or _item_score(item) > _item_score(existing):
                         page_items[primary] = item
 
-                # 1. Table extraction (structured, best when table is not split)
-                for table in (page.extract_tables() or []):
-                    for item in self._parse_pdf_table(table):
-                        _merge(item)
+                # 1. Layout-aware extraction (primary, universal)
+                layout_items, layout_anchors = self._extract_pdf_layout(page, layout_anchors)
+                for item in layout_items:
+                    _merge(item)
 
-                # 2. Text extraction (always; catches what split tables miss)
-                text = page.extract_text() or ''
-                if text:
-                    for item in self._parse_pdf_text(text):
-                        _merge(item)
+                # 2. Fallback ONLY when layout produced nothing on this page
+                if not page_items:
+                    for table in (page.extract_tables() or []):
+                        for item in self._parse_pdf_table(table):
+                            _merge(item)
+                    text = page.extract_text() or ''
+                    if text:
+                        for item in self._parse_pdf_text(text):
+                            _merge(item)
 
                 extracted_items.extend(page_items.values())
 
@@ -1408,6 +1417,182 @@ class SourcingService:
             'total_conflicts': len(conflicts),
             'total_unmatched': len(unmatched),
         }
+
+    # ------------------------------------------------------------------
+    # Layout-aware (word-position) extraction — the universal parser
+    # ------------------------------------------------------------------
+
+    # Multilingual (EN / FR / IT) column-header keywords.
+    _COL_REF_KW  = ['référence', 'reference', 'réf', 'ref', 'code', 'article', 'item',
+                    'art.', 'sku', 'codice', 'articolo', 'artikel', 'referencia', 'cod.']
+    _COL_NAME_KW = ['désignation', 'designation', 'description', 'libellé', 'libelle',
+                    'produit', 'product', 'denominazione', 'descrizione', 'bezeichnung',
+                    'wording', 'dénomination', 'denomination']
+    _COL_UP_KW   = ['pu ht', 'pu htva', 'p.u', 'prix unitaire', 'prix unit', 'unit price',
+                    'unitaire', 'prezzo', 'unit cost', 'net price', 'prix u', 'p/u', 'pu']
+    _COL_QTY_KW  = ['quantit', 'qté', 'qte', 'qty', 'q.tà', 'quantità', 'menge',
+                    'u.m', 'aantal', 'colis', 'nombre']
+    _COL_TOT_KW  = ['total', 'montant', 'amount', 'importo', 'sous-total', 'subtotal',
+                    'totale', 'netto', 'net amount']
+    _COL_DISC_KW = ['discount', 'remise', 'sconto', 'rabatt']
+    _COL_VAT_KW  = ['tva', 'vat', 'iva', 'tax', 'mwst', 'btw']
+
+    @staticmethod
+    def _dedouble(text: str) -> str:
+        """Collapse adjacent duplicate letters from bold/shadow doubling (e.g. 'PPUU HHTT' -> 'PU HT')."""
+        import re
+        return re.sub(r'(.)\1', r'\1', text, flags=re.IGNORECASE)
+
+    def _classify_header_word(self, phrase: str) -> str:
+        """Map a header phrase to a column kind. Order matters: unit price must beat total/qty."""
+        t = phrase.lower().strip()
+        has = lambda kws: any(k in t for k in kws)
+        is_up = has(self._COL_UP_KW) or t in ('price', 'prix', 'prezzo', 'tarif', 'pu', 'p.u.')
+        if has(self._COL_QTY_KW) and not is_up:
+            return 'qty'
+        if has(self._COL_DISC_KW):
+            return 'disc'
+        if has(self._COL_TOT_KW) and 'unit' not in t:
+            return 'total'
+        if is_up:
+            return 'unit_price'
+        if has(self._COL_VAT_KW) or t == '%':
+            return 'vat'
+        if has(self._COL_NAME_KW):
+            return 'name'
+        if has(self._COL_REF_KW):
+            return 'ref'
+        return 'other'
+
+    def _detect_header_anchors(self, row_words: list):
+        """
+        Given the words of a candidate header row, return column anchors
+        [(center_x, kind), ...] if it looks like a line-item table header,
+        else None. Handles bold-doubled headers (GHMC) and multi-word column
+        labels split across words (e.g. 'UNIT' 'PRICE', 'PU' 'HT').
+        """
+        if len(row_words) < 3:
+            return None
+
+        joined = ''.join(w['text'] for w in row_words)
+        doubled = False
+        if len(joined) >= 6:
+            pairs = sum(1 for i in range(len(joined) - 1)
+                        if joined[i].isalpha() and joined[i].lower() == joined[i + 1].lower())
+            doubled = (pairs / len(joined)) > 0.30
+
+        texts = [self._dedouble(w['text']) if doubled else w['text'] for w in row_words]
+        kinds = [None] * len(row_words)
+
+        # Bigrams first: merge a label only when the two words are physically
+        # adjacent (small x-gap), so neighbouring *columns* are not joined.
+        for i in range(len(row_words) - 1):
+            if row_words[i + 1]['x0'] - row_words[i]['x1'] <= 10:
+                k = self._classify_header_word(texts[i] + ' ' + texts[i + 1])
+                if k != 'other':
+                    if kinds[i] is None:
+                        kinds[i] = k
+                    if kinds[i + 1] is None:
+                        kinds[i + 1] = k
+        for i in range(len(row_words)):
+            if kinds[i] is None:
+                kinds[i] = self._classify_header_word(texts[i])
+
+        if 'unit_price' not in kinds or not ('ref' in kinds or 'name' in kinds):
+            return None
+        return [((w['x0'] + w['x1']) / 2, k) for w, k in zip(row_words, kinds)]
+
+    def _extract_pdf_layout(self, page, carry_anchors=None):
+        """
+        Universal line-item extractor based on word positions.
+
+        Returns (items, anchors) where items is a list of
+        {ref, identifier, price, currency} dicts and anchors are the column
+        anchors to carry into the next page (for multi-page invoices whose
+        continuation pages omit the header).
+        """
+        import re
+        from collections import defaultdict
+
+        try:
+            words = page.extract_words(keep_blank_chars=False)
+        except Exception:
+            words = []
+        if not words:
+            return [], carry_anchors
+
+        # Cluster words into rows by their vertical position.
+        rows = []
+        for w in sorted(words, key=lambda w: (w['top'], w['x0'])):
+            for r in rows:
+                if abs(r['top'] - w['top']) <= 3.5:
+                    r['words'].append(w)
+                    break
+            else:
+                rows.append({'top': w['top'], 'words': [w]})
+        for r in rows:
+            r['words'].sort(key=lambda w: w['x0'])
+        rows.sort(key=lambda r: r['top'])
+
+        # Locate the header row on this page; otherwise reuse carried anchors.
+        anchors = carry_anchors
+        start_idx = 0
+        for ri, r in enumerate(rows):
+            detected = self._detect_header_anchors(r['words'])
+            if detected:
+                anchors = detected
+                start_idx = ri + 1
+                break
+        if not anchors:
+            return [], carry_anchors
+
+        def _bucket(word):
+            cx = (word['x0'] + word['x1']) / 2
+            return min(anchors, key=lambda a: abs(a[0] - cx))[1]
+
+        sym_to_cur = {'€': 'EUR', '£': 'GBP', '$': 'USD', '¥': 'JPY'}
+        items = []
+        for r in rows[start_idx:]:
+            buckets = defaultdict(list)
+            for w in r['words']:
+                buckets[_bucket(w)].append(w['text'])
+
+            up_text = ' '.join(buckets.get('unit_price', [])).strip()
+            if not up_text:
+                continue
+            price, currency = self._parse_price_with_currency(up_text)
+            if price is None or price <= 0:
+                continue
+
+            # Reference code: first token in the ref column that contains a digit.
+            ref = ''
+            ref_tokens = buckets.get('ref', [])
+            leftover = []
+            for i, tok in enumerate(ref_tokens):
+                if re.match(r'^[A-Za-z0-9][A-Za-z0-9\-/.]+$', tok) and re.search(r'\d', tok):
+                    ref = tok
+                    leftover = ref_tokens[:i] + ref_tokens[i + 1:]
+                    break
+            identifier = ' '.join(buckets.get('name', [])).strip() or ' '.join(leftover).strip()
+
+            if not (ref or identifier):
+                continue
+
+            # Currency: explicit symbol anywhere on the row wins over column text.
+            if not currency:
+                for w in r['words']:
+                    if w['text'] in sym_to_cur:
+                        currency = sym_to_cur[w['text']]
+                        break
+
+            items.append({
+                'ref': ref,
+                'identifier': identifier,
+                'price': price,
+                'currency': currency,
+            })
+
+        return items, anchors
 
     def _parse_pdf_table(self, table: list) -> list:
         """
