@@ -1005,19 +1005,36 @@ class SourcingRepository:
             self._return_conn(conn)
 
     def resolve_supplier_sku(self, supplier_id: int, identifier: str) -> Optional[str]:
-        """Resolve alternative supplier sku/name into internal canonical SKU.
+        """Resolve an alternative supplier sku/name into the internal canonical SKU.
 
-        Matching is case-insensitive, end-trimmed AND internal-whitespace
-        normalised (runs of whitespace collapse to a single space) on BOTH the
-        stored mapping and the incoming identifier. This makes name-based
-        mappings resilient to the minor spacing differences that PDF text
-        extraction can introduce when reconstructing a product description.
+        Matching is performed in two tiers (strict first, so an exact mapping is
+        never overridden by a looser one):
+
+          1. STRICT  — case-insensitive, end-trimmed, internal-whitespace
+             collapsed. Tolerates the minor spacing differences PDF text
+             extraction introduces when reconstructing a product description.
+
+          2. LOOSE   — alphanumeric-only (lowercased, every non-alphanumeric
+             character removed). This bridges the cosmetic naming differences
+             between an invoice line and the stored mapping that humans read as
+             "obviously the same" product, e.g.:
+                 "Mesopeel MD Salicylic 20% 50ml"  (invoice)
+                 "Mesopeel MD Salicylic 20% - 50ml" (mapping)   → punctuation
+                 "ha densimatrix Lips- 1 X 15ml" vs "...Lips - 1x15ml" → spacing
+             The loose tier only ADDS matches; it is provably unambiguous for the
+             current data (no two mappings for a supplier collapse to the same
+             alphanumeric form), and it still requires the *entire* normalised
+             strings to be equal, so it will not match a substring/prefix of a
+             different product.
         """
         if not identifier or not identifier.strip():
             return None
+
         conn = self._get_conn()
         try:
             cursor = conn.cursor()
+
+            # Tier 1: strict (whitespace-collapsed) match.
             cursor.execute("""
                 SELECT internal_sku
                 FROM sourcing_supplier_product_mappings
@@ -1029,6 +1046,24 @@ class SourcingRepository:
                 )
                 LIMIT 1
             """, (supplier_id, identifier, identifier))
+            row = cursor.fetchone()
+            if row:
+                return row[0]
+
+            # Tier 2: loose (alphanumeric-only) fallback. Skip very short keys to
+            # avoid accidental matches on near-empty normalised strings.
+            loose = re.sub(r'[^a-z0-9]+', '', identifier.lower())
+            if len(loose) < 3:
+                return None
+            cursor.execute("""
+                SELECT internal_sku
+                FROM sourcing_supplier_product_mappings
+                WHERE supplier_id = %s AND (
+                    REGEXP_REPLACE(LOWER(supplier_sku), '[^a-z0-9]+', '', 'g') = %s OR
+                    REGEXP_REPLACE(LOWER(supplier_product_name), '[^a-z0-9]+', '', 'g') = %s
+                )
+                LIMIT 1
+            """, (supplier_id, loose, loose))
             row = cursor.fetchone()
             return row[0] if row else None
         finally:
