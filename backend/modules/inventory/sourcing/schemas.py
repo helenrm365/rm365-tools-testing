@@ -260,6 +260,11 @@ class PdfImportUnmatchedItem(BaseModel):
     price: float
     currency: Optional[str] = None
     reason: str
+    # Original extracted columns, kept separate so the UI can create a proper
+    # supplier mapping (supplier_sku ← ref, supplier_product_name ← identifier)
+    # when the user manually matches this line to an internal product.
+    ref: str = ""
+    identifier: str = ""
 
 
 class PdfImportPriceOption(BaseModel):

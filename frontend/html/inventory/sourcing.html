@@ -735,15 +735,18 @@
             Conflicts — resolve before confirming (<span id="pdf-import-conflicts-remaining">0</span> remaining)
           </h4>
           <p style="margin:0 0 0.75rem; font-size:0.82rem; color:var(--color-muted,#6b7280);">
-            Both the reference code and the product name matched different products. Select which one to update.
+            Some lines need a decision — either the reference code and product name matched different products, or the same product appeared with different prices. Pick the correct option for each.
           </p>
           <div id="pdf-import-conflicts-body" style="display:flex; flex-direction:column; gap:0.75rem; max-height:260px; overflow-y:auto;"></div>
         </div>
 
         <!-- Matched changes table -->
         <div id="pdf-import-changes-section">
-          <h4 style="margin:0 0 0.75rem; font-size:0.95rem; font-weight:600;">Price Changes</h4>
-          <div style="max-height:300px; overflow-y:auto; border:1px solid var(--color-border,#e5e7eb); border-radius:6px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:0.75rem; margin:0 0 0.5rem; flex-wrap:wrap;">
+            <h4 style="margin:0; font-size:0.95rem; font-weight:600;">Price Changes</h4>
+            <input type="text" id="pdf-import-changes-search" class="form-control" placeholder="Search description or SKU…" style="max-width:260px; font-size:0.82rem; padding:0.35rem 0.6rem;">
+          </div>
+          <div style="max-height:340px; overflow-y:auto; border:1px solid var(--color-border,#e5e7eb); border-radius:6px;">
             <table class="data-table" id="pdf-import-changes-table" style="width:100%; font-size:0.85rem;">
               <thead>
                 <tr>
@@ -757,29 +760,40 @@
               <tbody id="pdf-import-changes-body"></tbody>
             </table>
           </div>
+          <div id="pdf-import-changes-pagination" class="pdf-import-pagination"></div>
         </div>
 
         <!-- Unmatched items (collapsible) -->
         <div id="pdf-import-unmatched-section" style="margin-top:1rem; display:none;">
-          <details>
+          <details open>
             <summary style="cursor:pointer; font-weight:600; font-size:0.9rem; padding:0.5rem 0;">
               <i class="fas fa-exclamation-triangle" style="color:var(--color-warning,#d97706);"></i>
-              Unmatched Items (<span id="pdf-import-unmatched-count">0</span>) — no product mapping found
+              Unmatched Items (<span id="pdf-import-unmatched-count">0</span>) — pick a product to match
             </summary>
-            <div style="max-height:200px; overflow-y:auto; margin-top:0.5rem; border:1px solid var(--color-border,#e5e7eb); border-radius:6px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:0.75rem; margin:0.25rem 0 0.5rem; flex-wrap:wrap;">
+              <p style="margin:0; font-size:0.8rem; color:var(--color-muted,#6b7280);">
+                Matching a line creates a supplier mapping so it imports automatically next time.
+              </p>
+              <input type="text" id="pdf-import-unmatched-search" class="form-control" placeholder="Search text or price…" style="max-width:260px; font-size:0.82rem; padding:0.35rem 0.6rem;">
+            </div>
+            <div style="max-height:280px; overflow-y:auto; border:1px solid var(--color-border,#e5e7eb); border-radius:6px;">
               <table class="data-table" style="width:100%; font-size:0.82rem;">
                 <thead>
                   <tr>
                     <th>Text from PDF</th>
                     <th>Price</th>
-                    <th>Reason</th>
+                    <th style="min-width:240px;">Match to product</th>
                   </tr>
                 </thead>
                 <tbody id="pdf-import-unmatched-body"></tbody>
               </table>
             </div>
+            <div id="pdf-import-unmatched-pagination" class="pdf-import-pagination"></div>
           </details>
         </div>
+
+        <!-- Shared product list for the unmatched product pickers -->
+        <datalist id="pdf-import-products-datalist"></datalist>
       </div>
       <div class="modal-footer">
         <button class="btn btn-solid btn-default rounded-lg" id="btn-pdf-preview-back">

@@ -389,6 +389,24 @@ function setupEventListeners() {
   document.getElementById('btn-pdf-preview-cancel')?.addEventListener('click', closePdfImportModal);
   document.getElementById('btn-pdf-preview-confirm')?.addEventListener('click', confirmPdfImport);
 
+  // Preview table search boxes
+  document.getElementById('pdf-import-changes-search')?.addEventListener('input', (e) => {
+    pdfMatchedView.query = e.target.value;
+    pdfMatchedView.page = 1;
+    renderPdfMatched();
+  });
+  document.getElementById('pdf-import-unmatched-search')?.addEventListener('input', (e) => {
+    pdfUnmatchedView.query = e.target.value;
+    pdfUnmatchedView.page = 1;
+    renderPdfUnmatched();
+  });
+  // Unmatched product picker (delegated — rows are re-rendered on paginate/search)
+  document.getElementById('pdf-import-unmatched-body')?.addEventListener('change', (e) => {
+    const input = e.target.closest('.pdf-unmatched-input');
+    if (!input) return;
+    resolveUnmatched(parseInt(input.dataset.unmatchedIdx, 10), input.value);
+  });
+
   // Drag-and-drop for PDF drop zone
   const dropZone = document.getElementById('pdf-import-drop-zone');
   if (dropZone) {
@@ -2942,7 +2960,12 @@ async function processPdfImport() {
   setLoading(true);
   try {
     showToast('Parsing PDF...', 'info');
-    const result = await importMatrixPDF(pendingPdfFile, parseInt(supplierId));
+    // Load the internal product list (used by the unmatched product picker)
+    // in parallel with parsing so the datalist is ready in step 2.
+    const [result] = await Promise.all([
+      importMatrixPDF(pendingPdfFile, parseInt(supplierId)),
+      _ensureInternalProductsLoaded(),
+    ]);
     pendingPdfPreview = result;
     renderPdfPreview(result);
     document.getElementById('pdf-import-modal-title').textContent =
@@ -2958,6 +2981,13 @@ async function processPdfImport() {
 
 function renderPdfPreview(result) {
   conflictResolutions.clear();
+  unmatchedResolutions.clear();
+  pdfMatchedView = { page: 1, query: '' };
+  pdfUnmatchedView = { page: 1, query: '' };
+  const matchedSearch = document.getElementById('pdf-import-changes-search');
+  if (matchedSearch) matchedSearch.value = '';
+  const unmatchedSearch = document.getElementById('pdf-import-unmatched-search');
+  if (unmatchedSearch) unmatchedSearch.value = '';
 
   // Summary stats
   const summaryEl = document.getElementById('pdf-import-summary');
@@ -3050,63 +3080,205 @@ function renderPdfPreview(result) {
     conflictsSection.style.display = 'none';
   }
 
-  // Changes table
+  // Matched changes + unmatched are rendered via dedicated paginated/searchable
+  // helpers so large invoices (100+ rows) stay navigable.
+  _populatePdfProductDatalist();
+  renderPdfMatched();
+  renderPdfUnmatched();
+
+  _updateConfirmButton();
+}
+
+// Client-side view state for the preview tables (search + pagination).
+const PDF_PAGE_SIZE = 50;
+let pdfMatchedView = { page: 1, query: '' };
+let pdfUnmatchedView = { page: 1, query: '' };
+// Map of unmatched item index → { sku, name } chosen by the user.
+const unmatchedResolutions = new Map();
+
+async function _ensureInternalProductsLoaded() {
+  if (cachedInternalProducts && cachedInternalProducts.length > 0) return;
+  try {
+    const data = await getAnalysisDashboard({ page: 1, perPage: 100000 });
+    cachedInternalProducts = (data.products || []).map(p => ({
+      sku: p.sku,
+      name: p.product_name || p.sku,
+    }));
+  } catch (e) {
+    console.error('[Sourcing] Could not preload products for PDF matching:', e);
+  }
+}
+
+function _populatePdfProductDatalist() {
+  const dl = document.getElementById('pdf-import-products-datalist');
+  if (!dl) return;
+  // cachedInternalProducts is populated when entering step 2 (see processPdfImport)
+  dl.innerHTML = (cachedInternalProducts || [])
+    .map(p => `<option value="${escapeHtml(`[${p.sku}] ${p.name}`)}"></option>`)
+    .join('');
+}
+
+function _paginate(items, page) {
+  const totalPages = Math.max(1, Math.ceil(items.length / PDF_PAGE_SIZE));
+  const safePage = Math.min(Math.max(1, page), totalPages);
+  const start = (safePage - 1) * PDF_PAGE_SIZE;
+  return { slice: items.slice(start, start + PDF_PAGE_SIZE), page: safePage, totalPages, start, total: items.length };
+}
+
+function _renderPdfPagination(containerId, info, navFn) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  if (info.total <= PDF_PAGE_SIZE) { el.innerHTML = ''; return; }
+  const from = info.start + 1;
+  const to = Math.min(info.start + PDF_PAGE_SIZE, info.total);
+  el.innerHTML = `
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:0.75rem; padding:0.5rem 0.25rem; font-size:0.8rem;">
+      <span style="color:var(--color-muted,#6b7280);">Showing <strong>${from}-${to}</strong> of <strong>${info.total}</strong></span>
+      <span style="display:flex; align-items:center; gap:0.5rem;">
+        <button class="btn btn-ghost btn-sm" ${info.page <= 1 ? 'disabled' : ''} onclick="window.sourcingModule.${navFn}(${info.page - 1})"><i class="fas fa-chevron-left"></i></button>
+        <span>Page ${info.page} / ${info.totalPages}</span>
+        <button class="btn btn-ghost btn-sm" ${info.page >= info.totalPages ? 'disabled' : ''} onclick="window.sourcingModule.${navFn}(${info.page + 1})"><i class="fas fa-chevron-right"></i></button>
+      </span>
+    </div>`;
+}
+
+function _filteredMatched() {
+  const q = pdfMatchedView.query.trim().toLowerCase();
+  const items = pendingPdfPreview?.preview || [];
+  if (!q) return items;
+  return items.filter(i =>
+    (i.supplier_product_name || '').toLowerCase().includes(q) ||
+    (i.sku || '').toLowerCase().includes(q));
+}
+
+function renderPdfMatched() {
   const tbody = document.getElementById('pdf-import-changes-body');
-  if (tbody) {
-    if (!result.preview || result.preview.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--color-muted,#6b7280); padding:1rem;">No matched items found.</td></tr>';
+  if (!tbody) return;
+  const items = _filteredMatched();
+
+  if (items.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--color-muted,#6b7280); padding:1rem;">${(pendingPdfPreview?.preview || []).length === 0 ? 'No matched items found.' : 'No matches for your search.'}</td></tr>`;
+    _renderPdfPagination('pdf-import-changes-pagination', { total: 0 }, 'pdfMatchedPage');
+    return;
+  }
+
+  const info = _paginate(items, pdfMatchedView.page);
+  pdfMatchedView.page = info.page;
+  tbody.innerHTML = info.slice.map(item => {
+    const currSym = item.current_currency ? (CURRENCY_SYMBOLS[item.current_currency] || item.current_currency) : '';
+    const newSym = item.new_currency ? (CURRENCY_SYMBOLS[item.new_currency] || item.new_currency) : '';
+    const currentDisplay = item.current_price != null
+      ? `${currSym}${parseFloat(item.current_price).toFixed(2)}`
+      : '<span style="color:var(--color-muted,#9ca3af);">—</span>';
+    const newDisplay = `${newSym}${parseFloat(item.new_price).toFixed(2)}`;
+
+    let changeDisplay = '';
+    if (item.current_price != null) {
+      const diff = parseFloat(item.new_price) - parseFloat(item.current_price);
+      const pct = (diff / parseFloat(item.current_price)) * 100;
+      const sign = diff >= 0 ? '+' : '';
+      const color = diff > 0 ? 'var(--color-danger,#dc2626)' : diff < 0 ? 'var(--color-success,#16a34a)' : 'var(--color-muted,#6b7280)';
+      changeDisplay = `<span style="color:${color}; font-weight:600;">${sign}${pct.toFixed(1)}%</span>`;
     } else {
-      tbody.innerHTML = result.preview.map(item => {
-        const currSym = item.current_currency ? (CURRENCY_SYMBOLS[item.current_currency] || item.current_currency) : '';
-        const newSym = item.new_currency ? (CURRENCY_SYMBOLS[item.new_currency] || item.new_currency) : '';
-        const currentDisplay = item.current_price != null
-          ? `${currSym}${parseFloat(item.current_price).toFixed(2)}`
-          : '<span style="color:var(--color-muted,#9ca3af);">—</span>';
-        const newDisplay = `${newSym}${parseFloat(item.new_price).toFixed(2)}`;
-
-        let changeDisplay = '';
-        if (item.current_price != null) {
-          const diff = parseFloat(item.new_price) - parseFloat(item.current_price);
-          const pct = (diff / parseFloat(item.current_price)) * 100;
-          const sign = diff >= 0 ? '+' : '';
-          const color = diff > 0 ? 'var(--color-danger,#dc2626)' : diff < 0 ? 'var(--color-success,#16a34a)' : 'var(--color-muted,#6b7280)';
-          changeDisplay = `<span style="color:${color}; font-weight:600;">${sign}${pct.toFixed(1)}%</span>`;
-        } else {
-          changeDisplay = '<span style="color:var(--color-muted,#9ca3af);">New</span>';
-        }
-
-        return `<tr>
-          <td style="max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtml(item.supplier_product_name)}">${escapeHtml(item.supplier_product_name)}</td>
-          <td style="font-family:monospace;">${escapeHtml(item.sku)}</td>
-          <td>${currentDisplay}</td>
-          <td style="font-weight:600;">${newDisplay}</td>
-          <td>${changeDisplay}</td>
-        </tr>`;
-      }).join('');
+      changeDisplay = '<span style="color:var(--color-muted,#9ca3af);">New</span>';
     }
+
+    return `<tr>
+      <td style="max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtml(item.supplier_product_name)}">${escapeHtml(item.supplier_product_name)}</td>
+      <td style="font-family:monospace;">${escapeHtml(item.sku)}</td>
+      <td>${currentDisplay}</td>
+      <td style="font-weight:600;">${newDisplay}</td>
+      <td>${changeDisplay}</td>
+    </tr>`;
+  }).join('');
+
+  _renderPdfPagination('pdf-import-changes-pagination', info, 'pdfMatchedPage');
+}
+
+function _filteredUnmatchedIndices() {
+  const q = pdfUnmatchedView.query.trim().toLowerCase();
+  const items = pendingPdfPreview?.unmatched || [];
+  const idxs = items.map((_, i) => i);
+  if (!q) return idxs;
+  return idxs.filter(i => {
+    const u = items[i];
+    return (u.raw_text || '').toLowerCase().includes(q) ||
+      String(u.price).includes(q);
+  });
+}
+
+function renderPdfUnmatched() {
+  const section = document.getElementById('pdf-import-unmatched-section');
+  const countEl = document.getElementById('pdf-import-unmatched-count');
+  const tbody = document.getElementById('pdf-import-unmatched-body');
+  const all = pendingPdfPreview?.unmatched || [];
+  if (!section || !tbody) return;
+
+  if (all.length === 0) {
+    section.style.display = 'none';
+    return;
+  }
+  section.style.display = '';
+  if (countEl) countEl.textContent = all.length;
+
+  const idxs = _filteredUnmatchedIndices();
+  if (idxs.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:var(--color-muted,#6b7280); padding:1rem;">No matches for your search.</td></tr>';
+    _renderPdfPagination('pdf-import-unmatched-pagination', { total: 0 }, 'pdfUnmatchedPage');
+    return;
   }
 
-  // Unmatched section
-  const unmatchedSection = document.getElementById('pdf-import-unmatched-section');
-  const unmatchedCount = document.getElementById('pdf-import-unmatched-count');
-  const unmatchedBody = document.getElementById('pdf-import-unmatched-body');
-  if (unmatchedSection && result.unmatched?.length > 0) {
-    unmatchedSection.style.display = '';
-    if (unmatchedCount) unmatchedCount.textContent = result.unmatched.length;
-    if (unmatchedBody) {
-      unmatchedBody.innerHTML = result.unmatched.map(u => {
-        const sym = u.currency ? (CURRENCY_SYMBOLS[u.currency] || u.currency) : '';
-        return `<tr>
-          <td style="max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtml(u.raw_text)}">${escapeHtml(u.raw_text)}</td>
-          <td>${sym}${parseFloat(u.price).toFixed(2)}</td>
-          <td style="color:var(--color-muted,#6b7280);">${escapeHtml(u.reason)}</td>
-        </tr>`;
-      }).join('');
-    }
-  } else if (unmatchedSection) {
-    unmatchedSection.style.display = 'none';
-  }
+  const info = _paginate(idxs, pdfUnmatchedView.page);
+  pdfUnmatchedView.page = info.page;
+  tbody.innerHTML = info.slice.map(i => {
+    const u = all[i];
+    const sym = u.currency ? (CURRENCY_SYMBOLS[u.currency] || u.currency) : '';
+    const chosen = unmatchedResolutions.get(i);
+    const inputVal = chosen ? `[${chosen.sku}] ${chosen.name}` : '';
+    const statusCell = chosen
+      ? `<div style="font-size:0.72rem; color:var(--color-success,#16a34a); margin-top:0.2rem;"><i class="fas fa-check"></i> Will map to <strong>${escapeHtml(chosen.sku)}</strong></div>`
+      : '';
+    return `<tr data-unmatched-row="${i}">
+      <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtml(u.raw_text)}">${escapeHtml(u.raw_text)}</td>
+      <td>${sym}${parseFloat(u.price).toFixed(2)}</td>
+      <td>
+        <input type="text" list="pdf-import-products-datalist" data-unmatched-idx="${i}"
+          class="form-control pdf-unmatched-input" placeholder="Search SKU or name…"
+          value="${escapeHtml(inputVal)}"
+          style="width:100%; font-size:0.8rem; padding:0.3rem 0.5rem; ${chosen ? 'border-color:var(--color-success,#16a34a);' : ''}">
+        ${statusCell}
+      </td>
+    </tr>`;
+  }).join('');
 
+  _renderPdfPagination('pdf-import-unmatched-pagination', info, 'pdfUnmatchedPage');
+}
+
+function resolveUnmatched(idx, inputValue) {
+  const val = (inputValue || '').trim();
+  if (!val) {
+    unmatchedResolutions.delete(idx);
+    renderPdfUnmatched();
+    _updateConfirmButton();
+    return;
+  }
+  // Expected format "[SKU] Name" from the datalist; fall back to raw SKU match.
+  let sku = null, name = '';
+  const m = val.match(/^\[([^\]]+)\]\s*(.*)$/);
+  if (m) {
+    sku = m[1].trim();
+    name = m[2].trim();
+  }
+  const product = (cachedInternalProducts || []).find(p =>
+    (sku && p.sku.toLowerCase() === sku.toLowerCase()) ||
+    `[${p.sku}] ${p.name}`.toLowerCase() === val.toLowerCase());
+
+  if (!product) {
+    // Not a valid selection yet (user still typing) — don't record.
+    return;
+  }
+  unmatchedResolutions.set(idx, { sku: product.sku, name: product.name });
+  renderPdfUnmatched();
   _updateConfirmButton();
 }
 
@@ -3135,16 +3307,23 @@ function resolveConflict(idx, chosenSku) {
   _updateConfirmButton();
 }
 
+function _pdfEffectiveUpdateCount() {
+  const matched = pendingPdfPreview?.preview?.length || 0;
+  const resolvedConflicts = conflictResolutions.size;
+  const resolvedUnmatched = unmatchedResolutions.size;
+  return matched + resolvedConflicts + resolvedUnmatched;
+}
+
 function _updateConfirmButton() {
   const confirmBtn = document.getElementById('btn-pdf-preview-confirm');
   if (!confirmBtn) return;
 
-  const hasMatches = pendingPdfPreview?.preview?.length > 0;
   const totalConflicts = pendingPdfPreview?.conflicts?.length || 0;
   const allResolved = conflictResolutions.size >= totalConflicts;
-  const hasAnything = hasMatches || (totalConflicts > 0 && allResolved);
+  const count = _pdfEffectiveUpdateCount();
 
-  confirmBtn.disabled = !hasAnything || !allResolved;
+  confirmBtn.disabled = count === 0 || !allResolved;
+  confirmBtn.innerHTML = `<i class="fas fa-check"></i> Confirm &amp; Update ${count} Price${count !== 1 ? 's' : ''}`;
 
   if (totalConflicts > 0 && !allResolved) {
     confirmBtn.title = 'Resolve all conflicts above before confirming';
@@ -3154,15 +3333,12 @@ function _updateConfirmButton() {
 }
 
 async function confirmPdfImport() {
-  const hasMatches = pendingPdfPreview?.preview?.length > 0;
-  const hasConflicts = pendingPdfPreview?.conflicts?.length > 0;
-  if (!hasMatches && !hasConflicts) {
+  const supplierId = pendingPdfPreview?.supplier_id;
+  const defaultCurrency = pendingPdfPreview?.supplier_default_currency;
+  if (supplierId == null) {
     closePdfImportModal();
     return;
   }
-
-  const supplierId = pendingPdfPreview.supplier_id;
-  const defaultCurrency = pendingPdfPreview.supplier_default_currency;
 
   // Base updates from auto-matched items
   const updates = (pendingPdfPreview.preview || []).map(item => ({
@@ -3199,11 +3375,52 @@ async function confirmPdfImport() {
     }
   });
 
+  // Add user-matched "unmatched" items: apply the price AND remember the new
+  // supplier mapping so the same line auto-matches on future imports.
+  const newMappings = [];
+  unmatchedResolutions.forEach((choice, idx) => {
+    const u = (pendingPdfPreview.unmatched || [])[idx];
+    if (!u || !choice?.sku) return;
+    updates.push({
+      sku: choice.sku,
+      supplier_id: supplierId,
+      unit_price: u.price,
+      currency: u.currency || defaultCurrency,
+    });
+    if (u.ref || u.identifier) {
+      newMappings.push({
+        supplier_id: supplierId,
+        supplier_sku: u.ref || null,
+        supplier_product_name: u.identifier || null,
+        internal_sku: choice.sku,
+      });
+    }
+  });
+
+  if (updates.length === 0) {
+    closePdfImportModal();
+    return;
+  }
+
   setLoading(true);
   try {
     await bulkUpdatePricing(updates);
+
+    // Persist new mappings (best-effort; a failure here shouldn't block prices).
+    let mappingsSaved = 0;
+    for (const m of newMappings) {
+      try {
+        await createSupplierMapping(m);
+        mappingsSaved += 1;
+      } catch (e) {
+        console.error('[Sourcing] Failed to save mapping for', m.internal_sku, e);
+      }
+    }
+
     const count = updates.length;
-    showToast(`Updated ${count} price${count !== 1 ? 's' : ''} from PDF`, 'success');
+    let msg = `Updated ${count} price${count !== 1 ? 's' : ''} from PDF`;
+    if (mappingsSaved > 0) msg += ` · ${mappingsSaved} new mapping${mappingsSaved !== 1 ? 's' : ''} saved`;
+    showToast(msg, 'success');
     closePdfImportModal();
     await loadSupplierMatrix();
   } catch (error) {
@@ -3226,6 +3443,9 @@ window.sourcingModule = {
   openGSheetLinkModal,
   deleteMapping,
   resolveConflict,
+  resolveUnmatched,
+  pdfMatchedPage: (page) => { pdfMatchedView.page = page; renderPdfMatched(); },
+  pdfUnmatchedPage: (page) => { pdfUnmatchedView.page = page; renderPdfUnmatched(); },
   goToAnalysisPage: async (page) => {
     state.analysisPage = page;
     // Client-side pagination from cached data — no API call needed

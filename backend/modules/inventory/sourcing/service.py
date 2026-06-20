@@ -1386,6 +1386,8 @@ class SourcingService:
                     'price': price,
                     'currency': currency,
                     'reason': 'No product mapping found',
+                    'ref': ref,
+                    'identifier': identifier,
                 })
                 continue
 
