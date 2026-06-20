@@ -1005,8 +1005,15 @@ class SourcingRepository:
             self._return_conn(conn)
 
     def resolve_supplier_sku(self, supplier_id: int, identifier: str) -> Optional[str]:
-        """Resolve alternative supplier sku/name into internal canonical SKU"""
-        if not identifier:
+        """Resolve alternative supplier sku/name into internal canonical SKU.
+
+        Matching is case-insensitive, end-trimmed AND internal-whitespace
+        normalised (runs of whitespace collapse to a single space) on BOTH the
+        stored mapping and the incoming identifier. This makes name-based
+        mappings resilient to the minor spacing differences that PDF text
+        extraction can introduce when reconstructing a product description.
+        """
+        if not identifier or not identifier.strip():
             return None
         conn = self._get_conn()
         try:
@@ -1015,8 +1022,10 @@ class SourcingRepository:
                 SELECT internal_sku
                 FROM sourcing_supplier_product_mappings
                 WHERE supplier_id = %s AND (
-                    TRIM(LOWER(supplier_sku)) = TRIM(LOWER(%s)) OR
-                    TRIM(LOWER(supplier_product_name)) = TRIM(LOWER(%s))
+                    REGEXP_REPLACE(TRIM(LOWER(supplier_sku)), '\\s+', ' ', 'g')
+                        = REGEXP_REPLACE(TRIM(LOWER(%s)), '\\s+', ' ', 'g') OR
+                    REGEXP_REPLACE(TRIM(LOWER(supplier_product_name)), '\\s+', ' ', 'g')
+                        = REGEXP_REPLACE(TRIM(LOWER(%s)), '\\s+', ' ', 'g')
                 )
                 LIMIT 1
             """, (supplier_id, identifier, identifier))

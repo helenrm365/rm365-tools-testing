@@ -3,6 +3,7 @@
 Service layer for Product Sourcing - Business logic and calculations
 """
 import logging
+import re
 from typing import List, Dict, Optional, Any
 from datetime import datetime
 from decimal import Decimal
@@ -1579,6 +1580,23 @@ class SourcingService:
             return None
         return [((w['x0'] + w['x1']) / 2, k) for w, k in zip(row_words, kinds)]
 
+    # Markers that indicate the line-item table has ended and the invoice
+    # totals / payment / address block has begun. Used to stop merging wrapped
+    # continuation lines into product names. Matched case-insensitively against
+    # de-doubled row text (so bold "FFaaccttuurree" still matches "facture").
+    _PDF_FOOTER_RE = re.compile(
+        r'(inco\s*terms|sous-?total|total\s+(hors|tva|ht)|frais\s+de\s+port|'
+        r'tva\s*\d|conditions?\s+de\s+paiement|date\s+(d.?[ée]mission|limite)|'
+        r'en\s+cas\s+de\s+retard|bank\s*name|iban|bic|by\s+placing|'
+        r'livraison\s+intra|adresse\s+de\s+livraison|siret\s*/?\s*siren)',
+        re.IGNORECASE,
+    )
+
+    def _looks_like_pdf_footer(self, text: str) -> bool:
+        """True when a row clearly belongs to the invoice footer/totals block."""
+        cleaned = self._dedouble(text or '')
+        return bool(self._PDF_FOOTER_RE.search(cleaned))
+
     def _extract_pdf_layout(self, page, carry_anchors=None):
         """
         Universal line-item extractor based on word positions.
@@ -1627,18 +1645,76 @@ class SourcingService:
             cx = (word['x0'] + word['x1']) / 2
             return min(anchors, key=lambda a: abs(a[0] - cx))[1]
 
+        # Column x positions used to reclaim mis-bucketed product-name words.
+        # The product description (Désignation) is wide and often runs right up
+        # to the quantity column, so trailing size tokens like "1x1ml syringe"
+        # land in the qty bucket by nearest-anchor. We reclaim everything sitting
+        # between the description column and the unit-price column back into the
+        # name (then strip just the quantity value) so name-based mappings match.
+        desc_x = max((a[0] for a in anchors if a[1] in ('ref', 'name')), default=0)
+        price_x = min((a[0] for a in anchors if a[1] == 'unit_price'), default=10 ** 9)
+
+        # The quantity VALUE is a right-aligned numeric cluster whose tokens sit
+        # tightly together (thousands groups like "1 000,00" have ~2px gaps),
+        # whereas description text that overflows toward the qty column is
+        # separated from that value by a large gap (≥ ~30px). We use that gap to
+        # peel only the qty value off the end of the reclaimed words, preserving
+        # legitimate numbers inside names ("5 x 5 ml", "50 ml", "1 pack").
+        _qty_value = re.compile(r'^\d{1,3}(?:[ \u00a0]\d{3})*[.,]\d{1,2}$')
+
+        def _is_num_token(t):
+            t = t.strip()
+            return bool(_qty_value.match(t)) or t.isdigit()
+
+        def _strip_qty_value(ws):
+            """Remove the trailing right-aligned quantity value from sorted words."""
+            if not ws:
+                return ws
+            k = len(ws) - 1
+            if not _is_num_token(ws[k]['text']):
+                return ws  # name doesn't end in a number → nothing to strip
+            start = k
+            while (start - 1 >= 0
+                   and _is_num_token(ws[start - 1]['text'])
+                   and (ws[start]['x0'] - ws[start - 1]['x1']) <= 8):
+                start -= 1
+            return ws[:start]
+
         sym_to_cur = {'€': 'EUR', '£': 'GBP', '$': 'USD', '¥': 'JPY'}
         items = []
         for r in rows[start_idx:]:
-            buckets = defaultdict(list)
+            buckets = defaultdict(list)        # kind -> [text, ...]
+            word_buckets = defaultdict(list)   # kind -> [word dict, ...]
             for w in r['words']:
-                buckets[_bucket(w)].append(w['text'])
+                k = _bucket(w)
+                buckets[k].append(w['text'])
+                word_buckets[k].append(w)
+
+            row_text = ' '.join(w['text'] for w in r['words'])
 
             up_text = ' '.join(buckets.get('unit_price', [])).strip()
-            if not up_text:
-                continue
-            price, currency = self._parse_price_with_currency(up_text)
+            price, currency = (None, None)
+            if up_text:
+                price, currency = self._parse_price_with_currency(up_text)
+
+            # Rows without a usable unit price are either (a) wrapped continuation
+            # lines of the previous item's description, or (b) footer/address text.
+            # Merge genuine continuation fragments so multi-line product names are
+            # not truncated (which would break exact name-mapping matches).
             if price is None or price <= 0:
+                if self._looks_like_pdf_footer(row_text):
+                    # Reached the totals/footer block — stop scanning this table.
+                    break
+                if items:
+                    cont_words = [
+                        w for w in r['words']
+                        if (w['x0'] + w['x1']) / 2 < price_x
+                    ]
+                    cont = ' '.join(w['text'] for w in _strip_qty_value(
+                        sorted(cont_words, key=lambda w: w['x0']))).strip()
+                    # Only merge short, descriptive fragments (avoid stray noise).
+                    if cont and re.search(r'[A-Za-zÀ-ÿ]', cont) and len(cont) <= 60:
+                        items[-1]['identifier'] = (items[-1]['identifier'] + ' ' + cont).strip()
                 continue
 
             # Reference code: first token in the ref column that contains a digit.
@@ -1650,7 +1726,19 @@ class SourcingService:
                     ref = tok
                     leftover = ref_tokens[:i] + ref_tokens[i + 1:]
                     break
-            identifier = ' '.join(buckets.get('name', [])).strip() or ' '.join(leftover).strip()
+
+            # Product name = the description column PLUS everything that overflowed
+            # into the qty region, with only the right-aligned qty value removed.
+            name_words = list(word_buckets.get('name', []))
+            for k, ws in word_buckets.items():
+                ax = min((a[0] for a in anchors if a[1] == k), default=0)
+                if desc_x < ax < price_x:
+                    name_words.extend(ws)
+            name_words.sort(key=lambda w: w['x0'])
+            name_words = _strip_qty_value(name_words)
+            identifier = ' '.join(w['text'] for w in name_words).strip()
+            if not identifier:
+                identifier = ' '.join(leftover).strip()
 
             if not (ref or identifier):
                 continue
