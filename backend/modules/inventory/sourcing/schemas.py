@@ -262,19 +262,39 @@ class PdfImportUnmatchedItem(BaseModel):
     reason: str
 
 
+class PdfImportPriceOption(BaseModel):
+    """One candidate price for a product that appeared multiple times in the PDF"""
+    price: float
+    currency: str = "GBP"
+
+
 class PdfImportConflictItem(BaseModel):
     """
-    Both the reference code and the designation matched, but to different internal SKUs.
-    The user must choose which product to associate this price with.
+    A line item that needs the user to make a decision before import.
+
+    kind == 'sku'   → both the reference code and the designation matched, but to
+                      DIFFERENT internal SKUs; the user must choose which product.
+    kind == 'price' → the same product appeared more than once in the PDF with
+                      DIFFERENT prices; the user must choose which price to apply.
     """
-    ref: str
-    identifier: str
-    price: float
-    currency: str
-    sku_from_ref: str
+    kind: str = "sku"
+    ref: str = ""
+    identifier: str = ""
+    currency: str = "GBP"
+
+    # --- kind == 'sku' fields ---
+    price: Optional[float] = None
+    sku_from_ref: Optional[str] = None
     product_name_from_ref: Optional[str] = None
-    sku_from_name: str
+    sku_from_name: Optional[str] = None
     product_name_from_name: Optional[str] = None
+
+    # --- kind == 'price' fields ---
+    sku: Optional[str] = None
+    product_name: Optional[str] = None
+    current_price: Optional[float] = None
+    current_currency: Optional[str] = None
+    price_options: Optional[List[PdfImportPriceOption]] = None
 
 
 class PdfImportPreviewResponse(BaseModel):

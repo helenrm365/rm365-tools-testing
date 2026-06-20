@@ -1278,11 +1278,17 @@ class SourcingService:
                     ref_key = item.get('ref', '').lower().strip()
                     id_key  = item.get('identifier', '').lower().strip()
                     primary = ref_key or id_key
-                    if not primary or item.get('price') is None:
+                    price = item.get('price')
+                    if not primary or price is None:
                         return
-                    existing = page_items.get(primary)
+                    # Key by (product, price) so the SAME physical row extracted by both
+                    # the table and text passes still collapses (same price → most complete
+                    # wins), while two lines for the same product at DIFFERENT prices are
+                    # both kept — the downstream grouping turns those into a price conflict.
+                    pkey = (primary, round(float(price), 2), item.get('currency') or default_currency)
+                    existing = page_items.get(pkey)
                     if existing is None or _item_score(item) > _item_score(existing):
-                        page_items[primary] = item
+                        page_items[pkey] = item
 
                 # 1. Layout-aware extraction (primary, universal)
                 layout_items, layout_anchors = self._extract_pdf_layout(page, layout_anchors)
@@ -1305,14 +1311,30 @@ class SourcingService:
         all_products = self.repo.get_all_products_from_inventory_metadata()
         sku_to_name: Dict = {p['sku']: p.get('product_name', '') for p in all_products}
 
-        # Deduplicate by ref code first, then identifier (case-insensitive)
-        seen: set = set()
-        unique_items: list = []
+        # Group extracted rows by product key (ref code preferred, else identifier).
+        # The FIRST occurrence is the representative (used for ref / name / display),
+        # but we record every DISTINCT (price, currency) seen for that product. This
+        # lets us surface "same product appears more than once with different prices"
+        # as a conflict for the user to resolve, instead of silently keeping the first
+        # price and dropping the rest.
+        grouped: Dict[str, Dict] = {}
+        group_order: list = []
         for item in extracted_items:
             key = (item.get('ref', '').lower().strip() or item.get('identifier', '').lower().strip())
-            if key and key not in seen:
-                seen.add(key)
-                unique_items.append(item)
+            price = item.get('price')
+            if not key or price is None:
+                continue
+            currency = item.get('currency') or default_currency
+            group = grouped.get(key)
+            if group is None:
+                group = {'rep': item, 'variants': []}
+                grouped[key] = group
+                group_order.append(key)
+            seen_pc = {(round(float(v['price']), 2), v['currency']) for v in group['variants']}
+            if (round(float(price), 2), currency) not in seen_pc:
+                group['variants'].append({'price': price, 'currency': currency})
+
+        unique_items: list = [grouped[k]['rep'] for k in group_order]
 
         preview: list = []
         conflicts: list = []
@@ -1337,7 +1359,11 @@ class SourcingService:
                 return False
             return True
 
-        for item in unique_items:
+        for key in group_order:
+            group = grouped[key]
+            item = group['rep']
+            variants = group['variants']
+
             identifier = item.get('identifier', '').strip()
             ref = item.get('ref', '').strip()
             price = item.get('price')
@@ -1363,9 +1389,10 @@ class SourcingService:
                 })
                 continue
 
-            # Case 2: both matched to DIFFERENT products → user must choose
+            # Case 2: both matched to DIFFERENT products → user must choose which SKU
             if sku_from_ref and sku_from_name and sku_from_ref != sku_from_name:
                 conflicts.append({
+                    'kind': 'sku',
                     'ref': ref,
                     'identifier': identifier,
                     'price': price,
@@ -1392,6 +1419,25 @@ class SourcingService:
             current = existing_pricing.get(internal_sku, {})
             current_price = current.get('unit_price')
             current_currency = current.get('currency') or default_currency
+
+            # Same product appeared more than once with DIFFERENT prices → don't
+            # guess. Surface a price-choice conflict so the user decides which to apply.
+            if len(variants) > 1:
+                conflicts.append({
+                    'kind': 'price',
+                    'ref': ref,
+                    'identifier': identifier,
+                    'currency': currency,
+                    'sku': internal_sku,
+                    'product_name': sku_to_name.get(internal_sku, '') or display_name,
+                    'current_price': current_price,
+                    'current_currency': current_currency,
+                    'price_options': [
+                        {'price': v['price'], 'currency': v['currency'] or default_currency}
+                        for v in variants
+                    ],
+                })
+                continue
 
             preview.append({
                 'sku': internal_sku,

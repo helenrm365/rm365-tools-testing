@@ -2992,9 +2992,35 @@ function renderPdfPreview(result) {
     _updateConflictsRemaining(result.conflicts.length);
 
     conflictsBody.innerHTML = result.conflicts.map((c, idx) => {
+      const key = `conflict-${idx}`;
+
+      // Price-choice conflict: same product seen multiple times with different prices.
+      if (c.kind === 'price') {
+        const curSym = c.current_currency ? (CURRENCY_SYMBOLS[c.current_currency] || c.current_currency) : '';
+        const currentDisplay = c.current_price != null
+          ? `${curSym}${parseFloat(c.current_price).toFixed(2)}`
+          : '—';
+        const options = (c.price_options || []).map((opt, oi) => {
+          const osym = opt.currency ? (CURRENCY_SYMBOLS[opt.currency] || opt.currency) : '';
+          return `
+            <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; font-size:0.875rem;">
+              <input type="radio" name="${key}" value="${oi}" data-conflict="${idx}" style="flex-shrink:0;" onchange="window.sourcingModule.resolveConflict(${idx}, '${oi}')">
+              <span><strong>${osym}${parseFloat(opt.price).toFixed(2)}</strong></span>
+            </label>`;
+        }).join('');
+        return `
+          <div id="conflict-card-${idx}" style="border:1px solid var(--color-warning,#d97706); border-radius:6px; padding:0.75rem; background:var(--color-warning-bg,#fffbeb);">
+            <div style="font-size:0.82rem; color:var(--color-muted,#6b7280); margin-bottom:0.4rem;">
+              Same product appears multiple times with different prices — choose which to apply.<br>
+              <strong>SKU:</strong> ${escapeHtml(c.sku || '')} &nbsp;|&nbsp; <strong>${escapeHtml(c.product_name || c.identifier || '')}</strong> &nbsp;|&nbsp; <strong>Current:</strong> ${currentDisplay}
+            </div>
+            <div style="display:flex; flex-wrap:wrap; gap:0.75rem;">${options}</div>
+          </div>`;
+      }
+
+      // SKU-choice conflict (default): ref and name matched different products.
       const sym = c.currency ? (CURRENCY_SYMBOLS[c.currency] || c.currency) : '';
       const priceDisplay = `${sym}${parseFloat(c.price).toFixed(2)}`;
-      const key = `conflict-${idx}`;
       return `
         <div id="conflict-card-${idx}" style="border:1px solid var(--color-warning,#d97706); border-radius:6px; padding:0.75rem; background:var(--color-warning-bg,#fffbeb);">
           <div style="font-size:0.82rem; color:var(--color-muted,#6b7280); margin-bottom:0.4rem;">
@@ -3148,10 +3174,24 @@ async function confirmPdfImport() {
 
   // Add user-resolved conflicts
   (pendingPdfPreview.conflicts || []).forEach((c, idx) => {
-    const chosenSku = conflictResolutions.get(_conflictKey(idx));
-    if (chosenSku) {
+    const chosen = conflictResolutions.get(_conflictKey(idx));
+    if (chosen == null) return;
+
+    if (c.kind === 'price') {
+      // chosen is the index into price_options
+      const opt = (c.price_options || [])[parseInt(chosen, 10)];
+      if (opt) {
+        updates.push({
+          sku: c.sku,
+          supplier_id: supplierId,
+          unit_price: opt.price,
+          currency: opt.currency || defaultCurrency,
+        });
+      }
+    } else {
+      // SKU-choice conflict: chosen is the selected SKU; price is fixed
       updates.push({
-        sku: chosenSku,
+        sku: chosen,
         supplier_id: supplierId,
         unit_price: c.price,
         currency: c.currency || defaultCurrency,
