@@ -1373,13 +1373,18 @@ class SourcingService:
                 return False
             if not _re.search(r'[a-zA-ZÀ-ÿ]', full):
                 return False
-            # Count adjacent LETTER pairs that are identical — doubled-char PDF artifact.
-            # Using raw count (not ratio) avoids dilution by spaces/punctuation.
+            # Adjacent identical LETTER pairs signal the bold/shadow doubled-char PDF
+            # artifact (e.g. "SSttyyllaaggee"). A real artifact doubles *most*
+            # characters, so use the RATIO of doublings to letters — a raw count
+            # wrongly rejects long legitimate names that merely contain a couple of
+            # natural double letters (e.g. "GDAPLLLA003 JUVELOOK"). Spaces still break
+            # adjacency so unrelated words are never joined into a false doubling.
+            letter_count = sum(1 for c in full if c.isalpha())
             letter_doublings = sum(
                 1 for i in range(len(full) - 1)
                 if full[i].isalpha() and full[i].lower() == full[i + 1].lower()
             )
-            if letter_doublings >= 3:
+            if letter_count >= 6 and letter_doublings / letter_count > 0.30:
                 return False
             return True
 
@@ -1585,8 +1590,11 @@ class SourcingService:
     # continuation lines into product names. Matched case-insensitively against
     # de-doubled row text (so bold "FFaaccttuurree" still matches "facture").
     _PDF_FOOTER_RE = re.compile(
-        r'(inco\s*terms|sous-?total|total\s+(hors|tva|ht)|frais\s+de\s+port|'
-        r'tva\s*\d|conditions?\s+de\s+paiement|date\s+(d.?[ée]mission|limite)|'
+        r'(inco\s*terms|sous-?total|total\s+(hors|tva|ht)|frais\s+de\s+(port|transport)|'
+        r'tva\s*\d|conditions?\s+de\s+paiement|mode\s+de\s+(r[èe]glement|paiement)|'
+        r'date\s+(d.?[ée]mission|limite)|escompte\s+pour\s+r[èe]glement|'
+        r'r[ée]capitulatif\s+des\s+[ée]ch[ée]ances|logiciels?\s+de\s+gestion|'
+        r'(virement|pr[ée]l[èe]vement)\s+sepa|'
         r'en\s+cas\s+de\s+retard|bank\s*name|iban|bic|by\s+placing|'
         r'livraison\s+intra|adresse\s+de\s+livraison|siret\s*/?\s*siren)',
         re.IGNORECASE,
@@ -1654,6 +1662,19 @@ class SourcingService:
         desc_x = max((a[0] for a in anchors if a[1] in ('ref', 'name')), default=0)
         price_x = min((a[0] for a in anchors if a[1] == 'unit_price'), default=10 ** 9)
 
+        # Some invoices (e.g. GDA) have NO dedicated description column — the SKU
+        # code and the product name share one wide "ITEM" column, with the value
+        # columns (U.M./qty/price) far to the right. We detect that case and rebuild
+        # the name differently (see the per-row logic below).
+        has_name_col = any(k == 'name' for _, k in anchors)
+        # Leftmost value column. The product identity never extends past it; used
+        # as a hard right-bound when reconstructing names from a combined column.
+        value_x = min((a[0] for a in anchors
+                       if a[1] in ('qty', 'unit_price', 'total', 'disc', 'vat')),
+                      default=price_x)
+        # A supplier reference/SKU token: alphanumeric (with - / .) containing a digit.
+        _code_re = re.compile(r'^[A-Za-z0-9][A-Za-z0-9\-/.]+$')
+
         # The quantity VALUE is a right-aligned numeric cluster whose tokens sit
         # tightly together (thousands groups like "1 000,00" have ~2px gaps),
         # whereas description text that overflows toward the qty column is
@@ -1692,6 +1713,14 @@ class SourcingService:
 
             row_text = ' '.join(w['text'] for w in r['words'])
 
+            # The invoice's payment / totals / admin block (e.g. "Escompte pour
+            # règlement…", "Virement SEPA", "Document créé par logiciels…") marks the
+            # end of the line items. Stop here even if such a row carries a stray
+            # amount, so those lines are never mistaken for products nor glued onto
+            # the previous product's name.
+            if self._looks_like_pdf_footer(row_text):
+                break
+
             up_text = ' '.join(buckets.get('unit_price', [])).strip()
             price, currency = (None, None)
             if up_text:
@@ -1705,7 +1734,11 @@ class SourcingService:
                 if self._looks_like_pdf_footer(row_text):
                     # Reached the totals/footer block — stop scanning this table.
                     break
-                if items:
+                # Only merge wrapped fragments for layouts with a real description
+                # column. Combined-column invoices (no name header, e.g. GDA) put
+                # the full name on the product's own line and follow it with
+                # batch/expiry/dimension sub-lines that must NOT be appended.
+                if items and has_name_col:
                     cont_words = [
                         w for w in r['words']
                         if (w['x0'] + w['x1']) / 2 < price_x
@@ -1717,28 +1750,78 @@ class SourcingService:
                         items[-1]['identifier'] = (items[-1]['identifier'] + ' ' + cont).strip()
                 continue
 
-            # Reference code: first token in the ref column that contains a digit.
-            ref = ''
-            ref_tokens = buckets.get('ref', [])
-            leftover = []
-            for i, tok in enumerate(ref_tokens):
-                if re.match(r'^[A-Za-z0-9][A-Za-z0-9\-/.]+$', tok) and re.search(r'\d', tok):
-                    ref = tok
-                    leftover = ref_tokens[:i] + ref_tokens[i + 1:]
-                    break
+            if has_name_col:
+                # Reference code: first token in the ref column that contains a digit.
+                ref = ''
+                ref_word_list = word_buckets.get('ref', [])
+                code_idx = next(
+                    (i for i, w in enumerate(ref_word_list)
+                     if _code_re.match(w['text']) and re.search(r'\d', w['text'])),
+                    None,
+                )
+                if code_idx is not None:
+                    ref = ref_word_list[code_idx]['text']
+                    leftover_words = [w for j, w in enumerate(ref_word_list) if j != code_idx]
+                else:
+                    leftover_words = list(ref_word_list)
 
-            # Product name = the description column PLUS everything that overflowed
-            # into the qty region, with only the right-aligned qty value removed.
-            name_words = list(word_buckets.get('name', []))
-            for k, ws in word_buckets.items():
-                ax = min((a[0] for a in anchors if a[1] == k), default=0)
-                if desc_x < ax < price_x:
-                    name_words.extend(ws)
-            name_words.sort(key=lambda w: w['x0'])
-            name_words = _strip_qty_value(name_words)
-            identifier = ' '.join(w['text'] for w in name_words).strip()
-            if not identifier:
-                identifier = ' '.join(leftover).strip()
+                # Product name = the description column PLUS the descriptive words
+                # that bled LEFT into the code column (a wide description whose left
+                # edge nearest-anchors into 'ref'). Without re-attaching those, names
+                # get truncated (e.g. "LIFT BUST 3D 100ML" → "3D 100ML") and stop
+                # matching their mapping.
+                name_words = list(word_buckets.get('name', [])) + leftover_words
+                name_words.sort(key=lambda w: w['x0'])
+
+                # Then extend RIGHTWARDS only over words that are physically
+                # contiguous with the description (small gaps) — size/desc tokens
+                # pushed into the qty bucket by nearest-anchor. Stop at the first
+                # sizeable gap, which precedes the numeric value columns, so
+                # qty/discount/VAT/LOT values are never glued onto the name.
+                right_candidates = sorted(
+                    (w for k, ws in word_buckets.items() if k not in ('ref', 'name')
+                     for w in ws if (w['x0'] + w['x1']) / 2 > desc_x),
+                    key=lambda w: w['x0'],
+                )
+                prev_x1 = name_words[-1]['x1'] if name_words else desc_x
+                for w in right_candidates:
+                    if w['x0'] - prev_x1 > 20:
+                        break
+                    name_words.append(w)
+                    prev_x1 = w['x1']
+
+                # NB: no qty-value stripping here — the gap-bounded extension above
+                # already stops before the distant numeric columns, so a trailing
+                # size number that is genuinely part of the name (e.g. "5 x 5ml")
+                # is preserved.
+                identifier = ' '.join(w['text'] for w in name_words).strip()
+                if not identifier:
+                    identifier = ' '.join(w['text'] for w in leftover_words).strip()
+            else:
+                # Combined identity column (no description header, e.g. GDA "ITEM"):
+                # the row reads  [SKU] <wide gap> [name words, tightly packed]
+                # <wide gap> [U.M.] <gap> [qty] … We pop the leading code token as
+                # the ref, then take the tightly-packed run of words that follows as
+                # the name, breaking at the first sizeable gap. That gap reliably
+                # separates the description from the distant U.M./qty/price columns,
+                # so values like the unit-of-measure ("PS") are never glued on — and
+                # name-based mappings resolve correctly.
+                identity = [w for w in sorted(r['words'], key=lambda w: w['x0'])
+                            if (w['x0'] + w['x1']) / 2 < value_x]
+                ref = ''
+                if identity:
+                    t0 = identity[0]['text']
+                    if _code_re.match(t0) and re.search(r'\d', t0):
+                        ref = t0
+                        identity = identity[1:]
+                name_words = []
+                prev = None
+                for w in identity:
+                    if prev is not None and (w['x0'] - prev['x1']) > 30:
+                        break
+                    name_words.append(w)
+                    prev = w
+                identifier = ' '.join(w['text'] for w in name_words).strip()
 
             if not (ref or identifier):
                 continue
