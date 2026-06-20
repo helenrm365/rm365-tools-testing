@@ -39,7 +39,7 @@ import {
   importMappingsFile,
   importMatrixPDF,
   importMatrixPDFStream
-} from '../../services/api/sourcingApi.js?v=5';
+} from '../../services/api/sourcingApi.js';
 
 // ============================================================================
 // CURRENCY HELPERS
