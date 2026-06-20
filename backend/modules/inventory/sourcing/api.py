@@ -27,7 +27,7 @@ from .schemas import (
     SupplierProductMappingOut,
     PdfImportPreviewResponse,
 )
-from .service import SourcingService
+from .service import SourcingService, PdfParseCancelled
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -426,6 +426,77 @@ async def import_matrix_pdf(
     except Exception as e:
         logger.error(f"Error parsing PDF: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/import/pdf/stream")
+async def import_matrix_pdf_stream(
+    file: UploadFile = File(...),
+    supplier_id: int = Form(...),
+    user=Depends(get_current_user)
+):
+    """
+    Streaming variant of /import/pdf. Emits Server-Sent Events with live parse
+    progress for large/multi-page PDFs, then a final 'complete' event carrying
+    the full preview payload. Mirrors the manual-task SSE pattern.
+
+    If the client disconnects (user cancels/closes the modal), the worker thread
+    is cooperatively cancelled at the next page boundary so it stops parsing.
+    """
+    import json
+    import queue
+    from threading import Event, Thread
+
+    contents = await file.read()
+    progress_queue: queue.Queue = queue.Queue()
+    result_holder = [None]
+    error_holder = [None]
+    cancel_event = Event()
+
+    def progress_callback(percent: int, message: str) -> None:
+        if cancel_event.is_set():
+            raise PdfParseCancelled()
+        progress_queue.put({"type": "progress", "percent": percent, "message": message})
+
+    def run_parse() -> None:
+        try:
+            result_holder[0] = _svc().import_matrix_pdf(
+                contents, supplier_id, progress_cb=progress_callback
+            )
+        except PdfParseCancelled:
+            pass  # client went away — nothing to report
+        except ValueError as e:
+            error_holder[0] = {"status": 400, "message": str(e)}
+        except Exception as e:  # noqa: BLE001
+            logger.error(f"Error parsing PDF (stream): {e}")
+            error_holder[0] = {"status": 500, "message": str(e)}
+        finally:
+            progress_queue.put({"type": "done"})
+
+    worker = Thread(target=run_parse, daemon=True)
+    worker.start()
+
+    def event_stream():
+        try:
+            while True:
+                try:
+                    event = progress_queue.get(timeout=300)
+                except queue.Empty:
+                    yield f"data: {json.dumps({'type': 'progress', 'percent': -1, 'message': 'Still processing…'})}\n\n"
+                    continue
+                if event["type"] == "done":
+                    if error_holder[0] is not None:
+                        yield f"data: {json.dumps({'type': 'error', **error_holder[0]})}\n\n"
+                    elif result_holder[0] is not None:
+                        yield f"data: {json.dumps({'type': 'progress', 'percent': 100, 'message': 'Done'})}\n\n"
+                        yield f"data: {json.dumps({'type': 'complete', 'result': result_holder[0]})}\n\n"
+                    break
+                yield f"data: {json.dumps(event)}\n\n"
+        finally:
+            # Generator closed (normal finish OR client disconnect): signal the
+            # worker to stop at its next page boundary.
+            cancel_event.set()
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
 
 
 # ============================================================================

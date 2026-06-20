@@ -14,6 +14,10 @@ from .gsheets_service import GSheetsService
 logger = logging.getLogger(__name__)
 
 
+class PdfParseCancelled(Exception):
+    """Raised to cooperatively abort PDF parsing when the client disconnects."""
+
+
 class SourcingService:
     """Business logic for sourcing operations"""
 
@@ -1231,14 +1235,26 @@ class SourcingService:
     # PDF IMPORT
     # ========================================================================
 
-    def import_matrix_pdf(self, pdf_bytes: bytes, supplier_id: int) -> Dict:
+    def import_matrix_pdf(self, pdf_bytes: bytes, supplier_id: int, progress_cb=None) -> Dict:
         """
         Parse a supplier PDF price list and return a preview of pricing changes.
         Uses product mappings to match line items to internal SKUs.
         Does NOT write to the database — caller must call bulk_upsert_pricing to apply.
+
+        progress_cb: optional callable(percent: int, message: str) invoked as pages are
+        parsed, so callers (e.g. the SSE streaming endpoint) can report live progress.
         """
         import pdfplumber
         import io
+
+        def _report(percent: int, message: str) -> None:
+            if progress_cb:
+                try:
+                    progress_cb(percent, message)
+                except PdfParseCancelled:
+                    raise  # deliberate cancellation must abort parsing
+                except Exception:
+                    pass  # other progress errors must never break parsing
 
         suppliers = self.repo.get_suppliers(active_only=False)
         supplier = next((s for s in suppliers if s['id'] == supplier_id), None)
@@ -1271,7 +1287,8 @@ class SourcingService:
         extracted_items: list = []
         layout_anchors = None  # carried across continuation pages of multi-page invoices
         with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
-            for page in pdf.pages:
+            total_pages = len(pdf.pages) or 1
+            for page_index, page in enumerate(pdf.pages):
                 page_items: dict = {}  # primary_key -> best item so far
 
                 def _merge(item: dict) -> None:
@@ -1306,6 +1323,12 @@ class SourcingService:
                             _merge(item)
 
                 extracted_items.extend(page_items.values())
+
+                # Reserve the final 5% for the matching phase below.
+                pct = int(((page_index + 1) / total_pages) * 95)
+                _report(pct, f"Parsing page {page_index + 1} of {total_pages}")
+
+        _report(97, "Matching products…")
 
         # Build a product name lookup for conflict display
         all_products = self.repo.get_all_products_from_inventory_metadata()
@@ -1449,7 +1472,13 @@ class SourcingService:
                 'new_price': price,
                 'new_currency': currency,
                 'match_method': match_method,
-                'has_change': current_price is None or abs(float(current_price) - float(price)) > 0.001,
+                # Changed if there's no current price, the amount differs, OR the
+                # currency differs (a USD→GBP move at the same number is still a change).
+                'has_change': (
+                    current_price is None
+                    or abs(float(current_price) - float(price)) > 0.001
+                    or (current_currency or default_currency) != (currency or default_currency)
+                ),
             })
 
         return {

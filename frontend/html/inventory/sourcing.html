@@ -714,11 +714,23 @@
           </div>
         </div>
       </div>
-      <div class="modal-footer">
-        <button class="btn btn-solid btn-default rounded-lg" id="btn-pdf-import-cancel">Cancel</button>
-        <button class="btn btn-solid btn-success" id="btn-pdf-import-process" disabled>
-          <i class="fas fa-cog"></i> Process PDF
-        </button>
+      <div class="modal-footer" style="flex-direction:column; align-items:stretch; gap:0.75rem;">
+        <!-- Parse progress (shown while parsing) -->
+        <div id="pdf-import-progress" style="display:none;">
+          <div style="display:flex; align-items:center; justify-content:space-between; font-size:0.82rem; margin-bottom:0.35rem;">
+            <span id="pdf-import-progress-label" style="color:var(--color-muted,#6b7280);">Parsing…</span>
+            <span id="pdf-import-progress-pct" style="font-weight:600;">0%</span>
+          </div>
+          <div style="height:8px; background:var(--color-border,#e5e7eb); border-radius:999px; overflow:hidden;">
+            <div id="pdf-import-progress-bar" style="height:100%; width:0%; background:var(--color-success,#16a34a); transition:width 0.2s ease;"></div>
+          </div>
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:0.5rem;">
+          <button class="btn btn-solid btn-default rounded-lg" id="btn-pdf-import-cancel">Cancel</button>
+          <button class="btn btn-solid btn-success" id="btn-pdf-import-process" disabled>
+            <i class="fas fa-cog"></i> Process PDF
+          </button>
+        </div>
       </div>
     </div>
 
@@ -744,17 +756,30 @@
         <div id="pdf-import-changes-section">
           <div style="display:flex; align-items:center; justify-content:space-between; gap:0.75rem; margin:0 0 0.5rem; flex-wrap:wrap;">
             <h4 style="margin:0; font-size:0.95rem; font-weight:600;">Price Changes</h4>
-            <input type="text" id="pdf-import-changes-search" class="form-control" placeholder="Search description or SKU…" style="max-width:260px; font-size:0.82rem; padding:0.35rem 0.6rem;">
+            <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
+              <label style="display:flex; align-items:center; gap:0.35rem; font-size:0.8rem; color:var(--color-muted,#6b7280); cursor:pointer; user-select:none;">
+                <input type="checkbox" id="pdf-import-changes-only" checked> Changes only
+              </label>
+              <input type="text" id="pdf-import-changes-search" class="form-control" placeholder="Search description or SKU…" style="max-width:240px; font-size:0.82rem; padding:0.35rem 0.6rem;">
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap; margin:0 0 0.5rem; font-size:0.72rem; color:var(--color-muted,#6b7280);">
+            <span><i class="fas fa-exclamation-triangle" style="color:var(--color-warning,#d97706);"></i> Large change (&gt;50% or big jump)</span>
+            <span><i class="fas fa-coins" style="color:var(--color-danger,#dc2626);"></i> Currency differs</span>
+            <span id="pdf-import-selection-info"></span>
           </div>
           <div style="max-height:340px; overflow-y:auto; border:1px solid var(--color-border,#e5e7eb); border-radius:6px;">
             <table class="data-table" id="pdf-import-changes-table" style="width:100%; font-size:0.85rem;">
               <thead>
                 <tr>
-                  <th>Supplier Description</th>
-                  <th>Internal SKU</th>
-                  <th>Current Price</th>
-                  <th>New Price</th>
-                  <th>Change</th>
+                  <th style="width:34px; text-align:center;">
+                    <input type="checkbox" id="pdf-import-select-all" title="Include/exclude all" checked>
+                  </th>
+                  <th class="pdf-sortable" data-pdf-sort="description" style="cursor:pointer; user-select:none;">Supplier Description</th>
+                  <th class="pdf-sortable" data-pdf-sort="sku" style="cursor:pointer; user-select:none;">Internal SKU</th>
+                  <th class="pdf-sortable" data-pdf-sort="current" style="cursor:pointer; user-select:none;">Current Price</th>
+                  <th class="pdf-sortable" data-pdf-sort="new" style="cursor:pointer; user-select:none;">New Price</th>
+                  <th class="pdf-sortable" data-pdf-sort="change" style="cursor:pointer; user-select:none;">Change</th>
                 </tr>
               </thead>
               <tbody id="pdf-import-changes-body"></tbody>

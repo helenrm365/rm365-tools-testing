@@ -37,7 +37,8 @@ import {
   createSupplierMapping,
   deleteSupplierMapping,
   importMappingsFile,
-  importMatrixPDF
+  importMatrixPDF,
+  importMatrixPDFStream
 } from '../../services/api/sourcingApi.js?v=4';
 
 // ============================================================================
@@ -400,11 +401,35 @@ function setupEventListeners() {
     pdfUnmatchedView.page = 1;
     renderPdfUnmatched();
   });
-  // Unmatched product picker (delegated — rows are re-rendered on paginate/search)
+  // Unmatched product picker + mapping-type select (delegated — rows re-render)
   document.getElementById('pdf-import-unmatched-body')?.addEventListener('change', (e) => {
     const input = e.target.closest('.pdf-unmatched-input');
-    if (!input) return;
-    resolveUnmatched(parseInt(input.dataset.unmatchedIdx, 10), input.value);
+    if (input) {
+      resolveUnmatched(parseInt(input.dataset.unmatchedIdx, 10), input.value);
+      return;
+    }
+    const sel = e.target.closest('.pdf-unmatched-maptype');
+    if (sel) {
+      setUnmatchedMappingType(parseInt(sel.dataset.unmatchedIdx, 10), sel.value);
+    }
+  });
+
+  // Matched table: changes-only toggle, select-all, per-row include/exclude, sort
+  document.getElementById('pdf-import-changes-only')?.addEventListener('change', (e) => {
+    pdfMatchedView.changesOnly = e.target.checked;
+    pdfMatchedView.page = 1;
+    renderPdfMatched();
+  });
+  document.getElementById('pdf-import-select-all')?.addEventListener('change', (e) => {
+    setPdfAllExcluded(!e.target.checked);
+  });
+  document.getElementById('pdf-import-changes-body')?.addEventListener('change', (e) => {
+    const cb = e.target.closest('.pdf-matched-check');
+    if (!cb) return;
+    setPdfMatchedExcluded(parseInt(cb.dataset.matchedIdx, 10), !cb.checked);
+  });
+  document.querySelectorAll('#pdf-import-changes-table th.pdf-sortable').forEach(th => {
+    th.addEventListener('click', () => togglePdfMatchedSort(th.dataset.pdfSort));
   });
 
   // Drag-and-drop for PDF drop zone
@@ -2910,6 +2935,12 @@ async function openPdfImportModal() {
 }
 
 function closePdfImportModal() {
+  // If a parse is in flight, abort it (the fetch stream stops, backend thread ends).
+  if (pdfParseAbort) {
+    try { pdfParseAbort.abort(); } catch {}
+    pdfParseAbort = null;
+  }
+  _setPdfParsing(false);
   document.getElementById('pdf-import-overlay')?.classList.remove('active');
   pendingPdfFile = null;
   pendingPdfPreview = null;
@@ -2957,37 +2988,107 @@ async function processPdfImport() {
     return;
   }
 
-  setLoading(true);
+  const processBtn = document.getElementById('btn-pdf-import-process');
+  const supplierSelect = document.getElementById('pdf-import-supplier');
+  const dropZone = document.getElementById('pdf-import-drop-zone');
+
+  _setPdfParsing(true);
+
+  // Allow the parse to be aborted if the user cancels/closes the modal.
+  pdfParseAbort = new AbortController();
+
   try {
-    showToast('Parsing PDF...', 'info');
-    // Load the internal product list (used by the unmatched product picker)
-    // in parallel with parsing so the datalist is ready in step 2.
-    const [result] = await Promise.all([
-      importMatrixPDF(pendingPdfFile, parseInt(supplierId)),
-      _ensureInternalProductsLoaded(),
-    ]);
+    // Load the internal product list (for the unmatched picker) alongside parsing.
+    const productsPromise = _ensureInternalProductsLoaded();
+
+    let result;
+    try {
+      result = await importMatrixPDFStream(pendingPdfFile, parseInt(supplierId), {
+        signal: pdfParseAbort.signal,
+        onProgress: (percent, message) => _updatePdfProgress(percent, message),
+      });
+    } catch (streamErr) {
+      if (streamErr.name === 'AbortError') return; // user cancelled — stay silent
+      if (streamErr.fromSse) throw streamErr;       // real parse error — don't retry
+      // Transport/streaming unavailable (older server / proxy buffering) — fall
+      // back to the plain endpoint so the importer still works.
+      console.warn('[Sourcing] PDF streaming failed, falling back:', streamErr);
+      _updatePdfProgress(-1, 'Parsing…');
+      result = await importMatrixPDF(pendingPdfFile, parseInt(supplierId), {
+        signal: pdfParseAbort.signal,
+      });
+    }
+
+    await productsPromise;
     pendingPdfPreview = result;
     renderPdfPreview(result);
     document.getElementById('pdf-import-modal-title').textContent =
       `PDF Preview — ${result.supplier_name}`;
     showPdfImportStep2();
   } catch (error) {
+    if (error?.name === 'AbortError') return;
     console.error('[Sourcing] Error processing PDF:', error);
     showToast('Failed to parse PDF: ' + (error.message || 'Unknown error'), 'error');
   } finally {
-    setLoading(false);
+    pdfParseAbort = null;
+    _setPdfParsing(false);
+    if (supplierSelect) supplierSelect.disabled = false;
+    if (dropZone) dropZone.style.pointerEvents = '';
+    if (processBtn) processBtn.disabled = !document.getElementById('pdf-import-supplier')?.value || !pendingPdfFile;
   }
+}
+
+// Toggle the parsing UI: disable Process button (prevent double-click), lock
+// inputs, and show/hide the progress bar.
+function _setPdfParsing(isParsing) {
+  const processBtn = document.getElementById('btn-pdf-import-process');
+  const supplierSelect = document.getElementById('pdf-import-supplier');
+  const dropZone = document.getElementById('pdf-import-drop-zone');
+  const progress = document.getElementById('pdf-import-progress');
+
+  if (processBtn) {
+    processBtn.disabled = isParsing;
+    processBtn.innerHTML = isParsing
+      ? '<i class="fas fa-spinner fa-spin"></i> Parsing…'
+      : '<i class="fas fa-cog"></i> Process PDF';
+  }
+  if (supplierSelect) supplierSelect.disabled = isParsing;
+  if (dropZone) dropZone.style.pointerEvents = isParsing ? 'none' : '';
+  if (progress) progress.style.display = isParsing ? '' : 'none';
+  if (isParsing) _updatePdfProgress(0, 'Starting…');
+}
+
+function _updatePdfProgress(percent, message) {
+  const bar = document.getElementById('pdf-import-progress-bar');
+  const pct = document.getElementById('pdf-import-progress-pct');
+  const label = document.getElementById('pdf-import-progress-label');
+  if (label && message) label.textContent = message;
+  if (percent < 0) {
+    // Indeterminate — keep the bar moving subtly.
+    if (bar) bar.style.width = '100%';
+    if (pct) pct.textContent = '…';
+    return;
+  }
+  const clamped = Math.max(0, Math.min(100, percent));
+  if (bar) bar.style.width = `${clamped}%`;
+  if (pct) pct.textContent = `${clamped}%`;
 }
 
 function renderPdfPreview(result) {
   conflictResolutions.clear();
   unmatchedResolutions.clear();
-  pdfMatchedView = { page: 1, query: '' };
+  unmatchedMappingType.clear();
+  pdfExcludedRows.clear();
+  pdfMatchedView = { page: 1, query: '', sortBy: null, sortOrder: 'asc', changesOnly: true };
   pdfUnmatchedView = { page: 1, query: '' };
   const matchedSearch = document.getElementById('pdf-import-changes-search');
   if (matchedSearch) matchedSearch.value = '';
   const unmatchedSearch = document.getElementById('pdf-import-unmatched-search');
   if (unmatchedSearch) unmatchedSearch.value = '';
+  const changesOnly = document.getElementById('pdf-import-changes-only');
+  if (changesOnly) changesOnly.checked = true;
+  const selectAll = document.getElementById('pdf-import-select-all');
+  if (selectAll) { selectAll.checked = true; selectAll.indeterminate = false; }
 
   // Summary stats
   const summaryEl = document.getElementById('pdf-import-summary');
@@ -3089,12 +3190,43 @@ function renderPdfPreview(result) {
   _updateConfirmButton();
 }
 
-// Client-side view state for the preview tables (search + pagination).
+// Client-side view state for the preview tables (search + pagination + sort).
 const PDF_PAGE_SIZE = 50;
-let pdfMatchedView = { page: 1, query: '' };
+let pdfMatchedView = { page: 1, query: '', sortBy: null, sortOrder: 'asc', changesOnly: true };
 let pdfUnmatchedView = { page: 1, query: '' };
 // Map of unmatched item index → { sku, name } chosen by the user.
 const unmatchedResolutions = new Map();
+// Map of unmatched item index → mapping type 'both' | 'sku' | 'name'.
+const unmatchedMappingType = new Map();
+// Set of matched preview indices the user has EXCLUDED (default empty = all
+// included). Tracking only exclusions keeps this tiny even for huge invoices.
+const pdfExcludedRows = new Set();
+// Thresholds for the "suspicious change" flag.
+const PDF_SUSPICIOUS_PCT = 50;       // > ±50% price move
+const PDF_SUSPICIOUS_ABS = 100;      // or an absolute jump >= 100 in row currency
+
+// AbortController for an in-flight streaming parse (so closing/cancelling stops it).
+let pdfParseAbort = null;
+
+function _pdfDefaultMappingType(u) {
+  if (u.ref && u.identifier) return 'both';
+  return u.ref ? 'sku' : 'name';
+}
+
+function _pdfIsSuspicious(item) {
+  if (item.current_price == null) return false; // brand-new price isn't "suspicious"
+  const cur = parseFloat(item.current_price);
+  const next = parseFloat(item.new_price);
+  if (!(cur > 0)) return false;
+  const pct = Math.abs((next - cur) / cur) * 100;
+  const abs = Math.abs(next - cur);
+  return pct > PDF_SUSPICIOUS_PCT || abs >= PDF_SUSPICIOUS_ABS;
+}
+
+function _pdfCurrencyMismatch(item) {
+  const expected = item.current_currency || pendingPdfPreview?.supplier_default_currency;
+  return !!(item.new_currency && expected && item.new_currency !== expected);
+}
 
 async function _ensureInternalProductsLoaded() {
   if (cachedInternalProducts && cachedInternalProducts.length > 0) return;
@@ -3142,29 +3274,117 @@ function _renderPdfPagination(containerId, info, navFn) {
     </div>`;
 }
 
+// Returns [{ item, idx }] after search + changes-only filter + sort, where idx is
+// the stable index into pendingPdfPreview.preview (used for include/exclude).
 function _filteredMatched() {
+  const all = pendingPdfPreview?.preview || [];
+  let rows = all.map((item, idx) => ({ item, idx }));
+
   const q = pdfMatchedView.query.trim().toLowerCase();
-  const items = pendingPdfPreview?.preview || [];
-  if (!q) return items;
-  return items.filter(i =>
-    (i.supplier_product_name || '').toLowerCase().includes(q) ||
-    (i.sku || '').toLowerCase().includes(q));
+  if (q) {
+    rows = rows.filter(({ item }) =>
+      (item.supplier_product_name || '').toLowerCase().includes(q) ||
+      (item.sku || '').toLowerCase().includes(q));
+  }
+
+  if (pdfMatchedView.changesOnly) {
+    rows = rows.filter(({ item }) => item.has_change);
+  }
+
+  const sb = pdfMatchedView.sortBy;
+  if (sb) {
+    const dir = pdfMatchedView.sortOrder === 'desc' ? -1 : 1;
+    const isNew = ({ item }) => item.current_price == null || !(parseFloat(item.current_price) > 0);
+    const val = ({ item }) => {
+      switch (sb) {
+        case 'description': return (item.supplier_product_name || '').toLowerCase();
+        case 'sku': return (item.sku || '').toLowerCase();
+        case 'current': return item.current_price == null ? -Infinity : parseFloat(item.current_price);
+        case 'new': return parseFloat(item.new_price);
+        case 'change':
+          return ((parseFloat(item.new_price) - parseFloat(item.current_price)) / parseFloat(item.current_price)) * 100;
+        default: return 0;
+      }
+    };
+    rows.sort((a, b) => {
+      // For "change", rows with no current price ("New") always sort last,
+      // regardless of asc/desc, since a % change is undefined for them.
+      if (sb === 'change') {
+        const an = isNew(a), bn = isNew(b);
+        if (an || bn) return an && bn ? 0 : (an ? 1 : -1);
+      }
+      const va = val(a), vb = val(b);
+      if (va < vb) return -1 * dir;
+      if (va > vb) return 1 * dir;
+      return 0;
+    });
+  }
+
+  return rows;
+}
+
+function _updateMatchedHeaderSortIcons() {
+  document.querySelectorAll('#pdf-import-changes-table th.pdf-sortable').forEach(th => {
+    let icon = th.querySelector('.sort-icon');
+    if (!icon) {
+      icon = document.createElement('i');
+      icon.className = 'fas fa-sort sort-icon';
+      icon.style.marginLeft = '0.4rem';
+      icon.style.fontSize = '0.7rem';
+      icon.style.opacity = '0.5';
+      th.appendChild(icon);
+    }
+    if (th.dataset.pdfSort === pdfMatchedView.sortBy) {
+      icon.className = `fas fa-sort-${pdfMatchedView.sortOrder === 'asc' ? 'up' : 'down'} sort-icon`;
+      icon.style.opacity = '1';
+    } else {
+      icon.className = 'fas fa-sort sort-icon';
+      icon.style.opacity = '0.5';
+    }
+  });
+}
+
+function _matchedChangedIndices() {
+  const all = pendingPdfPreview?.preview || [];
+  const out = [];
+  all.forEach((item, idx) => { if (item.has_change) out.push(idx); });
+  return out;
+}
+
+function _updateMatchedSelectionInfo() {
+  const changed = _matchedChangedIndices();
+  const excludedChanged = changed.filter(idx => pdfExcludedRows.has(idx)).length;
+  const included = changed.length - excludedChanged;
+  const info = document.getElementById('pdf-import-selection-info');
+  if (info) info.innerHTML = `<strong style="color:var(--color-text,#111);">${included}</strong> of ${changed.length} change${changed.length !== 1 ? 's' : ''} selected`;
+
+  const selectAll = document.getElementById('pdf-import-select-all');
+  if (selectAll) {
+    selectAll.checked = changed.length > 0 && excludedChanged === 0;
+    selectAll.indeterminate = excludedChanged > 0 && excludedChanged < changed.length;
+  }
 }
 
 function renderPdfMatched() {
   const tbody = document.getElementById('pdf-import-changes-body');
   if (!tbody) return;
-  const items = _filteredMatched();
+  const rows = _filteredMatched();
+  _updateMatchedHeaderSortIcons();
 
-  if (items.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--color-muted,#6b7280); padding:1rem;">${(pendingPdfPreview?.preview || []).length === 0 ? 'No matched items found.' : 'No matches for your search.'}</td></tr>`;
+  if (rows.length === 0) {
+    const totalPreview = (pendingPdfPreview?.preview || []).length;
+    const msg = totalPreview === 0
+      ? 'No matched items found.'
+      : (pdfMatchedView.changesOnly ? 'No price changes. Untick “Changes only” to show all matched items.' : 'No matches for your search.');
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--color-muted,#6b7280); padding:1rem;">${msg}</td></tr>`;
     _renderPdfPagination('pdf-import-changes-pagination', { total: 0 }, 'pdfMatchedPage');
+    _updateMatchedSelectionInfo();
     return;
   }
 
-  const info = _paginate(items, pdfMatchedView.page);
+  const info = _paginate(rows, pdfMatchedView.page);
   pdfMatchedView.page = info.page;
-  tbody.innerHTML = info.slice.map(item => {
+  tbody.innerHTML = info.slice.map(({ item, idx }) => {
     const currSym = item.current_currency ? (CURRENCY_SYMBOLS[item.current_currency] || item.current_currency) : '';
     const newSym = item.new_currency ? (CURRENCY_SYMBOLS[item.new_currency] || item.new_currency) : '';
     const currentDisplay = item.current_price != null
@@ -3175,7 +3395,7 @@ function renderPdfMatched() {
     let changeDisplay = '';
     if (item.current_price != null) {
       const diff = parseFloat(item.new_price) - parseFloat(item.current_price);
-      const pct = (diff / parseFloat(item.current_price)) * 100;
+      const pct = parseFloat(item.current_price) > 0 ? (diff / parseFloat(item.current_price)) * 100 : 0;
       const sign = diff >= 0 ? '+' : '';
       const color = diff > 0 ? 'var(--color-danger,#dc2626)' : diff < 0 ? 'var(--color-success,#16a34a)' : 'var(--color-muted,#6b7280)';
       changeDisplay = `<span style="color:${color}; font-weight:600;">${sign}${pct.toFixed(1)}%</span>`;
@@ -3183,8 +3403,28 @@ function renderPdfMatched() {
       changeDisplay = '<span style="color:var(--color-muted,#9ca3af);">New</span>';
     }
 
-    return `<tr>
-      <td style="max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtml(item.supplier_product_name)}">${escapeHtml(item.supplier_product_name)}</td>
+    const suspicious = _pdfIsSuspicious(item);
+    const curMismatch = _pdfCurrencyMismatch(item);
+    const flags = [];
+    if (suspicious) flags.push('<i class="fas fa-exclamation-triangle" style="color:var(--color-warning,#d97706);" title="Large change — please double-check"></i>');
+    if (curMismatch) flags.push(`<i class="fas fa-coins" style="color:var(--color-danger,#dc2626);" title="Currency differs from current/default (${escapeHtml(item.new_currency || '')})"></i>`);
+    const flagsHtml = flags.length ? ` <span style="margin-left:0.25rem;">${flags.join(' ')}</span>` : '';
+
+    const excluded = pdfExcludedRows.has(idx);
+    const rowStyle = [
+      excluded ? 'opacity:0.45;' : '',
+      suspicious ? 'background:var(--color-warning-bg,#fffbeb);' : '',
+    ].join('');
+
+    // Only rows with an actual change are importable; unchanged rows are shown
+    // (when "Changes only" is off) but their checkbox is disabled.
+    const checkboxCell = item.has_change
+      ? `<input type="checkbox" class="pdf-matched-check" data-matched-idx="${idx}" ${excluded ? '' : 'checked'}>`
+      : `<input type="checkbox" disabled title="No change" style="opacity:0.4;">`;
+
+    return `<tr data-matched-idx="${idx}" style="${rowStyle}">
+      <td style="text-align:center;">${checkboxCell}</td>
+      <td style="max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtml(item.supplier_product_name)}">${escapeHtml(item.supplier_product_name)}${flagsHtml}</td>
       <td style="font-family:monospace;">${escapeHtml(item.sku)}</td>
       <td>${currentDisplay}</td>
       <td style="font-weight:600;">${newDisplay}</td>
@@ -3193,6 +3433,38 @@ function renderPdfMatched() {
   }).join('');
 
   _renderPdfPagination('pdf-import-changes-pagination', info, 'pdfMatchedPage');
+  _updateMatchedSelectionInfo();
+}
+
+function togglePdfMatchedSort(sortBy) {
+  if (pdfMatchedView.sortBy === sortBy) {
+    pdfMatchedView.sortOrder = pdfMatchedView.sortOrder === 'asc' ? 'desc' : 'asc';
+  } else {
+    pdfMatchedView.sortBy = sortBy;
+    pdfMatchedView.sortOrder = 'asc';
+  }
+  pdfMatchedView.page = 1;
+  renderPdfMatched();
+}
+
+function setPdfMatchedExcluded(idx, excluded) {
+  if (excluded) pdfExcludedRows.add(idx);
+  else pdfExcludedRows.delete(idx);
+  // Reflect row dimming + selection info without a full re-render.
+  const tr = document.querySelector(`#pdf-import-changes-body tr[data-matched-idx="${idx}"]`);
+  if (tr) tr.style.opacity = excluded ? '0.45' : '';
+  _updateMatchedSelectionInfo();
+  _updateConfirmButton();
+}
+
+function setPdfAllExcluded(excluded) {
+  // Operates only on importable (changed) rows.
+  _matchedChangedIndices().forEach(idx => {
+    if (excluded) pdfExcludedRows.add(idx);
+    else pdfExcludedRows.delete(idx);
+  });
+  renderPdfMatched();
+  _updateConfirmButton();
 }
 
 function _filteredUnmatchedIndices() {
@@ -3235,9 +3507,33 @@ function renderPdfUnmatched() {
     const sym = u.currency ? (CURRENCY_SYMBOLS[u.currency] || u.currency) : '';
     const chosen = unmatchedResolutions.get(i);
     const inputVal = chosen ? `[${chosen.sku}] ${chosen.name}` : '';
-    const statusCell = chosen
-      ? `<div style="font-size:0.72rem; color:var(--color-success,#16a34a); margin-top:0.2rem;"><i class="fas fa-check"></i> Will map to <strong>${escapeHtml(chosen.sku)}</strong></div>`
-      : '';
+
+    let statusCell = '';
+    if (chosen) {
+      const hasRef = !!u.ref;
+      const hasName = !!u.identifier;
+      const type = unmatchedMappingType.get(i) || _pdfDefaultMappingType(u);
+      let mapTypeControl = '';
+      if (hasRef && hasName) {
+        // User can choose which fields the saved mapping should match on.
+        const opt = (val, label) => `<option value="${val}" ${type === val ? 'selected' : ''}>${label}</option>`;
+        mapTypeControl = `
+          <label style="display:inline-flex; align-items:center; gap:0.3rem; font-size:0.72rem; color:var(--color-muted,#6b7280); margin-top:0.25rem;">
+            Map using:
+            <select class="form-control pdf-unmatched-maptype" data-unmatched-idx="${i}" style="font-size:0.72rem; padding:0.1rem 0.3rem; width:auto;">
+              ${opt('both', 'SKU + Name')}
+              ${opt('sku', `SKU (${escapeHtml(u.ref)})`)}
+              ${opt('name', 'Name')}
+            </select>
+          </label>`;
+      } else {
+        mapTypeControl = `<div style="font-size:0.72rem; color:var(--color-muted,#9ca3af); margin-top:0.2rem;">Mapping by ${hasRef ? 'SKU' : 'name'}</div>`;
+      }
+      statusCell = `
+        <div style="font-size:0.72rem; color:var(--color-success,#16a34a); margin-top:0.2rem;"><i class="fas fa-check"></i> Will map to <strong>${escapeHtml(chosen.sku)}</strong></div>
+        ${mapTypeControl}`;
+    }
+
     return `<tr data-unmatched-row="${i}">
       <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtml(u.raw_text)}">${escapeHtml(u.raw_text)}</td>
       <td>${sym}${parseFloat(u.price).toFixed(2)}</td>
@@ -3254,10 +3550,15 @@ function renderPdfUnmatched() {
   _renderPdfPagination('pdf-import-unmatched-pagination', info, 'pdfUnmatchedPage');
 }
 
+function setUnmatchedMappingType(idx, type) {
+  unmatchedMappingType.set(idx, type);
+}
+
 function resolveUnmatched(idx, inputValue) {
   const val = (inputValue || '').trim();
   if (!val) {
     unmatchedResolutions.delete(idx);
+    unmatchedMappingType.delete(idx);
     renderPdfUnmatched();
     _updateConfirmButton();
     return;
@@ -3278,6 +3579,10 @@ function resolveUnmatched(idx, inputValue) {
     return;
   }
   unmatchedResolutions.set(idx, { sku: product.sku, name: product.name });
+  if (!unmatchedMappingType.has(idx)) {
+    const u = (pendingPdfPreview?.unmatched || [])[idx];
+    if (u) unmatchedMappingType.set(idx, _pdfDefaultMappingType(u));
+  }
   renderPdfUnmatched();
   _updateConfirmButton();
 }
@@ -3308,10 +3613,10 @@ function resolveConflict(idx, chosenSku) {
 }
 
 function _pdfEffectiveUpdateCount() {
-  const matched = pendingPdfPreview?.preview?.length || 0;
+  const changedIncluded = _matchedChangedIndices().filter(idx => !pdfExcludedRows.has(idx)).length;
   const resolvedConflicts = conflictResolutions.size;
   const resolvedUnmatched = unmatchedResolutions.size;
-  return matched + resolvedConflicts + resolvedUnmatched;
+  return changedIncluded + resolvedConflicts + resolvedUnmatched;
 }
 
 function _updateConfirmButton() {
@@ -3340,15 +3645,22 @@ async function confirmPdfImport() {
     return;
   }
 
-  // Base updates from auto-matched items
-  const updates = (pendingPdfPreview.preview || []).map(item => ({
-    sku: item.sku,
-    supplier_id: supplierId,
-    unit_price: item.new_price,
-    currency: item.new_currency || defaultCurrency,
-  }));
+  // Collect updates keyed by SKU so the same product can't be written twice with
+  // different prices (e.g. an auto-matched row AND an unmatched line resolved to
+  // the same SKU). Insertion order is matched → conflicts → unmatched, and a
+  // later (user-driven) entry overwrites an earlier auto-matched one.
+  const updateBySku = new Map();
+  const putUpdate = (sku, unit_price, currency) =>
+    updateBySku.set(sku, { sku, supplier_id: supplierId, unit_price, currency: currency || defaultCurrency });
 
-  // Add user-resolved conflicts
+  // Auto-matched items — only changed rows the user hasn't excluded.
+  (pendingPdfPreview.preview || []).forEach((item, idx) => {
+    if (!item.has_change) return;
+    if (pdfExcludedRows.has(idx)) return;
+    putUpdate(item.sku, item.new_price, item.new_currency);
+  });
+
+  // User-resolved conflicts
   (pendingPdfPreview.conflicts || []).forEach((c, idx) => {
     const chosen = conflictResolutions.get(_conflictKey(idx));
     if (chosen == null) return;
@@ -3356,46 +3668,35 @@ async function confirmPdfImport() {
     if (c.kind === 'price') {
       // chosen is the index into price_options
       const opt = (c.price_options || [])[parseInt(chosen, 10)];
-      if (opt) {
-        updates.push({
-          sku: c.sku,
-          supplier_id: supplierId,
-          unit_price: opt.price,
-          currency: opt.currency || defaultCurrency,
-        });
-      }
+      if (opt) putUpdate(c.sku, opt.price, opt.currency);
     } else {
       // SKU-choice conflict: chosen is the selected SKU; price is fixed
-      updates.push({
-        sku: chosen,
-        supplier_id: supplierId,
-        unit_price: c.price,
-        currency: c.currency || defaultCurrency,
-      });
+      putUpdate(chosen, c.price, c.currency);
     }
   });
 
-  // Add user-matched "unmatched" items: apply the price AND remember the new
-  // supplier mapping so the same line auto-matches on future imports.
+  // User-matched "unmatched" items: apply the price AND remember the new supplier
+  // mapping (using the SKU/name/both choice) so the same line auto-matches next time.
   const newMappings = [];
   unmatchedResolutions.forEach((choice, idx) => {
     const u = (pendingPdfPreview.unmatched || [])[idx];
     if (!u || !choice?.sku) return;
-    updates.push({
-      sku: choice.sku,
-      supplier_id: supplierId,
-      unit_price: u.price,
-      currency: u.currency || defaultCurrency,
-    });
-    if (u.ref || u.identifier) {
+    putUpdate(choice.sku, u.price, u.currency);
+
+    const type = unmatchedMappingType.get(idx) || _pdfDefaultMappingType(u);
+    const useSku = (type === 'both' || type === 'sku') && u.ref;
+    const useName = (type === 'both' || type === 'name') && u.identifier;
+    if (useSku || useName) {
       newMappings.push({
         supplier_id: supplierId,
-        supplier_sku: u.ref || null,
-        supplier_product_name: u.identifier || null,
+        supplier_sku: useSku ? u.ref : null,
+        supplier_product_name: useName ? u.identifier : null,
         internal_sku: choice.sku,
       });
     }
   });
+
+  const updates = Array.from(updateBySku.values());
 
   if (updates.length === 0) {
     closePdfImportModal();

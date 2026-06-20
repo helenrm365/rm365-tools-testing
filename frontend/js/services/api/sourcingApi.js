@@ -3,6 +3,8 @@
  * Handles all sourcing-related API calls (suppliers, pricing, FX rates, analysis)
  */
 import { get, post, patch, http } from './http.js';
+import { getToken } from '../state/sessionStore.js';
+import { getApiUrl } from '../../config.js';
 
 const BASE_PATH = '/v1/inventory/sourcing';
 
@@ -480,15 +482,75 @@ export async function importMappingsFile(file) {
  * @param {number} supplierId - Supplier ID the PDF belongs to
  * @returns {Promise<{supplier_id, supplier_name, preview: Array, unmatched: Array, total_found, total_matched, total_unmatched}>}
  */
-export async function importMatrixPDF(file, supplierId) {
+export async function importMatrixPDF(file, supplierId, { signal } = {}) {
   try {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('supplier_id', supplierId);
-    return await http(`${BASE_PATH}/import/pdf`, { method: 'POST', body: formData });
+    return await http(`${BASE_PATH}/import/pdf`, { method: 'POST', body: formData, signal });
   } catch (error) {
     console.error('[SourcingApi] Error importing PDF:', error);
     throw error;
   }
+}
+
+/**
+ * Streaming PDF parse — emits live progress via Server-Sent Events and resolves
+ * with the final preview payload. Falls back to importMatrixPDF on the caller's
+ * side if streaming is unavailable.
+ * @param {File} file
+ * @param {number} supplierId
+ * @param {{ onProgress?: (percent:number, message:string)=>void, signal?: AbortSignal }} [opts]
+ * @returns {Promise<object>} the preview result
+ */
+export async function importMatrixPDFStream(file, supplierId, { onProgress, signal } = {}) {
+  const base = getApiUrl().replace(/\/+$/, '');
+  const token = getToken();
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('supplier_id', supplierId);
+
+  const response = await fetch(`${base}${BASE_PATH}/import/pdf/stream`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: formData,
+    signal,
+  });
+
+  if (!response.ok || !response.body) {
+    throw new Error(`Server error: ${response.status}`);
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let result = null;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop();
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      let event;
+      try { event = JSON.parse(line.slice(6)); } catch { continue; }
+      if (event.type === 'progress') {
+        onProgress?.(event.percent, event.message);
+      } else if (event.type === 'complete') {
+        result = event.result;
+      } else if (event.type === 'error') {
+        // Server emitted a real parse/validation error — mark it so the caller
+        // does NOT retry via the non-streaming endpoint.
+        const err = new Error(event.message || 'Failed to parse PDF');
+        err.fromSse = true;
+        throw err;
+      }
+    }
+  }
+
+  if (!result) throw new Error('No result returned from PDF parse');
+  return result;
 }
 
