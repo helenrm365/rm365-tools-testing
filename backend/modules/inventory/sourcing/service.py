@@ -1373,6 +1373,12 @@ class SourcingService:
                 return False
             if not _re.search(r'[a-zA-ZÀ-ÿ]', full):
                 return False
+            # Invoice totals / payment / admin lines ("Net à payer", "IBAN", …) can
+            # slip through the fallback table/text parsers on summary-only pages where
+            # the layout pass finds no header. Reject them centrally so they never
+            # surface as products, whichever parser produced them.
+            if self._looks_like_pdf_footer(full):
+                return False
             # Adjacent identical LETTER pairs signal the bold/shadow doubled-char PDF
             # artifact (e.g. "SSttyyllaaggee"). A real artifact doubles *most*
             # characters, so use the RATIO of doublings to letters — a raw count
@@ -1404,9 +1410,22 @@ class SourcingService:
             if not _is_plausible(ref, identifier):
                 continue
 
-            # Resolve BOTH columns independently
-            sku_from_ref  = self.repo.resolve_supplier_sku(supplier_id, ref)  if ref        else None
-            sku_from_name = self.repo.resolve_supplier_sku(supplier_id, identifier) if identifier else None
+            # Resolve BOTH columns independently. For the name, try the base name
+            # first, then the base + any wrapped continuation fragment — so a genuine
+            # two-line product name still resolves, while a one-line name followed by
+            # a packaging annotation (kept separate during extraction) still matches
+            # on its base form.
+            sku_from_ref  = self.repo.resolve_supplier_sku(supplier_id, ref) if ref else None
+            sku_from_name = None
+            if identifier:
+                name_candidates = [identifier]
+                cont = item.get('identifier_cont', '').strip()
+                if cont:
+                    name_candidates.append(f"{identifier} {cont}".strip())
+                for cand in name_candidates:
+                    sku_from_name = self.repo.resolve_supplier_sku(supplier_id, cand)
+                    if sku_from_name:
+                        break
 
             # Case 1: neither matched
             if not sku_from_ref and not sku_from_name:
@@ -1594,7 +1613,7 @@ class SourcingService:
         r'tva\s*\d|conditions?\s+de\s+paiement|mode\s+de\s+(r[èe]glement|paiement)|'
         r'date\s+(d.?[ée]mission|limite)|escompte\s+pour\s+r[èe]glement|'
         r'r[ée]capitulatif\s+des\s+[ée]ch[ée]ances|logiciels?\s+de\s+gestion|'
-        r'(virement|pr[ée]l[èe]vement)\s+sepa|'
+        r'(virement|pr[ée]l[èe]vement)\s+sepa|net\s+[àa]\s+payer|'
         r'en\s+cas\s+de\s+retard|bank\s*name|iban|bic|by\s+placing|'
         r'livraison\s+intra|adresse\s+de\s+livraison|siret\s*/?\s*siren)',
         re.IGNORECASE,
@@ -1746,24 +1765,49 @@ class SourcingService:
                     cont = ' '.join(w['text'] for w in _strip_qty_value(
                         sorted(cont_words, key=lambda w: w['x0']))).strip()
                     # Only merge short, descriptive fragments (avoid stray noise).
+                    # IMPORTANT: keep the continuation SEPARATE from the base name
+                    # rather than overwriting it. Many invoices print a packaging
+                    # annotation ("CONDITIONNEMENT 50ml") or even the NEXT product's
+                    # wrapped first line under an item; gluing those onto the name
+                    # breaks an otherwise-exact mapping match. Matching later tries
+                    # the base name first, then base+continuation, so genuine
+                    # two-line names still resolve without corrupting one-line ones.
                     if cont and re.search(r'[A-Za-zÀ-ÿ]', cont) and len(cont) <= 60:
-                        items[-1]['identifier'] = (items[-1]['identifier'] + ' ' + cont).strip()
+                        items[-1]['identifier_cont'] = (
+                            (items[-1].get('identifier_cont', '') + ' ' + cont).strip()
+                        )
                 continue
 
             if has_name_col:
-                # Reference code: first token in the ref column that contains a digit.
+                # Supplier code = the LEFTMOST token in the ref column. Some suppliers
+                # use purely-alphabetic codes (LIFTK, PLATY, GANTC, CRYOSTICKS) with no
+                # digit, so we can't require one: instead we take the first ref-column
+                # word when it is code-like — a single alphanumeric token that either
+                # contains a digit OR is all-uppercase (codes are, descriptions are
+                # mixed-case) — provided there is still other text left for the name.
+                # This stops the code being prepended to the name (which would break
+                # the name→mapping match, e.g. "LIFTK LIFTKISS…" vs "LIFTKISS…").
                 ref = ''
-                ref_word_list = word_buckets.get('ref', [])
-                code_idx = next(
-                    (i for i, w in enumerate(ref_word_list)
-                     if _code_re.match(w['text']) and re.search(r'\d', w['text'])),
-                    None,
-                )
-                if code_idx is not None:
-                    ref = ref_word_list[code_idx]['text']
-                    leftover_words = [w for j, w in enumerate(ref_word_list) if j != code_idx]
-                else:
-                    leftover_words = list(ref_word_list)
+                ref_word_list = sorted(word_buckets.get('ref', []), key=lambda w: w['x0'])
+                leftover_words = list(ref_word_list)
+                if ref_word_list:
+                    first_txt = ref_word_list[0]['text']
+                    is_code = (
+                        bool(_code_re.match(first_txt)) and len(first_txt) >= 2
+                        and (bool(re.search(r'\d', first_txt)) or first_txt.isupper())
+                    )
+                    has_other_name = len(ref_word_list) > 1 or bool(word_buckets.get('name'))
+                    if is_code and has_other_name:
+                        ref = first_txt
+                        leftover_words = ref_word_list[1:]
+                    else:
+                        # Fall back to the first digit-bearing token anywhere in the
+                        # ref column (covers codes that aren't physically leftmost).
+                        for i, w in enumerate(ref_word_list):
+                            if _code_re.match(w['text']) and re.search(r'\d', w['text']):
+                                ref = w['text']
+                                leftover_words = ref_word_list[:i] + ref_word_list[i + 1:]
+                                break
 
                 # Product name = the description column PLUS the descriptive words
                 # that bled LEFT into the code column (a wide description whose left
