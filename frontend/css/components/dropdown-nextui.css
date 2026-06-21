@@ -350,3 +350,39 @@ html.dark-mode .nui-dropdown-footer {
   background: var(--bg-card);
   border-top-color: rgba(255, 255, 255, 0.08);
 }
+
+
+/* =========================================================
+   12. SEARCHABLE COMBOBOX  (ui/combobox.js)
+   A text <input> whose results render in a body-portaled menu.
+   Reuses .nui-dropdown-menu / .nui-dropdown-item for identical look
+   + animation. Because the menu is portaled to <body> (not a child of
+   an .is-open wrapper), the open state is toggled on the menu itself.
+   ========================================================= */
+.nui-combobox-menu {
+  /* Sit above modals (var(--z-modal) = 1200); positioned via inline styles in JS. */
+  z-index: var(--z-tooltip, 1400);
+  /* JS already offsets top by the input height + 4px gap. */
+  margin-top: 0;
+}
+
+.nui-combobox-menu.is-open {
+  opacity: 1;
+  transform: translateY(0) scaleY(1);
+  pointer-events: auto;
+}
+
+/* Keyboard-highlighted row — matches the hover background. */
+.nui-dropdown-item.is-active {
+  background: color-mix(in srgb, #3F3F46 8%, transparent);
+}
+html.dark-mode .nui-dropdown-item.is-active {
+  background: color-mix(in srgb, #fff 10%, transparent);
+}
+
+.nui-combobox-empty {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--text-muted, #6b7280);
+  text-align: center;
+}

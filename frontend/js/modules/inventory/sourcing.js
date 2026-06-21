@@ -40,6 +40,7 @@ import {
   importMatrixPDF,
   importMatrixPDFStream
 } from '../../services/api/sourcingApi.js';
+import { initCombobox, pruneDetachedComboboxes } from '../../ui/combobox.js';
 
 // ============================================================================
 // CURRENCY HELPERS
@@ -3241,7 +3242,6 @@ function renderPdfPreview(result) {
 
   // Matched changes + unmatched are rendered via dedicated paginated/searchable
   // helpers so large invoices (100+ rows) stay navigable.
-  _populatePdfProductDatalist();
   renderPdfMatched();
   renderPdfUnmatched();
 
@@ -3316,13 +3316,24 @@ async function _ensureInternalProductsLoaded() {
   }
 }
 
-function _populatePdfProductDatalist(datalistId = 'pdf-import-products-datalist') {
-  const dl = document.getElementById(datalistId);
-  if (!dl) return;
-  // cachedInternalProducts is populated when entering step 2 (see processPdfImport)
-  dl.innerHTML = (cachedInternalProducts || [])
-    .map(p => `<option value="${escapeHtml(`[${p.sku}] ${p.name}`)}"></option>`)
-    .join('');
+// Enhance the per-row "Search SKU or name" inputs with the nui-styled searchable
+// combobox (ui/combobox.js). Rows re-render on search/pagination/selection, so this
+// is called after each render; detached instances are pruned automatically.
+function _enhancePdfProductPickers(rootId, inputClass) {
+  pruneDetachedComboboxes();
+  const root = document.getElementById(rootId);
+  if (!root) return;
+  const products = cachedInternalProducts || [];
+  root.querySelectorAll(`.${inputClass}`).forEach(input => {
+    initCombobox(input, {
+      items: products,
+      getLabel: (p) => `[${p.sku}] ${p.name}`,
+      filter: (p, q) =>
+        (p.sku && String(p.sku).toLowerCase().includes(q)) ||
+        (p.name && String(p.name).toLowerCase().includes(q)),
+      max: 50,
+    });
+  });
 }
 
 function _paginate(items, page) {
@@ -3613,7 +3624,7 @@ function renderPdfUnmatched() {
       <td style="max-width:240px;" title="${escapeHtml(u.raw_text)}">${_pdfLineIdentityHtml(u)}</td>
       <td>${sym}${parseFloat(u.price).toFixed(2)}</td>
       <td>
-        <input type="text" list="pdf-import-products-datalist" data-unmatched-idx="${i}"
+        <input type="text" data-unmatched-idx="${i}"
           class="nui-input nui-input-default nui-input-sm pdf-unmatched-input" placeholder="Search SKU or name…"
           value="${escapeHtml(inputVal)}"
           style="width:100%; ${chosen ? 'border-color:var(--color-success,#16a34a);' : ''}">
@@ -3623,6 +3634,7 @@ function renderPdfUnmatched() {
   }).join('');
 
   _renderPdfPagination('pdf-import-unmatched-pagination', info, 'pdfUnmatchedPage');
+  _enhancePdfProductPickers('pdf-import-unmatched-body', 'pdf-unmatched-input');
 }
 
 function setUnmatchedMappingType(idx, type) {
@@ -4005,7 +4017,6 @@ function renderMappingPdfPreview(result) {
       </div>`;
   }
 
-  _populatePdfProductDatalist('mapping-pdf-products-datalist');
   renderMapPdfUnmapped();
   _updateMapPdfConfirmButton();
 }
@@ -4078,7 +4089,7 @@ function renderMapPdfUnmapped() {
     return `<tr data-map-row="${i}">
       <td style="max-width:240px;" title="${escapeHtml(u.raw_text)}">${_pdfLineIdentityHtml(u)}</td>
       <td>
-        <input type="text" list="mapping-pdf-products-datalist" data-map-idx="${i}"
+        <input type="text" data-map-idx="${i}"
           class="nui-input nui-input-default nui-input-sm map-pdf-input" placeholder="Search SKU or name…"
           value="${escapeHtml(inputVal)}"
           style="width:100%; ${chosen ? 'border-color:var(--color-success,#16a34a);' : ''}">
@@ -4088,6 +4099,7 @@ function renderMapPdfUnmapped() {
   }).join('');
 
   _renderPdfPagination('mapping-pdf-unmapped-pagination', info, 'mapPdfPage');
+  _enhancePdfProductPickers('mapping-pdf-unmapped-body', 'map-pdf-input');
 }
 
 function setMapPdfMappingType(idx, type) {

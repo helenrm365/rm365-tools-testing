@@ -23,38 +23,54 @@
   width: 100%;
 }
 
+/* Matches the universal nui-dropdown menu (components/dropdown-nextui.css):
+   same border/radius/padding/shadow + the open fade-and-scale animation. */
 .search-results-dropdown {
   position: absolute;
   top: 100%;
   left: 0;
   right: 0;
-  background: var(--bg);
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  border-radius: 12px;
-  margin-top: 4px;
-  max-height: 200px;
-  overflow-y: auto;
   z-index: 100;
-  display: none;
+  margin-top: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+  background: var(--bg-card, #fafafa);
+  border: 1px solid var(--text-muted, #484848);
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+
+  /* Animation (mirrors .nui-dropdown-menu) */
+  opacity: 0;
+  transform: translateY(-8px) scaleY(0.95);
+  transform-origin: top center;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
 .search-results-dropdown.visible {
-  display: block;
+  opacity: 1;
+  transform: translateY(0) scaleY(1);
+  pointer-events: auto;
 }
 
 .search-result-item {
-  padding: 0.75rem 1rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
   cursor: pointer;
-  transition: background 0.15s ease;
-  border-bottom: 1px solid var(--bg-light);
-}
-
-.search-result-item:last-child {
-  border-bottom: none;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
 .search-result-item:hover {
-  background: var(--bg-light);
+  background: color-mix(in srgb, #3F3F46 8%, transparent);
+}
+
+html.dark-mode .search-results-dropdown {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+
+html.dark-mode .search-result-item:hover {
+  background: color-mix(in srgb, #fff 10%, transparent);
 }
 
 .result-email {
