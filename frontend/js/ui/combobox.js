@@ -9,6 +9,10 @@
 // bounding rect, so it is never clipped by scrolling/overflow ancestors (e.g. the
 // scrollable tables in the PDF import modals) and always sits above modals.
 //
+// Closing mirrors the proven nui-dropdown pattern (ui/dropdown.js): the input and
+// menu stopPropagation on pointer-down, and a single document-level pointer-down
+// closes whichever combobox is open.
+//
 // Usage:
 //   import { initCombobox } from '../../ui/combobox.js';
 //   initCombobox(inputEl, {
@@ -23,27 +27,27 @@
 //   });
 
 const INSTANCES = new Set();
+let openInst = null;        // only one combobox open at a time
 let globalsAttached = false;
 
 function esc(s) {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+function closeOpen() {
+  if (openInst) openInst.close();
+}
+
 function attachGlobals() {
   if (globalsAttached) return;
   globalsAttached = true;
 
-  // Close on outside pointer-down; prune any instances whose input was removed.
-  document.addEventListener('mousedown', (e) => {
-    INSTANCES.forEach((inst) => {
-      if (!inst.input.isConnected) { inst.destroy(); return; }
-      if (!inst.isOpen) return;
-      if (e.target === inst.input || inst.menu.contains(e.target)) return;
-      inst.close();
-    });
-  }, true);
+  // Any pointer-down that wasn't on an open combobox's input/menu closes it.
+  // (The input and menu call stopPropagation, so those clicks never reach here.)
+  document.addEventListener('mousedown', closeOpen);
+  document.addEventListener('touchstart', closeOpen);
 
-  // Reposition open menus when the page or any scroll container moves.
+  // Keep the open menu glued to its input while the page/containers move.
   const onMove = () => {
     INSTANCES.forEach((inst) => {
       if (!inst.input.isConnected) { inst.destroy(); return; }
@@ -85,6 +89,7 @@ export function initCombobox(input, opts = {}) {
 
   let filtered = [];
   let activeIndex = -1;
+  let raf = 0;
 
   const inst = { input, menu, isOpen: false, open, close, reposition, destroy };
 
@@ -95,10 +100,10 @@ export function initCombobox(input, opts = {}) {
     let left = r.left;
     if (left + width > window.innerWidth - 8) left = Math.max(8, window.innerWidth - 8 - width);
     menu.style.position = 'fixed';
-    menu.style.top = `${r.bottom + 4}px`;
-    menu.style.left = `${left}px`;
+    menu.style.top = `${Math.round(r.bottom + 4)}px`;
+    menu.style.left = `${Math.round(left)}px`;
     menu.style.right = 'auto';
-    menu.style.width = `${width}px`;
+    menu.style.width = `${Math.round(width)}px`;
   }
 
   function render() {
@@ -121,20 +126,27 @@ export function initCombobox(input, opts = {}) {
 
   function open() {
     if (input.value.trim().length < minChars) return close();
+    if (openInst && openInst !== inst) openInst.close();
+    openInst = inst;
     compute();
     render();
     reposition();
     if (!inst.isOpen) {
       inst.isOpen = true;
-      // Reflow so the transition runs from the hidden base state.
-      void menu.offsetWidth;
-      menu.classList.add('is-open');
+      // The menu base state (opacity 0) is now committed via render/reposition;
+      // flip to the open state on the next frame so the transition actually runs.
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        if (inst.isOpen) menu.classList.add('is-open');
+      });
     }
   }
 
   function close() {
+    if (openInst === inst) openInst = null;
     if (!inst.isOpen) return;
     inst.isOpen = false;
+    cancelAnimationFrame(raf);
     menu.classList.remove('is-open');
   }
 
@@ -157,6 +169,8 @@ export function initCombobox(input, opts = {}) {
   }
 
   // ---- Events ----
+  // stopPropagation so the document close-handler ignores clicks on our control.
+  const onInputDown = (e) => { e.stopPropagation(); };
   const onFocus = () => open();
   const onInput = () => open();
   const onKeydown = (e) => {
@@ -168,29 +182,39 @@ export function initCombobox(input, opts = {}) {
       if (inst.isOpen) { e.stopPropagation(); close(); }
     }
   };
-  // mousedown (not click) so selection beats the input's blur.
-  const onMenuMousedown = (e) => {
+  // mousedown (not click) so selection runs before the input blurs; preventDefault
+  // keeps focus on the input; stopPropagation keeps the document handler from firing.
+  const onMenuDown = (e) => {
+    e.stopPropagation();
     const btn = e.target.closest('.nui-dropdown-item');
     if (!btn) return;
     e.preventDefault();
     const item = filtered[+btn.dataset.i];
     if (item) choose(item);
   };
-  const onBlur = () => { setTimeout(close, 120); };
+  const onBlur = () => { setTimeout(() => { if (document.activeElement !== input) close(); }, 120); };
 
+  input.addEventListener('mousedown', onInputDown);
+  input.addEventListener('touchstart', onInputDown);
   input.addEventListener('focus', onFocus);
   input.addEventListener('input', onInput);
   input.addEventListener('keydown', onKeydown);
   input.addEventListener('blur', onBlur);
-  menu.addEventListener('mousedown', onMenuMousedown);
+  menu.addEventListener('mousedown', onMenuDown);
+  menu.addEventListener('touchstart', onMenuDown);
 
   function destroy() {
+    if (openInst === inst) openInst = null;
+    cancelAnimationFrame(raf);
     INSTANCES.delete(inst);
+    input.removeEventListener('mousedown', onInputDown);
+    input.removeEventListener('touchstart', onInputDown);
     input.removeEventListener('focus', onFocus);
     input.removeEventListener('input', onInput);
     input.removeEventListener('keydown', onKeydown);
     input.removeEventListener('blur', onBlur);
-    menu.removeEventListener('mousedown', onMenuMousedown);
+    menu.removeEventListener('mousedown', onMenuDown);
+    menu.removeEventListener('touchstart', onMenuDown);
     menu.remove();
     delete input.dataset.comboboxEnhanced;
   }
