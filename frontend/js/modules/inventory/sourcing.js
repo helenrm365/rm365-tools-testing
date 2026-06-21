@@ -453,7 +453,65 @@ function setupEventListeners() {
       }
     });
   }
-  
+
+  // Product Mappings — PDF Import
+  document.getElementById('btn-import-mappings-pdf')?.addEventListener('click', openMappingPdfModal);
+  document.getElementById('mapping-pdf-modal-close')?.addEventListener('click', closeMappingPdfModal);
+  document.getElementById('btn-mapping-pdf-cancel')?.addEventListener('click', closeMappingPdfModal);
+  document.getElementById('btn-mapping-pdf-step2-cancel')?.addEventListener('click', closeMappingPdfModal);
+  document.getElementById('mapping-pdf-overlay')?.addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeMappingPdfModal();
+  });
+  document.getElementById('mapping-pdf-drop-zone')?.addEventListener('click', () => {
+    document.getElementById('mapping-pdf-file-input')?.click();
+  });
+  document.getElementById('mapping-pdf-file-input')?.addEventListener('change', handleMapPdfFileSelect);
+  document.getElementById('btn-mapping-pdf-process')?.addEventListener('click', processMappingPdfImport);
+  document.getElementById('btn-mapping-pdf-back')?.addEventListener('click', showMappingPdfStep1);
+  document.getElementById('btn-mapping-pdf-confirm')?.addEventListener('click', confirmMappingPdfImport);
+  document.getElementById('mapping-pdf-supplier')?.addEventListener('change', (e) => {
+    const processBtn = document.getElementById('btn-mapping-pdf-process');
+    if (processBtn) processBtn.disabled = !e.target.value || !pendingMapPdfFile;
+  });
+  document.getElementById('mapping-pdf-unmapped-search')?.addEventListener('input', (e) => {
+    mapPdfView.query = e.target.value;
+    mapPdfView.page = 1;
+    renderMapPdfUnmapped();
+  });
+  // Product picker + mapping-type select (delegated — rows re-render)
+  document.getElementById('mapping-pdf-unmapped-body')?.addEventListener('change', (e) => {
+    const input = e.target.closest('.map-pdf-input');
+    if (input) {
+      resolveMapPdf(parseInt(input.dataset.mapIdx, 10), input.value);
+      return;
+    }
+    const sel = e.target.closest('.map-pdf-maptype');
+    if (sel) {
+      setMapPdfMappingType(parseInt(sel.dataset.mapIdx, 10), sel.value);
+    }
+  });
+  // Drag-and-drop for the mapping PDF drop zone
+  const mapDropZone = document.getElementById('mapping-pdf-drop-zone');
+  if (mapDropZone) {
+    mapDropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      mapDropZone.style.borderColor = 'var(--color-primary, #2563eb)';
+    });
+    mapDropZone.addEventListener('dragleave', () => {
+      mapDropZone.style.borderColor = 'var(--color-border, #d1d5db)';
+    });
+    mapDropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      mapDropZone.style.borderColor = 'var(--color-border, #d1d5db)';
+      const file = e.dataTransfer.files?.[0];
+      if (file && file.type === 'application/pdf') {
+        setMapPdfFile(file);
+      } else if (file) {
+        showToast('Please drop a PDF file', 'warning');
+      }
+    });
+  }
+
   // CSV Import Confirmation Modal
   document.getElementById('btn-csv-import-close')?.addEventListener('click', closeCsvImportModal);
   document.getElementById('btn-csv-import-cancel')?.addEventListener('click', closeCsvImportModal);
@@ -3209,8 +3267,25 @@ const PDF_SUSPICIOUS_ABS = 100;      // or an absolute jump >= 100 in row curren
 let pdfParseAbort = null;
 
 function _pdfDefaultMappingType(u) {
-  if (u.ref && u.identifier) return 'both';
+  // Default to mapping by NAME only when a product name is present; fall back to
+  // SKU when the line has only a reference code.
+  if (u.identifier) return 'name';
   return u.ref ? 'sku' : 'name';
+}
+
+// Render both the supplier SKU (ref) and product name (identifier) from a PDF
+// line so the user can see exactly which product they're mapping. Shared by the
+// supplier-matrix and product-mapping importers for UI consistency.
+function _pdfLineIdentityHtml(u) {
+  const parts = [];
+  if (u.identifier) {
+    parts.push(`<div><span style="color:var(--color-muted,#9ca3af);">Name:</span> ${escapeHtml(u.identifier)}</div>`);
+  }
+  if (u.ref) {
+    parts.push(`<div style="font-family:monospace; font-size:0.78rem; margin-top:0.15rem;"><span style="color:var(--color-muted,#9ca3af); font-family:var(--font-sans,sans-serif);">SKU:</span> ${escapeHtml(u.ref)}</div>`);
+  }
+  if (parts.length === 0) parts.push(escapeHtml(u.raw_text || ''));
+  return parts.join('');
 }
 
 function _pdfIsSuspicious(item) {
@@ -3241,8 +3316,8 @@ async function _ensureInternalProductsLoaded() {
   }
 }
 
-function _populatePdfProductDatalist() {
-  const dl = document.getElementById('pdf-import-products-datalist');
+function _populatePdfProductDatalist(datalistId = 'pdf-import-products-datalist') {
+  const dl = document.getElementById(datalistId);
   if (!dl) return;
   // cachedInternalProducts is populated when entering step 2 (see processPdfImport)
   dl.innerHTML = (cachedInternalProducts || [])
@@ -3521,9 +3596,9 @@ function renderPdfUnmatched() {
           <label style="display:inline-flex; align-items:center; gap:0.3rem; font-size:0.72rem; color:var(--color-muted,#6b7280); margin-top:0.25rem;">
             Map using:
             <select class="form-control pdf-unmatched-maptype" data-unmatched-idx="${i}" style="font-size:0.72rem; padding:0.1rem 0.3rem; width:auto;">
-              ${opt('both', 'SKU + Name')}
-              ${opt('sku', `SKU (${escapeHtml(u.ref)})`)}
               ${opt('name', 'Name')}
+              ${opt('sku', `SKU (${escapeHtml(u.ref)})`)}
+              ${opt('both', 'SKU + Name')}
             </select>
           </label>`;
       } else {
@@ -3535,7 +3610,7 @@ function renderPdfUnmatched() {
     }
 
     return `<tr data-unmatched-row="${i}">
-      <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtml(u.raw_text)}">${escapeHtml(u.raw_text)}</td>
+      <td style="max-width:240px;" title="${escapeHtml(u.raw_text)}">${_pdfLineIdentityHtml(u)}</td>
       <td>${sym}${parseFloat(u.price).toFixed(2)}</td>
       <td>
         <input type="text" list="pdf-import-products-datalist" data-unmatched-idx="${i}"
@@ -3732,6 +3807,387 @@ async function confirmPdfImport() {
   }
 }
 
+// ============================================================================
+// PRODUCT MAPPINGS — PDF IMPORT (mappings only, no pricing)
+// ============================================================================
+// Reuses the same PDF parse as the supplier-matrix importer, but only surfaces
+// lines that have NO existing mapping (the parser's `unmatched` list — matched
+// lines resolved via the mappings table, so they're already mapped and skipped).
+// The user maps each line to an internal product; prices are never written.
+
+let pendingMapPdfFile = null;
+let pendingMapPdfPreview = null;
+let mapPdfParseAbort = null;
+// idx (into preview.unmatched) → { sku, name } chosen by the user.
+const mapPdfResolutions = new Map();
+// idx → mapping type 'both' | 'sku' | 'name'.
+const mapPdfMappingType = new Map();
+let mapPdfView = { page: 1, query: '' };
+
+async function openMappingPdfModal() {
+  pendingMapPdfFile = null;
+  pendingMapPdfPreview = null;
+
+  const filenameEl = document.getElementById('mapping-pdf-filename');
+  if (filenameEl) filenameEl.textContent = '';
+  const processBtn = document.getElementById('btn-mapping-pdf-process');
+  if (processBtn) processBtn.disabled = true;
+  const fileInput = document.getElementById('mapping-pdf-file-input');
+  if (fileInput) fileInput.value = '';
+
+  showMappingPdfStep1();
+  document.getElementById('mapping-pdf-overlay')?.classList.add('active');
+
+  if (!state.suppliers || state.suppliers.length === 0) {
+    try {
+      state.suppliers = await getSuppliers(true);
+    } catch (e) {
+      console.error('[Sourcing] Could not load suppliers for mapping PDF modal:', e);
+    }
+  }
+
+  const select = document.getElementById('mapping-pdf-supplier');
+  if (select) {
+    select.innerHTML = '<option value="">— Choose a supplier —</option>';
+    (state.suppliers || []).forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.id;
+      opt.textContent = `${s.name} (${s.code})`;
+      select.appendChild(opt);
+    });
+    select.value = '';
+  }
+}
+
+function closeMappingPdfModal() {
+  if (mapPdfParseAbort) {
+    try { mapPdfParseAbort.abort(); } catch {}
+    mapPdfParseAbort = null;
+  }
+  _setMapPdfParsing(false);
+  document.getElementById('mapping-pdf-overlay')?.classList.remove('active');
+  pendingMapPdfFile = null;
+  pendingMapPdfPreview = null;
+}
+
+function showMappingPdfStep1() {
+  document.getElementById('mapping-pdf-step-1').style.display = '';
+  document.getElementById('mapping-pdf-step-2').style.display = 'none';
+  document.getElementById('mapping-pdf-modal-title').textContent = 'Import Mappings from PDF';
+}
+
+function showMappingPdfStep2() {
+  document.getElementById('mapping-pdf-step-1').style.display = 'none';
+  document.getElementById('mapping-pdf-step-2').style.display = '';
+}
+
+function setMapPdfFile(file) {
+  pendingMapPdfFile = file;
+  const filenameEl = document.getElementById('mapping-pdf-filename');
+  if (filenameEl) filenameEl.textContent = file.name;
+  const processBtn = document.getElementById('btn-mapping-pdf-process');
+  if (processBtn) {
+    const supplierId = document.getElementById('mapping-pdf-supplier')?.value;
+    processBtn.disabled = !supplierId;
+  }
+}
+
+function handleMapPdfFileSelect(e) {
+  const file = e.target.files?.[0];
+  if (file) setMapPdfFile(file);
+}
+
+function _setMapPdfParsing(isParsing) {
+  const processBtn = document.getElementById('btn-mapping-pdf-process');
+  const supplierSelect = document.getElementById('mapping-pdf-supplier');
+  const dropZone = document.getElementById('mapping-pdf-drop-zone');
+  const progress = document.getElementById('mapping-pdf-progress');
+
+  if (processBtn) {
+    processBtn.disabled = isParsing;
+    processBtn.innerHTML = isParsing
+      ? '<i class="fas fa-spinner fa-spin"></i> Parsing…'
+      : '<i class="fas fa-cog"></i> Process PDF';
+  }
+  if (supplierSelect) supplierSelect.disabled = isParsing;
+  if (dropZone) dropZone.style.pointerEvents = isParsing ? 'none' : '';
+  if (progress) progress.style.display = isParsing ? '' : 'none';
+  if (isParsing) _updateMapPdfProgress(0, 'Starting…');
+}
+
+function _updateMapPdfProgress(percent, message) {
+  const bar = document.getElementById('mapping-pdf-progress-bar');
+  const pct = document.getElementById('mapping-pdf-progress-pct');
+  const label = document.getElementById('mapping-pdf-progress-label');
+  if (label && message) label.textContent = message;
+  if (percent < 0) {
+    if (bar) bar.style.width = '100%';
+    if (pct) pct.textContent = '…';
+    return;
+  }
+  const clamped = Math.max(0, Math.min(100, percent));
+  if (bar) bar.style.width = `${clamped}%`;
+  if (pct) pct.textContent = `${clamped}%`;
+}
+
+async function processMappingPdfImport() {
+  const supplierId = document.getElementById('mapping-pdf-supplier')?.value;
+  if (!supplierId || !pendingMapPdfFile) {
+    showToast('Please select a supplier and a PDF file', 'warning');
+    return;
+  }
+
+  const processBtn = document.getElementById('btn-mapping-pdf-process');
+  _setMapPdfParsing(true);
+  mapPdfParseAbort = new AbortController();
+
+  try {
+    const productsPromise = _ensureInternalProductsLoaded();
+
+    let result;
+    try {
+      result = await importMatrixPDFStream(pendingMapPdfFile, parseInt(supplierId), {
+        signal: mapPdfParseAbort.signal,
+        onProgress: (percent, message) => _updateMapPdfProgress(percent, message),
+      });
+    } catch (streamErr) {
+      if (streamErr.name === 'AbortError') return;
+      if (streamErr.fromSse) throw streamErr;
+      console.warn('[Sourcing] Mapping PDF streaming failed, falling back:', streamErr);
+      _updateMapPdfProgress(-1, 'Parsing…');
+      result = await importMatrixPDF(pendingMapPdfFile, parseInt(supplierId), {
+        signal: mapPdfParseAbort.signal,
+      });
+    }
+
+    await productsPromise;
+    pendingMapPdfPreview = result;
+    renderMappingPdfPreview(result);
+    document.getElementById('mapping-pdf-modal-title').textContent =
+      `Map Products — ${result.supplier_name}`;
+    showMappingPdfStep2();
+  } catch (error) {
+    if (error?.name === 'AbortError') return;
+    console.error('[Sourcing] Error processing mapping PDF:', error);
+    showToast('Failed to parse PDF: ' + (error.message || 'Unknown error'), 'error');
+  } finally {
+    mapPdfParseAbort = null;
+    _setMapPdfParsing(false);
+    if (processBtn) processBtn.disabled = !document.getElementById('mapping-pdf-supplier')?.value || !pendingMapPdfFile;
+  }
+}
+
+function renderMappingPdfPreview(result) {
+  mapPdfResolutions.clear();
+  mapPdfMappingType.clear();
+  mapPdfView = { page: 1, query: '' };
+  const search = document.getElementById('mapping-pdf-unmapped-search');
+  if (search) search.value = '';
+
+  // Already-mapped = matched lines + resolved conflicts (both already in the
+  // mappings table). Surface as context so the skip is transparent.
+  const alreadyMapped = (result.total_matched || 0) + (result.total_conflicts || 0);
+  const toMap = result.total_unmatched || 0;
+  const summaryEl = document.getElementById('mapping-pdf-summary');
+  if (summaryEl) {
+    summaryEl.innerHTML = `
+      <div style="text-align:center; min-width:80px;">
+        <div style="font-size:1.6rem; font-weight:700; color:var(--color-text,#111);">${result.total_found || 0}</div>
+        <div style="font-size:0.8rem; color:var(--color-muted,#6b7280);">Found</div>
+      </div>
+      <div style="text-align:center; min-width:80px;">
+        <div style="font-size:1.6rem; font-weight:700; color:var(--color-muted,#6b7280);">${alreadyMapped}</div>
+        <div style="font-size:0.8rem; color:var(--color-muted,#6b7280);">Already mapped</div>
+      </div>
+      <div style="text-align:center; min-width:80px;">
+        <div style="font-size:1.6rem; font-weight:700; color:var(--color-warning,#d97706);">${toMap}</div>
+        <div style="font-size:0.8rem; color:var(--color-muted,#6b7280);">To map</div>
+      </div>`;
+  }
+
+  _populatePdfProductDatalist('mapping-pdf-products-datalist');
+  renderMapPdfUnmapped();
+  _updateMapPdfConfirmButton();
+}
+
+function _filteredMapPdfIndices() {
+  const q = mapPdfView.query.trim().toLowerCase();
+  const items = pendingMapPdfPreview?.unmatched || [];
+  const idxs = items.map((_, i) => i);
+  if (!q) return idxs;
+  return idxs.filter(i => {
+    const u = items[i];
+    return (u.identifier || '').toLowerCase().includes(q) ||
+      (u.ref || '').toLowerCase().includes(q) ||
+      (u.raw_text || '').toLowerCase().includes(q);
+  });
+}
+
+function renderMapPdfUnmapped() {
+  const countEl = document.getElementById('mapping-pdf-unmapped-count');
+  const tbody = document.getElementById('mapping-pdf-unmapped-body');
+  const all = pendingMapPdfPreview?.unmatched || [];
+  if (!tbody) return;
+  if (countEl) countEl.textContent = all.length;
+
+  if (all.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="2" style="text-align:center; color:var(--color-muted,#6b7280); padding:1rem;">No unmapped products — everything in this PDF is already mapped.</td></tr>';
+    _renderPdfPagination('mapping-pdf-unmapped-pagination', { total: 0 }, 'mapPdfPage');
+    return;
+  }
+
+  const idxs = _filteredMapPdfIndices();
+  if (idxs.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="2" style="text-align:center; color:var(--color-muted,#6b7280); padding:1rem;">No matches for your search.</td></tr>';
+    _renderPdfPagination('mapping-pdf-unmapped-pagination', { total: 0 }, 'mapPdfPage');
+    return;
+  }
+
+  const info = _paginate(idxs, mapPdfView.page);
+  mapPdfView.page = info.page;
+  tbody.innerHTML = info.slice.map(i => {
+    const u = all[i];
+    const chosen = mapPdfResolutions.get(i);
+    const inputVal = chosen ? `[${chosen.sku}] ${chosen.name}` : '';
+
+    let statusCell = '';
+    if (chosen) {
+      const hasRef = !!u.ref;
+      const hasName = !!u.identifier;
+      const type = mapPdfMappingType.get(i) || _pdfDefaultMappingType(u);
+      let mapTypeControl = '';
+      if (hasRef && hasName) {
+        const opt = (val, label) => `<option value="${val}" ${type === val ? 'selected' : ''}>${label}</option>`;
+        mapTypeControl = `
+          <label style="display:inline-flex; align-items:center; gap:0.3rem; font-size:0.72rem; color:var(--color-muted,#6b7280); margin-top:0.25rem;">
+            Map using:
+            <select class="form-control map-pdf-maptype" data-map-idx="${i}" style="font-size:0.72rem; padding:0.1rem 0.3rem; width:auto;">
+              ${opt('name', 'Name')}
+              ${opt('sku', `SKU (${escapeHtml(u.ref)})`)}
+              ${opt('both', 'SKU + Name')}
+            </select>
+          </label>`;
+      } else {
+        mapTypeControl = `<div style="font-size:0.72rem; color:var(--color-muted,#9ca3af); margin-top:0.2rem;">Mapping by ${hasRef ? 'SKU' : 'name'}</div>`;
+      }
+      statusCell = `
+        <div style="font-size:0.72rem; color:var(--color-success,#16a34a); margin-top:0.2rem;"><i class="fas fa-check"></i> Will map to <strong>${escapeHtml(chosen.sku)}</strong></div>
+        ${mapTypeControl}`;
+    }
+
+    return `<tr data-map-row="${i}">
+      <td style="max-width:240px;" title="${escapeHtml(u.raw_text)}">${_pdfLineIdentityHtml(u)}</td>
+      <td>
+        <input type="text" list="mapping-pdf-products-datalist" data-map-idx="${i}"
+          class="form-control map-pdf-input" placeholder="Search SKU or name…"
+          value="${escapeHtml(inputVal)}"
+          style="width:100%; font-size:0.8rem; padding:0.3rem 0.5rem; ${chosen ? 'border-color:var(--color-success,#16a34a);' : ''}">
+        ${statusCell}
+      </td>
+    </tr>`;
+  }).join('');
+
+  _renderPdfPagination('mapping-pdf-unmapped-pagination', info, 'mapPdfPage');
+}
+
+function setMapPdfMappingType(idx, type) {
+  mapPdfMappingType.set(idx, type);
+}
+
+function resolveMapPdf(idx, inputValue) {
+  const val = (inputValue || '').trim();
+  if (!val) {
+    mapPdfResolutions.delete(idx);
+    mapPdfMappingType.delete(idx);
+    renderMapPdfUnmapped();
+    _updateMapPdfConfirmButton();
+    return;
+  }
+  let sku = null;
+  const m = val.match(/^\[([^\]]+)\]\s*(.*)$/);
+  if (m) sku = m[1].trim();
+  const product = (cachedInternalProducts || []).find(p =>
+    (sku && p.sku.toLowerCase() === sku.toLowerCase()) ||
+    `[${p.sku}] ${p.name}`.toLowerCase() === val.toLowerCase());
+
+  if (!product) return; // still typing — not a valid selection yet
+  mapPdfResolutions.set(idx, { sku: product.sku, name: product.name });
+  if (!mapPdfMappingType.has(idx)) {
+    const u = (pendingMapPdfPreview?.unmatched || [])[idx];
+    if (u) mapPdfMappingType.set(idx, _pdfDefaultMappingType(u));
+  }
+  renderMapPdfUnmapped();
+  _updateMapPdfConfirmButton();
+}
+
+function _updateMapPdfConfirmButton() {
+  const confirmBtn = document.getElementById('btn-mapping-pdf-confirm');
+  if (!confirmBtn) return;
+  const count = mapPdfResolutions.size;
+  confirmBtn.disabled = count === 0;
+  confirmBtn.innerHTML = `<i class="fas fa-check"></i> Create ${count} Mapping${count !== 1 ? 's' : ''}`;
+}
+
+async function confirmMappingPdfImport() {
+  const supplierId = pendingMapPdfPreview?.supplier_id;
+  if (supplierId == null) {
+    closeMappingPdfModal();
+    return;
+  }
+
+  const mappings = [];
+  mapPdfResolutions.forEach((choice, idx) => {
+    const u = (pendingMapPdfPreview.unmatched || [])[idx];
+    if (!u || !choice?.sku) return;
+    const type = mapPdfMappingType.get(idx) || _pdfDefaultMappingType(u);
+    const useSku = (type === 'both' || type === 'sku') && u.ref;
+    const useName = (type === 'both' || type === 'name') && u.identifier;
+    if (useSku || useName) {
+      mappings.push({
+        supplier_id: supplierId,
+        supplier_sku: useSku ? u.ref : null,
+        supplier_product_name: useName ? u.identifier : null,
+        internal_sku: choice.sku,
+      });
+    }
+  });
+
+  if (mappings.length === 0) {
+    closeMappingPdfModal();
+    return;
+  }
+
+  setLoading(true);
+  try {
+    let saved = 0;
+    const errors = [];
+    for (const m of mappings) {
+      try {
+        await createSupplierMapping(m);
+        saved += 1;
+      } catch (e) {
+        console.error('[Sourcing] Failed to save mapping for', m.internal_sku, e);
+        errors.push(m.internal_sku);
+      }
+    }
+
+    if (saved > 0) {
+      let msg = `Created ${saved} mapping${saved !== 1 ? 's' : ''} from PDF`;
+      if (errors.length) msg += ` · ${errors.length} failed`;
+      showToast(msg, errors.length ? 'warning' : 'success');
+    } else {
+      showToast('No mappings could be created', 'error');
+    }
+    closeMappingPdfModal();
+    await loadProductMappings();
+  } catch (error) {
+    console.error('[Sourcing] Error creating mappings from PDF:', error);
+    showToast('Failed to create mappings: ' + (error.message || 'Unknown error'), 'error');
+  } finally {
+    setLoading(false);
+  }
+}
+
 // EXPOSE TO WINDOW FOR ONCLICK HANDLERS
 // ============================================================================
 
@@ -3747,6 +4203,7 @@ window.sourcingModule = {
   resolveUnmatched,
   pdfMatchedPage: (page) => { pdfMatchedView.page = page; renderPdfMatched(); },
   pdfUnmatchedPage: (page) => { pdfUnmatchedView.page = page; renderPdfUnmatched(); },
+  mapPdfPage: (page) => { mapPdfView.page = page; renderMapPdfUnmapped(); },
   goToAnalysisPage: async (page) => {
     state.analysisPage = page;
     // Client-side pagination from cached data — no API call needed

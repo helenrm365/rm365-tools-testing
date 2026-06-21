@@ -404,6 +404,9 @@
               <i class="fas fa-file-import"></i> Import CSV/Excel
             </button>
             <input type="file" id="mappings-import-file" accept=".csv,.xlsx,.xls" style="display:none;">
+            <button class="btn btn-solid btn-default" id="btn-import-mappings-pdf">
+              <i class="fas fa-file-pdf"></i> Import PDF
+            </button>
             <button class="btn btn-solid btn-success" id="btn-add-mapping">
               <i class="fas fa-plus"></i> Add Mapping
             </button>
@@ -805,7 +808,7 @@
               <table class="data-table" style="width:100%; font-size:0.82rem;">
                 <thead>
                   <tr>
-                    <th>Text from PDF</th>
+                    <th>Product from PDF</th>
                     <th>Price</th>
                     <th style="min-width:240px;">Match to product</th>
                   </tr>
@@ -846,6 +849,106 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-solid btn-default rounded-lg" id="btn-close-mappings-import-result">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Product Mapping PDF Import Modal -->
+<div class="modal-backdrop" id="mapping-pdf-overlay">
+  <div class="modal modal-lg" id="mapping-pdf-modal">
+    <div class="modal-header">
+      <div class="modal-header-icon"><i class="fas fa-file-pdf"></i></div>
+      <h3 class="modal-title" id="mapping-pdf-modal-title">Import Mappings from PDF</h3>
+      <button class="modal-close" id="mapping-pdf-modal-close"><i class="fas fa-times"></i></button>
+    </div>
+
+    <!-- Step 1: Select supplier + file -->
+    <div id="mapping-pdf-step-1">
+      <div class="modal-body">
+        <div class="modal-section">
+          <div class="modal-section-header">
+            <i class="fas fa-users"></i> Select Supplier
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="mapping-pdf-supplier">Supplier</label>
+            <select class="form-control" id="mapping-pdf-supplier">
+              <option value="">— Choose a supplier —</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-section">
+          <div class="modal-section-header">
+            <i class="fas fa-file-pdf"></i> Select PDF File
+          </div>
+          <div class="form-group">
+            <label class="form-label">Supplier PDF</label>
+            <div id="mapping-pdf-drop-zone" style="border:2px dashed var(--color-border,#d1d5db); border-radius:8px; padding:2rem; text-align:center; cursor:pointer; transition:border-color 0.2s;">
+              <i class="fas fa-cloud-upload-alt" style="font-size:2rem; color:var(--color-muted,#6b7280); margin-bottom:0.5rem; display:block;"></i>
+              <p style="margin:0; color:var(--color-muted,#6b7280);">Click to choose a PDF or drag &amp; drop here</p>
+              <p id="mapping-pdf-filename" style="margin:0.5rem 0 0; font-weight:600; color:var(--color-text,#111827);"></p>
+            </div>
+            <input type="file" id="mapping-pdf-file-input" accept=".pdf" style="display:none;">
+            <p class="help-text" style="margin-top:0.5rem;">Products that already have a mapping are skipped automatically. Only unmapped lines are shown so you can map them. Prices are not imported here.</p>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="flex-direction:column; align-items:stretch; gap:0.75rem;">
+        <div id="mapping-pdf-progress" style="display:none;">
+          <div style="display:flex; align-items:center; justify-content:space-between; font-size:0.82rem; margin-bottom:0.35rem;">
+            <span id="mapping-pdf-progress-label" style="color:var(--color-muted,#6b7280);">Parsing…</span>
+            <span id="mapping-pdf-progress-pct" style="font-weight:600;">0%</span>
+          </div>
+          <div style="height:8px; background:var(--color-border,#e5e7eb); border-radius:999px; overflow:hidden;">
+            <div id="mapping-pdf-progress-bar" style="height:100%; width:0%; background:var(--color-success,#16a34a); transition:width 0.2s ease;"></div>
+          </div>
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:0.5rem;">
+          <button class="btn btn-solid btn-default rounded-lg" id="btn-mapping-pdf-cancel">Cancel</button>
+          <button class="btn btn-solid btn-success" id="btn-mapping-pdf-process" disabled>
+            <i class="fas fa-cog"></i> Process PDF
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: Map the unmapped lines -->
+    <div id="mapping-pdf-step-2" style="display:none;">
+      <div class="modal-body">
+        <div id="mapping-pdf-summary" style="display:flex; gap:1.5rem; margin-bottom:1.25rem; flex-wrap:wrap;"></div>
+
+        <div id="mapping-pdf-unmapped-section">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:0.75rem; margin:0 0 0.5rem; flex-wrap:wrap;">
+            <h4 style="margin:0; font-size:0.95rem; font-weight:600;">Unmapped Products (<span id="mapping-pdf-unmapped-count">0</span>)</h4>
+            <input type="text" id="mapping-pdf-unmapped-search" class="form-control" placeholder="Search SKU or name…" style="max-width:260px; font-size:0.82rem; padding:0.35rem 0.6rem;">
+          </div>
+          <p style="margin:0 0 0.5rem; font-size:0.8rem; color:var(--color-muted,#6b7280);">
+            Pick an internal product for each line and choose how to match. New mappings are saved so these lines auto-match next time.
+          </p>
+          <div style="max-height:380px; overflow-y:auto; border:1px solid var(--color-border,#e5e7eb); border-radius:6px;">
+            <table class="data-table" style="width:100%; font-size:0.82rem;">
+              <thead>
+                <tr>
+                  <th>Product from PDF</th>
+                  <th style="min-width:260px;">Map to internal product</th>
+                </tr>
+              </thead>
+              <tbody id="mapping-pdf-unmapped-body"></tbody>
+            </table>
+          </div>
+          <div id="mapping-pdf-unmapped-pagination" class="pdf-import-pagination"></div>
+        </div>
+
+        <datalist id="mapping-pdf-products-datalist"></datalist>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-solid btn-default rounded-lg" id="btn-mapping-pdf-back">
+          <i class="fas fa-arrow-left"></i> Back
+        </button>
+        <button class="btn btn-solid btn-default rounded-lg" id="btn-mapping-pdf-step2-cancel">Cancel</button>
+        <button class="btn btn-solid btn-success" id="btn-mapping-pdf-confirm" disabled>
+          <i class="fas fa-check"></i> Create Mappings
+        </button>
+      </div>
     </div>
   </div>
 </div>
