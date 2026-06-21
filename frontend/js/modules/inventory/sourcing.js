@@ -3595,7 +3595,7 @@ function renderPdfUnmatched() {
         mapTypeControl = `
           <label style="display:inline-flex; align-items:center; gap:0.3rem; font-size:0.72rem; color:var(--color-muted,#6b7280); margin-top:0.25rem;">
             Map using:
-            <select class="form-control pdf-unmatched-maptype" data-unmatched-idx="${i}" style="font-size:0.72rem; padding:0.1rem 0.3rem; width:auto;">
+            <select class="pdf-unmatched-maptype" data-unmatched-idx="${i}" style="font-size:0.72rem; padding:0.1rem 0.3rem; width:auto;">
               ${opt('name', 'Name')}
               ${opt('sku', `SKU (${escapeHtml(u.ref)})`)}
               ${opt('both', 'SKU + Name')}
@@ -3614,9 +3614,9 @@ function renderPdfUnmatched() {
       <td>${sym}${parseFloat(u.price).toFixed(2)}</td>
       <td>
         <input type="text" list="pdf-import-products-datalist" data-unmatched-idx="${i}"
-          class="form-control pdf-unmatched-input" placeholder="Search SKU or name…"
+          class="nui-input nui-input-default nui-input-sm pdf-unmatched-input" placeholder="Search SKU or name…"
           value="${escapeHtml(inputVal)}"
-          style="width:100%; font-size:0.8rem; padding:0.3rem 0.5rem; ${chosen ? 'border-color:var(--color-success,#16a34a);' : ''}">
+          style="width:100%; ${chosen ? 'border-color:var(--color-success,#16a34a);' : ''}">
         ${statusCell}
       </td>
     </tr>`;
@@ -4061,7 +4061,7 @@ function renderMapPdfUnmapped() {
         mapTypeControl = `
           <label style="display:inline-flex; align-items:center; gap:0.3rem; font-size:0.72rem; color:var(--color-muted,#6b7280); margin-top:0.25rem;">
             Map using:
-            <select class="form-control map-pdf-maptype" data-map-idx="${i}" style="font-size:0.72rem; padding:0.1rem 0.3rem; width:auto;">
+            <select class="map-pdf-maptype" data-map-idx="${i}" style="font-size:0.72rem; padding:0.1rem 0.3rem; width:auto;">
               ${opt('name', 'Name')}
               ${opt('sku', `SKU (${escapeHtml(u.ref)})`)}
               ${opt('both', 'SKU + Name')}
@@ -4079,9 +4079,9 @@ function renderMapPdfUnmapped() {
       <td style="max-width:240px;" title="${escapeHtml(u.raw_text)}">${_pdfLineIdentityHtml(u)}</td>
       <td>
         <input type="text" list="mapping-pdf-products-datalist" data-map-idx="${i}"
-          class="form-control map-pdf-input" placeholder="Search SKU or name…"
+          class="nui-input nui-input-default nui-input-sm map-pdf-input" placeholder="Search SKU or name…"
           value="${escapeHtml(inputVal)}"
-          style="width:100%; font-size:0.8rem; padding:0.3rem 0.5rem; ${chosen ? 'border-color:var(--color-success,#16a34a);' : ''}">
+          style="width:100%; ${chosen ? 'border-color:var(--color-success,#16a34a);' : ''}">
         ${statusCell}
       </td>
     </tr>`;

@@ -243,7 +243,7 @@
           <button class="btn btn-solid btn-success" id="btn-import-matrix">
             <i class="fas fa-download"></i> Import CSV
           </button>
-          <button class="btn btn-solid btn-default rounded-lg" id="btn-import-pdf">
+          <button class="btn btn-solid btn-secondary" id="btn-import-pdf">
             <i class="fas fa-file-pdf"></i> Import PDF
           </button>
           <input type="file" id="import-file-input" accept=".csv" style="display: none;">
@@ -695,9 +695,9 @@
           <div class="modal-section-header">
             <i class="fas fa-users"></i> Select Supplier
           </div>
-          <div class="form-group">
-            <label class="form-label" for="pdf-import-supplier">Supplier</label>
-            <select class="form-control" id="pdf-import-supplier">
+          <div class="nui-field">
+            <label class="nui-label" for="pdf-import-supplier">Supplier</label>
+            <select id="pdf-import-supplier">
               <option value="">— Choose a supplier —</option>
             </select>
           </div>
@@ -706,8 +706,8 @@
           <div class="modal-section-header">
             <i class="fas fa-file-pdf"></i> Select PDF File
           </div>
-          <div class="form-group">
-            <label class="form-label">PDF Price List</label>
+          <div class="nui-field">
+            <label class="nui-label">PDF Price List</label>
             <div id="pdf-import-drop-zone" style="border:2px dashed var(--color-border,#d1d5db); border-radius:8px; padding:2rem; text-align:center; cursor:pointer; transition:border-color 0.2s;">
               <i class="fas fa-cloud-upload-alt" style="font-size:2rem; color:var(--color-muted,#6b7280); margin-bottom:0.5rem; display:block;"></i>
               <p style="margin:0; color:var(--color-muted,#6b7280);">Click to choose a PDF or drag &amp; drop here</p>
@@ -763,7 +763,7 @@
               <label style="display:flex; align-items:center; gap:0.35rem; font-size:0.8rem; color:var(--color-muted,#6b7280); cursor:pointer; user-select:none;">
                 <input type="checkbox" id="pdf-import-changes-only" checked> Changes only
               </label>
-              <input type="text" id="pdf-import-changes-search" class="form-control" placeholder="Search description or SKU…" style="max-width:240px; font-size:0.82rem; padding:0.35rem 0.6rem;">
+              <input type="text" id="pdf-import-changes-search" class="nui-input nui-input-default nui-input-sm" placeholder="Search description or SKU…" style="max-width:240px;">
             </div>
           </div>
           <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap; margin:0 0 0.5rem; font-size:0.72rem; color:var(--color-muted,#6b7280);">
@@ -802,7 +802,7 @@
               <p style="margin:0; font-size:0.8rem; color:var(--color-muted,#6b7280);">
                 Matching a line creates a supplier mapping so it imports automatically next time.
               </p>
-              <input type="text" id="pdf-import-unmatched-search" class="form-control" placeholder="Search text or price…" style="max-width:260px; font-size:0.82rem; padding:0.35rem 0.6rem;">
+              <input type="text" id="pdf-import-unmatched-search" class="nui-input nui-input-default nui-input-sm" placeholder="Search text or price…" style="max-width:260px;">
             </div>
             <div style="max-height:280px; overflow-y:auto; border:1px solid var(--color-border,#e5e7eb); border-radius:6px;">
               <table class="data-table" style="width:100%; font-size:0.82rem;">
@@ -869,9 +869,9 @@
           <div class="modal-section-header">
             <i class="fas fa-users"></i> Select Supplier
           </div>
-          <div class="form-group">
-            <label class="form-label" for="mapping-pdf-supplier">Supplier</label>
-            <select class="form-control" id="mapping-pdf-supplier">
+          <div class="nui-field">
+            <label class="nui-label" for="mapping-pdf-supplier">Supplier</label>
+            <select id="mapping-pdf-supplier">
               <option value="">— Choose a supplier —</option>
             </select>
           </div>
@@ -880,8 +880,8 @@
           <div class="modal-section-header">
             <i class="fas fa-file-pdf"></i> Select PDF File
           </div>
-          <div class="form-group">
-            <label class="form-label">Supplier PDF</label>
+          <div class="nui-field">
+            <label class="nui-label">Supplier PDF</label>
             <div id="mapping-pdf-drop-zone" style="border:2px dashed var(--color-border,#d1d5db); border-radius:8px; padding:2rem; text-align:center; cursor:pointer; transition:border-color 0.2s;">
               <i class="fas fa-cloud-upload-alt" style="font-size:2rem; color:var(--color-muted,#6b7280); margin-bottom:0.5rem; display:block;"></i>
               <p style="margin:0; color:var(--color-muted,#6b7280);">Click to choose a PDF or drag &amp; drop here</p>
@@ -919,7 +919,7 @@
         <div id="mapping-pdf-unmapped-section">
           <div style="display:flex; align-items:center; justify-content:space-between; gap:0.75rem; margin:0 0 0.5rem; flex-wrap:wrap;">
             <h4 style="margin:0; font-size:0.95rem; font-weight:600;">Unmapped Products (<span id="mapping-pdf-unmapped-count">0</span>)</h4>
-            <input type="text" id="mapping-pdf-unmapped-search" class="form-control" placeholder="Search SKU or name…" style="max-width:260px; font-size:0.82rem; padding:0.35rem 0.6rem;">
+            <input type="text" id="mapping-pdf-unmapped-search" class="nui-input nui-input-default nui-input-sm" placeholder="Search SKU or name…" style="max-width:260px;">
           </div>
           <p style="margin:0 0 0.5rem; font-size:0.8rem; color:var(--color-muted,#6b7280);">
             Pick an internal product for each line and choose how to match. New mappings are saved so these lines auto-match next time.
