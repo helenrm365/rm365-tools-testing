@@ -70,7 +70,8 @@ const navigationConfig = {
           { id: 'analysis-dashboard', label: 'Analysis Dashboard', icon: 'fa-solid fa-chart-bar', path: '/inventory/sourcing/analysis-dashboard', permissionKey: 'inventory.sourcing.analysis-dashboard' },
           { id: 'supplier-matrix', label: 'Supplier Matrix', icon: 'fa-solid fa-th', path: '/inventory/sourcing/supplier-matrix', permissionKey: 'inventory.sourcing.supplier-matrix' },
           { id: 'suppliers', label: 'Suppliers', icon: 'fa-solid fa-address-book', path: '/inventory/sourcing/suppliers', permissionKey: 'inventory.sourcing.suppliers' },
-          { id: 'fx-rates', label: 'FX Rates', icon: 'fa-solid fa-money-bill-wave', path: '/inventory/sourcing/fx-rates', permissionKey: 'inventory.sourcing.fx-rates' }
+          { id: 'fx-rates', label: 'FX Rates', icon: 'fa-solid fa-money-bill-wave', path: '/inventory/sourcing/fx-rates', permissionKey: 'inventory.sourcing.fx-rates' },
+          { id: 'mappings', label: 'Product Mappings', icon: 'fa-solid fa-link', path: '/inventory/sourcing/mappings', permissionKey: 'inventory.sourcing.mappings' }
         ]
       },
       {
