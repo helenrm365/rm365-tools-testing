@@ -444,7 +444,19 @@ async def import_matrix_pdf_stream(
     """
     import json
     import queue
+    from datetime import date, datetime
+    from decimal import Decimal
     from threading import Event, Thread
+
+    # The preview carries DB-sourced numbers as Decimal (e.g. current_price), which
+    # the stdlib json encoder can't serialise. The non-streaming endpoint coerces
+    # via Pydantic; here we json.dumps manually, so convert on the fly.
+    def _json_default(o):
+        if isinstance(o, Decimal):
+            return float(o)
+        if isinstance(o, (datetime, date)):
+            return o.isoformat()
+        raise TypeError(f"Object of type {o.__class__.__name__} is not JSON serializable")
 
     contents = await file.read()
     progress_queue: queue.Queue = queue.Queue()
@@ -488,7 +500,7 @@ async def import_matrix_pdf_stream(
                         yield f"data: {json.dumps({'type': 'error', **error_holder[0]})}\n\n"
                     elif result_holder[0] is not None:
                         yield f"data: {json.dumps({'type': 'progress', 'percent': 100, 'message': 'Done'})}\n\n"
-                        yield f"data: {json.dumps({'type': 'complete', 'result': result_holder[0]})}\n\n"
+                        yield f"data: {json.dumps({'type': 'complete', 'result': result_holder[0]}, default=_json_default)}\n\n"
                     break
                 yield f"data: {json.dumps(event)}\n\n"
         finally:

@@ -115,9 +115,24 @@ class SourcingRepository:
                 )
             """)
 
+            # AI-derived PDF layout profiles (IDP Tier 2 cache). One row per
+            # supplier + layout fingerprint, so the AI structure call happens at
+            # most once per supplier-format; later imports reuse it for free.
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS sourcing_pdf_layout_profiles (
+                    id SERIAL PRIMARY KEY,
+                    supplier_id INTEGER NOT NULL REFERENCES sourcing_suppliers(id) ON DELETE CASCADE,
+                    fingerprint VARCHAR(64) NOT NULL,
+                    profile_json TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT NOW(),
+                    updated_at TIMESTAMP DEFAULT NOW(),
+                    UNIQUE(supplier_id, fingerprint)
+                )
+            """)
+
             # Create indexes
             cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_sourcing_pricing_sku 
+                CREATE INDEX IF NOT EXISTS idx_sourcing_pricing_sku
                 ON sourcing_supplier_pricing(sku)
             """)
             cursor.execute("""
@@ -241,7 +256,7 @@ class SourcingRepository:
         conn = self._get_conn()
         try:
             cursor = conn.cursor()
-            tables = ['sourcing_suppliers', 'sourcing_supplier_pricing', 'sourcing_fx_overrides', 'sourcing_supplier_product_mappings']
+            tables = ['sourcing_suppliers', 'sourcing_supplier_pricing', 'sourcing_fx_overrides', 'sourcing_supplier_product_mappings', 'sourcing_pdf_layout_profiles']
             status = {}
             
             for table in tables:
@@ -1066,6 +1081,54 @@ class SourcingRepository:
             """, (supplier_id, loose, loose))
             row = cursor.fetchone()
             return row[0] if row else None
+        finally:
+            self._return_conn(conn)
+
+    # ========================================================================
+    # PDF LAYOUT PROFILE CACHE (IDP Tier 2)
+    # ========================================================================
+
+    def get_pdf_layout_profile(self, supplier_id: int, fingerprint: str) -> Optional[Dict]:
+        """Return a cached AI layout profile for (supplier, fingerprint), or None."""
+        import json
+        if not fingerprint:
+            return None
+        conn = self._get_conn()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT profile_json FROM sourcing_pdf_layout_profiles
+                WHERE supplier_id = %s AND fingerprint = %s
+                LIMIT 1
+            """, (supplier_id, fingerprint))
+            row = cursor.fetchone()
+            if not row:
+                return None
+            try:
+                return json.loads(row[0])
+            except (ValueError, TypeError):
+                return None
+        finally:
+            self._return_conn(conn)
+
+    def save_pdf_layout_profile(self, supplier_id: int, fingerprint: str, profile: Dict) -> None:
+        """Upsert an AI layout profile so future imports of this format are free."""
+        import json
+        if not fingerprint or not profile:
+            return
+        conn = self._get_conn()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO sourcing_pdf_layout_profiles (supplier_id, fingerprint, profile_json)
+                VALUES (%s, %s, %s)
+                ON CONFLICT (supplier_id, fingerprint)
+                DO UPDATE SET profile_json = EXCLUDED.profile_json, updated_at = NOW()
+            """, (supplier_id, fingerprint, json.dumps(profile)))
+            conn.commit()
+        except Exception as e:
+            conn.rollback()
+            logger.error(f"Failed to cache PDF layout profile: {e}")
         finally:
             self._return_conn(conn)
 
