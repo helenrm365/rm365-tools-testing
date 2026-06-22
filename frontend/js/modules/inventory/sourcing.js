@@ -40,7 +40,7 @@ import {
   importMatrixPDF,
   importMatrixPDFStream
 } from '../../services/api/sourcingApi.js';
-import { initCombobox, pruneDetachedComboboxes, closeActiveCombobox } from '../../ui/combobox.js';
+import { initCombobox, pruneDetachedComboboxes } from '../../ui/combobox.js';
 
 // ============================================================================
 // CURRENCY HELPERS
@@ -297,9 +297,6 @@ function stopAutoSync() {
  */
 export function cleanup() {
   console.log('[Sourcing] Cleaning up sourcing module');
-  
-  // Close any open comboboxes
-  closeActiveCombobox();
   
   // Stop all auto-sync
   stopAutoSync();
@@ -2997,9 +2994,6 @@ async function openPdfImportModal() {
 }
 
 function closePdfImportModal() {
-  // Close any open comboboxes
-  closeActiveCombobox();
-
   // If a parse is in flight, abort it (the fetch stream stops, backend thread ends).
   if (pdfParseAbort) {
     try { pdfParseAbort.abort(); } catch {}
@@ -3633,9 +3627,9 @@ function renderPdfUnmatched() {
         // User can choose which fields the saved mapping should match on.
         const opt = (val, label) => `<option value="${val}" ${type === val ? 'selected' : ''}>${label}</option>`;
         mapTypeControl = `
-          <label style="display:flex; flex-direction:column; align-items:flex-start; gap:0.2rem; font-size:0.72rem; color:var(--color-muted,#6b7280); margin-top:0.35rem;">
+          <label style="display:inline-flex; align-items:center; gap:0.3rem; font-size:0.72rem; color:var(--color-muted,#6b7280); margin-top:0.25rem;">
             Map using:
-            <select class="pdf-unmatched-maptype" data-unmatched-idx="${i}" style="font-size:0.72rem; padding:0.15rem 0.3rem; width:100%; max-width:220px; border-radius:4px; border:1px solid var(--color-border,#d1d5db); background-color:transparent; color:inherit;">
+            <select class="pdf-unmatched-maptype" data-unmatched-idx="${i}" style="font-size:0.72rem; padding:0.1rem 0.3rem; width:auto;">
               ${opt('name', 'Name')}
               ${opt('sku', `SKU (${escapeHtml(u.ref)})`)}
               ${opt('both', 'SKU + Name')}
@@ -3650,7 +3644,7 @@ function renderPdfUnmatched() {
     }
 
     return `<tr data-unmatched-row="${i}">
-      <td style="max-width:240px; word-break:break-word; overflow-wrap:anywhere;" title="${escapeHtml(u.raw_text)}">${_pdfLineIdentityHtml(u)}</td>
+      <td style="max-width:240px;" title="${escapeHtml(u.raw_text)}">${_pdfLineIdentityHtml(u)}</td>
       <td>${sym}${parseFloat(u.price).toFixed(2)}</td>
       <td>
         <input type="text" data-unmatched-idx="${i}"
@@ -3901,9 +3895,6 @@ async function openMappingPdfModal() {
 }
 
 function closeMappingPdfModal() {
-  // Close any open comboboxes
-  closeActiveCombobox();
-
   if (mapPdfParseAbort) {
     try { mapPdfParseAbort.abort(); } catch {}
     mapPdfParseAbort = null;
@@ -4103,9 +4094,9 @@ function renderMapPdfUnmapped() {
       if (hasRef && hasName) {
         const opt = (val, label) => `<option value="${val}" ${type === val ? 'selected' : ''}>${label}</option>`;
         mapTypeControl = `
-          <label style="display:flex; flex-direction:column; align-items:flex-start; gap:0.2rem; font-size:0.72rem; color:var(--color-muted,#6b7280); margin-top:0.35rem;">
+          <label style="display:inline-flex; align-items:center; gap:0.3rem; font-size:0.72rem; color:var(--color-muted,#6b7280); margin-top:0.25rem;">
             Map using:
-            <select class="map-pdf-maptype" data-map-idx="${i}" style="font-size:0.72rem; padding:0.15rem 0.3rem; width:100%; max-width:220px; border-radius:4px; border:1px solid var(--color-border,#d1d5db); background-color:transparent; color:inherit;">
+            <select class="map-pdf-maptype" data-map-idx="${i}" style="font-size:0.72rem; padding:0.1rem 0.3rem; width:auto;">
               ${opt('name', 'Name')}
               ${opt('sku', `SKU (${escapeHtml(u.ref)})`)}
               ${opt('both', 'SKU + Name')}
@@ -4120,7 +4111,7 @@ function renderMapPdfUnmapped() {
     }
 
     return `<tr data-map-row="${i}">
-      <td style="max-width:240px; word-break:break-word; overflow-wrap:anywhere;" title="${escapeHtml(u.raw_text)}">${_pdfLineIdentityHtml(u)}</td>
+      <td style="max-width:240px;" title="${escapeHtml(u.raw_text)}">${_pdfLineIdentityHtml(u)}</td>
       <td>
         <input type="text" data-map-idx="${i}"
           class="nui-input nui-input-default nui-input-sm map-pdf-input" placeholder="Search SKU or name…"

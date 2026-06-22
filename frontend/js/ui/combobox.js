@@ -228,9 +228,3 @@ export function initCombobox(input, opts = {}) {
 export function pruneDetachedComboboxes() {
   INSTANCES.forEach((inst) => { if (!inst.input.isConnected) inst.destroy(); });
 }
-
-/** Close the currently open combobox menu, if any. */
-export function closeActiveCombobox() {
-  if (openInst) openInst.close();
-}
-
