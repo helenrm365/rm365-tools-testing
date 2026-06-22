@@ -8,6 +8,7 @@ import queue
 from common.deps import get_current_user
 from .service import MagentoDataService
 from .schemas import InitTablesResponse, MagentoDataResponse, MagentoDataImportResponse, ImportHistoryResponse, MagentoSyncRequest, MagentoSyncResponse
+from core.scheduler_api import TaskRunRequest
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

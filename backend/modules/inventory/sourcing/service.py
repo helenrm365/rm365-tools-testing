@@ -1281,53 +1281,70 @@ class SourcingService:
         #   2. Table + text extraction (FALLBACK) — only used on pages where the
         #      layout pass found nothing (no detectable header). Preserves the
         #      original behaviour for any format that already worked.
-        def _item_score(item: dict) -> int:
-            """Higher = more complete: 2 if both ref and identifier, 1 if one, 0 if neither."""
-            return (1 if item.get('ref') else 0) + (1 if item.get('identifier') else 0)
+        # Tiered (IDP) extraction, cheapest first. Each tier emits the SAME item
+        # shape; the matching/preview code below consumes the winner unchanged.
+        #   Tier 1  deterministic pdfplumber passes (free)
+        #   Tier 2  AI layout profile → profile-driven layout pass (cheap, cached)
+        #   Tier 3  AI direct extraction (last resort)
+        # A tier's result is adopted ONLY if it scores higher than the previous
+        # one, so AI can never make a good deterministic parse worse.
+        from . import pdf_ai
+
+        _CONF_OK = 0.80  # confidence at/above which a tier is accepted as final
 
         extracted_items: list = []
-        layout_anchors = None  # carried across continuation pages of multi-page invoices
+        extraction_method = 'deterministic'
+        confidence = 0.0
+        total_pages = 1
+
         with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
-            total_pages = len(pdf.pages) or 1
-            for page_index, page in enumerate(pdf.pages):
-                page_items: dict = {}  # primary_key -> best item so far
+            pages = pdf.pages
+            total_pages = len(pages) or 1
 
-                def _merge(item: dict) -> None:
-                    ref_key = item.get('ref', '').lower().strip()
-                    id_key  = item.get('identifier', '').lower().strip()
-                    primary = ref_key or id_key
-                    price = item.get('price')
-                    if not primary or price is None:
-                        return
-                    # Key by (product, price) so the SAME physical row extracted by both
-                    # the table and text passes still collapses (same price → most complete
-                    # wins), while two lines for the same product at DIFFERENT prices are
-                    # both kept — the downstream grouping turns those into a price conflict.
-                    pkey = (primary, round(float(price), 2), item.get('currency') or default_currency)
-                    existing = page_items.get(pkey)
-                    if existing is None or _item_score(item) > _item_score(existing):
-                        page_items[pkey] = item
+            # ---- Tier 1: deterministic (free) ----
+            extracted_items = self._extract_pages_deterministic(
+                pages, default_currency, _report, total_pages
+            )
+            confidence = self._extraction_confidence(extracted_items, total_pages)
 
-                # 1. Layout-aware extraction (primary, universal)
-                layout_items, layout_anchors = self._extract_pdf_layout(page, layout_anchors)
-                for item in layout_items:
-                    _merge(item)
+            # ---- Tier 2: AI layout profile (cheap, cached per supplier-format) ----
+            # Runs only when Tier 1 looks weak AND AI is configured. The profile is
+            # reused from cache when we've seen this format before (zero tokens).
+            if confidence < _CONF_OK and pdf_ai.is_enabled():
+                try:
+                    fingerprint = self._layout_fingerprint(pages)
+                    profile = self.repo.get_pdf_layout_profile(supplier_id, fingerprint)
+                    from_cache = profile is not None
+                    if profile is None:
+                        _report(40, "Analysing layout with AI…")
+                        profile = pdf_ai.request_layout_profile(self._first_page_text(pages))
+                    profile_items = self._extract_pages_with_profile(
+                        pages, profile, default_currency, _report, total_pages
+                    )
+                    profile_conf = self._extraction_confidence(profile_items, total_pages)
+                    if profile_conf > confidence:
+                        extracted_items = profile_items
+                        confidence = profile_conf
+                        extraction_method = 'ai_layout'
+                    # Persist a freshly built profile only when it actually worked,
+                    # so a profile that didn't help is never cached.
+                    if not from_cache and profile_conf >= _CONF_OK and fingerprint:
+                        self.repo.save_pdf_layout_profile(supplier_id, fingerprint, profile)
+                except pdf_ai.PdfAiUnavailable as e:
+                    logger.info(f"PDF AI layout tier unavailable, falling back: {e}")
 
-                # 2. Fallback ONLY when layout produced nothing on this page
-                if not page_items:
-                    for table in (page.extract_tables() or []):
-                        for item in self._parse_pdf_table(table):
-                            _merge(item)
-                    text = page.extract_text() or ''
-                    if text:
-                        for item in self._parse_pdf_text(text):
-                            _merge(item)
-
-                extracted_items.extend(page_items.values())
-
-                # Reserve the final 5% for the matching phase below.
-                pct = int(((page_index + 1) / total_pages) * 95)
-                _report(pct, f"Parsing page {page_index + 1} of {total_pages}")
+        # ---- Tier 3: AI direct extraction (last resort; needs only the bytes) ----
+        if confidence < _CONF_OK and pdf_ai.is_enabled():
+            try:
+                _report(55, "Extracting with AI…")
+                ai_items = pdf_ai.extract_line_items(pdf_bytes)
+                ai_conf = self._extraction_confidence(ai_items, total_pages)
+                if ai_items and (ai_conf > confidence or not extracted_items):
+                    extracted_items = ai_items
+                    confidence = ai_conf
+                    extraction_method = 'ai_direct'
+            except pdf_ai.PdfAiUnavailable as e:
+                logger.info(f"PDF AI direct tier unavailable, falling back: {e}")
 
         _report(97, "Matching products…")
 
@@ -1364,36 +1381,6 @@ class SourcingService:
         conflicts: list = []
         unmatched: list = []
 
-        import re as _re
-
-        def _is_plausible(ref: str, identifier: str) -> bool:
-            """Return False for clear non-product noise (addresses, headers, artifacts)."""
-            full = (ref + ' ' + identifier).strip()
-            if len(full) < 4:
-                return False
-            if not _re.search(r'[a-zA-ZÀ-ÿ]', full):
-                return False
-            # Invoice totals / payment / admin lines ("Net à payer", "IBAN", …) can
-            # slip through the fallback table/text parsers on summary-only pages where
-            # the layout pass finds no header. Reject them centrally so they never
-            # surface as products, whichever parser produced them.
-            if self._looks_like_pdf_footer(full):
-                return False
-            # Adjacent identical LETTER pairs signal the bold/shadow doubled-char PDF
-            # artifact (e.g. "SSttyyllaaggee"). A real artifact doubles *most*
-            # characters, so use the RATIO of doublings to letters — a raw count
-            # wrongly rejects long legitimate names that merely contain a couple of
-            # natural double letters (e.g. "GDAPLLLA003 JUVELOOK"). Spaces still break
-            # adjacency so unrelated words are never joined into a false doubling.
-            letter_count = sum(1 for c in full if c.isalpha())
-            letter_doublings = sum(
-                1 for i in range(len(full) - 1)
-                if full[i].isalpha() and full[i].lower() == full[i + 1].lower()
-            )
-            if letter_count >= 6 and letter_doublings / letter_count > 0.30:
-                return False
-            return True
-
         for key in group_order:
             group = grouped[key]
             item = group['rep']
@@ -1407,7 +1394,7 @@ class SourcingService:
             if not (identifier or ref) or price is None:
                 continue
 
-            if not _is_plausible(ref, identifier):
+            if not self._is_plausible_identifier(ref, identifier):
                 continue
 
             # Resolve BOTH columns independently. For the name, try the base name
@@ -1429,14 +1416,20 @@ class SourcingService:
 
             # Case 1: neither matched
             if not sku_from_ref and not sku_from_name:
-                unmatched.append({
+                entry = {
                     'raw_text': ref or identifier,
                     'price': price,
                     'currency': currency,
                     'reason': 'No product mapping found',
                     'ref': ref,
                     'identifier': identifier,
-                })
+                }
+                # Carry any AI-captured extras (qty/uom/pack/line_total/batch/foc)
+                # for human verification when mapping — not used by matching itself.
+                for k in ('qty', 'uom', 'pack', 'line_total', 'batch', 'foc'):
+                    if item.get(k) not in (None, ''):
+                        entry[k] = item[k]
+                unmatched.append(entry)
                 continue
 
             # Case 2: both matched to DIFFERENT products → user must choose which SKU
@@ -1518,7 +1511,272 @@ class SourcingService:
             'total_matched': len(preview),
             'total_conflicts': len(conflicts),
             'total_unmatched': len(unmatched),
+            # Which extraction tier produced these items, and how confident it was.
+            'extraction_method': extraction_method,
+            'extraction_confidence': confidence,
         }
+
+    # ------------------------------------------------------------------
+    # IDP tiered extraction helpers (Tier 1 deterministic, Tier 2 AI layout)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _item_score(item: dict) -> int:
+        """Higher = more complete: 2 if both ref and identifier, 1 if one, 0 if neither."""
+        return (1 if item.get('ref') else 0) + (1 if item.get('identifier') else 0)
+
+    def _is_plausible_identifier(self, ref: str, identifier: str) -> bool:
+        """False for clear non-product noise (addresses, headers, doubling artifacts)."""
+        import re as _re
+        full = ((ref or '') + ' ' + (identifier or '')).strip()
+        if len(full) < 4:
+            return False
+        if not _re.search(r'[a-zA-ZÀ-ÿ]', full):
+            return False
+        # Invoice totals / payment / admin lines ("Net à payer", "IBAN", …) can slip
+        # through the fallback parsers on summary-only pages where the layout pass
+        # finds no header. Reject them centrally so they never surface as products.
+        if self._looks_like_pdf_footer(full):
+            return False
+        # Adjacent identical LETTER pairs signal the bold/shadow doubled-char PDF
+        # artifact (e.g. "SSttyyllaaggee"). Use the RATIO of doublings to letters so a
+        # couple of natural double letters in a long name aren't wrongly rejected.
+        letter_count = sum(1 for c in full if c.isalpha())
+        letter_doublings = sum(
+            1 for i in range(len(full) - 1)
+            if full[i].isalpha() and full[i].lower() == full[i + 1].lower()
+        )
+        if letter_count >= 6 and letter_doublings / letter_count > 0.30:
+            return False
+        return True
+
+    def _extraction_confidence(self, items: list, total_pages: int) -> float:
+        """Heuristic 0..1 score of how complete/clean an extraction looks.
+
+        Combines: share of rows carrying BOTH a positive price and a name/ref
+        (completeness), share that aren't footer/implausible noise (cleanliness),
+        and row volume vs page count (a dense table that yielded almost nothing
+        scores low). Used only to decide whether to ESCALATE to an AI tier — never
+        to drop rows.
+        """
+        if not items:
+            return 0.0
+        n = len(items)
+        usable = 0
+        noise = 0
+        for it in items:
+            ref = (it.get('ref') or '').strip()
+            ident = (it.get('identifier') or '').strip()
+            price = it.get('price')
+            has_price = price is not None and price > 0
+            if has_price and (ref or ident):
+                usable += 1
+            if price is None or not self._is_plausible_identifier(ref, ident):
+                noise += 1
+        completeness = usable / n
+        cleanliness = 1.0 - (noise / n)
+        # ~2 usable rows per page is "normal" for a price list; very sparse
+        # extractions from dense pages score low and trigger escalation even when
+        # the few rows found are individually clean (a likely parse miss).
+        volume = min(1.0, usable / max(1, total_pages * 2))
+        score = 0.4 * completeness + 0.3 * cleanliness + 0.3 * volume
+        return round(score, 3)
+
+    def _extract_pages_deterministic(self, pages, default_currency, report, total_pages) -> list:
+        """Tier 1: original layout + table/text extraction, page by page."""
+        extracted_items: list = []
+        layout_anchors = None  # carried across continuation pages of multi-page invoices
+        for page_index, page in enumerate(pages):
+            page_items: dict = {}  # primary_key -> best item so far
+
+            def _merge(item: dict) -> None:
+                ref_key = item.get('ref', '').lower().strip()
+                id_key  = item.get('identifier', '').lower().strip()
+                primary = ref_key or id_key
+                price = item.get('price')
+                if not primary or price is None:
+                    return
+                # Key by (product, price) so the same physical row extracted by both
+                # the table and text passes collapses (most complete wins), while two
+                # lines for the same product at DIFFERENT prices are both kept — the
+                # downstream grouping turns those into a price conflict.
+                pkey = (primary, round(float(price), 2), item.get('currency') or default_currency)
+                existing = page_items.get(pkey)
+                if existing is None or self._item_score(item) > self._item_score(existing):
+                    page_items[pkey] = item
+
+            layout_items, layout_anchors = self._extract_pdf_layout(page, layout_anchors)
+            for item in layout_items:
+                _merge(item)
+
+            # Fallback ONLY when layout produced nothing on this page.
+            if not page_items:
+                for table in (page.extract_tables() or []):
+                    for item in self._parse_pdf_table(table):
+                        _merge(item)
+                text = page.extract_text() or ''
+                if text:
+                    for item in self._parse_pdf_text(text):
+                        _merge(item)
+
+            extracted_items.extend(page_items.values())
+            # Reserve the final 5% for the matching phase.
+            report(int(((page_index + 1) / total_pages) * 95),
+                   f"Parsing page {page_index + 1} of {total_pages}")
+        return extracted_items
+
+    @staticmethod
+    def _first_page_text(pages) -> str:
+        """Text of the first non-empty page (where the line-item header lives)."""
+        for page in pages[:2]:
+            try:
+                t = page.extract_text() or ''
+            except Exception:
+                t = ''
+            if t.strip():
+                return t
+        return ''
+
+    @staticmethod
+    def _norm_label(s: str) -> str:
+        import re
+        return re.sub(r'[^a-z0-9]+', '', (s or '').lower())
+
+    def _detect_header_signature(self, page):
+        """Return the de-doubled, lowercased header label texts if a line-item
+        header row is present on the page, else None. Reused for fingerprinting."""
+        try:
+            words = page.extract_words(keep_blank_chars=False)
+        except Exception:
+            words = []
+        if not words:
+            return None
+        rows = []
+        for w in sorted(words, key=lambda w: (w['top'], w['x0'])):
+            for r in rows:
+                if abs(r['top'] - w['top']) <= 3.5:
+                    r['words'].append(w)
+                    break
+            else:
+                rows.append({'top': w['top'], 'words': [w]})
+        for r in rows:
+            r['words'].sort(key=lambda w: w['x0'])
+        for r in rows:
+            if self._detect_header_anchors(r['words']):
+                return [self._dedouble(w['text']).lower() for w in r['words']]
+        return None
+
+    def _layout_fingerprint(self, pages) -> str:
+        """Stable per-supplier-format key. Anchored on the line-item header labels
+        (structural, identical across invoices of one template); falls back to the
+        first page's digit-free boilerplate tokens when no header is detectable."""
+        import hashlib, re
+        if not pages:
+            return ''
+        header_sig = self._detect_header_signature(pages[0])
+        if header_sig:
+            basis = 'H:' + '|'.join(header_sig)
+        else:
+            text = self._first_page_text(pages).lower()
+            toks = sorted({t for t in re.findall(r'[a-zà-ÿ]{3,}', text)})[:60]
+            basis = 'B:' + '|'.join(toks)
+        return hashlib.sha256(basis.encode('utf-8')).hexdigest()[:32]
+
+    def _anchors_from_profile(self, page, profile):
+        """Build deterministic column anchors [(center_x, kind), …] by locating the
+        AI profile's header labels among the page's words. Returns None if the
+        header row can't be placed or lacks a price + ref/name column."""
+        labels = profile.get('header_labels') or []
+        if not labels:
+            return None
+        try:
+            words = page.extract_words(keep_blank_chars=False)
+        except Exception:
+            words = []
+        if not words:
+            return None
+        rows = []
+        for w in sorted(words, key=lambda w: (w['top'], w['x0'])):
+            for r in rows:
+                if abs(r['top'] - w['top']) <= 3.5:
+                    r['words'].append(w)
+                    break
+            else:
+                rows.append({'top': w['top'], 'words': [w]})
+        for r in rows:
+            r['words'].sort(key=lambda w: w['x0'])
+
+        label_norms = [self._norm_label(l['text']) for l in labels]
+        # Choose the row that contains the most profile labels.
+        best, best_hits = None, 0
+        for r in rows:
+            joined = self._norm_label(''.join(self._dedouble(w['text']) for w in r['words']))
+            hits = sum(1 for lt in label_norms if lt and lt in joined)
+            if hits > best_hits:
+                best_hits, best = hits, r
+        if not best or best_hits < max(2, len(label_norms) // 2):
+            return None
+
+        role_to_kind = {'discount': 'disc', 'uom': 'other'}
+        hw = best['words']
+        used: set = set()
+        anchors = []
+        for lab in labels:
+            lt = self._norm_label(lab['text'])
+            if not lt:
+                continue
+            kind = role_to_kind.get(lab.get('role', 'other'), lab.get('role', 'other'))
+            placed = False
+            for i in range(len(hw)):
+                if i in used:
+                    continue
+                for span in (1, 2, 3):
+                    if i + span > len(hw):
+                        break
+                    seg_words = hw[i:i + span]
+                    seg = self._norm_label(''.join(self._dedouble(x['text']) for x in seg_words))
+                    if seg and (lt == seg or lt in seg or seg in lt):
+                        cx = sum((x['x0'] + x['x1']) / 2 for x in seg_words) / span
+                        anchors.append((cx, kind))
+                        used.update(range(i, i + span))
+                        placed = True
+                        break
+                if placed:
+                    break
+
+        kinds = {k for _, k in anchors}
+        if 'unit_price' not in kinds or not ({'ref', 'name'} & kinds):
+            return None
+        anchors.sort(key=lambda a: a[0])
+        return anchors
+
+    def _extract_pages_with_profile(self, pages, profile, default_currency, report, total_pages) -> list:
+        """Tier 2: re-run the layout extractor using AI-derived column anchors and
+        the profile's drop patterns. Anchors are computed once from the first page
+        that exposes the header, then carried across continuation pages."""
+        import re
+        drop_res = []
+        for pat in (profile.get('drop_regexes') or []):
+            try:
+                drop_res.append(re.compile(pat, re.IGNORECASE))
+            except re.error:
+                pass
+
+        anchors = None
+        extracted_items: list = []
+        for page_index, page in enumerate(pages):
+            if anchors is None:
+                anchors = self._anchors_from_profile(page, profile)
+            if anchors is not None:
+                items, _ = self._extract_pdf_layout(page, carry_anchors=anchors, force_anchors=True)
+                for it in items:
+                    full = ((it.get('ref') or '') + ' ' + (it.get('identifier') or '')).strip()
+                    if drop_res and any(r.search(full) for r in drop_res):
+                        continue
+                    extracted_items.append(it)
+            report(int(((page_index + 1) / total_pages) * 95),
+                   f"Parsing page {page_index + 1} of {total_pages}")
+        return extracted_items
 
     # ------------------------------------------------------------------
     # Layout-aware (word-position) extraction — the universal parser
@@ -1624,7 +1882,7 @@ class SourcingService:
         cleaned = self._dedouble(text or '')
         return bool(self._PDF_FOOTER_RE.search(cleaned))
 
-    def _extract_pdf_layout(self, page, carry_anchors=None):
+    def _extract_pdf_layout(self, page, carry_anchors=None, force_anchors=False):
         """
         Universal line-item extractor based on word positions.
 
@@ -1632,6 +1890,10 @@ class SourcingService:
         {ref, identifier, price, currency} dicts and anchors are the column
         anchors to carry into the next page (for multi-page invoices whose
         continuation pages omit the header).
+
+        force_anchors=True uses the supplied carry_anchors verbatim and skips
+        header auto-detection — used by the AI layout tier (Tier 2), where the
+        anchors are derived from an AI-described column profile.
         """
         import re
         from collections import defaultdict
@@ -1657,14 +1919,18 @@ class SourcingService:
         rows.sort(key=lambda r: r['top'])
 
         # Locate the header row on this page; otherwise reuse carried anchors.
+        # When force_anchors is set, trust the supplied anchors (AI layout tier)
+        # and scan all rows — the header row carries no parseable price so it is
+        # skipped naturally below.
         anchors = carry_anchors
         start_idx = 0
-        for ri, r in enumerate(rows):
-            detected = self._detect_header_anchors(r['words'])
-            if detected:
-                anchors = detected
-                start_idx = ri + 1
-                break
+        if not force_anchors:
+            for ri, r in enumerate(rows):
+                detected = self._detect_header_anchors(r['words'])
+                if detected:
+                    anchors = detected
+                    start_idx = ri + 1
+                    break
         if not anchors:
             return [], carry_anchors
 

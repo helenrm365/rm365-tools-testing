@@ -265,6 +265,14 @@ class PdfImportUnmatchedItem(BaseModel):
     # when the user manually matches this line to an internal product.
     ref: str = ""
     identifier: str = ""
+    # Optional AI-captured extras (IDP tiers only) — shown for human verification
+    # when mapping; NOT used by matrix pricing or mapping resolution.
+    qty: Optional[float] = None
+    uom: Optional[str] = None
+    pack: Optional[str] = None
+    line_total: Optional[float] = None
+    batch: Optional[str] = None
+    foc: Optional[bool] = None
 
 
 class PdfImportPriceOption(BaseModel):
@@ -315,6 +323,10 @@ class PdfImportPreviewResponse(BaseModel):
     total_matched: int
     total_conflicts: int
     total_unmatched: int
+    # Which extraction tier produced the items and its confidence (0..1).
+    # 'deterministic' = no AI used; 'ai_layout' / 'ai_direct' = AI fallback tiers.
+    extraction_method: str = "deterministic"
+    extraction_confidence: float = 0.0
 
 
 # ============================================================================

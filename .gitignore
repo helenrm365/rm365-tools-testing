@@ -9,6 +9,8 @@ __pycache__/
 .env.*
 *.env
 **/.env
+# …but keep the secret-free example template tracked.
+!.env.example
 
 # SSL Certificates
 *.pem

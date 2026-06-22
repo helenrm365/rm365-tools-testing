@@ -58,6 +58,17 @@ class Settings(BaseSettings):
     # Set to false on secondary instances to prevent duplicate scheduled jobs
     SCHEDULER_ENABLED: bool = False  # Set SCHEDULER_ENABLED=true in .env to enable
 
+    # ------------------------------------------------------------------
+    # Intelligent Document Processing (IDP) for the supplier PDF importer
+    # ------------------------------------------------------------------
+    # Google Gemini powers the AI fallback tiers of the PDF importer. When no
+    # key is set (or PDF_AI_ENABLED=false) the importer degrades gracefully to
+    # the deterministic pdfplumber parser only — no AI calls, no errors.
+    GEMINI_API_KEY: Optional[str] = None
+    GEMINI_MODEL: str = "gemini-2.5-flash"
+    # Master switch for the AI tiers. The deterministic Tier-1 parser always runs.
+    PDF_AI_ENABLED: bool = True
+
     class Config:
         # Environment variables provided directly - no .env file needed in production
         case_sensitive = False

@@ -3133,6 +3133,28 @@ function _updatePdfProgress(percent, message) {
   if (pct) pct.textContent = `${clamped}%`;
 }
 
+// Small badge describing which IDP extraction tier produced the preview.
+// Deterministic = no AI used; the AI tiers are highlighted so the operator
+// knows when to give the matched/unmatched lists a closer look.
+function _extractionMethodBadge(result) {
+  const method = result.extraction_method || 'deterministic';
+  if (method === 'deterministic') return '';
+  const label = method === 'ai_layout'
+    ? 'AI layout assist'
+    : (method === 'ai_direct' ? 'AI extraction' : method);
+  return `
+    <div style="text-align:center; min-width:120px; margin-left:auto;">
+      <div style="display:inline-flex; align-items:center; gap:6px; padding:4px 10px;
+                  border-radius:999px; background:#eef2ff; color:#4338ca;
+                  font-size:0.8rem; font-weight:600;">
+        <span aria-hidden="true">✨</span> ${label}
+      </div>
+      <div style="font-size:0.72rem; color:var(--color-muted,#6b7280); margin-top:4px;">
+        Parsed with AI — please verify
+      </div>
+    </div>`;
+}
+
 function renderPdfPreview(result) {
   conflictResolutions.clear();
   unmatchedResolutions.clear();
@@ -3171,6 +3193,7 @@ function renderPdfPreview(result) {
         <div style="font-size:1.6rem; font-weight:700; color:var(--color-danger,#dc2626);">${result.total_unmatched}</div>
         <div style="font-size:0.8rem; color:var(--color-muted,#6b7280);">Unmatched</div>
       </div>
+      ${_extractionMethodBadge(result)}
     `;
   }
 
@@ -4014,7 +4037,8 @@ function renderMappingPdfPreview(result) {
       <div style="text-align:center; min-width:80px;">
         <div style="font-size:1.6rem; font-weight:700; color:var(--color-warning,#d97706);">${toMap}</div>
         <div style="font-size:0.8rem; color:var(--color-muted,#6b7280);">To map</div>
-      </div>`;
+      </div>
+      ${_extractionMethodBadge(result)}`;
   }
 
   renderMapPdfUnmapped();
