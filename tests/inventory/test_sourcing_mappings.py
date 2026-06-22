@@ -46,11 +46,13 @@ class TestSourcingMappings(unittest.TestCase):
         # Check if table creation and indexes are in the queries
         has_mappings_table = any("sourcing_supplier_product_mappings" in query for query in executed_statements)
         has_index_supplier = any("idx_sourcing_mappings_supplier" in query for query in executed_statements)
-        has_index_identifier = any("idx_sourcing_mappings_identifier" in query for query in executed_statements)
+        has_index_sku = any("idx_sourcing_mappings_sku" in query for query in executed_statements)
+        has_index_name = any("idx_sourcing_mappings_name" in query for query in executed_statements)
         
         self.assertTrue(has_mappings_table, "Mappings table creation query not executed")
         self.assertTrue(has_index_supplier, "Supplier mapping index creation query not executed")
-        self.assertTrue(has_index_identifier, "Identifier mapping index creation query not executed")
+        self.assertTrue(has_index_sku, "SKU mapping index creation query not executed")
+        self.assertTrue(has_index_name, "Name mapping index creation query not executed")
 
     def test_repository_resolve_supplier_sku(self):
         """Test trimmed case-insensitive sku resolution logic"""
@@ -62,9 +64,10 @@ class TestSourcingMappings(unittest.TestCase):
         resolved = repo.resolve_supplier_sku(1, "  Juvderm 3  ")
         
         self.assertEqual(resolved, 'JUVEDERM-3')
-        # Verify query had TRIM and LOWER
+        # Verify query had REGEXP_REPLACE and LOWER
         query = self.cursor_mock.execute.call_args[0][0]
-        self.assertIn("TRIM(LOWER(supplier_identifier)) = TRIM(LOWER(%s))", query)
+        self.assertIn("supplier_sku", query)
+        self.assertIn("supplier_product_name", query)
         
         # 2. Test when mapping is not found
         self.cursor_mock.fetchone.return_value = None
