@@ -40,7 +40,7 @@ import {
   importMatrixPDF,
   importMatrixPDFStream
 } from '../../services/api/sourcingApi.js';
-import { initCombobox, pruneDetachedComboboxes, closeOpenCombobox } from '../../ui/combobox.js';
+import { initCombobox, pruneDetachedComboboxes, closeOpenCombobox } from '../../ui/combobox.js?v=2';
 
 // ============================================================================
 // CURRENCY HELPERS
