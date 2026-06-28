@@ -128,12 +128,12 @@
     }
     
     /* Hide main content initially until loaded, but keep loading overlay and toasts visible */
-    body > *:not(#loadingOverlay):not(#toast-container) {
+    body > *:not(#loadingOverlay):not(#toast-container):not(.nui-dropdown-menu) {
       opacity: 0;
       transition: opacity 0.3s ease-in-out;
     }
     
-    body.loaded > *:not(#loadingOverlay):not(#toast-container) {
+    body.loaded > *:not(#loadingOverlay):not(#toast-container):not(.nui-dropdown-menu) {
       opacity: 1;
     }
   </style>

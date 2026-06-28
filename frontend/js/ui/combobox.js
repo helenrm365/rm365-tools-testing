@@ -38,6 +38,10 @@ function closeOpen() {
   if (openInst) openInst.close();
 }
 
+export function closeOpenCombobox() {
+  closeOpen();
+}
+
 function attachGlobals() {
   if (globalsAttached) return;
   globalsAttached = true;

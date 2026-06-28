@@ -40,7 +40,7 @@ import {
   importMatrixPDF,
   importMatrixPDFStream
 } from '../../services/api/sourcingApi.js';
-import { initCombobox, pruneDetachedComboboxes } from '../../ui/combobox.js';
+import { initCombobox, pruneDetachedComboboxes, closeOpenCombobox } from '../../ui/combobox.js';
 
 // ============================================================================
 // CURRENCY HELPERS
@@ -2994,6 +2994,7 @@ async function openPdfImportModal() {
 }
 
 function closePdfImportModal() {
+  closeOpenCombobox();
   // If a parse is in flight, abort it (the fetch stream stops, backend thread ends).
   if (pdfParseAbort) {
     try { pdfParseAbort.abort(); } catch {}
@@ -3629,7 +3630,7 @@ function renderPdfUnmatched() {
         mapTypeControl = `
           <label style="display:inline-flex; align-items:center; gap:0.3rem; font-size:0.72rem; color:var(--color-muted,#6b7280); margin-top:0.25rem;">
             Map using:
-            <select class="pdf-unmatched-maptype" data-unmatched-idx="${i}" style="font-size:0.72rem; padding:0.1rem 0.3rem; width:auto;">
+            <select class="pdf-unmatched-maptype" data-unmatched-idx="${i}" style="font-size:0.72rem; padding:0.1rem 0.3rem; width:auto; max-width:140px; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">
               ${opt('name', 'Name')}
               ${opt('sku', `SKU (${escapeHtml(u.ref)})`)}
               ${opt('both', 'SKU + Name')}
@@ -3644,7 +3645,7 @@ function renderPdfUnmatched() {
     }
 
     return `<tr data-unmatched-row="${i}">
-      <td style="max-width:240px;" title="${escapeHtml(u.raw_text)}">${_pdfLineIdentityHtml(u)}</td>
+      <td style="max-width:240px; word-break: break-word;" title="${escapeHtml(u.raw_text)}">${_pdfLineIdentityHtml(u)}</td>
       <td>${sym}${parseFloat(u.price).toFixed(2)}</td>
       <td>
         <input type="text" data-unmatched-idx="${i}"
@@ -3895,6 +3896,7 @@ async function openMappingPdfModal() {
 }
 
 function closeMappingPdfModal() {
+  closeOpenCombobox();
   if (mapPdfParseAbort) {
     try { mapPdfParseAbort.abort(); } catch {}
     mapPdfParseAbort = null;
@@ -4096,7 +4098,7 @@ function renderMapPdfUnmapped() {
         mapTypeControl = `
           <label style="display:inline-flex; align-items:center; gap:0.3rem; font-size:0.72rem; color:var(--color-muted,#6b7280); margin-top:0.25rem;">
             Map using:
-            <select class="map-pdf-maptype" data-map-idx="${i}" style="font-size:0.72rem; padding:0.1rem 0.3rem; width:auto;">
+            <select class="map-pdf-maptype" data-map-idx="${i}" style="font-size:0.72rem; padding:0.1rem 0.3rem; width:auto; max-width:140px; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">
               ${opt('name', 'Name')}
               ${opt('sku', `SKU (${escapeHtml(u.ref)})`)}
               ${opt('both', 'SKU + Name')}
@@ -4111,7 +4113,7 @@ function renderMapPdfUnmapped() {
     }
 
     return `<tr data-map-row="${i}">
-      <td style="max-width:240px;" title="${escapeHtml(u.raw_text)}">${_pdfLineIdentityHtml(u)}</td>
+      <td style="max-width:240px; word-break: break-word;" title="${escapeHtml(u.raw_text)}">${_pdfLineIdentityHtml(u)}</td>
       <td>
         <input type="text" data-map-idx="${i}"
           class="nui-input nui-input-default nui-input-sm map-pdf-input" placeholder="Search SKU or name…"
@@ -4256,3 +4258,7 @@ window.sourcingModule = {
   }
 };
 
+window._testMapPdfUnmapped = renderMapPdfUnmapped;
+window._setPendingMapPdf = (v) => { pendingMapPdfPreview = v; };
+window._testMapPdfUnmapped = renderMapPdfUnmapped;
+window._setPendingMapPdf = (v) => { pendingMapPdfPreview = v; };
