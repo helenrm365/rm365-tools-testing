@@ -3617,14 +3617,14 @@ function renderPdfMatched() {
     if (curMismatch) flags.push(`<i class="fas fa-coins" style="color:var(--color-danger,#dc2626);" title="Currency differs from current/default (${escapeHtml(item.new_currency || '')})"></i>`);
     const flagsHtml = flags.length ? ` <span style="margin-left:0.25rem;">${flags.join(' ')}</span>` : '';
 
-    const excluded = pdfExcludedRows.has(idx);
+    const deselected = item.has_change ? pdfExcludedRows.has(idx) : !pdfIncludedNoChangeRows.has(idx);
     const rowStyle = [
-      excluded ? 'opacity:0.45;' : '',
+      deselected ? 'opacity:0.45;' : '',
       suspicious ? 'background:var(--color-warning-bg,#fffbeb);' : '',
     ].join('');
 
     const checkboxCell = item.has_change
-      ? `<input type="checkbox" class="pdf-matched-check" data-matched-idx="${idx}" data-has-change="true" ${excluded ? '' : 'checked'}>`
+      ? `<input type="checkbox" class="pdf-matched-check" data-matched-idx="${idx}" data-has-change="true" ${deselected ? '' : 'checked'}>`
       : `<input type="checkbox" class="pdf-matched-check" data-matched-idx="${idx}" data-has-change="false" ${pdfIncludedNoChangeRows.has(idx) ? 'checked' : ''}>`;
 
     return `<tr data-matched-idx="${idx}" style="${rowStyle}">
@@ -3665,6 +3665,8 @@ function setPdfMatchedExcluded(idx, excluded) {
 function setPdfNoChangeIncluded(idx, included) {
   if (included) pdfIncludedNoChangeRows.add(idx);
   else pdfIncludedNoChangeRows.delete(idx);
+  const tr = document.querySelector(`#pdf-import-changes-body tr[data-matched-idx="${idx}"]`);
+  if (tr) tr.style.opacity = included ? '' : '0.45';
   _updateMatchedSelectionInfo();
   _updateConfirmButton();
 }
