@@ -27,7 +27,10 @@ from .schemas import (
     SupplierProductMappingOut,
     PdfImportPreviewResponse,
 )
-from .service import SourcingService, PdfParseCancelled, merge_pdfs, MERGE_PROGRESS_END
+from .service import (
+    SourcingService, PdfParseCancelled, merge_pdfs, dedupe_pdf_blobs,
+    MERGE_PROGRESS_END,
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -506,11 +509,14 @@ async def import_matrix_pdf_stream(
             raise PdfParseCancelled()
         progress_queue.put({"type": "progress", "percent": percent, "message": message})
 
-    # When more than one PDF is uploaded, the merge phase reports progress up to
-    # MERGE_PROGRESS_END%; the parse then continues from there (progress_floor) so
-    # the single bar covers merging + parsing without jumping backwards.
-    merged_count = sum(1 for b in blobs if b)
-    parse_floor = MERGE_PROGRESS_END if merged_count > 1 else 0
+    # When more than one *distinct* PDF is uploaded, the merge phase reports
+    # progress up to MERGE_PROGRESS_END%; the parse then continues from there
+    # (progress_floor) so the single bar covers merging + parsing without jumping
+    # backwards. Dedupe first so identical re-uploads collapse to one document and
+    # the floor matches what merge_pdfs will actually do (a lone survivor merges
+    # nothing and the parse reports from 0).
+    unique_blobs, _ = dedupe_pdf_blobs(blobs)
+    parse_floor = MERGE_PROGRESS_END if len(unique_blobs) > 1 else 0
 
     def run_parse() -> None:
         try:

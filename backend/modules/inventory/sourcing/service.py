@@ -2,9 +2,10 @@
 """
 Service layer for Product Sourcing - Business logic and calculations
 """
+import hashlib
 import logging
 import re
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional, Any, Tuple
 from datetime import datetime
 from decimal import Decimal
 
@@ -25,6 +26,34 @@ class PdfParseCancelled(Exception):
 MERGE_PROGRESS_END = 8
 
 
+def dedupe_pdf_blobs(pdf_blobs: List[bytes]) -> Tuple[List[bytes], int]:
+    """Drop empty and byte-for-byte identical PDF uploads, keeping first-seen order.
+
+    Two files with the same SHA-256 of their raw bytes are guaranteed to have
+    identical content, so re-parsing the second is pure waste — extra pages in
+    the merged document mean extra AI work and tokens for no new pricing data.
+    We dedupe up front, before merging/parsing, so the cost is paid once per
+    distinct document regardless of how many times the user attaches it.
+
+    Returns ``(unique_blobs, duplicates_skipped)`` where ``duplicates_skipped``
+    counts the non-empty blobs dropped as exact duplicates (empties are not
+    counted as duplicates — they were never usable).
+    """
+    seen = set()
+    unique: List[bytes] = []
+    skipped = 0
+    for blob in pdf_blobs:
+        if not blob:
+            continue
+        digest = hashlib.sha256(blob).digest()
+        if digest in seen:
+            skipped += 1
+            continue
+        seen.add(digest)
+        unique.append(blob)
+    return unique, skipped
+
+
 def merge_pdfs(pdf_blobs: List[bytes], progress_cb=None) -> bytes:
     """Stitch several uploaded PDF blobs into one PDF, preserving their order.
 
@@ -40,10 +69,11 @@ def merge_pdfs(pdf_blobs: List[bytes], progress_cb=None) -> bytes:
     occupies 1..MERGE_PROGRESS_END%. A PdfParseCancelled raised by the callback
     propagates (cooperative cancel); any other callback error is swallowed.
 
-    Empty blobs are skipped. A single blob is returned unchanged (no re-encode,
-    no progress — the parse phase reports from 0). Raises ``ValueError`` if
-    nothing usable was supplied or a blob isn't a readable PDF, so the API
-    surfaces a 400 rather than a 500.
+    Empty blobs are skipped and byte-for-byte identical uploads are deduped (see
+    dedupe_pdf_blobs) so the same document isn't parsed twice. A single
+    (remaining) blob is returned unchanged (no re-encode, no progress — the parse
+    phase reports from 0). Raises ``ValueError`` if nothing usable was supplied or
+    a blob isn't a readable PDF, so the API surfaces a 400 rather than a 500.
     """
     import io
     import pypdfium2 as pdfium
@@ -57,9 +87,11 @@ def merge_pdfs(pdf_blobs: List[bytes], progress_cb=None) -> bytes:
             except Exception:
                 pass  # progress errors must never break the merge
 
-    blobs = [b for b in pdf_blobs if b]
+    blobs, skipped = dedupe_pdf_blobs(pdf_blobs)
     if not blobs:
         raise ValueError("No PDF files provided")
+    if skipped:
+        logger.info("Skipped %d duplicate PDF upload(s) before merge", skipped)
     if len(blobs) == 1:
         return blobs[0]
 
