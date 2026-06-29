@@ -97,6 +97,9 @@ class SupplierPricingBase(BaseModel):
     notes: Optional[str] = None
     is_preferred: bool = False
     last_verified: Optional[datetime] = None
+    # When the price amount/currency was last set or changed (UTC). None for
+    # legacy rows that predate this field — the UI shows those as "N/A".
+    price_updated_at: Optional[datetime] = None
 
 
 class SupplierPricingCreateIn(SupplierPricingBase):
@@ -144,6 +147,7 @@ class SupplierMatrixEntry(BaseModel):
     notes: Optional[str] = None
     is_preferred: bool = False
     last_verified: Optional[datetime] = None
+    price_updated_at: Optional[datetime] = None
 
 
 class SupplierMatrixRow(BaseModel):
@@ -186,6 +190,8 @@ class AnalysisProductRow(BaseModel):
     # Calculated fields
     best_price: Optional[float] = None
     winning_supplier: Optional[str] = None
+    # Date the winning supplier's price was last updated (UTC). None → "N/A".
+    best_price_updated_at: Optional[datetime] = None
     margin_percentage: Optional[float] = None
     margin_status: Optional[str] = Field(
         None, 

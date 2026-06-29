@@ -133,6 +133,24 @@ function formatPdfDate(iso) {
   return isNaN(d.getTime()) ? String(iso) : d.toLocaleDateString();
 }
 
+/**
+ * Format a "price last updated" timestamp (UTC ISO from the backend) into a short
+ * local-date label for display. Returns 'N/A' for legacy prices with no recorded
+ * date. Dates are stored in UTC and rendered in the viewer's local timezone.
+ */
+function formatLastUpdated(iso) {
+  if (!iso) return 'N/A';
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? 'N/A' : d.toLocaleDateString();
+}
+
+/** Full local date+time, used as the hover tooltip on a "last updated" date. */
+function formatLastUpdatedFull(iso) {
+  if (!iso) return 'No update date recorded';
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? 'No update date recorded' : `Price last updated ${d.toLocaleString()}`;
+}
+
 // ============================================================================
 // STATE
 // ============================================================================
@@ -800,7 +818,12 @@ function renderAnalysisTable() {
         <td class="col-status"><span class="status-badge ${statusClass}">${escapeHtml(row.status || 'Unknown')}</span></td>
         <td class="col-magento">${magentoDisplay}</td>
         <td class="col-best-price ${row.best_price ? 'has-value' : ''}">${row.best_price ? formatCurrency(row.best_price, 'GBP') : '—'}</td>
-        <td class="col-winner">${row.winning_supplier ? `<span class="winner-badge">${escapeHtml(row.winning_supplier)}</span>` : '—'}</td>
+        <td class="col-winner">${row.winning_supplier
+          ? `<div class="winner-cell">
+               <span class="winner-badge">${escapeHtml(row.winning_supplier)}</span>
+               <span class="winner-date" title="${escapeHtml(formatLastUpdatedFull(row.best_price_updated_at))}">${escapeHtml(formatLastUpdated(row.best_price_updated_at))}</span>
+             </div>`
+          : '—'}</td>
         <td class="col-margin ${marginClass}">${marginDisplay}</td>
         <td class="col-suppliers">${supplierChips || '—'}</td>
         <td class="col-actions">
@@ -1147,13 +1170,19 @@ function renderMatrixTable() {
       const rawPrice = hasPrice ? pricing.unit_price : '';
       const rawCurrency = pricing?.currency || '';  // Empty string = no currency (placeholder)
       
+      // "Last updated" date sits in the top-right of the cell. Shown for any cell
+      // that has a price (legacy prices with no recorded date show "N/A").
+      const priceDate = pricing?.price_updated_at || '';
+      const dateLabel = hasPrice ? formatLastUpdated(priceDate) : '';
+
       return `
-        <td class="col-supplier ${cellClass}" 
-            data-sku="${escapeHtml(row.sku)}" 
+        <td class="col-supplier ${cellClass}"
+            data-sku="${escapeHtml(row.sku)}"
             data-supplier-id="${s.id}"
             data-supplier-code="${s.code}"
             data-default-currency="${s.default_currency || 'GBP'}">
-          <div class="matrix-cell" contenteditable="true" 
+          <span class="cell-date" title="${escapeHtml(formatLastUpdatedFull(priceDate))}">${escapeHtml(dateLabel)}</span>
+          <div class="matrix-cell" contenteditable="true"
                data-original="${rawPrice}"
                data-currency="${rawCurrency}"
                onblur="window.sourcingModule.handleMatrixCellEdit(this)">
@@ -1209,6 +1238,17 @@ function renderMatrixPagination() {
   `;
 }
 
+/**
+ * Update the "last updated" date label shown in the top-right of a matrix cell.
+ * Pass an ISO timestamp to show that date, or null/'' to clear it (empty cell).
+ */
+function setCellDate(td, iso) {
+  const span = td?.querySelector('.cell-date');
+  if (!span) return;
+  span.textContent = iso ? formatLastUpdated(iso) : '';
+  span.title = formatLastUpdatedFull(iso);
+}
+
 async function handleMatrixCellEdit(cell) {
   const newValue = cell.textContent.trim();
   const originalValue = cell.dataset.original || '';
@@ -1229,10 +1269,11 @@ async function handleMatrixCellEdit(cell) {
       cell.dataset.currency = '';
       td.classList.remove('has-price', 'best-price');
       td.classList.add('no-price');
-      
+      setCellDate(td, null);  // cleared price → no date
+
       // Recalculate best price for this row
       recalculateRowBestPrice(td.closest('tr'));
-      
+
       showToast('Price removed', 'success');
       
       // Trigger debounced GSheet sync if linked
@@ -1289,18 +1330,20 @@ async function handleMatrixCellEdit(cell) {
   try {
     td.classList.add('saving');
     
-    await upsertPricing({
+    const saved = await upsertPricing({
       sku,
       supplier_id: supplierId,
       unit_price: price,
       currency: finalCurrency
     });
-    
+
     // Update local state
     cell.textContent = formatPriceDisplay(price, finalCurrency);
     cell.dataset.original = price.toString();
     cell.dataset.currency = finalCurrency || '';
-    
+    // Stamp the "last updated" date from the server response (falls back to now).
+    setCellDate(td, saved?.price_updated_at || new Date().toISOString());
+
     td.classList.remove('no-price');
     td.classList.add('has-price');
     td.classList.add('save-success');
@@ -1470,7 +1513,9 @@ function updateMatrixCells(changedEntries) {
       cell.textContent = formatPriceDisplay(unit_price, currency);
       cell.dataset.original = unit_price.toString();
       cell.dataset.currency = currency || '';
-      
+      // These prices were just changed by this import → stamp with today.
+      setCellDate(td, entry.price_updated_at || new Date().toISOString());
+
       // Update cell styling
       td.classList.remove('no-price');
       td.classList.add('has-price');
@@ -1513,7 +1558,8 @@ function clearMatrixCells(deletedEntries) {
       cell.textContent = '';
       cell.dataset.original = '';
       cell.dataset.currency = '';
-      
+      setCellDate(td, null);  // cleared price → no date
+
       // Update cell styling
       td.classList.remove('has-price', 'best-price');
       td.classList.add('no-price');

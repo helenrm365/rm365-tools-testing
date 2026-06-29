@@ -457,6 +457,24 @@ html.dark-mode .product-sourcing .data-table thead .sticky-col-2 {
   text-align: center;
 }
 
+.product-sourcing .matrix-table td.col-supplier {
+  position: relative; /* anchor the absolutely-positioned date + note */
+  padding-top: 1.1rem; /* room for the date label at the top */
+}
+
+/* "Last updated" date, top-right of each price cell. Muted + small so it never
+   competes with the editable price. Pointer-events off so clicks reach the cell. */
+.product-sourcing .matrix-table .cell-date {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  font-size: 0.6rem;
+  line-height: 1;
+  color: var(--text-muted);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
 .product-sourcing .matrix-table td.best-price {
   background: rgba(16, 185, 129, 0.15);
 }
@@ -533,7 +551,7 @@ html.dark-mode .product-sourcing .data-table thead .sticky-col-2 {
 .product-sourcing .cell-note {
   position: absolute;
   top: 2px;
-  right: 2px;
+  left: 2px; /* moved to the left so it doesn't overlap the date (top-right) */
   font-size: 0.7rem;
   cursor: help;
 }
@@ -565,6 +583,20 @@ html.dark-mode .product-sourcing .data-table thead .sticky-col-2 {
   font-weight: 600;
   font-size: 0.75rem;
   text-shadow: var(--text-shadow-s);
+}
+
+/* Best-supplier cell: badge with its "last updated" date stacked underneath. */
+.product-sourcing .winner-cell {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.product-sourcing .winner-date {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  white-space: nowrap;
 }
 
 .product-sourcing .supplier-chip {

@@ -79,6 +79,10 @@ class SourcingRepository:
                     last_verified TIMESTAMP,
                     created_at TIMESTAMP DEFAULT NOW(),
                     updated_at TIMESTAMP,
+                    -- When the price (amount/currency) was last set or changed.
+                    -- Stored as TIMESTAMPTZ (UTC) so it renders in each user's
+                    -- local time client-side, like the attendance log_time column.
+                    price_updated_at TIMESTAMPTZ,
                     UNIQUE(sku, supplier_id)
                 )
             """)
@@ -167,6 +171,10 @@ class SourcingRepository:
                 ("sourcing_suppliers", "lead_time_days", "INTEGER"),
                 ("sourcing_suppliers", "min_order_value", "DECIMAL(10,2)"),
                 ("sourcing_suppliers", "payment_terms", "VARCHAR(100)"),
+                # "Price last updated" timestamp for existing pricing tables.
+                # Left NULL for all pre-existing rows (they render as N/A) and is
+                # only populated going forward when a price is actually changed.
+                ("sourcing_supplier_pricing", "price_updated_at", "TIMESTAMPTZ"),
             ]
 
             for table, column, col_type in migration_columns:
@@ -461,9 +469,9 @@ class SourcingRepository:
             cursor = conn.cursor()
             
             cursor.execute("""
-                INSERT INTO sourcing_supplier_pricing 
-                (sku, supplier_id, unit_price, currency, moq, shipping_cost, notes, is_preferred, last_verified)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO sourcing_supplier_pricing
+                (sku, supplier_id, unit_price, currency, moq, shipping_cost, notes, is_preferred, last_verified, price_updated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
                 ON CONFLICT (sku, supplier_id) DO UPDATE SET
                     unit_price = EXCLUDED.unit_price,
                     currency = EXCLUDED.currency,
@@ -472,6 +480,15 @@ class SourcingRepository:
                     notes = EXCLUDED.notes,
                     is_preferred = EXCLUDED.is_preferred,
                     last_verified = EXCLUDED.last_verified,
+                    -- Only re-stamp the "price last updated" date when the price
+                    -- amount or currency actually changed, so re-saving an
+                    -- unchanged price (e.g. a repeat import) preserves the date.
+                    price_updated_at = CASE
+                        WHEN sourcing_supplier_pricing.unit_price IS DISTINCT FROM EXCLUDED.unit_price
+                          OR COALESCE(sourcing_supplier_pricing.currency, '') IS DISTINCT FROM COALESCE(EXCLUDED.currency, '')
+                        THEN NOW()
+                        ELSE sourcing_supplier_pricing.price_updated_at
+                    END,
                     updated_at = NOW()
                 RETURNING *
             """, (
@@ -523,9 +540,9 @@ class SourcingRepository:
             
             for entry in entries:
                 cursor.execute("""
-                    INSERT INTO sourcing_supplier_pricing 
-                    (sku, supplier_id, unit_price, currency, moq, shipping_cost, notes, is_preferred)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    INSERT INTO sourcing_supplier_pricing
+                    (sku, supplier_id, unit_price, currency, moq, shipping_cost, notes, is_preferred, price_updated_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
                     ON CONFLICT (sku, supplier_id) DO UPDATE SET
                         unit_price = EXCLUDED.unit_price,
                         currency = EXCLUDED.currency,
@@ -533,6 +550,14 @@ class SourcingRepository:
                         shipping_cost = EXCLUDED.shipping_cost,
                         notes = EXCLUDED.notes,
                         is_preferred = EXCLUDED.is_preferred,
+                        -- Re-stamp only when the price amount/currency changed, so a
+                        -- repeat import of identical prices keeps the original date.
+                        price_updated_at = CASE
+                            WHEN sourcing_supplier_pricing.unit_price IS DISTINCT FROM EXCLUDED.unit_price
+                              OR COALESCE(sourcing_supplier_pricing.currency, '') IS DISTINCT FROM COALESCE(EXCLUDED.currency, '')
+                            THEN NOW()
+                            ELSE sourcing_supplier_pricing.price_updated_at
+                        END,
                         updated_at = NOW()
                 """, (
                     entry['sku'],
@@ -643,7 +668,8 @@ class SourcingRepository:
                     p.notes,
                     p.is_preferred,
                     p.last_verified,
-                    p.updated_at
+                    p.updated_at,
+                    p.price_updated_at
                 FROM sourcing_supplier_pricing p
                 JOIN sourcing_suppliers s ON p.supplier_id = s.id
                 WHERE s.is_active = TRUE

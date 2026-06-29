@@ -288,7 +288,10 @@ class SourcingService:
                 'shipping_cost': float(row['shipping_cost']) if row['shipping_cost'] else None,
                 'notes': row['notes'],
                 'is_preferred': row['is_preferred'],
-                'last_verified': row['last_verified'].isoformat() if row['last_verified'] else None
+                'last_verified': row['last_verified'].isoformat() if row['last_verified'] else None,
+                # When this supplier's price for this SKU was last set/changed
+                # (UTC ISO; None for legacy rows with no recorded date → "N/A").
+                'price_updated_at': row['price_updated_at'].isoformat() if row.get('price_updated_at') else None
             }
         
         # Convert to list (search is now done client-side)
@@ -358,14 +361,16 @@ class SourcingService:
                 'magento_price': None,  # Will be populated below
                 'stock_level': None,
                 'supplier_prices': {},
+                'supplier_price_dates': {},  # supplier_code -> price_updated_at (datetime)
                 'best_price': None,
                 'winning_supplier': None,
+                'best_price_updated_at': None,  # date of the winning supplier's price
                 'margin_percentage': None,
                 'margin_status': 'no_data',
                 'supplier_count': 0,
                 'last_price_update': None
             }
-        
+
         # STEP 2: Get Magento prices (special_price > price > N/A like label generator)
         if all_skus:
             magento_prices = self.repo.get_magento_prices(all_skus, region="uk")
@@ -391,26 +396,35 @@ class SourcingService:
                     'magento_price': None,
                     'stock_level': None,
                     'supplier_prices': {},
+                    'supplier_price_dates': {},
                     'best_price': None,
                     'winning_supplier': None,
+                    'best_price_updated_at': None,
                     'margin_percentage': None,
                     'margin_status': 'no_data',
                     'supplier_count': 0,
                     'last_price_update': None
                 }
-            
+
             # Normalize price
             normalized = self.normalize_price_to_gbp(row['unit_price'], row['currency'])
-            
+
             if normalized:
                 sku_analysis[sku]['supplier_prices'][row['supplier_code']] = normalized
                 sku_analysis[sku]['supplier_count'] += 1
-                
-                # Track last update
-                if row['updated_at']:
+
+                # Remember when this supplier's price was last changed so the
+                # winning supplier's date can be surfaced in the dashboard.
+                price_date = row.get('price_updated_at')
+                sku_analysis[sku]['supplier_price_dates'][row['supplier_code']] = price_date
+
+                # Track last update across suppliers (price date preferred, falling
+                # back to the generic row updated_at for legacy rows).
+                effective = price_date or row.get('updated_at')
+                if effective:
                     last = sku_analysis[sku]['last_price_update']
-                    if not last or row['updated_at'] > last:
-                        sku_analysis[sku]['last_price_update'] = row['updated_at']
+                    if not last or effective > last:
+                        sku_analysis[sku]['last_price_update'] = effective
         
         # Calculate best prices and margins
         summary = {
@@ -447,6 +461,7 @@ class SourcingService:
                     
                     data['best_price'] = round(best_price, 2)
                     data['winning_supplier'] = best_supplier
+                    data['best_price_updated_at'] = data['supplier_price_dates'].get(best_supplier)
                     summary['supplier_wins'][best_supplier] = summary['supplier_wins'].get(best_supplier, 0) + 1
                     
                     # Calculate margin if we have Magento price
@@ -504,6 +519,10 @@ class SourcingService:
         for row in paginated:
             if row['last_price_update']:
                 row['last_price_update'] = row['last_price_update'].isoformat()
+            if row.get('best_price_updated_at'):
+                row['best_price_updated_at'] = row['best_price_updated_at'].isoformat()
+            # Internal helper map of raw datetimes — not needed by the client.
+            row.pop('supplier_price_dates', None)
         
         return {
             'products': paginated,
@@ -607,6 +626,7 @@ class SourcingService:
             sku_data[sku][f'{col_prefix}_price'] = row['unit_price']
             sku_data[sku][f'{col_prefix}_currency'] = row['currency']
             sku_data[sku][f'{col_prefix}_notes'] = row['notes'] or ''
+            sku_data[sku][f'{col_prefix}_updated'] = self._format_date_for_export(row.get('price_updated_at'))
         
         # Build CSV
         output = io.StringIO()
@@ -617,9 +637,10 @@ class SourcingService:
             headers.extend([
                 f"{s['code']}_price",
                 f"{s['code']}_currency",
-                f"{s['code']}_notes"
+                f"{s['code']}_notes",
+                f"{s['code']}_updated"
             ])
-        
+
         writer = csv.DictWriter(output, fieldnames=headers, extrasaction='ignore')
         writer.writeheader()
         
@@ -778,6 +799,18 @@ class SourcingService:
         
         return f"{symbol}{price:.2f}"
 
+    @staticmethod
+    def _format_date_for_export(value) -> str:
+        """Format a price_updated_at timestamp as a plain YYYY-MM-DD date string
+        for CSV / Google Sheet export. Returns '' for legacy rows with no date."""
+        if not value:
+            return ''
+        try:
+            return value.strftime('%Y-%m-%d')
+        except AttributeError:
+            # Already a string (or unexpected type) — pass through the date part.
+            return str(value)[:10]
+
     def sync_matrix_to_gsheet(self, sheet_id: str) -> Dict[str, Any]:
         """
         Sync FULL matrix to Google Sheet.
@@ -826,6 +859,7 @@ class SourcingService:
             
             sku_data[sku][f'{col_prefix}_currency'] = effective_currency
             sku_data[sku][f'{col_prefix}_notes'] = row['notes'] or ''
+            sku_data[sku][f'{col_prefix}_updated'] = self._format_date_for_export(row.get('price_updated_at'))
         
         # For SKUs without pricing, pre-fill currency columns with supplier defaults
         for sku in sku_data:

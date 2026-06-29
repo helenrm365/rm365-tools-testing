@@ -68,7 +68,10 @@ class GSheetsService:
                 headers.extend([
                     f"{s['code']}_price",
                     f"{s['code']}_currency",
-                    f"{s['code']}_notes"
+                    f"{s['code']}_notes",
+                    # Date this supplier's price was last updated (read-only on
+                    # import — the database stamps its own date when a price changes).
+                    f"{s['code']}_updated"
                 ])
             
             # 2. Prepare Data Rows
@@ -92,7 +95,8 @@ class GSheetsService:
                     row.extend([
                         format_val(row_data.get(f"{code}_price")),
                         format_val(row_data.get(f"{code}_currency")),
-                        format_val(row_data.get(f"{code}_notes"))
+                        format_val(row_data.get(f"{code}_notes")),
+                        format_val(row_data.get(f"{code}_updated"))
                     ])
                 new_rows.append(row)
             
