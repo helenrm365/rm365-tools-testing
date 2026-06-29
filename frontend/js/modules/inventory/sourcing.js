@@ -3986,29 +3986,35 @@ async function confirmPdfImport() {
     return;
   }
 
-  // Break the writes down for the confirmation summary: products that already
-  // had a price (an update) vs. products getting a price for the first time.
-  const skuHadPrice = new Map();
+  // Classify each write for the confirmation summary: a new price (the value
+  // differs from the current one, or the product had none) vs the same price
+  // (re-confirming an unchanged value).
+  const skuCurrent = new Map();
   (pendingPdfPreview.preview || []).forEach(item => {
-    if (item?.sku != null) skuHadPrice.set(item.sku, item.current_price != null);
+    if (item?.sku != null) skuCurrent.set(item.sku, { price: item.current_price, currency: item.current_currency });
   });
   (pendingPdfPreview.conflicts || []).forEach(c => {
-    if (c?.kind === 'price' && c.sku != null) skuHadPrice.set(c.sku, c.current_price != null);
+    if (c?.kind === 'price' && c.sku != null) skuCurrent.set(c.sku, { price: c.current_price, currency: c.current_currency });
   });
-  let priceUpdates = 0, newPrices = 0;
+  let newPriceCount = 0, samePriceCount = 0;
   updates.forEach(u => {
-    if (skuHadPrice.get(u.sku) === true) priceUpdates += 1;
-    else newPrices += 1;
+    const cur = skuCurrent.get(u.sku);
+    const same = cur && cur.price != null &&
+      Math.abs(parseFloat(cur.price) - parseFloat(u.unit_price)) <= 0.001 &&
+      (cur.currency || defaultCurrency) === (u.currency || defaultCurrency);
+    if (same) samePriceCount += 1;
+    else newPriceCount += 1;
   });
 
   showImportConfirm({
     title: 'Confirm price import',
-    confirmLabel: `Update ${updates.length} price${updates.length !== 1 ? 's' : ''}`,
+    confirmLabel: `Update ${updates.length} product${updates.length !== 1 ? 's' : ''}`,
     lines: [
-      { count: priceUpdates, label: `product price${priceUpdates !== 1 ? 's' : ''} to be updated`, color: 'var(--color-text,#111)' },
-      { count: newPrices, label: `product${newPrices !== 1 ? 's' : ''} getting a new price`, color: 'var(--color-success,#16a34a)' },
+      { count: newPriceCount, label: `product${newPriceCount !== 1 ? 's' : ''} updated with a new price`, color: 'var(--color-success,#16a34a)' },
+      { count: samePriceCount, label: `product${samePriceCount !== 1 ? 's' : ''} updated with the same price`, color: 'var(--color-text,#111)' },
       { count: newMappings.length, label: `product${newMappings.length !== 1 ? 's' : ''} to be mapped`, color: 'var(--color-warning,#d97706)' },
     ],
+    totalLine: { count: updates.length, label: `product${updates.length !== 1 ? 's' : ''} updated in total` },
     onConfirm: () => applyPdfImport(updates, newMappings),
   });
 }
@@ -4574,7 +4580,7 @@ async function applyMappingPdfChanges(newMappings, remaps) {
 // final "here's what will change" step before anything is written.
 let _importConfirmHandler = null;
 
-function showImportConfirm({ title, lines, confirmLabel, onConfirm }) {
+function showImportConfirm({ title, lines, totalLine, confirmLabel, onConfirm }) {
   const overlay = document.getElementById('import-confirm-overlay');
   const titleEl = document.getElementById('import-confirm-title');
   const bodyEl = document.getElementById('import-confirm-body');
@@ -4583,12 +4589,21 @@ function showImportConfirm({ title, lines, confirmLabel, onConfirm }) {
 
   if (titleEl) titleEl.textContent = title || 'Confirm changes';
   const visible = (lines || []).filter(l => l && l.count > 0);
-  bodyEl.innerHTML = visible.map(l => `
+  let html = visible.map(l => `
     <li style="display:flex; align-items:center; gap:0.6rem; font-size:0.9rem;">
       <span style="min-width:2rem; text-align:center; font-weight:700; font-size:1.05rem; color:${l.color || 'var(--color-text,#111)'};">${l.count}</span>
       <span>${escapeHtml(l.label)}</span>
     </li>`).join('') ||
     '<li style="font-size:0.9rem; color:var(--color-muted,#6b7280);">No changes to apply.</li>';
+  // Optional total row — always shown, set apart with a divider.
+  if (totalLine) {
+    html += `
+    <li style="display:flex; align-items:center; gap:0.6rem; font-size:0.95rem; font-weight:600; margin-top:0.35rem; padding-top:0.6rem; border-top:1px solid var(--color-border,#e5e7eb);">
+      <span style="min-width:2rem; text-align:center; font-weight:700; font-size:1.1rem;">${totalLine.count}</span>
+      <span>${escapeHtml(totalLine.label)}</span>
+    </li>`;
+  }
+  bodyEl.innerHTML = html;
 
   yesBtn.innerHTML = `<i class="fas fa-check"></i> ${escapeHtml(confirmLabel || 'Confirm')}`;
   if (_importConfirmHandler) yesBtn.removeEventListener('click', _importConfirmHandler);
