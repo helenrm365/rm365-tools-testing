@@ -1680,6 +1680,11 @@ class SourcingService:
             preview.append({
                 'sku': internal_sku,
                 'supplier_product_name': display_name,
+                # Raw supplier identifiers, carried so the mappings UI can re-upsert
+                # a remap on the same supplier key (ref / name). Ignored by the
+                # price-matrix flow.
+                'ref': ref,
+                'identifier': identifier,
                 'current_price': current_price,
                 'current_currency': current_currency,
                 'new_price': price,

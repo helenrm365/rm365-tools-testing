@@ -519,6 +519,22 @@ function setupEventListeners() {
       setMapPdfMappingType(parseInt(sel.dataset.mapIdx, 10), sel.value);
     }
   });
+  // Already-mapped (remap) search + product picker (delegated — rows re-render)
+  document.getElementById('mapping-pdf-mapped-search')?.addEventListener('input', (e) => {
+    mapPdfMappedView.query = e.target.value;
+    mapPdfMappedView.page = 1;
+    renderMapPdfMapped();
+  });
+  document.getElementById('mapping-pdf-mapped-body')?.addEventListener('change', (e) => {
+    const input = e.target.closest('.map-pdf-remap-input');
+    if (input) resolveMapPdfRemap(parseInt(input.dataset.remapIdx, 10), input.value);
+  });
+  // Import confirmation summary modal (shared by matrix + mappings PDF import)
+  document.getElementById('import-confirm-close')?.addEventListener('click', closeImportConfirm);
+  document.getElementById('btn-import-confirm-cancel')?.addEventListener('click', closeImportConfirm);
+  document.getElementById('import-confirm-overlay')?.addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeImportConfirm();
+  });
   // Drag-and-drop for the mapping PDF drop zone
   const mapDropZone = document.getElementById('mapping-pdf-drop-zone');
   if (mapDropZone) {
@@ -3970,6 +3986,34 @@ async function confirmPdfImport() {
     return;
   }
 
+  // Break the writes down for the confirmation summary: products that already
+  // had a price (an update) vs. products getting a price for the first time.
+  const skuHadPrice = new Map();
+  (pendingPdfPreview.preview || []).forEach(item => {
+    if (item?.sku != null) skuHadPrice.set(item.sku, item.current_price != null);
+  });
+  (pendingPdfPreview.conflicts || []).forEach(c => {
+    if (c?.kind === 'price' && c.sku != null) skuHadPrice.set(c.sku, c.current_price != null);
+  });
+  let priceUpdates = 0, newPrices = 0;
+  updates.forEach(u => {
+    if (skuHadPrice.get(u.sku) === true) priceUpdates += 1;
+    else newPrices += 1;
+  });
+
+  showImportConfirm({
+    title: 'Confirm price import',
+    confirmLabel: `Update ${updates.length} price${updates.length !== 1 ? 's' : ''}`,
+    lines: [
+      { count: priceUpdates, label: `product price${priceUpdates !== 1 ? 's' : ''} to be updated`, color: 'var(--color-text,#111)' },
+      { count: newPrices, label: `product${newPrices !== 1 ? 's' : ''} getting a new price`, color: 'var(--color-success,#16a34a)' },
+      { count: newMappings.length, label: `product${newMappings.length !== 1 ? 's' : ''} to be mapped`, color: 'var(--color-warning,#d97706)' },
+    ],
+    onConfirm: () => applyPdfImport(updates, newMappings),
+  });
+}
+
+async function applyPdfImport(updates, newMappings) {
   setLoading(true);
   try {
     await bulkUpdatePricing(updates);
@@ -4016,6 +4060,10 @@ const mapPdfResolutions = new Map();
 // idx → mapping type 'both' | 'sku' | 'name'.
 const mapPdfMappingType = new Map();
 let mapPdfView = { page: 1, query: '' };
+// idx (into preview/matched) → { sku, name } when the user remaps an already-mapped
+// line to a different internal product. Absent when left on its current mapping.
+const mapPdfRemaps = new Map();
+let mapPdfMappedView = { page: 1, query: '' };
 
 async function openMappingPdfModal() {
   pendingMapPdfFiles = [];
@@ -4180,9 +4228,13 @@ async function processMappingPdfImport() {
 function renderMappingPdfPreview(result) {
   mapPdfResolutions.clear();
   mapPdfMappingType.clear();
+  mapPdfRemaps.clear();
   mapPdfView = { page: 1, query: '' };
+  mapPdfMappedView = { page: 1, query: '' };
   const search = document.getElementById('mapping-pdf-unmapped-search');
   if (search) search.value = '';
+  const mappedSearch = document.getElementById('mapping-pdf-mapped-search');
+  if (mappedSearch) mappedSearch.value = '';
 
   // Already-mapped = matched lines + resolved conflicts (both already in the
   // mappings table). Surface as context so the skip is transparent.
@@ -4207,6 +4259,7 @@ function renderMappingPdfPreview(result) {
   }
 
   renderMapPdfUnmapped();
+  renderMapPdfMapped();
   _updateMapPdfConfirmButton();
 }
 
@@ -4321,22 +4374,117 @@ function resolveMapPdf(idx, inputValue) {
   _updateMapPdfConfirmButton();
 }
 
+// ---- Already-mapped (remap) section -------------------------------------
+function _filteredMapPdfMappedIndices() {
+  const q = mapPdfMappedView.query.trim().toLowerCase();
+  const items = pendingMapPdfPreview?.preview || [];
+  const idxs = items.map((_, i) => i);
+  if (!q) return idxs;
+  return idxs.filter(i => {
+    const it = items[i];
+    return (it.identifier || '').toLowerCase().includes(q) ||
+      (it.ref || '').toLowerCase().includes(q) ||
+      (it.sku || '').toLowerCase().includes(q) ||
+      (it.supplier_product_name || '').toLowerCase().includes(q);
+  });
+}
+
+function renderMapPdfMapped() {
+  const section = document.getElementById('mapping-pdf-mapped-section');
+  const countEl = document.getElementById('mapping-pdf-mapped-count');
+  const tbody = document.getElementById('mapping-pdf-mapped-body');
+  const all = pendingMapPdfPreview?.preview || [];
+  if (!section || !tbody) return;
+
+  // Only relevant when some PDF lines already resolve to a mapping.
+  if (all.length === 0) {
+    section.style.display = 'none';
+    return;
+  }
+  section.style.display = '';
+  if (countEl) countEl.textContent = all.length;
+
+  const idxs = _filteredMapPdfMappedIndices();
+  if (idxs.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="2" style="text-align:center; color:var(--color-muted,#6b7280); padding:1rem;">No matches for your search.</td></tr>';
+    _renderPdfPagination('mapping-pdf-mapped-pagination', { total: 0 }, 'mapMappedPage');
+    return;
+  }
+
+  const info = _paginate(idxs, mapPdfMappedView.page);
+  mapPdfMappedView.page = info.page;
+  tbody.innerHTML = info.slice.map(i => {
+    const it = all[i];
+    const remap = mapPdfRemaps.get(i);
+    const internalName = (cachedInternalProducts || []).find(p => p.sku === it.sku)?.name || '';
+    const currentLabel = `[${it.sku}]${internalName ? ' ' + internalName : ''}`;
+    const inputVal = remap ? `[${remap.sku}] ${remap.name}` : currentLabel;
+    const remapStatus = remap
+      ? `<div style="font-size:0.72rem; color:var(--color-warning,#d97706); margin-top:0.2rem;"><i class="fas fa-exchange-alt"></i> Will remap to <strong>${escapeHtml(remap.sku)}</strong></div>`
+      : `<div style="font-size:0.72rem; color:var(--color-muted,#9ca3af); margin-top:0.2rem;">Currently mapped to <strong>${escapeHtml(it.sku)}</strong></div>`;
+
+    return `<tr data-remap-row="${i}">
+      <td style="max-width:240px; word-break: break-word;" title="${escapeHtml(it.supplier_product_name || '')}">${_pdfLineIdentityHtml(it)}</td>
+      <td>
+        <input type="text" data-remap-idx="${i}"
+          class="nui-input nui-input-default nui-input-sm map-pdf-remap-input" placeholder="Search SKU or name…"
+          value="${escapeHtml(inputVal)}"
+          style="width:100%; ${remap ? 'border-color:var(--color-warning,#d97706);' : ''}">
+        ${remapStatus}
+      </td>
+    </tr>`;
+  }).join('');
+
+  _renderPdfPagination('mapping-pdf-mapped-pagination', info, 'mapMappedPage');
+  _enhancePdfProductPickers('mapping-pdf-mapped-body', 'map-pdf-remap-input');
+}
+
+function resolveMapPdfRemap(idx, inputValue) {
+  const it = (pendingMapPdfPreview?.preview || [])[idx];
+  if (!it) return;
+  const val = (inputValue || '').trim();
+  // Cleared → treat as "keep current mapping".
+  if (!val) {
+    mapPdfRemaps.delete(idx);
+    renderMapPdfMapped();
+    _updateMapPdfConfirmButton();
+    return;
+  }
+  let sku = null;
+  const m = val.match(/^\[([^\]]+)\]\s*(.*)$/);
+  if (m) sku = m[1].trim();
+  const product = (cachedInternalProducts || []).find(p =>
+    (sku && p.sku.toLowerCase() === sku.toLowerCase()) ||
+    `[${p.sku}] ${p.name}`.toLowerCase() === val.toLowerCase());
+
+  if (!product) return; // still typing — not a valid selection yet
+
+  if (product.sku === it.sku) {
+    mapPdfRemaps.delete(idx); // back to the current mapping — not a remap
+  } else {
+    mapPdfRemaps.set(idx, { sku: product.sku, name: product.name });
+  }
+  renderMapPdfMapped();
+  _updateMapPdfConfirmButton();
+}
+
 function _updateMapPdfConfirmButton() {
   const confirmBtn = document.getElementById('btn-mapping-pdf-confirm');
   if (!confirmBtn) return;
-  const count = mapPdfResolutions.size;
-  confirmBtn.disabled = count === 0;
-  confirmBtn.innerHTML = `<i class="fas fa-check"></i> Create ${count} Mapping${count !== 1 ? 's' : ''}`;
+  const total = mapPdfResolutions.size + mapPdfRemaps.size;
+  confirmBtn.disabled = total === 0;
+  confirmBtn.innerHTML = `<i class="fas fa-check"></i> Review ${total} Change${total !== 1 ? 's' : ''}`;
 }
 
-async function confirmMappingPdfImport() {
+function confirmMappingPdfImport() {
   const supplierId = pendingMapPdfPreview?.supplier_id;
   if (supplierId == null) {
     closeMappingPdfModal();
     return;
   }
 
-  const mappings = [];
+  // New mappings (from the unmapped section).
+  const newMappings = [];
   mapPdfResolutions.forEach((choice, idx) => {
     const u = (pendingMapPdfPreview.unmatched || [])[idx];
     if (!u || !choice?.sku) return;
@@ -4344,7 +4492,7 @@ async function confirmMappingPdfImport() {
     const useSku = (type === 'both' || type === 'sku') && u.ref;
     const useName = (type === 'both' || type === 'name') && u.identifier;
     if (useSku || useName) {
-      mappings.push({
+      newMappings.push({
         supplier_id: supplierId,
         supplier_sku: useSku ? u.ref : null,
         supplier_product_name: useName ? u.identifier : null,
@@ -4353,40 +4501,114 @@ async function confirmMappingPdfImport() {
     }
   });
 
-  if (mappings.length === 0) {
+  // Remaps (from the already-mapped section) — re-upsert on the same supplier
+  // key the line matched on so the existing mapping row is overwritten in place.
+  const remaps = [];
+  mapPdfRemaps.forEach((choice, idx) => {
+    const it = (pendingMapPdfPreview.preview || [])[idx];
+    if (!it || !choice?.sku) return;
+    const useSku = (it.match_method === 'reference_code' || it.match_method === 'both') && it.ref;
+    const useName = (it.match_method === 'product_name' || it.match_method === 'both') && it.identifier;
+    if (useSku || useName) {
+      remaps.push({
+        supplier_id: supplierId,
+        supplier_sku: useSku ? it.ref : null,
+        supplier_product_name: useName ? it.identifier : null,
+        internal_sku: choice.sku,
+      });
+    }
+  });
+
+  if (newMappings.length === 0 && remaps.length === 0) {
     closeMappingPdfModal();
     return;
   }
 
+  showImportConfirm({
+    title: 'Confirm mapping changes',
+    confirmLabel: 'Apply changes',
+    lines: [
+      { count: newMappings.length, label: `new mapping${newMappings.length !== 1 ? 's' : ''}`, color: 'var(--color-success,#16a34a)' },
+      { count: remaps.length, label: `remapping${remaps.length !== 1 ? 's' : ''}`, color: 'var(--color-warning,#d97706)' },
+    ],
+    onConfirm: () => applyMappingPdfChanges(newMappings, remaps),
+  });
+}
+
+async function applyMappingPdfChanges(newMappings, remaps) {
   setLoading(true);
   try {
-    let saved = 0;
+    let savedNew = 0, savedRemap = 0;
     const errors = [];
-    for (const m of mappings) {
-      try {
-        await createSupplierMapping(m);
-        saved += 1;
-      } catch (e) {
-        console.error('[Sourcing] Failed to save mapping for', m.internal_sku, e);
-        errors.push(m.internal_sku);
-      }
+    for (const m of newMappings) {
+      try { await createSupplierMapping(m); savedNew += 1; }
+      catch (e) { console.error('[Sourcing] Failed to save mapping for', m.internal_sku, e); errors.push(m.internal_sku); }
+    }
+    for (const m of remaps) {
+      try { await createSupplierMapping(m); savedRemap += 1; }
+      catch (e) { console.error('[Sourcing] Failed to remap', m.internal_sku, e); errors.push(m.internal_sku); }
     }
 
-    if (saved > 0) {
-      let msg = `Created ${saved} mapping${saved !== 1 ? 's' : ''} from PDF`;
+    if (savedNew > 0 || savedRemap > 0) {
+      const parts = [];
+      if (savedNew > 0) parts.push(`${savedNew} mapping${savedNew !== 1 ? 's' : ''} created`);
+      if (savedRemap > 0) parts.push(`${savedRemap} remapped`);
+      let msg = parts.join(' · ');
       if (errors.length) msg += ` · ${errors.length} failed`;
       showToast(msg, errors.length ? 'warning' : 'success');
     } else {
-      showToast('No mappings could be created', 'error');
+      showToast('No mappings could be saved', 'error');
     }
     closeMappingPdfModal();
     await loadProductMappings();
   } catch (error) {
-    console.error('[Sourcing] Error creating mappings from PDF:', error);
-    showToast('Failed to create mappings: ' + (error.message || 'Unknown error'), 'error');
+    console.error('[Sourcing] Error applying mapping changes from PDF:', error);
+    showToast('Failed to save mappings: ' + (error.message || 'Unknown error'), 'error');
   } finally {
     setLoading(false);
   }
+}
+
+// ---- Shared import confirmation summary modal ---------------------------
+// Used by both the supplier-matrix and product-mapping PDF importers to show a
+// final "here's what will change" step before anything is written.
+let _importConfirmHandler = null;
+
+function showImportConfirm({ title, lines, confirmLabel, onConfirm }) {
+  const overlay = document.getElementById('import-confirm-overlay');
+  const titleEl = document.getElementById('import-confirm-title');
+  const bodyEl = document.getElementById('import-confirm-body');
+  const yesBtn = document.getElementById('btn-import-confirm-yes');
+  if (!overlay || !bodyEl || !yesBtn) { onConfirm?.(); return; }
+
+  if (titleEl) titleEl.textContent = title || 'Confirm changes';
+  const visible = (lines || []).filter(l => l && l.count > 0);
+  bodyEl.innerHTML = visible.map(l => `
+    <li style="display:flex; align-items:center; gap:0.6rem; font-size:0.9rem;">
+      <span style="min-width:2rem; text-align:center; font-weight:700; font-size:1.05rem; color:${l.color || 'var(--color-text,#111)'};">${l.count}</span>
+      <span>${escapeHtml(l.label)}</span>
+    </li>`).join('') ||
+    '<li style="font-size:0.9rem; color:var(--color-muted,#6b7280);">No changes to apply.</li>';
+
+  yesBtn.innerHTML = `<i class="fas fa-check"></i> ${escapeHtml(confirmLabel || 'Confirm')}`;
+  if (_importConfirmHandler) yesBtn.removeEventListener('click', _importConfirmHandler);
+  _importConfirmHandler = async () => {
+    closeImportConfirm();
+    try { await onConfirm?.(); }
+    catch (e) { console.error('[Sourcing] Import confirm handler failed:', e); }
+  };
+  yesBtn.addEventListener('click', _importConfirmHandler);
+  overlay.classList.add('active');
+}
+
+function closeImportConfirm() {
+  const overlay = document.getElementById('import-confirm-overlay');
+  const yesBtn = document.getElementById('btn-import-confirm-yes');
+  if (yesBtn && _importConfirmHandler) {
+    yesBtn.removeEventListener('click', _importConfirmHandler);
+    _importConfirmHandler = null;
+  }
+  if (overlay) overlay.classList.remove('active');
 }
 
 // EXPOSE TO WINDOW FOR ONCLICK HANDLERS
@@ -4405,6 +4627,7 @@ window.sourcingModule = {
   pdfMatchedPage: (page) => { pdfMatchedView.page = page; renderPdfMatched(); },
   pdfUnmatchedPage: (page) => { pdfUnmatchedView.page = page; renderPdfUnmatched(); },
   mapPdfPage: (page) => { mapPdfView.page = page; renderMapPdfUnmapped(); },
+  mapMappedPage: (page) => { mapPdfMappedView.page = page; renderMapPdfMapped(); },
   goToAnalysisPage: async (page) => {
     state.analysisPage = page;
     // Client-side pagination from cached data — no API call needed

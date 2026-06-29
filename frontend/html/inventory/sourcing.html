@@ -959,6 +959,28 @@
           </div>
           <div id="mapping-pdf-unmapped-pagination" class="pdf-import-pagination"></div>
         </div>
+
+        <div id="mapping-pdf-mapped-section" style="margin-top:1.5rem; display:none;">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:0.75rem; margin:0 0 0.5rem; flex-wrap:wrap;">
+            <h4 style="margin:0; font-size:0.95rem; font-weight:600;">Already Mapped Products (<span id="mapping-pdf-mapped-count">0</span>)</h4>
+            <input type="text" id="mapping-pdf-mapped-search" class="nui-input nui-input-default nui-input-sm" placeholder="Search SKU or name…" style="max-width:260px;">
+          </div>
+          <p style="margin:0 0 0.5rem; font-size:0.8rem; color:var(--color-muted,#6b7280);">
+            These lines already match a mapping. Pick a different internal product only if you need to remap one — leave them as-is otherwise.
+          </p>
+          <div style="max-height:380px; overflow-y:auto; border:1px solid var(--color-border,#e5e7eb); border-radius:6px;">
+            <table class="data-table" style="width:100%; font-size:0.82rem;">
+              <thead>
+                <tr>
+                  <th>Product from PDF</th>
+                  <th style="min-width:260px;">Mapped to internal product</th>
+                </tr>
+              </thead>
+              <tbody id="mapping-pdf-mapped-body"></tbody>
+            </table>
+          </div>
+          <div id="mapping-pdf-mapped-pagination" class="pdf-import-pagination"></div>
+        </div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-solid btn-default rounded-lg" id="btn-mapping-pdf-back">
@@ -969,6 +991,26 @@
           <i class="fas fa-check"></i> Create Mappings
         </button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Import Confirmation Summary Modal (shared by matrix + mappings PDF import) -->
+<div class="modal-backdrop" id="import-confirm-overlay">
+  <div class="modal modal-sm" id="import-confirm-modal">
+    <div class="modal-header">
+      <h3 class="modal-title" id="import-confirm-title">Confirm changes</h3>
+      <button class="modal-close" id="import-confirm-close"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <p style="margin:0 0 0.75rem; font-size:0.85rem; color:var(--color-muted,#6b7280);">Please review what will be applied:</p>
+      <ul id="import-confirm-body" style="list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:0.5rem;"></ul>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-solid btn-default rounded-lg" id="btn-import-confirm-cancel">Cancel</button>
+      <button class="btn btn-solid btn-success" id="btn-import-confirm-yes">
+        <i class="fas fa-check"></i> Confirm
+      </button>
     </div>
   </div>
 </div>
