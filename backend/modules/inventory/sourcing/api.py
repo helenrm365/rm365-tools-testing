@@ -5,7 +5,7 @@ Implements the "Command Center" architecture for supplier price comparison
 """
 from __future__ import annotations
 import logging
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
@@ -38,7 +38,7 @@ def _svc() -> SourcingService:
 
 
 def _gather_pdf_uploads(
-    files: Optional[List[UploadFile]],
+    files: Optional[Union[UploadFile, List[UploadFile]]],
     file: Optional[UploadFile],
 ) -> List[UploadFile]:
     """Collect the uploaded PDFs from either the ``files`` (multi) or legacy
@@ -49,7 +49,12 @@ def _gather_pdf_uploads(
     ahead of the static assets) instead of failing body validation with a 422.
     Raises 400 when nothing was supplied.
     """
-    uploads = list(files or [])
+    uploads = []
+    if files is not None:
+        if isinstance(files, list):
+            uploads.extend(files)
+        else:
+            uploads.append(files)
     if file is not None:
         uploads.append(file)
     if not uploads:
@@ -428,7 +433,7 @@ async def import_matrix_csv(
 
 @router.post("/import/pdf", response_model=PdfImportPreviewResponse)
 async def import_matrix_pdf(
-    files: Optional[List[UploadFile]] = File(None),
+    files: Optional[Union[UploadFile, List[UploadFile]]] = File(None),
     file: Optional[UploadFile] = File(None),
     supplier_id: int = Form(...),
     user=Depends(get_current_user)
@@ -456,7 +461,7 @@ async def import_matrix_pdf(
 
 @router.post("/import/pdf/stream")
 async def import_matrix_pdf_stream(
-    files: Optional[List[UploadFile]] = File(None),
+    files: Optional[Union[UploadFile, List[UploadFile]]] = File(None),
     file: Optional[UploadFile] = File(None),
     supplier_id: int = Form(...),
     user=Depends(get_current_user)

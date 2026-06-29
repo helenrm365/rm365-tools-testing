@@ -492,7 +492,12 @@ class SourcingService:
                 effective = price_date or row.get('updated_at')
                 if effective:
                     last = sku_analysis[sku]['last_price_update']
-                    if not last or effective > last:
+                    
+                    # Ensure both are offset-naive for safe comparison
+                    eff_cmp = effective.replace(tzinfo=None) if getattr(effective, 'tzinfo', None) else effective
+                    last_cmp = last.replace(tzinfo=None) if last and getattr(last, 'tzinfo', None) else last
+
+                    if not last_cmp or eff_cmp > last_cmp:
                         sku_analysis[sku]['last_price_update'] = effective
         
         # Calculate best prices and margins
