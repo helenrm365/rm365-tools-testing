@@ -480,15 +480,7 @@ class SourcingRepository:
                     notes = EXCLUDED.notes,
                     is_preferred = EXCLUDED.is_preferred,
                     last_verified = EXCLUDED.last_verified,
-                    -- Only re-stamp the "price last updated" date when the price
-                    -- amount or currency actually changed, so re-saving an
-                    -- unchanged price (e.g. a repeat import) preserves the date.
-                    price_updated_at = CASE
-                        WHEN sourcing_supplier_pricing.unit_price IS DISTINCT FROM EXCLUDED.unit_price
-                          OR COALESCE(sourcing_supplier_pricing.currency, '') IS DISTINCT FROM COALESCE(EXCLUDED.currency, '')
-                        THEN NOW()
-                        ELSE sourcing_supplier_pricing.price_updated_at
-                    END,
+                    price_updated_at = NOW(),
                     updated_at = NOW()
                 RETURNING *
             """, (
@@ -537,7 +529,7 @@ class SourcingRepository:
         try:
             cursor = conn.cursor()
             count = 0
-            
+
             for entry in entries:
                 cursor.execute("""
                     INSERT INTO sourcing_supplier_pricing
@@ -550,14 +542,7 @@ class SourcingRepository:
                         shipping_cost = EXCLUDED.shipping_cost,
                         notes = EXCLUDED.notes,
                         is_preferred = EXCLUDED.is_preferred,
-                        -- Re-stamp only when the price amount/currency changed, so a
-                        -- repeat import of identical prices keeps the original date.
-                        price_updated_at = CASE
-                            WHEN sourcing_supplier_pricing.unit_price IS DISTINCT FROM EXCLUDED.unit_price
-                              OR COALESCE(sourcing_supplier_pricing.currency, '') IS DISTINCT FROM COALESCE(EXCLUDED.currency, '')
-                            THEN NOW()
-                            ELSE sourcing_supplier_pricing.price_updated_at
-                        END,
+                        price_updated_at = NOW(),
                         updated_at = NOW()
                 """, (
                     entry['sku'],
@@ -570,7 +555,7 @@ class SourcingRepository:
                     entry.get('is_preferred', False)
                 ))
                 count += 1
-            
+
             conn.commit()
             return count
         except Exception as e:

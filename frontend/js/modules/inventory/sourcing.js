@@ -3244,14 +3244,18 @@ function renderPdfPreview(result) {
   unmatchedMappingType.clear();
   pdfExcludedRows.clear();
   pdfIncludedNoChangeRows.clear();
-  pdfMatchedView = { page: 1, query: '', sortBy: null, sortOrder: 'asc', changesOnly: true };
+  // Pre-select all unchanged rows so everything is included by default.
+  (result.preview || []).forEach((item, idx) => {
+    if (!item.has_change) pdfIncludedNoChangeRows.add(idx);
+  });
+  pdfMatchedView = { page: 1, query: '', sortBy: null, sortOrder: 'asc', changesOnly: false };
   pdfUnmatchedView = { page: 1, query: '' };
   const matchedSearch = document.getElementById('pdf-import-changes-search');
   if (matchedSearch) matchedSearch.value = '';
   const unmatchedSearch = document.getElementById('pdf-import-unmatched-search');
   if (unmatchedSearch) unmatchedSearch.value = '';
   const changesOnly = document.getElementById('pdf-import-changes-only');
-  if (changesOnly) changesOnly.checked = true;
+  if (changesOnly) changesOnly.checked = false;
   const selectAll = document.getElementById('pdf-import-select-all');
   if (selectAll) { selectAll.checked = true; selectAll.indeterminate = false; }
 
@@ -3875,7 +3879,7 @@ async function confirmPdfImport() {
     putUpdate(item.sku, item.new_price, item.new_currency);
   });
 
-  // Unchanged rows the user explicitly opted in (to force a price refresh/re-stamp).
+  // Unchanged rows the user explicitly opted in.
   (pendingPdfPreview.preview || []).forEach((item, idx) => {
     if (item.has_change) return;
     if (!pdfIncludedNoChangeRows.has(idx)) return;
