@@ -3547,22 +3547,24 @@ function _matchedChangedIndices() {
   return out;
 }
 
+function _isRowSelected(idx, item) {
+  return item.has_change ? !pdfExcludedRows.has(idx) : pdfIncludedNoChangeRows.has(idx);
+}
+
 function _updateMatchedSelectionInfo() {
-  const changed = _matchedChangedIndices();
-  const excludedChanged = changed.filter(idx => pdfExcludedRows.has(idx)).length;
-  const included = changed.length - excludedChanged;
-  const noChangeIncluded = pdfIncludedNoChangeRows.size;
+  const visible = _filteredMatched();
+  const totalVisible = visible.length;
+  const selectedVisible = visible.filter(({ item, idx }) => _isRowSelected(idx, item)).length;
+
   const info = document.getElementById('pdf-import-selection-info');
   if (info) {
-    let text = `<strong style="color:var(--color-text,#111);">${included}</strong> of ${changed.length} change${changed.length !== 1 ? 's' : ''} selected`;
-    if (noChangeIncluded > 0) text += ` + <strong>${noChangeIncluded}</strong> unchanged`;
-    info.innerHTML = text;
+    info.innerHTML = `<strong style="color:var(--color-text,#111);">${selectedVisible}</strong> of ${totalVisible} selected`;
   }
 
   const selectAll = document.getElementById('pdf-import-select-all');
   if (selectAll) {
-    selectAll.checked = changed.length > 0 && excludedChanged === 0;
-    selectAll.indeterminate = excludedChanged > 0 && excludedChanged < changed.length;
+    selectAll.checked = totalVisible > 0 && selectedVisible === totalVisible;
+    selectAll.indeterminate = selectedVisible > 0 && selectedVisible < totalVisible;
   }
 }
 
@@ -3617,8 +3619,6 @@ function renderPdfMatched() {
       suspicious ? 'background:var(--color-warning-bg,#fffbeb);' : '',
     ].join('');
 
-    // Only rows with an actual change are importable; unchanged rows are shown
-    // (when "Changes only" is off) but their checkbox is disabled.
     const checkboxCell = item.has_change
       ? `<input type="checkbox" class="pdf-matched-check" data-matched-idx="${idx}" data-has-change="true" ${excluded ? '' : 'checked'}>`
       : `<input type="checkbox" class="pdf-matched-check" data-matched-idx="${idx}" data-has-change="false" ${pdfIncludedNoChangeRows.has(idx) ? 'checked' : ''}>`;
@@ -3666,12 +3666,17 @@ function setPdfNoChangeIncluded(idx, included) {
 }
 
 function setPdfAllExcluded(excluded) {
-  _matchedChangedIndices().forEach(idx => {
-    if (excluded) pdfExcludedRows.add(idx);
-    else pdfExcludedRows.delete(idx);
+  // Operate only on currently visible (filtered) rows so the action matches what
+  // the user sees — hidden rows (via search or changesOnly) keep their prior state.
+  _filteredMatched().forEach(({ item, idx }) => {
+    if (item.has_change) {
+      if (excluded) pdfExcludedRows.add(idx);
+      else pdfExcludedRows.delete(idx);
+    } else {
+      if (excluded) pdfIncludedNoChangeRows.delete(idx);
+      else pdfIncludedNoChangeRows.add(idx);
+    }
   });
-  // Deselecting all also clears any unchanged rows the user opted in.
-  if (excluded) pdfIncludedNoChangeRows.clear();
   renderPdfMatched();
   _updateConfirmButton();
 }
