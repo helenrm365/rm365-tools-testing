@@ -1487,7 +1487,13 @@ async function performGSheetImport() {
       clearMatrixCells(result.deleted_entries);
       console.log(`[Sourcing] Cleared ${result.deleted} cells in DOM`);
     }
-    
+
+    // Push the freshly-stamped "last updated" dates straight back to the sheet so
+    // they're reflected there immediately (the import itself can't write them).
+    if (result.imported > 0 || result.deleted > 0) {
+      await performGSheetExport();
+    }
+
   } catch (error) {
     console.error('[Sourcing] GSheet auto-import failed:', error);
     showToast('Failed to import from Google Sheet', 'error');
@@ -2123,7 +2129,21 @@ async function handleGSheetImport() {
       statusEl.style.color = 'green';
       setTimeout(() => { statusEl.textContent = ''; }, 3000);
     }
-    
+
+    // Re-export right after the import so the sheet immediately shows the new
+    // "last updated" dates (the import reads the sheet; it can't write back to it).
+    if (result.imported > 0 || result.deleted > 0) {
+      if (statusEl) {
+        statusEl.textContent = 'Syncing dates back to sheet...';
+        statusEl.style.color = '#0066cc';
+      }
+      await performGSheetExport();
+      if (statusEl) {
+        statusEl.textContent = 'Sheet synced.';
+        setTimeout(() => { statusEl.textContent = ''; }, 3000);
+      }
+    }
+
     // Refresh matrix
     loadSupplierMatrix();
   } catch (error) {
