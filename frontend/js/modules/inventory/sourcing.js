@@ -3952,6 +3952,7 @@ async function confirmPdfImport() {
     showToast(msg, 'success');
     closePdfImportModal();
     await loadSupplierMatrix();
+    scheduleGSheetSync();
   } catch (error) {
     console.error('[Sourcing] Error confirming PDF import:', error);
     showToast('Failed to apply price updates: ' + (error.message || 'Unknown error'), 'error');
