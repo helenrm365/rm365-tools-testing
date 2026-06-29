@@ -962,6 +962,27 @@ html.dark-mode .product-sourcing .fx-rate-card {
 
 /* Label & input styling handled by inputs-nextui.css (.nui-label, .nui-input) */
 
+/* ===== PDF import modal — keep the footer pinned ===== */
+/* .modal is the flex column (max-height:90vh, overflow:hidden), but the
+   #pdf-import-step-1/-2 wrappers sit BETWEEN it and .modal-body/.modal-footer.
+   Those wrappers weren't flex columns, so .modal-body's internal scroll and the
+   footer pin never engaged: a long selected-file list (e.g. "28 PDFs: …") grew
+   the body until body + header + footer exceeded 90vh and the footer (progress
+   bar + Process button) was clipped by the modal's overflow:hidden.
+   Make the active step fill the modal so the body scrolls and the footer stays. */
+#pdf-import-modal > [id^="pdf-import-step-"] {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+#pdf-import-modal .modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;   /* override the global calc(90vh - 180px) */
+}
+
 /* ===== Modal Sections — divider-separated groups ===== */
 /* Scoped to modal-backdrop (modals sit outside .product-sourcing in DOM) */
 .modal-section {
