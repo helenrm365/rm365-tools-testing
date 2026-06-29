@@ -455,7 +455,12 @@ function setupEventListeners() {
   document.getElementById('pdf-import-changes-body')?.addEventListener('change', (e) => {
     const cb = e.target.closest('.pdf-matched-check');
     if (!cb) return;
-    setPdfMatchedExcluded(parseInt(cb.dataset.matchedIdx, 10), !cb.checked);
+    const idx = parseInt(cb.dataset.matchedIdx, 10);
+    if (cb.dataset.hasChange === 'true') {
+      setPdfMatchedExcluded(idx, !cb.checked);
+    } else {
+      setPdfNoChangeIncluded(idx, cb.checked);
+    }
   });
   document.querySelectorAll('#pdf-import-changes-table th.pdf-sortable').forEach(th => {
     th.addEventListener('click', () => togglePdfMatchedSort(th.dataset.pdfSort));
@@ -3238,6 +3243,7 @@ function renderPdfPreview(result) {
   unmatchedResolutions.clear();
   unmatchedMappingType.clear();
   pdfExcludedRows.clear();
+  pdfIncludedNoChangeRows.clear();
   pdfMatchedView = { page: 1, query: '', sortBy: null, sortOrder: 'asc', changesOnly: true };
   pdfUnmatchedView = { page: 1, query: '' };
   const matchedSearch = document.getElementById('pdf-import-changes-search');
@@ -3361,6 +3367,8 @@ const unmatchedMappingType = new Map();
 // Set of matched preview indices the user has EXCLUDED (default empty = all
 // included). Tracking only exclusions keeps this tiny even for huge invoices.
 const pdfExcludedRows = new Set();
+// Set of unchanged matched rows explicitly opted-in by the user (default unchecked).
+const pdfIncludedNoChangeRows = new Set();
 // Thresholds for the "suspicious change" flag.
 const PDF_SUSPICIOUS_PCT = 50;       // > ±50% price move
 const PDF_SUSPICIOUS_ABS = 100;      // or an absolute jump >= 100 in row currency
@@ -3543,8 +3551,13 @@ function _updateMatchedSelectionInfo() {
   const changed = _matchedChangedIndices();
   const excludedChanged = changed.filter(idx => pdfExcludedRows.has(idx)).length;
   const included = changed.length - excludedChanged;
+  const noChangeIncluded = pdfIncludedNoChangeRows.size;
   const info = document.getElementById('pdf-import-selection-info');
-  if (info) info.innerHTML = `<strong style="color:var(--color-text,#111);">${included}</strong> of ${changed.length} change${changed.length !== 1 ? 's' : ''} selected`;
+  if (info) {
+    let text = `<strong style="color:var(--color-text,#111);">${included}</strong> of ${changed.length} change${changed.length !== 1 ? 's' : ''} selected`;
+    if (noChangeIncluded > 0) text += ` + <strong>${noChangeIncluded}</strong> unchanged`;
+    info.innerHTML = text;
+  }
 
   const selectAll = document.getElementById('pdf-import-select-all');
   if (selectAll) {
@@ -3607,8 +3620,8 @@ function renderPdfMatched() {
     // Only rows with an actual change are importable; unchanged rows are shown
     // (when "Changes only" is off) but their checkbox is disabled.
     const checkboxCell = item.has_change
-      ? `<input type="checkbox" class="pdf-matched-check" data-matched-idx="${idx}" ${excluded ? '' : 'checked'}>`
-      : `<input type="checkbox" disabled title="No change" style="opacity:0.4;">`;
+      ? `<input type="checkbox" class="pdf-matched-check" data-matched-idx="${idx}" data-has-change="true" ${excluded ? '' : 'checked'}>`
+      : `<input type="checkbox" class="pdf-matched-check" data-matched-idx="${idx}" data-has-change="false" ${pdfIncludedNoChangeRows.has(idx) ? 'checked' : ''}>`;
 
     return `<tr data-matched-idx="${idx}" style="${rowStyle}">
       <td style="text-align:center;">${checkboxCell}</td>
@@ -3645,12 +3658,20 @@ function setPdfMatchedExcluded(idx, excluded) {
   _updateConfirmButton();
 }
 
+function setPdfNoChangeIncluded(idx, included) {
+  if (included) pdfIncludedNoChangeRows.add(idx);
+  else pdfIncludedNoChangeRows.delete(idx);
+  _updateMatchedSelectionInfo();
+  _updateConfirmButton();
+}
+
 function setPdfAllExcluded(excluded) {
-  // Operates only on importable (changed) rows.
   _matchedChangedIndices().forEach(idx => {
     if (excluded) pdfExcludedRows.add(idx);
     else pdfExcludedRows.delete(idx);
   });
+  // Deselecting all also clears any unchanged rows the user opted in.
+  if (excluded) pdfIncludedNoChangeRows.clear();
   renderPdfMatched();
   _updateConfirmButton();
 }
@@ -3805,7 +3826,7 @@ function _pdfEffectiveUpdateCount() {
   const changedIncluded = _matchedChangedIndices().filter(idx => !pdfExcludedRows.has(idx)).length;
   const resolvedConflicts = conflictResolutions.size;
   const resolvedUnmatched = unmatchedResolutions.size;
-  return changedIncluded + resolvedConflicts + resolvedUnmatched;
+  return changedIncluded + resolvedConflicts + resolvedUnmatched + pdfIncludedNoChangeRows.size;
 }
 
 function _updateConfirmButton() {
@@ -3846,6 +3867,13 @@ async function confirmPdfImport() {
   (pendingPdfPreview.preview || []).forEach((item, idx) => {
     if (!item.has_change) return;
     if (pdfExcludedRows.has(idx)) return;
+    putUpdate(item.sku, item.new_price, item.new_currency);
+  });
+
+  // Unchanged rows the user explicitly opted in (to force a price refresh/re-stamp).
+  (pendingPdfPreview.preview || []).forEach((item, idx) => {
+    if (item.has_change) return;
+    if (!pdfIncludedNoChangeRows.has(idx)) return;
     putUpdate(item.sku, item.new_price, item.new_currency);
   });
 
