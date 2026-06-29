@@ -1296,6 +1296,11 @@ class SourcingService:
         extraction_method = 'deterministic'
         confidence = 0.0
         total_pages = 1
+        # Page→date map harvested for free if/when the Tier 3 whole-PDF AI call runs.
+        # None = that call never happened (so we may need the date-only pass); a dict
+        # (even empty) = it ran and this is what it found, keyed by physical page so it
+        # stays valid even if a deterministic tier's items ended up winning.
+        ai_page_dates: Optional[Dict[int, str]] = None
 
         with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
             pages = pdf.pages
@@ -1337,7 +1342,7 @@ class SourcingService:
         if confidence < _CONF_OK and pdf_ai.is_enabled():
             try:
                 _report(55, "Extracting with AI…")
-                ai_items = pdf_ai.extract_line_items(pdf_bytes)
+                ai_items, ai_page_dates = pdf_ai.extract_line_items(pdf_bytes)
                 ai_conf = self._extraction_confidence(ai_items, total_pages)
                 if ai_items and (ai_conf > confidence or not extracted_items):
                     extracted_items = ai_items
@@ -1373,9 +1378,31 @@ class SourcingService:
                 group_order.append(key)
             seen_pc = {(round(float(v['price']), 2), v['currency']) for v in group['variants']}
             if (round(float(price), 2), currency) not in seen_pc:
-                group['variants'].append({'price': price, 'currency': currency})
+                # Carry the page of this (first) occurrence so the price can be dated.
+                group['variants'].append({'price': price, 'currency': currency,
+                                          'page': item.get('page')})
 
         unique_items: list = [grouped[k]['rep'] for k in group_order]
+
+        # Date each price option in a multi-price conflict by the page it appeared
+        # on, carried forward from the nearest preceding dated page (a merged file can
+        # hold several documents, each dated on its own page). Source the page→date map
+        # without ever adding a redundant AI call: if the whole-PDF AI tier already ran,
+        # reuse the dates it returned (valid even if its items didn't win — they're keyed
+        # by physical page); otherwise hit the lightweight date-only pass, but only when
+        # a multi-price conflict actually exists and AI is enabled.
+        has_price_conflict = any(len(g['variants']) > 1 for g in grouped.values())
+        if ai_page_dates is not None:
+            page_dates = ai_page_dates
+        elif has_price_conflict and pdf_ai.is_enabled():
+            try:
+                page_dates = pdf_ai.extract_page_dates(pdf_bytes)
+            except pdf_ai.PdfAiUnavailable as e:
+                logger.info(f"PDF AI date pass unavailable, prices will show N/A: {e}")
+                page_dates = {}
+        else:
+            page_dates = {}
+        effective_dates = self._effective_page_dates(page_dates, total_pages)
 
         preview: list = []
         conflicts: list = []
@@ -1476,7 +1503,8 @@ class SourcingService:
                     'current_price': current_price,
                     'current_currency': current_currency,
                     'price_options': [
-                        {'price': v['price'], 'currency': v['currency'] or default_currency}
+                        {'price': v['price'], 'currency': v['currency'] or default_currency,
+                         'date': effective_dates.get(v.get('page'))}
                         for v in variants
                     ],
                 })
@@ -1619,7 +1647,9 @@ class SourcingService:
                     for item in self._parse_pdf_text(text):
                         _merge(item)
 
-            extracted_items.extend(page_items.values())
+            for item in page_items.values():
+                item['page'] = page_index + 1  # 1-based, for dating the price later
+                extracted_items.append(item)
             # Reserve the final 5% for the matching phase.
             report(int(((page_index + 1) / total_pages) * 95),
                    f"Parsing page {page_index + 1} of {total_pages}")
@@ -1773,10 +1803,29 @@ class SourcingService:
                     full = ((it.get('ref') or '') + ' ' + (it.get('identifier') or '')).strip()
                     if drop_res and any(r.search(full) for r in drop_res):
                         continue
+                    it['page'] = page_index + 1  # 1-based, for dating the price later
                     extracted_items.append(it)
             report(int(((page_index + 1) / total_pages) * 95),
                    f"Parsing page {page_index + 1} of {total_pages}")
         return extracted_items
+
+    @staticmethod
+    def _effective_page_dates(page_dates: Dict[int, str], total_pages: int) -> Dict[int, str]:
+        """Carry page dates forward so every page maps to its effective date.
+
+        ``page_dates`` holds only the pages that actually printed a date. A merged
+        file can contain several documents, each dated on one of its pages, so a
+        page without its own date inherits the nearest dated page *before* it.
+        Pages before the first dated page have no effective date (omitted → N/A).
+        """
+        effective: Dict[int, str] = {}
+        last: Optional[str] = None
+        for page in range(1, (total_pages or 0) + 1):
+            if page_dates.get(page):
+                last = page_dates[page]
+            if last is not None:
+                effective[page] = last
+        return effective
 
     # ------------------------------------------------------------------
     # Layout-aware (word-position) extraction — the universal parser

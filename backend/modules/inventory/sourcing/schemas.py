@@ -279,6 +279,9 @@ class PdfImportPriceOption(BaseModel):
     """One candidate price for a product that appeared multiple times in the PDF"""
     price: float
     currency: str = "GBP"
+    # Effective date for this price (ISO YYYY-MM-DD) — the date of the page it
+    # appeared on, carried forward from the nearest dated page. None → show N/A.
+    date: Optional[str] = None
 
 
 class PdfImportConflictItem(BaseModel):

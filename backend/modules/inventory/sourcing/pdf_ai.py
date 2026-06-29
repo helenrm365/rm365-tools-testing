@@ -14,8 +14,13 @@ narrow capabilities used as fallback tiers by ``service.import_matrix_pdf``:
     most once per format.
 
   • ``extract_line_items(pdf_bytes)``       — Tier 3. Last-resort multimodal call
-    that hands Gemini the raw PDF and gets structured line items back. Used only
-    when the deterministic passes (with or without a layout profile) still fail.
+    that hands Gemini the raw PDF and gets structured line items back (plus the
+    date printed on each page, harvested in the same call). Used only when the
+    deterministic passes (with or without a layout profile) still fail.
+
+  • ``extract_page_dates(pdf_bytes)``       — date-only multimodal call. Used when
+    a deterministic/layout parse already produced the items (so Tier 3 never ran)
+    but a multi-price conflict still needs each price dated by its page.
 
 Design rules:
   - Never raises into the caller's happy path: callers catch ``PdfAiUnavailable``
@@ -28,7 +33,8 @@ from __future__ import annotations
 
 import base64
 import logging
-from typing import Dict, List, Optional
+import time
+from typing import Dict, List, Optional, Tuple
 
 import httpx
 
@@ -38,9 +44,43 @@ logger = logging.getLogger(__name__)
 
 _API_ROOT = "https://generativelanguage.googleapis.com/v1beta/models"
 
+# Bounded retry for TRANSIENT failures only (rate limit / server-side / network).
+# A 503 "high demand" is rejected before the model runs, so it costs no tokens —
+# only a request. We give up after _MAX_RETRIES extra attempts and let the caller
+# fall back, so a genuinely-down or misconfigured endpoint can never loop. A 4xx
+# (bad request / bad key) or a malformed-but-billed 200 is NOT retried.
+_MAX_RETRIES = 2  # total attempts = 1 + _MAX_RETRIES
+_RETRY_STATUSES = frozenset({429, 500, 502, 503, 504})
+_RETRY_BACKOFF = (1.0, 2.0)  # seconds before retry 1, retry 2
+
+
+def _backoff_delay(attempt: int) -> float:
+    """Seconds to wait before the retry that follows ``attempt`` (0-based).
+
+    Decoupled from _MAX_RETRIES on purpose: clamps to the last defined backoff
+    (and 0.0 if none) so changing the retry count can never raise IndexError.
+    """
+    if not _RETRY_BACKOFF:
+        return 0.0
+    return _RETRY_BACKOFF[min(attempt, len(_RETRY_BACKOFF) - 1)]
+
 # Canonical column roles the deterministic parser understands. Kept in sync with
 # the kinds returned by ``SourcingService._classify_header_word``.
 _VALID_ROLES = {"ref", "name", "qty", "unit_price", "total", "discount", "vat", "uom", "other"}
+
+# Shared response schema for the page→date harvesting (used both inside the Tier 3
+# extraction call and by the standalone date-only pass).
+_PAGE_DATES_SCHEMA = {
+    "type": "array",
+    "items": {
+        "type": "object",
+        "properties": {
+            "page": {"type": "number"},
+            "date": {"type": "string"},
+        },
+        "required": ["page", "date"],
+    },
+}
 
 
 class PdfAiUnavailable(Exception):
@@ -121,14 +161,18 @@ def request_layout_profile(page_text: str) -> Dict:
     return _sanitise_profile(data)
 
 
-def extract_line_items(pdf_bytes: bytes) -> List[Dict]:
+def extract_line_items(pdf_bytes: bytes) -> Tuple[List[Dict], Dict[int, str]]:
     """
     Tier 3 — hand the whole PDF to Gemini and get normalised line items back.
 
-    Returns a list of dicts in the importer's canonical shape, plus optional
-    extras kept for verification/future use (not used by matrix/mapping):
-      {ref, identifier, price, currency,
-       qty?, uom?, pack?, line_total?, batch?, foc?}
+    Returns ``(items, page_dates)``:
+      - ``items``: list of dicts in the importer's canonical shape, plus optional
+        extras kept for verification/future use (not used by matrix/mapping):
+          {ref, identifier, price, currency, page?,
+           qty?, uom?, pack?, line_total?, batch?, foc?}
+      - ``page_dates``: ``{page_number: 'YYYY-MM-DD'}`` for pages that carry a
+        document date — harvested in this same call so we never pay for a second
+        request just to date the prices.
 
     Raises PdfAiUnavailable on any problem.
     """
@@ -147,11 +191,17 @@ def extract_line_items(pdf_bytes: bytes) -> List[Dict]:
         "- 'identifier' is the product name/description only — exclude codes, batch/lot "
         "numbers, quantities and packaging counts that are separate columns.\n"
         "- 'currency' is the ISO code (GBP, EUR, USD, …); infer from the symbol or document.\n"
+        "- 'page' is the 1-based page number the line item appears on.\n"
         "- Set 'foc' true for free-of-charge / promotional / bonus rows (price 0).\n"
         "- IGNORE non-product lines: batch/lot/expiry rows, subtotals, totals, taxes/VAT, "
         "shipping, legal text, addresses, payment terms, bank details.\n"
         "- Prices use a dot decimal separator in the output (e.g. 62.00), regardless of "
         "how they appear in the document.\n"
+        "Also return 'page_dates': for each page that prints a document date (invoice "
+        "date, quote/offer date, price-list date, or 'valid from' date), one entry with "
+        "the 1-based 'page' and that 'date' normalised to YYYY-MM-DD. The file may be "
+        "several documents merged together, so different pages can carry different dates; "
+        "omit pages that show no date.\n"
         "Return numbers as JSON numbers, not strings."
     )
 
@@ -167,6 +217,7 @@ def extract_line_items(pdf_bytes: bytes) -> List[Dict]:
                         "identifier": {"type": "string"},
                         "price": {"type": "number"},
                         "currency": {"type": "string"},
+                        "page": {"type": "number"},
                         "qty": {"type": "number"},
                         "uom": {"type": "string"},
                         "pack": {"type": "string"},
@@ -176,7 +227,8 @@ def extract_line_items(pdf_bytes: bytes) -> List[Dict]:
                     },
                     "required": ["identifier", "price"],
                 },
-            }
+            },
+            "page_dates": _PAGE_DATES_SCHEMA,
         },
         "required": ["items"],
     }
@@ -187,7 +239,46 @@ def extract_line_items(pdf_bytes: bytes) -> List[Dict]:
         {"inline_data": {"mime_type": "application/pdf", "data": b64}},
     ]
     data = _generate(parts=parts, schema=schema, timeout=180.0)
-    return _sanitise_items(data.get("items") or [])
+    return _sanitise_items(data.get("items") or []), _sanitise_page_dates(data.get("page_dates"))
+
+
+def extract_page_dates(pdf_bytes: bytes) -> Dict[int, str]:
+    """
+    Lightweight date-only pass — used when a deterministic/layout parse already
+    produced the line items (so no whole-PDF AI call happened) but a price
+    conflict still needs dating. Returns ``{page_number: 'YYYY-MM-DD'}`` for pages
+    that carry a document date.
+
+    Raises PdfAiUnavailable on any problem.
+    """
+    if not is_enabled():
+        raise PdfAiUnavailable("AI disabled or no GEMINI_API_KEY configured")
+    if not pdf_bytes:
+        raise PdfAiUnavailable("empty pdf")
+
+    prompt = (
+        "Look only for DOCUMENT DATES in this supplier invoice / price list — do not "
+        "extract products.\n"
+        "For each page that prints a document date (invoice date, quote/offer date, "
+        "price-list date, or 'valid from' date), return one 'page_dates' entry with the "
+        "1-based 'page' number and that 'date' normalised to YYYY-MM-DD.\n"
+        "The file may be several documents merged together, so different pages can carry "
+        "different dates. Omit any page that shows no date."
+    )
+
+    schema = {
+        "type": "object",
+        "properties": {"page_dates": _PAGE_DATES_SCHEMA},
+        "required": ["page_dates"],
+    }
+
+    b64 = base64.b64encode(pdf_bytes).decode("ascii")
+    parts = [
+        {"text": prompt},
+        {"inline_data": {"mime_type": "application/pdf", "data": b64}},
+    ]
+    data = _generate(parts=parts, schema=schema, timeout=120.0)
+    return _sanitise_page_dates(data.get("page_dates"))
 
 
 # ----------------------------------------------------------------------------
@@ -195,7 +286,12 @@ def extract_line_items(pdf_bytes: bytes) -> List[Dict]:
 # ----------------------------------------------------------------------------
 
 def _generate(parts: List[Dict], schema: Dict, timeout: float = 60.0) -> Dict:
-    """POST to Gemini generateContent and return the parsed JSON object."""
+    """POST to Gemini generateContent and return the parsed JSON object.
+
+    Retries a bounded number of times on TRANSIENT failures only (rate limit,
+    server-side 5xx, network errors). A 4xx or a malformed 200 fails immediately
+    so we never loop on a request that can't succeed — see _MAX_RETRIES.
+    """
     import json
 
     model = (settings.GEMINI_MODEL or "gemini-2.5-flash").strip()
@@ -208,25 +304,44 @@ def _generate(parts: List[Dict], schema: Dict, timeout: float = 60.0) -> Dict:
             "responseSchema": schema,
         },
     }
-    try:
-        resp = httpx.post(
-            url,
-            params={"key": settings.GEMINI_API_KEY},
-            json=body,
-            timeout=timeout,
-        )
-    except httpx.HTTPError as e:
-        raise PdfAiUnavailable(f"Gemini request failed: {e}") from e
 
-    if resp.status_code != 200:
-        raise PdfAiUnavailable(f"Gemini HTTP {resp.status_code}: {resp.text[:300]}")
+    for attempt in range(_MAX_RETRIES + 1):
+        try:
+            resp = httpx.post(
+                url,
+                params={"key": settings.GEMINI_API_KEY},
+                json=body,
+                timeout=timeout,
+            )
+        except httpx.HTTPError as e:
+            # Network/timeout error — transient, retry if attempts remain.
+            if attempt < _MAX_RETRIES:
+                logger.info(f"Gemini request error (attempt {attempt + 1}), retrying: {e}")
+                time.sleep(_backoff_delay(attempt))
+                continue
+            raise PdfAiUnavailable(f"Gemini request failed: {e}") from e
 
-    try:
-        payload = resp.json()
-        text = payload["candidates"][0]["content"]["parts"][0]["text"]
-        return json.loads(text)
-    except (KeyError, IndexError, ValueError, TypeError) as e:
-        raise PdfAiUnavailable(f"Unexpected Gemini response: {e}") from e
+        if resp.status_code != 200:
+            # Retry only transient server-side / rate-limit statuses; a 4xx means
+            # the request itself won't ever succeed, so fail fast.
+            if resp.status_code in _RETRY_STATUSES and attempt < _MAX_RETRIES:
+                logger.info(
+                    f"Gemini HTTP {resp.status_code} (attempt {attempt + 1}), retrying"
+                )
+                time.sleep(_backoff_delay(attempt))
+                continue
+            raise PdfAiUnavailable(f"Gemini HTTP {resp.status_code}: {resp.text[:300]}")
+
+        try:
+            payload = resp.json()
+            text = payload["candidates"][0]["content"]["parts"][0]["text"]
+            return json.loads(text)
+        except (KeyError, IndexError, ValueError, TypeError) as e:
+            # A 200 already cost tokens; don't retry a malformed body.
+            raise PdfAiUnavailable(f"Unexpected Gemini response: {e}") from e
+
+    # Unreachable: the loop always returns or raises on its final attempt.
+    raise PdfAiUnavailable("Gemini retries exhausted")
 
 
 def _sanitise_profile(data: Dict) -> Dict:
@@ -284,9 +399,44 @@ def _sanitise_items(raw: List[Dict]) -> List[Dict]:
             continue
         currency = str(it.get("currency", "") or "").strip().upper() or None
         item = {"ref": ref, "identifier": identifier, "price": price, "currency": currency}
+        # 1-based page the line came from — used to date its price (see service.py).
+        page = _coerce_page(it.get("page"))
+        if page is not None:
+            item["page"] = page
         # Optional extras — preserved for verification/future use only.
         for k in ("qty", "uom", "pack", "line_total", "batch", "foc"):
             if it.get(k) not in (None, ""):
                 item[k] = it[k]
         items.append(item)
     return items
+
+
+def _coerce_page(value) -> Optional[int]:
+    """Best-effort 1-based page number from a model value; None if not usable."""
+    if value is None:
+        return None
+    try:
+        page = int(float(value))
+    except (TypeError, ValueError):
+        return None
+    return page if page >= 1 else None
+
+
+def _sanitise_page_dates(raw) -> Dict[int, str]:
+    """Turn the model's ``[{page, date}]`` array into ``{page: 'YYYY-MM-DD'}``.
+
+    Keeps only entries with a usable 1-based page and a non-empty date string. If
+    the same page appears twice, the first non-empty date wins. Never raises.
+    """
+    result: Dict[int, str] = {}
+    if not isinstance(raw, list):
+        return result
+    for entry in raw:
+        if not isinstance(entry, dict):
+            continue
+        page = _coerce_page(entry.get("page"))
+        date = str(entry.get("date", "") or "").strip()
+        if page is None or not date:
+            continue
+        result.setdefault(page, date)
+    return result

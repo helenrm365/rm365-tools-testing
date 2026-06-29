@@ -123,6 +123,16 @@ function formatPriceDisplay(price, currency) {
   return `${symbol}${numPrice.toFixed(2)}`;
 }
 
+/**
+ * Format an ISO date (YYYY-MM-DD, from the PDF date extraction) for display.
+ * Falls back to the raw string if it can't be parsed so nothing is ever hidden.
+ */
+function formatPdfDate(iso) {
+  if (!iso) return 'N/A';
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? String(iso) : d.toLocaleDateString();
+}
+
 // ============================================================================
 // STATE
 // ============================================================================
@@ -3217,10 +3227,11 @@ function renderPdfPreview(result) {
           : '—';
         const options = (c.price_options || []).map((opt, oi) => {
           const osym = opt.currency ? (CURRENCY_SYMBOLS[opt.currency] || opt.currency) : '';
+          const dateLabel = opt.date ? formatPdfDate(opt.date) : 'N/A';
           return `
             <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; font-size:0.875rem;">
               <input type="radio" name="${key}" value="${oi}" data-conflict="${idx}" style="flex-shrink:0;" onchange="window.sourcingModule.resolveConflict(${idx}, '${oi}')">
-              <span><strong>${osym}${parseFloat(opt.price).toFixed(2)}</strong></span>
+              <span><strong>${osym}${parseFloat(opt.price).toFixed(2)}</strong> <span style="color:var(--color-muted,#6b7280); font-size:0.8rem;">${escapeHtml(dateLabel)}</span></span>
             </label>`;
         }).join('');
         return `
