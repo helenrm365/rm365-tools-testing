@@ -19,6 +19,75 @@ class PdfParseCancelled(Exception):
     """Raised to cooperatively abort PDF parsing when the client disconnects."""
 
 
+# Percentage band the merge phase occupies on the import progress bar. The parse
+# that follows reports from MERGE_PROGRESS_END to 100 (see import_matrix_pdf's
+# progress_floor), so the bar advances smoothly across both phases.
+MERGE_PROGRESS_END = 8
+
+
+def merge_pdfs(pdf_blobs: List[bytes], progress_cb=None) -> bytes:
+    """Stitch several uploaded PDF blobs into one PDF, preserving their order.
+
+    The importer parses a price list as a single document — and the parser (AI
+    or deterministic) already treats a multi-page file as several documents
+    merged together, dating each page on its own. So when the user uploads more
+    than one PDF we merge them here, up front, rather than parsing each
+    separately (which would multiply AI calls and lose cross-document conflict
+    resolution).
+
+    ``progress_cb(percent, message)`` (optional) is invoked per source file so
+    the user sees the merge happening before parsing starts; merge progress
+    occupies 1..MERGE_PROGRESS_END%. A PdfParseCancelled raised by the callback
+    propagates (cooperative cancel); any other callback error is swallowed.
+
+    Empty blobs are skipped. A single blob is returned unchanged (no re-encode,
+    no progress — the parse phase reports from 0). Raises ``ValueError`` if
+    nothing usable was supplied or a blob isn't a readable PDF, so the API
+    surfaces a 400 rather than a 500.
+    """
+    import io
+    import pypdfium2 as pdfium
+
+    def _report(percent: int, message: str) -> None:
+        if progress_cb:
+            try:
+                progress_cb(percent, message)
+            except PdfParseCancelled:
+                raise  # cooperative cancellation must abort the merge
+            except Exception:
+                pass  # progress errors must never break the merge
+
+    blobs = [b for b in pdf_blobs if b]
+    if not blobs:
+        raise ValueError("No PDF files provided")
+    if len(blobs) == 1:
+        return blobs[0]
+
+    total = len(blobs)
+    merged = pdfium.PdfDocument.new()
+    sources = []
+    try:
+        for i, blob in enumerate(blobs):
+            _report(1 + int((i / total) * (MERGE_PROGRESS_END - 1)),
+                    f"Merging PDF {i + 1} of {total}…")
+            try:
+                src = pdfium.PdfDocument(blob)
+            except Exception as e:  # noqa: BLE001 — corrupt/non-PDF upload
+                raise ValueError(f"Could not read one of the PDF files: {e}") from e
+            sources.append(src)
+            merged.import_pages(src)
+        _report(MERGE_PROGRESS_END, f"Merged {total} PDFs — reading…")
+        buf = io.BytesIO()
+        merged.save(buf)
+        return buf.getvalue()
+    finally:
+        # import_pages copies pages into `merged`, and save() has already run by
+        # the time finally executes, so it is safe to release every handle here.
+        for src in sources:
+            src.close()
+        merged.close()
+
+
 class SourcingService:
     """Business logic for sourcing operations"""
 
@@ -1270,7 +1339,8 @@ class SourcingService:
     # PDF IMPORT
     # ========================================================================
 
-    def import_matrix_pdf(self, pdf_bytes: bytes, supplier_id: int, progress_cb=None) -> Dict:
+    def import_matrix_pdf(self, pdf_bytes: bytes, supplier_id: int, progress_cb=None,
+                          progress_floor: int = 0) -> Dict:
         """
         Parse a supplier PDF price list and return a preview of pricing changes.
         Uses product mappings to match line items to internal SKUs.
@@ -1278,18 +1348,27 @@ class SourcingService:
 
         progress_cb: optional callable(percent: int, message: str) invoked as pages are
         parsed, so callers (e.g. the SSE streaming endpoint) can report live progress.
+        progress_floor: lower bound (0-100) for reported percentages. When the caller
+        merged several PDFs first, it passes the percent the merge phase ended on, so
+        this phase's 0→100 maps into floor→100 and the bar never jumps backwards.
         """
         import pdfplumber
         import io
 
+        floor = max(0, min(int(progress_floor), 99))
+        span = 100 - floor
+
         def _report(percent: int, message: str) -> None:
             if progress_cb:
+                scaled = floor + int(max(0, min(percent, 100)) * span / 100)
                 try:
-                    progress_cb(percent, message)
+                    progress_cb(scaled, message)
                 except PdfParseCancelled:
                     raise  # deliberate cancellation must abort parsing
                 except Exception:
                     pass  # other progress errors must never break parsing
+
+        _report(0, "Reading PDF…")
 
         suppliers = self.repo.get_suppliers(active_only=False)
         supplier = next((s for s in suppliers if s['id'] == supplier_id), None)

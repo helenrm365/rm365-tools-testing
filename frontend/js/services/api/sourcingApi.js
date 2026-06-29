@@ -478,14 +478,14 @@ export async function importMappingsFile(file) {
 /**
  * Parse a supplier PDF price list and return a preview of pricing changes.
  * Does NOT commit changes — call bulkUpdatePricing with confirmed items to apply.
- * @param {File} file - PDF file
- * @param {number} supplierId - Supplier ID the PDF belongs to
+ * @param {File|File[]} files - one or more PDF files (merged server-side before parsing)
+ * @param {number} supplierId - Supplier ID the PDF(s) belong to
  * @returns {Promise<{supplier_id, supplier_name, preview: Array, unmatched: Array, total_found, total_matched, total_unmatched}>}
  */
-export async function importMatrixPDF(file, supplierId, { signal } = {}) {
+export async function importMatrixPDF(files, supplierId, { signal } = {}) {
   try {
     const formData = new FormData();
-    formData.append('file', file);
+    (Array.isArray(files) ? files : [files]).forEach(f => formData.append('files', f));
     formData.append('supplier_id', supplierId);
     return await http(`${BASE_PATH}/import/pdf`, { method: 'POST', body: formData, signal });
   } catch (error) {
@@ -498,16 +498,16 @@ export async function importMatrixPDF(file, supplierId, { signal } = {}) {
  * Streaming PDF parse — emits live progress via Server-Sent Events and resolves
  * with the final preview payload. Falls back to importMatrixPDF on the caller's
  * side if streaming is unavailable.
- * @param {File} file
+ * @param {File|File[]} files - one or more PDF files (merged server-side before parsing)
  * @param {number} supplierId
  * @param {{ onProgress?: (percent:number, message:string)=>void, signal?: AbortSignal }} [opts]
  * @returns {Promise<object>} the preview result
  */
-export async function importMatrixPDFStream(file, supplierId, { onProgress, signal } = {}) {
+export async function importMatrixPDFStream(files, supplierId, { onProgress, signal } = {}) {
   const base = getApiUrl().replace(/\/+$/, '');
   const token = getToken();
   const formData = new FormData();
-  formData.append('file', file);
+  (Array.isArray(files) ? files : [files]).forEach(f => formData.append('files', f));
   formData.append('supplier_id', supplierId);
 
   const response = await fetch(`${base}${BASE_PATH}/import/pdf/stream`, {

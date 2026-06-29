@@ -27,7 +27,7 @@ from .schemas import (
     SupplierProductMappingOut,
     PdfImportPreviewResponse,
 )
-from .service import SourcingService, PdfParseCancelled
+from .service import SourcingService, PdfParseCancelled, merge_pdfs, MERGE_PROGRESS_END
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -408,17 +408,20 @@ async def import_matrix_csv(
 
 @router.post("/import/pdf", response_model=PdfImportPreviewResponse)
 async def import_matrix_pdf(
-    file: UploadFile = File(...),
+    files: List[UploadFile] = File(...),
     supplier_id: int = Form(...),
     user=Depends(get_current_user)
 ):
     """
-    Parse a supplier PDF price list and return a preview of pricing changes.
+    Parse one or more supplier PDF price lists and return a preview of pricing
+    changes. Multiple PDFs are merged into a single document before parsing, so
+    they are read together (matching across documents, one set of AI calls).
     Uses product mappings to match PDF line items to internal SKUs.
     Does NOT commit changes — send confirmed items to POST /pricing/bulk to apply.
     """
     try:
-        contents = await file.read()
+        blobs = [await f.read() for f in files]
+        contents = merge_pdfs(blobs)
         result = _svc().import_matrix_pdf(contents, supplier_id)
         return result
     except ValueError as e:
@@ -430,7 +433,7 @@ async def import_matrix_pdf(
 
 @router.post("/import/pdf/stream")
 async def import_matrix_pdf_stream(
-    file: UploadFile = File(...),
+    files: List[UploadFile] = File(...),
     supplier_id: int = Form(...),
     user=Depends(get_current_user)
 ):
@@ -438,6 +441,10 @@ async def import_matrix_pdf_stream(
     Streaming variant of /import/pdf. Emits Server-Sent Events with live parse
     progress for large/multi-page PDFs, then a final 'complete' event carrying
     the full preview payload. Mirrors the manual-task SSE pattern.
+
+    Multiple uploaded PDFs are merged into one document before parsing (see
+    /import/pdf). The merge runs inside the worker thread so a corrupt upload
+    surfaces as a normal parse error event rather than a transport failure.
 
     If the client disconnects (user cancels/closes the modal), the worker thread
     is cooperatively cancelled at the next page boundary so it stops parsing.
@@ -458,7 +465,7 @@ async def import_matrix_pdf_stream(
             return o.isoformat()
         raise TypeError(f"Object of type {o.__class__.__name__} is not JSON serializable")
 
-    contents = await file.read()
+    blobs = [await f.read() for f in files]
     progress_queue: queue.Queue = queue.Queue()
     result_holder = [None]
     error_holder = [None]
@@ -469,10 +476,18 @@ async def import_matrix_pdf_stream(
             raise PdfParseCancelled()
         progress_queue.put({"type": "progress", "percent": percent, "message": message})
 
+    # When more than one PDF is uploaded, the merge phase reports progress up to
+    # MERGE_PROGRESS_END%; the parse then continues from there (progress_floor) so
+    # the single bar covers merging + parsing without jumping backwards.
+    merged_count = sum(1 for b in blobs if b)
+    parse_floor = MERGE_PROGRESS_END if merged_count > 1 else 0
+
     def run_parse() -> None:
         try:
+            contents = merge_pdfs(blobs, progress_cb=progress_callback)
             result_holder[0] = _svc().import_matrix_pdf(
-                contents, supplier_id, progress_cb=progress_callback
+                contents, supplier_id, progress_cb=progress_callback,
+                progress_floor=parse_floor,
             )
         except PdfParseCancelled:
             pass  # client went away — nothing to report

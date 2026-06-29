@@ -479,12 +479,7 @@ function setupEventListeners() {
     dropZone.addEventListener('drop', (e) => {
       e.preventDefault();
       dropZone.style.borderColor = 'var(--color-border, #d1d5db)';
-      const file = e.dataTransfer.files?.[0];
-      if (file && file.type === 'application/pdf') {
-        setPdfFile(file);
-      } else if (file) {
-        showToast('Please drop a PDF file', 'warning');
-      }
+      setPdfFiles(e.dataTransfer.files);
     });
   }
 
@@ -505,7 +500,7 @@ function setupEventListeners() {
   document.getElementById('btn-mapping-pdf-confirm')?.addEventListener('click', confirmMappingPdfImport);
   document.getElementById('mapping-pdf-supplier')?.addEventListener('change', (e) => {
     const processBtn = document.getElementById('btn-mapping-pdf-process');
-    if (processBtn) processBtn.disabled = !e.target.value || !pendingMapPdfFile;
+    if (processBtn) processBtn.disabled = !e.target.value || !pendingMapPdfFiles.length;
   });
   document.getElementById('mapping-pdf-unmapped-search')?.addEventListener('input', (e) => {
     mapPdfView.query = e.target.value;
@@ -537,12 +532,7 @@ function setupEventListeners() {
     mapDropZone.addEventListener('drop', (e) => {
       e.preventDefault();
       mapDropZone.style.borderColor = 'var(--color-border, #d1d5db)';
-      const file = e.dataTransfer.files?.[0];
-      if (file && file.type === 'application/pdf') {
-        setMapPdfFile(file);
-      } else if (file) {
-        showToast('Please drop a PDF file', 'warning');
-      }
+      setMapPdfFiles(e.dataTransfer.files);
     });
   }
 
@@ -3031,13 +3021,28 @@ function closeMappingsImportResultModal() {
 // PDF IMPORT
 // ============================================================================
 
-let pendingPdfFile = null;
+// Selected PDFs (one or more) — merged server-side into a single document before parsing.
+let pendingPdfFiles = [];
 let pendingPdfPreview = null;
 // Map of conflict key → chosen SKU (populated as user resolves each conflict)
 const conflictResolutions = new Map();
 
+// Keep only PDF files from a FileList/array, and describe the selection for the
+// drop-zone label. Shared by the matrix and mapping importers.
+function _filterPdfFiles(fileList) {
+  return Array.from(fileList || []).filter(
+    f => f.type === 'application/pdf' || /\.pdf$/i.test(f.name)
+  );
+}
+
+function _describePdfSelection(files) {
+  if (!files || files.length === 0) return '';
+  if (files.length === 1) return files[0].name;
+  return `${files.length} PDFs: ${files.map(f => f.name).join(', ')}`;
+}
+
 async function openPdfImportModal() {
-  pendingPdfFile = null;
+  pendingPdfFiles = [];
   pendingPdfPreview = null;
 
   // Reset step 1 fields before showing
@@ -3083,7 +3088,7 @@ function closePdfImportModal() {
   }
   _setPdfParsing(false);
   document.getElementById('pdf-import-overlay')?.classList.remove('active');
-  pendingPdfFile = null;
+  pendingPdfFiles = [];
   pendingPdfPreview = null;
 }
 
@@ -3099,34 +3104,39 @@ function showPdfImportStep2() {
   document.getElementById('pdf-import-step-2').style.display = '';
 }
 
-function setPdfFile(file) {
-  pendingPdfFile = file;
+function setPdfFiles(fileList) {
+  const pdfs = _filterPdfFiles(fileList);
+  const dropped = Array.from(fileList || []).length;
+  if (dropped && !pdfs.length) {
+    showToast('Please choose PDF files', 'warning');
+    return;
+  }
+  pendingPdfFiles = pdfs;
   const filenameEl = document.getElementById('pdf-import-filename');
-  if (filenameEl) filenameEl.textContent = file.name;
+  if (filenameEl) filenameEl.textContent = _describePdfSelection(pdfs);
   const processBtn = document.getElementById('btn-pdf-import-process');
   if (processBtn) {
     const supplierId = document.getElementById('pdf-import-supplier')?.value;
-    processBtn.disabled = !supplierId;
+    processBtn.disabled = !supplierId || !pdfs.length;
   }
 }
 
 function handlePdfFileSelect(e) {
-  const file = e.target.files?.[0];
-  if (file) setPdfFile(file);
+  setPdfFiles(e.target.files);
 }
 
 // Watch supplier selection to enable/disable process button
 document.addEventListener('change', (e) => {
   if (e.target.id === 'pdf-import-supplier') {
     const processBtn = document.getElementById('btn-pdf-import-process');
-    if (processBtn) processBtn.disabled = !e.target.value || !pendingPdfFile;
+    if (processBtn) processBtn.disabled = !e.target.value || !pendingPdfFiles.length;
   }
 });
 
 async function processPdfImport() {
   const supplierId = document.getElementById('pdf-import-supplier')?.value;
-  if (!supplierId || !pendingPdfFile) {
-    showToast('Please select a supplier and a PDF file', 'warning');
+  if (!supplierId || !pendingPdfFiles.length) {
+    showToast('Please select a supplier and at least one PDF file', 'warning');
     return;
   }
 
@@ -3145,7 +3155,7 @@ async function processPdfImport() {
 
     let result;
     try {
-      result = await importMatrixPDFStream(pendingPdfFile, parseInt(supplierId), {
+      result = await importMatrixPDFStream(pendingPdfFiles, parseInt(supplierId), {
         signal: pdfParseAbort.signal,
         onProgress: (percent, message) => _updatePdfProgress(percent, message),
       });
@@ -3156,7 +3166,7 @@ async function processPdfImport() {
       // back to the plain endpoint so the importer still works.
       console.warn('[Sourcing] PDF streaming failed, falling back:', streamErr);
       _updatePdfProgress(-1, 'Parsing…');
-      result = await importMatrixPDF(pendingPdfFile, parseInt(supplierId), {
+      result = await importMatrixPDF(pendingPdfFiles, parseInt(supplierId), {
         signal: pdfParseAbort.signal,
       });
     }
@@ -3176,7 +3186,7 @@ async function processPdfImport() {
     _setPdfParsing(false);
     if (supplierSelect) supplierSelect.disabled = false;
     if (dropZone) dropZone.style.pointerEvents = '';
-    if (processBtn) processBtn.disabled = !document.getElementById('pdf-import-supplier')?.value || !pendingPdfFile;
+    if (processBtn) processBtn.disabled = !document.getElementById('pdf-import-supplier')?.value || !pendingPdfFiles.length;
   }
 }
 
@@ -3969,7 +3979,7 @@ async function confirmPdfImport() {
 // lines resolved via the mappings table, so they're already mapped and skipped).
 // The user maps each line to an internal product; prices are never written.
 
-let pendingMapPdfFile = null;
+let pendingMapPdfFiles = [];
 let pendingMapPdfPreview = null;
 let mapPdfParseAbort = null;
 // idx (into preview.unmatched) → { sku, name } chosen by the user.
@@ -3979,7 +3989,7 @@ const mapPdfMappingType = new Map();
 let mapPdfView = { page: 1, query: '' };
 
 async function openMappingPdfModal() {
-  pendingMapPdfFile = null;
+  pendingMapPdfFiles = [];
   pendingMapPdfPreview = null;
 
   const filenameEl = document.getElementById('mapping-pdf-filename');
@@ -4021,7 +4031,7 @@ function closeMappingPdfModal() {
   }
   _setMapPdfParsing(false);
   document.getElementById('mapping-pdf-overlay')?.classList.remove('active');
-  pendingMapPdfFile = null;
+  pendingMapPdfFiles = [];
   pendingMapPdfPreview = null;
 }
 
@@ -4037,20 +4047,25 @@ function showMappingPdfStep2() {
   document.getElementById('mapping-pdf-step-2').style.display = '';
 }
 
-function setMapPdfFile(file) {
-  pendingMapPdfFile = file;
+function setMapPdfFiles(fileList) {
+  const pdfs = _filterPdfFiles(fileList);
+  const dropped = Array.from(fileList || []).length;
+  if (dropped && !pdfs.length) {
+    showToast('Please choose PDF files', 'warning');
+    return;
+  }
+  pendingMapPdfFiles = pdfs;
   const filenameEl = document.getElementById('mapping-pdf-filename');
-  if (filenameEl) filenameEl.textContent = file.name;
+  if (filenameEl) filenameEl.textContent = _describePdfSelection(pdfs);
   const processBtn = document.getElementById('btn-mapping-pdf-process');
   if (processBtn) {
     const supplierId = document.getElementById('mapping-pdf-supplier')?.value;
-    processBtn.disabled = !supplierId;
+    processBtn.disabled = !supplierId || !pdfs.length;
   }
 }
 
 function handleMapPdfFileSelect(e) {
-  const file = e.target.files?.[0];
-  if (file) setMapPdfFile(file);
+  setMapPdfFiles(e.target.files);
 }
 
 function _setMapPdfParsing(isParsing) {
@@ -4088,8 +4103,8 @@ function _updateMapPdfProgress(percent, message) {
 
 async function processMappingPdfImport() {
   const supplierId = document.getElementById('mapping-pdf-supplier')?.value;
-  if (!supplierId || !pendingMapPdfFile) {
-    showToast('Please select a supplier and a PDF file', 'warning');
+  if (!supplierId || !pendingMapPdfFiles.length) {
+    showToast('Please select a supplier and at least one PDF file', 'warning');
     return;
   }
 
@@ -4102,7 +4117,7 @@ async function processMappingPdfImport() {
 
     let result;
     try {
-      result = await importMatrixPDFStream(pendingMapPdfFile, parseInt(supplierId), {
+      result = await importMatrixPDFStream(pendingMapPdfFiles, parseInt(supplierId), {
         signal: mapPdfParseAbort.signal,
         onProgress: (percent, message) => _updateMapPdfProgress(percent, message),
       });
@@ -4111,7 +4126,7 @@ async function processMappingPdfImport() {
       if (streamErr.fromSse) throw streamErr;
       console.warn('[Sourcing] Mapping PDF streaming failed, falling back:', streamErr);
       _updateMapPdfProgress(-1, 'Parsing…');
-      result = await importMatrixPDF(pendingMapPdfFile, parseInt(supplierId), {
+      result = await importMatrixPDF(pendingMapPdfFiles, parseInt(supplierId), {
         signal: mapPdfParseAbort.signal,
       });
     }
@@ -4129,7 +4144,7 @@ async function processMappingPdfImport() {
   } finally {
     mapPdfParseAbort = null;
     _setMapPdfParsing(false);
-    if (processBtn) processBtn.disabled = !document.getElementById('mapping-pdf-supplier')?.value || !pendingMapPdfFile;
+    if (processBtn) processBtn.disabled = !document.getElementById('mapping-pdf-supplier')?.value || !pendingMapPdfFiles.length;
   }
 }
 

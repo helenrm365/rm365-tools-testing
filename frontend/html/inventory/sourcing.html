@@ -710,10 +710,10 @@
             <label class="nui-label">PDF Price List</label>
             <div id="pdf-import-drop-zone" style="border:2px dashed var(--color-border,#d1d5db); border-radius:8px; padding:2rem; text-align:center; cursor:pointer; transition:border-color 0.2s;">
               <i class="fas fa-cloud-upload-alt" style="font-size:2rem; color:var(--color-muted,#6b7280); margin-bottom:0.5rem; display:block;"></i>
-              <p style="margin:0; color:var(--color-muted,#6b7280);">Click to choose a PDF or drag &amp; drop here</p>
+              <p style="margin:0; color:var(--color-muted,#6b7280);">Click to choose PDFs or drag &amp; drop here — multiple files allowed</p>
               <p id="pdf-import-filename" style="margin:0.5rem 0 0; font-weight:600; color:var(--color-text,#111827);"></p>
             </div>
-            <input type="file" id="pdf-import-file-input" accept=".pdf" style="display:none;">
+            <input type="file" id="pdf-import-file-input" accept=".pdf" multiple style="display:none;">
           </div>
         </div>
       </div>
@@ -881,10 +881,10 @@
             <label class="nui-label">Supplier PDF</label>
             <div id="mapping-pdf-drop-zone" style="border:2px dashed var(--color-border,#d1d5db); border-radius:8px; padding:2rem; text-align:center; cursor:pointer; transition:border-color 0.2s;">
               <i class="fas fa-cloud-upload-alt" style="font-size:2rem; color:var(--color-muted,#6b7280); margin-bottom:0.5rem; display:block;"></i>
-              <p style="margin:0; color:var(--color-muted,#6b7280);">Click to choose a PDF or drag &amp; drop here</p>
+              <p style="margin:0; color:var(--color-muted,#6b7280);">Click to choose PDFs or drag &amp; drop here — multiple files allowed</p>
               <p id="mapping-pdf-filename" style="margin:0.5rem 0 0; font-weight:600; color:var(--color-text,#111827);"></p>
             </div>
-            <input type="file" id="mapping-pdf-file-input" accept=".pdf" style="display:none;">
+            <input type="file" id="mapping-pdf-file-input" accept=".pdf" multiple style="display:none;">
             <p class="help-text" style="margin-top:0.5rem;">Products that already have a mapping are skipped automatically. Only unmapped lines are shown so you can map them. Prices are not imported here.</p>
           </div>
         </div>

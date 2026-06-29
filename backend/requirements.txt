@@ -12,6 +12,7 @@ pyjwt
 pandas
 openpyxl
 pdfplumber
+pypdfium2
 jinja2
 psycopg2-binary
 python-multipart
