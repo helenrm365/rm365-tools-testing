@@ -551,9 +551,38 @@ html.dark-mode .product-sourcing .data-table thead .sticky-col-2 {
 .product-sourcing .cell-note {
   position: absolute;
   top: 2px;
-  left: 2px; /* moved to the left so it doesn't overlap the date (top-right) */
-  font-size: 0.7rem;
+  left: 2px;
+  font-size: 0.65rem;
+  color: var(--text-muted);
   cursor: help;
+}
+
+.product-sourcing .cell-note::after {
+  content: attr(data-note);
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  background: var(--bg-card, #1e293b);
+  color: var(--text, #e2e8f0);
+  border: 1px solid var(--border, rgba(255,255,255,0.1));
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-family: inherit;
+  white-space: normal;
+  word-break: break-word;
+  max-width: 200px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  z-index: 200;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+}
+
+.product-sourcing .cell-note:hover::after {
+  visibility: visible;
+  opacity: 1;
 }
 
 /* ===== Analysis Table Margin Status (uses badge patterns) ===== */

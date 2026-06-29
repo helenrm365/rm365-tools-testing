@@ -1183,7 +1183,7 @@ function renderMatrixTable() {
                onblur="window.sourcingModule.handleMatrixCellEdit(this)">
             ${displayValue}
           </div>
-          ${pricing?.notes ? `<span class="cell-note" title="${escapeHtml(pricing.notes)}">📝</span>` : ''}
+          ${pricing?.notes ? `<span class="cell-note" data-note="${escapeHtml(pricing.notes)}"><i class="fas fa-sticky-note"></i></span>` : ''}
         </td>
       `;
     }).join('');
