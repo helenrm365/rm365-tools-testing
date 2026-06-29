@@ -3007,6 +3007,7 @@ function closePdfImportModal() {
 }
 
 function showPdfImportStep1() {
+  closeOpenCombobox();
   document.getElementById('pdf-import-step-1').style.display = '';
   document.getElementById('pdf-import-step-2').style.display = 'none';
   document.getElementById('pdf-import-modal-title').textContent = 'Import PDF Price List';
@@ -3908,6 +3909,7 @@ function closeMappingPdfModal() {
 }
 
 function showMappingPdfStep1() {
+  closeOpenCombobox();
   document.getElementById('mapping-pdf-step-1').style.display = '';
   document.getElementById('mapping-pdf-step-2').style.display = 'none';
   document.getElementById('mapping-pdf-modal-title').textContent = 'Import Mappings from PDF';
