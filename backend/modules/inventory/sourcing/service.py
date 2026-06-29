@@ -409,7 +409,7 @@ class SourcingService:
         
         return {
             'matrix': paginated,
-            'suppliers': [{'id': s['id'], 'code': s['code'], 'name': s['name']} for s in suppliers],
+            'suppliers': [{'id': s['id'], 'code': s['code'], 'name': s['name'], 'default_currency': s.get('default_currency', 'GBP')} for s in suppliers],
             'total': total,
             'page': page,
             'per_page': per_page,
