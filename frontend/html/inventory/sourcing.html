@@ -819,6 +819,31 @@
             <div id="pdf-import-unmatched-pagination" class="pdf-import-pagination"></div>
           </details>
         </div>
+
+        <!-- Skipped items (collapsible) — counted in Found but dropped as noise -->
+        <div id="pdf-import-skipped-section" style="margin-top:1rem; display:none;">
+          <details>
+            <summary style="cursor:pointer; font-weight:600; font-size:0.9rem; padding:0.5rem 0;">
+              <i class="fas fa-ban" style="color:var(--color-muted,#6b7280);"></i>
+              Skipped Lines (<span id="pdf-import-skipped-count">0</span>) — not imported
+            </summary>
+            <p style="margin:0.25rem 0 0.5rem; font-size:0.8rem; color:var(--color-muted,#6b7280);">
+              These were read from the PDF but dropped before matching — usually invoice totals, headers, or other non-product text. Review to confirm no real product was discarded.
+            </p>
+            <div style="max-height:240px; overflow-y:auto; border:1px solid var(--color-border,#e5e7eb); border-radius:6px;">
+              <table class="data-table" style="width:100%; font-size:0.82rem;">
+                <thead>
+                  <tr>
+                    <th>Text from PDF</th>
+                    <th>Price</th>
+                    <th>Reason skipped</th>
+                  </tr>
+                </thead>
+                <tbody id="pdf-import-skipped-body"></tbody>
+              </table>
+            </div>
+          </details>
+        </div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-solid btn-default rounded-lg" id="btn-pdf-preview-back">

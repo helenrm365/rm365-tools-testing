@@ -1557,6 +1557,11 @@ class SourcingService:
         preview: list = []
         conflicts: list = []
         unmatched: list = []
+        # Rows counted in total_found but dropped before any other bucket (no usable
+        # ref/name/price, or rejected as non-product noise). Recorded so the four
+        # visible buckets always reconcile to total_found, and so a human can confirm
+        # nothing real was discarded.
+        skipped: list = []
 
         for key in group_order:
             group = grouped[key]
@@ -1569,9 +1574,21 @@ class SourcingService:
             currency = item.get('currency') or default_currency
 
             if not (identifier or ref) or price is None:
+                skipped.append({
+                    'raw_text': ref or identifier or '(blank)',
+                    'price': price,
+                    'currency': currency,
+                    'reason': 'Missing price' if (identifier or ref) else 'Missing product reference/name',
+                })
                 continue
 
             if not self._is_plausible_identifier(ref, identifier):
+                skipped.append({
+                    'raw_text': ref or identifier,
+                    'price': price,
+                    'currency': currency,
+                    'reason': 'Skipped as non-product line (header, total, or noise)',
+                })
                 continue
 
             # Resolve BOTH columns independently. For the name, try the base name
@@ -1685,10 +1702,12 @@ class SourcingService:
             'preview': preview,
             'conflicts': conflicts,
             'unmatched': unmatched,
+            'skipped': skipped,
             'total_found': len(unique_items),
             'total_matched': len(preview),
             'total_conflicts': len(conflicts),
             'total_unmatched': len(unmatched),
+            'total_skipped': len(skipped),
             # Which extraction tier produced these items, and how confident it was.
             'extraction_method': extraction_method,
             'extraction_confidence': confidence,

@@ -3291,6 +3291,11 @@ function renderPdfPreview(result) {
         <div style="font-size:1.6rem; font-weight:700; color:var(--color-danger,#dc2626);">${result.total_unmatched}</div>
         <div style="font-size:0.8rem; color:var(--color-muted,#6b7280);">Unmatched</div>
       </div>
+      ${(result.total_skipped || 0) > 0 ? `
+      <div style="text-align:center; min-width:80px;">
+        <div style="font-size:1.6rem; font-weight:700; color:var(--color-muted,#6b7280);">${result.total_skipped}</div>
+        <div style="font-size:0.8rem; color:var(--color-muted,#6b7280);">Skipped</div>
+      </div>` : ''}
       ${_extractionMethodBadge(result)}
     `;
   }
@@ -3360,6 +3365,30 @@ function renderPdfPreview(result) {
     }).join('');
   } else if (conflictsSection) {
     conflictsSection.style.display = 'none';
+  }
+
+  // Skipped lines — read from the PDF but dropped before matching (totals,
+  // headers, noise). Listed so the visible buckets reconcile to Found and the
+  // user can audit what was discarded. Collapsed by default (informational).
+  const skippedSection = document.getElementById('pdf-import-skipped-section');
+  const skippedBody = document.getElementById('pdf-import-skipped-body');
+  if (skippedSection && skippedBody && result.skipped?.length > 0) {
+    skippedSection.style.display = '';
+    const countEl = document.getElementById('pdf-import-skipped-count');
+    if (countEl) countEl.textContent = result.skipped.length;
+    skippedBody.innerHTML = result.skipped.map((s) => {
+      const sym = s.currency ? (CURRENCY_SYMBOLS[s.currency] || s.currency) : '';
+      const priceDisplay = s.price != null ? `${sym}${parseFloat(s.price).toFixed(2)}` : '—';
+      return `
+        <tr>
+          <td>${escapeHtml(s.raw_text || '')}</td>
+          <td>${priceDisplay}</td>
+          <td style="color:var(--color-muted,#6b7280);">${escapeHtml(s.reason || '')}</td>
+        </tr>`;
+    }).join('');
+  } else if (skippedSection) {
+    skippedSection.style.display = 'none';
+    if (skippedBody) skippedBody.innerHTML = '';
   }
 
   // Matched changes + unmatched are rendered via dedicated paginated/searchable

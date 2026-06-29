@@ -281,6 +281,17 @@ class PdfImportUnmatchedItem(BaseModel):
     foc: Optional[bool] = None
 
 
+class PdfImportSkippedItem(BaseModel):
+    """A line counted in total_found but dropped before any other bucket — no
+    usable ref/name/price, or rejected as non-product noise (header/total/etc.).
+    Surfaced so the visible buckets reconcile to total_found and a human can audit
+    what was discarded."""
+    raw_text: str
+    price: Optional[float] = None
+    currency: Optional[str] = None
+    reason: str
+
+
 class PdfImportPriceOption(BaseModel):
     """One candidate price for a product that appeared multiple times in the PDF"""
     price: float
@@ -328,10 +339,12 @@ class PdfImportPreviewResponse(BaseModel):
     preview: List[PdfImportPreviewItem]
     conflicts: List[PdfImportConflictItem]
     unmatched: List[PdfImportUnmatchedItem]
+    skipped: List[PdfImportSkippedItem] = []
     total_found: int
     total_matched: int
     total_conflicts: int
     total_unmatched: int
+    total_skipped: int = 0
     # Which extraction tier produced the items and its confidence (0..1).
     # 'deterministic' = no AI used; 'ai_layout' / 'ai_direct' = AI fallback tiers.
     extraction_method: str = "deterministic"
