@@ -37,6 +37,26 @@ def _svc() -> SourcingService:
     return SourcingService()
 
 
+def _gather_pdf_uploads(
+    files: Optional[List[UploadFile]],
+    file: Optional[UploadFile],
+) -> List[UploadFile]:
+    """Collect the uploaded PDFs from either the ``files`` (multi) or legacy
+    ``file`` (single) form field.
+
+    Accepting both keeps the importer working across a partial deploy (e.g. a
+    cached older frontend that still posts ``file``, or a backend that updated
+    ahead of the static assets) instead of failing body validation with a 422.
+    Raises 400 when nothing was supplied.
+    """
+    uploads = list(files or [])
+    if file is not None:
+        uploads.append(file)
+    if not uploads:
+        raise HTTPException(status_code=400, detail="No PDF file(s) provided")
+    return uploads
+
+
 # ============================================================================
 # HEALTH & INITIALIZATION
 # ============================================================================
@@ -408,7 +428,8 @@ async def import_matrix_csv(
 
 @router.post("/import/pdf", response_model=PdfImportPreviewResponse)
 async def import_matrix_pdf(
-    files: List[UploadFile] = File(...),
+    files: Optional[List[UploadFile]] = File(None),
+    file: Optional[UploadFile] = File(None),
     supplier_id: int = Form(...),
     user=Depends(get_current_user)
 ):
@@ -416,11 +437,13 @@ async def import_matrix_pdf(
     Parse one or more supplier PDF price lists and return a preview of pricing
     changes. Multiple PDFs are merged into a single document before parsing, so
     they are read together (matching across documents, one set of AI calls).
+    Accepts the ``files`` field (one or more) or the legacy single ``file``.
     Uses product mappings to match PDF line items to internal SKUs.
     Does NOT commit changes — send confirmed items to POST /pricing/bulk to apply.
     """
     try:
-        blobs = [await f.read() for f in files]
+        uploads = _gather_pdf_uploads(files, file)
+        blobs = [await f.read() for f in uploads]
         contents = merge_pdfs(blobs)
         result = _svc().import_matrix_pdf(contents, supplier_id)
         return result
@@ -433,7 +456,8 @@ async def import_matrix_pdf(
 
 @router.post("/import/pdf/stream")
 async def import_matrix_pdf_stream(
-    files: List[UploadFile] = File(...),
+    files: Optional[List[UploadFile]] = File(None),
+    file: Optional[UploadFile] = File(None),
     supplier_id: int = Form(...),
     user=Depends(get_current_user)
 ):
@@ -465,7 +489,8 @@ async def import_matrix_pdf_stream(
             return o.isoformat()
         raise TypeError(f"Object of type {o.__class__.__name__} is not JSON serializable")
 
-    blobs = [await f.read() for f in files]
+    uploads = _gather_pdf_uploads(files, file)
+    blobs = [await f.read() for f in uploads]
     progress_queue: queue.Queue = queue.Queue()
     result_holder = [None]
     error_holder = [None]
