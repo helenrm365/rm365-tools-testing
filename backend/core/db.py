@@ -239,7 +239,36 @@ def initialize_database():
             print("✅ Order fulfillment tables initialized")
         except Exception as e:
             print(f"⚠️  Could not initialize order fulfillment tables: {e}")
-        
+
+        try:
+            conn = get_psycopg_connection()
+            with conn.cursor() as cur:
+                cur.execute("ALTER TABLE login_users ADD COLUMN IF NOT EXISTS email TEXT")
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS password_reset_tokens (
+                        username    TEXT        PRIMARY KEY REFERENCES login_users(username) ON DELETE CASCADE,
+                        token_hash  TEXT        NOT NULL,
+                        expires_at  TIMESTAMPTZ NOT NULL,
+                        created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                    )
+                """)
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS email_verification_tokens (
+                        username      TEXT        PRIMARY KEY REFERENCES login_users(username) ON DELETE CASCADE,
+                        pending_email TEXT        NOT NULL,
+                        code_hash     TEXT        NOT NULL,
+                        expires_at    TIMESTAMPTZ NOT NULL,
+                        resend_count  INTEGER     NOT NULL DEFAULT 0,
+                        window_start  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                        created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                    )
+                """)
+            conn.commit()
+            return_attendance_connection(conn)
+            print("✅ Email & password reset tables initialized")
+        except Exception as e:
+            print(f"⚠️  Could not initialize email/reset tables: {e}")
+
         return True
     except Exception as e:
         print(f"❌ Database connection failed: {e}")

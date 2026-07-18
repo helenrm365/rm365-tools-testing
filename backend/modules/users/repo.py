@@ -13,23 +13,23 @@ class UsersRepo:
             cur.execute("SELECT username FROM login_users ORDER BY username")
             return [r[0] for r in cur.fetchall()]
 
-    def list_all(self) -> List[Tuple[str, str, str, str, int, int]]:
+    def list_all(self) -> List[Tuple]:
         with pg_conn() as conn, conn.cursor() as cur:
             cur.execute("""
                 SELECT username,
                        NULLIF(role, '') as role,
                        NULLIF(tab_preset, '') as tab_preset,
-                       allowed_tabs, location_id, group_id
+                       allowed_tabs, location_id, group_id, email
                 FROM login_users ORDER BY username
             """)
             return cur.fetchall()
 
-    def create(self, username: str, password_hash: str, role: str, tab_preset: str, allowed_tabs_csv: str, location_id: int = None, group_id: int = None):
+    def create(self, username: str, password_hash: str, role: str, tab_preset: str, allowed_tabs_csv: str, location_id: int = None, group_id: int = None, email: str = None):
         with pg_conn() as conn, conn.cursor() as cur:
             cur.execute("""
-                INSERT INTO login_users (username, password_hash, role, tab_preset, allowed_tabs, location_id, group_id)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
-            """, (username, password_hash, role, tab_preset, allowed_tabs_csv, location_id, group_id))
+                INSERT INTO login_users (username, password_hash, role, tab_preset, allowed_tabs, location_id, group_id, email)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """, (username, password_hash, role, tab_preset, allowed_tabs_csv, location_id, group_id, email))
             conn.commit()
 
     def update(self, username: str, *, new_username=None, new_hash=None,
@@ -37,7 +37,8 @@ class UsersRepo:
                tab_preset=None, clear_tab_preset=False,
                allowed_tabs_csv=None,
                location_id=None, clear_location=False,
-               group_id=None, clear_group=False):
+               group_id=None, clear_group=False,
+               email=None, clear_email=False):
         sets, vals = [], []
         if new_username is not None: sets += ["username=%s"];        vals += [new_username]
         if new_hash is not None:     sets += ["password_hash=%s"];   vals += [new_hash]
@@ -50,6 +51,8 @@ class UsersRepo:
         elif clear_location:         sets += ["location_id=%s"];    vals += [None]
         if group_id is not None:     sets += ["group_id=%s"];       vals += [group_id]
         elif clear_group:            sets += ["group_id=%s"];       vals += [None]
+        if email is not None:        sets += ["email=%s"];           vals += [email]
+        elif clear_email:            sets += ["email=%s"];           vals += [None]
         if not sets: return
         with pg_conn() as conn, conn.cursor() as cur:
             cur.execute(f"UPDATE login_users SET {', '.join(sets)} WHERE username=%s", (*vals, username))

@@ -54,6 +54,14 @@ class Settings(BaseSettings):
     MAGENTO_DB_USER_FR: Optional[str] = None
     MAGENTO_DB_PASSWORD_FR: Optional[str] = None
 
+    # Brevo transactional email
+    BREVO_API_KEY: Optional[str] = None
+    EMAIL_FROM: str = "noreply@yourdomain.com"
+    EMAIL_FROM_NAME: str = "RM365 Tools"
+
+    # Public URL of the app (used in email links)
+    APP_BASE_URL: str = "https://yourdomain.com"
+
     # Scheduler settings
     # Set to false on secondary instances to prevent duplicate scheduled jobs
     SCHEDULER_ENABLED: bool = False  # Set SCHEDULER_ENABLED=true in .env to enable

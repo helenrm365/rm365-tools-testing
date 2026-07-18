@@ -13,23 +13,25 @@ class UsersService:
         if self.repo.get(username):
             raise ValueError("Username already exists")
 
-    def create(self, username: str, password: str, role: str, tab_preset: str, allowed_tabs: List[str], location_id: int = None, group_id: int = None):
+    def create(self, username: str, password: str, role: str, tab_preset: str, allowed_tabs: List[str], location_id: int = None, group_id: int = None, email: str = None):
         self.ensure_unique(username)
-        self.repo.create(username, hash_password(password), role, tab_preset, _csv(allowed_tabs), location_id, group_id)
+        self.repo.create(username, hash_password(password), role, tab_preset, _csv(allowed_tabs), location_id, group_id, email)
 
     def update(self, username: str, *, new_username=None, new_password=None,
                role=None, clear_role=False,
                tab_preset=None, clear_tab_preset=False,
                allowed_tabs=None,
                location_id=None, clear_location=False,
-               group_id=None, clear_group=False):
+               group_id=None, clear_group=False,
+               email=None, clear_email=False):
         new_hash = hash_password(new_password) if new_password else None
         self.repo.update(username, new_username=new_username, new_hash=new_hash,
                          role=role, clear_role=clear_role,
                          tab_preset=tab_preset, clear_tab_preset=clear_tab_preset,
                          allowed_tabs_csv=_csv(allowed_tabs) if allowed_tabs is not None else None,
                          location_id=location_id, clear_location=clear_location,
-                         group_id=group_id, clear_group=clear_group)
+                         group_id=group_id, clear_group=clear_group,
+                         email=email, clear_email=clear_email)
 
     def update_tabs_for_preset(self, preset_name: str, allowed_tabs: List[str]):
         """Sync allowed_tabs for all users assigned to a given tab preset."""
@@ -49,6 +51,7 @@ class UsersService:
             username, role, tab_preset, allowed_tabs_csv = row[0], row[1], row[2], row[3]
             location_id = row[4] if len(row) > 4 else None
             group_id = row[5] if len(row) > 5 else None
+            email = row[6] if len(row) > 6 else None
             allowed_tabs = [t.strip() for t in (allowed_tabs_csv or "").split(",") if t.strip()]
             users.append({
                 "username": username,
@@ -56,7 +59,8 @@ class UsersService:
                 "tab_preset": tab_preset or None,
                 "allowed_tabs": allowed_tabs,
                 "location_id": location_id,
-                "group_id": group_id
+                "group_id": group_id,
+                "email": email,
             })
         return users
 
