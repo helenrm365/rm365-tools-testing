@@ -1,5 +1,5 @@
 // js/modules/usermanagement/management.js
-import { getUsers, createUser, updateUser, deleteUser, sendEmailVerificationCode, resendEmailVerificationCode, confirmEmailVerification } from '../../services/api/usersApi.js';
+import { getUsers, createUser, updateUser, deleteUser, sendEmailVerificationCode, resendEmailVerificationCode, confirmEmailVerification } from '../../services/api/usersApi.js?v=2';
 import { getTabPresets, createTabPreset, updateTabPreset, deleteTabPreset } from '../../services/api/tabPresetsApi.js';
 import { getGroups, createGroup, updateGroup, deleteGroup } from '../../services/api/groupsApi.js';
 import { getLocations as getLocationObjects } from '../../services/api/locationsApi.js';
