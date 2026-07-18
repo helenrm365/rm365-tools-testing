@@ -1,5 +1,5 @@
 // js/modules/usermanagement/management.js
-import { getUsers, createUser, updateUser, deleteUser, sendEmailVerificationCode, resendEmailVerificationCode, confirmEmailVerification } from '../../services/api/usersApi.js?v=2';
+import { getUsers, createUser, updateUser, deleteUser, sendEmailVerificationCode, resendEmailVerificationCode, confirmEmailVerification } from '../../services/api/usersApi.js?v=3';
 import { getTabPresets, createTabPreset, updateTabPreset, deleteTabPreset } from '../../services/api/tabPresetsApi.js';
 import { getGroups, createGroup, updateGroup, deleteGroup } from '../../services/api/groupsApi.js';
 import { getLocations as getLocationObjects } from '../../services/api/locationsApi.js';
@@ -504,7 +504,6 @@ function restoreEmailVerifState(username) {
   $('#emailSendCodeBtn').innerHTML = '<i class="fas fa-paper-plane"></i><span>Sent</span>';
   $('#emailInputRow').style.display = '';
   $('#emailCodeRow').style.display = '';
-  $('#emailCodeSentTo').textContent = verif.email;
   clearOtpInputs();
 
   const msg = $('#emailCodeMsg');
@@ -517,7 +516,7 @@ function restoreEmailVerifState(username) {
     $('#emailResendBtn').disabled = true;
   } else {
     msg.style.color = '#065f46';
-    msg.textContent = 'Enter the code from the email.';
+    msg.textContent = `Code sent to ${verif.email} — enter it below.`;
   }
 }
 
@@ -688,14 +687,14 @@ function wireUserModal() {
       await sendEmailVerificationCode(username, email);
       emailVerifStateMap.set(username, { codeSent: true, email, rateLimited: false, rateLimitMsg: '' });
 
-      // Populate the "sent to" label, then fade input → code row
-      $('#emailCodeSentTo').textContent = email;
+      // Fade input row → code row
       $('#formEmail').readOnly = true;
       btn.innerHTML = '<i class="fas fa-paper-plane"></i><span>Sent</span>';
 
       const msg = $('#emailCodeMsg');
-      msg.style.display = 'none';
-      msg.textContent = '';
+      msg.style.color = '#065f46';
+      msg.textContent = `Code sent to ${email} — enter it below.`;
+      msg.style.display = 'block';
 
       fadeEmailStep($('#emailInputRow'), $('#emailCodeRow'), () => {
         // Focus first OTP box after fade completes
