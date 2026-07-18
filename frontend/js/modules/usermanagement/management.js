@@ -446,7 +446,7 @@ function openUserModal(user = null) {
 function resetEmailVerificationUI() {
   $('#emailCodeRow').style.display = 'none';
   $('#emailInputRow').style.display = 'none';
-  $('#formEmailCode').value = '';
+  clearOtpInputs();
   $('#formEmail').readOnly = false;
   const msg = $('#emailCodeMsg');
   msg.style.display = 'none';
@@ -457,9 +457,25 @@ function resetEmailVerificationUI() {
   const resendBtn = $('#emailResendBtn');
   resendBtn.disabled = false;
   resendBtn.innerHTML = '<i class="fas fa-redo"></i><span>Resend</span>';
-  // Remove any lingering fade class
   $('#emailInputRow').classList.remove('ev-fading');
   $('#emailCodeRow').classList.remove('ev-fading');
+}
+
+function getOtpValue() {
+  return Array.from($all('.otp-digit')).map(i => i.value).join('');
+}
+
+function clearOtpInputs() {
+  $all('.otp-digit').forEach(i => { i.value = ''; i.classList.remove('otp-filled', 'otp-error'); });
+}
+
+function setOtpError() {
+  $all('.otp-digit').forEach(i => {
+    i.classList.remove('otp-error');
+    // Trigger reflow so animation replays if already in error state
+    void i.offsetWidth;
+    i.classList.add('otp-error');
+  });
 }
 
 // Fade stepA out, then show stepB
@@ -486,10 +502,10 @@ function restoreEmailVerifState(username) {
   $('#formEmail').value = verif.email;
   $('#formEmail').readOnly = true;
   $('#emailSendCodeBtn').innerHTML = '<i class="fas fa-paper-plane"></i><span>Sent</span>';
-  // Skip animation on restore — just show directly
   $('#emailInputRow').style.display = '';
   $('#emailCodeRow').style.display = '';
   $('#emailCodeSentTo').textContent = verif.email;
+  clearOtpInputs();
 
   const msg = $('#emailCodeMsg');
   msg.style.display = 'block';
@@ -503,6 +519,60 @@ function restoreEmailVerifState(username) {
     msg.style.color = '#065f46';
     msg.textContent = 'Enter the code from the email.';
   }
+}
+
+function wireOtpInputs() {
+  const inputs = Array.from($all('.otp-digit'));
+  if (!inputs.length || inputs[0]._otpWired) return;
+  inputs[0]._otpWired = true;
+
+  inputs.forEach((input, idx) => {
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Backspace') {
+        if (input.value) {
+          input.value = '';
+          input.classList.remove('otp-filled');
+        } else if (idx > 0) {
+          inputs[idx - 1].focus();
+          inputs[idx - 1].value = '';
+          inputs[idx - 1].classList.remove('otp-filled');
+        }
+        e.preventDefault();
+      } else if (e.key === 'ArrowLeft'  && idx > 0)              inputs[idx - 1].focus();
+        else if (e.key === 'ArrowRight' && idx < inputs.length - 1) inputs[idx + 1].focus();
+    });
+
+    input.addEventListener('input', () => {
+      const val = input.value.replace(/\D/g, '').slice(-1);
+      input.value = val;
+      input.classList.toggle('otp-filled', !!val);
+      if (val && idx < inputs.length - 1) inputs[idx + 1].focus();
+      if (getOtpValue().length === 6) {
+        const verifyBtn = $('#emailVerifyBtn');
+        if (verifyBtn && !verifyBtn.disabled) setTimeout(() => verifyBtn.click(), 80);
+      }
+    });
+
+    input.addEventListener('paste', (e) => {
+      e.preventDefault();
+      const text = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '');
+      inputs.forEach((inp, i) => {
+        inp.value = text[i] || '';
+        inp.classList.toggle('otp-filled', !!text[i]);
+      });
+      const lastIdx = Math.min(text.length, inputs.length) - 1;
+      if (lastIdx >= 0) inputs[lastIdx].focus();
+      if (getOtpValue().length === 6) {
+        const verifyBtn = $('#emailVerifyBtn');
+        if (verifyBtn && !verifyBtn.disabled) setTimeout(() => verifyBtn.click(), 80);
+      }
+    });
+
+    // Allow only digits on keypress
+    input.addEventListener('keypress', (e) => {
+      if (!/[0-9]/.test(e.key)) e.preventDefault();
+    });
+  });
 }
 
 function wireUserModal() {
@@ -561,6 +631,9 @@ function wireUserModal() {
     customSelectAll.dataset.listenerAttached = 'true';
   }
 
+  // Wire OTP digit boxes
+  wireOtpInputs();
+
   // --- Email Verification Handlers ---
 
   // Helper: go back to the plain input step
@@ -574,7 +647,7 @@ function wireUserModal() {
     }
     $('#formEmail').readOnly = false;
     $('#formEmail').value = '';
-    $('#formEmailCode').value = '';
+    clearOtpInputs();
     const msg = $('#emailCodeMsg');
     msg.style.display = 'none';
     msg.textContent = '';
@@ -624,7 +697,11 @@ function wireUserModal() {
       msg.style.display = 'none';
       msg.textContent = '';
 
-      fadeEmailStep($('#emailInputRow'), $('#emailCodeRow'));
+      fadeEmailStep($('#emailInputRow'), $('#emailCodeRow'), () => {
+        // Focus first OTP box after fade completes
+        const first = document.querySelector('.otp-digit');
+        if (first) first.focus();
+      });
     } catch(err) {
       btn.disabled = false;
       btn.innerHTML = '<i class="fas fa-paper-plane"></i><span>Send Code</span>';
@@ -649,9 +726,9 @@ function wireUserModal() {
 
   // "Verify"
   $('#emailVerifyBtn')?.addEventListener('click', async () => {
-    const code = ($('#formEmailCode').value || '').trim();
+    const code = getOtpValue();
     const username = state.editingUser;
-    if (!code || code.length !== 6) { notify('Enter the 6-digit code', true); return; }
+    if (code.length !== 6) { notify('Enter all 6 digits', true); return; }
     if (!username) return;
 
     const btn = $('#emailVerifyBtn');
@@ -664,7 +741,6 @@ function wireUserModal() {
       const userIdx = state.users.findIndex(u => u.username === username);
       if (userIdx >= 0) state.users[userIdx] = { ...state.users[userIdx], email: result.email };
 
-      // Hide both steps, show verified row
       $('#emailInputRow').style.display = 'none';
       $('#emailCodeRow').style.display = 'none';
       $('#formEmail').readOnly = false;
@@ -674,6 +750,7 @@ function wireUserModal() {
     } catch(err) {
       btn.disabled = false;
       btn.innerHTML = '<i class="fas fa-check"></i><span>Verify</span>';
+      setOtpError();
       const msg = $('#emailCodeMsg');
       msg.style.display = 'block';
       msg.style.color = '#b91c1c';
@@ -699,7 +776,9 @@ function wireUserModal() {
       msg.style.display = 'block';
       msg.style.color = '#065f46';
       msg.textContent = 'New code sent — check your email.';
-      $('#formEmailCode').value = '';
+      clearOtpInputs();
+      const first = document.querySelector('.otp-digit');
+      if (first) first.focus();
       btn.disabled = false;
       btn.innerHTML = '<i class="fas fa-redo"></i><span>Resend</span>';
     } catch(err) {

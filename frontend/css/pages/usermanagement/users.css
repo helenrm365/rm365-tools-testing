@@ -1101,18 +1101,47 @@ html.dark-mode .user-management .users-table tbody tr {
   color: var(--text);
 }
 
-.email-code-group {
+.otp-input-group {
   display: flex;
   gap: 0.5rem;
   align-items: center;
-  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
 }
-.email-code-input {
-  width: 148px !important;
-  letter-spacing: 6px;
-  font-size: 1.2rem !important;
+.otp-digit {
+  width: 48px;
+  height: 56px;
   text-align: center;
-  font-weight: 600;
+  font-size: 1.5rem;
+  font-weight: 700;
+  border: 2px solid var(--border, #d1d5db);
+  border-radius: 10px;
+  background: var(--bg, #fff);
+  color: var(--text, #111);
+  caret-color: transparent;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  outline: none;
+  padding: 0;
+}
+.otp-digit:focus {
+  border-color: var(--accent, #4f46e5);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent, #4f46e5) 15%, transparent);
+}
+.otp-digit.otp-filled {
+  border-color: var(--accent, #4f46e5);
+}
+.otp-digit.otp-error {
+  border-color: #ef4444;
+  animation: otp-shake 0.35s ease;
+}
+@keyframes otp-shake {
+  0%,100% { transform: translateX(0); }
+  20%      { transform: translateX(-4px); }
+  60%      { transform: translateX(4px); }
+}
+.otp-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .email-code-msg {

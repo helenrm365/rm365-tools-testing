@@ -199,10 +199,16 @@
                 <span>Code sent to <strong id="emailCodeSentTo"></strong></span>
               </div>
               <div class="nui-field">
-                <label for="formEmailCode" class="nui-label"><span>Verification Code</span></label>
-                <div class="email-code-group">
-                  <input type="text" id="formEmailCode" class="nui-input nui-input-default email-code-input"
-                         placeholder="&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;" maxlength="6" inputmode="numeric" autocomplete="one-time-code">
+                <label class="nui-label"><span>Verification Code</span></label>
+                <div class="otp-input-group" id="otpInputGroup">
+                  <input class="otp-digit" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="one-time-code">
+                  <input class="otp-digit" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]">
+                  <input class="otp-digit" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]">
+                  <input class="otp-digit" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]">
+                  <input class="otp-digit" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]">
+                  <input class="otp-digit" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]">
+                </div>
+                <div class="otp-actions">
                   <button type="button" class="btn btn-solid btn-success rounded-lg" id="emailVerifyBtn">
                     <i class="fas fa-check"></i><span>Verify</span>
                   </button>
