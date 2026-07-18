@@ -28,6 +28,11 @@ let state = {
   returnToGroupsManager: false,
 };
 
+// Persists across modal open/close — tracks per-user email verification state
+// so closing/reopening a user cannot reset the rate-limit window.
+// keyed by username → { codeSent, email, rateLimited, rateLimitMsg }
+const emailVerifStateMap = new Map();
+
 function $(sel) { return document.querySelector(sel); }
 function $all(sel) { return document.querySelectorAll(sel); }
 
@@ -395,17 +400,21 @@ function openUserModal(user = null) {
 
     updatePresetTabInfo(user.tab_preset || '', user.allowed_tabs || []);
 
-    // Email: edit mode — show verified display or input row
+    // Email: edit mode — restore state from map (persists across modal close/open)
     $('#emailCreateRow').style.display = 'none';
     resetEmailVerificationUI();
-    if (user.email) {
+
+    const verif = emailVerifStateMap.get(user.username);
+    if (user.email && !verif?.codeSent) {
+      // Verified email on file, no pending change in progress
       $('#emailVerifiedValue').textContent = user.email;
       $('#emailVerifiedRow').style.display = '';
       $('#emailInputRow').style.display = 'none';
     } else {
+      // No email yet, OR mid-change verification in progress
       $('#emailVerifiedRow').style.display = 'none';
       $('#emailInputRow').style.display = '';
-      $('#formEmail').value = '';
+      restoreEmailVerifState(user.username);
     }
   } else {
     // Create Mode
@@ -437,11 +446,41 @@ function openUserModal(user = null) {
 function resetEmailVerificationUI() {
   $('#emailCodeRow').style.display = 'none';
   $('#formEmailCode').value = '';
+  $('#formEmail').readOnly = false;
   const msg = $('#emailCodeMsg');
   msg.style.display = 'none';
   msg.textContent = '';
-  $('#emailSendCodeBtn').disabled = false;
-  $('#emailSendCodeBtn').innerHTML = '<i class="fas fa-paper-plane"></i><span>Send Code</span>';
+  const sendBtn = $('#emailSendCodeBtn');
+  sendBtn.disabled = false;
+  sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i><span>Send Code</span>';
+  const resendBtn = $('#emailResendBtn');
+  resendBtn.disabled = false;
+  resendBtn.innerHTML = '<i class="fas fa-redo"></i><span>Resend</span>';
+}
+
+// Restores the code-entry UI for a user who already had a code sent this session.
+// Called when reopening the modal for a user who is mid-verification.
+function restoreEmailVerifState(username) {
+  const verif = emailVerifStateMap.get(username);
+  if (!verif?.codeSent) return;
+
+  $('#formEmail').value = verif.email;
+  $('#formEmail').readOnly = true;
+  $('#emailSendCodeBtn').innerHTML = '<i class="fas fa-paper-plane"></i><span>Sent</span>';
+  $('#emailCodeRow').style.display = '';
+
+  const msg = $('#emailCodeMsg');
+  msg.style.display = 'block';
+
+  if (verif.rateLimited) {
+    msg.style.color = '#b91c1c';
+    msg.textContent = verif.rateLimitMsg || 'Send limit reached.';
+    $('#emailSendCodeBtn').disabled = true;
+    $('#emailResendBtn').disabled = true;
+  } else {
+    msg.style.color = '#065f46';
+    msg.textContent = `Code sent to ${verif.email}. Enter it below.`;
+  }
 }
 
 function wireUserModal() {
@@ -502,8 +541,10 @@ function wireUserModal() {
 
   // --- Email Verification Handlers ---
 
-  // "Change Email" — go back to input row
+  // "Change Email" — go back to input row, clear map entry so fresh verification starts
   $('#emailChangeBtn')?.addEventListener('click', () => {
+    const username = state.editingUser;
+    if (username) emailVerifStateMap.delete(username);
     $('#emailVerifiedRow').style.display = 'none';
     $('#emailInputRow').style.display = '';
     $('#formEmail').value = '';
@@ -523,17 +564,38 @@ function wireUserModal() {
 
     try {
       await sendEmailVerificationCode(username, email);
+      // Update persistent map
+      emailVerifStateMap.set(username, { codeSent: true, email, rateLimited: false, rateLimitMsg: '' });
+
       $('#emailCodeRow').style.display = '';
       $('#formEmail').readOnly = true;
+      btn.innerHTML = '<i class="fas fa-paper-plane"></i><span>Sent</span>';
       const msg = $('#emailCodeMsg');
       msg.style.display = 'block';
       msg.style.color = '#065f46';
       msg.textContent = `Code sent to ${email}. Enter it below.`;
-      btn.innerHTML = '<i class="fas fa-paper-plane"></i><span>Sent</span>';
     } catch(err) {
       btn.disabled = false;
       btn.innerHTML = '<i class="fas fa-paper-plane"></i><span>Send Code</span>';
-      notify('Failed to send code: ' + err.message, true);
+
+      if (/limit reached|try again in/i.test(err.message)) {
+        // Rate limit hit — persist so reopening modal shows the same blocked state
+        const existing = emailVerifStateMap.get(username) || {};
+        emailVerifStateMap.set(username, { ...existing, rateLimited: true, rateLimitMsg: err.message });
+
+        // If there was a previous code in-flight, restore the code row
+        if (existing.codeSent) {
+          restoreEmailVerifState(username);
+        } else {
+          const msg = $('#emailCodeMsg');
+          msg.style.display = 'block';
+          msg.style.color = '#b91c1c';
+          msg.textContent = err.message;
+          btn.disabled = true;
+        }
+      } else {
+        notify('Failed to send code: ' + err.message, true);
+      }
     }
   });
 
@@ -550,7 +612,12 @@ function wireUserModal() {
 
     try {
       const result = await confirmEmailVerification(username, code);
-      // Success — show verified state
+      // Clear map — verification complete, no pending state
+      emailVerifStateMap.delete(username);
+      // Update local user record so reopening shows the new verified email immediately
+      const userIdx = state.users.findIndex(u => u.username === username);
+      if (userIdx >= 0) state.users[userIdx] = { ...state.users[userIdx], email: result.email };
+
       $('#emailInputRow').style.display = 'none';
       $('#emailCodeRow').style.display = 'none';
       $('#formEmail').readOnly = false;
@@ -578,20 +645,30 @@ function wireUserModal() {
 
     try {
       await resendEmailVerificationCode(username);
+      // Update map — still pending, not rate-limited
+      const existing = emailVerifStateMap.get(username) || {};
+      emailVerifStateMap.set(username, { ...existing, rateLimited: false, rateLimitMsg: '' });
+
       const msg = $('#emailCodeMsg');
       msg.style.display = 'block';
       msg.style.color = '#065f46';
       msg.textContent = 'New code sent! Check your email.';
       $('#formEmailCode').value = '';
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-redo"></i><span>Resend</span>';
     } catch(err) {
+      // Rate limit hit — persist so reopening still shows blocked state
+      const existing = emailVerifStateMap.get(username) || {};
+      emailVerifStateMap.set(username, { ...existing, rateLimited: true, rateLimitMsg: err.message });
+
       const msg = $('#emailCodeMsg');
       msg.style.display = 'block';
       msg.style.color = '#b91c1c';
-      // Show rate-limit countdown from the 429 message
       msg.textContent = err.message || 'Could not resend. Try again later.';
-    } finally {
-      btn.disabled = false;
+      // Keep resend + send buttons disabled
+      btn.disabled = true;
       btn.innerHTML = '<i class="fas fa-redo"></i><span>Resend</span>';
+      $('#emailSendCodeBtn').disabled = true;
     }
   });
 

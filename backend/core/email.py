@@ -141,31 +141,64 @@ def verify_and_consume_reset_token(token: str) -> str:
 def create_email_verification_code(username: str, pending_email: str) -> str:
     """
     Generate a fresh 6-digit code for verifying pending_email on username.
-    Resets the resend counter. Returns the raw code to send in the email.
+    Subject to the same per-user rate limit as resend (3 sends per 15-min window).
+    The very first send (no existing row) is always allowed.
+    Returns the raw code to send in the email.
     The email is NOT saved to login_users until verify_email_code() succeeds.
     """
     raw = _generate_code()
     code_hash = _hash_token(raw)
-    expires_at = _now_utc() + timedelta(minutes=_CODE_TTL_MINUTES)
+    now = _now_utc()
+    expires_at = now + timedelta(minutes=_CODE_TTL_MINUTES)
 
     conn = get_psycopg_connection()
     try:
         cur = conn.cursor()
         cur.execute(
-            """
-            INSERT INTO email_verification_tokens
-                (username, pending_email, code_hash, expires_at, resend_count, window_start)
-            VALUES (%s, %s, %s, %s, 0, NOW())
-            ON CONFLICT (username) DO UPDATE SET
-                pending_email = EXCLUDED.pending_email,
-                code_hash     = EXCLUDED.code_hash,
-                expires_at    = EXCLUDED.expires_at,
-                resend_count  = 0,
-                window_start  = NOW(),
-                created_at    = NOW()
-            """,
-            (username, pending_email, code_hash, expires_at),
+            "SELECT resend_count, window_start FROM email_verification_tokens WHERE username = %s",
+            (username,),
         )
+        existing = cur.fetchone()
+
+        if existing:
+            resend_count, window_start = existing
+            elapsed = (now - window_start).total_seconds()
+
+            if elapsed > _RESEND_WINDOW_SECONDS:
+                # Window expired — fresh window, counter resets
+                new_count = 0
+                new_window_start = now
+            elif resend_count >= _RESEND_MAX:
+                # Still within rate-limit window and limit is hit
+                remaining = int(_RESEND_WINDOW_SECONDS - elapsed)
+                raise ValueError(
+                    f"Send limit reached. Try again in {remaining // 60}m {remaining % 60}s."
+                )
+            else:
+                # Within window, not yet at limit — counts as another send
+                new_count = resend_count + 1
+                new_window_start = window_start
+
+            cur.execute(
+                """
+                UPDATE email_verification_tokens SET
+                    pending_email = %s, code_hash = %s, expires_at = %s,
+                    resend_count = %s, window_start = %s
+                WHERE username = %s
+                """,
+                (pending_email, code_hash, expires_at, new_count, new_window_start, username),
+            )
+        else:
+            # First-ever send — always allowed, counter starts at 0
+            cur.execute(
+                """
+                INSERT INTO email_verification_tokens
+                    (username, pending_email, code_hash, expires_at, resend_count, window_start)
+                VALUES (%s, %s, %s, %s, 0, NOW())
+                """,
+                (username, pending_email, code_hash, expires_at),
+            )
+
         conn.commit()
     finally:
         return_attendance_connection(conn)
