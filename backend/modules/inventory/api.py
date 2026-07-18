@@ -4,7 +4,9 @@ Inventory module root API - provides dashboard stats and common endpoints.
 The main inventory functionality is in management/api.py and other submodules.
 """
 import logging
-from fastapi import APIRouter, Depends, Query
+from typing import List, Optional
+from fastapi import APIRouter, Depends, Query, HTTPException
+from pydantic import BaseModel, Field
 from common.deps import get_current_user
 from core.db import get_inventory_log_connection, return_inventory_connection
 
@@ -110,3 +112,156 @@ def get_stock_level_counts(
     finally:
         if conn:
             return_inventory_connection(conn)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Mobile / Zebra scanner endpoints
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.get("/lookup", tags=["mobile"])
+def lookup_by_barcode(
+    barcode: str = Query(..., min_length=1, description="Scanned item_id (18-digit) or SKU"),
+    branch: str = Query("uk-birmingham", description="Branch: uk-birmingham, uk-london, fr-paris"),
+    user=Depends(get_current_user),
+):
+    """
+    Fast single-row product lookup for handheld scanners.
+
+    Queries the branch inventory table directly on the indexed `item_id` (UNIQUE)
+    and `sku` (PRIMARY KEY) columns, returning sub-second results. This deliberately
+    bypasses `load_inventory_metadata()`, which loads and filters the entire table
+    in Python and is unsuitable for high-frequency scanning.
+    """
+    table = BRANCH_TABLES.get(branch)
+    if not table:
+        raise HTTPException(status_code=400, detail=f"Invalid branch: {branch}")
+
+    scanned = barcode.strip()
+    if not scanned:
+        raise HTTPException(status_code=400, detail="barcode is required")
+
+    conn = None
+    try:
+        conn = get_inventory_log_connection()
+        cur = conn.cursor()
+        # Both item_id and sku are indexed → index scan, no full-table read.
+        cur.execute(
+            f"""
+            SELECT sku, item_id, product_name, location, status,
+                   COALESCE(shelf_lt1_qty, 0)  AS shelf_lt1_qty,
+                   COALESCE(shelf_gt1_qty, 0)  AS shelf_gt1_qty,
+                   COALESCE(top_floor_total, 0) AS top_floor_total,
+                   (COALESCE(shelf_lt1_qty, 0)
+                    + COALESCE(shelf_gt1_qty, 0)
+                    + COALESCE(top_floor_total, 0)) AS total_stock
+            FROM {table}
+            WHERE item_id = %s OR sku = %s
+            LIMIT 1
+            """,
+            (scanned, scanned),
+        )
+        row = cur.fetchone()
+        cur.close()
+        if not row:
+            raise HTTPException(status_code=404, detail=f"Barcode not found: {scanned}")
+
+        cols = [
+            "sku", "item_id", "product_name", "location", "status",
+            "shelf_lt1_qty", "shelf_gt1_qty", "top_floor_total", "total_stock",
+        ]
+        result = dict(zip(cols, row))
+        result["branch"] = branch
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Barcode lookup failed for '{scanned}' on {branch}: {e}")
+        raise HTTPException(status_code=500, detail="Lookup failed")
+    finally:
+        if conn:
+            return_inventory_connection(conn)
+
+
+class ScanIn(BaseModel):
+    idempotency_key: str = Field(..., description="Client-generated unique id for this scan (e.g. UUID)")
+    barcode: str = Field(..., description="Scanned item_id")
+    delta: int = Field(..., description="Quantity change (positive add, negative remove)")
+    field: str = Field("auto", description="auto, shelf_lt1_qty, shelf_gt1_qty, or top_floor_total")
+    branch: str = Field("uk-birmingham", description="Branch: uk-birmingham, uk-london, fr-paris")
+    reason: str = Field("Scan", description="Reason for the adjustment")
+
+
+class BatchUpdateIn(BaseModel):
+    scans: List[ScanIn] = Field(..., description="Offline queue of scans to replay")
+
+
+@router.post("/update/batch", tags=["mobile"])
+def update_inventory_batch(body: BatchUpdateIn, user=Depends(get_current_user)):
+    """
+    Replay an offline queue of scans from the Kotlin app when Wi-Fi reconnects.
+
+    Each scan carries a client-generated `idempotency_key`. The key is atomically
+    claimed (INSERT ... ON CONFLICT DO NOTHING) before the stock change is applied,
+    so re-uploading the same queue can never double-apply an adjustment.
+    Results are returned per-scan so the client can clear its local queue safely.
+    """
+    from .adjustments.service import AdjustmentsService
+
+    if not body.scans:
+        return {"processed": 0, "applied": 0, "duplicates": 0, "errors": 0, "results": []}
+
+    username = user.get("username") or user.get("email") or "Unknown"
+    svc = AdjustmentsService()
+    svc.repo.init_idempotency_table()
+
+    results = []
+    applied = duplicates = errors = 0
+
+    for scan in body.scans:
+        # Atomically claim the key. If already present, this is a replay → skip.
+        claimed = svc.repo.try_claim_idempotency_key(
+            key=scan.idempotency_key,
+            barcode=scan.barcode,
+            field=scan.field,
+            delta=scan.delta,
+            branch_id=scan.branch,
+        )
+        if not claimed:
+            duplicates += 1
+            results.append({
+                "idempotency_key": scan.idempotency_key,
+                "status": "duplicate",
+            })
+            continue
+
+        try:
+            svc.log_adjustment(
+                barcode=scan.barcode,
+                quantity=scan.delta,
+                reason=scan.reason,
+                field=scan.field,
+                adjusted_by=username,
+                branch_id=scan.branch,
+            )
+            svc.repo.mark_idempotency_result(scan.idempotency_key, "applied", "ok")
+            applied += 1
+            results.append({
+                "idempotency_key": scan.idempotency_key,
+                "status": "applied",
+            })
+        except Exception as e:
+            errors += 1
+            svc.repo.mark_idempotency_result(scan.idempotency_key, "error", str(e)[:500])
+            results.append({
+                "idempotency_key": scan.idempotency_key,
+                "status": "error",
+                "error": str(e),
+            })
+
+    return {
+        "processed": len(body.scans),
+        "applied": applied,
+        "duplicates": duplicates,
+        "errors": errors,
+        "results": results,
+    }

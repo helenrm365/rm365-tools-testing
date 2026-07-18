@@ -585,3 +585,73 @@ class AdjustmentsRepo:
             raise
         finally:
             self.return_connection(conn)
+
+    def init_idempotency_table(self) -> None:
+        """Create the table that de-duplicates offline scan replays from mobile devices."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS mobile_scan_idempotency (
+                    idempotency_key  VARCHAR(255) PRIMARY KEY,
+                    barcode          VARCHAR(255),
+                    field            VARCHAR(50),
+                    delta            INTEGER,
+                    branch_id        VARCHAR(50),
+                    status           VARCHAR(50) DEFAULT 'claimed',
+                    response_message TEXT,
+                    created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            conn.commit()
+        except psycopg2.Error as e:
+            logger.error(f"Database error in init_idempotency_table: {e}")
+            conn.rollback()
+            raise
+        finally:
+            self.return_connection(conn)
+
+    def try_claim_idempotency_key(self, key: str, barcode: str, field: str,
+                                  delta: int, branch_id: str) -> bool:
+        """
+        Atomically claim an idempotency key.
+
+        Returns True if the key was newly inserted (caller should apply the scan),
+        or False if the key already exists (a replay → caller should skip).
+        """
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO mobile_scan_idempotency
+                    (idempotency_key, barcode, field, delta, branch_id, status)
+                VALUES (%s, %s, %s, %s, %s, 'claimed')
+                ON CONFLICT (idempotency_key) DO NOTHING
+                RETURNING idempotency_key
+            """, (key, barcode, field, delta, branch_id))
+            claimed = cursor.fetchone() is not None
+            conn.commit()
+            return claimed
+        except psycopg2.Error as e:
+            logger.error(f"Database error claiming idempotency key {key}: {e}")
+            conn.rollback()
+            raise
+        finally:
+            self.return_connection(conn)
+
+    def mark_idempotency_result(self, key: str, status: str, response_message: str) -> None:
+        """Record the final outcome ('applied' or 'error') for a claimed scan key."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE mobile_scan_idempotency
+                SET status = %s, response_message = %s
+                WHERE idempotency_key = %s
+            """, (status, response_message, key))
+            conn.commit()
+        except psycopg2.Error as e:
+            logger.error(f"Database error marking idempotency key {key}: {e}")
+            conn.rollback()
+        finally:
+            self.return_connection(conn)
