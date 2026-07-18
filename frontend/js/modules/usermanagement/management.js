@@ -1,5 +1,5 @@
 // js/modules/usermanagement/management.js
-import { getUsers, createUser, updateUser, deleteUser } from '../../services/api/usersApi.js';
+import { getUsers, createUser, updateUser, deleteUser, sendEmailVerificationCode, resendEmailVerificationCode, confirmEmailVerification } from '../../services/api/usersApi.js';
 import { getTabPresets, createTabPreset, updateTabPreset, deleteTabPreset } from '../../services/api/tabPresetsApi.js';
 import { getGroups, createGroup, updateGroup, deleteGroup } from '../../services/api/groupsApi.js';
 import { getLocations as getLocationObjects } from '../../services/api/locationsApi.js';
@@ -394,6 +394,19 @@ function openUserModal(user = null) {
     btn.innerHTML = '<i class="fas fa-save"></i><span>Save Changes</span>';
 
     updatePresetTabInfo(user.tab_preset || '', user.allowed_tabs || []);
+
+    // Email: edit mode — show verified display or input row
+    $('#emailCreateRow').style.display = 'none';
+    resetEmailVerificationUI();
+    if (user.email) {
+      $('#emailVerifiedValue').textContent = user.email;
+      $('#emailVerifiedRow').style.display = '';
+      $('#emailInputRow').style.display = 'none';
+    } else {
+      $('#emailVerifiedRow').style.display = 'none';
+      $('#emailInputRow').style.display = '';
+      $('#formEmail').value = '';
+    }
   } else {
     // Create Mode
     state.editingUser = null;
@@ -410,9 +423,25 @@ function openUserModal(user = null) {
     populateLocationDropdown(null);
 
     updatePresetTabInfo('');
+
+    // Email: create mode — plain input, no verification required
+    $('#emailCreateRow').style.display = '';
+    $('#emailVerifiedRow').style.display = 'none';
+    $('#emailInputRow').style.display = 'none';
+    $('#emailCodeRow').style.display = 'none';
   }
 
   modal.classList.add('active');
+}
+
+function resetEmailVerificationUI() {
+  $('#emailCodeRow').style.display = 'none';
+  $('#formEmailCode').value = '';
+  const msg = $('#emailCodeMsg');
+  msg.style.display = 'none';
+  msg.textContent = '';
+  $('#emailSendCodeBtn').disabled = false;
+  $('#emailSendCodeBtn').innerHTML = '<i class="fas fa-paper-plane"></i><span>Send Code</span>';
 }
 
 function wireUserModal() {
@@ -471,6 +500,101 @@ function wireUserModal() {
     customSelectAll.dataset.listenerAttached = 'true';
   }
 
+  // --- Email Verification Handlers ---
+
+  // "Change Email" — go back to input row
+  $('#emailChangeBtn')?.addEventListener('click', () => {
+    $('#emailVerifiedRow').style.display = 'none';
+    $('#emailInputRow').style.display = '';
+    $('#formEmail').value = '';
+    resetEmailVerificationUI();
+  });
+
+  // "Send Code"
+  $('#emailSendCodeBtn')?.addEventListener('click', async () => {
+    const email = $('#formEmail').value.trim();
+    const username = state.editingUser;
+    if (!email) { notify('Enter an email address first', true); return; }
+    if (!username) return;
+
+    const btn = $('#emailSendCodeBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Sending...</span>';
+
+    try {
+      await sendEmailVerificationCode(username, email);
+      $('#emailCodeRow').style.display = '';
+      $('#formEmail').readOnly = true;
+      const msg = $('#emailCodeMsg');
+      msg.style.display = 'block';
+      msg.style.color = '#065f46';
+      msg.textContent = `Code sent to ${email}. Enter it below.`;
+      btn.innerHTML = '<i class="fas fa-paper-plane"></i><span>Sent</span>';
+    } catch(err) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-paper-plane"></i><span>Send Code</span>';
+      notify('Failed to send code: ' + err.message, true);
+    }
+  });
+
+  // "Verify"
+  $('#emailVerifyBtn')?.addEventListener('click', async () => {
+    const code = ($('#formEmailCode').value || '').trim();
+    const username = state.editingUser;
+    if (!code || code.length !== 6) { notify('Enter the 6-digit code', true); return; }
+    if (!username) return;
+
+    const btn = $('#emailVerifyBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Verifying...</span>';
+
+    try {
+      const result = await confirmEmailVerification(username, code);
+      // Success — show verified state
+      $('#emailInputRow').style.display = 'none';
+      $('#emailCodeRow').style.display = 'none';
+      $('#formEmail').readOnly = false;
+      $('#emailVerifiedValue').textContent = result.email;
+      $('#emailVerifiedRow').style.display = '';
+      notify(`Email ${result.email} verified and saved`);
+    } catch(err) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-check"></i><span>Verify</span>';
+      const msg = $('#emailCodeMsg');
+      msg.style.display = 'block';
+      msg.style.color = '#b91c1c';
+      msg.textContent = err.message || 'Invalid code';
+    }
+  });
+
+  // "Resend"
+  $('#emailResendBtn')?.addEventListener('click', async () => {
+    const username = state.editingUser;
+    if (!username) return;
+
+    const btn = $('#emailResendBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Resending...</span>';
+
+    try {
+      await resendEmailVerificationCode(username);
+      const msg = $('#emailCodeMsg');
+      msg.style.display = 'block';
+      msg.style.color = '#065f46';
+      msg.textContent = 'New code sent! Check your email.';
+      $('#formEmailCode').value = '';
+    } catch(err) {
+      const msg = $('#emailCodeMsg');
+      msg.style.display = 'block';
+      msg.style.color = '#b91c1c';
+      // Show rate-limit countdown from the 429 message
+      msg.textContent = err.message || 'Could not resend. Try again later.';
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-redo"></i><span>Resend</span>';
+    }
+  });
+
   // Submit
   form?.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -517,7 +641,8 @@ function wireUserModal() {
         });
         notify('User updated');
       } else {
-        await createUser({ username, password, role, tab_preset, allowed_tabs: allowedTabs, location_id, group_id });
+        const email = ($('#formEmailCreate').value || '').trim() || null;
+        await createUser({ username, password, email, role, tab_preset, allowed_tabs: allowedTabs, location_id, group_id });
         notify('User created');
       }
       modal.classList.remove('active');
