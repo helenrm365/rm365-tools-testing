@@ -159,7 +159,7 @@
                 <p class="user-form-kicker">Contact</p>
                 <h4 class="user-form-section-title">Email Address</h4>
               </div>
-              <p class="user-form-section-copy">Used for password resets. In edit mode, must be verified before it is saved.</p>
+              <p class="user-form-section-copy">Used for password resets. Must be verified before it is saved.</p>
             </div>
 
             <!-- Create mode: plain input, saved with form -->
@@ -171,25 +171,20 @@
             </div>
 
             <!-- Edit mode: verified display -->
-            <div id="emailVerifiedRow" class="form-row" style="display:none">
-              <div class="nui-field">
-                <label class="nui-label"><span>Email</span></label>
-                <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap">
-                  <span id="emailVerifiedValue" style="font-weight:500"></span>
-                  <span style="display:inline-flex;align-items:center;gap:0.3rem;background:#d1fae5;color:#065f46;padding:2px 10px;border-radius:999px;font-size:0.78rem;font-weight:600">
-                    <i class="fas fa-check-circle"></i> Verified
-                  </span>
-                  <button type="button" class="btn btn-flat btn-default btn-xs" id="emailChangeBtn">Change</button>
-                </div>
+            <div id="emailVerifiedRow" class="email-step" style="display:none">
+              <div class="email-verified-display">
+                <span class="email-verified-badge"><i class="fas fa-check-circle"></i> Verified</span>
+                <span id="emailVerifiedValue" class="email-verified-address"></span>
+                <button type="button" class="btn btn-flat btn-default btn-xs" id="emailChangeBtn">Change</button>
               </div>
             </div>
 
-            <!-- Edit mode: new email input + send code -->
-            <div id="emailInputRow" class="form-row" style="display:none">
+            <!-- Edit mode: step 1 — enter email + send -->
+            <div id="emailInputRow" class="email-step" style="display:none">
               <div class="nui-field">
                 <label for="formEmail" class="nui-label"><span>Email</span></label>
-                <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
-                  <input type="email" id="formEmail" class="nui-input nui-input-default" placeholder="user@example.com" style="flex:1;min-width:200px">
+                <div class="email-input-group">
+                  <input type="email" id="formEmail" class="nui-input nui-input-default" placeholder="user@example.com">
                   <button type="button" class="btn btn-solid btn-default rounded-lg" id="emailSendCodeBtn">
                     <i class="fas fa-paper-plane"></i><span>Send Code</span>
                   </button>
@@ -197,14 +192,17 @@
               </div>
             </div>
 
-            <!-- Edit mode: code entry + verify / resend -->
-            <div id="emailCodeRow" class="form-row" style="display:none">
+            <!-- Edit mode: step 2 — enter verification code -->
+            <div id="emailCodeRow" class="email-step" style="display:none">
+              <div class="email-code-sent-to">
+                <i class="fas fa-envelope"></i>
+                <span>Code sent to <strong id="emailCodeSentTo"></strong></span>
+              </div>
               <div class="nui-field">
                 <label for="formEmailCode" class="nui-label"><span>Verification Code</span></label>
-                <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center">
-                  <input type="text" id="formEmailCode" class="nui-input nui-input-default"
-                         placeholder="6-digit code" maxlength="6" inputmode="numeric"
-                         style="width:140px;letter-spacing:4px;font-size:1.1rem;text-align:center">
+                <div class="email-code-group">
+                  <input type="text" id="formEmailCode" class="nui-input nui-input-default email-code-input"
+                         placeholder="&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;" maxlength="6" inputmode="numeric" autocomplete="one-time-code">
                   <button type="button" class="btn btn-solid btn-success rounded-lg" id="emailVerifyBtn">
                     <i class="fas fa-check"></i><span>Verify</span>
                   </button>
@@ -212,8 +210,11 @@
                     <i class="fas fa-redo"></i><span>Resend</span>
                   </button>
                 </div>
-                <small id="emailCodeMsg" style="display:none;margin-top:0.4rem;font-size:0.82rem"></small>
+                <small id="emailCodeMsg" class="email-code-msg" style="display:none"></small>
               </div>
+              <button type="button" class="email-wrong-link" id="emailWrongEmailBtn">
+                <i class="fas fa-arrow-left"></i> Wrong email? Re-enter it
+              </button>
             </div>
           </section>
 

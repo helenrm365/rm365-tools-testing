@@ -1038,3 +1038,104 @@ html.dark-mode .user-management .users-table tbody tr {
 .view-tab-grandchildren {
   padding-left: 2.5rem;
 }
+
+/* ===== Email Verification Flow ===== */
+.email-step {
+  transition: opacity 0.2s ease;
+}
+.email-step.ev-fading {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.email-input-group {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.email-input-group .nui-input {
+  flex: 1;
+  min-width: 180px;
+}
+
+.email-verified-display {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.6rem 0;
+}
+.email-verified-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: #d1fae5;
+  color: #065f46;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+.email-verified-address {
+  font-weight: 500;
+  color: var(--text);
+}
+
+.email-code-sent-to {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  background: var(--bg-2, #f8f9fa);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 8px;
+  padding: 0.55rem 0.9rem;
+  margin-bottom: 0.9rem;
+}
+.email-code-sent-to i {
+  color: #4f46e5;
+  font-size: 0.9rem;
+}
+.email-code-sent-to strong {
+  color: var(--text);
+}
+
+.email-code-group {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.email-code-input {
+  width: 148px !important;
+  letter-spacing: 6px;
+  font-size: 1.2rem !important;
+  text-align: center;
+  font-weight: 600;
+}
+
+.email-code-msg {
+  display: block;
+  margin-top: 0.45rem;
+  font-size: 0.82rem;
+}
+
+.email-wrong-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.75rem;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.15s;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.email-wrong-link:hover {
+  color: var(--text);
+}
