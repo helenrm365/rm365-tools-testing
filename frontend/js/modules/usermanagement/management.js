@@ -480,17 +480,47 @@ function setOtpError() {
 
 // Fade stepA out, then show stepB
 function fadeEmailStep(hideEl, showEl, done) {
+  const wrap = document.getElementById('emailStepWrap');
+  const FADE_MS = 180;
+  const HEIGHT_MS = 240;
+
+  // 1. Lock current height so overflow:hidden clips during animation
+  wrap.style.transition = 'none';
+  wrap.style.height = wrap.offsetHeight + 'px';
+
+  // 2. Measure target height: briefly bring showEl into layout (invisible)
+  showEl.style.visibility = 'hidden';
+  showEl.style.display = '';
+  const targetH = showEl.offsetHeight;
+  showEl.style.display = 'none';
+  showEl.style.visibility = '';
+
+  // 3. Fade out outgoing element
   hideEl.classList.add('ev-fading');
+
+  // 4. Start height transition simultaneously
+  requestAnimationFrame(() => {
+    wrap.style.transition = `height ${HEIGHT_MS}ms ease`;
+    wrap.style.height = targetH + 'px';
+  });
+
+  // 5. After fade-out completes: swap elements, fade in incoming
   setTimeout(() => {
     hideEl.style.display = 'none';
     hideEl.classList.remove('ev-fading');
     showEl.style.display = '';
     showEl.style.opacity = '0';
     requestAnimationFrame(() => requestAnimationFrame(() => {
-      showEl.style.opacity = '';  // let the CSS class handle it
+      showEl.style.opacity = '';
       if (done) done();
     }));
-  }, 200);
+  }, FADE_MS);
+
+  // 6. After height transition: release the lock
+  setTimeout(() => {
+    wrap.style.height = '';
+    wrap.style.transition = '';
+  }, HEIGHT_MS + 20);
 }
 
 // Restores the code-entry UI for a user who already had a code sent this session.
