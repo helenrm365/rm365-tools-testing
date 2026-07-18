@@ -476,13 +476,6 @@ export async function importMappingsFile(file) {
 }
 
 /**
- * Parse a supplier PDF price list and return a preview of pricing changes.
- * Does NOT commit changes — call bulkUpdatePricing with confirmed items to apply.
- * @param {File|File[]} files - one or more PDF files (merged server-side before parsing)
- * @param {number} supplierId - Supplier ID the PDF(s) belong to
- * @returns {Promise<{supplier_id, supplier_name, preview: Array, unmatched: Array, total_found, total_matched, total_unmatched}>}
- */
-/**
  * Ask the AI to detect which supplier one or more PDF price lists belong to,
  * BEFORE parsing. Only the first file is inspected server-side (its first page),
  * so this is cheap. Never throws for AI/parse problems — resolves with
@@ -497,6 +490,13 @@ export async function identifyPdfSupplier(files, { signal } = {}) {
   return await http(`${BASE_PATH}/import/pdf/identify-supplier`, { method: 'POST', body: formData, signal });
 }
 
+/**
+ * Parse a supplier PDF price list and return a preview of pricing changes.
+ * Does NOT commit changes — call bulkUpdatePricing with confirmed items to apply.
+ * @param {File|File[]} files - one or more PDF files (merged server-side before parsing)
+ * @param {number} supplierId - Supplier ID the PDF(s) belong to
+ * @returns {Promise<{supplier_id, supplier_name, preview: Array, unmatched: Array, total_found, total_matched, total_unmatched}>}
+ */
 export async function importMatrixPDF(files, supplierId, { signal } = {}) {
   try {
     const formData = new FormData();
