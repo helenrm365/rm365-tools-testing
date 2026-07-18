@@ -447,6 +447,7 @@ function resetEmailVerificationUI() {
   $('#emailCodeRow').style.display = 'none';
   $('#emailInputRow').style.display = 'none';
   clearOtpInputs();
+  $('#formEmail').value = '';
   $('#formEmail').readOnly = false;
   const msg = $('#emailCodeMsg');
   msg.style.display = 'none';
@@ -827,6 +828,32 @@ function wireUserModal() {
   // Submit
   form?.addEventListener('submit', async (e) => {
     e.preventDefault();
+
+    // Warn if email verification is in progress and would be discarded
+    const codeRowVisible = $('#emailCodeRow').style.display !== 'none';
+    const inputRowVisible = $('#emailInputRow').style.display !== 'none';
+    const emailTyped = ($('#formEmail').value || '').trim();
+    if (state.editingUser && (codeRowVisible || (inputRowVisible && emailTyped))) {
+      const inCodeStep = codeRowVisible;
+      const confirmed = await confirmAction(
+        'Discard email change?',
+        inCodeStep
+          ? 'A verification code was sent but not confirmed. The email address won\'t be saved. Save all other changes anyway?'
+          : 'You entered an email address but didn\'t verify it. It won\'t be saved. Save all other changes anyway?'
+      );
+      if (!confirmed) return;
+      // Clean up in-progress state
+      resetEmailVerificationUI();
+      emailVerifStateMap.delete(state.editingUser);
+      $('#emailInputRow').style.display = 'none';
+      $('#emailCodeRow').style.display = 'none';
+      // Re-show verified row if the user already had a verified email
+      const existing = state.users.find(u => u.username === state.editingUser);
+      if (existing?.email) {
+        $('#emailVerifiedValue').textContent = existing.email;
+        $('#emailVerifiedRow').style.display = '';
+      }
+    }
     const formData = new FormData(form);
     const username = formData.get('username').trim();
     const tab_preset = $('#formTabPreset').value || null;
