@@ -181,17 +181,56 @@ class SourcingService:
         return self.repo.delete_fx_override(currency_code)
 
     def normalize_price_to_gbp(self, price: float, currency: str) -> float:
-        """Convert a price to GBP using current rates"""
+        """Convert a price to GBP using current rates.
+
+        Single-shot convenience for one-off callers. Each call reads the FX
+        overrides (a DB query) and may hit the live-rate API, so do NOT call it
+        in a loop — use :meth:`_build_gbp_normalizer` for bulk work instead.
+        """
         if not price or currency == 'GBP':
             return price
-        
+
         # First check for overrides
         overrides = self.repo.get_fx_overrides()
         if currency in overrides:
             return round(price / overrides[currency], 2)
-        
+
         # Fall back to live conversion
         return convert_to_gbp(price, currency)
+
+    def _build_gbp_normalizer(self):
+        """Return a ``price, currency -> GBP`` converter that reads FX data once.
+
+        :meth:`normalize_price_to_gbp` re-queries ``sourcing_fx_overrides`` (and
+        can call the live-rate API) on every invocation. The matrix and analysis
+        builders normalize one price per supplier row, so calling it in the loop
+        fired hundreds of separate DB round trips — negligible when the backend
+        sits next to the DB, but the dominant cost when the DB is remote (e.g. a
+        localhost dev server talking to the hosted database). Fetch the overrides
+        and live rates a single time here and close over them so each row does
+        pure in-memory arithmetic.
+        """
+        overrides = self.repo.get_fx_overrides()  # {CODE: rate} — one query
+        try:
+            live_rates = get_exchange_rates()  # cached ~1h; one API call at most
+        except Exception as e:  # noqa: BLE001 — never let FX fetch break the view
+            logger.warning(f"Could not load live FX rates, using overrides only: {e}")
+            live_rates = {}
+
+        def normalize(price, currency):
+            if not price or not currency:
+                return price
+            code = currency.upper().strip()
+            if code == 'GBP':
+                return float(price) if isinstance(price, Decimal) else price
+            # Overrides win over live rates (mirrors normalize_price_to_gbp).
+            rate = overrides.get(code) or live_rates.get(code)
+            if not rate:
+                return float(price) if isinstance(price, Decimal) else price
+            amount = price if isinstance(price, Decimal) else Decimal(str(price))
+            return round(float(amount / Decimal(str(rate))), 2)
+
+        return normalize
 
     # ========================================================================
     # SUPPLIERS
@@ -358,10 +397,15 @@ class SourcingService:
         
         # STEP 3: Overlay supplier pricing data
         matrix_data = self.repo.get_full_matrix(skus if skus else None)
-        
+
+        # Build the GBP converter once (reads FX overrides + live rates a single
+        # time) so the per-row normalize below is pure arithmetic — see
+        # _build_gbp_normalizer for why this matters on a remote DB.
+        normalize = self._build_gbp_normalizer()
+
         for row in matrix_data:
             sku = row['sku']
-            
+
             # If SKU not in inventory_metadata, add it (orphan pricing entry)
             if sku not in sku_data:
                 sku_data[sku] = {
@@ -374,9 +418,9 @@ class SourcingService:
                     'stock_level': None,
                     'suppliers': {}
                 }
-            
+
             # Normalize price
-            normalized = self.normalize_price_to_gbp(row['unit_price'], row['currency'])
+            normalized = normalize(row['unit_price'], row['currency'])
             
             sku_data[sku]['suppliers'][row['supplier_code']] = {
                 'supplier_id': row['supplier_id'],
@@ -482,10 +526,14 @@ class SourcingService:
         
         # STEP 3: Overlay supplier pricing data
         matrix_data = self.repo.get_full_matrix()
-        
+
+        # Build the GBP converter once (see _build_gbp_normalizer) so each row
+        # below normalizes in memory instead of re-querying FX data.
+        normalize = self._build_gbp_normalizer()
+
         for row in matrix_data:
             sku = row['sku']
-            
+
             # If SKU not in inventory_metadata, add it (orphan pricing entry)
             if sku not in sku_analysis:
                 sku_analysis[sku] = {
@@ -508,7 +556,7 @@ class SourcingService:
                 }
 
             # Normalize price
-            normalized = self.normalize_price_to_gbp(row['unit_price'], row['currency'])
+            normalized = normalize(row['unit_price'], row['currency'])
 
             if normalized:
                 sku_analysis[sku]['supplier_prices'][row['supplier_code']] = normalized
