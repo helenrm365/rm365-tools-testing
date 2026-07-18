@@ -40,7 +40,7 @@ import {
   importMatrixPDF,
   importMatrixPDFStream,
   identifyPdfSupplier
-} from '../../services/api/sourcingApi.js';
+} from '../../services/api/sourcingApi.js?v=2';
 import { initCombobox, pruneDetachedComboboxes, closeOpenCombobox } from '../../ui/combobox.js?v=2';
 import { confirmModal } from '../../ui/confirmationModal.js';
 
