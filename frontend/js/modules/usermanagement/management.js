@@ -481,6 +481,8 @@ function resetEmailVerificationUI() {
   clearOtpInputs();
   $('#formEmail').value = '';
   $('#formEmail').readOnly = false;
+  const inputMsg = $('#emailInputMsg');
+  if (inputMsg) { inputMsg.style.display = 'none'; inputMsg.textContent = ''; }
   const msg = $('#emailCodeMsg');
   msg.style.display = 'none';
   msg.textContent = '';
@@ -738,11 +740,39 @@ function wireUserModal() {
     showEmailInputStep();
   });
 
+  // Email input — live validation feedback
+  const _emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  $('#formEmail')?.addEventListener('input', () => {
+    const val = ($('#formEmail').value || '').trim();
+    const msg = $('#emailInputMsg');
+    const btn = $('#emailSendCodeBtn');
+    if (!val) {
+      msg.style.display = 'none';
+      msg.textContent = '';
+      btn.disabled = false;
+      return;
+    }
+    if (_emailRe.test(val)) {
+      msg.style.display = 'block';
+      msg.style.color = '#065f46';
+      msg.textContent = '\u2713 Looks good';
+      btn.disabled = false;
+    } else {
+      msg.style.display = 'block';
+      msg.style.color = '#b91c1c';
+      msg.textContent = 'Please enter a valid email address';
+      btn.disabled = true;
+    }
+  });
+
   // "Send Code"
   $('#emailSendCodeBtn')?.addEventListener('click', async () => {
-    const email = $('#formEmail').value.trim();
+    const email = ($('#formEmail').value || '').trim();
     const username = state.editingUser;
     if (!email) { notify('Enter an email address first', true); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+      notify('Please enter a valid email address', true); return;
+    }
     if (!username) return;
 
     const btn = $('#emailSendCodeBtn');
