@@ -344,6 +344,12 @@ class SourcingService:
     # SUPPLIER MATRIX
     # ========================================================================
 
+    # Sort columns that live directly on inventory_metadata, so the paginated
+    # fast path can order and slice the index without hydrating every price.
+    # Anything else (magento_price, best_price, or a supplier-code column) needs
+    # the fully-computed set to sort correctly and falls back to _get_matrix_full.
+    _INDEX_SORTABLE = frozenset({None, '', 'sku', 'product_name', 'status', 'brand'})
+
     def get_supplier_matrix(
         self,
         skus: List[str] = None,
@@ -355,23 +361,205 @@ class SourcingService:
         sort_by: str = None,
         sort_order: str = "asc"
     ) -> Dict[str, Any]:
-        """
-        Get the full supplier matrix view with ALL products from inventory_metadata.
-        Products come from inventory_metadata (like label generator), then supplier
-        pricing is overlaid on top.
+        """Get one page of the supplier matrix (products from inventory_metadata,
+        supplier pricing overlaid).
+
+        Dispatches between two implementations that return the identical shape:
+
+        * ``_get_matrix_paginated`` (fast) — used for the default view, search and
+          the SKU/product/status sorts. It searches, sorts and paginates a
+          lightweight product index in the DB/memory, then hydrates Magento and
+          supplier prices for only the current page's ~``per_page`` SKUs. This is
+          what makes the page load quickly against a remote database.
+        * ``_get_matrix_full`` (fallback) — used when sorting by a computed column
+          (Magento price or a supplier's price), which can only be ordered once
+          every row's prices are known. Same behaviour as before this change.
+
+        ``skus`` still forces the full path (targeted lookups are already cheap).
         """
         self.ensure_tables()
-        
-        # Get all suppliers for column headers
+
         suppliers = self.repo.get_suppliers(active_only=True)
-        
+        supplier_codes = {s['code'] for s in suppliers}
+
+        use_fast_path = (
+            skus is None
+            and sort_by in self._INDEX_SORTABLE
+            and sort_by not in supplier_codes
+        )
+
+        if use_fast_path:
+            return self._get_matrix_paginated(
+                suppliers=suppliers,
+                status_filter=status_filter,
+                search=search,
+                include_magento=include_magento,
+                page=page,
+                per_page=per_page,
+                sort_by=sort_by,
+                sort_order=sort_order,
+            )
+
+        return self._get_matrix_full(
+            suppliers=suppliers,
+            skus=skus,
+            include_magento=include_magento,
+            status_filter=status_filter,
+            search=search,
+            page=page,
+            per_page=per_page,
+            sort_by=sort_by,
+            sort_order=sort_order,
+        )
+
+    def _matrix_supplier_cell(self, row: Dict, normalize) -> Dict[str, Any]:
+        """Build one supplier cell for the matrix from a pricing row."""
+        return {
+            'supplier_id': row['supplier_id'],
+            'supplier_code': row['supplier_code'],
+            'supplier_name': row['supplier_name'],
+            'unit_price': float(row['unit_price']) if row['unit_price'] else None,
+            'currency': row['currency'],
+            'normalized_price_gbp': normalize(row['unit_price'], row['currency']),
+            'moq': row['moq'],
+            'shipping_cost': float(row['shipping_cost']) if row['shipping_cost'] else None,
+            'notes': row['notes'],
+            'is_preferred': row['is_preferred'],
+            'last_verified': row['last_verified'].isoformat() if row['last_verified'] else None,
+            # When this supplier's price for this SKU was last set/changed
+            # (UTC ISO; None for legacy rows with no recorded date → "N/A").
+            'price_updated_at': row['price_updated_at'].isoformat() if row.get('price_updated_at') else None,
+        }
+
+    def _matrix_suppliers_payload(self, suppliers: List[Dict]) -> List[Dict]:
+        """Supplier column headers returned alongside the matrix rows."""
+        return [
+            {'id': s['id'], 'code': s['code'], 'name': s['name'],
+             'default_currency': s.get('default_currency', 'GBP')}
+            for s in suppliers
+        ]
+
+    @staticmethod
+    def _matrix_search_match(row: Dict, query: str) -> bool:
+        """Match a matrix row against the search box (SKU, product name, item_id).
+
+        Mirrors the previous client-side filter so moving search to the server
+        doesn't change which rows appear.
+        """
+        return (
+            query in (row.get('sku') or '').lower()
+            or query in (row.get('product_name') or '').lower()
+            or query in str(row.get('item_id') or '').lower()
+        )
+
+    def _get_matrix_paginated(
+        self,
+        suppliers: List[Dict],
+        status_filter: List[str],
+        search: str,
+        include_magento: bool,
+        page: int,
+        per_page: int,
+        sort_by: str,
+        sort_order: str,
+    ) -> Dict[str, Any]:
+        """Fast matrix path: search/sort/paginate a lightweight index, then
+        hydrate prices for only the current page. See get_supplier_matrix."""
+        # STEP 1: Build the lightweight product index (no prices yet).
+        index: Dict[str, Dict] = {}
+        for product in self.repo.get_matrix_product_index(status_filter):
+            sku = product['sku']
+            index[sku] = {
+                'sku': sku,
+                'item_id': product.get('item_id'),
+                'product_name': product.get('product_name'),
+                'category': product.get('category'),
+                'brand': product.get('brand'),
+                'status': product.get('status'),
+                'magento_price': None,
+                'stock_level': None,
+                'suppliers': {},
+            }
+
+        # Include "orphan" SKUs that have pricing but aren't in inventory_metadata,
+        # matching the full path (which adds them while overlaying pricing).
+        for sku in self.repo.get_active_pricing_skus():
+            if sku not in index:
+                index[sku] = {
+                    'sku': sku,
+                    'item_id': None,
+                    'product_name': None,
+                    'category': None,
+                    'brand': self._extract_brand(sku),
+                    'status': 'unknown',
+                    'magento_price': None,
+                    'stock_level': None,
+                    'suppliers': {},
+                }
+
+        rows = list(index.values())
+
+        # STEP 2: Search (server-side now, same fields as the old client filter).
+        if search and search.strip():
+            query = search.strip().lower()
+            rows = [r for r in rows if self._matrix_search_match(r, query)]
+
+        # STEP 3: Sort + paginate on the lightweight rows.
+        rows = self._sort_rows(rows, sort_by or 'sku', sort_order or 'asc', suppliers)
+        total = len(rows)
+        start = (page - 1) * per_page
+        page_rows = rows[start:start + per_page]
+        page_skus = [r['sku'] for r in page_rows]
+
+        # STEP 4: Hydrate prices for ONLY this page's SKUs.
+        if page_skus:
+            if include_magento:
+                magento_prices = self.repo.get_magento_prices(page_skus, region="uk")
+                for sku, price_data in magento_prices.items():
+                    if sku in index:
+                        index[sku]['magento_price'] = price_data.get('price')
+                        index[sku]['price_source'] = price_data.get('source')
+
+            normalize = self._build_gbp_normalizer()
+            for row in self.repo.get_full_matrix(page_skus):
+                sku = row['sku']
+                # page_rows entries are the same dict objects as index[sku], so
+                # mutating index[sku] updates the rows we return.
+                if sku in index:
+                    index[sku]['suppliers'][row['supplier_code']] = \
+                        self._matrix_supplier_cell(row, normalize)
+
+        return {
+            'matrix': page_rows,
+            'suppliers': self._matrix_suppliers_payload(suppliers),
+            'total': total,
+            'page': page,
+            'per_page': per_page,
+            'total_pages': (total + per_page - 1) // per_page,
+        }
+
+    def _get_matrix_full(
+        self,
+        suppliers: List[Dict],
+        skus: List[str],
+        include_magento: bool,
+        status_filter: List[str],
+        search: str,
+        page: int,
+        per_page: int,
+        sort_by: str,
+        sort_order: str,
+    ) -> Dict[str, Any]:
+        """Full matrix path: build every row (all products + all prices) so a
+        computed-column sort can order correctly, then paginate. Used when
+        sorting by Magento/supplier price or for targeted ``skus`` lookups."""
         # STEP 1: Get ALL products from inventory_metadata (like label generator)
         all_products = self.repo.get_all_products_from_inventory_metadata(status_filter)
-        
+
         # Build SKU data from inventory_metadata first
         sku_data: Dict[str, Dict] = {}
         all_skus = []
-        
+
         for product in all_products:
             sku = product['sku']
             all_skus.append(sku)
@@ -386,7 +574,7 @@ class SourcingService:
                 'stock_level': None,
                 'suppliers': {}
             }
-        
+
         # STEP 2: Get Magento prices (special_price > price > N/A like label generator)
         if include_magento and all_skus:
             magento_prices = self.repo.get_magento_prices(all_skus, region="uk")
@@ -394,7 +582,7 @@ class SourcingService:
                 if sku in sku_data:
                     sku_data[sku]['magento_price'] = price_data.get('price')
                     sku_data[sku]['price_source'] = price_data.get('source')
-        
+
         # STEP 3: Overlay supplier pricing data
         matrix_data = self.repo.get_full_matrix(skus if skus else None)
 
@@ -410,6 +598,7 @@ class SourcingService:
             if sku not in sku_data:
                 sku_data[sku] = {
                     'sku': sku,
+                    'item_id': None,
                     'product_name': None,
                     'category': None,
                     'brand': self._extract_brand(sku),
@@ -419,41 +608,28 @@ class SourcingService:
                     'suppliers': {}
                 }
 
-            # Normalize price
-            normalized = normalize(row['unit_price'], row['currency'])
-            
-            sku_data[sku]['suppliers'][row['supplier_code']] = {
-                'supplier_id': row['supplier_id'],
-                'supplier_code': row['supplier_code'],
-                'supplier_name': row['supplier_name'],
-                'unit_price': float(row['unit_price']) if row['unit_price'] else None,
-                'currency': row['currency'],
-                'normalized_price_gbp': normalized,
-                'moq': row['moq'],
-                'shipping_cost': float(row['shipping_cost']) if row['shipping_cost'] else None,
-                'notes': row['notes'],
-                'is_preferred': row['is_preferred'],
-                'last_verified': row['last_verified'].isoformat() if row['last_verified'] else None,
-                # When this supplier's price for this SKU was last set/changed
-                # (UTC ISO; None for legacy rows with no recorded date → "N/A").
-                'price_updated_at': row['price_updated_at'].isoformat() if row.get('price_updated_at') else None
-            }
-        
-        # Convert to list (search is now done client-side)
+            sku_data[sku]['suppliers'][row['supplier_code']] = \
+                self._matrix_supplier_cell(row, normalize)
+
         rows = list(sku_data.values())
-        
+
+        # Search (kept identical to the fast path for consistent results).
+        if search and search.strip():
+            query = search.strip().lower()
+            rows = [r for r in rows if self._matrix_search_match(r, query)]
+
         # Sort by specified column (default: SKU)
         rows = self._sort_rows(rows, sort_by or 'sku', sort_order or 'asc', suppliers)
         total = len(rows)
-        
+
         # Paginate
         start = (page - 1) * per_page
         end = start + per_page
         paginated = rows[start:end]
-        
+
         return {
             'matrix': paginated,
-            'suppliers': [{'id': s['id'], 'code': s['code'], 'name': s['name'], 'default_currency': s.get('default_currency', 'GBP')} for s in suppliers],
+            'suppliers': self._matrix_suppliers_payload(suppliers),
             'total': total,
             'page': page,
             'per_page': per_page,

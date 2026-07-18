@@ -747,6 +747,70 @@ class SourcingRepository:
         finally:
             self._return_conn(conn)
 
+    def get_matrix_product_index(self, status_filter: List[str] = None) -> List[Dict]:
+        """Lightweight product list from inventory_metadata for the matrix index.
+
+        Same rows and status filter as get_all_products_from_inventory_metadata,
+        but selects ONLY the columns the matrix needs to search, sort and identify
+        a row (sku, item_id, product_name, status). It deliberately omits the
+        heavy JSONB 6m-data columns so the paginated matrix can build its full
+        ordered index cheaply and then hydrate prices for just the current page.
+        """
+        conn = self._get_conn()
+        try:
+            cursor = conn.cursor()
+            if status_filter:
+                cursor.execute("""
+                    SELECT sku, item_id, product_name, status
+                    FROM inventory_metadata
+                    WHERE EXISTS (
+                        SELECT 1
+                        FROM jsonb_array_elements_text(variant_statuses) AS s
+                        WHERE s = ANY(%s)
+                    )
+                    ORDER BY sku
+                """, (status_filter,))
+            else:
+                cursor.execute("""
+                    SELECT sku, item_id, product_name, status
+                    FROM inventory_metadata
+                    ORDER BY sku
+                """)
+            columns = [desc[0] for desc in cursor.description]
+            results = []
+            for row in cursor.fetchall():
+                product = dict(zip(columns, row))
+                product['brand'] = self._extract_brand_from_sku(product['sku'])
+                product['category'] = None  # Not available in inventory_metadata
+                results.append(product)
+            return results
+        except Exception as e:
+            logger.error(f"Error fetching product index from inventory_metadata: {e}")
+            return []
+        finally:
+            self._return_conn(conn)
+
+    def get_active_pricing_skus(self) -> List[str]:
+        """Return the distinct SKUs that have pricing under an active supplier.
+
+        Used to surface "orphan" pricing rows (a supplier price for a SKU that
+        isn't in inventory_metadata) in the matrix index without hydrating the
+        full pricing table. Mirrors the is_active filter in get_full_matrix so
+        the orphan set matches what that method would return.
+        """
+        conn = self._get_conn()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT DISTINCT p.sku
+                FROM sourcing_supplier_pricing p
+                JOIN sourcing_suppliers s ON p.supplier_id = s.id
+                WHERE s.is_active = TRUE
+            """)
+            return [row[0] for row in cursor.fetchall()]
+        finally:
+            self._return_conn(conn)
+
     def _extract_brand_from_sku(self, sku: str) -> Optional[str]:
         """Extract brand prefix from SKU (e.g., 'ABC123' -> 'ABC')"""
         if not sku:

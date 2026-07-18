@@ -168,7 +168,6 @@ let state = {
   
   // Matrix
   matrixData: [],
-  allMatrixData: [],  // Full cached dataset for client-side search
   matrixSuppliers: [],
   matrixPage: 1,
   matrixPerPage: 100,
@@ -360,7 +359,6 @@ export function cleanup() {
     analysisMarginFilter: '',
     analysisSortBy: 'sku',
     analysisSortOrder: 'asc',
-    allMatrixData: [],
     mappingsData: [],
     allMappingsData: [],
     mappingsSearch: '',
@@ -1078,21 +1076,21 @@ async function loadSupplierMatrix(options = {}) {
   }
   
   try {
-    // Fetch ALL data from server (no search param - search is client-side)
+    // Server-side pagination + search: fetch only the current page. The backend
+    // searches/sorts/paginates and hydrates prices for just this page's SKUs, so
+    // this stays fast even against a remote database.
     const data = await getSupplierMatrix({
-      page: 1,
-      perPage: 100000,
+      page: state.matrixPage,
+      perPage: state.matrixPerPage,
+      search: state.matrixSearch,
       sortBy: state.matrixSortBy,
       sortOrder: state.matrixSortOrder
     });
-    
-    // Cache full dataset for client-side search
-    state.allMatrixData = data.matrix || [];
+
+    state.matrixData = data.matrix || [];
     state.matrixSuppliers = data.suppliers || [];
-    
-    // Apply client-side search and pagination
-    applyMatrixClientFilters();
-    
+    state.matrixTotal = data.total || 0;
+
     renderMatrixTable();
     renderMatrixPagination();
     
@@ -2172,34 +2170,12 @@ async function handleGSheetImport() {
 function handleMatrixSearch(e) {
   state.matrixSearch = e.target.value.trim();
   state.matrixPage = 1;  // Reset to first page on search
-  // Client-side filter from cached data — no API call needed
-  applyMatrixClientFilters();
-  renderMatrixTable();
-  renderMatrixPagination();
-}
-
-/**
- * Apply client-side search filter and pagination to cached matrix data.
- * Searches against SKU, product name, and item ID only.
- */
-function applyMatrixClientFilters() {
-  let filtered = state.allMatrixData;
-  
-  if (state.matrixSearch) {
-    const query = state.matrixSearch.toLowerCase();
-    filtered = filtered.filter(p => 
-      (p.sku || '').toLowerCase().includes(query) ||
-      (p.product_name || '').toLowerCase().includes(query) ||
-      (p.item_id || '').toLowerCase().includes(query)
-    );
-  }
-  
-  state.matrixTotal = filtered.length;
-  
-  // Paginate from filtered data
-  const start = (state.matrixPage - 1) * state.matrixPerPage;
-  const end = start + state.matrixPerPage;
-  state.matrixData = filtered.slice(start, end);
+  // Server-side search: the input listener is already debounced (see init), so
+  // fetch the first page of matching results. Skip the full-screen overlay and
+  // show an inline table spinner so typing stays responsive.
+  const colCount = 4 + (state.matrixSuppliers?.length || 5);
+  showTableLoading('matrix-table-body', colCount, 'Searching');
+  loadSupplierMatrix({ skipLoadingOverlay: true });
 }
 
 // ============================================================================
@@ -4652,10 +4628,10 @@ window.sourcingModule = {
   },
   goToMatrixPage: async (page) => {
     state.matrixPage = page;
-    // Client-side pagination from cached data — no API call needed
-    applyMatrixClientFilters();
-    renderMatrixTable();
-    renderMatrixPagination();
+    // Server-side pagination: fetch the requested page.
+    const colCount = 4 + (state.matrixSuppliers?.length || 5);
+    showTableLoading('matrix-table-body', colCount, 'Loading');
+    await loadSupplierMatrix({ skipLoadingOverlay: true });
   }
 };
 
