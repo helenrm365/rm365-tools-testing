@@ -6,6 +6,7 @@ import { getLocations as getLocationObjects } from '../../services/api/locations
 import { generateTabStructure } from '../../router.js';
 import { showToast } from '../../ui/toast.js';
 import { initDropdown } from '../../ui/dropdown.js';
+import { getUserData } from '../../services/state/userStore.js';
 
 // Get the tab structure dynamically from the router
 const TAB_STRUCTURE = generateTabStructure();
@@ -30,8 +31,39 @@ let state = {
 
 // Persists across modal open/close — tracks per-user email verification state
 // so closing/reopening a user cannot reset the rate-limit window.
-// keyed by username → { codeSent, email, rateLimited, rateLimitMsg }
+// keyed by username → { codeSent, email, rateLimited, rateLimitMsg, testCode? }
 const emailVerifStateMap = new Map();
+
+// ---- Email test mode (admin only — triple-click logo) ----
+let emailTestMode = false;
+let _logoClicks = 0;
+let _logoClickTimer = null;
+
+function updateTestModeIndicator() {
+  const badge = $('#emailTestBadge');
+  if (badge) badge.style.display = emailTestMode ? 'inline-flex' : 'none';
+}
+
+function wireLogoTestMode() {
+  const logo = document.querySelector('.sidebar-logo');
+  if (!logo) return;
+  logo.addEventListener('click', () => {
+    const user = getUserData();
+    if (user?.role !== 'Admin') return;
+    _logoClicks++;
+    clearTimeout(_logoClickTimer);
+    if (_logoClicks >= 3) {
+      _logoClicks = 0;
+      emailTestMode = !emailTestMode;
+      updateTestModeIndicator();
+      notify(emailTestMode
+        ? '⚡ Email test mode ON — codes won\'t be sent, no rate limit'
+        : 'Email test mode OFF');
+    } else {
+      _logoClickTimer = setTimeout(() => { _logoClicks = 0; }, 800);
+    }
+  });
+}
 
 function $(sel) { return document.querySelector(sel); }
 function $all(sel) { return document.querySelectorAll(sel); }
@@ -545,6 +577,9 @@ function restoreEmailVerifState(username) {
     msg.textContent = verif.rateLimitMsg || 'Send limit reached.';
     $('#emailSendCodeBtn').disabled = true;
     $('#emailResendBtn').disabled = true;
+  } else if (verif.testCode) {
+    msg.style.color = '#b45309';
+    msg.textContent = `⚡ Test mode — no email sent. Code is: ${verif.testCode}`;
   } else {
     msg.style.color = '#065f46';
     msg.textContent = `Code sent to ${verif.email} — enter it below.`;
@@ -714,6 +749,22 @@ function wireUserModal() {
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Sending...</span>';
 
+    // Test mode: skip API, show code inline
+    if (emailTestMode) {
+      const testCode = '123456';
+      emailVerifStateMap.set(username, { codeSent: true, email, rateLimited: false, rateLimitMsg: '', testCode });
+      $('#formEmail').readOnly = true;
+      btn.innerHTML = '<i class="fas fa-paper-plane"></i><span>Sent</span>';
+      const msg = $('#emailCodeMsg');
+      msg.style.color = '#b45309';
+      msg.textContent = `⚡ Test mode — no email sent. Code is: ${testCode}`;
+      msg.style.display = 'block';
+      fadeEmailStep($('#emailInputRow'), $('#emailCodeRow'), () => {
+        document.querySelector('.otp-digit')?.focus();
+      });
+      return;
+    }
+
     try {
       await sendEmailVerificationCode(username, email);
       emailVerifStateMap.set(username, { codeSent: true, email, rateLimited: false, rateLimitMsg: '' });
@@ -765,6 +816,33 @@ function wireUserModal() {
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Verifying...</span>';
 
+    // Test mode: validate against local testCode, no API call
+    if (emailTestMode) {
+      const verif = emailVerifStateMap.get(username);
+      const expected = verif?.testCode || '123456';
+      if (code !== expected) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-check"></i><span>Verify</span>';
+        setOtpError();
+        const msg = $('#emailCodeMsg');
+        msg.style.display = 'block';
+        msg.style.color = '#b91c1c';
+        msg.textContent = `⚡ Test mode — wrong code (expected ${expected})`;
+        return;
+      }
+      const testEmail = verif?.email || '';
+      emailVerifStateMap.delete(username);
+      const userIdx = state.users.findIndex(u => u.username === username);
+      if (userIdx >= 0) state.users[userIdx] = { ...state.users[userIdx], email: testEmail };
+      $('#emailInputRow').style.display = 'none';
+      $('#emailCodeRow').style.display = 'none';
+      $('#formEmail').readOnly = false;
+      $('#emailVerifiedValue').textContent = testEmail;
+      $('#emailVerifiedRow').style.display = '';
+      notify(`⚡ Test mode: email "${testEmail}" marked verified`);
+      return;
+    }
+
     try {
       const result = await confirmEmailVerification(username, code);
       emailVerifStateMap.delete(username);
@@ -796,6 +874,22 @@ function wireUserModal() {
     const btn = $('#emailResendBtn');
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Resending...</span>';
+
+    // Test mode: just reset the same code, no API call
+    if (emailTestMode) {
+      const testCode = '123456';
+      const existing = emailVerifStateMap.get(username) || {};
+      emailVerifStateMap.set(username, { ...existing, rateLimited: false, rateLimitMsg: '', testCode });
+      const msg = $('#emailCodeMsg');
+      msg.style.display = 'block';
+      msg.style.color = '#b45309';
+      msg.textContent = `⚡ Test mode — no email sent. Code is: ${testCode}`;
+      clearOtpInputs();
+      document.querySelector('.otp-digit')?.focus();
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-redo"></i><span>Resend</span>';
+      return;
+    }
 
     try {
       await resendEmailVerificationCode(username);
@@ -1763,6 +1857,7 @@ export async function refresh() {
 
 export async function init() {
   showToast('Setting up user management...', 'info');
+  wireLogoTestMode();
   wireToolbar();
   wireUserModal();
   wireAddTabPresetModal();

@@ -269,6 +269,10 @@ html.dark-mode .user-management .user-form-section {
   grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.9fr);
 }
 
+.user-management #userModal .form-row-account-sub {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .user-management #userModal .form-row + .form-row {
   margin-top: 0.875rem;
 }
@@ -325,7 +329,6 @@ html.dark-mode .user-management #userModal .nui-field {
 }
 
 .user-management #userModal .form-row-security .nui-label {
-  min-height: 4.25rem;
   align-content: start;
 }
 
@@ -822,7 +825,7 @@ html.dark-mode .user-management .custom-tabs-info {
   }
 
   .user-management #userModal .form-row-account-main {
-    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+    grid-template-columns: 1fr 1fr;
   }
 
   .user-management #userModal .form-row + .form-row {
@@ -1154,4 +1157,21 @@ html.dark-mode .user-management .users-table tbody tr {
 }
 .email-wrong-link:hover {
   color: var(--text);
+}
+
+.test-mode-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  background: #f59e0b;
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 999px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  vertical-align: middle;
+  margin-left: 0.5rem;
+  user-select: none;
 }
