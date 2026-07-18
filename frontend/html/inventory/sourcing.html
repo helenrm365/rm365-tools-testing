@@ -741,8 +741,21 @@
     </div>
 
     <!-- Step 2: Preview changes -->
-    <div id="pdf-import-step-2" style="display:none;">
-      <div class="modal-body">
+    <div id="pdf-import-step-2" style="display:none; position:relative; overflow:hidden;">
+      <!-- Multi-supplier carousel chrome (hidden in single-supplier mode) -->
+      <button id="pdf-carousel-prev" title="Previous supplier" style="display:none; position:absolute; left:8px; top:50%; transform:translateY(-50%); z-index:5;
+              width:38px; height:38px; border-radius:50%; border:1px solid var(--color-border,#e5e7eb); background:var(--color-bg,#fff);
+              box-shadow:0 2px 8px rgba(0,0,0,0.12); cursor:pointer; align-items:center; justify-content:center; color:var(--color-text,#374151);">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <button id="pdf-carousel-next" title="Next supplier" style="display:none; position:absolute; right:8px; top:50%; transform:translateY(-50%); z-index:5;
+              width:38px; height:38px; border-radius:50%; border:1px solid var(--color-border,#e5e7eb); background:var(--color-bg,#fff);
+              box-shadow:0 2px 8px rgba(0,0,0,0.12); cursor:pointer; align-items:center; justify-content:center; color:var(--color-text,#374151);">
+        <i class="fas fa-chevron-right"></i>
+      </button>
+      <div id="pdf-carousel-indicator" style="display:none; padding:0.5rem 1rem 0;"></div>
+
+      <div class="modal-body" id="pdf-import-step-2-body">
         <!-- Summary row -->
         <div id="pdf-import-summary" style="display:flex; gap:1.5rem; margin-bottom:1.25rem; flex-wrap:wrap;"></div>
 
@@ -855,6 +868,9 @@
         <button class="btn btn-solid btn-default rounded-lg" id="btn-pdf-preview-cancel">Cancel</button>
         <button class="btn btn-solid btn-success" id="btn-pdf-preview-confirm">
           <i class="fas fa-check"></i> Confirm &amp; Update Prices
+        </button>
+        <button class="btn btn-solid btn-success" id="btn-pdf-preview-confirm-all" style="display:none;">
+          <i class="fas fa-check-double"></i> Confirm &amp; Import All
         </button>
       </div>
     </div>

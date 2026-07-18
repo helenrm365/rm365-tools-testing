@@ -27,6 +27,7 @@ from .schemas import (
     SupplierProductMappingOut,
     PdfImportPreviewResponse,
     PdfSupplierIdentifyResponse,
+    PdfSupplierIdentifyBatchResponse,
 )
 from .service import (
     SourcingService, PdfParseCancelled, merge_pdfs, dedupe_pdf_blobs,
@@ -489,6 +490,32 @@ async def identify_pdf_supplier(
         logger.error(f"Error identifying PDF supplier: {e}")
         # Detection is advisory — degrade gracefully rather than blocking import.
         return PdfSupplierIdentifyResponse()
+
+
+@router.post("/import/pdf/identify-suppliers", response_model=PdfSupplierIdentifyBatchResponse)
+async def identify_pdf_suppliers(
+    files: Optional[Union[UploadFile, List[UploadFile]]] = File(None),
+    file: Optional[UploadFile] = File(None),
+    user=Depends(get_current_user)
+):
+    """
+    Per-file variant of /import/pdf/identify-supplier for multi-PDF uploads.
+
+    Detects each uploaded PDF's supplier independently (one AI call per file) so
+    the importer can group files by supplier and run one import per group when a
+    single upload mixes price lists from different suppliers. Never fails the
+    request for AI/parse problems — a bad file simply yields a no-match entry.
+    """
+    try:
+        uploads = _gather_pdf_uploads(files, file)
+        pdf_files = [(f.filename, await f.read()) for f in uploads]
+        return _svc().identify_pdf_suppliers(pdf_files)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error identifying PDF suppliers: {e}")
+        # Detection is advisory — degrade gracefully rather than blocking import.
+        return PdfSupplierIdentifyBatchResponse()
 
 
 @router.post("/import/pdf/stream")

@@ -491,6 +491,21 @@ export async function identifyPdfSupplier(files, { signal } = {}) {
 }
 
 /**
+ * Per-file supplier detection for a multi-PDF upload — each file is detected
+ * independently so the caller can group the upload by supplier and run one
+ * import per group. Throws on transport errors (e.g. an older server without
+ * the endpoint); the caller falls back to single-supplier detection.
+ * @param {File[]} files - the PDF files, in order
+ * @param {{ signal?: AbortSignal }} [opts]
+ * @returns {Promise<{enabled: boolean, results: Array<{index: number, filename: string|null, enabled: boolean, detected_name: string|null, matched_supplier_id: number|null, matched_supplier_name: string|null, confidence: number}>}>}
+ */
+export async function identifyPdfSuppliers(files, { signal } = {}) {
+  const formData = new FormData();
+  (Array.isArray(files) ? files : [files]).forEach(f => formData.append('files', f));
+  return await http(`${BASE_PATH}/import/pdf/identify-suppliers`, { method: 'POST', body: formData, signal });
+}
+
+/**
  * Parse a supplier PDF price list and return a preview of pricing changes.
  * Does NOT commit changes — call bulkUpdatePricing with confirmed items to apply.
  * @param {File|File[]} files - one or more PDF files (merged server-side before parsing)

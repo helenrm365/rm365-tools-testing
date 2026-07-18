@@ -25,6 +25,24 @@ class PdfParseCancelled(Exception):
 # progress_floor), so the bar advances smoothly across both phases.
 MERGE_PROGRESS_END = 8
 
+# Baseline "nothing detected" supplier-identification result — what detection
+# degrades to when the AI is disabled, the PDF is unreadable, or no match found.
+_IDENTIFY_EMPTY = {
+    'enabled': False,
+    'detected_name': None,
+    'matched_supplier_id': None,
+    'matched_supplier_name': None,
+    'confidence': 0.0,
+}
+
+# Max documents identified per AI request in the multi-file importer. Each
+# document contributes ONE page (its first) to a bundled PDF sent in a single
+# multimodal call, so this also caps pages-per-call. One request handles the
+# common case; larger uploads split into a few calls so a single request never
+# gets unwieldy — without reintroducing the per-file rate-limit bursts that made
+# one-call-per-file detection slow and inconsistent.
+_IDENTIFY_PAGES_PER_CALL = 15
+
 
 def dedupe_pdf_blobs(pdf_blobs: List[bytes]) -> Tuple[List[bytes], int]:
     """Drop empty and byte-for-byte identical PDF uploads, keeping first-seen order.
@@ -115,6 +133,49 @@ def merge_pdfs(pdf_blobs: List[bytes], progress_cb=None) -> bytes:
     finally:
         # import_pages copies pages into `merged`, and save() has already run by
         # the time finally executes, so it is safe to release every handle here.
+        for src in sources:
+            src.close()
+        merged.close()
+
+
+def _merge_first_pages(chunk: List[Tuple[int, bytes]]) -> Tuple[Optional[bytes], List[int]]:
+    """Bundle the FIRST PAGE of each file in ``chunk`` into one PDF for a single
+    multimodal supplier-detection call.
+
+    ``chunk`` is ``[(file_index, pdf_bytes), ...]``. Returns
+    ``(merged_pdf_bytes, page_map)`` where ``page_map[k]`` is the original
+    ``file_index`` that produced the merged PDF's (k+1)-th page — so the caller
+    can map the model's per-page answers back to files. Files that are empty,
+    unreadable, or have no pages are skipped (they simply won't appear in
+    page_map). Returns ``(None, [])`` when nothing usable remained.
+    """
+    import io
+    import pypdfium2 as pdfium
+
+    merged = pdfium.PdfDocument.new()
+    sources = []
+    page_map: List[int] = []
+    try:
+        for file_index, blob in chunk:
+            if not blob:
+                continue
+            try:
+                src = pdfium.PdfDocument(blob)
+                if len(src) == 0:
+                    src.close()
+                    continue
+                sources.append(src)
+                merged.import_pages(src, [0])  # first page only — keeps tokens low
+            except Exception as e:  # noqa: BLE001 — a bad file must not break detection
+                logger.info("identify_pdf_suppliers: skipping unreadable file: %s", e)
+                continue
+            page_map.append(file_index)
+        if not page_map:
+            return None, []
+        buf = io.BytesIO()
+        merged.save(buf)
+        return buf.getvalue(), page_map
+    finally:
         for src in sources:
             src.close()
         merged.close()
@@ -1604,10 +1665,12 @@ class SourcingService:
         """
         Best-effort AI guess of which supplier a PDF price list belongs to.
 
-        Reads the first page's text and asks the AI to name the issuing supplier
-        and match it to one of the existing suppliers. Never raises for AI/parse
-        problems — degrades to ``enabled=False`` / no match so the importer can
-        fall back to manual supplier selection.
+        Hands the first page to the AI's vision model (the supplier is usually a
+        LOGO / letterhead image, not extractable text) and matches it to one of
+        the existing suppliers. Shares one implementation with the multi-file
+        detector so a file detects the same alone as it does inside a pack. Never
+        raises for AI/parse problems — degrades to ``enabled=False`` / no match so
+        the importer can fall back to manual supplier selection.
 
         Returns:
           {
@@ -1618,57 +1681,89 @@ class SourcingService:
             'confidence': float,                # 0.0-1.0
           }
         """
+        batch = self.identify_pdf_suppliers([(None, pdf_bytes)])
+        results = batch.get('results') or []
+        result = dict(results[0]) if results else dict(_IDENTIFY_EMPTY)
+        result['enabled'] = batch.get('enabled', False)
+        # Single-response shape carries no per-file position/name.
+        result.pop('index', None)
+        result.pop('filename', None)
+        return result
+
+    def identify_pdf_suppliers(self, pdf_files: List[Tuple[Optional[str], bytes]]) -> Dict:
+        """
+        Per-file supplier detection for a multi-PDF upload.
+
+        ``pdf_files`` is ``[(filename, pdf_bytes), ...]`` in upload order. The
+        supplier's identity on these documents is usually a LOGO / letterhead
+        image rather than extractable text, so detection has to SEE each page.
+        The first page of every file is bundled into one PDF and identified in a
+        SINGLE multimodal (vision) call — the same "merge, then one AI call"
+        approach the importer uses — so N files cost one request, not N. Larger
+        uploads split into a few calls (see ``_IDENTIFY_PAGES_PER_CALL``). Sending
+        only first pages keeps token cost low; one bundled request keeps it fast
+        and dodges the per-minute rate-limit bursts that made one-call-per-file
+        detection slow and different-every-time.
+
+        Same graceful degradation as ``identify_pdf_supplier`` — a bad file or an
+        AI failure yields a no-match entry for that file, never an exception.
+
+        Returns ``{'enabled': bool, 'results': [{index, filename, **detection}]}``.
+        """
         from . import pdf_ai
 
-        result = {
-            'enabled': False,
-            'detected_name': None,
-            'matched_supplier_id': None,
-            'matched_supplier_name': None,
-            'confidence': 0.0,
-        }
+        # Seed one baseline (no-match) result per file, keyed by upload position.
+        results_by_index: Dict[int, Dict] = {}
+        for i, (filename, _blob) in enumerate(pdf_files):
+            entry = dict(_IDENTIFY_EMPTY)
+            entry['index'] = i
+            entry['filename'] = filename
+            results_by_index[i] = entry
 
-        # Cheapest possible exit: no AI configured → skip reading the PDF entirely.
-        if not pdf_ai.is_enabled():
-            return result
-        result['enabled'] = True
+        def _ordered() -> List[Dict]:
+            return [results_by_index[i] for i in range(len(pdf_files))]
 
-        import pdfplumber
-        import io
+        enabled = pdf_ai.is_enabled()
+        if not enabled:
+            return {'enabled': False, 'results': _ordered()}
 
-        try:
-            with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
-                page_text = self._first_page_text(pdf.pages)
-        except Exception as e:  # noqa: BLE001 — a bad PDF must not break detection
-            logger.info(f"identify_pdf_supplier: could not read PDF text: {e}")
-            return result
-
-        if not (page_text or '').strip():
-            return result
+        for entry in results_by_index.values():
+            entry['enabled'] = True
 
         suppliers = self.repo.get_suppliers(active_only=False)
         candidates = [{'code': s['code'], 'name': s['name']} for s in suppliers]
+        supplier_by_code = {str(s['code']).strip().lower(): s for s in suppliers}
 
-        try:
-            ai = pdf_ai.identify_supplier(page_text, candidates)
-        except pdf_ai.PdfAiUnavailable as e:
-            logger.info(f"identify_pdf_supplier: AI unavailable: {e}")
-            return result
+        # One vision call per chunk of files (usually a single call). Each chunk's
+        # first pages are merged into one PDF; a failing chunk leaves its files as
+        # no-match rather than aborting the whole batch.
+        total = len(pdf_files)
+        for start in range(0, total, _IDENTIFY_PAGES_PER_CALL):
+            chunk = [(i, pdf_files[i][1]) for i in range(start, min(start + _IDENTIFY_PAGES_PER_CALL, total))]
+            merged, page_map = _merge_first_pages(chunk)
+            if not merged or not page_map:
+                continue
 
-        result['detected_name'] = ai.get('detected_name') or None
-        result['confidence'] = ai.get('confidence', 0.0)
+            try:
+                ai_results = pdf_ai.identify_suppliers_from_pages(merged, candidates, len(page_map))
+            except pdf_ai.PdfAiUnavailable as e:
+                logger.info(f"identify_pdf_suppliers: AI unavailable for a chunk: {e}")
+                continue
 
-        code = (ai.get('matched_code') or '').strip().lower()
-        if code:
-            match = next(
-                (s for s in suppliers if str(s['code']).strip().lower() == code),
-                None,
-            )
-            if match:
-                result['matched_supplier_id'] = match['id']
-                result['matched_supplier_name'] = match['name']
+            for r in ai_results:
+                page = r.get('page')  # 1-based, into this chunk's merged PDF
+                if not isinstance(page, int) or page < 1 or page > len(page_map):
+                    continue
+                entry = results_by_index[page_map[page - 1]]
+                entry['detected_name'] = r.get('detected_name') or None
+                entry['confidence'] = r.get('confidence', 0.0)
+                code = (r.get('matched_code') or '').strip().lower()
+                match = supplier_by_code.get(code) if code else None
+                if match:
+                    entry['matched_supplier_id'] = match['id']
+                    entry['matched_supplier_name'] = match['name']
 
-        return result
+        return {'enabled': True, 'results': _ordered()}
 
     def import_matrix_pdf(self, pdf_bytes: bytes, supplier_id: int, progress_cb=None,
                           progress_floor: int = 0) -> Dict:

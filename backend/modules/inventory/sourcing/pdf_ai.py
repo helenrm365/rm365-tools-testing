@@ -161,25 +161,28 @@ def request_layout_profile(page_text: str) -> Dict:
     return _sanitise_profile(data)
 
 
-def identify_supplier(page_text: str, candidates: List[Dict]) -> Dict:
+def identify_suppliers_from_pages(pdf_bytes: bytes, candidates: List[Dict], page_count: int) -> List[Dict]:
     """
-    Text-only call — read the SUPPLIER/VENDOR issuing a price list / invoice and,
-    where possible, match it to one of the caller's known suppliers.
+    Multimodal call — identify the issuing supplier for SEVERAL documents bundled
+    into ONE PDF, exactly one document per page, in a single request.
 
-    ``candidates`` is a list of ``{"code": ..., "name": ...}`` for the existing
-    suppliers. The model returns the code of the one it matches (or '' for none),
-    so the caller resolves the id from its own authoritative list and never trusts
-    a model-invented id.
+    On these documents the supplier's identity is usually a LOGO / letterhead
+    image rather than extractable text, so this hands Gemini the actual pages
+    (vision) instead of a text dump. The caller merges each document's first page
+    into one PDF (page 1 = first document, page 2 = second, …) and identifies them
+    all in a single request — one call, one page per document — which is both fast
+    and cheap and avoids the per-minute rate-limit bursts that make one-call-per-
+    file detection slow and inconsistent.
 
-    Returns a dict:
-      {"detected_name": "ACME Foods Ltd", "matched_code": "ACME", "confidence": 0.0-1.0}
-
-    Raises PdfAiUnavailable on any problem (caller falls back to manual selection).
+    Returns ``[{"page", "detected_name", "matched_code", "confidence"}]`` with
+    1-based page numbers matching the merged PDF (pages the model omitted are
+    simply absent; the caller treats those as "no match"). Raises PdfAiUnavailable
+    on any problem.
     """
     if not is_enabled():
         raise PdfAiUnavailable("AI disabled or no GEMINI_API_KEY configured")
-    if not (page_text or "").strip():
-        raise PdfAiUnavailable("empty page text")
+    if not pdf_bytes:
+        raise PdfAiUnavailable("empty pdf")
 
     known_lines = "\n".join(
         f"- {str(c.get('code', '')).strip()}: {str(c.get('name', '')).strip()}"
@@ -188,45 +191,77 @@ def identify_supplier(page_text: str, candidates: List[Dict]) -> Dict:
     ) or "(no known suppliers)"
 
     prompt = (
-        "You are reading the first page of a supplier price list / invoice / quotation.\n"
-        "Identify the SUPPLIER (the vendor / seller ISSUING the document — the company "
-        "whose products and prices are listed). This is NOT the customer / buyer / "
-        "'bill to' / 'ship to' party, which you must ignore.\n\n"
-        "Then decide whether that supplier is one of these KNOWN suppliers "
+        "This PDF bundles the first page of several SEPARATE, UNRELATED supplier "
+        "documents (price lists / invoices / quotations) — exactly ONE document per "
+        "page, in order (page 1 is the first document, page 2 the second, and so on).\n"
+        "For EACH page, identify the SUPPLIER: the vendor / seller ISSUING that "
+        "document — the company whose products and prices are listed. On most of "
+        "these pages the supplier is shown as a LOGO, letterhead, or branding image "
+        "at the top rather than as plain text, so READ IT FROM THE IMAGE as well as "
+        "from any text. This is NOT the customer / buyer / 'bill to' / 'ship to' "
+        "party, which you must ignore.\n"
+        "Treat every page completely independently — a page's supplier depends ONLY "
+        "on that page.\n\n"
+        "Decide whether each supplier is one of these KNOWN suppliers "
         "(format 'CODE: Name'):\n"
         f"{known_lines}\n\n"
-        "Return:\n"
-        "- detected_name: the supplier's name exactly as printed on the document "
-        "(empty string if you genuinely cannot tell).\n"
-        "- matched_code: the CODE of the known supplier it clearly is, or '' if it does "
-        "not confidently match any known supplier (a different legal entity, a new "
-        "supplier, or you are unsure). Match on the company identity, tolerating minor "
-        "spelling/suffix differences (Ltd, GmbH, S.r.l.).\n"
+        "For EVERY page return one object with:\n"
+        "- page: the 1-based page number.\n"
+        "- detected_name: the supplier's name as shown on that page (empty string "
+        "if you genuinely cannot tell).\n"
+        "- matched_code: the CODE of the known supplier it clearly is, or '' if it "
+        "does not confidently match any known supplier (a different legal entity, a "
+        "new supplier, or you are unsure). Match on company identity, tolerating "
+        "minor spelling/suffix differences (Ltd, GmbH, S.r.l.).\n"
         "- confidence: 0.0-1.0, how sure you are of detected_name.\n\n"
-        "Document text:\n\n" + page_text[:8000]
+        f"This PDF has {int(page_count)} page(s); return exactly one entry per page."
     )
 
     schema = {
         "type": "object",
         "properties": {
-            "detected_name": {"type": "string"},
-            "matched_code": {"type": "string"},
-            "confidence": {"type": "number"},
+            "results": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "page": {"type": "number"},
+                        "detected_name": {"type": "string"},
+                        "matched_code": {"type": "string"},
+                        "confidence": {"type": "number"},
+                    },
+                    "required": ["page"],
+                },
+            },
         },
-        "required": ["detected_name"],
+        "required": ["results"],
     }
 
-    data = _generate(parts=[{"text": prompt}], schema=schema)
-    conf = data.get("confidence")
-    try:
-        conf = max(0.0, min(1.0, float(conf)))
-    except (TypeError, ValueError):
-        conf = 0.0
-    return {
-        "detected_name": str(data.get("detected_name", "") or "").strip(),
-        "matched_code": str(data.get("matched_code", "") or "").strip(),
-        "confidence": conf,
-    }
+    b64 = base64.b64encode(pdf_bytes).decode("ascii")
+    parts = [
+        {"text": prompt},
+        {"inline_data": {"mime_type": "application/pdf", "data": b64}},
+    ]
+    data = _generate(parts=parts, schema=schema, timeout=120.0)
+    out: List[Dict] = []
+    for r in (data.get("results") or []):
+        if not isinstance(r, dict):
+            continue
+        page = _coerce_page(r.get("page"))  # 1-based int, or None if unusable
+        if page is None:
+            continue
+        conf = r.get("confidence")
+        try:
+            conf = max(0.0, min(1.0, float(conf)))
+        except (TypeError, ValueError):
+            conf = 0.0
+        out.append({
+            "page": page,
+            "detected_name": str(r.get("detected_name", "") or "").strip(),
+            "matched_code": str(r.get("matched_code", "") or "").strip(),
+            "confidence": conf,
+        })
+    return out
 
 
 def extract_line_items(pdf_bytes: bytes) -> Tuple[List[Dict], Dict[int, str]]:

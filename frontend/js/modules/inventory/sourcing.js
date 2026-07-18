@@ -39,8 +39,9 @@ import {
   importMappingsFile,
   importMatrixPDF,
   importMatrixPDFStream,
-  identifyPdfSupplier
-} from '../../services/api/sourcingApi.js?v=2';
+  identifyPdfSupplier,
+  identifyPdfSuppliers
+} from '../../services/api/sourcingApi.js?v=3';
 import { initCombobox, pruneDetachedComboboxes, closeOpenCombobox } from '../../ui/combobox.js?v=2';
 import { confirmModal } from '../../ui/confirmationModal.js';
 
@@ -418,6 +419,9 @@ function setupEventListeners() {
   document.getElementById('btn-pdf-preview-back')?.addEventListener('click', showPdfImportStep1);
   document.getElementById('btn-pdf-preview-cancel')?.addEventListener('click', closePdfImportModal);
   document.getElementById('btn-pdf-preview-confirm')?.addEventListener('click', confirmPdfImport);
+  document.getElementById('btn-pdf-preview-confirm-all')?.addEventListener('click', confirmPdfImportAll);
+  document.getElementById('pdf-carousel-prev')?.addEventListener('click', () => pdfCarouselGo(-1));
+  document.getElementById('pdf-carousel-next')?.addEventListener('click', () => pdfCarouselGo(1));
 
   // Preview table search boxes
   document.getElementById('pdf-import-changes-search')?.addEventListener('input', (e) => {
@@ -3081,10 +3085,12 @@ function closePdfImportModal() {
   document.getElementById('pdf-import-overlay')?.classList.remove('active');
   pendingPdfFiles = [];
   pendingPdfPreview = null;
+  _resetPdfCarousel();
 }
 
 function showPdfImportStep1() {
   closeOpenCombobox();
+  _resetPdfCarousel();
   document.getElementById('pdf-import-step-1').style.display = '';
   document.getElementById('pdf-import-step-2').style.display = 'none';
   document.getElementById('pdf-import-modal-title').textContent = 'Import PDF Price List';
@@ -3217,16 +3223,32 @@ async function processPdfImport() {
   pdfParseAbort = new AbortController();
 
   try {
-    // --- Detect + reconcile the supplier before parsing ---
-    _updatePdfProgress(-1, 'Detecting supplier…');
-    const recon = await _reconcilePdfSupplier({
-      selectedId,
-      files: pendingPdfFiles,
-      signal: pdfParseAbort.signal,
-      closeModal: closePdfImportModal,
-    });
-    if (!recon.proceed) return; // messaging/redirect already handled
-    const supplierId = recon.supplierId;
+    // --- Multi-supplier path: several files + auto-detect. Each file is
+    // detected individually; if they span more than one supplier the carousel
+    // flow takes over (one preview per supplier). ---
+    let supplierId = null;
+    if (!selectedId && pendingPdfFiles.length > 1) {
+      const multi = await _tryMultiSupplierPdfImport();
+      if (multi.mode === 'handled') return; // carousel shown / cancelled / redirected
+      if (multi.mode === 'single-known') {
+        // All files belong to one known supplier — skip the second detection.
+        supplierId = multi.supplierId;
+        showToast(`Detected supplier: ${multi.supplierName}`, 'success');
+      }
+    }
+
+    if (!supplierId) {
+      // --- Detect + reconcile the supplier before parsing ---
+      _updatePdfProgress(-1, 'Detecting supplier…');
+      const recon = await _reconcilePdfSupplier({
+        selectedId,
+        files: pendingPdfFiles,
+        signal: pdfParseAbort.signal,
+        closeModal: closePdfImportModal,
+      });
+      if (!recon.proceed) return; // messaging/redirect already handled
+      supplierId = recon.supplierId;
+    }
     // A confirm dialog (switch/keep) can drop the modal's active class on
     // confirm — re-assert it so parsing stays visible behind the progress bar.
     document.getElementById('pdf-import-overlay')?.classList.add('active');
@@ -3274,6 +3296,344 @@ async function processPdfImport() {
     // Supplier is now optional up front — the AI detects it — so gate on files only.
     if (processBtn) processBtn.disabled = !pendingPdfFiles.length;
   }
+}
+
+// ============================================================================
+// MULTI-SUPPLIER PDF IMPORT (carousel)
+// ============================================================================
+// When a multi-file upload is auto-detected to span several suppliers, each
+// supplier's files are parsed as their own import and previewed in a sliding
+// carousel: chevrons navigate between supplier previews, each preview has its
+// own confirm button, and a "Confirm & Import All/Rest" applies the remainder.
+
+/**
+ * Per-file supplier detection + grouping for a multi-file upload. Returns:
+ *   { mode: 'single' }                          → batch detection unavailable /
+ *     inconclusive — continue with the existing single-supplier flow.
+ *   { mode: 'single-known', supplierId, supplierName } → every file belongs to
+ *     the same known supplier — parse directly with it (skip re-detection).
+ *   { mode: 'handled' }                         → multi flow took over (carousel
+ *     shown), or the user cancelled / was redirected. Caller must stop.
+ */
+async function _tryMultiSupplierPdfImport() {
+  _updatePdfProgress(-1, 'Detecting suppliers…');
+
+  let batch = null;
+  try {
+    batch = await identifyPdfSuppliers(pendingPdfFiles, { signal: pdfParseAbort.signal });
+  } catch (e) {
+    if (e?.name === 'AbortError') return { mode: 'handled' };
+    // Older server / transport problem — the single-supplier flow still works.
+    console.warn('[Sourcing] Batch supplier detection unavailable:', e);
+    return { mode: 'single' };
+  }
+  if (!batch?.enabled) return { mode: 'single' };
+
+  // Group the files by detected supplier, preserving upload order.
+  const results = batch.results || [];
+  const groups = new Map(); // supplierId → { supplierId, supplierName, files, fileNames }
+  const unknown = [];       // files with no known-supplier match
+  pendingPdfFiles.forEach((f, i) => {
+    const r = results.find(x => x.index === i) || {};
+    const fname = r.filename || f.name || `PDF ${i + 1}`;
+    const sid = r.matched_supplier_id || null;
+    if (sid) {
+      if (!groups.has(sid)) {
+        groups.set(sid, { supplierId: sid, supplierName: r.matched_supplier_name || `Supplier ${sid}`, files: [], fileNames: [] });
+      }
+      const g = groups.get(sid);
+      g.files.push(f);
+      g.fileNames.push(fname);
+    } else {
+      unknown.push({ file: f, fileName: fname, detectedName: (r.detected_name || '').trim() });
+    }
+  });
+
+  // Nothing matched any known supplier → let the existing single-supplier flow
+  // handle messaging (create-supplier redirect / manual pick).
+  if (groups.size === 0) return { mode: 'single' };
+
+  // Exactly one known supplier and nothing unknown → plain single import.
+  if (groups.size === 1 && unknown.length === 0) {
+    const only = groups.values().next().value;
+    return { mode: 'single-known', supplierId: only.supplierId, supplierName: only.supplierName };
+  }
+
+  const groupList = [...groups.values()];
+
+  // --- Popup: multiple suppliers detected — confirm before continuing ---
+  const groupLines = groupList.map(g =>
+    `<li style="margin:0.2rem 0;"><strong>${escapeHtml(g.supplierName)}</strong>` +
+    ` <span style="color:var(--color-muted,#6b7280);">— ${g.fileNames.map(escapeHtml).join(', ')}</span></li>`
+  ).join('');
+  const unknownLines = unknown.map(u =>
+    `<li style="margin:0.2rem 0;"><strong>${escapeHtml(u.detectedName || 'Unknown supplier')}</strong>` +
+    ` <span style="color:var(--color-muted,#6b7280);">— ${escapeHtml(u.fileName)}</span></li>`
+  ).join('');
+  const proceed = await confirmModal({
+    title: 'Multiple suppliers detected',
+    message: `These PDFs look like they come from <strong>${groupList.length + (unknown.length ? 1 : 0) > 1 ? 'different suppliers' : 'more than one document'}</strong>, `
+      + `so they’ll be imported separately — one preview per supplier:`
+      + `<ul style="margin:0.5rem 0 0; padding-left:1.1rem; text-align:left;">${groupLines}${unknownLines}</ul>`,
+    confirmText: 'Continue',
+    cancelText: 'Cancel',
+    confirmVariant: 'primary',
+    icon: 'fas fa-layer-group',
+  });
+  // The confirm dialog drops the import modal's active class — re-assert it.
+  document.getElementById('pdf-import-overlay')?.classList.add('active');
+  if (!proceed) return { mode: 'handled' };
+
+  // --- Files whose supplier isn't set up yet: add first, or skip them ---
+  if (unknown.length) {
+    const skipIt = await confirmModal({
+      title: 'Some suppliers aren’t set up yet',
+      message: `${unknown.length === 1 ? 'This file' : 'These files'} couldn’t be matched to any of your suppliers:`
+        + `<ul style="margin:0.5rem 0; padding-left:1.1rem; text-align:left;">${unknownLines}</ul>`
+        + `We suggest adding ${unknown.length === 1 ? 'that supplier' : 'those suppliers'} before importing — `
+        + `or continue now and ${unknown.length === 1 ? 'this file' : 'they'} will simply be skipped (you can import ${unknown.length === 1 ? 'it' : 'them'} later).`,
+      confirmText: `Continue & skip ${unknown.length === 1 ? 'it' : `${unknown.length} files`}`,
+      cancelText: 'Add supplier first',
+      confirmVariant: 'warning',
+      icon: 'fas fa-user-plus',
+    });
+    document.getElementById('pdf-import-overlay')?.classList.add('active');
+    if (!skipIt) {
+      const names = unknown.map(u => u.detectedName).filter(Boolean);
+      closePdfImportModal();
+      showToast(
+        names.length
+          ? `Create ${names.map(n => `“${n}”`).join(', ')}, then re-run the import.`
+          : 'Create the missing supplier(s), then re-run the import.',
+        'info'
+      );
+      switchTab('suppliers');
+      return { mode: 'handled' };
+    }
+  }
+
+  // --- Parse each supplier's files as its own import, sequentially ---
+  const productsPromise = _ensureInternalProductsLoaded();
+  const sessions = [];
+  const n = groupList.length;
+  for (let g = 0; g < n; g++) {
+    const grp = groupList[g];
+    const base = Math.round((g * 100) / n);
+    _updatePdfProgress(base, `Parsing ${grp.supplierName} (${g + 1} of ${n})…`);
+    let result;
+    try {
+      result = await importMatrixPDFStream(grp.files, grp.supplierId, {
+        signal: pdfParseAbort.signal,
+        onProgress: (percent, message) => {
+          const scaled = Math.round((g * 100 + Math.max(0, Math.min(100, percent))) / n);
+          _updatePdfProgress(scaled, `${grp.supplierName} (${g + 1}/${n}): ${message}`);
+        },
+      });
+    } catch (streamErr) {
+      if (streamErr.name === 'AbortError') return { mode: 'handled' };
+      if (streamErr.fromSse) throw streamErr; // real parse error — surfaces via caller's toast
+      console.warn('[Sourcing] PDF streaming failed, falling back:', streamErr);
+      result = await importMatrixPDF(grp.files, grp.supplierId, { signal: pdfParseAbort.signal });
+    }
+    sessions.push({
+      supplierId: grp.supplierId,
+      fileNames: grp.fileNames,
+      preview: result,
+      state: _defaultPdfPreviewState(result),
+      confirmed: false,
+    });
+  }
+  await productsPromise;
+
+  pdfMultiState = { sessions, index: 0 };
+  _loadPdfSession(0);
+  showPdfImportStep2();
+  return { mode: 'handled' };
+}
+
+// The interaction state renderPdfPreview() resets to: nothing resolved, all
+// changed rows included, all unchanged rows pre-selected.
+function _defaultPdfPreviewState(preview) {
+  const included = new Set();
+  (preview?.preview || []).forEach((item, idx) => {
+    if (!item.has_change) included.add(idx);
+  });
+  return {
+    conflictResolutions: new Map(),
+    unmatchedResolutions: new Map(),
+    unmatchedMappingType: new Map(),
+    excludedRows: new Set(),
+    includedNoChangeRows: included,
+  };
+}
+
+// Snapshot the live (module-level) preview interaction state so a carousel
+// session can be left and returned to without losing the user's choices.
+function _capturePdfPreviewState() {
+  return {
+    conflictResolutions: new Map(conflictResolutions),
+    unmatchedResolutions: new Map(unmatchedResolutions),
+    unmatchedMappingType: new Map(unmatchedMappingType),
+    excludedRows: new Set(pdfExcludedRows),
+    includedNoChangeRows: new Set(pdfIncludedNoChangeRows),
+  };
+}
+
+function _restorePdfPreviewState(st) {
+  conflictResolutions.clear();
+  st.conflictResolutions.forEach((v, k) => conflictResolutions.set(k, v));
+  unmatchedResolutions.clear();
+  st.unmatchedResolutions.forEach((v, k) => unmatchedResolutions.set(k, v));
+  unmatchedMappingType.clear();
+  st.unmatchedMappingType.forEach((v, k) => unmatchedMappingType.set(k, v));
+  pdfExcludedRows.clear();
+  st.excludedRows.forEach(v => pdfExcludedRows.add(v));
+  pdfIncludedNoChangeRows.clear();
+  st.includedNoChangeRows.forEach(v => pdfIncludedNoChangeRows.add(v));
+}
+
+// Re-check conflict radios / re-mark resolved cards after a re-render (the
+// conflict cards are only painted by renderPdfPreview, which resets them).
+function _reapplyConflictUi() {
+  const conflicts = pendingPdfPreview?.conflicts || [];
+  conflicts.forEach((c, idx) => {
+    const chosen = conflictResolutions.get(_conflictKey(idx));
+    if (chosen == null) return;
+    const radio = document.querySelector(
+      `input[name="conflict-${idx}"][value="${CSS.escape(String(chosen))}"]`
+    );
+    if (radio) radio.checked = true;
+    const card = document.getElementById(`conflict-card-${idx}`);
+    if (card) {
+      card.style.borderColor = 'var(--color-success,#16a34a)';
+      card.style.background = 'var(--color-success-bg,#f0fdf4)';
+    }
+  });
+  _updateConflictsRemaining(conflicts.length);
+}
+
+// Make session i the active preview: render it and restore its saved choices.
+function _loadPdfSession(i) {
+  const session = pdfMultiState?.sessions?.[i];
+  if (!session) return;
+  pdfMultiState.index = i;
+  pendingPdfPreview = session.preview;
+  renderPdfPreview(session.preview); // resets interaction state to defaults
+  _restorePdfPreviewState(session.state);
+  _reapplyConflictUi();
+  renderPdfMatched();
+  renderPdfUnmatched();
+  const n = pdfMultiState.sessions.length;
+  document.getElementById('pdf-import-modal-title').textContent =
+    `PDF Preview — ${session.preview.supplier_name}${n > 1 ? ` (${i + 1} of ${n})` : ''}`;
+  _updatePdfCarouselChrome();
+  _updateConfirmButton();
+}
+
+// Slide the preview left/right to another supplier session (delta can be ±1
+// from the chevrons or a bigger jump from the indicator dots).
+function pdfCarouselGo(delta) {
+  if (!pdfMultiState || pdfSlideBusy || !delta) return;
+  const next = pdfMultiState.index + delta;
+  if (next < 0 || next >= pdfMultiState.sessions.length) return;
+
+  // Save the active preview's choices before leaving it.
+  pdfMultiState.sessions[pdfMultiState.index].state = _capturePdfPreviewState();
+  closeOpenCombobox();
+
+  const body = document.getElementById('pdf-import-step-2-body');
+  if (!body) { _loadPdfSession(next); return; }
+
+  pdfSlideBusy = true;
+  const dir = delta > 0 ? 1 : -1; // 1 = moving to the next (slide left)
+  body.style.transition = 'transform 0.22s ease, opacity 0.22s ease';
+  body.style.transform = `translateX(${-dir * 48}px)`;
+  body.style.opacity = '0';
+  setTimeout(() => {
+    _loadPdfSession(next);
+    // Enter from the opposite side for a continuous sliding feel.
+    body.style.transition = 'none';
+    body.style.transform = `translateX(${dir * 48}px)`;
+    void body.offsetWidth; // force reflow so the next transition animates
+    body.style.transition = 'transform 0.22s ease, opacity 0.22s ease';
+    body.style.transform = 'translateX(0)';
+    body.style.opacity = '1';
+    setTimeout(() => {
+      body.style.transition = '';
+      pdfSlideBusy = false;
+    }, 240);
+  }, 220);
+}
+
+// Show/refresh the carousel chrome: chevrons, position indicator dots, and the
+// "Confirm & Import All/Rest" button. Hidden entirely in single-supplier mode.
+function _updatePdfCarouselChrome() {
+  const prevBtn = document.getElementById('pdf-carousel-prev');
+  const nextBtn = document.getElementById('pdf-carousel-next');
+  const indicator = document.getElementById('pdf-carousel-indicator');
+  const importAllBtn = document.getElementById('btn-pdf-preview-confirm-all');
+
+  const sessions = pdfMultiState?.sessions || [];
+  const multi = sessions.length > 1;
+  if (prevBtn) prevBtn.style.display = multi ? 'inline-flex' : 'none';
+  if (nextBtn) nextBtn.style.display = multi ? 'inline-flex' : 'none';
+  if (indicator) indicator.style.display = multi ? '' : 'none';
+
+  if (!pdfMultiState || !multi) {
+    if (importAllBtn) importAllBtn.style.display = 'none';
+    return;
+  }
+
+  const index = pdfMultiState.index;
+  if (prevBtn) {
+    prevBtn.disabled = index === 0;
+    prevBtn.style.opacity = index === 0 ? '0.35' : '1';
+  }
+  if (nextBtn) {
+    nextBtn.disabled = index === sessions.length - 1;
+    nextBtn.style.opacity = index === sessions.length - 1 ? '0.35' : '1';
+  }
+
+  if (indicator) {
+    const dots = sessions.map((s, i) => {
+      const bg = i === index
+        ? 'var(--color-success,#16a34a)'
+        : (s.confirmed ? '#86efac' : 'var(--color-border,#d1d5db)');
+      const title = `${s.preview.supplier_name}${s.confirmed ? ' — imported' : ''}`;
+      return `<span title="${escapeHtml(title)}" onclick="window.sourcingModule.pdfCarouselTo(${i})"
+        style="width:9px; height:9px; border-radius:50%; display:inline-block; cursor:pointer;
+               background:${bg}; transition:background 0.2s ease;"></span>`;
+    }).join('');
+    const confirmedCount = sessions.filter(s => s.confirmed).length;
+    indicator.innerHTML = `
+      <div style="display:flex; align-items:center; justify-content:center; gap:0.6rem;">
+        <span style="display:inline-flex; align-items:center; gap:5px;">${dots}</span>
+        <span style="font-size:0.78rem; color:var(--color-muted,#6b7280);">
+          Supplier ${index + 1} of ${sessions.length}${confirmedCount ? ` · ${confirmedCount} imported` : ''}
+        </span>
+      </div>`;
+  }
+
+  if (importAllBtn) {
+    const remaining = sessions.filter(s => !s.confirmed).length;
+    const anyConfirmed = sessions.some(s => s.confirmed);
+    importAllBtn.style.display = remaining > 0 ? '' : 'none';
+    importAllBtn.innerHTML = anyConfirmed
+      ? `<i class="fas fa-check-double"></i> Confirm &amp; Import Rest (${remaining})`
+      : `<i class="fas fa-check-double"></i> Confirm &amp; Import All (${remaining})`;
+  }
+}
+
+function _resetPdfCarousel() {
+  pdfMultiState = null;
+  pdfSlideBusy = false;
+  const body = document.getElementById('pdf-import-step-2-body');
+  if (body) {
+    body.style.transition = '';
+    body.style.transform = '';
+    body.style.opacity = '';
+  }
+  _updatePdfCarouselChrome();
 }
 
 // Toggle the parsing UI: disable Process button (prevent double-click), lock
@@ -3504,6 +3864,15 @@ const PDF_SUSPICIOUS_ABS = 100;      // or an absolute jump >= 100 in row curren
 
 // AbortController for an in-flight streaming parse (so closing/cancelling stops it).
 let pdfParseAbort = null;
+
+// Multi-supplier carousel state — null in normal single-supplier mode. When a
+// multi-file upload spans several suppliers, each supplier gets a "session":
+// its own parsed preview plus the user's per-preview choices, captured whenever
+// the user slides away so nothing is lost while navigating.
+//   { sessions: [{ supplierId, fileNames, preview, state, confirmed }], index }
+let pdfMultiState = null;
+// Guards against double-clicks while the slide animation is running.
+let pdfSlideBusy = false;
 
 function _pdfDefaultMappingType(u) {
   // Default to mapping by NAME only when a product name is present; fall back to
@@ -3969,12 +4338,26 @@ function _updateConfirmButton() {
   const confirmBtn = document.getElementById('btn-pdf-preview-confirm');
   if (!confirmBtn) return;
 
+  const session = pdfMultiState?.sessions?.[pdfMultiState.index];
+  const multi = (pdfMultiState?.sessions?.length || 0) > 1;
+
+  // Already-imported supplier in the carousel — nothing more to confirm here.
+  if (session?.confirmed) {
+    confirmBtn.disabled = true;
+    confirmBtn.innerHTML = `<i class="fas fa-check-circle"></i> Imported — ${escapeHtml(session.preview.supplier_name)}`;
+    confirmBtn.title = 'This supplier has already been imported';
+    return;
+  }
+
   const totalConflicts = pendingPdfPreview?.conflicts?.length || 0;
   const allResolved = conflictResolutions.size >= totalConflicts;
   const count = _pdfEffectiveUpdateCount();
 
   confirmBtn.disabled = count === 0 || !allResolved;
-  confirmBtn.innerHTML = `<i class="fas fa-check"></i> Confirm &amp; Update ${count} Price${count !== 1 ? 's' : ''}`;
+  const supplierSuffix = multi && session
+    ? ` — ${escapeHtml(session.preview.supplier_name)}`
+    : '';
+  confirmBtn.innerHTML = `<i class="fas fa-check"></i> Confirm &amp; Update ${count} Price${count !== 1 ? 's' : ''}${supplierSuffix}`;
 
   if (totalConflicts > 0 && !allResolved) {
     confirmBtn.title = 'Resolve all conflicts above before confirming';
@@ -3983,13 +4366,16 @@ function _updateConfirmButton() {
   }
 }
 
-async function confirmPdfImport() {
-  const supplierId = pendingPdfPreview?.supplier_id;
-  const defaultCurrency = pendingPdfPreview?.supplier_default_currency;
-  if (supplierId == null) {
-    closePdfImportModal();
-    return;
-  }
+/**
+ * Turn one parsed preview + its interaction state into the writes to perform.
+ * ``st`` is a preview-state object (the live one via _capturePdfPreviewState(),
+ * or a carousel session's saved state), so this works for the active preview
+ * and for not-currently-displayed carousel sessions alike.
+ * Returns { updates, newMappings, newPriceCount, samePriceCount }.
+ */
+function _collectPdfUpdates(preview, st) {
+  const supplierId = preview?.supplier_id;
+  const defaultCurrency = preview?.supplier_default_currency;
 
   // Collect updates keyed by SKU so the same product can't be written twice with
   // different prices (e.g. an auto-matched row AND an unmatched line resolved to
@@ -4000,22 +4386,22 @@ async function confirmPdfImport() {
     updateBySku.set(sku, { sku, supplier_id: supplierId, unit_price, currency: currency || defaultCurrency });
 
   // Auto-matched items — only changed rows the user hasn't excluded.
-  (pendingPdfPreview.preview || []).forEach((item, idx) => {
+  (preview.preview || []).forEach((item, idx) => {
     if (!item.has_change) return;
-    if (pdfExcludedRows.has(idx)) return;
+    if (st.excludedRows.has(idx)) return;
     putUpdate(item.sku, item.new_price, item.new_currency);
   });
 
   // Unchanged rows the user explicitly opted in.
-  (pendingPdfPreview.preview || []).forEach((item, idx) => {
+  (preview.preview || []).forEach((item, idx) => {
     if (item.has_change) return;
-    if (!pdfIncludedNoChangeRows.has(idx)) return;
+    if (!st.includedNoChangeRows.has(idx)) return;
     putUpdate(item.sku, item.new_price, item.new_currency);
   });
 
   // User-resolved conflicts
-  (pendingPdfPreview.conflicts || []).forEach((c, idx) => {
-    const chosen = conflictResolutions.get(_conflictKey(idx));
+  (preview.conflicts || []).forEach((c, idx) => {
+    const chosen = st.conflictResolutions.get(_conflictKey(idx));
     if (chosen == null) return;
 
     if (c.kind === 'price') {
@@ -4031,12 +4417,12 @@ async function confirmPdfImport() {
   // User-matched "unmatched" items: apply the price AND remember the new supplier
   // mapping (using the SKU/name/both choice) so the same line auto-matches next time.
   const newMappings = [];
-  unmatchedResolutions.forEach((choice, idx) => {
-    const u = (pendingPdfPreview.unmatched || [])[idx];
+  st.unmatchedResolutions.forEach((choice, idx) => {
+    const u = (preview.unmatched || [])[idx];
     if (!u || !choice?.sku) return;
     putUpdate(choice.sku, u.price, u.currency);
 
-    const type = unmatchedMappingType.get(idx) || _pdfDefaultMappingType(u);
+    const type = st.unmatchedMappingType.get(idx) || _pdfDefaultMappingType(u);
     const useSku = (type === 'both' || type === 'sku') && u.ref;
     const useName = (type === 'both' || type === 'name') && u.identifier;
     if (useSku || useName) {
@@ -4051,19 +4437,14 @@ async function confirmPdfImport() {
 
   const updates = Array.from(updateBySku.values());
 
-  if (updates.length === 0) {
-    closePdfImportModal();
-    return;
-  }
-
   // Classify each write for the confirmation summary: a new price (the value
   // differs from the current one, or the product had none) vs the same price
   // (re-confirming an unchanged value).
   const skuCurrent = new Map();
-  (pendingPdfPreview.preview || []).forEach(item => {
+  (preview.preview || []).forEach(item => {
     if (item?.sku != null) skuCurrent.set(item.sku, { price: item.current_price, currency: item.current_currency });
   });
-  (pendingPdfPreview.conflicts || []).forEach(c => {
+  (preview.conflicts || []).forEach(c => {
     if (c?.kind === 'price' && c.sku != null) skuCurrent.set(c.sku, { price: c.current_price, currency: c.current_currency });
   });
   let newPriceCount = 0, samePriceCount = 0;
@@ -4076,8 +4457,45 @@ async function confirmPdfImport() {
     else newPriceCount += 1;
   });
 
+  return { updates, newMappings, newPriceCount, samePriceCount };
+}
+
+// Best-effort mapping persistence — a failure here shouldn't block prices.
+async function _savePdfMappings(newMappings) {
+  let saved = 0;
+  for (const m of newMappings) {
+    try {
+      await createSupplierMapping(m);
+      saved += 1;
+    } catch (e) {
+      console.error('[Sourcing] Failed to save mapping for', m.internal_sku, e);
+    }
+  }
+  return saved;
+}
+
+async function confirmPdfImport() {
+  const preview = pendingPdfPreview;
+  if (preview?.supplier_id == null) {
+    closePdfImportModal();
+    return;
+  }
+
+  const multi = (pdfMultiState?.sessions?.length || 0) > 1;
+  const { updates, newMappings, newPriceCount, samePriceCount } =
+    _collectPdfUpdates(preview, _capturePdfPreviewState());
+
+  if (updates.length === 0) {
+    if (multi) {
+      showToast('Nothing selected for this supplier', 'warning');
+      return;
+    }
+    closePdfImportModal();
+    return;
+  }
+
   showImportConfirm({
-    title: 'Confirm price import',
+    title: multi ? `Confirm import — ${preview.supplier_name}` : 'Confirm price import',
     confirmLabel: `Update ${updates.length} product${updates.length !== 1 ? 's' : ''}`,
     lines: [
       { count: newPriceCount, label: `product${newPriceCount !== 1 ? 's' : ''} updated with a new price`, color: 'var(--color-success,#16a34a)' },
@@ -4093,22 +4511,38 @@ async function applyPdfImport(updates, newMappings) {
   setLoading(true);
   try {
     await bulkUpdatePricing(updates);
-
-    // Persist new mappings (best-effort; a failure here shouldn't block prices).
-    let mappingsSaved = 0;
-    for (const m of newMappings) {
-      try {
-        await createSupplierMapping(m);
-        mappingsSaved += 1;
-      } catch (e) {
-        console.error('[Sourcing] Failed to save mapping for', m.internal_sku, e);
-      }
-    }
+    const mappingsSaved = await _savePdfMappings(newMappings);
 
     const count = updates.length;
+    const supplierName = pendingPdfPreview?.supplier_name;
     let msg = `Updated ${count} price${count !== 1 ? 's' : ''} from PDF`;
+    if (pdfMultiState && supplierName) msg = `${supplierName}: updated ${count} price${count !== 1 ? 's' : ''}`;
     if (mappingsSaved > 0) msg += ` · ${mappingsSaved} new mapping${mappingsSaved !== 1 ? 's' : ''} saved`;
     showToast(msg, 'success');
+
+    // Multi-supplier carousel: mark this supplier done and move on to the next
+    // unconfirmed one instead of closing — the rest still need reviewing.
+    if (pdfMultiState) {
+      const { sessions, index } = pdfMultiState;
+      const session = sessions[index];
+      session.confirmed = true;
+      session.state = _capturePdfPreviewState();
+
+      const nextIdx = sessions.findIndex(s => !s.confirmed);
+      if (nextIdx === -1) {
+        closePdfImportModal();
+      } else {
+        // Overlay may have been dropped by the confirm dialog — re-assert it.
+        document.getElementById('pdf-import-overlay')?.classList.add('active');
+        _updateConfirmButton();
+        _updatePdfCarouselChrome();
+        pdfCarouselGo(nextIdx - index);
+      }
+      await loadSupplierMatrix();
+      scheduleGSheetSync();
+      return;
+    }
+
     closePdfImportModal();
     await loadSupplierMatrix();
     scheduleGSheetSync();
@@ -4118,6 +4552,84 @@ async function applyPdfImport(updates, newMappings) {
   } finally {
     setLoading(false);
   }
+}
+
+// "Confirm & Import All/Rest" — apply every not-yet-confirmed supplier session
+// in one go (the active one included), after a single combined summary dialog.
+async function confirmPdfImportAll() {
+  if (!pdfMultiState) return;
+  const { sessions, index } = pdfMultiState;
+
+  // Save the active preview's choices so its session state is current.
+  sessions[index].state = _capturePdfPreviewState();
+
+  const pending = sessions.filter(s => !s.confirmed);
+  if (pending.length === 0) {
+    closePdfImportModal();
+    return;
+  }
+
+  // Every pending supplier must have its conflicts resolved first — jump to the
+  // first one that doesn't so the user can fix it.
+  const blocked = pending.find(s =>
+    (s.preview.conflicts?.length || 0) > s.state.conflictResolutions.size);
+  if (blocked) {
+    showToast(`Resolve the conflicts for ${blocked.preview.supplier_name} first`, 'warning');
+    const i = sessions.indexOf(blocked);
+    if (i !== pdfMultiState.index) pdfCarouselGo(i - pdfMultiState.index);
+    return;
+  }
+
+  const perSupplier = pending
+    .map(s => ({ session: s, ...(_collectPdfUpdates(s.preview, s.state)) }))
+    .filter(x => x.updates.length > 0);
+
+  if (perSupplier.length === 0) {
+    showToast('Nothing selected to import', 'warning');
+    return;
+  }
+
+  const totalUpdates = perSupplier.reduce((n, x) => n + x.updates.length, 0);
+  const totalMappings = perSupplier.reduce((n, x) => n + x.newMappings.length, 0);
+
+  showImportConfirm({
+    title: `Confirm import — ${perSupplier.length} supplier${perSupplier.length !== 1 ? 's' : ''}`,
+    confirmLabel: `Update ${totalUpdates} product${totalUpdates !== 1 ? 's' : ''}`,
+    lines: [
+      ...perSupplier.map(x => ({
+        count: x.updates.length,
+        label: `price${x.updates.length !== 1 ? 's' : ''} for ${x.session.preview.supplier_name}`,
+        color: 'var(--color-success,#16a34a)',
+      })),
+      { count: totalMappings, label: `product${totalMappings !== 1 ? 's' : ''} to be mapped`, color: 'var(--color-warning,#d97706)' },
+    ],
+    totalLine: { count: totalUpdates, label: `product${totalUpdates !== 1 ? 's' : ''} updated in total` },
+    onConfirm: async () => {
+      setLoading(true);
+      try {
+        let done = 0;
+        for (const x of perSupplier) {
+          await bulkUpdatePricing(x.updates);
+          await _savePdfMappings(x.newMappings);
+          x.session.confirmed = true;
+          done += 1;
+        }
+        showToast(`Imported prices for ${done} supplier${done !== 1 ? 's' : ''}`, 'success');
+        closePdfImportModal();
+        await loadSupplierMatrix();
+        scheduleGSheetSync();
+      } catch (error) {
+        console.error('[Sourcing] Error applying multi-supplier import:', error);
+        showToast('Failed to apply price updates: ' + (error.message || 'Unknown error'), 'error');
+        // Some suppliers may have gone through — reflect what's left.
+        document.getElementById('pdf-import-overlay')?.classList.add('active');
+        _updateConfirmButton();
+        _updatePdfCarouselChrome();
+      } finally {
+        setLoading(false);
+      }
+    },
+  });
 }
 
 // ============================================================================
@@ -4726,6 +5238,7 @@ window.sourcingModule = {
   deleteMapping,
   resolveConflict,
   resolveUnmatched,
+  pdfCarouselTo: (i) => pdfCarouselGo(i - (pdfMultiState?.index ?? 0)),
   pdfMatchedPage: (page) => { pdfMatchedView.page = page; renderPdfMatched(); },
   pdfUnmatchedPage: (page) => { pdfUnmatchedView.page = page; renderPdfUnmatched(); },
   mapPdfPage: (page) => { mapPdfView.page = page; renderMapPdfUnmapped(); },

@@ -364,6 +364,20 @@ class PdfSupplierIdentifyResponse(BaseModel):
     confidence: float = 0.0
 
 
+class PdfSupplierIdentifyFileResult(PdfSupplierIdentifyResponse):
+    """Per-file detection result inside a batch identify response."""
+    # 0-based position of the file in the upload order (the frontend uses it to
+    # group its File objects by supplier).
+    index: int = 0
+    filename: Optional[str] = None
+
+
+class PdfSupplierIdentifyBatchResponse(BaseModel):
+    """Per-file AI supplier detection for a multi-PDF upload (no DB changes)."""
+    enabled: bool = False
+    results: List[PdfSupplierIdentifyFileResult] = []
+
+
 # ============================================================================
 # SUPPLIER PRODUCT MAPPING SCHEMAS
 # ============================================================================
