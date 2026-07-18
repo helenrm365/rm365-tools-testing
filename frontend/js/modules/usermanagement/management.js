@@ -483,6 +483,8 @@ function resetEmailVerificationUI() {
   $('#formEmail').readOnly = false;
   const inputMsg = $('#emailInputMsg');
   if (inputMsg) { inputMsg.style.display = 'none'; inputMsg.textContent = ''; }
+  const sendBtn2 = $('#emailSendCodeBtn');
+  if (sendBtn2) sendBtn2.disabled = true;
   const msg = $('#emailCodeMsg');
   msg.style.display = 'none';
   msg.textContent = '';
@@ -719,7 +721,7 @@ function wireUserModal() {
     msg.style.display = 'none';
     msg.textContent = '';
     const sendBtn = $('#emailSendCodeBtn');
-    sendBtn.disabled = false;
+    sendBtn.disabled = true;  // re-gate until valid email typed
     sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i><span>Send Code</span>';
     $('#emailResendBtn').disabled = false;
   }
@@ -740,29 +742,13 @@ function wireUserModal() {
     showEmailInputStep();
   });
 
-  // Email input — live validation feedback
+  // Email input — silent format gating (enables Send Code only when valid)
   const _emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  const _sendCodeBtn = $('#emailSendCodeBtn');
+  if (_sendCodeBtn) _sendCodeBtn.disabled = true;
   $('#formEmail')?.addEventListener('input', () => {
     const val = ($('#formEmail').value || '').trim();
-    const msg = $('#emailInputMsg');
-    const btn = $('#emailSendCodeBtn');
-    if (!val) {
-      msg.style.display = 'none';
-      msg.textContent = '';
-      btn.disabled = false;
-      return;
-    }
-    if (_emailRe.test(val)) {
-      msg.style.display = 'block';
-      msg.style.color = '#065f46';
-      msg.textContent = '\u2713 Looks good';
-      btn.disabled = false;
-    } else {
-      msg.style.display = 'block';
-      msg.style.color = '#b91c1c';
-      msg.textContent = 'Please enter a valid email address';
-      btn.disabled = true;
-    }
+    $('#emailSendCodeBtn').disabled = !_emailRe.test(val);
   });
 
   // "Send Code"
@@ -805,7 +791,7 @@ function wireUserModal() {
 
       const msg = $('#emailCodeMsg');
       msg.style.color = '#065f46';
-      msg.textContent = `Code sent to ${email} — enter it below.`;
+      msg.textContent = `Code sent to ${email} — if it's a valid address, check your inbox.`;
       msg.style.display = 'block';
 
       fadeEmailStep($('#emailInputRow'), $('#emailCodeRow'), () => {
