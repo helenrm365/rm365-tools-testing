@@ -351,6 +351,19 @@ class PdfImportPreviewResponse(BaseModel):
     extraction_confidence: float = 0.0
 
 
+class PdfSupplierIdentifyResponse(BaseModel):
+    """AI guess of which supplier a PDF price list belongs to (no DB changes)."""
+    # False when the AI tiers are disabled/unconfigured — caller falls back to
+    # manual supplier selection.
+    enabled: bool = False
+    # Supplier name read off the document (None if undetectable).
+    detected_name: Optional[str] = None
+    # A known supplier the detection maps to, if any.
+    matched_supplier_id: Optional[int] = None
+    matched_supplier_name: Optional[str] = None
+    confidence: float = 0.0
+
+
 # ============================================================================
 # SUPPLIER PRODUCT MAPPING SCHEMAS
 # ============================================================================

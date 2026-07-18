@@ -161,6 +161,74 @@ def request_layout_profile(page_text: str) -> Dict:
     return _sanitise_profile(data)
 
 
+def identify_supplier(page_text: str, candidates: List[Dict]) -> Dict:
+    """
+    Text-only call — read the SUPPLIER/VENDOR issuing a price list / invoice and,
+    where possible, match it to one of the caller's known suppliers.
+
+    ``candidates`` is a list of ``{"code": ..., "name": ...}`` for the existing
+    suppliers. The model returns the code of the one it matches (or '' for none),
+    so the caller resolves the id from its own authoritative list and never trusts
+    a model-invented id.
+
+    Returns a dict:
+      {"detected_name": "ACME Foods Ltd", "matched_code": "ACME", "confidence": 0.0-1.0}
+
+    Raises PdfAiUnavailable on any problem (caller falls back to manual selection).
+    """
+    if not is_enabled():
+        raise PdfAiUnavailable("AI disabled or no GEMINI_API_KEY configured")
+    if not (page_text or "").strip():
+        raise PdfAiUnavailable("empty page text")
+
+    known_lines = "\n".join(
+        f"- {str(c.get('code', '')).strip()}: {str(c.get('name', '')).strip()}"
+        for c in (candidates or [])
+        if str(c.get('code', '')).strip()
+    ) or "(no known suppliers)"
+
+    prompt = (
+        "You are reading the first page of a supplier price list / invoice / quotation.\n"
+        "Identify the SUPPLIER (the vendor / seller ISSUING the document — the company "
+        "whose products and prices are listed). This is NOT the customer / buyer / "
+        "'bill to' / 'ship to' party, which you must ignore.\n\n"
+        "Then decide whether that supplier is one of these KNOWN suppliers "
+        "(format 'CODE: Name'):\n"
+        f"{known_lines}\n\n"
+        "Return:\n"
+        "- detected_name: the supplier's name exactly as printed on the document "
+        "(empty string if you genuinely cannot tell).\n"
+        "- matched_code: the CODE of the known supplier it clearly is, or '' if it does "
+        "not confidently match any known supplier (a different legal entity, a new "
+        "supplier, or you are unsure). Match on the company identity, tolerating minor "
+        "spelling/suffix differences (Ltd, GmbH, S.r.l.).\n"
+        "- confidence: 0.0-1.0, how sure you are of detected_name.\n\n"
+        "Document text:\n\n" + page_text[:8000]
+    )
+
+    schema = {
+        "type": "object",
+        "properties": {
+            "detected_name": {"type": "string"},
+            "matched_code": {"type": "string"},
+            "confidence": {"type": "number"},
+        },
+        "required": ["detected_name"],
+    }
+
+    data = _generate(parts=[{"text": prompt}], schema=schema)
+    conf = data.get("confidence")
+    try:
+        conf = max(0.0, min(1.0, float(conf)))
+    except (TypeError, ValueError):
+        conf = 0.0
+    return {
+        "detected_name": str(data.get("detected_name", "") or "").strip(),
+        "matched_code": str(data.get("matched_code", "") or "").strip(),
+        "confidence": conf,
+    }
+
+
 def extract_line_items(pdf_bytes: bytes) -> Tuple[List[Dict], Dict[int, str]]:
     """
     Tier 3 — hand the whole PDF to Gemini and get normalised line items back.

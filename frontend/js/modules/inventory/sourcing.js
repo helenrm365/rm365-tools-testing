@@ -38,9 +38,11 @@ import {
   deleteSupplierMapping,
   importMappingsFile,
   importMatrixPDF,
-  importMatrixPDFStream
+  importMatrixPDFStream,
+  identifyPdfSupplier
 } from '../../services/api/sourcingApi.js';
 import { initCombobox, pruneDetachedComboboxes, closeOpenCombobox } from '../../ui/combobox.js?v=2';
+import { confirmModal } from '../../ui/confirmationModal.js';
 
 // ============================================================================
 // CURRENCY HELPERS
@@ -496,10 +498,7 @@ function setupEventListeners() {
   document.getElementById('btn-mapping-pdf-process')?.addEventListener('click', processMappingPdfImport);
   document.getElementById('btn-mapping-pdf-back')?.addEventListener('click', showMappingPdfStep1);
   document.getElementById('btn-mapping-pdf-confirm')?.addEventListener('click', confirmMappingPdfImport);
-  document.getElementById('mapping-pdf-supplier')?.addEventListener('change', (e) => {
-    const processBtn = document.getElementById('btn-mapping-pdf-process');
-    if (processBtn) processBtn.disabled = !e.target.value || !pendingMapPdfFiles.length;
-  });
+  // Supplier is optional up front (the AI detects it) — nothing to toggle on change.
   document.getElementById('mapping-pdf-unmapped-search')?.addEventListener('input', (e) => {
     mapPdfView.query = e.target.value;
     mapPdfView.page = 1;
@@ -3060,7 +3059,7 @@ async function openPdfImportModal() {
   // Populate supplier dropdown
   const select = document.getElementById('pdf-import-supplier');
   if (select) {
-    select.innerHTML = '<option value="">— Choose a supplier —</option>';
+    select.innerHTML = '<option value="">— Auto-detect from PDF —</option>';
     (state.suppliers || []).forEach(s => {
       const opt = document.createElement('option');
       opt.value = s.id;
@@ -3107,30 +3106,105 @@ function setPdfFiles(fileList) {
   const filenameEl = document.getElementById('pdf-import-filename');
   if (filenameEl) filenameEl.textContent = _describePdfSelection(pdfs);
   const processBtn = document.getElementById('btn-pdf-import-process');
-  if (processBtn) {
-    const supplierId = document.getElementById('pdf-import-supplier')?.value;
-    processBtn.disabled = !supplierId || !pdfs.length;
-  }
+  // Supplier is optional up front (the AI detects it) — enable once files exist.
+  if (processBtn) processBtn.disabled = !pdfs.length;
 }
 
 function handlePdfFileSelect(e) {
   setPdfFiles(e.target.files);
 }
 
-// Watch supplier selection to enable/disable process button
-document.addEventListener('change', (e) => {
-  if (e.target.id === 'pdf-import-supplier') {
-    const processBtn = document.getElementById('btn-pdf-import-process');
-    if (processBtn) processBtn.disabled = !e.target.value || !pendingPdfFiles.length;
+/**
+ * Detect the PDF's supplier with the AI and reconcile it against what the user
+ * has (or hasn't) selected, BEFORE the main parse. Shared by the matrix and
+ * mappings importers. Returns ``{ proceed, supplierId }``:
+ *   - proceed=false  → caller must stop (a message/redirect was already shown).
+ *   - proceed=true   → parse with the returned supplierId.
+ *
+ * Behaviour:
+ *   • No supplier chosen + detected a KNOWN supplier → auto-select it, continue.
+ *   • No supplier chosen + detected an UNKNOWN supplier → offer to create it
+ *     (redirect to the Suppliers tab), then stop.
+ *   • No supplier chosen + nothing detected → ask the user to pick one, stop.
+ *   • Supplier chosen but the AI detects a DIFFERENT known supplier → confirm
+ *     switch-or-keep, continue with the chosen answer.
+ *   • Otherwise → continue with the user's selection.
+ *
+ * @param {{ selectedId: number|null, files: File[], signal?: AbortSignal, closeModal?: Function }} opts
+ * @returns {Promise<{proceed: boolean, supplierId?: number}>}
+ */
+async function _reconcilePdfSupplier({ selectedId, files, signal, closeModal }) {
+  let detection = null;
+  try {
+    detection = await identifyPdfSupplier(files, { signal });
+  } catch (e) {
+    if (e?.name === 'AbortError') return { proceed: false };
+    // Detection is advisory — a failure must never block a manual import.
+    console.warn('[Sourcing] Supplier detection failed:', e);
   }
-});
+
+  const enabled = !!detection?.enabled;
+  const matchedId = detection?.matched_supplier_id || null;
+  const matchedName = detection?.matched_supplier_name || null;
+  const detectedName = (detection?.detected_name || '').trim();
+
+  // --- No supplier selected yet ---
+  if (!selectedId) {
+    if (matchedId) {
+      showToast(`Detected supplier: ${matchedName}`, 'success');
+      return { proceed: true, supplierId: matchedId };
+    }
+    if (enabled && detectedName) {
+      // A supplier was read off the PDF but it isn't one we know — steer the
+      // user to create it first, then re-run the import.
+      const go = await confirmModal({
+        title: 'Supplier not found',
+        message: `This looks like a price list from <strong>${escapeHtml(detectedName)}</strong>, `
+          + `which isn’t one of your suppliers yet. Create it first, then come back and run the import again.`,
+        confirmText: 'Go to Suppliers',
+        cancelText: 'Cancel',
+        confirmVariant: 'primary',
+        icon: 'fas fa-user-plus',
+      });
+      if (go) {
+        closeModal?.();
+        showToast(`Create the supplier “${detectedName}”, then re-run the import.`, 'info');
+        switchTab('suppliers');
+      }
+      return { proceed: false };
+    }
+    // AI disabled or couldn't tell — fall back to a manual choice.
+    showToast('Could not detect the supplier — please choose one from the list.', 'warning');
+    return { proceed: false };
+  }
+
+  // --- A supplier is already selected ---
+  if (matchedId && matchedId !== selectedId) {
+    const selected = (state.suppliers || []).find(s => s.id === selectedId);
+    const keepName = selected ? selected.name : 'your selection';
+    const switchIt = await confirmModal({
+      title: 'Supplier mismatch',
+      message: `The PDF looks like it’s from <strong>${escapeHtml(matchedName)}</strong>, `
+        + `but you selected <strong>${escapeHtml(keepName)}</strong>. `
+        + `Switch to the detected supplier, or keep your selection?`,
+      confirmText: `Switch to ${matchedName}`,
+      cancelText: `Keep ${keepName}`,
+      confirmVariant: 'warning',
+      icon: 'fas fa-exchange-alt',
+    });
+    return { proceed: true, supplierId: switchIt ? matchedId : selectedId };
+  }
+
+  // Selection matches the detection, or detection was inconclusive — trust it.
+  return { proceed: true, supplierId: selectedId };
+}
 
 async function processPdfImport() {
-  const supplierId = document.getElementById('pdf-import-supplier')?.value;
-  if (!supplierId || !pendingPdfFiles.length) {
-    showToast('Please select a supplier and at least one PDF file', 'warning');
+  if (!pendingPdfFiles.length) {
+    showToast('Please choose at least one PDF file', 'warning');
     return;
   }
+  const selectedId = parseInt(document.getElementById('pdf-import-supplier')?.value) || null;
 
   const processBtn = document.getElementById('btn-pdf-import-process');
   const supplierSelect = document.getElementById('pdf-import-supplier');
@@ -3138,10 +3212,29 @@ async function processPdfImport() {
 
   _setPdfParsing(true);
 
-  // Allow the parse to be aborted if the user cancels/closes the modal.
+  // Allow the parse (and the detection call) to be aborted if the user
+  // cancels/closes the modal.
   pdfParseAbort = new AbortController();
 
   try {
+    // --- Detect + reconcile the supplier before parsing ---
+    _updatePdfProgress(-1, 'Detecting supplier…');
+    const recon = await _reconcilePdfSupplier({
+      selectedId,
+      files: pendingPdfFiles,
+      signal: pdfParseAbort.signal,
+      closeModal: closePdfImportModal,
+    });
+    if (!recon.proceed) return; // messaging/redirect already handled
+    const supplierId = recon.supplierId;
+    // A confirm dialog (switch/keep) can drop the modal's active class on
+    // confirm — re-assert it so parsing stays visible behind the progress bar.
+    document.getElementById('pdf-import-overlay')?.classList.add('active');
+    // Reflect the resolved supplier in the dropdown so the UI stays truthful.
+    if (supplierSelect && String(supplierSelect.value) !== String(supplierId)) {
+      supplierSelect.value = String(supplierId);
+    }
+
     // Load the internal product list (for the unmatched picker) alongside parsing.
     const productsPromise = _ensureInternalProductsLoaded();
 
@@ -3178,7 +3271,8 @@ async function processPdfImport() {
     _setPdfParsing(false);
     if (supplierSelect) supplierSelect.disabled = false;
     if (dropZone) dropZone.style.pointerEvents = '';
-    if (processBtn) processBtn.disabled = !document.getElementById('pdf-import-supplier')?.value || !pendingPdfFiles.length;
+    // Supplier is now optional up front — the AI detects it — so gate on files only.
+    if (processBtn) processBtn.disabled = !pendingPdfFiles.length;
   }
 }
 
@@ -4071,7 +4165,7 @@ async function openMappingPdfModal() {
 
   const select = document.getElementById('mapping-pdf-supplier');
   if (select) {
-    select.innerHTML = '<option value="">— Choose a supplier —</option>';
+    select.innerHTML = '<option value="">— Auto-detect from PDF —</option>';
     (state.suppliers || []).forEach(s => {
       const opt = document.createElement('option');
       opt.value = s.id;
@@ -4117,10 +4211,8 @@ function setMapPdfFiles(fileList) {
   const filenameEl = document.getElementById('mapping-pdf-filename');
   if (filenameEl) filenameEl.textContent = _describePdfSelection(pdfs);
   const processBtn = document.getElementById('btn-mapping-pdf-process');
-  if (processBtn) {
-    const supplierId = document.getElementById('mapping-pdf-supplier')?.value;
-    processBtn.disabled = !supplierId || !pdfs.length;
-  }
+  // Supplier is optional up front (the AI detects it) — enable once files exist.
+  if (processBtn) processBtn.disabled = !pdfs.length;
 }
 
 function handleMapPdfFileSelect(e) {
@@ -4161,17 +4253,35 @@ function _updateMapPdfProgress(percent, message) {
 }
 
 async function processMappingPdfImport() {
-  const supplierId = document.getElementById('mapping-pdf-supplier')?.value;
-  if (!supplierId || !pendingMapPdfFiles.length) {
-    showToast('Please select a supplier and at least one PDF file', 'warning');
+  if (!pendingMapPdfFiles.length) {
+    showToast('Please choose at least one PDF file', 'warning');
     return;
   }
+  const selectedId = parseInt(document.getElementById('mapping-pdf-supplier')?.value) || null;
 
   const processBtn = document.getElementById('btn-mapping-pdf-process');
+  const supplierSelect = document.getElementById('mapping-pdf-supplier');
   _setMapPdfParsing(true);
   mapPdfParseAbort = new AbortController();
 
   try {
+    // --- Detect + reconcile the supplier before parsing ---
+    _updateMapPdfProgress(-1, 'Detecting supplier…');
+    const recon = await _reconcilePdfSupplier({
+      selectedId,
+      files: pendingMapPdfFiles,
+      signal: mapPdfParseAbort.signal,
+      closeModal: closeMappingPdfModal,
+    });
+    if (!recon.proceed) return; // messaging/redirect already handled
+    const supplierId = recon.supplierId;
+    // A confirm dialog (switch/keep) can drop the modal's active class on
+    // confirm — re-assert it so parsing stays visible behind the progress bar.
+    document.getElementById('mapping-pdf-overlay')?.classList.add('active');
+    if (supplierSelect && String(supplierSelect.value) !== String(supplierId)) {
+      supplierSelect.value = String(supplierId);
+    }
+
     const productsPromise = _ensureInternalProductsLoaded();
 
     let result;
@@ -4203,7 +4313,8 @@ async function processMappingPdfImport() {
   } finally {
     mapPdfParseAbort = null;
     _setMapPdfParsing(false);
-    if (processBtn) processBtn.disabled = !document.getElementById('mapping-pdf-supplier')?.value || !pendingMapPdfFiles.length;
+    // Supplier is optional up front (the AI detects it) — gate on files only.
+    if (processBtn) processBtn.disabled = !pendingMapPdfFiles.length;
   }
 }
 

@@ -26,6 +26,7 @@ from .schemas import (
     SupplierProductMappingCreateIn,
     SupplierProductMappingOut,
     PdfImportPreviewResponse,
+    PdfSupplierIdentifyResponse,
 )
 from .service import (
     SourcingService, PdfParseCancelled, merge_pdfs, dedupe_pdf_blobs,
@@ -460,6 +461,34 @@ async def import_matrix_pdf(
     except Exception as e:
         logger.error(f"Error parsing PDF: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/import/pdf/identify-supplier", response_model=PdfSupplierIdentifyResponse)
+async def identify_pdf_supplier(
+    files: Optional[Union[UploadFile, List[UploadFile]]] = File(None),
+    file: Optional[UploadFile] = File(None),
+    user=Depends(get_current_user)
+):
+    """
+    Best-effort AI detection of which supplier a PDF price list belongs to, run
+    BEFORE the main parse so the importer can auto-select the supplier (when none
+    is chosen), confirm a mismatch, or steer the user to create a missing one.
+
+    Reads only the first uploaded PDF's first page, so it is cheap. Never fails
+    the request for AI/parse problems — returns ``enabled=False`` / no match and
+    the caller falls back to manual selection.
+    """
+    try:
+        uploads = _gather_pdf_uploads(files, file)
+        # First document is representative — no need to merge/read the rest.
+        contents = await uploads[0].read()
+        return _svc().identify_pdf_supplier(contents)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error identifying PDF supplier: {e}")
+        # Detection is advisory — degrade gracefully rather than blocking import.
+        return PdfSupplierIdentifyResponse()
 
 
 @router.post("/import/pdf/stream")

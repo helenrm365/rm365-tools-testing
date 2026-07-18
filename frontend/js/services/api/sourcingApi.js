@@ -482,6 +482,21 @@ export async function importMappingsFile(file) {
  * @param {number} supplierId - Supplier ID the PDF(s) belong to
  * @returns {Promise<{supplier_id, supplier_name, preview: Array, unmatched: Array, total_found, total_matched, total_unmatched}>}
  */
+/**
+ * Ask the AI to detect which supplier one or more PDF price lists belong to,
+ * BEFORE parsing. Only the first file is inspected server-side (its first page),
+ * so this is cheap. Never throws for AI/parse problems — resolves with
+ * ``enabled: false`` / no match so the caller falls back to manual selection.
+ * @param {File|File[]} files - one or more PDF files (first is representative)
+ * @param {{ signal?: AbortSignal }} [opts]
+ * @returns {Promise<{enabled: boolean, detected_name: string|null, matched_supplier_id: number|null, matched_supplier_name: string|null, confidence: number}>}
+ */
+export async function identifyPdfSupplier(files, { signal } = {}) {
+  const formData = new FormData();
+  (Array.isArray(files) ? files : [files]).forEach(f => formData.append('files', f));
+  return await http(`${BASE_PATH}/import/pdf/identify-supplier`, { method: 'POST', body: formData, signal });
+}
+
 export async function importMatrixPDF(files, supplierId, { signal } = {}) {
   try {
     const formData = new FormData();

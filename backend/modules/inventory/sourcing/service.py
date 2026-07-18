@@ -1600,6 +1600,76 @@ class SourcingService:
     # PDF IMPORT
     # ========================================================================
 
+    def identify_pdf_supplier(self, pdf_bytes: bytes) -> Dict:
+        """
+        Best-effort AI guess of which supplier a PDF price list belongs to.
+
+        Reads the first page's text and asks the AI to name the issuing supplier
+        and match it to one of the existing suppliers. Never raises for AI/parse
+        problems — degrades to ``enabled=False`` / no match so the importer can
+        fall back to manual supplier selection.
+
+        Returns:
+          {
+            'enabled': bool,                    # AI tiers configured & switched on
+            'detected_name': str | None,        # supplier name read off the PDF
+            'matched_supplier_id': int | None,  # a known supplier it maps to
+            'matched_supplier_name': str | None,
+            'confidence': float,                # 0.0-1.0
+          }
+        """
+        from . import pdf_ai
+
+        result = {
+            'enabled': False,
+            'detected_name': None,
+            'matched_supplier_id': None,
+            'matched_supplier_name': None,
+            'confidence': 0.0,
+        }
+
+        # Cheapest possible exit: no AI configured → skip reading the PDF entirely.
+        if not pdf_ai.is_enabled():
+            return result
+        result['enabled'] = True
+
+        import pdfplumber
+        import io
+
+        try:
+            with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
+                page_text = self._first_page_text(pdf.pages)
+        except Exception as e:  # noqa: BLE001 — a bad PDF must not break detection
+            logger.info(f"identify_pdf_supplier: could not read PDF text: {e}")
+            return result
+
+        if not (page_text or '').strip():
+            return result
+
+        suppliers = self.repo.get_suppliers(active_only=False)
+        candidates = [{'code': s['code'], 'name': s['name']} for s in suppliers]
+
+        try:
+            ai = pdf_ai.identify_supplier(page_text, candidates)
+        except pdf_ai.PdfAiUnavailable as e:
+            logger.info(f"identify_pdf_supplier: AI unavailable: {e}")
+            return result
+
+        result['detected_name'] = ai.get('detected_name') or None
+        result['confidence'] = ai.get('confidence', 0.0)
+
+        code = (ai.get('matched_code') or '').strip().lower()
+        if code:
+            match = next(
+                (s for s in suppliers if str(s['code']).strip().lower() == code),
+                None,
+            )
+            if match:
+                result['matched_supplier_id'] = match['id']
+                result['matched_supplier_name'] = match['name']
+
+        return result
+
     def import_matrix_pdf(self, pdf_bytes: bytes, supplier_id: int, progress_cb=None,
                           progress_floor: int = 0) -> Dict:
         """
