@@ -2264,6 +2264,11 @@ function renderSupplierGrid() {
   `).join('');
 }
 
+// When another flow (e.g. the PDF importer) opens the Add Supplier modal to
+// create a supplier mid-task, this holds a resolver that receives the newly
+// created supplier (or null if the modal is cancelled) so that flow can carry on.
+let _supplierModalResolver = null;
+
 function openAddSupplierModal() {
   document.getElementById('supplier-modal-title').textContent = 'Add Supplier';
   document.getElementById('supplier-form').reset();
@@ -2271,6 +2276,23 @@ function openAddSupplierModal() {
   document.getElementById('supplier-active').checked = true;
   document.getElementById('btn-delete-supplier').style.display = 'none';
   document.getElementById('supplier-modal-overlay').classList.add('active');
+}
+
+/**
+ * Open the same Add Supplier modal the Suppliers tab uses, but as a picker: the
+ * returned promise resolves with the created supplier once the user saves, or
+ * null if they cancel/close it. Callers that show their own modal underneath
+ * should hide it first and restore it after (the supplier modal shares the same
+ * z-index layer).
+ * @returns {Promise<{id:number, name:string, code:string}|null>}
+ */
+function _createSupplierViaSuppliersModal() {
+  return new Promise((resolve) => {
+    // If something was already waiting, don't strand it.
+    if (_supplierModalResolver) _supplierModalResolver(null);
+    _supplierModalResolver = resolve;
+    openAddSupplierModal();
+  });
 }
 
 function openEditSupplierModal(supplierId) {
@@ -2297,6 +2319,12 @@ function openEditSupplierModal(supplierId) {
 
 function closeSupplierModal() {
   document.getElementById('supplier-modal-overlay').classList.remove('active');
+  // Cancelled/closed without saving → let any waiting picker flow know.
+  if (_supplierModalResolver) {
+    const resolve = _supplierModalResolver;
+    _supplierModalResolver = null;
+    resolve(null);
+  }
 }
 
 async function handleSaveSupplier() {
@@ -2321,14 +2349,23 @@ async function handleSaveSupplier() {
   }
   
   try {
+    let createdSupplier = null;
     if (supplierId) {
       await updateSupplier(parseInt(supplierId), data);
       showToast('Supplier updated', 'success');
     } else {
-      await createSupplier(data);
+      createdSupplier = await createSupplier(data);
       showToast('Supplier created', 'success');
     }
-    
+
+    // Hand the new supplier back to any waiting picker flow BEFORE closing, so
+    // closeSupplierModal() doesn't resolve it as a cancellation.
+    if (_supplierModalResolver) {
+      const resolve = _supplierModalResolver;
+      _supplierModalResolver = null;
+      resolve(createdSupplier);
+    }
+
     closeSupplierModal();
     await loadSuppliers();
     
@@ -3223,32 +3260,26 @@ async function processPdfImport() {
   pdfParseAbort = new AbortController();
 
   try {
-    // --- Multi-supplier path: several files + auto-detect. Each file is
-    // detected individually; if they span more than one supplier the carousel
-    // flow takes over (one preview per supplier). ---
-    let supplierId = null;
-    if (!selectedId && pendingPdfFiles.length > 1) {
-      const multi = await _tryMultiSupplierPdfImport();
-      if (multi.mode === 'handled') return; // carousel shown / cancelled / redirected
-      if (multi.mode === 'single-known') {
-        // All files belong to one known supplier — skip the second detection.
-        supplierId = multi.supplierId;
-        showToast(`Detected supplier: ${multi.supplierName}`, 'success');
-      }
+    // --- No supplier chosen up front → auto-detect per file. The user confirms
+    // or adjusts each PDF's supplier (or skips it) before anything is parsed;
+    // each supplier's files are then imported as their own preview. ---
+    if (!selectedId) {
+      await _autoDetectAndImport();
+      return;
     }
 
-    if (!supplierId) {
-      // --- Detect + reconcile the supplier before parsing ---
-      _updatePdfProgress(-1, 'Detecting supplier…');
-      const recon = await _reconcilePdfSupplier({
-        selectedId,
-        files: pendingPdfFiles,
-        signal: pdfParseAbort.signal,
-        closeModal: closePdfImportModal,
-      });
-      if (!recon.proceed) return; // messaging/redirect already handled
-      supplierId = recon.supplierId;
-    }
+    // --- A supplier was chosen up front → single-supplier import: all files go
+    // to that supplier, with a switch/keep confirm if the AI is confident they
+    // actually belong to a different known supplier. ---
+    _updatePdfProgress(-1, 'Detecting supplier…');
+    const recon = await _reconcilePdfSupplier({
+      selectedId,
+      files: pendingPdfFiles,
+      signal: pdfParseAbort.signal,
+      closeModal: closePdfImportModal,
+    });
+    if (!recon.proceed) return; // messaging/redirect already handled
+    const supplierId = parseInt(recon.supplierId);
     // A confirm dialog (switch/keep) can drop the modal's active class on
     // confirm — re-assert it so parsing stays visible behind the progress bar.
     document.getElementById('pdf-import-overlay')?.classList.add('active');
@@ -3257,33 +3288,13 @@ async function processPdfImport() {
       supplierSelect.value = String(supplierId);
     }
 
-    // Load the internal product list (for the unmatched picker) alongside parsing.
-    const productsPromise = _ensureInternalProductsLoaded();
-
-    let result;
-    try {
-      result = await importMatrixPDFStream(pendingPdfFiles, parseInt(supplierId), {
-        signal: pdfParseAbort.signal,
-        onProgress: (percent, message) => _updatePdfProgress(percent, message),
-      });
-    } catch (streamErr) {
-      if (streamErr.name === 'AbortError') return; // user cancelled — stay silent
-      if (streamErr.fromSse) throw streamErr;       // real parse error — don't retry
-      // Transport/streaming unavailable (older server / proxy buffering) — fall
-      // back to the plain endpoint so the importer still works.
-      console.warn('[Sourcing] PDF streaming failed, falling back:', streamErr);
-      _updatePdfProgress(-1, 'Parsing…');
-      result = await importMatrixPDF(pendingPdfFiles, parseInt(supplierId), {
-        signal: pdfParseAbort.signal,
-      });
-    }
-
-    await productsPromise;
-    pendingPdfPreview = result;
-    renderPdfPreview(result);
-    document.getElementById('pdf-import-modal-title').textContent =
-      `PDF Preview — ${result.supplier_name}`;
-    showPdfImportStep2();
+    const supplierName = (state.suppliers || []).find(s => s.id === supplierId)?.name || '';
+    await _runGroupedImport([{
+      supplierId,
+      supplierName,
+      files: pendingPdfFiles,
+      fileNames: pendingPdfFiles.map((f, i) => f.name || `PDF ${i + 1}`),
+    }]);
   } catch (error) {
     if (error?.name === 'AbortError') return;
     console.error('[Sourcing] Error processing PDF:', error);
@@ -3307,136 +3318,144 @@ async function processPdfImport() {
 // own confirm button, and a "Confirm & Import All/Rest" applies the remainder.
 
 /**
- * Per-file supplier detection + grouping for a multi-file upload. Returns:
- *   { mode: 'single' }                          → batch detection unavailable /
- *     inconclusive — continue with the existing single-supplier flow.
- *   { mode: 'single-known', supplierId, supplierName } → every file belongs to
- *     the same known supplier — parse directly with it (skip re-detection).
- *   { mode: 'handled' }                         → multi flow took over (carousel
- *     shown), or the user cancelled / was redirected. Caller must stop.
+ * No-supplier-chosen import: detect each PDF's supplier, let the user confirm or
+ * adjust the matches (assign the unmatched ones, correct the wrong ones, skip the
+ * ones they don't want), then import each supplier's files as its own preview.
+ *
+ * Only the confident, unambiguous case skips the confirmation modal: every file
+ * maps to the SAME known supplier with nothing unmatched → straight to preview.
+ * Anything else — several suppliers, an unmatched file, or nothing detected —
+ * opens the assignment modal so the user is always in control (and a wrong AI
+ * guess can never silently import against the wrong supplier or break the batch).
  */
-async function _tryMultiSupplierPdfImport() {
-  _updatePdfProgress(-1, 'Detecting suppliers…');
+async function _autoDetectAndImport() {
+  _updatePdfProgress(-1, 'Detecting supplier…');
 
+  // Best-effort per-file detection. A failure (older server / AI off) just means
+  // nothing is pre-filled — the user assigns suppliers by hand in the modal.
   let batch = null;
   try {
     batch = await identifyPdfSuppliers(pendingPdfFiles, { signal: pdfParseAbort.signal });
   } catch (e) {
-    if (e?.name === 'AbortError') return { mode: 'handled' };
-    // Older server / transport problem — the single-supplier flow still works.
+    if (e?.name === 'AbortError') return;
     console.warn('[Sourcing] Batch supplier detection unavailable:', e);
-    return { mode: 'single' };
   }
-  if (!batch?.enabled) return { mode: 'single' };
 
-  // Group the files by detected supplier, preserving upload order.
-  const results = batch.results || [];
-  const groups = new Map(); // supplierId → { supplierId, supplierName, files, fileNames }
-  const unknown = [];       // files with no known-supplier match
-  pendingPdfFiles.forEach((f, i) => {
+  const results = batch?.results || [];
+  const rows = pendingPdfFiles.map((f, i) => {
     const r = results.find(x => x.index === i) || {};
-    const fname = r.filename || f.name || `PDF ${i + 1}`;
-    const sid = r.matched_supplier_id || null;
-    if (sid) {
-      if (!groups.has(sid)) {
-        groups.set(sid, { supplierId: sid, supplierName: r.matched_supplier_name || `Supplier ${sid}`, files: [], fileNames: [] });
-      }
-      const g = groups.get(sid);
-      g.files.push(f);
-      g.fileNames.push(fname);
-    } else {
-      unknown.push({ file: f, fileName: fname, detectedName: (r.detected_name || '').trim() });
-    }
+    return {
+      file: f,
+      fileName: r.filename || f.name || `PDF ${i + 1}`,
+      detectedName: (r.detected_name || '').trim(),
+      matchedSupplierId: r.matched_supplier_id || null,
+      matchedSupplierName: r.matched_supplier_name || null,
+    };
   });
 
-  // Nothing matched any known supplier → let the existing single-supplier flow
-  // handle messaging (create-supplier redirect / manual pick).
-  if (groups.size === 0) return { mode: 'single' };
+  const matchedIds = new Set(rows.filter(r => r.matchedSupplierId).map(r => r.matchedSupplierId));
+  const allMatchedOne = rows.length > 0 && matchedIds.size === 1 && rows.every(r => r.matchedSupplierId);
 
-  // Exactly one known supplier and nothing unknown → plain single import.
-  if (groups.size === 1 && unknown.length === 0) {
-    const only = groups.values().next().value;
-    return { mode: 'single-known', supplierId: only.supplierId, supplierName: only.supplierName };
+  // Confident happy path: every file maps to the same known supplier → import
+  // straight away (covers the common single-file / single-supplier upload).
+  if (allMatchedOne) {
+    const only = rows.find(r => r.matchedSupplierId);
+    showToast(`Detected supplier: ${only.matchedSupplierName}`, 'success');
+    await _runGroupedImport(_groupRowsBySupplier(
+      rows.map(r => ({ ...r, supplierId: r.matchedSupplierId, supplierName: r.matchedSupplierName }))
+    ));
+    return;
   }
 
-  const groupList = [...groups.values()];
-
-  // --- Popup: multiple suppliers detected — confirm before continuing ---
-  const groupLines = groupList.map(g =>
-    `<li style="margin:0.2rem 0;"><strong>${escapeHtml(g.supplierName)}</strong>` +
-    ` <span style="color:var(--color-muted,#6b7280);">— ${g.fileNames.map(escapeHtml).join(', ')}</span></li>`
-  ).join('');
-  const unknownLines = unknown.map(u =>
-    `<li style="margin:0.2rem 0;"><strong>${escapeHtml(u.detectedName || 'Unknown supplier')}</strong>` +
-    ` <span style="color:var(--color-muted,#6b7280);">— ${escapeHtml(u.fileName)}</span></li>`
-  ).join('');
-  const proceed = await confirmModal({
-    title: 'Multiple suppliers detected',
-    message: `These PDFs look like they come from <strong>${groupList.length + (unknown.length ? 1 : 0) > 1 ? 'different suppliers' : 'more than one document'}</strong>, `
-      + `so they’ll be imported separately — one preview per supplier:`
-      + `<ul style="margin:0.5rem 0 0; padding-left:1.1rem; text-align:left;">${groupLines}${unknownLines}</ul>`,
-    confirmText: 'Continue',
-    cancelText: 'Cancel',
-    confirmVariant: 'primary',
-    icon: 'fas fa-layer-group',
-  });
-  // The confirm dialog drops the import modal's active class — re-assert it.
+  // Everything else needs a human eye: confirm / correct / assign each file.
+  const res = await _promptSupplierAssignments({ rows, suppliers: state.suppliers || [] });
+  // The assignment modal takes the import overlay's active class — re-assert it.
   document.getElementById('pdf-import-overlay')?.classList.add('active');
-  if (!proceed) return { mode: 'handled' };
 
-  // --- Files whose supplier isn't set up yet: add first, or skip them ---
-  if (unknown.length) {
-    const skipIt = await confirmModal({
-      title: 'Some suppliers aren’t set up yet',
-      message: `${unknown.length === 1 ? 'This file' : 'These files'} couldn’t be matched to any of your suppliers:`
-        + `<ul style="margin:0.5rem 0; padding-left:1.1rem; text-align:left;">${unknownLines}</ul>`
-        + `We suggest adding ${unknown.length === 1 ? 'that supplier' : 'those suppliers'} before importing — `
-        + `or continue now and ${unknown.length === 1 ? 'this file' : 'they'} will simply be skipped (you can import ${unknown.length === 1 ? 'it' : 'them'} later).`,
-      confirmText: `Continue & skip ${unknown.length === 1 ? 'it' : `${unknown.length} files`}`,
-      cancelText: 'Add supplier first',
-      confirmVariant: 'warning',
-      icon: 'fas fa-user-plus',
-    });
-    document.getElementById('pdf-import-overlay')?.classList.add('active');
-    if (!skipIt) {
-      const names = unknown.map(u => u.detectedName).filter(Boolean);
-      closePdfImportModal();
-      showToast(
-        names.length
-          ? `Create ${names.map(n => `“${n}”`).join(', ')}, then re-run the import.`
-          : 'Create the missing supplier(s), then re-run the import.',
-        'info'
-      );
-      switchTab('suppliers');
-      return { mode: 'handled' };
+  if (!res || res.action === 'cancel') return; // stay on step 1 so they can retry
+
+  // action === 'continue' — skipped files are already dropped from assignments.
+  // (A supplier can be created mid-flow from inside the modal; that new supplier
+  // is already reflected here as a normal assignment.)
+  if (!res.assignments.length) {
+    showToast('No files were assigned to a supplier.', 'warning');
+    return;
+  }
+  await _runGroupedImport(_groupRowsBySupplier(res.assignments));
+}
+
+// Fold a flat list of per-file rows ({ file, fileName, supplierId, supplierName })
+// into one group per supplier, preserving upload order. Rows without a real
+// supplier id are dropped (they were skipped).
+function _groupRowsBySupplier(rows) {
+  const groups = new Map(); // supplierId → { supplierId, supplierName, files, fileNames }
+  for (const r of rows || []) {
+    const sid = parseInt(r.supplierId);
+    if (!sid) continue;
+    if (!groups.has(sid)) {
+      groups.set(sid, { supplierId: sid, supplierName: r.supplierName || `Supplier ${sid}`, files: [], fileNames: [] });
     }
+    const g = groups.get(sid);
+    g.files.push(r.file);
+    g.fileNames.push(r.fileName);
+  }
+  return [...groups.values()];
+}
+
+/**
+ * Parse each supplier group as its own import and load them into the preview
+ * carousel. A single group renders as a plain (chrome-less) preview.
+ *
+ * Robustness: a group that fails to parse (e.g. a file that isn't actually a
+ * price list, or a wrong-supplier guess that produced garbage) is SKIPPED with a
+ * warning rather than aborting the whole batch — the other suppliers still
+ * preview. Only if every group fails do we surface a hard error.
+ *
+ * @param {Array<{supplierId:number, supplierName:string, files:File[], fileNames:string[]}>} groups
+ */
+async function _runGroupedImport(groups) {
+  if (!groups || !groups.length) {
+    showToast('No files were assigned to a supplier.', 'warning');
+    return;
   }
 
-  // --- Parse each supplier's files as its own import, sequentially ---
   const productsPromise = _ensureInternalProductsLoaded();
   const sessions = [];
-  const n = groupList.length;
+  const failed = []; // { supplierName, error }
+  const n = groups.length;
+
   for (let g = 0; g < n; g++) {
-    const grp = groupList[g];
+    const grp = groups[g];
+    const sid = parseInt(grp.supplierId);
     const base = Math.round((g * 100) / n);
-    _updatePdfProgress(base, `Parsing ${grp.supplierName} (${g + 1} of ${n})…`);
+    _updatePdfProgress(base, n > 1 ? `Parsing ${grp.supplierName} (${g + 1} of ${n})…` : 'Parsing…');
+
     let result;
     try {
-      result = await importMatrixPDFStream(grp.files, grp.supplierId, {
-        signal: pdfParseAbort.signal,
-        onProgress: (percent, message) => {
-          const scaled = Math.round((g * 100 + Math.max(0, Math.min(100, percent))) / n);
-          _updatePdfProgress(scaled, `${grp.supplierName} (${g + 1}/${n}): ${message}`);
-        },
-      });
-    } catch (streamErr) {
-      if (streamErr.name === 'AbortError') return { mode: 'handled' };
-      if (streamErr.fromSse) throw streamErr; // real parse error — surfaces via caller's toast
-      console.warn('[Sourcing] PDF streaming failed, falling back:', streamErr);
-      result = await importMatrixPDF(grp.files, grp.supplierId, { signal: pdfParseAbort.signal });
+      try {
+        result = await importMatrixPDFStream(grp.files, sid, {
+          signal: pdfParseAbort.signal,
+          onProgress: (percent, message) => {
+            const scaled = Math.round((g * 100 + Math.max(0, Math.min(100, percent))) / n);
+            _updatePdfProgress(scaled, n > 1 ? `${grp.supplierName} (${g + 1}/${n}): ${message}` : message);
+          },
+        });
+      } catch (streamErr) {
+        if (streamErr.name === 'AbortError') return; // user cancelled — abort the whole batch
+        if (streamErr.fromSse) throw streamErr;       // real parse error — handled below
+        console.warn('[Sourcing] PDF streaming failed, falling back:', streamErr);
+        result = await importMatrixPDF(grp.files, sid, { signal: pdfParseAbort.signal });
+      }
+    } catch (parseErr) {
+      if (parseErr?.name === 'AbortError') return;
+      // One supplier's files couldn't be parsed — skip it, keep the rest going.
+      console.error(`[Sourcing] Failed to parse ${grp.supplierName}:`, parseErr);
+      failed.push({ supplierName: grp.supplierName, error: parseErr });
+      continue;
     }
+
     sessions.push({
-      supplierId: grp.supplierId,
+      supplierId: sid,
       fileNames: grp.fileNames,
       preview: result,
       state: _defaultPdfPreviewState(result),
@@ -3445,10 +3464,199 @@ async function _tryMultiSupplierPdfImport() {
   }
   await productsPromise;
 
+  if (!sessions.length) {
+    // Every group failed — surface the error instead of an empty preview.
+    const detail = failed[0]?.error?.message ? ` (${failed[0].error.message})` : '';
+    showToast(`Couldn’t parse ${failed.map(f => f.supplierName).join(', ') || 'the PDF(s)'}${detail}.`, 'error');
+    return;
+  }
+
+  if (failed.length) {
+    showToast(
+      `Skipped ${failed.map(f => f.supplierName).join(', ')} — couldn’t parse ${failed.length === 1 ? 'that file' : 'those files'}.`,
+      'warning'
+    );
+  }
+
+  document.getElementById('pdf-import-overlay')?.classList.add('active');
   pdfMultiState = { sessions, index: 0 };
   _loadPdfSession(0);
   showPdfImportStep2();
-  return { mode: 'handled' };
+}
+
+/**
+ * Interactive per-file supplier picker shown before parsing. Each PDF gets a
+ * dropdown pre-filled with its detected supplier (or "Skip" when nothing matched)
+ * so the user can confirm good matches, fix wrong ones, assign the unmatched, and
+ * leave out any file they don't want. Also offers an "Add a supplier" shortcut to
+ * the Suppliers tab for PDFs from a supplier that doesn't exist yet.
+ *
+ * @param {{ rows: Array<{file:File, fileName:string, detectedName:string, matchedSupplierId:number|null, matchedSupplierName:string|null}>, suppliers: Array<{id:number, name:string, code?:string}> }} opts
+ * @returns {Promise<{action:'continue', assignments:Array<{file:File, fileName:string, supplierId:number, supplierName:string}>} | {action:'cancel'} | {action:'create'}>}
+ */
+function _promptSupplierAssignments({ rows, suppliers }) {
+  return new Promise((resolve) => {
+    const supplierList = suppliers || [];
+    const supplierById = new Map(supplierList.map(s => [String(s.id), s]));
+    const optionFor = (s, selectedVal) =>
+      `<option value="${s.id}"${String(s.id) === selectedVal ? ' selected' : ''}>` +
+      `${escapeHtml(s.name)}${s.code ? ` (${escapeHtml(String(s.code))})` : ''}</option>`;
+
+    const rowsHtml = rows.map((r, i) => {
+      let detail;
+      if (r.matchedSupplierId) {
+        detail = `<i class="fas fa-check-circle" style="color:var(--color-success,#16a34a);"></i> Detected: <strong>${escapeHtml(r.matchedSupplierName || '')}</strong>`;
+      } else if (r.detectedName) {
+        detail = `<i class="fas fa-exclamation-circle" style="color:var(--color-warning,#d97706);"></i> Looks like “${escapeHtml(r.detectedName)}” — not one of your suppliers`;
+      } else {
+        detail = `<i class="fas fa-question-circle" style="color:var(--color-muted,#6b7280);"></i> No supplier detected — choose one`;
+      }
+      const selected = r.matchedSupplierId ? String(r.matchedSupplierId) : 'skip';
+      const opts = supplierList.map(s => optionFor(s, selected)).join('');
+      return `
+        <div style="display:flex; gap:0.75rem; align-items:center; padding:0.65rem 0; border-bottom:1px solid var(--color-border,#eef0f2);">
+          <div style="flex:1 1 0; min-width:0;">
+            <div style="font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtml(r.fileName)}">
+              <i class="fas fa-file-pdf" style="color:var(--color-muted,#9ca3af); margin-right:0.4rem;"></i>${escapeHtml(r.fileName)}
+            </div>
+            <div style="font-size:0.8rem; color:var(--color-muted,#6b7280); margin-top:0.15rem;">${detail}</div>
+          </div>
+          <select data-assign-idx="${i}" class="pdf-assign-select"
+                  style="flex:0 0 auto; max-width:220px; padding:0.45rem 0.6rem; border:1px solid var(--color-border,#d1d5db); border-radius:8px; background:var(--color-bg,#fff); color:var(--color-text,#111827); font-size:0.85rem;">
+            <option value="skip"${selected === 'skip' ? ' selected' : ''}>⊘ Skip this file</option>
+            ${opts}
+          </select>
+        </div>`;
+    }).join('');
+
+    const multi = rows.length > 1;
+    const title = multi ? 'Confirm suppliers' : 'Confirm supplier';
+    const intro = multi
+      ? 'We matched a supplier to each PDF. Check them below and fix any that are wrong — each supplier imports as its own preview. Set a file to <strong>Skip</strong> to leave it out, or use <strong>Add a supplier</strong> for one that isn’t in your list yet.'
+      : 'Choose the supplier this PDF belongs to. If it isn’t one of your suppliers yet, use <strong>Add a supplier</strong> to create it here.';
+
+    const container = document.createElement('div');
+    container.id = 'pdfSupplierAssignContainer';
+    container.style.position = 'relative';
+    container.style.zIndex = '10001';
+    container.innerHTML = `
+      <div class="modal-backdrop" id="pdfSupplierAssignBackdrop">
+        <div class="modal" style="max-width:560px;">
+          <div class="modal-header modal-header-primary">
+            <div class="modal-header-icon"><i class="fas fa-layer-group"></i></div>
+            <h3 class="modal-title">${title}</h3>
+          </div>
+          <div class="modal-body">
+            <p style="margin:0 0 0.85rem; color:var(--color-text,#374151); font-size:0.9rem;">${intro}</p>
+            <div style="max-height:340px; overflow-y:auto;">${rowsHtml}</div>
+          </div>
+          <div class="modal-footer" style="justify-content:space-between; gap:0.5rem; flex-wrap:wrap;">
+            <button class="btn btn-solid btn-default rounded-lg" id="pdfAssignAddSupplier" style="font-size:0.82rem;">
+              <i class="fas fa-user-plus"></i> Add a supplier
+            </button>
+            <div style="display:flex; gap:0.5rem;">
+              <button class="btn btn-solid btn-default rounded-lg" id="pdfAssignCancel">Cancel</button>
+              <button class="btn btn-solid btn-primary rounded-lg" id="pdfAssignContinue">Continue</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    document.body.appendChild(container);
+
+    // Hide the import overlay while this sits on top (avoids a double-dimmed
+    // backdrop); the caller re-asserts it after we resolve.
+    const importOverlay = document.getElementById('pdf-import-overlay');
+    importOverlay?.classList.remove('active');
+
+    const backdrop = container.querySelector('#pdfSupplierAssignBackdrop');
+    const continueBtn = container.querySelector('#pdfAssignContinue');
+    const cancelBtn = container.querySelector('#pdfAssignCancel');
+    const addBtn = container.querySelector('#pdfAssignAddSupplier');
+    const selects = Array.from(container.querySelectorAll('.pdf-assign-select'));
+
+    const refreshContinue = () => {
+      const count = selects.filter(sel => sel.value !== 'skip').length;
+      continueBtn.disabled = count === 0;
+      continueBtn.style.opacity = count === 0 ? '0.5' : '1';
+      continueBtn.style.cursor = count === 0 ? 'not-allowed' : '';
+      continueBtn.innerHTML = count > 0
+        ? `<i class="fas fa-check"></i> Continue${multi ? ` (${count})` : ''}`
+        : 'Continue';
+    };
+
+    let done = false;
+    const cleanup = () => {
+      backdrop.classList.remove('active');
+      document.removeEventListener('keydown', onKey);
+      setTimeout(() => container.remove(), 200);
+    };
+    const finish = (value) => { if (done) return; done = true; cleanup(); resolve(value); };
+    const onKey = (e) => {
+      // Ignore Escape while the Add Supplier modal is open on top of us — it
+      // handles its own dismissal; this modal must stay put underneath.
+      const supplierModalOpen = document.getElementById('supplier-modal-overlay')?.classList.contains('active');
+      if (e.key === 'Escape' && !supplierModalOpen) {
+        finish({ action: 'cancel' });
+      }
+    };
+
+    selects.forEach(sel => sel.addEventListener('change', refreshContinue));
+    cancelBtn.addEventListener('click', () => finish({ action: 'cancel' }));
+    // Create a supplier without losing the batch: open the SAME Add Supplier
+    // modal the Suppliers tab uses (hiding this modal + the import overlay while
+    // it's on top), then come straight back here. The new supplier is added to
+    // every dropdown and auto-assigned to the first still-skipped (unmatched)
+    // file, so the already-matched files are untouched.
+    addBtn.addEventListener('click', async () => {
+      const importOverlay = document.getElementById('pdf-import-overlay');
+      backdrop.classList.remove('active');
+      importOverlay?.classList.remove('active');
+
+      let created = null;
+      try {
+        created = await _createSupplierViaSuppliersModal();
+      } finally {
+        // Always bring the PDF assignment view back, saved or cancelled.
+        importOverlay?.classList.add('active');
+        backdrop.classList.add('active');
+      }
+      if (!created) return; // cancelled — nothing changed, matches preserved
+
+      supplierList.push(created);
+      supplierById.set(String(created.id), created);
+      const label = `${created.name}${created.code ? ` (${created.code})` : ''}`;
+      selects.forEach(sel => {
+        const opt = document.createElement('option');
+        opt.value = String(created.id);
+        opt.textContent = label; // textContent — no manual escaping needed
+        sel.appendChild(opt);
+      });
+      // Assign it to the first unmatched file (or the only file, single-PDF case).
+      const target = selects.find(sel => sel.value === 'skip') || selects[0];
+      if (target) target.value = String(created.id);
+      refreshContinue();
+    });
+    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) finish({ action: 'cancel' }); });
+    continueBtn.addEventListener('click', () => {
+      if (continueBtn.disabled) return;
+      const assignments = [];
+      selects.forEach((sel, i) => {
+        if (sel.value === 'skip') return;
+        const s = supplierById.get(String(sel.value));
+        assignments.push({
+          file: rows[i].file,
+          fileName: rows[i].fileName,
+          supplierId: parseInt(sel.value),
+          supplierName: s ? s.name : `Supplier ${sel.value}`,
+        });
+      });
+      finish({ action: 'continue', assignments });
+    });
+    document.addEventListener('keydown', onKey);
+
+    refreshContinue();
+    requestAnimationFrame(() => requestAnimationFrame(() => backdrop.classList.add('active')));
+  });
 }
 
 // The interaction state renderPdfPreview() resets to: nothing resolved, all
