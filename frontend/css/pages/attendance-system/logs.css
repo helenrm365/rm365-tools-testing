@@ -1,220 +1,533 @@
-/* ===== Attendance Logs Page (Attendance System) ===== */
-/* Page-specific styles for attendance-system/logs.html */
-/* 
-   Global Components Used (from css/):
-   - layout/header.css: .page-header, .page-title, .page-subtitle, .header-content
-   - components/buttons-nextui.css: .btn, .btn-solid, .btn-flat, .btn-primary, .btn-default
-   - components/cards.css: .action-block, .block-header, .block-icon, .block-title-group, .block-title, .block-subtitle, .block-content
-   - components/forms.css: .form-group, .form-label, input
-   - components/tabs.css: .nui-tabs, .nui-tab
-   - components/tables.css: table styles
-   
-   Shadow System (from SHADOW_SYSTEM.md):
-   - .action-block uses shadow-l (main container)
-   - .stat-card uses shadow-m (nested card)
-   - buttons/inputs use shadow-m
-*/
+/* ============================================================
+   TIMESHEETS & LOGS PAGE (Attendance System)
+   Scope: .attendance-logs
+   Design language shared with the Staff Directory revamp:
+   - overview stats strip
+   - dismissible quick-start banner
+   - numbered step cards (Filter -> Review -> Export)
+   Shared components come from:
+   - components/cards.css: .action-block, .block-header, .block-icon,
+     .block-title-group, .block-title, .block-subtitle, .block-content,
+     .stat-card, .stat-icon, .stat-info, .stat-value, .stat-label
+   - components/modals.css: .modal-overlay, .steps-list, .step-item
+   - components/buttons-nextui.css / inputs-nextui.css: .btn*, .nui-*
+   ============================================================ */
 
-/* ===== Page Scope ===== */
+/* =========================================================
+   1. PAGE SCOPE
+   ========================================================= */
 .attendance-logs {
-  display: block;
-  font-family: var(--ff);
-  color: var(--text-muted);
-  transition: all var(--transition);
-  padding: 0.5rem 1rem;
-  min-height: calc(100vh - 40px);
-  background: var(--bg-dark);
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 1rem 2rem;
 }
 
-/* ===== Logs Content Layout ===== */
 .attendance-logs .logs-wrapper {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-  margin-bottom: 3rem;
+  gap: 1.25rem;
 }
 
-/* ===== Block Icon Color Variants ===== */
-.attendance-logs .stats-icon {
-  background: color-mix(in srgb, var(--info) 15%, transparent);
-  color: var(--info);
+.attendance-logs .help-button {
+  margin-left: auto;
 }
 
-.attendance-logs .filter-icon {
-  background: color-mix(in srgb, var(--accent) 15%, transparent);
-  color: var(--accent);
-}
-
-.attendance-logs .results-icon {
-  background: color-mix(in srgb, var(--success) 15%, transparent);
-  color: var(--success);
-}
-
-.attendance-logs .export-icon-block {
-  background: color-mix(in srgb, var(--warning) 15%, transparent);
-  color: var(--warning);
-}
-
-/* ===== Stats Grid ===== */
-.attendance-logs .stats-grid {
+/* =========================================================
+   2. OVERVIEW STATS STRIP
+   ========================================================= */
+.attendance-logs .logs-stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1rem;
 }
 
-.attendance-logs .stat-card {
+.attendance-logs .logs-stats-grid .stat-card {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-  background: var(--bg-light);
-  border-radius: 12px;
+  gap: 0.875rem;
+  padding: 1rem 1.25rem;
+  background: var(--bg-card);
+  border: 1px solid transparent;
+  border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+
+html.dark-mode .attendance-logs .logs-stats-grid .stat-card {
+  border-color: color-mix(in srgb, var(--text-muted) 15%, transparent);
+}
+
+.attendance-logs .logs-stats-grid .stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .attendance-logs .stat-icon {
   width: 44px;
   height: 44px;
-  border-radius: 10px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.125rem;
+  font-size: 1.1rem;
   flex-shrink: 0;
 }
 
 .attendance-logs .stat-icon.total-icon {
-  background: color-mix(in srgb, var(--info) 15%, transparent);
+  background: color-mix(in srgb, var(--info) 14%, transparent);
   color: var(--info);
 }
 
 .attendance-logs .stat-icon.date-icon {
-  background: color-mix(in srgb, var(--accent) 15%, transparent);
-  color: var(--accent);
-}
-
-.attendance-logs .stat-icon.employees-icon {
-  background: color-mix(in srgb, var(--success) 15%, transparent);
-  color: var(--success);
-}
-
-.attendance-logs .stat-icon.locations-icon {
-  background: color-mix(in srgb, var(--warning) 15%, transparent);
+  background: color-mix(in srgb, var(--warning) 14%, transparent);
   color: var(--warning);
 }
 
+.attendance-logs .stat-icon.employees-icon {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent);
+}
+
+.attendance-logs .stat-icon.locations-icon {
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  color: var(--danger);
+}
+
 .attendance-logs .stat-info {
-  flex: 1;
   min-width: 0;
 }
 
 .attendance-logs .stat-value {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--text);
+  font-size: 1.5rem;
+  font-weight: 800;
   line-height: 1.2;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .attendance-logs .stat-label {
-  font-size: 0.8rem;
+  font-size: 0.78rem;
+  font-weight: 600;
   color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
-/* ===== Filter Grid ===== */
-.attendance-logs .filter-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
+/* =========================================================
+   3. QUICK START STRIP (dismissible)
+   ========================================================= */
+.attendance-logs .quick-start {
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--accent) 8%, var(--bg)),
+    var(--bg));
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  border-radius: 16px;
+  padding: 1.25rem 1.5rem;
+  animation: logsFadeIn 0.35s ease;
 }
 
-.attendance-logs .filter-actions {
-  display: flex;
-  gap: 0.75rem;
-  margin-top: 1rem;
-  flex-wrap: wrap;
+@keyframes logsFadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-.attendance-logs .filter-actions .btn {
-  flex: 1 1 auto;
-  min-width: 140px;
+.attendance-logs .quick-start.hidden {
+  display: none;
 }
 
-/* Form inputs now use nui-field/nui-input from inputs-nextui.css */
-
-/* ===== Results Section ===== */
-.attendance-logs .results-header {
+.attendance-logs .quick-start-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  flex-wrap: wrap;
+  margin-bottom: 1rem;
 }
 
-.attendance-logs .results-stats {
+.attendance-logs .quick-start-title {
   display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-  font-size: 0.875rem;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.attendance-logs .quick-start-title i {
+  color: var(--accent);
+  font-size: 1.1rem;
+}
+
+.attendance-logs .quick-start-title h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.attendance-logs .quick-start-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.875rem;
+}
+
+.attendance-logs .quick-step {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.875rem 1rem;
+  background: var(--bg-card);
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+html.dark-mode .attendance-logs .quick-step {
+  box-shadow: none;
+  border: 1px solid color-mix(in srgb, var(--text-muted) 12%, transparent);
+}
+
+.attendance-logs .quick-step-num {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  color: white;
+  font-weight: 700;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.attendance-logs .quick-step-body h4 {
+  margin: 0 0 0.25rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.attendance-logs .quick-step-body h4 i {
+  color: var(--accent);
+  font-size: 0.8rem;
+}
+
+.attendance-logs .quick-step-body p {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.45;
   color: var(--text-muted);
 }
 
-.attendance-logs .results-stats span {
+/* =========================================================
+   4. STEP CARDS (numbered workflow badges)
+   ========================================================= */
+.attendance-logs .step-card .block-header {
+  position: relative;
+}
+
+.attendance-logs .step-badge {
+  position: absolute;
+  top: -0.4rem;
+  left: -0.4rem;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  color: white;
+  font-size: 0.72rem;
+  font-weight: 800;
   display: flex;
   align-items: center;
-  gap: 0.375rem;
+  justify-content: center;
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--accent) 45%, transparent);
+  z-index: 1;
 }
 
-.attendance-logs .results-stats strong {
-  color: var(--text);
+/* Block icon colors per step */
+.attendance-logs .filter-icon {
+  background: color-mix(in srgb, var(--info) 14%, transparent) !important;
+  color: var(--info) !important;
+}
+
+.attendance-logs .results-icon {
+  background: color-mix(in srgb, var(--accent) 14%, transparent) !important;
+  color: var(--accent) !important;
+}
+
+.attendance-logs .export-icon-block {
+  background: color-mix(in srgb, var(--warning) 14%, transparent) !important;
+  color: var(--warning) !important;
+}
+
+/* =========================================================
+   5. FILTER CARD
+   ========================================================= */
+/* Track the .block-content flex gap (components/cards.css) so the collapsed
+   chips bar can cancel it out exactly at every breakpoint. */
+.attendance-logs .block-content {
+  --content-gap: 1.25rem;
+}
+
+@media (max-width: 768px) {
+  .attendance-logs .block-content { --content-gap: 1rem; }
+}
+
+@media (max-width: 480px) {
+  .attendance-logs .block-content { --content-gap: 0.75rem; }
+}
+
+.attendance-logs .filter-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
+  gap: 0.875rem 1rem;
+}
+
+/* --- Active filter chips --- */
+/* The outer element is a pure height animator (grid 0fr -> 1fr) so the bar
+   slides open AND closed, smoothly pushing the content below it. The
+   negative margin cancels the parent flex gap while collapsed so spacing
+   between the filter grid and actions stays even. */
+.attendance-logs .active-filters {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  visibility: hidden;
+  margin-bottom: calc(var(--content-gap, 1.25rem) * -1);
+  transition:
+    grid-template-rows 0.3s ease,
+    opacity 0.22s ease,
+    margin-bottom 0.3s ease,
+    visibility 0s linear 0.3s;
+}
+
+.attendance-logs .active-filters.visible {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  visibility: visible;
+  margin-bottom: 0;
+  transition:
+    grid-template-rows 0.3s ease,
+    opacity 0.22s ease 0.08s,
+    margin-bottom 0.3s ease,
+    visibility 0s linear 0s;
+}
+
+.attendance-logs .reveal-clip {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.attendance-logs .active-filters-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.625rem;
+  padding: 0.625rem 1rem;
+  background: color-mix(in srgb, var(--info) 7%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--info) 35%, transparent);
+  border-radius: 12px;
+}
+
+.attendance-logs .active-filters-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
   font-weight: 600;
+  color: var(--info);
+  white-space: nowrap;
 }
 
-/* ===== Logs Table ===== */
-.attendance-logs .logs-table-wrapper {
-  overflow-x: auto;
-  overscroll-behavior-x: none;
-  border-radius: 10px;
+.attendance-logs .filter-chips {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.attendance-logs .filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.25rem 0.375rem 0.25rem 0.75rem;
   background: var(--bg-light);
+  border: 1px solid color-mix(in srgb, var(--info) 30%, transparent);
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.attendance-logs .filter-chip .chip-kind {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.attendance-logs .filter-chip .chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--info) 12%, transparent);
+  color: var(--info);
+  font-size: 0.65rem;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.attendance-logs .filter-chip .chip-remove:hover {
+  background: var(--danger);
+  color: white;
+}
+
+.attendance-logs .clear-filters-btn {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.attendance-logs .filter-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.attendance-logs .filter-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0 auto;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  opacity: 0.85;
+}
+
+.attendance-logs .filter-hint i {
+  color: var(--accent);
+}
+
+.attendance-logs .filter-hint kbd {
+  display: inline-block;
+  padding: 0.1rem 0.4rem;
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid color-mix(in srgb, var(--text-muted) 30%, transparent);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+}
+
+/* =========================================================
+   6. RESULTS CARD & TABLE
+   ========================================================= */
+
+/* Result meta chips inside the block subtitle (#logsStats) */
+.attendance-logs .results-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.25rem;
+}
+
+.attendance-logs .results-meta .meta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: color-mix(in srgb, var(--text-muted) 10%, transparent);
+  color: var(--text-muted);
+}
+
+.attendance-logs .results-meta .meta-chip strong {
+  color: var(--text);
+  font-weight: 800;
+}
+
+.attendance-logs .results-meta .meta-chip.chip-in {
+  background: color-mix(in srgb, var(--success) 12%, transparent);
+  color: var(--success);
+}
+
+.attendance-logs .results-meta .meta-chip.chip-in strong {
+  color: var(--success);
+}
+
+.attendance-logs .results-meta .meta-chip.chip-out {
+  background: color-mix(in srgb, var(--warning) 14%, transparent);
+  color: var(--warning);
+}
+
+.attendance-logs .results-meta .meta-chip.chip-out strong {
+  color: var(--warning);
+}
+
+/* Table */
+.attendance-logs .table-container {
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--text-muted) 12%, transparent);
 }
 
 .attendance-logs .logs-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 500px;
+  font-size: 0.9rem;
 }
 
 .attendance-logs .logs-table th {
-  padding: 0.875rem 1rem;
+  padding: 0.75rem 1rem;
   text-align: left;
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--text-muted);
   background: var(--bg);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  border-bottom: 2px solid color-mix(in srgb, var(--accent) 30%, transparent);
   cursor: pointer;
   user-select: none;
-  transition: background var(--transition);
+  white-space: nowrap;
+  transition: color var(--transition), background-color var(--transition);
 }
 
 .attendance-logs .logs-table th:hover {
-  background: var(--bg-dark);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 6%, var(--bg));
 }
 
 .attendance-logs .logs-table th .sort-icon {
-  margin-left: 0.5rem;
-  font-size: 0.7rem;
-  opacity: 0.5;
+  display: inline-block;
+  margin-left: 0.35rem;
+  font-size: 0.72rem;
+  color: var(--accent);
 }
 
 .attendance-logs .logs-table td {
-  padding: 0.875rem 1rem;
-  font-size: 0.9rem;
+  padding: 0.7rem 1rem;
   color: var(--text);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  border-bottom: 1px solid color-mix(in srgb, var(--text-muted) 10%, transparent);
+  background: var(--bg-light);
 }
 
-.attendance-logs .logs-table tbody tr:hover {
+.attendance-logs .logs-table tbody tr {
+  transition: background-color var(--transition);
+}
+
+.attendance-logs .logs-table tbody tr:hover td {
   background: var(--bg);
 }
 
@@ -222,320 +535,344 @@
   border-bottom: none;
 }
 
-html.dark-mode .attendance-logs .logs-table th {
-  border-bottom-color: rgba(255, 255, 255, 0.1);
+/* Employee cell with avatar initials (rendered by JS) */
+.attendance-logs .employee-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-width: 0;
 }
 
-html.dark-mode .attendance-logs .logs-table td {
-  border-bottom-color: rgba(255, 255, 255, 0.08);
+.attendance-logs .employee-cell-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--accent-dark);
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
 }
 
-/* ===== Status Badges ===== */
+html.dark-mode .attendance-logs .employee-cell-avatar {
+  color: var(--accent-light);
+}
+
+.attendance-logs .employee-cell-name {
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Time cell */
+.attendance-logs .time-cell {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+/* Direction badges */
 .attendance-logs .status-badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.375rem;
-  padding: 0.25rem 0.625rem;
-  border-radius: 6px;
-  font-size: 0.8rem;
-  font-weight: 500;
+  gap: 0.4rem;
+  padding: 0.28rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .attendance-logs .status-badge.status-in {
-  background: color-mix(in srgb, var(--success) 15%, transparent);
+  background: color-mix(in srgb, var(--success) 13%, transparent);
   color: var(--success);
 }
 
 .attendance-logs .status-badge.status-out {
-  background: color-mix(in srgb, var(--error) 15%, transparent);
-  color: var(--error);
+  background: color-mix(in srgb, var(--warning) 15%, transparent);
+  color: var(--warning);
 }
 
-/* ===== Export Settings ===== */
-.attendance-logs .export-settings-container {
-  margin-bottom: 1.25rem;
+/* Footnote under the table */
+.attendance-logs .results-footnote {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 1.5rem;
-  user-select: none;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  opacity: 0.85;
+}
+
+.attendance-logs .results-footnote i {
+  color: var(--info);
+}
+
+/* =========================================================
+   7. EXPORT CARD
+   ========================================================= */
+.attendance-logs .export-locked-note {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.625rem 1rem;
+  border-radius: 12px;
+  font-size: 0.83rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: color-mix(in srgb, var(--warning) 8%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--warning) 35%, transparent);
+}
+
+.attendance-logs .export-locked-note i {
+  color: var(--warning);
+}
+
+.attendance-logs .export-locked-note.hidden {
+  display: none;
+}
+
+.attendance-logs .export-settings-container {
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+  flex-wrap: wrap;
 }
 
 .attendance-logs .export-settings-container .nui-field {
-  margin-bottom: 0;
+  min-width: 220px;
+  margin: 0;
 }
 
 .attendance-logs .export-settings-container .checkbox-field {
-  margin-top: auto;
-  padding-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  min-height: 42px;
 }
 
-/* ===== Export Grid ===== */
 .attendance-logs .export-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1rem;
 }
 
 .attendance-logs .export-btn {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-  background: var(--bg-light);
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  border-radius: 12px;
+  gap: 0.875rem;
+  padding: 1rem 1.125rem;
+  background: var(--bg-card);
+  border: 1px solid color-mix(in srgb, var(--text-muted) 14%, transparent);
+  border-radius: 14px;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   text-align: left;
+  transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
 }
 
 html.dark-mode .attendance-logs .export-btn {
-  background: var(--bg-card);
-  border-color: rgba(255, 255, 255, 0.08);
+  background: var(--bg-light);
 }
 
 .attendance-logs .export-btn:not(:disabled):hover {
   transform: translateY(-2px);
-  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
-  box-shadow: 
-    0 0 12px color-mix(in srgb, var(--accent) 25%, transparent),
-    0 0 24px color-mix(in srgb, var(--accent) 12%, transparent),
-    0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
 }
 
 .attendance-logs .export-btn:focus-visible {
-  outline: none;
-  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
-  box-shadow: 
-    0 0 12px color-mix(in srgb, var(--accent) 30%, transparent),
-    0 0 24px color-mix(in srgb, var(--accent) 18%, transparent),
-    0 4px 12px rgba(0, 0, 0, 0.15);
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .attendance-logs .export-btn:disabled {
-  opacity: 0.5;
+  opacity: 0.55;
   cursor: not-allowed;
 }
 
 .attendance-logs .export-btn .export-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.25rem;
+  font-size: 1.15rem;
   flex-shrink: 0;
 }
 
 .attendance-logs .export-btn.csv-btn .export-icon {
-  background: color-mix(in srgb, var(--success) 15%, transparent);
+  background: color-mix(in srgb, var(--success) 14%, transparent);
   color: var(--success);
 }
 
 .attendance-logs .export-btn.csv-btn:not(:disabled):hover {
-  border-color: color-mix(in srgb, var(--success) 50%, transparent);
-  box-shadow: 
-    0 0 12px color-mix(in srgb, var(--success) 25%, transparent),
-    0 0 24px color-mix(in srgb, var(--success) 12%, transparent),
-    0 4px 12px rgba(0, 0, 0, 0.15);
+  border-color: color-mix(in srgb, var(--success) 45%, transparent);
 }
 
 .attendance-logs .export-btn.pdf-btn .export-icon {
-  background: color-mix(in srgb, var(--error) 15%, transparent);
-  color: var(--error);
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  color: var(--danger);
 }
 
 .attendance-logs .export-btn.pdf-btn:not(:disabled):hover {
-  border-color: color-mix(in srgb, var(--error) 50%, transparent);
-  box-shadow: 
-    0 0 12px color-mix(in srgb, var(--error) 25%, transparent),
-    0 0 24px color-mix(in srgb, var(--error) 12%, transparent),
-    0 4px 12px rgba(0, 0, 0, 0.15);
+  border-color: color-mix(in srgb, var(--danger) 45%, transparent);
 }
 
 .attendance-logs .export-btn.print-btn .export-icon {
-  background: color-mix(in srgb, var(--info) 15%, transparent);
+  background: color-mix(in srgb, var(--info) 14%, transparent);
   color: var(--info);
 }
 
 .attendance-logs .export-btn.print-btn:not(:disabled):hover {
-  border-color: color-mix(in srgb, var(--info) 50%, transparent);
-  box-shadow: 
-    0 0 12px color-mix(in srgb, var(--info) 25%, transparent),
-    0 0 24px color-mix(in srgb, var(--info) 12%, transparent),
-    0 4px 12px rgba(0, 0, 0, 0.15);
+  border-color: color-mix(in srgb, var(--info) 45%, transparent);
 }
 
 .attendance-logs .export-btn.excel-btn .export-icon {
-  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
   color: var(--accent);
 }
 
 .attendance-logs .export-btn.excel-btn:not(:disabled):hover {
-  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
-  box-shadow: 
-    0 0 12px color-mix(in srgb, var(--accent) 25%, transparent),
-    0 0 24px color-mix(in srgb, var(--accent) 12%, transparent),
-    0 4px 12px rgba(0, 0, 0, 0.15);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
 }
 
 .attendance-logs .export-info {
-  flex: 1;
   min-width: 0;
 }
 
 .attendance-logs .export-title {
-  font-size: 0.95rem;
-  font-weight: 600;
+  font-size: 0.9rem;
+  font-weight: 700;
   color: var(--text);
 }
 
 .attendance-logs .export-subtitle {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
 }
 
-/* ===== Empty State ===== */
-.attendance-logs .empty-state {
-  text-align: center;
-  padding: 3rem 2rem;
-  color: var(--text-muted);
-}
-
-.attendance-logs .empty-state i {
-  font-size: 2.5rem;
-  margin-bottom: 1rem;
-  opacity: 0.5;
-}
-
-.attendance-logs .empty-state p {
-  margin: 0;
-  font-size: 0.95rem;
-}
-
-/* ===== Loading State ===== */
+/* =========================================================
+   8. EMPTY & LOADING STATES
+   ========================================================= */
+.attendance-logs .empty-state,
 .attendance-logs .loading-state {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 3rem;
-  color: var(--text-muted);
-  gap: 1rem;
+  gap: 0.5rem;
+  padding: 2.5rem 1rem;
+  text-align: center;
 }
 
+.attendance-logs .empty-state i,
 .attendance-logs .loading-state i {
-  font-size: 2rem;
+  font-size: 2.25rem;
   color: var(--accent);
+  opacity: 0.5;
+  margin-bottom: 0.375rem;
 }
 
-/* ===== Responsive ===== */
+.attendance-logs .empty-state p,
+.attendance-logs .loading-state p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
 
-/* Tablet: 769px - 1024px */
+/* =========================================================
+   9. RESPONSIVE
+   ========================================================= */
 @media (max-width: 1024px) {
-  .attendance-logs .stats-grid {
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  .attendance-logs .logs-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  
+
+  .attendance-logs .quick-start-steps {
+    grid-template-columns: 1fr;
+  }
+
   .attendance-logs .filter-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(150px, 1fr));
   }
-  
+
   .attendance-logs .export-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-/* Mobile: <= 768px */
 @media (max-width: 768px) {
-  .attendance-logs .stats-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 0.75rem;
+  .attendance-logs {
+    padding: 0 0.75rem 1.5rem;
   }
-  
-  .attendance-logs .stat-card {
-    padding: 0.875rem;
+
+  .attendance-logs .logs-wrapper {
+    gap: 1rem;
   }
-  
-  .attendance-logs .stat-icon {
-    width: 40px;
-    height: 40px;
-    font-size: 1rem;
+
+  .attendance-logs .quick-start {
+    padding: 1rem;
   }
-  
+
+  .attendance-logs .filter-hint {
+    display: none;
+  }
+
+  .attendance-logs .export-settings-container {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .attendance-logs .export-settings-container .nui-field {
+    min-width: unset;
+  }
+}
+
+@media (max-width: 480px) {
+  .attendance-logs .logs-stats-grid {
+    grid-template-columns: 1fr;
+  }
+
   .attendance-logs .stat-value {
     font-size: 1.25rem;
   }
-  
+
   .attendance-logs .filter-grid {
     grid-template-columns: 1fr;
-    gap: 0.75rem;
   }
-  
-  .attendance-logs .filter-actions {
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 0.5rem;
+
+  .attendance-logs .export-grid {
+    grid-template-columns: 1fr;
   }
-  
+
   .attendance-logs .filter-actions .btn {
     flex: 1 1 auto;
-    min-width: 100px;
-    justify-content: center;
   }
-  
-  .attendance-logs .export-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.5rem;
-  }
-  
-  /* Tables become scrollable */
-  .attendance-logs .block-content:has(table) {
-    overflow-x: auto;
-    overscroll-behavior-x: none;
-  }
-  
-  .attendance-logs table {
-    min-width: 600px;
-  }
-  
-  .attendance-logs .loading-state {
-    padding: 2rem;
+
+  .attendance-logs .results-footnote {
+    display: none;
   }
 }
 
-/* Small Mobile: <= 480px */
-@media (max-width: 480px) {
-  .attendance-logs .stats-grid {
-    grid-template-columns: 1fr;
-    gap: 0.5rem;
-  }
-  
-  .attendance-logs .stat-card {
-    padding: 0.75rem;
-    gap: 0.75rem;
-  }
-  
-  .attendance-logs .stat-icon {
-    width: 36px;
-    height: 36px;
-    font-size: 0.9rem;
-  }
-  
-  .attendance-logs .stat-value {
-    font-size: 1.125rem;
-  }
-  
-  .attendance-logs .stat-label {
-    font-size: 0.7rem;
-  }
-  
-  .attendance-logs .btn {
-    padding: 0.625rem 0.875rem;
-    font-size: 0.85rem;
-  }
+/* =========================================================
+   10. GUIDE MODAL EXTRAS (outside page scope)
+   ========================================================= */
+.restore-quickstart-btn {
+  width: 100%;
+  margin-top: 1.25rem;
 }
 
+/* Respect reduced-motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .attendance-logs .quick-start {
+    animation: none;
+  }
 
+  .attendance-logs .stat-card,
+  .attendance-logs .export-btn {
+    transition: none;
+  }
+}

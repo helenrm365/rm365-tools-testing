@@ -1,24 +1,17 @@
 /* ===== Employee Management Page (Attendance System) ===== */
 /* Page-specific styles for attendance-system/employees.html */
-/* 
+/*
    Global Components Used (from css/):
    - layout/header.css: .page-header, .page-title, .page-subtitle, .help-button, .header-content
-   - components/buttons-nextui.css: .btn, .btn-solid, .btn-flat, .btn-ghost, .btn-sm, .btn-lg, .rounded-lg, .rounded-full
-   - components/tables.css: .table-container, .modern-table, thead, tbody, th, td
-   - components/cards.css: .action-block, .block-header, .block-icon, .block-title-group, .block-title, .block-subtitle, .block-content
+   - components/buttons-nextui.css: .btn, .btn-solid, .btn-flat, .btn-ghost, .btn-light, .btn-sm, .rounded-lg, .rounded-full
+   - components/tables.css: .table-container, .modern-table, thead, tbody, th, td, .empty-state
+   - components/cards.css: .action-block, .block-header, .block-icon, .block-title-group, .block-title, .block-subtitle, .block-content, .stat-card, .stat-icon, .stat-info, .stat-value, .stat-label
    - components/badges.css: .status-badge, .location-badge
-   - components/filters.css: .filter-controls, .filter-item, .filter-label
-   - components/inputs-nextui.css: .nui-field, .nui-label, .nui-input, .nui-input-faded, .nui-input-bordered, .nui-input-default, .nui-input-primary
-   - components/modals.css: .modal-overlay, .modal-content, .modal-header, .modal-header-icon, .modal-title, .modal-close, .modal-body, .modal-footer, .modal-footer-split, .modal-footer-right
-   - components/tabs.css: .nui-tabs, .nui-tab
+   - components/filters.css: .filter-controls, .filter-item
+   - components/inputs-nextui.css: .nui-field, .nui-label, .nui-input, .nui-input-default, .nui-input-primary
+   - components/modals.css: .modal-overlay, .modal-content, .modal-header, .modal-header-icon, .modal-title, .modal-close, .modal-body, .modal-footer, .modal-footer-split, .modal-footer-right, .steps-list, .step-item
+   - components/tabs.css + tabs-nextui.css: .nui-tabs, .nui-tab
    - components/loaders.css: .loading-spinner, .loading-state
-   
-   Shadow System (from SHADOW_SYSTEM.md):
-   - .action-block uses shadow-l (main container)
-   - .table-container uses shadow-m (data table)
-   - buttons use shadow-l
-   - inputs use shadow-l
-   - modals use shadow-l
 */
 
 /* ===== Page Scope ===== */
@@ -34,9 +27,9 @@
 
 /* ===== Management Layout ===== */
 .enrollment-management .management-wrapper {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
   margin-bottom: 3rem;
 }
 
@@ -48,121 +41,397 @@
   margin-left: auto;
 }
 
-.enrollment-management .management-card {
-  background: transparent;
-  border-radius: 0;
-  padding: 0;
+/* =========================================================
+   1. OVERVIEW STATS
+   ========================================================= */
+.enrollment-management .staff-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+.enrollment-management .staff-stats-grid .stat-card {
+  padding: 1.25rem;
+  gap: 1rem;
+}
+
+.enrollment-management .staff-stats-grid .stat-value {
+  font-size: 1.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.enrollment-management .staff-stats-grid .stat-label {
+  font-size: 0.85rem;
+}
+
+.enrollment-management .stat-icon.staff-icon-total {
+  background: color-mix(in srgb, var(--info) 14%, transparent);
+  color: var(--info);
+}
+
+.enrollment-management .stat-icon.staff-icon-active {
+  background: color-mix(in srgb, var(--success) 14%, transparent);
+  color: var(--success);
+}
+
+.enrollment-management .stat-icon.staff-icon-clocked {
+  background: color-mix(in srgb, var(--warning) 14%, transparent);
+  color: var(--warning);
+}
+
+.enrollment-management .stat-icon.staff-icon-locations {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent);
+}
+
+/* =========================================================
+   2. QUICK START STRIP (dismissible onboarding)
+   ========================================================= */
+.enrollment-management .quick-start {
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--accent) 8%, var(--bg)),
+    var(--bg));
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  border-radius: 16px;
+  padding: 1.25rem 1.5rem;
+  animation: quickStartIn 0.35s ease;
+}
+
+@keyframes quickStartIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.enrollment-management .quick-start.hidden {
+  display: none;
+}
+
+.enrollment-management .quick-start-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.enrollment-management .quick-start-title {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.enrollment-management .quick-start-title i {
+  color: var(--accent);
+  font-size: 1.1rem;
+}
+
+.enrollment-management .quick-start-title h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.enrollment-management .quick-start-steps {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+.enrollment-management .quick-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  background: var(--bg-light);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+}
+
+html.dark-mode .enrollment-management .quick-step {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.enrollment-management .quick-step-num {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  color: white;
+  font-weight: 700;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.enrollment-management .quick-step-body h4 {
+  margin: 0 0 0.25rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.enrollment-management .quick-step-body h4 i {
+  color: var(--accent);
+  font-size: 0.8rem;
+}
+
+.enrollment-management .quick-step-body p {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+/* Restore-quick-start button inside guide modal */
+.restore-quickstart-btn {
+  width: 100%;
+  margin-top: 1.25rem;
+}
+
+/* =========================================================
+   3. DIRECTORY CARD (toolbar + chips + selection + table)
+   ========================================================= */
+
+/* --- Toolbar: search + filters --- */
+.enrollment-management .directory-toolbar {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-  box-shadow: none;
-  border: none;
+  gap: 1rem;
+  padding: 1rem 1.25rem 1.25rem;
+  background: var(--bg-card);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 14px;
 }
 
-/* ===== Responsive ===== */
-
-/* Tablet: 769px - 1024px */
-@media (max-width: 1024px) {
-  .enrollment-management .action-buttons-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.75rem;
-  }
-  
-  .enrollment-management .filter-controls {
-    flex-wrap: wrap;
-  }
-  
-  .enrollment-management .filter-item {
-    flex: 1 1 45%;
-    min-width: 200px;
-  }
+html.dark-mode .enrollment-management .directory-toolbar {
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
-/* Mobile: <= 768px */
+.enrollment-management .directory-search {
+  max-width: 480px;
+}
+
+.enrollment-management .directory-filters {
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
+}
+
+/* Track the .block-content flex gap (components/cards.css) so collapsed
+   bars can cancel it out exactly at every breakpoint. */
+.enrollment-management .block-content {
+  --content-gap: 1.25rem;
+}
+
 @media (max-width: 768px) {
-  .enrollment-management .action-buttons-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.5rem;
-  }
-  
-  /* Keep filter controls in grid layout, not stacked */
-  .enrollment-management .filter-controls {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.625rem;
-  }
-  
-  .enrollment-management .filter-item {
-    min-width: unset;
-  }
-  
-  /* Modal adjustments */
-  .enrollment-management .modal-content {
-    margin: 0.5rem;
-    max-height: calc(100vh - 1rem);
-  }
-  
-  .enrollment-management .modal-body {
-    padding: 1rem;
-  }
-  
-  .enrollment-management .modal-footer {
-    padding: 0.75rem 1rem;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-  }
-  
-  .enrollment-management .modal-footer button {
-    flex: 1 1 auto;
-    min-width: 100px;
-  }
+  .enrollment-management .block-content { --content-gap: 1rem; }
 }
 
-/* Small Mobile: <= 480px */
 @media (max-width: 480px) {
-  .enrollment-management .col-location,
-  .enrollment-management .col-code {
-    display: none;
-  }
-
-  .enrollment-management .row-actions {
-    flex-direction: column;
-  }
-
-  .enrollment-management .status-badge,
-  .enrollment-management .location-badge {
-    padding: 0.2rem 0.5rem;
-    font-size: 0.7rem;
-  }
-  
-  /* Filter controls - 2 columns on small mobile */
-  .enrollment-management .filter-controls {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.5rem;
-  }
-  
-  /* Last filter item spans full width if odd */
-  .enrollment-management .filter-item:last-child:nth-child(odd) {
-    grid-column: span 2;
-  }
-  
-  /* Form groups in modals */
-  /* Form fields in modals */
-  .enrollment-management .nui-field {
-    margin-bottom: 0.75rem;
-  }
-  
-  .enrollment-management .nui-label {
-    font-size: 0.8rem;
-  }
-  
-  .enrollment-management .nui-input {
-    font-size: 0.9rem;
-    padding: 0.625rem 0.75rem;
-  }
+  .enrollment-management .block-content { --content-gap: 0.75rem; }
 }
 
-/* ===== Employee Table Enhancements ===== */
+/* --- Active filter chips --- */
+/* The outer element is a pure height animator (grid 0fr -> 1fr) so the bar
+   slides open AND closed, smoothly pushing the content below it. The
+   negative margin cancels the parent flex gap while collapsed so spacing
+   between the toolbar and table stays even. */
+.enrollment-management .active-filters {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  visibility: hidden;
+  margin-bottom: calc(var(--content-gap, 1.25rem) * -1);
+  transition:
+    grid-template-rows 0.3s ease,
+    opacity 0.22s ease,
+    margin-bottom 0.3s ease,
+    visibility 0s linear 0.3s;
+}
+
+.enrollment-management .active-filters.visible {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  visibility: visible;
+  margin-bottom: 0;
+  transition:
+    grid-template-rows 0.3s ease,
+    opacity 0.22s ease 0.08s,
+    margin-bottom 0.3s ease,
+    visibility 0s linear 0s;
+}
+
+.enrollment-management .reveal-clip {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.enrollment-management .active-filters-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.625rem;
+  padding: 0.625rem 1rem;
+  background: color-mix(in srgb, var(--info) 7%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--info) 35%, transparent);
+  border-radius: 12px;
+}
+
+.enrollment-management .active-filters-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--info);
+  white-space: nowrap;
+}
+
+.enrollment-management .filter-chips {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.enrollment-management .filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.25rem 0.375rem 0.25rem 0.75rem;
+  background: var(--bg-light);
+  border: 1px solid color-mix(in srgb, var(--info) 30%, transparent);
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.enrollment-management .filter-chip .chip-kind {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.enrollment-management .filter-chip .chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--info) 12%, transparent);
+  color: var(--info);
+  font-size: 0.65rem;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.enrollment-management .filter-chip .chip-remove:hover {
+  background: var(--danger);
+  color: white;
+}
+
+.enrollment-management .clear-filters-btn {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* --- Contextual selection bar --- */
+/* Same animated expand/collapse treatment as .active-filters. */
+.enrollment-management .selection-bar {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  visibility: hidden;
+  margin-bottom: calc(var(--content-gap, 1.25rem) * -1);
+  transition:
+    grid-template-rows 0.3s ease,
+    opacity 0.22s ease,
+    margin-bottom 0.3s ease,
+    visibility 0s linear 0.3s;
+}
+
+.enrollment-management .selection-bar.visible {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  visibility: visible;
+  margin-bottom: 0;
+  transition:
+    grid-template-rows 0.3s ease,
+    opacity 0.22s ease 0.08s,
+    margin-bottom 0.3s ease,
+    visibility 0s linear 0s;
+}
+
+.enrollment-management .selection-bar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.625rem 1rem;
+  background: color-mix(in srgb, var(--danger) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent);
+  border-radius: 12px;
+}
+
+.enrollment-management .selection-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--danger);
+}
+
+.enrollment-management .selection-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* --- Footnote under the table --- */
+.enrollment-management .directory-footnote {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  opacity: 0.85;
+}
+
+.enrollment-management .directory-footnote i {
+  color: var(--accent);
+}
+
+.enrollment-management .directory-footnote kbd {
+  padding: 0.1rem 0.4rem;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  background: var(--bg-light);
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+html.dark-mode .enrollment-management .directory-footnote kbd {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* =========================================================
+   4. TABLE ENHANCEMENTS
+   ========================================================= */
 .enrollment-management .table-container {
   max-height: none;
 }
@@ -184,15 +453,191 @@
   white-space: nowrap;
 }
 
+/* Rows are clickable (open edit modal) */
+.enrollment-management tbody tr[data-id] {
+  cursor: pointer;
+}
+
+/* --- Employee identity cell: avatar + name + code --- */
+.enrollment-management .employee-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.enrollment-management .employee-cell-avatar {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--accent) 22%, transparent),
+    color-mix(in srgb, var(--accent) 10%, transparent));
+  color: var(--accent-dark);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-transform: uppercase;
+}
+
+html.dark-mode .enrollment-management .employee-cell-avatar {
+  color: var(--accent-light);
+}
+
+/* Status dot on the avatar: green = active employee, red = inactive */
+.enrollment-management .status-dot {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 2px solid var(--bg-light);
+  background: var(--text-muted);
+}
+
+.enrollment-management .status-dot.active {
+  background: var(--success);
+}
+
+.enrollment-management .status-dot.inactive {
+  background: var(--danger);
+}
+
+.enrollment-management .employee-cell-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.enrollment-management .employee-cell-name {
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.enrollment-management .employee-cell-code {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-family: 'SF Mono', 'Fira Code', monospace;
+}
+
+/* --- NFC card chip --- */
+.enrollment-management .nfc-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  background: color-mix(in srgb, var(--info) 12%, transparent);
+  color: var(--info);
+  max-width: 160px;
+}
+
+.enrollment-management .nfc-chip .nfc-chip-uid {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.enrollment-management .nfc-chip.none {
+  background: transparent;
+  border: 1px dashed color-mix(in srgb, currentColor 35%, transparent);
+  color: var(--text-muted);
+  opacity: 0.7;
+  font-family: var(--ff);
+  font-weight: 500;
+}
+
+/* --- Status badge dot --- */
+.enrollment-management .status-badge.status-active::before,
+.enrollment-management .status-badge.status-inactive::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* Status badge colors (used with .status-badge from badges.css) */
+.enrollment-management .status-badge.status-active,
+#editEmployeeModal .status-badge.status-active {
+  background: color-mix(in srgb, var(--success) 15%, transparent);
+  color: var(--success);
+}
+
+.enrollment-management .status-badge.status-inactive,
+#editEmployeeModal .status-badge.status-inactive {
+  background: color-mix(in srgb, var(--danger) 15%, transparent);
+  color: var(--danger);
+}
+
+/* --- Row actions --- */
 .enrollment-management .row-actions {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 0.5rem;
 }
 
-/* Note: .location-badge is now in badges.css */
+.enrollment-management .clock-toggle-btn i {
+  font-size: 0.85rem;
+}
 
-/* ===== Edit Modal Specific Styles ===== */
+/* --- Empty state --- */
+.enrollment-management tbody tr.empty-row,
+.enrollment-management tbody tr.empty-row:hover {
+  background: transparent;
+  cursor: default;
+}
+
+.enrollment-management .empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.enrollment-management .empty-state .empty-icon {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+  opacity: 0.5;
+  color: var(--accent);
+}
+
+.enrollment-management .empty-state h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 1.05rem;
+}
+
+.enrollment-management .empty-state p {
+  margin: 0 0 0.875rem;
+  font-size: 0.875rem;
+}
+
+.enrollment-management .empty-state-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  flex-wrap: wrap;
+}
+
+/* =========================================================
+   5. EDIT MODAL SPECIFICS
+   ========================================================= */
 #editEmployeeModal .modal-header {
   display: flex;
   align-items: center;
@@ -226,8 +671,6 @@
   color: var(--accent);
 }
 
-/* Note: .modal-footer-split and .modal-footer-right are now in modals.css */
-
 /* Readonly/Disabled Input Styling */
 #editEmployeeCode.nui-input {
   color: var(--text-muted);
@@ -239,12 +682,9 @@ html.dark-mode #editEmployeeCode.nui-input {
   border-color: color-mix(in srgb, #3F3F46 20%, transparent);
 }
 
-/* ===== Clock Toggle Button ===== */
-.enrollment-management .clock-toggle-btn i {
-  font-size: 0.85rem;
-}
-
-/* ===== NFC Card Enrollment Section in Edit Modal ===== */
+/* =========================================================
+   6. NFC CARD ENROLLMENT (Edit Modal)
+   ========================================================= */
 .nfc-enrollment-group {
   margin-top: 1rem;
 }
@@ -276,7 +716,7 @@ html.dark-mode .nfc-uid-display {
 
 .nfc-uid-display.scanning {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.2);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
   animation: pulse-border 1.5s ease-in-out infinite;
 }
 
@@ -291,8 +731,8 @@ html.dark-mode .nfc-uid-display {
 }
 
 @keyframes pulse-border {
-  0%, 100% { box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.2); }
-  50% { box-shadow: 0 0 0 6px rgba(var(--accent-rgb), 0.1); }
+  0%, 100% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent); }
+  50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 10%, transparent); }
 }
 
 .nfc-uid-text {
@@ -340,27 +780,27 @@ html.dark-mode .nfc-uid-display {
 }
 
 .nfc-status-message.info {
-  background: rgba(var(--accent-rgb), 0.1);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
   color: var(--accent);
-  border: 1px solid rgba(var(--accent-rgb), 0.3);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 .nfc-status-message.success {
-  background: rgba(var(--success-rgb), 0.1);
+  background: color-mix(in srgb, var(--success) 10%, transparent);
   color: var(--success);
-  border: 1px solid rgba(var(--success-rgb), 0.3);
+  border: 1px solid color-mix(in srgb, var(--success) 30%, transparent);
 }
 
 .nfc-status-message.error {
-  background: rgba(var(--danger-rgb), 0.1);
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
   color: var(--danger);
-  border: 1px solid rgba(var(--danger-rgb), 0.3);
+  border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent);
 }
 
 .nfc-status-message.warning {
-  background: rgba(var(--warning-rgb), 0.1);
+  background: color-mix(in srgb, var(--warning) 10%, transparent);
   color: var(--warning);
-  border: 1px solid rgba(var(--warning-rgb), 0.3);
+  border: 1px solid color-mix(in srgb, var(--warning) 30%, transparent);
 }
 
 /* ===== Create New Location Option in Dropdown ===== */
@@ -384,7 +824,7 @@ html.dark-mode .dropdown-option.create-new-option {
 }
 
 .dropdown-option.create-new-option:hover {
-  background: rgba(var(--accent-rgb), 0.15);
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
   color: var(--accent);
 }
 
@@ -395,4 +835,151 @@ html.dark-mode .dropdown-option.create-new-option {
   color: var(--text-muted);
   margin-top: 0.25rem;
   opacity: 0.7;
+}
+
+/* =========================================================
+   7. RESPONSIVE
+   ========================================================= */
+
+/* Tablet: <= 1024px */
+@media (max-width: 1024px) {
+  .enrollment-management .staff-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .enrollment-management .quick-start-steps {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .enrollment-management .directory-filters {
+    grid-template-columns: repeat(2, minmax(150px, 1fr));
+  }
+
+  .enrollment-management .directory-search {
+    max-width: none;
+  }
+}
+
+/* Mobile: <= 768px */
+@media (max-width: 768px) {
+  .enrollment-management .staff-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.625rem;
+  }
+
+  .enrollment-management .quick-start {
+    padding: 1rem;
+  }
+
+  .enrollment-management .quick-start-steps {
+    grid-template-columns: 1fr;
+    gap: 0.625rem;
+  }
+
+  .enrollment-management .directory-toolbar {
+    padding: 0.875rem;
+  }
+
+  .enrollment-management .directory-filters {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.625rem;
+  }
+
+  .enrollment-management .filter-item {
+    min-width: unset;
+  }
+
+  .enrollment-management .selection-bar-inner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .enrollment-management .selection-actions {
+    justify-content: flex-end;
+  }
+
+  .enrollment-management .directory-footnote {
+    display: none;
+  }
+
+  /* Modal adjustments */
+  .enrollment-management .modal-content {
+    margin: 0.5rem;
+    max-height: calc(100vh - 1rem);
+  }
+
+  .enrollment-management .modal-body {
+    padding: 1rem;
+  }
+
+  .enrollment-management .modal-footer {
+    padding: 0.75rem 1rem;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .enrollment-management .modal-footer button {
+    flex: 1 1 auto;
+    min-width: 100px;
+  }
+}
+
+/* Small Mobile: <= 480px */
+@media (max-width: 480px) {
+  .enrollment-management .staff-stats-grid .stat-value {
+    font-size: 1.35rem;
+  }
+
+  .enrollment-management .col-location,
+  .enrollment-management .col-card {
+    display: none;
+  }
+
+  .enrollment-management .row-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .enrollment-management .status-badge,
+  .enrollment-management .location-badge {
+    padding: 0.2rem 0.5rem;
+    font-size: 0.7rem;
+  }
+
+  .enrollment-management .directory-filters {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .enrollment-management .active-filters-bar {
+    padding: 0.5rem 0.75rem;
+  }
+
+  .enrollment-management .clear-filters-btn {
+    margin-left: 0;
+  }
+
+  /* Form fields in modals */
+  .enrollment-management .nui-field {
+    margin-bottom: 0.75rem;
+  }
+
+  .enrollment-management .nui-label {
+    font-size: 0.8rem;
+  }
+
+  .enrollment-management .nui-input {
+    font-size: 0.9rem;
+    padding: 0.625rem 0.75rem;
+  }
+}
+
+/* Respect reduced-motion preferences for the animated bars */
+@media (prefers-reduced-motion: reduce) {
+  .enrollment-management .active-filters,
+  .enrollment-management .selection-bar,
+  .enrollment-management .quick-start {
+    transition: none;
+    animation: none;
+  }
 }

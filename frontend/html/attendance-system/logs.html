@@ -4,7 +4,11 @@
   <!-- Header -->
   <header class="page-header">
     <div class="header-content">
-      <h1 class="page-title">Timesheets & Logs</h1>
+      <h1 class="page-title">Timesheets &amp; Logs</h1>
+      <button id="tsOpenGuideBtn" class="btn btn-flat btn-primary rounded-full help-button" aria-label="Open Timesheets Guide">
+        <i class="fas fa-question-circle"></i>
+        <span>Help</span>
+      </button>
     </div>
     <p class="page-subtitle">View, filter, and export comprehensive attendance records</p>
   </header>
@@ -31,72 +35,94 @@
 
   <!-- Main Content -->
   <div class="logs-wrapper">
-    <!-- Quick Stats Section -->
-    <div class="action-block">
-      <div class="block-header">
-        <div class="block-icon stats-icon">
-          <i class="fas fa-chart-pie"></i>
+
+    <!-- ===== Overview Stats ===== -->
+    <section class="logs-stats-grid" aria-label="Current results overview">
+      <div class="stat-card">
+        <div class="stat-icon total-icon">
+          <i class="fas fa-file-alt"></i>
         </div>
-        <div class="block-title-group">
-          <h3 class="block-title">Quick Stats</h3>
-          <p class="block-subtitle">Summary of current log data</p>
-        </div>
-      </div>
-
-      <div class="block-content">
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-icon total-icon">
-              <i class="fas fa-file-alt"></i>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value" id="totalLogs">0</div>
-              <div class="stat-label">Total Logs</div>
-            </div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-icon date-icon">
-              <i class="fas fa-calendar-alt"></i>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value" id="dateRange">—</div>
-              <div class="stat-label">Date Range</div>
-            </div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-icon employees-icon">
-              <i class="fas fa-users"></i>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value" id="uniqueEmployees">0</div>
-              <div class="stat-label">Employees</div>
-            </div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-icon locations-icon">
-              <i class="fas fa-map-marker-alt"></i>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value" id="uniqueLocations">—</div>
-              <div class="stat-label">Locations</div>
-            </div>
-          </div>
+        <div class="stat-info">
+          <div class="stat-value" id="totalLogs">0</div>
+          <div class="stat-label">Total Logs</div>
         </div>
       </div>
-    </div>
+      <div class="stat-card">
+        <div class="stat-icon date-icon">
+          <i class="fas fa-calendar-alt"></i>
+        </div>
+        <div class="stat-info">
+          <div class="stat-value" id="dateRange">&mdash;</div>
+          <div class="stat-label">Date Range</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon employees-icon">
+          <i class="fas fa-users"></i>
+        </div>
+        <div class="stat-info">
+          <div class="stat-value" id="uniqueEmployees">0</div>
+          <div class="stat-label">Employees</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon locations-icon">
+          <i class="fas fa-map-marker-alt"></i>
+        </div>
+        <div class="stat-info">
+          <div class="stat-value" id="uniqueLocations">&mdash;</div>
+          <div class="stat-label">Locations</div>
+        </div>
+      </div>
+    </section>
 
-    <!-- Filter Section -->
-    <div class="action-block">
+    <!-- ===== Quick Start (dismissible) ===== -->
+    <section class="quick-start" id="tsQuickStart" aria-label="How this page works">
+      <div class="quick-start-header">
+        <div class="quick-start-title">
+          <i class="fas fa-lightbulb"></i>
+          <h3>New here? This is how it works</h3>
+        </div>
+        <button id="tsDismissQuickStart" class="btn btn-ghost btn-default btn-sm rounded-full" aria-label="Dismiss quick start">
+          <i class="fas fa-check"></i>
+          <span>Got it</span>
+        </button>
+      </div>
+      <div class="quick-start-steps">
+        <div class="quick-step">
+          <span class="quick-step-num">1</span>
+          <div class="quick-step-body">
+            <h4><i class="fas fa-filter"></i> Filter</h4>
+            <p>Pick a date range, then narrow down by location, employee name or action type.</p>
+          </div>
+        </div>
+        <div class="quick-step">
+          <span class="quick-step-num">2</span>
+          <div class="quick-step-body">
+            <h4><i class="fas fa-table"></i> Review</h4>
+            <p>Matching records appear below. Click any column header to sort them.</p>
+          </div>
+        </div>
+        <div class="quick-step">
+          <span class="quick-step-num">3</span>
+          <div class="quick-step-body">
+            <h4><i class="fas fa-download"></i> Export</h4>
+            <p>Download the results as CSV, PDF or Excel &mdash; or print them straight away.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Step 1: Filter ===== -->
+    <div class="action-block step-card">
       <div class="block-header">
+        <span class="step-badge">1</span>
         <div class="block-icon filter-icon">
           <i class="fas fa-filter"></i>
         </div>
         <div class="block-title-group">
-          <h3 class="block-title">Filter Logs</h3>
-          <p class="block-subtitle">Search and filter attendance records</p>
+          <h3 class="block-title">Find Records</h3>
+          <p class="block-subtitle">Choose a date range and refine with the filters below</p>
         </div>
       </div>
 
@@ -104,6 +130,7 @@
         <div class="filter-grid">
           <div class="nui-field">
             <label class="nui-label" for="fromDate">
+              <i class="fas fa-calendar-day"></i>
               <span>From Date</span>
             </label>
             <input type="text" id="fromDate" class="nui-input nui-input-default">
@@ -111,6 +138,7 @@
 
           <div class="nui-field">
             <label class="nui-label" for="toDate">
+              <i class="fas fa-calendar-day"></i>
               <span>To Date</span>
             </label>
             <input type="text" id="toDate" class="nui-input nui-input-default">
@@ -118,6 +146,7 @@
 
           <div class="nui-field">
             <label class="nui-label" for="locationFilter">
+              <i class="fas fa-map-marker-alt"></i>
               <span>Location</span>
             </label>
             <select id="locationFilter">
@@ -127,6 +156,7 @@
 
           <div class="nui-field">
             <label class="nui-label" for="nameFilter">
+              <i class="fas fa-user"></i>
               <span>Employee Name</span>
             </label>
             <input type="text" id="nameFilter" class="nui-input nui-input-default" placeholder="Search by name...">
@@ -134,6 +164,7 @@
 
           <div class="nui-field">
             <label class="nui-label" for="actionFilter">
+              <i class="fas fa-exchange-alt"></i>
               <span>Action Type</span>
             </label>
             <select id="actionFilter">
@@ -145,6 +176,7 @@
 
           <div class="nui-field">
             <label class="nui-label" for="sortFilter">
+              <i class="fas fa-sort-alpha-down"></i>
               <span>Sort By</span>
             </label>
             <select id="sortFilter">
@@ -154,30 +186,46 @@
           </div>
         </div>
 
-        <div class="filter-actions">
-          <button id="filterBtn" class="btn btn-solid btn-primary rounded-full">
-            <i class="fas fa-search"></i>
-            <span>Apply Filters</span>
-          </button>
-          <button id="clearBtn" class="btn btn-solid btn-default rounded-full">
-            <i class="fas fa-undo"></i>
-            <span>Clear Filters</span>
-          </button>
+        <!-- Active filters summary (rendered by JS) -->
+        <div class="active-filters" id="tsActiveFilters">
+          <div class="reveal-clip">
+            <div class="active-filters-bar">
+              <span class="active-filters-label">
+                <i class="fas fa-filter"></i>
+                <span>Filtering by:</span>
+              </span>
+              <div class="filter-chips" id="tsFilterChips"></div>
+              <button class="btn btn-light btn-danger btn-sm rounded-full clear-filters-btn" id="clearBtn">
+                <i class="fas fa-times"></i>
+                <span>Clear all</span>
+              </button>
+            </div>
+          </div>
         </div>
 
-
+        <div class="filter-actions">
+          <button id="filterBtn" class="btn btn-solid btn-primary rounded-full">
+            <i class="fas fa-sync-alt"></i>
+            <span>Refresh Results</span>
+          </button>
+          <p class="filter-hint">
+            <i class="fas fa-keyboard"></i>
+            <span>Filters apply automatically &mdash; press <kbd>Enter</kbd> to refresh, <kbd>/</kbd> to jump to search.</span>
+          </p>
+        </div>
       </div>
     </div>
 
-    <!-- Results Section -->
-    <div class="action-block" id="logsResultsSection" style="display: none;">
+    <!-- ===== Step 2: Review results ===== -->
+    <div class="action-block step-card" id="logsResultsSection" style="display: none;">
       <div class="block-header">
+        <span class="step-badge">2</span>
         <div class="block-icon results-icon">
           <i class="fas fa-table"></i>
         </div>
         <div class="block-title-group">
           <h3 class="block-title">Attendance Records</h3>
-          <p class="block-subtitle" id="logsStats">Showing filtered results</p>
+          <div class="block-subtitle" id="logsStats">Showing filtered results</div>
         </div>
       </div>
 
@@ -188,25 +236,36 @@
             <p>Loading logs...</p>
           </div>
         </div>
+        <p class="results-footnote">
+          <i class="fas fa-info-circle"></i>
+          <span>Click a column header to sort the results.</span>
+        </p>
       </div>
     </div>
 
-    <!-- Export Section -->
-    <div class="action-block">
+    <!-- ===== Step 3: Export ===== -->
+    <div class="action-block step-card">
       <div class="block-header">
+        <span class="step-badge">3</span>
         <div class="block-icon export-icon-block">
           <i class="fas fa-download"></i>
         </div>
         <div class="block-title-group">
           <h3 class="block-title">Export Options</h3>
-          <p class="block-subtitle">Download or print attendance data</p>
+          <p class="block-subtitle">Download or print the records found above</p>
         </div>
       </div>
 
       <div class="block-content">
+        <div class="export-locked-note" id="exportLockedNote">
+          <i class="fas fa-lock"></i>
+          <span>Run a search first &mdash; export unlocks once records are loaded.</span>
+        </div>
+
         <div class="export-settings-container">
           <div class="nui-field">
             <label class="nui-label" for="excelTimeSplit">
+              <i class="fas fa-layer-group"></i>
               <span>Time Grouping (Excel)</span>
             </label>
             <select id="excelTimeSplit">
@@ -215,9 +274,10 @@
               <option value="week">Split by Week</option>
             </select>
           </div>
-          
+
           <div class="nui-field" id="excelFileOutputGroup" style="display: none;">
             <label class="nui-label" for="excelFileOutput">
+              <i class="fas fa-file-archive"></i>
               <span>File Output</span>
             </label>
             <select id="excelFileOutput">
@@ -277,6 +337,57 @@
           </button>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Timesheets Guide Modal -->
+<div id="tsGuideModal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-header-icon">
+        <i class="fas fa-info-circle"></i>
+      </div>
+      <h3 class="modal-title">Timesheets Guide</h3>
+      <button id="tsCloseGuideBtn" class="modal-close" aria-label="Close">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="steps-list">
+        <div class="step-item">
+          <div class="step-number">1</div>
+          <div class="step-info">
+            <h4 class="step-name">Pick a date range</h4>
+            <p class="step-desc">Records load for the last 7 days automatically. Change the From and To dates to look further back.</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-number">2</div>
+          <div class="step-info">
+            <h4 class="step-name">Narrow it down</h4>
+            <p class="step-desc">Filter by location, employee name or action type (clock in / clock out) &mdash; results update automatically as you go.</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-number">3</div>
+          <div class="step-info">
+            <h4 class="step-name">Review the results</h4>
+            <p class="step-desc">The summary cards at the top update with each search. Click any column header in the results table to sort.</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-number">4</div>
+          <div class="step-info">
+            <h4 class="step-name">Export or print</h4>
+            <p class="step-desc">Once results are loaded, export them as CSV, PDF or Excel &mdash; or print directly. Excel exports can be split by week or month.</p>
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-ghost btn-primary rounded-lg restore-quickstart-btn" id="tsRestoreQuickStart">
+        <i class="fas fa-lightbulb"></i>
+        <span>Show the quick-start guide again</span>
+      </button>
     </div>
   </div>
 </div>

@@ -27,6 +27,9 @@ let state = {
 const SCAN_COOLDOWN_MS = 1000;
 const MAX_RECENT_SCANS = 10;
 const DISCONNECT_COUNTDOWN_SECS = 10;
+const QUICK_START_KEY = 'rm365.clockingQuickStartDismissed';
+const FEEDBACK_MAX_ITEMS = 3;
+const FEEDBACK_EXPIRE_MS = 6000;
 
 // Hardware bridge always runs on localhost (client machine)
 // We detect if the current page is HTTPS or HTTP to decide between wss:// and ws://
@@ -39,6 +42,59 @@ const WS_URL = `${WS_PROTOCOL}//127.0.0.1:8080/ws/nfc`;
 
 // ====== Utility Functions ======
 function $(sel) { return document.querySelector(sel); }
+
+function esc(str) {
+  return String(str ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// ====== Scan Feedback Stack ======
+// Short-lived result cards under the scanner bar (newest on top). Keeps the
+// last few visible so back-to-back scans don't overwrite each other.
+function pushScanFeedback(kind, title, message) {
+  const stack = $('#scanFeedbackStack');
+  if (!stack) return;
+
+  const item = document.createElement('div');
+  item.className = `scan-feedback-item feedback-${kind}`;
+  const icon = kind === 'success' ? 'fa-check-circle'
+    : kind === 'warning' ? 'fa-exclamation-triangle'
+    : 'fa-times-circle';
+  item.innerHTML = `
+    <i class="feedback-icon fas ${icon}"></i>
+    <div class="feedback-text">
+      <span class="feedback-title">${esc(title)}</span>
+      <span class="feedback-message">${esc(message)}</span>
+    </div>
+    <button type="button" class="feedback-close" aria-label="Dismiss">
+      <i class="fas fa-times"></i>
+    </button>
+  `;
+
+  const remove = () => {
+    if (!item.parentNode) return;
+    item.classList.add('leaving');
+    setTimeout(() => item.remove(), 250);
+  };
+  item.querySelector('.feedback-close')?.addEventListener('click', remove);
+
+  stack.prepend(item);
+
+  // Cap the stack size (drop the oldest)
+  while (stack.children.length > FEEDBACK_MAX_ITEMS) {
+    stack.lastElementChild?.remove();
+  }
+
+  setTimeout(remove, FEEDBACK_EXPIRE_MS);
+}
+
+function clearScanFeedback() {
+  const stack = $('#scanFeedbackStack');
+  if (stack) stack.innerHTML = '';
+}
 
 function updateStatus(message, type = 'info') {
   const statusEl = $('#scannerStatus');
@@ -111,12 +167,22 @@ function updateRecentScansTable() {
   if (!tableEl) return;
 
   if (state.recentScans.length === 0) {
-    tableEl.innerHTML = `
-      <div class="empty-state">
-        <i class="fas fa-inbox"></i>
-        <p>No recent scans available</p>
-      </div>
-    `;
+    if (state.isScanning) {
+      tableEl.innerHTML = `
+        <div class="empty-state">
+          <i class="fas fa-inbox"></i>
+          <p>No scans yet &mdash; tap a card on the reader to clock in or out</p>
+        </div>
+      `;
+    } else {
+      tableEl.innerHTML = `
+        <div class="empty-state scanner-idle-state">
+          <i class="fas fa-pause-circle"></i>
+          <p>Scanner is stopped</p>
+          <p class="idle-hint">Press <strong>Start Scanning</strong> above to begin accepting card taps.</p>
+        </div>
+      `;
+    }
     return;
   }
 
@@ -508,6 +574,7 @@ async function handleCardScan(uid) {
     if (!employee) {
       playTerminalSound('error');
       updateStatus('Card not registered to any employee', 'warning');
+      pushScanFeedback('warning', 'Unknown card', `Card ${normalizedUid} is not registered to any employee.`);
       return;
     }
     
@@ -518,6 +585,8 @@ async function handleCardScan(uid) {
       if (clockResult) {
         playTerminalSound('success');
         updateStatus(`${employee.name} clocked ${clockResult.direction || 'in'}`, 'info');
+        const dir = (clockResult.direction || 'in') === 'in' ? 'Clocked in' : 'Clocked out';
+        pushScanFeedback('success', dir, `${employee.name}${clockResult.local_time ? ' at ' + clockResult.local_time : ''}`);
         
         state.scanCount++;
         updateScanCount();
@@ -528,11 +597,13 @@ async function handleCardScan(uid) {
       } else {
         playTerminalSound('error');
         updateStatus('Clocking failed', 'error');
+        pushScanFeedback('error', 'Clocking failed', `Could not record the scan for ${employee.name}. Try again.`);
       }
     } catch (clockError) {
       console.error('Clock error:', clockError);
       playTerminalSound('error');
       updateStatus('Clocking failed', 'error');
+      pushScanFeedback('error', 'Clocking failed', `Could not record the scan for ${employee.name}. Try again.`);
     }
     
   } finally {
@@ -559,6 +630,7 @@ async function startScanning(options = {}) {
 
   setStartButtonState({ disabled: true, label: 'Scanning...' });
   setStopButtonState({ disabled: false });
+  updateRecentScansTable();
 }
 
 function stopScanning() {
@@ -575,6 +647,36 @@ function stopScanning() {
   setStartButtonState({ disabled: false, label: 'Start Scanning' });
   setStopButtonState({ disabled: true });
   evaluateHardwareStatus({ showSpinner: false });
+  updateRecentScansTable();
+}
+
+// ====== Quick Start & Guide Modal ======
+function wireGuideAndQuickStart() {
+  // Quick-start banner dismiss / persistence
+  const strip = $('#clockQuickStart');
+  if (strip && localStorage.getItem(QUICK_START_KEY) === '1') {
+    strip.classList.add('hidden');
+  }
+  $('#clockDismissQuickStart')?.addEventListener('click', () => {
+    localStorage.setItem(QUICK_START_KEY, '1');
+    strip?.classList.add('hidden');
+  });
+
+  // Guide modal open/close
+  const guideModal = $('#clockGuideModal');
+  if (guideModal) {
+    $('#clockOpenGuideBtn')?.addEventListener('click', () => guideModal.classList.add('active'));
+    $('#clockCloseGuideBtn')?.addEventListener('click', () => guideModal.classList.remove('active'));
+    guideModal.addEventListener('click', (e) => {
+      if (e.target === guideModal) guideModal.classList.remove('active');
+    });
+    $('#clockRestoreQuickStart')?.addEventListener('click', () => {
+      localStorage.removeItem(QUICK_START_KEY);
+      strip?.classList.remove('hidden');
+      guideModal.classList.remove('active');
+      strip?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  }
 }
 
 // ====== Event Handlers ======
@@ -599,6 +701,7 @@ function setupEventHandlers() {
 function cleanup() {
   stopScanning();
   disconnectWebSocket();
+  clearScanFeedback();
   state = {
     employees: [],
     cardUidToEmployee: {},
@@ -663,6 +766,7 @@ export async function init() {
   }
   
   setupEventHandlers();
+  wireGuideAndQuickStart();
   
   showToast('Connecting to hardware bridge...', 'info');
   updateStatus('Checking hardware...', 'scanning');

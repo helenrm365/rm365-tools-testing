@@ -35,26 +35,121 @@
 
   <!-- Main Content -->
   <div class="management-wrapper">
-    <div class="management-card">
-      <!-- Search & Filter Block -->
-      <div class="action-block">
-        <div class="block-header">
-          <div class="block-icon">
-            <i class="fas fa-filter"></i>
-          </div>
-          <div class="block-title-group">
-            <h3 class="block-title">Search & Filter</h3>
-            <p class="block-subtitle">Find specific employees</p>
+
+    <!-- ===== Overview Stats ===== -->
+    <section class="staff-stats-grid" aria-label="Staff overview">
+      <div class="stat-card">
+        <div class="stat-icon staff-icon-total">
+          <i class="fas fa-users"></i>
+        </div>
+        <div class="stat-info">
+          <div class="stat-value" id="statTotalStaff">&ndash;</div>
+          <div class="stat-label">Total Staff</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon staff-icon-active">
+          <i class="fas fa-user-check"></i>
+        </div>
+        <div class="stat-info">
+          <div class="stat-value" id="statActiveStaff">&ndash;</div>
+          <div class="stat-label">Active</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon staff-icon-clocked">
+          <i class="fas fa-stopwatch"></i>
+        </div>
+        <div class="stat-info">
+          <div class="stat-value" id="statClockedIn">&ndash;</div>
+          <div class="stat-label">Clocked In Now</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon staff-icon-locations">
+          <i class="fas fa-map-marker-alt"></i>
+        </div>
+        <div class="stat-info">
+          <div class="stat-value" id="statLocations">&ndash;</div>
+          <div class="stat-label">Locations</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Quick Start (dismissible) ===== -->
+    <section class="quick-start" id="quickStartStrip" aria-label="How this page works">
+      <div class="quick-start-header">
+        <div class="quick-start-title">
+          <i class="fas fa-lightbulb"></i>
+          <h3>New here? This is how it works</h3>
+        </div>
+        <button id="dismissQuickStart" class="btn btn-ghost btn-default btn-sm rounded-full" aria-label="Dismiss quick start">
+          <i class="fas fa-check"></i>
+          <span>Got it</span>
+        </button>
+      </div>
+      <div class="quick-start-steps">
+        <div class="quick-step">
+          <span class="quick-step-num">1</span>
+          <div class="quick-step-body">
+            <h4><i class="fas fa-search"></i> Find someone</h4>
+            <p>Type a name, code or card UID in the search box &mdash; or narrow down with the filters.</p>
           </div>
         </div>
+        <div class="quick-step">
+          <span class="quick-step-num">2</span>
+          <div class="quick-step-body">
+            <h4><i class="fas fa-user-plus"></i> Add an employee</h4>
+            <p>Click <strong>New Employee</strong>, enter their name and pick a work location.</p>
+          </div>
+        </div>
+        <div class="quick-step">
+          <span class="quick-step-num">3</span>
+          <div class="quick-step-body">
+            <h4><i class="fas fa-pen"></i> Edit &amp; assign a card</h4>
+            <p>Click any row to rename, change location or status, and scan an NFC card.</p>
+          </div>
+        </div>
+        <div class="quick-step">
+          <span class="quick-step-num">4</span>
+          <div class="quick-step-body">
+            <h4><i class="fas fa-fingerprint"></i> Clock in / out</h4>
+            <p>Use the clock button on each row to record attendance manually.</p>
+          </div>
+        </div>
+      </div>
+    </section>
 
-        <div class="block-content">
-          <div class="nui-field">
-            <label class="nui-label" for="employeeSearch">Search</label>
-            <input type="text" id="employeeSearch" class="nui-input nui-input-primary" placeholder="Search by name or code...">
+    <!-- ===== Directory Card ===== -->
+    <div class="action-block directory-card">
+      <div class="block-header">
+        <div class="block-icon">
+          <i class="fas fa-users"></i>
+        </div>
+        <div class="block-title-group">
+          <h3 class="block-title">Team Members</h3>
+          <p class="block-subtitle" id="employeeCount">Loading...</p>
+        </div>
+        <div class="block-header-actions">
+          <button class="btn btn-solid btn-success rounded-lg" id="enrCreateBtn">
+            <i class="fas fa-user-plus"></i>
+            <span>New Employee</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="block-content">
+        <!-- Toolbar: search + filters, right above the table they control -->
+        <div class="directory-toolbar">
+          <div class="nui-field directory-search">
+            <label class="nui-label" for="employeeSearch">
+              <i class="fas fa-search"></i>
+              <span>Search</span>
+            </label>
+            <input type="text" id="employeeSearch" class="nui-input nui-input-primary" placeholder="Search by name, code, location or card UID...">
           </div>
 
-          <div class="filter-controls">
+          <div class="filter-controls directory-filters">
             <div class="nui-field filter-item">
               <label class="nui-label" for="statusFilter">
                 <i class="fas fa-toggle-on"></i>
@@ -101,53 +196,72 @@
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Employee Grid Block -->
-      <div class="action-block">
-        <div class="block-header">
-          <div class="block-icon">
-            <i class="fas fa-users"></i>
-          </div>
-          <div class="block-title-group">
-            <h3 class="block-title">Team Members</h3>
-            <p class="block-subtitle" id="employeeCount">Loading...</p>
-          </div>
-          <div class="block-header-actions">
-            <button class="btn btn-solid btn-success rounded-lg" id="enrCreateBtn">
-              <i class="fas fa-user-plus"></i>
-              <span>New Employee</span>
-            </button>
-            <button class="btn btn-flat btn-danger rounded-lg" id="enrBulkDeleteBtn">
-              <i class="fas fa-trash-alt"></i>
-              <span>Delete Selected</span>
-            </button>
-          </div>
-        </div>
-
-        <div class="block-content">
-          <div class="table-container" id="enrEmployeeTableContainer">
-            <table class="modern-table" id="enrEmployeeTable">
-              <thead>
-                <tr>
-                  <th class="col-checkbox"><input type="checkbox" id="selectAllCheckbox" title="Select all"></th>
-                  <th><i class="fas fa-user"></i> Name</th>
-                  <th><i class="fas fa-id-badge"></i> Code</th>
-                  <th><i class="fas fa-map-marker-alt"></i> Location</th>
-                  <th><i class="fas fa-toggle-on"></i> Status</th>
-                  <th><i class="fas fa-cog"></i> Actions</th>
-                </tr>
-              </thead>
-              <tbody id="enrEmployeeBody">
-                <!-- Employee rows rendered by JS -->
-              </tbody>
-            </table>
-            <div class="loading-state" id="employeeLoadingState">
-              <div class="loading-spinner"></div>
-              <p>Loading employees...</p>
+        <!-- Active filters summary (rendered by JS) -->
+        <div class="active-filters" id="activeFilters">
+          <div class="reveal-clip">
+            <div class="active-filters-bar">
+              <span class="active-filters-label">
+                <i class="fas fa-filter"></i>
+                <span>Filtering by:</span>
+              </span>
+              <div class="filter-chips" id="filterChips"></div>
+              <button class="btn btn-light btn-danger btn-sm rounded-full clear-filters-btn" id="clearAllFiltersBtn">
+                <i class="fas fa-times"></i>
+                <span>Clear all</span>
+              </button>
             </div>
           </div>
         </div>
+
+        <!-- Contextual selection bar (appears when rows are ticked) -->
+        <div class="selection-bar" id="selectionBar" role="status">
+          <div class="reveal-clip">
+            <div class="selection-bar-inner">
+              <div class="selection-info">
+                <i class="fas fa-check-square"></i>
+                <span id="selectionCount">0 selected</span>
+              </div>
+              <div class="selection-actions">
+                <button class="btn btn-ghost btn-default btn-sm rounded-lg" id="clearSelectionBtn">
+                  <span>Clear selection</span>
+                </button>
+                <button class="btn btn-flat btn-danger btn-sm rounded-lg" id="enrBulkDeleteBtn">
+                  <i class="fas fa-trash-alt"></i>
+                  <span>Delete Selected</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Employee Table -->
+        <div class="table-container" id="enrEmployeeTableContainer">
+          <table class="modern-table" id="enrEmployeeTable">
+            <thead>
+              <tr>
+                <th class="col-checkbox"><input type="checkbox" id="selectAllCheckbox" title="Select all"></th>
+                <th><i class="fas fa-user"></i> Employee</th>
+                <th class="col-location"><i class="fas fa-map-marker-alt"></i> Location</th>
+                <th class="col-card"><i class="fas fa-id-card"></i> Card</th>
+                <th class="col-status"><i class="fas fa-toggle-on"></i> Status</th>
+                <th class="col-actions"><i class="fas fa-cog"></i> Actions</th>
+              </tr>
+            </thead>
+            <tbody id="enrEmployeeBody">
+              <!-- Employee rows rendered by JS -->
+            </tbody>
+          </table>
+          <div class="loading-state" id="employeeLoadingState">
+            <div class="loading-spinner"></div>
+            <p>Loading employees...</p>
+          </div>
+        </div>
+
+        <p class="directory-footnote">
+          <i class="fas fa-info-circle"></i>
+          <span>Tip: click anywhere on a row to open it for editing. Press <kbd>/</kbd> to jump to search.</span>
+        </p>
       </div>
     </div>
   </div>
@@ -170,25 +284,43 @@
         <div class="step-item">
           <div class="step-number">1</div>
           <div class="step-info">
-            <h4 class="step-name">Create Employee</h4>
-            <p class="step-desc">Click "New Employee" to add team members</p>
+            <h4 class="step-name">Find someone</h4>
+            <p class="step-desc">Use the search box (name, code or card UID) or the status, country, location and city code filters. Active filters show as chips you can remove one by one.</p>
           </div>
         </div>
         <div class="step-item">
           <div class="step-number">2</div>
           <div class="step-info">
-            <h4 class="step-name">Assign Cards</h4>
-            <p class="step-desc">Link access cards to employees</p>
+            <h4 class="step-name">Add a new employee</h4>
+            <p class="step-desc">Click "New Employee" at the top of the list, enter their name, pick a location (or create a new one) and set their status.</p>
           </div>
         </div>
         <div class="step-item">
           <div class="step-number">3</div>
           <div class="step-info">
-            <h4 class="step-name">Monitor Access</h4>
-            <p class="step-desc">Track employee attendance and access</p>
+            <h4 class="step-name">Edit &amp; assign cards</h4>
+            <p class="step-desc">Click any row to update details, scan a new NFC card, or remove an existing one.</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-number">4</div>
+          <div class="step-info">
+            <h4 class="step-name">Clock in / out</h4>
+            <p class="step-desc">Each row has a clock button that records attendance for that employee straight away.</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-number">5</div>
+          <div class="step-info">
+            <h4 class="step-name">Bulk actions</h4>
+            <p class="step-desc">Tick the checkboxes to select several people &mdash; a toolbar appears with a "Delete Selected" action.</p>
           </div>
         </div>
       </div>
+      <button class="btn btn-ghost btn-primary rounded-lg restore-quickstart-btn" id="restoreQuickStartBtn">
+        <i class="fas fa-lightbulb"></i>
+        <span>Show the quick start banner again</span>
+      </button>
     </div>
   </div>
 </div>
@@ -267,7 +399,7 @@
     </div>
     <div class="modal-body">
       <input type="hidden" id="editEmployeeId">
-      
+
       <div class="nui-field">
         <label class="nui-label" for="editEmployeeName">
           <i class="fas fa-user"></i>
@@ -275,7 +407,7 @@
         </label>
         <input type="text" id="editEmployeeName" class="nui-input nui-input-default" placeholder="Enter full name" required>
       </div>
-      
+
       <div class="nui-field">
         <label class="nui-label" for="editEmployeeCode">
           <i class="fas fa-id-badge"></i>
@@ -283,7 +415,7 @@
         </label>
         <input type="text" id="editEmployeeCode" class="nui-input nui-input-default" readonly disabled>
       </div>
-      
+
       <div class="nui-field">
         <label class="nui-label" for="editEmployeeLocation">
           <i class="fas fa-map-marker-alt"></i>
@@ -298,7 +430,7 @@
           <span>Create New Location</span>
         </button>
       </div>
-      
+
       <div class="nui-field">
         <label class="nui-label" for="editEmployeeStatusSelect">
           <i class="fas fa-toggle-on"></i>
@@ -309,7 +441,7 @@
           <option value="inactive">Inactive</option>
         </select>
       </div>
-      
+
       <div class="nui-field nfc-enrollment-group">
         <label class="nui-label">
           <i class="fas fa-credit-card"></i>

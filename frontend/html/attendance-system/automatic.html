@@ -5,6 +5,10 @@
   <header class="page-header">
     <div class="header-content">
       <h1 class="page-title">NFC Clocking Terminal</h1>
+      <button id="clockOpenGuideBtn" class="btn btn-flat btn-primary rounded-full help-button" aria-label="Open Clocking Guide">
+        <i class="fas fa-question-circle"></i>
+        <span>Help</span>
+      </button>
     </div>
     <p class="page-subtitle">NFC-based attendance tracking</p>
   </header>
@@ -29,22 +33,45 @@
     </button>
   </nav>
 
-  <!-- Scan Result Alert (Hidden by default) -->
-  <div id="scanResultAlert" class="scan-result-alert" style="display: none;">
-    <div class="alert-content">
-      <i class="alert-icon fas fa-check-circle"></i>
-      <div class="alert-text">
-        <h4 class="alert-title">Scan Successful</h4>
-        <p class="alert-message" id="scanResultMessage"></p>
-      </div>
-      <button class="alert-close" onclick="document.getElementById('scanResultAlert').style.display='none'">
-        <i class="fas fa-times"></i>
-      </button>
-    </div>
-  </div>
-
   <!-- Main Content -->
   <div class="automatic-wrapper">
+
+    <!-- ===== Quick Start (dismissible) ===== -->
+    <section class="quick-start" id="clockQuickStart" aria-label="How this page works">
+      <div class="quick-start-header">
+        <div class="quick-start-title">
+          <i class="fas fa-lightbulb"></i>
+          <h3>New here? This is how it works</h3>
+        </div>
+        <button id="clockDismissQuickStart" class="btn btn-ghost btn-default btn-sm rounded-full" aria-label="Dismiss quick start">
+          <i class="fas fa-check"></i>
+          <span>Got it</span>
+        </button>
+      </div>
+      <div class="quick-start-steps">
+        <div class="quick-step">
+          <span class="quick-step-num">1</span>
+          <div class="quick-step-body">
+            <h4><i class="fas fa-play-circle"></i> Start the scanner</h4>
+            <p>Scanning starts automatically. If it is stopped, press "Start Scanning" to resume.</p>
+          </div>
+        </div>
+        <div class="quick-step">
+          <span class="quick-step-num">2</span>
+          <div class="quick-step-body">
+            <h4><i class="fas fa-id-card"></i> Tap a card</h4>
+            <p>Hold an employee&rsquo;s NFC card on the reader &mdash; they are clocked in or out automatically.</p>
+          </div>
+        </div>
+        <div class="quick-step">
+          <span class="quick-step-num">3</span>
+          <div class="quick-step-body">
+            <h4><i class="fas fa-check-circle"></i> Check the result</h4>
+            <p>Each scan pops up below the scanner bar and is added to the Recent Scans list.</p>
+          </div>
+        </div>
+      </div>
+    </section>
 
     <!-- Compact Scanner Control Bar -->
     <div class="scanner-control-bar">
@@ -59,7 +86,7 @@
               <i class="fas fa-check-circle"></i>
               <span>Ready</span>
             </div>
-            <span class="scan-stat">Last: <strong id="lastScanTime">—</strong></span>
+            <span class="scan-stat">Last: <strong id="lastScanTime">&mdash;</strong></span>
             <span class="scan-stat">Scans: <strong id="totalScansToday">0</strong></span>
           </div>
           <div id="scannerStatus" class="scanner-status-line status-ready">Card reader detected</div>
@@ -77,6 +104,9 @@
       </div>
     </div>
 
+    <!-- Scan Feedback Stack (recent scan results, newest on top) -->
+    <div id="scanFeedbackStack" class="scan-feedback-stack" aria-live="polite"></div>
+
     <!-- Recent Scans -->
     <div class="action-block">
       <div class="block-header">
@@ -93,10 +123,68 @@
         <div id="recentScansTable">
           <div class="empty-state">
             <i class="fas fa-inbox"></i>
-            <p>No scans yet — start scanning to see activity here</p>
+            <p>No scans yet &mdash; start scanning to see activity here</p>
           </div>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Clocking Guide Modal -->
+<div id="clockGuideModal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-header-icon">
+        <i class="fas fa-info-circle"></i>
+      </div>
+      <h3 class="modal-title">Clocking Guide</h3>
+      <button id="clockCloseGuideBtn" class="modal-close" aria-label="Close">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="steps-list">
+        <div class="step-item">
+          <div class="step-number">1</div>
+          <div class="step-info">
+            <h4 class="step-name">Check the reader status</h4>
+            <p class="step-desc">The badge in the scanner bar shows whether the NFC reader is connected. "Ready" means you are good to go.</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-number">2</div>
+          <div class="step-info">
+            <h4 class="step-name">Start or stop scanning</h4>
+            <p class="step-desc">Scanning starts automatically when the page opens. Use the Start / Stop buttons to pause the terminal, e.g. outside working hours.</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-number">3</div>
+          <div class="step-info">
+            <h4 class="step-name">Tap a card to clock</h4>
+            <p class="step-desc">Employees hold their NFC card on the reader. The system works out whether it is a clock in or clock out automatically.</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-number">4</div>
+          <div class="step-info">
+            <h4 class="step-name">Confirm the result</h4>
+            <p class="step-desc">Each scan shows a result card under the scanner bar for a few seconds, and every record is listed in Recent Scans. Unregistered cards are flagged.</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-number">5</div>
+          <div class="step-info">
+            <h4 class="step-name">Review the day</h4>
+            <p class="step-desc">"Last" and "Scans" in the scanner bar track today&rsquo;s activity. For full history and exports, head to the Timesheets page.</p>
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-ghost btn-primary rounded-lg restore-quickstart-btn" id="clockRestoreQuickStart">
+        <i class="fas fa-lightbulb"></i>
+        <span>Show the quick-start guide again</span>
+      </button>
     </div>
   </div>
 </div>

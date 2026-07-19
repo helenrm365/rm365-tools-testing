@@ -1,60 +1,154 @@
-/* ===== Attendance Dashboard Page (Attendance System) ===== */
-/* Page-specific styles for attendance-system/dashboard.html */
-/* 
-   Global Components Used (from css/):
-   - layout/header.css: .page-header, .page-title, .page-subtitle, .header-content
-   - components/buttons-nextui.css: .btn, .btn-solid, .btn-flat, .btn-ghost, .btn-primary, .btn-default, .btn-icon-only
-   - components/cards.css: .action-block, .block-header, .block-icon, .block-title-group
-   - components/forms.css: .form-group, .form-label, input, select
-   - components/tabs.css: .nui-tabs, .nui-tab
-   - components/filter-control-panel.css: .unified-filter-panel, .filter-panel-header, etc.
-   
-   Shadow System (from SHADOW_SYSTEM.md):
-   - .action-block uses shadow-l (main container)
-   - .stat-card uses shadow-m (nested card)
-   - inputs/buttons use shadow-m
-*/
+/* ============================================================
+   ATTENDANCE ANALYTICS PAGE (Attendance System)
+   Scope: .attendance-dashboard
+   Design language shared with the Staff Directory / Timesheets
+   revamp: dismissible quick-start banner, scope pills on each
+   section, active-filter chips, drill-down affordances.
+   Shared components come from:
+   - components/cards.css: .action-block, .block-*, .stat-card,
+     .employee-card, .employee-avatar
+   - components/filter-control-panel.css: .unified-filter-panel etc.
+   - components/modals.css: .modal-overlay, .steps-list
+   - components/tables.css: .modern-table, .table-container
+   ============================================================ */
 
-/* ===== Page Scope ===== */
+/* =========================================================
+   1. PAGE SCOPE
+   ========================================================= */
 .attendance-dashboard {
-  display: block;
-  font-family: var(--ff);
-  color: var(--text-muted);
-  transition: all var(--transition);
-  padding: 0.5rem 1rem;
-  min-height: calc(100vh - 40px);
-  background: var(--bg-dark);
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 1rem 2rem;
 }
 
-/* ===== Main Content Layout ===== */
 .attendance-dashboard .dashboard-content {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-  width: 100%;
+  gap: 1.25rem;
 }
 
-/* ===== Global Filter Panel Overrides ===== */
-.attendance-dashboard .unified-filter-panel {
-  margin-bottom: 0.5rem;
+.attendance-dashboard .help-button {
+  margin-left: auto;
 }
 
-.attendance-dashboard .filter-panel-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+/* =========================================================
+   2. QUICK START STRIP (dismissible)
+   ========================================================= */
+.attendance-dashboard .quick-start {
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--accent) 8%, var(--bg)),
+    var(--bg));
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  border-radius: 16px;
+  padding: 1.25rem 1.5rem;
+  animation: dashFadeIn 0.35s ease;
+}
+
+@keyframes dashFadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.attendance-dashboard .quick-start.hidden {
+  display: none;
+}
+
+.attendance-dashboard .quick-start-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 1rem;
+  margin-bottom: 1rem;
 }
 
-/* Date Range Controls */
+.attendance-dashboard .quick-start-title {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.attendance-dashboard .quick-start-title i {
+  color: var(--accent);
+  font-size: 1.1rem;
+}
+
+.attendance-dashboard .quick-start-title h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.attendance-dashboard .quick-start-steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.875rem;
+}
+
+.attendance-dashboard .quick-step {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.875rem 1rem;
+  background: var(--bg-card);
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+html.dark-mode .attendance-dashboard .quick-step {
+  box-shadow: none;
+  border: 1px solid color-mix(in srgb, var(--text-muted) 12%, transparent);
+}
+
+.attendance-dashboard .quick-step-num {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  color: white;
+  font-weight: 700;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.attendance-dashboard .quick-step-body h4 {
+  margin: 0 0 0.25rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.attendance-dashboard .quick-step-body h4 i {
+  color: var(--accent);
+  font-size: 0.8rem;
+}
+
+.attendance-dashboard .quick-step-body p {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+/* =========================================================
+   3. FILTER PANEL EXTRAS
+   (structure/styling of the panel itself lives in
+   components/filter-control-panel.css)
+   ========================================================= */
+.attendance-dashboard .filter-panel-grid {
+  align-items: start;
+}
+
 .attendance-dashboard .date-range-controls {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-}
-
-/* Date presets now use .btn-group .btn-faded (buttons-nextui.css) */
-.attendance-dashboard .date-preset-buttons {
-  /* layout handled by .btn-group; keep for mobile scroll override */
 }
 
 .attendance-dashboard .custom-date-range {
@@ -62,405 +156,425 @@
   gap: 1rem;
 }
 
-/* Date inputs now use nui-field from inputs-nextui.css */
-
-/* Additional Filters */
 .attendance-dashboard .additional-filters-grid {
   display: flex;
   gap: 1rem;
 }
 
-/* Clear Button */
-.attendance-dashboard .btn-clear-filters {
+.attendance-dashboard .additional-filters-grid .nui-field {
+  flex: 1;
+  min-width: 0;
+}
+
+/* --- Active filter chips row (visible even when collapsed) ---
+   Styled as a small card to match .filter-control-group, since the
+   .unified-filter-panel container itself is transparent. */
+.attendance-dashboard .dash-active-filters {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.35rem 0.75rem;
-  border: 1px solid color-mix(in srgb, var(--error) 15%, transparent);
-  border-radius: 6px;
-  background: transparent;
-  color: var(--text-muted);
-  font-size: 0.75rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-html.dark-mode .attendance-dashboard .btn-clear-filters {
-  border-color: color-mix(in srgb, var(--error) 25%, transparent);
-}
-
-.attendance-dashboard .btn-clear-filters:hover {
-  background: color-mix(in srgb, var(--error) 15%, transparent);
-  color: var(--error);
-  border-color: var(--error);
-  box-shadow: 
-    0 0 12px color-mix(in srgb, var(--error) 20%, transparent),
-    0 4px 12px color-mix(in srgb, var(--error) 15%, transparent);
-}
-
-.attendance-dashboard .btn-clear-filters:focus-visible {
-  outline: none;
-  border-color: var(--error);
-  box-shadow: 
-    0 0 12px color-mix(in srgb, var(--error) 25%, transparent),
-    0 0 24px color-mix(in srgb, var(--error) 15%, transparent),
-    0 4px 12px color-mix(in srgb, var(--error) 20%, transparent);
-}
-
-/* ===== Block Header with Toggle Button ===== */
-.attendance-dashboard .block-header {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-/* Toggle view now uses .btn-group .btn-ghost (buttons-nextui.css) */
-
-/* ===== Stats Grid ===== */
-.attendance-dashboard .stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-}
-
-/* ===== Stat Card ===== */
-.attendance-dashboard .stat-card {
-  background: var(--bg-light);
-  border-radius: 16px;
-  padding: 1.25rem;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
+  gap: 0.625rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  background: var(--bg);
   border: 1px solid rgba(0, 0, 0, 0.06);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: var(--radius-lg);
 }
 
-html.dark-mode .attendance-dashboard .stat-card {
+html.dark-mode .attendance-dashboard .dash-active-filters {
   border-color: rgba(255, 255, 255, 0.08);
 }
 
+.attendance-dashboard .chips-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.attendance-dashboard .chips-label i {
+  color: var(--accent);
+}
+
+.attendance-dashboard .dash-filter-chips {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.attendance-dashboard .dash-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+.attendance-dashboard .dash-chip i {
+  font-size: 0.72rem;
+  color: var(--accent);
+}
+
+.attendance-dashboard .dash-chip .dash-chip-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--text-muted) 18%, transparent);
+  color: var(--text);
+  font-size: 0.6rem;
+  cursor: pointer;
+  transition: background-color var(--transition), color var(--transition);
+}
+
+.attendance-dashboard .dash-chip .dash-chip-clear:hover {
+  background: var(--danger);
+  color: white;
+}
+
+/* =========================================================
+   4. SECTION HEADERS: scope pills + icon colors
+   ========================================================= */
+.attendance-dashboard .block-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  flex-wrap: wrap;
+}
+
+.attendance-dashboard .scope-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.18rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: default;
+}
+
+.attendance-dashboard .scope-pill i {
+  font-size: 0.68rem;
+}
+
+.attendance-dashboard .scope-pill.scope-live {
+  background: color-mix(in srgb, var(--success) 13%, transparent);
+  color: var(--success);
+}
+
+.attendance-dashboard .scope-pill.scope-filtered {
+  background: color-mix(in srgb, var(--info) 13%, transparent);
+  color: var(--info);
+}
+
+.attendance-dashboard .scope-pill.scope-mixed {
+  background: color-mix(in srgb, var(--warning) 15%, transparent);
+  color: var(--warning);
+}
+
+/* Live pulse dot */
+.attendance-dashboard .pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--success);
+  animation: dashPulse 2s ease-in-out infinite;
+}
+
+@keyframes dashPulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--success) 45%, transparent); }
+  50%      { box-shadow: 0 0 0 4px transparent; }
+}
+
+/* Per-section block icon colors */
+.attendance-dashboard .realtime-block-icon {
+  background: color-mix(in srgb, var(--success) 14%, transparent) !important;
+  color: var(--success) !important;
+}
+
+.attendance-dashboard .punctuality-block-icon {
+  background: color-mix(in srgb, var(--info) 14%, transparent) !important;
+  color: var(--info) !important;
+}
+
+.attendance-dashboard .lunchtime-block-icon {
+  background: color-mix(in srgb, var(--warning) 14%, transparent) !important;
+  color: var(--warning) !important;
+}
+
+/* =========================================================
+   5. STATS GRID & CARDS
+   ========================================================= */
+.attendance-dashboard .stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.attendance-dashboard .stat-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 1.125rem 1.25rem;
+  background: var(--bg-light);
+  border: 1px solid transparent;
+  border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
+}
+
+html.dark-mode .attendance-dashboard .stat-card {
+  border-color: color-mix(in srgb, var(--text-muted) 15%, transparent);
+}
+
 .attendance-dashboard .stat-card:hover {
-  transform: translateY(-3px);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .attendance-dashboard .stat-card.clickable {
   cursor: pointer;
 }
 
-.attendance-dashboard .stat-card.clickable:active {
-  transform: translateY(0);
+.attendance-dashboard .stat-card.clickable:hover {
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
-/* Stat Icon */
+.attendance-dashboard .stat-card.clickable:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.attendance-dashboard .stat-card.clickable:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+/* Drill-down affordance chevron */
+.attendance-dashboard .drill-hint {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%) translateX(-4px);
+  color: var(--accent);
+  font-size: 0.8rem;
+  opacity: 0;
+  transition: opacity var(--transition), transform var(--transition);
+}
+
+.attendance-dashboard .stat-card.clickable:hover .drill-hint,
+.attendance-dashboard .stat-card.clickable:focus-visible .drill-hint {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+}
+
+/* Stat icons */
 .attendance-dashboard .stat-icon {
-  width: 48px;
-  height: 48px;
+  width: 46px;
+  height: 46px;
+  min-height: 46px;
+  max-height: 46px;
+  aspect-ratio: 1;
+  align-self: center;
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.25rem;
+  font-size: 1.15rem;
   flex-shrink: 0;
 }
 
 .attendance-dashboard .stat-icon.total-icon {
-  background: color-mix(in srgb, var(--info) 15%, transparent);
+  background: color-mix(in srgb, var(--info) 14%, transparent);
   color: var(--info);
 }
 
 .attendance-dashboard .stat-icon.checked-in-icon,
 .attendance-dashboard .stat-icon.attendance-icon {
-  background: color-mix(in srgb, var(--success) 15%, transparent);
+  background: color-mix(in srgb, var(--success) 14%, transparent);
   color: var(--success);
 }
 
 .attendance-dashboard .stat-icon.checked-out-icon {
-  background: color-mix(in srgb, var(--warning) 15%, transparent);
+  background: color-mix(in srgb, var(--warning) 14%, transparent);
   color: var(--warning);
 }
 
 .attendance-dashboard .stat-icon.absent-icon {
-  background: color-mix(in srgb, var(--error) 15%, transparent);
-  color: var(--error);
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  color: var(--danger);
 }
 
 .attendance-dashboard .stat-icon.break-icon {
-  background: color-mix(in srgb, var(--info) 15%, transparent);
-  color: var(--info);
+  background: color-mix(in srgb, var(--warning) 14%, transparent);
+  color: var(--warning);
 }
 
 .attendance-dashboard .stat-icon.late-icon {
-  background: color-mix(in srgb, var(--warning) 15%, transparent);
+  background: color-mix(in srgb, var(--warning) 14%, transparent);
   color: var(--warning);
 }
 
 .attendance-dashboard .stat-icon.early-icon {
-  background: color-mix(in srgb, #9b59b6 15%, transparent);
-  color: #9b59b6;
+  background: color-mix(in srgb, var(--info) 14%, transparent);
+  color: var(--info);
 }
 
 .attendance-dashboard .stat-icon.missing-icon {
-  background: color-mix(in srgb, var(--error) 15%, transparent);
-  color: var(--error);
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  color: var(--danger);
 }
 
-/* Stat Info */
+/* Stat text */
 .attendance-dashboard .stat-info {
-  flex: 1;
   min-width: 0;
 }
 
 .attendance-dashboard .stat-value {
-  font-size: 1.75rem;
-  font-weight: 700;
-  line-height: 1;
-  margin-bottom: 0.25rem;
+  font-size: 1.6rem;
+  font-weight: 800;
+  line-height: 1.2;
   color: var(--text);
   display: flex;
   align-items: baseline;
-  gap: 0.5rem;
+  gap: 0.4rem;
+  flex-wrap: wrap;
 }
 
 .attendance-dashboard .stat-rate {
-  font-size: 0.875rem;
-  font-weight: 500;
+  font-size: 0.8rem;
+  font-weight: 700;
   color: var(--text-muted);
 }
 
 .attendance-dashboard .stat-label {
-  font-size: 0.875rem;
+  font-size: 0.78rem;
+  font-weight: 600;
   color: var(--text-muted);
-  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
-/* ===== List View ===== */
+/* =========================================================
+   6. LIST VIEWS & TABLES
+   ========================================================= */
 .attendance-dashboard .list-view {
-  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
 }
 
-/* List tabs now use .btn-group .btn-faded (buttons-nextui.css) */
+/* Views fade/slide in when toggled (display:none -> shown re-runs the
+   animation). JS sets inline display:block on list views, which kills the
+   flex gap above - the margin on .list-tabs keeps spacing even either way. */
+.attendance-dashboard .stats-grid,
+.attendance-dashboard .lunchtime-cards-grid,
+.attendance-dashboard .list-view,
+.attendance-dashboard .lunchtime-list-view {
+  animation: dashViewIn 0.28s ease;
+}
+
+@keyframes dashViewIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* JS adds .swap-in to freshly injected list content after data loads, so
+   only genuine content swaps animate. A pure-CSS descendant animation would
+   also re-fire on stale DOM whenever an ancestor's display flips, causing
+   the old table to flash in before the new data arrives. */
+.attendance-dashboard .swap-in {
+  animation: dashViewIn 0.25s ease;
+}
+
+/* Lightweight placeholder injected synchronously while list data loads */
+.attendance-dashboard .list-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 2.25rem 1rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.attendance-dashboard .list-loading i {
+  font-size: 1.4rem;
+  color: var(--accent);
+}
+
 .attendance-dashboard .list-tabs {
+  flex-wrap: wrap;
   margin-bottom: 1rem;
 }
 
 .attendance-dashboard .list-tab i {
-  font-size: 0.9rem;
+  margin-right: 0.35rem;
 }
 
 .attendance-dashboard .list-content {
-  min-height: 200px;
+  min-height: 120px;
 }
 
-/* ===== Status Badges ===== */
+.attendance-dashboard .table-container {
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--text-muted) 12%, transparent);
+}
+
+/* Badges & markers inside JS-generated tables */
 .attendance-dashboard .status-badge {
-  display: inline-block;
-  padding: 0.25rem 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.28rem 0.7rem;
   border-radius: 999px;
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 700;
   color: white;
-  text-transform: uppercase;
-  letter-spacing: 0.025em;
+  white-space: nowrap;
 }
 
 .attendance-dashboard .time-late {
   color: var(--warning);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .attendance-dashboard .time-early {
-  color: #9b59b6;
-  font-weight: 600;
+  color: var(--info);
+  font-weight: 700;
 }
 
 .attendance-dashboard .issue-badge {
-  display: inline-block;
-  padding: 0.25rem 0.75rem;
-  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
   font-size: 0.75rem;
-  font-weight: 500;
-  background: color-mix(in srgb, var(--error) 15%, transparent);
-  color: var(--error);
+  font-weight: 700;
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  color: var(--danger);
 }
 
-/* ===== Loading State ===== */
-.attendance-dashboard .loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 3rem;
-  color: var(--text-muted);
-  gap: 1rem;
-}
-
-.attendance-dashboard .loading-state i {
-  font-size: 2rem;
-  color: var(--accent);
-}
-
-/* ===== Empty State ===== */
-.attendance-dashboard .empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 3rem;
-  color: var(--text-muted);
-  text-align: center;
-  gap: 0.5rem;
-}
-
-.attendance-dashboard .empty-state i {
-  font-size: 2.5rem;
-  color: var(--text-muted);
-  opacity: 0.5;
-  margin-bottom: 0.5rem;
-}
-
-/* ===== Responsive ===== */
-
-/* Tablet: 769px - 1024px */
-@media (max-width: 1024px) {
-  .attendance-dashboard .filter-panel-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .attendance-dashboard .stats-grid {
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  }
-  
-  .attendance-dashboard .employee-grid {
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  }
-}
-
-/* Mobile: <= 768px */
-@media (max-width: 768px) {
-  .attendance-dashboard .stats-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 0.75rem;
-  }
-  
-  .attendance-dashboard .stat-card {
-    padding: 0.875rem;
-  }
-  
-  .attendance-dashboard .stat-icon {
-    width: 40px;
-    height: 40px;
-    font-size: 1rem;
-  }
-  
-  .attendance-dashboard .stat-value {
-    font-size: 1.25rem;
-  }
-  
-  .attendance-dashboard .date-preset-buttons {
-    overflow-x: auto;
-    overscroll-behavior-x: none;
-    scrollbar-width: none;
-    padding-bottom: 0.25rem;
-  }
-  
-  .attendance-dashboard .date-preset-buttons::-webkit-scrollbar {
-    display: none;
-  }
-  
-  .attendance-dashboard .custom-date-range {
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-  
-  .attendance-dashboard .additional-filters-grid {
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-  
-  .attendance-dashboard .list-tabs {
-    overflow-x: auto;
-    overscroll-behavior-x: none;
-    scrollbar-width: none;
-    padding-bottom: 0.25rem;
-  }
-  
-  .attendance-dashboard .list-tabs::-webkit-scrollbar {
-    display: none;
-  }
-
-  .attendance-dashboard .block-header-actions {
-    flex-shrink: 0;
-  }
-  
-  .attendance-dashboard .employee-grid {
-    grid-template-columns: 1fr;
-    gap: 0.75rem;
-  }
-  
-  .attendance-dashboard .employee-card {
-    padding: 0.875rem;
-  }
-  
-  /* Tables become scrollable */
-  .attendance-dashboard .block-content:has(table) {
-    overflow-x: auto;
-    overscroll-behavior-x: none;
-  }
-  
-  .attendance-dashboard table {
-    min-width: 600px;
-  }
-}
-
-/* Small Mobile: <= 480px */
-@media (max-width: 480px) {
-  .attendance-dashboard .stats-grid {
-    grid-template-columns: 1fr;
-    gap: 0.5rem;
-  }
-  
-  .attendance-dashboard .stat-card {
-    padding: 0.75rem;
-  }
-  
-  .attendance-dashboard .stat-value {
-    font-size: 1.125rem;
-  }
-  
-  .attendance-dashboard .stat-label {
-    font-size: 0.7rem;
-  }
-  
-  .attendance-dashboard .preset-btn {
-    padding: 0.375rem 0.75rem;
-    font-size: 0.8rem;
-  }
-  
-  .attendance-dashboard .list-tab {
-    padding: 0.5rem 0.75rem;
-    font-size: 0.8rem;
-  }
-  
-  .attendance-dashboard .list-tab span {
-    display: none;
-  }
-  
-  .attendance-dashboard .list-tab i {
-    margin-right: 0;
-  }
-  
-  .attendance-dashboard .employee-name {
-    font-size: 0.95rem;
-  }
-  
-  .attendance-dashboard .employee-info {
-    font-size: 0.8rem;
-  }
-}
-
-/* ===== Lunchtime Cards View ===== */
+/* =========================================================
+   7. EMPLOYEE ATTENDANCE ANALYSIS (lunchtime cards)
+   ========================================================= */
 .attendance-dashboard .lunchtime-cards-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -472,23 +586,36 @@ html.dark-mode .attendance-dashboard .stat-card {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  background: rgba(255, 152, 0, 0.1);
-  border-radius: 8px;
-  color: #f57c00;
-  font-size: 0.875rem;
-  font-weight: 500;
-  margin-bottom: 0.5rem;
+  padding: 0.5rem 0.25rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .attendance-dashboard .lunchtime-date-label i {
-  font-size: 0.875rem;
+  color: var(--accent);
 }
 
 .attendance-dashboard .lunchtime-employee-card {
   flex-direction: column;
   align-items: stretch;
   padding: 1rem 1.25rem;
+  cursor: pointer;
+  transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
+}
+
+.attendance-dashboard .lunchtime-employee-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+/* Dimmed while the logs modal preloads this employee's data */
+.attendance-dashboard .lunchtime-employee-card.card-busy {
+  opacity: 0.65;
+  pointer-events: none;
 }
 
 .attendance-dashboard .lunchtime-employee-card .employee-avatar {
@@ -524,6 +651,10 @@ html.dark-mode .attendance-dashboard .stat-card {
   border-radius: 8px;
 }
 
+html.dark-mode .attendance-dashboard .lunchtime-detail-item {
+  background: rgba(255, 255, 255, 0.05);
+}
+
 .attendance-dashboard .lunchtime-detail-item i {
   color: var(--accent);
   font-size: 0.875rem;
@@ -547,20 +678,9 @@ html.dark-mode .attendance-dashboard .stat-card {
   display: block;
 }
 
-/* Responsive adjustments for lunchtime cards */
-@media (max-width: 768px) {
-  .attendance-dashboard .lunchtime-cards-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 480px) {
-  .attendance-dashboard .lunchtime-card-details {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* ===== Export Dropdown ===== */
+/* =========================================================
+   8. EXPORT DROPDOWNS & HEADER ACTIONS
+   ========================================================= */
 .attendance-dashboard .block-header-actions {
   display: flex;
   align-items: center;
@@ -588,7 +708,7 @@ html.dark-mode .attendance-dashboard .stat-card {
   opacity: 0.7;
 }
 
-/* ===== Employee Card Export Select ===== */
+/* Employee card export select */
 .attendance-dashboard .employee-card-header {
   display: flex;
   justify-content: space-between;
@@ -613,13 +733,204 @@ html.dark-mode .attendance-dashboard .stat-card {
   left: auto;
 }
 
-/* Ensure cursor pointer for clickable card areas */
-.attendance-dashboard .lunchtime-employee-card {
-  cursor: pointer;
+/* =========================================================
+   9. EMPTY & LOADING STATES
+   ========================================================= */
+.attendance-dashboard .loading-state,
+.attendance-dashboard .empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 2.5rem 1rem;
+  text-align: center;
 }
 
-.attendance-dashboard .lunchtime-employee-card:hover {
-  transform: translateY(-2px);
+.attendance-dashboard .loading-state i,
+.attendance-dashboard .empty-state i {
+  font-size: 2.25rem;
+  color: var(--accent);
+  opacity: 0.5;
+  margin-bottom: 0.375rem;
 }
 
+.attendance-dashboard .loading-state p,
+.attendance-dashboard .empty-state p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
 
+/* =========================================================
+   10. RESPONSIVE
+   ========================================================= */
+@media (max-width: 1024px) {
+  .attendance-dashboard .quick-start-steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .attendance-dashboard .filter-panel-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .attendance-dashboard .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .attendance-dashboard {
+    padding: 0 0.75rem 1.5rem;
+  }
+
+  .attendance-dashboard .dashboard-content {
+    gap: 1rem;
+  }
+
+  .attendance-dashboard .quick-start {
+    padding: 1rem;
+  }
+
+  .attendance-dashboard .quick-start-steps {
+    grid-template-columns: 1fr;
+  }
+
+  .attendance-dashboard .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .attendance-dashboard .stat-icon {
+    width: 40px;
+    height: 40px;
+    min-height: 40px;
+    max-height: 40px;
+    font-size: 1rem;
+  }
+
+  .attendance-dashboard .stat-value {
+    font-size: 1.35rem;
+  }
+
+  .attendance-dashboard .date-preset-buttons {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .attendance-dashboard .date-preset-buttons::-webkit-scrollbar {
+    display: none;
+  }
+
+  .attendance-dashboard .custom-date-range {
+    flex-direction: column;
+  }
+
+  .attendance-dashboard .additional-filters-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .attendance-dashboard .list-tabs {
+    overflow-x: auto;
+    scrollbar-width: none;
+    flex-wrap: nowrap;
+  }
+
+  .attendance-dashboard .list-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .attendance-dashboard .block-header-actions {
+    flex-wrap: wrap;
+  }
+
+  .attendance-dashboard .block-title-row {
+    gap: 0.4rem;
+  }
+
+  .attendance-dashboard .scope-pill {
+    font-size: 0.68rem;
+  }
+
+  .attendance-dashboard .lunchtime-cards-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .attendance-dashboard .block-content:has(table) {
+    overflow-x: auto;
+  }
+
+  .attendance-dashboard table {
+    min-width: 500px;
+  }
+}
+
+@media (max-width: 480px) {
+  .attendance-dashboard .stat-value {
+    font-size: 1.2rem;
+  }
+
+  .attendance-dashboard .stat-label {
+    font-size: 0.7rem;
+  }
+
+  .attendance-dashboard .preset-btn {
+    font-size: 0.78rem;
+    white-space: nowrap;
+  }
+
+  .attendance-dashboard .list-tab {
+    font-size: 0.78rem;
+  }
+
+  .attendance-dashboard .list-tab span {
+    display: none;
+  }
+
+  .attendance-dashboard .list-tab i {
+    margin-right: 0;
+  }
+
+  .attendance-dashboard .lunchtime-card-details {
+    grid-template-columns: 1fr;
+  }
+
+  .attendance-dashboard .dash-active-filters {
+    padding: 0.625rem 1rem;
+  }
+
+  .attendance-dashboard .chips-label span {
+    display: none;
+  }
+}
+
+/* =========================================================
+   11. GUIDE MODAL EXTRAS (outside page scope)
+   ========================================================= */
+.restore-quickstart-btn {
+  width: 100%;
+  margin-top: 1.25rem;
+}
+
+/* Respect reduced-motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .attendance-dashboard .quick-start {
+    animation: none;
+  }
+
+  .attendance-dashboard .pulse-dot {
+    animation: none;
+  }
+
+  .attendance-dashboard .stat-card,
+  .attendance-dashboard .drill-hint,
+  .attendance-dashboard .lunchtime-employee-card {
+    transition: none;
+  }
+
+  .attendance-dashboard .stats-grid,
+  .attendance-dashboard .lunchtime-cards-grid,
+  .attendance-dashboard .list-view,
+  .attendance-dashboard .lunchtime-list-view,
+  .attendance-dashboard .swap-in {
+    animation: none;
+  }
+}

@@ -54,6 +54,17 @@ let state = {
 function $(sel) { return document.querySelector(sel); }
 function $$(sel) { return document.querySelectorAll(sel); }
 
+const QUICK_START_KEY = 'rm365.analyticsQuickStartDismissed';
+
+function esc(str) {
+  return String(str ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
 function formatHoursToHM(decimalHours) {
   if (!decimalHours || decimalHours === 0) return '0m';
   
@@ -490,6 +501,33 @@ function displayLunchtimeTable(data) {
   lunchtimeEl.innerHTML = table;
 }
 
+// ====== List Swap Animation Helpers ======
+// Track when each section's view was flipped so content that lands while the
+// container is still animating in doesn't play a second, doubled animation.
+const viewFlipAt = { realtime: 0, punctuality: 0, lunchtime: 0 };
+
+function markViewFlip(section) {
+  viewFlipAt[section] = performance.now();
+}
+
+function setListLoading(el) {
+  if (!el) return;
+  el.innerHTML = `
+    <div class="list-loading">
+      <i class="fas fa-circle-notch fa-spin"></i>
+      <span>Loading&hellip;</span>
+    </div>
+  `;
+}
+
+function animateListSwap(el, section) {
+  if (!el) return;
+  const target = el.firstElementChild;
+  if (!target) return;
+  if (section && performance.now() - (viewFlipAt[section] || 0) < 400) return;
+  target.classList.add('swap-in');
+}
+
 // ====== View Toggle Functions ======
 function setRealtimeView(view) {
   state.views.realtime = view;
@@ -503,6 +541,7 @@ function setRealtimeView(view) {
     if (activeBtn) activeBtn.classList.add('active');
   }
 
+  markViewFlip('realtime');
   if (view === 'list') {
     statsView.style.display = 'none';
     listView.style.display = 'block';
@@ -529,6 +568,7 @@ function setPunctualityView(view) {
     if (activeBtn) activeBtn.classList.add('active');
   }
 
+  markViewFlip('punctuality');
   if (view === 'list') {
     statsView.style.display = 'none';
     listView.style.display = 'block';
@@ -556,6 +596,7 @@ function setLunchtimeView(view) {
   const cardsView = $("#lunchtimeCardsView");
   const listView = $("#lunchtimeListView");
 
+  markViewFlip('lunchtime');
   if (view === 'list') {
     cardsView.style.display = 'none';
     listView.style.display = 'block';
@@ -705,7 +746,7 @@ function displayLunchtimeCards(data) {
       
       const employeeName = card.dataset.employee;
       if (employeeName) {
-        showEmployeeLogsModal(employeeName);
+        showEmployeeLogsModal(employeeName, card);
       }
     });
   });
@@ -849,19 +890,18 @@ const employeeLogsModalState = {
   todaySummary: { firstIn: null, lastOut: null, hoursWorked: 0, lunchTime: 0 }
 };
 
-async function showEmployeeLogsModal(employeeName) {
+let employeeLogsModalOpening = false;
+
+async function showEmployeeLogsModal(employeeName, clickedCard = null) {
+  if (employeeLogsModalOpening) return;
+  employeeLogsModalOpening = true;
+
   employeeLogsModalState.employeeName = employeeName;
   employeeLogsModalState.currentPage = 1;
   employeeLogsModalState.allLogs = [];
-  
-  // Get date range for display
-  const { fromDate, toDate } = getDateRangeForPreset(state.globalFilters.preset);
-  const fromDateDisplay = new Date(fromDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-  const toDateDisplay = new Date(toDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-  const dateRangeText = fromDate === toDate ? fromDateDisplay : `${fromDateDisplay} - ${toDateDisplay}`;
-  
+
   // Get today's summary from the card data
-  const cardEl = document.querySelector(`.lunchtime-employee-card[data-employee="${employeeName}"]`);
+  const cardEl = clickedCard || document.querySelector(`.lunchtime-employee-card[data-employee="${employeeName}"]`);
   const todaySummary = {
     firstIn: cardEl?.dataset.firstIn || null,
     lastOut: cardEl?.dataset.lastOut || null,
@@ -869,10 +909,26 @@ async function showEmployeeLogsModal(employeeName) {
     lunchTime: parseFloat(cardEl?.dataset.lunchTime) || 0
   };
   employeeLogsModalState.todaySummary = todaySummary;
-  
-  // Create modal HTML
+
+  // Load the data BEFORE opening the modal so the table renders at full
+  // size right away instead of growing from a spinner inside the dialog.
+  cardEl?.classList.add('card-busy');
+  let loaded = false;
+  try {
+    loaded = await loadEmployeeLogsData(employeeName);
+  } finally {
+    cardEl?.classList.remove('card-busy');
+    employeeLogsModalOpening = false;
+  }
+
+  if (!loaded) {
+    showToast('Failed to load attendance logs. Please try again.', 'error');
+    return;
+  }
+
+  // Create modal HTML (content is filled synchronously below)
   const modalHtml = `
-    <div class="modal-overlay active" id="employeeLogsModal">
+    <div class="modal-overlay" id="employeeLogsModal">
       <div class="modal-content" style="max-width: 800px; width: 90%;">
         <div class="modal-header">
           <div class="modal-header-icon">
@@ -884,12 +940,7 @@ async function showEmployeeLogsModal(employeeName) {
           </button>
         </div>
         <div class="modal-body" style="max-height: 60vh; overflow-y: auto; padding: 0;">
-          <div id="employeeLogsContent" style="padding: 1rem;">
-            <div class="loading-state" style="text-align: center; padding: 2rem;">
-              <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: var(--accent);"></i>
-              <p style="margin-top: 1rem; color: var(--text-muted);">Loading logs...</p>
-            </div>
-          </div>
+          <div id="employeeLogsContent" style="padding: 1rem;"></div>
         </div>
         <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
           <div id="employeeLogsPagination" class="pagination-controls" style="display: flex; align-items: center; gap: 0.5rem;"></div>
@@ -906,10 +957,20 @@ async function showEmployeeLogsModal(employeeName) {
     document.body.appendChild(container);
   }
   container.innerHTML = modalHtml;
-  
+
+  // Fill in the table while the modal is still hidden so it opens at
+  // its final size.
+  renderEmployeeLogsTable();
+
   // Setup close handlers
   const modal = document.getElementById('employeeLogsModal');
   const closeBtn = document.getElementById('closeEmployeeLogsModal');
+
+  // Activate on the next frame so the CSS open transition actually plays
+  // (injecting with .active pre-applied skips the animation entirely).
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => modal?.classList.add('active'));
+  });
   
   const closeModal = () => {
     modal.classList.remove('active');
@@ -920,12 +981,10 @@ async function showEmployeeLogsModal(employeeName) {
   modal?.addEventListener('click', (e) => {
     if (e.target === modal) closeModal();
   });
-  
-  // Fetch logs
-  await fetchEmployeeLogs(employeeName);
 }
 
-async function fetchEmployeeLogs(employeeName) {
+// Fetches and prepares the employee's logs; returns true on success.
+async function loadEmployeeLogsData(employeeName) {
   try {
     // Use date range from filter panel
     const { fromDate, toDate } = getDateRangeForPreset(state.globalFilters.preset);
@@ -946,19 +1005,10 @@ async function fetchEmployeeLogs(employeeName) {
     
     employeeLogsModalState.totalPages = Math.ceil(employeeLogsModalState.allLogs.length / employeeLogsModalState.pageSize) || 1;
     employeeLogsModalState.dateRange = { fromDate, toDate };
-    
-    renderEmployeeLogsTable();
+    return true;
   } catch (error) {
     console.error('Error fetching employee logs:', error);
-    const content = document.getElementById('employeeLogsContent');
-    if (content) {
-      content.innerHTML = `
-        <div class="empty-state" style="text-align: center; padding: 2rem;">
-          <i class="fas fa-exclamation-triangle" style="font-size: 2rem; color: var(--error);"></i>
-          <p style="margin-top: 1rem; color: var(--text-muted);">Failed to load logs. Please try again.</p>
-        </div>
-      `;
-    }
+    return false;
   }
 }
 
@@ -1075,9 +1125,12 @@ async function loadRealtimeStatus() {
 }
 
 async function loadRealtimeDetails(statusType) {
+  const listContent = $("#realtimeListContent");
+  setListLoading(listContent);
   const data = await fetchRealtimeDetails(statusType);
   state.realtimeDetails[statusType] = data;
   displayRealtimeListView(data, statusType);
+  animateListSwap(listContent, 'realtime');
 }
 
 async function loadPunctualityMetrics() {
@@ -1089,9 +1142,12 @@ async function loadPunctualityMetrics() {
 }
 
 async function loadPunctualityDetails(metricType) {
+  const listContent = $("#punctualityListContent");
+  setListLoading(listContent);
   const data = await fetchPunctualityDetails(metricType);
   state.punctualityDetails[metricType] = data;
   displayPunctualityListView(data, metricType);
+  animateListSwap(listContent, 'punctuality');
 }
 
 async function loadLocations() {
@@ -1132,12 +1188,120 @@ function populateLocationFilter() {
 async function loadLunchtimeData() {
   try {
     console.log('[Dashboard] Loading lunchtime data with preset:', state.globalFilters.preset);
+    const lunchtimeEl = $("#lunchtimeContent");
+    setListLoading(lunchtimeEl);
     const data = await fetchLunchtimeData();
     console.log('[Dashboard] Lunchtime data received:', data?.length || 0, 'records');
     state.lunchtimeData = data;
     displayLunchtimeTable(data);
+    animateListSwap(lunchtimeEl, 'lunchtime');
   } catch (error) {
     console.error('Failed to load lunchtime data:', error);
+  }
+}
+
+// ====== Active Filter Chips ======
+function renderDashFilterChips() {
+  const wrap = $('#dashFilterChips');
+  if (!wrap) return;
+
+  const f = state.globalFilters;
+  const presetLabels = { today: 'Today', week: 'This Week', month: 'This Month', year: 'This Year' };
+  const chips = [];
+
+  // Date chip (always present; removable when not "today")
+  let dateLabel;
+  if (f.preset === 'custom') {
+    const fmt = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '…';
+    dateLabel = `${fmt(f.fromDate)} – ${fmt(f.toDate)}`;
+  } else {
+    dateLabel = presetLabels[f.preset] || 'Today';
+  }
+  chips.push(`
+    <span class="dash-chip">
+      <i class="fas fa-calendar-alt"></i>
+      <span>${esc(dateLabel)}</span>
+      ${f.preset !== 'today' ? '<button type="button" class="dash-chip-clear" data-action="date" title="Reset to Today" aria-label="Reset date range to today"><i class="fas fa-times"></i></button>' : ''}
+    </span>
+  `);
+
+  // Location chip
+  if (f.location) {
+    chips.push(`
+      <span class="dash-chip">
+        <i class="fas fa-map-marker-alt"></i>
+        <span>${esc(f.location)}</span>
+        <button type="button" class="dash-chip-clear" data-action="location" title="Clear location" aria-label="Clear location filter"><i class="fas fa-times"></i></button>
+      </span>
+    `);
+  } else {
+    chips.push('<span class="dash-chip"><i class="fas fa-map-marker-alt"></i><span>All locations</span></span>');
+  }
+
+  // Employee search chip
+  if (f.nameSearch) {
+    chips.push(`
+      <span class="dash-chip">
+        <i class="fas fa-user"></i>
+        <span>&ldquo;${esc(f.nameSearch)}&rdquo;</span>
+        <button type="button" class="dash-chip-clear" data-action="name" title="Clear employee search" aria-label="Clear employee search"><i class="fas fa-times"></i></button>
+      </span>
+    `);
+  } else {
+    chips.push('<span class="dash-chip"><i class="fas fa-user"></i><span>All employees</span></span>');
+  }
+
+  wrap.innerHTML = chips.join('');
+}
+
+function wireDashFilterChips() {
+  $('#dashFilterChips')?.addEventListener('click', (e) => {
+    const btn = e.target.closest('.dash-chip-clear');
+    if (!btn) return;
+    const action = btn.dataset.action;
+
+    if (action === 'date') {
+      document.querySelector('.date-preset-buttons .preset-btn[data-preset="today"]')?.click();
+    } else if (action === 'location') {
+      const sel = $('#globalLocationFilter');
+      if (sel) {
+        sel.value = '';
+        sel.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    } else if (action === 'name') {
+      const input = $('#globalNameFilter');
+      if (input) input.value = '';
+      applyGlobalFilters();
+    }
+  });
+}
+
+// ====== Quick Start & Guide Modal ======
+function wireGuideAndQuickStart() {
+  // Quick-start banner dismiss / persistence
+  const strip = $('#dashQuickStart');
+  if (strip && localStorage.getItem(QUICK_START_KEY) === '1') {
+    strip.classList.add('hidden');
+  }
+  $('#dashDismissQuickStart')?.addEventListener('click', () => {
+    localStorage.setItem(QUICK_START_KEY, '1');
+    strip?.classList.add('hidden');
+  });
+
+  // Guide modal open/close
+  const guideModal = $('#dashGuideModal');
+  if (guideModal) {
+    $('#dashOpenGuideBtn')?.addEventListener('click', () => guideModal.classList.add('active'));
+    $('#dashCloseGuideBtn')?.addEventListener('click', () => guideModal.classList.remove('active'));
+    guideModal.addEventListener('click', (e) => {
+      if (e.target === guideModal) guideModal.classList.remove('active');
+    });
+    $('#dashRestoreQuickStart')?.addEventListener('click', () => {
+      localStorage.removeItem(QUICK_START_KEY);
+      strip?.classList.remove('hidden');
+      guideModal.classList.remove('active');
+      strip?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
   }
 }
 
@@ -1187,6 +1351,7 @@ function applyGlobalFilters() {
     loadLunchtimeTodayCards(); // Cards view still updates based on location/name filters
   }
   
+  renderDashFilterChips();
   showToast('Filters applied', 'success');
 }
 
@@ -1229,6 +1394,7 @@ function clearGlobalFilters() {
     loadLunchtimeTodayCards();
   }
   
+  renderDashFilterChips();
   showToast('Filters cleared', 'info');
 }
 
@@ -1436,6 +1602,13 @@ async function handleExport(section, format) {
 function setupEventHandlers() {
   // Initialize Filter Control Panel (collapse/expand)
   FilterControlPanel.init('filterPanelCollapseBtn', 'filterPanelBody');
+
+  // Panel starts expanded — add the 'expanded' class the component normally
+  // applies after a click-expand, so dropdown menus inside aren't clipped
+  const panelBody = $('#filterPanelBody');
+  if (panelBody && !panelBody.classList.contains('collapsed')) {
+    panelBody.classList.add('expanded');
+  }
   
   // Setup location filter change listener
   const locationFilter = $('#globalLocationFilter');
@@ -1532,6 +1705,7 @@ function setupEventHandlers() {
         loadPunctualityDetails(state.activeListTabs.punctuality);
       }
       loadLunchtimeData();
+      renderDashFilterChips();
     });
   });
   
@@ -1543,6 +1717,7 @@ function setupEventHandlers() {
       presetBtns.forEach(b => b.classList.remove('active'));
       state.globalFilters.preset = 'custom';
       state.globalFilters.fromDate = globalFromDate.value;
+      renderDashFilterChips();
     });
   }
   
@@ -1552,6 +1727,7 @@ function setupEventHandlers() {
       presetBtns.forEach(b => b.classList.remove('active'));
       state.globalFilters.preset = 'custom';
       state.globalFilters.toDate = globalToDate.value;
+      renderDashFilterChips();
     });
   }
   
@@ -1573,6 +1749,12 @@ function setupEventHandlers() {
         loadRealtimeDetails(statusType);
       }
     });
+    card.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        card.click();
+      }
+    });
   });
   
   // Clickable stat cards - Punctuality
@@ -1591,6 +1773,12 @@ function setupEventHandlers() {
         setPunctualityView('list');
       } else {
         loadPunctualityDetails(metricType);
+      }
+    });
+    card.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        card.click();
       }
     });
   });
@@ -1619,6 +1807,7 @@ function setupEventHandlers() {
         if (nameFilter.value.length >= 2 || nameFilter.value.length === 0) {
           console.log('[Dashboard] Name filter changed to:', nameFilter.value);
           state.globalFilters.nameSearch = nameFilter.value.trim();
+          renderDashFilterChips();
           
           // Name filter affects realtime list view only (not grid view stats)
           // Real-time status cards always show all employees, only list view filters by name
@@ -1645,6 +1834,10 @@ function setupEventHandlers() {
       }, 300);
     });
   }
+
+  // Quick-start banner, guide modal, and active filter chips
+  wireGuideAndQuickStart();
+  wireDashFilterChips();
 }
 
 // ====== Main Init Function ======
@@ -1675,6 +1868,7 @@ export async function init() {
   initDropdown('#realtimeExportSelect', { size: 'md' });
   initDropdown('#punctualityExportSelect', { size: 'md' });
   setupEventHandlers();
+  renderDashFilterChips();
   
   showToast('Loading work locations...', 'info');
   // Load locations

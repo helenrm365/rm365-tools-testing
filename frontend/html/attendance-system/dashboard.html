@@ -5,6 +5,10 @@
   <header class="page-header">
     <div class="header-content">
       <h1 class="page-title">Attendance Analytics</h1>
+      <button id="dashOpenGuideBtn" class="btn btn-flat btn-primary rounded-full help-button" aria-label="Open Analytics Guide">
+        <i class="fas fa-question-circle"></i>
+        <span>Help</span>
+      </button>
     </div>
     <p class="page-subtitle">Real-time insights and comprehensive attendance tracking</p>
   </header>
@@ -32,27 +36,71 @@
   <!-- Main Content -->
   <div class="dashboard-content">
 
+    <!-- ===== Quick Start (dismissible) ===== -->
+    <section class="quick-start" id="dashQuickStart" aria-label="How this page works">
+      <div class="quick-start-header">
+        <div class="quick-start-title">
+          <i class="fas fa-lightbulb"></i>
+          <h3>New here? This is how it works</h3>
+        </div>
+        <button id="dashDismissQuickStart" class="btn btn-ghost btn-default btn-sm rounded-full" aria-label="Dismiss quick start">
+          <i class="fas fa-check"></i>
+          <span>Got it</span>
+        </button>
+      </div>
+      <div class="quick-start-steps">
+        <div class="quick-step">
+          <span class="quick-step-num">1</span>
+          <div class="quick-step-body">
+            <h4><i class="fas fa-calendar-alt"></i> Set your filters</h4>
+            <p>Pick a date range (or a preset like "This Week"), then narrow by location or employee.</p>
+          </div>
+        </div>
+        <div class="quick-step">
+          <span class="quick-step-num">2</span>
+          <div class="quick-step-body">
+            <h4><i class="fas fa-chart-bar"></i> Read the numbers</h4>
+            <p>Each section shows headline stats. Real-Time Status always shows today, live.</p>
+          </div>
+        </div>
+        <div class="quick-step">
+          <span class="quick-step-num">3</span>
+          <div class="quick-step-body">
+            <h4><i class="fas fa-hand-pointer"></i> Click to drill down</h4>
+            <p>Click any stat card to see the people behind the number. Click an employee card for their full log history.</p>
+          </div>
+        </div>
+        <div class="quick-step">
+          <span class="quick-step-num">4</span>
+          <div class="quick-step-body">
+            <h4><i class="fas fa-download"></i> Export</h4>
+            <p>Use the Export dropdown in a section's header to download it as PDF or CSV.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- ===== Global Filter Panel ===== -->
     <div class="unified-filter-panel">
       <!-- Panel Header -->
       <div class="filter-panel-header">
         <div class="filter-panel-title">
           <i class="fas fa-sliders-h"></i>
-          <h2>Filter Control Panel</h2>
+          <h2>Report Filters</h2>
         </div>
         <div class="filter-panel-header-actions">
           <button id="applyGlobalFiltersBtn" class="btn btn-solid btn-primary btn-sm rounded-full panel-header-btn" title="Apply Filters">
             <i class="fas fa-check"></i>
             <span>Apply</span>
           </button>
-          <button class="btn btn-ghost btn-default btn-sm btn-icon-only filter-panel-collapse collapsed" id="filterPanelCollapseBtn" title="Collapse/Expand Panel">
+          <button class="btn btn-ghost btn-default btn-sm btn-icon-only filter-panel-collapse" id="filterPanelCollapseBtn" title="Collapse/Expand Panel">
             <i class="fas fa-chevron-up"></i>
           </button>
         </div>
       </div>
 
       <!-- Panel Body -->
-      <div class="filter-panel-body collapsed" id="filterPanelBody">
+      <div class="filter-panel-body" id="filterPanelBody">
         <div class="filter-panel-grid">
           <!-- Left: Date Range Filters -->
           <div class="filter-control-group">
@@ -116,17 +164,32 @@
           </div>
         </div>
       </div>
+
+      <!-- Active filter chips (always visible, even when panel is collapsed) -->
+      <div class="dash-active-filters" id="dashActiveFilters">
+        <span class="chips-label">
+          <i class="fas fa-eye"></i>
+          <span>Showing:</span>
+        </span>
+        <div class="dash-filter-chips" id="dashFilterChips"></div>
+      </div>
     </div>
-    
+
     <!-- Real-Time Status Section -->
     <div class="action-block" id="realtimeStatusSection">
       <div class="block-header">
-        <div class="block-icon">
+        <div class="block-icon realtime-block-icon">
           <i class="fas fa-signal"></i>
         </div>
         <div class="block-title-group">
-          <h3 class="block-title">Real-Time Status</h3>
-          <p class="block-subtitle">Live attendance status for today</p>
+          <div class="block-title-row">
+            <h3 class="block-title">Real-Time Status</h3>
+            <span class="scope-pill scope-live" title="This section always shows today's live data, regardless of the date filters above">
+              <span class="pulse-dot"></span>
+              <span>Today &middot; Live</span>
+            </span>
+          </div>
+          <p class="block-subtitle">Who's in, absent or on break right now &mdash; click a card to see names</p>
         </div>
         <div class="block-header-actions">
           <select id="realtimeExportSelect" data-section="realtime" class="export-select" title="Export data">
@@ -147,7 +210,7 @@
       <div class="block-content">
         <!-- Stats Cards View -->
         <div class="stats-grid" id="realtimeStatsView">
-          <div class="stat-card clickable" data-status="attendance">
+          <div class="stat-card clickable" data-status="attendance" role="button" tabindex="0" title="Click to see who clocked in today">
             <div class="stat-icon attendance-icon">
               <i class="fas fa-user-check"></i>
             </div>
@@ -155,8 +218,9 @@
               <div class="stat-value" id="todayAttendance">-</div>
               <div class="stat-label">Today's Attendance</div>
             </div>
+            <span class="drill-hint" aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
           </div>
-          <div class="stat-card clickable" data-status="absences">
+          <div class="stat-card clickable" data-status="absences" role="button" tabindex="0" title="Click to see who is absent today">
             <div class="stat-icon absent-icon">
               <i class="fas fa-user-times"></i>
             </div>
@@ -164,8 +228,9 @@
               <div class="stat-value" id="todayAbsences">-</div>
               <div class="stat-label">Today's Absences</div>
             </div>
+            <span class="drill-hint" aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
           </div>
-          <div class="stat-card clickable" data-status="breaks">
+          <div class="stat-card clickable" data-status="breaks" role="button" tabindex="0" title="Click to see who is on a break">
             <div class="stat-icon break-icon">
               <i class="fas fa-coffee"></i>
             </div>
@@ -173,9 +238,10 @@
               <div class="stat-value" id="activeBreaks">-</div>
               <div class="stat-label">Active Break Status</div>
             </div>
+            <span class="drill-hint" aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
           </div>
         </div>
-        
+
         <!-- List View (hidden by default) -->
         <div class="list-view" id="realtimeListView" style="display: none;">
           <div class="list-tabs btn-group">
@@ -202,12 +268,18 @@
     <!-- Punctuality & Compliance Section -->
     <div class="action-block" id="punctualitySection">
       <div class="block-header">
-        <div class="block-icon">
+        <div class="block-icon punctuality-block-icon">
           <i class="fas fa-clipboard-check"></i>
         </div>
         <div class="block-title-group">
-          <h3 class="block-title">Punctuality & Compliance</h3>
-          <p class="block-subtitle">Track late arrivals, early departures, and missing punches</p>
+          <div class="block-title-row">
+            <h3 class="block-title">Punctuality &amp; Compliance</h3>
+            <span class="scope-pill scope-filtered" title="This section follows the date range, location and employee filters above">
+              <i class="fas fa-sliders-h"></i>
+              <span>Follows your filters</span>
+            </span>
+          </div>
+          <p class="block-subtitle">Late arrivals, early departures and missing punches &mdash; click a card to see who</p>
         </div>
         <div class="block-header-actions">
           <select id="punctualityExportSelect" data-section="punctuality" class="export-select" title="Export data">
@@ -228,7 +300,7 @@
       <div class="block-content">
         <!-- Stats Cards View -->
         <div class="stats-grid" id="punctualityStatsView">
-          <div class="stat-card clickable" data-metric="late">
+          <div class="stat-card clickable" data-metric="late" role="button" tabindex="0" title="Click to see late arrivals">
             <div class="stat-icon late-icon">
               <i class="fas fa-clock"></i>
             </div>
@@ -239,8 +311,9 @@
               </div>
               <div class="stat-label">Late Arrivals</div>
             </div>
+            <span class="drill-hint" aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
           </div>
-          <div class="stat-card clickable" data-metric="early">
+          <div class="stat-card clickable" data-metric="early" role="button" tabindex="0" title="Click to see early departures">
             <div class="stat-icon early-icon">
               <i class="fas fa-sign-out-alt"></i>
             </div>
@@ -251,8 +324,9 @@
               </div>
               <div class="stat-label">Early Departures</div>
             </div>
+            <span class="drill-hint" aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
           </div>
-          <div class="stat-card clickable" data-metric="missing">
+          <div class="stat-card clickable" data-metric="missing" role="button" tabindex="0" title="Click to see missing punches">
             <div class="stat-icon missing-icon">
               <i class="fas fa-exclamation-triangle"></i>
             </div>
@@ -263,9 +337,10 @@
               </div>
               <div class="stat-label">Missing Punches</div>
             </div>
+            <span class="drill-hint" aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
           </div>
         </div>
-        
+
         <!-- List View (hidden by default) -->
         <div class="list-view" id="punctualityListView" style="display: none;">
           <div class="list-tabs btn-group">
@@ -292,12 +367,18 @@
     <!-- Employee Attendance Analysis Section -->
     <div class="action-block" id="lunchtimeSection">
       <div class="block-header">
-        <div class="block-icon">
+        <div class="block-icon lunchtime-block-icon">
           <i class="fas fa-user-clock"></i>
         </div>
         <div class="block-title-group">
-          <h3 class="block-title">Employee Attendance Analysis</h3>
-          <p class="block-subtitle">Today's summary cards or detailed list view by date range</p>
+          <div class="block-title-row">
+            <h3 class="block-title">Employee Attendance Analysis</h3>
+            <span class="scope-pill scope-mixed" title="Cards view always shows today. Switch to list view to use your date range filters">
+              <i class="fas fa-info-circle"></i>
+              <span>Cards: today &middot; List: your date range</span>
+            </span>
+          </div>
+          <p class="block-subtitle">Per-employee day summary &mdash; click a card for their full log history</p>
         </div>
         <div class="block-header-actions">
           <div class="btn-group" id="lunchtimeViewToggle">
@@ -319,7 +400,7 @@
             <p>Loading today's attendance summary...</p>
           </div>
         </div>
-        
+
         <!-- List View (Date range data - hidden by default) -->
         <div class="lunchtime-list-view" id="lunchtimeListView" style="display: none;">
           <div id="lunchtimeContent">
@@ -331,6 +412,64 @@
           </div>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Analytics Guide Modal -->
+<div id="dashGuideModal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-header-icon">
+        <i class="fas fa-info-circle"></i>
+      </div>
+      <h3 class="modal-title">Analytics Guide</h3>
+      <button id="dashCloseGuideBtn" class="modal-close" aria-label="Close">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="steps-list">
+        <div class="step-item">
+          <div class="step-number">1</div>
+          <div class="step-info">
+            <h4 class="step-name">Set your filters</h4>
+            <p class="step-desc">Use the Report Filters panel to pick a date range (presets or custom dates), a location, or search a specific employee. Press Apply to refresh the page.</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-number">2</div>
+          <div class="step-info">
+            <h4 class="step-name">Know each section's scope</h4>
+            <p class="step-desc">Real-Time Status always shows today, live. Punctuality &amp; Compliance follows your filters. Attendance Analysis cards show today &mdash; its list view uses your date range.</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-number">3</div>
+          <div class="step-info">
+            <h4 class="step-name">Drill down into names</h4>
+            <p class="step-desc">Click any stat card to jump to a list of the people behind that number. You can also switch any section between cards and list with the toggle in its header.</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-number">4</div>
+          <div class="step-info">
+            <h4 class="step-name">Check an employee's logs</h4>
+            <p class="step-desc">In Attendance Analysis, click an employee's card to open their full clock-in/out history for the period.</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-number">5</div>
+          <div class="step-info">
+            <h4 class="step-name">Export your data</h4>
+            <p class="step-desc">Every section has an Export dropdown in its header for PDF or CSV downloads. Employee cards have their own export menus too. For full timesheet exports, use the Timesheets tab.</p>
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-ghost btn-primary rounded-lg restore-quickstart-btn" id="dashRestoreQuickStart">
+        <i class="fas fa-lightbulb"></i>
+        <span>Show the quick-start guide again</span>
+      </button>
     </div>
   </div>
 </div>

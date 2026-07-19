@@ -15,16 +15,40 @@ let state = {
 // ====== Utility Functions ======
 function $(sel) { return document.querySelector(sel); }
 
-function setDateDefaults() {
-  const startEl = $("#fromDate");
-  const endEl = $("#toDate");
-  
+const QUICK_START_KEY = 'rm365.timesheetsQuickStartDismissed';
+
+function esc(str) {
+  return String(str ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+function getInitials(name) {
+  const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '?';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function getDefaultDates() {
   const today = new Date();
   const weekAgo = new Date(today);
   weekAgo.setDate(today.getDate() - 7);
-  
-  if (startEl) startEl.value = weekAgo.toISOString().slice(0, 10);
-  if (endEl) endEl.value = today.toISOString().slice(0, 10);
+  return {
+    from: weekAgo.toISOString().slice(0, 10),
+    to: today.toISOString().slice(0, 10)
+  };
+}
+
+function setDateDefaults() {
+  const defaults = getDefaultDates();
+  const startEl = $("#fromDate");
+  const endEl = $("#toDate");
+  if (startEl) startEl.value = defaults.from;
+  if (endEl) endEl.value = defaults.to;
 }
 
 // ====== Load Locations ======
@@ -47,7 +71,9 @@ async function loadLocations() {
 }
 
 // ====== Load and Display Logs ======
+let loadSeq = 0;
 async function loadLogs(scroll = true) {
+  const seq = ++loadSeq;
   const startDate = $("#fromDate")?.value;
   const endDate = $("#toDate")?.value;
   const searchTerm = $("#nameFilter")?.value;
@@ -56,8 +82,7 @@ async function loadLogs(scroll = true) {
   const sortBy = $("#sortFilter")?.value || 'asc';
 
   if (!startDate || !endDate) {
-    const message = "Please select both start and end dates";
-    alert(message);
+    showToast("Please select both start and end dates", "warning");
     return;
   }
 
@@ -69,6 +94,9 @@ async function loadLogs(scroll = true) {
   try {
     // Call API with individual parameters including location
     let logs = await getLogs(startDate, endDate, location, searchTerm, searchTerm);
+
+    // A newer auto-apply request superseded this one - drop stale results
+    if (seq !== loadSeq) return;
     
     // Filter by action type if specified
     if (actionType) {
@@ -94,13 +122,16 @@ async function loadLogs(scroll = true) {
         btn.style.opacity = "1";
       }
     });
+    $("#exportLockedNote")?.classList.add("hidden");
 
   } catch (error) {
     console.error("Failed to load logs:", error);
-    alert("Failed to load logs. Please try again.");
+    showToast("Failed to load logs. Please try again.", "error");
   } finally {
     // Restore button
     if (btn && originalHTML) btn.innerHTML = originalHTML;
+    // Keep the active-filter chips in sync with what's applied
+    renderTsFilterChips();
   }
 }
 
@@ -185,10 +216,15 @@ function displayLogs(logs) {
       <tbody>
         ${logs.map(log => `
           <tr>
-            <td>${log.employee}</td>
-            <td>${log.date}</td>
-            <td>${log.time}</td>
-            <td>
+            <td data-sort-value="${esc(log.employee)}">
+              <div class="employee-cell">
+                <span class="employee-cell-avatar" aria-hidden="true">${esc(getInitials(log.employee))}</span>
+                <span class="employee-cell-name">${esc(log.employee)}</span>
+              </div>
+            </td>
+            <td data-sort-value="${esc(log.date)}">${esc(log.date)}</td>
+            <td class="time-cell" data-sort-value="${esc(log.time)}">${esc(log.time)}</td>
+            <td data-sort-value="${log.direction === 'in' ? 'clock in' : 'clock out'}">
               <span class="status-badge ${log.direction === 'in' ? 'status-in' : 'status-out'}">
                 <i class="fas ${log.direction === 'in' ? 'fa-sign-in-alt' : 'fa-sign-out-alt'}"></i>
                 ${log.direction === 'in' ? 'Clock In' : 'Clock Out'}
@@ -218,11 +254,11 @@ function updateStats(logs) {
   const uniqueEmployees = new Set(logs.map(log => log.employee)).size;
 
   statsEl.innerHTML = `
-    <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; font-size: 0.9em;">
-      <span><strong>${totalLogs}</strong> total logs</span>
-      <span><strong>${clockIns}</strong> clock ins</span>
-      <span><strong>${clockOuts}</strong> clock outs</span>
-      <span><strong>${uniqueEmployees}</strong> employees</span>
+    <div class="results-meta">
+      <span class="meta-chip"><strong>${totalLogs}</strong> total logs</span>
+      <span class="meta-chip chip-in"><strong>${clockIns}</strong> clock ins</span>
+      <span class="meta-chip chip-out"><strong>${clockOuts}</strong> clock outs</span>
+      <span class="meta-chip"><strong>${uniqueEmployees}</strong> employees</span>
     </div>
   `;
 }
@@ -278,7 +314,8 @@ function sortLogsTable(key, asc = true) {
   rows.sort((a, b) => {
     const getText = (row, index) => {
       const cell = row.querySelector(`td:nth-child(${index})`);
-      return cell ? cell.innerText.toLowerCase() : '';
+      if (!cell) return '';
+      return (cell.dataset.sortValue ?? cell.innerText).toLowerCase();
     };
 
     if (key === "datetime" || key === "date") {
@@ -308,18 +345,137 @@ function getColumnIndex(key) {
 }
 
 // ====== Search Functions ======
+let nameDebounceTimer = null;
 function setupSearch() {
-  const searchInput = $("#nameFilter");
-  if (searchInput) {
-    searchInput.addEventListener("input", (e) => {
-      // Real-time search could be implemented here
-      // For now, search happens on button click
-    });
+  // Enter in any filter field = manual refresh (fallback if auto-apply missed)
+  ["#nameFilter", "#fromDate", "#toDate"].forEach(sel => {
+    const input = $(sel);
+    if (input) {
+      input.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") {
+          clearTimeout(nameDebounceTimer);
+          loadLogs();
+        }
+      });
+    }
+  });
+}
 
-    searchInput.addEventListener("keypress", (e) => {
-      if (e.key === "Enter") {
-        loadLogs();
-      }
+// ====== Auto-apply Filters ======
+function setupAutoApply() {
+  // Selects apply as soon as the choice changes
+  ["#locationFilter", "#actionFilter", "#sortFilter"].forEach(sel => {
+    $(sel)?.addEventListener("change", () => loadLogs(false));
+  });
+
+  // Date pickers dispatch a change event when a day is picked
+  ["#fromDate", "#toDate"].forEach(sel => {
+    $(sel)?.addEventListener("change", () => loadLogs(false));
+  });
+
+  // Employee-name search applies as you type (debounced)
+  $("#nameFilter")?.addEventListener("input", () => {
+    clearTimeout(nameDebounceTimer);
+    nameDebounceTimer = setTimeout(() => loadLogs(false), 450);
+  });
+}
+
+// ====== Active Filter Chips ======
+function renderTsFilterChips() {
+  const bar = $("#tsActiveFilters");
+  const chips = $("#tsFilterChips");
+  if (!bar || !chips) return;
+
+  const defaults = getDefaultDates();
+  const from = $("#fromDate")?.value || '';
+  const to = $("#toDate")?.value || '';
+  const location = $("#locationFilter")?.value || '';
+  const name = ($("#nameFilter")?.value || '').trim();
+  const action = $("#actionFilter")?.value || '';
+
+  const filters = [];
+  if (from !== defaults.from || to !== defaults.to) {
+    filters.push({ key: 'dates', kind: 'Dates', label: `${from} → ${to}` });
+  }
+  if (location) filters.push({ key: 'location', kind: 'Location', label: location });
+  if (name) filters.push({ key: 'name', kind: 'Name', label: `"${name}"` });
+  if (action) filters.push({ key: 'action', kind: 'Action', label: action === 'in' ? 'Clock In' : 'Clock Out' });
+
+  if (!filters.length) {
+    // Keep the last chips in the DOM so they stay visible while the bar
+    // animates closed (the collapsed bar is visibility:hidden anyway).
+    bar.classList.remove('visible');
+    return;
+  }
+
+  chips.innerHTML = filters.map(f => `
+    <span class="filter-chip">
+      <span class="chip-kind">${esc(f.kind)}:</span>
+      <span>${esc(f.label)}</span>
+      <button type="button" class="chip-remove" data-filter-key="${esc(f.key)}" title="Remove this filter" aria-label="Remove ${esc(f.kind)} filter">
+        <i class="fas fa-times"></i>
+      </button>
+    </span>
+  `).join('');
+
+  chips.querySelectorAll('.chip-remove').forEach(btn => {
+    btn.addEventListener('click', () => removeTsFilter(btn.dataset.filterKey));
+  });
+
+  bar.classList.add('visible');
+}
+
+function removeTsFilter(key) {
+  switch (key) {
+    case 'dates':
+      setDateDefaults();
+      if (fromPicker) fromPicker.refresh();
+      if (toPicker) toPicker.refresh();
+      break;
+    case 'location': {
+      const sel = $("#locationFilter");
+      if (sel) sel.value = '';
+      break;
+    }
+    case 'name': {
+      const input = $("#nameFilter");
+      if (input) input.value = '';
+      break;
+    }
+    case 'action': {
+      const sel = $("#actionFilter");
+      if (sel) sel.value = '';
+      break;
+    }
+  }
+  loadLogs(false);
+}
+
+// ====== Quick Start & Guide Modal ======
+function wireGuideAndQuickStart() {
+  // Quick-start banner dismiss / persistence
+  const strip = $("#tsQuickStart");
+  if (strip && localStorage.getItem(QUICK_START_KEY) === '1') {
+    strip.classList.add('hidden');
+  }
+  $("#tsDismissQuickStart")?.addEventListener('click', () => {
+    localStorage.setItem(QUICK_START_KEY, '1');
+    strip?.classList.add('hidden');
+  });
+
+  // Guide modal open/close
+  const guideModal = $("#tsGuideModal");
+  if (guideModal) {
+    $("#tsOpenGuideBtn")?.addEventListener('click', () => guideModal.classList.add('active'));
+    $("#tsCloseGuideBtn")?.addEventListener('click', () => guideModal.classList.remove('active'));
+    guideModal.addEventListener('click', (e) => {
+      if (e.target === guideModal) guideModal.classList.remove('active');
+    });
+    $("#tsRestoreQuickStart")?.addEventListener('click', () => {
+      localStorage.removeItem(QUICK_START_KEY);
+      strip?.classList.remove('hidden');
+      guideModal.classList.remove('active');
+      strip?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
   }
 }
@@ -330,30 +486,74 @@ function clearFilters() {
   const locationFilter = $("#locationFilter");
   const actionFilter = $("#actionFilter");
   const sortFilter = $("#sortFilter");
-  
+
   if (nameFilter) nameFilter.value = "";
   if (locationFilter) locationFilter.value = "";
   if (actionFilter) actionFilter.value = "";
   if (sortFilter) sortFilter.value = "asc";
-  
+
   // Reset date defaults
   setDateDefaults();
   if (fromPicker) fromPicker.refresh();
   if (toPicker) toPicker.refresh();
-  
-  // Clear results
-  const resultsEl = $("#logsResultsSection");
-  if (resultsEl) {
-    resultsEl.style.display = "none";
+
+  // Auto-apply: reload with the default 7-day range (same as page load)
+  loadLogs(false);
+}
+
+// ====== Page Extras (shortcuts, hover-scroll) ======
+let tsSlashWired = false;
+function wireTimesheetExtras() {
+  // "/" focuses the employee-name search (unless typing or a modal is open)
+  if (!tsSlashWired) {
+    tsSlashWired = true;
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return;
+      const tag = (e.target.tagName || '').toLowerCase();
+      if (['input', 'textarea', 'select'].includes(tag) || e.target.isContentEditable) return;
+      if (document.querySelector('.modal-overlay.active')) return;
+      const searchBox = $("#nameFilter");
+      if (searchBox) {
+        e.preventDefault();
+        searchBox.focus();
+      }
+    });
   }
-  
-  // Disable export buttons
-  ["#exportCsvBtn", "#exportPdfBtn", "#printBtn", "#exportExcelBtn"].forEach(sel => {
-    const btn = $(sel);
-    if (btn) {
-      btn.disabled = true;
-      btn.style.opacity = "0.6";
+
+  // Locations stat: hover to scroll long values into view (ellipsis otherwise)
+  wireStatHoverScroll($("#uniqueLocations"));
+}
+
+function wireStatHoverScroll(el) {
+  if (!el || el.dataset.hoverScrollWired === '1') return;
+  el.dataset.hoverScrollWired = '1';
+
+  let rafId = null;
+  const cancel = () => {
+    if (rafId) {
+      cancelAnimationFrame(rafId);
+      rafId = null;
     }
+  };
+
+  el.addEventListener('mouseenter', () => {
+    const overflow = el.scrollWidth - el.clientWidth;
+    if (overflow <= 0) return;
+    cancel();
+    const duration = Math.max(650, overflow * 18);
+    const start = performance.now();
+    const from = el.scrollLeft;
+    const step = (now) => {
+      const t = Math.min(1, (now - start) / duration);
+      el.scrollLeft = from + (overflow - from) * t;
+      rafId = t < 1 ? requestAnimationFrame(step) : null;
+    };
+    rafId = requestAnimationFrame(step);
+  });
+
+  el.addEventListener('mouseleave', () => {
+    cancel();
+    el.scrollLeft = 0;
   });
 }
 
@@ -1004,7 +1204,10 @@ export async function init() {
   initDropdown('#actionFilter');
   initDropdown('#sortFilter');
   setupSearch();
+  setupAutoApply();
   setupEventHandlers();
+  wireGuideAndQuickStart();
+  wireTimesheetExtras();
   
   showToast('Loading attendance logs...', 'info');
   // Auto-load logs for the last week (no scroll on page load)

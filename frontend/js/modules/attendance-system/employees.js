@@ -44,6 +44,26 @@ const WS_URL = `${WS_PROTOCOL}//127.0.0.1:8080/ws/nfc`;
 function $(sel) { return document.querySelector(sel); }
 function $all(sel) { return Array.from(document.querySelectorAll(sel)); }
 
+// Escape HTML for safe interpolation into markup/attributes
+function esc(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// Initials for the row avatar (max 2 characters)
+function getInitials(name) {
+  const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return '?';
+  if (parts.length === 1) return parts[0].slice(0, 2);
+  return parts[0][0] + parts[parts.length - 1][0];
+}
+
+const QUICK_START_KEY = 'rm365.staffQuickStartDismissed';
+
 // ===== Native Select Filter Functions =====
 
 /**
@@ -181,6 +201,112 @@ function filterEmployees() {
 // Expose for potential external use
 window.filterEmployees = filterEmployees;
 
+// ===== Overview Stats =====
+
+function updateStats() {
+  const total = state.employees.length;
+  const active = state.employees.filter(e => (e.status || 'active').toLowerCase() === 'active').length;
+  const clockedIn = state.employees.filter(e => state.clockStatus[e.id] === 'in').length;
+  const locations = state.locations.length;
+
+  const set = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = String(val);
+  };
+  set('statTotalStaff', total);
+  set('statActiveStaff', active);
+  set('statClockedIn', clockedIn);
+  set('statLocations', locations);
+}
+
+// ===== Active Filter Chips =====
+
+function getActiveFilters() {
+  const filters = [];
+  if (state.query.trim()) filters.push({ key: 'query', kind: 'Search', label: `"${state.query.trim()}"` });
+  if (state.status) filters.push({ key: 'status', kind: 'Status', label: state.status.charAt(0).toUpperCase() + state.status.slice(1) });
+  if (state.countryCode) filters.push({ key: 'country', kind: 'Country', label: state.countryCode });
+  if (state.location) filters.push({ key: 'location', kind: 'Location', label: state.location });
+  if (state.cityCode) filters.push({ key: 'city', kind: 'City', label: state.cityCode });
+  return filters;
+}
+
+function clearSingleFilter(key) {
+  switch (key) {
+    case 'query': {
+      state.query = '';
+      const box = $('#employeeSearch');
+      if (box) box.value = '';
+      break;
+    }
+    case 'status': {
+      state.status = '';
+      const sel = $('#statusFilter');
+      if (sel) sel.value = '';
+      break;
+    }
+    case 'country':
+      state.countryCode = '';
+      resetCountrySelect();
+      break;
+    case 'location':
+      state.location = '';
+      resetLocationSelect();
+      break;
+    case 'city':
+      state.cityCode = '';
+      resetCityCodeSelect();
+      break;
+  }
+  renderTable();
+}
+
+function clearAllFilters() {
+  state.query = '';
+  state.status = '';
+  state.location = '';
+  state.cityCode = '';
+  state.countryCode = '';
+  const box = $('#employeeSearch');
+  if (box) box.value = '';
+  const statusSel = $('#statusFilter');
+  if (statusSel) statusSel.value = '';
+  resetCountrySelect();
+  resetLocationSelect();
+  resetCityCodeSelect();
+  renderTable();
+}
+
+function renderFilterChips() {
+  const bar = $('#activeFilters');
+  const chips = $('#filterChips');
+  if (!bar || !chips) return;
+
+  const filters = getActiveFilters();
+  if (!filters.length) {
+    // Keep the last chips in the DOM so they stay visible while the bar
+    // animates closed (the collapsed bar is visibility:hidden anyway).
+    bar.classList.remove('visible');
+    return;
+  }
+
+  chips.innerHTML = filters.map(f => `
+    <span class="filter-chip">
+      <span class="chip-kind">${esc(f.kind)}:</span>
+      <span>${esc(f.label)}</span>
+      <button type="button" class="chip-remove" data-filter-key="${esc(f.key)}" title="Remove this filter" aria-label="Remove ${esc(f.kind)} filter">
+        <i class="fas fa-times"></i>
+      </button>
+    </span>
+  `).join('');
+
+  chips.querySelectorAll('.chip-remove').forEach(btn => {
+    btn.addEventListener('click', () => clearSingleFilter(btn.dataset.filterKey));
+  });
+
+  bar.classList.add('visible');
+}
+
 function renderTable() {
   const tbody = $('#enrEmployeeBody');
   const loadingState = $('#employeeLoadingState');
@@ -214,8 +340,13 @@ function renderTable() {
       return hay.includes(q);
     });
 
+  // Update overview stats + active filter chips alongside the table
+  updateStats();
+  renderFilterChips();
+
   // Update employee count
   const countEl = $('#employeeCount');
+  const hasFilters = getActiveFilters().length > 0;
   if (countEl) {
     const total = state.employees.length;
     const shown = rows.length;
@@ -230,16 +361,32 @@ function renderTable() {
   if (loadingState) loadingState.style.display = 'none';
 
   if (!rows.length) {
+    const emptyTitle = hasFilters ? 'No matching employees' : 'No employees yet';
+    const emptyText = hasFilters
+      ? 'Nothing matches your search or filters.'
+      : 'Add your first team member to get started.';
+    const emptyActions = hasFilters
+      ? `<button type="button" class="btn btn-flat btn-primary btn-sm rounded-lg" id="emptyClearFiltersBtn">
+           <i class="fas fa-times"></i><span>Clear filters</span>
+         </button>`
+      : `<button type="button" class="btn btn-solid btn-success btn-sm rounded-lg" id="emptyCreateBtn">
+           <i class="fas fa-user-plus"></i><span>New Employee</span>
+         </button>`;
     tbody.innerHTML = `
-      <tr>
+      <tr class="empty-row">
         <td colspan="6">
           <div class="empty-state">
-            <div class="empty-icon">📭</div>
-            <h3>No employees found</h3>
-            <p>Try adjusting your filters or create a new employee</p>
+            <div class="empty-icon"><i class="fas fa-users-slash"></i></div>
+            <h3>${emptyTitle}</h3>
+            <p>${emptyText}</p>
+            <div class="empty-state-actions">${emptyActions}</div>
           </div>
         </td>
       </tr>`;
+    $('#emptyClearFiltersBtn')?.addEventListener('click', clearAllFilters);
+    $('#emptyCreateBtn')?.addEventListener('click', () => showCreateEmployeeModal());
+    updateSelectAllCheckbox();
+    updateBulkDeleteButton();
     return;
   }
 
@@ -259,34 +406,51 @@ function renderTable() {
     const locationDisplay = loc 
       ? `${loc.country_code} | ${loc.name} | ${loc.city_code}`
       : (e.location || 'N/A');
+
+    const nfcChip = e.nfc_uid
+      ? `<span class="nfc-chip" title="NFC card: ${esc(e.nfc_uid)}">
+           <i class="fas fa-id-card"></i>
+           <span class="nfc-chip-uid">${esc(e.nfc_uid)}</span>
+         </span>`
+      : `<span class="nfc-chip none" title="No NFC card assigned — open the row and use Scan Card">
+           <span>No card</span>
+         </span>`;
+
+    const statusDotTitle = statusClass === 'active' ? 'Active employee' : 'Inactive employee';
     
     return `
-    <tr data-id="${e.id}"
-        data-name="${e.name || ''}"
-        data-code="${e.employee_code || ''}"
-        data-location="${e.location || ''}"
-        data-status="${e.status || 'active'}"
-        data-nfc="${e.nfc_uid || ''}"
-        data-clock-status="${clockStatus}">
+    <tr data-id="${esc(e.id)}"
+        data-name="${esc(e.name || '')}"
+        data-code="${esc(e.employee_code || '')}"
+        data-location="${esc(e.location || '')}"
+        data-status="${esc(e.status || 'active')}"
+        data-nfc="${esc(e.nfc_uid || '')}"
+        data-clock-status="${esc(clockStatus)}"
+        title="Click to edit ${esc(e.name || 'this employee')}">
       <td class="col-checkbox">
-        <input type="checkbox" class="employee-checkbox" data-id="${e.id}" ${state.selectedIds.has(e.id) ? 'checked' : ''}>
+        <input type="checkbox" class="employee-checkbox" data-id="${esc(e.id)}" ${state.selectedIds.has(e.id) ? 'checked' : ''}>
       </td>
-      <td class="col-name">${e.name || 'Unnamed'}</td>
-      <td class="col-code">#${e.employee_code || 'N/A'}</td>
-      <td class="col-location"><span class="location-badge">${locationDisplay}</span></td>
-      <td class="col-status"><span class="status-badge status-${statusClass}">${statusLabel}</span></td>
+      <td class="col-name">
+        <div class="employee-cell">
+          <span class="employee-cell-avatar">
+            ${esc(getInitials(e.name))}
+            <span class="status-dot ${esc(statusClass)}" title="${statusDotTitle}"></span>
+          </span>
+          <span class="employee-cell-info">
+            <span class="employee-cell-name">${esc(e.name || 'Unnamed')}</span>
+            <span class="employee-cell-code">#${esc(e.employee_code || 'N/A')}</span>
+          </span>
+        </div>
+      </td>
+      <td class="col-location"><span class="location-badge">${esc(locationDisplay)}</span></td>
+      <td class="col-card">${nfcChip}</td>
+      <td class="col-status"><span class="status-badge status-${esc(statusClass)}">${esc(statusLabel)}</span></td>
       <td class="col-actions">
         <div class="row-actions">
-          <button class="btn btn-ghost btn-sm rounded-lg btn-primary edit-row-btn"
-                  title="Edit employee"
-                  data-id="${e.id}">
-            <i class="fas fa-pen"></i>
-            <span>Edit</span>
-          </button>
           <button class="btn btn-ghost btn-sm rounded-lg clock-toggle-btn ${clockBtnClass}" 
-                  data-id="${e.id}" 
-                  data-name="${e.name || 'Employee'}"
-                  data-clock-status="${clockStatus}"
+                  data-id="${esc(e.id)}" 
+                  data-name="${esc(e.name || 'Employee')}"
+                  data-clock-status="${esc(clockStatus)}"
                   title="${clockBtnTitle}">
             <i class="fas ${clockBtnIcon}"></i>
             <span>${clockBtnText}</span>
@@ -915,27 +1079,36 @@ function wireCardEvents() {
     });
   }
 
-  // Edit buttons — open the edit modal using the row's data attributes
-  $all('.edit-row-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const row = btn.closest('tr');
-      if (row) window.openEmployeeEditModal(row);
+  // Clock toggle buttons
+  $all('.clock-toggle-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      window.handleClockToggle(btn);
     });
   });
 
-  // Clock toggle buttons
-  $all('.clock-toggle-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      window.handleClockToggle(btn);
+  // Whole row opens the edit modal (except clicks on controls)
+  $all('#enrEmployeeBody tr[data-id]').forEach(row => {
+    row.addEventListener('click', (e) => {
+      if (e.target.closest('button, input, a, .col-checkbox')) return;
+      window.openEmployeeEditModal(row);
     });
   });
 }
 
 function updateBulkDeleteButton() {
   const bulkBtn = $('#enrBulkDeleteBtn');
-  if (!bulkBtn) return;
-  
+  const bar = $('#selectionBar');
+  const countEl = $('#selectionCount');
+
   const count = state.selectedIds.size;
+
+  // Show/hide the contextual selection bar. Keep the last label while the
+  // bar animates closed so "0 selected" never flashes during the exit.
+  if (bar) bar.classList.toggle('visible', count > 0);
+  if (countEl && count > 0) countEl.textContent = `${count} selected`;
+
+  if (!bulkBtn) return;
   if (count > 0) {
     bulkBtn.innerHTML = `<i class="fas fa-trash-alt"></i><span>Delete Selected (${count})</span>`;
     bulkBtn.disabled = false;
@@ -964,6 +1137,14 @@ function wireToolbar() {
   searchBox?.addEventListener('input', () => {
     state.query = searchBox.value;
     renderTable();
+  });
+
+  // Enter = manual refresh fallback (mirrors the Timesheets page)
+  searchBox?.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      state.query = searchBox.value;
+      renderTable();
+    }
   });
 
   // Status filter
@@ -1289,6 +1470,7 @@ export async function init() {
   wireEditModalEvents();
   wireCreateLocationModal();
   wireGuideModal();
+  wireDirectoryExtras();
   initFilterSelects();
 
   // Init nui-dropdown styling on all selects (all MD default)
@@ -1332,6 +1514,57 @@ function wireGuideModal() {
       document.body.style.overflow = '';
     }
   });
+
+  // Restore the quick-start banner from inside the guide modal
+  $('#restoreQuickStartBtn')?.addEventListener('click', () => {
+    localStorage.removeItem(QUICK_START_KEY);
+    $('#quickStartStrip')?.classList.remove('hidden');
+    guideModal?.classList.remove('active');
+    document.body.style.overflow = '';
+    notify('Quick-start guide restored');
+  });
+}
+
+// Wire quick-start banner, active-filter bar, selection bar and shortcuts
+let slashShortcutWired = false;
+function wireDirectoryExtras() {
+  // Quick-start banner: respect a previous dismissal, wire the dismiss button
+  const strip = $('#quickStartStrip');
+  if (strip && localStorage.getItem(QUICK_START_KEY) === '1') {
+    strip.classList.add('hidden');
+  }
+  $('#dismissQuickStart')?.addEventListener('click', () => {
+    localStorage.setItem(QUICK_START_KEY, '1');
+    strip?.classList.add('hidden');
+  });
+
+  // "Clear all" button in the active-filters bar
+  $('#clearAllFiltersBtn')?.addEventListener('click', () => clearAllFilters());
+
+  // "Clear selection" button in the selection bar
+  $('#clearSelectionBtn')?.addEventListener('click', () => {
+    state.selectedIds.clear();
+    $all('.employee-checkbox').forEach(cb => { cb.checked = false; });
+    const selectAll = $('#selectAllCheckbox');
+    if (selectAll) selectAll.checked = false;
+    updateBulkDeleteButton();
+  });
+
+  // "/" focuses the search box (unless typing or a modal is open)
+  if (!slashShortcutWired) {
+    slashShortcutWired = true;
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return;
+      const tag = (e.target.tagName || '').toLowerCase();
+      if (['input', 'textarea', 'select'].includes(tag) || e.target.isContentEditable) return;
+      if (document.querySelector('.modal-overlay.active')) return;
+      const searchBox = $('#employeeSearch');
+      if (searchBox) {
+        e.preventDefault();
+        searchBox.focus();
+      }
+    });
+  }
 }
 
 // ===== Location Management Functions =====
