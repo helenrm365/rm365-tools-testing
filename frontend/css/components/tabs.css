@@ -156,15 +156,17 @@
     font-size: 1.25rem;
   }
   
-  /* Add padding to page content so it doesn't hide behind bottom bar */
-  [class*="attendance-"],
-  [class*="order-"],
-  [class*="inventory-"],
-  [class*="labels-"],
-  [class*="magentodata-"],
-  [class*="user-management"],
-  .enrollment-management,
-  .product-sourcing {
+  /* Add padding to page content so it doesn't hide behind bottom bar.
+     Scoped to #view's direct children (page roots) — a bare [class*="attendance-"]
+     also matches inner elements like .attendance-icon and stretches them. */
+  #view > [class*="attendance-"],
+  #view > [class*="order-"],
+  #view > [class*="inventory-"],
+  #view > [class*="labels-"],
+  #view > [class*="magentodata-"],
+  #view > [class*="user-management"],
+  #view > .enrollment-management,
+  #view > .product-sourcing {
     padding-bottom: 80px !important;
   }
 }
