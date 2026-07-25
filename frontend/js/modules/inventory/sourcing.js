@@ -3496,11 +3496,16 @@ async function _runGroupedImport(groups) {
  */
 function _promptSupplierAssignments({ rows, suppliers }) {
   return new Promise((resolve) => {
-    const supplierList = suppliers || [];
-    const supplierById = new Map(supplierList.map(s => [String(s.id), s]));
-    const optionFor = (s, selectedVal) =>
-      `<option value="${s.id}"${String(s.id) === selectedVal ? ' selected' : ''}>` +
-      `${escapeHtml(s.name)}${s.code ? ` (${escapeHtml(String(s.code))})` : ''}</option>`;
+    // Local, mutable supplier list (Add a supplier appends to it live). The
+    // combobox reads it through a function so new suppliers show up immediately.
+    const supplierList = (suppliers || []).slice();
+    const labelFor = (s) => `${s.name}${s.code ? ` (${s.code})` : ''}`;
+    const SKIP = { __skip: true, id: null };
+    const comboItems = () => [SKIP, ...supplierList];
+
+    // Committed choice per row: a supplier id, or null = skip. Seeded from the
+    // AI's match. The text inputs are just search boxes; this is the source of truth.
+    const rowSelection = rows.map(r => r.matchedSupplierId || null);
 
     const rowsHtml = rows.map((r, i) => {
       let detail;
@@ -3509,36 +3514,34 @@ function _promptSupplierAssignments({ rows, suppliers }) {
       } else if (r.detectedName) {
         detail = `<i class="fas fa-exclamation-circle" style="color:var(--color-warning,#d97706);"></i> Looks like “${escapeHtml(r.detectedName)}” — not one of your suppliers`;
       } else {
-        detail = `<i class="fas fa-question-circle" style="color:var(--color-muted,#6b7280);"></i> No supplier detected — choose one`;
+        detail = `<i class="fas fa-question-circle" style="color:var(--color-muted,#6b7280);"></i> No supplier detected`;
       }
-      const selected = r.matchedSupplierId ? String(r.matchedSupplierId) : 'skip';
-      const opts = supplierList.map(s => optionFor(s, selected)).join('');
+      // Same searchable input the product-mapping picker uses (nui-input + combobox).
       return `
-        <div style="display:flex; gap:0.75rem; align-items:center; padding:0.65rem 0; border-bottom:1px solid var(--color-border,#eef0f2);">
-          <div style="flex:1 1 0; min-width:0;">
-            <div style="font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtml(r.fileName)}">
-              <i class="fas fa-file-pdf" style="color:var(--color-muted,#9ca3af); margin-right:0.4rem;"></i>${escapeHtml(r.fileName)}
-            </div>
-            <div style="font-size:0.8rem; color:var(--color-muted,#6b7280); margin-top:0.15rem;">${detail}</div>
+        <div style="padding:0.85rem 0; border-bottom:1px solid var(--color-border,#eef0f2);">
+          <div style="font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtml(r.fileName)}">
+            <i class="fas fa-file-pdf" style="color:var(--color-muted,#9ca3af); margin-right:0.4rem;"></i>${escapeHtml(r.fileName)}
           </div>
-          <select data-assign-idx="${i}" class="pdf-assign-select"
-                  style="flex:0 0 auto; max-width:220px; padding:0.45rem 0.6rem; border:1px solid var(--color-border,#d1d5db); border-radius:8px; background:var(--color-bg,#fff); color:var(--color-text,#111827); font-size:0.85rem;">
-            <option value="skip"${selected === 'skip' ? ' selected' : ''}>⊘ Skip this file</option>
-            ${opts}
-          </select>
+          <div style="font-size:0.8rem; color:var(--color-muted,#6b7280); margin:0.2rem 0 0.55rem;">${detail}</div>
+          <input type="text" data-assign-idx="${i}" autocomplete="off"
+                 class="nui-input nui-input-default nui-input-sm pdf-assign-input"
+                 placeholder="Search suppliers — leave blank to skip" style="width:100%;">
         </div>`;
     }).join('');
 
     const multi = rows.length > 1;
     const title = multi ? 'Confirm suppliers' : 'Confirm supplier';
     const intro = multi
-      ? 'We matched a supplier to each PDF. Check them below and fix any that are wrong — each supplier imports as its own preview. Set a file to <strong>Skip</strong> to leave it out, or use <strong>Add a supplier</strong> for one that isn’t in your list yet.'
-      : 'Choose the supplier this PDF belongs to. If it isn’t one of your suppliers yet, use <strong>Add a supplier</strong> to create it here.';
+      ? 'We matched a supplier to each PDF. Check them and fix any that are wrong — type to search. Leave a file blank to <strong>skip</strong> it, or use <strong>Add a supplier</strong> to create one that isn’t in your list yet.'
+      : 'Choose the supplier this PDF belongs to (type to search). If it isn’t one of your suppliers yet, use <strong>Add a supplier</strong> to create it here.';
 
     const container = document.createElement('div');
     container.id = 'pdfSupplierAssignContainer';
     container.style.position = 'relative';
-    container.style.zIndex = '10001';
+    // Above the PDF import overlay (--z-modal-backdrop: 1100) but BELOW the
+    // combobox menu (--z-tooltip: 1400, portaled to <body>) so the dropdown
+    // floats over this modal instead of being trapped behind it.
+    container.style.zIndex = '1300';
     container.innerHTML = `
       <div class="modal-backdrop" id="pdfSupplierAssignBackdrop">
         <div class="modal" style="max-width:560px;">
@@ -3548,7 +3551,7 @@ function _promptSupplierAssignments({ rows, suppliers }) {
           </div>
           <div class="modal-body">
             <p style="margin:0 0 0.85rem; color:var(--color-text,#374151); font-size:0.9rem;">${intro}</p>
-            <div style="max-height:340px; overflow-y:auto;">${rowsHtml}</div>
+            <div style="max-height:360px; overflow-y:auto;">${rowsHtml}</div>
           </div>
           <div class="modal-footer" style="justify-content:space-between; gap:0.5rem; flex-wrap:wrap;">
             <button class="btn btn-solid btn-default rounded-lg" id="pdfAssignAddSupplier" style="font-size:0.82rem;">
@@ -3572,10 +3575,10 @@ function _promptSupplierAssignments({ rows, suppliers }) {
     const continueBtn = container.querySelector('#pdfAssignContinue');
     const cancelBtn = container.querySelector('#pdfAssignCancel');
     const addBtn = container.querySelector('#pdfAssignAddSupplier');
-    const selects = Array.from(container.querySelectorAll('.pdf-assign-select'));
+    const inputs = Array.from(container.querySelectorAll('.pdf-assign-input'));
 
     const refreshContinue = () => {
-      const count = selects.filter(sel => sel.value !== 'skip').length;
+      const count = rowSelection.filter(Boolean).length;
       continueBtn.disabled = count === 0;
       continueBtn.style.opacity = count === 0 ? '0.5' : '1';
       continueBtn.style.cursor = count === 0 ? 'not-allowed' : '';
@@ -3584,11 +3587,50 @@ function _promptSupplierAssignments({ rows, suppliers }) {
         : 'Continue';
     };
 
+    // Reflect a row's committed choice back into its input (empty = skip), and
+    // green-border an assigned row like the product-mapping picker does.
+    const syncInput = (input, idx) => {
+      const id = rowSelection[idx];
+      const s = id ? supplierList.find(x => x.id === id) : null;
+      input.value = s ? labelFor(s) : '';
+      input.dataset.committed = input.value;
+      input.style.borderColor = s ? 'var(--color-success,#16a34a)' : '';
+    };
+
+    // Turn each search box into a nui combobox: searchable, and its menu is
+    // portaled to <body> so it floats above the modal instead of being clipped.
+    inputs.forEach((input, idx) => {
+      syncInput(input, idx);
+      // Clear the visible text on focus so the FULL list shows (otherwise the
+      // combobox would filter by the pre-filled label). Registered before the
+      // combobox so it runs first; the committed value is restored on blur.
+      input.addEventListener('focus', () => { input.value = ''; });
+      initCombobox(input, {
+        items: comboItems,
+        getLabel: (it) => (it.__skip ? '⊘ Skip this file' : labelFor(it)),
+        filter: (it, q) => (it.__skip
+          ? 'skip this file'.includes(q)
+          : (it.name.toLowerCase().includes(q) || String(it.code || '').toLowerCase().includes(q))),
+        onSelect: (it, inp) => {
+          const i = parseInt(inp.dataset.assignIdx);
+          rowSelection[i] = it.__skip ? null : it.id;
+          syncInput(inp, i);
+          refreshContinue();
+        },
+        max: 100,
+      });
+      // Discard any half-typed search text on blur — the committed label wins.
+      input.addEventListener('blur', () => {
+        setTimeout(() => { input.value = input.dataset.committed || ''; }, 160);
+      });
+    });
+
     let done = false;
     const cleanup = () => {
       backdrop.classList.remove('active');
       document.removeEventListener('keydown', onKey);
-      setTimeout(() => container.remove(), 200);
+      closeOpenCombobox();
+      setTimeout(() => { container.remove(); pruneDetachedComboboxes(); }, 200);
     };
     const finish = (value) => { if (done) return; done = true; cleanup(); resolve(value); };
     const onKey = (e) => {
@@ -3600,7 +3642,6 @@ function _promptSupplierAssignments({ rows, suppliers }) {
       }
     };
 
-    selects.forEach(sel => sel.addEventListener('change', refreshContinue));
     cancelBtn.addEventListener('click', () => finish({ action: 'cancel' }));
     // Create a supplier without losing the batch: open the SAME Add Supplier
     // modal the Suppliers tab uses (hiding this modal + the import overlay while
@@ -3608,46 +3649,42 @@ function _promptSupplierAssignments({ rows, suppliers }) {
     // every dropdown and auto-assigned to the first still-skipped (unmatched)
     // file, so the already-matched files are untouched.
     addBtn.addEventListener('click', async () => {
-      const importOverlay = document.getElementById('pdf-import-overlay');
+      closeOpenCombobox();
+      // Hide only THIS modal while the Suppliers modal is on top. The PDF import
+      // overlay is already hidden (we hid it when this modal opened) and must
+      // stay hidden — re-showing it here is what left it stuck in the background.
       backdrop.classList.remove('active');
-      importOverlay?.classList.remove('active');
 
       let created = null;
       try {
         created = await _createSupplierViaSuppliersModal();
       } finally {
-        // Always bring the PDF assignment view back, saved or cancelled.
-        importOverlay?.classList.add('active');
+        // Bring only the assignment modal back, saved or cancelled.
         backdrop.classList.add('active');
       }
       if (!created) return; // cancelled — nothing changed, matches preserved
 
-      supplierList.push(created);
-      supplierById.set(String(created.id), created);
-      const label = `${created.name}${created.code ? ` (${created.code})` : ''}`;
-      selects.forEach(sel => {
-        const opt = document.createElement('option');
-        opt.value = String(created.id);
-        opt.textContent = label; // textContent — no manual escaping needed
-        sel.appendChild(opt);
-      });
+      supplierList.push(created); // combobox lists read this live via comboItems()
       // Assign it to the first unmatched file (or the only file, single-PDF case).
-      const target = selects.find(sel => sel.value === 'skip') || selects[0];
-      if (target) target.value = String(created.id);
+      let target = rowSelection.findIndex(v => !v);
+      if (target === -1) target = 0;
+      rowSelection[target] = created.id;
+      syncInput(inputs[target], target);
       refreshContinue();
     });
     backdrop.addEventListener('click', (e) => { if (e.target === backdrop) finish({ action: 'cancel' }); });
     continueBtn.addEventListener('click', () => {
       if (continueBtn.disabled) return;
       const assignments = [];
-      selects.forEach((sel, i) => {
-        if (sel.value === 'skip') return;
-        const s = supplierById.get(String(sel.value));
+      rows.forEach((r, i) => {
+        const id = rowSelection[i];
+        if (!id) return;
+        const s = supplierList.find(x => x.id === id);
         assignments.push({
-          file: rows[i].file,
-          fileName: rows[i].fileName,
-          supplierId: parseInt(sel.value),
-          supplierName: s ? s.name : `Supplier ${sel.value}`,
+          file: r.file,
+          fileName: r.fileName,
+          supplierId: id,
+          supplierName: s ? s.name : `Supplier ${id}`,
         });
       });
       finish({ action: 'continue', assignments });
