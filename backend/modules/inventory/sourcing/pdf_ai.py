@@ -132,7 +132,9 @@ def request_layout_profile(page_text: str) -> Dict:
         "if rows cannot be told apart that way.\n"
         "4. drop_regexes: Python regex fragments matching sub-lines that are NOT products "
         "and must be ignored (batch/lot/expiry lines, totals, tax/legal notes, addresses, "
-        "payment terms). Keep this list short and specific.\n\n"
+        "payment terms, and service/charge rows inside the table such as shipping, "
+        "courier, freight, insurance, handling or packaging). Keep this list short and "
+        "specific.\n\n"
         "Here is the page text:\n\n" + page_text[:12000]
     )
 
@@ -297,7 +299,11 @@ def extract_line_items(pdf_bytes: bytes) -> Tuple[List[Dict], Dict[int, str]]:
         "- 'page' is the 1-based page number the line item appears on.\n"
         "- Set 'foc' true for free-of-charge / promotional / bonus rows (price 0).\n"
         "- IGNORE non-product lines: batch/lot/expiry rows, subtotals, totals, taxes/VAT, "
-        "shipping, legal text, addresses, payment terms, bank details.\n"
+        "legal text, addresses, payment terms, bank details.\n"
+        "- IGNORE service/charge lines even when they are printed inside the item table "
+        "with their own code, quantity and price — shipping, courier, freight, carriage, "
+        "postage, delivery, insurance, handling, packaging, fuel or admin surcharges, "
+        "customs/duty. These are costs, not goods, and must NOT be returned as items.\n"
         "- Prices use a dot decimal separator in the output (e.g. 62.00), regardless of "
         "how they appear in the document.\n"
         "Also return 'page_dates': for each page that prints a document date (invoice "

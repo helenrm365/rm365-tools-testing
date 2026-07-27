@@ -1793,6 +1793,20 @@ class SourcingService:
                 })
                 continue
 
+            # Freight / insurance / handling rows are printed inside the item table
+            # with a code and a price, so every extraction tier reports them as
+            # products. Drop them here — after extraction, before matching — so they
+            # never reach the matrix or turn up as something to map, but still show
+            # in the skipped bucket for audit.
+            if self._looks_like_service_charge(ref, identifier):
+                skipped.append({
+                    'raw_text': ref or identifier,
+                    'price': price,
+                    'currency': currency,
+                    'reason': 'Skipped as a service charge (shipping, insurance, handling)',
+                })
+                continue
+
             # Resolve BOTH columns independently. For the name, try the base name
             # first, then the base + any wrapped continuation fragment — so a genuine
             # two-line product name still resolves, while a one-line name followed by
@@ -2306,6 +2320,62 @@ class SourcingService:
         """True when a row clearly belongs to the invoice footer/totals block."""
         cleaned = self._dedouble(text or '')
         return bool(self._PDF_FOOTER_RE.search(cleaned))
+
+    # Charge lines that sit INSIDE the line-item table like a product — own code,
+    # qty, unit price, line total — but are services, not goods (e.g. the
+    # "INSURANCE Insurance 51,06" / "COURIER Courier 203,00" rows on a Nordic
+    # Medical Solutions invoice). The footer regex can't catch them: they're above
+    # the totals block and structurally identical to a real row.
+    #
+    # A row is rejected only when EVERY word of it is a known charge/filler word
+    # AND at least one is a charge noun. That keeps real products whose names merely
+    # contain one of these words ("Transport Kit", "Delivery Cannula") — "kit" and
+    # "cannula" aren't in the vocabulary, so the row survives.
+    _CHARGE_NOUNS = frozenset({
+        # en
+        'insurance', 'courier', 'shipping', 'shipment', 'freight', 'carriage',
+        'postage', 'handling', 'delivery', 'transport', 'transportation',
+        'logistics', 'packaging', 'packing', 'surcharge', 'surcharges', 'admin',
+        'administration', 'customs', 'duty', 'duties', 'service', 'fuel',
+        # fr
+        'assurance', 'frais', 'livraison', 'emballage', 'manutention', 'expedition',
+        'expédition',
+        # de / nl / da
+        'versicherung', 'versand', 'versandkosten', 'transportkosten', 'fracht',
+        'verpackung', 'kosten', 'verzekering', 'verzending', 'vracht', 'verpakking',
+        'forsikring', 'fragt', 'levering',
+        # it / es
+        'assicurazione', 'spedizione', 'trasporto', 'imballaggio', 'spese',
+        'seguro', 'envio', 'envío', 'transporte', 'embalaje', 'gastos', 'franqueo',
+    })
+    # Words that may accompany a charge noun without making the row a product.
+    # Deliberately excludes concrete nouns (box, kit, pack, …) so those keep a row.
+    _CHARGE_FILLER = frozenset({
+        'fee', 'fees', 'charge', 'charges', 'charged', 'cost', 'costs', 'price',
+        'total', 'amount', 'each', 'per', 'and', 'plus', 'extra', 'additional',
+        'standard', 'express', 'next', 'day', 'national', 'international',
+        'uk', 'eu', 'port', 'ports',
+        # connectors: "frais de port", "spese di spedizione", "gastos de envío"
+        'de', 'des', 'du', 'la', 'le', 'les', 'di', 'del', 'della', 'da', 'van',
+        'der', 'und', 'en', 'of', 'y', 'e',
+    })
+    _WORD_SPLIT_RE = re.compile(r'[^a-zà-ÿ]+', re.IGNORECASE)
+
+    def _looks_like_service_charge(self, ref: str, identifier: str) -> bool:
+        """True for freight/insurance/handling-style charge rows masquerading as products."""
+        full = ((ref or '') + ' ' + (identifier or '')).strip()
+        if not full:
+            return False
+        # Try the text as printed first, then de-doubled, so the bold/shadow
+        # doubled-char PDF artifact ("CCoouurriieerr") is caught too.
+        for candidate in (full, self._dedouble(full)):
+            words = [w.lower() for w in self._WORD_SPLIT_RE.split(candidate) if w]
+            if not words or len(words) > 6:
+                continue
+            if all(w in self._CHARGE_NOUNS or w in self._CHARGE_FILLER for w in words) \
+                    and any(w in self._CHARGE_NOUNS for w in words):
+                return True
+        return False
 
     def _extract_pdf_layout(self, page, carry_anchors=None, force_anchors=False):
         """

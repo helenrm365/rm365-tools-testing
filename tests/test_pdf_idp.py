@@ -162,3 +162,31 @@ def test_plausible_identifier_rejects_footer_and_artifacts():
     assert svc._is_plausible_identifier("", "Net à payer") is False          # footer
     assert svc._is_plausible_identifier("", "SSttyyllaaggee BBII") is False   # doubling artifact
     assert svc._is_plausible_identifier("", "ab") is False                    # too short
+
+
+# ---------------------------------------------------------------------------
+# service: in-table service/charge rows are not products
+# ---------------------------------------------------------------------------
+def test_service_charge_rows_rejected():
+    svc = _svc()
+    # Real rows from a Nordic Medical Solutions invoice: printed in the item
+    # table with a code, a qty and a unit price, but they are costs, not goods.
+    assert svc._looks_like_service_charge("INSURANCE", "Insurance") is True
+    assert svc._looks_like_service_charge("COURIER", "Courier") is True
+    assert svc._looks_like_service_charge("", "Shipping & Handling") is True
+    assert svc._looks_like_service_charge("", "Delivery charge") is True
+    assert svc._looks_like_service_charge("", "Frais de port") is True
+    assert svc._looks_like_service_charge("", "Spese di spedizione") is True
+    assert svc._looks_like_service_charge("", "Versandkosten") is True
+    assert svc._looks_like_service_charge("", "CCoouurriieerr") is True  # doubled artifact
+
+
+def test_service_charge_filter_keeps_real_products():
+    svc = _svc()
+    assert svc._looks_like_service_charge("A5200", "Stylage Bi-Soft Hydro 1ml") is False
+    assert svc._looks_like_service_charge("A5225", "Stylage Bi-Soft Lips Plus Lidocaine 1ml") is False
+    # Products whose names merely contain a charge word must survive.
+    assert svc._looks_like_service_charge("TK100", "Transport Box") is False
+    assert svc._looks_like_service_charge("DC22", "Delivery Cannula 22G") is False
+    assert svc._looks_like_service_charge("SVC1", "Service Kit") is False
+    assert svc._looks_like_service_charge("", "") is False
