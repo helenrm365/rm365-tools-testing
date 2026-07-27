@@ -5,6 +5,21 @@ import { getApiUrl } from '../../config.js';
 
 const API = '/v1/magentodata';  // http.js adds BASE which already includes /api
 
+/**
+ * Append full-data filters (order statuses + created_at date range) to a query string.
+ * @param {URLSearchParams} params
+ * @param {{statuses?: string[], dateFrom?: string, dateTo?: string}} filters
+ */
+function appendFullDataFilters(params, filters) {
+  if (!filters) return params;
+  if (filters.statuses && filters.statuses.length > 0) {
+    params.append('statuses', filters.statuses.join(','));
+  }
+  if (filters.dateFrom) params.append('date_from', filters.dateFrom);
+  if (filters.dateTo) params.append('date_to', filters.dateTo);
+  return params;
+}
+
 // Test Magento Data operations
 export async function getTestMagentoData(limit = 100, offset = 0, search = '') {
   const params = new URLSearchParams({
@@ -35,7 +50,7 @@ export async function checkTablesStatus() {
 }
 
 // UK Magento Data operations
-export async function getUKMagentoData(limit = 100, offset = 0, search = '', sortBy = '', sortOrder = 'desc') {
+export async function getUKMagentoData(limit = 100, offset = 0, search = '', sortBy = '', sortOrder = 'desc', filters = null) {
   const params = new URLSearchParams({
     limit: limit.toString(),
     offset: offset.toString(),
@@ -45,6 +60,7 @@ export async function getUKMagentoData(limit = 100, offset = 0, search = '', sor
     params.append('sort_by', sortBy);
     params.append('sort_order', sortOrder);
   }
+  appendFullDataFilters(params, filters);
   return await get(`${API}/uk?${params.toString()}`);
 }
 
@@ -91,7 +107,7 @@ export async function uploadUKMagentoCSV(file) {
 }
 
 // FR Magento Data operations
-export async function getFRMagentoData(limit = 100, offset = 0, search = '', sortBy = '', sortOrder = 'desc') {
+export async function getFRMagentoData(limit = 100, offset = 0, search = '', sortBy = '', sortOrder = 'desc', filters = null) {
   const params = new URLSearchParams({
     limit: limit.toString(),
     offset: offset.toString(),
@@ -101,6 +117,7 @@ export async function getFRMagentoData(limit = 100, offset = 0, search = '', sor
     params.append('sort_by', sortBy);
     params.append('sort_order', sortOrder);
   }
+  appendFullDataFilters(params, filters);
   return await get(`${API}/fr?${params.toString()}`);
 }
 
@@ -147,7 +164,7 @@ export async function uploadFRMagentoCSV(file) {
 }
 
 // NL Magento Data operations
-export async function getNLMagentoData(limit = 100, offset = 0, search = '', sortBy = '', sortOrder = 'desc') {
+export async function getNLMagentoData(limit = 100, offset = 0, search = '', sortBy = '', sortOrder = 'desc', filters = null) {
   const params = new URLSearchParams({
     limit: limit.toString(),
     offset: offset.toString(),
@@ -157,6 +174,7 @@ export async function getNLMagentoData(limit = 100, offset = 0, search = '', sor
     params.append('sort_by', sortBy);
     params.append('sort_order', sortOrder);
   }
+  appendFullDataFilters(params, filters);
   return await get(`${API}/nl?${params.toString()}`);
 }
 
@@ -334,6 +352,11 @@ export async function getShippingMethods(region) {
   return await get(`${API}/${region}/shipping-methods`);
 }
 
+// Order statuses present in a region's cached orders ('all' unions UK/FR/NL)
+export async function getAvailableStatuses(region) {
+  return await get(`${API}/filters/status/available/${region}`);
+}
+
 // Import History operations
 export async function getImportHistory(limit = 100, offset = 0, region = null) {
   const params = new URLSearchParams({
@@ -356,7 +379,7 @@ export async function refreshAggregatedDataForRegion(region) {
 }
 
 // All Regions (combined) operations
-export async function getAllRegionsData(limit = 100, offset = 0, search = '', sortBy = '', sortOrder = 'desc') {
+export async function getAllRegionsData(limit = 100, offset = 0, search = '', sortBy = '', sortOrder = 'desc', filters = null) {
   const params = new URLSearchParams({
     limit: limit.toString(),
     offset: offset.toString(),
@@ -366,6 +389,7 @@ export async function getAllRegionsData(limit = 100, offset = 0, search = '', so
     params.append('sort_by', sortBy);
     params.append('sort_order', sortOrder);
   }
+  appendFullDataFilters(params, filters);
   return await get(`${API}/all?${params.toString()}`);
 }
 

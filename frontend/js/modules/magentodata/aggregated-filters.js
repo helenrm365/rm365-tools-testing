@@ -3,7 +3,7 @@ import { get, post, del, put } from '../../services/api/http.js';
 import { showToast } from '../../ui/toast.js';
 import { initDatePicker } from '../../ui/datePicker.js';
 import { initDropdown } from '../../ui/dropdown.js';
-import { refreshAggregatedDataForRegion, getCustomRangeAggregatedData, getShippingMethods } from '../../services/api/magentoDataApi.js?v=8';
+import { refreshAggregatedDataForRegion, getCustomRangeAggregatedData, getShippingMethods } from '../../services/api/magentoDataApi.js?v=9';
 
 const API = '/v1/magentodata';
 
@@ -82,7 +82,7 @@ function createFiltersModal(region) {
                 <div class="modal-header-icon">
                     <i class="fas fa-chart-bar"></i>
                 </div>
-                <h2 class="modal-title">6M Aggregated Magento Filters - ${region.toUpperCase()}</h2>
+                <h2 class="modal-title">6-Month Aggregation Rules - ${region.toUpperCase()}</h2>
                 <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">
                     <i class="fas fa-times"></i>
                 </button>
@@ -613,7 +613,7 @@ function showConfirmDialog(message) {
                 <div class="modal-header-icon">
                     <i class="fas fa-sync-alt"></i>
                 </div>
-                <h2 class="modal-title">Confirm Filter Changes</h2>
+                <h2 class="modal-title">Confirm Rule Changes</h2>
                 <button class="modal-close" id="confirm-close-btn">
                     <i class="fas fa-times"></i>
                 </button>

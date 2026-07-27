@@ -1,6 +1,6 @@
 // frontend/js/modules/magentodata/history.js
 
-import { getImportHistory } from '../../services/api/magentoDataApi.js?v=5';
+import { getImportHistory } from '../../services/api/magentoDataApi.js?v=9';
 import { showToast } from '../../ui/toast.js';
 import { initDatePicker } from '../../ui/datePicker.js';
 import { initDropdown } from '../../ui/dropdown.js';

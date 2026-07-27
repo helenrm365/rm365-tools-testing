@@ -15,6 +15,14 @@ router = APIRouter()
 svc = MagentoDataService()
 
 
+def _parse_statuses(statuses: str) -> Optional[List[str]]:
+    """Turn a comma-separated statuses query param into a clean list (None when empty)."""
+    if not statuses:
+        return None
+    parsed = [s.strip() for s in statuses.split(',') if s.strip()]
+    return parsed or None
+
+
 @router.get("/init", response_model=InitTablesResponse)
 def initialize_tables(user=Depends(get_current_user)):
     """
@@ -107,10 +115,14 @@ def get_all_regions_data(
     search: str = Query(""),
     sort_by: str = Query(None, description="Column to sort by"),
     sort_order: str = Query("desc", description="Sort order: 'asc' or 'desc'"),
+    statuses: str = Query("", description="Comma-separated order statuses to include (e.g. 'complete,processing')"),
+    date_from: str = Query("", description="Only include orders created on/after this date (YYYY-MM-DD)"),
+    date_to: str = Query("", description="Only include orders created on/before this date (YYYY-MM-DD)"),
     user=Depends(get_current_user)
 ):
     """Get combined magento data from all regions (UK, FR, NL) with a region column"""
-    result = svc.get_all_regions_data(limit, offset, search, sort_by, sort_order)
+    result = svc.get_all_regions_data(limit, offset, search, sort_by, sort_order,
+                                      _parse_statuses(statuses), date_from or None, date_to or None)
     return result
 
 
@@ -187,11 +199,15 @@ def get_uk_magento_data(
     fields: str = Query(None, description="Comma-separated list of fields to return (e.g., 'sku,name,qty,original_price,special_price')"),
     sort_by: str = Query(None, description="Column to sort by (e.g., 'sku', 'name', 'qty', 'imported_at')"),
     sort_order: str = Query("desc", description="Sort order: 'asc' or 'desc'"),
+    statuses: str = Query("", description="Comma-separated order statuses to include (e.g. 'complete,processing')"),
+    date_from: str = Query("", description="Only include orders created on/after this date (YYYY-MM-DD)"),
+    date_to: str = Query("", description="Only include orders created on/before this date (YYYY-MM-DD)"),
     user=Depends(get_current_user)
 ):
-    """Get UK magento data with pagination, search, and optional field selection"""
+    """Get UK magento data with pagination, search, status/date filters and optional field selection"""
     field_list = fields.split(',') if fields else None
-    result = svc.get_region_data("uk", limit, offset, search, field_list, sort_by, sort_order)
+    result = svc.get_region_data("uk", limit, offset, search, field_list, sort_by, sort_order,
+                                 _parse_statuses(statuses), date_from or None, date_to or None)
     return MagentoDataResponse(**result)
 
 
@@ -226,11 +242,15 @@ def get_fr_magento_orders_cache(
     fields: str = Query(None, description="Comma-separated list of fields to return"),
     sort_by: str = Query(None, description="Column to sort by (e.g., 'sku', 'name', 'qty', 'imported_at')"),
     sort_order: str = Query("desc", description="Sort order: 'asc' or 'desc'"),
+    statuses: str = Query("", description="Comma-separated order statuses to include (e.g. 'complete,processing')"),
+    date_from: str = Query("", description="Only include orders created on/after this date (YYYY-MM-DD)"),
+    date_to: str = Query("", description="Only include orders created on/before this date (YYYY-MM-DD)"),
     user=Depends(get_current_user)
 ):
-    """Get FR magento data with pagination, search, and optional field selection"""
+    """Get FR magento data with pagination, search, status/date filters and optional field selection"""
     field_list = fields.split(',') if fields else None
-    result = svc.get_region_data("fr", limit, offset, search, field_list, sort_by, sort_order)
+    result = svc.get_region_data("fr", limit, offset, search, field_list, sort_by, sort_order,
+                                 _parse_statuses(statuses), date_from or None, date_to or None)
     return MagentoDataResponse(**result)
 
 
@@ -265,11 +285,15 @@ def get_nl_magento_orders_cache(
     fields: str = Query(None, description="Comma-separated list of fields to return"),
     sort_by: str = Query(None, description="Column to sort by (e.g., 'sku', 'name', 'qty', 'imported_at')"),
     sort_order: str = Query("desc", description="Sort order: 'asc' or 'desc'"),
+    statuses: str = Query("", description="Comma-separated order statuses to include (e.g. 'complete,processing')"),
+    date_from: str = Query("", description="Only include orders created on/after this date (YYYY-MM-DD)"),
+    date_to: str = Query("", description="Only include orders created on/before this date (YYYY-MM-DD)"),
     user=Depends(get_current_user)
 ):
-    """Get NL magento data with pagination, search, and optional field selection"""
+    """Get NL magento data with pagination, search, status/date filters and optional field selection"""
     field_list = fields.split(',') if fields else None
-    result = svc.get_region_data("nl", limit, offset, search, field_list, sort_by, sort_order)
+    result = svc.get_region_data("nl", limit, offset, search, field_list, sort_by, sort_order,
+                                 _parse_statuses(statuses), date_from or None, date_to or None)
     return MagentoDataResponse(**result)
 
 

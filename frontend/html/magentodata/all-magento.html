@@ -59,32 +59,57 @@
       </div>
       <div class="block-content">
         <div class="controls-grid">
-          <!-- View Toggle -->
-          <div class="btn-group view-toggle">
-            <button class="btn btn-faded btn-success active" id="viewFullBtn">
-              <i class="fas fa-list"></i>
-              <span>Full Data</span>
-            </button>
-            <button class="btn btn-faded btn-success" id="viewAggregatedBtn">
-              <i class="fas fa-calendar-alt"></i>
-              <span>6-Month</span>
-            </button>
-            <button class="btn btn-faded btn-success" id="customRangeBtn">
-              <i class="fas fa-calendar-day"></i>
-              <span>Custom Range</span>
-            </button>
+          <!-- View: which dataset is on screen -->
+          <div class="control-group">
+            <span class="control-group-label">View</span>
+            <div class="btn-group view-toggle">
+              <button class="btn btn-faded btn-success active" id="viewFullBtn">
+                <i class="fas fa-list"></i>
+                <span>Full Data</span>
+              </button>
+              <button class="btn btn-faded btn-success" id="viewAggregatedBtn">
+                <i class="fas fa-calendar-alt"></i>
+                <span>6-Month</span>
+              </button>
+              <button class="btn btn-faded btn-success" id="customRangeBtn">
+                <i class="fas fa-calendar-day"></i>
+                <span>Custom Range</span>
+              </button>
+            </div>
           </div>
 
-          <!-- Action Buttons -->
-          <div class="action-buttons-row">
-            <button class="btn btn-solid btn-default rounded-lg" id="exportPdfBtn" title="Export to PDF" style="display: none;">
-              <i class="fas fa-file-pdf"></i>
-              <span>Export PDF</span>
-            </button>
-            <button class="btn btn-solid btn-default rounded-lg" id="exportCsvBtn" title="Export to CSV" style="display: none;">
-              <i class="fas fa-file-csv"></i>
-              <span>Export CSV</span>
-            </button>
+          <!-- Filter & Export: acts on what is currently in the table -->
+          <div class="control-group">
+            <span class="control-group-label">Filter &amp; Export</span>
+            <div class="action-buttons-row">
+              <button class="btn btn-solid btn-default rounded-lg" id="fullDataFilterBtn" title="Filter by date range and order status" style="display: none;">
+                <i class="fas fa-sliders-h"></i>
+                <span>Filter Data</span>
+              </button>
+              <button class="btn btn-solid btn-default rounded-lg" id="exportPdfBtn" title="Export to PDF" style="display: none;">
+                <i class="fas fa-file-pdf"></i>
+                <span>Export PDF</span>
+              </button>
+              <button class="btn btn-solid btn-default rounded-lg" id="exportCsvBtn" title="Export to CSV">
+                <i class="fas fa-file-csv"></i>
+                <span>Export CSV</span>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="active-filters" id="activeFilters">
+          <div class="reveal-clip">
+            <div class="active-filters-bar">
+              <span class="active-filters-label">
+                <i class="fas fa-filter"></i>
+                <span>Filtering by:</span>
+              </span>
+              <div class="filter-chips" id="filterChips"></div>
+              <button class="btn btn-light btn-danger btn-sm rounded-full clear-filters-btn" id="clearAllFiltersBtn">
+                <i class="fas fa-times"></i>
+                <span>Clear all</span>
+              </button>
+            </div>
           </div>
         </div>
         <div class="table-container">

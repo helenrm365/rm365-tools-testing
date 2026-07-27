@@ -987,8 +987,51 @@ class MagentoDataRepo:
                 cursor.close()
                 return_products_connection(conn)
     
-    def get_magento_data(self, table_name: str, limit: int = 100, offset: int = 0, search: str = "", fields: list = None, sort_by: str = None, sort_order: str = "desc") -> Dict[str, Any]:
-        """Get magento data from a specific table with pagination, search, sorting, and optional field selection"""
+    @staticmethod
+    def _build_full_data_filters(search: str = "", statuses: list = None,
+                                 date_from: str = None, date_to: str = None,
+                                 prefix: str = "") -> tuple:
+        """Build the WHERE clause and params shared by the full-data queries.
+
+        created_at is stored as text in ISO form ('YYYY-MM-DD HH:MI:SS'), so the
+        date bounds are plain string comparisons (upper bound is exclusive of the
+        day after date_to, which keeps the whole of date_to included).
+
+        Returns (where_clause, params) - where_clause is '' when nothing to filter.
+        """
+        clauses = []
+        params = []
+
+        if search:
+            search_pattern = f"%{search}%"
+            clauses.append(
+                f"({prefix}order_number ILIKE %s OR {prefix}sku ILIKE %s OR {prefix}name ILIKE %s "
+                f"OR {prefix}status ILIKE %s OR {prefix}customer_email ILIKE %s "
+                f"OR {prefix}customer_full_name ILIKE %s)"
+            )
+            params.extend([search_pattern] * 6)
+
+        if statuses:
+            cleaned = [s.strip() for s in statuses if s and s.strip()]
+            if cleaned:
+                clauses.append(f"LOWER({prefix}status) = ANY(%s)")
+                params.append([s.lower() for s in cleaned])
+
+        if date_from:
+            clauses.append(f"{prefix}created_at >= %s")
+            params.append(date_from)
+
+        if date_to:
+            # Exclusive upper bound on the day after date_to so timestamps within
+            # date_to itself are kept.
+            clauses.append(f"{prefix}created_at < to_char((%s)::date + 1, 'YYYY-MM-DD')")
+            params.append(date_to)
+
+        where_clause = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+        return where_clause, params
+
+    def get_magento_data(self, table_name: str, limit: int = 100, offset: int = 0, search: str = "", fields: list = None, sort_by: str = None, sort_order: str = "desc", statuses: list = None, date_from: str = None, date_to: str = None) -> Dict[str, Any]:
+        """Get magento data from a specific table with pagination, search, sorting, status/date filters and optional field selection"""
         # Validate table name to prevent SQL injection
         valid_tables = ['uk_orders_cache', 'fr_orders_cache', 'nl_orders_cache', 'test_magento_data']
         if table_name not in valid_tables:
@@ -1025,47 +1068,22 @@ class MagentoDataRepo:
             conn = get_products_connection()
             cursor = conn.cursor()
             
-            # Build the query with optional search
-            if search:
-                search_pattern = f"%{search}%"
-                count_query = f"""
-                    SELECT COUNT(*) FROM {table_name}
-                    WHERE order_number ILIKE %s 
-                       OR sku ILIKE %s 
-                       OR name ILIKE %s
-                       OR status ILIKE %s
-                       OR customer_email ILIKE %s
-                       OR customer_full_name ILIKE %s
-                """
-                data_query = f"""
-                    SELECT {select_clause}
-                    FROM {table_name}
-                    WHERE order_number ILIKE %s 
-                       OR sku ILIKE %s 
-                       OR name ILIKE %s
-                       OR status ILIKE %s
-                       OR customer_email ILIKE %s
-                       OR customer_full_name ILIKE %s
-                    {order_clause}
-                    LIMIT %s OFFSET %s
-                """
-                cursor.execute(count_query, (search_pattern, search_pattern, search_pattern, search_pattern, search_pattern, search_pattern))
-                total_count = cursor.fetchone()[0]
-                
-                cursor.execute(data_query, (search_pattern, search_pattern, search_pattern, search_pattern, search_pattern, search_pattern, limit, offset))
-            else:
-                count_query = f"SELECT COUNT(*) FROM {table_name}"
-                data_query = f"""
-                    SELECT {select_clause}
-                    FROM {table_name}
-                    {order_clause}
-                    LIMIT %s OFFSET %s
-                """
-                cursor.execute(count_query)
-                total_count = cursor.fetchone()[0]
-                
-                cursor.execute(data_query, (limit, offset))
-            
+            # Build the query with optional search / status / date filters
+            where_clause, filter_params = self._build_full_data_filters(search, statuses, date_from, date_to)
+
+            count_query = f"SELECT COUNT(*) FROM {table_name} {where_clause}"
+            data_query = f"""
+                SELECT {select_clause}
+                FROM {table_name}
+                {where_clause}
+                {order_clause}
+                LIMIT %s OFFSET %s
+            """
+            cursor.execute(count_query, tuple(filter_params))
+            total_count = cursor.fetchone()[0]
+
+            cursor.execute(data_query, tuple(filter_params) + (limit, offset))
+
             # Fetch all rows
             rows = cursor.fetchall()
             
@@ -3488,17 +3506,25 @@ class MagentoDataRepo:
                 'test': 'test_magento_data'
             }
             
-            table_name = table_map.get(region.lower())
-            if not table_name:
-                return []
-            
-            # Check if table exists first to avoid errors during init
-            cursor.execute(f"SELECT to_regclass('public.{table_name}')")
-            if not cursor.fetchone()[0]:
-                return []
+            if region.lower() == 'all':
+                table_names = ['uk_orders_cache', 'fr_orders_cache', 'nl_orders_cache']
+            else:
+                table_name = table_map.get(region.lower())
+                if not table_name:
+                    return []
+                table_names = [table_name]
 
-            cursor.execute(f"SELECT DISTINCT status FROM {table_name} WHERE status IS NOT NULL AND status != '' ORDER BY status")
-            return [row[0] for row in cursor.fetchall()]
+            statuses = set()
+            for table_name in table_names:
+                # Check if table exists first to avoid errors during init
+                cursor.execute(f"SELECT to_regclass('public.{table_name}')")
+                if not cursor.fetchone()[0]:
+                    continue
+
+                cursor.execute(f"SELECT DISTINCT status FROM {table_name} WHERE status IS NOT NULL AND status != ''")
+                statuses.update(row[0] for row in cursor.fetchall())
+
+            return sorted(statuses)
             
         except Exception as e:
             logger.error(f"Error getting available statuses for {region}: {e}")
@@ -3738,7 +3764,9 @@ class MagentoDataRepo:
     # ===== ALL REGIONS (combined) METHODS =====
 
     def get_all_regions_data(self, limit: int = 100, offset: int = 0, search: str = "",
-                             sort_by: str = None, sort_order: str = "desc") -> Dict[str, Any]:
+                             sort_by: str = None, sort_order: str = "desc",
+                             statuses: list = None, date_from: str = None,
+                             date_to: str = None) -> Dict[str, Any]:
         """Get combined full data from all regions with a region column."""
         all_columns = ['id', 'order_number', 'created_at', 'sku', 'name', 'qty',
                        'original_price', 'special_price', 'status', 'currency',
@@ -3765,27 +3793,16 @@ class MagentoDataRepo:
             conn = get_products_connection()
             cursor = conn.cursor()
 
-            if search:
-                search_pattern = f"%{search}%"
-                where = ("WHERE order_number ILIKE %s OR sku ILIKE %s OR name ILIKE %s "
-                         "OR status ILIKE %s OR customer_email ILIKE %s OR customer_full_name ILIKE %s")
-                params_search = (search_pattern,) * 6
+            where, filter_params = self._build_full_data_filters(search, statuses, date_from, date_to)
+            filter_params = tuple(filter_params)
 
-                count_sql = f"SELECT COUNT(*) FROM ({union_query}) sub {where}"
-                cursor.execute(count_sql, params_search)
-                total_count = cursor.fetchone()[0]
+            count_sql = f"SELECT COUNT(*) FROM ({union_query}) sub {where}"
+            cursor.execute(count_sql, filter_params)
+            total_count = cursor.fetchone()[0]
 
-                data_sql = (f"SELECT * FROM ({union_query}) sub {where} "
-                            f"ORDER BY {order_column} {order_direction} LIMIT %s OFFSET %s")
-                cursor.execute(data_sql, params_search + (limit, offset))
-            else:
-                count_sql = f"SELECT COUNT(*) FROM ({union_query}) sub"
-                cursor.execute(count_sql)
-                total_count = cursor.fetchone()[0]
-
-                data_sql = (f"SELECT * FROM ({union_query}) sub "
-                            f"ORDER BY {order_column} {order_direction} LIMIT %s OFFSET %s")
-                cursor.execute(data_sql, (limit, offset))
+            data_sql = (f"SELECT * FROM ({union_query}) sub {where} "
+                        f"ORDER BY {order_column} {order_direction} LIMIT %s OFFSET %s")
+            cursor.execute(data_sql, filter_params + (limit, offset))
 
             rows = cursor.fetchall()
             result_columns = all_columns + ['region']

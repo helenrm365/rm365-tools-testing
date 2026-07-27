@@ -46,26 +46,214 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  align-items: center;
-  gap: 1rem;
+  align-items: flex-end;
+  gap: 1rem 1.5rem;
   margin-bottom: 1.25rem;
+}
+
+/* ===== Labelled Control Groups ===== */
+/* Switching what you're looking at (View) is a different kind of action from
+   syncing/configuring the data or filtering & exporting the current table, so
+   each cluster is captioned and separated by a rule. */
+.magentodata-page .control-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.magentodata-page .control-group + .control-group {
+  padding-left: 1.5rem;
+  border-left: 1px solid var(--bg-light);
+}
+
+/* JS marks the leading visible group so a hidden neighbour never leaves a
+   stray divider at the start of the row. */
+.magentodata-page .control-group.is-first {
+  padding-left: 0;
+  border-left: none;
+}
+
+.magentodata-page .control-group-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* Once the row wraps, the labels alone carry the grouping - a border-left at
+   the start of a new line just reads as a stray tick. */
+@media (max-width: 900px) {
+  .magentodata-page .control-group + .control-group {
+    padding-left: 0;
+    border-left: none;
+  }
+}
+
+/* ===== Active Full Data Filter Chips ===== */
+/* Mirrors the staff directory (attendance-system/employees.css) treatment.
+   The outer element is a pure height animator (grid 0fr -> 1fr) so the bar
+   slides open AND closed, smoothly pushing the table below it. The negative
+   margin cancels the .block-content flex gap while collapsed so spacing
+   between the controls and the table stays even. */
+.magentodata-page .active-filters {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  visibility: hidden;
+  margin-bottom: calc(var(--content-gap, 1.25rem) * -1);
+  transition:
+    grid-template-rows 0.3s ease,
+    opacity 0.22s ease,
+    margin-bottom 0.3s ease,
+    visibility 0s linear 0.3s;
+}
+
+.magentodata-page .active-filters.visible {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  visibility: visible;
+  margin-bottom: 0;
+  transition:
+    grid-template-rows 0.3s ease,
+    opacity 0.22s ease 0.08s,
+    margin-bottom 0.3s ease,
+    visibility 0s linear 0s;
+}
+
+.magentodata-page .reveal-clip {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.magentodata-page .active-filters-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.625rem;
+  padding: 0.625rem 1rem;
+  background: color-mix(in srgb, var(--info) 7%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--info) 35%, transparent);
+  border-radius: 12px;
+}
+
+.magentodata-page .active-filters-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--info);
+  white-space: nowrap;
+}
+
+.magentodata-page .filter-chips {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.magentodata-page .filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.25rem 0.375rem 0.25rem 0.75rem;
+  background: var(--bg-light);
+  border: 1px solid color-mix(in srgb, var(--info) 30%, transparent);
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.magentodata-page .filter-chip .chip-kind {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.magentodata-page .filter-chip .chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--info) 12%, transparent);
+  color: var(--info);
+  font-size: 0.65rem;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.magentodata-page .filter-chip .chip-remove:hover {
+  background: var(--danger);
+  color: white;
+}
+
+.magentodata-page .clear-filters-btn {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .magentodata-page .active-filters-bar {
+    padding: 0.5rem 0.75rem;
+  }
+
+  .magentodata-page .clear-filters-btn {
+    margin-left: 0;
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 /* ===== View Toggle (handled by btn-group + btn-faded from buttons-nextui.css) ===== */
 
 /* ===== Header Search (top-right of Order Data) ===== */
 /* Search input uses .nui-input from inputs-nextui.css */
+/* The header is title-left / search-right until they no longer fit, at which
+   point the search wraps onto its own line rather than overflowing the card.
+   This deliberately overrides the global `.block-header { flex-wrap: nowrap }`
+   (cards.css, <=768px) - these pages carry a search box the other cards don't,
+   and without wrapping it had nowhere to go but off the edge. */
+.magentodata-page .block-header {
+  flex-wrap: wrap;
+}
+
+.magentodata-page .block-title-group {
+  /* Without min-width:0 a flex item refuses to shrink below its content, which
+     forced the title to wrap one word per line and pushed the search off-card. */
+  min-width: 0;
+  flex: 1 1 12rem;
+}
+
 .magentodata-page .block-header-actions {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 0.5rem;
   margin-left: auto;
+  flex: 1 1 20rem;
+  min-width: 0;
 }
 
 .magentodata-page .block-header-actions .nui-input {
-  min-width: 200px;
-  max-width: 300px;
+  flex: 1 1 auto;
+  min-width: 0;
+  /* Wide enough that the full placeholder fits instead of clipping mid-word */
+  max-width: 340px;
   font-size: 0.85rem;
+}
+
+.magentodata-page .block-header-actions .btn {
+  flex-shrink: 0;
 }
 
 /* ===== Action Buttons Row ===== */
@@ -291,16 +479,38 @@ html.dark-mode .magentodata-page .stat-card {
     font-size: 0.85rem;
   }
   
-  /* Search in header - stack below title on mobile */
+  /* Search in header - always its own full-width line below the title */
   .magentodata-page .block-header-actions {
-    width: 100%;
+    flex: 1 1 100%;
     order: 3;
+    justify-content: flex-start;
+    margin-left: 0;
   }
-  
+
   .magentodata-page .block-header-actions .nui-input {
-    flex: 1;
+    flex: 1 1 auto;
     min-width: 0;
     max-width: none;
+  }
+
+  /* Keep the title beside its icon instead of collapsing into a word column */
+  .magentodata-page .block-title-group {
+    flex: 1 1 auto;
+  }
+
+  /* Control groups stack, so the captions carry the grouping on their own */
+  .magentodata-page .controls-grid {
+    gap: 0.875rem;
+  }
+
+  .magentodata-page .control-group {
+    width: 100%;
+  }
+
+  .magentodata-page .control-group .btn-group,
+  .magentodata-page .control-group .action-buttons-row {
+    width: 100%;
+    justify-content: center;
   }
   
   /* Action buttons - row wrap, maintain proper height */

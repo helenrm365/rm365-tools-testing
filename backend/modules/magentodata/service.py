@@ -230,16 +230,18 @@ class MagentoDataService:
                 "orders_processed": 0
             }
     
-    def get_region_data(self, region: str, limit: int = 100, offset: int = 0, search: str = "", fields: list = None, sort_by: str = None, sort_order: str = "desc") -> Dict[str, Any]:
+    def get_region_data(self, region: str, limit: int = 100, offset: int = 0, search: str = "", fields: list = None, sort_by: str = None, sort_order: str = "desc", statuses: list = None, date_from: str = None, date_to: str = None) -> Dict[str, Any]:
         """Get magento data for a specific region with optional field selection.
-        
+
         Uses the local cache (populated by nightly scheduler) for fast reads.
+        Optionally filtered by order status and created_at date range.
         """
         try:
             # All regions now use the local cache for fast reads
             # The cache is populated by the nightly scheduler via sync_magento_data()
             table_name = self._get_table_name(region)
-            result = self.repo.get_magento_data(table_name, limit, offset, search, fields, sort_by, sort_order)
+            result = self.repo.get_magento_data(table_name, limit, offset, search, fields, sort_by, sort_order,
+                                                statuses, date_from, date_to)
             return {
                 "status": "success",
                 "region": region,
@@ -795,10 +797,13 @@ class MagentoDataService:
     # ===== ALL REGIONS (combined) METHODS =====
 
     def get_all_regions_data(self, limit: int = 100, offset: int = 0, search: str = "",
-                             sort_by: str = None, sort_order: str = "desc") -> Dict[str, Any]:
+                             sort_by: str = None, sort_order: str = "desc",
+                             statuses: list = None, date_from: str = None,
+                             date_to: str = None) -> Dict[str, Any]:
         """Get combined full data from all regions with a region column."""
         try:
-            result = self.repo.get_all_regions_data(limit, offset, search, sort_by, sort_order)
+            result = self.repo.get_all_regions_data(limit, offset, search, sort_by, sort_order,
+                                                    statuses, date_from, date_to)
             return {
                 "status": "success",
                 **result

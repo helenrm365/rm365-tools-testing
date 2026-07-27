@@ -1,9 +1,18 @@
 // frontend/js/modules/magentodata/uk-magento.js
-import { getUKMagentoData, getUKAggregatedData, getCustomRangeAggregatedData, refreshAggregatedDataForRegion, checkTablesStatus, initializeTables, syncUKMagentoData } from '../../services/api/magentoDataApi.js?v=8';
+import { getUKMagentoData, getUKAggregatedData, getCustomRangeAggregatedData, refreshAggregatedDataForRegion, checkTablesStatus, initializeTables, syncUKMagentoData } from '../../services/api/magentoDataApi.js?v=9';
 import { showToast } from '../../ui/toast.js';
-import { showFiltersModal, showCustomRangeModal } from './aggregated-filters.js?v=2';
+import { showFiltersModal, showCustomRangeModal } from './aggregated-filters.js?v=3';
 import { exportToPDF } from '../../utils/pdfExport.js';
-import { exportToCSV } from '../../utils/csvExport.js';
+import { exportToCSV, exportFullDataToCSV } from '../../utils/csvExport.js';
+import {
+  showFullDataFilterModal,
+  renderFullDataFilterBar,
+  syncControlGroups,
+  emptyFullDataFilters,
+  hasActiveFullDataFilters,
+  describeFullDataFilters,
+  filtersFilenameSlug
+} from './full-data-filters.js?v=4';
 
 let currentPage = 0;
 const pageSize = 100; // Display 100 records per page
@@ -19,6 +28,8 @@ let currentSortColumn = null; // Currently sorted column
 let currentSortDirection = 'asc'; // 'asc' or 'desc'
 let _onAggregatedRefreshed = null; // Stored handler ref to avoid listener duplication
 let _onCustomRangeApplied = null; // Stored handler ref to avoid listener duplication
+let fullDataFilters = emptyFullDataFilters(); // Date range + order status filters for the Full Data view
+const MAX_EXPORT_ROWS = 50000; // Safety cap on CSV export size
 
 /**
  * Initialize UK magento page
@@ -35,7 +46,8 @@ export async function initUKMagentoData(path = '/sales/uk') {
   currentSortDirection = 'asc';
   allData = [];
   totalRecords = 0;
-  
+  fullDataFilters = emptyFullDataFilters();
+
   // Determine initial view mode from URL
   if (path.includes('/full-data')) {
     viewMode = 'full';
@@ -282,6 +294,8 @@ function updateViewButtons() {
     customRangeBtn?.classList.add('active');
     if (orderDataTitle) orderDataTitle.textContent = 'Custom Range Data';
   }
+
+  updateFullDataFilterUI();
 }
 
 /**
@@ -478,14 +492,22 @@ function setupEventListeners() {
   
   setupCustomRangeButton();
 
-  // Filters button
+  // Filters button (6-month aggregation config)
   const filtersBtn = document.getElementById('filtersBtn');
   if (filtersBtn) {
     filtersBtn.addEventListener('click', () => {
       showFiltersModal('uk');
     });
   }
-  
+
+  // Full Data filter button (date range + order status)
+  const fullDataFilterBtn = document.getElementById('fullDataFilterBtn');
+  if (fullDataFilterBtn) {
+    fullDataFilterBtn.addEventListener('click', () => {
+      showFullDataFilterModal('uk', fullDataFilters, applyFullDataFilters);
+    });
+  }
+
   // Export PDF button
   const exportPdfBtn = document.getElementById('exportPdfBtn');
   if (exportPdfBtn) {
@@ -593,7 +615,7 @@ async function loadMagentoData() {
     if (viewMode === 'aggregated') {
       result = await getUKAggregatedData(pageSize, offset, '', currentSortColumn || '', currentSortDirection);
     } else {
-      result = await getUKMagentoData(pageSize, offset, '', currentSortColumn || '', currentSortDirection);
+      result = await getUKMagentoData(pageSize, offset, '', currentSortColumn || '', currentSortDirection, fullDataFilters);
     }
     
     if (result.status === 'success' && result.data) {
@@ -745,7 +767,7 @@ async function loadSearchResults(searchTerm) {
     } else if (viewMode === 'aggregated') {
       result = await getUKAggregatedData(pageSize, offset, searchTerm, currentSortColumn || '', currentSortDirection);
     } else {
-      result = await getUKMagentoData(pageSize, offset, searchTerm, currentSortColumn || '', currentSortDirection);
+      result = await getUKMagentoData(pageSize, offset, searchTerm, currentSortColumn || '', currentSortDirection, fullDataFilters);
     }
     
     if (result.status === 'success' && result.data) {
@@ -790,6 +812,7 @@ function displayCurrentPage() {
       paginationInfo.innerHTML = 'Showing <strong>0</strong> of <strong>0</strong> items';
     }
     updatePaginationButtons();
+    updateFullDataFilterUI();
     return;
   }
   
@@ -815,23 +838,18 @@ function displayCurrentPage() {
   }
   
   // Show/hide export buttons based on view mode
+  // PDF stays aggregated-only; CSV is available everywhere including Full Data
   const exportPdfBtn = document.getElementById('exportPdfBtn');
   const exportCsvBtn = document.getElementById('exportCsvBtn');
   if (exportPdfBtn) {
-    if (viewMode === 'aggregated' || viewMode === 'custom') {
-      exportPdfBtn.style.display = '';
-    } else {
-      exportPdfBtn.style.display = 'none';
-    }
+    exportPdfBtn.style.display = (viewMode === 'aggregated' || viewMode === 'custom') ? '' : 'none';
   }
   if (exportCsvBtn) {
-    if (viewMode === 'aggregated' || viewMode === 'custom') {
-      exportCsvBtn.style.display = '';
-    } else {
-      exportCsvBtn.style.display = 'none';
-    }
+    exportCsvBtn.style.display = '';
   }
-  
+
+  updateFullDataFilterUI();
+
   // Calculate showing range
   const startItem = currentPage * pageSize + 1;
   const endItem = Math.min((currentPage + 1) * pageSize, totalRecords);
@@ -848,6 +866,45 @@ function displayCurrentPage() {
   
   updatePaginationButtons();
   updateSortIndicators();
+}
+
+/**
+ * Show/hide the Full Data filter button and the active filter summary bar
+ */
+function updateFullDataFilterUI() {
+  const filterBtn = document.getElementById('fullDataFilterBtn');
+  if (filterBtn) {
+    filterBtn.style.display = viewMode === 'full' ? '' : 'none';
+  }
+
+  // Chips only make sense in Full Data view; null collapses the bar
+  renderFullDataFilterBar(viewMode === 'full' ? fullDataFilters : null, {
+    onChange: applyFullDataFilters
+  });
+
+  // Drop any control group left with no visible buttons in this view
+  syncControlGroups();
+}
+
+/**
+ * Apply new Full Data filters and reload from the first page
+ */
+async function applyFullDataFilters(filters) {
+  fullDataFilters = filters;
+  currentPage = 0;
+  updateFullDataFilterUI();
+
+  if (currentSearch) {
+    await loadSearchResults(currentSearch);
+  } else {
+    await loadMagentoData();
+  }
+
+  if (hasActiveFullDataFilters(filters)) {
+    showToast(`Filters applied: ${describeFullDataFilters(filters)}`, 'success');
+  } else {
+    showToast('Filters cleared', 'info');
+  }
 }
 
 /**
@@ -994,6 +1051,8 @@ async function fetchAllDataForExport() {
     } else if (viewMode === 'custom' && window.customRangeActive) {
       const { rangeType, rangeValue, useExclusions, shippingMethod } = window.customRangeActive;
       result = await getCustomRangeAggregatedData('uk', rangeType, rangeValue, useExclusions !== false, batchSize, offset, currentSearch, shippingMethod || '');
+    } else if (viewMode === 'full') {
+      result = await getUKMagentoData(batchSize, offset, currentSearch, currentSortColumn || '', currentSortDirection, fullDataFilters);
     } else {
       break;
     }
@@ -1002,6 +1061,10 @@ async function fetchAllDataForExport() {
       allExportData = allExportData.concat(result.data);
       offset += batchSize;
       if (result.data.length < batchSize) hasMore = false;
+      if (allExportData.length >= MAX_EXPORT_ROWS) {
+        showToast(`Export capped at ${MAX_EXPORT_ROWS.toLocaleString()} rows - narrow your filters for the rest`, 'warning');
+        hasMore = false;
+      }
     } else {
       hasMore = false;
     }
@@ -1044,16 +1107,18 @@ async function handleExportPDF() {
 }
 
 async function handleExportCSV() {
-  if (viewMode !== 'aggregated' && viewMode !== 'custom') {
-    showToast('CSV export is only available for aggregated and custom range views', 'warning');
-    return;
-  }
-  
   if (!allData || allData.length === 0) {
     showToast('No data to export', 'warning');
     return;
   }
-  
+
+  const exportCsvBtn = document.getElementById('exportCsvBtn');
+  const originalBtnContent = exportCsvBtn ? exportCsvBtn.innerHTML : '';
+  if (exportCsvBtn) {
+    exportCsvBtn.disabled = true;
+    exportCsvBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Exporting...';
+  }
+
   try {
     showToast('Fetching all data for export...', 'info');
     const exportData = await fetchAllDataForExport();
@@ -1061,13 +1126,22 @@ async function handleExportCSV() {
       showToast('No data to export', 'warning');
       return;
     }
-    
-    const viewLabel = viewMode === 'custom' ? customRangeLabel : '6-Month';
-    exportToCSV(exportData, 'uk', viewLabel, currentSearch);
+
+    if (viewMode === 'full') {
+      exportFullDataToCSV(exportData, 'uk', filtersFilenameSlug(fullDataFilters), currentSearch);
+    } else {
+      const viewLabel = viewMode === 'custom' ? customRangeLabel : '6-Month';
+      exportToCSV(exportData, 'uk', viewLabel, currentSearch);
+    }
     showToast(`CSV exported successfully (${exportData.length} items)!`, 'success');
   } catch (error) {
     console.error('Error exporting CSV:', error);
     showToast(`Failed to export CSV: ${error.message}`, 'error');
+  } finally {
+    if (exportCsvBtn) {
+      exportCsvBtn.disabled = false;
+      exportCsvBtn.innerHTML = originalBtnContent;
+    }
   }
 }
 
