@@ -1,6 +1,8 @@
 // frontend/js/modules/magentodata/fr-magento.js
 import { getFRMagentoData, getFRAggregatedData, getCustomRangeAggregatedData, refreshAggregatedDataForRegion, checkTablesStatus, initializeTables, syncFRMagentoData } from '../../services/api/magentoDataApi.js?v=9';
 import { showToast } from '../../ui/toast.js';
+import { showProgressNotification } from '../../ui/progressNotification.js';
+import { confirmModal } from '../../ui/confirmationModal.js';
 import { showFiltersModal, showCustomRangeModal } from './aggregated-filters.js?v=3';
 import { exportToPDF } from '../../utils/pdfExport.js';
 import { exportToCSV, exportFullDataToCSV } from '../../utils/csvExport.js';
@@ -33,7 +35,7 @@ let currentSortDirection = 'asc'; // 'asc' or 'desc'
 let _onAggregatedRefreshed = null; // Stored handler ref to avoid listener duplication
 let _onCustomRangeApplied = null; // Stored handler ref to avoid listener duplication
 let fullDataFilters = emptyFullDataFilters(); // Date range + order status filters for the Full Data view
-const MAX_EXPORT_ROWS = 50000; // Safety cap on CSV export size
+const EXPORT_WARN_ROWS = 50000; // Above this, confirm before exporting - the browser holds every row in memory
 
 /**
  * Initialize FR magento page
@@ -1235,7 +1237,7 @@ function escapeHtml(text) {
 /**
  * Fetch all data for export (loops through pages in batches of 1000)
  */
-async function fetchAllDataForExport() {
+async function fetchAllDataForExport(onProgress = null) {
   const batchSize = 1000;
   let allExportData = [];
   let offset = 0;
@@ -1258,10 +1260,7 @@ async function fetchAllDataForExport() {
       allExportData = allExportData.concat(result.data);
       offset += batchSize;
       if (result.data.length < batchSize) hasMore = false;
-      if (allExportData.length >= MAX_EXPORT_ROWS) {
-        showToast(`Export capped at ${MAX_EXPORT_ROWS.toLocaleString()} rows - narrow your filters for the rest`, 'warning');
-        hasMore = false;
-      }
+      if (onProgress) onProgress(allExportData.length, result.total_count || 0);
     } else {
       hasMore = false;
     }
@@ -1309,6 +1308,23 @@ async function handleExportCSV() {
     return;
   }
 
+  // Nothing is capped - but every row is held in memory until the file is
+  // built, so make the cost clear before starting a very large export.
+  if (totalRecords > EXPORT_WARN_ROWS) {
+    const proceed = await confirmModal({
+      title: 'Large export',
+      message: `<strong>${totalRecords.toLocaleString()} rows</strong> match the current view.`
+        + '<br><br>They are downloaded 1,000 at a time and kept in memory until the file is built, '
+        + 'so this can take several minutes and may make the browser unresponsive. '
+        + 'A very large export can run out of memory and crash the tab.'
+        + '<br><br>Narrowing the date range, order status or search first will be much faster.',
+      confirmText: 'Export anyway',
+      cancelText: 'Cancel',
+      confirmVariant: 'warning'
+    });
+    if (!proceed) return;
+  }
+
   const exportCsvBtn = document.getElementById('exportCsvBtn');
   const originalBtnContent = exportCsvBtn ? exportCsvBtn.innerHTML : '';
   if (exportCsvBtn) {
@@ -1316,13 +1332,31 @@ async function handleExportCSV() {
     exportCsvBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Exporting...';
   }
 
+  // Large exports page through the API 1,000 rows at a time - show progress
+  const job = showProgressNotification({
+    title: 'Exporting CSV',
+    message: 'Fetching rows...'
+  });
+
   try {
-    showToast('Fetching all data for export...', 'info');
-    const exportData = await fetchAllDataForExport();
+    const exportData = await fetchAllDataForExport((fetched, total) => {
+      job.update({
+        percent: total > 0 ? (fetched / total) * 100 : undefined,
+        message: total > 0
+          ? `Fetched ${fetched.toLocaleString()} of ${total.toLocaleString()} rows`
+          : `Fetched ${fetched.toLocaleString()} rows`
+      });
+    });
+
     if (!exportData || exportData.length === 0) {
+      job.fail({ message: 'Nothing matched the current filters' });
       showToast('No data to export', 'warning');
       return;
     }
+
+    job.update({ percent: 100, message: `Building CSV from ${exportData.length.toLocaleString()} rows...` });
+    // Yield a frame so the bar paints before the (synchronous) CSV build
+    await new Promise(resolve => setTimeout(resolve, 0));
 
     if (viewMode === 'full') {
       exportFullDataToCSV(exportData, 'fr', filtersFilenameSlug(fullDataFilters), currentSearch);
@@ -1330,9 +1364,11 @@ async function handleExportCSV() {
       const viewLabel = viewMode === 'custom' ? customRangeLabel : '6-Month';
       exportToCSV(exportData, 'fr', viewLabel, currentSearch);
     }
+    job.succeed({ message: `Downloaded ${exportData.length.toLocaleString()} rows` });
     showToast(`CSV exported successfully (${exportData.length} items)!`, 'success');
   } catch (error) {
     console.error('Error exporting CSV:', error);
+    job.fail({ message: error.message });
     showToast(`Failed to export CSV: ${error.message}`, 'error');
   } finally {
     if (exportCsvBtn) {

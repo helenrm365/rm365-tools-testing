@@ -1,0 +1,145 @@
+/* ===== Progress Notification ===== */
+/* Bottom-right progress card for long-running foreground jobs (CSV exports,
+   bulk fetches). Visual language matches the Task Automation notification.
+
+   Everything is scoped under .progress-notif on purpose: the tasks page
+   injects its own unscoped .pn-* rules at runtime, and scoping keeps the two
+   from overwriting each other. */
+
+.progress-notif {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 360px;
+  max-width: calc(100vw - 40px);
+  background: var(--bg-card);
+  border: 1px solid var(--bg-light);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  z-index: 2147483000;
+  font-family: inherit;
+  animation: progressNotifSlideIn 0.3s ease-out;
+}
+
+html.dark-mode .progress-notif {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.progress-notif.is-dismissing {
+  animation: progressNotifFadeOut 0.4s ease-in forwards;
+}
+
+.progress-notif .pn-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  color: var(--text);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.progress-notif .pn-title {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.progress-notif .pn-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.progress-notif .pn-close:hover {
+  color: var(--text);
+}
+
+.progress-notif .pn-message {
+  color: var(--text-muted);
+  font-size: 12px;
+  margin-bottom: 10px;
+  min-height: 16px;
+  word-break: break-word;
+}
+
+.progress-notif .pn-bar-wrapper {
+  width: 100%;
+  height: 6px;
+  background: var(--bg-light);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.progress-notif .pn-bar {
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+.progress-notif .pn-bar.complete {
+  background: linear-gradient(90deg, #10b981, #34d399);
+}
+
+.progress-notif .pn-bar.error {
+  background: linear-gradient(90deg, #ef4444, #f87171);
+}
+
+/* Unknown total - sweep instead of pretending to know the percentage */
+.progress-notif .pn-bar.indeterminate {
+  width: 35%;
+  animation: progressNotifSweep 1.1s ease-in-out infinite;
+  transition: none;
+}
+
+.progress-notif .pn-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.progress-notif .pn-percent,
+.progress-notif .pn-detail {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+@keyframes progressNotifSlideIn {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes progressNotifFadeOut {
+  from { transform: translateY(0); opacity: 1; }
+  to   { transform: translateY(-20px); opacity: 0; }
+}
+
+@keyframes progressNotifSweep {
+  0%   { margin-left: -35%; }
+  100% { margin-left: 100%; }
+}
+
+@media (max-width: 480px) {
+  .progress-notif {
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    width: auto;
+    max-width: none;
+  }
+}

@@ -35,6 +35,7 @@
 @import 'components/filter-control-panel.css'; /* Collapsible filter panel */
 @import 'components/toggle.css';      /* Toggle switch component */
 @import 'components/connection-status.css'; /* WebSocket connection status */
+@import 'components/progress-notification.css'; /* Bottom-right job progress card */
 @import 'components/table-focus-mode.css'; /* Table focus mode (press F) */
 
 /* 4. Utilities - Helper classes */
