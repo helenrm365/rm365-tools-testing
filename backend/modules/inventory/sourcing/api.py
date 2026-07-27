@@ -424,7 +424,7 @@ async def import_matrix_csv(
 ):
     """
     Import supplier matrix from CSV file
-    Expected format: sku, SUPPLIER1_price, SUPPLIER1_currency, SUPPLIER1_notes, ...
+    Expected format: sku, SUPPLIER1_price, SUPPLIER1_currency, ...
     """
     try:
         contents = await file.read()

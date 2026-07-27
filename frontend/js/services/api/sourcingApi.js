@@ -184,7 +184,7 @@ export async function getPricingForSku(sku) {
 
 /**
  * Create or update pricing entry
- * @param {Object} pricingData - {sku, supplier_id, unit_price, currency, moq, shipping_cost, notes, is_preferred}
+ * @param {Object} pricingData - {sku, supplier_id, unit_price, currency, moq, shipping_cost, is_preferred}
  * @returns {Promise<Object>}
  */
 export async function upsertPricing(pricingData) {

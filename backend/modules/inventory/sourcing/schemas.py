@@ -94,7 +94,6 @@ class SupplierPricingBase(BaseModel):
     currency: Optional[str] = Field(None, max_length=3, description="Currency code. If None, supplier's default currency will be used.")
     moq: Optional[int] = Field(None, description="Minimum Order Quantity")
     shipping_cost: Optional[float] = Field(None, ge=0)
-    notes: Optional[str] = None
     is_preferred: bool = False
     last_verified: Optional[datetime] = None
     # When the price amount/currency was last set or changed (UTC). None for
@@ -113,7 +112,6 @@ class SupplierPricingUpdateIn(BaseModel):
     currency: Optional[str] = None
     moq: Optional[int] = None
     shipping_cost: Optional[float] = None
-    notes: Optional[str] = None
     is_preferred: Optional[bool] = None
 
 
@@ -144,7 +142,6 @@ class SupplierMatrixEntry(BaseModel):
     normalized_price_gbp: Optional[float] = None
     moq: Optional[int] = None
     shipping_cost: Optional[float] = None
-    notes: Optional[str] = None
     is_preferred: bool = False
     last_verified: Optional[datetime] = None
     price_updated_at: Optional[datetime] = None
@@ -164,7 +161,7 @@ class SupplierMatrixBulkUpdateIn(BaseModel):
     """Bulk update supplier pricing from matrix view"""
     updates: List[Dict[str, Any]] = Field(
         ..., 
-        description="List of {sku, supplier_id, unit_price, currency, moq, shipping_cost, notes}"
+        description="List of {sku, supplier_id, unit_price, currency, moq, shipping_cost}"
     )
 
 

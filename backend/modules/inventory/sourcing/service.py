@@ -484,7 +484,6 @@ class SourcingService:
             'normalized_price_gbp': normalize(row['unit_price'], row['currency']),
             'moq': row['moq'],
             'shipping_cost': float(row['shipping_cost']) if row['shipping_cost'] else None,
-            'notes': row['notes'],
             'is_preferred': row['is_preferred'],
             'last_verified': row['last_verified'].isoformat() if row['last_verified'] else None,
             # When this supplier's price for this SKU was last set/changed
@@ -1016,7 +1015,6 @@ class SourcingService:
             col_prefix = row['supplier_code']
             sku_data[sku][f'{col_prefix}_price'] = row['unit_price']
             sku_data[sku][f'{col_prefix}_currency'] = row['currency']
-            sku_data[sku][f'{col_prefix}_notes'] = row['notes'] or ''
             sku_data[sku][f'{col_prefix}_updated'] = self._format_date_for_export(row.get('price_updated_at'))
         
         # Build CSV
@@ -1028,7 +1026,6 @@ class SourcingService:
             headers.extend([
                 f"{s['code']}_price",
                 f"{s['code']}_currency",
-                f"{s['code']}_notes",
                 f"{s['code']}_updated"
             ])
 
@@ -1083,8 +1080,7 @@ class SourcingService:
             for code, supplier in supplier_by_code.items():
                 price_col = f'{code}_price'
                 currency_col = f'{code}_currency'
-                notes_col = f'{code}_notes'
-                
+
                 # Only process if price column exists and has a value
                 # Empty cells are skipped to preserve existing values
                 price_value = row.get(price_col, '').strip() if price_col in row else ''
@@ -1127,14 +1123,11 @@ class SourcingService:
                             if explicit_currency:
                                 currency = explicit_currency
                         
-                        notes = row.get(notes_col, '').strip()
-                        
                         entries.append({
                             'sku': resolved_sku,
                             'supplier_id': supplier['id'],
                             'unit_price': price,
-                            'currency': currency,  # Can be None
-                            'notes': notes if notes else None
+                            'currency': currency  # Can be None
                         })
                     except (ValueError, TypeError) as e:
                         errors.append(f"Row {row_num}, {code}: Invalid price '{price_value}'")
@@ -1249,7 +1242,6 @@ class SourcingService:
             effective_currency = currency if currency else supplier_default
             
             sku_data[sku][f'{col_prefix}_currency'] = effective_currency
-            sku_data[sku][f'{col_prefix}_notes'] = row['notes'] or ''
             sku_data[sku][f'{col_prefix}_updated'] = self._format_date_for_export(row.get('price_updated_at'))
         
         # For SKUs without pricing, pre-fill currency columns with supplier defaults
@@ -1342,8 +1334,7 @@ class SourcingService:
             key = (row['sku'], row['supplier_id'])
             existing_map[key] = {
                 'unit_price': float(row['unit_price']) if row['unit_price'] else None,
-                'currency': row['currency'],
-                'notes': row['notes']
+                'currency': row['currency']
             }
         
         skipped_skus = []
@@ -1378,12 +1369,10 @@ class SourcingService:
                 # Construct expected keys
                 expected_price_key = f"{supplier_code}_price"
                 expected_currency_key = f"{supplier_code}_currency"
-                expected_notes_key = f"{supplier_code}_notes"
-                
+
                 # Find actual keys in the row using the map
                 price_key = header_map.get(expected_price_key.lower())
                 currency_key = header_map.get(expected_currency_key.lower())
-                notes_key = header_map.get(expected_notes_key.lower())
 
                 if not price_key:
                     if row_idx == 0:
@@ -1454,33 +1443,25 @@ class SourcingService:
                     if not currency:
                         currency = supplier_default
                     
-                    notes = ''
-                    if notes_key:
-                        notes = str(row.get(notes_key, '')).strip()
-                    
                     # Check if this entry has actually changed
                     key = (resolved_sku, supplier['id'])
                     existing = existing_map.get(key)
-                    
-                    new_notes = notes if notes else None
-                    
+
                     if existing:
                         # Compare values - only update if different
                         price_same = abs((existing['unit_price'] or 0) - price) < 0.001
                         currency_same = existing['currency'] == currency
-                        notes_same = (existing['notes'] or '') == (new_notes or '')
-                        
-                        if price_same and currency_same and notes_same:
+
+                        if price_same and currency_same:
                             unchanged_count += 1
                             continue  # Skip - no change
-                    
+
                     # Add to batch (new or changed)
                     entries_to_upsert.append({
                         'sku': resolved_sku,
                         'supplier_id': supplier['id'],
                         'unit_price': price,
-                        'currency': currency,  # Can be None
-                        'notes': new_notes
+                        'currency': currency  # Can be None
                     })
 
                 except Exception as e:
@@ -1507,8 +1488,7 @@ class SourcingService:
                 'sku': e['sku'],
                 'supplier_id': e['supplier_id'],
                 'unit_price': e['unit_price'],
-                'currency': e['currency'],
-                'notes': e.get('notes')
+                'currency': e['currency']
             }
             for e in entries_to_upsert
         ]

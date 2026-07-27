@@ -74,7 +74,6 @@ class SourcingRepository:
                     currency VARCHAR(3) DEFAULT 'GBP',
                     moq INTEGER,
                     shipping_cost DECIMAL(10,2),
-                    notes TEXT,
                     is_preferred BOOLEAN DEFAULT FALSE,
                     last_verified TIMESTAMP,
                     created_at TIMESTAMP DEFAULT NOW(),
@@ -470,14 +469,13 @@ class SourcingRepository:
             
             cursor.execute("""
                 INSERT INTO sourcing_supplier_pricing
-                (sku, supplier_id, unit_price, currency, moq, shipping_cost, notes, is_preferred, last_verified, price_updated_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                (sku, supplier_id, unit_price, currency, moq, shipping_cost, is_preferred, last_verified, price_updated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
                 ON CONFLICT (sku, supplier_id) DO UPDATE SET
                     unit_price = EXCLUDED.unit_price,
                     currency = EXCLUDED.currency,
                     moq = EXCLUDED.moq,
                     shipping_cost = EXCLUDED.shipping_cost,
-                    notes = EXCLUDED.notes,
                     is_preferred = EXCLUDED.is_preferred,
                     last_verified = EXCLUDED.last_verified,
                     price_updated_at = NOW(),
@@ -490,7 +488,6 @@ class SourcingRepository:
                 data.get('currency', 'GBP'),
                 data.get('moq'),
                 data.get('shipping_cost'),
-                data.get('notes'),
                 data.get('is_preferred', False),
                 data.get('last_verified', datetime.now())
             ))
@@ -533,14 +530,13 @@ class SourcingRepository:
             for entry in entries:
                 cursor.execute("""
                     INSERT INTO sourcing_supplier_pricing
-                    (sku, supplier_id, unit_price, currency, moq, shipping_cost, notes, is_preferred, price_updated_at)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                    (sku, supplier_id, unit_price, currency, moq, shipping_cost, is_preferred, price_updated_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
                     ON CONFLICT (sku, supplier_id) DO UPDATE SET
                         unit_price = EXCLUDED.unit_price,
                         currency = EXCLUDED.currency,
                         moq = EXCLUDED.moq,
                         shipping_cost = EXCLUDED.shipping_cost,
-                        notes = EXCLUDED.notes,
                         is_preferred = EXCLUDED.is_preferred,
                         price_updated_at = NOW(),
                         updated_at = NOW()
@@ -551,7 +547,6 @@ class SourcingRepository:
                     entry.get('currency'),  # Allow None for placeholder prices
                     entry.get('moq'),
                     entry.get('shipping_cost'),
-                    entry.get('notes'),
                     entry.get('is_preferred', False)
                 ))
                 count += 1
@@ -650,7 +645,6 @@ class SourcingRepository:
                     p.currency,
                     p.moq,
                     p.shipping_cost,
-                    p.notes,
                     p.is_preferred,
                     p.last_verified,
                     p.updated_at,

@@ -1200,7 +1200,6 @@ function renderMatrixTable() {
                onblur="window.sourcingModule.handleMatrixCellEdit(this)">
             ${displayValue}
           </div>
-          ${pricing?.notes ? `<span class="cell-note" data-note="${escapeHtml(pricing.notes)}"><i class="fas fa-sticky-note"></i></span>` : ''}
         </td>
       `;
     }).join('');
@@ -2609,10 +2608,6 @@ function renderPricingEntries(pricing) {
             <label>MOQ</label>
             <input type="number" class="nui-input nui-input-default moq-input" min="1" value="${existing?.moq || ''}" placeholder="1">
           </div>
-          <div class="field-group notes-field">
-            <label>Notes</label>
-            <input type="text" class="nui-input nui-input-default notes-input" value="${escapeHtml(existing?.notes || '')}" placeholder="Optional notes…">
-          </div>
         </div>
       </div>
     `;
@@ -2643,16 +2638,14 @@ async function handleSavePricing() {
     const price = parseFloat(entry.querySelector('.price-input').value);
     const currency = entry.querySelector('.currency-select').value;
     const moq = parseInt(entry.querySelector('.moq-input').value) || null;
-    const notes = entry.querySelector('.notes-input').value.trim() || null;
-    
+
     if (!isNaN(price) && price > 0) {
       entries.push({
         sku: currentPricingSku,
         supplier_id: supplierId,
         unit_price: price,
         currency,
-        moq,
-        notes
+        moq
       });
     }
   });

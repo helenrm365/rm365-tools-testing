@@ -19,6 +19,11 @@ SCOPES = [
     'https://www.googleapis.com/auth/drive'
 ]
 
+# Per-supplier column suffixes this exporter used to write but no longer does.
+# They are deleted from the sheet on the next export so the layout matches the
+# database (imports ignore them regardless).
+RETIRED_COLUMN_SUFFIXES = ('_notes',)
+
 class GSheetsService:
     def __init__(self, credentials_path: str = "service_account.json"):
         self.credentials_path = credentials_path
@@ -68,7 +73,6 @@ class GSheetsService:
                 headers.extend([
                     f"{s['code']}_price",
                     f"{s['code']}_currency",
-                    f"{s['code']}_notes",
                     # Date this supplier's price was last updated (read-only on
                     # import — the database stamps its own date when a price changes).
                     f"{s['code']}_updated"
@@ -95,7 +99,6 @@ class GSheetsService:
                     row.extend([
                         format_val(row_data.get(f"{code}_price")),
                         format_val(row_data.get(f"{code}_currency")),
-                        format_val(row_data.get(f"{code}_notes")),
                         format_val(row_data.get(f"{code}_updated"))
                     ])
                 new_rows.append(row)
@@ -105,13 +108,20 @@ class GSheetsService:
                 existing_data = worksheet.get_all_values()
             except:
                 existing_data = []
-            
+
+            # 3a. Remove columns from an older export layout that we no longer
+            # write (currently the per-supplier notes column). Done before the
+            # diff below so the remaining cells line up with the new headers.
+            existing_data, cols_deleted = self._drop_retired_columns(
+                worksheet, existing_data, suppliers
+            )
+
             # 3b. Ensure the sheet grid is large enough for our data
             required_rows = len(new_rows)
             required_cols = len(headers)
             current_rows = worksheet.row_count
-            current_cols = worksheet.col_count
-            
+            current_cols = max(worksheet.col_count - cols_deleted, 1)
+
             needs_resize = False
             resize_rows = current_rows
             resize_cols = current_cols
@@ -186,7 +196,7 @@ class GSheetsService:
                                 'value': ''
                             })
                             rows_cleared += 1
-            
+
             # 6. Batch update only changed cells
             if cells_to_update:
                 # Use batch_update for efficiency
@@ -211,12 +221,49 @@ class GSheetsService:
                 "status": "success", 
                 "rows_exported": len(new_rows) - 1,
                 "cells_updated": len(cells_to_update),
-                "rows_cleared": rows_cleared
+                "rows_cleared": rows_cleared,
+                "columns_deleted": cols_deleted
             }
             
         except Exception as e:
             logger.error(f"Error exporting to Google Sheet: {str(e)}")
             raise e
+
+    def _drop_retired_columns(self, worksheet, existing_data: List[List[str]], suppliers: List[Dict]):
+        """Delete columns a previous export wrote but this one no longer does.
+
+        Sheets created before the per-supplier notes column was retired still
+        carry a `{CODE}_notes` column. Left in place it would sit in the middle
+        of the layout holding stale values, and would be read back on import.
+        Only headers we recognise as ours are deleted — columns the user added
+        themselves are untouched.
+
+        Returns (existing_data without those columns, number of columns deleted)
+        so the caller's cell diff matches the sheet after deletion.
+        """
+        if not existing_data:
+            return existing_data, 0
+
+        retired = {
+            f"{s['code']}{suffix}".strip().lower()
+            for s in suppliers
+            for suffix in RETIRED_COLUMN_SUFFIXES
+        }
+        header_row = [str(h).strip().lower() for h in existing_data[0]]
+        drop = {i for i, h in enumerate(header_row) if h in retired}
+        if not drop:
+            return existing_data, 0
+
+        # Delete right-to-left so the earlier indices stay valid as we go.
+        for idx in sorted(drop, reverse=True):
+            worksheet.delete_columns(idx + 1)  # gspread columns are 1-based
+        logger.info(f"[GSheet Export] Deleted {len(drop)} retired column(s) from the sheet")
+
+        trimmed = [
+            [v for i, v in enumerate(row) if i not in drop]
+            for row in existing_data
+        ]
+        return trimmed, len(drop)
 
     def _col_letter(self, col_num: int) -> str:
         """Convert column number (1-based) to letter (A, B, ..., Z, AA, AB, ...)"""

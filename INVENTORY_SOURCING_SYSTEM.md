@@ -107,7 +107,6 @@ The spreadsheet-like interface for entering supplier prices.
 - Multi-currency support per entry
 - MOQ (Minimum Order Quantity) tracking
 - Shipping cost fields
-- Notes per pricing entry
 - Preferred supplier flagging
 
 ### Pillar 4: Analysis_Dashboard (The Brain)
@@ -251,7 +250,7 @@ The Supplier Matrix provides a spreadsheet-like interface for managing pricing:
 **Quick Edit Modal**:
 1. Click the edit icon on any SKU row
 2. Modal shows all suppliers with their pricing
-3. Edit price, currency, MOQ, and notes
+3. Edit price, currency and MOQ
 4. Save all at once
 
 ### Multi-Currency Support
@@ -271,7 +270,7 @@ SKU: WIDGET-001
 - Exports ALL products from `inventory_metadata` (same source as Label Generator)
 - Includes `product_name` column for reference
 - Products without pricing have empty supplier columns
-- Format: `sku, product_name, SUPPLIER1_price, SUPPLIER1_currency, SUPPLIER1_notes, ...`
+- Format: `sku, product_name, SUPPLIER1_price, SUPPLIER1_currency, SUPPLIER1_updated, ...`
 - Great for offline editing in Excel/Google Sheets
 
 **CSV Import (Update-Only)**:
@@ -422,8 +421,7 @@ Authorization: Bearer {token}
   "supplier_id": 1,
   "unit_price": 12.50,
   "currency": "GBP",
-  "moq": 10,
-  "notes": "Bulk discount available 100+"
+  "moq": 10
 }
 ```
 
@@ -469,7 +467,6 @@ CREATE TABLE sourcing_supplier_pricing (
     currency VARCHAR(3) DEFAULT 'GBP',
     moq INTEGER,
     shipping_cost DECIMAL(10,2),
-    notes TEXT,
     is_preferred BOOLEAN DEFAULT FALSE,
     last_verified TIMESTAMP,
     created_at TIMESTAMP DEFAULT NOW(),
